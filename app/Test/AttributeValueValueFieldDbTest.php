@@ -384,6 +384,105 @@ class AttributeValueValueFieldDbTest extends TestCase
         );
     }
 
+    /**
+     * @param Model $model
+     * @param array $named The request's named parameters.
+     * @param array $scope
+     * @return array
+     */
+    private function paginate(Model $model, array $named, array $scope)
+    {
+        App::uses('Controller', 'Controller');
+        App::uses('ComponentCollection', 'Controller');
+        App::uses('PaginatorComponent', 'Controller/Component');
+        $request = new CakeRequest(null, false);
+        $request->params['named'] = $named;
+        $collection = new ComponentCollection();
+        $collection->setController(new Controller($request, new CakeResponse()));
+        $paginator = new PaginatorComponent($collection, ['limit' => 50, 'recursive' => -1]);
+        return $paginator->paginate($model, $scope);
+    }
+
+    public function testThePaginatorSortsByTheValue()
+    {
+        $proposal = ClassRegistry::init('ShadowAttribute');
+        // Only the paginator's check of the virtual fields counts the value as a field
+        $this->assertFalse($this->attribute->hasField('value'));
+        $this->assertTrue($this->attribute->hasField('value', true));
+        $this->assertTrue($this->attribute->hasField('Attribute.value', true));
+        $this->assertFalse($this->attribute->hasField('ShadowAttribute.value', true));
+        $this->assertTrue($proposal->hasField('ShadowAttribute.value', true));
+        $this->assertSame('value', $proposal->hasField(['value', 'id'], true));
+
+        // Values equal in the collation (A and a) may come either way round
+        $folded = function (array $ids) {
+            return array_map(function ($id) {
+                return mb_strtolower($this->values[$id]);
+            }, $ids);
+        };
+        foreach (['Attribute.value' => 'asc', 'value' => 'desc'] as $sort => $direction) {
+            $results = $this->paginate(
+                $this->attribute,
+                ['sort' => $sort, 'direction' => $direction],
+                ['Attribute.id' => $this->attributeIds()]
+            );
+            $this->assertSame(
+                $folded($this->referenceOrder(strtoupper($direction))),
+                $folded($this->ids($results)),
+                $sort
+            );
+            $this->assertNoIdsOrColumnText($results);
+        }
+
+        $t = $this->token;
+        $ids = [$this->ids['proposal']];
+        foreach (["{$t}m", "{$t}c"] as $value) {
+            $proposal->create();
+            $this->assertNotFalse($proposal->save(['ShadowAttribute' => [
+                'event_id' => $this->event['id'],
+                'event_uuid' => $this->event['uuid'],
+                'event_org_id' => $this->event['orgc_id'],
+                'org_id' => $this->event['orgc_id'],
+                'old_id' => 0,
+                'type' => 'text',
+                'category' => 'Other',
+                'value' => $value,
+                'comment' => $t,
+            ]]), json_encode($proposal->validationErrors));
+            $ids[] = (int)$proposal->id;
+        }
+        $results = $this->paginate(
+            $proposal,
+            ['sort' => 'ShadowAttribute.value', 'direction' => 'desc'],
+            ['ShadowAttribute.id' => $ids]
+        );
+        $this->assertSame(
+            ["{$t}proposed", "{$t}m", "{$t}c"],
+            array_column(array_column($results, 'ShadowAttribute'), 'value')
+        );
+    }
+
+    public function testTheProposalIndexSortsByTheValueAndNotItsColumns()
+    {
+        App::uses('ShadowAttributesController', 'Controller');
+        $controller = new ShadowAttributesController(new CakeRequest(null, false), new CakeResponse());
+        $controller->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
+        // The columns as the table has them in dual mode
+        $controller->ShadowAttribute->schema(true);
+        $method = new ReflectionMethod($controller, '__indexOrder');
+        $method->setAccessible(true);
+        $order = function (array $named) use ($method, $controller) {
+            return $method->invoke($controller, $named);
+        };
+
+        $this->assertSame(['ShadowAttribute.value' => 'DESC'], $order(['sort' => 'value', 'direction' => 'desc']));
+        $this->assertSame(['ShadowAttribute.comment' => 'ASC'], $order(['sort' => 'comment']));
+        foreach (['value1', 'value2', 'value1_id', 'value2_id', 'ShadowAttribute.value', 'nothing'] as $sort) {
+            $this->assertNull($order(['sort' => $sort, 'direction' => 'asc']), $sort);
+        }
+        $this->assertNull($order([]));
+    }
+
     public function testFetchEventRowsHoldTheKeysOf2x()
     {
         $user = ClassRegistry::init('User')->getAuthUser(1);

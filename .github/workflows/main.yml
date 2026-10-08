@@ -377,6 +377,7 @@ jobs:
       - name: Run PHP tests
         run: |
           ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ -e php,ctp app/
+          python3 tests/value_oracle/lint_value_columns.py --strict
           sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
 
       - name: Clone test files

@@ -927,17 +927,9 @@ class ShadowAttributesController extends AppController
                 $params[$simpleParam] = $this->request['named'][$simpleParam];
             }
         }
-        if (isset($this->request['named']['sort'])) {
-            $sortField = $this->request['named']['sort'];
-            $schema = $this->ShadowAttribute->schema();
-            if (isset($schema[$sortField])) {
-                $sortDirection = 'ASC';
-                if (!empty($this->request['named']['direction'])) {
-                    $direction = trim(strtolower($this->request['named']['direction']));
-                    $sortDirection = ($direction === 'asc' ? 'ASC' : 'DESC');
-                }
-                $params['order'] = array('ShadowAttribute.' . $sortField => $sortDirection);
-            }
+        $order = $this->__indexOrder($this->request['named']);
+        if ($order !== null) {
+            $params['order'] = $order;
         }
         if (empty($params['order'])) {
             // Insertion order, stated. MySQL returns it off the primary key
@@ -969,6 +961,32 @@ class ShadowAttributesController extends AppController
             $this->set('shadowAttributes', $results);
             $this->set('all', $all);
         }
+    }
+
+    /**
+     * @param array $named
+     * @return array|null The order the sort parameter asks for, if it names a sort key.
+     */
+    private function __indexOrder(array $named)
+    {
+        if (!isset($named['sort'])) {
+            return null;
+        }
+        $sortField = $named['sort'];
+        $schema = $this->ShadowAttribute->schema();
+        // The value sorts by the dictionary text; its id and text columns are no sort keys
+        if ($sortField !== 'value' && (
+            !isset($schema[$sortField]) || in_array($sortField, ['value1', 'value2', 'value1_id', 'value2_id'], true)
+        )) {
+            return null;
+        }
+        $sortDirection = 'ASC';
+        if (!empty($named['direction'])) {
+            $direction = trim(strtolower($named['direction']));
+            $sortDirection = ($direction === 'asc' ? 'ASC' : 'DESC');
+        }
+        $order = array('ShadowAttribute.' . $sortField => $sortDirection);
+        return $order;
     }
 
     public function discardSelected($id)

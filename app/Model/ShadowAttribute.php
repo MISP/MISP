@@ -402,6 +402,15 @@ class ShadowAttribute extends AppModel
         return true;
     }
 
+    // The paginator sorts only by fields and virtual fields; beforeFind sorts by the value
+    public function hasField($name, $checkVirtual = false)
+    {
+        if ($checkVirtual && in_array($name, ['value', $this->alias . '.value'], true)) {
+            return true;
+        }
+        return parent::hasField($name, $checkVirtual);
+    }
+
     public function beforeFind($query)
     {
         $attributeValue = $this->Attribute->loadAttributeValue();

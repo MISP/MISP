@@ -25,15 +25,27 @@ may name a value column too; it is reported with the column '?', and
 PHP-side array access ($row['value1']), data keys and prose are not SQL;
 --show-ignored lists them. Comments and text outside PHP tags are never
 read. A bare 'value' is reported only inside a query on an attribute model
-(it is the virtual field there). Findings matched by the allowlist are
-reported apart (--show-allowed).
+(it is the virtual field there).
+
+A finding is set aside, in this order, when:
+    the allowlist names its file or symbol (ALLOW entries without a count);
+    a rule makes it legal: a condition key the attribute and proposal
+        beforeFind hooks carry to the value ids (rewrite), the value field
+        of a primary field list or order (translate), a save field list
+        whose value keys beforeSave interns (write);
+    a pinned entry names its site: ALLOW entries with a count, and the
+        PENDING sites that a later task still has to move. A pinned entry
+        must match exactly its count of findings, so a site that grows,
+        shrinks or goes away fails --strict until the entry follows.
+--show-allowed lists what was set aside, and why.
 
 Usage:
     lint_value_columns.py [--root DIR] [--json PATH] [--show-allowed]
-                          [--show-ignored] [--strict] [PATH...]
+                          [--show-ignored] [--strict] [--final] [PATH...]
 
-Report-only by default (exit 0). --strict exits 1 when any finding is
-outside the allowlist.
+Report-only by default (exit 0). --strict exits 1 when a finding is left
+or a pinned entry is out of date; --final also fails on the PENDING sites,
+which must be gone before the text columns are dropped.
 """
 
 import argparse
@@ -42,7 +54,7 @@ import json
 import os
 import re
 import sys
-from collections import Counter
+from collections import Counter, namedtuple
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -51,7 +63,11 @@ KINDS = ('sql', 'condition', 'fields', 'order', 'group', 'write', 'dynamic')
 EXTENSIONS = ('.php', '.ctp')
 SKIP_DIRS = ('app/Vendor', 'app/Lib/cakephp', 'app/tmp', 'app/files')
 
-ALLOW = [
+Entry = namedtuple('Entry', 'path symbol reason kinds count',
+                   defaults=(None, None))
+Pending = namedtuple('Pending', 'path symbol task count')
+
+ALLOW = [Entry(*e) for e in [
     ('app/Lib/Migration/LegacyMigrationsTrait.php', '*',
      'frozen 2.x upgrade corpus; runs only against the old schema'),
     ('app/Lib/Migration/Migrations/*', '*',
@@ -85,16 +101,88 @@ ALLOW = [
      'rewriter tests: the 2.x conditions are their reference'),
     ('app/Test/ValueFieldTranslatorTest.php', '*',
      'translator tests: the value field is their input'),
-]
+    # Pinned sites: the rules cannot see why these are safe
+    ('app/Test/SqlDialectTest.php', 'SqlDialectTest::testSha256Prefix',
+     'the backfill hash expression as SQL text; never run', None, 4),
+    ('app/Controller/AttributesController.php',
+     'AttributesController::updateAttributeValues',
+     'search keys of an attribute find: plain LIKE keys the rewriter '
+     'carries', ('condition',), 2),
+    ('app/Controller/ShadowAttributesController.php',
+     'ShadowAttributesController::__indexOrder',
+     'the sort guard: value is translated, the value columns are refused',
+     ('order', 'dynamic'), 2),
+    ('app/Model/Event.php', 'Event::wildcardAttributeConditions',
+     'column names for plain LIKE keys in an attribute subquery, which '
+     'the subquery hook rewrites', ('dynamic',), 1),
+    ('app/Model/Event.php', 'Event::fetchPaginatedAttributes',
+     'the sort comes from $allowedSortFields: value is translated, no '
+     'value column is listed', ('order',), 1),
+    ('app/Model/Feed.php', 'Feed::getFreetextFeedCorrelations',
+     'value keys of hydrated rows, read in PHP', ('dynamic',), 1),
+    ('app/Model/MispAttribute.php', 'MispAttribute::relatedAttributesOf',
+     'the value keys a related field list asks the hydrator for',
+     ('dynamic',), 1),
+    ('app/Model/MispAttribute.php', 'MispAttribute::buildFilterConditions',
+     'filter names, which reach generic_add_filter as plain keys',
+     ('dynamic',), 2),
+]]
+
+# Sites still reading the text columns, by the task that moves them. That
+# task removes its entry; the column drop needs this list empty (--final).
+PENDING = [Pending(*p) for p in [
+    ('app/Model/Behavior/DefaultCorrelationBehavior.php',
+     'DefaultCorrelationBehavior::CONFIG', 'AV-501: correlation engines', 2),
+    ('app/Model/Behavior/NoAclCorrelationBehavior.php',
+     'NoAclCorrelationBehavior::CONFIG', 'AV-501: correlation engines', 2),
+    ('app/Model/Correlation.php', 'Correlation::ssdeepCorrelation',
+     'AV-501: correlation engines', 1),
+    ('app/Model/Behavior/OnDemandCorrelationBehavior.php',
+     'OnDemandCorrelationBehavior::CONFIG', 'AV-502: OnDemand rewrite', 2),
+    ('app/Model/Behavior/OnDemandCorrelationBehavior.php',
+     'OnDemandCorrelationBehavior::__collectCorrelations',
+     'AV-502: OnDemand rewrite', 14),
+    ('app/Model/Correlation.php', 'Correlation::generateTopOnDemand',
+     'AV-503: top lists', 1),
+    ('app/Test/SqlDialectTest.php',
+     'SqlDialectTest::testUpsertAppendsTheEnginesConflictClause',
+     'AV-503: top lists (generateTopOnDemand statement)', 2),
+    ('app/Model/Correlation.php', 'Correlation::cidrCorrelation',
+     'AV-602: CIDR on the facet', 6),
+    ('app/Model/Correlation.php', 'Correlation::getCidrListFromDatabase',
+     'AV-602: CIDR on the facet', 1),
+    ('app/Model/MispAttribute.php', 'MispAttribute::__bro',
+     'AV-701: Bro export', 2),
+    ('app/Lib/Dashboard/TrendingAttributesWidget.php',
+     'TrendingAttributesWidget::handler', 'AV-703: widgets', 6),
+    ('app/Lib/Dashboard/TrendingWidget.php',
+     'TrendingWidget::countVulnerability', 'AV-703: widgets', 2),
+    ('app/Lib/Dashboard/AttributeGeoMapWidget.php',
+     'AttributeGeoMapWidget::*', 'AV-703: widgets', 6),
+    ('app/Console/Command/SearchPerformanceShell.php',
+     'SearchPerformanceShell::__collectStats', 'AV-704: shells', 4),
+]]
 
 ATTRIBUTE_ALIASES = {'Attribute', 'ShadowAttribute', 'ReferencedAttribute',
                      'MispAttribute'}
 ATTRIBUTE_CLASSES = {'MispAttribute', 'ShadowAttribute'}
+# The aliases whose beforeFind rewrites conditions and translates the value
+# field, by model class
+HOOKED = {'MispAttribute': 'Attribute', 'ShadowAttribute': 'ShadowAttribute'}
+# ValueConditionRewriter::OPERATORS
+REWRITER_OPERATORS = {'=', 'IN', '!=', '<>', 'NOT IN', 'LIKE', 'NOT LIKE'}
 FIND_CALLS = {'find', 'paginate', 'field', 'hasany', 'updateall',
               'deleteall'}
 ATTRIBUTE_FETCHERS = {'fetchattributes', 'fetchattributessimple',
                       'fetchattributesimple', 'fetchattributesinchunks',
                       'fetchattributesinchunkssingle'}
+QUERY_CALLS = FIND_CALLS | ATTRIBUTE_FETCHERS | {
+    'generic_add_filter', 'rewriteconditions', 'findorder',
+    'subquerygenerator'}
+# No beforeFind runs for these
+UNHOOKED_CALLS = {'updateall', 'deleteall'}
+ASSOCIATION_KEYS = {'contain', 'joins'}
+MODEL_KEY = re.compile(r'^[A-Z]\w*$')
 SQL_CALLS = {'query', 'fetchall', 'execute', 'rawquery', 'prepare', 'exec'}
 FORM_CALLS = {'input', 'textarea', 'hidden', 'control', 'radio', 'checkbox'}
 CONDITION_KEYS = {'conditions', 'or', 'and', 'not', 'xor'}
@@ -360,12 +448,62 @@ def string_key(items):
     return None
 
 
+def concat_tail(items, p):
+    """What follows the column composed at items[p]: '' when one operand
+    follows, the literal when a second operand is a string, None otherwise."""
+    operands, cur = [], []
+    for item in items[p + 1:]:
+        if is_op(item, '.'):
+            operands.append(cur)
+            cur = []
+        elif isinstance(item, Tok) and item.kind == 'op' and \
+                item.text not in CHAIN:
+            break
+        else:
+            cur.append(item)
+    operands.append(cur)
+    operands = operands[1:]
+    if len(operands) == 1:
+        return ''
+    last = operands[-1]
+    if len(operands) == 2 and len(last) == 1 and isinstance(last[0], Tok) \
+            and last[0].kind == 'str':
+        return last[0].text
+    return None
+
+
+def option(elements, name):
+    """The value items of the literal key name among array elements."""
+    for element in elements:
+        arrow = next((p for p, i in enumerate(element) if is_op(i, '=>')),
+                     None)
+        if arrow is not None:
+            key = string_key(element[:arrow])
+            if key is not None and key.lower() == name:
+                return element[arrow + 1:]
+    return None
+
+
+def callbacks_option(items):
+    """'true', 'false', 'before' or 'after'; '?' when not a literal."""
+    if len(items) == 1 and isinstance(items[0], Tok):
+        text = items[0].text.lower()
+        if items[0].kind == 'id' and text in ('true', 'false'):
+            return text
+        if items[0].kind == 'str' and text in ('before', 'after'):
+            return text
+    return '?'
+
+
 class Scanner:
     def __init__(self, path, src):
         self.path = path
         self.lines = src.splitlines()
         self.findings = []
         self.skipped = []
+        # (symbol, variable) -> callbacks of the find the variable is
+        # handed to as its conditions, fields or order
+        self.handed = {}
 
     def scan(self, root):
         self.block(root.items, [])
@@ -435,7 +573,7 @@ class Scanner:
             if isinstance(item, Tok):
                 if item.kind == 'str' and ALIAS_DOT.match(item.text) and \
                         p + 1 < len(items) and is_op(items[p + 1], '.'):
-                    self.composed(item, ctx, position)
+                    self.composed(item, ctx, position, concat_tail(items, p))
                 elif item.kind == 'str':
                     tail = p + 1 < len(items) and is_op(items[p + 1], '.')
                     self.string(item, ctx, position, p in sql_runs, tail)
@@ -476,7 +614,17 @@ class Scanner:
         return hits
 
     def array(self, node, ctx):
-        for element in split(node.items, (',',)):
+        elements = split(node.items, (',',))
+        callbacks = option(elements, 'callbacks')
+        if callbacks is not None:
+            callbacks = callbacks_option(callbacks)
+            ctx = ctx + [('callbacks', callbacks)]
+            for name in ('conditions', 'fields', 'order'):
+                value = option(elements, name)
+                if value and len(value) == 1 and isinstance(value[0], Tok) \
+                        and value[0].kind == 'var':
+                    self.handed[(symbol(ctx), value[0].text)] = callbacks
+        for element in elements:
             arrow = next((p for p, i in enumerate(element)
                           if is_op(i, '=>')), None)
             if arrow is None:
@@ -510,10 +658,11 @@ class Scanner:
         for line, found in sorted(by_line.items()):
             self.record(tok, line, found, ctx, position, in_sql)
 
-    def composed(self, tok, ctx, position):
+    def composed(self, tok, ctx, position, tail):
         kind, _ = self.kind('qualified', ctx, position)
         if kind in ('condition', 'fields', 'order', 'group'):
-            self.add(tok.line, ctx, kind, ['?'], 'composed', position)
+            self.add(tok.line, ctx, kind, [('?', tok.text[:-1])], 'composed',
+                     position, tok.text, tail)
 
     def record(self, tok, line, refs, ctx, position, in_sql):
         text = tok.text
@@ -533,14 +682,19 @@ class Scanner:
                                  'symbol': symbol(ctx), 'reason': kind,
                                  'snippet': self.snippet(line)})
             return
-        self.add(line, ctx, kind, [col for col, _ in refs], form, position)
+        self.add(line, ctx, kind, refs, form, position, text)
 
-    def add(self, line, ctx, kind, columns, form, position):
-        """One finding per symbol, line and kind; columns are merged."""
+    def add(self, line, ctx, kind, refs, form, position, text, tail=None):
+        """One finding per symbol, line and kind; columns are merged, and
+        each string behind it is kept as a use, for the rules."""
         sym = symbol(ctx)
+        use = dict(self.facts(ctx), text=text, tail=tail, form=form,
+                   position=position, refs=refs)
+        columns = [col for col, _ in refs]
         for f in self.findings:
             if (f['line'], f['symbol'], f['kind']) == (line, sym, kind):
                 f['columns'] = sorted(set(f['columns']) | set(columns))
+                f['uses'].append(use)
                 return
         self.findings.append({
             'path': self.path,
@@ -551,10 +705,64 @@ class Scanner:
             'form': form,
             'position': position,
             'snippet': self.snippet(line),
+            'uses': [use],
         })
 
+    def facts(self, ctx):
+        """What the context shows of the query a reference sits in: the
+        query call (name, argument), the alias whose hooks see it ('other'
+        for another model, None when unknown), an association or join
+        between the two, the find's callbacks option, the variable the
+        reference is assigned into, and the frame that decided its kind."""
+        call, inner = None, []
+        for frame in reversed(ctx):
+            if frame[0] == 'call' and (frame[1] or '').lower() in QUERY_CALLS:
+                call = frame
+                break
+            inner.append(frame)
+        name = call[1].lower() if call else None
+        keys = []
+        for frame in reversed(inner):
+            if frame[0] == 'key' and frame[1] is not None:
+                keys.append(frame[1])
+            elif frame[0] == 'lvalue':
+                keys.extend(k for k in frame[2] if k is not None)
+        model_keys = [k for k in keys if k.lower() in ASSOCIATION_KEYS or (
+            MODEL_KEY.match(k) and k.lower() not in CONDITION_KEYS)]
+        association = bool(model_keys)
+        if name in ATTRIBUTE_FETCHERS:
+            model = 'Attribute'
+        elif name in FIND_CALLS:
+            model = self.receiver_alias(call[3], ctx)
+        elif name == 'findorder' and call[2] == 2 and model_keys:
+            # the sortable fields of each model, not an association
+            model = alias_of(model_keys[0])
+            association = len(model_keys) > 1
+        else:
+            model = None
+        callbacks = next((f[1] for f in reversed(ctx)
+                          if f[0] == 'callbacks'), None)
+        lvalue = next((f[1] for f in ctx if f[0] == 'lvalue'), None)
+        origin = decide(ctx)[2]
+        return {'call': name, 'arg': call[2] if call else None,
+                'model': model, 'association': association,
+                'callbacks': callbacks, 'lvalue': lvalue,
+                'origin': origin}
+
+    def receiver_alias(self, receiver, ctx):
+        if receiver == '$this':
+            cls = next((f[1] for f in reversed(ctx) if f[0] == 'class'),
+                       None)
+            if cls in HOOKED:
+                return HOOKED[cls]
+            return 'other' if self.path.startswith('app/Model/') else None
+        segment = last_segment(receiver)
+        if not segment[:1].isupper():
+            return None
+        return alias_of(segment)
+
     def kind(self, form, ctx, position):
-        decided, model = decide(ctx)
+        decided, model, _ = decide(ctx)
         if form == 'sql':
             return 'sql', model
         if position == 'index':
@@ -601,12 +809,13 @@ def text_form(text):
 
 
 def decide(ctx):
-    """Walk the context outward; return (kind or None, attribute-model?)."""
+    """Walk the context outward; return (kind or None, attribute-model?,
+    the frame that decided the kind)."""
     model = False
-    decided = None
+    decided = origin = None
     if any(f[0] == 'lvalue' and last_segment(f[1]).lower() == 'actsas'
            for f in ctx):
-        return 'data', False
+        return 'data', False, None
     for frame in reversed(ctx):
         tag = frame[0]
         if tag == 'key' and frame[1] is not None:
@@ -621,8 +830,17 @@ def decide(ctx):
         else:
             found = None
         if found is not None and decided is None:
-            decided = found
-    return decided, model
+            decided, origin = found, frame
+    return decided, model, origin
+
+
+def alias_of(name):
+    """The hooked alias a model or alias name stands for, else 'other'."""
+    if name in ('Attribute', 'MispAttribute'):
+        return 'Attribute'
+    if name == 'ShadowAttribute':
+        return 'ShadowAttribute'
+    return 'other'
 
 
 def key_kind(key):
@@ -697,6 +915,11 @@ def scan_source(path, src):
     scanner = Scanner(path, src)
     if RELEVANT.search(src):
         scanner.scan(build_tree(lex(src)))
+    for finding in scanner.findings:
+        for use in finding['uses']:
+            handed = scanner.handed.get((finding['symbol'], use['lvalue']))
+            if use['callbacks'] is None and handed is not None:
+                use['callbacks'] = handed
     return scanner.findings, scanner.skipped
 
 
@@ -720,16 +943,120 @@ def walk(top, root):
                 yield os.path.join(dirpath, f)
 
 
-def allowed(finding, allow):
-    for path, sym, reason in allow:
-        if fnmatch.fnmatch(finding['path'], path) and \
-                fnmatch.fnmatch(finding['symbol'], sym):
-            return reason
+def key_form(text):
+    """(alias, column, operator) of a condition key, split as
+    ValueConditionRewriter::parseKey splits it; None for any other text."""
+    parts = text.strip().split(None, 1)
+    if not parts:
+        return None
+    m = re.match(r'^(?:(\w+)\.)?(value[12]?)$',
+                 parts[0].replace('`', '').replace('"', ''))
+    if not m:
+        return None
+    operator = ' '.join(parts[1].split()).upper() if len(parts) > 1 else '='
+    return m.group(1), m.group(2), operator
+
+
+def own_alias(use, alias):
+    """Whether the hooks of the query see a column of this alias."""
+    model = use['model']
+    if model == 'other':
+        return False
+    if alias is None:
+        return True
+    if alias not in HOOKED.values():
+        return False
+    return model is None or alias == model
+
+
+def rewritten(use):
+    """A condition key the attribute and proposal hooks carry to the ids:
+    beforeFind with callbacks on or 'before', the attribute subquery hook,
+    or rewriteConditions() at the call site."""
+    if use['call'] in UNHOOKED_CALLS or \
+            use['callbacks'] not in (None, 'true', 'before'):
+        return False
+    if use['association']:
+        return False
+    if use['form'] == 'composed':
+        if use['tail'] is None or use['text'].count('.') != 1:
+            return False
+        alias = use['text'][:-1]
+        operator = ' '.join(use['tail'].split()).upper() or '='
+    else:
+        parsed = key_form(use['text'])
+        if parsed is None:
+            return False
+        alias, _, operator = parsed
+    if operator not in REWRITER_OPERATORS:
+        return False
+    if use['call'] == 'generic_add_filter' and use['arg'] == 2:
+        # the field names it builds its keys from
+        if operator != '=':
+            return False
+    elif use['position'] not in ('key', 'lkey'):
+        return False
+    return own_alias(use, alias)
+
+
+def translated(use):
+    """The value field in the primary field list or order of an attribute
+    or proposal find with callbacks on, which ValueFieldTranslator reads
+    from the ids."""
+    if use['callbacks'] not in (None, 'true') or use['association']:
+        return False
+    if use['form'] not in ('qualified', 'bare', 'direction') or \
+            use['position'] not in ('element', 'value', 'key'):
+        return False
+    return all(col == 'value' and own_alias(use, alias)
+               for col, alias in use['refs'])
+
+
+def interned(use):
+    """A save field list: beforeSave interns the value keys and adds the
+    id columns. updateAll and saveField write past it."""
+    origin = use['origin']
+    return not (origin and origin[0] == 'call' and
+                (origin[1] or '').lower() in ('updateall', 'savefield'))
+
+
+RULES = {
+    'condition': ('rewrite', rewritten),
+    'fields': ('translate', translated),
+    'order': ('translate', translated),
+    'write': ('write', interned),
+}
+
+
+def legal(finding):
+    """The rule that makes every use behind the finding legal, if one does."""
+    rule = RULES.get(finding['kind'])
+    if rule and all(rule[1](use) for use in finding['uses']):
+        return rule[0]
     return None
 
 
-def run(root, paths=None, allow=ALLOW):
-    findings, accepted, ignored, files = [], [], [], 0
+def matches(finding, entry):
+    return fnmatch.fnmatch(finding['path'], entry.path) and \
+        fnmatch.fnmatch(finding['symbol'], entry.symbol) and \
+        (entry.kinds is None or finding['kind'] in entry.kinds)
+
+
+def allowed(finding, allow):
+    for entry in allow:
+        if matches(finding, entry):
+            return entry.reason
+    return None
+
+
+def run(root, paths=None, allow=None, pending=None, final=False):
+    allow = [Entry(*e) for e in (ALLOW if allow is None else allow)]
+    pending = PENDING if pending is None else pending
+    principled = [e for e in allow if e.count is None]
+    pinned = [(e, 'allowed') for e in allow if e.count is not None] + \
+        [(Entry(p.path, p.symbol, p.task, None, p.count), 'pending')
+         for p in ([] if final else pending)]
+    left, accepted, ruled, ignored, scanned = [], [], [], [], []
     for path in source_files(root, paths):
         rel = os.path.relpath(os.path.abspath(path), root)
         try:
@@ -737,16 +1064,38 @@ def run(root, paths=None, allow=ALLOW):
                 src = f.read()
         except OSError:
             continue
-        files += 1
+        scanned.append(rel)
         found, skipped = scan_source(rel, src)
         ignored.extend(skipped)
         for finding in found:
-            reason = allowed(finding, allow)
-            if reason is None:
-                findings.append(finding)
-            else:
+            reason = allowed(finding, principled)
+            rule = None if reason else legal(finding)
+            if reason:
                 accepted.append(dict(finding, allowed=reason))
-    return {'files': files, 'findings': findings, 'allowed': accepted,
+            elif rule:
+                ruled.append(dict(finding, rule=rule))
+            else:
+                left.append(finding)
+    findings, deferred, stale = [], [], []
+    taken = set()
+    for entry, kind in pinned:
+        hits = [i for i, f in enumerate(left)
+                if i not in taken and matches(f, entry)]
+        taken.update(hits)
+        for i in hits:
+            if kind == 'allowed':
+                accepted.append(dict(left[i], allowed=entry.reason))
+            else:
+                deferred.append(dict(left[i], task=entry.reason))
+        if len(hits) != entry.count and any(
+                fnmatch.fnmatch(p, entry.path) for p in scanned):
+            stale.append({'path': entry.path, 'symbol': entry.symbol,
+                          'kinds': entry.kinds, 'expected': entry.count,
+                          'found': len(hits), 'entry': kind,
+                          'reason': entry.reason})
+    findings = [f for i, f in enumerate(left) if i not in taken]
+    return {'files': len(scanned), 'findings': findings, 'allowed': accepted,
+            'legal': ruled, 'pending': deferred, 'stale': stale,
             'ignored': ignored}
 
 
@@ -764,18 +1113,30 @@ def report(result, show_allowed, show_ignored, out):
                     f['line'], f['kind'], '+'.join(f['columns']),
                     f['snippet']), file=out)
     if show_allowed:
-        print('\nallowed:', file=out)
-        for f in result['allowed']:
-            print('  %s:%d %s %s (%s)' % (f['path'], f['line'], f['kind'],
-                                          '+'.join(f['columns']),
-                                          f['allowed']), file=out)
+        for title, key in (('allowed', 'allowed'), ('legal by rule', 'rule'),
+                           ('pending', 'task')):
+            print('\n%s:' % title, file=out)
+            for f in result[{'rule': 'legal', 'task': 'pending'}.get(
+                    key, key)]:
+                print('  %s:%d %s %s (%s)' % (
+                    f['path'], f['line'], f['kind'], '+'.join(f['columns']),
+                    f[key]), file=out)
     if show_ignored:
         print('\nignored (not SQL):', file=out)
         for f in result['ignored']:
             print('  %s:%d %-6s %s' % (f['path'], f['line'], f['reason'],
                                        f['snippet']), file=out)
+    if result['stale']:
+        print('\nout of date (%s entries; update them):' % len(
+            result['stale']), file=out)
+        for e in result['stale']:
+            print('  %s %s %s: %d findings, entry says %d (%s)' % (
+                e['entry'], e['path'], e['symbol'], e['found'],
+                e['expected'], e['reason']), file=out)
     kinds = Counter(f['kind'] for f in result['findings'])
     reasons = Counter(f['reason'] for f in result['ignored'])
+    rules = Counter(f['rule'] for f in result['legal'])
+    tasks = Counter(f['task'].split(':')[0] for f in result['pending'])
     composed = sum(1 for f in result['findings'] if f['form'] == 'composed')
     sites = {(f['path'], f['symbol']) for f in result['findings']}
     print('\n%d findings in %d symbols across %d files (%d files scanned)'
@@ -783,9 +1144,14 @@ def report(result, show_allowed, show_ignored, out):
              result['files']), file=out)
     print('  ' + '  '.join('%s=%d' % (k, kinds[k]) for k in KINDS)
           + '  (composed column: %d)' % composed, file=out)
-    print('  allowed=%d  ignored: %s' % (
-        len(result['allowed']), ' '.join(
-            '%s=%d' % kv for kv in sorted(reasons.items()))), file=out)
+    print('  allowed=%d  legal: %s  ignored: %s' % (
+        len(result['allowed']),
+        ' '.join('%s=%d' % kv for kv in sorted(rules.items())) or '-',
+        ' '.join('%s=%d' % kv for kv in sorted(reasons.items()))), file=out)
+    print('  pending=%d: %s  out of date=%d' % (
+        len(result['pending']),
+        ' '.join('%s=%d' % kv for kv in sorted(tasks.items())) or '-',
+        len(result['stale'])), file=out)
 
 
 def main(argv=None):
@@ -797,19 +1163,27 @@ def main(argv=None):
                         help='repository root (paths are reported relative '
                              'to it)')
     parser.add_argument('--json', help='also write the full result here')
-    parser.add_argument('--show-allowed', action='store_true')
+    parser.add_argument('--show-allowed', action='store_true',
+                        help='list what the allowlist, the rules and the '
+                             'pending sites set aside')
     parser.add_argument('--show-ignored', action='store_true',
                         help='list the occurrences judged not to be SQL')
     parser.add_argument('--strict', action='store_true',
-                        help='exit 1 when anything is outside the allowlist')
+                        help='exit 1 on a finding or an out-of-date entry')
+    parser.add_argument('--final', action='store_true',
+                        help='the pending sites are findings too')
     args = parser.parse_args(argv)
-    result = run(os.path.abspath(args.root), args.paths)
+    result = run(os.path.abspath(args.root), args.paths, final=args.final)
     report(result, args.show_allowed, args.show_ignored, sys.stdout)
     if args.json:
         with open(args.json, 'w') as f:
-            json.dump(result, f, indent=1, sort_keys=True)
+            json.dump({k: [{a: b for a, b in v.items() if a != 'uses'}
+                           for v in vs] if isinstance(vs, list) else vs
+                       for k, vs in result.items()},
+                      f, indent=1, sort_keys=True)
             f.write('\n')
-    return 1 if args.strict and result['findings'] else 0
+    failed = result['findings'] or result['stale']
+    return 1 if args.strict and failed else 0
 
 
 if __name__ == '__main__':
