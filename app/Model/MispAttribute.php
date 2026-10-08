@@ -3113,7 +3113,17 @@ class MispAttribute extends AppModel
         // if breakOnDuplicate=false, try to find the existing attribute by value and set the id and uuid
         if ($breakOnDuplicate === false) {
             unset($this->validate['value']['uniqueValue']);
-            $existingAttribute = $this->findAttributeByValue($attribute);
+            // Look the value up as beforeValidate will store it
+            $lookup = $attribute;
+            if (isset($lookup['value']) && is_scalar($lookup['value'])) {
+                $lookup['value'] = ComplexTypeTool::refangValue(trim($lookup['value']), $lookup['type']);
+                $lookup['value'] = AttributeValidationTool::modifyBeforeValidation($lookup['type'], $lookup['value']);
+                if (!$this->fast_update) {
+                    $regexp = $this->runRegexp($lookup['type'], $lookup['value']);
+                    $lookup['value'] = $regexp === false ? $lookup['value'] : $regexp;
+                }
+            }
+            $existingAttribute = $this->findAttributeByValue($lookup);
             if (!empty($existingAttribute)) {
                 $attribute['id'] = $existingAttribute['Attribute']['id'];
                 $attribute['uuid'] = $existingAttribute['Attribute']['uuid'];
