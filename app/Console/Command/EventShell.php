@@ -730,7 +730,7 @@ class EventShell extends AppShell
 
     public function reportValidationIssuesAttributes()
     {
-        foreach ($this->Event->MispAttribute->reportValidationIssuesAttributes() as $validationIssue) {
+        foreach ($this->MispAttribute->reportValidationIssuesAttributes() as $validationIssue) {
             echo $this->json($validationIssue) . "\n";
         }
     }
