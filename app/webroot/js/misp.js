@@ -1048,12 +1048,20 @@ function listCheckboxesChecked() {
     }
 }
 
+
 function listCheckboxesCheckedEventIndex() {
-    // Show mass delete just when user has permission to delete at least one of selected event
+    // Show mass delete or unpublish just when user has permission to modify at least one of selected event
     if ($('.select:checked[data-can-modify="1"]').length > 0) {
-        $('.mass-delete').removeClass('hidden');
+        $('.mass-delete, .mass-unpublish').removeClass('hidden');
     } else {
-        $('.mass-delete').addClass('hidden');
+        $('.mass-delete, .mass-unpublish').addClass('hidden');
+    }
+
+    // Mass publish / alert: needs publish permission on at least one selected event
+    if ($('.select:checked[data-can-publish="1"]').length > 0) {
+        $('.mass-publish').removeClass('hidden');
+    } else {
+        $('.mass-publish').addClass('hidden');
     }
 
     if ($('.select:checked').length > 0) {
@@ -1090,6 +1098,48 @@ function multiSelectDeleteEvents() {
 
 function deleteEventPopup(eventId) {
     $.get(baseurl + "/events/delete/" + eventId, openConfirmation).fail(xhrFailCallback);
+}
+
+function multiSelectAlertEvents() {
+    var selected = [];
+    $(".select:checked").each(function() {
+        if ($(this).data('can-publish')) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    });
+    if (!selected.length) { return; }
+    $.get(baseurl + "/events/massAlert/" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
+}
+
+function multiSelectPublishEvents() {
+    var selected = [];
+    $(".select:checked").each(function() {
+        if ($(this).data('can-publish')) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    });
+    if (!selected.length) { return; }
+    $.get(baseurl + "/events/massPublish/" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
+}
+
+function multiSelectUnpublishEvents() {
+    var selected = [];
+    $(".select:checked").each(function() {
+        if ($(this).data('can-modify')) {
+            var temp = $(this).data("id");
+            if (temp != null) {
+                selected.push(temp);
+            }
+        }
+    });
+    if (!selected.length) { return; }
+    $.get(baseurl + "/events/massUnpublish/" + JSON.stringify(selected), openConfirmation).fail(xhrFailCallback);
 }
 
 function multiSelectExportEvents() {
