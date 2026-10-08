@@ -5,6 +5,7 @@ App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
 App::uses('ProcessTool', 'Tools');
+App::uses('ValueConditionRewriter', 'Tools');
 
 /**
  * @property User $User
@@ -1591,10 +1592,17 @@ class Event extends AppModel
     {
         $tempConditions = array();
         $tempConditions[] = array('Event.info LIKE' => $params['wildcard']);
-        $attributeParams = array('value1', 'value2', 'comment');
-        foreach ($attributeParams as $attributeParam) {
+        // One subquery for both value columns resolves the pattern once
+        $attributeConditions = array(
+            array('OR' => array(
+                'Attribute.value1 LIKE' => $params['wildcard'],
+                'Attribute.value2 LIKE' => $params['wildcard'],
+            )),
+            array('Attribute.comment LIKE' => $params['wildcard']),
+        );
+        foreach ($attributeConditions as $attributeCondition) {
             $subQueryOptions = array(
-                'conditions' => array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']),
+                'conditions' => $attributeCondition,
                 'fields' => array('event_id')
             );
             $tempConditions[] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
@@ -1738,13 +1746,7 @@ class Event extends AppModel
                                         'event_id'
                                     )
                                 );
-                                $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
-                                if ($param === 'value') {
-                                    $subQuery[0] = explode('WHERE', $subQuery[0]);
-                                    //$subQuery[0][0] .= ' USE INDEX (value1, value2) ';
-                                    $subQuery[0] = implode('WHERE', $subQuery[0]);
-                                }
-                                $conditions['AND'][] = $subQuery;
+                                $conditions['AND'][] = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
                             }
                         }
                     }
@@ -5696,10 +5698,11 @@ class Event extends AppModel
             }
 
             if ($options['context'] !== 'Attribute') {
+                $eventIds = $options['context'] === 'Event' ? $this->eventIdBound($params) : null;
                 foreach (['OR', 'AND', 'NOT'] as $operand) {
                     if (!empty($params[$options['filter']][$operand])) {
                         $values = $params[$options['filter']][$operand];
-                        $conditions = $this->add_value_filter_subquery($conditions, $operand, $values, $options);
+                        $conditions = $this->add_value_filter_subquery($conditions, $operand, $values, $options, $eventIds);
                         unset($params[$options['filter']][$operand]);
                     }
                 }
@@ -5711,12 +5714,41 @@ class Event extends AppModel
         return $conditions;
     }
 
+    /**
+     * The events an eventid filter limits the search to, when it lists a few
+     * of them by id. A value subquery tied to them reads the dictionary per
+     * attribute rather than scanning it ahead of the search.
+     *
+     * @param array $params
+     * @return int[]|null
+     */
+    private function eventIdBound(array $params)
+    {
+        if (empty($params['eventid']) || $params['eventid'] === 'all') {
+            return null;
+        }
+        $filter = $this->convert_filters($params['eventid']);
+        if (empty($filter['OR']) || count($filter['OR']) > ValueConditionRewriter::BOUND) {
+            return null;
+        }
+        $ids = [];
+        foreach ($filter['OR'] as $id) {
+            if (!is_int($id) && !ctype_digit((string)$id)) {
+                return null;
+            }
+            $ids[] = (int)$id;
+        }
+        return $ids;
+    }
+
     private function add_value_filter_subquery(
       $conditions,
       $operand,
       $values,
-      $options
+      $options,
+      $eventIds = null
     ) {
+        $scope = $eventIds === null ? [] : ['Attribute.event_id' => $eventIds];
         $lookup_field = null;
         $field = null;
         switch ($options['context']) {
@@ -5739,7 +5771,7 @@ class Event extends AppModel
                 $sub_filter = ['OR' => $values];
                 $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
                 $subquery_options = [
-                  'conditions' => [
+                  'conditions' => $scope + [
                     'OR' => [
                       ...$subconditions_value1['AND'],
                       ...$subconditions_value2['AND'],
@@ -5755,13 +5787,6 @@ class Event extends AppModel
                   $lookup_field,
                   $operand === 'NOT'
                 );
-                // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
-                // The support probe comes first: an engine with no index hints has no use for the answer, and asking for it costs a MySQL-only SHOW INDEX
-                if ($this->checkDbSupport('indexHints') && $this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
-                    $subQuery[0] = explode('WHERE', $subQuery[0]);
-                    $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
-                    $subQuery[0] = implode('WHERE', $subQuery[0]);
-                }
                 $conditions['AND'][] = $subQuery;
                 break;
             case 'AND':
@@ -5771,7 +5796,7 @@ class Event extends AppModel
                     $sub_filter = ['OR' => $v];
                     $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
                     $subquery_options = [
-                      'conditions' => [
+                      'conditions' => $scope + [
                         'OR' => [
                           ...$subconditions_value1['AND'],
                           ...$subconditions_value2['AND'],
@@ -5786,13 +5811,6 @@ class Event extends AppModel
                       $subquery_options,
                       $lookup_field
                     );
-                    // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
-                    // The support probe comes first: an engine with no index hints has no use for the answer, and asking for it costs a MySQL-only SHOW INDEX
-                    if ($this->checkDbSupport('indexHints') && $this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
-                        $subQuery[0] = explode('WHERE', $subQuery[0]);
-                        $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
-                        $subQuery[0] = implode('WHERE', $subQuery[0]);
-                    }
                     $conditions['AND'][] = $subQuery;
                 }
                 break;

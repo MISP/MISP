@@ -46,6 +46,8 @@ class AttributeValueBackfillDbTest extends TestCase
             App::uses('ClassRegistry', 'Utility');
             App::uses('ConnectionManager', 'Model');
             App::uses('AttributeValueBackfillTool', 'Tools');
+            App::uses('AttributeValue', 'Model');
+            AttributeValue::$strictConditions = true;
             self::$booted = true;
         }
         $this->db = ConnectionManager::getDataSource('default');

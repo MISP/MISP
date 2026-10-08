@@ -45,6 +45,7 @@ class AttributeValuePrePassDbTest extends TestCase
             App::uses('ClassRegistry', 'Utility');
             App::uses('AttributeValue', 'Model');
             require_once __DIR__ . '/AttributeValuePrePassSupport.php';
+            AttributeValue::$strictConditions = true;
             self::$booted = true;
         }
         $this->attribute = ClassRegistry::init('Event')->Attribute;

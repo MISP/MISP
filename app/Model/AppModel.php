@@ -970,6 +970,19 @@ class AppModel extends Model
         );
     }
 
+    /**
+     * The conditions of a subquery on this model's table. No beforeFind sees
+     * them, so a model that rewrites its conditions there does it here too.
+     *
+     * @param mixed $conditions
+     * @param string $alias
+     * @return mixed
+     */
+    public function subQueryConditions($conditions, $alias)
+    {
+        return $conditions;
+    }
+
     protected function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
     {
         $defaults = array(
@@ -991,6 +1004,7 @@ class AppModel extends Model
                 $params[$key] = $defaultValue;
             }
         }
+        $params['conditions'] = $model->subQueryConditions($params['conditions'], $params['alias']);
         $db = $model->getDataSource();
         $subQuery = $db->buildStatement($params, $model);
         if ($negation) {

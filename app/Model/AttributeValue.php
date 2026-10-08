@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('ValueFieldTranslator', 'Tools');
+App::uses('ValueConditionRewriter', 'Tools');
 
 /**
  * The attribute value dictionary: one row per exact byte string, referenced
@@ -35,6 +36,15 @@ class AttributeValue extends AppModel
     public $useTable = 'attribute_values';
 
     public $recursive = -1;
+
+    /**
+     * Whether a value condition that cannot be moved to the ids throws,
+     * rather than being logged and left on the text columns. Tests switch
+     * it on.
+     *
+     * @var bool
+     */
+    public static $strictConditions = false;
 
     /** @var array [value => id] from prime(), read by assignIds() */
     private $primed = [];
@@ -304,6 +314,22 @@ class AttributeValue extends AppModel
             $this->askValueKeys($translator->keys());
         }
         return $query;
+    }
+
+    /**
+     * Conditions on the value columns of an attribute or proposal alias,
+     * moved to the ids. No afterFind is needed for that, so it suits finds
+     * with callbacks 'before' and subqueries too.
+     *
+     * @param mixed $conditions
+     * @param string $alias
+     * @return mixed
+     * @throws ValueConditionException With strict conditions on.
+     */
+    public function rewriteConditions($conditions, $alias)
+    {
+        $rewriter = new ValueConditionRewriter($this, $alias, ['strict' => self::$strictConditions]);
+        return $rewriter->rewrite($conditions);
     }
 
     /**

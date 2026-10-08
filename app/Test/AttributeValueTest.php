@@ -810,6 +810,40 @@ class AttributeValueTest extends TestCase
         $this->assertSame([['value']], $model->askedKeys);
     }
 
+    public function testRewriteConditionsMovesTheValueColumnsToTheIds()
+    {
+        $this->mysql->responder = function ($sql) {
+            return [['term' => '0', 'id' => '7'], ['term' => '0', 'id' => '3']];
+        };
+
+        $conditions = $this->model($this->mysql)->rewriteConditions(
+            ['Attribute.event_id' => 5, 'OR' => ['Attribute.value1' => 'Evil.com', 'Attribute.comment' => 'x']],
+            'Attribute'
+        );
+
+        $this->assertSame(
+            ['Attribute.event_id' => 5, 'OR' => [['Attribute.value1_id IN' => [3, 7]], 'Attribute.comment' => 'x']],
+            $conditions
+        );
+        $this->assertSame(["SELECT 0 AS `term`, `id` FROM `attribute_values` WHERE `value` = 'Evil.com'"], $this->mysql->statements);
+    }
+
+    public function testRewriteConditionsThrowsOnlyWithStrictConditions()
+    {
+        $this->assertFalse((new ReflectionClass('AttributeValue'))->getDefaultProperties()['strictConditions']);
+
+        AttributeValue::$strictConditions = true;
+        try {
+            $this->model($this->mysql)->rewriteConditions(['LOWER(Attribute.value1) LIKE' => 'x'], 'Attribute');
+            $this->fail('A function-wrapped value column was passed through.');
+        } catch (ValueConditionException $e) {
+            $this->assertStringContainsString('LOWER(Attribute.value1) LIKE', $e->getMessage());
+        } finally {
+            AttributeValue::$strictConditions = false;
+        }
+        $this->assertSame([], $this->mysql->statements);
+    }
+
     public function testAttachNestedRefusesADanglingId()
     {
         $data = [['Object' => ['Attribute' => [['value1_id' => 99, 'value2_id' => null]]]]];

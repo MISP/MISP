@@ -55,6 +55,8 @@ class AttributeValueHydratorDbTest extends TestCase
             App::uses('ClassRegistry', 'Utility');
             App::uses('AppModel', 'Model');
             require_once __DIR__ . '/AttributeValueHydratorSupport.php';
+            App::uses('AttributeValue', 'Model');
+            AttributeValue::$strictConditions = true;
             self::$booted = true;
         }
         $this->attribute = ClassRegistry::init('MispAttribute');

@@ -535,7 +535,15 @@ class MispAttribute extends AppModel
 
     public function beforeFind($query)
     {
+        if (!empty($query['conditions'])) {
+            $query['conditions'] = $this->loadAttributeValue()->rewriteConditions($query['conditions'], $this->alias);
+        }
         return $this->loadAttributeValue()->prepareFind($query, $this->alias);
+    }
+
+    public function subQueryConditions($conditions, $alias)
+    {
+        return $this->loadAttributeValue()->rewriteConditions($conditions, $alias);
     }
 
     public function afterFind($results, $primary = false)

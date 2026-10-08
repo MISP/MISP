@@ -44,6 +44,8 @@ class AttributeValueUniquenessDbTest extends TestCase
             }
             require_once __DIR__ . '/OracleBootstrap.php';
             App::uses('ClassRegistry', 'Utility');
+            App::uses('AttributeValue', 'Model');
+            AttributeValue::$strictConditions = true;
             self::$booted = true;
         }
         $this->attribute = ClassRegistry::init('MispAttribute');
