@@ -934,7 +934,40 @@ class AttributeValueFilterDbTest extends TestCase
             $page = $this->event->fetchPaginatedObjects($this->user, $first, ['eventIds' => $eventIds, 'searchFor' => "{$t}obj"]);
             $this->assertSame([$objects[0]], array_map('intval', array_column($page['Object'], 'id')));
             $this->assertSame($resolved, $this->resolvedPatterns(), count($eventIds) . ' events');
+            // One search for the count and the page
+            $this->assertCount(1, $this->statements('/SELECT DISTINCT `Attribute`.`object_id` FROM/'));
+            $this->assertCount(0, $this->statements('/`objects` AS `Object`.*attribute_values/s'));
         }
+    }
+
+    public function testTheObjectSearchMatchesOnlyTheAttributesAnObjectShows()
+    {
+        $t = $this->token;
+        list($first) = $this->events;
+        $objects = $this->createObjects();
+        $this->addFixtures([
+            'hidden' => [$first, 'domain', "{$t}hidden.example"],
+            'gone' => [$first, 'domain', "{$t}gone.example"],
+        ]);
+        $this->exec(sprintf('UPDATE attributes SET object_id = %d, distribution = 0 WHERE id = %d', $objects[0], $this->ids['hidden']));
+        $this->exec(sprintf('UPDATE attributes SET object_id = %d, deleted = 1 WHERE id = %d', $objects[0], $this->ids['gone']));
+        $owner = (int)$this->exec(sprintf('SELECT org_id FROM events WHERE id = %d', $first))[0]['org_id'];
+        $outsider = ClassRegistry::init('User')->getAuthUser($this->exec(sprintf(
+            'SELECT u.id FROM users u JOIN roles r ON r.id = u.role_id WHERE r.perm_site_admin = 0 AND r.perm_sync = 0 AND u.disabled = 0 AND u.org_id != %d ORDER BY u.id LIMIT 1',
+            $owner
+        ))[0]['id']);
+        $search = function (array $user, $searchFor, $deleted = 0) use ($first) {
+            $page = $this->event->fetchPaginatedObjects($user, $first, ['searchFor' => $searchFor, 'deleted' => $deleted]);
+            return array_map('intval', array_column($page['Object'], 'id'));
+        };
+
+        // Only the attributes the object shows to the user decide
+        $this->assertSame([$objects[0]], $search($outsider, "{$t}obj"));
+        $this->assertSame([], $search($outsider, "{$t}hidden"));
+        $this->assertSame([$objects[0]], $search($this->user, "{$t}hidden"));
+        // A soft-deleted attribute only where deleted ones are shown
+        $this->assertSame([], $search($this->user, "{$t}gone"));
+        $this->assertSame([$objects[0]], $search($this->user, "{$t}gone", 1));
     }
 
     public function testTheEventIndexValueFiltersMatchOnTheIds()

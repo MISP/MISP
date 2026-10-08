@@ -2737,8 +2737,28 @@ class Event extends AppModel
                 $options['meta-category'];
         }
 
-        // Object distribution ACL for non-site-admins
         $sgids = $this->SharingGroup->authorizedIds($user);
+        // The attributes an object is judged on: the ones it shows.
+        $attrScope = [
+            'Attribute.event_id' => $eventIds,
+            'Attribute.object_id !=' => 0,
+            'Attribute.deleted' => $attrDeleted,
+        ];
+        if (!$isSiteAdmin) {
+            $attrScope[] = ['OR' => [
+                ['AND' => [
+                    'Attribute.distribution >' => 0,
+                    'Attribute.distribution !=' => 4,
+                ]],
+                ['AND' => [
+                    'Attribute.distribution' => 4,
+                    'Attribute.sharing_group_id' => $sgids,
+                ]],
+                $this->eventOwnerSubquery('Attribute') . ' = ' . (int)$user['org_id'],
+            ]];
+        }
+
+        // Object distribution ACL for non-site-admins
         if (!$isSiteAdmin) {
             $objectCondSelect = $this->eventOwnerSubquery('Object');
             $conditions['AND'][0]['OR'] = [
@@ -2772,25 +2792,19 @@ class Event extends AppModel
             'Object.last_seen',
         ];
 
-        // If searchFor is set, we need to find objects that
-        // have at least one attribute matching the search term.
-        // We do this via a subquery on the object IDs.
+        // If searchFor is set, keep the objects holding at least one matching
+        // attribute among those they show. The ids are read once, for both
+        // the count and the page.
         if (!empty($options['searchFor'])) {
-            $db = $this->getDataSource();
-            // A built statement runs no attribute beforeFind
-            $subQuery = $db->buildStatement([
-                'fields' => ['DISTINCT Attribute.object_id'],
-                'table' => 'attributes',
-                'alias' => 'Attribute',
-                'conditions' => $this->Attribute->loadAttributeValue()->rewriteConditions([
-                    'Attribute.event_id' => $eventIds,
-                    'Attribute.object_id !=' => 0,
-                    'Attribute.value1 LIKE' =>
-                        '%' . $options['searchFor'] . '%',
-                ], 'Attribute'),
-            ], $this->Attribute);
-            $conditions[] =
-                'Object.id IN (' . $subQuery . ')';
+            $matchingObjectIds = $this->Attribute->find('column', [
+                'fields' => ['Attribute.object_id'],
+                'conditions' => $attrScope + [
+                    'Attribute.value1 LIKE' => '%' . $options['searchFor'] . '%',
+                ],
+                'unique' => true,
+            ]);
+            $conditions[] = ['Object.id' => empty($matchingObjectIds)
+                ? [-1] : $matchingObjectIds];
         }
 
         // Count total (for pagination metadata)

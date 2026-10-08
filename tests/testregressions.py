@@ -482,5 +482,78 @@ class FlattenedObjectAcl(unittest.TestCase):
                          "an organisation-only object's attribute leaked through flatten")
 
 
+class ObjectSearchAcl(unittest.TestCase):
+    """The event view's object search matches an object only on the attributes it shows.
+
+    fetchPaginatedObjects() found the objects holding a matching attribute through a subquery
+    that carried neither the attribute ACL nor the deleted scope, so whether an object came
+    back told the user what its hidden or soft-deleted attributes held. Only the themed event
+    view serves the endpoint (MISP.enable_themes), so the class skips where it is off.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        probe = cls.admin._prepare_request('POST', 'events/viewObjects/0', data={})
+        if probe.status_code == 403:
+            raise unittest.SkipTest('events/viewObjects needs MISP.enable_themes')
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+        cls.owner_org = make_org(cls.admin, 'regression object search owner org')
+        cls.outsider_org = make_org(cls.admin, 'regression object search outsider org')
+        cls.created_orgs = [cls.owner_org, cls.outsider_org]
+        cls.owner_user = make_user(cls.admin, cls.owner_org.id, cls.role_id)
+        cls.outsider_user = make_user(cls.admin, cls.outsider_org.id, cls.role_id)
+        cls.created_users = [cls.owner_user, cls.outsider_user]
+        cls.owner = PyMISP(url, cls.owner_user.authkey)
+        cls.owner.global_pythonify = True
+        cls.outsider = PyMISP(url, cls.outsider_user.authkey)
+        cls.outsider.global_pythonify = True
+        cls._seed()
+
+    @classmethod
+    def tearDownClass(cls):
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    @classmethod
+    def _seed(cls):
+        """A community event of the owner org holding one shared object, with a shared, an
+        organisation-only and a soft-deleted attribute."""
+        event = MISPEvent()
+        event.info = 'regression object search acl %s' % random()
+        event.distribution = 1        # community, so the outsider can open it
+        cls.event = check_response(cls.owner.add_event(event))
+
+        cls.values = {name: '%s-%s.txt' % (name, random()) for name in ('kept', 'hidden', 'gone')}
+        shared = MISPObject('file')
+        shared.distribution = 5       # inherit the event
+        shared.add_attribute('filename', value=cls.values['kept'], distribution=5)
+        shared.add_attribute('filename', value=cls.values['hidden'], distribution=0)
+        shared.add_attribute('filename', value=cls.values['gone'], distribution=5)
+        shared = check_response(cls.owner.add_object(cls.event.id, shared))
+        cls.object_id = int(shared.id)
+        gone = next(a for a in shared.attributes if a.value == cls.values['gone'])
+        check_response(cls.owner.delete_attribute(int(gone.id)))
+
+    def _found(self, connector, name):
+        response = connector._prepare_request(
+            'POST', 'events/viewObjects/%d' % int(self.event.id), data={'searchFor': self.values[name]})
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return [int(o['id']) for o in response.json().get('Object', [])]
+
+    def test_outsider_matches_only_the_attributes_it_sees(self):
+        self.assertIn(self.object_id, self._found(self.outsider, 'kept'),
+                      'the outsider cannot search the object at all, so the test proves nothing')
+        self.assertNotIn(self.object_id, self._found(self.outsider, 'hidden'),
+                         "an organisation-only attribute's value matched the outsider's search")
+        self.assertNotIn(self.object_id, self._found(self.outsider, 'gone'),
+                         "a soft-deleted attribute's value matched the search")
+
+    def test_owner_still_finds_its_own_attribute(self):
+        self.assertIn(self.object_id, self._found(self.owner, 'hidden'),
+                      'the owner lost the search on its organisation-only attribute')
+
+
 if __name__ == '__main__':
     unittest.main()
