@@ -15,7 +15,7 @@ declare(strict_types=1);
  * @package    MsgdPlug
  * @subpackage MsgdPlug.Lib.DTO
  */
-readonly final class MsgdGetSharingGroupsDTO
+final class MsgdGetSharingGroupsDTO
 {
     /**
      * Allowed query parameters.
@@ -29,7 +29,7 @@ readonly final class MsgdGetSharingGroupsDTO
      *
      * @var bool
      */
-    public bool $all;
+    public readonly bool $all;
 
     /**
      * Creates and validates a request instance from query parameters.

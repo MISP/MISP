@@ -15,17 +15,17 @@ declare(strict_types=1);
  * @package    MsgdPlug
  * @subpackage MsgdPlug.Lib.DTO
  */
-readonly final class MsgdMirrorGroupsDTO
+final class MsgdMirrorGroupsDTO
 {
     /**
      * @var array<int, int>
      */
-    public array $ids;
+    public readonly array $ids;
 
     /**
      * @var array<int, string>
      */
-    public array $uuids;
+    public readonly array $uuids;
 
     /**
      * Creates a DTO from resolved Sharing Group identifiers.

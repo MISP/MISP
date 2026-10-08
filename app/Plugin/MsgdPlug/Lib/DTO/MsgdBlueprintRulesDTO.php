@@ -15,27 +15,27 @@ declare(strict_types=1);
  * @package    MsgdPlug
  * @subpackage MsgdPlug.Lib.DTO
  */
-readonly final class MsgdBlueprintRulesDTO
+final class MsgdBlueprintRulesDTO
 {
     /**
      * @var array<string, mixed>
      */
-    public array $raw;
+    public readonly array $raw;
 
     /**
      * @var array<int, int>
      */
-    public array $sharingGroupsIds;
+    public readonly array $sharingGroupsIds;
 
     /**
      * @var array<int, string>
      */
-    public array $sharingGroupsUuids;
+    public readonly array $sharingGroupsUuids;
 
     /**
      * @var array<int, int|string>
      */
-    public array $allSharingGroupIdentifiers;
+    public readonly array $allSharingGroupIdentifiers;
 
     /**
      * Initializes DTO from an array or JSON string of rules.

@@ -15,7 +15,7 @@ declare(strict_types=1);
  * @package    MsgdPlug
  * @subpackage MsgdPlug.Lib.DTO
  */
-readonly final class MsgdGetBlueprintRulesGroupsDTO
+final class MsgdGetBlueprintRulesGroupsDTO
 {
     /**
      * Allowed query parameters.
@@ -29,7 +29,7 @@ readonly final class MsgdGetBlueprintRulesGroupsDTO
      *
      * @var int
      */
-    public int $group;
+    public readonly int $group;
 
     /**
      * Creates and validates a request instance from query parameters.

@@ -15,27 +15,27 @@ declare(strict_types=1);
  * @package    MsgdPlug
  * @subpackage MsgdPlug.Lib.DTO
  */
-readonly final class MsgdProcessResultDTO
+final class MsgdProcessResultDTO
 {
     /**
      * @var bool
      */
-    public bool $isNew;
+    public readonly bool $isNew;
 
     /**
      * @var bool
      */
-    public bool $hasBlueprint;
+    public readonly bool $hasBlueprint;
 
     /**
      * @var int
      */
-    public int $sharingGroupId;
+    public readonly int $sharingGroupId;
 
     /**
      * @var string
      */
-    public string $sharingGroupName;
+    public readonly string $sharingGroupName;
 
     /**
      * Creates a DTO from the service result array.

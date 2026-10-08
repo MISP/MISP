@@ -15,44 +15,44 @@ declare(strict_types=1);
  * @package    MsgdPlug
  * @subpackage MsgdPlug.Lib.DTO
  */
-readonly final class MsgdUserDTO
+final class MsgdUserDTO
 {
     /**
      * @var int
      */
-    public int $id;
+    public readonly int $id;
     /**
      * @var int
      */
-    public int $orgId;
+    public readonly int $orgId;
     /**
      * @var string
      */
-    public string $email;
+    public readonly string $email;
     /**
      * @var string|null
      */
-    public ?string $orgName;
+    public readonly ?string $orgName;
     /**
      * @var string|null
      */
-    public ?string $orgUuid;
+    public readonly ?string $orgUuid;
     /**
      * @var bool
      */
-    public bool $isSiteAdmin;
+    public readonly bool $isSiteAdmin;
     /**
      * @var bool
      */
-    public bool $canUseSharingGroups;
+    public readonly bool $canUseSharingGroups;
     /**
      * @var bool
      */
-    public bool $canSync;
+    public readonly bool $canSync;
     /**
      * @var bool
      */
-    public bool $disabled;
+    public readonly bool $disabled;
 
     /**
      * Constructs a normalized user DTO from the authenticated MISP user data.

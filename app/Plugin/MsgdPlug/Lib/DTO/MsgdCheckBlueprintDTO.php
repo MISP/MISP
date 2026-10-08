@@ -15,7 +15,7 @@ declare(strict_types=1);
  * @package    MsgdPlug
  * @subpackage MsgdPlug.Lib.DTO
  */
-readonly final class MsgdCheckBlueprintDTO
+final class MsgdCheckBlueprintDTO
 {
     /**
      * Allowed top-level payload keys.

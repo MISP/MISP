@@ -15,7 +15,7 @@ declare(strict_types=1);
  * @package    MsgdPlug
  * @subpackage MsgdPlug.Lib.DTO
  */
-readonly final class MsgdProcessGroupsDTO
+final class MsgdProcessGroupsDTO
 {
     /**
      * Allowed top-level payload keys.
@@ -27,12 +27,12 @@ readonly final class MsgdProcessGroupsDTO
     /**
      * @var array<int, int|string>
      */
-    public array $groups;
+    public readonly array $groups;
 
     /**
      * @var string
      */
-    public string $customName;
+    public readonly string $customName;
 
     /**
      * Creates and validates a request instance from POST data.

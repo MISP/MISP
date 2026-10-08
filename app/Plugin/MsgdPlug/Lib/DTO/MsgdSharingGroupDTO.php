@@ -15,11 +15,11 @@ declare(strict_types=1);
  * @package    MsgdPlug
  * @subpackage MsgdPlug.Lib.DTO
  */
-readonly final class MsgdSharingGroupDTO
+final class MsgdSharingGroupDTO
 {
-    public int $id;
-    public string $uuid;
-    public string $name;
+    public readonly int $id;
+    public readonly string $uuid;
+    public readonly string $name;
 
     /**
      * Constructs DTO directly from CakePHP array structure.
