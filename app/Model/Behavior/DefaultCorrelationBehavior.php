@@ -325,7 +325,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         return $relatedAttributes;
     }
 
-    public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false)
+    public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false, $valueText = true)
     {
         // LATER getRelatedAttributes($attribute) this might become a performance bottleneck
         // prepare the conditions
@@ -422,7 +422,8 @@ class DefaultCorrelationBehavior extends ModelBehavior
             'recursive' => -1,
             'conditions' => $conditions,
             'fields' => $fields,
-            'contain' => $contain
+            'contain' => $contain,
+            'valueText' => $valueText,
         ]);
         if (!empty($includeEventData)) {
             $results = [];

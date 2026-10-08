@@ -2505,7 +2505,9 @@ class MispAttribute extends AppModel
                 $params['limit'] = 50000;
                 $params['page']  = 1;
             }
-        
+            // Resolved once for the count and every page
+            $params['conditions'] = $this->loadAttributeValue()->rewriteConditions($params['conditions'], $this->alias);
+
             if ($result_count !== false && $real_count) {
                 $cnt = $params;
                 unset($cnt['limit'], $cnt['page']);
@@ -2565,7 +2567,10 @@ class MispAttribute extends AppModel
                     // Conditions are built from the raw joined Event fields, before the context substitution below.
                     $sightingsByAttributeId = $this->Sighting->attachToAttributes($batch, $user);
                 }
-        
+                if (!empty($options['includeCorrelations'])) {
+                    $relatedByAttributeId = $this->relatedAttributesOf($user, $sgids, $batch);
+                }
+
                 // per-attribute pipeline
                 foreach ($batch as $attr) {
                     if (!empty($options['includeContext'])) {
@@ -2587,9 +2592,8 @@ class MispAttribute extends AppModel
                             $sightingsByAttributeId[$attr['Attribute']['id']] ?? [];
                     }
                     if (!empty($options['includeCorrelations'])) {
-                        $fields = ['id','event_id','object_id','object_relation','category','type','value','uuid','timestamp','distribution','sharing_group_id','to_ids','comment'];
                         $attr['Attribute']['RelatedAttribute'] =
-                            $this->Correlation->getRelatedAttributes($user, $sgids, $attr['Attribute'], $fields, true);
+                            $relatedByAttributeId[$attr['Attribute']['id']];
                     }
                     if (!empty($options['enforceWarninglist'])
                         && !$this->Warninglist->filterWarninglistAttribute($attr['Attribute'])
@@ -2667,7 +2671,28 @@ class MispAttribute extends AppModel
             return $all;
         }
 
-    
+    /**
+     * The correlations of each attribute in a batch, by attribute id, with
+     * the related values read from the dictionary at once rather than per
+     * attribute.
+     *
+     * @param array $user
+     * @param array $sgids
+     * @param array $batch Rows as find('all') returns them.
+     * @return array
+     */
+    private function relatedAttributesOf(array $user, array $sgids, array $batch)
+    {
+        $fields = ['id','event_id','object_id','object_relation','category','type','value','uuid','timestamp','distribution','sharing_group_id','to_ids','comment'];
+        $related = [];
+        foreach ($batch as $row) {
+            $related[$row['Attribute']['id']] =
+                $this->Correlation->getRelatedAttributes($user, $sgids, $row['Attribute'], $fields, true, false);
+        }
+        $this->loadAttributeValue()->attachNested($related, ['value']);
+        return $related;
+    }
+
     /**
      * @param array $user
      * @param array $eventIds
@@ -3841,6 +3866,8 @@ class MispAttribute extends AppModel
                     'object_name' => array('function' => 'set_filter_object_name')
                 )
             );
+            // Read ahead, the filters below consume them
+            $valueFiltered = !empty($params['value']) || !empty($params['value1']) || !empty($params['value2']);
             foreach ($params as $param => $paramData) {
                 foreach ($simple_params as $scope => $simple_param_scoped) {
                     if (isset($simple_param_scoped[$param]) && isset($params[$param]) && $params[$param] !== false) {
@@ -3853,6 +3880,11 @@ class MispAttribute extends AppModel
                         $conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
                     }
                 }
+            }
+            $eventIds = $valueFiltered ? $this->Event->eventIdBound($params) : null;
+            if ($eventIds !== null) {
+                // Repeats the eventid condition on the attribute itself, where it bounds a value pattern
+                $conditions['AND'][] = ['Attribute.event_id' => $eventIds];
             }
         }
         return $conditions;
@@ -4043,6 +4075,8 @@ class MispAttribute extends AppModel
             $loop = true;
         }
         unset($params['page']);
+        // Resolved once for every page
+        $params['conditions'] = $this->loadAttributeValue()->rewriteConditions($params['conditions'], $this->alias);
         // Use cursor-based (ID sliding window) pagination
         // when looping internally and no explicit sort order
         // was requested.  Instead of OFFSET N (which must scan

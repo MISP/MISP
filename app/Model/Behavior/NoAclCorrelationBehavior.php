@@ -272,9 +272,10 @@ class NoAclCorrelationBehavior extends ModelBehavior
      * @param array $attribute
      * @param array $fields Attribute fields to fetch
      * @param bool $includeEventData
+     * @param bool $valueText See Correlation::getRelatedAttributes()
      * @return array
      */
-    public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false)
+    public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false, $valueText = true)
     {
         $correlatedAttributeIds = $Model->find('column', [
             'conditions' => [
@@ -326,7 +327,8 @@ class NoAclCorrelationBehavior extends ModelBehavior
                 'Attribute.id' => $correlatedAttributeIds
             ],
             'fields' => $fields,
-            'contain' => $contain
+            'contain' => $contain,
+            'valueText' => $valueText,
         ]);
         if (!empty($includeEventData)) {
             $results = [];

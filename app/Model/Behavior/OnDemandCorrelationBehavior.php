@@ -506,7 +506,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         return $relatedAttributes;
     }
 
-    public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false)
+    public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false, $valueText = true)
     {
 
         $conditions = [
@@ -598,7 +598,8 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                 'Attribute.id' => $correlatedAttributeIds
             ],
             'fields' => $fields,
-            'contain' => $contain
+            'contain' => $contain,
+            'valueText' => $valueText,
         ]);
         if (!empty($includeEventData)) {
             $results = [];

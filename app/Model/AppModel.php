@@ -75,8 +75,9 @@ class AppModel extends Model
 
     /**
      * @var array Per find() in progress: whether association rows in it still
-     *   hold value ids, the value keys the find was asked for (valueKeys), and
-     *   the ones its primary model's field list named.
+     *   hold value ids, the value keys the find was asked for (valueKeys), the
+     *   ones its primary model's field list named, and whether it wants the
+     *   value text at all (valueText).
      */
     private static $valueFinds = [];
 
@@ -1810,13 +1811,14 @@ class AppModel extends Model
             'deferred' => false,
             'keys' => isset($query['valueKeys']) ? $query['valueKeys'] : null,
             'primaryKeys' => null,
+            'text' => !isset($query['valueText']) || $query['valueText'],
         ];
         try {
             $results = parent::find($type, $query);
         } finally {
             $find = array_pop(self::$valueFinds);
         }
-        if ($find['deferred']) {
+        if ($find['deferred'] && $find['text']) {
             ClassRegistry::init('AttributeValue')->attachNested($results, $find['keys']);
         }
         if (!empty($query['includeAnalystData']) && $this->Behaviors->enabled('AnalystDataParent')) {
@@ -1859,6 +1861,19 @@ class AppModel extends Model
         }
         $find = end(self::$valueFinds);
         return $find['keys'] !== null ? $find['keys'] : $find['primaryKeys'];
+    }
+
+    /**
+     * Whether the find in progress wants value text. One asked for
+     * valueText => false hands its attribute rows back with their ids, for
+     * the caller to fill in later (AttributeValue::attachNested), together
+     * with those of other finds.
+     *
+     * @return bool
+     */
+    public static function valueTextWanted()
+    {
+        return empty(self::$valueFinds) || end(self::$valueFinds)['text'];
     }
 
     /**

@@ -144,14 +144,19 @@ class MispObject extends AppModel
     {
         $conditions = [];
         if (isset($params['wildcard'])) {
-            $temp = array();
-            $options = array(
-                'filter' => 'wildcard',
-                'scope' => 'Object',
-                'pop' => false,
-                'context' => 'Event'
+            // The attribute conditions need an attribute query of their own
+            $subQueryOptions = array(
+                'fields' => ['Attribute.object_id'],
+                'recursive' => -1,
+                'conditions' => array(
+                    'Attribute.object_id NOT' => 0,
+                    'OR' => $this->Event->wildcardAttributeConditions($params['wildcard'])
+                )
             );
-            $conditions['AND'][] = array('OR' => $this->Event->set_filter_wildcard_attributes($params, $temp, $options));
+            $conditions['AND'][] = array('OR' => array(
+                array('Event.info LIKE' => $params['wildcard']),
+                $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Object.id')
+            ));
         } else {
             if (isset($params['ignore'])) {
                 $params['to_ids'] = array(0, 1);
@@ -184,7 +189,6 @@ class MispObject extends AppModel
                     'published' => array('function' => 'set_filter_published')
                 ),
                 'Attribute' => array(
-                    'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_simple_attribute'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
@@ -224,6 +228,17 @@ class MispObject extends AppModel
                         }
                     }
                 }
+            }
+            if (isset($params['value']) && $params['value'] !== false) {
+                // It reads the attributes in a subquery of its own. Added last,
+                // so that the attribute subqueries above do not repeat it.
+                $options = array(
+                    'filter' => 'value',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Object'
+                );
+                $conditions = $this->Event->set_filter_value($params, $conditions, $options);
             }
         }
         return $conditions;

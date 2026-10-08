@@ -365,7 +365,8 @@ class AttributeValue extends AppModel
     /**
      * Value text for the rows an afterFind receives; the ids never leave the
      * instance. Cake filters association rows one at a time, so those keep
-     * their ids until the find that read them returns (AppModel::find).
+     * their ids until the find that read them returns (AppModel::find). A
+     * find asked for valueText => false leaves them to its caller.
      *
      * @param array $results
      * @param string $alias
@@ -374,6 +375,9 @@ class AttributeValue extends AppModel
      */
     public function attachFound(array &$results, $alias, $primary)
     {
+        if (!$this->textWanted()) {
+            return;
+        }
         if ($primary) {
             $this->attachValues($results, $alias, $this->findValueKeys());
         } else if ($this->holdsIdKeys($results) && !$this->deferRows()) {
@@ -971,6 +975,14 @@ class AttributeValue extends AppModel
     protected function deferRows()
     {
         return AppModel::deferValueRows();
+    }
+
+    /**
+     * @return bool False when the find in progress asked for valueText => false.
+     */
+    protected function textWanted()
+    {
+        return AppModel::valueTextWanted();
     }
 
     /**

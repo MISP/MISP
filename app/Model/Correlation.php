@@ -1122,14 +1122,16 @@ class Correlation extends AppModel
      * @param array $attribute Attribute Array
      * @param array $fields List of fields to include
      * @param bool $includeEventData Flag to include the event data in the response
+     * @param bool $valueText False to leave the value ids in the related
+     *   attributes, for the caller to fill in (AttributeValue::attachNested)
      * @return array
      */
-    public function getRelatedAttributes($user, $sgids, $attribute, $fields=[], $includeEventData = false)
+    public function getRelatedAttributes($user, $sgids, $attribute, $fields=[], $includeEventData = false, $valueText = true)
     {
         if (in_array($attribute['type'], MispAttribute::NON_CORRELATING_TYPES, true)) {
             return [];
         }
-        return $this->runGetRelatedAttributes($user, $sgids, $attribute, $fields, $includeEventData);
+        return $this->runGetRelatedAttributes($user, $sgids, $attribute, $fields, $includeEventData, $valueText);
     }
 
     /**

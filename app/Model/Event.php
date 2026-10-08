@@ -1630,15 +1630,29 @@ class Event extends AppModel
 
     public function set_filter_wildcard_attributes(&$params, $conditions, $options)
     {
+        return array_merge(
+            [['Event.info LIKE' => $params['wildcard']]],
+            $this->wildcardAttributeConditions($params['wildcard'])
+        );
+    }
+
+    /**
+     * The wildcard's conditions on the attribute itself: its value, its
+     * comment, and its own or its event's tags. Alternatives, to be OR'd.
+     *
+     * @param string $wildcard
+     * @return array
+     */
+    public function wildcardAttributeConditions($wildcard)
+    {
         $tempConditions = array();
-        $tempConditions[] = array('Event.info LIKE' => $params['wildcard']);
         $attributeParams = array('value1', 'value2', 'comment');
         foreach ($attributeParams as $attributeParam) {
-            $tempConditions[] = array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']);
+            $tempConditions[] = array('Attribute.' . $attributeParam . ' LIKE' => $wildcard);
         }
         $tagIds = $this->Attribute->AttributeTag->Tag->find('column', array(
             'recursive' => -1,
-            'conditions' => array('Tag.name LIKE' => $params['wildcard']),
+            'conditions' => array('Tag.name LIKE' => $wildcard),
             'fields' => array('Tag.id')
         ));
         if (!empty($tagIds)) {
@@ -5698,7 +5712,8 @@ class Event extends AppModel
             }
 
             if ($options['context'] !== 'Attribute') {
-                $eventIds = $options['context'] === 'Event' ? $this->eventIdBound($params) : null;
+                // An object's attributes are in its event, so its value subquery takes the bound too
+                $eventIds = $this->eventIdBound($params);
                 foreach (['OR', 'AND', 'NOT'] as $operand) {
                     if (!empty($params[$options['filter']][$operand])) {
                         $values = $params[$options['filter']][$operand];
@@ -5716,13 +5731,13 @@ class Event extends AppModel
 
     /**
      * The events an eventid filter limits the search to, when it lists a few
-     * of them by id. A value subquery tied to them reads the dictionary per
+     * of them by id. A value condition tied to them reads the dictionary per
      * attribute rather than scanning it ahead of the search.
      *
      * @param array $params
      * @return int[]|null
      */
-    private function eventIdBound(array $params)
+    public function eventIdBound(array $params)
     {
         if (empty($params['eventid']) || $params['eventid'] === 'all') {
             return null;
@@ -5755,6 +5770,8 @@ class Event extends AppModel
             case 'Object':
                 $lookup_field = 'Object.id';
                 $field = 'object_id';
+                // Redundant, but it lets a selective value be read before the objects
+                $scope['Attribute.object_id !='] = 0;
                 break;
             case 'Event':
                 $lookup_field = 'Event.id';
@@ -5788,6 +5805,14 @@ class Event extends AppModel
                   $operand === 'NOT'
                 );
                 $conditions['AND'][] = $subQuery;
+                if ($operand === 'NOT' && $options['context'] === 'Object') {
+                    // An object matches through its attributes, also when negated
+                    $conditions['AND'][] = $this->subQueryGenerator(
+                      $this->Attribute,
+                      ['conditions' => ['Attribute.object_id !=' => 0], 'fields' => [$field]],
+                      $lookup_field
+                    );
+                }
                 break;
             case 'AND':
                 foreach ($values as $v) {

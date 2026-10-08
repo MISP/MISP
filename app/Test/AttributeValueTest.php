@@ -662,6 +662,23 @@ class AttributeValueTest extends TestCase
         $this->assertSame(0, $model->deferredCalls);
     }
 
+    public function testAttachFoundLeavesTheIdsToAFindThatWantsNoText()
+    {
+        $model = $this->model($this->mysql);
+        $model->findInProgress = true;
+        $model->textWanted = false;
+        $rows = [['Attribute' => ['id' => 1, 'value1_id' => 1, 'value2_id' => 2]]];
+
+        $results = $rows;
+        $model->attachFound($results, 'Attribute', true);
+        $this->assertSame($rows, $results);
+        $model->attachFound($results, 'Attribute', false);
+        $this->assertSame($rows, $results);
+
+        $this->assertSame([], $this->mysql->statements);
+        $this->assertSame(0, $model->deferredCalls);
+    }
+
     public function testAttachNestedHydratesEveryShapeInOneStatement()
     {
         $this->mysql->responder = $this->answerIds([

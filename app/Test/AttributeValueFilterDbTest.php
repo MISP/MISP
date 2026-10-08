@@ -2,9 +2,11 @@
 /**
  * Attribute finds and the restSearch filter builders match the value columns
  * on the dictionary ids: conditions in a find (callbacks on or 'before'),
- * the attribute-scope and event-scope value filters (a short eventid list
- * bounding the latter), the event-scope wildcard, and the finds that named
- * the value field in their conditions.
+ * the attribute-, event- and object-scope value filters (a short eventid list
+ * bounding them), the event- and object-scope wildcards, the finds that named
+ * the value field in their conditions, and the attribute fetch, which
+ * resolves its conditions once and reads the values of its correlations at
+ * once.
  * The tests hide the value virtual field and the text columns from every
  * attribute model and point the stored text away from the dictionary, so a
  * condition left on either finds nothing or fails.
@@ -68,6 +70,7 @@ class AttributeValueFilterDbTest extends TestCase
             require_once __DIR__ . '/OracleBootstrap.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('AttributeValue', 'Model');
+            App::uses('CakeText', 'Utility');
             AttributeValue::$strictConditions = true;
             self::$booted = true;
         }
@@ -234,6 +237,64 @@ class AttributeValueFilterDbTest extends TestCase
         $this->db->getLog(false, true);
     }
 
+    /**
+     * @return int Patterns resolved ahead: dictionary scans of their own,
+     *   not a dictionary subquery inside the find.
+     */
+    private function resolvedPatterns()
+    {
+        return count($this->statements('/^(?:\/\*.*?\*\/ )?SELECT `id` FROM `attribute_values` WHERE `value` LIKE/'));
+    }
+
+    /**
+     * Objects 0 and 2 in the first event, 1 in the second; object 2 has no
+     * attributes.
+     * @return int[]
+     */
+    private function createObjects()
+    {
+        list($first, $second) = $this->events;
+        $objects = [self::OBJECT_ID => $first, self::OBJECT_ID + 1 => $second, self::OBJECT_ID + 2 => $first];
+        foreach ($objects as $id => $eventId) {
+            $this->exec(sprintf(
+                "INSERT INTO objects (id, name, `meta-category`, template_uuid, template_version, event_id, uuid, timestamp, distribution, comment, deleted) VALUES (%d, 'domain-ip', 'network', '%s', 1, %d, '%s', %d, 5, '', 0)",
+                $id,
+                CakeText::uuid(),
+                $eventId,
+                CakeText::uuid(),
+                time()
+            ));
+        }
+        $this->exec(sprintf('UPDATE attributes SET object_id = %d WHERE id = %d', self::OBJECT_ID + 1, $this->ids['regkey']));
+        return array_keys($objects);
+    }
+
+    private function objectIds(array $params, array $objects)
+    {
+        $object = $this->attribute->Event->Object;
+        $conditions = $object->buildFilterConditions($params);
+        $found = $object->fetchObjects($this->user, [
+            'conditions' => ['AND' => [['Object.id' => $objects], $conditions]],
+            'metadata' => 1,
+        ]);
+        $ids = array_map('intval', array_column(array_column($found, 'Object'), 'id'));
+        sort($ids);
+        return $ids;
+    }
+
+    private function fetchedIds(array $params)
+    {
+        // No id list here, it would bound the find by itself
+        $conditions = $this->attribute->buildFilterConditions($this->user, $params, true);
+        $found = $this->attribute->fetchAttributes($this->user, [
+            'conditions' => $conditions,
+            'flatten' => 1,
+        ]);
+        $ids = array_map('intval', array_column(array_column($found, 'Attribute'), 'id'));
+        sort($ids);
+        return $ids;
+    }
+
     public function testAFindMatchesTheValueColumnsOnTheIds()
     {
         $t = $this->token;
@@ -328,6 +389,177 @@ class AttributeValueFilterDbTest extends TestCase
         $this->clearLog();
         $this->assertSame([$first, $second], $this->eventIds(['wildcard' => "%$t%"]));
         $this->assertCount(1, $this->statements('/FROM `attribute_values` WHERE `value` LIKE/'));
+    }
+
+    public function testTheObjectScopeValueFilterMatchesOnTheIds()
+    {
+        $t = $this->token;
+        list($first, $second) = $this->events;
+        $objects = $this->createObjects();
+        list($a, $b, $empty) = $objects;
+        $cases = [
+            [['value' => "{$t}OBJ.example.org"], [$a]],
+            [['value' => "%{$t}rv%"], [$b]],
+            [['value' => ["{$t}obj.example.org", "{$t}rv-data"]], [$a, $b]],
+            [['value' => ['AND' => ["{$t}obj.example.org", "{$t}rv-data"]]], []],
+            // An object without attributes matches no value, also a negated one
+            [['value' => "!{$t}obj.example.org", 'eventid' => $this->events], [$b]],
+            [['value' => "%{$t}%", 'type' => 'regkey|value'], [$b]],
+            [['type' => 'domain', 'value' => "%{$t}%", 'eventid' => [$first]], [$a]],
+        ];
+        foreach ($cases as $case) {
+            list($params, $expected) = $case;
+            $this->clearLog();
+            $this->assertSame($expected, $this->objectIds($params, $objects), json_encode($params));
+            $statements = $this->statements('/`objects`(?: AS)? `Object`/');
+            $this->assertCount(1, $statements);
+            $this->assertNotRegExp('/value[12](?!_id)/', $statements[0]);
+            // Not repeated inside the subquery of another attribute filter
+            $this->assertNotRegExp('/SELECT `Attribute`.`object_id` FROM(?:(?!GROUP BY).)*value1_id/s', $statements[0]);
+        }
+    }
+
+    public function testAShortEventidListBoundsTheObjectValueSubquery()
+    {
+        $t = $this->token;
+        list($first, $second) = $this->events;
+        $objects = $this->createObjects();
+        $uuid = $this->event->field('uuid', ['Event.id' => $first]);
+        $cases = [
+            [['eventid' => $this->events], false],
+            [[], true],
+            [['eventid' => [$first, $second, $uuid]], true],
+        ];
+        foreach ($cases as $case) {
+            list($params, $resolved) = $case;
+            $this->clearLog();
+            $this->assertSame([$objects[1]], $this->objectIds($params + ['value' => "%{$t}rv%"], $objects), json_encode($params));
+            $this->assertSame($resolved ? 1 : 0, $this->resolvedPatterns(), json_encode($params));
+            $this->assertCount($resolved ? 0 : 1, $this->statements('/`objects`(?: AS)? `Object`.*attribute_values/s'), json_encode($params));
+        }
+    }
+
+    public function testTheObjectScopeWildcardMatchesThroughTheAttributes()
+    {
+        $t = $this->token;
+        $objects = $this->createObjects();
+        list($a, $b) = $objects;
+
+        $this->assertSame([$b], $this->objectIds(['wildcard' => "%{$t}rv%"], $objects));
+        $this->clearLog();
+        $this->assertSame([$a, $b], $this->objectIds(['wildcard' => "%$t%"], $objects));
+        $this->assertSame(1, $this->resolvedPatterns());
+
+        // The event info matches objects without attributes too
+        $this->exec(sprintf("UPDATE events SET info = '%s-info' WHERE id = %d", $t, $this->events[0]));
+        $this->assertSame([$a, $objects[2]], $this->objectIds(['wildcard' => "$t-info"], $objects));
+    }
+
+    public function testAShortEventidListBoundsTheAttributeScopeValuePattern()
+    {
+        $t = $this->token;
+        list($first, $second) = $this->events;
+        $uuid = $this->event->field('uuid', ['Event.id' => $first]);
+        $cases = [
+            [['eventid' => $this->events, 'value' => "%{$t}rv%"], ['regkey'], false],
+            [['eventid' => [$first], 'value1' => "%{$t}%"], ['domain', 'composite', 'tick', 'object'], false],
+            [['eventid' => [$first, $uuid], 'value' => "%{$t}rv%"], [], true],
+            [['value' => "%{$t}rv%"], ['regkey'], true],
+        ];
+        foreach ($cases as $case) {
+            list($params, $expected, $resolved) = $case;
+            $this->clearLog();
+            $this->assertSame($this->ids(...$expected), $this->fetchedIds($params), json_encode($params));
+            $this->assertSame($resolved ? 1 : 0, $this->resolvedPatterns(), json_encode($params));
+        }
+    }
+
+    public function testAFetchResolvesItsValueConditionsOnce()
+    {
+        $t = $this->token;
+        $count = 0;
+        $this->clearLog();
+        $found = $this->attribute->fetchAttributes($this->user, [
+            'conditions' => ['Attribute.value LIKE' => "%$t%"],
+            'flatten' => 1,
+        ], $count, true);
+        $this->assertSame(count($this->ids), $count);
+        $this->assertCount(count($this->ids), $found);
+        $this->assertSame(1, $this->resolvedPatterns());
+
+        // restSearch, in pages of two
+        $memoryLimit = ini_get('memory_limit');
+        $coefficient = Configure::read('MISP.default_attribute_memory_coefficient');
+        try {
+            ini_set('memory_limit', '1024M');
+            Configure::write('MISP.default_attribute_memory_coefficient', 2 / 1024);
+            $this->clearLog();
+            $tmp = $this->attribute->restSearch($this->user, 'json', [
+                'value' => "%$t%",
+                'to_ids' => [0, 1],
+                'published' => [0, 1],
+                'limit' => 100,
+            ]);
+            $response = json_decode($tmp->intoString(), true)['response']['Attribute'];
+        } finally {
+            ini_set('memory_limit', $memoryLimit);
+            Configure::write('MISP.default_attribute_memory_coefficient', $coefficient);
+        }
+        $ids = array_map('intval', array_column($response, 'id'));
+        sort($ids);
+        $this->assertSame($this->ids(...array_keys($this->ids)), $ids);
+        $this->assertGreaterThanOrEqual(3, count($this->statements('/`attributes` AS `Attribute`.* LIMIT 2$/s')));
+        $this->assertSame(1, $this->resolvedPatterns());
+    }
+
+    public function testAFetchReadsTheValuesOfItsCorrelationsAtOnce()
+    {
+        $sides = [$this->ids['domain'], $this->ids['other'], $this->ids['composite']];
+        $rows = $this->exec(sprintf(
+            'SELECT a.id, a.event_id, a.object_id, a.distribution, e.org_id, e.distribution AS event_distribution FROM attributes a JOIN events e ON e.id = a.event_id WHERE a.id IN (%s)',
+            implode(', ', $sides)
+        ));
+        $rows = array_column($rows, null, 'id');
+        $correlate = function ($a, $b) use ($rows) {
+            $columns = [];
+            $values = [];
+            foreach (['' => $rows[$a], '1_' => $rows[$b]] as $prefix => $row) {
+                foreach (['attribute_id' => 'id', 'object_id' => 'object_id', 'event_id' => 'event_id', 'org_id' => 'org_id', 'distribution' => 'distribution', 'object_distribution' => 'distribution', 'event_distribution' => 'event_distribution'] as $column => $source) {
+                    $columns[] = '`' . $prefix . $column . '`';
+                    $values[] = (int)$row[$source];
+                }
+            }
+            $this->exec(sprintf(
+                'INSERT INTO default_correlations (%s, value_id) VALUES (%s, 1)',
+                implode(', ', $columns),
+                implode(', ', $values)
+            ));
+        };
+        $correlate($sides[0], $sides[1]);
+        $correlate($sides[2], $sides[1]);
+
+        $this->clearLog();
+        $found = $this->attribute->fetchAttributes($this->user, [
+            'conditions' => ['Attribute.id' => $sides],
+            'includeCorrelations' => true,
+            'flatten' => 1,
+        ]);
+        $this->assertCount(2, $this->statements('/FROM `attribute_values` WHERE `id` IN/'));
+
+        $fields = ['id','event_id','object_id','object_relation','category','type','value','uuid','timestamp','distribution','sharing_group_id','to_ids','comment'];
+        $sgids = $this->attribute->SharingGroup->authorizedIds($this->user);
+        $related = [];
+        foreach ($found as $row) {
+            $related[$row['Attribute']['id']] = $row['Attribute']['RelatedAttribute'];
+            // As getRelatedAttributes() gives them with the values filled in per find
+            $this->assertSame(
+                $this->attribute->Correlation->getRelatedAttributes($this->user, $sgids, $row['Attribute'], $fields, true),
+                $row['Attribute']['RelatedAttribute']
+            );
+        }
+        $this->assertSame(["$this->token-two.example.org"], array_column($related[$this->ids['domain']], 'value'));
+        $this->assertSame(["$this->token.example.org", "{$this->token}a.example|192.0.2.7"], array_column($related[$this->ids['other']], 'value'));
+        $this->assertArrayNotHasKey('value1_id', $related[$this->ids['other']][0]);
     }
 
     public function testTheValueFieldConditionsMatchOnTheIds()
