@@ -147,6 +147,9 @@ class TestAttributeValue extends AttributeValue
     /** @var int */
     public $deferredCalls = 0;
 
+    /** @var string */
+    public $collation = 'utf8mb4_uca1400_ai_ci';
+
     private $fakeDb;
 
     private $fakeDialect;
@@ -175,6 +178,11 @@ class TestAttributeValue extends AttributeValue
     protected function inTransaction()
     {
         return $this->transaction;
+    }
+
+    protected function valueCollation()
+    {
+        return $this->collation;
     }
 
     protected function deferRows()

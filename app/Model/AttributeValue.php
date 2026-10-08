@@ -170,16 +170,7 @@ class AttributeValue extends AppModel
         if ($limit < 1) {
             throw new InvalidArgumentException('The match limit must be at least 1.');
         }
-        $db = $this->getDataSource();
-        $sql = sprintf(
-            'SELECT %s FROM %s WHERE %s %s %s LIMIT %d',
-            $db->name('id'),
-            $this->quotedTable(),
-            $db->name('value'),
-            $this->isMysqlSource() ? 'LIKE' : 'ILIKE',
-            $db->value($this->toValueString($pattern), 'string'),
-            $limit + 1
-        );
+        $sql = sprintf('%s LIMIT %d', $this->likeSelect($pattern), $limit + 1);
         $ids = [];
         foreach ($this->fetchRows($sql) as $row) {
             $ids[] = (int)$row['id'];
@@ -189,6 +180,73 @@ class AttributeValue extends AppModel
         }
         sort($ids);
         return ['ids' => $ids, 'overflow' => false];
+    }
+
+    /**
+     * A condition on an id column for the values matching a LIKE pattern,
+     * with the dictionary read inside the statement rather than ahead of it.
+     *
+     * @param string $field Alias-qualified id column, e.g. Attribute.value1_id
+     * @param string $pattern
+     * @param bool $not
+     * @return stdClass A Cake expression, for a numeric key in conditions.
+     */
+    public function likeCondition($field, $pattern, $not = false)
+    {
+        $db = $this->getDataSource();
+        return $db->expression(sprintf(
+            '%s %s (%s)',
+            $db->name($field),
+            $not ? 'NOT IN' : 'IN',
+            $this->likeSelect($pattern)
+        ));
+    }
+
+    /**
+     * Whether the empty string, which a NULL value2_id stands for, equals each
+     * term (or matches each LIKE pattern) in the dictionary collation.
+     *
+     * @param array $terms
+     * @param bool $like
+     * @return array [term => bool]
+     */
+    public function matchesEmpty(array $terms, $like = false)
+    {
+        $result = [];
+        $ask = [];
+        foreach ($terms as $term) {
+            $term = $this->toValueString($term);
+            $known = $this->emptyMatchKnown($term, $like);
+            if ($known === null) {
+                $ask[$term] = true;
+            }
+            $result[$term] = $known === true;
+        }
+        if (empty($ask)) {
+            return $result;
+        }
+        $db = $this->getDataSource();
+        $collation = $this->valueCollation();
+        if (!preg_match('/^([a-z0-9]+)_\w+$/i', $collation, $match)) {
+            throw new RuntimeException(sprintf('Unexpected collation "%s" on the attribute value column.', $collation));
+        }
+        $ask = array_map('strval', array_keys($ask));
+        $selects = [];
+        foreach ($ask as $index => $term) {
+            $selects[] = sprintf(
+                "SELECT %d AS %s FROM DUAL WHERE _%s'' COLLATE %s %s %s",
+                $index,
+                $db->name('term'),
+                $match[1],
+                $collation,
+                $like ? 'LIKE' : '=',
+                $db->value($term, 'string')
+            );
+        }
+        foreach ($this->fetchRows(implode(' UNION ALL ', $selects)) as $row) {
+            $result[$ask[(int)$row['term']]] = true;
+        }
+        return $result;
     }
 
     /**
@@ -722,6 +780,52 @@ class AttributeValue extends AppModel
             $quoted,
             self::CI_PREFIX
         );
+    }
+
+    /**
+     * @param string $pattern
+     * @return string
+     */
+    private function likeSelect($pattern)
+    {
+        $db = $this->getDataSource();
+        return sprintf(
+            'SELECT %s FROM %s WHERE %s %s %s',
+            $db->name('id'),
+            $this->quotedTable(),
+            $db->name('value'),
+            $this->isMysqlSource() ? 'LIKE' : 'ILIKE',
+            $db->value($this->toValueString($pattern), 'string')
+        );
+    }
+
+    /**
+     * Decides without the database where it can. Letters and digits are never
+     * ignorable, and PostgreSQL compares lower() of both sides, so only a term
+     * made of other characters on MySQL is left to the collation.
+     *
+     * @param string $term
+     * @param bool $like
+     * @return bool|null
+     */
+    private function emptyMatchKnown($term, $like)
+    {
+        if ($like ? preg_match('/^%*$/', $term) : $term === '') {
+            return true;
+        }
+        if (preg_match($like ? '/[A-Za-z0-9_]/' : '/[A-Za-z0-9]/', $term)) {
+            return false;
+        }
+        return $this->isMysqlSource() ? null : false;
+    }
+
+    /**
+     * @return string
+     */
+    protected function valueCollation()
+    {
+        $schema = $this->schema();
+        return isset($schema['value']['collate']) ? $schema['value']['collate'] : '';
     }
 
     /**

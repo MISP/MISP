@@ -433,6 +433,74 @@ class AttributeValueTest extends TestCase
         );
     }
 
+    public function testLikeConditionReadsTheDictionaryInsideTheStatement()
+    {
+        $in = $this->model($this->mysql)->likeCondition('Attribute.value1_id', "%it's%");
+        $notIn = $this->model($this->pgsql)->likeCondition('ShadowAttribute.value2_id', '%x%', true);
+
+        $this->assertSame('expression', $in->type);
+        $this->assertSame(
+            "`Attribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%it''s%')",
+            $in->value
+        );
+        $this->assertSame(
+            "\"ShadowAttribute\".\"value2_id\" NOT IN (SELECT \"id\" FROM \"attribute_values\" WHERE \"value\" ILIKE '%x%')",
+            $notIn->value
+        );
+        $this->assertSame([], $this->mysql->statements);
+    }
+
+    public function testMatchesEmptyDecidesLettersDigitsAndWildcardsWithoutTheDatabase()
+    {
+        foreach ([$this->mysql, $this->pgsql] as $db) {
+            $model = $this->model($db);
+            $this->assertSame(['' => true, 'a ' => false, '0' => false], $model->matchesEmpty(['', 'a ', '0']));
+            $this->assertSame(
+                ['' => true, '%%' => true, 'a%' => false, '_' => false, '%\\_' => false],
+                $model->matchesEmpty(['', '%%', 'a%', '_', '%\\_'], true)
+            );
+            $this->assertSame([], $db->statements);
+        }
+    }
+
+    public function testMatchesEmptyAsksTheMysqlCollationForTheRest()
+    {
+        $this->mysql->responder = function ($sql) {
+            return [['term' => '0']];
+        };
+        $model = $this->model($this->mysql);
+
+        $this->assertSame(['  ' => true, 'x' => false, '-' => false], $model->matchesEmpty(['  ', 'x', '-']));
+        $this->assertSame(
+            ["SELECT 0 AS `term` FROM DUAL WHERE _utf8mb4'' COLLATE utf8mb4_uca1400_ai_ci = '  '"
+                . " UNION ALL SELECT 1 AS `term` FROM DUAL WHERE _utf8mb4'' COLLATE utf8mb4_uca1400_ai_ci = '-'"],
+            $this->mysql->statements
+        );
+
+        $this->mysql->statements = [];
+        $model->matchesEmpty(['\\%'], true);
+        $this->assertSame(
+            ["SELECT 0 AS `term` FROM DUAL WHERE _utf8mb4'' COLLATE utf8mb4_uca1400_ai_ci LIKE '\\%'"],
+            $this->mysql->statements
+        );
+    }
+
+    public function testMatchesEmptyOnPostgresComparesLowerCaseSoOnlyTheEmptyTermMatches()
+    {
+        $this->assertSame(['  ' => false, '-' => false], $this->model($this->pgsql)->matchesEmpty(['  ', '-']));
+        $this->assertSame(['\\%' => false], $this->model($this->pgsql)->matchesEmpty(['\\%'], true));
+        $this->assertSame([], $this->pgsql->statements);
+    }
+
+    public function testMatchesEmptyRefusesAnUnexpectedCollationName()
+    {
+        $model = $this->model($this->mysql);
+        $model->collation = 'x; DROP TABLE y';
+
+        $this->expectException('RuntimeException');
+        $model->matchesEmpty([' ']);
+    }
+
     public function testResolveLikeRefusesAZeroLimit()
     {
         $this->expectException('InvalidArgumentException');
