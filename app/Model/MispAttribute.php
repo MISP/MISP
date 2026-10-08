@@ -1831,21 +1831,51 @@ class MispAttribute extends AppModel
 
     /**
      * @param bool $dryRun If true, no changes will be made to
+     * @param int $chunkSize Changed attributes primed and saved together
      * @return Generator
      * @throws Exception
      */
-    public function normalizeIpAddress($dryRun = false)
+    public function normalizeIpAddress($dryRun = false, $chunkSize = self::PRIME_CHUNK)
     {
         $attributes = $this->fetchAttributesInChunks([
             'Attribute.type' => ['ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'domain|ip'],
         ]);
 
+        $changed = [];
         foreach ($attributes as $attribute) {
             $value = $attribute['Attribute']['value'];
             $normalizedValue = AttributeValidationTool::modifyBeforeValidation($attribute['Attribute']['type'], $value);
             if ($value !== $normalizedValue) {
+                $attribute['Attribute']['value'] = $normalizedValue;
+                $changed[] = ['attribute' => $attribute, 'value' => $value];
+                if (count($changed) >= $chunkSize) {
+                    foreach ($this->saveNormalizedIps($changed, $dryRun) as $result) {
+                        yield $result;
+                    }
+                    $changed = [];
+                }
+            }
+        }
+        foreach ($this->saveNormalizedIps($changed, $dryRun) as $result) {
+            yield $result;
+        }
+    }
+
+    /**
+     * @param array $changed ['attribute' => normalized attribute, 'value' => original value]
+     * @param bool $dryRun
+     * @return Generator
+     */
+    private function saveNormalizedIps(array $changed, $dryRun)
+    {
+        $primed = null;
+        if (!$dryRun && !empty($changed)) {
+            $primed = $this->primeValues(array_column(array_column($changed, 'attribute'), 'Attribute'));
+        }
+        try {
+            foreach ($changed as $item) {
+                $attribute = $item['attribute'];
                 if (!$dryRun) {
-                    $attribute['Attribute']['value'] = $normalizedValue;
                     $this->save($attribute, true, ['value1', 'value2']);
                 }
 
@@ -1853,9 +1883,13 @@ class MispAttribute extends AppModel
                     'id' => (int) $attribute['Attribute']['id'],
                     'event_id' => (int) $attribute['Attribute']['event_id'],
                     'type' => $attribute['Attribute']['type'],
-                    'value' => $value,
-                    'normalized_value' => $normalizedValue,
+                    'value' => $item['value'],
+                    'normalized_value' => $attribute['Attribute']['value'],
                 ];
+            }
+        } finally {
+            if ($primed !== null) {
+                $this->releaseValues($primed);
             }
         }
     }

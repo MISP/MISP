@@ -510,4 +510,212 @@ class AttributeValueWritePathDbTest extends TestCase
         $this->assertArrayNotHasKey('value1_id', $change);
         $this->assertArrayNotHasKey('value2_id', $change);
     }
+
+    private function createTyped($type, $value)
+    {
+        return $this->create([
+            'type' => $type,
+            'category' => $this->attribute->typeDefinitions[$type]['default_category'],
+            'value' => $value,
+        ]);
+    }
+
+    private function proposal(array $fields)
+    {
+        $proposal = ClassRegistry::init('ShadowAttribute');
+        $proposal->create();
+        $saved = $proposal->save(['ShadowAttribute' => $fields + [
+            'event_id' => $this->event['id'],
+            'event_uuid' => $this->event['uuid'],
+            'event_org_id' => $this->event['orgc_id'],
+            'org_id' => $this->event['orgc_id'],
+            'old_id' => 0,
+            'category' => 'Network activity',
+            'comment' => $this->token,
+        ]]);
+        $this->assertNotFalse($saved, json_encode($proposal->validationErrors));
+        // What ShadowAttributesController::accept hands acceptProposal()
+        return $proposal->find('first', [
+            'recursive' => -1,
+            'conditions' => ['ShadowAttribute.id' => $proposal->id, 'deleted' => 0],
+        ]);
+    }
+
+    /**
+     * @return string[] A documentation IPv6 address written out in full, and compressed
+     */
+    private function ipv6()
+    {
+        $long = sprintf('2001:0DB8:0000:0000:0000:0000:%04X:0000', random_int(0x1000, 0xffff));
+        return [$long, inet_ntop(inet_pton($long))];
+    }
+
+    public function testATypeChangeThroughTheEditFieldListSplitsAgain()
+    {
+        $md5 = md5($this->token);
+        $id = $this->createTyped('text', "{$this->token}.exe|$md5");
+        $this->assertSame([$this->dictionaryIds(["{$this->token}.exe|$md5"])[0], null], $this->storedIds('attributes', $id));
+        $existing = $this->attribute->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Attribute.id' => $id],
+        ])['Attribute'];
+
+        // attributes/edit with only a new type: the controller recovers the rest from the stored row
+        $request = ['type' => 'filename|md5', 'category' => 'Payload delivery'];
+        foreach (['id', 'event_id', 'object_id', 'uuid'] as $field) {
+            $request[$field] = $existing[$field];
+        }
+        $request['timestamp'] = time() + 1;
+        foreach (['value', 'to_ids', 'distribution', 'comment', 'first_seen', 'last_seen'] as $field) {
+            $request[$field] = $existing[$field];
+        }
+        $saved = $this->attribute->save(['Attribute' => $request], ['fieldList' => MispAttribute::EDITABLE_FIELDS]);
+
+        $this->assertNotFalse($saved, json_encode($this->attribute->validationErrors));
+        $this->assertSame(['value1' => "{$this->token}.exe", 'value2' => $md5], $this->stored($id, ['value1', 'value2']));
+        $this->assertSame($this->dictionaryIds(["{$this->token}.exe", $md5]), $this->storedIds('attributes', $id));
+    }
+
+    public function testATypeChangeThroughEditFieldDropsTheValue2Id()
+    {
+        $sha256 = hash('sha256', $this->token);
+        $id = $this->createTyped('filename|sha256', "{$this->token}.bin|$sha256");
+
+        // attributes/editField
+        $attribute = $this->attribute->fetchAttributeSimple($this->user(), [
+            'conditions' => ['Attribute.id' => $id],
+        ]);
+        $attribute['Attribute']['type'] = 'text';
+        $attribute['Attribute']['category'] = 'Other';
+        $attribute['Attribute']['timestamp'] = time() + 1;
+        $saved = $this->attribute->save($attribute);
+
+        $this->assertNotFalse($saved, json_encode($this->attribute->validationErrors));
+        $this->assertSame(['value1' => "{$this->token}.bin|$sha256", 'value2' => ''], $this->stored($id, ['value1', 'value2']));
+        $this->assertSame([$this->dictionaryIds(["{$this->token}.bin|$sha256"])[0], null], $this->storedIds('attributes', $id));
+    }
+
+    public function testATypeChangeThroughEditAttributeBulkSplitsAgain()
+    {
+        $sha256 = hash('sha256', $this->token);
+        $md5 = md5($this->token);
+        // The same value split anew, and a value the new type also normalises
+        $splitId = $this->createTyped('text', "{$this->token}.dll|$sha256");
+        $normalisedId = $this->createTyped('text', "{$this->token}.sys|" . strtoupper($md5));
+        $event = $this->attribute->Event->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Event.id' => $this->event['id']],
+        ]);
+        $rows = [];
+        foreach ([
+            $splitId => ['filename|sha256', "{$this->token}.dll|$sha256"],
+            $normalisedId => ['filename|md5', "{$this->token}.sys|" . strtoupper($md5)],
+        ] as $id => list($type, $value)) {
+            $rows[] = [
+                'id' => $id,
+                'uuid' => $this->stored($id, ['uuid'])['uuid'],
+                'event_id' => $this->event['id'],
+                'object_id' => 0,
+                'type' => $type,
+                'category' => 'Payload delivery',
+                'value' => $value,
+                'to_ids' => 0,
+                'distribution' => 5,
+                'sharing_group_id' => 0,
+                'timestamp' => time() + 1,
+            ] + self::FORGED;
+        }
+
+        $this->attribute->editAttributeBulk($rows, $event, $this->user());
+
+        $this->assertSame(
+            ['type' => 'filename|sha256', 'value1' => "{$this->token}.dll", 'value2' => $sha256],
+            $this->stored($splitId, ['type', 'value1', 'value2'])
+        );
+        $this->assertSame($this->dictionaryIds(["{$this->token}.dll", $sha256]), $this->storedIds('attributes', $splitId));
+        $this->assertSame(
+            ['type' => 'filename|md5', 'value1' => "{$this->token}.sys", 'value2' => $md5],
+            $this->stored($normalisedId, ['type', 'value1', 'value2'])
+        );
+        $this->assertSame($this->dictionaryIds(["{$this->token}.sys", $md5]), $this->storedIds('attributes', $normalisedId));
+    }
+
+    public function testAcceptingAnEditProposalWithANewTypeDerivesTheIds()
+    {
+        list(, $ip) = $this->ipv6();
+        $id = $this->createTyped('ip-dst|port', "$ip|443");
+        list($long, $proposedIp) = $this->ipv6();
+        $proposal = $this->proposal([
+            'old_id' => $id,
+            'uuid' => $this->stored($id, ['uuid'])['uuid'],
+            'type' => 'ip-dst',
+            'value' => $long,
+        ]);
+        $proposal['ShadowAttribute'] += self::FORGED;
+
+        $result = ClassRegistry::init('ShadowAttribute')->acceptProposal($this->user(), $proposal);
+
+        $this->assertTrue($result['success'], json_encode($result));
+        $this->assertSame(
+            ['type' => 'ip-dst', 'value1' => $proposedIp, 'value2' => ''],
+            $this->stored($id, ['type', 'value1', 'value2'])
+        );
+        $this->assertSame([$this->dictionaryIds([$proposedIp])[0], null], $this->storedIds('attributes', $id));
+    }
+
+    public function testAcceptingANewProposalDerivesTheIds()
+    {
+        $domain = "{$this->token}.example.org";
+        list($long, $ip) = $this->ipv6();
+        $proposal = $this->proposal([
+            'type' => 'domain|ip',
+            'value' => strtoupper($domain) . "|$long",
+        ]);
+        $proposal['ShadowAttribute'] += self::FORGED;
+
+        $result = ClassRegistry::init('ShadowAttribute')->acceptProposal($this->user(), $proposal);
+
+        $this->assertTrue($result['success'], json_encode($result));
+        $statement = $this->db->rawQuery(sprintf(
+            "SELECT id FROM attributes WHERE uuid = '%s' AND deleted = 0",
+            $proposal['ShadowAttribute']['uuid']
+        ));
+        $id = (int)$statement->fetchColumn();
+        $statement->closeCursor();
+        $this->assertGreaterThan(0, $id);
+        $this->assertSame(['value1' => $domain, 'value2' => $ip], $this->stored($id, ['value1', 'value2']));
+        $this->assertSame($this->dictionaryIds([$domain, $ip]), $this->storedIds('attributes', $id));
+    }
+
+    public function testTheRegexpCleanRewriteMovesTheIds()
+    {
+        $id = $this->createTyped('domain', "{$this->token}-old.example.org");
+        $regexp = ClassRegistry::init('Regexp');
+        $regexp->create();
+        $this->assertNotFalse($regexp->save(['Regexp' => [
+            'regexp' => "/{$this->token}-old\\./",
+            'replacement' => "{$this->token}-new.",
+            'type' => 'ALL',
+        ]]));
+        $cache = new ReflectionProperty(RegexpBehavior::class, '__allRegexp');
+        $cache->setAccessible(true);
+        $cache->setValue($this->attribute->Behaviors->Regexp, null);
+        try {
+            // The loop body of RegexpController::admin_clean
+            $allRegexp = $regexp->find('all');
+            $item = $this->attribute->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Attribute.id' => $id],
+            ]);
+            $result = $regexp->replaceSpecific($item['Attribute']['value'], $allRegexp, $item['Attribute']['type']);
+            $this->assertSame(1, $result);
+            $saved = $this->attribute->save($item);
+        } finally {
+            $cache->setValue($this->attribute->Behaviors->Regexp, null);
+        }
+
+        $this->assertNotFalse($saved, json_encode($this->attribute->validationErrors));
+        $this->assertSame(['value1' => "{$this->token}-new.example.org"], $this->stored($id, ['value1']));
+        $this->assertSame([$this->dictionaryIds(["{$this->token}-new.example.org"])[0], null], $this->storedIds('attributes', $id));
+    }
 }

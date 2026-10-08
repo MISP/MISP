@@ -439,6 +439,81 @@ class AttributeValuePrePassDbTest extends TestCase
         $this->assertPrimedOutsideTransactions(1);
     }
 
+    /**
+     * @param bool $dryRun
+     * @return array [the results in order, the yielded keys, values primed when each result came]
+     */
+    private function normalizeIps($dryRun)
+    {
+        $results = $keys = $held = [];
+        foreach ($this->attribute->normalizeIpAddress($dryRun, 2) as $key => $result) {
+            $keys[] = $key;
+            $results[] = $result;
+            $held[$result['id']] = $this->recorder->primedCount();
+        }
+        return [$results, $keys, $held];
+    }
+
+    public function testNormalizeIpAddressPrimesEachChunk()
+    {
+        $planted = [];
+        foreach ([
+            ['ip-dst', '', '2001:0DB8:0000:0000:0000:0000:%04X:0001'],
+            ['ip-src', '', '2001:0DB8:0000:0000:0000:0000:%04X:0002/128'],
+            ['domain|ip', strtoupper("dip-{$this->token}.example.org") . '|', '2001:0DB8:0000:0000:0000:0000:%04X:0003'],
+        ] as list($type, $prefix, $format)) {
+            $long = $prefix . sprintf($format, random_int(0x1000, 0xffff));
+            $normalized = AttributeValidationTool::modifyBeforeValidation($type, $long);
+            $id = $this->create($type, $normalized);
+            $parts = explode('|', $long);
+            $ids = $this->recorder->internMany($parts);
+            // A row stored before the normalisation existed
+            $this->db->rawQuery(sprintf(
+                "UPDATE attributes SET value1 = '%s', value2 = '%s', value1_id = %d, value2_id = %s WHERE id = %d",
+                $parts[0],
+                $parts[1] ?? '',
+                $ids[$parts[0]],
+                isset($parts[1]) ? $ids[$parts[1]] : 'NULL',
+                $id
+            ));
+            $planted[$id] = [$long, $normalized];
+        }
+        $where = 't.id IN (' . implode(', ', array_keys($planted)) . ')';
+        $this->recorder->calls = [];
+
+        list($results) = $this->normalizeIps(true);
+        $this->assertSame([], $this->recorder->calls);
+        foreach ($planted as $id => list($long, $normalized)) {
+            $this->assertSame(explode('|', $long)[0], $this->attribute->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Attribute.id' => $id],
+                'fields' => ['value1'],
+            ])['Attribute']['value1']);
+        }
+
+        list($results, $keys, $held) = $this->normalizeIps(false);
+        $this->assertSame(array_keys($results), $keys);
+        $ours = [];
+        foreach ($results as $result) {
+            if (isset($planted[$result['id']])) {
+                $ours[$result['id']] = [$result['value'], $result['normalized_value']];
+            }
+        }
+        $this->assertSame($planted, $ours);
+        $this->assertSame([], $this->mismatched('attributes', $where));
+        foreach ($planted as $id => list($long, $normalized)) {
+            $statement = $this->db->rawQuery("SELECT CONCAT_WS('|', value1, NULLIF(value2, '')) FROM attributes WHERE id = $id");
+            $this->assertSame($normalized, $statement->fetchColumn());
+            $statement->closeCursor();
+        }
+        // Two changed attributes per chunk, each primed before its saves
+        $this->assertCount((int)ceil(count($results) / 2), $this->recorder->callsOf('prime'));
+        foreach (array_keys($planted) as $id) {
+            $this->assertGreaterThan(0, $held[$id]);
+        }
+        $this->assertPrimedOutsideTransactions(2);
+    }
+
     public function testATemplateIsPrimedBeforeItsTransaction()
     {
         App::uses('EventTemplateInstantiator', 'Tools');
