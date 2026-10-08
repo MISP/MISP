@@ -223,8 +223,7 @@ class AttributeValue extends AppModel
     }
 
     /**
-     * Fill in value, value1 and value2 from the ids, for rows read with
-     * callbacks off, then drop the ids.
+     * Fill in value, value1 and value2 from the ids, then drop the ids.
      *
      * Rows with no value1_id keep whatever value columns they already have,
      * which is the case before the backfill has reached them.
@@ -238,31 +237,153 @@ class AttributeValue extends AppModel
     {
         $ids = [];
         foreach ($rows as $row) {
-            if (!empty($row[$alias]['value1_id'])) {
-                $ids[] = $row[$alias]['value1_id'];
-                if (!empty($row[$alias]['value2_id'])) {
-                    $ids[] = $row[$alias]['value2_id'];
-                }
+            if (isset($row[$alias]) && is_array($row[$alias])) {
+                $this->rowIds($row[$alias], $ids);
             }
         }
-        $values = empty($ids) ? [] : $this->fetchValues($ids);
+        $values = empty($ids) ? [] : $this->fetchValues(array_keys($ids));
         foreach ($rows as &$row) {
-            if (!isset($row[$alias]) || !is_array($row[$alias])) {
-                continue;
+            if (isset($row[$alias]) && is_array($row[$alias])) {
+                $this->fillRow($row[$alias], $values);
             }
-            $data = &$row[$alias];
-            if (!empty($data['value1_id'])) {
-                $data['value1'] = $this->valueFor($values, $data['value1_id']);
-                $data['value2'] = empty($data['value2_id']) ? '' : $this->valueFor($values, $data['value2_id']);
-                // 2.x tests value2 = '', which a PAD SPACE collation also holds for spaces
-                $data['value'] = rtrim($data['value2'], ' ') === ''
-                    ? $data['value1']
-                    : $data['value1'] . '|' . $data['value2'];
-            }
-            unset($data['value1_id'], $data['value2_id']);
-            unset($data);
         }
         unset($row);
+    }
+
+    /**
+     * Value text for the rows an afterFind receives; the ids never leave the
+     * instance. Cake filters association rows one at a time, so those keep
+     * their ids until the find that read them returns (AppModel::find).
+     *
+     * @param array $results
+     * @param string $alias
+     * @param bool $primary
+     * @return void
+     */
+    public function attachFound(array &$results, $alias, $primary)
+    {
+        if ($primary) {
+            $this->attachValues($results, $alias);
+        } else if ($this->holdsIdKeys($results) && !$this->deferRows()) {
+            $this->attachNested($results);
+        }
+    }
+
+    /**
+     * @param array $node
+     * @return bool
+     */
+    private function holdsIdKeys(array $node)
+    {
+        if (array_key_exists('value1_id', $node) || array_key_exists('value2_id', $node)) {
+            return true;
+        }
+        foreach ($node as $child) {
+            if (is_array($child) && $this->holdsIdKeys($child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * attachValues() for every attribute or proposal row anywhere in $data,
+     * whatever the nesting: any array that holds value1_id or value2_id.
+     *
+     * @param mixed $data
+     * @return void
+     * @throws RuntimeException When an id is missing from the dictionary.
+     */
+    public function attachNested(&$data)
+    {
+        if (!is_array($data)) {
+            return;
+        }
+        $ids = [];
+        $this->nestedIds($data, $ids);
+        $values = empty($ids) ? [] : $this->fetchValues(array_keys($ids));
+        $this->fillNested($data, $values);
+    }
+
+    /**
+     * @param array $node
+     * @param array $ids [id => true]
+     * @return void
+     */
+    private function nestedIds(array $node, array &$ids)
+    {
+        $this->rowIds($node, $ids);
+        foreach ($node as $child) {
+            if (is_array($child)) {
+                $this->nestedIds($child, $ids);
+            }
+        }
+    }
+
+    /**
+     * @param array $node
+     * @param array $values [id => value]
+     * @return void
+     */
+    private function fillNested(array &$node, array $values)
+    {
+        $this->fillRow($node, $values);
+        // Not foreach over $node: writing to it mid-loop would copy each child
+        foreach (array_keys($node) as $key) {
+            if (is_array($node[$key])) {
+                $this->fillNested($node[$key], $values);
+            }
+        }
+    }
+
+    /**
+     * @param array $row
+     * @param array $ids [id => true]
+     * @return void
+     */
+    private function rowIds(array $row, array &$ids)
+    {
+        if (!empty($row['value1_id'])) {
+            $ids[(int)$row['value1_id']] = true;
+            if (!empty($row['value2_id'])) {
+                $ids[(int)$row['value2_id']] = true;
+            }
+        }
+    }
+
+    /**
+     * @param array $row
+     * @param array $values [id => value]
+     * @return void
+     */
+    private function fillRow(array &$row, array $values)
+    {
+        if (!array_key_exists('value1_id', $row) && !array_key_exists('value2_id', $row)) {
+            return;
+        }
+        if (!empty($row['value1_id'])) {
+            $value1 = $this->valueFor($values, $row['value1_id']);
+            $value2 = empty($row['value2_id']) ? '' : $this->valueFor($values, $row['value2_id']);
+            if (!array_key_exists('value1', $row)) {
+                // Without the text columns, the text goes where 2.x had them
+                $filled = [];
+                foreach ($row as $key => $field) {
+                    if ($key === 'value1_id') {
+                        $filled['value1'] = $value1;
+                    } else if ($key === 'value2_id') {
+                        $filled['value2'] = $value2;
+                    } else {
+                        $filled[$key] = $field;
+                    }
+                }
+                $row = $filled;
+            }
+            $row['value1'] = $value1;
+            $row['value2'] = $value2;
+            // 2.x tests value2 = '', which a PAD SPACE collation also holds for spaces
+            $row['value'] = rtrim($value2, ' ') === '' ? $value1 : $value1 . '|' . $value2;
+        }
+        unset($row['value1_id'], $row['value2_id']);
     }
 
     /**
@@ -649,6 +770,14 @@ class AttributeValue extends AppModel
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
         $statement->closeCursor();
         return $rows;
+    }
+
+    /**
+     * @return bool False when no find is in progress to hand the rows to.
+     */
+    protected function deferRows()
+    {
+        return AppModel::deferValueRows();
     }
 
     /**

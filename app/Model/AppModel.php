@@ -73,6 +73,9 @@ class AppModel extends Model
     /** @var SqlDialect|null */
     private $sqlDialect = null;
 
+    /** @var bool[] Per find() in progress: whether association rows in it still hold value ids */
+    private static $deferredValueRows = [];
+
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
     const OLD_DB_CHANGES = array(
@@ -1785,7 +1788,15 @@ class AppModel extends Model
         if (!empty($query['order']) && $this->validOrderClause($query['order']) === false) {
             throw new InvalidArgumentException('Invalid order clause');
         }
-        $results = parent::find($type, $query);
+        self::$deferredValueRows[] = false;
+        try {
+            $results = parent::find($type, $query);
+        } finally {
+            $deferred = array_pop(self::$deferredValueRows);
+        }
+        if ($deferred) {
+            ClassRegistry::init('AttributeValue')->attachNested($results);
+        }
         if (!empty($query['includeAnalystData']) && $this->Behaviors->enabled('AnalystDataParent')) {
             if ($type === 'first') {
                 $results[$this->alias] = array_merge($results[$this->alias], $this->attachAnalystData($results[$this->alias]));
@@ -1796,6 +1807,21 @@ class AppModel extends Model
             }
         }
         return $results;
+    }
+
+    /**
+     * Leaves the value text of association rows to the find in progress, which
+     * fills in all of them at once when it returns.
+     *
+     * @return bool False when no find is in progress.
+     */
+    public static function deferValueRows()
+    {
+        if (empty(self::$deferredValueRows)) {
+            return false;
+        }
+        self::$deferredValueRows[count(self::$deferredValueRows) - 1] = true;
+        return true;
     }
 
     private function validOrderClause($order)

@@ -141,6 +141,12 @@ class TestAttributeValue extends AttributeValue
     /** @var bool */
     public $transaction = false;
 
+    /** @var bool Whether a find is in progress to take association rows */
+    public $findInProgress = false;
+
+    /** @var int */
+    public $deferredCalls = 0;
+
     private $fakeDb;
 
     private $fakeDialect;
@@ -169,5 +175,11 @@ class TestAttributeValue extends AttributeValue
     protected function inTransaction()
     {
         return $this->transaction;
+    }
+
+    protected function deferRows()
+    {
+        $this->deferredCalls++;
+        return $this->findInProgress;
     }
 }

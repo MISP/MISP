@@ -522,6 +522,153 @@ class AttributeValueTest extends TestCase
         $this->assertSame([], $this->mysql->statements);
     }
 
+    private function answerIds(array $values)
+    {
+        return function ($sql) use ($values) {
+            preg_match('/IN \(([0-9, ]+)\)/', $sql, $m);
+            $rows = [];
+            foreach (explode(', ', $m[1]) as $id) {
+                if (isset($values[$id])) {
+                    $rows[] = ['id' => $id, 'value' => $values[$id]];
+                }
+            }
+            return $rows;
+        };
+    }
+
+    public function testAttachFoundHydratesPrimaryRowsInOneStatement()
+    {
+        $this->mysql->responder = $this->answerIds([1 => 'evil.com', 2 => '8080']);
+        $model = $this->model($this->mysql);
+        $model->findInProgress = true;
+        $results = [
+            ['Proposal' => ['id' => 1, 'value1_id' => 1, 'value2_id' => null]],
+            ['Proposal' => ['id' => 2, 'value1_id' => 1, 'value2_id' => 2], 'Attribute' => ['value1_id' => 1]],
+        ];
+
+        $model->attachFound($results, 'Proposal', true);
+
+        $this->assertSame(['id' => 1, 'value1' => 'evil.com', 'value2' => '', 'value' => 'evil.com'], $results[0]['Proposal']);
+        $this->assertSame('evil.com|8080', $results[1]['Proposal']['value']);
+        // Another model's rows are its own afterFind's
+        $this->assertSame(['value1_id' => 1], $results[1]['Attribute']);
+        $this->assertCount(1, $this->mysql->statements);
+        $this->assertSame(0, $model->deferredCalls);
+    }
+
+    public function testAttachFoundLeavesAssociationRowsToTheFindInProgress()
+    {
+        $model = $this->model($this->mysql);
+        $model->findInProgress = true;
+        $results = [['Attribute' => ['id' => 1, 'value1_id' => 1, 'value2_id' => null]]];
+
+        $model->attachFound($results, 'Attribute', false);
+
+        $this->assertSame([['Attribute' => ['id' => 1, 'value1_id' => 1, 'value2_id' => null]]], $results);
+        $this->assertSame([], $this->mysql->statements);
+        $this->assertSame(1, $model->deferredCalls);
+    }
+
+    public function testAttachFoundHydratesAnAssociationRowWhenNoFindIsInProgress()
+    {
+        $this->mysql->responder = $this->answerIds([3 => 'a.example']);
+        $model = $this->model($this->mysql);
+        $results = [['ReferencedAttribute' => ['id' => 1, 'value1_id' => 3, 'value2_id' => null]]];
+
+        $model->attachFound($results, 'ReferencedAttribute', false);
+
+        $this->assertSame('a.example', $results[0]['ReferencedAttribute']['value']);
+        $this->assertArrayNotHasKey('value1_id', $results[0]['ReferencedAttribute']);
+        $this->assertCount(1, $this->mysql->statements);
+    }
+
+    public function testAttachFoundDefersNothingForRowsWithoutIds()
+    {
+        $model = $this->model($this->mysql);
+        $model->findInProgress = true;
+        $results = [['Attribute' => ['id' => 1, 'value' => 'a']]];
+
+        $model->attachFound($results, 'Attribute', false);
+
+        $this->assertSame([['Attribute' => ['id' => 1, 'value' => 'a']]], $results);
+        $this->assertSame(0, $model->deferredCalls);
+    }
+
+    public function testAttachNestedHydratesEveryShapeInOneStatement()
+    {
+        $this->mysql->responder = $this->answerIds([
+            1 => 'evil.com', 2 => 'file.exe', 3 => 'd41d8cd98f00b204e9800998ecf8427e', 4 => '10.0.0.1',
+        ]);
+        $data = [
+            'Event' => ['id' => 7, 'info' => 'value1_id'],
+            'Attribute' => [
+                ['id' => 1, 'value1_id' => 1, 'value2_id' => null, 'ShadowAttribute' => [
+                    ['id' => 9, 'value1_id' => 4, 'value2_id' => null],
+                ]],
+                ['id' => 2, 'value1_id' => null, 'value2_id' => null, 'value1' => 'old', 'value2' => ''],
+            ],
+            'Object' => [
+                ['id' => 3, 'Attribute' => [['id' => 4, 'value1_id' => 2, 'value2_id' => 3]]],
+            ],
+            'ReferencedAttribute' => ['id' => 5, 'value1_id' => 1, 'value2_id' => null],
+        ];
+
+        $this->model($this->mysql)->attachNested($data);
+
+        $this->assertSame('evil.com', $data['Attribute'][0]['value']);
+        $this->assertSame('10.0.0.1', $data['Attribute'][0]['ShadowAttribute'][0]['value1']);
+        $this->assertSame(['id' => 2, 'value1' => 'old', 'value2' => ''], $data['Attribute'][1]);
+        $this->assertSame(
+            ['id' => 4, 'value1' => 'file.exe', 'value2' => 'd41d8cd98f00b204e9800998ecf8427e',
+                'value' => 'file.exe|d41d8cd98f00b204e9800998ecf8427e'],
+            $data['Object'][0]['Attribute'][0]
+        );
+        $this->assertSame('evil.com', $data['ReferencedAttribute']['value']);
+        $this->assertSame(['id' => 7, 'info' => 'value1_id'], $data['Event']);
+        $this->assertStringNotContainsString('_id":', json_encode($data));
+        $this->assertCount(1, $this->mysql->statements);
+        $this->assertStringEndsWith('IN (1, 4, 2, 3)', $this->mysql->statements[0]);
+    }
+
+    public function testWithoutTheTextColumnsTheTextTakesThePlaceOfTheIds()
+    {
+        $this->mysql->responder = $this->answerIds([1 => 'evil.com', 2 => '8080']);
+        $rows = [['Attribute' => [
+            'id' => 1, 'type' => 'domain|port', 'value1_id' => 1, 'value2_id' => 2, 'to_ids' => 0, 'value' => 'old',
+        ]]];
+
+        $this->model($this->mysql)->attachValues($rows, 'Attribute');
+
+        $this->assertSame(
+            ['id' => 1, 'type' => 'domain|port', 'value1' => 'evil.com', 'value2' => '8080', 'to_ids' => 0,
+                'value' => 'evil.com|8080'],
+            $rows[0]['Attribute']
+        );
+    }
+
+    public function testAttachNestedRefusesADanglingId()
+    {
+        $data = [['Object' => ['Attribute' => [['value1_id' => 99, 'value2_id' => null]]]]];
+
+        $this->expectException('RuntimeException');
+        $this->expectExceptionMessage('Attribute value 99 is missing from the dictionary.');
+        $this->model($this->pgsql)->attachNested($data);
+    }
+
+    public function testAttachNestedOfAnythingElseSendsNothing()
+    {
+        $count = 3;
+        $model = $this->model($this->mysql);
+
+        $model->attachNested($count);
+        $rows = [['Attribute' => ['id' => 1, 'value1_id' => null]]];
+        $model->attachNested($rows);
+
+        $this->assertSame(3, $count);
+        $this->assertSame([['Attribute' => ['id' => 1]]], $rows);
+        $this->assertSame([], $this->mysql->statements);
+    }
+
     public function testAssignIdsIgnoresTheIdsSentIn()
     {
         $stored = $this->mysql->store('evil.com');

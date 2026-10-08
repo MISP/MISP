@@ -409,15 +409,20 @@ class ShadowAttribute extends AppModel
     public function afterFind($results, $primary = false)
     {
         foreach ($results as &$v) {
-            $proposal = &$v['ShadowAttribute'];
+            if (!isset($v[$this->alias]) || !is_array($v[$this->alias])) {
+                continue;
+            }
+            $proposal = &$v[$this->alias];
             if (!empty($proposal['first_seen'])) {
                 $proposal['first_seen'] = $this->microTimestampToIso($proposal['first_seen']);
             }
             if (!empty($proposal['last_seen'])) {
                 $proposal['last_seen'] = $this->microTimestampToIso($proposal['last_seen']);
             }
-            MispAttribute::stripValueIds($proposal);
+            unset($proposal);
         }
+        unset($v);
+        $this->Attribute->loadAttributeValue()->attachFound($results, $this->alias, $primary);
         return $results;
     }
 

@@ -247,7 +247,7 @@ class AttributeValueLogDbTest extends TestCase
     private function syslogEntries($model, $id)
     {
         return $this->exec(sprintf(
-            "SELECT action, title, `change` FROM logs WHERE id > %d AND model = '%s' AND model_id = %d ORDER BY id",
+            "SELECT action, title, description, `change` FROM logs WHERE id > %d AND model = '%s' AND model_id = %d ORDER BY id",
             $this->logsBefore,
             $model,
             $id
@@ -401,8 +401,47 @@ class AttributeValueLogDbTest extends TestCase
 
         $entries = $this->syslogEntries('Attribute', $id);
         $this->assertCount(2, $entries, json_encode($entries));
-        $this->assertStringContainsString("=> (edited-$domain)", $entries[1]['change']);
+        $this->assertStringContainsString("value1 ($domain) => (edited-$domain)", $entries[1]['change']);
         $this->assertStringEndsWith("Network activity/domain edited-$domain", $entries[1]['title']);
+        $this->assertTextNotIds($entries);
+    }
+
+    public function testASyslogEditLeavesAnUnchangedValueOut()
+    {
+        $this->requireSyslog();
+        $domain = "{$this->token}.example.org";
+        $ip = '192.0.2.' . random_int(1, 254);
+        $id = $this->create(['type' => 'domain|ip', 'value' => "$domain|$ip"]);
+        $this->divergeStoredText('attributes', $id);
+        $this->hideTextColumns($this->attribute);
+
+        $this->edit($id, 'domain|ip', "$domain|198.51.100.7");
+
+        $entries = $this->syslogEntries('Attribute', $id);
+        $this->assertCount(2, $entries, json_encode($entries));
+        $this->assertStringContainsString("value2 ($ip) => (198.51.100.7)", $entries[1]['change']);
+        $this->assertStringNotContainsString('value1 (', $entries[1]['change']);
+        $this->assertTextNotIds($entries);
+    }
+
+    public function testAHardDeletedValueReachesTheSyslogAsText()
+    {
+        $this->requireSyslog();
+        // Its afterDelete hands the syslog a row of its own
+        (new ReflectionProperty('AuditLogBehavior', 'enabled'))->setValue($this->audit, false);
+        $domain = "{$this->token}.example.org";
+        $ip = '192.0.2.' . random_int(1, 254);
+        $id = $this->create(['type' => 'domain|ip', 'value' => "$domain|$ip"]);
+        $this->divergeStoredText('attributes', $id);
+        $this->hideTextColumns($this->attribute);
+
+        $this->assertTrue($this->attribute->delete($id));
+
+        $entries = $this->syslogEntries('Attribute', $id);
+        $this->assertCount(2, $entries, json_encode($entries));
+        $this->assertSame('delete', $entries[1]['action']);
+        $this->assertStringEndsWith("Network activity/domain|ip $domain", $entries[1]['title']);
+        $this->assertStringStartsWith("Attribute \"$domain|$ip\" ($id) deleted", $entries[1]['description']);
         $this->assertTextNotIds($entries);
     }
 }
