@@ -714,6 +714,102 @@ class AttributeValueTest extends TestCase
         );
     }
 
+    public function testOnlyTheValueKeysAskedForAreAdded()
+    {
+        $this->mysql->responder = $this->answerIds([1 => 'evil.com', 2 => '8080']);
+        $rows = [
+            ['Attribute' => ['id' => 1, 'type' => 'domain|port', 'value1_id' => 1, 'value2_id' => 2, 'to_ids' => 0]],
+            ['Attribute' => ['id' => 2, 'value1_id' => 1, 'value2_id' => null]],
+        ];
+
+        $this->model($this->mysql)->attachValues($rows, 'Attribute', ['value']);
+
+        $this->assertSame(['id' => 1, 'type' => 'domain|port', 'to_ids' => 0, 'value' => 'evil.com|8080'], $rows[0]['Attribute']);
+        $this->assertSame(['id' => 2, 'value' => 'evil.com'], $rows[1]['Attribute']);
+
+        $rows = [['Attribute' => ['value1_id' => 1, 'id' => 1, 'value2_id' => 2]]];
+        $this->model($this->mysql)->attachValues($rows, 'Attribute', ['value2', 'value']);
+        $this->assertSame(['id' => 1, 'value2' => '8080', 'value' => 'evil.com|8080'], $rows[0]['Attribute']);
+    }
+
+    public function testAValueKeyTheRowHoldsIsFilledEvenIfNotAskedFor()
+    {
+        $this->mysql->responder = $this->answerIds([1 => 'evil.com', 2 => '8080']);
+        $rows = [['Attribute' => [
+            'id' => 1, 'value1' => 'stale', 'value2' => 'stale', 'value1_id' => 1, 'value2_id' => 2, 'value' => 'stale',
+        ]]];
+
+        $this->model($this->mysql)->attachValues($rows, 'Attribute', ['value']);
+
+        $this->assertSame(
+            ['id' => 1, 'value1' => 'evil.com', 'value2' => '8080', 'value' => 'evil.com|8080'],
+            $rows[0]['Attribute']
+        );
+    }
+
+    public function testAnAddedKeyGoesBeforeTheAssociationsTheRowHolds()
+    {
+        $this->mysql->responder = $this->answerIds([1 => 'evil.com']);
+        $data = ['ShadowAttribute' => [
+            ['id' => 2, 'value1_id' => 1, 'value2_id' => null, 'last_seen' => null, 'Org' => ['id' => 1], 'Tag' => []],
+        ]];
+
+        $this->model($this->mysql)->attachNested($data, ['value']);
+
+        $this->assertSame(
+            ['id', 'last_seen', 'value', 'Org', 'Tag'],
+            array_keys($data['ShadowAttribute'][0])
+        );
+    }
+
+    public function testPrimaryRowsGetTheKeysOfTheFindInProgress()
+    {
+        $this->mysql->responder = $this->answerIds([1 => 'evil.com']);
+        $model = $this->model($this->mysql);
+        $model->valueKeys = ['value'];
+        $results = [['Attribute' => ['id' => 1, 'value1_id' => 1, 'value2_id' => null]]];
+
+        $model->attachFound($results, 'Attribute', true);
+
+        $this->assertSame([['Attribute' => ['id' => 1, 'value' => 'evil.com']]], $results);
+    }
+
+    public function testAttachNestedAddsOnlyTheKeysAskedFor()
+    {
+        $this->mysql->responder = $this->answerIds([1 => 'evil.com', 2 => 'a.example']);
+        $data = [
+            'Attribute' => [['id' => 1, 'value1_id' => 1, 'value2_id' => null]],
+            'ShadowAttribute' => [['id' => 2, 'value1_id' => 2, 'value2_id' => null, 'old_id' => 1]],
+        ];
+
+        $this->model($this->mysql)->attachNested($data, ['value']);
+
+        $this->assertSame(
+            ['Attribute' => [['id' => 1, 'value' => 'evil.com']], 'ShadowAttribute' => [['id' => 2, 'old_id' => 1, 'value' => 'a.example']]],
+            $data
+        );
+        $this->assertCount(1, $this->mysql->statements);
+    }
+
+    public function testPrepareFindTranslatesFindsWhoseAfterFindRuns()
+    {
+        $model = $this->model($this->mysql);
+
+        $query = $model->prepareFind(['fields' => ['Attribute.value'], 'order' => ['Attribute.id'], 'callbacks' => true], 'Attribute');
+
+        $this->assertSame(['Attribute.value1_id', 'Attribute.value2_id'], $query['fields']);
+        $this->assertSame([['value']], $model->askedKeys);
+
+        $model->prepareFind(['fields' => ['Attribute.id'], 'order' => ['Attribute.value'], 'joins' => [], 'callbacks' => true], 'Attribute');
+        $this->assertSame([['value']], $model->askedKeys);
+
+        foreach (['before', false] as $callbacks) {
+            $query = ['fields' => ['Attribute.value'], 'order' => ['Attribute.value'], 'callbacks' => $callbacks];
+            $this->assertSame($query, $model->prepareFind($query, 'Attribute'));
+        }
+        $this->assertSame([['value']], $model->askedKeys);
+    }
+
     public function testAttachNestedRefusesADanglingId()
     {
         $data = [['Object' => ['Attribute' => [['value1_id' => 99, 'value2_id' => null]]]]];

@@ -142,17 +142,18 @@ class ObjectReferencesController extends AppController
                 ),
                 'recursive' => -1,
                 'fields' => array('Event.id'),
+                'valueKeys' => ['value'],
                 'contain' => array(
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
-                        'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
+                        'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value1_id', 'Attribute.value2_id', 'Attribute.to_ids')
                     ),
                     'Object' => array(
                         'conditions' => $objectConditions,
                         'fields' => array('Object.id', 'Object.uuid', 'Object.name', 'Object.meta-category'),
                         'Attribute' => array(
                             'conditions' => $objectAttributeConditions,
-                            'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
+                            'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value1_id', 'Attribute.value2_id', 'Attribute.to_ids')
                         )
                     )
                 )

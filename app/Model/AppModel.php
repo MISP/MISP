@@ -73,8 +73,12 @@ class AppModel extends Model
     /** @var SqlDialect|null */
     private $sqlDialect = null;
 
-    /** @var bool[] Per find() in progress: whether association rows in it still hold value ids */
-    private static $deferredValueRows = [];
+    /**
+     * @var array Per find() in progress: whether association rows in it still
+     *   hold value ids, the value keys the find was asked for (valueKeys), and
+     *   the ones its primary model's field list named.
+     */
+    private static $valueFinds = [];
 
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
@@ -1788,14 +1792,18 @@ class AppModel extends Model
         if (!empty($query['order']) && $this->validOrderClause($query['order']) === false) {
             throw new InvalidArgumentException('Invalid order clause');
         }
-        self::$deferredValueRows[] = false;
+        self::$valueFinds[] = [
+            'deferred' => false,
+            'keys' => isset($query['valueKeys']) ? $query['valueKeys'] : null,
+            'primaryKeys' => null,
+        ];
         try {
             $results = parent::find($type, $query);
         } finally {
-            $deferred = array_pop(self::$deferredValueRows);
+            $find = array_pop(self::$valueFinds);
         }
-        if ($deferred) {
-            ClassRegistry::init('AttributeValue')->attachNested($results);
+        if ($find['deferred']) {
+            ClassRegistry::init('AttributeValue')->attachNested($results, $find['keys']);
         }
         if (!empty($query['includeAnalystData']) && $this->Behaviors->enabled('AnalystDataParent')) {
             if ($type === 'first') {
@@ -1817,11 +1825,37 @@ class AppModel extends Model
      */
     public static function deferValueRows()
     {
-        if (empty(self::$deferredValueRows)) {
+        if (empty(self::$valueFinds)) {
             return false;
         }
-        self::$deferredValueRows[count(self::$deferredValueRows) - 1] = true;
+        self::$valueFinds[count(self::$valueFinds) - 1]['deferred'] = true;
         return true;
+    }
+
+    /**
+     * The value keys for the primary rows of the find in progress: the ones
+     * it was asked for, else the ones its field list named.
+     *
+     * @return string[]|null Null for all of them.
+     */
+    public static function primaryValueKeys()
+    {
+        if (empty(self::$valueFinds)) {
+            return null;
+        }
+        $find = end(self::$valueFinds);
+        return $find['keys'] !== null ? $find['keys'] : $find['primaryKeys'];
+    }
+
+    /**
+     * @param string[] $keys The value keys the find in progress named.
+     * @return void
+     */
+    public static function setPrimaryValueKeys(array $keys)
+    {
+        if (!empty(self::$valueFinds)) {
+            self::$valueFinds[count(self::$valueFinds) - 1]['primaryKeys'] = $keys;
+        }
     }
 
     private function validOrderClause($order)

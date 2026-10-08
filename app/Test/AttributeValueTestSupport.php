@@ -147,6 +147,12 @@ class TestAttributeValue extends AttributeValue
     /** @var int */
     public $deferredCalls = 0;
 
+    /** @var string[]|null What the find in progress holds for its primary rows */
+    public $valueKeys = null;
+
+    /** @var array Each set of value keys a field list asked for */
+    public $askedKeys = [];
+
     /** @var string */
     public $collation = 'utf8mb4_uca1400_ai_ci';
 
@@ -189,5 +195,15 @@ class TestAttributeValue extends AttributeValue
     {
         $this->deferredCalls++;
         return $this->findInProgress;
+    }
+
+    protected function findValueKeys()
+    {
+        return $this->valueKeys;
+    }
+
+    protected function askValueKeys(array $keys)
+    {
+        $this->askedKeys[] = $keys;
     }
 }

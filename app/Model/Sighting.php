@@ -303,9 +303,10 @@ class Sighting extends AppModel
     {
         $sighting = $this->find('first', array(
             'recursive' => -1,
+            'valueKeys' => ['value'],
             'contain' => array(
                 'Attribute' => array(
-                    'fields' => array('Attribute.value', 'Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids')
+                    'fields' => array('Attribute.value1_id', 'Attribute.value2_id', 'Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids')
                 ),
                 'Event' => array(
                     'fields' => ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'],

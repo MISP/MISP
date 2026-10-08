@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('ValueFieldTranslator', 'Tools');
 
 /**
  * The attribute value dictionary: one row per exact byte string, referenced
@@ -28,6 +29,8 @@ class AttributeValue extends AppModel
 
     // The hash column holds this many leading bytes of SHA-256
     const HASH_BYTES = 16;
+
+    const TEXT_OF_ID = ['value1_id' => 'value1', 'value2_id' => 'value2'];
 
     public $useTable = 'attribute_values';
 
@@ -281,6 +284,29 @@ class AttributeValue extends AppModel
     }
 
     /**
+     * Readies an attribute or proposal find for the dictionary: a field list
+     * that names the value field reads the ids instead, and an order on it
+     * sorts by the dictionary text. Only for finds whose afterFind runs,
+     * since that is what fills the text in.
+     *
+     * @param array $query A find query, as beforeFind receives it.
+     * @param string $alias
+     * @return array
+     */
+    public function prepareFind(array $query, $alias)
+    {
+        if (!isset($query['callbacks']) || $query['callbacks'] !== true) {
+            return $query;
+        }
+        $translator = new ValueFieldTranslator($this->getDataSource(), $alias, $this->useTable);
+        $query = $translator->translate($query);
+        if ($translator->keys() !== null) {
+            $this->askValueKeys($translator->keys());
+        }
+        return $query;
+    }
+
+    /**
      * Fill in value, value1 and value2 from the ids, then drop the ids.
      *
      * Rows with no value1_id keep whatever value columns they already have,
@@ -288,10 +314,12 @@ class AttributeValue extends AppModel
      *
      * @param array $rows Rows as find('all') returns them.
      * @param string $alias The model alias the value columns sit under.
+     * @param string[]|null $keys The value keys to add, null for all three.
+     *   A value key the row already holds is always filled.
      * @return void
      * @throws RuntimeException When an id is missing from the dictionary.
      */
-    public function attachValues(array &$rows, $alias)
+    public function attachValues(array &$rows, $alias, array $keys = null)
     {
         $ids = [];
         foreach ($rows as $row) {
@@ -302,7 +330,7 @@ class AttributeValue extends AppModel
         $values = empty($ids) ? [] : $this->fetchValues(array_keys($ids));
         foreach ($rows as &$row) {
             if (isset($row[$alias]) && is_array($row[$alias])) {
-                $this->fillRow($row[$alias], $values);
+                $this->fillRow($row[$alias], $values, $keys);
             }
         }
         unset($row);
@@ -321,7 +349,7 @@ class AttributeValue extends AppModel
     public function attachFound(array &$results, $alias, $primary)
     {
         if ($primary) {
-            $this->attachValues($results, $alias);
+            $this->attachValues($results, $alias, $this->findValueKeys());
         } else if ($this->holdsIdKeys($results) && !$this->deferRows()) {
             $this->attachNested($results);
         }
@@ -349,10 +377,11 @@ class AttributeValue extends AppModel
      * whatever the nesting: any array that holds value1_id or value2_id.
      *
      * @param mixed $data
+     * @param string[]|null $keys See attachValues().
      * @return void
      * @throws RuntimeException When an id is missing from the dictionary.
      */
-    public function attachNested(&$data)
+    public function attachNested(&$data, array $keys = null)
     {
         if (!is_array($data)) {
             return;
@@ -360,7 +389,7 @@ class AttributeValue extends AppModel
         $ids = [];
         $this->nestedIds($data, $ids);
         $values = empty($ids) ? [] : $this->fetchValues(array_keys($ids));
-        $this->fillNested($data, $values);
+        $this->fillNested($data, $values, $keys);
     }
 
     /**
@@ -381,15 +410,16 @@ class AttributeValue extends AppModel
     /**
      * @param array $node
      * @param array $values [id => value]
+     * @param string[]|null $keys
      * @return void
      */
-    private function fillNested(array &$node, array $values)
+    private function fillNested(array &$node, array $values, $keys)
     {
-        $this->fillRow($node, $values);
+        $this->fillRow($node, $values, $keys);
         // Not foreach over $node: writing to it mid-loop would copy each child
         foreach (array_keys($node) as $key) {
             if (is_array($node[$key])) {
-                $this->fillNested($node[$key], $values);
+                $this->fillNested($node[$key], $values, $keys);
             }
         }
     }
@@ -412,9 +442,10 @@ class AttributeValue extends AppModel
     /**
      * @param array $row
      * @param array $values [id => value]
+     * @param string[]|null $keys
      * @return void
      */
-    private function fillRow(array &$row, array $values)
+    private function fillRow(array &$row, array $values, $keys)
     {
         if (!array_key_exists('value1_id', $row) && !array_key_exists('value2_id', $row)) {
             return;
@@ -422,26 +453,58 @@ class AttributeValue extends AppModel
         if (!empty($row['value1_id'])) {
             $value1 = $this->valueFor($values, $row['value1_id']);
             $value2 = empty($row['value2_id']) ? '' : $this->valueFor($values, $row['value2_id']);
+            $text = [
+                'value1' => $value1,
+                'value2' => $value2,
+                // 2.x tests value2 = '', which a PAD SPACE collation also holds for spaces
+                'value' => rtrim($value2, ' ') === '' ? $value1 : $value1 . '|' . $value2,
+            ];
+            if ($keys !== null) {
+                $text = array_intersect_key($text, array_flip($keys) + $row);
+            }
             if (!array_key_exists('value1', $row)) {
                 // Without the text columns, the text goes where 2.x had them
                 $filled = [];
                 foreach ($row as $key => $field) {
-                    if ($key === 'value1_id') {
-                        $filled['value1'] = $value1;
-                    } else if ($key === 'value2_id') {
-                        $filled['value2'] = $value2;
-                    } else {
+                    if (!isset(self::TEXT_OF_ID[$key])) {
                         $filled[$key] = $field;
+                    } else if (isset($text[self::TEXT_OF_ID[$key]])) {
+                        $filled[self::TEXT_OF_ID[$key]] = $text[self::TEXT_OF_ID[$key]];
                     }
                 }
                 $row = $filled;
             }
-            $row['value1'] = $value1;
-            $row['value2'] = $value2;
-            // 2.x tests value2 = '', which a PAD SPACE collation also holds for spaces
-            $row['value'] = rtrim($value2, ' ') === '' ? $value1 : $value1 . '|' . $value2;
+            foreach ($text as $key => $value) {
+                if (array_key_exists($key, $row)) {
+                    $row[$key] = $value;
+                } else {
+                    $this->addColumn($row, $key, $value);
+                }
+            }
         }
         unset($row['value1_id'], $row['value2_id']);
+    }
+
+    /**
+     * Adds a key where Cake put a virtual field: after the row's columns,
+     * before any association row nested in it.
+     *
+     * @param array $row
+     * @param string $key
+     * @param string $value
+     * @return void
+     */
+    private function addColumn(array &$row, $key, $value)
+    {
+        $position = 0;
+        foreach ($row as $field) {
+            if (is_array($field)) {
+                $row = array_slice($row, 0, $position, true) + [$key => $value] + array_slice($row, $position, null, true);
+                return;
+            }
+            $position++;
+        }
+        $row[$key] = $value;
     }
 
     /**
@@ -882,6 +945,23 @@ class AttributeValue extends AppModel
     protected function deferRows()
     {
         return AppModel::deferValueRows();
+    }
+
+    /**
+     * @return string[]|null
+     */
+    protected function findValueKeys()
+    {
+        return AppModel::primaryValueKeys();
+    }
+
+    /**
+     * @param string[] $keys
+     * @return void
+     */
+    protected function askValueKeys(array $keys)
+    {
+        AppModel::setPrimaryValueKeys($keys);
     }
 
     /**

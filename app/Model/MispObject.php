@@ -448,9 +448,10 @@ class MispObject extends AppModel
         if (!isset($this->__objectDuplicationCheckCache[$object['Object']['template_uuid']])) {
             $this->__objectDuplicationCheckCache[$object['Object']['template_uuid']] = $this->find('all', array(
                 'recursive' => -1,
+                'valueKeys' => ['value'],
                 'contain' => array(
                     'Attribute' => array(
-                        'fields' => array('value', 'type', 'category', 'object_relation'),
+                        'fields' => array('value1_id', 'value2_id', 'type', 'category', 'object_relation'),
                         'conditions' => array('Attribute.deleted' => 0)
                     )
                 ),

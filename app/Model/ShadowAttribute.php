@@ -406,6 +406,11 @@ class ShadowAttribute extends AppModel
         return true;
     }
 
+    public function beforeFind($query)
+    {
+        return $this->Attribute->loadAttributeValue()->prepareFind($query, $this->alias);
+    }
+
     public function afterFind($results, $primary = false)
     {
         foreach ($results as &$v) {

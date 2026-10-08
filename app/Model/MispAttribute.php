@@ -533,6 +533,11 @@ class MispAttribute extends AppModel
 
     public $fast_update = false;
 
+    public function beforeFind($query)
+    {
+        return $this->loadAttributeValue()->prepareFind($query, $this->alias);
+    }
+
     public function afterFind($results, $primary = false)
     {
         foreach ($results as &$v) {
@@ -2454,7 +2459,7 @@ class MispAttribute extends AppModel
                             'fields'     => [
                                 'id','old_id','event_id','type','category','value1','value2',
                                 'to_ids','uuid','org_id','event_org_id','comment','timestamp',
-                                'proposal_to_delete','disable_correlation','value'
+                                'proposal_to_delete','disable_correlation','value1_id','value2_id'
                             ]
                         ]
                     ]
