@@ -497,16 +497,17 @@ class RunTest(unittest.TestCase):
 
 
 class RepositoryTest(unittest.TestCase):
-    """T1 failing: the tree passes --strict, and a text-column read planted
-    outside the rules or into a pinned site does not."""
+    """T1 failing: the tree passes --strict --final, and a text-column read
+    planted outside the rules or into a pinned site does not."""
 
     def test_the_tree_passes_strict(self):
         result = lint.run(lint.REPO)
         self.assertEqual([], [(f['path'], f['line'], f['kind'])
                               for f in result['findings']])
         self.assertEqual([], result['stale'])
+        self.assertEqual([], lint.PENDING)
 
-    def planted(self, path, before, code):
+    def planted(self, path, before, code, **options):
         """The lint run over a copy of one file with code planted in it."""
         with open(os.path.join(lint.REPO, path), encoding='utf-8') as f:
             src = f.read()
@@ -517,7 +518,7 @@ class RepositoryTest(unittest.TestCase):
         os.makedirs(os.path.dirname(target))
         with open(target, 'w', encoding='utf-8') as f:
             f.write(src.replace(before, code + before))
-        return lint.run(tmp.name)
+        return lint.run(tmp.name, **options)
 
     def test_a_planted_read_fails(self):
         plants = [
@@ -539,14 +540,20 @@ class RepositoryTest(unittest.TestCase):
             self.assertEqual([], result['stale'])
 
     def test_a_read_planted_in_a_pending_site_fails(self):
-        result = self.planted(
-            'app/Console/Command/SearchPerformanceShell.php',
-            "        $stats['approximate'] = $fast;\n",
-            "        $this->query('SELECT value2 FROM attributes');\n")
-        self.assertEqual([], result['findings'])
-        self.assertEqual([('SearchPerformanceShell::__collectStats', 4, 5)],
-                         [(e['symbol'], e['expected'], e['found'])
-                          for e in result['stale']])
+        site = lint.Pending('app/Model/Event.php', 'Event::planted',
+                            'AV-0: later', 2)
+        reads = ("$this->query('SELECT value1 FROM attributes');\n"
+                 "        $this->query('SELECT value2 FROM attributes');")
+        for extra, stale in (('', []), (
+                "\n        $this->query('SELECT value1 FROM attributes');",
+                [('Event::planted', 2, 3)])):
+            result = self.planted(
+                'app/Model/Event.php', '    public function fetchEvent(',
+                '    public function planted()\n    {\n        ' + reads
+                + extra + '\n    }\n\n', pending=[site])
+            self.assertEqual([], result['findings'])
+            self.assertEqual(stale, [(e['symbol'], e['expected'], e['found'])
+                                     for e in result['stale']])
 
 
 if __name__ == '__main__':
