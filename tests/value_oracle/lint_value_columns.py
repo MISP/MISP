@@ -131,12 +131,6 @@ ALLOW = [Entry(*e) for e in [
 # Sites still reading the text columns, by the task that moves them. That
 # task removes its entry; the column drop needs this list empty (--final).
 PENDING = [Pending(*p) for p in [
-    ('app/Lib/Dashboard/TrendingAttributesWidget.php',
-     'TrendingAttributesWidget::handler', 'AV-703: widgets', 6),
-    ('app/Lib/Dashboard/TrendingWidget.php',
-     'TrendingWidget::countVulnerability', 'AV-703: widgets', 2),
-    ('app/Lib/Dashboard/AttributeGeoMapWidget.php',
-     'AttributeGeoMapWidget::*', 'AV-703: widgets', 6),
     ('app/Console/Command/SearchPerformanceShell.php',
      'SearchPerformanceShell::__collectStats', 'AV-704: shells', 4),
 ]]

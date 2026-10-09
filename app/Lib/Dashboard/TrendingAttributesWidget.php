@@ -122,15 +122,22 @@ class TrendingAttributesWidget
                 $conditions['Event.orgc_id IN'] = [-1];
             }
         }
-        $attributeModel->virtualFields['frequency'] = 0;
+        // Grouped on the text in the dictionary's collation, so case variants count together
+        $valueJoin = [
+            'table' => $attributeModel->loadAttributeValue()->useTable,
+            'alias' => 'Value1',
+            'type' => 'INNER',
+            'conditions' => ['Value1.id = Attribute.value1_id'],
+        ];
         if (!empty($user['Role']['perm_site_admin'])) {
             $values = $attributeModel->find('all', [
                 'recursive' => -1,
-                'fields' => ['Attribute.value1', 'count(Attribute.value1) as Attribute__frequency'],
-                'group' => ['Attribute.value1', ],
+                'fields' => ['Value1.value', 'count(Attribute.id) AS frequency'],
+                'joins' => [$valueJoin],
+                'group' => ['Value1.value'],
                 'conditions' => $conditions,
                 'contain' => ['Event.orgc_id'],
-                'order' => 'count(Attribute.value1) desc',
+                'order' => 'count(Attribute.id) desc',
                 'limit' => empty($options['threshold']) ? 10 : $options['threshold']
             ]);
         } else {
@@ -142,8 +149,9 @@ class TrendingAttributesWidget
             ];
             $values = $attributeModel->find('all', [
                 'recursive' => -1,
-                'fields' => ['Attribute.value1', 'count(Attribute.value1) as Attribute__frequency', 'Attribute.distribution', 'Attribute.sharing_group_id'],
-                'group' => 'Attribute.value1',
+                'fields' => ['Value1.value', 'count(Attribute.id) AS frequency', 'Attribute.distribution', 'Attribute.sharing_group_id'],
+                'joins' => [$valueJoin],
+                'group' => 'Value1.value',
                 'contain' => [
                     'Event.org_id',
                     'Event.distribution',
@@ -152,13 +160,13 @@ class TrendingAttributesWidget
                     'Object.sharing_group_id'
                 ],
                 'conditions' => $conditions,
-                'order' => 'count(Attribute.value1) desc',
+                'order' => 'count(Attribute.id) desc',
                 'limit' => empty($options['threshold']) ? 10 : $options['threshold']
             ]);
         }
         $data = [];
         foreach ($values as $value) {
-            $data[$value['Attribute']['value1']] = $value['Attribute']['frequency'];
+            $data[$value['Value1']['value']] = $value[0]['frequency'];
         }
         return ['data' => $data];
 	}

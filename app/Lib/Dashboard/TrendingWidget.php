@@ -325,25 +325,30 @@ class TrendingWidget
         // (3) distinct-event count per value over the visible subset.
         $conditions = $base;
         $conditions['Attribute.event_id'] = $visibleIds;
-        $attributeModel->virtualFields['distinct_events'] = 0;
+        // Grouped on the text in the dictionary's collation, so case variants count together
         $rows = $attributeModel->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
             'fields' => array(
-                'Attribute.value1',
-                'COUNT(DISTINCT Attribute.event_id) as Attribute__distinct_events',
+                'Value1.value',
+                'COUNT(DISTINCT Attribute.event_id) AS distinct_events',
             ),
-            'group' => array('Attribute.value1'),
+            'joins' => array(array(
+                'table' => $attributeModel->loadAttributeValue()->useTable,
+                'alias' => 'Value1',
+                'type' => 'INNER',
+                'conditions' => array('Value1.id = Attribute.value1_id'),
+            )),
+            'group' => array('Value1.value'),
         ));
-        unset($attributeModel->virtualFields['distinct_events']);
 
         $counts = array();
         foreach ($rows as $r) {
-            $value = isset($r['Attribute']['value1']) ? $r['Attribute']['value1'] : '';
+            $value = isset($r['Value1']['value']) ? $r['Value1']['value'] : '';
             if ($value === '' || $value === null) {
                 continue;
             }
-            $counts[$value] = (int)$r['Attribute']['distinct_events'];
+            $counts[$value] = (int)$r[0]['distinct_events'];
         }
         return $counts;
     }
