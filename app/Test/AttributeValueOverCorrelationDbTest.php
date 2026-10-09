@@ -298,7 +298,7 @@ class AttributeValueOverCorrelationDbTest extends TestCase
         $rows = $this->rowsOf("$t-blocked");
         $this->assertCount(1, $rows);
         $this->assertSame($this->idOf("$t-Blocked"), (int)$rows[0]['value_id']);
-        $this->assertSame("$t-blocked", $rows[0]['value'], 'the 2.x text key is still written');
+        $this->assertNull($rows[0]['value'], 'the text key is no longer written');
 
         $model = $this->overCorrelating();
         $this->db->getLog(false, true);

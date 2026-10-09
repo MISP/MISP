@@ -116,6 +116,20 @@ class ValueConditionRewriter
     }
 
     /**
+     * The key of the term's value group: the lowest id among its case
+     * variants, resolved now if the term was not primed.
+     *
+     * @param string $term
+     * @return int|null Null when the dictionary does not hold the term.
+     */
+    public function groupId($term)
+    {
+        $term = (string)$term;
+        $this->resolve([$term]);
+        return empty($this->ci[$term]) ? null : min($this->ci[$term]);
+    }
+
+    /**
      * @param array $conditions
      * @param bool $negated Under a NOT or an XOR, where a NULL result is not
      *   the same as false.

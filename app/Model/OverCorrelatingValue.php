@@ -9,22 +9,6 @@ class OverCorrelatingValue extends AppModel
     private $blockedValues = null;
 
     /**
-     * The text key 2.x matched on, still written until the engines compare
-     * value ids.
-     *
-     * @param string|null $value
-     * @return string
-     */
-    public static function truncate(?string $value): string
-    {
-        if ($value === null) {
-            return '';
-        }
-        $value = mb_strtolower($value);
-        return mb_substr($value, 0, 191);
-    }
-
-    /**
      * Whether the value, or a variant the dictionary collation holds equal
      * to it, is blocked.
      *
@@ -55,6 +39,32 @@ class OverCorrelatingValue extends AppModel
     }
 
     /**
+     * SQL leaving out the value groups that are blocked, read live.
+     *
+     * @param string $field A column holding value group ids
+     * @return string
+     */
+    public function blockedGroupsCondition($field)
+    {
+        $db = $this->getDataSource();
+        $AttributeValue = ClassRegistry::init('AttributeValue');
+        $id = $db->name('id');
+        $value = $db->name('value');
+        return sprintf(
+            '%s NOT IN (SELECT MIN(w.%s) FROM %s o JOIN %s b ON b.%s = o.%s JOIN %s w ON %s GROUP BY o.%s)',
+            $db->name($field),
+            $id,
+            $db->fullTableName($this),
+            $db->fullTableName($AttributeValue),
+            $id,
+            $db->name('value_id'),
+            $db->fullTableName($AttributeValue),
+            $AttributeValue->ciEqualColumns('w.' . $value, 'b.' . $value),
+            $id
+        );
+    }
+
+    /**
      * @param string $type
      * @return array
      */
@@ -82,12 +92,11 @@ class OverCorrelatingValue extends AppModel
         $this->create();
         try {
             $this->save([
-                'value' => self::truncate($value),
                 'value_id' => $valueId,
                 'occurrence' => 0
             ]);
         } catch (Exception $e) {
-            //most likely the text key already holds a variant of it, there's no reason to break the process for this
+            //most likely another process blocked it meanwhile, there's no reason to break the process for this
         }
         // Its variants are blocked with it
         $this->blockedValues = null;
@@ -124,8 +133,7 @@ class OverCorrelatingValue extends AppModel
     }
 
     /**
-     * The blocked values as stored. A row the dictionary does not hold yet
-     * shows its text key.
+     * The blocked values as stored.
      *
      * @param array $query
      * @return array
@@ -134,17 +142,18 @@ class OverCorrelatingValue extends AppModel
     {
         $query['fields'] = [
             'OverCorrelatingValue.id',
-            'OverCorrelatingValue.value',
             'OverCorrelatingValue.occurrence',
             'BlockedValue.value',
         ];
-        $query['joins'][] = $this->blockedValueJoin('LEFT');
+        $query['joins'][] = $this->blockedValueJoin('INNER');
         $data = $this->find('all', $query);
         $limit = $this->getLimit();
         foreach ($data as $k => $v) {
-            if (isset($v['BlockedValue']['value'])) {
-                $data[$k]['OverCorrelatingValue']['value'] = $v['BlockedValue']['value'];
-            }
+            $data[$k]['OverCorrelatingValue'] = [
+                'id' => $v['OverCorrelatingValue']['id'],
+                'value' => $v['BlockedValue']['value'],
+                'occurrence' => $v['OverCorrelatingValue']['occurrence'],
+            ];
             unset($data[$k]['BlockedValue']);
             if ($v['OverCorrelatingValue']['occurrence'] >= $limit) {
                 $data[$k]['OverCorrelatingValue']['over_correlation'] = true;
@@ -164,6 +173,10 @@ class OverCorrelatingValue extends AppModel
      */
     public function remapValueIds()
     {
+        // The gated text drop removes the text key
+        if (!array_key_exists('value', $this->schema())) {
+            return 0;
+        }
         $rows = $this->find('list', [
             'fields' => ['OverCorrelatingValue.id', 'OverCorrelatingValue.value'],
             'conditions' => ['OverCorrelatingValue.value_id' => null],

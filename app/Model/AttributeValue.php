@@ -59,6 +59,62 @@ class AttributeValue extends AppModel
     }
 
     /**
+     * The key of each value's group: the lowest id among the values the
+     * dictionary collation holds equal to it.
+     *
+     * @param array $ids
+     * @return array [id => group id], without the ids the dictionary does not hold
+     */
+    public function groupIds(array $ids)
+    {
+        $wanted = [];
+        foreach ($ids as $id) {
+            $id = (int)$id;
+            if ($id > 0) {
+                $wanted[$id] = true;
+            }
+        }
+        $db = $this->getDataSource();
+        $id = $db->name('id');
+        $value = $db->name('value');
+        $groups = [];
+        foreach (array_chunk(array_keys($wanted), self::CHUNK) as $chunk) {
+            $sql = sprintf(
+                'SELECT v.%1$s AS %1$s, MIN(w.%1$s) AS %2$s FROM %3$s v JOIN %3$s w ON %4$s WHERE v.%1$s IN (%5$s) GROUP BY v.%1$s',
+                $id,
+                $db->name('group_id'),
+                $this->quotedTable(),
+                $this->ciEqualColumns('w.' . $value, 'v.' . $value),
+                implode(', ', $chunk)
+            );
+            foreach ($this->fetchRows($sql) as $row) {
+                $groups[(int)$row['id']] = (int)$row['group_id'];
+            }
+        }
+        return $groups;
+    }
+
+    /**
+     * SQL holding two value expressions equal in the dictionary collation.
+     *
+     * @param string $left
+     * @param string $right
+     * @return string
+     */
+    public function ciEqualColumns($left, $right)
+    {
+        if ($this->isMysqlSource()) {
+            return sprintf('%s = %s', $left, $right);
+        }
+        return sprintf(
+            'lower(left(%1$s, %3$d)) = lower(left(%2$s, %3$d)) AND lower(%1$s) = lower(%2$s)',
+            $left,
+            $right,
+            self::CI_PREFIX
+        );
+    }
+
+    /**
      * @param string $value
      * @return int
      */

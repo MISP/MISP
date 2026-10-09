@@ -1,5 +1,6 @@
 <?php
 App::uses('AttributeValueBackfillTool', 'Tools');
+App::uses('CorrelationRemapTool', 'Tools');
 
 /**
  * @property AttributeValue $AttributeValue
@@ -26,6 +27,15 @@ class AttributeValueShell extends AppShell
             'help' => __('Set the value ids of attributes and proposals from their text, adding the values the dictionary lacks. A stopped run resumes where it left off.'),
             'parser' => ['options' => $options],
         ]);
+        $parser->addSubcommand('remapCorrelations', [
+            'help' => __('Point the correlations the value id migration found, and the over-correlating values, at the value dictionary instead of their text. Run it after the backfill. A stopped run resumes where it left off.'),
+            'parser' => ['options' => [
+                'chunk-size' => [
+                    'help' => __('Rows per chunk.'),
+                    'default' => CorrelationRemapTool::CHUNK,
+                ],
+            ]],
+        ]);
         $parser->addSubcommand('verify', [
             'help' => __('Check that every attribute and proposal has value ids that give back its text byte for byte, and that every dictionary row holds the hash of its value. Changes nothing.'),
             'parser' => ['options' => $options],
@@ -49,6 +59,30 @@ class AttributeValueShell extends AppShell
                 microtime(true) - $start
             ));
         }
+    }
+
+    public function remapCorrelations()
+    {
+        $this->out(sprintf(
+            'over_correlating_values: %d rows given value ids.',
+            ClassRegistry::init('OverCorrelatingValue')->remapValueIds()
+        ));
+        $tool = new CorrelationRemapTool($this->AttributeValue);
+        foreach (CorrelationRemapTool::TABLES as $table) {
+            $start = microtime(true);
+            $totals = $tool->remap($table, $this->param('chunk-size'), $this->progress($start, function (array $totals) use ($table) {
+                return sprintf('%s: %d rows remapped, up to id %d', $table, $totals['rows'], $totals['last_id']);
+            }));
+            $this->out(sprintf(
+                '%s: done, %d rows remapped (%d one by one), %d repeated pairs dropped, %.1f s.',
+                $table,
+                $totals['rows'],
+                $totals['by_row'],
+                $totals['dropped'],
+                microtime(true) - $start
+            ));
+        }
+        $tool->finish();
     }
 
     public function verify()

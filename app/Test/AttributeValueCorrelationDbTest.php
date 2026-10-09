@@ -2,9 +2,10 @@
 /**
  * The Default and NoAcl correlation engines match on the dictionary ids: a
  * saved attribute resolves its values in one statement and looks them up by
- * id, a recorrelation resolves each chunk once, and the rows the engines read
- * get their value text from the dictionary (the correlation value, the
- * matching attributes, ssdeep). The tests hide the text columns from every
+ * id, a recorrelation resolves each chunk once, a correlation is keyed by its
+ * value's group (the lowest id of its case variants), and the rows the engines
+ * read get their value text from the dictionary (the matching attributes,
+ * ssdeep). The tests hide the text columns from every
  * attribute model and point the stored text away from the dictionary, so a
  * read left on them records the wrong value or finds nothing.
  *
@@ -245,7 +246,7 @@ class AttributeValueCorrelationDbTest extends TestCase
     /**
      * @param string $table
      * @param string $name
-     * @return array the other attribute's name => the correlation value
+     * @return array the other attribute's name => the text of the correlation's value group
      */
     private function correlationsOf($table, $name)
     {
@@ -253,7 +254,7 @@ class AttributeValueCorrelationDbTest extends TestCase
         $names = array_flip($this->ids);
         $out = [];
         $rows = $this->exec(sprintf(
-            'SELECT c.attribute_id, c.1_attribute_id, v.value FROM %s c JOIN correlation_values v ON v.id = c.value_id WHERE c.attribute_id = %2$d OR c.1_attribute_id = %2$d',
+            'SELECT c.attribute_id, c.1_attribute_id, v.value FROM %s c JOIN attribute_values v ON v.id = c.value_id WHERE c.attribute_id = %2$d OR c.1_attribute_id = %2$d',
             $table,
             $id
         ));
@@ -272,8 +273,9 @@ class AttributeValueCorrelationDbTest extends TestCase
         $t = $this->token;
         return [
             's_domain' => ['t_domain' => "$t.example.org"],
-            // 2.x records the target's value1 when value2 matched in another case
-            's_text' => ['t_quirk' => "HKLM\\Software\\$t", 't_text' => "$t-mixed"],
+            // The group's lowest id is the first spelling saved; a value2 match
+            // in another case is keyed by the value's group too
+            's_text' => ['t_quirk' => "$t-mixed", 't_text' => "$t-mixed"],
             's_composite' => ['t_value2' => $this->ip],
         ];
     }

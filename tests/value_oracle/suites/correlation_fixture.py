@@ -246,7 +246,7 @@ class Scratch:
         columns = COLUMNS[table]
         found = db.query(
             'SELECT %s, HEX(v.value) FROM %s c '
-            'LEFT JOIN correlation_values v ON v.id = c.value_id '
+            'LEFT JOIN attribute_values v ON v.id = c.value_id '
             'WHERE c.event_id = %d OR c.1_event_id = %d' % (
                 ', '.join('c.' + c for c in columns), table,
                 int(self.event_id), int(self.event_id)))
@@ -330,8 +330,9 @@ def over_correlating(db, values):
     if not values:
         return []
     found = db.query(
-        'SELECT HEX(value), occurrence FROM over_correlating_values '
-        'WHERE value IN (%s)' % ', '.join(
+        'SELECT HEX(b.value), o.occurrence FROM over_correlating_values o '
+        'JOIN attribute_values b ON b.id = o.value_id '
+        'WHERE b.value IN (%s)' % ', '.join(
             literal(v, 'utf8mb4') for v in values))
     return sorted('%s (occurrence %s)' % (
         json.dumps(bytes.fromhex(h).decode(), ensure_ascii=False), n)
