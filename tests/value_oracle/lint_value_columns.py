@@ -131,8 +131,6 @@ ALLOW = [Entry(*e) for e in [
 # Sites still reading the text columns, by the task that moves them. That
 # task removes its entry; the column drop needs this list empty (--final).
 PENDING = [Pending(*p) for p in [
-    ('app/Model/MispAttribute.php', 'MispAttribute::__bro',
-     'AV-701: Bro export', 2),
     ('app/Lib/Dashboard/TrendingAttributesWidget.php',
      'TrendingAttributesWidget::handler', 'AV-703: widgets', 6),
     ('app/Lib/Dashboard/TrendingWidget.php',
