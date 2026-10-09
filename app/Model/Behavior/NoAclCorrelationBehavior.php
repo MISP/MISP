@@ -14,8 +14,8 @@ class NoAclCorrelationBehavior extends ModelBehavior
                 'Attribute.event_id',
                 'Attribute.id',
                 'Attribute.type',
-                'Attribute.value1',
-                'Attribute.value2',
+                'Attribute.value1_id',
+                'Attribute.value2_id',
             ],
             'contain' => [
                 'Event' => [

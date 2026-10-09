@@ -131,12 +131,6 @@ ALLOW = [Entry(*e) for e in [
 # Sites still reading the text columns, by the task that moves them. That
 # task removes its entry; the column drop needs this list empty (--final).
 PENDING = [Pending(*p) for p in [
-    ('app/Model/Behavior/DefaultCorrelationBehavior.php',
-     'DefaultCorrelationBehavior::CONFIG', 'AV-501: correlation engines', 2),
-    ('app/Model/Behavior/NoAclCorrelationBehavior.php',
-     'NoAclCorrelationBehavior::CONFIG', 'AV-501: correlation engines', 2),
-    ('app/Model/Correlation.php', 'Correlation::ssdeepCorrelation',
-     'AV-501: correlation engines', 1),
     ('app/Model/Behavior/OnDemandCorrelationBehavior.php',
      'OnDemandCorrelationBehavior::CONFIG', 'AV-502: OnDemand rewrite', 2),
     ('app/Model/Behavior/OnDemandCorrelationBehavior.php',

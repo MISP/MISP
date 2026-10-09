@@ -17,8 +17,8 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 'Attribute.type',
                 'Attribute.distribution',
                 'Attribute.sharing_group_id',
-                'Attribute.value1',
-                'Attribute.value2',
+                'Attribute.value1_id',
+                'Attribute.value2_id',
             ],
             'contain' => [
                 'Event' => [

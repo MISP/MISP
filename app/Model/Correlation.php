@@ -57,6 +57,9 @@ class Correlation extends AppModel
 
     private $containCache = [];
 
+    /** @var ValueConditionRewriter|null Holds the value ids of the chunk being recorrelated */
+    private $valueRewriter = null;
+
     /** @var OverCorrelatingValue */
     public $OverCorrelatingValue;
 
@@ -279,8 +282,14 @@ class Correlation extends AppModel
         while ($continue) {
             $attributes = $this->Attribute->fetchAttributesInChunksSingle($attributeConditions, $this->getFieldRules(), false, $chunk_size, $last_id, $continue);
             $attributeCount += count($attributes);
-            foreach ($attributes as $attribute) {
-                $this->afterSaveCorrelation($attribute['Attribute'], $full, $event);
+            $this->attributeValue()->attachValues($attributes, 'Attribute');
+            $this->valueRewriter = $this->chunkRewriter($attributes);
+            try {
+                foreach ($attributes as $attribute) {
+                    $this->afterSaveCorrelation($attribute['Attribute'], $full, $event);
+                }
+            } finally {
+                $this->valueRewriter = null;
             }
         }
         // Generating correlations can take long time, so clear caches after each event to refresh them
@@ -289,6 +298,35 @@ class Correlation extends AppModel
         $this->containCache = [];
 
         return $attributeCount;
+    }
+
+    /**
+     * @return AttributeValue
+     */
+    private function attributeValue()
+    {
+        return ClassRegistry::init('AttributeValue');
+    }
+
+    /**
+     * Every value of a chunk resolved in one go, for its lookups.
+     *
+     * @param array $attributes
+     * @return ValueConditionRewriter|null
+     */
+    private function chunkRewriter(array $attributes)
+    {
+        if (empty($attributes)) {
+            return null;
+        }
+        $values = [];
+        foreach ($attributes as $attribute) {
+            $values[$attribute['Attribute']['value1']] = true;
+            if ($attribute['Attribute']['value2'] !== '') {
+                $values[$attribute['Attribute']['value2']] = true;
+            }
+        }
+        return $this->attributeValue()->batchRewriter('Attribute', array_map('strval', array_keys($values)));
     }
 
     /**
@@ -517,6 +555,7 @@ class Correlation extends AppModel
             }
         }
         $correlations = [];
+        $rewriter = $this->valueRewriter ?: $this->attributeValue()->batchRewriter('Attribute', $correlatingValues);
         foreach ($correlatingValues as $cV) {
             if ($cV === null) {
                 continue;
@@ -547,6 +586,8 @@ class Correlation extends AppModel
                     'NOT' => ['Attribute.type' => MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES]
                 ]
             ];
+            $conditions1 = $rewriter->rewrite($conditions1);
+            $conditions2 = $rewriter->rewrite($conditions2);
             $correlatingAttributes1 = $this->Attribute->find('all', [
                 'conditions' => $conditions1,
                 'recursive' => -1,
@@ -597,6 +638,8 @@ class Correlation extends AppModel
                 // Added the skip_correlation flag as a reason to skip over this, we're receiving an event that in itself contains more than the limit in correlations. Let's not unblock any values in this case.
                 $this->OverCorrelatingValue->unblock($cV);
             }
+            // No afterFind ran on these finds to fill the text in
+            $this->attributeValue()->attachValues($correlatingAttributes, 'Attribute');
             foreach ($correlatingAttributes as $b) {
                 if (isset($b['Attribute']['value1'])) {
                     // TODO: Currently it is hard to check if value1 or value2 correlated, so we check value2 and if not, it is value1
@@ -680,7 +723,7 @@ class Correlation extends AppModel
                     'Attribute.type' => 'ssdeep',
                     'Attribute.id' => $fuzzyIds
                 ),
-                'fields' => array('Attribute.id', 'Attribute.value1')
+                'fields' => array('Attribute.id', 'Attribute.value')
             ));
             $threshold = Configure::read('MISP.ssdeep_correlation_threshold') ?: 40;
             $attributeIds = [];
