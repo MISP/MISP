@@ -45,8 +45,6 @@ class OvermindPages
             'export_for_misp_galaxy'
         ),
         'galaxy_cluster_relations' => array('index'),
-        'templates' => array('index', 'delete', 'add', 'view'),
-        'templateElements' => array('delete', 'addV2', 'editV2'),
         'objectTemplates' => array('index', 'delete', 'add', 'view'),
         'object_relationships' => array('index', 'delete', 'add', 'edit'),
         'event_templates' => array(
@@ -59,7 +57,6 @@ class OvermindPages
         'warninglists' => array('index', 'view', 'add', 'edit'),
         'noticelists' => array('index', 'view'),
         'regexp' => array('admin_index', 'index', 'admin_add'),
-        'allowedlists' => array('admin_index', 'index', 'admin_add'),
         'correlations' => array('top', 'overCorrelations'),
         'correlation_exclusions' => array('index', 'add'),
         'correlationRules' => array(
@@ -70,7 +67,7 @@ class OvermindPages
         // Workflows
         'workflows' => array(
             'index', 'triggers', 'adhoc', 'add', 'edit', 'executeWorkflow',
-            'moduleIndex', 'massToggleTrigger',
+            'moduleIndex', 'moduleView', 'massToggleTrigger',
             'massToggleModule', 'toggleDebugMode'
         ),
         'workflowBlueprints' => array(
@@ -124,7 +121,7 @@ class OvermindPages
         ),
         'cerebrates' => array(
             'index', 'add', 'edit', 'delete', 'view', 'pull_sgs',
-            'pull_orgs'
+            'pull_orgs', 'preview_orgs', 'preview_sharing_groups'
         ),
         'communities' => array('index', 'view', 'requestAccess'),
         'sightingdb' => array('index', 'add', 'edit', 'delete'),

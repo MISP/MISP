@@ -111,8 +111,8 @@ echo $this->Form->create('Attribute', [
         <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
         <div class="w-100">
             <?= $this->element('genericElementsBS5/Forms/distribution_field', [
-                'accent' => 'attribute',
-                'value' => $currentDistribution,
+                'accent' => 'attachment',
+                'value' => $currentDistribution ?? 5,
                 'showSg' => true,
                 'id' => 'AttributeDistribution',
                 'sgId' => 'AttributeSharingGroupId',

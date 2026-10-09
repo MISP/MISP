@@ -64,6 +64,7 @@ $fields = [
     [
         'element' => 'checkbox',
         'data_path' => 'Warninglist.id',
+        'enable_path' => 'Warninglist.enabled',
         'card_section' => 'selector',
     ],
     [

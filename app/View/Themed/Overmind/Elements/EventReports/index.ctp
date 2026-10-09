@@ -151,6 +151,34 @@ $fields = [
     ],
 ];
 
+$eventId = (int)($event['Event']['id'] ?? 0);
+$aiEnabled = $eventId
+    && Configure::read('Plugin.AI_services_enable')
+    && $this->Acl->canModifyEvent($event);
+$aiMenuItems = [];
+// The AI module writes its summary of the event into a new report.
+if ($aiEnabled && $this->Acl->canAccess('events', 'aiSummarize')) {
+    $aiMenuItems[] = [
+        'url' => $baseurl . '/events/aiSummarize/' . $eventId,
+        'onclick' => "event.preventDefault(); openModal('" . $baseurl . '/events/aiSummarize/' . $eventId . "', 'md');",
+        'icon' => 'fas fa-robot',
+        'label' => __('Summarise with AI'),
+        'title' => __('The AI module writes a summary of the event into a new report'),
+    ];
+}
+// Proposes attributes and objects from the reports, reviewed before they are
+// added — so only offered with a non-deleted report to read.
+if ($aiEnabled && $hasActiveReport
+    && $this->Acl->canAccess('events', 'aiExtractIndicators')) {
+    $aiMenuItems[] = [
+        'url' => $baseurl . '/events/aiExtractIndicators/' . $eventId,
+        'onclick' => "event.preventDefault(); openModal('" . $baseurl . '/events/aiExtractIndicators/' . $eventId . "', 'md');",
+        'icon' => 'fas fa-magnifying-glass',
+        'label' => __('Extract indicators with AI'),
+        'title' => __('The AI module reads the reports and proposes attributes and objects, reviewed before they are added'),
+    ];
+}
+
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
@@ -158,38 +186,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
-                'children' => array_values(array_filter([
-                    // A2 from the reports tab of an event: the AI module writes its
-                    // summary into a new report. Only on an event's reports, only
-                    // while the AI services are on and the user may run them.
-                    (!empty($event['Event']['id'])
-                        && Configure::read('Plugin.AI_services_enable')
-                        && $this->Acl->canAccess('events', 'aiSummarize')
-                        && $this->Acl->canModifyEvent($event)) ? [
-                        'type' => 'button',
-                        'url' => $baseurl . '/events/aiSummarize/' . (int)$event['Event']['id'],
-                        'onclick' => "event.preventDefault(); openModal('" . $baseurl . '/events/aiSummarize/' . (int)$event['Event']['id'] . "', 'md');",
-                        'class' => 'btn btn-outline-primary',
-                        'icon' => 'fas fa-robot me-1',
-                        'label' => __('Summarise with AI'),
-                        'title' => __('The AI module writes a summary of the event into a new report'),
-                    ] : null,
-                    // A4: the module reads the reports and proposes attributes
-                    // and objects, reviewed in the modal before they are added.
-                    // Offered only with a non-deleted report to read.
-                    (!empty($event['Event']['id'])
-                        && $hasActiveReport
-                        && Configure::read('Plugin.AI_services_enable')
-                        && $this->Acl->canAccess('events', 'aiExtractIndicators')
-                        && $this->Acl->canModifyEvent($event)) ? [
-                        'type' => 'button',
-                        'url' => $baseurl . '/events/aiExtractIndicators/' . (int)$event['Event']['id'],
-                        'onclick' => "event.preventDefault(); openModal('" . $baseurl . '/events/aiExtractIndicators/' . (int)$event['Event']['id'] . "', 'md');",
-                        'class' => 'btn btn-outline-primary',
-                        'icon' => 'fas fa-magnifying-glass me-1',
-                        'label' => __('Extract indicators with AI'),
-                        'title' => __('The AI module reads the reports and proposes attributes and objects, reviewed before they are added'),
-                    ] : null,
+                'children' => [
                     [
                         'type' => 'search',
                         'button' => 'Search',
@@ -197,7 +194,13 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'name'        => 'value',
                         'mode'        => 'legacy',
                     ],
-                ])),
+                    [
+                        'type' => 'menu',
+                        'label' => __('AI'),
+                        'icon' => 'fas fa-robot me-1',
+                        'items' => $aiMenuItems,
+                    ],
+                ],
                 'delete' => '/deleteSelection',
             ],
             'fields' => $fields,

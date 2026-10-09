@@ -28,6 +28,13 @@ $hueOfType = function ($type) use ($typeDefinitions, $catHue) {
                 <div class="fw-bold lh-1"><?= __('Assigned attribute types') ?></div>
                 <div class="small text-muted mt-1"><?= count($types) ?> <?= __('type(s)') ?></div>
             </div>
+            <?php if (!empty($dm['isEditable']) && empty($dm['default'])): ?>
+                <?php $mappingUrl = $baseurl . '/decayingModelMapping/linkAttributeTypeToModel/' . (int)$dm['id']; ?>
+                <a class="btn btn-sm btn-outline-secondary" href="<?= h($mappingUrl) ?>"
+                   onclick="event.preventDefault(); openModal('<?= h($mappingUrl) ?>', 'lg');">
+                    <i class="fas fa-pen me-1"></i><?= __('Edit') ?>
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 

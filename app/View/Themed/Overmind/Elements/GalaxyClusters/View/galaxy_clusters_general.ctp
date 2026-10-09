@@ -107,6 +107,13 @@ if (!empty($data['source'])) {
                         'full' => true
                     ]
                 ); ?>
+                <?php if ((int)$data['distribution'] === 4): ?>
+                    <div class="py-1">
+                        <?= $this->element('genericElementsBS5/Badges/sharing_group', [
+                            'sharingGroup' => $data['SharingGroup'] ?? [],
+                        ]); ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- VERSION -->

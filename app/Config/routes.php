@@ -32,7 +32,6 @@
 	Router::connect('/gpg.asc', array('controller' => 'users', 'action' => 'getGpgPublicKey', 'filename' => 'gpg.asc'));
 
 	// admin Paginator
-	Router::connect('/allowedlists/admin_index/*', array('controller' => 'allowedlists', 'action' => 'index', 'admin' => true));
 	Router::connect('/users/admin_index/*', array('controller' => 'users', 'action' => 'index', 'admin' => true));
 	Router::connect('/roles/admin_index/*', array('controller' => 'roles', 'action' => 'index', 'admin' => true));
 	Router::connect('/logs/admin_search/*', array('controller' => 'logs', 'action' => 'search', 'admin' => true));

@@ -57,7 +57,6 @@ class Tag extends AppModel
             'className' => 'EventTag',
             'dependent' => true
         ),
-        'TemplateTag',
         'FavouriteTag' => array(
             'dependent' => true
         ),
@@ -1077,6 +1076,67 @@ class Tag extends AppModel
             $tags[] = $this->pickerTagEntry($tag);
         }
         return $tags;
+    }
+
+    /**
+     * The per-taxonomy categories of the tag picker: the enabled
+     * taxonomies, each with those of its tags present in $pickerTags. A
+     * taxonomy tag is enabled once its Tag row exists and is not hidden, which
+     * getAllTagsForPicker() has already filtered for.
+     *
+     * @param array $pickerTags output of getAllTagsForPicker()
+     * @return array [['id', 'namespace', 'description', 'tags' => [...]], ...]
+     */
+    public function getTaxonomiesForPicker(array $pickerTags)
+    {
+        $taxonomies = ClassRegistry::init('Taxonomy')->find('all', [
+            'fields' => ['id', 'namespace', 'description'],
+            'conditions' => ['Taxonomy.enabled' => 1],
+            'recursive' => -1,
+            'contain' => ['TaxonomyPredicate' => [
+                'fields' => ['value'],
+                'TaxonomyEntry' => ['fields' => ['value']],
+            ]],
+            'order' => ['Taxonomy.namespace ASC'],
+        ]);
+
+        $owner = [];
+        foreach ($taxonomies as $index => $taxonomy) {
+            $namespace = $taxonomy['Taxonomy']['namespace'];
+            foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
+                $prefix = $namespace . ':' . $predicate['value'];
+                if (empty($predicate['TaxonomyEntry'])) {
+                    $owner[mb_strtolower($prefix)] = $index;
+                    continue;
+                }
+                foreach ($predicate['TaxonomyEntry'] as $entry) {
+                    $name = $prefix . '="' . $entry['value'] . '"';
+                    $owner[mb_strtolower($name)] = $index;
+                }
+            }
+        }
+
+        $grouped = [];
+        foreach ($pickerTags as $tag) {
+            $key = mb_strtolower($tag['name']);
+            if (isset($owner[$key])) {
+                $grouped[$owner[$key]][] = $tag;
+            }
+        }
+
+        $result = [];
+        foreach ($taxonomies as $index => $taxonomy) {
+            if (empty($grouped[$index])) {
+                continue;
+            }
+            $result[] = [
+                'id' => (int)$taxonomy['Taxonomy']['id'],
+                'namespace' => $taxonomy['Taxonomy']['namespace'],
+                'description' => $taxonomy['Taxonomy']['description'],
+                'tags' => $grouped[$index],
+            ];
+        }
+        return $result;
     }
 
     /**

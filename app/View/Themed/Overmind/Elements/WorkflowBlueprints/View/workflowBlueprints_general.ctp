@@ -1,16 +1,6 @@
 <div class="card mb-3 shadow-sm">
     <div class="card-body p-4">
 
-        <!-- NAME -->
-        <div class="mb-4">
-            <div class="text-muted small text-uppercase fw-bold mb-1">
-                <?= __('Name') ?>
-            </div>
-            <div class="fw-semibold fs-5">
-                <?= h($data['WorkflowBlueprint']['name'] ?? '') ?>
-            </div>
-        </div>
-
         <!-- DESCRIPTION -->
         <?php if (!empty($data['WorkflowBlueprint']['description'])): ?>
         <div class="mb-4">

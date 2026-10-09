@@ -219,7 +219,6 @@ class UserSetting extends AppModel
                 'report_count',
                 'sightings',
                 'proposals',
-                'discussion',
                 'creator_user',
                 'timestamp',
                 'publish_timestamp'
@@ -350,6 +349,32 @@ class UserSetting extends AppModel
             }
         }
         return $output;
+    }
+
+    /**
+     * One line per setting on what it changes for the user it belongs to.
+     * Kept apart from VALID_SETTINGS because a constant cannot be translated.
+     *
+     * @return array<string, string>
+     */
+    public function settingDescriptions()
+    {
+        return [
+            'publish_alert_filter' => __('Filters which published events send you an email alert. Matched against the event, its tags and its organisations.'),
+            'dashboard_access' => __('Legacy flag that granted access to the dashboard. Kept for compatibility, it no longer gates anything.'),
+            'dashboard' => __('Layout of your legacy dashboard: the widgets shown, their configuration and their position on the grid.'),
+            'homepage' => __('The page you land on after logging in and when clicking the MISP logo.'),
+            'default_restsearch_parameters' => __('Parameters merged into every restSearch query you run, unless the query overrides them.'),
+            'tag_numerical_value_override' => __('Replaces the numerical value of the listed tags with your own, for the scores computed on your behalf (e.g. decaying models).'),
+            'event_index_hide_columns' => __('Columns hidden from your event index.'),
+            'oidc' => __('Data stored by the OpenID Connect plugin for this account. Managed automatically.'),
+            'periodic_notification_filters' => __('Filters which events make it into your periodic (daily, weekly, monthly) summary emails.'),
+            'ui_beta_opt_in' => __('Opts you in to interface features still in beta.'),
+            'ui_theme' => __('The interface theme used for your account.'),
+            'event_template_user_form_mode' => __('How an event template form is shown to you: every step at once (all) or one step at a time (wizard).'),
+            'dashboard_theme' => __('Light or dark appearance of the dashboard; auto follows your browser.'),
+            'onboarding_pending' => __('Marks that the onboarding tour still has to be shown. Cleared once the tour has been displayed.'),
+        ];
     }
 
     public function getInternalSettingNames()

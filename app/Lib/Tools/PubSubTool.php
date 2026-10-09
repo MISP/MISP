@@ -110,11 +110,6 @@ class PubSubTool
         return $this->pushToRedis('data:misp_json_object_reference', $object_reference);
     }
 
-    public function publishConversation(array $message)
-    {
-        return $this->pushToRedis('data:misp_json_conversation', $message);
-    }
-
     public function attribute_save(array $attribute, $action = false)
     {
         if (!empty($action)) {

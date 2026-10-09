@@ -281,6 +281,9 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     document.head.appendChild(s);
                     document.head.removeChild(s);
                 });
+                if (typeof initTopbarFilterSelects === 'function') {
+                    initTopbarFilterSelects(c);
+                }
                 registerFilterOverride(c);
             })
             .catch(function () {
