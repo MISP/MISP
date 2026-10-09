@@ -332,19 +332,6 @@ class AdminShell extends AppShell
         $this->Job->saveStatus($jobId);
     }
 
-    public function jobGenerateShadowAttributeCorrelation()
-    {
-        if (empty($this->args[0])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate shadow attribute correlation']);
-        }
-
-        $jobId = $this->args[0];
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('ShadowAttribute');
-        $this->ShadowAttribute->generateCorrelation($jobId);
-    }
-
     public function updateMISP()
     {
         $status = array('branch' => '2.4');

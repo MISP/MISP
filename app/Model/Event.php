@@ -1481,16 +1481,6 @@ class Event extends AppModel
                 'table' => 'event_graph',
                 'foreign_key' => 'event_id',
                 'value' => $id
-            ),
-            array(
-                'table' => 'shadow_attribute_correlations',
-                'foreign_key' => 'event_id',
-                'value' => $id
-            ),
-            array(
-                'table' => 'shadow_attribute_correlations',
-                'foreign_key' => '1_event_id',
-                'value' => $id
             )
         );
         if ($thread_id) {
@@ -4773,7 +4763,6 @@ class Event extends AppModel
                 if (!empty($options['includeRelatedTags'])) {
                     $event = $this->includeRelatedTags($event, $options);
                 }
-                //$event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
             }
             if (!empty($options['includeScoresOnEvent'])) {
                 // $event = $this->DecayingModel->attachBaseScoresToEvent($user, $event);
@@ -8148,7 +8137,6 @@ class Event extends AppModel
     /**
      * @param array $attribute
      * @param array $correlatedAttributes
-     * @param array $correlatedShadowAttributes
      * @param array $filterType
      * @param array $sightingsData
      * @return array|null
@@ -8156,7 +8144,6 @@ class Event extends AppModel
     private function __prepareAttributeForView(
         $attribute,
         $correlatedAttributes,
-        $correlatedShadowAttributes,
         $filterType = false,
         $sightingsData
     ) {
@@ -8278,7 +8265,7 @@ class Event extends AppModel
         if (!empty($attribute['ShadowAttribute'])) {
             $temp = array();
             foreach ($attribute['ShadowAttribute'] as $proposal) {
-                $result = $this->__prepareProposalForView($proposal, $correlatedShadowAttributes, $filterType);
+                $result = $this->__prepareProposalForView($proposal, $filterType);
                 if ($result) {
                     $temp[] = $result;
                 }
@@ -8290,11 +8277,10 @@ class Event extends AppModel
 
     /**
      * @param array $proposal
-     * @param array $correlatedShadowAttributes
      * @param array $filterType
      * @return array|null
      */
-    private function __prepareProposalForView($proposal, $correlatedShadowAttributes, $filterType = false)
+    private function __prepareProposalForView($proposal, $filterType = false)
     {
         if ($proposal['proposal_to_delete']) {
             $proposal['objectType'] = 'proposal_delete';
@@ -8306,25 +8292,12 @@ class Event extends AppModel
         if ($filterType) {
             $include = $filterType['proposal'] != 2;
 
-            /* correlation */
-            if ($filterType['correlation'] == 0) { // `both`
-                // pass, do not consider as `both` is selected
-            } else if (isset($correlatedShadowAttributes[$proposal['id']])) { // `include only`
-                $include = $include && ($filterType['correlation'] == 1);
-            } else { // `exclude`
+            /* correlation: proposals do not correlate */
+            if ($filterType['correlation'] != 0) {
                 $include = $include && ($filterType['correlation'] == 2);
             }
-
-            if ($filterType['correlationId'] && $include) {
+            if ($filterType['correlationId']) {
                 $include = false;
-                if (isset($correlatedShadowAttributes[$proposal['id']])) {
-                    foreach ($correlatedShadowAttributes[$proposal['id']] as $correlation) {
-                        if (in_array($correlation['id'], $filterType['correlationId'])) {
-                            $include = true;
-                            break;
-                        }
-                    }
-                }
             }
 
             /* feed */
@@ -8374,7 +8347,6 @@ class Event extends AppModel
     private function __prepareObjectForView(
         $object,
         $correlatedAttributes,
-        $correlatedShadowAttributes,
         $filterType,
         $sightingsData
     ) {
@@ -8394,7 +8366,6 @@ class Event extends AppModel
                 $result = $this->__prepareAttributeForView(
                     $attribute,
                     $correlatedAttributes,
-                    $correlatedShadowAttributes,
                     false,
                     $sightingsData
                 );
@@ -8416,7 +8387,7 @@ class Event extends AppModel
             || $filterType['warninglistId'] !== null
             || $filterType['correlationId'] !== null
         ) {
-            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData);
+            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $sightingsData);
             if (!$include) {
                 return null;
             }
@@ -8429,11 +8400,10 @@ class Event extends AppModel
      * @param array $object
      * @param array $filterType
      * @param array $correlatedAttributes
-     * @param array $correlatedShadowAttributes
      * @param array $sightingsData
      * @return bool
      */
-    private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData)
+    private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $sightingsData)
     {
         if (empty($object['Attribute'])) { // reject empty object
             return false;
@@ -8513,18 +8483,6 @@ class Event extends AppModel
                         }
                     }
                 }
-                if (!empty($attribute['ShadowAttribute'])) {
-                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
-                        if (isset($correlatedShadowAttributes[$shadowAttribute['id']])) {
-                            foreach ($correlatedShadowAttributes[$shadowAttribute['id']] as $correlation) {
-                                if (in_array($correlation['id'], $filterType['correlationId'])) {
-                                    $flagKeep = true;
-                                    break 2;
-                                }
-                            }
-                        }
-                    }
-                }
             }
             if (!$flagKeep) {
                 return false;
@@ -8541,14 +8499,6 @@ class Event extends AppModel
                     $flagKeep = ($filterType['correlation'] == 1); // keep if correlations are included
                 } else {
                     $flagKeep = ($filterType['correlation'] == 2); // keep if correlations are excluded
-                }
-                if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
-                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
-                        if (isset($correlatedShadowAttributes[$shadowAttribute['id']])) {
-                            $flagKeep = ($filterType['correlation'] == 1); // keep if correlations are included
-                            break;
-                        }
-                    }
                 }
                 if ($flagKeep) {
                     break;
@@ -8708,7 +8658,6 @@ class Event extends AppModel
         }
 
         $correlatedAttributes = isset($event['RelatedAttribute']) ? $event['RelatedAttribute'] : [];
-        $correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? $event['RelatedShadowAttribute'] : [];
         $objects = array();
 
         if (isset($event['Attribute'])) {
@@ -8716,7 +8665,6 @@ class Event extends AppModel
                 $result = $this->__prepareAttributeForView(
                     $attribute,
                     $correlatedAttributes,
-                    $correlatedShadowAttributes,
                     $filterType,
                     $sightingsData
                 );
@@ -8731,7 +8679,6 @@ class Event extends AppModel
             foreach ($event['ShadowAttribute'] as $proposal) {
                 $result = $this->__prepareProposalForView(
                     $proposal,
-                    $correlatedShadowAttributes,
                     $filterType
                 );
                 if ($result) {
@@ -8746,7 +8693,6 @@ class Event extends AppModel
                 $result = $this->__prepareObjectForView(
                     $object,
                     $correlatedAttributes,
-                    $correlatedShadowAttributes,
                     $filterType,
                     $sightingsData
                 );

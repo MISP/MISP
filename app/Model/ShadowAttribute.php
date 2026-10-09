@@ -200,10 +200,6 @@ class ShadowAttribute extends AppModel
         if (!isset($this->data['ShadowAttribute']['deleted'])) {
             $this->data['ShadowAttribute']['deleted'] = 0;
         }
-        if ($this->data['ShadowAttribute']['deleted']) {
-            // correlations for proposals are deprecated.
-            //$this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
-        }
 
         // convert into utc and micro sec
         $this->data = $this->Attribute->ISODatetimeToUTC($this->data, $this->alias);
@@ -231,71 +227,6 @@ class ShadowAttribute extends AppModel
         return true;
     }
 
-    private function __beforeDeleteCorrelation($sa)
-    {
-        if (isset($sa['ShadowAttribute'])) {
-            $sa = $sa['ShadowAttribute'];
-        }
-        $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
-        $this->ShadowAttributeCorrelation->deleteAll(array('ShadowAttributeCorrelation.1_shadow_attribute_id' => $sa['id']));
-    }
-
-    private function __afterSaveCorrelation($sa)
-    {
-        if (isset($sa['ShadowAttribute'])) {
-            $sa = $sa['ShadowAttribute'];
-        }
-        if (in_array($sa['type'], MispAttribute::NON_CORRELATING_TYPES, true)) {
-            return;
-        }
-        $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
-        $shadow_attribute_correlations = array();
-        $correlatingValues = array($sa['value1']);
-        if (!empty($sa['value2'])) {
-            $correlatingValues[] = $sa['value2'];
-        }
-        foreach ($correlatingValues as $k => $cV) {
-            $correlatingAttributes[$k] = $this->Attribute->find('all', array(
-                    'conditions' => array(
-                            'AND' => array(
-                                    'OR' => array(
-                                            'Attribute.value1' => $cV,
-                                            'Attribute.value2' => $cV
-                                    ),
-                                    'Attribute.type !=' => MispAttribute::NON_CORRELATING_TYPES,
-                                    'Attribute.deleted' => 0,
-                                    'Attribute.event_id !=' => $sa['event_id']
-                            ),
-                    ),
-                    'recursive' => -1,
-                    'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id'),
-                    'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
-                    'order' => array(),
-            ));
-            foreach ($correlatingAttributes as $key => $cA) {
-                foreach ($cA as $corr) {
-                    $shadow_attribute_correlations[] = array(
-                            'value' => $correlatingValues[$key],
-                            '1_event_id' => $sa['event_id'],
-                            '1_shadow_attribute_id' => $sa['id'],
-                            'event_id' => $corr['Attribute']['event_id'],
-                            'attribute_id' => $corr['Attribute']['id'],
-                            'org_id' => $corr['Event']['org_id'],
-                            'distribution' => $corr['Event']['distribution'],
-                            'a_distribution' => $corr['Attribute']['distribution'],
-                            'sharing_group_id' => $corr['Event']['sharing_group_id'],
-                            'a_sharing_group_id' => $corr['Attribute']['sharing_group_id'],
-                            'date' => $corr['Event']['date'],
-                            'info' => $corr['Event']['info'],
-                    );
-                }
-            }
-        }
-        if (!empty($shadow_attribute_correlations)) {
-            $this->ShadowAttributeCorrelation->saveMany($shadow_attribute_correlations);
-        }
-    }
-
     public function afterSave($created, $options = array())
     {
         $result = true;
@@ -310,15 +241,6 @@ class ShadowAttribute extends AppModel
                 $result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
             }
         }
-        /*
-         * correlations are deprecated for proposals
-        if ((isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) || (isset($this->data['ShadowAttribute']['proposal_to_delete']) && $this->data['ShadowAttribute']['proposal_to_delete'])) {
-            // this is a deletion
-            // Could be a proposal to delete or flagging a proposal that it was discarded / accepted - either way, we don't want to correlate here for now
-        } else {
-            $this->__afterSaveCorrelation($this->data['ShadowAttribute']);
-        }
-        */
         if (empty($this->data['ShadowAttribute']['deleted'])) {
             $action = $created ? 'add' : 'edit';
             $proposal = $this->data;
@@ -712,33 +634,6 @@ class ShadowAttribute extends AppModel
         $this->Event->save($event, array('fieldList' => $fieldList));
     }
 
-    public function generateCorrelation($jobId = false)
-    {
-        $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
-        $this->ShadowAttributeCorrelation->deleteAll(array('id !=' => 0), false);
-        // get all proposals..
-        $proposals = $this->find('all', array('recursive' => -1, 'conditions' => array('ShadowAttribute.deleted' => 0, 'ShadowAttribute.proposal_to_delete' => 0)));
-        $proposalCount = count($proposals);
-        if ($jobId && Configure::read('MISP.background_jobs')) {
-            $this->Job = ClassRegistry::init('Job');
-            $this->Job->id = $jobId;
-        }
-        if ($proposalCount > 0) {
-            foreach ($proposals as $k => $proposal) {
-                $this->__afterSaveCorrelation($proposal['ShadowAttribute']);
-                if ($jobId && Configure::read('MISP.background_jobs') && $k > 0 && $proposalCount % $k == 10) {
-                    $this->Job->saveField('progress', ($k / $proposalCount * 100));
-                }
-            }
-        }
-        if ($jobId && Configure::read('MISP.background_jobs')) {
-            $this->Job->saveField('progress', 100);
-            $this->Job->saveField('status', 4);
-            $this->Job->saveField('message', 'Job done.');
-        }
-        return $proposalCount;
-    }
-
     /**
      * @param array $proposal
      * @return array|false
@@ -913,83 +808,6 @@ class ShadowAttribute extends AppModel
             );
         }
         return $conditions;
-    }
-
-    public function upgradeToProposalCorrelation()
-    {
-        $this->Log = ClassRegistry::init('Log');
-        if (!Configure::read('MISP.background_jobs')) {
-            $this->Log->create();
-            $this->Log->saveOrFailSilently(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => 'SYSTEM',
-                    'action' => 'update_database',
-                    'user_id' => 0,
-                    'title' => 'Starting proposal correlation generation',
-                    'change' => 'The generation of Proposal correlations as part of the 2.4.20 datamodel upgrade has started'
-            ));
-            $count = $this->generateCorrelation();
-            $this->Log->create();
-            if (is_numeric($count)) {
-                $this->Log->saveOrFailSilently(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => 'SYSTEM',
-                        'action' => 'update_database',
-                        'user_id' => 0,
-                        'title' => 'Proposal correlation generation complete',
-                        'change' => 'The generation of Proposal correlations as part of the 2.4.20 datamodel upgrade is completed. ' . $count . ' proposals used.'
-                ));
-            } else {
-                $this->Log->saveOrFailSilently(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => 'SYSTEM',
-                        'action' => 'update_database',
-                        'user_id' => 0,
-                        'title' => 'Proposal correlation generation failed',
-                        'change' => 'The generation of Proposal correlations as part of the 2.4.20 has failed. You can rerun it from the administrative tools.'
-                ));
-            }
-        } else {
-
-            /** @var Job $job */
-            $job = ClassRegistry::init('Job');
-            $jobId = $job->createJob(
-                'SYSTEM',
-                Job::WORKER_DEFAULT,
-                'generate proposal correlation',
-                'All attributes',
-                'Correlating Proposals.'
-            );
-
-            $this->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_ADMIN,
-                [
-                    'jobGenerateShadowAttributeCorrelation',
-                    $jobId
-                ],
-                true,
-                $jobId
-            );
-
-            $this->Log->create();
-            $this->Log->saveOrFailSilently(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => 'SYSTEM',
-                    'action' => 'update_database',
-                    'user_id' => 0,
-                    'title' => 'Proposal correlation generation job queued',
-                    'change' => 'The job for the generation of Proposal correlations as part of the 2.4.20 datamodel upgrade has been queued'
-            ));
-        }
     }
 
     public function saveAttachment($shadowAttribute, $path_suffix='')

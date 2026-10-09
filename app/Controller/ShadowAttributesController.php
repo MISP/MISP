@@ -1079,42 +1079,6 @@ class ShadowAttributesController extends AppController
         }
     }
 
-    public function generateCorrelation()
-    {
-        if (!self::_isSiteAdmin() || !$this->request->is('post')) {
-            throw new NotFoundException();
-        }
-        if (!Configure::read('MISP.background_jobs')) {
-            $k = $this->ShadowAttribute->generateCorrelation();
-            $this->Flash->success(__('All done. ' . $k . ' proposals processed.'));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        } else {
-            /** @var Job $job */
-            $job = ClassRegistry::init('Job');
-            $jobId = $job->createJob(
-                'SYSTEM',
-                Job::WORKER_DEFAULT,
-                'generate proposal correlation',
-                'All attributes',
-                'Job created.'
-            );
-
-            $this->MispAttribute->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_ADMIN,
-                [
-                    'jobGenerateShadowAttributeCorrelation',
-                    $jobId
-                ],
-                true,
-                $jobId
-            );
-
-            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        }
-    }
-
     private function __attributeIdToConditions($id)
     {
         if (is_numeric($id)) {

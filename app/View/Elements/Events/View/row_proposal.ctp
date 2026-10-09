@@ -101,20 +101,7 @@
       <?php echo nl2br(h($object['comment']), false); ?>
   </td>
   <td class="short" style="padding-top:3px;">&nbsp;</td>
-  <td class="shortish">
-    <ul class="inline" style="margin:0px;">
-      <?php
-        if (!empty($event['RelatedShadowAttribute'][$object['id']])) {
-          echo $this->element('Events/View/attribute_correlations', array(
-            'scope' => 'ShadowAttribute',
-            'object' => $object,
-            'event' => $event,
-              'withPivot' => true,
-          ));
-        }
-      ?>
-    </ul>
-  </td>
+  <td class="shortish">&nbsp;</td>
   <?php if ($me['Role']['perm_view_feed_correlations']): ?>
     <td class="shortish">
       <ul class="inline" style="margin:0px;">

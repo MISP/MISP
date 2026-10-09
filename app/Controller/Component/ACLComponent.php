@@ -800,7 +800,6 @@ class ACLComponent extends Component
             'discardSelected' => array('perm_add'),
             'download' => array('*'),
             'edit' => array('perm_add'),
-            'generateCorrelation' => array(),
             'index' => array('*'),
             'view' => array('*'),
             'viewPicture' => array('*'),
