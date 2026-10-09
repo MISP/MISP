@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('ValueFieldTranslator', 'Tools');
 App::uses('ValueConditionRewriter', 'Tools');
+App::uses('ValueFacetTool', 'Tools');
 
 /**
  * The attribute value dictionary: one row per exact byte string, referenced
@@ -48,6 +49,9 @@ class AttributeValue extends AppModel
 
     /** @var array [value => id] from prime(), read by assignIds() */
     private $primed = [];
+
+    /** @var ValueFacetTool|null */
+    private $facets = null;
 
     /**
      * @param string $value
@@ -115,6 +119,17 @@ class AttributeValue extends AppModel
     }
 
     /**
+     * @return ValueFacetTool
+     */
+    public function facets()
+    {
+        if ($this->facets === null) {
+            $this->facets = new ValueFacetTool($this);
+        }
+        return $this->facets;
+    }
+
+    /**
      * @param string $value
      * @return int
      */
@@ -129,9 +144,10 @@ class AttributeValue extends AppModel
      *
      * Existing values are selected first, so only the missing ones are
      * inserted and no auto-increment ids are spent on collisions. Every row
-     * read back is checked against the input byte for byte. Outside a
-     * transaction a deadlock is retried; inside one it reaches the caller,
-     * whose transaction the database has already rolled back.
+     * read back is checked against the input byte for byte. Values that were
+     * missing get their IP facet rows. Outside a transaction a deadlock is
+     * retried; inside one it reaches the caller, whose transaction the
+     * database has already rolled back.
      *
      * @param array $values Scalars; repeats are collapsed.
      * @return array [value => id]. PHP turns numeric-string keys into ints.
@@ -142,9 +158,15 @@ class AttributeValue extends AppModel
     public function internMany(array $values)
     {
         $byHash = $this->hashValues($values);
+        // Kept across attempts: a retry finds the values an earlier attempt committed
+        $added = [];
         for ($attempt = 1; ; $attempt++) {
             try {
-                return $this->internHashed($byHash);
+                $ids = $this->internHashed($byHash, $added);
+                if (!empty($added)) {
+                    $this->facets()->add(array_intersect_key($ids, array_flip($added)));
+                }
+                return $ids;
             } catch (PDOException $e) {
                 if ($attempt >= self::DEADLOCK_ATTEMPTS || !$this->isDeadlock($e) || $this->inTransaction()) {
                     throw $e;
@@ -156,15 +178,17 @@ class AttributeValue extends AppModel
 
     /**
      * @param array $byHash [hex hash => value]
+     * @param array $added [hex hash => value] the values found missing, added to.
      * @return array [value => id]
      */
-    private function internHashed(array $byHash)
+    private function internHashed(array $byHash, array &$added)
     {
         $ids = [];
         $missing = $this->lookup($byHash, $ids);
         if (empty($missing)) {
             return $ids;
         }
+        $added += $missing;
         // The same order in every process makes deadlocks between concurrent inserts rare
         ksort($missing, SORT_STRING);
         foreach ($this->chunks($missing) as $chunk) {

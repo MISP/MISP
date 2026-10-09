@@ -43,7 +43,7 @@ trait AttributeValueFakeDictionary
     /** @var array hex hash => true, rows only a locking read sees */
     public $hidden = [];
 
-    /** @var PDOException[] Thrown by the next INSERTs, one each */
+    /** @var array Thrown by the next INSERTs, one each; null lets one through */
     public $insertErrors = [];
 
     /** @var callable|null Answers any other SELECT. */
@@ -55,8 +55,11 @@ trait AttributeValueFakeDictionary
     {
         $this->statements[] = $sql;
         if (strpos($sql, 'INSERT INTO') === 0) {
-            if (!empty($this->insertErrors)) {
-                throw array_shift($this->insertErrors);
+            if (!empty($this->insertErrors) && ($error = array_shift($this->insertErrors)) !== null) {
+                throw $error;
+            }
+            if (strpos($sql, 'value_ip_ranges') !== false) {
+                return true;
             }
             foreach ($this->hashesIn($sql) as $hash) {
                 if (!$this->dropInserts && !isset($this->rows[$hash])) {

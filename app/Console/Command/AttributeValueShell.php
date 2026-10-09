@@ -1,6 +1,7 @@
 <?php
 App::uses('AttributeValueBackfillTool', 'Tools');
 App::uses('CorrelationRemapTool', 'Tools');
+App::uses('ValueFacetTool', 'Tools');
 
 /**
  * @property AttributeValue $AttributeValue
@@ -33,6 +34,15 @@ class AttributeValueShell extends AppShell
                 'chunk-size' => [
                     'help' => __('Rows per chunk.'),
                     'default' => CorrelationRemapTool::CHUNK,
+                ],
+            ]],
+        ]);
+        $parser->addSubcommand('rebuildFacets', [
+            'help' => __('Bring the IP facet (value_ip_ranges) in line with the value dictionary: add the rows of values that parse as an IP address or CIDR, replace rows that differ, remove the rest. Rows that are already right are left alone, so a stopped run resumes by starting it again.'),
+            'parser' => ['options' => [
+                'chunk-size' => [
+                    'help' => __('Dictionary ids per window.'),
+                    'default' => ValueFacetTool::CHUNK,
                 ],
             ]],
         ]);
@@ -83,6 +93,22 @@ class AttributeValueShell extends AppShell
             ));
         }
         $tool->finish();
+    }
+
+    public function rebuildFacets()
+    {
+        $start = microtime(true);
+        $totals = $this->AttributeValue->facets()->rebuild($this->param('chunk-size'), $this->progress($start, function (array $totals) {
+            return sprintf('value_ip_ranges: %d values read, %d added, %d removed, up to id %d', $totals['values'], $totals['added'], $totals['removed'], $totals['last_id']);
+        }));
+        $this->out(sprintf(
+            'value_ip_ranges: done, %d values read, %d parse as an address or CIDR, %d rows added, %d removed, %.1f s.',
+            $totals['values'],
+            $totals['facets'],
+            $totals['added'],
+            $totals['removed'],
+            microtime(true) - $start
+        ));
     }
 
     public function verify()

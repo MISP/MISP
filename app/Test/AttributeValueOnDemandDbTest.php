@@ -137,6 +137,10 @@ class AttributeValueOnDemandDbTest extends TestCase
             foreach ($this->newValues as $value) {
                 $hashes[] = "X'" . bin2hex($AttributeValue->hashOf($value)) . "'";
             }
+            $this->exec(sprintf(
+                'DELETE FROM value_ip_ranges WHERE value_id IN (SELECT id FROM attribute_values WHERE hash IN (%s))',
+                implode(', ', $hashes)
+            ));
             $this->exec(sprintf('DELETE FROM attribute_values WHERE hash IN (%s)', implode(', ', $hashes)));
         }
     }

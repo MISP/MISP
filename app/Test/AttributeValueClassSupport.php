@@ -16,4 +16,5 @@ if (!class_exists('AppModel', false)) {
 
 require_once __DIR__ . '/../Lib/Tools/ValueFieldTranslator.php';
 require_once __DIR__ . '/../Lib/Tools/ValueConditionRewriter.php';
+require_once __DIR__ . '/../Lib/Tools/ValueFacetTool.php';
 require_once __DIR__ . '/../Model/AttributeValue.php';

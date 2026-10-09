@@ -153,6 +153,7 @@ class AttributeValueOverCorrelationDbTest extends TestCase
                 $ids = implode(', ', array_map('intval', $ids));
                 $this->exec("DELETE FROM over_correlating_values WHERE value_id IN ($ids)");
                 $this->exec("DELETE FROM attr_value_counts WHERE value_id IN ($ids)");
+                $this->exec("DELETE FROM value_ip_ranges WHERE value_id IN ($ids)");
                 $this->exec("DELETE FROM attribute_values WHERE id IN ($ids)");
             }
         }

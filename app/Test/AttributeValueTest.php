@@ -168,6 +168,57 @@ class AttributeValueTest extends TestCase
         $this->assertCount(1 + AttributeValue::DEADLOCK_ATTEMPTS, $this->mysql->statementsLike('/^INSERT/'));
     }
 
+    public function testValuesFoundMissingGetTheirIpFacetRows()
+    {
+        foreach ([$this->mysql, $this->pgsql] as $db) {
+            $db->store('192.0.2.1');
+            $db->allow(['2001:db8::/32', 'example.org', '10.1.2.3']);
+
+            $ids = $this->model($db)->internMany(['10.1.2.3', 'example.org', '192.0.2.1', '2001:db8::/32']);
+
+            $facets = $db->statementsLike('/value_ip_ranges/');
+            $this->assertCount(1, $facets);
+            $literal = $db === $this->mysql ? "X'%s'" : "decode('%s', 'hex')";
+            $rows = [
+                $ids['10.1.2.3'] => ['00000000000000000000ffff0a010203', '00000000000000000000ffff0a010203', 128],
+                $ids['2001:db8::/32'] => ['20010db8000000000000000000000000', '20010db8ffffffffffffffffffffffff', 32],
+            ];
+            ksort($rows);
+            $expected = [];
+            foreach ($rows as $id => $row) {
+                $expected[] = sprintf("(%d, $literal, $literal, %d)", $id, $row[0], $row[1], $row[2]);
+            }
+            $this->assertStringContainsString('VALUES ' . implode(', ', $expected) . ' ON', $facets[0]);
+            $this->assertStringEndsWith(
+                $db === $this->mysql ? 'ON DUPLICATE KEY UPDATE `value_id` = `value_id`;' : 'ON CONFLICT ("value_id") DO NOTHING;',
+                $facets[0]
+            );
+        }
+    }
+
+    public function testValuesAlreadyStoredGetNoFacetStatement()
+    {
+        $this->mysql->store('10.0.0.1');
+        $this->model($this->mysql)->internMany(['10.0.0.1']);
+        $this->assertSame([], $this->mysql->statementsLike('/value_ip_ranges/'));
+
+        $this->mysql->allow(['example.org']);
+        $this->model($this->mysql)->internMany(['example.org']);
+        $this->assertSame([], $this->mysql->statementsLike('/value_ip_ranges/'));
+    }
+
+    public function testAFacetDeadlockIsRetriedAfterTheValueWasCommitted()
+    {
+        $this->mysql->allow(['10.0.0.1']);
+        $this->mysql->insertErrors = [null, self::deadlock()];
+
+        $ids = $this->model($this->mysql)->internMany(['10.0.0.1']);
+
+        $this->assertSame(['10.0.0.1'], array_keys($ids));
+        $this->assertCount(1, $this->mysql->statementsLike('/^INSERT INTO `attribute_values`/'));
+        $this->assertCount(2, $this->mysql->statementsLike('/^INSERT INTO `value_ip_ranges`/'));
+    }
+
     public function testInternManyOnPostgres()
     {
         $this->pgsql->store('a');
