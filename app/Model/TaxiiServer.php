@@ -213,7 +213,8 @@ class TaxiiServer extends AppModel
 
     public function queryInstance($options)
     {
-        $url = $options['TaxiiServer']['api_root'] . $options['TaxiiServer']['path'];
+        $url = rtrim($options['TaxiiServer']['api_root'], '/') . '/'
+            . ltrim($options['TaxiiServer']['path'], '/');
         error_log($url);
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket();
@@ -221,7 +222,7 @@ class TaxiiServer extends AppModel
         if (!empty($caPath)) {
             $HttpSocket->config['ssl_cafile'] = $caPath;
         }
-        if (!$options['TaxiiServer']['skip_proxy']) {
+        if (empty($options['TaxiiServer']['skip_proxy'])) {
             $proxy = Configure::read('Proxy');
             if (isset($proxy['host']) && !empty($proxy['host'])) {
                 $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
@@ -233,12 +234,20 @@ class TaxiiServer extends AppModel
                 'Content-type' => 'application/taxii+json;version=2.1'
             ]
         ];
-        if (!empty($options['TaxiiServer']['api_key'])) {
-            $authMethod = 'Basic ';
-            if (isset($options['TaxiiServer']['auth_type']) && $options['TaxiiServer']['auth_type'] === 'bearer') {
-                $authMethod = 'Bearer ';
-            }
-            $request['header']['Authorization'] = $authMethod . $options['TaxiiServer']['api_key'];
+        $authType = $options['TaxiiServer']['auth_type'] ?? 'basic';
+        $apiKey = $options['TaxiiServer']['api_key'] ?? '';
+        // Form discovery runs before beforeSave encodes Basic credentials.
+        if ($authType === 'basic' &&
+            !empty($options['TaxiiServer']['username']) &&
+            !empty($options['TaxiiServer']['password'])) {
+            $apiKey = base64_encode(
+                $options['TaxiiServer']['username'] . ':'
+                . $options['TaxiiServer']['password']
+            );
+        }
+        if (!empty($apiKey)) {
+            $authMethod = $authType === 'bearer' ? 'Bearer ' : 'Basic ';
+            $request['header']['Authorization'] = $authMethod . $apiKey;
         }
         try {
             if (!empty($options['type']) && $options['type'] === 'post') {
@@ -259,7 +268,7 @@ class TaxiiServer extends AppModel
         } catch (SocketException $e) {
             throw new BadRequestException(__('Something went wrong. Error returned: %s', $e->getMessage()));
         }
-        if ($response->code === 403 || $response->code === 401) {
+        if ((int)$response->code === 403 || (int)$response->code === 401) {
             throw new ForbiddenException(__('Authentication failed.'));
         }
         throw new BadRequestException(__('Something went wrong with the request or the remote side is having issues.'));
