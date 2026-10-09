@@ -1,4 +1,5 @@
 <?php
+App::uses('MispAttribute', 'Model');
 $attribute = Hash::extract($row, $field['data_path']);
 
 if (empty($attribute)) {
@@ -20,6 +21,14 @@ $hoverEnrichId = (Configure::read('Plugin.Enrichment_hover_enable') && !empty($m
     && empty($isProposalRow) && !empty($attribute['id']))
     ? (int)$attribute['id'] : null;
 $hoverClickOnly = (bool)Configure::read('Plugin.Enrichment_hover_popover_only');
+
+// The thumbnails are the default-size ones getThumbnail() caches (webp twice as
+// large, for a sharp render); the CSS sizes them down.
+$pictureUrl = null;
+if (($attribute['type'] ?? '') === 'attachment' && !$isProposalRow && !empty($attribute['id'])
+    && Validation::extension((string)$attribute['value'], MispAttribute::IMAGE_EXTENSIONS)) {
+    $pictureUrl = $baseurl . '/attributes/viewPicture/' . (int)$attribute['id'];
+}
 
 
 $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
@@ -83,6 +92,15 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
             </p>
         <?php endif; ?>
 
+        <?php if (!empty($attribute['warnings'])): ?>
+            <i class="fas fa-exclamation-triangle
+                        text-warning"
+                title="<?= h(implode(', ', array_column(
+                    $attribute['warnings'],
+                    'warninglist_name'
+                ))) ?>"></i>
+        <?php endif; ?>
+
         <?php if ($isProposalRow): ?>
             <?php if (!empty($attribute['proposal_org_name'])): ?>
                 <span class="text-muted small"><?= __('by %s', h($attribute['proposal_org_name'])) ?></span>
@@ -99,6 +117,20 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
                 <span><?= h($attribute['comment']) ?></span>
             </div>
         </div>
+    <?php endif; ?>
+
+    <?php if ($pictureUrl !== null): ?>
+        <a href="<?= h($pictureUrl) ?>" target="_blank" rel="noopener"
+           class="ov-attr-thumb d-inline-block align-self-start lh-1 rounded focus-ring"
+           title="<?= __('Open the full image') ?>">
+            <picture>
+                <source srcset="<?= h($pictureUrl) ?>/webp" type="image/webp">
+                <?php // A picture the server cannot serve (a soft-deleted row) leaves no broken frame. ?>
+                <img src="<?= h($pictureUrl) ?>/1" alt="<?= h($attribute['value']) ?>"
+                     class="img-thumbnail object-fit-contain"
+                     loading="lazy" onerror="this.closest('.ov-attr-thumb').remove()">
+            </picture>
+        </a>
     <?php endif; ?>
 
     <!-- Pending proposals (edits / deletions) on this attribute -->

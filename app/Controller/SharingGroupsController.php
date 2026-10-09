@@ -322,7 +322,7 @@ class SharingGroupsController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('SharingGroups', 'delete', $id, 'The sharing group could not be deleted.', $this->response->type());
             }
-            $this->Flash->error(__('Sharing Group could not be deleted. Make sure that there are no events, attributes or threads belonging to this sharing group.'));
+            $this->Flash->error(__('Sharing Group could not be deleted. Make sure that there are no events or attributes belonging to this sharing group.'));
         }
 
         if ($deletedSg['SharingGroup']['active']) {

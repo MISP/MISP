@@ -17,25 +17,38 @@ $options = [
         'field' => 'enabled', 'id' => 'TaxiiServerEnabled',
         'label' => __('Enabled'),
         'hint' => __('Available as a push target'),
-        'icon' => 'fas fa-power-off', 'accent' => '#198754',
+        'icon' => 'fas fa-power-off', 'accent' => 'var(--bs-success)',
         'checked' => $isEdit ? !empty($server['enabled']) : true,
     ],
     [
         'field' => 'skip_proxy', 'id' => 'TaxiiServerSkipProxy',
         'label' => __('Skip proxy'),
         'hint' => __('Reach it directly, ignoring the configured proxy'),
-        'icon' => 'fas fa-diagram-project', 'accent' => '#6c757d',
+        'icon' => 'fas fa-diagram-project', 'accent' => 'var(--bs-secondary)',
         'checked' => !empty($server['skip_proxy']),
     ],
 ];
 
+/* A rejected save re-renders this form: say why under the field. */
+$serverError = function ($field) {
+    if (!$this->Form->isFieldError($field)) {
+        return '';
+    }
+    return sprintf(
+        '<div class="ov-field-error"><i class="fas fa-circle-exclamation"></i><span>%s</span></div>',
+        h(implode(' ', (array)($this->Form->validationErrors['TaxiiServer'][$field] ?? [])))
+    );
+};
+
 echo $this->Form->create('TaxiiServer', [
     'id' => 'taxiiServerForm',
     'novalidate' => true,
+    'data-required-guard' => '1',
 ]);
 ?>
 
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'primary',
     'eyebrow' => __('TAXII Servers'),
     'title' => $isEdit ? __('Edit TAXII Server') : __('Add TAXII Server'),
     'description' => __('A TAXII 2.1 collection this instance can push STIX to — the discovery URL leads to the API roots.'),
@@ -49,56 +62,48 @@ echo $this->Form->create('TaxiiServer', [
 
         <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
-                        text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Name') ?>
-                <span class="badge bg-primary"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Name'),
+                'required' => true,
+                'for' => 'TaxiiServerName',
+            ]) ?>
             <?= $this->Form->text('name', [
                 'id' => 'TaxiiServerName',
-                'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important;'
-                    . ' outline:none;',
+                'class' => 'ov-form-line fs-5'
+                    . ($this->Form->isFieldError('name') ? ' is-invalid' : ''),
                 'placeholder' => __('e.g. Partner TAXII collection'),
                 'autocomplete' => 'off',
+                'required' => true,
+                'data-required-msg' => __('Please provide a name for the server.'),
             ]) ?>
+            <?= $serverError('name') ?>
         </div>
 
         <!-- ── CONNECTION ──────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
-                        text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Connection') ?>
-                <span class="badge bg-primary"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Connection'),
+            ]) ?>
 
             <label class="form-label text-muted mb-1" for="TaxiiServerDiscoveryUrl"
                    style="font-size:.75rem;">
                 <?= __('Discovery URL') ?>
             </label>
             <div class="input-group">
-                <span class="input-group-text bg-transparent"
-                      style="border-color:#d8dde3;">
+                <span class="input-group-text bg-transparent">
                     <i class="fas fa-link text-muted" style="font-size:.8rem;"></i>
                 </span>
-                <?php
-                    echo $this->Form->text('discovery_url', [
-                        'id' => 'TaxiiServerDiscoveryUrl',
-                        'class' => 'form-control font-monospace',
-                        'style' => 'border-color:#d8dde3;',
-                        'placeholder' => 'https://example.org/taxii2/',
-                        'autocomplete' => 'off',
-                    ]);
-                ?>
+                <?= $this->Form->text('discovery_url', [
+                    'id' => 'TaxiiServerDiscoveryUrl',
+                    'class' => 'form-control font-monospace'
+                        . ($this->Form->isFieldError('discovery_url') ? ' is-invalid' : ''),
+                    'placeholder' => 'https://example.org/taxii2/',
+                    'autocomplete' => 'off',
+                ]) ?>
             </div>
+            <?= $serverError('discovery_url') ?>
 
             <div class="row g-3 mt-1">
                 <div class="col-md-4">
@@ -122,7 +127,6 @@ echo $this->Form->create('TaxiiServer', [
                     <?= $this->Form->text('username', [
                         'id' => 'TaxiiServerUsername',
                         'class' => 'form-control',
-                        'style' => 'border-color:#d8dde3;',
                         'autocomplete' => 'off',
                     ]) ?>
                 </div>
@@ -136,7 +140,6 @@ echo $this->Form->create('TaxiiServer', [
                             'id' => 'TaxiiServerPassword',
                             'type' => 'password',
                             'class' => 'form-control',
-                            'style' => 'border-color:#d8dde3;',
                             'autocomplete' => 'new-password',
                         ]) ?>
                         <button type="button" class="btn btn-outline-secondary"
@@ -153,15 +156,13 @@ echo $this->Form->create('TaxiiServer', [
                         <span id="TaxiiServerApiKeyLabel"><?= __('Bearer token') ?></span>
                     </label>
                     <div class="input-group">
-                        <span class="input-group-text bg-transparent"
-                              style="border-color:#d8dde3;">
+                        <span class="input-group-text bg-transparent">
                             <i class="fas fa-key text-muted" style="font-size:.8rem;"></i>
                         </span>
                         <?= $this->Form->text('api_key', [
                             'id' => 'TaxiiServerApiKey',
                             'type' => 'password',
                             'class' => 'form-control font-monospace',
-                            'style' => 'border-color:#d8dde3;',
                             'autocomplete' => 'new-password',
                         ]) ?>
                         <button type="button" class="btn btn-outline-secondary"
@@ -172,8 +173,13 @@ echo $this->Form->create('TaxiiServer', [
                     </div>
                 </div>
             </div>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 id="TaxiiServerAuthHint" style="font-size:.75rem;"></div>
+            <div id="TaxiiServerAuthHint">
+                <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                    'text' => $currentAuthType === 'bearer'
+                        ? __('The token is sent as an Authorization: Bearer header.')
+                        : __('The username and password are stored as one encoded API key.'),
+                ]) ?>
+            </div>
         </div>
 
         <!-- ── TARGET COLLECTION ───────────────────────────────── -->
@@ -227,6 +233,9 @@ echo $this->Form->create('TaxiiServer', [
                     </select>
                 </div>
             </div>
+            <div class="ov-field-error d-none" id="taxiiProbeError">
+                <i class="fas fa-circle-exclamation"></i><span></span>
+            </div>
             <?= $this->element('genericElementsBS5/Forms/field_hint', [
                 'text' => __('Discover asks the server for its API roots, then for the collections you may write to.'),
             ]) ?>
@@ -263,7 +272,6 @@ echo $this->Form->create('TaxiiServer', [
                     <?= $this->Form->text('owner', [
                         'id' => 'TaxiiServerOwner',
                         'class' => 'form-control',
-                        'style' => 'border-color:#d8dde3;',
                         'placeholder' => __('Who runs the server'),
                         'autocomplete' => 'off',
                     ]) ?>
@@ -277,7 +285,6 @@ echo $this->Form->create('TaxiiServer', [
                         'id' => 'TaxiiServerDescription',
                         'class' => 'form-control',
                         'rows' => 2,
-                        'style' => 'border-color:#d8dde3;',
                         'placeholder' => __('What is pushed there…'),
                     ]) ?>
                 </div>
@@ -299,7 +306,7 @@ echo $this->Form->create('TaxiiServer', [
                                data-accent="<?= h($option['accent']) ?>"
                                style="cursor:pointer; transition:border-color .15s;
                                       border:1px solid <?= $option['checked']
-                                          ? h($option['accent']) : '#dee2e6' ?>;">
+                                          ? h($option['accent']) : 'var(--bs-border-color)' ?>;">
                             <?= $this->Form->checkbox($option['field'], [
                                 'id' => $option['id'],
                                 'class' => 'form-check-input flex-shrink-0',
@@ -321,7 +328,7 @@ echo $this->Form->create('TaxiiServer', [
                             <i class="<?= h($option['icon']) ?>" data-option-icon
                                style="font-size:.95rem; transition:color .15s;
                                       color:<?= $option['checked']
-                                          ? h($option['accent']) : '#adb5bd' ?>;"></i>
+                                          ? h($option['accent']) : 'var(--bs-secondary-color)' ?>;"></i>
                         </label>
                     </div>
                 <?php endforeach; ?>
@@ -331,6 +338,7 @@ echo $this->Form->create('TaxiiServer', [
     </div>
 
     <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'primary',
         'isEdit' => $isEdit,
         'meta' => $isEdit && !empty($id) ? [['label' => __('Server'), 'id' => $id]] : [],
         'hint' => __('Basic credentials are stored as the encoded API key.'),
@@ -355,8 +363,6 @@ echo $this->Form->create('TaxiiServer', [
         collections: <?= json_encode(__('%s collection(s)')) ?>,
         probeFailed: <?= json_encode(__('Discovery failed')) ?>,
         urlNeeded: <?= json_encode(__('Fill the discovery URL first.')) ?>,
-        nameRequired: <?= json_encode(__('Please provide a name for the server.')) ?>,
-        urlRequired: <?= json_encode(__('Please provide the discovery URL.')) ?>,
         urlScheme: <?= json_encode(__('The URL has to start with http:// or https://')) ?>
     };
 
@@ -366,10 +372,12 @@ echo $this->Form->create('TaxiiServer', [
     function paintCard(card) {
         var box = card.querySelector('input[type="checkbox"]');
         var icon = card.querySelector('[data-option-icon]');
-        var accent = card.dataset.accent || '#0d6efd';
+        var accent = card.dataset.accent || 'var(--bs-primary)';
         if (!box) { return; }
-        card.style.borderColor = box.checked ? accent : '#dee2e6';
-        if (icon) { icon.style.color = box.checked ? accent : '#adb5bd'; }
+        card.style.borderColor = box.checked ? accent : 'var(--bs-border-color)';
+        if (icon) {
+            icon.style.color = box.checked ? accent : 'var(--bs-secondary-color)';
+        }
     }
     document.querySelectorAll('[data-option-card]').forEach(function (card) {
         var box = card.querySelector('input[type="checkbox"]');
@@ -384,7 +392,7 @@ echo $this->Form->create('TaxiiServer', [
     function refreshAuth() {
         var isBasic = !authEl || authEl.value === 'basic';
         document.querySelectorAll('.taxii-auth-basic').forEach(function (node) {
-            node.style.display = isBasic ? '' : 'none';
+            node.classList.toggle('d-none', !isBasic);
         });
         document.querySelectorAll('.taxii-auth-bearer').forEach(function (node) {
             node.classList.toggle('col-md-8', !isBasic);
@@ -393,24 +401,17 @@ echo $this->Form->create('TaxiiServer', [
         if (apiKeyLabel) {
             apiKeyLabel.textContent = isBasic ? L.basicLabel : L.bearerLabel;
         }
-        if (authHintEl) {
-            authHintEl.innerHTML = '';
-            var icon = document.createElement('i');
-            icon.className = 'fas fa-circle-info';
-            icon.style.fontSize = '.65rem';
-            authHintEl.appendChild(icon);
-            authHintEl.appendChild(document.createTextNode(
-                isBasic ? L.basicHint : L.bearerHint));
+        var hint = authHintEl ? authHintEl.querySelector('div') : null;
+        if (hint && hint.lastChild) {
+            hint.lastChild.textContent = ' ' + (isBasic ? L.basicHint : L.bearerHint);
         }
     }
     if (authEl) { authEl.addEventListener('change', refreshAuth); }
 
-    /* ── Discovery: ask the server for its API roots, then its collections ──
-     * Both endpoints are POST and expect the credentials of the form; an
-     * older revision of this file wired them to DOMContentLoaded (which never
-     * fires for a modal fragment) and posted a `baseurl` key they ignore. */
+    /* ── Discovery: ask the server for its API roots, then its collections ── */
     var probeBtn = el('taxiiProbeBtn');
     var probeStatusEl = el('taxiiProbeStatus');
+    var probeErrorEl = el('taxiiProbeError');
     var rootSelect = el('TaxiiServerApiRoot');
     var collectionSelect = el('TaxiiServerCollection');
 
@@ -420,6 +421,17 @@ echo $this->Form->create('TaxiiServer', [
         probeStatusEl.style.fontSize = '.65rem';
         probeStatusEl.textContent = text;
         probeStatusEl.classList.remove('d-none');
+    }
+
+    function setProbeError(message) {
+        if (!probeErrorEl) { return; }
+        probeErrorEl.querySelector('span').textContent = message || '';
+        probeErrorEl.classList.toggle('d-none', !message);
+    }
+
+    function probeFailed(err) {
+        setProbeStatus('danger', L.probeFailed);
+        setProbeError(err && err.message);
     }
 
     function credentials() {
@@ -433,6 +445,14 @@ echo $this->Form->create('TaxiiServer', [
         };
     }
 
+    /* Some refusals arrive already HTML-escaped (the URL egress check). */
+    function plain(text) {
+        var doc = new DOMParser().parseFromString(String(text), 'text/html');
+        return doc.documentElement.textContent;
+    }
+
+    /* A failure is any non-2xx answer: not every one carries an `errors` key,
+       and one that does not must never be read as a {value: label} map. */
     function post(action, body) {
         return fetch(BASE + '/taxii_servers/' + action + '.json', {
             method: 'POST',
@@ -443,7 +463,18 @@ echo $this->Form->create('TaxiiServer', [
                 'X-CSRF-Token': typeof getCsrfToken === 'function' ? getCsrfToken() : ''
             },
             body: JSON.stringify(body)
-        }).then(function (r) { return r.json(); });
+        }).then(function (r) {
+            return r.json().catch(function () { return null; }).then(function (data) {
+                if (r.ok && data && typeof data === 'object' && !data.errors) {
+                    return data;
+                }
+                var reason = data && (data.errors || data.message || data.name);
+                if (reason && typeof reason === 'object') {
+                    reason = Object.values(reason).join(' ');
+                }
+                throw new Error(reason ? plain(reason) : 'HTTP ' + r.status);
+            });
+        });
     }
 
     /* The endpoints answer {value: label}; keep the current pick if it survives */
@@ -471,8 +502,18 @@ echo $this->Form->create('TaxiiServer', [
         return keys.length;
     }
 
+    function loadCollections(apiRoot) {
+        var body = credentials();
+        body.api_root = apiRoot;
+        return post('getCollections', body).then(function (collections) {
+            setProbeStatus('success',
+                L.collections.replace('%s', fill(collectionSelect, collections)));
+        });
+    }
+
     function discover() {
         var creds = credentials();
+        setProbeError('');
         if (!creds.discovery_url.trim()) {
             setProbeStatus('warning', L.urlNeeded);
             return;
@@ -480,110 +521,60 @@ echo $this->Form->create('TaxiiServer', [
         setProbeStatus('secondary', L.probing);
         post('getRoot', creds)
             .then(function (roots) {
-                if (!roots || roots.errors || typeof roots !== 'object') {
-                    throw new Error('getRoot');
-                }
                 var count = fill(rootSelect, roots);
                 setProbeStatus('success', L.roots.replace('%s', count));
                 if (!count) { return null; }
-                var apiRoot = rootSelect.tomselect
-                    ? rootSelect.tomselect.getValue() : rootSelect.value;
-                var body = credentials();
-                body.api_root = apiRoot;
-                return post('getCollections', body);
+                return loadCollections(rootSelect.tomselect
+                    ? rootSelect.tomselect.getValue() : rootSelect.value);
             })
-            .then(function (collections) {
-                if (!collections) { return; }
-                if (collections.errors || typeof collections !== 'object') {
-                    throw new Error('getCollections');
-                }
-                var count = fill(collectionSelect, collections);
-                setProbeStatus('success', L.collections.replace('%s', count));
-            })
-            .catch(function () { setProbeStatus('danger', L.probeFailed); });
+            .catch(probeFailed);
     }
 
     if (probeBtn) { probeBtn.addEventListener('click', discover); }
     /* Picking another root reloads its collections */
     if (rootSelect) {
         rootSelect.addEventListener('change', function () {
-            var body = credentials();
-            body.api_root = rootSelect.value;
-            if (!body.api_root) { return; }
+            if (!rootSelect.value) { return; }
+            setProbeError('');
             setProbeStatus('secondary', L.probing);
-            post('getCollections', body)
-                .then(function (collections) {
-                    if (!collections || collections.errors) { throw new Error('getCollections'); }
-                    setProbeStatus('success',
-                        L.collections.replace('%s', fill(collectionSelect, collections)));
-                })
-                .catch(function () { setProbeStatus('danger', L.probeFailed); });
+            loadCollections(rootSelect.value).catch(probeFailed);
         });
     }
 
-    /* The filters are a json_field: it reports and refuses a broken
-       document, and re-indents it, on its own. */
-    /* ── Required fields ── */
-    var nameEl = el('TaxiiServerName');
+    /* The name is refused empty by the page's required-field guard, and the
+       filters by their json_field; only the URL's scheme is checked here. */
     var urlEl = el('TaxiiServerDiscoveryUrl');
-    var form = el('taxiiServerForm');
+    var urlGroup = urlEl ? urlEl.closest('.input-group') : null;
+    var urlError = null;
 
-    function fieldError(target, message, underlined) {
-        var errorId = target.id + 'Error';
-        var existing = el(errorId);
-        var property = underlined ? 'border-bottom-color' : 'border-color';
+    function setUrlError(message) {
+        urlEl.classList.toggle('is-invalid', !!message);
         if (!message) {
-            target.style.setProperty(property, '#d8dde3', 'important');
-            if (existing) { existing.remove(); }
+            if (urlError) { urlError.remove(); urlError = null; }
             return;
         }
-        target.style.setProperty(property, '#dc3545', 'important');
-        if (existing) {
-            existing.lastChild.textContent = message;
-            return;
+        if (!urlError) {
+            urlError = document.createElement('div');
+            urlError.className = 'ov-field-error';
+            urlError.innerHTML = '<i class="fas fa-circle-exclamation"></i><span></span>';
+            urlGroup.parentNode.insertBefore(urlError, urlGroup.nextSibling);
         }
-        var msg = document.createElement('div');
-        msg.id = errorId;
-        msg.className = 'text-danger d-flex align-items-center gap-1';
-        msg.style.fontSize = '.75rem';
-        msg.style.marginTop = '.35rem';
-        var icon = document.createElement('i');
-        icon.className = 'fas fa-circle-exclamation';
-        msg.appendChild(icon);
-        msg.appendChild(document.createTextNode(message));
-        var anchor = target.closest('.input-group') || target;
-        anchor.parentNode.insertBefore(msg, anchor.nextSibling);
+        urlError.querySelector('span').textContent = message;
     }
 
-    if (form) {
+    var form = el('taxiiServerForm');
+    if (form && urlEl && urlGroup) {
         form.addEventListener('submit', function (e) {
-            var problems = [];
-            if (nameEl && !nameEl.value.trim()) {
-                fieldError(nameEl, L.nameRequired, true);
-                problems.push(nameEl);
-            }
-            if (urlEl) {
-                var url = urlEl.value.trim();
-                if (!url) {
-                    fieldError(urlEl, L.urlRequired, false);
-                    problems.push(urlEl);
-                } else if (!/^https?:\/\//i.test(url)) {
-                    fieldError(urlEl, L.urlScheme, false);
-                    problems.push(urlEl);
-                }
-            }
-            if (problems.length) {
+            var url = urlEl.value.trim();
+            if (url && !/^https?:\/\//i.test(url)) {
+                setUrlError(L.urlScheme);
                 e.preventDefault();
-                e.stopPropagation();
-                problems[0].focus();
+                urlEl.focus();
             }
         });
-
-        [[nameEl, true], [urlEl, false]].forEach(function (pair) {
-            if (!pair[0]) { return; }
-            pair[0].addEventListener('input', function () {
-                if (pair[0].value.trim()) { fieldError(pair[0], null, pair[1]); }
-            });
+        urlEl.addEventListener('input', function () {
+            var url = urlEl.value.trim();
+            if (!url || /^https?:\/\//i.test(url)) { setUrlError(null); }
         });
     }
 

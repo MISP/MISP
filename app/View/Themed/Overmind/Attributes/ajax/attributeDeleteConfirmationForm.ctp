@@ -121,9 +121,12 @@ $hardUrl = $isMass
             var r    = await fetch(url, { method: 'POST', headers: headers, body: body });
             var data = await r.json();
 
-            var deletedIds = (data.ids && data.ids.length) ? data.ids : ids;
+            // Only what the server says it deleted leaves the index: a refused
+            // request carries no ids, and must not read as a success.
+            var deletedIds = !r.ok ? []
+                : (Array.isArray(data.ids) ? data.ids : (data.saved ? ids : []));
 
-            if (data.saved || deletedIds.length > 0) {
+            if (deletedIds.length > 0) {
                 deletedIds.forEach(function (id) {
                     var row = document.querySelector('[data-primary-id="' + id + '"]');
                     if (row) { row.remove(); }
@@ -140,7 +143,7 @@ $hardUrl = $isMass
                 showToast(msgOk, 'success');
                 if (!data.saved && data.errors) { showToast(data.errors, 'warning'); }
             } else {
-                showToast(data.errors || msgFail, 'danger');
+                showToast(data.errors || data.message || msgFail, 'danger');
                 btn.disabled = false;
             }
         } catch (_e) {

@@ -266,6 +266,40 @@ $activeTotal = count(array_diff_key(
             </a>
         <?php endif; ?>
 
+        <?php if ($child['type'] === 'menu' && !empty($child['items'])): ?>
+            <div class="dropdown flex-shrink-0">
+                <button type="button"
+                        class="<?= h($child['class'] ?? 'btn btn-outline-primary') ?> dropdown-toggle"
+                        data-bs-toggle="dropdown" aria-expanded="false"<?php
+                        if (!empty($child['title'])): ?>
+                        title="<?= h($child['title']) ?>"<?php
+                        endif; ?>>
+                    <?php if (!empty($child['icon'])): ?>
+                        <i class="<?= h($child['icon']) ?>"></i>
+                    <?php endif; ?>
+                    <?= h($child['label']) ?>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <?php foreach ($child['items'] as $item): ?>
+                        <li>
+                            <a class="dropdown-item" href="<?= h($item['url']) ?>"<?php
+                               if (!empty($item['title'])): ?>
+                               title="<?= h($item['title']) ?>"<?php
+                               endif; ?><?php
+                               if (!empty($item['onclick'])): ?>
+                               onclick="<?= h($item['onclick']) ?>"<?php
+                               endif; ?>>
+                                <?php if (!empty($item['icon'])): ?>
+                                    <i class="<?= h($item['icon']) ?> fa-fw me-2"></i>
+                                <?php endif; ?>
+                                <?= h($item['label']) ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
     <?php endforeach; ?>
 
     <div class="ms-auto index-filter-pager">
@@ -279,6 +313,7 @@ $activeTotal = count(array_diff_key(
         ?>
     </div>
 
+    <?php foreach ($filter_bar['children'] as $child): ?>
     <?php if ($child['type'] === 'button_group'): ?>
         <div class="btn-group flex-shrink-0" role="group"<?php
             if (!empty($child['label'])): ?> aria-label="<?= h($child['label']) ?>"<?php
@@ -311,6 +346,7 @@ $activeTotal = count(array_diff_key(
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
+    <?php endforeach; ?>
 
     <div class="btn-group" role="group" data-tour="index-view">
 
@@ -359,6 +395,7 @@ $activeTotal = count(array_diff_key(
                 ? urldecode($currentFilters[$sub['name']]) : '',
             'col' => $sub['col'] ?? 3,
             'help' => $sub['help'] ?? null,
+            'placeholder' => $sub['placeholder'] ?? null,
         ];
     }
     ?>
@@ -423,6 +460,7 @@ if ($explicitActive !== null) {
 
 <?php
 $hasMassActions = !empty($filter_bar['delete'])
+    || !empty($filter_bar['soft_delete'])
     || !empty($filter_bar['fetch'])
     || !empty($filter_bar['accept'])
     || !empty($filter_bar['discard'])
@@ -729,32 +767,6 @@ var filterBarConfig = <?= json_encode([
             applyFilters();
         });
     });
-
-<?php if ($hasMassActions): ?>
-    // Guard so reloading an ajax index does not stack duplicate change listeners.
-    if (!window.__mispMassActionChangeWired) {
-        window.__mispMassActionChangeWired = true;
-        document.addEventListener('change', function(e) {
-            if (!e.target.classList.contains('item-checkbox')) return;
-
-            const checkbox  = e.target;
-            const id        = checkbox.dataset.itemId;
-            const canDelete = checkbox.dataset.canDelete == "1";
-            const publish   = checkbox.dataset.publish;
-            const enable    = checkbox.dataset.enable;
-            const require   = checkbox.dataset.require;
-            const highlight = checkbox.dataset.highlight;
-
-            if (checkbox.checked) {
-                selectedItems.set(id, { id, canDelete, publish, enable, require, highlight });
-            } else {
-                selectedItems.delete(id);
-            }
-
-            updateMultiSelectToolbar();
-        });
-    }
-<?php endif; ?>
 
 })();
 </script>

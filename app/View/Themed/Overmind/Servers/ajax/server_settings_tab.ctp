@@ -1,51 +1,6 @@
 <?php
 /**
- * Content of one Server Settings tab, served as a bare fragment to the ajax
- * tab container of `Servers/server_settings.ctp`.
- *
- * Settings tabs are laid out in sections by ServerSettingGroups; the tabs that
- * are not lists of settings get their own renderer.
+ * One destination of the server settings, as the bare fragment the page's
+ * navigation swaps in (ServersController::serverSettings() for an XHR).
  */
-
-App::uses('ServerSettingGroups', 'Tools');
-
-if ($tab === 'workers') {
-    echo $this->element('healthElementsBS5/workers', array(
-        'worker_array' => $worker_array,
-    ));
-} elseif ($tab === 'diagnostics') {
-    echo $this->element('healthElementsBS5/diagnostics');
-} elseif ($tab === 'files') {
-    echo $this->element('healthElementsBS5/files', array(
-        'files' => $files,
-    ));
-} elseif ($tab === 'correlations') {
-    echo $this->element('healthElementsBS5/correlations', array(
-        'correlation_metrics' => $correlation_metrics,
-    ));
-} elseif (ServerSettingGroups::hasGroups($tab)) {
-    // $finalSettings arrives grouped by subGroup; the section layout regroups the flat list itself.
-    $flatSettings = array();
-    foreach ($finalSettings as $subGroupSettings) {
-        foreach ($subGroupSettings as $setting) {
-            $flatSettings[] = $setting;
-        }
-    }
-
-    if ($tab === 'AI') {
-        echo $this->element('healthElementsBS5/ai_status', array(
-            'status' => $aiModuleStatus,
-        ));
-    }
-
-    echo $this->element('healthElementsBS5/settings_sections', array(
-        'tab' => $tab,
-        'sections' => ServerSettingGroups::split($tab, $flatSettings),
-    ));
-
-    if ($tab === 'AI') {
-        echo $this->element('healthElementsBS5/ai_dry_run', array(
-            'status' => $aiModuleStatus,
-        ));
-    }
-}
+echo $this->element('healthElementsBS5/settings_destination');

@@ -18,6 +18,10 @@
  *                          sharing group, and only attributes and objects offer
  *                          level 5
  *   $value         mixed   the selected level
+ *   $keep          mixed   value of a leading "Keep current" card, for a form
+ *                          that edits several records at once and must be able
+ *                          to leave each one's level alone (mass edit: 6). It
+ *                          is then the default selection
  *   $accent        string  accent key, see ModalAccent (default 'primary')
  *   $label         string  section label (default 'Distribution'; '' drops it)
  *   $required      bool    REQUIRED badge on the section label
@@ -64,6 +68,9 @@ $levels = $levels
         return $meta['label'];
     }, $this->DistributionLevel->all());
 
+if (!isset($value) && isset($keep)) {
+    $value = $keep;
+}
 if (!isset($value)) {
     $value = $initialDistribution
         ?? ($distributionData['initial'] ?? null)
@@ -74,6 +81,16 @@ $accent = $accent ?? 'primary';
 $levelMeta = $this->DistributionLevel->all();
 
 $options = [];
+if (isset($keep)) {
+    $options[] = [
+        'value' => $keep,
+        'title' => __('Keep current'),
+        'sub' => __('Each one keeps the level it has'),
+        'icon' => 'fas fa-equals',
+        'tone' => '#6c757d',
+        'toneBg' => 'rgba(108, 117, 125, .12)',
+    ];
+}
 foreach ($levels as $level => $levelLabel) {
     $meta = $levelMeta[(int)$level] ?? $this->DistributionLevel->fallback();
     $options[] = [

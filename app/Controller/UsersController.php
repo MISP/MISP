@@ -1219,6 +1219,9 @@ class UsersController extends AppController
                         return $jsonResponse(array('success' => true, 'message' => __('The user has been saved')));
                     } else {
                         $this->Flash->success(__('The user has been saved'));
+                        if ($this->theme === 'Overmind') {
+                            $this->redirect(array('action' => 'view', $this->User->id));
+                        }
                         $this->redirect(array('action' => 'index'));
                     }
                 } else {
@@ -2433,12 +2436,6 @@ class UsersController extends AppController
         $stats['contributing_org_count'] = $this->User->Event->find('count', array('recursive' => -1, 'group' => array('Event.orgc_id')));
         $stats['average_user_per_org'] = $stats['local_org_count'] != 0 ?  round($stats['user_count'] / $stats['local_org_count'], 1) : 0;
 
-        $this->loadModel('Thread');
-        $stats['thread_count'] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0), 'recursive' => -1));
-        $stats['thread_count_month'] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s", $this_month), 'Thread.post_count >' => 0), 'recursive' => -1));
-
-        $stats['post_count'] = $this->Thread->Post->find('count', array('recursive' => -1));
-        $stats['post_count_month'] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s", $this_month)), 'recursive' => -1));
         foreach ($stats as &$value) {
             $value = strval($value);
         }

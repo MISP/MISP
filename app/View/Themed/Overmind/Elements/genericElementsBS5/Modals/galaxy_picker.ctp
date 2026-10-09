@@ -11,6 +11,9 @@
  *   $mayModify             bool
  * Optional params:
  *   $headerEyebrow         string  small uppercase label (default "Galaxies")
+ *   $title                 string  modal title (default "Edit Galaxy Clusters")
+ *   $description           string  one line under the title
+ *   $saveLabel             string  submit label (default "Save Clusters")
  *   $reloadHook            string  window['<hook>' + uid] fn called after save;
  *                                  falls back to the attribute-index reload.
  */
@@ -82,8 +85,9 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
     'accent' => 'galaxy',
     'eyebrow' => $headerEyebrow,
-    'title' => __('Edit Galaxy Clusters'),
+    'title' => $title ?? __('Edit Galaxy Clusters'),
     'titleIcon' => 'fas fa-pen-to-square',
+    'description' => $description ?? '',
     'icon' => 'misp-icon misp-icon-galaxy misp-simple',
 ]) ?>
 
@@ -107,7 +111,7 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
         'accent' => 'galaxy',
         'align' => 'end',
         'submit' => $mayModify ? [
-            'label' => __('Save Clusters'),
+            'label' => $saveLabel ?? __('Save Clusters'),
             'icon' => 'fas fa-save',
             'id' => 'edit-galaxies-save-btn',
             'type' => 'button',

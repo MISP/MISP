@@ -56,16 +56,6 @@
         <dd><?php echo h($stats['contributing_org_count']); ?>&nbsp;</dd>
         <dt><?php echo __('Average Users / Org'); ?></dt>
         <dd><?php echo h($stats['average_user_per_org']); ?>&nbsp;</dd>
-        <dt><?php echo __('Discussion threads'); ?></dt>
-        <dd><?php echo h($stats['thread_count']);
-            if ($stats['thread_count_month']) echo ' <span style="color:green">(+' . h($stats['thread_count_month']) . ')</span>&nbsp;';
-            else echo ' <span style="color:red">(0)</span>&nbsp;';?>
-        </dd>
-        <dt><?php echo __('Discussion posts'); ?></dt>
-        <dd><?php echo h($stats['post_count']);
-            if ($stats['post_count_month']) echo ' <span style="color:green">(+' . h($stats['post_count_month']) . ')</span>&nbsp;';
-            else echo ' <span style="color:red">(0)</span>&nbsp;';?>
-        </dd>
     </dl>
 </div>
 <br />

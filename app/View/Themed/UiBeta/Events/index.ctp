@@ -128,7 +128,6 @@
             'correlations' => __('Correlations'),
             'sightings' => __('Sightings'),
             'proposals' => __('Proposals'),
-            'discussion' => __('Posts'),
             'report_count' => __('Report count'),
             'timestamp' => __('Last modified at'),
             'publish_timestamp' => __('Published at')
@@ -282,7 +281,6 @@
         'creator_user',
         'publish_timestamp',
         'timestamp',
-        'discussion',
         'proposals',
         'sightings',
         'report_count',
