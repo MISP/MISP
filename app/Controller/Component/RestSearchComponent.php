@@ -9,6 +9,7 @@ class RestSearchComponent extends Component
         'Attribute' => [
             'returnFormat',
             'value',
+            'value_cidr',
             'value1',
             'value2',
             'type',
@@ -80,6 +81,7 @@ class RestSearchComponent extends Component
         'Event' => [
             'returnFormat',
             'value',
+            'value_cidr',
             'type',
             'category',
             'org',
@@ -165,6 +167,7 @@ class RestSearchComponent extends Component
         'Object' => [
             'returnFormat',
             'value',
+            'value_cidr',
             'type',
             'category',
             'org',

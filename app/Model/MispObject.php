@@ -240,6 +240,15 @@ class MispObject extends AppModel
                 );
                 $conditions = $this->Event->set_filter_value($params, $conditions, $options);
             }
+            if (!empty($params['value_cidr'])) {
+                $options = array(
+                    'filter' => 'value_cidr',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Object'
+                );
+                $conditions = $this->Event->set_filter_value_cidr($params, $conditions, $options);
+            }
         }
         return $conditions;
     }

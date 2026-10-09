@@ -3671,6 +3671,8 @@ components:
           $ref: "#/components/schemas/LimitSearchFilter"
         value:
           $ref: "#/components/schemas/AttributeValue"
+        value_cidr:
+          $ref: "#/components/schemas/ValueCidrRestSearchFilter"
         value1:
           $ref: "#/components/schemas/AttributeValue"
         value2:
@@ -4295,6 +4297,8 @@ components:
           $ref: "#/components/schemas/UUID"
         value:
           $ref: "#/components/schemas/AttributeValue"
+        value_cidr:
+          $ref: "#/components/schemas/ValueCidrRestSearchFilter"
         type:
           $ref: "#/components/schemas/AttributeType"
         category:
@@ -6660,6 +6664,36 @@ components:
       type: string
       example: malware
 
+    ValueCidrRestSearchFilter:
+      description: |
+        Match attributes whose value (either part of a composite) is an IP address or CIDR block overlapping one of the given ones: inside it or holding it.
+        An address matches itself in any spelling (`/32`, `/128`, IPv4-mapped IPv6, uncompressed IPv6) and the CIDR blocks holding it; a block matches the addresses and blocks inside it and the blocks holding it.
+        Host bits under the mask are ignored, and IPv4 is in no IPv6 block wider than `::ffff:0:0/96`. Any attribute type matches; combine with `type` to narrow.
+        Takes a single term, a list (any of them), `&&`-joined terms, `!` for a negation, or `{"OR": [...], "AND": [...], "NOT": [...]}`.
+        A term that is not an IP address or CIDR block is rejected with a 400.
+      nullable: true
+      oneOf:
+        - type: string
+          example: "198.51.100.0/24"
+        - type: array
+          items:
+            type: string
+          example: ["198.51.100.0/24", "2001:db8::/32", "!198.51.100.128/25"]
+        - type: object
+          properties:
+            OR:
+              type: array
+              items:
+                type: string
+            AND:
+              type: array
+              items:
+                type: string
+            NOT:
+              type: array
+              items:
+                type: string
+
     ToIDSRestSearchFlag:
       nullable: true
       type: boolean
@@ -7772,6 +7806,8 @@ components:
                 $ref: "#/components/schemas/LimitSearchFilter"
               value:
                 $ref: "#/components/schemas/AttributeValue"
+              value_cidr:
+                $ref: "#/components/schemas/ValueCidrRestSearchFilter"
               type:
                 $ref: "#/components/schemas/AttributeType"
               category:

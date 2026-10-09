@@ -296,6 +296,50 @@ class AttributeValue extends AppModel
     }
 
     /**
+     * A condition on both id columns for the values whose address or CIDR
+     * overlaps one of the ranges. The facet is read ahead, unless more
+     * values start inside the ranges than the limit: those are then read
+     * inside the statement.
+     *
+     * @param array[] $ranges [start, end, prefix] as ValueFacetTool::ipRange() returns them
+     * @param string $alias
+     * @param bool $not
+     * @param int $limit
+     * @return array
+     */
+    public function cidrCondition(array $ranges, $alias, $not = false, $limit = ValueConditionRewriter::OVERFLOW)
+    {
+        $found = $this->facets()->overlapping($ranges, $limit);
+        $db = $this->getDataSource();
+        $columns = [];
+        foreach (['value1', 'value2'] as $column) {
+            $field = $alias . '.' . $column . '_id';
+            $columns[$column] = [];
+            if (!empty($found['ids'])) {
+                $columns[$column][] = [$field . ($not ? ' NOT IN' : ' IN') => $found['ids']];
+            }
+            if ($found['starts'] !== null) {
+                $columns[$column][] = $db->expression(sprintf(
+                    '%s %s (%s)',
+                    $db->name($field),
+                    $not ? 'NOT IN' : 'IN',
+                    $found['starts']
+                ));
+            }
+        }
+        if (empty($columns['value1'])) {
+            return [$not ? ValueConditionRewriter::SQL_TRUE : ValueConditionRewriter::SQL_FALSE];
+        }
+        if (!$not) {
+            return ['OR' => array_merge($columns['value1'], $columns['value2'])];
+        }
+        // A NULL value2_id stands for the empty string, which is no address
+        return ['AND' => array_merge($columns['value1'], [
+            ['OR' => [[$alias . '.value2_id' => null], ['AND' => $columns['value2']]]],
+        ])];
+    }
+
+    /**
      * Whether the empty string, which a NULL value2_id stands for, equals each
      * term (or matches each LIKE pattern) in the dictionary collation.
      *

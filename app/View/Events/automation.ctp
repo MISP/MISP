@@ -47,6 +47,7 @@
                 "limit" => __('Limit the number of results returned, depending on the scope (for example 10 attributes or 10 full events).'),
                 "page" => __('If a limit is set, sets the page to be returned. page 3, limit 100 will return records 201->300).'),
                 "value" => __('Search for the given value in the attributes\' value field.'),
+                "value_cidr" => __('Search for IP addresses and CIDR blocks: an attribute matches when its value, or either part of a composite value, is an address or block overlapping one of the given ones (inside it or holding it), in any spelling. IPv4 is in no IPv6 block wider than ::ffff:0:0/96. A term that is not an address or block is rejected.'),
                 "type" => __('The attribute type, any valid MISP attribute type is accepted.'),
                 "category" => __('The attribute category, any valid MISP attribute category is accepted.'),
                 "org" => __('Search by the creator organisation by supplying the organisation identifier.'),

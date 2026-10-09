@@ -208,24 +208,84 @@ class ValueFacetTool
      */
     public function membersQuery(array $range)
     {
-        $start = $this->db->name('ip_start');
-        $spans = [];
-        foreach (self::memberRanges($range) as list($first, $last)) {
-            $spans[] = sprintf(
-                '%s BETWEEN %s AND %s',
-                $start,
-                $this->dialect->binaryLiteral($first),
-                $this->dialect->binaryLiteral($last)
-            );
-        }
         return sprintf(
-            'SELECT %s FROM %s WHERE (%s) AND %s = %s',
-            $this->db->name('value_id'),
-            $this->table(),
-            implode(' OR ', $spans),
-            $start,
+            '%s AND %s = %s',
+            $this->startsQuery([$range]),
+            $this->db->name('ip_start'),
             $this->db->name('ip_end')
         );
+    }
+
+    /**
+     * SQL selecting the value ids of the rows starting in one of the ranges:
+     * the rows inside it, and the wider ranges sharing its start.
+     *
+     * @param array[] $ranges [start, end, prefix] as ipRange() returns them
+     * @return string
+     */
+    public function startsQuery(array $ranges)
+    {
+        $start = $this->db->name('ip_start');
+        $spans = [];
+        foreach ($ranges as $range) {
+            foreach (self::memberRanges($range) as list($first, $last)) {
+                $spans[] = sprintf(
+                    '%s BETWEEN %s AND %s',
+                    $start,
+                    $this->dialect->binaryLiteral($first),
+                    $this->dialect->binaryLiteral($last)
+                );
+            }
+        }
+        return sprintf(
+            'SELECT %s FROM %s WHERE (%s)',
+            $this->db->name('value_id'),
+            $this->table(),
+            implode(' OR ', $spans)
+        );
+    }
+
+    /**
+     * The values whose range overlaps one of the ranges. Two CIDR blocks are
+     * either nested or disjoint, so these are the values holding the start
+     * of a range and the values starting inside one.
+     *
+     * @param array[] $ranges [start, end, prefix] as ipRange() returns them
+     * @param int $limit More values starting inside the ranges than this is
+     *   an overflow.
+     * @return array ['ids' => int[], 'starts' => string|null]. On overflow,
+     *   'ids' holds the values holding a start and 'starts' selects the rest.
+     */
+    public function overlapping(array $ranges, $limit)
+    {
+        $limit = (int)$limit;
+        if ($limit < 1) {
+            throw new InvalidArgumentException('The match limit must be at least 1.');
+        }
+        $ids = [];
+        foreach ($this->containing(array_column($ranges, 0)) as $held) {
+            $ids += $held;
+        }
+        // A single address starts only the ranges that hold it
+        $wide = array_filter($ranges, function (array $range) {
+            return $range[2] < 128;
+        });
+        $starts = null;
+        if (!empty($wide)) {
+            $sql = $this->startsQuery($wide);
+            $inside = [];
+            foreach ($this->fetchRows(sprintf('%s LIMIT %d', $sql, $limit + 1)) as $row) {
+                $inside[(int)$row['value_id']] = true;
+            }
+            if (count($inside) > $limit) {
+                $starts = $sql;
+            } else {
+                $ids += $inside;
+            }
+        }
+        $ids = array_keys($ids);
+        sort($ids);
+        return ['ids' => $ids, 'starts' => $starts];
     }
 
     /**

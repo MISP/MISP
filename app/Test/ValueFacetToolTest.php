@@ -85,6 +85,19 @@ trait ValueFacetFakeDb
             }
             return new ValueFacetFakeStatement($out, 0);
         }
+        if (preg_match('/^SELECT \W?value_id\W? FROM \W?value_ip_ranges\W? WHERE \((.*)\) LIMIT (\d+)$/', $sql, $m)) {
+            preg_match_all("/BETWEEN (?:X'|decode\(')([0-9a-f]+)'(?:, 'hex'\))? AND (?:X'|decode\(')([0-9a-f]+)'/", $m[1], $spans, PREG_SET_ORDER);
+            $out = [];
+            foreach ($this->facets as $id => $facet) {
+                foreach ($spans as $span) {
+                    if (strcmp($facet[0], hex2bin($span[1])) >= 0 && strcmp($facet[0], hex2bin($span[2])) <= 0) {
+                        $out[] = ['value_id' => (string)$id];
+                        break;
+                    }
+                }
+            }
+            return new ValueFacetFakeStatement(array_slice($out, 0, (int)$m[2]), 0);
+        }
         if (preg_match('/^DELETE .* NOT IN/', $sql)) {
             preg_match('/\W?value_id\W? > (\d+)(?: AND \W?value_id\W? <= (\d+))?/', $sql, $m);
             $removed = 0;
@@ -439,5 +452,79 @@ class ValueFacetToolTest extends TestCase
             'SELECT "value_id" FROM "value_ip_ranges" WHERE ("ip_start" BETWEEN decode(\'00000000000000000000000000000000\', \'hex\') AND decode(\'00000000000000000000fffeffffffff\', \'hex\') OR "ip_start" BETWEEN decode(\'00000000000000000001000000000000\', \'hex\') AND decode(\'ffffffffffffffffffffffffffffffff\', \'hex\')) AND "ip_start" = "ip_end"',
             $this->tool(new ValueFacetFakePostgres())->membersQuery(ValueFacetTool::ipRange('::/0'))
         );
+    }
+
+    public function testTheRowsStartingInRangesAreReadByOneQuery()
+    {
+        $this->assertSame(
+            "SELECT `value_id` FROM `value_ip_ranges` WHERE (`ip_start` BETWEEN X'00000000000000000000ffffc0000200' AND X'00000000000000000000ffffc00002ff' OR `ip_start` BETWEEN X'00000000000000000000000000000000' AND X'00000000000000000000fffeffffffff' OR `ip_start` BETWEEN X'00000000000000000001000000000000' AND X'ffffffffffffffffffffffffffffffff')",
+            $this->tool(new ValueFacetFakeMysql())->startsQuery([ValueFacetTool::ipRange('192.0.2.7/24'), ValueFacetTool::ipRange('::/0')])
+        );
+        $this->assertSame(
+            'SELECT "value_id" FROM "value_ip_ranges" WHERE ("ip_start" BETWEEN decode(\'20010db8000000000000000000000000\', \'hex\') AND decode(\'20010db8ffffffffffffffffffffffff\', \'hex\'))',
+            $this->tool(new ValueFacetFakePostgres())->startsQuery([ValueFacetTool::ipRange('2001:db8::/32')])
+        );
+    }
+
+    private function overlapFacets($db)
+    {
+        $values = [
+            1 => '192.0.2.0/24', 2 => '192.0.2.1', 3 => '::ffff:192.0.2.1', 4 => '192.0.2.1/32',
+            5 => '::/0', 6 => '::ffff:0:0/96', 7 => '192.0.2.0', 8 => '2001:db8::/32',
+            9 => '192.0.2.128/25', 10 => '192.0.0.0/16', 11 => '2001:db8::5', 12 => '198.51.100.0/24',
+            13 => '192.0.2.77/24', 14 => '192.0.3.1', 15 => '::/64',
+        ];
+        foreach ($values as $id => $value) {
+            $db->facets[$id] = ValueFacetTool::ipRange($value);
+        }
+    }
+
+    public function testTheValuesOverlappingARangeHoldItsStartOrStartInside()
+    {
+        foreach ([new ValueFacetFakeMysql(), new ValueFacetFakePostgres()] as $db) {
+            $this->overlapFacets($db);
+            $tool = $this->tool($db);
+            $cases = [
+                // Held by its CIDRs, in every spelling of itself; one probe only
+                ['192.0.2.1', [1, 2, 3, 4, 6, 10, 13], 1],
+                // Wider, equal and nested ranges, the addresses inside
+                ['192.0.2.0/24', [1, 2, 3, 4, 6, 7, 9, 10, 13], 2],
+                ['192.0.2.200/25', [1, 6, 9, 10, 13], 2],
+                ['2001:db8::/32', [5, 8, 11], 2],
+                // IPv4 is in no IPv6 range wider than the v4-mapped block
+                ['::/0', [5, 8, 11, 15], 2],
+                ['::/80', [5, 15], 2],
+                ['0.0.0.0/0', [1, 2, 3, 4, 6, 7, 9, 10, 12, 13, 14], 2],
+            ];
+            foreach ($cases as $case) {
+                list($cidr, $ids, $statements) = $case;
+                $db->statements = [];
+                $this->assertSame(['ids' => $ids, 'starts' => null], $tool->overlapping([ValueFacetTool::ipRange($cidr)], 100), $cidr);
+                $this->assertCount($statements, $db->statements, $cidr);
+            }
+            // Several ranges in the same two statements
+            $db->statements = [];
+            $found = $tool->overlapping([ValueFacetTool::ipRange('198.51.100.9'), ValueFacetTool::ipRange('192.0.2.128/25'), ValueFacetTool::ipRange('2001:db8::5')], 100);
+            $this->assertSame([1, 5, 6, 8, 9, 10, 11, 12, 13], $found['ids']);
+            $this->assertCount(2, $db->statements);
+        }
+    }
+
+    public function testAnOverflowLeavesTheValuesInsideToTheStatement()
+    {
+        $db = new ValueFacetFakeMysql();
+        $this->overlapFacets($db);
+        $tool = $this->tool($db);
+        $range = ValueFacetTool::ipRange('192.0.2.0/24');
+
+        // Seven rows start inside the /24
+        $this->assertNull($tool->overlapping([$range], 7)['starts']);
+        $found = $tool->overlapping([$range], 6);
+        $this->assertSame([1, 6, 7, 10, 13], $found['ids']);
+        $this->assertSame($tool->startsQuery([$range]), $found['starts']);
+        $this->assertStringEndsWith('LIMIT 7', end($db->statements));
+
+        $this->expectException(InvalidArgumentException::class);
+        $tool->overlapping([$range], 0);
     }
 }

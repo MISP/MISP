@@ -6,6 +6,7 @@ App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
 App::uses('ProcessTool', 'Tools');
 App::uses('ValueConditionRewriter', 'Tools');
+App::uses('ValueFacetTool', 'Tools');
 
 /**
  * @property User $User
@@ -1704,6 +1705,17 @@ class Event extends AppModel
                         }
                     }
                 }
+            }
+            if (!empty($params['value_cidr'])) {
+                // It reads the attributes in a subquery of its own, which a
+                // second one around it would run per event
+                $options = array(
+                    'filter' => 'value_cidr',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Event'
+                );
+                $conditions = $this->set_filter_value_cidr($params, $conditions, $options);
             }
         }
         $find_params = array(
@@ -6109,6 +6121,60 @@ class Event extends AppModel
     }
 
     /**
+     * Attributes whose value1 or value2 is an address or CIDR overlapping one
+     * of the filter's: inside it or holding it.
+     *
+     * @param array $params
+     * @param array $conditions
+     * @param array $options
+     * @return array
+     * @throws BadRequestException For a term that is not an address or CIDR.
+     */
+    public function set_filter_value_cidr(&$params, $conditions, $options)
+    {
+        if (empty($params['value_cidr'])) {
+            return $conditions;
+        }
+        $filter = $this->convert_filters($params['value_cidr']);
+        $ranges = [];
+        foreach (['OR', 'AND', 'NOT'] as $operand) {
+            foreach ((array)($filter[$operand] ?? []) as $term) {
+                $range = is_scalar($term) ? ValueFacetTool::ipRange(trim((string)$term)) : null;
+                if ($range === null) {
+                    throw new BadRequestException(__(
+                        'Invalid value_cidr filter: `%s` is not an IP address or CIDR block.',
+                        is_scalar($term) ? (string)$term : JsonTool::encode($term)
+                    ));
+                }
+                $ranges[$operand][] = $range;
+            }
+        }
+        $AttributeValue = $this->Attribute->loadAttributeValue();
+        if ($options['context'] === 'Attribute') {
+            if (!empty($ranges['OR'])) {
+                $conditions['AND'][] = $AttributeValue->cidrCondition($ranges['OR'], 'Attribute');
+            }
+            foreach ($ranges['AND'] ?? [] as $range) {
+                $conditions['AND'][] = $AttributeValue->cidrCondition([$range], 'Attribute');
+            }
+            if (!empty($ranges['NOT'])) {
+                $conditions['AND'][] = $AttributeValue->cidrCondition($ranges['NOT'], 'Attribute', true);
+            }
+            return $conditions;
+        }
+        $eventIds = $this->eventIdBound($params);
+        $match = function (array $ranges) use ($AttributeValue) {
+            return $AttributeValue->cidrCondition($ranges, 'Attribute');
+        };
+        foreach (['OR', 'AND', 'NOT'] as $operand) {
+            if (!empty($ranges[$operand])) {
+                $conditions = $this->add_value_filter_subquery($conditions, $operand, $ranges[$operand], $options, $eventIds, $match);
+            }
+        }
+        return $conditions;
+    }
+
+    /**
      * The events an eventid filter limits the search to, when it lists a few
      * of them by id. A value condition tied to them reads the dictionary per
      * attribute rather than scanning it ahead of the search.
@@ -6140,8 +6206,21 @@ class Event extends AppModel
       $operand,
       $values,
       $options,
-      $eventIds = null
+      $eventIds = null,
+      ?callable $match = null
     ) {
+        $match = $match ?? function (array $values) {
+            $sub_filter = ['OR' => $values];
+            $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
+            $sub_filter = ['OR' => $values];
+            $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
+            return [
+                'OR' => [
+                    ...$subconditions_value1['AND'],
+                    ...$subconditions_value2['AND'],
+                ],
+            ];
+        };
         $scope = $eventIds === null ? [] : ['Attribute.event_id' => $eventIds];
         $lookup_field = null;
         $field = null;
@@ -6162,17 +6241,8 @@ class Event extends AppModel
         switch ($operand) {
             case 'OR':
             case 'NOT':
-                $sub_filter = ['OR' => $values];
-                $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
-                $sub_filter = ['OR' => $values];
-                $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
                 $subquery_options = [
-                  'conditions' => $scope + [
-                    'OR' => [
-                      ...$subconditions_value1['AND'],
-                      ...$subconditions_value2['AND'],
-                    ],
-                  ],
+                  'conditions' => $scope + $match($values),
                   'fields' => [
                     $field,
                   ],
@@ -6195,17 +6265,8 @@ class Event extends AppModel
                 break;
             case 'AND':
                 foreach ($values as $v) {
-                    $sub_filter = ['OR' => $v];
-                    $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
-                    $sub_filter = ['OR' => $v];
-                    $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
                     $subquery_options = [
-                      'conditions' => $scope + [
-                        'OR' => [
-                          ...$subconditions_value1['AND'],
-                          ...$subconditions_value2['AND'],
-                        ],
-                      ],
+                      'conditions' => $scope + $match([$v]),
                       'fields' => [
                         $field,
                       ],

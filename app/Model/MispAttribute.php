@@ -3795,6 +3795,7 @@ class MispAttribute extends AppModel
                 'Attribute' => array(
                     'sharinggroup' => array('function' => 'set_filter_sharing_group'),
                     'value' => array('function' => 'set_filter_value'),
+                    'value_cidr' => array('function' => 'set_filter_value_cidr'),
                     'value1' => array('function' => 'set_filter_simple_attribute'),
                     'value2' => array('function' => 'set_filter_simple_attribute'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
