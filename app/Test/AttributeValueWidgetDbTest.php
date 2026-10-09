@@ -2,8 +2,9 @@
 /**
  * The dashboard widgets that read attribute values (TrendingAttributes, the
  * vulnerability dimension of Trending, AttributeGeoMap) take them from the
- * dictionary, group case variants together as 2.x did, and name no value
- * text column in SQL. The tests hide value1 and value2 from every attribute
+ * dictionary and name no value text column in SQL. TrendingAttributes counts
+ * each exact value (owner, 2026-10-09: 2.x counted case variants together);
+ * the vulnerability dimension still does. The tests hide value1 and value2 from every attribute
  * model's schema, the way the column drop will, point the stored text away
  * from the dictionary, so a read of the columns shows, and check the
  * statements the widgets sent.
@@ -262,21 +263,28 @@ class AttributeValueWidgetDbTest extends TestCase
     }
 
     /**
-     * The entries of a widget's value => count map that belong to the fixture.
+     * The entries of a widget's value => count map that belong to the fixture,
+     * by lower case value when $fold (a group shows any of its spellings).
      */
-    private function own(array $counts)
+    private function own(array $counts, $fold = true)
     {
         $own = [];
         foreach ($counts as $value => $count) {
             if (stripos((string)$value, $this->token) !== false || stripos((string)$value, $this->cve) !== false) {
-                $own[strtolower((string)$value)] = (int)$count;
+                $own[$fold ? strtolower((string)$value) : (string)$value] = (int)$count;
             }
         }
         ksort($own);
         return $own;
     }
 
-    public function testTrendingAttributesCountsCaseVariantsTogether()
+    private function sorted(array $expected)
+    {
+        ksort($expected);
+        return $expected;
+    }
+
+    public function testTrendingAttributesCountsEachSpelling()
     {
         $t = $this->token;
         $options = ['time_window' => '1d', 'threshold' => self::EVERYTHING];
@@ -284,11 +292,13 @@ class AttributeValueWidgetDbTest extends TestCase
             $this->textColumnStatements();
             $data = (new TrendingAttributesWidget())->handler($user, $options)['data'];
             $this->assertSame([], $this->textColumnStatements(), $who);
-            $this->assertSame([
-                "$t-trend" => 3,
-                strtolower($this->cve) => 2,
+            $this->assertSame($this->sorted([
+                "$t-trend" => 2,
+                strtoupper("$t-trend") => 1,
+                $this->cve => 1,
+                strtolower($this->cve) => 1,
                 "geo.$t.example" => 1,
-            ], $this->own($data), $who);
+            ]), $this->own($data, false), $who);
             $this->assertStringNotContainsString($this->columnText(), json_encode($data), $who);
         }
     }
@@ -301,7 +311,11 @@ class AttributeValueWidgetDbTest extends TestCase
             'threshold' => self::EVERYTHING,
             'exclude' => [strtoupper("$t-trend")],
         ])['data'];
-        $this->assertSame([strtolower($this->cve) => 2, "geo.$t.example" => 1], $this->own($data));
+        $this->assertSame($this->sorted([
+            $this->cve => 1,
+            strtolower($this->cve) => 1,
+            "geo.$t.example" => 1,
+        ]), $this->own($data, false));
     }
 
     public function testVulnerabilityCountsDistinctEventsOverCaseVariants()

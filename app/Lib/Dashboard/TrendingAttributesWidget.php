@@ -122,19 +122,12 @@ class TrendingAttributesWidget
                 $conditions['Event.orgc_id IN'] = [-1];
             }
         }
-        // Grouped on the text in the dictionary's collation, so case variants count together
-        $valueJoin = [
-            'table' => $attributeModel->loadAttributeValue()->useTable,
-            'alias' => 'Value1',
-            'type' => 'INNER',
-            'conditions' => ['Value1.id = Attribute.value1_id'],
-        ];
+        // Grouped on the exact value: case variants are counted apart, unlike 2.x
         if (!empty($user['Role']['perm_site_admin'])) {
             $values = $attributeModel->find('all', [
                 'recursive' => -1,
-                'fields' => ['Value1.value', 'count(Attribute.id) AS frequency'],
-                'joins' => [$valueJoin],
-                'group' => ['Value1.value'],
+                'fields' => ['Attribute.value1_id', 'count(Attribute.id) AS frequency'],
+                'group' => ['Attribute.value1_id'],
                 'conditions' => $conditions,
                 'contain' => ['Event.orgc_id'],
                 'order' => 'count(Attribute.id) desc',
@@ -149,9 +142,8 @@ class TrendingAttributesWidget
             ];
             $values = $attributeModel->find('all', [
                 'recursive' => -1,
-                'fields' => ['Value1.value', 'count(Attribute.id) AS frequency', 'Attribute.distribution', 'Attribute.sharing_group_id'],
-                'joins' => [$valueJoin],
-                'group' => 'Value1.value',
+                'fields' => ['Attribute.value1_id', 'count(Attribute.id) AS frequency', 'Attribute.distribution', 'Attribute.sharing_group_id'],
+                'group' => 'Attribute.value1_id',
                 'contain' => [
                     'Event.org_id',
                     'Event.distribution',
@@ -166,7 +158,7 @@ class TrendingAttributesWidget
         }
         $data = [];
         foreach ($values as $value) {
-            $data[$value['Value1']['value']] = $value[0]['frequency'];
+            $data[$value['Attribute']['value1']] = $value[0]['frequency'];
         }
         return ['data' => $data];
 	}
