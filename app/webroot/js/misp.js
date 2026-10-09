@@ -2403,9 +2403,9 @@ function indexFilterClearRow(field) {
         filtering.published = 2;
     } else if (field == "hasproposal") {
         filtering.hasproposal = 2;
-    } else if (field == "extending") {
+    } else if (field == "is_extension") {
         filtering.is_extension = 2;
-    } else if (field == "extended") {
+    } else if (field == "is_extended") {
         filtering.is_extended = 2;
     } else if (differentFilters.indexOf(field) != -1) {
         filtering[field] = "";
@@ -5508,7 +5508,16 @@ $(document.body).on('click', '.populateActionTrigger', function() {
             }
         },
         error: function(data) {
-            showMessage('fail', data['responseJSON']['errors']);
+            var response = data.responseJSON || {};
+            var message = response.errors || response.message;
+            if (Array.isArray(message)) {
+                message = message.join('\n');
+            }
+            if (typeof message === 'string' && message.length > 0) {
+                showMessage('fail', escapeHtml(message));
+            } else {
+                xhrFailCallback(data);
+            }
         },
         type: populate_script['type'],
         url: baseurl + populate_script['uri']
