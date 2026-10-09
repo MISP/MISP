@@ -479,14 +479,14 @@ class AttributeValueCorrelationGroupDbTest extends TestCase
             ));
             return (int)$this->exec('SELECT LAST_INSERT_ID() AS id')[0]['id'];
         };
-        $last = (int)$this->exec("SELECT MAX(id) AS id FROM $table")[0]['id'];
         $rows = [
             'remap' => $insert('t_remap', 't2_remap', $cv['remap']),
             'long' => $insert('t_long', 's_long', $cv['cut']),
             'twin' => $insert('t2_twin', 's_twin', $cv['cut']),
             'repeat' => $insert('t_mixed', 's_mixed', $cv['mixed']),
         ];
-        $AdminSetting->changeSetting($setting, json_encode(['bound' => max($rows), 'last' => $last]));
+        // From the first new row: rolled-back inserts leave AUTO_INCREMENT far above MAX(id)
+        $AdminSetting->changeSetting($setting, json_encode(['bound' => max($rows), 'last' => min($rows) - 1]));
         // Written after the migration, already keyed by the group
         $kept = $insert('t_mixed', 's_mixed', $this->groupOf("$t-mixed"));
 

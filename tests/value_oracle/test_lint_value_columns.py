@@ -540,10 +540,11 @@ class RepositoryTest(unittest.TestCase):
 
     def test_a_read_planted_in_a_pending_site_fails(self):
         result = self.planted(
-            'app/Model/Correlation.php', '        $ipValues = array();\n',
+            'app/Console/Command/SearchPerformanceShell.php',
+            "        $stats['approximate'] = $fast;\n",
             "        $this->query('SELECT value2 FROM attributes');\n")
         self.assertEqual([], result['findings'])
-        self.assertEqual([('Correlation::cidrCorrelation', 6, 7)],
+        self.assertEqual([('SearchPerformanceShell::__collectStats', 4, 5)],
                          [(e['symbol'], e['expected'], e['found'])
                           for e in result['stale']])
 
