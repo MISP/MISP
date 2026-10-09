@@ -124,9 +124,22 @@ class ValueConditionRewriter
      */
     public function groupId($term)
     {
+        $ids = $this->variantIds($term);
+        return empty($ids) ? null : min($ids);
+    }
+
+    /**
+     * The ids of the term's stored case variants, resolved now if the term
+     * was not primed.
+     *
+     * @param string $term
+     * @return int[]
+     */
+    public function variantIds($term)
+    {
         $term = (string)$term;
         $this->resolve([$term]);
-        return empty($this->ci[$term]) ? null : min($this->ci[$term]);
+        return $this->ci[$term] ?? [];
     }
 
     /**

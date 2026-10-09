@@ -21,6 +21,15 @@ class ValueFacetTool
 
     const TABLE = 'value_ip_ranges';
 
+    // Addresses per containing() statement
+    const PROBE_ADDRESSES = 500;
+
+    // IPv4 is stored in the v4-mapped block, ::ffff:0:0/96
+    const V4_FIRST = "\0\0\0\0\0\0\0\0\0\0\xff\xff\0\0\0\0";
+    const V4_LAST = "\0\0\0\0\0\0\0\0\0\0\xff\xff\xff\xff\xff\xff";
+    const BEFORE_V4 = "\0\0\0\0\0\0\0\0\0\0\xff\xfe\xff\xff\xff\xff";
+    const AFTER_V4 = "\0\0\0\0\0\0\0\0\0\x01\0\0\0\0\0\0";
+
     /** @var AttributeValue */
     private $AttributeValue;
 
@@ -91,6 +100,132 @@ class ValueFacetTool
             $end .= chr($byte | (~$keep & 0xff));
         }
         return [$start, $end, $prefix];
+    }
+
+    /**
+     * The starts a range holding the address can have: the address under
+     * each mask. An IPv4 address is held only by IPv4 ranges, never by an
+     * IPv6 range wider than the v4-mapped block.
+     *
+     * @param string $address 16 bytes
+     * @return string[]
+     */
+    public static function containingStarts($address)
+    {
+        $starts = [];
+        for ($prefix = self::isIpv4($address) ? 96 : 0; $prefix <= 128; $prefix++) {
+            $full = intdiv($prefix, 8);
+            if ($full === 16) {
+                $starts[] = $address;
+                continue;
+            }
+            $keep = (0xff << (8 - $prefix % 8)) & 0xff;
+            $starts[] = substr($address, 0, $full) . chr(ord($address[$full]) & $keep) . str_repeat("\0", 15 - $full);
+        }
+        return array_values(array_unique($starts));
+    }
+
+    /**
+     * The spans of a range that can hold IPv4 or IPv6 addresses alike: the
+     * range itself, unless it is an IPv6 range wider than the v4-mapped
+     * block, which then leaves the block out.
+     *
+     * @param array $range [start, end, prefix] as ipRange() returns it
+     * @return array[] [[start, end], ...]
+     */
+    public static function memberRanges(array $range)
+    {
+        list($start, $end) = $range;
+        if ($range[2] >= 96 || strcmp($start, self::V4_FIRST) > 0 || strcmp($end, self::V4_LAST) < 0) {
+            return [[$start, $end]];
+        }
+        $ranges = [];
+        if (strcmp($start, self::V4_FIRST) < 0) {
+            $ranges[] = [$start, self::BEFORE_V4];
+        }
+        if (strcmp($end, self::V4_LAST) > 0) {
+            $ranges[] = [self::AFTER_V4, $end];
+        }
+        return $ranges;
+    }
+
+    /**
+     * @param string $address 16 bytes
+     * @return bool
+     */
+    public static function isIpv4($address)
+    {
+        return strncmp($address, self::V4_FIRST, 12) === 0;
+    }
+
+    /**
+     * The facet rows holding each address: the ranges around it and the
+     * address itself, in any spelling.
+     *
+     * @param array $addresses [key => 16-byte address]
+     * @return array [key => [value id => true for a range wider than one address]]
+     */
+    public function containing(array $addresses)
+    {
+        $found = [];
+        foreach (array_chunk($addresses, self::PROBE_ADDRESSES, true) as $chunk) {
+            $starts = [];
+            foreach ($chunk as $key => $address) {
+                $found[$key] = [];
+                $starts[$key] = self::containingStarts($address);
+            }
+            $sql = sprintf(
+                'SELECT %s, %s, %s FROM %s WHERE %s IN (%s)',
+                $this->db->name('value_id'),
+                $this->db->name('ip_start'),
+                $this->db->name('ip_end'),
+                $this->table(),
+                $this->db->name('ip_start'),
+                implode(', ', array_map([$this->dialect, 'binaryLiteral'], array_values(array_unique(array_merge(...array_values($starts))))))
+            );
+            $rows = [];
+            foreach ($this->fetchRows($sql) as $row) {
+                $rows[$this->bytes($row['ip_start'])][] = [(int)$row['value_id'], $this->bytes($row['ip_end'])];
+            }
+            foreach ($chunk as $key => $address) {
+                foreach ($starts[$key] as $start) {
+                    foreach ($rows[$start] ?? [] as list($id, $end)) {
+                        if (strcmp($end, $address) >= 0) {
+                            $found[$key][$id] = $start !== $end;
+                        }
+                    }
+                }
+            }
+        }
+        return $found;
+    }
+
+    /**
+     * SQL selecting the value ids of the single addresses a range holds.
+     *
+     * @param array $range [start, end, prefix] as ipRange() returns it
+     * @return string
+     */
+    public function membersQuery(array $range)
+    {
+        $start = $this->db->name('ip_start');
+        $spans = [];
+        foreach (self::memberRanges($range) as list($first, $last)) {
+            $spans[] = sprintf(
+                '%s BETWEEN %s AND %s',
+                $start,
+                $this->dialect->binaryLiteral($first),
+                $this->dialect->binaryLiteral($last)
+            );
+        }
+        return sprintf(
+            'SELECT %s FROM %s WHERE (%s) AND %s = %s',
+            $this->db->name('value_id'),
+            $this->table(),
+            implode(' OR ', $spans),
+            $start,
+            $this->db->name('ip_end')
+        );
     }
 
     /**

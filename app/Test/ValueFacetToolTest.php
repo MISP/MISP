@@ -74,6 +74,17 @@ trait ValueFacetFakeDb
             }
             return new ValueFacetFakeStatement($out, 0);
         }
+        if (preg_match('/^SELECT .* FROM \W?value_ip_ranges\W? WHERE \W?ip_start\W? IN \((.*)\)$/', $sql, $m)) {
+            preg_match_all("/(?:X'|decode\(')([0-9a-f]+)'/", $m[1], $literals);
+            $starts = array_map('hex2bin', $literals[1]);
+            $out = [];
+            foreach ($this->facets as $id => $facet) {
+                if (in_array($facet[0], $starts, true)) {
+                    $out[] = ['value_id' => (string)$id, 'ip_start' => $facet[0], 'ip_end' => $facet[1]];
+                }
+            }
+            return new ValueFacetFakeStatement($out, 0);
+        }
         if (preg_match('/^DELETE .* NOT IN/', $sql)) {
             preg_match('/\W?value_id\W? > (\d+)(?: AND \W?value_id\W? <= (\d+))?/', $sql, $m);
             $removed = 0;
@@ -328,5 +339,105 @@ class ValueFacetToolTest extends TestCase
         } catch (PDOException $e) {
             $this->assertSame('ROLLBACK', end($db->statements));
         }
+    }
+
+    private static function address($text)
+    {
+        return ValueFacetTool::ipRange($text)[0];
+    }
+
+    public function testTheStartsOfTheRangesThatCanHoldAnAddress()
+    {
+        foreach (['192.0.2.1' => 32, '255.255.255.255' => 32, '2001:db8::1' => 128, '::' => 128] as $text => $bits) {
+            $expected = [];
+            for ($mask = 0; $mask <= $bits; $mask++) {
+                $expected[] = ValueFacetTool::ipRange("$text/$mask")[0];
+            }
+            $this->assertSame(array_values(array_unique($expected)), ValueFacetTool::containingStarts(self::address($text)), $text);
+        }
+        // A new start at each set bit: 192.0.2.1 has four
+        $starts = ValueFacetTool::containingStarts(self::address('192.0.2.1'));
+        $this->assertCount(5, $starts);
+        // IPv4 is held by IPv4 ranges only, however it is spelled
+        $this->assertSame(hex2bin('00000000000000000000ffff00000000'), $starts[0]);
+        $this->assertSame($starts, ValueFacetTool::containingStarts(self::address('::ffff:192.0.2.1')));
+        $this->assertCount(129, ValueFacetTool::containingStarts(str_repeat("\xff", 16)));
+    }
+
+    public function testAnIpv6RangeWiderThanTheV4MappedBlockLeavesItOut()
+    {
+        foreach (['192.0.2.0/24', '0.0.0.0/0', '::ffff:0:0/96', '2001:db8::/32', '::/96', '::1:0:0:0/80'] as $cidr) {
+            $range = ValueFacetTool::ipRange($cidr);
+            $this->assertSame([[$range[0], $range[1]]], ValueFacetTool::memberRanges($range), $cidr);
+        }
+        $this->assertSame([
+            [str_repeat("\0", 16), hex2bin('00000000000000000000fffeffffffff')],
+            [hex2bin('00000000000000000001000000000000'), str_repeat("\xff", 16)],
+        ], ValueFacetTool::memberRanges(ValueFacetTool::ipRange('::/0')));
+        // A range ending with the block keeps what comes before it
+        $this->assertSame(
+            [[str_repeat("\0", 16), hex2bin('00000000000000000000fffeffffffff')]],
+            ValueFacetTool::memberRanges(ValueFacetTool::ipRange('::/80'))
+        );
+    }
+
+    public function testTheRangesHoldingEachAddressAreReadInOneStatement()
+    {
+        foreach ([new ValueFacetFakeMysql(), new ValueFacetFakePostgres()] as $db) {
+            $values = [
+                1 => '192.0.2.0/24', 2 => '192.0.2.1', 3 => '::ffff:192.0.2.1', 4 => '192.0.2.1/32',
+                5 => '::/0', 6 => '::ffff:0:0/96', 7 => '192.0.2.0', 8 => '2001:db8::/32',
+                9 => '192.0.2.128/25', 10 => '192.0.0.0/16', 11 => '2001:db8::5', 12 => '198.51.100.0/24',
+            ];
+            foreach ($values as $id => $value) {
+                $db->facets[$id] = ValueFacetTool::ipRange($value);
+            }
+
+            $found = $this->tool($db)->containing([
+                'a' => self::address('192.0.2.1'),
+                'b' => self::address('2001:db8::5'),
+                'c' => self::address('203.0.113.9'),
+            ]);
+
+            $this->assertCount(1, $db->statements);
+            foreach ($found as &$ids) {
+                ksort($ids);
+            }
+            // The address in every spelling, its CIDRs, never ::/0 for IPv4
+            $this->assertSame([
+                'a' => [1 => true, 2 => false, 3 => false, 4 => false, 6 => true, 10 => true],
+                'b' => [5 => true, 8 => true, 11 => false],
+                'c' => [6 => true],
+            ], $found);
+        }
+    }
+
+    public function testTheProbeIsChunked()
+    {
+        $db = new ValueFacetFakeMysql();
+        $db->facets = [1 => ValueFacetTool::ipRange('10.0.0.0/8')];
+        $addresses = [];
+        for ($i = 0; $i <= ValueFacetTool::PROBE_ADDRESSES; $i++) {
+            $addresses["a$i"] = self::address('10.0.' . intdiv($i, 256) . '.' . ($i % 256));
+        }
+
+        $found = $this->tool($db)->containing($addresses);
+
+        $this->assertCount(2, $db->statements);
+        $this->assertSame(array_fill_keys(array_keys($addresses), [1 => true]), $found);
+        $this->assertSame([], $this->tool($db)->containing([]));
+        $this->assertCount(2, $db->statements);
+    }
+
+    public function testTheMembersOfARangeAreItsSingleAddresses()
+    {
+        $this->assertSame(
+            "SELECT `value_id` FROM `value_ip_ranges` WHERE (`ip_start` BETWEEN X'00000000000000000000ffffc0000200' AND X'00000000000000000000ffffc00002ff') AND `ip_start` = `ip_end`",
+            $this->tool(new ValueFacetFakeMysql())->membersQuery(ValueFacetTool::ipRange('192.0.2.7/24'))
+        );
+        $this->assertSame(
+            'SELECT "value_id" FROM "value_ip_ranges" WHERE ("ip_start" BETWEEN decode(\'00000000000000000000000000000000\', \'hex\') AND decode(\'00000000000000000000fffeffffffff\', \'hex\') OR "ip_start" BETWEEN decode(\'00000000000000000001000000000000\', \'hex\') AND decode(\'ffffffffffffffffffffffffffffffff\', \'hex\')) AND "ip_start" = "ip_end"',
+            $this->tool(new ValueFacetFakePostgres())->membersQuery(ValueFacetTool::ipRange('::/0'))
+        );
     }
 }

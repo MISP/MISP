@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('ValueFacetTool', 'Tools');
 
 /**
  * @property MispAttribute $Attribute
@@ -19,6 +20,11 @@ class Correlation extends AppModel
 {
     const CACHE_NAME = 'misp:top_correlations',
         CACHE_AGE = 'misp:top_correlations_age';
+
+    const IP_TYPES = ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'];
+
+    // The types whose CIDR correlates with the addresses it holds
+    const CIDR_TYPES = ['ip-src', 'ip-dst'];
 
     public $belongsTo = array(
         'Attribute' => [
@@ -52,8 +58,8 @@ class Correlation extends AppModel
     /** @var bool */
     private $advancedCorrelationEnabled;
 
-    /** @var array */
-    private $cidrListCache;
+    /** @var array|null value1 => [value id => bool], the IP lookups of the chunk being recorrelated */
+    private $cidrHits = null;
 
     private $containCache = [];
 
@@ -287,16 +293,17 @@ class Correlation extends AppModel
             $attributeCount += count($attributes);
             $this->attributeValue()->attachValues($attributes, 'Attribute');
             $this->valueRewriter = $this->chunkRewriter($attributes);
+            $this->cidrHits = $this->cidrProbe($attributes);
             try {
                 foreach ($attributes as $attribute) {
                     $this->afterSaveCorrelation($attribute['Attribute'], $full, $event);
                 }
             } finally {
                 $this->valueRewriter = null;
+                $this->cidrHits = null;
             }
         }
         // Generating correlations can take long time, so clear caches after each event to refresh them
-        $this->cidrListCache = null;
         $this->OverCorrelatingValue->cleanCache();
         $this->containCache = [];
 
@@ -427,29 +434,58 @@ class Correlation extends AppModel
     }
 
     /**
+     * The facet rows holding each single address of a chunk, in one go.
+     *
+     * @param array $attributes
+     * @return array|null value1 => [value id => bool]
+     */
+    private function cidrProbe(array $attributes)
+    {
+        if (!$this->advancedCorrelationEnabled) {
+            return null;
+        }
+        $addresses = [];
+        foreach ($attributes as $attribute) {
+            if (in_array($attribute['Attribute']['type'], self::IP_TYPES, true)) {
+                $range = ValueFacetTool::ipRange($attribute['Attribute']['value1']);
+                if ($range !== null && $range[2] === 128) {
+                    $addresses[(string)$attribute['Attribute']['value1']] = $range[0];
+                }
+            }
+        }
+        return $this->attributeValue()->facets()->containing($addresses);
+    }
+
+    /**
      * @param array $attribute Simple attribute array
+     * @param int[] $ownIds The ids of value1's case variants
      * @return array|null
      */
-    private function __buildAdvancedCorrelationConditions($attribute)
+    private function __buildAdvancedCorrelationConditions($attribute, array $ownIds = [])
     {
         if (!$this->advancedCorrelationEnabled) {
             return null;
         }
 
-        if (in_array($attribute['Attribute']['type'], ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'], true)) {
-            return $this->cidrCorrelation($attribute);
+        if (in_array($attribute['Attribute']['type'], self::IP_TYPES, true)) {
+            return $this->cidrCorrelation($attribute, $ownIds);
         } else if ($attribute['Attribute']['type'] === 'ssdeep' && function_exists('ssdeep_fuzzy_compare')) {
             return $this->ssdeepCorrelation($attribute);
         }
         return null;
     }
 
-    private function __addAdvancedCorrelations($correlatingAttribute)
+    /**
+     * @param array $correlatingAttribute
+     * @param int[] $ownIds The ids of value1's case variants
+     * @return array
+     */
+    private function __addAdvancedCorrelations($correlatingAttribute, array $ownIds = [])
     {
         if (!$this->advancedCorrelationEnabled) {
             return [];
         }
-        $extraConditions = $this->__buildAdvancedCorrelationConditions($correlatingAttribute);
+        $extraConditions = $this->__buildAdvancedCorrelationConditions($correlatingAttribute, $ownIds);
         if (empty($extraConditions)) {
             return [];
         }
@@ -532,7 +568,7 @@ class Correlation extends AppModel
                 }
                 $correlations[] = $this->createCorrelationEntry($groupId, $correlatingAttribute, $correlatingAttribute2);
             }
-            $extraCorrelations = $this->__addAdvancedCorrelations($correlatingAttribute);
+            $extraCorrelations = $this->__addAdvancedCorrelations($correlatingAttribute, $variants);
             if (!empty($extraCorrelations)) {
                 foreach ($extraCorrelations as $extraCorrelation) {
                     if ($correlatingAttribute['Attribute']['event_id'] === $extraCorrelation['Attribute']['event_id']) {
@@ -637,13 +673,8 @@ class Correlation extends AppModel
         }
         */
         // generate additional correlating attribute list based on the advanced correlations
-        if (!$this->__preventExcludedCorrelations($a['Attribute']['value1'])) {
-            $extraConditions = $this->__buildAdvancedCorrelationConditions($a);
-            $correlatingValues = [$a['Attribute']['value1']];
-        } else {
-            $extraConditions = null;
-            $correlatingValues = [];
-        }
+        $advanced = !$this->__preventExcludedCorrelations($a['Attribute']['value1']);
+        $correlatingValues = $advanced ? [$a['Attribute']['value1']] : [];
         if (!empty($a['Attribute']['value2']) && !in_array($a['Attribute']['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true) && !$this->__preventExcludedCorrelations($a['Attribute']['value2'])) {
             $correlatingValues[] = $a['Attribute']['value2'];
         }
@@ -659,6 +690,7 @@ class Correlation extends AppModel
         }
         $correlations = [];
         $rewriter = $this->valueRewriter ?: $this->attributeValue()->batchRewriter('Attribute', $correlatingValues);
+        $extraConditions = $advanced ? $this->__buildAdvancedCorrelationConditions($a, $rewriter->variantIds($a['Attribute']['value1'])) : null;
         foreach ($correlatingValues as $cV) {
             if ($cV === null) {
                 continue;
@@ -714,7 +746,7 @@ class Correlation extends AppModel
             ]);
             if (!empty($extraConditions)) {
                 $correlatingAttributes3 = $this->Attribute->find('all', [
-                    'conditions' => $extraConditions,
+                    'conditions' => [$conditions, $extraConditions],
                     'recursive' => -1,
                     'fields' => $this->getFieldRules(),
                     'contain' => $this->getContainRules(),
@@ -843,128 +875,53 @@ class Correlation extends AppModel
     }
 
     /**
+     * Conditions on the attributes an IP attribute correlates with by
+     * address: an address with the CIDRs holding it and with its other
+     * spellings (/32, v4-mapped, ...), a CIDR with the addresses it holds.
+     * Two CIDRs never correlate.
+     *
      * @param array $attribute Simple attribute array
-     * @return array|array[][]
+     * @param int[] $ownIds The ids of value1's case variants, which correlate exactly
+     * @return array|null
      */
-    private function cidrCorrelation($attribute)
+    private function cidrCorrelation(array $attribute, array $ownIds)
     {
-        $ipValues = array();
-        $ip = $attribute['Attribute']['value1'];
-        if (str_contains($ip, '/')) { // IP is CIDR
-            list($networkIp, $mask) = explode('/', $ip);
-            $ip_version = filter_var($networkIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-
-            $conditions = array(
-                'type' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'),
-                'value1 NOT LIKE' => '%/%', // do not return CIDR, just plain IPs
-                'disable_correlation' => 0,
-                'deleted' => 0,
-            );
-
-            if ($this->isMysql()) {
-                // Massive speed up for CIDR correlation. Instead of testing all in PHP, database can do that work much
-                // faster. But these methods are just supported by MySQL.
-                if ($ip_version === 4) {
-                    $startIp = ip2long($networkIp) & ((-1 << (32 - $mask)));
-                    $endIp = $startIp + pow(2, (32 - $mask)) - 1;
-                    // Just fetch IP address that fit in CIDR range.
-                    $conditions['INET_ATON(value1) BETWEEN ? AND ?'] = array($startIp, $endIp);
-
-                    // Just fetch IPv4 address that starts with given prefix. This is fast, because value1 is indexed.
-                    // This optimisation is possible just to mask bigger than 8 bites.
-                    if ($mask >= 8) {
-                        $ipv4Parts = explode('.', $networkIp);
-                        $ipv4Parts = array_slice($ipv4Parts, 0, intval($mask / 8));
-                        $prefix = implode('.', $ipv4Parts);
-                        $conditions['value1 LIKE'] = $prefix . '%';
-                    }
-                } else {
-                    $conditions[] = 'IS_IPV6(value1)';
-                    // Just fetch IPv6 address that starts with given prefix. This is fast, because value1 is indexed.
-                    if ($mask >= 16) {
-                        $ipv6Parts = explode(':', rtrim($networkIp, ':'));
-                        $ipv6Parts = array_slice($ipv6Parts, 0, intval($mask / 16));
-                        $prefix = implode(':', $ipv6Parts);
-                        $conditions['value1 LIKE'] = $prefix . '%';
-                    }
-                }
+        $value = (string)$attribute['Attribute']['value1'];
+        $range = ValueFacetTool::ipRange($value);
+        if ($range === null) {
+            return null;
+        }
+        $facets = $this->attributeValue()->facets();
+        if ($range[2] < 128) {
+            if (!in_array($attribute['Attribute']['type'], self::CIDR_TYPES, true)) {
+                return null;
             }
-
-            $ipList = $this->Attribute->find('column', [
-                'conditions' => $conditions,
-                'fields' => ['Attribute.value1'],
-                'unique' => true,
-                'order' => false,
-                'callbacks' => false,
-            ]);
-            foreach ($ipList as $ipToCheck) {
-                $ipToCheckVersion = filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-                if ($ipToCheckVersion === $ip_version) {
-                    if ($ip_version === 4) {
-                        if ($this->__ipv4InCidr($ipToCheck, $ip)) {
-                            $ipValues[] = $ipToCheck;
-                        }
-                    } else {
-                        if ($this->__ipv6InCidr($ipToCheck, $ip)) {
-                            $ipValues[] = $ipToCheck;
-                        }
-                    }
-                }
+            return [
+                'Attribute.type' => self::IP_TYPES,
+                sprintf('%s IN (%s)', $this->getDataSource()->name('Attribute.value1_id'), $facets->membersQuery($range)),
+            ];
+        }
+        $hits = isset($this->cidrHits[$value]) ? $this->cidrHits[$value] : $facets->containing([$value => $range[0]])[$value];
+        $own = array_flip($ownIds);
+        $cidrs = $addresses = [];
+        foreach ($hits as $id => $isCidr) {
+            if (isset($own[$id])) {
+                continue;
             }
-        } else {
-            $ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-            $cidrList = $this->getCidrList();
-            foreach ($cidrList as $cidr) {
-                if (filter_var(explode("/",$cidr)[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                    if ($ip_version === 4 && $this->__ipv4InCidr($ip, $cidr)) {
-                        $ipValues[] = $cidr;
-                    }
-                } else {
-                    if ($ip_version === 6 && $this->__ipv6InCidr($ip, $cidr)) {
-                        $ipValues[] = $cidr;
-                    }
-                }
+            if ($isCidr) {
+                $cidrs[] = $id;
+            } else {
+                $addresses[] = $id;
             }
         }
-        $extraConditions = array();
-        if (!empty($ipValues)) {
-            $extraConditions = array('OR' => array(
-                'Attribute.value1' => $ipValues,
-                'Attribute.value2' => $ipValues
-            ));
+        $matches = [];
+        if (!empty($cidrs)) {
+            $matches[] = ['Attribute.value1_id' => $cidrs, 'Attribute.type' => self::CIDR_TYPES];
         }
-        return $extraConditions;
-    }
-
-    // using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5
-    private function __ipv4InCidr($ip, $cidr)
-    {
-        list($subnet, $bits) = explode('/', $cidr);
-        $ip = ip2long($ip);
-        $subnet = ip2long($subnet);
-        $mask = -1 << (32 - $bits);
-        $subnet &= $mask; # nb: in case the supplied subnet wasn't correctly aligned
-        return ($ip & $mask) == $subnet;
-    }
-
-    // Using solution from https://github.com/symfony/symfony/blob/master/src/Symfony/Component/HttpFoundation/IpUtils.php
-    private function __ipv6InCidr($ip, $cidr)
-    {
-        list($address, $netmask) = explode('/', $cidr);
-
-        $bytesAddr = unpack('n*', inet_pton($address));
-        $bytesTest = unpack('n*', inet_pton($ip));
-
-        for ($i = 1, $ceil = ceil($netmask / 16); $i <= $ceil; ++$i) {
-            $left = $netmask - 16 * ($i - 1);
-            $left = ($left <= 16) ? $left : 16;
-            $mask = ~(0xffff >> $left) & 0xffff;
-            if (($bytesAddr[$i] & $mask) != ($bytesTest[$i] & $mask)) {
-                return false;
-            }
+        if (!empty($addresses)) {
+            $matches[] = ['Attribute.value1_id' => $addresses, 'Attribute.type' => self::IP_TYPES];
         }
-
-        return true;
+        return empty($matches) ? null : ['OR' => $matches];
     }
 
     /**
@@ -1171,85 +1128,6 @@ class Correlation extends AppModel
             return false;
         }
         return $redis->get(self::CACHE_AGE);
-    }
-
-    /**
-     * @param array $attribute
-     * @return void
-     */
-    public function advancedCorrelationsUpdate(array $attribute)
-    {
-        if ($this->advancedCorrelationEnabled && in_array($attribute['type'], ['ip-src', 'ip-dst'], true) && strpos($attribute['value'], '/')) {
-            $this->updateCidrList();
-        }
-    }
-
-    /**
-     * Get list of all CIDR for correlation from database
-     * @return array
-     */
-    private function getCidrListFromDatabase()
-    {
-        return $this->Attribute->find('column', [
-            'conditions' => [
-                'type' => ['ip-src', 'ip-dst'],
-                'disable_correlation' => 0,
-                'deleted' => 0,
-                'value1 LIKE' => '%/%',
-            ],
-            'fields' => ['Attribute.value1'],
-            'unique' => true,
-            'order' => false,
-        ]);
-    }
-
-    /**
-     * @return array
-     */
-    public function updateCidrList()
-    {
-        $redis = RedisTool::init();
-        $cidrList = [];
-        $this->cidrListCache = null;
-        if ($redis) {
-            $cidrList = $this->getCidrListFromDatabase();
-
-            RedisTool::unlink($redis, 'misp:cidr_cache_list');
-            if (method_exists($redis, 'saddArray')) {
-                $redis->sAddArray('misp:cidr_cache_list', $cidrList);
-            } else {
-                $redis->pipeline();
-                foreach ($cidrList as $cidr) {
-                    $redis->sadd('misp:cidr_cache_list', $cidr);
-                }
-                $redis->exec();
-            }
-        }
-        return $cidrList;
-    }
-
-    /**
-     * @return array
-     */
-    public function getCidrList()
-    {
-        if ($this->cidrListCache !== null) {
-            return $this->cidrListCache;
-        }
-
-        try {
-            $redis = RedisTool::init();
-            if (!$redis->exists('misp:cidr_cache_list')) {
-                $cidrList = $this->updateCidrList();
-            } else {
-                $cidrList = $redis->smembers('misp:cidr_cache_list');
-            }
-        } catch (Exception $e) {
-            $cidrList = $this->getCidrListFromDatabase();
-        }
-
-        $this->cidrListCache = $cidrList;
-        return $cidrList;
     }
 
     /**

@@ -10,7 +10,6 @@ require_once __DIR__ . '/AttributePayloadOracleSupport.php';
 require_once __DIR__ . '/QueryPlanSummary.php';
 
 App::uses('ConnectionManager', 'Model');
-App::uses('RedisTool', 'Tools');
 
 /**
  * Mixed into a subclass of the configured datasource. A statement is
@@ -225,7 +224,6 @@ class AttributePlanOracle
             'class' => 'PayloadRecordingShadowAttribute',
             'alias' => 'ShadowAttribute',
         ]);
-        self::forgetCidrList();
         $user = ClassRegistry::init('User')->getAuthUser($operation['user']);
         // What AppController records for the request's user.
         Configure::write('CurrentUserId', $user['id'] ?? null);
@@ -260,7 +258,6 @@ class AttributePlanOracle
                 }
             }
             Configure::write('MISP.correlation_engine', $engine);
-            self::forgetCidrList();
         }
         if ($committed) {
             $captured['value']['implicit_commit'] = true;
@@ -269,17 +266,6 @@ class AttributePlanOracle
             (int)round((microtime(true) - $started) * 1000);
         $captured['error'] = $error;
         return $captured;
-    }
-
-    /**
-     * The CIDR list cache is rebuilt from the attributes when missing, so
-     * dropping it gives every operation the same start, and keeps a
-     * rolled-back CIDR out of it.
-     */
-    private static function forgetCidrList()
-    {
-        $redis = RedisTool::init();
-        RedisTool::unlink($redis, 'misp:cidr_cache_list');
     }
 
     private static function fetchEvent(array $user, array $args)

@@ -422,4 +422,39 @@ class AttributeValueCorrelationDbTest extends TestCase
         $this->assertSame("24:{$t}abc:{$t}xyz", $rows[0]['Attribute']['value1']);
         $this->assertNoTextColumnRead();
     }
+
+    public function testAnSsdeepMatchOnSaveKeepsTheExactFilters()
+    {
+        if (!function_exists('ssdeep_fuzzy_compare')) {
+            eval('function ssdeep_fuzzy_compare($a, $b) { return (explode(":", $a)[1] ?? null) === (explode(":", $b)[1] ?? "") ? 60 : 0; }');
+        }
+        Configure::write('MISP.enable_advanced_correlations', true);
+        $t = $this->token;
+        list($source, $target) = $this->events;
+        $this->add([
+            'ss_source' => [$source, 'ssdeep', "24:{$t}abc:{$t}def"],
+            'ss_near' => [$target, 'ssdeep', "24:{$t}abc:{$t}xyz"],
+            'ss_deleted' => [$target, 'ssdeep', "24:{$t}abc:{$t}uvw"],
+            'ss_same_event' => [$source, 'ssdeep', "24:{$t}abc:{$t}rst"],
+        ]);
+        $this->exec(sprintf('UPDATE attributes SET deleted = 1 WHERE id = %d', $this->ids['ss_deleted']));
+        $correlation = $this->engine('Default');
+        $correlation->FuzzyCorrelateSsdeep = new class([$this->ids['ss_near'], $this->ids['ss_deleted'], $this->ids['ss_same_event']]) {
+            private $ids;
+
+            public function __construct(array $ids)
+            {
+                $this->ids = $ids;
+            }
+
+            public function query_ssdeep_chunks($value, $id)
+            {
+                return $this->ids;
+            }
+        };
+
+        $this->assertNotFalse($correlation->afterSaveCorrelation($this->saved('ss_source')));
+
+        $this->assertSame(['ss_near' => "24:{$t}abc:{$t}xyz"], $this->correlationsOf('default_correlations', 'ss_source'));
+    }
 }

@@ -285,6 +285,24 @@ class ValueConditionRewriterTest extends TestCase
         $this->assertSame([[['a', 'b', '', '7', 'evil.com'], false]], $this->dictionary->calls['matchesEmpty']);
     }
 
+    public function testATermsVariantsAndGroupComeFromWhatWasPrimed()
+    {
+        $expected = $this->dictionary->resolveCi(['evil.com'])['evil.com'];
+        $this->assertGreaterThan(1, count($expected));
+        $rewriter = $this->rewriter();
+        $rewriter->prime(['evil.com']);
+        $this->dictionary->calls['resolveCi'] = [];
+
+        $this->assertSame($expected, $rewriter->variantIds('evil.com'));
+        $this->assertSame(min($expected), $rewriter->groupId('evil.com'));
+        $this->assertSame([], $this->dictionary->calls['resolveCi']);
+
+        // Not primed: resolved by the first call, kept for the next
+        $this->assertSame([], $rewriter->variantIds('nothing'));
+        $this->assertNull($rewriter->groupId('nothing'));
+        $this->assertSame([['nothing']], $this->dictionary->calls['resolveCi']);
+    }
+
     public function testNullAndEmptyFormsKeepTheirMeaning()
     {
         $rewriter = $this->rewriter();

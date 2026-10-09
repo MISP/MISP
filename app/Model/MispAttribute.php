@@ -816,7 +816,6 @@ class MispAttribute extends AppModel
             if (isset($attribute['deleted']) && $attribute['deleted']) {
                 if ($this->Correlation->getCorrelationModelName() !== 'OnDemand') {
                     $this->Correlation->beforeSaveCorrelation($attribute);
-                    $this->Correlation->advancedCorrelationsUpdate($attribute);
                 }
                 if (isset($attribute['event_id'])) {
                     $this->__alterAttributeCount($attribute['event_id'], false);
@@ -843,11 +842,9 @@ class MispAttribute extends AppModel
                     ) {
                         $this->Correlation->beforeSaveCorrelation($attribute);
                         $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
-                        $this->Correlation->advancedCorrelationsUpdate($attribute);
                     }
                 } else {
                     $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
-                    $this->Correlation->advancedCorrelationsUpdate($attribute);
                 }
             }
         }
@@ -965,9 +962,6 @@ class MispAttribute extends AppModel
 
     public function afterDelete()
     {
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && str_contains($this->data['Attribute']['value'], '/')) {
-            $this->Correlation->updateCidrList();
-        }
         if (isset($this->data['Attribute']['event_id'])) {
             if (empty($this->data['Attribute']['deleted'])) {
                 $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
