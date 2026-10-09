@@ -131,11 +131,6 @@ ALLOW = [Entry(*e) for e in [
 # Sites still reading the text columns, by the task that moves them. That
 # task removes its entry; the column drop needs this list empty (--final).
 PENDING = [Pending(*p) for p in [
-    ('app/Model/Correlation.php', 'Correlation::generateTopOnDemand',
-     'AV-503: top lists', 1),
-    ('app/Test/SqlDialectTest.php',
-     'SqlDialectTest::testUpsertAppendsTheEnginesConflictClause',
-     'AV-503: top lists (generateTopOnDemand statement)', 2),
     ('app/Model/Correlation.php', 'Correlation::cidrCorrelation',
      'AV-602: CIDR on the facet', 6),
     ('app/Model/Correlation.php', 'Correlation::getCidrListFromDatabase',

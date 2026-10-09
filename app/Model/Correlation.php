@@ -957,32 +957,31 @@ class Correlation extends AppModel
     }
 
     /**
-     * Count how often each value occurs, per value column, into
-     * attr_value_counts.
-     *
-     * The two statements differ only in which value column they count, and
-     * the upsert clause is the one part of them the engines spell
-     * differently, so it is rendered by the dialect: the table's primary key
-     * is `value`, which is the conflict column on both.
+     * Count how often each value occurs, value1 and value2 apart, into
+     * attr_value_counts: one row per value, its case variants counted together
+     * under the lowest of their ids.
      */
     public function generateTopOnDemand()
     {
         $this->query('TRUNCATE TABLE attr_value_counts');
-
-        $dialect = $this->getSqlDialect();
-        foreach (['value1' => 'cnt_v1', 'value2' => 'cnt_v2'] as $column => $counter) {
-            $this->query($dialect->upsert(
-                "INSERT INTO attr_value_counts (value, $counter)
-                SELECT LEFT(a.$column, 64) AS value, COUNT(*) AS c
+        $this->query(
+            "INSERT INTO attr_value_counts (value_id, cnt_v1, cnt_v2)
+            SELECT MIN(v.id), SUM(x.cnt_v1), SUM(x.cnt_v2)
+            FROM (
+                SELECT a.value1_id AS value_id, COUNT(*) AS cnt_v1, 0 AS cnt_v2
                 FROM attributes a
-                WHERE a.deleted = 0
-                AND a.disable_correlation = 0
-                AND a.$column <> ''
-                GROUP BY LEFT(a.$column, 64)",
-                ['value'],
-                [$counter]
-            ));
-        }
+                WHERE a.deleted = 0 AND a.disable_correlation = 0
+                GROUP BY a.value1_id
+                UNION ALL
+                SELECT a.value2_id AS value_id, 0 AS cnt_v1, COUNT(*) AS cnt_v2
+                FROM attributes a
+                WHERE a.deleted = 0 AND a.disable_correlation = 0 AND a.value2_id IS NOT NULL
+                GROUP BY a.value2_id
+            ) AS x
+            JOIN attribute_values AS v ON v.id = x.value_id
+            WHERE v.value <> ''
+            GROUP BY v.value"
+        );
     }
 
     private function findTopOnDemand(array $query)
@@ -992,18 +991,23 @@ class Correlation extends AppModel
         $offset = $limit * ($page - 1);
 
         $sql = "
-            SELECT value, (cnt_v1 + cnt_v2) AS cnt
+            SELECT value_id, (cnt_v1 + cnt_v2) AS cnt
             FROM attr_value_counts
             WHERE (cnt_v1 + cnt_v2) > 0
             ORDER BY cnt DESC
             LIMIT " . intval($limit) . " OFFSET " . intval($offset);
 
-        $rows = $this->query($sql);
+        $rows = [];
+        foreach ($this->query($sql) as $row) {
+            // The columns land under the table name, or under 0
+            $rows[] = array_merge(...array_values($row));
+        }
+        $values = ClassRegistry::init('AttributeValue')->fetchValues(array_column($rows, 'value_id'));
 
         $results = [];
         foreach ($rows as $row) {
-            $v   = $row[0]['value'] ?? $row['attr_value_counts']['value'];
-            $cnt = (int)($row[0]['cnt']   ?? $row['attr_value_counts']['cnt']);
+            $v   = $values[(int)$row['value_id']] ?? '';
+            $cnt = (int)$row['cnt'];
 
             $results[] = [
                 'Correlation' => [
@@ -1235,7 +1239,6 @@ class Correlation extends AppModel
     public function attachCorrelationExclusion(array $attributes)
     {
         $compositeTypes = $this->Attribute->getCompositeTypes();
-        $valuesToCheck = [];
         foreach ($attributes as &$attribute) {
             if ($attribute['disable_correlation'] || in_array($attribute['type'],MispAttribute::NON_CORRELATING_TYPES, true)) {
                 continue;
@@ -1243,13 +1246,8 @@ class Correlation extends AppModel
             $primaryOnly = in_array($attribute['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true);
             if (in_array($attribute['type'], $compositeTypes, true)) {
                 $values = explode('|', $attribute['value']);
-                $valuesToCheck[$values[0]] = true;
-                if (!$primaryOnly) {
-                    $valuesToCheck[$values[1]] = true;
-                }
             } else {
                 $values = [$attribute['value']];
-                $valuesToCheck[$values[0]] = true;
             }
 
             if ($this->__preventExcludedCorrelations($values[0])) {
@@ -1257,26 +1255,10 @@ class Correlation extends AppModel
             } elseif (!empty($values[1]) && !$primaryOnly && $this->__preventExcludedCorrelations($values[1])) {
                 $attribute['correlation_exclusion'] = true;
             }
-        }
 
-        $overCorrelatingValues = array_flip($this->OverCorrelatingValue->findOverCorrelatingValues(array_keys($valuesToCheck)));
-        unset($valuesToCheck);
-
-        foreach ($attributes as &$attribute) {
-            if ($attribute['disable_correlation'] || in_array($attribute['type'],MispAttribute::NON_CORRELATING_TYPES, true)) {
-                continue;
-            }
-            $primaryOnly = in_array($attribute['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true);
-            if (in_array($attribute['type'], $compositeTypes, true)) {
-                $values = explode('|', $attribute['value']);
-                $values = OverCorrelatingValue::truncateValues($values);
-            } else {
-                $values = [OverCorrelatingValue::truncate($attribute['value'])];
-            }
-
-            if (isset($overCorrelatingValues[$values[0]])) {
+            if ($this->OverCorrelatingValue->isBlocked($values[0])) {
                 $attribute['over_correlation'] = true;
-            } elseif (!empty($values[1])  && !$primaryOnly && isset($overCorrelatingValues[$values[1]])) {
+            } elseif (!empty($values[1]) && !$primaryOnly && $this->OverCorrelatingValue->isBlocked($values[1])) {
                 $attribute['over_correlation'] = true;
             }
         }

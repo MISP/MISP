@@ -305,25 +305,24 @@ class SqlDialectTest extends TestCase
     }
 
     /**
-     * Correlation::generateTopOnDemand()'s statement, which is the only upsert
-     * in the tree. Everything before the clause this method appends is already
-     * portable - PostgreSQL has left() too - so the whole statement has to come
-     * back unaltered apart from the tail.
+     * Everything before the clause this method appends is already portable -
+     * PostgreSQL has left() too - so the whole statement has to come back
+     * unaltered apart from the tail.
      */
     public function testUpsertAppendsTheEnginesConflictClause()
     {
-        $insert = "INSERT INTO attr_value_counts (value, cnt_v1)\n"
-            . "SELECT LEFT(a.value1, 64) AS value, COUNT(*) AS c\n"
-            . "FROM attributes a\n"
-            . "GROUP BY LEFT(a.value1, 64)";
+        $insert = "INSERT INTO name_counts (name, cnt)\n"
+            . "SELECT LEFT(t.name, 64) AS name, COUNT(*) AS c\n"
+            . "FROM tags t\n"
+            . "GROUP BY LEFT(t.name, 64)";
 
         $this->assertSame(
-            $insert . ' ON DUPLICATE KEY UPDATE `cnt_v1` = VALUES(`cnt_v1`);',
-            $this->mysql->upsert($insert, array('value'), array('cnt_v1'))
+            $insert . ' ON DUPLICATE KEY UPDATE `cnt` = VALUES(`cnt`);',
+            $this->mysql->upsert($insert, array('name'), array('cnt'))
         );
         $this->assertSame(
-            $insert . ' ON CONFLICT ("value") DO UPDATE SET "cnt_v1" = EXCLUDED."cnt_v1";',
-            $this->pgsql->upsert($insert, array('value'), array('cnt_v1'))
+            $insert . ' ON CONFLICT ("name") DO UPDATE SET "cnt" = EXCLUDED."cnt";',
+            $this->pgsql->upsert($insert, array('name'), array('cnt'))
         );
     }
 
