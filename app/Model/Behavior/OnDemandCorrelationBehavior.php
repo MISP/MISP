@@ -17,8 +17,8 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                 'Attribute.type',
                 'Attribute.distribution',
                 'Attribute.sharing_group_id',
-                'Attribute.value1',
-                'Attribute.value2',
+                'Attribute.value1_id',
+                'Attribute.value2_id',
             ],
             'contain' => [
                 'Event' => [
@@ -57,15 +57,6 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         'fullMatch' => []
     ];
 
-    private $customIndices = [
-        'attributes' => [
-            'idx_val1_source' => false,
-            'idx_val1_target' => false,
-            'idx_val2_target' => false,
-            'idx_val2_source' => false
-        ]
-    ];
-
     private $_nonCorrelatingEvents = [];
 
     /**
@@ -98,16 +89,11 @@ class OnDemandCorrelationBehavior extends ModelBehavior
             if ($exclusion[0] === '%' && $exclusion[-1] === '%') {
                 $this->correlationExclusions['substringMatch'][] = trim($exclusion, '%');
             } else if ($exclusion[0] === '%') {
-                $this->correlationExclusions['startsWithMatch'][] = trim($exclusion, '%');
-            } else if ($exclusion[-1] === '%') {
                 $this->correlationExclusions['endsWithMatch'][] = trim($exclusion, '%');
+            } else if ($exclusion[-1] === '%') {
+                $this->correlationExclusions['startsWithMatch'][] = trim($exclusion, '%');
             } else {
                 $this->correlationExclusions['fullMatch'][] = $exclusion;
-            }
-        }
-        foreach ($this->customIndices as $table => $indices) {
-            foreach ($indices as $index => $status) {
-                $this->customIndices[$table][$index] = $this->Correlation->indexExists($table, $index);
             }
         }
     }
@@ -208,165 +194,115 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         $eventId = (int)$eventId;
         $max_correlations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
         $max_value_correlation = Configure::read('MISP.correlation_limit') ?: 20;
-        $corrValueCounts = [];
-        $flat = [];
-        $queryRuns = [
-            ['a' => 'value1', 'b' => 'value1'],
-            ['a' => 'value1', 'b' => 'value2'],
-            ['a' => 'value2', 'b' => 'value1'],
-            ['a' => 'value2', 'b' => 'value2']
+        $found = [];
+        $passes = [
+            ['value1_id', 'value1_id'],
+            ['value1_id', 'value2_id'],
+            ['value2_id', 'value1_id'],
+            ['value2_id', 'value2_id'],
         ];
-        foreach ($queryRuns as $pair) {
+        foreach ($passes as list($sourceColumn, $targetColumn)) {
+            if ($max_correlations <= 0) {
+                break;
+            }
+            $chunk = $this->Correlation->Attribute->query(
+                $this->__passQuery($sourceColumn, $targetColumn, $max_correlations),
+                [$eventId, $eventId]
+            );
+            $max_correlations -= count($chunk);
+            foreach ($chunk as $row) {
+                // The columns land under their table aliases, or under 0
+                $found[] = array_merge(...array_values($row));
+            }
+        }
+        if (empty($found)) {
+            return $this->__cacheCorrelations($cacheKey, []);
+        }
+        // Counted per exact target value, before any filter
+        $corrValueCounts = array_count_values(array_column($found, 'value_id'));
+        $correlatingEvents = $this->__correlatingEvents(array_column($found, 'event_id'));
+        $flat = [];
+        foreach ($found as $row) {
             if (
-                $pair['a'] === 'value2' &&
-                $pair['b'] === 'value2'
+                $corrValueCounts[$row['value_id']] > $max_value_correlation ||
+                !isset($correlatingEvents[$row['event_id']]) ||
+                !$this->Correlation->CorrelationRule->checkEventIds($eventId, $row['event_id']) ||
+                $this->checkForExclusion($row['value'])
             ) {
-                if (!$max_correlations) {
-                    continue;
-                }
-                $this->Correlation->query("
-                CREATE TEMPORARY TABLE tmp_source_values (
-                    value2 VARCHAR(255) PRIMARY KEY,
-                    id INT(10) UNSIGNED NOT NULL
-                ) ENGINE=MEMORY;");
-                $this->Correlation->query("
-                        INSERT INTO tmp_source_values (value2, id)
-                        SELECT a.value2, MIN(a.id) as id
-                        FROM attributes a
-                        WHERE
-                            a.event_id = ? AND
-                            a.value2 <> '' AND
-                            a.deleted = 0 AND
-                            a.disable_correlation = 0 AND
-                            a.type IN ('" . implode("','", $this->value2CorrelatingTypes) . "')
-                        GROUP BY a.value2
-                    ",
-                    [$eventId]
-                );
-                $use_index = $this->customIndices['attributes']['idx_val2_target'] ? 'FORCE INDEX (`idx_val2_target`)' : '';
-                $sql = "
-                    SELECT 
-                        target.id AS id,
-                        target.event_id AS event_id,
-                        target.value2 AS 'value',
-                        target.type,
-                        source.id AS source_id
-                    FROM attributes AS target " . $use_index . "
-                    JOIN tmp_source_values source
-                    ON target.value2 = source.value2
-                    WHERE
-                        target.event_id != ? AND
-                        target.value2 <> '' AND
-                        target.deleted = 0 AND
-                        target.disable_correlation = 0 AND
-                        target.type IN ('" . implode("','", $this->value2CorrelatingTypes) . "')
-                    LIMIT " . $max_correlations
-                ;
-                $chunk = $this->Correlation->Attribute->query($sql, [$eventId]);
-                $this->Correlation->Attribute->query('DROP TABLE tmp_source_values');
-                $result_count = count($chunk);
-                if ($result_count >= $max_correlations) {
-                    $max_correlations = 0;
-                } else {
-                    $max_correlations = $max_correlations - $result_count;
-                }
-                foreach ($chunk as $row) {
-                    if (isset($corrValueCounts[$row['target']['value']])) {
-                        $corrValueCounts[$row['target']['value']] += 1;
-                    } else {
-                        $corrValueCounts[$row['target']['value']] = 1;
-                    }
-                    if (
-                        $this->Correlation->CorrelationRule->checkEventIds($eventId, $row['target']['event_id']) &&
-                        !$this->checkForExclusion($row['target']['value'])
-                    ) {
-                        $flat[] = array_merge(
-                            $row['target'],
-                            [
-                                'source_id' => $row['source']['source_id'] ?? $row['source']['id'],
-                                'source_event_id' => $eventId
-                            ]
-                        );
-                    }
-                }
-            } else {
-                if (!$max_correlations) {
-                    continue;
-                }
-
-                $indexHints = [
-                    'value1:value1' => ['source' => 'idx_val1_source', 'target' => 'idx_val1_target'],
-                    'value1:value2' => ['source' => 'idx_val1_source', 'target' => 'idx_val2_target'],
-                    'value2:value1' => ['source' => 'idx_val2_source', 'target' => 'idx_val1_target'],
-                ];
-                
-                $key = "{$pair['a']}:{$pair['b']}";
-                $sourceIndex = $this->customIndices['attributes'][$indexHints[$key]['source']] ? "FORCE INDEX (`{$indexHints[$key]['source']}`)" : '';
-                $targetIndex = $this->customIndices['attributes'][$indexHints[$key]['source']] ? "FORCE INDEX (`{$indexHints[$key]['target']}`)" : '';
-
-
-                $sql = "
-                    SELECT 
-                        target.id AS id,
-                        target.event_id AS event_id,
-                        source.id AS source_id,
-                        target.{$pair['b']} AS 'value',
-                        target.type
-                    FROM attributes AS source {$sourceIndex}
-                    JOIN attributes AS target {$targetIndex}
-                        ON source.{$pair['a']} = target.{$pair['b']}
-                    WHERE
-                        source.event_id = ? AND target.event_id != ?
-                        AND source.deleted = 0 AND target.deleted = 0
-                        AND source.disable_correlation = 0 AND target.disable_correlation = 0
-                        AND source.{$pair['a']} != ''
-                        AND target.{$pair['b']} != ''
-                        AND source.type IN ('" . implode("','", $this->correlatingTypes) . "')
-                        AND target.type IN ('" . implode("','", $this->correlatingTypes) . "')
-                    LIMIT " . $max_correlations
-                ;
-                $chunk = $this->Correlation->Attribute->query($sql, [$eventId, $eventId]);
-                $result_count = count($chunk);
-                if ($result_count >= $max_correlations) {
-                    $max_correlations = 0;
-                } else {
-                    $max_correlations = $max_correlations - $result_count;
-                }
-                foreach ($chunk as $row) {
-                    if (isset($corrValueCounts[$row['target']['value']])) {
-                        $corrValueCounts[$row['target']['value']] += 1;
-                    } else {
-                        $corrValueCounts[$row['target']['value']] = 1;
-                    }
-
-                    if (!$this->_checkEventCanCorrelate($row['target']['event_id'])) {
-                        continue;
-                    }
-
-                    // yeet correlations that would trip over correlation rules
-                    if (
-                        $this->Correlation->CorrelationRule->checkEventIds($eventId, $row['target']['event_id']) &&
-                        !$this->checkForExclusion($row['target']['value'])
-                    ) {
-                        $flat[] = array_merge(
-                            $row['target'],
-                            [
-                                'source_id' => $row['source']['source_id'] ?? $row['source']['id'],
-                                'source_event_id' => $eventId
-                            ]
-                        );
-                    }
-                }
+                continue;
             }
+            $flat[] = [
+                'id' => $row['id'],
+                'event_id' => $row['event_id'],
+                'value' => $row['value'],
+                'type' => $row['type'],
+                'source_id' => $row['source_id'],
+                'source_event_id' => $eventId,
+            ];
         }
-        
-        foreach ($flat as $k => $corr) {
-            if ($corrValueCounts[$corr['value']] > $max_value_correlation) {
-                unset($flat[$k]);
-            }
-        }
-        $flat = $this->__filterCorrelationsByAcl($user, array_values($flat));
+        $flat = $this->__filterCorrelationsByAcl($user, $flat);
         return $this->__cacheCorrelations($cacheKey, $flat);
+    }
+
+    /**
+     * Attributes of other events holding a case variant of a value of the
+     * event, one source column against one target column. A side reading
+     * value2 takes only the types whose value2 correlates.
+     *
+     * @param string $sourceColumn value1_id or value2_id
+     * @param string $targetColumn value1_id or value2_id
+     * @param int $limit
+     * @return string
+     */
+    private function __passQuery($sourceColumn, $targetColumn, $limit)
+    {
+        $types = function ($column) {
+            $types = $column === 'value2_id' ? $this->value2CorrelatingTypes : $this->correlatingTypes;
+            return "'" . implode("', '", $types) . "'";
+        };
+        return sprintf(
+            "SELECT
+                target.id AS id,
+                target.event_id AS event_id,
+                target_value.value AS value,
+                target.type AS type,
+                target.%2\$s AS value_id,
+                source.id AS source_id
+            FROM attributes AS source
+            JOIN attribute_values AS source_value ON source_value.id = source.%1\$s
+            JOIN attribute_values AS target_value ON target_value.value = source_value.value
+            JOIN attributes AS target ON target.%2\$s = target_value.id
+            WHERE
+                source.event_id = ? AND target.event_id != ?
+                AND source.deleted = 0 AND target.deleted = 0
+                AND source.disable_correlation = 0 AND target.disable_correlation = 0
+                AND source_value.value <> ''
+                AND source.type IN (%3\$s)
+                AND target.type IN (%4\$s)
+            LIMIT %5\$d",
+            $sourceColumn,
+            $targetColumn,
+            $types($sourceColumn),
+            $types($targetColumn),
+            $limit
+        );
+    }
+
+    /**
+     * @param array $eventIds
+     * @return array [event id => true] for the events that exist and correlate
+     */
+    private function __correlatingEvents(array $eventIds)
+    {
+        $eventIds = $this->Correlation->Event->find('column', [
+            'recursive' => -1,
+            'fields' => ['Event.id'],
+            'conditions' => [
+                'Event.id' => array_values(array_unique(array_map('intval', $eventIds))),
+                'Event.disable_correlation' => 0,
+            ],
+        ]);
+        return array_fill_keys(array_map('intval', $eventIds), true);
     }
 
     /**
