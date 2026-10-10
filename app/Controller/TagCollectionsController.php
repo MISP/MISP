@@ -59,32 +59,53 @@ class TagCollectionsController extends AppController
     public function addWithTags()
     {
         if ($this->request->is('post')) {
-            $data = $this->request->data;
-            // This is a create-only action: it calls saveAssociated() directly without ever
-            // pinning the primary key, and CakePHP treats an id in the save data as an UPDATE
-            // target. Without stripping it, a supplied TagCollection[id] turns the insert into a
-            // covert UPDATE of an arbitrary tag collection — and because org_id/user_id are forced
-            // to the current user below, that row is also re-owned to the attacker. Drop it so the
-            // save always inserts a new row (mirrors TagCollection::import() and the edit paths,
-            // which pin the id to the authorised record).
+            // Save the collection and its tag rows in two explicit steps rather than through
+            // saveAssociated(): a plain save() never writes belongsTo siblings, so an injected
+            // User/Organisation in the payload cannot reach the database, whatever associations
+            // TagCollection or TagCollectionTag may grow later.
+            $data = ['TagCollection' => (array)($this->request->data['TagCollection'] ?? [])];
+            // Create-only action: drop any supplied id so the save always inserts, and pin
+            // ownership to the current user.
             unset($data['TagCollection']['id']);
             $data['TagCollection']['org_id'] = $this->Auth->user('org_id');
             $data['TagCollection']['user_id'] = $this->Auth->user('id');
 
             // Galaxy clusters live in a collection as their `misp-galaxy:` tag, so both
             // pickers end up in the same TagCollectionTag rows.
-            $tagIds = array_merge(
+            $tagIds = array_unique(array_merge(
                 array_map('intval', array_filter((array)($data['TagCollection']['tags'] ?? []))),
                 $this->__clusterTagIds((array)($data['TagCollection']['galaxies'] ?? []))
-            );
-            foreach (array_unique($tagIds) as $tagId) {
-                $data['TagCollectionTag'][] = ['tag_id' => $tagId];
-            }
+            ));
 
             $this->TagCollection->create();
-            if ($this->TagCollection->saveAssociated($data)) {
+            if ($this->TagCollection->save($data)) {
+                $collectionId = $this->TagCollection->id;
+                foreach ($tagIds as $tagId) {
+                    $this->TagCollection->TagCollectionTag->create();
+                    $this->TagCollection->TagCollectionTag->save([
+                        'tag_collection_id' => $collectionId,
+                        'tag_id' => $tagId
+                    ]);
+                }
+                if ($this->IndexFilter->isRest()) {
+                    return $this->RestResponse->saveSuccessResponse(
+                        'TagCollections',
+                        'addWithTags',
+                        $collectionId,
+                        $this->response->type()
+                    );
+                }
                 $this->Flash->success(__('Collection sauvegardée.'));
                 return $this->redirect(['action' => 'index']);
+            }
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->saveFailResponse(
+                    'TagCollections',
+                    'addWithTags',
+                    false,
+                    $this->TagCollection->validationErrors,
+                    $this->response->type()
+                );
             }
         }
         if ($this->IndexFilter->isRest()) {
@@ -337,7 +358,9 @@ class TagCollectionsController extends AppController
         }
 
         if ($this->request->is(['post', 'put'])) {
-            $data = $this->request->data;
+            // Two explicit steps (save() then per-row tag saves), same reason as addWithTags:
+            // a plain save() cannot write an injected User/Organisation sibling.
+            $data = ['TagCollection' => (array)($this->request->data['TagCollection'] ?? [])];
 
             $data['TagCollection']['id'] = $id;
             $data['TagCollection']['uuid'] = $tagCollection['TagCollection']['uuid'];
@@ -346,31 +369,51 @@ class TagCollectionsController extends AppController
             $data['TagCollection']['org_id'] = $tagCollection['TagCollection']['org_id'];
             $data['TagCollection']['user_id'] = $tagCollection['TagCollection']['user_id'];
 
-            if (isset($data['TagCollection']['tags'])
-                    || isset($data['TagCollection']['galaxies'])) {
-                // Both pickers always post (empty selections included), so a missing
-                // key means a caller that never had that picker - leave what it owns.
-                $tagIds = isset($data['TagCollection']['tags'])
+            // Both pickers always post (empty selections included), so a missing key means a
+            // caller that never had that picker - leave what it owns.
+            $rewriteTags = isset($data['TagCollection']['tags'])
+                || isset($data['TagCollection']['galaxies']);
+            $tagIds = [];
+            if ($rewriteTags) {
+                $plainTagIds = isset($data['TagCollection']['tags'])
                     ? array_map('intval', array_filter((array)$data['TagCollection']['tags']))
                     : $storedPlainTagIds;
                 $galaxyTagIds = isset($data['TagCollection']['galaxies'])
                     ? $this->__clusterTagIds((array)$data['TagCollection']['galaxies'])
                     : $storedGalaxyTagIds;
-
-                $data['TagCollectionTag'] = [];
-                foreach (array_unique(array_merge($tagIds, $galaxyTagIds)) as $tagId) {
-                    $data['TagCollectionTag'][] = ['tag_id' => $tagId];
-                }
-
-                $this->TagCollection->TagCollectionTag->deleteAll(['tag_collection_id' => $id]);
+                $tagIds = array_unique(array_merge($plainTagIds, $galaxyTagIds));
             }
 
-            if ($this->TagCollection->saveAssociated($data)) {
-                $this->Flash->success(__('Collection mise à jour.'));
-                if ($this->IndexFilter->isRest()) {
-                    return $this->restResponsePayload;
+            if ($this->TagCollection->save($data)) {
+                if ($rewriteTags) {
+                    $this->TagCollection->TagCollectionTag->deleteAll(['tag_collection_id' => $id]);
+                    foreach ($tagIds as $tagId) {
+                        $this->TagCollection->TagCollectionTag->create();
+                        $this->TagCollection->TagCollectionTag->save([
+                            'tag_collection_id' => $id,
+                            'tag_id' => $tagId
+                        ]);
+                    }
                 }
+                if ($this->IndexFilter->isRest()) {
+                    return $this->RestResponse->saveSuccessResponse(
+                        'TagCollections',
+                        'editWithTags',
+                        $id,
+                        $this->response->type()
+                    );
+                }
+                $this->Flash->success(__('Collection mise à jour.'));
                 return $this->redirect(['action' => 'index']);
+            }
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->saveFailResponse(
+                    'TagCollections',
+                    'editWithTags',
+                    $id,
+                    $this->TagCollection->validationErrors,
+                    $this->response->type()
+                );
             }
         } else {
             $this->request->data = $tagCollection;

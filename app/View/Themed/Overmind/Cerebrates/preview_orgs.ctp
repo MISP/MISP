@@ -1,30 +1,9 @@
-<div class="row mb-4 mt-2">
-    <div class="col-12">
-        <div class="d-flex flex-column p-4">
-            <h5 class="mb-1 fw-bold text-primary-emphasis">
-                <?= __('Organisations preview') ?>
-            </h5>
-            <p class="mb-0 text-secondary-emphasis">
-                <?= __('Preview of the organisations known to the remote Cerebrate instance.') ?>
-            </p>
-        </div>
-    </div>
-</div>
-
 <?php
 $fields = [
     [
-        'element' => 'selector',
+        'element' => 'checkbox',
         'data_path' => 'id',
         'card_section' => 'selector',
-        'actions' => [
-            [
-                'type' => 'modal',
-                'label' => __('Fetch organisation'),
-                'icon' => 'download',
-                'url' => $baseurl . '/cerebrates/download_org/' . h($cerebrate['Cerebrate']['id']) . '/%id%',
-            ]
-        ]
     ],
     [
         'name' => __('ID'),
@@ -35,24 +14,18 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
-        'name' => __('Status'),
-        'sort' => 'exists_locally',
-        'data_path' => '',
-        'element' => 'remote_status',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
-    ],
-    [
         'name' => __('UUID'),
         'sort' => 'uuid',
         'data_path' => 'uuid',
-        'card_section' => 'meta',
+        'element' => 'uuid',
+        'card_section' => 'top',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Name'),
         'sort' => 'name',
         'data_path' => 'name',
+        'element' => 'name_description',
         'card_section' => 'title',
         'display_in' => ['table', 'card']
     ],
@@ -69,7 +42,31 @@ $fields = [
         'data_path' => 'nationality',
         'card_section' => 'meta',
         'display_in' => ['table', 'card']
-    ]
+    ],
+    [
+        'name' => __('Status'),
+        'sort' => 'exists_locally',
+        'data_path' => '',
+        'element' => 'remote_status',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Actions'),
+        'element' => 'row_actions',
+        'data_path' => 'id',
+        'card_section' => 'extra',
+        'actions' => [
+            [
+                'type' => 'modal',
+                'label' => __('Fetch organisation'),
+                'icon' => 'download',
+                'url' => $baseurl . '/cerebrates/download_org/' . h($cerebrate['Cerebrate']['id']) . '/%id%',
+                'size' => 'md',
+                'requirement' => $isSiteAdmin,
+            ],
+        ],
+    ],
 ];
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [

@@ -77,7 +77,7 @@ $overflow   = $total - $maxVisible;
                 !empty($ev['date'])  ? h($ev['date'])  : null,
             ]));
         ?>
-        <a href="<?= $baseurl ?>/events/view/<?= h($ev['id']) ?>"
+        <a href="<?= $baseurl ?>/events/view2/<?= h($ev['id']) ?>"
            class="badge text-decoration-none bg-primary <?= $hidden ? ' d-none related-event-extra' : '' ?>"
            title="<?= $tooltip ?>">
             #<?= h($ev['id']) ?>

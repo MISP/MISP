@@ -219,7 +219,6 @@ class User extends AppModel
             'finderQuery' => '',
             'counterQuery' => ''
         ),
-        'Post',
         'UserSetting',
         'UserLoginProfile'
         // 'AuthKey' - readd once the initial update storm is over
@@ -818,7 +817,7 @@ class User extends AppModel
     }
 
     /**
-     * Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
+     * Fetch all users that have access to an event for e-mailing (or maybe something else in the future.
      * parameters are an array of org IDs that are owners (for an event this would be orgc and org)
      * @param array $owners Event owners
      * @param int $distribution

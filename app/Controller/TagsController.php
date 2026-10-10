@@ -363,20 +363,6 @@ class TagsController extends AppController
         $this->render('/Attributes/ajax/ajaxAttributeTags');
     }
 
-    public function viewTag($id)
-    {
-        $tag = $this->Tag->find('first', array(
-                'conditions' => array(
-                        'id' => $id
-                ),
-                'recursive' => -1,
-        ));
-        $this->layout = null;
-        $this->set('tag', $tag);
-        $this->set('id', $id);
-        $this->render('ajax/view_tag');
-    }
-
 
     public function selectTaxonomy($id, $scope = 'event')
     {

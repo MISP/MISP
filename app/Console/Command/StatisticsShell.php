@@ -320,4 +320,136 @@ class StatisticsShell extends AppShell {
             )
         ], JSON_PRETTY_PRINT));
     }
+
+    public function objectRelationUsage()
+    {
+        $templates = $this->__latestObjectTemplates();
+        $bounds = $this->Event->Object->find('first', [
+            'recursive' => -1,
+            'callbacks' => false,
+            'fields' => [
+                'MIN(Object.id) AS min_id',
+                'MAX(Object.id) AS max_id',
+            ],
+        ]);
+        $minId = (int)$bounds[0]['min_id'];
+        $maxId = (int)$bounds[0]['max_id'];
+        $chunkSize = 10000;
+        $counts = [];
+        // Chunking on object id keeps every object's attributes in one chunk,
+        // so the per-chunk distinct object counts sum up exactly.
+        for ($from = $minId; $maxId && $from <= $maxId; $from += $chunkSize) {
+            $this->err(sprintf(
+                "\rProcessing objects up to ID %s / %s",
+                min($from + $chunkSize - 1, $maxId),
+                $maxId
+            ), 0);
+            $rows = $this->Event->Attribute->find('all', [
+                'recursive' => -1,
+                'callbacks' => false,
+                'fields' => [
+                    'Object.template_uuid',
+                    'Attribute.object_relation',
+                    'COUNT(DISTINCT Attribute.object_id) AS object_count',
+                    'COUNT(*) AS attribute_count',
+                ],
+                'joins' => [[
+                    'table' => 'objects',
+                    'alias' => 'Object',
+                    'type' => 'INNER',
+                    'conditions' => ['Object.id = Attribute.object_id'],
+                ]],
+                'conditions' => [
+                    'Attribute.object_id >=' => $from,
+                    'Attribute.object_id <' => $from + $chunkSize,
+                    'Object.id >=' => $from,
+                    'Object.id <' => $from + $chunkSize,
+                    'Attribute.deleted' => 0,
+                    'Object.deleted' => 0,
+                ],
+                'group' => [
+                    'Object.template_uuid',
+                    'Attribute.object_relation',
+                ],
+                'order' => [],
+            ]);
+            foreach ($rows as $row) {
+                $uuid = strtolower(
+                    (string)$row['Object']['template_uuid']
+                );
+                $relation = $row['Attribute']['object_relation'];
+                if (!isset($counts[$uuid][$relation])) {
+                    $counts[$uuid][$relation] = [0, 0];
+                }
+                $counts[$uuid][$relation][0] += $row[0]['object_count'];
+                $counts[$uuid][$relation][1] += $row[0]['attribute_count'];
+            }
+        }
+        $this->err('');
+        ksort($counts);
+        $result = [];
+        $unknown = 0;
+        foreach ($counts as $uuid => $relations) {
+            if (!isset($templates[$uuid])) {
+                $unknown++;
+                continue;
+            }
+            $relations = array_intersect_key(
+                $relations,
+                $templates[$uuid]['relations']
+            );
+            if (empty($relations)) {
+                continue;
+            }
+            // Most objects first, then most attributes, then by name
+            uksort($relations, function ($a, $b) use ($relations) {
+                return ($relations[$b] <=> $relations[$a]) ?: strcmp($a, $b);
+            });
+            $name = $templates[$uuid]['name'];
+            if (isset($result[$name])) {
+                $name .= ' (' . $uuid . ')';
+            }
+            $result[$name] = array_map('strval', array_keys($relations));
+        }
+        ksort($result);
+        if ($unknown) {
+            $this->err(__(
+                'Skipped objects of %s unknown template UUID(s).',
+                $unknown
+            ));
+        }
+        $this->out(json_encode(
+            empty($result) ? new stdClass() : $result,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+        ));
+    }
+
+    /**
+     * @return array Latest version of each object template, keyed by UUID
+     */
+    private function __latestObjectTemplates()
+    {
+        $ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+        $latest = [];
+        $templates = $ObjectTemplate->find('all', [
+            'recursive' => -1,
+            'fields' => ['id', 'uuid', 'name', 'version'],
+            'order' => ['version ASC', 'id ASC'],
+        ]);
+        foreach ($templates as $template) {
+            $uuid = strtolower($template['ObjectTemplate']['uuid']);
+            $latest[$uuid] = $template['ObjectTemplate'];
+        }
+        $elements = $ObjectTemplate->ObjectTemplateElement->find('list', [
+            'fields' => ['id', 'object_relation', 'object_template_id'],
+            'conditions' => [
+                'object_template_id' => array_column($latest, 'id'),
+            ],
+        ]);
+        foreach ($latest as $uuid => $template) {
+            $latest[$uuid]['relations'] = empty($elements[$template['id']]) ?
+                [] : array_flip($elements[$template['id']]);
+        }
+        return $latest;
+    }
 }

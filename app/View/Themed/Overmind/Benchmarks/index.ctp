@@ -1,13 +1,36 @@
 <?php
 /**
- * Benchmarks index (not yet tested)
+ * Benchmark results
+ *
+ * Two shapes from one action. Pin a scope AND a key (scope:user/key:5, which
+ * is what the User view's tab asks for) and the question is "what does this
+ * one cost?" — Elements/Benchmarks/focus_panel answers it. Leave either open
+ * and the question is "who is the most expensive?", which is the ranked index
+ * below.
  */
 if (empty($ajax)) {
     $this->set('headerTitle', __('Benchmark results'));
     $this->set('headerDescription', __('Collected benchmarks. Filter further by scope, field, average and aggregation.'));
 }
 
-// Build the quick-filter link groups (same URL logic as the core view).
+$isFocused = !empty($filters['key'])
+    && !empty($filters['scope'])
+    && $filters['scope'] !== 'all';
+
+// Says why the screen is empty, or why its figures stopped moving.
+echo $this->element('Benchmarks/collection_notice', [
+    'benchmarkingEnabled' => $benchmarkingEnabled,
+    'recordedDays' => $recordedDays,
+]);
+
+if ($isFocused) {
+    echo $this->element('Benchmarks/focus_panel', [
+        'data' => $data,
+        'filters' => $filters,
+    ]);
+} else {
+
+// Build the quick-filter link groups
 $quickFilters = [];
 foreach ($settings as $key => $settingData) {
     $url = $baseurl . '/benchmarks/index';
@@ -80,7 +103,7 @@ $fields = [
                         <div class="text-muted small text-uppercase fw-bold mb-1"><?= h($groupLabel) ?></div>
                         <div class="btn-group btn-group-sm" role="group" aria-label="<?= h($groupLabel) ?>">
                             <?php foreach ($quickFilters[$groupKey] as $qf): ?>
-                                <a href="<?= h($qf['url']) ?>"
+                                <a href="<?= h($qf['url']) ?>" data-bench-filter
                                    class="btn <?= !empty($qf['active']) ? 'btn-primary' : 'btn-outline-secondary' ?>">
                                     <?= h($qf['text']) ?>
                                 </a>
@@ -98,10 +121,32 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $data,
-            'skip_pagination' => true,
             'fields' => $fields,
         ],
     ],
     'item_url' => '/benchmarks',
 ]);
+
+}
 ?>
+
+<script>
+/* A quick filter is a link, and a link inside a lazy tab would navigate the
+ * whole page to a layout-less fragment — bindAjaxTabIndexNav() only claims
+ * pagination and `sort:` links, so these would escape it. Swap the tab's
+ * content instead, the way IndexTable/filter_bar does. Outside a tab the
+ * link is left to navigate normally. */
+(function () {
+    if (window.__benchFilterBound) return;
+    window.__benchFilterBound = true;
+
+    document.addEventListener('click', function (event) {
+        var link = event.target.closest ? event.target.closest('a[data-bench-filter]') : null;
+        if (!link) return;
+        var tab = link.closest('.ajax-tab-content');
+        if (!tab || typeof window.reloadAjaxTabIndex !== 'function') return;
+        event.preventDefault();
+        window.reloadAjaxTabIndex(tab, link.getAttribute('href'));
+    });
+})();
+</script>

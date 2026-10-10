@@ -40,7 +40,7 @@ class TaxiiServersController extends AppController
             return $this->restResponsePayload;
         }
         $dropdownData = [];
-        if($this->theme === "Overmind"){
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
         $this->set(compact('dropdownData'));
@@ -57,7 +57,7 @@ class TaxiiServersController extends AppController
             return $this->restResponsePayload;
         }
         $dropdownData = [];
-        if($this->theme === "Overmind"){
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
         $this->set(compact('dropdownData'));
@@ -199,7 +199,7 @@ class TaxiiServersController extends AppController
                 }
                 $request['header']['Authorization'] = $authMethod . $apiKey;
             }
-            
+
             // 3. Unified Error Handling to prevent differential responses
             $genericError = __('TAXII connection failed or returned invalid data. Please verify the URL.');
 
@@ -217,14 +217,14 @@ class TaxiiServersController extends AppController
             }
 
             $result = json_decode($response->body, true);
-            
+
             // Ensure valid JSON was parsed before proceeding
             if (is_array($result) && isset($result['api_roots'])) {
                 $results = [];
                 $discovery_host = parse_url($this->request->data['discovery_url'], PHP_URL_HOST);
                 $discovery_port = parse_url($this->request->data['discovery_url'], PHP_URL_PORT);
                 if (empty($discovery_port)) {
-                    $discovery_host = 'https://' . $discovery_host;
+                    $discovery_root = 'https://' . $discovery_host;
                 } else {
                     $discovery_root = 'https://' . $discovery_host . ':' . $discovery_port;
                 }
@@ -288,7 +288,15 @@ class TaxiiServersController extends AppController
 
     public function collectionsIndex($id)
     {
-        $result = $this->TaxiiServer->getCollections($id);
+        try {
+            $result = $this->TaxiiServer->getCollections($id);
+        } catch (HttpException $e) {
+            if (!$this->__rendersRemoteNotice()) {
+                throw $e;
+            }
+            $this->set('remoteNotice', ['kind' => 'danger', 'message' => $e->getMessage()]);
+            $result = [];
+        }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($result, $this->response->type());
         } else {
@@ -302,9 +310,32 @@ class TaxiiServersController extends AppController
 
     }
 
-    public function objectsIndex($id, $collection_id, $next = null)
+    public function objectsIndex($id, $collection_id = null, $next = null)
     {
-        $result = $this->TaxiiServer->getObjects($id, $collection_id, $next);
+        if (empty($collection_id)) {
+            $taxii_server = $this->TaxiiServer->find('first', [
+                'recursive' => -1,
+                'fields' => ['TaxiiServer.collection'],
+                'conditions' => ['TaxiiServer.id' => $id]
+            ]);
+            if (empty($taxii_server)) {
+                throw new NotFoundException(__('Invalid Taxii Server ID provided.'));
+            }
+            $collection_id = $taxii_server['TaxiiServer']['collection'];
+        }
+        try {
+            if (empty($collection_id)) {
+                throw new NotFoundException(__('No collection is selected for this TAXII server.'));
+            }
+            $result = $this->TaxiiServer->getObjects($id, $collection_id, $next);
+        } catch (HttpException $e) {
+            if (!$this->__rendersRemoteNotice()) {
+                throw $e;
+            }
+            $kind = empty($collection_id) ? 'secondary' : 'danger';
+            $this->set('remoteNotice', ['kind' => $kind, 'message' => $e->getMessage()]);
+            $result = ['objects' => [], 'more' => false];
+        }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($result, $this->response->type());
         } else {
@@ -315,6 +346,14 @@ class TaxiiServersController extends AppController
             $this->set('collection_id', $collection_id);
             $this->set('menuData', array('menuList' => 'sync', 'menuItem' => 'list_taxii_collection_objects'));
         }
+    }
+
+    /**
+    * Preserve the remote error message when displaying a generic request failure.
+     */
+    private function __rendersRemoteNotice()
+    {
+        return $this->theme === 'Overmind' && !$this->_isRest();
     }
 
     public function objectView($server_id, $collection_id, $id)

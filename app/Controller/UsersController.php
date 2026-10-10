@@ -1025,7 +1025,7 @@ class UsersController extends AppController
         $this->set('currentId', $id);
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['User'])) {
-                $this->request->data['User'] = $this->request->data;
+                $this->request->data = array('User' => $this->request->data);
             }
             $abortPost = false;
             $isOvermindAjax = !$this->_isRest() && $this->request->is('ajax') && $this->theme === 'Overmind';
@@ -1219,6 +1219,9 @@ class UsersController extends AppController
                         return $jsonResponse(array('success' => true, 'message' => __('The user has been saved')));
                     } else {
                         $this->Flash->success(__('The user has been saved'));
+                        if ($this->theme === 'Overmind') {
+                            $this->redirect(array('action' => 'view', $this->User->id));
+                        }
                         $this->redirect(array('action' => 'index'));
                     }
                 } else {
@@ -1805,7 +1808,7 @@ class UsersController extends AppController
         }
         if ($this->request->is('post')) {
             if (!isset($this->request->data['User'])) {
-                $this->request->data['User'] = $this->request->data;
+                $this->request->data = array('User' => $this->request->data);
             }
             if (empty($this->request->data['User']['subject']) || empty($this->request->data['User']['body'])) {
                 $message = 'Both the subject and the body have to be set.';
@@ -2019,15 +2022,14 @@ class UsersController extends AppController
             }
             $secret = $user['totp'];
             $totp = \OTPHP\TOTP::create($secret);
-            $hotp = \OTPHP\HOTP::create($secret);
-            if ($totp->verify(trim($this->request->data['User']['otp']))) {
+            $now = time();
+            if ($totp->verify(trim($this->request->data['User']['otp']), $now) && $this->__claimTotpStep($user['id'], $totp, $now)) {
                 // OTP is correct, we login the user with CakePHP
+                $this->Session->delete('otp_user');
                 $this->Auth->login($user);
                 $this->_postlogin();
-            } elseif (isset($user['hotp_counter']) && $hotp->verify(trim($this->request->data['User']['otp']), $user['hotp_counter'])) {
-                // HOTP is correct, update the counter and login
-                $this->User->id = $user['id'];
-                $this->User->saveField('hotp_counter', $user['hotp_counter']+1);
+            } elseif (isset($user['hotp_counter']) && $this->__consumeHotp($user['id'], trim($this->request->data['User']['otp']))) {
+                $this->Session->delete('otp_user');
                 $this->Auth->login($user);
                 $this->_postlogin();
             } else {
@@ -2041,6 +2043,50 @@ class UsersController extends AppController
         // GET Request or wrong OTP, just show the form
         $this->set('totp', $user['totp']? true : false);
         $this->set('hotp_counter', $user['hotp_counter']);
+    }
+
+    /**
+     * A TOTP code is valid for its whole period; remember the period it was spent
+     * in so the same code cannot log in a second time.
+     */
+    private function __claimTotpStep($userId, \OTPHP\TOTP $totp, $timestamp)
+    {
+        $step = intdiv($timestamp - $totp->getEpoch(), $totp->getPeriod());
+        $key = 'misp:otp:totp_used:' . $userId . ':' . $step;
+        return (bool)RedisTool::init()->set($key, 1, ['nx', 'ex' => 3 * $totp->getPeriod()]);
+    }
+
+    /**
+     * Verify a paper token against the stored counter, not the one cached in the
+     * session at password time, and burn it under a lock so it works only once.
+     */
+    private function __consumeHotp($userId, $otp)
+    {
+        $redis = RedisTool::init();
+        $lock = 'misp:otp:hotp_lock:' . $userId;
+        if (!$redis->set($lock, 1, ['nx', 'ex' => 10])) {
+            return false;
+        }
+        try {
+            $stored = $this->User->find('first', [
+                'conditions' => ['User.id' => $userId],
+                'fields' => ['User.totp', 'User.hotp_counter'],
+                'recursive' => -1,
+            ]);
+            if (empty($stored['User']['totp']) || !isset($stored['User']['hotp_counter'])) {
+                return false;
+            }
+            $counter = (int)$stored['User']['hotp_counter'];
+            $hotp = \OTPHP\HOTP::create($stored['User']['totp']);
+            if (!$hotp->verify($otp, $counter)) {
+                return false;
+            }
+            $this->User->id = $userId;
+            $this->User->saveField('hotp_counter', $counter + 1);
+            return true;
+        } finally {
+            $redis->del($lock);
+        }
     }
 
     public function hotp()
@@ -2203,9 +2249,12 @@ class UsersController extends AppController
         if ($this->request->is('post') && isset($this->request->data['User']['otp'])) {
             $submitted_otp = $this->request->data['User']['otp'];
             $stored_otp = $redis->get('misp:otp:' . $user_id);
-            if (!empty($stored_otp) && is_string($submitted_otp) && hash_equals((string)$stored_otp, trim($submitted_otp))) {
-                // we invalidate the previously generated OTP
-                $redis->del('misp:otp:' . $user_id);
+            if (
+                !empty($stored_otp) && is_string($submitted_otp) && hash_equals((string)$stored_otp, trim($submitted_otp)) &&
+                // only the request whose delete removed the code may use it
+                $redis->del('misp:otp:' . $user_id) === 1
+            ) {
+                $this->Session->delete('email_otp_user');
                 // We login the user with CakePHP
                 $this->Auth->login($user);
                 $this->_postlogin();
@@ -2387,12 +2436,6 @@ class UsersController extends AppController
         $stats['contributing_org_count'] = $this->User->Event->find('count', array('recursive' => -1, 'group' => array('Event.orgc_id')));
         $stats['average_user_per_org'] = $stats['local_org_count'] != 0 ?  round($stats['user_count'] / $stats['local_org_count'], 1) : 0;
 
-        $this->loadModel('Thread');
-        $stats['thread_count'] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0), 'recursive' => -1));
-        $stats['thread_count_month'] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s", $this_month), 'Thread.post_count >' => 0), 'recursive' => -1));
-
-        $stats['post_count'] = $this->Thread->Post->find('count', array('recursive' => -1));
-        $stats['post_count_month'] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s", $this_month)), 'recursive' => -1));
         foreach ($stats as &$value) {
             $value = strval($value);
         }
