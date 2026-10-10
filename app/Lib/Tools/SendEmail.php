@@ -3,6 +3,18 @@ App::uses('CakeEmail', 'Network/Email');
 
 class SendEmailException extends Exception {}
 
+/**
+ * Raised when `GnuPG.onlyencrypted` is set but the recipient has neither a usable
+ * GnuPG key nor a usable S/MIME certificate, so the message cannot be sent at all.
+ *
+ * This is a distinct class rather than a message string because it is the one
+ * SendEmailException that is expected to happen in bulk - once per recipient of a
+ * publish alert - and callers therefore need to be able to recognise and aggregate
+ * it. It extends SendEmailException, so existing `catch (SendEmailException $e)`
+ * handlers keep working unchanged.
+ */
+class SendEmailEncryptionKeyMissingException extends SendEmailException {}
+
 class CakeEmailBody
 {
     /** @var string|null */
@@ -450,7 +462,7 @@ class SendEmail
         $canEncryptSmime = !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
 
         if (Configure::read('GnuPG.onlyencrypted') && !$canEncryptGpg && !$canEncryptSmime) {
-            throw new SendEmailException('Encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.');
+            throw new SendEmailEncryptionKeyMissingException('Encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.');
         }
 
         // If 'GnuPG.bodyonlyencrypted' is enabled and the user has no encryption key, use the alternate body
