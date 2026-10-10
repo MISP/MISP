@@ -128,6 +128,14 @@ class BaselineGenerator
     const MYSQL_FULLTEXT_WITHOUT_STOPWORDS = array('attribute_values');
 
     /**
+     * Tables whose collation their migration picks by server version
+     * (20261003_092429_create_attribute_values). A static baseline cannot,
+     * so the MySQL rendering uses the one every supported server has rather
+     * than the reference server's.
+     */
+    const MYSQL_PORTABLE_COLLATIONS = array('attribute_values' => 'utf8mb4_unicode_520_ci');
+
+    /**
      * The tables a fresh install starts with rows in: the ones MYSQL.sql seeds,
      * in its order, plus dashboards, which a legacy update seeds with the
      * default dashboard templates and which a PostgreSQL instance - never
@@ -724,6 +732,28 @@ class BaselineGenerator
         $schema = new SchemaBuilder($grammar);
         $options = $definition['options'];
         $options['indexes'] = $indexes;
+        if ($flavour === AbstractGrammar::FLAVOUR_MYSQL && isset(self::MYSQL_PORTABLE_COLLATIONS[$table])) {
+            $portable = self::MYSQL_PORTABLE_COLLATIONS[$table];
+            $collations = array();
+            if (isset($options['collate']) && $options['collate'] !== $portable) {
+                $collations[$options['collate']] = true;
+                $options['collate'] = $portable;
+            }
+            foreach ($columns as $name => $spec) {
+                if (isset($spec['collate']) && $spec['collate'] !== $portable) {
+                    $collations[$spec['collate']] = true;
+                    $columns[$name]['collate'] = $portable;
+                }
+            }
+            if (!empty($collations)) {
+                $notes[] = sprintf(
+                    'Collation of %s rendered as %s instead of the reference\'s %s: its migration picks the collation by server version, and every supported server has this one.',
+                    $table,
+                    $portable,
+                    implode(', ', array_keys($collations))
+                );
+            }
+        }
         $schema->createTable($table, $columns, $options);
         $statements = $schema->toSql();
 

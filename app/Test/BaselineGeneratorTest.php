@@ -613,7 +613,25 @@ class BaselineGeneratorTest extends TestCase
         $this->assertNotFalse($off);
         $this->assertLessThan(strpos($sql, 'CREATE TABLE `attribute_values`'), $off);
         $this->assertGreaterThan(strpos($sql, 'FULLTEXT INDEX'), $back);
-        $this->assertSame(array(), $mysql['notes']);
+        // Its migration picks the collation by server version; the baseline takes the portable one
+        $this->assertStringContainsString(') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;', $sql);
+        $this->assertStringNotContainsString('uca1400', $sql);
+        $this->assertCount(1, $mysql['notes']);
+        $this->assertStringContainsString(
+            "Collation of attribute_values rendered as utf8mb4_unicode_520_ci instead of the reference's utf8mb4_uca1400_ai_ci",
+            $mysql['notes'][0]
+        );
+
+        $schema = $this->valueDictionarySchema();
+        $schema['attribute_values']['columns']['value']['collate'] = 'utf8mb4_0900_ai_ci';
+        $column = $this->generator()->render($this->mysql, $schema, array(), 159);
+        $this->assertStringContainsString('`value` text COLLATE utf8mb4_unicode_520_ci NOT NULL', $column['sql']);
+        $this->assertStringNotContainsString('0900', $column['sql']);
+        $this->assertStringContainsString('utf8mb4_uca1400_ai_ci, utf8mb4_0900_ai_ci', $column['notes'][0]);
+
+        $schema = $this->valueDictionarySchema();
+        $schema['attribute_values']['options']['collate'] = 'utf8mb4_unicode_520_ci';
+        $this->assertSame(array(), $this->generator()->render($this->mysql, $schema, array(), 159)['notes']);
 
         $other = $this->generator()->render($this->mysql, $this->fixtureSchema(), array(), 159);
         $this->assertStringNotContainsString('innodb_ft_enable_stopword', $other['sql']);

@@ -418,13 +418,12 @@ not the reference's shape and are the review list, not noise:
 - a default dropped from a key column, an index name PostgreSQL would
   truncate, any hint the grammar could not express.
 
-The MySQL rendering notes nothing, but creates `attribute_values` with
-`innodb_ft_enable_stopword` off, as the migration that rebuilt its FULLTEXT
-index did: InnoDB takes the session's stopword setting when it builds the index.
-**Caution:** it also carries the reference server's collation for
-`attribute_values.value` (`utf8mb4_uca1400_ai_ci` on MariaDB 10.10 and later),
-which MariaDB 10.5 and MySQL 8 do not have; the migration picks the collation
-by server version, a static baseline cannot.
+On MySQL, `attribute_values` is created with `innodb_ft_enable_stopword` off,
+as the migration that rebuilt its FULLTEXT index did: InnoDB takes the session's
+stopword setting when it builds the index. Its collation is rendered as
+`utf8mb4_unicode_520_ci` whatever the reference server used (noted when it
+differs): the migration picks the collation by server version, which a static
+baseline cannot, and every supported MySQL and MariaDB server has this one.
 
 The ledger is seeded automatically: `schema_migrations` is a seed table, so
 whatever the reference recorded as applied is carried across. So are the
