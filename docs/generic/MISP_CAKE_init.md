@@ -192,6 +192,14 @@ coreCAKE () {
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_include_attachments" false
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
 
+  # Multiple Sharing Group Distribution Plugin settings
+  # See more: https://github.com/tetrapi/mim-misp-sharing-group-plugin-boilerplate
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.MsgdPlug_enabled" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.MsgdPlug_use_ids" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.MsgdPlug_debug" false
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.MsgdPlug_controller_whitelist" "*"
+  ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "Plugin.MsgdPlug_user_permissions_whitelist" "none"
+
   # Force defaults to make MISP Server Settings less RED
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.language" "eng"
   ${SUDO_WWW} ${RUN_PHP} -- ${CAKE} Admin setSetting "MISP.proposals_block_attributes" false

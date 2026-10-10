@@ -641,6 +641,14 @@ error_check "Background workers setup"
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_include_attachments" false &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false &>> $logfile
 
+  # Multiple Sharing Group Distribution Plugin settings
+  # See more: https://github.com/tetrapi/mim-misp-sharing-group-plugin-boilerplate
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.MsgdPlug_enabled" false &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.MsgdPlug_use_ids" false &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.MsgdPlug_debug" false &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.MsgdPlug_controller_whitelist" "*" &>> $logfile
+  sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "Plugin.MsgdPlug_user_permissions_whitelist" "none" &>> $logfile
+
   # Force defaults to make MISP Server Settings less RED
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.language" "eng" &>> $logfile
   sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.proposals_block_attributes" false &>> $logfile
