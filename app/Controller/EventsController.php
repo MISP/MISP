@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('GalaxyColour', 'Tools');
 App::uses('ExtensionEventColour', 'Tools');
+App::uses('EventIndexSyncTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -813,7 +814,7 @@ class EventsController extends AppController
         // list the events
         $urlparams = "";
         $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal', 'value', 'is_extension', 'is_extended', 'include_event_tags_fingerprint');
-        $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
+        $paginationParams = array('limit', 'page', 'sort', 'direction', 'order', 'sync_cursor', 'cursor');
         $passedArgs = $this->passedArgs;
 
         if (!empty($this->request->data)) {
@@ -848,8 +849,11 @@ class EventsController extends AppController
 
         // for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
         if ($this->_isRest()) {
-            if ($nothing) {
+            if ($nothing && empty($passedArgs['sync_cursor'])) {
                 return $this->RestResponse->viewData([], $this->response->type(), false, false, false, ['X-Result-Count' => 0]);
+            }
+            if ($nothing) {
+                $this->paginate['conditions']['AND'][] = ['Event.id' => -1];
             }
             return $this->__indexRestResponse($passedArgs);
         }
@@ -942,6 +946,13 @@ class EventsController extends AppController
 
         $fieldNames = $this->Event->schema();
         $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
+        $cursorMode = !empty($passedArgs['sync_cursor']);
+        if ($cursorMode && (!$minimal || !$this->userRole['perm_sync'] ||
+            $this->response->type() !== 'application/json')) {
+            throw new BadRequestException(
+                'Cursor pagination requires a minimal JSON sync index.'
+            );
+        }
         $includeEventTagsFingerprint = !empty($passedArgs['searchinclude_event_tags_fingerprint']) || !empty($passedArgs['include_event_tags_fingerprint']);
         if ($minimal) {
             $contain = ['Orgc.uuid'];
@@ -992,7 +1003,75 @@ class EventsController extends AppController
             }
         }
 
-        if (empty($rules['limit'])) {
+        $pagination = null;
+        if ($cursorMode) {
+            $limit = EventIndexSyncTool::resultCount($rules['limit'] ?? 10000);
+            if ($limit === null || $limit === 0) {
+                throw new BadRequestException('Invalid event index page size.');
+            }
+            $limit = min($limit, EventIndexSyncTool::MAX_PAGE_SIZE);
+            $scopeArgs = $passedArgs;
+            unset($scopeArgs['cursor'], $scopeArgs['page'], $scopeArgs['sort'],
+                $scopeArgs['direction'], $scopeArgs['order']);
+            $scopeArgs['limit'] = $limit;
+            $scopeArgs['user_id'] = $this->Auth->user('id');
+            $scope = EventIndexSyncTool::requestHash($scopeArgs);
+            $secret = Configure::read('Security.salt');
+            if (!is_string($secret) || $secret === '') {
+                throw new RuntimeException('Missing instance security salt.');
+            }
+            $after = 0;
+            if (isset($passedArgs['cursor']) && $passedArgs['cursor'] !== '') {
+                try {
+                    $state = EventIndexSyncTool::decodeCursor(
+                        $passedArgs['cursor'], $scope, $secret
+                    );
+                } catch (Exception $e) {
+                    throw new BadRequestException('Invalid event index cursor.');
+                }
+                $after = $state['after'];
+                $upperBound = $state['upper_bound'];
+            } else {
+                // One indexed high-water query per scan, not a total per page.
+                $last = $this->Event->find('first', [
+                    'recursive' => -1, 'contain' => false,
+                    'conditions' => $rules['conditions'] ?? [],
+                    'fields' => ['Event.id'], 'order' => ['Event.id' => 'DESC'],
+                ]);
+                $upperBound = empty($last) ? 0 : (int)$last['Event']['id'];
+            }
+            unset($rules['page'], $rules['offset']);
+            $rules['conditions']['AND'][] = [
+                'Event.id >' => $after, 'Event.id <=' => $upperBound,
+            ];
+            $rules['order'] = ['Event.id' => 'ASC'];
+            $rules['limit'] = $limit + 1;
+            $events = $this->Event->find('all', $rules);
+            $hasMore = count($events) > $limit;
+            if ($hasMore) {
+                array_pop($events); // never consume the lookahead row
+            }
+            if (!empty($events)) {
+                $after = (int)$events[count($events) - 1]['Event']['id'];
+            }
+            $pagination = [
+                'version' => 1, 'limit' => $limit, 'after' => $after,
+                'upper_bound' => $upperBound, 'has_more' => $hasMore,
+                'next_cursor' => $hasMore ? EventIndexSyncTool::encodeCursor(
+                    $after, $upperBound, $scope, $secret
+                ) : null,
+            ];
+        } else {
+            // Old pull clients expect full pages of eligible events. Apply the
+            // same key eligibility before COUNT/LIMIT, without hydrating IDs.
+            if (!$skipProtected) {
+                $rules['conditions']['AND'][] =
+                    $this->Event->CryptographicKey->eventIndexConditions();
+            }
+        }
+
+        // The cursor query above supplies continuation without COUNT(*).
+        if (!$cursorMode && empty($rules['limit'])) {
             $events = [];
             $i = 1;
             $rules['limit'] = 20000;
@@ -1009,7 +1088,7 @@ class EventsController extends AppController
             }
             unset($temp);
             $absoluteTotal = count($events);
-        } else {
+        } elseif (!$cursorMode) {
             $counting_rules = $rules;
             unset($counting_rules['limit']);
             unset($counting_rules['page']);
@@ -1139,6 +1218,12 @@ class EventsController extends AppController
             $events = $export->eventIndex($events);
         }
 
+        if ($cursorMode) {
+            // ETag covers continuation even when every candidate was filtered.
+            return $this->RestResponse->viewData([
+                'events' => $events, 'pagination' => $pagination,
+            ], 'json');
+        }
         return $this->RestResponse->viewData($events, $this->response->type(), false, false, false, ['X-Result-Count' => $absoluteTotal]);
     }
 
