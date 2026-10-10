@@ -1,21 +1,15 @@
 <?php
 // Standalone (full-page) header — ignored when loaded as an ajax tab fragment.
 $this->set('headerTitle', __('Collections on TAXII Server #%s', h($id)));
-?>
-<div class="row mb-4 mt-2">
-    <div class="col-12">
-        <div class="d-flex flex-column p-4">
-            <h5 class="mb-1 fw-bold text-primary-emphasis">
-                <?= __('Collections') ?>
-            </h5>
-            <p class="mb-0 text-secondary-emphasis">
-                <?= __('The collections advertised by the remote TAXII server.') ?>
-            </p>
-        </div>
-    </div>
-</div>
+$this->set('headerDescription', __('The collections advertised by the remote TAXII server.'));
 
-<?php
+if (!empty($remoteNotice)) {
+    echo $this->element('TaxiiServers/View/taxiiServers_remote_notice', [
+        'notice' => $remoteNotice,
+    ]);
+    return;
+}
+
 $fields = [
     [
         'name' => __('ID'),

@@ -3,7 +3,7 @@
 $headerTitle = __('Event Report Template Variables');
 
 // Description displayed under the title in the header section, leave empty if not needed
-$headerDescription = __('View the variables which can be used in an Event Report. These variables can be used to insert dynamic content into your reports, such as lists of attributes, event details, or any other information relevant to the report.');
+$headerDescription = __('Reusable snippets you can drop into an Event Report. Type the token anywhere in a report and it is replaced by the content defined here.');
 
 // Actions displayed as buttons in the header section, leave empty if not needed
 $headerActions = [];
@@ -29,15 +29,14 @@ $fields = [
     ],
     [
         'name' => __('ID'),
-        'sort' => 'EventReportTemplateVariable.id',
+        'sort' => 'id',
         'data_path' => 'EventReportTemplateVariable.id',
         'element' => 'id',
-        //'url' => $baseurl . '/eventReportTemplateVariables/view/%id%',
         'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table', 'card'],
     ],
     [
-        'name' => __('Name'),
+        'name' => __('Variable'),
         'sort' => 'EventReportTemplateVariable.name',
         'data_path' => 'EventReportTemplateVariable.name',
         'element' => 'event_report_template_name',
@@ -45,29 +44,11 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
-
-        'name' => __('Value'),
+        'name' => __('Expands to'),
         'sort' => 'EventReportTemplateVariable.value',
         'data_path' => 'EventReportTemplateVariable.value',
-        'element' => 'custom',
-        'function' => function (array $templateVariable) {
-            $text = $templateVariable['EventReportTemplateVariable']['value'];
-            $maxLength = 1000;
-            $maxLines = 20;
-            $truncated = false;
-            if (mb_strlen($text) > $maxLength) {
-                $text = mb_substr($text, 0, $maxLength);
-                $truncated = true;
-            }
-            if (substr_count($text, "\n") > $maxLines) {
-                $lines = explode("\n", $text);
-                $text = implode("\n", array_slice($lines, 0, $maxLines));
-                $truncated = true;
-            }
-            $text = !$truncated ? $text : $text . ' …';
-            return sprintf('<pre class="mb-0">%s</pre>', h($text));
-        },
-        'card_section' => 'tag',
+        'element' => 'event_report_template_value',
+        'card_section' => 'body',
         'display_in' => ['table', 'card']
     ],
     [
@@ -114,7 +95,95 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'delete' => '/deleteSelection',
             ],
             'fields' => $fields,
+            'card_element' => 'EventReportTemplateVariables/variable_card',
+            'cards_per_row' => 3,
         ]
     ],
     'item_url' => '/EventReportTemplateVariables'
 ]);
+?>
+
+<script>
+/*
+ * Two interactions, both delegated on document because the table view and the
+ * card view are in the DOM at the same time and the filter bar re-renders the
+ * index in place.
+ *
+ *   - clicking a token copies `{{name}}`, which is the only thing anyone ever
+ *     wants from this page;
+ *   - a clipped code block gets a Show more / Show less toggle.
+ *
+ * The toggle is rendered hidden and revealed here rather than guessed in PHP:
+ * whether four lines of wrapped text overflow a 3-line clamp depends on the
+ * column width, which only the browser knows.
+ */
+(function () {
+    'use strict';
+
+    function revealToggles(root) {
+        (root || document).querySelectorAll('.erv-value').forEach(function (box) {
+            var code = box.querySelector('.erv-code');
+            var more = box.querySelector('.erv-more');
+            if (!code || !more || box.classList.contains('is-open')) {
+                return;
+            }
+            var clipped = code.scrollHeight > code.clientHeight + 2;
+            // .is-clipped drives the bottom fade as well as the toggle: a block
+            // that stops short of the clamp must not look cut off.
+            box.classList.toggle('is-clipped', clipped);
+            more.classList.toggle('d-none', !clipped);
+        });
+    }
+
+    /*
+     * The delegated listeners live on document, so a re-rendered index fragment
+     * would stack a second copy of each and copy twice per click. Measuring, on
+     * the other hand, has to run again on every render.
+     */
+    if (window.__ervListenersWired) {
+        revealToggles();
+        return;
+    }
+    window.__ervListenersWired = true;
+
+    document.addEventListener('click', function (e) {
+        var token = e.target.closest('.erv-token');
+        if (token) {
+            copyValueToClipboard(token.dataset.ervCopy, 'Variable copied to clipboard');
+            return;
+        }
+
+        var more = e.target.closest('.erv-more');
+        if (!more) {
+            return;
+        }
+        var box = more.closest('.erv-value');
+        var open = box.classList.toggle('is-open');
+        more.querySelector('.erv-more-label').textContent = open ? 'Show less' : 'Show more';
+    });
+
+    // Space/Enter on a token, which is a <span role="button">.
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') {
+            return;
+        }
+        var token = e.target.closest('.erv-token');
+        if (!token) {
+            return;
+        }
+        e.preventDefault();
+        copyValueToClipboard(token.dataset.ervCopy, 'Variable copied to clipboard');
+    });
+
+    document.addEventListener('DOMContentLoaded', function () { revealToggles(); });
+    // The card view starts in a d-none container, so nothing in it has a height
+    // to measure until the first switch.
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('#viewList, #viewCard')) {
+            window.setTimeout(revealToggles, 0);
+        }
+    });
+    window.addEventListener('resize', function () { revealToggles(); });
+    revealToggles();
+}());
+</script>

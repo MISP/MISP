@@ -1,5 +1,5 @@
 <?php
-echo $this->element('genericElementsBS5/Forms/confirmationForm', array(
+echo $this->element('genericElementsBS5/Modals/confirmation_form', array(
     'title' => __('Recorrelate the instance'),
     'model' => 'MISPAttribute',
     'url' => $baseurl . '/attributes/generateCorrelation',

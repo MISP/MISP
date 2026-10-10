@@ -148,11 +148,9 @@ if ($field['data_path'] === 'Event.id') {
                             $url = str_replace(['%action%', '%id%'], [$toggleAction, $id], $url);
                         ?>
                         <?php if ($label === "Publish" || $label === "Unpublish"): ?>
-                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','sm');">
-                                <div>
-                                    <?= $renderIcon($iconClass) ?>
-                                    <?= h($label) ?>
-                                </div>
+                            <a class="dropdown-item" href="<?= h($url) ?>" onclick="event.preventDefault(); openModal('<?= h($url) ?>','md');">
+                                <?= $renderIcon($iconClass) ?>
+                                <?= h($label) ?>
                             </a>
                         <?php else: ?>
                             <?= $this->Form->postLink(
@@ -171,7 +169,8 @@ if ($field['data_path'] === 'Event.id') {
                         if (!empty($action['size'])) {
                             $onclick = "event.preventDefault(); openModal('$url', '" . $action['size'] . "');";
                         } elseif ($action['label'] === __('Delete') || $action['label'] === __('Soft Delete') || $action['label'] === __('Restore')) {
-                            $onclick = "event.preventDefault(); openModal('$url', 'sm');";
+                            // A confirmation: the class-less 500px medium, see setModalSize().
+                            $onclick = "event.preventDefault(); openModal('$url', 'md');";
                         } else {
                             $onclick = "event.preventDefault(); openModal('$url');";
                         }
@@ -192,10 +191,8 @@ if ($field['data_path'] === 'Event.id') {
                         <a class="<?= trim('dropdown-item ' . ($action['class'] ?? '')) ?>"
                            href="#"
                            onclick="event.preventDefault(); <?= h($onclick) ?>">
-                            <div>
                                 <?= $renderIcon($action['icon']) ?>
                                 <?= h($action['label']) ?>
-                            </div>
                         </a>
 
                     <?php elseif ($action['type'] === 'copy'): ?>
@@ -206,10 +203,8 @@ if ($field['data_path'] === 'Event.id') {
                         <a class="dropdown-item <?= h($action['class'] ?? '') ?>"
                            href="#"
                            onclick="event.preventDefault(); copyValueToClipboard('<?= h($copyValue) ?>', '<?= h($copyMessage) ?>');">
-                            <div>
-                                <?= $renderIcon($action['icon']) ?>
-                                <?= h($action['label']) ?>
-                            </div>
+                            <?= $renderIcon($action['icon']) ?>
+                            <?= h($action['label']) ?>
                         </a>
 
                     <?php elseif ($action['type'] === 'postLink'): ?>

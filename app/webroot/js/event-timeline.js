@@ -453,6 +453,7 @@ function reload_timeline() {
     var payload = {scope: selectedScope};
     $.ajax({
         url: baseurl + "/events/"+"getEventTimeline"+"/"+scope_id+extended_text+"/event.json",
+        headers: {'X-CSRF-Token': (window.csrfToken || '')},
         dataType: 'json',
         type: 'post',
         contentType: 'application/json',

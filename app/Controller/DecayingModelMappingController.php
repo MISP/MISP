@@ -49,9 +49,18 @@ class DecayingModelMappingController extends AppController
             }
 
             $response = $this->DecayingModelMapping->resetMappingForModel($this->request->data['DecayingModelMapping'], $this->Auth->user());
+            if ($this->theme === 'Overmind' && !$this->_isRest() && !$this->request->is('ajax')) {
+                if (empty($response)) {
+                    $this->Flash->error(__('The attribute type mapping could not be saved.'));
+                } else {
+                    $this->Flash->success(__('The attribute type mapping has been saved.'));
+                }
+                return $this->redirect(array('controller' => 'decayingModel', 'action' => 'view', $model_id));
+            }
             return $this->RestResponse->viewData($response, $this->response->type());
         } else {
             $this->set('model_id', $model_id);
+            $this->set('model', $model['DecayingModel']);
             if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
                 $this->layout = false;
             }

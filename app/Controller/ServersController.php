@@ -41,6 +41,11 @@ class ServersController extends AppController
 
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'cspReport';
+        // updateJSON and aiDryRun are only ever reached by the settings page's
+        // hand-built AJAX, which has no rendered form behind it to produce the
+        // field hash _validatePost() compares against. They send the page's
+        // CSRF token in the X-CSRF-Token header instead.
+        $this->_csrfTokenHeaderOnly(['updateJSON', 'aiDryRun']);
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
             case 'push':
@@ -58,12 +63,18 @@ class ServersController extends AppController
         unset($fields['authkey']);
         $fields = array_keys($fields);
 
-        $filters = $this->IndexFilter->harvestParameters(['search']);
+        $filters = $this->IndexFilter->harvestParameters(['search', 'internal', 'push', 'pull']);
         $conditions = [];
         if (!empty($filters['search'])) {
             $strSearch = '%' . trim(strtolower($filters['search'])) . '%';
             $conditions['OR'][]['LOWER(Server.name) LIKE'] = $strSearch;
             $conditions['OR'][]['LOWER(Server.url) LIKE'] = $strSearch;
+        }
+        // For index's "More filters" panel
+        foreach (['internal', 'push', 'pull'] as $flag) {
+            if (isset($filters[$flag]) && $filters[$flag] !== '') {
+                $conditions['Server.' . $flag] = (int)$filters[$flag];
+            }
         }
 
         if ($this->_isRest()) {
@@ -1007,6 +1018,7 @@ class ServersController extends AppController
      */
     public function pull($id = null, $technique = 'full')
     {
+        $this->request->allowMethod(['post']);
         if (empty($id)) {
             if (!empty($this->request->data['id'])) {
                 $id = $this->request->data['id'];
@@ -1090,6 +1102,7 @@ class ServersController extends AppController
 
     public function push($id = null, $technique=false)
     {
+        $this->request->allowMethod(['post']);
         if (!empty($id)) {
             $this->Server->id = $id;
         } else if (!empty($this->request->data['id'])) {
@@ -1277,8 +1290,13 @@ class ServersController extends AppController
         }
         $this->set('subGroup', $subGroup);
 
-        // Overmind swaps the edited row in place with its own BS5 markup.
         if ($this->theme === 'Overmind') {
+            $this->set('variant', $this->request->query('variant') === 'essential' ? 'essential' : 'standard');
+            $this->set('rowDestination', (string)$this->request->query('dest'));
+            $this->set('rowDestinationTitle', (string)$this->request->query('destTitle'));
+            $this->set('label', (string)$this->request->query('label'));
+            App::uses('ServerSettingGroups', 'Tools');
+            $this->set('setting', ServerSettingGroups::markModule($result, (string)$this->request->query('module')));
             return $this->render('/Elements/healthElementsBS5/setting_row');
         }
 
@@ -1291,12 +1309,8 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('Just GET method is allowed.');
         }
 
-        App::uses('ServerSettingGroups', 'Tools');
-        if ($this->theme === 'Overmind' && $tab !== 'download') {
-            $tabRequired = $tab !== false || $this->request->is('ajax');
-            if ($tabRequired && !ServerSettingGroups::isKnownTab($tab)) {
-                throw new NotFoundException(__('Unknown server settings section.'));
-            }
+        if ($this->theme === 'Overmind' && $tab !== 'download' && !$this->_isRest()) {
+            return $this->__overmindServerSettings($tab);
         }
 
         $tabs = array(
@@ -1305,22 +1319,11 @@ class ServersController extends AppController
             'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+            'AI' => array('count' => 0, 'errors' => 0, 'severity' => 5),
             'SimpleBackgroundJobs' => array('count' => 0, 'errors' => 0, 'severity' => 5)
         );
 
-        $writeableErrors = array(0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable'));
-        $readableErrors = array(0 => __('OK'), 1 => __('not readable'));
-        $gpgErrors = array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed'));
-        $proxyErrors = array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed'));
-        $zmqErrors = array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.'));
-        $sessionErrors = array(
-            0 => __('OK'),
-            1 => __('Too many expired sessions in the database, please clear the expired sessions'),
-            2 => __('PHP session handler is using the default file storage. This is not recommended, please use the redis or database storage'),
-            8 => __('Alternative setting used'),
-            9 => __('Test failed')
-        );
-        $moduleErrors = array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found'));
+        extract($this->__diagnosticLabels());
         $backgroundJobsErrors = array(
             0 => __('OK'),
             1 => __('Not configured (so not tested)'),
@@ -1393,6 +1396,9 @@ class ServersController extends AppController
             }
             $files = $this->Server->grabFiles();
             $this->set('files', $files);
+        } else if ($tab === 'AI') {
+            $this->loadModel('Module');
+            $this->set('aiModuleStatus', $this->Module->aiStatus());
         }
 
         // Only run this check on the diagnostics tab
@@ -1416,36 +1422,7 @@ class ServersController extends AppController
             $this->set('latestCommit', $gitStatus['latestCommit']);
             $this->set('version', $gitStatus['version']);
 
-            $phpSettings = array(
-                'max_execution_time' => array(
-                    'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
-                    'recommended' => 300,
-                    'unit' => 'seconds',
-                ),
-                'memory_limit' => array(
-                    'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
-                    'recommended' => 2048,
-                    'unit' => 'MB'
-                ),
-                'upload_max_filesize' => array(
-                    'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
-                    'recommended' => 50,
-                    'unit' => 'MB'
-                ),
-                'post_max_size' => array(
-                    'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
-                    'recommended' => 50,
-                    'unit' => 'MB'
-                )
-            );
-
-            foreach ($phpSettings as $setting => $settingArray) {
-                $phpSettings[$setting]['value'] = $this->Server->getIniSetting($setting);
-                if ($phpSettings[$setting]['value'] && $settingArray['unit'] && $settingArray['unit'] === 'MB') {
-                    // convert basic unit to M
-                    $phpSettings[$setting]['value'] = (int) floor($phpSettings[$setting]['value'] / 1024 / 1024);
-                }
-            }
+            $phpSettings = $this->__phpSettings();
             $this->set('phpSettings', $phpSettings);
 
             if ($gitStatus['version'] && $gitStatus['version']['upToDate'] === 'older') {
@@ -1476,7 +1453,7 @@ class ServersController extends AppController
 
             $redisInfo = $this->Server->redisInfo();
 
-            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+            $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex', 'AI');
             foreach ($moduleTypes as $type) {
                 $moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
             }
@@ -1519,7 +1496,7 @@ class ServersController extends AppController
         $this->set('worker_array', $worker_array);
         if ($tab === 'download' || $this->_isRest()) {
             foreach ($dumpResults as $key => $dr) {
-                unset($dumpResults[$key]['description']);
+                unset($dumpResults[$key]['description'], $dumpResults[$key]['modified']);
             }
             $dump = array(
                 'version' => $gitStatus['version'],
@@ -1562,16 +1539,438 @@ class ServersController extends AppController
         $this->set('phprec', $this->phprec);
         $this->set('phptoonew', $this->phptoonew);
         $this->set('title_for_layout', __('Diagnostics'));
+    }
 
-        /*
-         * Overmind renders the page as a shell (health cards + tab bar) and
-         * pulls the content of each tab over ajax from this very action, so an
-         * XHR gets the bare fragment for $tab instead of the whole page.
-         */
-        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
+    /**
+     * Overmind's server settings: a navigation of destinations (see
+     * ServerSettingGroups::destinations()), each answering both as a full
+     * page and, for an XHR, as the bare fragment the navigation swaps in.
+     * Nothing slow runs here: the health checks are fetched one by one from
+     * serverDiagnostic().
+     *
+     * @param string|false $tab A destination id, or one of the former tab names
+     */
+    private function __overmindServerSettings($tab)
+    {
+        App::uses('ServerSettingGroups', 'Tools');
+        App::uses('ServerHealthProbes', 'Tools');
+        $isAjax = $this->request->is('ajax');
+
+        $settings = $this->Server->serverSettingsRead();
+        foreach ($settings as $key => $setting) {
+            if (isset($setting['optionsSource']) && is_callable($setting['optionsSource'])) {
+                $settings[$key]['options'] = $setting['optionsSource']();
+            }
+        }
+        $routed = ServerSettingGroups::byDestination($settings);
+        $destinations = ServerSettingGroups::destinations($routed['subGroups']);
+
+        if ($tab === 'searchIndex' && $isAjax) {
+            return $this->RestResponse->viewData($this->__settingsSearchIndex($routed['sections'], $destinations), 'json');
+        }
+
+        $destination = ServerSettingGroups::resolve($tab, $routed['subGroups']);
+        if ($destination === false) {
+            throw new NotFoundException(__('Unknown server settings section.'));
+        }
+        if ($tab !== false && $tab !== $destination && !$isAjax) {
+            return $this->redirect('/servers/serverSettings/' . $destination);
+        }
+        $definition = $destinations[$destination];
+        if ($definition['kind'] === 'files' && !empty(Configure::read('Security.disable_instance_file_uploads'))) {
+            throw new MethodNotAllowedException(__('This functionality is disabled.'));
+        }
+
+        $counters = array();
+        foreach ($routed['sections'] as $id => $sections) {
+            $counters[$id] = ServerSettingGroups::counters($sections);
+        }
+        $counters['integrations'] = array(0 => 0, 1 => 0, 2 => 0);
+        foreach ($destinations as $id => $entry) {
+            if (isset($entry['parent'], $counters[$id])) {
+                foreach ($counters[$id] as $level => $count) {
+                    $counters['integrations'][$level] += $count;
+                }
+            }
+        }
+
+        if ($definition['kind'] === 'overview') {
+            $this->set($this->__settingsOverview($routed['sections'], $destinations));
+        } elseif ($definition['kind'] === 'correlations') {
+            $this->loadModel('Correlation');
+            $this->set('correlation_metrics', $this->Correlation->collectMetrics());
+        } elseif ($definition['kind'] === 'files') {
+            $this->set('files', $this->Server->grabFiles());
+        } elseif ($destination === 'ai') {
+            $this->loadModel('Module');
+            $this->set('aiModuleStatus', $this->Module->aiStatus());
+        }
+
+        $this->set('destination', $destination);
+        $this->set('definition', $definition);
+        $this->set('destinations', $destinations);
+        $this->set('sectionsByDestination', $routed['sections']);
+        $this->set('counters', $counters);
+        $this->set('healthVerdicts', ServerHealthProbes::cached(array_keys(ServerHealthProbes::probes())));
+        $this->set('configWriteable', Configure::read('MISP.system_setting_db') || is_writable(APP . 'Config/config.php'));
+        $this->set('title_for_layout', __('Server Settings'));
+
+        if ($isAjax) {
             $this->layout = false;
             return $this->render('/Servers/ajax/server_settings_tab');
         }
+    }
+
+    /**
+     * @param array $sectionsByDestination
+     * @param array $destinations
+     * @return array View variables of the Overview: problems, essentials, counts
+     */
+    private function __settingsOverview(array $sectionsByDestination, array $destinations)
+    {
+        $essentialNames = ServerSettingGroups::essentials();
+        $problems = array();
+        $essentials = array();
+        $issueCounts = array(0 => 0, 1 => 0, 2 => 0);
+        foreach ($sectionsByDestination as $destination => $sections) {
+            foreach ($sections as $section) {
+                foreach ($section['settings'] as $setting) {
+                    if (isset($essentialNames[$setting['setting']])) {
+                        $essentials[$setting['setting']] = $setting;
+                    }
+                    if (!ServerSettingGroups::inError($setting)) {
+                        continue;
+                    }
+                    $issueCounts[$setting['level']]++;
+                    if ($setting['level'] < 2) {
+                        $problems[] = array('setting' => $setting, 'destination' => $destination);
+                    }
+                }
+            }
+        }
+        usort($problems, function ($a, $b) {
+            return $a['setting']['level'] <=> $b['setting']['level'];
+        });
+        $ordered = array();
+        foreach ($essentialNames as $name => $label) {
+            if (isset($essentials[$name])) {
+                $ordered[] = $essentials[$name];
+            }
+        }
+        return array('problems' => $problems, 'essentials' => $ordered, 'issueCounts' => $issueCounts);
+    }
+
+    /**
+     * What the global settings search looks through: every listed setting with
+     * the page it lives on.
+     *
+     * @param array $sectionsByDestination
+     * @param array $destinations
+     * @return array
+     */
+    private function __settingsSearchIndex(array $sectionsByDestination, array $destinations)
+    {
+        $index = array();
+        foreach ($sectionsByDestination as $destination => $sections) {
+            foreach ($sections as $section) {
+                foreach ($section['settings'] as $setting) {
+                    $description = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string)$setting['description']), ENT_QUOTES)));
+                    $index[] = array(
+                        'name' => $setting['setting'],
+                        'description' => mb_substr($description, 0, 200),
+                        'destination' => $destination,
+                        'destinationTitle' => $destinations[$destination]['title'],
+                        'tier' => ServerSettingGroups::tier($setting),
+                        'level' => (int)$setting['level'],
+                        'error' => ServerSettingGroups::inError($setting),
+                        'module' => isset($setting['module']) ? $setting['module'] : null,
+                    );
+                }
+            }
+        }
+        return $index;
+    }
+
+    /**
+     * One health check of the server settings page, run on its own so a slow
+     * probe never holds the others back. Answers the probe's card, or with
+     * `?summary=1` only its verdict (Overview tiles, navigation dots).
+     *
+     * @param string|null $probe See ServerHealthProbes::probes()
+     */
+    public function serverDiagnostic($probe = null)
+    {
+        if (!$this->request->is('get')) {
+            throw new MethodNotAllowedException(__('Just GET method is allowed.'));
+        }
+        App::uses('ServerHealthProbes', 'Tools');
+        if ($this->theme !== 'Overmind' || !ServerHealthProbes::isKnown($probe)) {
+            throw new NotFoundException(__('Unknown diagnostic.'));
+        }
+        // The probes of a page run in parallel; a locked session would queue them.
+        session_write_close();
+
+        $data = $this->__diagnosticData($probe);
+        $verdict = ServerHealthProbes::store($probe, ServerHealthProbes::verdict($probe, $data));
+        if ($this->request->query('summary')) {
+            return $this->RestResponse->viewData($verdict, 'json');
+        }
+        $this->set($data);
+        $this->set('probe', $probe);
+        $this->set('verdict', $verdict);
+        $this->layout = false;
+        return $this->render('/Servers/ajax/server_diagnostic');
+    }
+
+    /**
+     * @param string $probe
+     * @return array The data the probe's verdict and card are built from
+     */
+    private function __diagnosticData($probe)
+    {
+        App::uses('File', 'Utility');
+        App::uses('Folder', 'Utility');
+        $errors = 0;
+        $labels = $this->__diagnosticLabels();
+        switch ($probe) {
+            case 'version':
+                $gitStatus = $this->Server->getCurrentGitStatus(true);
+                return array(
+                    'branch' => $gitStatus['branch'],
+                    'commit' => $gitStatus['commit'],
+                    'latestCommit' => $gitStatus['latestCommit'],
+                    'version' => $gitStatus['version'],
+                );
+            case 'php':
+                return array(
+                    'phpSettings' => $this->__phpSettings(),
+                    'extensions' => $this->Server->extensionDiagnostics(),
+                    'phpversion' => PHP_VERSION,
+                    'phpmin' => $this->phpmin,
+                    'phprec' => $this->phprec,
+                    'phptoonew' => $this->phptoonew,
+                    'php_ini' => php_ini_loaded_file(),
+                );
+            case 'filesystem':
+                return array(
+                    'writeableDirs' => $this->Server->writeableDirsDiagnostics($errors),
+                    'writeableFiles' => $this->Server->writeableFilesDiagnostics($errors),
+                    'readableFiles' => $this->Server->readableFilesDiagnostics($errors),
+                    'writeableErrors' => $labels['writeableErrors'],
+                    'readableErrors' => $labels['readableErrors'],
+                );
+            case 'dbSchema':
+                return array(
+                    'dbSchemaDiagnostics' => $this->Server->dbSchemaDiagnostic(),
+                    'dbEncodingStatus' => $this->Server->databaseEncodingDiagnostics($errors),
+                );
+            case 'dbSpace':
+                return array('dbDiagnostics' => $this->Server->dbSpaceUsage());
+            case 'dbConfig':
+                return array('dbConfiguration' => $this->Server->dbConfiguration());
+            case 'redis':
+                return array('redisInfo' => $this->Server->redisInfo());
+            case 'workers':
+                $issues = 0;
+                return array('worker_array' => Configure::read('MISP.background_jobs')
+                    ? $this->Server->workerDiagnostics($issues)
+                    : array());
+            case 'services':
+                $attachmentTool = new AttachmentTool();
+                try {
+                    $advancedAttachments = $attachmentTool->checkAdvancedExtractionStatus();
+                } catch (Exception $e) {
+                    $this->log($e->getMessage(), LOG_NOTICE);
+                    $advancedAttachments = false;
+                }
+                $this->loadModel('AttachmentScan');
+                try {
+                    $attachmentScan = array('status' => true, 'software' => $this->AttachmentScan->diagnostic());
+                } catch (Exception $e) {
+                    $attachmentScan = array('status' => false, 'error' => $e->getMessage());
+                }
+                return array_merge($labels, array(
+                    'gpgStatus' => $this->Server->gpgDiagnostics($errors),
+                    'proxyStatus' => $this->Server->proxyDiagnostics($errors),
+                    'zmqStatus' => $this->Server->zmqDiagnostics($errors),
+                    'sessionStatus' => $this->Server->sessionDiagnostics($errors),
+                    'yaraStatus' => $this->Server->yaraDiagnostics($errors),
+                    'attachmentScan' => $attachmentScan,
+                    'advanced_attachments' => $advancedAttachments,
+                ));
+            case 'modules':
+                $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex', 'AI');
+                $moduleStatus = array();
+                foreach ($moduleTypes as $type) {
+                    $moduleStatus[$type] = $this->Server->moduleDiagnostics($errors, $type);
+                }
+                return array(
+                    'moduleTypes' => $moduleTypes,
+                    'moduleStatus' => $moduleStatus,
+                    'moduleErrors' => $labels['moduleErrors'],
+                );
+            case 'stix':
+                return array('stix' => $this->Server->stixDiagnostics($errors));
+            case 'audit':
+                return array('securityAudit' => (new SecurityAudit())->run($this->Server));
+        }
+        throw new NotFoundException(__('Unknown diagnostic.'));
+    }
+
+    /**
+     * @return array Messages for the status codes the Server diagnostics return
+     */
+    private function __diagnosticLabels()
+    {
+        return array(
+            'writeableErrors' => array(0 => __('OK'), 1 => __('not found'), 2 => __('is not writeable')),
+            'readableErrors' => array(0 => __('OK'), 1 => __('not readable')),
+            'gpgErrors' => array(0 => __('OK'), 1 => __('FAIL: settings not set'), 2 => __('FAIL: Failed to load GnuPG'), 3 => __('FAIL: Issues with the key/passphrase'), 4 => __('FAIL: sign failed')),
+            'proxyErrors' => array(0 => __('OK'), 1 => __('not configured (so not tested)'), 2 => __('Getting URL via proxy failed')),
+            'zmqErrors' => array(0 => __('OK'), 1 => __('not enabled (so not tested)'), 2 => __('Python ZeroMQ library not installed correctly.'), 3 => __('ZeroMQ script not running.')),
+            'sessionErrors' => array(
+                0 => __('OK'),
+                1 => __('Too many expired sessions in the database, please clear the expired sessions'),
+                2 => __('PHP session handler is using the default file storage. This is not recommended, please use the redis or database storage'),
+                8 => __('Alternative setting used'),
+                9 => __('Test failed')
+            ),
+            'moduleErrors' => array(0 => __('OK'), 1 => __('System not enabled'), 2 => __('No modules found')),
+        );
+    }
+
+    /**
+     * @return array PHP limits with their current value and the recommended one
+     */
+    private function __phpSettings()
+    {
+        $phpSettings = array(
+            'max_execution_time' => array(
+                'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
+                'recommended' => 300,
+                'unit' => 'seconds',
+            ),
+            'memory_limit' => array(
+                'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
+                'recommended' => 2048,
+                'unit' => 'MB'
+            ),
+            'upload_max_filesize' => array(
+                'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
+                'recommended' => 50,
+                'unit' => 'MB'
+            ),
+            'post_max_size' => array(
+                'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
+                'recommended' => 50,
+                'unit' => 'MB'
+            )
+        );
+        foreach ($phpSettings as $setting => $settingArray) {
+            $phpSettings[$setting]['value'] = $this->Server->getIniSetting($setting);
+            if ($phpSettings[$setting]['value'] && $settingArray['unit'] && $settingArray['unit'] === 'MB') {
+                // convert basic unit to M
+                $phpSettings[$setting]['value'] = (int) floor($phpSettings[$setting]['value'] / 1024 / 1024);
+            }
+        }
+        return $phpSettings;
+    }
+
+    /**
+     * Dry run of the AI module from the AI settings tab: run a use-case and
+     * hand the module's answer back. An event is only read, never modified.
+     *
+     * POST {"event_id": <id>, "use_case": "summarization_on_event" | "tag_suggest"}
+     * Answer: {"success": true, "event_id", "event_info", "use_case",
+     *          "result": {"EventReport": {name, content}} | {"Tag": [{name, exists, colour, provenance}]}}
+     *
+     * POST {"use_case": "ping"} — no event: the module checks that the LLM
+     * endpoint is reachable and serves the configured model (the Test LLM
+     * button of the status card). A dead endpoint fails only after the
+     * module's own request timeout.
+     * Answer: {"success": true, "use_case": "ping",
+     *          "result": {ok, endpoint, model: {name, server, digest, quantization}, latency_ms, models_listed, tag_suggest: {url, reachable}}}
+     */
+    public function aiDryRun()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This endpoint only accepts POST requests.'));
+        }
+        $data = isset($this->request->data['Server']) ? $this->request->data['Server'] : $this->request->data;
+        $eventId = isset($data['event_id']) ? (int)$data['event_id'] : 0;
+        $useCase = isset($data['use_case']) ? (string)$data['use_case'] : '';
+        $useCases = ['summarization_on_event', 'tag_suggest', 'ping'];
+        if (!in_array($useCase, $useCases, true) || ($useCase !== 'ping' && $eventId < 1)) {
+            return $this->RestResponse->saveFailResponse(
+                'Servers',
+                'aiDryRun',
+                false,
+                __('Expected {"event_id": <id>, "use_case": "summarization_on_event" | "tag_suggest"} or {"use_case": "ping"}.'),
+                $this->response->type()
+            );
+        }
+        $this->loadModel('Module');
+        $timeout = (int)$this->Module->aiSetting('timeout') ?: 300;
+        @set_time_limit($timeout + 30);
+        if ($useCase === 'ping') {
+            try {
+                $results = $this->Module->queryAI('ping', [], $timeout);
+            } catch (Exception $e) {
+                return $this->RestResponse->saveFailResponse('Servers', 'aiDryRun', false, $e->getMessage(), $this->response->type());
+            }
+            return $this->RestResponse->viewData([
+                'success' => true,
+                'use_case' => 'ping',
+                'result' => $results,
+            ], $this->response->type());
+        }
+        $this->loadModel('Event');
+        $event = $this->Event->fetchEventForAi($this->Auth->user(), $eventId);
+        if (empty($event)) {
+            throw new NotFoundException(__('Invalid event.'));
+        }
+        try {
+            $results = $this->Module->queryAI($useCase, $event, $timeout);
+        } catch (Exception $e) {
+            return $this->RestResponse->saveFailResponse('Servers', 'aiDryRun', false, $e->getMessage(), $this->response->type());
+        }
+        $answer = [];
+        if ($useCase === 'tag_suggest') {
+            $names = [];
+            foreach ($results['Tag'] ?? [] as $tag) {
+                if (!empty($tag['name']) && is_string($tag['name'])) {
+                    $names[] = $tag['name'];
+                }
+            }
+            $existing = empty($names) ? [] : $this->Event->EventTag->Tag->find('list', [
+                'conditions' => ['Tag.name' => $names],
+                'fields' => ['Tag.name', 'Tag.colour'],
+            ]);
+            $provenance = array_map('mb_strtolower', Event::splitAiTagNames($names)['provenance']);
+            $answer['Tag'] = [];
+            foreach ($names as $name) {
+                $answer['Tag'][] = [
+                    'name' => $name,
+                    'exists' => isset($existing[$name]),
+                    'colour' => $existing[$name] ?? null,
+                    // the ai-computer-assisted names are provenance, not a suggestion
+                    'provenance' => in_array(mb_strtolower($name), $provenance, true),
+                ];
+            }
+        } else {
+            $report = $results['EventReport'] ?? [];
+            $answer['EventReport'] = [
+                'name' => (string)($report['name'] ?? ''),
+                'content' => (string)($report['content'] ?? ''),
+            ];
+        }
+        return $this->RestResponse->viewData([
+            'success' => true,
+            'event_id' => $eventId,
+            'event_info' => (string)($event['Event']['info'] ?? ''),
+            'use_case' => $useCase,
+            'result' => $answer,
+        ], $this->response->type());
     }
 
     public function startWorker($type)
@@ -1713,8 +2112,9 @@ class ServersController extends AppController
                         $remote_events[] = array(
                             "server_id" => $remote_server['Server']['id'],
                             "server_name" => $remote_server['Server']['name'],
-                            "url" => $remote_server['Server']['url']."/events/view/".$remote_event['id'],
-                            "remote_id" => $remote_event['id']
+                            "url" => $remote_server['Server']['url']."/events/view/".(int)$remote_event['id'],
+                            "remote_id" => (int)$remote_event['id'],
+                            "exception" => null,
                         );
                     }
                 }
@@ -1740,7 +2140,7 @@ class ServersController extends AppController
                     $remoteEvent = null;
                     $exception = $e->getMessage();
                 }
-                $remoteEventId = isset($remoteEvent['id']) ? $remoteEvent['id'] : null;
+                $remoteEventId = isset($remoteEvent['id']) ? (int)$remoteEvent['id'] : null;
                 $remote_events[] = array(
                     "server_id" => $server['Server']['id'],
                     "server_name" => $server['Server']['name'],
@@ -1936,6 +2336,15 @@ class ServersController extends AppController
                 throw new NotFoundException(__('Invalid type.'));
             }
             App::uses('File', 'Utility');
+            // $filename is a raw route parameter. Strip any path component
+            // before joining, exactly as uploadFile() below already does, so
+            // the target cannot leave the type's own directory. basename()
+            // leaves '.' and '..' as-is and both resolve to a directory, so
+            // reject them rather than handing a directory to File::delete().
+            $filename = basename($filename);
+            if ($filename === '' || $filename === '.' || $filename === '..') {
+                throw new NotFoundException(__('Invalid filename.'));
+            }
             $existingFile = new File($validItems[$type]['path'] . DS . $filename);
             if (!$existingFile->exists()) {
                 $this->Flash->error(__('File not found.', true), 'default', array(), 'error');
@@ -2301,22 +2710,27 @@ class ServersController extends AppController
         $dbVersion = $this->AdminSetting->getSetting('db_version');
         $updateProgress = $this->Server->getUpdateProgress();
         $updateProgress['db_version'] = $dbVersion;
-        $maxUpdateNumber = max(array_keys(Server::DB_CHANGES));
-        $updateProgress['complete_update_remaining'] = max($maxUpdateNumber - $dbVersion, 0);
+        // Not max(array_keys(Server::DB_CHANGES)) - $dbVersion any more: that
+        // counted version numbers rather than updates, and after the freeze
+        // db_version cannot move at all, so it would count nothing while ledger
+        // migrations were still pending.
+        $updateProgress['complete_update_remaining'] = $this->Server->countPendingUpdates($dbVersion);
         $updateProgress['update_locked'] = $this->Server->isUpdateLocked();
         $updateProgress['lock_remaining_time'] = $this->Server->getLockRemainingTime();
         $updateProgress['update_fail_number_reached'] = $this->Server->UpdateFailNumberReached();
         $currentIndex = $updateProgress['current'];
         $currentCommand = !isset($updateProgress['commands'][$currentIndex]) ? '' : $updateProgress['commands'][$currentIndex];
         $lookupString = preg_replace('/\s{2,}/', '', substr($currentCommand, 0, -1));
-        $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
+        // Empty on an engine with no process list of its own, which degrades the
+        // screen to no live DDL state rather than erroring.
+        $sqlInfo = $this->Server->getSchemaInspector()->runningQueries();
         if (empty($sqlInfo)) {
             $updateProgress['process_list'] = array();
         } else {
             // retrieve current update process
-            foreach($sqlInfo as $row) {
-                if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookupString) {
-                    $sqlInfo = $row['PROCESSLIST'];
+            foreach ($sqlInfo as $row) {
+                if (isset($row['INFO']) && preg_replace('/\s{2,}/', '', $row['INFO']) == $lookupString) {
+                    $sqlInfo = $row;
                     break;
                 }
             }
@@ -2362,6 +2776,7 @@ class ServersController extends AppController
 
     public function cache($id = 'all')
     {
+        $this->request->allowMethod(['post']);
         if (Configure::read('MISP.background_jobs')) {
 
             $this->loadModel('Job');
@@ -2405,6 +2820,7 @@ class ServersController extends AppController
 
 public function updateJSON()
     {
+        $this->request->allowMethod(['post']);
         $results = [];
 
         $async = Configure::read('MISP.background_jobs') && isset($this->params['named']['async']) ? filter_var($this->params['named']['async'], FILTER_VALIDATE_BOOLEAN) : false;
@@ -2619,6 +3035,11 @@ public function updateJSON()
             $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
             $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
             $this->set('indexes', $dbSchemaDiagnostics['indexes']);
+            $this->set('migrationsPending', $dbSchemaDiagnostics['migrations_pending']);
+            $this->set('migrationsPendingIds', $dbSchemaDiagnostics['migrations_pending_ids']);
+            $this->set('migrationsFailed', $dbSchemaDiagnostics['migrations_failed']);
+            $this->set('migrationsFailedIds', $dbSchemaDiagnostics['migrations_failed_ids']);
+            $this->set('migrationsApplied', $dbSchemaDiagnostics['migrations_applied']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
         }
     }
@@ -2681,6 +3102,7 @@ public function updateJSON()
 
     public function removeOrphanedCorrelations()
     {
+        $this->request->allowMethod(['post']);
         $count = $this->Server->removeOrphanedCorrelations();
         $message = __('%s orphaned correlation removed', $count);
         if ($this->_isRest()) {

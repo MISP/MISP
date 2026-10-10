@@ -10,7 +10,7 @@ $headerActions = [];
 if ($this->Acl->canAccess('cerebrates', 'add')) {
     $headerActions[] = [
         'type' => 'modal',
-        'label' => __('Add Cerebrates'),
+        'label' => __('Add Cerebrate'),
         'icon' => 'plus',
         'url' => $baseurl . '/cerebrates/add'
     ];
@@ -119,14 +119,14 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Pull all organisations'),
-                'icon' => 'arrow-circle-down text-warning',
+                'icon' => 'fas fa-arrow-circle-down text-event',
                 'url' => $baseurl . '/cerebrates/pull_orgs/%id%',
                 'requirement' => $isSiteAdmin
             ],
             [
                 'type' => 'modal',
                 'label' => __('Pull all sharing groups'),
-                'icon' => 'arrow-circle-down text-object-dark',
+                'icon' => 'fas fa-arrow-circle-down text-galaxy',
                 'url' => $baseurl . '/cerebrates/pull_sgs/%id%',
                 'requirement' => $isSiteAdmin
             ]

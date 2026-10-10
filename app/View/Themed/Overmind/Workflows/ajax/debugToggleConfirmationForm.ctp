@@ -2,7 +2,7 @@
 $enabling = $actionText === 'enable';
 $debugUrl = Configure::read('Plugin.Workflow_debug_url');
 
-echo $this->element('genericElementsBS5/Forms/confirmationForm', [
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title' => __('Workflow Debug Mode'),
     'model' => 'Workflow',
     'url' => $url,

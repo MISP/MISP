@@ -11,29 +11,15 @@ echo $this->Form->create('Organisation', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-primary"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Organisations') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $edit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $edit ? __('Edit Organisation') : __('Add Organisation') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= $edit
-                ? __('Update the identity, classification and access rules of this organisation.')
-                : __('Register a member organisation of this instance, or a known external entity for use in sharing groups.') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-organisation misp-simple text-primary"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Organisations'),
+    'title' => $edit ? __('Edit Organisation') : __('Add Organisation'),
+    'description' => $edit
+        ? __('Update the identity, classification and access rules of this organisation.')
+        : __('Register a member organisation of this instance, or a known external entity for use in sharing groups.'),
+    'icon' => 'misp-icon misp-icon-organisation misp-simple',
+    'isEdit' => $edit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -54,10 +40,10 @@ echo $this->Form->create('Organisation', [
 
         <!-- ── SCOPE ───────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Scope') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Scope'),
+            ]) ?>
             <label class="d-flex align-items-center justify-content-between border rounded-3 p-3 bg-light w-100"
                    style="cursor:pointer;">
                 <div class="d-flex align-items-center gap-3">
@@ -133,10 +119,10 @@ echo $this->Form->create('Organisation', [
 
         <!-- ── CLASSIFICATION ──────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Classification') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Classification'),
+            ]) ?>
             <div class="row g-3">
                 <!-- NATIONALITY -->
                 <div class="col-md-4">
@@ -169,10 +155,10 @@ echo $this->Form->create('Organisation', [
 
         <!-- ── DETAILS ─────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Details') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Details'),
+            ]) ?>
             <div class="d-flex flex-column gap-3">
                 <!-- DESCRIPTION -->
                 <div>
@@ -198,44 +184,29 @@ echo $this->Form->create('Organisation', [
 
         <!-- ── ACCESS CONTROL ──────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Access Control') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Access Control'),
+            ]) ?>
             <?= $this->Form->label('restricted_to_domain', __('Bind user accounts to domains (line separated)'), ['class' => 'form-label fw-semibold']) ?>
             <?= $this->Form->textarea('restricted_to_domain', [
                 'class' => 'form-control font-monospace',
                 'rows' => 2,
                 'placeholder' => "example.com\npartner.org",
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted" style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('When set, users of this organisation can only be created with email addresses on these domains.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('When set, users of this organisation can only be created with email addresses on these domains.'),
+            ]) ?>
         </div>
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-end align-items-center mt-4 pt-3 flex-wrap gap-2"
-         style="border-top:1px solid #d8dde3;">
-
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Cancel') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($edit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($edit ? __('Save changes') : __('Add organisation')),
-                [
-                    'class' => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                    'title' => $edit ? __('Save changes') : __('Add organisation'),
-                    'aria-label' => $edit ? __('Save changes') : __('Add organisation'),
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $edit,
+        'align' => 'end',
+        'cancel' => ['label' => __('Cancel')],
+        'submit' => ['label' => $edit ? __('Save changes') : __('Add organisation')],
+    ]) ?>
 
 </div>
 

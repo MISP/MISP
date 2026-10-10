@@ -39,6 +39,7 @@ if ($canPickTemplate) {
 if ($this->Acl->canAccess('events', 'add')) {
     $headerActions[] = [
         'type' => 'modal',
+        'id' => 'add-event-button',
         'label' => __('Add Event'),
         'icon' => 'plus',
         'url' => $baseurl . '/events/add'

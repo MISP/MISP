@@ -1,7 +1,5 @@
 <?php
-if (empty($seed)) {
-    $seed = mt_rand();
-}
+$seed = empty($seed) ? mt_rand() : (int)$seed;
 
 $notes = $analyst_data['notes'] ?? [];
 $opinions = $analyst_data['opinions'] ?? [];
