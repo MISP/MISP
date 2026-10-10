@@ -76,6 +76,7 @@ class ACLComponent extends Component
             'editSelected' => array('perm_add'),
             'enrich' => ['perm_add'],
             'exportSearch' => array('*'),
+            'fastLookup' => array('*'),
             'fetchEditForm' => array('perm_add'),
             'fetchViewValue' => array('*'),
             'galaxySelection' => array('AND' => ['perm_tagger', 'theming_enabled']),
@@ -717,6 +718,8 @@ class ACLComponent extends Component
             'view' => array('*'),
         ),
         'servers' => array(
+            'fastLookup' => [],
+            'rebuildFastLookup' => [],
             'add' => array(),
             'aiDryRun' => array(),
             'dbSchemaDiagnostic' => array(),

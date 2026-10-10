@@ -6,6 +6,7 @@ App::uses('JsonTool', 'Tools');
 App::uses('AbstractMigration', 'Migration');
 App::uses('MigrationManager', 'Migration');
 App::uses('AbstractGrammar', 'Migration/Grammar');
+App::uses('FastLookupIndexManager', 'Tools');
 
 /**
  * @property Server $Server
@@ -46,6 +47,19 @@ class AdminShell extends AppShell
     public function getOptionParser()
     {
         $parser = parent::getOptionParser();
+        foreach ([
+            'rebuildFastLookup' => 'Start and complete a new persistent IOC index build (the current index keeps serving).',
+            'resumeFastLookup' => 'Resume or restart an interrupted persistent IOC index build.',
+            'processFastLookup' => 'Process pending persistent IOC index mutations.',
+        ] as $command => $help) {
+            $parser->addSubcommand($command, [
+                'help' => $help,
+                'parser' => ['arguments' => [
+                    'jobId' => ['help' => 'Optional existing Job ID; use 0 to create one.', 'required' => false],
+                    'batchSize' => ['help' => 'Events per batch, from 1 to 1000.', 'required' => false],
+                ]],
+            ]);
+        }
         $parser->addSubcommand('updateJSON', array(
             'help' => __('Update the JSON definitions of MISP.'),
         ));
@@ -288,6 +302,81 @@ class AdminShell extends AppShell
         }
 
         $this->Correlation->generateCorrelation($jobId, $eventId);
+    }
+
+    public function rebuildFastLookup()
+    {
+        $this->runFastLookupCommand(true, false);
+    }
+
+    public function resumeFastLookup()
+    {
+        $this->runFastLookupCommand(false, false);
+    }
+
+    public function processFastLookup()
+    {
+        $this->runFastLookupCommand(false, true);
+    }
+
+    private function runFastLookupCommand(bool $rebuild, bool $pendingOnly): void
+    {
+        $jobId = isset($this->args[0]) ? (int)$this->args[0] : 0;
+        $batchSize = $this->args[1] ?? ($pendingOnly ? FastLookupIndexManager::PENDING_BATCH_SIZE : FastLookupIndexManager::SCAN_BATCH_SIZE);
+        try {
+            if (!ctype_digit((string)$batchSize)) {
+                throw new InvalidArgumentException('The IOC index batch size must be a whole number.');
+            }
+            $batchSize = FastLookupIndexManager::boundedLimit((int)$batchSize);
+        } catch (InvalidArgumentException $e) {
+            $this->error($e->getMessage());
+            return;
+        }
+        if (!$jobId) {
+            $jobId = $this->Job->createJob('SYSTEM', Job::WORKER_DEFAULT, 'fast_lookup_index', '', 'Updating the persistent IOC index.');
+        }
+        $manager = new FastLookupIndexManager($this->MispAttribute);
+        try {
+            if ($rebuild) {
+                $status = $manager->startRebuild();
+            } elseif (!$pendingOnly) {
+                $manager->resume();
+            }
+            // An error or an unavailable index stops the job whatever the build
+            // state: retrying a batch that cannot succeed would never end.
+            $failed = $rebuild && in_array($status['status'], ['error', 'unavailable'], true);
+            while (!$failed) {
+                $status = $pendingOnly ? $manager->processPending($batchSize) : $manager->runBatch($batchSize);
+                $failed = in_array($status['status'], ['error', 'unavailable'], true);
+                // processFastLookup never scans a first build, only rebuilds beside a live generation.
+                $building = !$failed && !empty($status['build']) && empty($status['build']['error'])
+                    && (!$pendingOnly || $status['generation'] !== null);
+                $this->Job->saveProgress($jobId, 'IOC index: ' . $status['status'], min(99, $status['progress']['percent']));
+                if ($pendingOnly && ($status['status'] === 'updating' || $building) && Configure::read('MISP.background_jobs')) {
+                    $this->getBackgroundJobsTool()->enqueue(
+                        BackgroundJobsTool::DEFAULT_QUEUE,
+                        BackgroundJobsTool::CMD_ADMIN,
+                        ['processFastLookup', $jobId, $batchSize],
+                        true,
+                        $jobId
+                    );
+                    $this->out($this->json($status));
+                    return;
+                }
+                if (!($status['status'] === 'updating' || $building || (!$pendingOnly && $status['status'] === 'warming'))) {
+                    break;
+                }
+            }
+            $success = in_array($status['status'], ['ready', 'warming'], true) && empty($status['build']['error']);
+            $this->Job->saveStatus($jobId, $success, $status['message'] ?? ('IOC index: ' . $status['status']));
+            $this->out($this->json($status));
+            if (!$success) {
+                $this->error($status['build']['error'] ?? $status['message'] ?? 'The persistent IOC index requires a rebuild.');
+            }
+        } catch (Throwable $e) {
+            $this->Job->saveStatus($jobId, false, 'The persistent IOC index update failed; pending mutations were retained.');
+            $this->error($e->getMessage());
+        }
     }
 
     public function jobGenerateOccurrences()

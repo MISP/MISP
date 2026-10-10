@@ -1,0 +1,35 @@
+.fast-lookup-index .lookup-scope {
+    display: grid;
+    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+    margin-bottom: 12px;
+}
+.fast-lookup-index .lookup-scope dt,
+.fast-lookup-index .lookup-scope dd {
+    float: none;
+    width: auto;
+    overflow-wrap: anywhere;
+}
+.fast-lookup-index .table-responsive {
+    overflow-x: auto;
+    --sticky-table-header-top: 0px;
+}
+.fast-lookup-index table {
+    min-width: 480px;
+}
+.fast-lookup-index progress {
+    width: min(100%, 480px);
+}
+@media screen and (max-width: 767px) {
+    div.fast-lookup-index {
+        float: none;
+        width: 100%;
+        box-sizing: border-box;
+        border-left: 0;
+    }
+    .fast-lookup-index .lookup-scope {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .fast-lookup-index .lookup-scope dd {
+        margin-bottom: 8px;
+    }
+}
