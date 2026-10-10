@@ -119,7 +119,10 @@ class ApacheShibbAuthenticate extends BaseAuthenticate
             return false; // Deny if the user is not in any egroup
         }
         // if a default role is set, override the currently parsed out selection and use that instead.
-        $roleId = Configure::check('ApacheShibbAuth.DefaultRole') ? Configure::read('ApacheShibbAuth.DefaultRole') : $roleId;
+        $defaultRole = Configure::read('ApacheShibbAuth.DefaultRole');
+        if (!empty($defaultRole)) {
+            $roleId = $defaultRole;
+        }
         if ($roleChanged) {
             CakeLog::write('info', "User role $roleId assigned.");
         }
