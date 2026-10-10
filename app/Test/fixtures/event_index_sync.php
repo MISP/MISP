@@ -171,6 +171,7 @@ class FixtureCryptographicKey extends CryptographicKey
     public function find($type, $options)
     {
         same('column', $type);
+        if (!$options['conditions']['CryptographicKey.fingerprint']) { return []; }
         $ids = $options['conditions']['CryptographicKey.parent_id'];
         return array_values(array_map(function ($row) {
             return $row['Event']['id'];
@@ -512,6 +513,27 @@ $scenarios['old-client-new-server-full-pages'] = function () {
     same(5, $response->getHeader('X-Result-Count'));
     same(false, isset($response->json()['pagination']));
 };
+$scenarios['legacy-null-protection-and-cache'] = function () {
+    // The schema defaults protected to NULL; PHP treats these events as
+    // unprotected, and the pre-LIMIT SQL predicate must do the same.
+    $data = rows(8, [1, 2, 3, 4], [2]);
+    foreach ([4, 6, 7] as $index) { $data[$index]['Event']['protected'] = null; }
+    foreach (['fixture-key', false] as $fingerprint) {
+        [$server, $sync] = fixture($data, false);
+        $sync->controller->Event->CryptographicKey->fingerprint = $fingerprint;
+        $expected = $fingerprint ? [2, 5, 6, 7, 8] : [5, 6, 7, 8];
+        foreach ([false, true] as $cached) {
+            $sync->statuses = [];
+            same(array_map(function ($id) { return 'event-' . $id; }, $expected),
+                $server->collect($sync));
+            same($cached ? [200, 304] : [200, 200], $sync->statuses);
+        }
+        $response = $sync->controller->respond(['minimal' => 1, 'limit' => 3,
+            'page' => 1, 'sort' => 'id', 'direction' => 'asc']);
+        same(array_slice($expected, 0, 3), array_column($response->json(), 'id'));
+        same(count($expected), $response->getHeader('X-Result-Count'));
+    }
+};
 $scenarios['old-version-protected-mode'] = function () {
     [$server, $sync] = fixture(rows(4, [1, 2, 3], [2]), false);
     CakeRequest::$version = '2.4.155';
@@ -578,9 +600,12 @@ $scenarios['protected-predicate-fails-closed'] = function () {
     same(true, strpos($conditions['OR'][1], 'EXISTS (') === 0);
     same('Event', $crypto->db->options['conditions']['CryptographicKey.parent_type']);
     $crypto->fingerprint = false;
-    same(['Event.protected' => 0], $crypto->eventIndexConditions());
+    $unprotected = ['OR' => [
+        ['Event.protected' => 0], ['Event.protected' => null],
+    ]];
+    same($unprotected, $crypto->eventIndexConditions());
     $crypto->fail = true;
-    same(['Event.protected' => 0], $crypto->eventIndexConditions());
+    same($unprotected, $crypto->eventIndexConditions());
 };
 $scenarios['capability-absent-and-opt-in-validation'] = function () {
     [$server, $sync] = fixture(rows(2), false);

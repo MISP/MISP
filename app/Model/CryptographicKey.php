@@ -131,13 +131,18 @@ class CryptographicKey extends AppModel
     /** SQL eligibility for the legacy index, before counting and pagination. */
     public function eventIndexConditions()
     {
+        // protected is nullable and defaults to NULL. Match the existing PHP
+        // filter, which treats both NULL and zero as unprotected.
+        $unprotected = ['OR' => [
+            ['Event.protected' => 0], ['Event.protected' => null],
+        ]];
         try {
             $fingerprint = $this->ingestInstanceKey();
         } catch (Exception $e) {
             $fingerprint = false;
         }
         if (!$fingerprint) {
-            return ['Event.protected' => 0];
+            return $unprotected;
         }
         $db = $this->getDataSource();
         $query = $db->buildStatement([
@@ -150,7 +155,7 @@ class CryptographicKey extends AppModel
                 'CryptographicKey.parent_id = Event.id',
             ],
         ], $this);
-        return ['OR' => [['Event.protected' => 0], 'EXISTS (' . $query . ')']];
+        return ['OR' => [$unprotected, 'EXISTS (' . $query . ')']];
     }
 
     /**

@@ -20,7 +20,9 @@ peers. It cannot acquire cursor-query performance without upgrading the remote.
 The upgraded server applies instance-key eligibility before counting and
 numbered-page queries. An `EXISTS` predicate avoids duplicate events when several
 matching keys exist, and a missing/unusable instance key excludes protected
-events. Existing authorization, sharing-group and pull filters remain in effect.
+events. Both zero and the schema's default `NULL` protection value remain
+unprotected, matching the existing PHP filter. Existing authorization,
+sharing-group and pull filters remain in effect.
 Ordinary requests still return the existing event array and `X-Result-Count`.
 This also fixes pagination for unchanged older pulling clients.
 
