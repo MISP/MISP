@@ -4,8 +4,15 @@
     $isOwnPermAuth  = !empty($me['Role']['perm_auth']);
     $isOwnSiteAdmin = !empty($me['Role']['perm_site_admin']);
 
-    // Page title
-    $this->set('headerTitle', __('User %s', h($email)));
+    // Mirrors UserSetting::setSetting(): an org admin may not touch a site admin's settings
+    $isSelf = (int)$me['id'] === (int)$uid;
+    $canManageSettings = $isOwnSiteAdmin
+        || (!empty($me['Role']['perm_admin'])
+            && (int)$me['org_id'] === (int)$user['User']['org_id']
+            && empty($user['Role']['perm_site_admin']))
+        || ($isSelf && empty(Configure::read('MISP.disableUserSelfManagement')));
+
+    $this->set('headerTitle', h($this->UserName->convertEmailToName($email)));
 
     $tabs = [
         [
@@ -18,6 +25,14 @@
             ],
             'right' => [
                 'Users/View/users_actions',
+            ],
+        ],
+        [
+            'id'    => 'settings',
+            'title' => __('Settings'),
+            'icon'  => 'fas fa-sliders',
+            'left'  => [
+                ['ajax' => sprintf('%s/user_settings/index/user_id:%s', $baseurl, h($uid))],
             ],
         ],
     ];
@@ -42,7 +57,7 @@
             'icon'  => 'fas fa-gauge-high',
             'left'  => [
                 ['ajax' => sprintf(
-                    '%s/benchmarks/index/scope:user/average:1/aggregate:1/key:%s',
+                    '%s/benchmarks/index/scope:user/average:1/key:%s',
                     $baseurl,
                     h($uid)
                 )],
@@ -65,6 +80,15 @@
     ];
 
     $headerActions = [];
+    if ($canManageSettings) {
+        $headerActions[] = [
+            'type' => 'modal',
+            'tab' => 'settings',
+            'label' => __('Add setting'),
+            'icon' => 'plus',
+            'url' => $baseurl . '/user_settings/setSetting/' . h($uid),
+        ];
+    }
     if ($isOwnPermAuth) {
         $headerActions[] = [
             'type' => 'modal',

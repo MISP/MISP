@@ -24,30 +24,21 @@ if ($hasPaste && $hasFile) {
 }
 ?>
 
-<!-- ── HEADER ───────────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="border-bottom:2px solid var(--bs-primary);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-primary"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Import module') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-puzzle-piece text-primary" style="font-size:1.2rem;"></i>
-            <?= h(Inflector::humanize($module['name'])) ?>
-        </h4>
-        <div class="text-muted small mt-1">
-            <?= __('Event') ?>: <strong class="text-body">#<?= h($eventId) ?></strong>
-        </div>
-    </div>
-    <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm"
-                onclick="openModalChained('<?= $baseurl ?>/events/populateFrom/<?= $eventId ?>');">
-            <i class="fas fa-arrow-left me-1"></i><?= __('Back') ?>
-        </button>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
-    </div>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Import module'),
+    'title' => Inflector::humanize($module['name']),
+    'titleIcon' => 'fas fa-puzzle-piece',
+    'description' => __('Event') . ': #' . $eventId,
+    'aside' => sprintf(
+        '<div class="d-flex gap-2">'
+            . '<button type="button" class="btn btn-outline-secondary btn-sm"'
+            . ' onclick="openModalChained(\'%s/events/populateFrom/%d\');">'
+            . '<i class="fas fa-arrow-left me-1"></i>%s</button>'
+            . '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="%s"></button>'
+            . '</div>',
+        h($baseurl), $eventId, h(__('Back')), h(__('Close'))
+    ),
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4">
@@ -140,11 +131,12 @@ if ($hasPaste && $hasFile) {
         <?php endif; ?>
     <?php endif; ?>
 
-    <div class="d-flex justify-content-end mt-3">
-        <button type="submit" class="btn btn-primary">
-            <i class="fas fa-file-import me-1"></i><?= __('Import') ?>
-        </button>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'align' => 'end',
+        /* Back and Close live in the header for this one. */
+        'cancel' => false,
+        'submit' => ['label' => __('Import'), 'icon' => 'fas fa-file-import'],
+    ]) ?>
 
     <?php echo $this->Form->end(); ?>
 </div>

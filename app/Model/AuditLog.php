@@ -278,6 +278,7 @@ class AuditLog extends AppModel
                 if ($syslogIdent) {
                     $options['ident'] = $syslogIdent;
                 }
+                App::uses('SysLog', 'SysLog.Lib');
                 $this->syslog = new SysLog($options);
             } else {
                 $this->syslog = false;
@@ -397,30 +398,27 @@ class AuditLog extends AppModel
             $conditions['org_id'] = $org['id'];
         }
 
-        if ($this->isMysql()) {
-            $validDates = $this->find('all', [
-                'recursive' => -1,
-                'fields' => ['DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'],
-                'conditions' => $conditions,
-                'group' => ['Date'],
-                'order' => ['Date'],
-                'callbacks' => false,
-            ]);
-        } else {
-            if (!empty($conditions['org_id'])) {
-                $condOrg = sprintf('WHERE org_id = %s', intval($conditions['org_id']));
-            } else {
-                $condOrg = '';
-            }
-            $sql = 'SELECT DISTINCT EXTRACT(EPOCH FROM CAST(created AS DATE)) AS "Date", COUNT(id) AS count
-                    FROM audit_logs
-                    ' . $condOrg . '
-                    GROUP BY "Date" ORDER BY "Date"';
-            $validDates = $this->query($sql);
-        }
+        // One query for both engines. The PostgreSQL half used to drop out of
+        // the ORM and be written by hand, because DboSource's field quoting
+        // mangles the bare DATE keyword inside a CAST - which the dialect's
+        // cast spelling does not contain.
+        $dialect = $this->getSqlDialect();
+        $day = $dialect->unixTimestamp($dialect->dateOf('created'));
+        // Lower-case alias on purpose: an unquoted `AS Date` comes back as
+        // `Date` from MySQL and as `date` from PostgreSQL, which folds unquoted
+        // identifiers. Reading the row by a key only one engine produces would
+        // have collapsed every bucket into one.
+        $validDates = $this->find('all', [
+            'recursive' => -1,
+            'fields' => ['DISTINCT ' . $day . ' AS date', 'count(id) AS count'],
+            'conditions' => $conditions,
+            'group' => ['date'],
+            'order' => ['date'],
+            'callbacks' => false,
+        ]);
         $data = [];
         foreach ($validDates as $date) {
-            $data[(int)$date[0]['Date']] = (int)$date[0]['count'];
+            $data[(int)$date[0]['date']] = (int)$date[0]['count'];
         }
         return $data;
     }

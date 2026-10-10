@@ -108,12 +108,12 @@ $fields = array_merge($fields, [
                 'action_off' => '1',
                 'url' => $baseurl . '/workflows/toggleModule/%id%/%action%',
             ] : null,
-            // [
-            //     'type' => 'navigate',
-            //     'label' => __('Module details'),
-            //     'icon' => 'eye',
-            //     'url' => $baseurl . '/workflows/moduleView/%id%',
-            // ],
+            [
+                'type' => 'navigate',
+                'label' => __('Module details'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/workflows/moduleView/%id%',
+            ],
         ])),
     ],
 ]);
@@ -137,9 +137,9 @@ $filterBar = [
                     'label' => __('Type'),
                     'name' => 'type',
                     'options' => [
+                        '' => __('All'),
                         'action' => __('Action'),
                         'logic' => __('Logic'),
-                        'all' => __('All'),
                         'custom' => __('Custom only'),
                     ],
                 ],
@@ -185,7 +185,7 @@ if ($canToggle) {
                     <?= __(
                         'Check that %s is enabled in the %s and that the service is up.',
                         '<code>Plugin.Action_services_enable</code>',
-                        sprintf('<a href="%s">%s</a>', $baseurl . '/servers/serverSettings/Plugin', __('plugin settings'))
+                        sprintf('<a href="%s">%s</a>', $baseurl . '/servers/serverSettings/workflow', __('plugin settings'))
                     ) ?>
                 </div>
             </div>

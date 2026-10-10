@@ -23,9 +23,9 @@ class BenchmarksController extends AppController
         App::uses('BenchmarkTool', 'Tools');
         $this->Benchmark = new BenchmarkTool($this->User);
         $passedArgs = $this->passedArgs;
-        $this->paginate['order'] = 'value';
         $defaults = [
             'days' => null,
+            'limit' => null,
             'average' => false,
             'aggregate' => false,
             'scope' => null,
@@ -39,9 +39,26 @@ class BenchmarksController extends AppController
                 $filters[$key] = $defaults[$key];
             }
         }
+        // `days` arrives as a count of days back ("days:7"), the same meaning
+        // BenchmarkTopListWidget gives it — getAllTopLists() wants the dates
+        // themselves, and being handed the raw string was a TypeError.
+        $days = null;
+        if (!empty($filters['days']) && is_numeric($filters['days'])) {
+            $days = [];
+            for ($i = 0; $i < (int)$filters['days']; $i++) {
+                $days[] = date('Y-m-d', strtotime('-' . $i . ' days'));
+            }
+        } else if (is_array($filters['days']) && !empty($filters['days'])) {
+            $days = $filters['days'];
+        }
+        // The top list is cut to $limit before the key filter below is applied,
+        // so a named key outside the global top N would silently disappear.
+        $limit = (!empty($filters['limit']) && is_numeric($filters['limit']))
+            ? (int)$filters['limit']
+            : (empty($filters['key']) ? 100 : -1);
         $temp = $this->Benchmark->getAllTopLists(
-            $filters['days'] ?? null,
-            $filters['limit'] ?? 100,
+            $days,
+            $limit,
             $filters['average'] ?? null,
             $filters['aggregate'] ?? null
         );
@@ -112,12 +129,28 @@ class BenchmarksController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($data, $this->response->type());
         }
-        App::uses('CustomPaginationTool', 'Tools');
-        $customPagination = new CustomPaginationTool();
-        $customPagination->truncateAndPaginate($data, $this->params, $this->modelClass, true);
+        // Biggest first — that is what makes it a top list. CustomPaginationTool
+        // only sorts on an explicit `sort` named param, so without this the rows
+        // arrive in whatever order Redis returned them.
+        if (empty($this->passedArgs['sort'])) {
+            usort($data, function ($a, $b) {
+                return $b['value'] <=> $a['value'];
+            });
+        }
+        // A pinned key yields at most (fields x days) rows and the focused view
+        // pivots them by date, so truncating to a page would drop whole days
+        // out of the middle of the breakdown.
+        if (empty($filters['key'])) {
+            App::uses('CustomPaginationTool', 'Tools');
+            $customPagination = new CustomPaginationTool();
+            $customPagination->truncateAndPaginate($data, $this->params, $this->modelClass, true);
+        }
         $this->set('data', $data);
         $this->set('passedArgs', json_encode($passedArgs));
         $this->set('filters', $filters);
+        // Collection state, so the views can say why a screen is empty or stale.
+        $this->set('benchmarkingEnabled', (bool)Configure::read('Plugin.Benchmarking_enable'));
+        $this->set('recordedDays', $this->Benchmark->getRecordedDays());
     }
 
     public function sqlMetrics()

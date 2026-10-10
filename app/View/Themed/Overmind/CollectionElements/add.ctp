@@ -27,25 +27,12 @@ echo $this->Form->create('CollectionElement', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Collections') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-circle-plus text-primary" style="font-size:1.25rem;"></i>
-            <?= __('Add Element to Collection') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Attach an existing event or galaxy cluster to this collection by its UUID.') ?>
-        </p>
-    </div>
-    <i class="fas fa-link text-primary" style="font-size:2rem; opacity:.45;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Collections'),
+    'title' => __('Add Element to Collection'),
+    'description' => __('Attach an existing event or galaxy cluster to this collection by its UUID.'),
+    'icon' => 'fas fa-link',
+]) ?>
 
 
 <div class="container-fluid px-4 py-4">
@@ -72,37 +59,33 @@ echo $this->Form->create('CollectionElement', [
                 'placeholder' => 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
                 'autocomplete' => 'off',
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('The RFC 4122 UUID of the event or galaxy cluster to attach.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('The RFC 4122 UUID of the event or galaxy cluster to attach.'),
+            ]) ?>
         </div>
 
         <!-- ── ELEMENT TYPE ────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Element Type') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Element Type'),
+            ]) ?>
             <?= $this->Form->select('element_type', $typeOptions, [
                 'id' => 'collection-element-type-select',
                 'class' => 'form-select',
                 'empty' => __('Detect from the UUID'),
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Left on detection, MISP resolves the type by looking the UUID up locally. Pick one to attach an element this instance does not hold yet.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Left on detection, MISP resolves the type by looking the UUID up locally. Pick one to attach an element this instance does not hold yet.'),
+            ]) ?>
         </div>
 
         <!-- ── DESCRIPTION ─────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Description') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Description'),
+            ]) ?>
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 3,
@@ -113,29 +96,10 @@ echo $this->Form->create('CollectionElement', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if (!empty($collectionId)): ?>
-                <?= __('Collection') ?>:
-                <strong class="text-body">#<?= h($collectionId) ?></strong>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-circle-plus me-1"></i> ' . __('Attach Element'),
-                [
-                    'class' => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'meta' => !empty($collectionId) ? [['label' => __('Collection'), 'id' => $collectionId]] : [],
+        'submit' => ['label' => __('Attach Element')],
+    ]) ?>
 
 </div>
 

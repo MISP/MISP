@@ -16,7 +16,7 @@ if ($canEdit) {
     ];
     $actions[] = [
         'url'     => "$baseurl/auth_keys/deleteSelection/$id",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/auth_keys/deleteSelection/$id', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/auth_keys/deleteSelection/$id', 'md');",
         'icon'    => 'fas fa-trash',
         'label'   => __('Delete auth key'),
         'danger'  => true,

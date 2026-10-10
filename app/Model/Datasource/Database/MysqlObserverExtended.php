@@ -8,13 +8,9 @@ App::uses('RedisTool', 'Tools');
  */
 class MysqlObserverExtended extends MysqlExtended
 {
-    public $supports = [
-        'indexHints' => true,
-        'ignoreIndexHints' => true,
-        'reverseJoin' => true,
-        'straightJoin' => true,
-        'insertMulti' => true,
-    ];
+    // $supports is inherited. It used to be restated here, identically, which
+    // meant a capability added to MysqlExtended silently did not reach the
+    // datasource database.default.php actually ships.
 
     public static $totalSqlTimeMs = 0;
 

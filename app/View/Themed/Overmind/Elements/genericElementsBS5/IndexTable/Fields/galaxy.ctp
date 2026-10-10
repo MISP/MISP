@@ -6,17 +6,35 @@ $data = Hash::extract($row, $field['data_path']);
  * Enabled by the caller via $field['add_galaxy'] (already ACL-gated upstream).
  * $field['add_galaxy_url'] holds a URL template with a %id% placeholder,
  * resolved from $field['add_galaxy_id_path'] (falls back to $row['id']).
+ * $field['add_galaxy_relationship_url'] adds its sibling
  */
-$allowAddGalaxy = !empty($field['add_galaxy']);
+// A callable lets the caller decide per row — an extended event view
+// grants the button on the rows of the events you can actually tag.
+$allowAddGalaxy = $field['add_galaxy'] ?? false;
+if (is_callable($allowAddGalaxy)) {
+    $allowAddGalaxy = $allowAddGalaxy($row);
+}
+$allowAddGalaxy = !empty($allowAddGalaxy);
 $addUrl         = null;
+$addRelationshipUrl = null;
 if ($allowAddGalaxy) {
     $addId = Hash::get($row, $field['add_galaxy_id_path'] ?? 'id');
     if (empty($addId) && !empty($row['id'])) {
         $addId = $row['id'];
     }
     $isDeleted = !empty($row['deleted']) || !empty($row['Attribute']['deleted']);
-    if (!empty($addId) && !$isDeleted && !empty($field['add_galaxy_url'])) {
-        $addUrl = str_replace('%id%', rawurlencode($addId), $field['add_galaxy_url']);
+    if (!empty($addId) && !$isDeleted) {
+        if (!empty($field['add_galaxy_url'])) {
+            $addUrl = str_replace(
+                '%id%', rawurlencode($addId), $field['add_galaxy_url']
+            );
+        }
+        if (!empty($field['add_galaxy_relationship_url'])) {
+            $addRelationshipUrl = str_replace(
+                '%id%', rawurlencode($addId),
+                $field['add_galaxy_relationship_url']
+            );
+        }
     }
 }
 
@@ -96,6 +114,15 @@ foreach ($data as $item) {
         'local' => $isLocal
     ];
 }
+
+// Nothing attached, nothing to relate
+if (empty($groupedGalaxies)) {
+    $addRelationshipUrl = null;
+}
+
+/* The two inline buttons of this column share one look. */
+$addBtnStyle = 'cursor:pointer; background:hsla(258,90%,66%,.12);'
+             . ' color:hsl(258,55%,40%);';
 
 // Show all galaxy badges until cumulative galaxy >= 2 or cumulative clusters >= 5
 $maxGalaxies     = 2;
@@ -190,12 +217,25 @@ $iconPrefix = in_array($groupedGalaxies[$galaxyName]['icon'], $brandIcons, true)
     <button
         type="button"
         class="badge border-0 me-1 mb-1 align-self-start attr-add-galaxy-btn"
-        style="cursor:pointer; background:hsla(258,90%,66%,.12); color:hsl(258,55%,40%);"
+        style="<?= $addBtnStyle ?>"
         title="<?= __('Add a galaxy cluster') ?>"
         aria-label="<?= __('Add a galaxy cluster') ?>"
         onclick="event.stopPropagation(); openModal('<?= h($addUrl) ?>', 'xl');"
     >
         <i class="fas fa-plus"></i>
+    </button>
+<?php endif; ?>
+
+<?php if (!empty($addRelationshipUrl)): ?>
+    <button
+        type="button"
+        class="badge border-0 me-1 mb-1 align-self-start attr-add-galaxy-relationship-btn"
+        style="<?= $addBtnStyle ?>"
+        title="<?= __('Add a relationship') ?>"
+        aria-label="<?= __('Add a relationship') ?>"
+        onclick="event.stopPropagation(); openModal('<?= h($addRelationshipUrl) ?>', 'xl');"
+    >
+        <i class="fas fa-link"></i>
     </button>
 <?php endif; ?>
 

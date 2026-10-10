@@ -11,6 +11,13 @@ class Galaxy extends AppModel
 
     public $recursive = -1;
 
+    /**
+     * A galaxy's icon is a Font Awesome icon name and nothing else. It reaches
+     * the correlation graph as a class token, so anything outside this
+     * alphabet is refused on save and dropped on capture.
+     */
+    const ICON_NAME_PATTERN = '/^[a-z0-9-]*$/';
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
@@ -36,6 +43,14 @@ class Galaxy extends AppModel
     ];
 
     public $validate = [
+        'name' => [
+            'notBlank' => [
+                'rule' => 'notBlank',
+                'required' => 'create',
+                'allowEmpty' => false,
+                'message' => 'Please provide a name for the galaxy',
+            ],
+        ],
         'uuid' => [
             'uuid' => [
                 'rule' => 'uuid',
@@ -53,6 +68,14 @@ class Galaxy extends AppModel
             'required' => false,
             'allowEmpty' => true
         ],
+        'icon' => [
+            'iconName' => [
+                'rule' => ['custom', self::ICON_NAME_PATTERN],
+                'message' => 'The icon must be a Font Awesome icon name: lowercase letters, digits and dashes only',
+                'required' => false,
+                'allowEmpty' => true,
+            ],
+        ],
     ];
 
     public function __construct($id = false, $table = null, $ds = null)
@@ -60,6 +83,15 @@ class Galaxy extends AppModel
         parent::__construct();
         $this->schema();
         $this->_schema['distribution']['default'] = Configure::read('MISP.default_galaxy_distribution') ?? 1;
+    }
+
+    /**
+     * @param mixed $icon
+     * @return bool True for an empty icon or a Font Awesome icon name
+     */
+    public static function isValidIconName($icon)
+    {
+        return is_string($icon) && preg_match(self::ICON_NAME_PATTERN, $icon) === 1;
     }
 
 
@@ -413,6 +445,10 @@ class Galaxy extends AppModel
 
         $galaxy = $this->GalaxyCluster->captureOrganisationAndSG(['Galaxy' => $galaxy], 'Galaxy', $user);
         $galaxy = $galaxy['Galaxy'];
+        if (isset($galaxy['icon']) && !self::isValidIconName($galaxy['icon'])) {
+            // A peer's icon that is not an icon name is never stored
+            $galaxy['icon'] = '';
+        }
         $existingGalaxy = $this->find('first', [
             'recursive' => -1,
             'conditions' => ['Galaxy.uuid' => $galaxy['uuid']],
@@ -459,6 +495,24 @@ class Galaxy extends AppModel
     }
 
     /**
+     * Names an entry of an import payload in an error message: whatever of the
+     * usual identifiers it carries, so the reader can find the offending entry
+     * in the document they submitted.
+     *
+     * @param array $entry
+     * @return string
+     */
+    private function __describeCluster(array $entry)
+    {
+        foreach (['value', 'name', 'uuid', 'type'] as $field) {
+            if (!empty($entry[$field]) && is_scalar($entry[$field])) {
+                return (string)$entry[$field];
+            }
+        }
+        return __('unnamed');
+    }
+
+    /**
      * Import all clusters into the Galaxy they are shipped with, creating the galaxy if not existant.
      *
      * This function is meant to be used with manual import or push from remote instance
@@ -469,27 +523,69 @@ class Galaxy extends AppModel
     public function importGalaxyAndClusters(array $user, array $clusters)
     {
         $results = array('success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => array());
-        foreach ($clusters as $cluster) {
+        // A misp-galaxy repository file - and an export in that format - is a
+        // single object carrying its clusters under `values`, not a list of
+        // clusters. Without this the loop below walks that object key by key
+        // and answers with one "Galaxy not found" per key, which says nothing
+        // about what is actually wrong with the document.
+        if (isset($clusters['values']) && (isset($clusters['type']) || isset($clusters['name']))) {
+            $results['failed']++;
+            $results['errors'][] = __('This is a MISP-galaxy format document (a galaxy with a "values" list), which cannot be imported. Use a galaxy cluster export from a MISP instance: a list of {"GalaxyCluster": {...}} entries.');
+            return $results;
+        }
+        // A single cluster - what viewing one as JSON hands back - is taken as
+        // a list of one. A list always keys from 0, so the two never overlap.
+        if (isset($clusters['GalaxyCluster'])) {
+            $clusters = array($clusters);
+        }
+        $notClusters = 0;
+        foreach ($clusters as $key => $cluster) {
+            if (!is_array($cluster) || empty($cluster['GalaxyCluster'])) {
+                $results['failed']++;
+                $notClusters++;
+                $results['errors'][] = __('Entry "%s" is not a galaxy cluster', $key);
+                continue;
+            }
             if (!empty($cluster['GalaxyCluster']['Galaxy'])) {
                 $existingGalaxy = $this->captureGalaxy($user, $cluster['GalaxyCluster']['Galaxy']);
+                // captureGalaxy answers false when the user may not create the
+                // galaxy, and an empty result when what it assembled did not
+                // validate - reading an id off either is a fatal.
+                if (empty($existingGalaxy['Galaxy']['id'])) {
+                    $results['failed']++;
+                    $results['errors'][] = __('Galaxy "%s" could not be captured', $this->__describeCluster($cluster['GalaxyCluster']['Galaxy']));
+                    continue;
+                }
             } elseif (!empty($cluster['GalaxyCluster']['type'])) {
+                // The whole row rather than the id: captureCluster() needs the
+                // galaxy itself for a cluster that carries only its type.
                 $existingGalaxy = $this->find('first', array(
                     'recursive' => -1,
-                    'fields' => array('id'),
                     'conditions' => array('Galaxy.type' => $cluster['GalaxyCluster']['type']),
                 ));
                 if (empty($existingGalaxy)) { // We don't have enough info to create the galaxy
                     $results['failed']++;
-                    $results['errors'][] = __('Galaxy not found');
+                    $results['errors'][] = __('Galaxy of type "%s" not found, and the cluster does not carry the galaxy to create it from', $cluster['GalaxyCluster']['type']);
                     continue;
                 }
             } else { // We don't have the galaxy nor can create it
                 $results['failed']++;
-                $results['errors'][] = __('Galaxy not found');
+                $results['errors'][] = __('Cluster "%s" names neither a galaxy nor a galaxy type', $this->__describeCluster($cluster['GalaxyCluster']));
                 continue;
             }
             $cluster['GalaxyCluster']['galaxy_id'] = $existingGalaxy['Galaxy']['id'];
             $cluster['GalaxyCluster']['locked'] = true;
+            // captureCluster() reads both of these for a cluster it has never
+            // seen, whichever of the two the document named its galaxy with:
+            // without the type the insert reaches the database without one,
+            // and without the galaxy it calls captureGalaxy() with nothing.
+            // Both are the galaxy just resolved above.
+            if (empty($cluster['GalaxyCluster']['type']) && !empty($existingGalaxy['Galaxy']['type'])) {
+                $cluster['GalaxyCluster']['type'] = $existingGalaxy['Galaxy']['type'];
+            }
+            if (empty($cluster['GalaxyCluster']['Galaxy'])) {
+                $cluster['GalaxyCluster']['Galaxy'] = $existingGalaxy['Galaxy'];
+            }
             $saveResult = $this->GalaxyCluster->captureCluster($user, $cluster, $fromPull=false);
             if (empty($saveResult['errors'])) {
                 $results['imported'] += $saveResult['imported'];
@@ -498,6 +594,12 @@ class Galaxy extends AppModel
                 $results['failed'] += $saveResult['failed'];
                 $results['errors'] = array_merge($results['errors'], $saveResult['errors']);
             }
+        }
+        // Nothing in the document was a cluster: that is one wrong document,
+        // not one problem per entry, and saying so once is what tells the
+        // reader they submitted the wrong kind of file.
+        if ($notClusters > 0 && $notClusters === count($clusters)) {
+            $results['errors'] = array(__('This document holds no galaxy cluster. Import expects a galaxy cluster export from a MISP instance: one {"GalaxyCluster": {...}} object, or a list of them.'));
         }
         $results['success'] = !($results['failed'] > 0 && $results['imported'] == 0);
         return $results;

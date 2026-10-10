@@ -31,7 +31,7 @@ if (empty($event)):
     $analysisLabel = $analysisLevels[$eAnalysis] ?? '';
     $threatDot     = $threatColors[$eThreat] ?? '#adb5bd';
 ?>
-<div class="rounded border mt-1 overflow-hidden js-extends-event-card"
+<div class="rounded border mt-2 overflow-hidden js-extends-event-card"
      data-extends-uuid="<?= h($eUuid) ?>"
      title="<?= h(__('Click to use this event\'s UUID')) ?>"
      style="border-color:var(--primary); font-size:.8rem; cursor:pointer;">

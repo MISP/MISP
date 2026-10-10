@@ -152,6 +152,7 @@ class NoticelistsController extends AppController
 
     public function enableNoticelist($id, $enable = false)
     {
+        $this->request->allowMethod(['post']);
         $this->Noticelist->id = $id;
         if (!$this->Noticelist->exists()) {
             throw new NotFoundException(__('Noticelist not found.'));
@@ -241,10 +242,9 @@ class NoticelistsController extends AppController
 
     private function _massToggleState($idList = null, $state = 1)
     {
-        $cleanIdList = htmlspecialchars_decode(urldecode($idList));
-        $ids = json_decode($cleanIdList, true);
+        $ids = $this->_massActionIdList($idList, 'Noticelist');
 
-        if (empty($ids) || !is_array($ids)) {
+        if (empty($ids)) {
             $message = __('Invalid IDs provided.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveFailResponse('Noticelists', 'massToggle', false, $message, $this->response->type());
@@ -284,7 +284,10 @@ class NoticelistsController extends AppController
         $this->set('actionText', $state ? __('enable') : __('disable'));
         $this->set('idArray', $ids);
         $this->set('state', $state);
-        $this->set('url', '/noticelists/' . ($state ? 'massEnable' : 'massDisable') . '/' . urlencode($cleanIdList));
+        // The confirmation form carries the list back in Noticelist.id - a
+        // JSON list in the POST URL is black-holed, see _massActionIdList().
+        $this->request->data['Noticelist']['id'] = json_encode($ids);
+        $this->set('url', '/noticelists/' . ($state ? 'massEnable' : 'massDisable'));
         $this->render('ajax/noticelistToggleConfirmationForm');
     }
 }
