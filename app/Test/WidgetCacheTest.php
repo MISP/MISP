@@ -116,7 +116,7 @@ class WidgetCacheTest extends TestCase
         $this->assertStringStartsWith('misp:custom_geo_key:', $key);
         $hash = substr($key, strlen('misp:custom_geo_key:'));
         $this->assertSame(64, strlen($hash));
-        $this->assertRegExp('/^[0-9a-f]{64}$/', $hash);
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $hash);
     }
 
     public function testFrameworkKeysAreExcludedFromHash()
@@ -178,7 +178,7 @@ class WidgetCacheTest extends TestCase
         // misp:wc_user_scoped_cache:u7:<sha256>
         $this->assertStringStartsWith('misp:wc_user_scoped_cache:u7:', $key);
         $hash = substr($key, strlen('misp:wc_user_scoped_cache:u7:'));
-        $this->assertRegExp('/^[0-9a-f]{64}$/', $hash);
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $hash);
     }
 
     public function testUserScopeDifferentUsersGetDifferentKeys()
@@ -229,7 +229,7 @@ class WidgetCacheTest extends TestCase
         // misp:wc_org_scoped_cache:o5:<sha256>
         $this->assertStringStartsWith('misp:wc_org_scoped_cache:o5:', $key);
         $hash = substr($key, strlen('misp:wc_org_scoped_cache:o5:'));
-        $this->assertRegExp('/^[0-9a-f]{64}$/', $hash);
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $hash);
     }
 
     public function testOrgScopeSameOrgSharesKeyAcrossUsers()
