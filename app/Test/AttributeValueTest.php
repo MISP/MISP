@@ -1381,4 +1381,51 @@ class AttributeValueTest extends TestCase
         $this->expectException('InvalidArgumentException');
         $this->model($this->mysql)->assignIds($row);
     }
+
+    public function testFindAddressedReadsAPositiveIdOnly()
+    {
+        $this->mysql->responder = $this->answerIds([5 => 'evil.com']);
+        $model = $this->model($this->mysql);
+
+        $this->assertSame(['id' => 5, 'value' => 'evil.com'], $model->findAddressed(['id' => 5]));
+        $this->assertSame(['id' => 5, 'value' => 'evil.com'], $model->findAddressed(['id' => '5']));
+        $this->assertNull($model->findAddressed(['id' => 6]));
+        $this->assertCount(3, $this->mysql->statements);
+        foreach (['abc', '0', '-5', '5 OR 1=1', '5.0', ['5']] as $id) {
+            $this->assertNull($model->findAddressed(['id' => $id]), var_export($id, true));
+        }
+        $this->assertCount(3, $this->mysql->statements);
+    }
+
+    public function testFindAddressedBySha256ChecksTheWholeHash()
+    {
+        $this->mysql->store('evil.com', 9);
+        // Stored under the hash prefix of another text
+        $this->mysql->store('other', 10, 'collide.example');
+        $model = $this->model($this->mysql);
+
+        $sha256 = hash('sha256', 'evil.com');
+        $this->assertSame(['id' => 9, 'value' => 'evil.com'], $model->findAddressed(['sha256' => $sha256]));
+        $this->assertSame(['id' => 9, 'value' => 'evil.com'], $model->findAddressed(['sha256' => strtoupper($sha256)]));
+        $this->assertNull($model->findAddressed(['sha256' => hash('sha256', 'collide.example')]));
+        $this->assertNull($model->findAddressed(['sha256' => hash('sha256', 'absent.example')]));
+        $this->assertCount(4, $this->mysql->statements);
+        foreach ([substr($sha256, 0, 32), $sha256 . '0', 'g' . substr($sha256, 1), [$sha256]] as $bad) {
+            $this->assertNull($model->findAddressed(['sha256' => $bad]), var_export($bad, true));
+        }
+        $this->assertCount(4, $this->mysql->statements);
+    }
+
+    public function testFindAddressedByTextMatchesTheExactBytes()
+    {
+        $this->mysql->store('evil.com', 9);
+        $this->mysql->store('8080', 11);
+        $model = $this->model($this->mysql);
+
+        $this->assertSame(['id' => 9, 'value' => 'evil.com'], $model->findAddressed(['value' => 'evil.com']));
+        $this->assertSame(['id' => 11, 'value' => '8080'], $model->findAddressed(['value' => 8080]));
+        $this->assertNull($model->findAddressed(['value' => 'EVIL.com']));
+        $this->assertNull($model->findAddressed(['value' => ['evil.com']]));
+        $this->assertNull($model->findAddressed([]));
+    }
 }

@@ -136,6 +136,8 @@ tags:
     description: "MISP Taxonomies is a set of common classification libraries to tag, classify and organise information. Taxonomy allows to express the same vocabulary among a distributed set of users and organisations."
     externalDocs:
       url: https://www.circl.lu/doc/misp/taxonomy/#taxonomies
+  - name: Values
+    description: "Each distinct attribute value is stored once. A value is shown with the attributes holding it that the user can see; a value no visible attribute holds is reported as not found, exactly like a value that does not exist."
   - name: Event Report
     description: "Event reports can contain text under the markdown format and are stored inside an event. They can be used to describe events or processes in a readable way."
 
@@ -2369,6 +2371,107 @@ paths:
           $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         "404":
           $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /values/view/{valueId}:
+    get:
+      summary: "Get a value and the attributes holding it"
+      description: "The attributes are those the user can see, newest first, paged. The `page` and `limit` named parameters may also be given in the path (`/values/view/12/page:2/limit:100`)."
+      operationId: getValueById
+      tags:
+        - Values
+      parameters:
+        - $ref: "#/components/parameters/valueIdParameter"
+        - $ref: "#/components/parameters/valuePageParameter"
+        - $ref: "#/components/parameters/valueLimitParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValueViewResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /values/view/sha256:{valueSha256}:
+    get:
+      summary: "Get a value by the SHA-256 of its text"
+      operationId: getValueBySha256
+      tags:
+        - Values
+      parameters:
+        - $ref: "#/components/parameters/valueSha256Parameter"
+        - $ref: "#/components/parameters/valuePageParameter"
+        - $ref: "#/components/parameters/valueLimitParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValueViewResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /values/view:
+    get:
+      summary: "Get a value by its text"
+      description: "The text must match the stored value byte for byte; use `/values/search` with the `exact` mode to find it ignoring case."
+      operationId: getValueByText
+      tags:
+        - Values
+      parameters:
+        - name: value
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "evil.example"
+        - $ref: "#/components/parameters/valuePageParameter"
+        - $ref: "#/components/parameters/valueLimitParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValueViewResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+    post:
+      summary: "Get a value by its text"
+      description: "As the GET form, with the text in the request body."
+      operationId: postValueByText
+      tags:
+        - Values
+      requestBody:
+        $ref: "#/components/requestBodies/ValueViewRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValueViewResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /values/search:
+    post:
+      summary: "Search the stored values"
+      description: "Lists the values matching the search that at least one attribute the user can see holds, in id order, paged. A search matching more than 50,000 stored values is refused; narrow it down. Counts towards the role's search rate limit."
+      operationId: searchValues
+      tags:
+        - Values
+      requestBody:
+        $ref: "#/components/requestBodies/ValueSearchRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValueSearchResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
@@ -6698,6 +6801,74 @@ components:
               items:
                 type: string
 
+    ValueId:
+      type: integer
+      minimum: 1
+      example: 12345
+
+    Value:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ValueId"
+        value:
+          type: string
+          example: "evil.example"
+
+    ValueSummary:
+      allOf:
+        - $ref: "#/components/schemas/Value"
+        - type: object
+          properties:
+            sha256:
+              type: string
+              pattern: '^[0-9a-f]{64}$'
+            attribute_count:
+              type: integer
+              description: "Attributes holding the value that the user can see"
+
+    ValueHolder:
+      allOf:
+        - $ref: "#/components/schemas/Attribute"
+        - type: object
+          properties:
+            Event:
+              type: object
+              properties:
+                id:
+                  $ref: "#/components/schemas/EventId"
+                uuid:
+                  $ref: "#/components/schemas/UUID"
+                info:
+                  $ref: "#/components/schemas/EventInfo"
+                date:
+                  type: string
+                  format: date
+                distribution:
+                  $ref: "#/components/schemas/DistributionLevelId"
+                sharing_group_id:
+                  $ref: "#/components/schemas/SharingGroupId"
+                published:
+                  type: boolean
+                timestamp:
+                  $ref: "#/components/schemas/NullableTimestamp"
+                Orgc:
+                  $ref: "#/components/schemas/Organisation"
+            Object:
+              description: "Only for an attribute of an object"
+              type: object
+              properties:
+                id:
+                  $ref: "#/components/schemas/ObjectId"
+                uuid:
+                  $ref: "#/components/schemas/UUID"
+                name:
+                  $ref: "#/components/schemas/ObjectName"
+                distribution:
+                  $ref: "#/components/schemas/DistributionLevelId"
+                sharing_group_id:
+                  $ref: "#/components/schemas/SharingGroupId"
+
     ValueSearchRestSearchFilter:
       description: |
         Search inside attribute values: an attribute matches when its value, or either part of a composite value on its own, holds the given text, ignoring case but not accents.
@@ -7432,6 +7603,43 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/WarninglistId"
+
+    valueIdParameter:
+      name: valueId
+      in: path
+      description: "Numeric ID of the value"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ValueId"
+
+    valueSha256Parameter:
+      name: valueSha256
+      in: path
+      description: "SHA-256 of the value's text, in hexadecimal"
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{64}$'
+
+    valuePageParameter:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000000
+        default: 1
+
+    valueLimitParameter:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 60
 
     noticelistIdParameter:
       name: noticelistId
@@ -8310,6 +8518,54 @@ components:
             items:
               type: string
               example: "10.128.0.2"
+
+    ValueViewRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - value
+            properties:
+              value:
+                type: string
+                example: "evil.example"
+              page:
+                type: integer
+                minimum: 1
+                maximum: 1000000
+              limit:
+                type: integer
+                minimum: 1
+                maximum: 1000
+
+    ValueSearchRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - value
+            properties:
+              value:
+                type: string
+                example: "evil.example"
+              mode:
+                type: string
+                enum:
+                  - search
+                  - like
+                  - exact
+                default: search
+                description: "`search` finds the text where it starts a word, as the `value_search` restSearch filter does; `like` takes a LIKE pattern with `%` and `_` wildcards; `exact` matches the whole value, ignoring case"
+              page:
+                type: integer
+                minimum: 1
+                maximum: 1000000
+              limit:
+                type: integer
+                minimum: 1
+                maximum: 1000
 
     ToggleEnableNoticelistRequest:
       content:
@@ -10499,6 +10755,32 @@ components:
             properties:
               Warninglist:
                 $ref: "#/components/schemas/Warninglist"
+
+    ValueViewResponse:
+      description: "A value and the attributes holding it that the user can see"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Value:
+                $ref: "#/components/schemas/ValueSummary"
+              Attribute:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ValueHolder"
+
+    ValueSearchResponse:
+      description: "The matching values"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Value:
+                  $ref: "#/components/schemas/Value"
 
     WarninglistMatchListResponse:
       description: "List of values matching warninglists response"

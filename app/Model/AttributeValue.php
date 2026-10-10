@@ -491,6 +491,41 @@ class AttributeValue extends AppModel
     }
 
     /**
+     * The stored value an address names, byte for byte: its id, the SHA-256
+     * of its text, or the text itself.
+     *
+     * @param array $address ['id' => …], ['sha256' => hex] or ['value' => …]
+     * @return array|null ['id' => int, 'value' => string]
+     */
+    public function findAddressed(array $address)
+    {
+        if (isset($address['id'])) {
+            $id = filter_var($address['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $found = $id === false ? [] : $this->fetchValues([$id]);
+        } elseif (isset($address['sha256'])) {
+            $hex = is_string($address['sha256']) ? strtolower($address['sha256']) : '';
+            if (!preg_match('/^[0-9a-f]{64}$/', $hex)) {
+                return null;
+            }
+            $prefix = hex2bin(substr($hex, 0, 2 * self::HASH_BYTES));
+            $found = [];
+            foreach ($this->fetchRows($this->selectByHash('= ' . $this->getSqlDialect()->binaryLiteral($prefix))) as $row) {
+                if (hash('sha256', (string)$row['value']) === $hex) {
+                    $found[(int)$row['id']] = (string)$row['value'];
+                }
+            }
+        } elseif (isset($address['value']) && is_scalar($address['value'])) {
+            $found = array_flip($this->idsOf([$address['value']]));
+        } else {
+            return null;
+        }
+        if (empty($found)) {
+            return null;
+        }
+        return ['id' => (int)key($found), 'value' => (string)current($found)];
+    }
+
+    /**
      * Readies an attribute or proposal find for the dictionary: a field list
      * that names the value field reads the ids instead, and an order on it
      * sorts by the dictionary text. Only for finds whose afterFind runs,

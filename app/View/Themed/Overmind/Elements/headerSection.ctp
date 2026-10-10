@@ -1,6 +1,6 @@
 <?php
 $breadcrumb = '';
-$unclickableControllers = ['pages'];
+$unclickableControllers = ['pages', 'values'];
 if (!empty($currentController)) {
     if ($currentController === 'galaxy_clusters') {
         $currentController = 'galaxies';

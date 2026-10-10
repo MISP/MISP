@@ -19,6 +19,7 @@ class OvermindPages
             'index', 'add', 'edit', 'delete', 'add_attachment'
         ),
         'shadow_attributes' => array('index'),
+        'values' => array('view'),
         'event_delegations' => array('index'),
         'objects' => array('add', 'edit', 'delete'),
         'sightings' => array('advanced'),

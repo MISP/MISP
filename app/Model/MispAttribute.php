@@ -2145,6 +2145,74 @@ class MispAttribute extends AppModel
     }
 
     /**
+     * The values that at least one attribute the user can see holds, as
+     * value1 or value2, by the rules of fetchAttributes().
+     *
+     * @param array $user
+     * @param array $valueIds
+     * @param int $limit Stop once this many are found.
+     * @return int[] in ascending order
+     */
+    public function visibleValueIds(array $user, array $valueIds, $limit)
+    {
+        $valueIds = array_values(array_unique(array_map('intval', $valueIds)));
+        sort($valueIds);
+        $db = $this->getDataSource();
+        $values = $this->loadAttributeValue();
+        $conditions = ['Attribute.deleted' => 0];
+        $joins = [[
+            'table' => 'events',
+            'alias' => 'Event',
+            'type' => 'INNER',
+            'conditions' => ['Event.id = Attribute.event_id'],
+        ]];
+        $acl = $this->buildConditions($user);
+        if (!empty($acl)) {
+            $conditions['AND'][] = $acl;
+            $joins[] = [
+                'table' => 'objects',
+                'alias' => 'Object',
+                'type' => 'LEFT',
+                'conditions' => ['Object.id = Attribute.object_id'],
+            ];
+        }
+        $exists = [];
+        foreach (['value1_id', 'value2_id'] as $column) {
+            $exists[] = 'EXISTS (' . $db->buildStatement([
+                'fields' => ['1'],
+                'table' => $db->fullTableName($this),
+                'alias' => 'Attribute',
+                'joins' => $joins,
+                'conditions' => array_merge($conditions, ["Attribute.$column = AttributeValue.id"]),
+                'limit' => null,
+                'offset' => null,
+                'order' => null,
+                'group' => null,
+            ], $this) . ')';
+        }
+        $visible = [];
+        // Under 1000: MariaDB turns a longer IN list into a join, and the
+        // EXISTS checks into a scan of every attribute
+        foreach (array_chunk($valueIds, 500) as $chunk) {
+            $sql = sprintf(
+                'SELECT %1$s FROM %2$s AS %3$s WHERE %1$s IN (%4$s) AND (%5$s) ORDER BY %1$s',
+                $db->name('AttributeValue.id'),
+                $db->fullTableName($values, true, false),
+                $db->name('AttributeValue'),
+                implode(', ', $chunk),
+                implode(' OR ', $exists)
+            );
+            foreach ($db->fetchAll($sql, [], ['cache' => false]) as $row) {
+                $visible[] = (int)$row['AttributeValue']['id'];
+            }
+            if (count($visible) >= $limit) {
+                break;
+            }
+        }
+        return array_slice($visible, 0, $limit);
+    }
+
+    /**
      * Unlike the other fetchers, this one foregoes any ACL checks.
      * the objective is simple: Fetch the given attribute with all related objects needed for the ZMQ output,
      * standardising on this function for fetching the attribute to be passed to Attribute->save()

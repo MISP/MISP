@@ -1024,6 +1024,10 @@ class ACLComponent extends Component
             'setTheme' => ['*'],
             'setEventTemplateUserFormMode' => ['*']
         ),
+        'values' => [
+            'search' => ['*'],
+            'view' => ['*'],
+        ],
         'warninglists' => array(
             'checkValue' => ['*'],
             'delete' => ['perm_warninglist'],
