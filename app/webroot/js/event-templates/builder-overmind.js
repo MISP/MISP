@@ -553,23 +553,43 @@
             },
 
             // ---------- Tom Select pickers ----------
+            /**
+             * Binds the envelope's distribution picker — the compact
+             * choice_select the shell renders — to envelope.distribution.
+             *
+             * The TomSelect belongs to initChoiceSelects() (mispOvermind.js),
+             * which carries the distribution badges and runs on DOMContentLoaded.
+             * Whether it got there first or Alpine did decides nothing: the
+             * instance is claimed if it exists and built otherwise, and the
+             * change handler is registered on the instance rather than passed
+             * to a constructor this component no longer owns.
+             */
             initEnvelopeDistributionSelect($el) {
                 if (!$el) { return; }
 
+                const push = (value) => {
+                    const level = parseInt(value, 10);
+                    if (!isNaN(level) && level !== this.envelope.distribution) {
+                        this.envelope.distribution = level;
+                    }
+                };
+
                 const attach = () => {
-                    if (typeof window.initDistributionSelect !== 'function') {
+                    if (!$el.tomselect
+                        && typeof window.initChoiceSelects === 'function') {
+                        window.initChoiceSelects(document);
+                    }
+
+                    const ts = $el.tomselect;
+                    if (!ts) {
+                        /* No TomSelect at all — the plain <select> still is the
+                           control, so read it straight. */
+                        $el.addEventListener('change', () => push($el.value));
+                        $el.value = String(this.envelope.distribution);
                         return;
                     }
-                    window.initDistributionSelect($el.id, (value) => {
-                        const level = parseInt(value, 10);
-                        if (!isNaN(level) && level !== this.envelope.distribution) {
-                            this.envelope.distribution = level;
-                        }
-                    });
-                    const ts = $el.tomselect;
-                    if (!ts) { return; }
-                    this._distributionTomSelect = ts;
 
+                    ts.on('change', push);
                     ts.setValue(String(this.envelope.distribution), true);
                     this.$watch('envelope.distribution', (value) => {
                         if (ts.getValue() !== String(value)) {

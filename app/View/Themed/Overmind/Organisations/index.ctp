@@ -200,7 +200,7 @@ $scaffoldFilterBar = [
                     'name' => 'scope',
                     'label' => __('Local'),
                     'options' => [
-                        'all'      => __('All organisations'),
+                        '' => __('All organisations'),
                         'local'    => __('Local organisations'),
                         'external' => __('Known remote organisations'),
                     ],

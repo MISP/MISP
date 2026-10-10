@@ -75,6 +75,15 @@ if ($canEdit) {
         'label' => __('Populate from')
     ];
 
+    if (Configure::read('Plugin.AI_services_enable') && $this->Acl->canAccess('events', 'aiActions')) {
+        $actions[] = [
+            'url' => "$baseurl/events/aiActions/$eventId",
+            'onclick' => $modal("$baseurl/events/aiActions/$eventId", 'md'),
+            'icon' => 'fas fa-robot',
+            'label' => __('AI actions')
+        ];
+    }
+
     $actions[] = [
         'url' => "$baseurl/events/merge/$eventId",
         'onclick' => $modal("$baseurl/events/merge/$eventId", 'md'),

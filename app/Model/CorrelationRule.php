@@ -73,8 +73,13 @@ class CorrelationRule extends AppModel
                 event_id BIGINT NOT NULL,
                 rule_id  INT    NOT NULL,
                 PRIMARY KEY(event_id,rule_id)
-            ) ENGINE=MEMORY
-            ';
+            )';
+            // The storage clause is the only MySQL part of this statement, and
+            // an optimisation rather than a requirement: an engine without it
+            // gets an ordinary temporary table.
+            if ($this->checkDbSupport('temporaryMemoryTable')) {
+                $query .= ' ENGINE=MEMORY';
+            }
             if ($this->query($query)) {
                 $this->Event = ClassRegistry::init('Event');
                 foreach ($this->__ruleCache as $rule) {
@@ -169,7 +174,9 @@ class CorrelationRule extends AppModel
             if (!empty($rules)) {
                 $ruleIds = [];
                 foreach ($rules as $rule) {
-                    $ruleIds[] = intval($rule['tmp_excludes']['rule']);
+                    // MySQL's driver nests a plain column under its table,
+                    // PostgreSQL's nests every raw-query column under 0.
+                    $ruleIds[] = intval($rule[0]['rule'] ?? $rule['tmp_excludes']['rule']);
                 }
                 $conditions['AND'][] = sprintf(
                     'NOT EXISTS (SELECT 1 FROM tmp_excludes WHERE tmp_excludes.event_id = Event.id AND tmp_excludes.rule_id IN (%s))',

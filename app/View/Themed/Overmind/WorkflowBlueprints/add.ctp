@@ -74,22 +74,15 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
 
         <!-- ── GRAPH ───────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <?= $this->element('genericElementsBS5/Forms/section_label', [
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'data',
                 'label' => __('Data (JSON)'),
-            ]) ?>
-            <?= $this->Form->textarea('data', [
+                'shape' => 'array',
                 'id' => 'WorkflowBlueprintData',
-                'class' => 'w-100 rounded-2 p-3',
-                'style' => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                    . ' border:1px solid #d8dde3; resize:vertical; outline:none;'
-                    . ' font-size:.85rem; min-height:180px; color:inherit;'
-                    . ' font-family:monospace;',
                 'rows' => 10,
-                'spellcheck' => 'false',
+                'minHeight' => '180px',
                 'placeholder' => '[]',
-            ]) ?>
-            <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                'text' => __('The blueprint graph as a JSON array of blocks. Build it in the workflow editor and paste it here.'),
+                'hint' => __('The blueprint graph as a JSON array of blocks. Build it in the workflow editor and paste it here.'),
             ]) ?>
         </div>
 

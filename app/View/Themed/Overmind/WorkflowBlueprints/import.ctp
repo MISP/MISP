@@ -41,22 +41,14 @@ echo $this->Form->create('WorkflowBlueprint', [
 
         <!-- ── Workflow Blueprint  ───────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
-                        text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Workflow Blueprint JSON') ?>
-                <span class="badge bg-primary"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
-            <?= $this->Form->textarea('json', [
-                'class' => 'form-control bg-light font-monospace',
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'json',
+                'label' => __('Workflow Blueprint JSON'),
+                'shape' => 'object',
                 'rows' => 14,
-                'style' => 'font-size:.8rem;',
-                'placeholder' => __(
-                    '{ ... } '
-                ),
+                'minHeight' => '280px',
+                'placeholder' => "{\n    \"WorkflowBlueprint\": {\n        \"name\": \"…\",\n        \"data\": []\n    }\n}",
+                'hint' => __('The export document of a blueprint — leave it empty to upload the file instead.'),
             ]) ?>
         </div>
 

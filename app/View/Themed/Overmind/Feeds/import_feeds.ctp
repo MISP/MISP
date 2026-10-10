@@ -23,62 +23,23 @@ $existingFeedUrls = array_values($existingFeedUrls ?? []);
 
         <!-- ── JSON ────────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="d-flex align-items-center gap-2 text-primary fw-bold
-                            text-uppercase"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Feed Metadata') ?>
-                    <span class="badge bg-primary"
-                          style="font-size:.55rem; opacity:.8; font-weight:700;">
-                        <?= __('REQUIRED') ?>
-                    </span>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span id="feedImportStatus" class="badge bg-secondary"
-                          style="font-size:.65rem;"><?= __('Waiting for input') ?></span>
-                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                            id="feedImportFormatBtn"
-                            style="font-size:.7rem; padding:.15rem .5rem;">
-                        <i class="fas fa-wand-magic-sparkles me-1"></i><?= __('Format') ?>
-                    </button>
-                </div>
-            </div>
-
-            <?= $this->Form->textarea('json', [
+            <?php
+            /* The field parses, reports and re-indents the document; what is
+             * specific to a feed import is the list under it, which the
+             * script below builds from a `misp:json-change`. */
+            ?>
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'json',
+                'label' => __('Feed Metadata'),
+                'required' => true,
                 'id' => 'FeedImportJson',
-                'class' => 'w-100 rounded-2 p-3',
-                'style' => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                    . ' border:1px solid #d8dde3; resize:vertical;'
-                    . ' outline:none; font-size:.85rem; min-height:220px;'
-                    . ' color:inherit; font-family:monospace;'
-                    . ' white-space:pre; overflow-x:auto;',
                 'rows' => 12,
-                'spellcheck' => 'false',
                 'placeholder' => "[\n    {\n        \"Feed\": {\n            \"name\": \"CIRCL OSINT feed\",\n            \"provider\": \"CIRCL\",\n            \"url\": \"https://www.circl.lu/doc/misp/feed-osint\",\n            \"source_format\": \"misp\"\n        }\n    }\n]",
+                'hint' => __('Takes the output of a feed index export — one feed object or a list of them.'),
+                'preview' => true,
+                'previewLabel' => __('What will be imported'),
+                'toolbar' => '<span id="feedImportCounts" class="d-flex align-items-center gap-1"></span>',
             ]) ?>
-            <div id="feedImportError" class="d-none text-danger
-                        d-flex align-items-center gap-1 mt-1"
-                 style="font-size:.75rem;"></div>
-
-            <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                'text' => __('Takes the output of a feed index export — one feed object or a list of them.'),
-            ]) ?>
-        </div>
-
-        <!-- ── WHAT WILL BE IMPORTED ───────────────────────────── -->
-        <div class="w-100 px-2 d-none" id="feedImportPreviewWrap">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <?= $this->element('genericElementsBS5/Forms/section_label', [
-                    'accent' => 'primary',
-                    'label' => __('What will be imported'),
-                    'class' => '',
-                ]) ?>
-                <div class="d-flex align-items-center gap-1"
-                     id="feedImportCounts"></div>
-            </div>
-            <div class="border rounded" id="feedImportPreview"
-                 style="border-color:#d8dde3 !important; max-height:260px;
-                        overflow-y:auto;"></div>
         </div>
 
     </div>
@@ -98,9 +59,6 @@ $existingFeedUrls = array_values($existingFeedUrls ?? []);
     var EXISTING = <?= json_encode($existingFeedUrls, JSON_HEX_TAG | JSON_HEX_AMP
         | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '[]' ?>;
     var L = {
-        waiting: <?= json_encode(__('Waiting for input')) ?>,
-        invalid: <?= json_encode(__('Invalid JSON')) ?>,
-        objectExpected: <?= json_encode(__('Expected a feed object or a list of them.')) ?>,
         entryShape: <?= json_encode(__('Entry %s carries no "Feed" object.')) ?>,
         entryUrl: <?= json_encode(__('Entry %s has no url — a feed is recognised by its url.')) ?>,
         ready: <?= json_encode(__('%s to import')) ?>,
@@ -109,46 +67,16 @@ $existingFeedUrls = array_values($existingFeedUrls ?? []);
         knownBadge: <?= json_encode(__('KNOWN')) ?>,
         newCount: <?= json_encode(__('%s new')) ?>,
         knownCount: <?= json_encode(__('%s already present')) ?>,
-        required: <?= json_encode(__('Please paste the feed metadata to import.')) ?>,
         noName: <?= json_encode(__('(unnamed)')) ?>
     };
 
-    function el(id) { return document.getElementById(id); }
-
-    var jsonEl = el('FeedImportJson');
-    var statusEl = el('feedImportStatus');
-    var errorEl = el('feedImportError');
-    var previewEl = el('feedImportPreview');
-    var previewWrap = el('feedImportPreviewWrap');
-    var countsEl = el('feedImportCounts');
-    var formatBtn = el('feedImportFormatBtn');
-    var form = el('feedImportForm');
+    var jsonEl = document.getElementById('FeedImportJson');
+    var countsEl = document.getElementById('feedImportCounts');
     if (!jsonEl) { return; }
-
-    function setStatus(kind, text) {
-        statusEl.className = 'badge bg-' + kind;
-        statusEl.style.fontSize = '.65rem';
-        statusEl.textContent = text;
-    }
-
-    function setError(message) {
-        if (!message) {
-            errorEl.classList.add('d-none');
-            errorEl.textContent = '';
-            return;
-        }
-        errorEl.classList.remove('d-none');
-        errorEl.innerHTML = '';
-        var icon = document.createElement('i');
-        icon.className = 'fas fa-circle-exclamation';
-        errorEl.appendChild(icon);
-        errorEl.appendChild(document.createTextNode(message));
-    }
 
     /* Feed::importFeeds() wraps a lone object into a list, so accept both */
     function toEntries(parsed) {
-        if (Array.isArray(parsed)) { return parsed; }
-        return [parsed];
+        return Array.isArray(parsed) ? parsed : [parsed];
     }
 
     function badge(text, kind) {
@@ -163,7 +91,6 @@ $existingFeedUrls = array_values($existingFeedUrls ?? []);
         var feed = entry.Feed || {};
         var row = document.createElement('div');
         row.className = 'd-flex align-items-center gap-2 px-2 py-2 border-bottom';
-        row.style.borderColor = '#e9ecef';
         if (!isNew) { row.style.opacity = '.6'; }
 
         row.appendChild(badge(isNew ? L.newBadge : L.knownBadge,
@@ -199,59 +126,45 @@ $existingFeedUrls = array_values($existingFeedUrls ?? []);
         return row;
     }
 
-    function refresh() {
-        var raw = jsonEl.value.trim();
-        previewWrap.classList.add('d-none');
-        if (!raw) {
-            setStatus('secondary', L.waiting);
-            setError(null);
-            return;
-        }
-
-        var parsed;
-        try {
-            parsed = JSON.parse(raw);
-        } catch (e) {
-            setStatus('danger', L.invalid);
-            setError(e.message);
-            return;
-        }
-        if (!parsed || typeof parsed !== 'object') {
-            setStatus('danger', L.invalid);
-            setError(L.objectExpected);
-            return;
-        }
-
-        var entries = toEntries(parsed);
-        var problem = null;
+    /* First entry Feed::importFeeds() would not know what to do with */
+    function findProblem(entries) {
         for (var i = 0; i < entries.length; i++) {
             var entry = entries[i];
             if (!entry || typeof entry !== 'object' || !entry.Feed) {
-                problem = L.entryShape.replace('%s', '#' + (i + 1));
-                break;
+                return L.entryShape.replace('%s', '#' + (i + 1));
             }
             if (!entry.Feed.url) {
-                problem = L.entryUrl.replace('%s', '#' + (i + 1));
-                break;
+                return L.entryUrl.replace('%s', '#' + (i + 1));
             }
         }
-        if (problem) {
-            setStatus('warning', L.invalid);
-            setError(problem);
+        return null;
+    }
+
+    jsonEl.addEventListener('misp:json-change', function (e) {
+        var field = e.detail.field;
+        countsEl.innerHTML = '';
+        if (!e.detail.valid) {
+            field.setPreview(null);
             return;
         }
 
-        setError(null);
-        previewEl.innerHTML = '';
+        var entries = toEntries(e.detail.parsed);
+        var problem = findProblem(entries);
+        if (problem) {
+            field.setProblem(problem);
+            field.setPreview(null);
+            return;
+        }
+
+        var list = document.createElement('div');
         var newCount = 0;
         entries.forEach(function (entry) {
             var isNew = EXISTING.indexOf(entry.Feed.url) === -1;
             if (isNew) { newCount++; }
-            previewEl.appendChild(buildRow(entry, isNew));
+            list.appendChild(buildRow(entry, isNew));
         });
         var knownCount = entries.length - newCount;
 
-        countsEl.innerHTML = '';
         countsEl.appendChild(badge(L.newCount.replace('%s', newCount),
             'text-bg-success'));
         if (knownCount) {
@@ -259,39 +172,15 @@ $existingFeedUrls = array_values($existingFeedUrls ?? []);
                 'text-bg-secondary'));
         }
 
-        setStatus(newCount ? 'success' : 'secondary',
+        field.setStatus(newCount ? 'success' : 'secondary',
             newCount ? L.ready.replace('%s', newCount) : L.nothingNew);
-        previewWrap.classList.remove('d-none');
-    }
+        field.setPreview(list);
+    });
 
-    jsonEl.addEventListener('input', refresh);
-
-    if (formatBtn) {
-        formatBtn.addEventListener('click', function () {
-            try {
-                jsonEl.value = JSON.stringify(JSON.parse(jsonEl.value), null, 4);
-            } catch (e) { /* refresh() reports it */ }
-            refresh();
-        });
-    }
-
-    if (form) {
-        form.addEventListener('submit', function (e) {
-            if (jsonEl.value.trim()) { return; }
-            e.preventDefault();
-            e.stopPropagation();
-            jsonEl.style.setProperty('border-color', '#dc3545', 'important');
-            setStatus('danger', L.invalid);
-            setError(L.required);
-            jsonEl.focus();
-        });
-        jsonEl.addEventListener('input', function () {
-            if (jsonEl.value.trim()) {
-                jsonEl.style.setProperty('border-color', '#d8dde3', 'important');
-            }
-        });
-    }
-
-    refresh();
+    /* initJsonFields() runs after this script in both paths — the modal open
+     * and the page load — so its own first refresh already reaches the
+     * listener above. This only covers a container initialised the other way
+     * round, and costs one parse. */
+    if (jsonEl.jsonField) { jsonEl.jsonField.refresh(); }
 })();
 </script>

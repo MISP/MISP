@@ -363,20 +363,6 @@ class TagsController extends AppController
         $this->render('/Attributes/ajax/ajaxAttributeTags');
     }
 
-    public function viewTag($id)
-    {
-        $tag = $this->Tag->find('first', array(
-                'conditions' => array(
-                        'id' => $id
-                ),
-                'recursive' => -1,
-        ));
-        $this->layout = null;
-        $this->set('tag', $tag);
-        $this->set('id', $id);
-        $this->render('ajax/view_tag');
-    }
-
 
     public function selectTaxonomy($id, $scope = 'event')
     {
@@ -585,11 +571,13 @@ class TagsController extends AppController
 
     public function tagStatistics($percentage = false, $keysort = false)
     {
+        // Every selected non-aggregate column is in the GROUP BY: PostgreSQL
+        // insists, MySQL does not mind.
         $result = $this->Tag->EventTag->find('all', array(
                 'recursive' => -1,
-                'fields' => array('count(EventTag.id) as count', 'tag_id'),
+                'fields' => array('count(EventTag.id) as count', 'EventTag.tag_id'),
                 'contain' => array('Tag' => array('fields' => array('Tag.name'))),
-                'group' => array('tag_id')
+                'group' => array('EventTag.tag_id', 'Tag.id', 'Tag.name')
         ));
         $tags = array();
         $taxonomies = array();
@@ -942,7 +930,7 @@ class TagsController extends AppController
                 $tag[] = strtolower($element['GalaxyCluster']['tag_name']);
             }
             foreach ($tag as $t) {
-                $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
+                $conditions['OR'][] = $this->Tag->nameCondition($t, 'LIKE');
             }
         } else {
             foreach ($tag as $t) {

@@ -912,7 +912,7 @@ class DashboardsController extends AppController
                 'type'  => 'LEFT',
                 'conditions' => [
                     'GalaxyCluster.galaxy_id = Galaxy.id',
-                    'GalaxyCluster.deleted = 0',
+                    'GalaxyCluster.deleted' => false,
                 ],
             ]],
             'conditions' => ['Galaxy.enabled' => 1],

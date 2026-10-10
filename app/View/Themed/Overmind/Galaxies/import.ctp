@@ -5,16 +5,26 @@
  */
 ?>
 
+<?php
+echo $this->Form->create('Galaxy', [
+    'url' => $baseurl . '/galaxies/import',
+    'id' => 'galaxyImportForm',
+    'enctype' => 'multipart/form-data',
+    'novalidate' => true,
+]);
+?>
+
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
     'accent' => 'galaxy',
     'eyebrow' => __('Galaxies'),
     'title' => __('Import galaxy clusters'),
+    'description' => __('Takes a galaxy cluster export from this or another MISP instance — one cluster or a list of them.'),
     'titleIcon' => 'fas fa-upload',
     'icon' => 'misp-icon misp-icon-galaxy misp-simple',
 ]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
-<div class="p-4">
+<div class="container-fluid px-4 py-4">
 
     <div class="alert alert-warning d-flex gap-2" role="alert">
         <i class="fas fa-triangle-exclamation mt-1"></i>
@@ -29,47 +39,190 @@
         </div>
     </div>
 
-    <?php
-    echo $this->Form->create('Galaxy', [
-        'url' => $baseurl . '/galaxies/import',
-        'id' => 'galaxyImportForm',
-        'enctype' => 'multipart/form-data',
-    ]);
-    ?>
+    <div class="d-flex flex-column gap-4">
 
-    <!-- JSON -->
-    <div class="mb-3">
-        <label class="form-label fw-semibold" for="GalaxyJson"><?= __('JSON') ?></label>
-        <?= $this->Form->textarea('json', [
-            'class' => 'form-control font-monospace bg-light',
-            'id' => 'GalaxyJson',
-            'rows' => 14,
-            'placeholder' => __('Paste the galaxy clusters JSON here…'),
-        ]) ?>
-    </div>
-
-    <!-- JSON FILE -->
-    <div class="mb-4">
-        <label class="form-label fw-semibold" for="GalaxySubmittedjson"><?= __('JSON file') ?></label>
-        <?= $this->Form->file('submittedjson', [
-            'class' => 'form-control bg-light',
-            'id' => 'GalaxySubmittedjson',
-        ]) ?>
-        <div class="form-text">
-            <?= __('Optionally upload a .json file instead of pasting its content above.') ?>
+        <!-- JSON -->
+        <div class="w-100">
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'json',
+                'accent' => 'galaxy',
+                'label' => __('Galaxy Clusters JSON'),
+                'id' => 'GalaxyJson',
+                'rows' => 14,
+                'minHeight' => '280px',
+                'placeholder' => "[\n    {\n        \"GalaxyCluster\": {\n            \"value\": \"…\",\n            \"Galaxy\": {\n                \"uuid\": \"…\",\n                \"name\": \"…\",\n                \"type\": \"…\"\n            }\n        }\n    }\n]",
+                'hint' => __('An export of this or another MISP instance — leave it empty to upload the file instead.'),
+                'preview' => true,
+                'previewLabel' => __('What will be imported'),
+                'toolbar' => '<span id="galaxyImportCounts" class="d-flex align-items-center gap-1"></span>',
+            ]) ?>
         </div>
+
+        <!-- JSON FILE -->
+        <div class="w-100">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'galaxy',
+                'label' => __('JSON file'),
+                'for' => 'GalaxySubmittedjson',
+            ]) ?>
+            <?= $this->Form->file('submittedjson', [
+                'class' => 'form-control bg-light',
+                'id' => 'GalaxySubmittedjson',
+            ]) ?>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Upload a .json file instead of pasting its content above — only one of the two.'),
+            ]) ?>
+        </div>
+
     </div>
 
-    <!-- ACTIONS -->
-    <div class="d-flex justify-content-end gap-3">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-            <?= __('Cancel') ?>
-        </button>
-        <button type="submit" class="btn btn-galaxy text-light">
-            <i class="fas fa-upload me-1"></i> <?= __('Import') ?>
-        </button>
-    </div>
-
-    <?= $this->Form->end(); ?>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'galaxy',
+        'metaId' => 'galaxyImportSummary',
+        'hint' => __('Clusters land in the galaxy they were exported from, which is created if it is missing.'),
+        'submit' => ['label' => __('Import'), 'icon' => 'fas fa-upload'],
+    ]) ?>
 
 </div>
+
+<?= $this->Form->end(); ?>
+
+<script>
+(function () {
+    var L = {
+        mispGalaxy: <?= json_encode(__('This is a MISP-galaxy format document (a galaxy with a "values" list), which cannot be imported. Export the clusters from a MISP instance instead.')) ?>,
+        entryShape: <?= json_encode(__('Entry %s carries no "GalaxyCluster" object.')) ?>,
+        entryGalaxy: <?= json_encode(__('Entry %s names neither a galaxy nor a galaxy type, so there is nothing to import it into.')) ?>,
+        ready: <?= json_encode(__('%s to import')) ?>,
+        count: <?= json_encode(__('%s cluster(s)')) ?>,
+        galaxyCount: <?= json_encode(__('%s galaxy/galaxies')) ?>,
+        newGalaxy: <?= json_encode(__('NEW GALAXY')) ?>,
+        noValue: <?= json_encode(__('(unnamed)')) ?>
+    };
+
+    var jsonEl = document.getElementById('GalaxyJson');
+    var countsEl = document.getElementById('galaxyImportCounts');
+    if (!jsonEl) { return; }
+
+    /* Galaxy::importGalaxyAndClusters() takes a lone cluster as a list of one */
+    function toEntries(parsed) {
+        return Array.isArray(parsed) ? parsed : [parsed];
+    }
+
+    /* The galaxy an entry lands in, as the importer resolves it: the galaxy it
+       carries first, its type second. */
+    function galaxyOf(cluster) {
+        if (cluster.Galaxy && typeof cluster.Galaxy === 'object') {
+            return {
+                label: cluster.Galaxy.name || cluster.Galaxy.type
+                    || cluster.Galaxy.uuid || L.noValue,
+                captured: true
+            };
+        }
+        if (cluster.type) {
+            return { label: cluster.type, captured: false };
+        }
+        return null;
+    }
+
+    function badge(text, kind) {
+        var span = document.createElement('span');
+        span.className = 'badge flex-shrink-0 ' + kind;
+        span.style.fontSize = '.6rem';
+        span.textContent = text;
+        return span;
+    }
+
+    function buildRow(cluster, galaxy) {
+        var row = document.createElement('div');
+        row.className = 'd-flex align-items-center gap-2 px-2 py-2 border-bottom';
+
+        var body = document.createElement('div');
+        body.className = 'flex-fill';
+        body.style.minWidth = '0';
+
+        var title = document.createElement('div');
+        title.className = 'fw-semibold text-truncate';
+        title.style.fontSize = '.8rem';
+        title.textContent = cluster.value || L.noValue;
+        body.appendChild(title);
+
+        var meta = document.createElement('div');
+        meta.className = 'text-muted font-monospace text-truncate';
+        meta.style.fontSize = '.72rem';
+        meta.textContent = galaxy.label + (cluster.uuid ? ' · ' + cluster.uuid : '');
+        body.appendChild(meta);
+        row.appendChild(body);
+
+        if (galaxy.captured) {
+            row.appendChild(badge(L.newGalaxy, 'text-bg-light border'));
+        }
+        var elements = cluster.GalaxyElement;
+        if (Array.isArray(elements) && elements.length) {
+            row.appendChild(badge(elements.length + ' ×', 'text-bg-light border'));
+        }
+        return row;
+    }
+
+    /* The first thing the importer would not know what to do with. It answers
+       one sentence about the document rather than one per entry — a document of
+       the wrong kind is one mistake, not nine. */
+    function findProblem(parsed, entries) {
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+            && parsed.values && (parsed.type || parsed.name)) {
+            return L.mispGalaxy;
+        }
+        for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            if (!entry || typeof entry !== 'object' || !entry.GalaxyCluster
+                || typeof entry.GalaxyCluster !== 'object') {
+                return L.entryShape.replace('%s', '#' + (i + 1));
+            }
+            if (!galaxyOf(entry.GalaxyCluster)) {
+                return L.entryGalaxy.replace('%s', '#' + (i + 1));
+            }
+        }
+        return null;
+    }
+
+    jsonEl.addEventListener('misp:json-change', function (e) {
+        var field = e.detail.field;
+        countsEl.innerHTML = '';
+        if (!e.detail.valid) {
+            field.setPreview(null);
+            return;
+        }
+
+        var entries = toEntries(e.detail.parsed);
+        var problem = findProblem(e.detail.parsed, entries);
+        if (problem) {
+            field.setProblem(problem);
+            field.setPreview(null);
+            return;
+        }
+
+        var list = document.createElement('div');
+        var galaxies = {};
+        entries.forEach(function (entry) {
+            var galaxy = galaxyOf(entry.GalaxyCluster);
+            galaxies[galaxy.label] = true;
+            list.appendChild(buildRow(entry.GalaxyCluster, galaxy));
+        });
+
+        countsEl.appendChild(badge(L.count.replace('%s', entries.length),
+            'text-bg-success'));
+        countsEl.appendChild(badge(
+            L.galaxyCount.replace('%s', Object.keys(galaxies).length),
+            'text-bg-secondary'));
+
+        field.setStatus('success', L.ready.replace('%s', entries.length));
+        field.setPreview(list);
+    });
+
+    /* initJsonFields() runs after this script in both paths — the modal open
+     * and the page load — so its own first refresh already reaches the
+     * listener above. This only covers a container initialised the other way
+     * round, and costs one parse. */
+    if (jsonEl.jsonField) { jsonEl.jsonField.refresh(); }
+})();
+</script>

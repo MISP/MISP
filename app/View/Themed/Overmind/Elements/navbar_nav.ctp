@@ -20,7 +20,7 @@
                 <?php endif; ?>
                 <?php if (!empty($child['children'])): ?>
                     <li class="nav-item dropdown-submenu">
-                        <a class="dropdown-item" href="#" data-bs-toggle="dropdown">
+                        <a class="dropdown-item" href="#" data-bs-toggle="dropdown" style="justify-content: space-between;">
                             <?= $this->element('navbar_item', ['item' => $child]) ?>
                             <i class="menu-arrow fas fa-chevron-right"></i>
                         </a>

@@ -5,8 +5,14 @@
     <h2><?php echo __('Server Settings & Maintenance');?></h2>
     <?php
         echo $this->element('healthElements/tabs', array('active_tab' => $tab));
-        if (in_array($tab, ['MISP', 'Security', 'Encryption', 'Proxy', 'Plugin', 'SimpleBackgroundJobs'], true)) {
+        if (in_array($tab, ['MISP', 'Security', 'Encryption', 'Proxy', 'Plugin', 'AI', 'SimpleBackgroundJobs'], true)) {
+            if ($tab === 'AI') {
+                echo $this->element('healthElements/ai_status', array('status' => $aiModuleStatus));
+            }
             echo $this->element('healthElements/settings_tab');
+            if ($tab === 'AI') {
+                echo $this->element('healthElements/ai_dry_run', array('status' => $aiModuleStatus));
+            }
         } else if ($tab === 'diagnostics') {
             echo $this->element('healthElements/diagnostics');
         } else if ($tab === 'workers') {

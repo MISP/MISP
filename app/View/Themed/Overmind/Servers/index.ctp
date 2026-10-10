@@ -39,7 +39,6 @@ $this->set('headerTitle', $headerTitle);
 $this->set('headerDescription', $headerDescription);
 $this->set('headerActions', $headerActions);
 
-
 $fields = [
     [
         'element' => 'checkbox',
@@ -266,6 +265,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                                 'label' => __('Internal'),
                                 'name' => 'internal',
                                 'options' => [
+                                    '' => '',
                                     '1' => __('Yes'),
                                     '0' => __('No')
                                 ]
@@ -275,6 +275,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                                 'label' => __('Push enabled'),
                                 'name' => 'push',
                                 'options' => [
+                                    '' => '',
                                     '1' => __('Yes'),
                                     '0' => __('No')
                                 ]
@@ -284,6 +285,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                                 'label' => __('Pull enabled'),
                                 'name' => 'pull',
                                 'options' => [
+                                    '' => '',
                                     '1' => __('Yes'),
                                     '0' => __('No')
                                 ]

@@ -85,12 +85,15 @@ $submitRow = function ($label, $icon = 'fas fa-sign-in-alt', $class = 'btn-prima
             <?= __('Populate the event using a JSON document containing MISP event content data.') ?>
         </p>
         <div class="mb-3">
-            <label class="form-label fw-semibold" for="PopulateEventJson"><?= __('JSON') ?></label>
-            <?= $this->Form->textarea('Event.json', [
-                'class' => 'form-control font-monospace',
+            <?= $this->element('genericElementsBS5/Forms/json_field', [
+                'field' => 'Event.json',
+                'accent' => 'event',
+                'label' => __('MISP Event JSON'),
+                'shape' => 'object',
                 'id' => 'PopulateEventJson',
                 'rows' => 10,
-                'placeholder' => '{ "Event": { … } }',
+                'minHeight' => '220px',
+                'placeholder' => "{\n    \"Event\": {\n        \"Attribute\": []\n    }\n}",
             ]) ?>
         </div>
         <div class="form-check mb-2">

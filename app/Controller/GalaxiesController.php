@@ -139,7 +139,8 @@ class GalaxiesController extends AppController
 
         $this->__setDistribution();
         $this->set('action', 'add');
-        if ($this->theme === 'Overmind') {
+
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
     }
@@ -183,7 +184,7 @@ class GalaxiesController extends AppController
         $this->set('galaxy', $galaxy);
         $this->set('action', 'edit');
         $this->__setDistribution();
-        if ($this->theme === 'Overmind') {
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
         $this->render('add');
@@ -358,39 +359,80 @@ class GalaxiesController extends AppController
     public function import()
     {
         if ($this->request->is('post') || $this->request->is('put')) {
+            $clusters = null;
             if ($this->_isRest()) {
                 $clusters = $this->request->data;
             } else {
                 $data = $this->request->data['Galaxy'];
-                $text = FileAccessTool::getTempUploadedFile($data['submittedjson'], $data['json']);
+                $text = null;
                 try {
-                    $clusters = JsonTool::decodeArray($text);
+                    $text = FileAccessTool::getTempUploadedFile($data['submittedjson'], $data['json']);
                 } catch (Exception $e) {
-                    throw new BadRequestException(__('Error while decoding JSON'));
+                    $this->Flash->error($e->getMessage());
+                }
+                if ($text !== null) {
+                    if (trim($text) === '') {
+                        $this->Flash->error(__('Nothing to import - paste a galaxy cluster JSON, or pick a file to upload.'));
+                    } else {
+                        try {
+                            $clusters = JsonTool::decodeArray($text);
+                        } catch (Exception $e) {
+                            $this->Flash->error(__('Could not import galaxy clusters. The submitted document is not valid JSON.'));
+                        }
+                    }
                 }
             }
-            $saveResult = $this->Galaxy->importGalaxyAndClusters($this->Auth->user(), $clusters);
-            if ($saveResult['success']) {
-                $message = __('Galaxy clusters imported. %s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveSuccessResponse('Galaxy', 'import', false, $this->response->type(), $message);
+            if ($clusters !== null) {
+                $saveResult = $this->Galaxy->importGalaxyAndClusters($this->Auth->user(), $clusters);
+                $counts = __('%s imported, %s ignored, %s failed.', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed']);
+                $errors = $this->__summariseImportErrors($saveResult['errors']);
+                if ($saveResult['success']) {
+                    $message = trim(__('Galaxy clusters imported. ') . $counts . ($errors === '' ? '' : ' ' . $errors));
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveSuccessResponse('Galaxy', 'import', false, $this->response->type(), $message);
+                    } else {
+                        $this->Flash->success($message);
+                        $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+                    }
                 } else {
-                    $this->Flash->success($message);
-                    $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
-                }
-            } else {
-                $message = __('Could not import galaxy clusters. %s imported, %s ignored, %s failed. %s', $saveResult['imported'], $saveResult['ignored'], $saveResult['failed'], !empty($saveResult['errors']) ? implode(', ', $saveResult['errors']) : '');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Galaxy', 'import', false, $message);
-                } else {
-                    $this->Flash->error($message);
+                    $message = trim(__('Could not import galaxy clusters. ') . $counts . ($errors === '' ? '' : ' ' . $errors));
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('Galaxy', 'import', false, $message);
+                    } else {
+                        $this->Flash->error($message);
+                        $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+                    }
                 }
             }
         }
         $this->set('action', 'import');
-        if ($this->theme === 'Overmind') {
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
+    }
+
+    /**
+     * One line per distinct complaint, with a count when it repeated
+     *
+     * @param array $errors
+     * @return strings
+     */
+    private function __summariseImportErrors(array $errors)
+    {
+        $flat = [];
+        foreach ($errors as $error) {
+            $flat[] = is_array($error) ? implode(' ', Hash::flatten($error)) : (string)$error;
+        }
+        $summary = [];
+        foreach (array_count_values($flat) as $error => $count) {
+            $summary[] = $count > 1 ? sprintf('%s (x%s)', $error, $count) : $error;
+        }
+        if (count($summary) > 5) {
+            $rest = count($summary) - 5;
+            $summary = array_slice($summary, 0, 5);
+            $summary[] = __('and %s more', $rest);
+        }
+        return implode(', ', $summary);
     }
 
     // Ingests clusters coming from a sync request

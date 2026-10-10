@@ -27,7 +27,6 @@ $fields = [
         'name' => __('ID'),
         'sort' => 'id',
         'data_path' => 'ShadowAttribute.id',
-        'url' => $baseurl . '/events/view2/%id%',
         'element' => 'id',
         'card_section' => 'top',
         'display_in' => ['table', 'card'],
@@ -138,7 +137,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     ],
                     [
                         'type' => 'button',
-                        'label' => __('My org\'s events'),
+                        'label' => __('Org events'),
                         'icon' => 'misp-icon misp-icon-organisation misp-simple',
                         'class' => 'btn btn-primary',
                         'url' => $baseurl . '/shadow_attributes/index/all:0',

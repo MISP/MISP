@@ -1,4 +1,6 @@
 <?php
+$this->set('headerTitle', $data['WorkflowBlueprint']['name'] ?? '');
+
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,
     'tabs' => [
@@ -8,6 +10,9 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'icon' => 'fas fa-info-circle',
             'left' => [
                 'WorkflowBlueprints/View/workflowBlueprints_general',
+            ],
+            'right' => [
+                'WorkflowBlueprints/View/workflowBlueprints_actions',
             ],
         ],
     ]

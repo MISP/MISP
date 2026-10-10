@@ -219,7 +219,6 @@ class User extends AppModel
             'finderQuery' => '',
             'counterQuery' => ''
         ),
-        'Post',
         'UserSetting',
         'UserLoginProfile'
         // 'AuthKey' - readd once the initial update storm is over
@@ -818,7 +817,7 @@ class User extends AppModel
     }
 
     /**
-     * Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
+     * Fetch all users that have access to an event for e-mailing (or maybe something else in the future.
      * parameters are an array of org IDs that are owners (for an event this would be orgc and org)
      * @param array $owners Event owners
      * @param int $distribution
@@ -2341,11 +2340,8 @@ class User extends AppModel
                 'perm_tagger' => 1,
             ]];
             $this->Role->save($siteAdmin);
-            // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-            if (!$this->isMysql()) {
-                $sql = "SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));";
-                $this->Role->query($sql);
-            }
+            // The id was set by force above, so the sequence has to catch up.
+            $this->Role->resetAutoIncrement();
         }
 
         if (!$this->Organisation->hasAny(['Organisation.local' => true])) {
@@ -2359,11 +2355,8 @@ class User extends AppModel
                 'local' => 1,
             ]];
             $this->Organisation->save($org);
-            // PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-            if (!$this->isMysql()) {
-                $sql = "SELECT setval('organisations_id_seq', (SELECT MAX(id) FROM organisations));";
-                $this->Organisation->query($sql);
-            }
+            // The id was set by force above, so the sequence has to catch up.
+            $this->Organisation->resetAutoIncrement();
             $orgId = $this->Organisation->id;
         }
 

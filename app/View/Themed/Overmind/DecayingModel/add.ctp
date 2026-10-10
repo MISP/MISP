@@ -158,23 +158,15 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
                             $inputId = 'DecayingModelParameters' . Inflector::camelize($field);
                         ?>
                             <div class="col-md-6">
-                                <label class="form-label text-muted mb-1" for="<?= h($inputId) ?>"
-                                       style="font-size:.75rem;">
-                                    <?= h($label) ?>
-                                </label>
-                                <?= $this->Form->textarea(
-                                    'DecayingModel.parameters.' . $field,
-                                    [
-                                        'id' => $inputId,
-                                        'class' => 'form-control font-monospace',
-                                        'style' => 'border-color:#d8dde3; resize:vertical;',
-                                        'rows' => 5,
-                                        'spellcheck' => 'false',
-                                        'value' => isset($params[$field])
-                                            ? json_encode($params[$field])
-                                            : '{}',
-                                    ]
-                                ) ?>
+                                <?= $this->element('genericElementsBS5/Forms/json_field', [
+                                    'field' => 'DecayingModel.parameters.' . $field,
+                                    'label' => $label,
+                                    'shape' => 'object',
+                                    'id' => $inputId,
+                                    'value' => $params[$field] ?? new stdClass(),
+                                    'rows' => 5,
+                                    'minHeight' => '130px',
+                                ]) ?>
                             </div>
                         <?php endforeach; ?>
                     </div>

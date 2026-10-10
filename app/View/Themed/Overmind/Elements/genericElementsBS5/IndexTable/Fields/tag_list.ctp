@@ -6,6 +6,7 @@ $data = Hash::extract($row, $field['data_path']);
  * caller via $field['add_tag'] (already ACL-gated upstream). $field['add_tag_url']
  * holds a URL template with a %id% placeholder, resolved from
  * $field['add_tag_id_path'] (falls back to $row['id']).
+ * $field['add_relationship_url'] adds its sibling
  */
 // A callable lets the caller decide per row — an extended event view
 // grants the button on the rows of the events you can actually tag.
@@ -15,14 +16,24 @@ if (is_callable($allowAddTag)) {
 }
 $allowAddTag = !empty($allowAddTag);
 $addUrl      = null;
+$addRelationshipUrl = null;
 if ($allowAddTag) {
     $addId = Hash::get($row, $field['add_tag_id_path'] ?? 'id');
     if (empty($addId) && !empty($row['id'])) {
         $addId = $row['id'];
     }
     $isDeleted = !empty($row['deleted']) || !empty($row['Attribute']['deleted']);
-    if (!empty($addId) && !$isDeleted && !empty($field['add_tag_url'])) {
-        $addUrl = str_replace('%id%', rawurlencode($addId), $field['add_tag_url']);
+    if (!empty($addId) && !$isDeleted) {
+        if (!empty($field['add_tag_url'])) {
+            $addUrl = str_replace(
+                '%id%', rawurlencode($addId), $field['add_tag_url']
+            );
+        }
+        if (!empty($field['add_relationship_url'])) {
+            $addRelationshipUrl = str_replace(
+                '%id%', rawurlencode($addId), $field['add_relationship_url']
+            );
+        }
     }
 }
 
@@ -68,6 +79,11 @@ $realTags = array_filter($data, function($t) {
 });
 $totalTags   = count($realTags);
 $hiddenCount = max(0, $totalTags - $maxVisible);
+
+// Nothing attached, nothing to relate
+if ($totalTags === 0) {
+    $addRelationshipUrl = null;
+}
 
 ?>
 
@@ -128,6 +144,19 @@ foreach ($data as $tagWrapper) {
         onclick="event.stopPropagation(); openModal('<?= h($addUrl) ?>', 'xl');"
     >
         <i class="fas fa-plus"></i>
+    </button>
+<?php endif; ?>
+
+<?php if (!empty($addRelationshipUrl)): ?>
+    <button
+        type="button"
+        class="badge border-0 me-1 mb-1 attr-add-relationship-btn"
+        style="cursor:pointer; background:#DB6A4718; color:#DB6A47;"
+        title="<?= __('Add a relationship') ?>"
+        aria-label="<?= __('Add a relationship') ?>"
+        onclick="event.stopPropagation(); openModal('<?= h($addRelationshipUrl) ?>', 'xl');"
+    >
+        <i class="fas fa-link"></i>
     </button>
 <?php endif; ?>
 
