@@ -89,16 +89,6 @@ class StatGlyph
             . '<path d="M3 19 a6 6 0 0 1 12 0"/>'
             . '<path d="M16 6 a3 3 0 0 1 0 6"/>'
             . '<path d="M16.5 13 a6 6 0 0 1 4.5 6"/>',
-        // speech bubble — Discussion threads
-        'chat' =>
-            '<path d="M4 5 H20 a1 1 0 0 1 1 1 V15 a1 1 0 0 1-1 1 H9'
-            . ' L5 20 V16 H4 a1 1 0 0 1-1-1 V6 a1 1 0 0 1 1-1 Z"/>',
-        // speech bubble with lines — Discussion posts
-        'chat-lines' =>
-            '<path d="M4 5 H20 a1 1 0 0 1 1 1 V15 a1 1 0 0 1-1 1 H9'
-            . ' L5 20 V16 H4 a1 1 0 0 1-1-1 V6 a1 1 0 0 1 1-1 Z"/>'
-            . '<line x1="7" y1="9" x2="17" y2="9"/>'
-            . '<line x1="7" y1="12" x2="13" y2="12"/>',
         // shield with check — Advanced authkeys
         'shield' =>
             '<path d="M12 3 L20 6 V11 c0 5-3.5 8-8 10 c-4.5-2-8-5-8-10 V6 Z"/>'

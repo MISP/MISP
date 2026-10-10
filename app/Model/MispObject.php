@@ -957,6 +957,10 @@ class MispObject extends AppModel
                             }
                         }
                         $v['disable_correlation'] = $request_item['disable_correlation'];
+                        if (isset($request_item['distribution'])) {
+                            $v['distribution'] = $request_item['distribution'];
+                            $v['sharing_group_id'] = $request_item['sharing_group_id'] ?? 0;
+                        }
                         $template['ObjectTemplateElement'][] = $v;
                         unset($v['uuid']); // force creating a new attribute if template element entry gets reused
                     } else {
@@ -1909,7 +1913,6 @@ class MispObject extends AppModel
         $continue = true;
         while ($continue) {
             $temp = '';
-            $this->Allowedlist = ClassRegistry::init('Allowedlist');
             $results = $this->fetchObjects($user, $params, $continue);
             if (empty($results)) {
                 $loop = false;
@@ -1923,9 +1926,6 @@ class MispObject extends AppModel
                 $results = $this->Sightingdb->attachToObjects($results, $user);
             }
             $params['page'] += 1;
-            foreach ($results as $k => $result) {
-                $results[$k]['Attribute'] = $this->Allowedlist->removeAllowedlistedFromArray($result['Attribute'], true);
-            }
             $results = array_values($results);
             $i = 0;
             foreach ($results as $object) {

@@ -125,11 +125,19 @@ echo $this->element('Attributes/index', [
             .then(function (r) { return r.text(); })
             .then(function (html) {
                 container.innerHTML = html;
+                // The rows come back unchecked, so the selection must too.
+                if (typeof selectedItems !== 'undefined') { selectedItems.clear(); }
+                if (typeof updateMultiSelectToolbar === 'function') { updateMultiSelectToolbar(); }
                 container.querySelectorAll('script').forEach(function (old) {
                     var s = document.createElement('script');
                     if (old.src) { s.src = old.src; } else { s.textContent = old.textContent; }
                     document.head.appendChild(s); document.head.removeChild(s);
                 });
+                // Same step as loadAjaxContainer(): without it the filters
+                // come back as native selects nobody can type into.
+                if (typeof initTopbarFilterSelects === 'function') {
+                    initTopbarFilterSelects(container);
+                }
                 // The bar renders the term back into #filterField itself, and
                 // it has to be there *before* the draft reads its state — a
                 // value poked in afterwards leaves the summary saying there is

@@ -1864,6 +1864,7 @@ class Server extends AppModel
                 $leafValue['errorMessage'] = __('Invalid setting `%s`, valid values are: %s', $setting, $validValues);
             }
 
+            $leafValue['modified'] = $setting !== '' && $setting != ($leafValue['value'] ?? null);
             if ($setting !== '') {
                 $leafValue['value'] = $setting;
             }
@@ -3069,7 +3070,7 @@ class Server extends AppModel
         return [
             'orgs' => [
                 'name' => __('Organisation logos'),
-                'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
+                'description' => __('The logo used by an organisation on the event index, event view, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
                 'expected' => [],
                 'valid_format' => __('48x48 pixel .png files or .svg file'),
                 'path' => APP . 'files' . DS . 'img' . DS . 'orgs',
@@ -6274,6 +6275,7 @@ class Server extends AppModel
                     'value' => true,
                     'test' => 'testBool',
                     'type' => 'boolean',
+                    'cli_only' => true,
                 ),
                 'osuser' => array(
                     'level' => 0,
@@ -6781,14 +6783,6 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
-                'discussion_disable' => [
-                    'level' => 1,
-                    'description' => __('Completely disable ability for user to add discussion to events.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true
-                ],
                 'showCorrelationsOnIndex' => array(
                     'level' => 1,
                     'description' => __('When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.'),
@@ -6808,14 +6802,6 @@ class Server extends AppModel
                 'showSightingsCountOnIndex' => array(
                     'level' => 1,
                     'description' => __('When enabled, the aggregate number of attribute sightings within the event becomes visible to the currently logged in user on the event index UI.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true
-                ),
-                'showDiscussionsCountOnIndex' => array(
-                    'level' => 1,
-                    'description' => __('When enabled, the aggregate number of discussion posts for the event becomes visible to the currently logged in user on the event index UI.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -7036,7 +7022,8 @@ class Server extends AppModel
                     'description' => __('The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.'),
                     'value' => '127.0.0.1',
                     'test' => 'testForEmpty',
-                    'type' => 'string'
+                    'type' => 'string',
+                    'cli_only' => true,
                 ),
                 'redis_port' => array(
                     'level' => 0,
@@ -8319,6 +8306,7 @@ class Server extends AppModel
                     'value' => 'localhost',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'cli_only' => true,
                     'afterHook' => 'zmqAfterHook',
                 ),
                 'ZeroMQ_redis_port' => array(
@@ -9047,7 +9035,8 @@ class Server extends AppModel
                     'description' => __('The host running the redis server to be used for background jobs.'),
                     'value' => '127.0.0.1',
                     'test' => 'testForEmpty',
-                    'type' => 'string'
+                    'type' => 'string',
+                    'cli_only' => true,
                 ],
                 'redis_port' => [
                     'level' => self::SETTING_CRITICAL,
@@ -9268,7 +9257,6 @@ class Server extends AppModel
                     'Recover event' => 'MISP/app/Console/cake Event recoverEvent [job_id] [event_id]',
                     'Alert email' => 'MISP/app/Console/cake Event alertemail [user_id] [job_id] [event_id] [old_publish]',
                     'Contact email' => 'MISP/app/Console/cake Event contactemail [event_id] [message] [all] [user_id] [process_id]',
-                    'Posts email' => 'MISP/app/Console/cake Event postsemail [user_id] [post_id] [event_id] [title] [message] [process_id]',
                     'Enqueue caching' => 'MISP/app/Console/cake Event enqueueCaching [timestamp]',
                     'Do publish' => 'MISP/app/Console/cake Event doPublish [event_id]',
                     'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',

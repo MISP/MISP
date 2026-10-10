@@ -24,6 +24,10 @@
  * cannot be listed by hand. They are derived from the subGroup the model
  * already attaches to every plugin setting, and only their presentation
  * (title, description, icon, colour) is declared here — see $subGroupStyles.
+ *
+ * On top of the sections sits the page's navigation: destinations() routes
+ * every section to one page of the sidebar (Instance, Users & access, …),
+ * independently of the tab Server files the setting under.
  */
 class ServerSettingGroups
 {
@@ -208,7 +212,6 @@ class ServerSettingGroups
                     'MISP.showCorrelationsOnIndex',
                     'MISP.showProposalsCountOnIndex',
                     'MISP.showSightingsCountOnIndex',
-                    'MISP.showDiscussionsCountOnIndex',
                     'MISP.showEventReportCountOnIndex',
                     'MISP.event_view_filter_fields',
                     'MISP.use_uuids_in_urls',
@@ -250,7 +253,6 @@ class ServerSettingGroups
                     'MISP.incoming_tags_disabled_by_default',
                     'MISP.disable_taxonomy_consistency_checks',
                     'MISP.delegation',
-                    'MISP.discussion_disable',
                     'MISP.proposals_block_attributes',
                     'MISP.take_ownership_xml_import',
                     'MISP.allow_users_override_locked_field_when_importing_events',
@@ -774,43 +776,550 @@ class ServerSettingGroups
     private static $hidden = array('Security.salt');
 
     /**
-     * Every section of the server settings page, in the order the tab bar
-     * shows them.
+     * Module families whose settings misp-modules generates per module
+     * (`Plugin.<Family>_<module>_<param>`). Their pages show a module grid.
      *
-     * The `tab` value is the pass argument ServersController::serverSettings()
-     * expects, and therefore also the ajax fragment URL.
-     *
-     * @return array
+     * @var array
      */
-    public static function tabs()
+    private static $moduleFamilies = array('Enrichment', 'Import', 'Export', 'Action');
+
+    /**
+     * The settings the Overview lists as Essentials, with the label shown
+     * there. Most instances have to get every one of them right.
+     *
+     * @return array setting name => label
+     */
+    public static function essentials()
     {
         return array(
-            array('tab' => 'MISP', 'title' => __('MISP'), 'icon' => 'fas fa-sliders'),
-            array('tab' => 'Encryption', 'title' => __('Encryption'), 'icon' => 'fas fa-lock'),
-            array('tab' => 'Proxy', 'title' => __('Proxy'), 'icon' => 'fas fa-network-wired'),
-            array('tab' => 'Security', 'title' => __('Security'), 'icon' => 'fas fa-shield-halved'),
-            array('tab' => 'Plugin', 'title' => __('Plugins'), 'icon' => 'fas fa-puzzle-piece'),
-            array('tab' => 'AI', 'title' => __('AI'), 'icon' => 'fas fa-robot'),
-            array('tab' => 'SimpleBackgroundJobs', 'title' => __('Background jobs'), 'icon' => 'fas fa-gears'),
-            array('tab' => 'correlations', 'title' => __('Correlations'), 'icon' => 'fas fa-diagram-project'),
-            array('tab' => 'diagnostics', 'title' => __('Diagnostics'), 'icon' => 'fas fa-stethoscope'),
-            array('tab' => 'files', 'title' => __('Manage files'), 'icon' => 'fas fa-folder-open'),
-            array('tab' => 'workers', 'title' => __('Workers'), 'icon' => 'fas fa-robot'),
+            'MISP.baseurl' => __('Base URL'),
+            'MISP.external_baseurl' => __('External base URL'),
+            'MISP.live' => __('Instance live'),
+            'MISP.uuid' => __('Instance UUID'),
+            'MISP.host_org_id' => __('Host organisation'),
+            'MISP.email' => __('Instance e-mail'),
+            'MISP.contact' => __('Contact e-mail'),
+            'MISP.disable_emailing' => __('Disable e-mailing'),
+            'MISP.background_jobs' => __('Background jobs'),
+            'MISP.default_event_distribution' => __('Default event distribution'),
+            'MISP.language' => __('Interface language'),
+            'Security.advanced_authkeys' => __('Advanced auth keys'),
+            'Security.password_policy_length' => __('Minimum password length'),
+            'GnuPG.email' => __('Signing key e-mail'),
+            'Plugin.Enrichment_services_enable' => __('Enrichment services'),
         );
     }
 
     /**
-     * @param string|false $tab
-     * @return bool True when $tab designates one of the sections above.
+     * How prominent a setting is: essential ones are on the Overview,
+     * standard ones are shown in their section, advanced ones only on demand,
+     * deprecated ones only through search and All settings.
+     *
+     * @param array $setting
+     * @return string essential|standard|advanced|deprecated
      */
-    public static function isKnownTab($tab)
+    public static function tier(array $setting)
     {
-        foreach (self::tabs() as $definition) {
-            if ($definition['tab'] === $tab) {
-                return true;
+        if (isset(self::essentials()[$setting['setting']])) {
+            return 'essential';
+        }
+        if ($setting['level'] >= 3) {
+            return 'deprecated';
+        }
+        return $setting['level'] == 2 ? 'advanced' : 'standard';
+    }
+
+    /**
+     * Every page of the settings navigation that does not depend on the
+     * instance. `sources` routes the sections of the tabs Server knows about:
+     * "Tab:section" claims one section, "Tab:*" whatever the tab has left.
+     *
+     * @return array id => definition
+     */
+    private static function fixedDestinations()
+    {
+        return array(
+            'overview' => array(
+                'group' => 'top', 'kind' => 'overview', 'icon' => 'gauge-high', 'accent' => '#1892B1',
+                'title' => __('Overview'),
+                'description' => __('What needs attention, the health of the system and the essential settings'),
+            ),
+            'instance' => array(
+                'group' => 'config', 'kind' => 'settings', 'icon' => 'sliders', 'accent' => '#0d6efd',
+                'title' => __('Instance'),
+                'description' => __('Identity, appearance, display, performance and storage of this instance'),
+                'sources' => array('MISP:instance', 'MISP:appearance', 'MISP:display', 'MISP:performance',
+                    'MISP:storage', 'MISP:system', 'MISP:*', 'MISP:deprecated'),
+            ),
+            'users' => array(
+                'group' => 'config', 'kind' => 'settings', 'icon' => 'users', 'accent' => '#6f42c1',
+                'title' => __('Users & access'),
+                'description' => __('Who can sign in, how, and what they get to see'),
+                'sources' => array('Security:authentication', 'Security:authkeys', 'Security:mfa',
+                    'Security:password', 'Security:access-control', 'MISP:users', 'Security:*'),
+            ),
+            'sharing' => array(
+                'group' => 'config', 'kind' => 'settings', 'icon' => 'share-nodes', 'accent' => '#fd7e14',
+                'title' => __('Sharing & data'),
+                'description' => __('Defaults applied to new data, the features around it and correlation'),
+                'sources' => array('MISP:defaults', 'MISP:features', 'MISP:correlation'),
+            ),
+            'mail' => array(
+                'group' => 'config', 'kind' => 'settings', 'icon' => 'envelope', 'accent' => '#198754',
+                'title' => __('Mail & encryption'),
+                'description' => __('Outgoing notifications, and the PGP and S/MIME keys that sign them'),
+                'sources' => array('MISP:emailing', 'Encryption:*'),
+            ),
+            'network' => array(
+                'group' => 'config', 'kind' => 'settings', 'icon' => 'network-wired', 'accent' => '#0dcaf0',
+                'title' => __('Network & HTTP'),
+                'description' => __('Outgoing proxy, browser-facing protections and TLS'),
+                'sources' => array('Proxy:*', 'Security:http', 'Security:encryption'),
+            ),
+            'logging' => array(
+                'group' => 'config', 'kind' => 'settings', 'icon' => 'clipboard-list', 'accent' => '#795548',
+                'title' => __('Logging & audit'),
+                'description' => __('What gets recorded, how verbosely and where it is sent'),
+                'sources' => array('MISP:logging', 'Security:logging'),
+            ),
+            'integrations' => array(
+                'group' => 'config', 'kind' => 'integrations', 'icon' => 'puzzle-piece', 'accent' => '#48435C',
+                'title' => __('Integrations'),
+                'description' => __('misp-modules, message buses, external storage and the other plugins'),
+            ),
+            'ai' => array(
+                'group' => 'config', 'kind' => 'settings', 'icon' => 'robot', 'accent' => '#8B5CF6',
+                'title' => __('AI'),
+                'description' => __('The LLM the ai_connector module queries, and what MISP asks of it'),
+                'sources' => array('AI:*'),
+            ),
+            'jobs' => array(
+                'group' => 'operations', 'kind' => 'settings', 'icon' => 'gears', 'accent' => '#198754',
+                'title' => __('Background jobs'),
+                'description' => __('The job queues, the workers that drain them and the services behind them'),
+                'sources' => array('SimpleBackgroundJobs:*'),
+                'probes' => array('workers'),
+            ),
+            'correlations' => array(
+                'group' => 'operations', 'kind' => 'correlations', 'icon' => 'diagram-project', 'accent' => '#E67F0D',
+                'title' => __('Correlations'),
+                'description' => __('Correlation engines, their tables and the room they have left'),
+            ),
+            'files' => array(
+                'group' => 'operations', 'kind' => 'files', 'icon' => 'folder-open', 'accent' => '#495057',
+                'title' => __('Files'),
+                'description' => __('Logos and other files uploaded to this instance'),
+            ),
+            'version' => array(
+                'group' => 'health', 'kind' => 'health', 'icon' => 'code-branch', 'accent' => '#0d6efd',
+                'title' => __('Version & updates'),
+                'description' => __('Installed version, the latest release and the update tools'),
+                'probes' => array('version'),
+            ),
+            'php' => array(
+                'group' => 'health', 'kind' => 'health', 'icon' => 'code', 'accent' => '#20c997',
+                'title' => __('PHP & filesystem'),
+                'description' => __('Runtime, extensions, dependencies and file permissions'),
+                'probes' => array('php', 'filesystem'),
+            ),
+            'database' => array(
+                'group' => 'health', 'kind' => 'health', 'icon' => 'database', 'accent' => '#0dcaf0',
+                'title' => __('Database'),
+                'description' => __('Schema and migrations, space usage and server configuration'),
+                'probes' => array('dbSchema', 'dbSpace', 'dbConfig'),
+            ),
+            'redis' => array(
+                'group' => 'health', 'kind' => 'health', 'icon' => 'server', 'accent' => '#d63384',
+                'title' => __('Redis'),
+                'description' => __('Cache, job queues and correlation helpers'),
+                'probes' => array('redis'),
+            ),
+            'services' => array(
+                'group' => 'health', 'kind' => 'health', 'icon' => 'plug', 'accent' => '#198754',
+                'title' => __('Services'),
+                'description' => __('External tooling, misp-modules and the STIX libraries'),
+                'probes' => array('services', 'modules', 'stix'),
+            ),
+            'audit' => array(
+                'group' => 'health', 'kind' => 'health', 'icon' => 'shield-halved', 'accent' => '#dc3545',
+                'title' => __('Security audit'),
+                'description' => __('Configuration weaknesses MISP can detect on its own'),
+                'probes' => array('audit'),
+            ),
+            'maintenance' => array(
+                'group' => 'health', 'kind' => 'maintenance', 'icon' => 'screwdriver-wrench', 'accent' => '#495057',
+                'title' => __('Maintenance tools'),
+                'description' => __('One-off checks and clean-up routines'),
+            ),
+            'all' => array(
+                'group' => 'bottom', 'kind' => 'all', 'icon' => 'list', 'accent' => '#6c757d',
+                'title' => __('All settings'),
+                'description' => __('Every setting of the instance, advanced and deprecated ones included'),
+            ),
+        );
+    }
+
+    /**
+     * The tab names (and the non-settings tabs) the page used to be split in,
+     * which links, redirects and bookmarks still carry.
+     *
+     * @var array
+     */
+    private static $aliases = array(
+        'MISP' => 'instance',
+        'Encryption' => 'mail',
+        'Proxy' => 'network',
+        'Security' => 'users',
+        'Plugin' => 'integrations',
+        'AI' => 'ai',
+        'SimpleBackgroundJobs' => 'jobs',
+        'workers' => 'jobs',
+        'diagnostics' => 'maintenance',
+    );
+
+    /**
+     * The whole navigation, the plugin families of this instance included
+     * (one page each, under Integrations).
+     *
+     * @param array $subGroups plugin subGroup => destination id, from byDestination()
+     * @return array id => definition
+     */
+    public static function destinations(array $subGroups = array())
+    {
+        $destinations = array();
+        foreach (self::fixedDestinations() as $id => $definition) {
+            $destinations[$id] = $definition;
+            if ($id !== 'integrations') {
+                continue;
+            }
+            foreach ($subGroups as $subGroup => $pluginId) {
+                $style = self::subGroupStyle($subGroup);
+                $destinations[$pluginId] = array(
+                    'group' => 'config',
+                    'parent' => 'integrations',
+                    'kind' => in_array($subGroup, self::$moduleFamilies, true) ? 'modules' : 'settings',
+                    'subGroup' => $subGroup,
+                    'icon' => $style['icon'],
+                    'accent' => $style['accent'],
+                    'title' => $style['title'],
+                    'description' => $style['description'],
+                );
             }
         }
-        return false;
+        return $destinations;
+    }
+
+    /**
+     * @param string|false $id A destination id, or one of the former tab names.
+     * @param array $subGroups plugin subGroup => destination id
+     * @return string|false The canonical destination id, or false when unknown.
+     */
+    public static function resolve($id, array $subGroups = array())
+    {
+        if ($id === false || $id === null || $id === '') {
+            return 'overview';
+        }
+        if (isset(self::$aliases[$id])) {
+            return self::$aliases[$id];
+        }
+        $destinations = self::destinations($subGroups);
+        return isset($destinations[$id]) ? $id : false;
+    }
+
+    /**
+     * @param string $subGroup
+     * @return string
+     */
+    private static function pluginDestinationId($subGroup)
+    {
+        $id = strtolower(preg_replace('/[^A-Za-z0-9]/', '', $subGroup));
+        $fixed = self::fixedDestinations();
+        return isset($fixed[$id]) || isset(self::$aliases[$id]) ? 'plugin-' . $id : $id;
+    }
+
+    /**
+     * @return array tab => ['sections' => [id => order], 'wildcard' => order] with the destination
+     */
+    private static function routes()
+    {
+        $routes = array();
+        foreach (self::fixedDestinations() as $id => $definition) {
+            if (empty($definition['sources'])) {
+                continue;
+            }
+            foreach ($definition['sources'] as $order => $source) {
+                list($tab, $section) = explode(':', $source, 2);
+                if ($section === '*') {
+                    $routes[$tab]['wildcard'] = array($id, $order);
+                } else {
+                    $routes[$tab]['sections'][$section] = array($id, $order);
+                }
+            }
+        }
+        return $routes;
+    }
+
+    /**
+     * Distribute every setting of the instance over the navigation.
+     *
+     * Each tab is split in its sections first (see split()), then every
+     * section goes to the destination that claims it, in the order the
+     * destination declares. A section nobody claims falls back to Instance,
+     * so a new setting can never go missing from the page.
+     *
+     * @param array $settings Flat list from Server::serverSettingsRead()
+     * @return array ['sections' => [destination => sections], 'subGroups' => [subGroup => destination]]
+     */
+    public static function byDestination(array $settings)
+    {
+        $settings = self::markModules($settings);
+
+        $byTab = array();
+        foreach ($settings as $setting) {
+            if (empty($setting['setting']) || self::isHidden($setting['setting'])) {
+                continue;
+            }
+            $byTab[isset($setting['tab']) ? $setting['tab'] : 'MISP'][] = $setting;
+        }
+
+        $routes = self::routes();
+        $collected = array();
+        $subGroups = array();
+        foreach ($byTab as $tab => $tabSettings) {
+            if (isset(self::$subGroupTabs[$tab])) {
+                foreach (self::splitBySubGroup($tab, $tabSettings) as $index => $section) {
+                    $destination = self::pluginDestinationId($section['subGroup']);
+                    $subGroups[$section['subGroup']] = $destination;
+                    $section['uid'] = 'plugin-' . $section['id'];
+                    $collected[$destination][] = array(0, $index, $section);
+                }
+                continue;
+            }
+            foreach (self::split($tab, $tabSettings) as $index => $section) {
+                if (isset($routes[$tab]['sections'][$section['id']])) {
+                    list($destination, $order) = $routes[$tab]['sections'][$section['id']];
+                } elseif (isset($routes[$tab]['wildcard'])) {
+                    list($destination, $order) = $routes[$tab]['wildcard'];
+                } else {
+                    list($destination, $order) = array('instance', PHP_INT_MAX);
+                }
+                $section['uid'] = strtolower($tab) . '-' . $section['id'];
+                $collected[$destination][] = array($order, $index, $section);
+            }
+        }
+
+        $sections = array();
+        foreach ($collected as $destination => $entries) {
+            usort($entries, function ($a, $b) {
+                return $a[0] === $b[0] ? $a[1] <=> $b[1] : $a[0] <=> $b[0];
+            });
+            $sections[$destination] = array_column($entries, 2);
+        }
+
+        return array('sections' => $sections, 'subGroups' => $subGroups);
+    }
+
+    /**
+     * @param array $sections
+     * @return array [0 => int, 1 => int, 2 => int] settings in error per level
+     */
+    public static function counters(array $sections)
+    {
+        $total = array(0 => 0, 1 => 0, 2 => 0);
+        foreach ($sections as $section) {
+            foreach ($section['errorsByLevel'] as $level => $count) {
+                $total[$level] += $count;
+            }
+        }
+        return $total;
+    }
+
+    /**
+     * A setting whose current value fails its check. Two cases are left out:
+     * the settings of a disabled module, and a non-critical setting that is
+     * simply not set, which leaves its default in place — that is several
+     * hundred settings on a stock instance, and `cake Admin configLint`
+     * skips them for the same reason. Unset essentials, and unset parameters
+     * of an enabled module (bar its organisation restriction), still count.
+     *
+     * @param array $setting
+     * @return bool
+     */
+    public static function inError(array $setting)
+    {
+        if (!isset($setting['error']) || $setting['level'] >= 3 || !empty($setting['dormant'])) {
+            return false;
+        }
+        $unset = isset($setting['errorMessage']) && $setting['errorMessage'] === __('Value not set.');
+        return !$unset
+            || $setting['level'] == 0
+            || isset(self::essentials()[$setting['setting']])
+            || (!empty($setting['module']) && empty($setting['moduleToggle'])
+                && substr($setting['setting'], -strlen('_restrict')) !== '_restrict');
+    }
+
+    /**
+     * Give a setting read on its own (row reload) the module marks
+     * byDestination() would have given it.
+     *
+     * @param array $setting
+     * @param string $module The module the row was rendered for
+     * @return array
+     */
+    public static function markModule(array $setting, $module)
+    {
+        if (!preg_match('/^Plugin\.(' . implode('|', self::$moduleFamilies) . ')_/', $setting['setting'], $matches)
+            || $module === '' || strpos($setting['setting'], 'Plugin.' . $matches[1] . '_' . $module . '_') !== 0) {
+            return $setting;
+        }
+        $toggle = 'Plugin.' . $matches[1] . '_' . $module . '_enabled';
+        $setting['module'] = $module;
+        if ($setting['setting'] === $toggle) {
+            $setting['moduleToggle'] = true;
+        } elseif (!Configure::read($toggle)) {
+            $setting['dormant'] = true;
+        }
+        return $setting;
+    }
+
+    /**
+     * Tag the settings misp-modules generates with the module they belong
+     * to. Those of a disabled module are `dormant`: still listed, never
+     * counted as a problem (an unset API key matters only once the module
+     * runs).
+     *
+     * @param array $settings
+     * @return array
+     */
+    private static function markModules(array $settings)
+    {
+        $enabled = array();
+        foreach ($settings as $setting) {
+            $parsed = self::parseModuleToggle(isset($setting['setting']) ? $setting['setting'] : '');
+            if ($parsed) {
+                $enabled[$parsed[0]][$parsed[1]] = !empty($setting['value']) && $setting['value'] !== 'false';
+            }
+        }
+        if (empty($enabled)) {
+            return $settings;
+        }
+        foreach ($enabled as $family => $modules) {
+            uksort($enabled[$family], function ($a, $b) {
+                return strlen($b) <=> strlen($a);
+            });
+        }
+
+        foreach ($settings as $key => $setting) {
+            if (empty($setting['setting']) || strpos($setting['setting'], 'Plugin.') !== 0) {
+                continue;
+            }
+            $leaf = substr($setting['setting'], 7);
+            $family = explode('_', $leaf, 2)[0];
+            if (!isset($enabled[$family])) {
+                continue;
+            }
+            $rest = substr($leaf, strlen($family) + 1);
+            foreach ($enabled[$family] as $module => $isEnabled) {
+                if (strpos($rest, $module . '_') !== 0) {
+                    continue;
+                }
+                $settings[$key]['module'] = $module;
+                if ($rest === $module . '_enabled') {
+                    $settings[$key]['moduleToggle'] = true;
+                } elseif (!$isEnabled) {
+                    $settings[$key]['dormant'] = true;
+                }
+                break;
+            }
+        }
+        return $settings;
+    }
+
+    /**
+     * @param string $name
+     * @return array|false [family, module] for a module's `_enabled` switch
+     */
+    private static function parseModuleToggle($name)
+    {
+        $pattern = '/^Plugin\.(' . implode('|', self::$moduleFamilies) . ')_(.+)_enabled$/';
+        if (!preg_match($pattern, $name, $matches)) {
+            return false;
+        }
+        return array($matches[1], $matches[2]);
+    }
+
+    /**
+     * The module grid of a module family page: the settings of the service
+     * itself, and one entry per module with its switch and its own settings.
+     *
+     * @param array $sections The sections of the family's destination
+     * @return array ['service' => settings, 'modules' => [module => entry]]
+     */
+    public static function modules(array $sections)
+    {
+        $service = array();
+        $modules = array();
+        foreach ($sections as $section) {
+            foreach ($section['settings'] as $setting) {
+                if (empty($setting['module'])) {
+                    $service[] = $setting;
+                    continue;
+                }
+                $module = $setting['module'];
+                if (!isset($modules[$module])) {
+                    $modules[$module] = array(
+                        'id' => $module, 'toggle' => null, 'settings' => array(),
+                        'enabled' => false, 'needsConfig' => false, 'description' => '',
+                    );
+                }
+                if (!empty($setting['moduleToggle'])) {
+                    $modules[$module]['toggle'] = $setting;
+                    $modules[$module]['enabled'] = !empty($setting['value']) && $setting['value'] !== 'false';
+                    $modules[$module]['description'] = self::moduleDescription($setting['description']);
+                } else {
+                    $modules[$module]['settings'][] = $setting;
+                }
+            }
+        }
+        foreach ($modules as $module => $entry) {
+            foreach ($entry['settings'] as $setting) {
+                if ($entry['enabled'] && isset($setting['error']) && $setting['level'] < 3) {
+                    $modules[$module]['needsConfig'] = true;
+                }
+            }
+        }
+        uasort($modules, function ($a, $b) {
+            return $a['enabled'] === $b['enabled'] ? strcmp($a['id'], $b['id']) : ($a['enabled'] ? -1 : 1);
+        });
+        return array('service' => $service, 'modules' => $modules);
+    }
+
+    /**
+     * @param string $description "[<span>Enable or disable the X module.</span>] what it does"
+     * @return string what it does
+     */
+    private static function moduleDescription($description)
+    {
+        $text = trim(html_entity_decode(strip_tags((string)$description), ENT_QUOTES));
+        $text = preg_replace('/^\[[^\]]*\]\s*/', '', $text);
+        return $text;
+    }
+
+    /**
+     * @param string $subGroup
+     * @return array title, description, icon, accent
+     */
+    private static function subGroupStyle($subGroup)
+    {
+        if (isset(self::$subGroupStyles[$subGroup])) {
+            return self::$subGroupStyles[$subGroup];
+        }
+        return array(
+            'title' => $subGroup,
+            'description' => __('Settings of the %s plugin', $subGroup),
+            'icon' => 'puzzle-piece',
+            'accent' => '#6c757d',
+        );
     }
 
     /**
@@ -947,16 +1456,10 @@ class ServerSettingGroups
             if (empty($bySubGroup[$subGroup])) {
                 continue;
             }
-            $style = isset(self::$subGroupStyles[$subGroup])
-                ? self::$subGroupStyles[$subGroup]
-                : array(
-                    'title' => $subGroup,
-                    'description' => __('Settings of the %s plugin', $subGroup),
-                    'icon' => 'puzzle-piece',
-                    'accent' => '#6c757d',
-                );
+            $style = self::subGroupStyle($subGroup);
             $sections[] = self::withCounters(array(
                 'id' => strtolower($subGroup),
+                'subGroup' => $subGroup,
                 'title' => $style['title'],
                 'description' => $style['description'],
                 'icon' => $style['icon'],
@@ -1001,7 +1504,7 @@ class ServerSettingGroups
     {
         $errorsByLevel = array(0 => 0, 1 => 0, 2 => 0);
         foreach ($section['settings'] as $setting) {
-            if (!isset($setting['error']) || $setting['level'] >= 3) {
+            if (!self::inError($setting)) {
                 continue;
             }
             $errorsByLevel[$setting['level']]++;
