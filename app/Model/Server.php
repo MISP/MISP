@@ -7756,7 +7756,7 @@ class Server extends AppModel
                 ),
                 'sanitise_attribute_on_delete' => array(
                     'level' => 1,
-                    'description' => __('Enabling this setting will sanitise the contents of an attribute on a soft delete'),
+                    'description' => __('Enabling this setting will sanitise the contents of an attribute on a soft delete. The original text stays in the value dictionary: once nothing refers to it any more, a site admin can remove it with /values/delete/[id] (look the id up with /values/view?value=…).'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',

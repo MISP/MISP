@@ -526,6 +526,101 @@ class AttributeValue extends AppModel
     }
 
     /**
+     * What still refers to a value, soft-deleted attributes and proposals
+     * included.
+     *
+     * @param int $id
+     * @param int $sample Rows named per kind.
+     * @return string[] One line per kind, empty when nothing does.
+     */
+    public function holders($id, $sample = 10)
+    {
+        $id = (int)$id;
+        $db = $this->getDataSource();
+        $holders = [];
+        foreach (['attributes' => __('attributes'), 'shadow_attributes' => __('proposals')] as $table => $label) {
+            $selects = [];
+            foreach (['value1_id', 'value2_id'] as $column) {
+                $selects[] = sprintf(
+                    '(SELECT %s, %s, %s FROM %s WHERE %s = %d)',
+                    $db->name('id'),
+                    $db->name('event_id'),
+                    $db->name('deleted'),
+                    $db->fullTableName($table),
+                    $db->name($column),
+                    $id
+                );
+            }
+            $union = implode(' UNION ', $selects);
+            $count = (int)$this->fetchRows("SELECT COUNT(*) AS n FROM ($union) h")[0]['n'];
+            if ($count === 0) {
+                continue;
+            }
+            $named = [];
+            foreach ($this->fetchRows(sprintf('%s ORDER BY %s LIMIT %d', $union, $db->name('id'), $sample)) as $row) {
+                $named[] = empty($row['deleted'])
+                    ? __('#%s in event %s', $row['id'], $row['event_id'])
+                    : __('#%s in event %s (soft-deleted)', $row['id'], $row['event_id']);
+            }
+            if ($count > count($named)) {
+                $named[] = __('%s more', $count - count($named));
+            }
+            $holders[] = sprintf('%d %s: %s', $count, $label, implode(', ', $named));
+        }
+        $tables = [
+            'over_correlating_values' => __('over-correlation entries'),
+            'default_correlations' => __('correlations keyed on it'),
+            'no_acl_correlations' => __('correlations keyed on it (no ACL engine)'),
+        ];
+        foreach ($tables as $table => $label) {
+            $count = (int)$this->fetchRows(sprintf(
+                'SELECT COUNT(*) AS n FROM %s WHERE %s = %d',
+                $db->fullTableName($table),
+                $db->name('value_id'),
+                $id
+            ))[0]['n'];
+            if ($count > 0) {
+                $holders[] = sprintf('%d %s', $count, $label);
+            }
+        }
+        return $holders;
+    }
+
+    /**
+     * Deletes a value that nothing refers to, with its facet and count rows.
+     *
+     * @param int $id
+     * @return bool False when the value is missing or still referred to.
+     */
+    public function deleteUnheld($id)
+    {
+        $id = (int)$id;
+        $db = $this->getDataSource();
+        $db->begin();
+        try {
+            $locked = $this->fetchRows(sprintf(
+                'SELECT %1$s FROM %2$s WHERE %1$s = %3$d FOR UPDATE',
+                $db->name('id'),
+                $this->quotedTable(),
+                $id
+            ));
+            if (empty($locked) || !empty($this->holders($id, 0))) {
+                $db->rollback();
+                return false;
+            }
+            foreach (['value_ip_ranges' => 'value_id', 'attr_value_counts' => 'value_id'] as $table => $column) {
+                $db->rawQuery(sprintf('DELETE FROM %s WHERE %s = %d', $db->fullTableName($table), $db->name($column), $id));
+            }
+            $db->rawQuery(sprintf('DELETE FROM %s WHERE %s = %d', $this->quotedTable(), $db->name('id'), $id));
+            $db->commit();
+        } catch (Exception $e) {
+            $db->rollback();
+            throw $e;
+        }
+        return true;
+    }
+
+    /**
      * Readies an attribute or proposal find for the dictionary: a field list
      * that names the value field reads the ids instead, and an order on it
      * sorts by the dictionary text. Only for finds whose afterFind runs,

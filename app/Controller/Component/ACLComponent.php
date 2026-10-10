@@ -1025,6 +1025,7 @@ class ACLComponent extends Component
             'setEventTemplateUserFormMode' => ['*']
         ),
         'values' => [
+            'delete' => [],
             'search' => ['*'],
             'view' => ['*'],
         ],

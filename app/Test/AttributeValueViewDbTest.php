@@ -75,6 +75,9 @@ class AttributeValueViewDbTest extends TestCase
             App::uses('AttributeValue', 'Model');
             App::uses('ValuesController', 'Controller');
             App::uses('CakeText', 'Utility');
+            App::uses('ComponentCollection', 'Controller');
+            App::uses('CRUDComponent', 'Controller/Component');
+            App::uses('ACLComponent', 'Controller/Component');
             AttributeValue::$strictConditions = true;
             self::$booted = true;
         }
@@ -171,7 +174,8 @@ class AttributeValueViewDbTest extends TestCase
      */
     private function intern(array $fixture)
     {
-        $parts = ["{$this->t}-orphan.example"];
+        $t = $this->t;
+        $parts = ["$t-orphan.example", "$t-proposal.example", "$t-blocked.example", "$t-keyed.example", $this->ip()];
         foreach ($fixture as $spec) {
             foreach (explode('|', $spec[2]) as $part) {
                 $parts[] = $part;
@@ -279,6 +283,8 @@ class AttributeValueViewDbTest extends TestCase
         }
         $controller = new ValuesController($request, new CakeResponse());
         $controller->AttributeValue = $this->values;
+        // As constructClasses() would from $uses
+        $controller->modelClass = 'AttributeValue';
         $controller->Auth = new class($user) {
             private $user;
 
@@ -306,7 +312,19 @@ class AttributeValueViewDbTest extends TestCase
                 $this->sent = $data;
                 return $data;
             }
+
+            public function saveFailResponse($model, $action, $id, $errors)
+            {
+                return ['saved' => false, 'id' => $id, 'errors' => $errors];
+            }
+
+            public function saveSuccessResponse($model, $action, $id, $format, $message)
+            {
+                return ['saved' => true, 'id' => $id, 'message' => $message];
+            }
         };
+        $controller->CRUD = new CRUDComponent(new ComponentCollection());
+        $controller->CRUD->initialize($controller);
         return $controller;
     }
 
@@ -372,8 +390,19 @@ class AttributeValueViewDbTest extends TestCase
         ] as $case => $arguments) {
             $this->assertSame($message, $this->missing($this->lesser, ...$arguments), $case);
         }
-        $this->assertSame($message, $this->missing($this->admin, $this->id("$t-deleted.example")));
-        $this->assertSame($message, $this->missing($this->admin, $this->id("$t-orphan.example")));
+        $this->assertSame($message, $this->missing($this->admin, max($this->interned) + 1000));
+        $this->assertSame($message, $this->missing($this->admin, null, ['value' => "$t-absent.example"]));
+    }
+
+    public function testASiteAdminAlsoSeesAValueNothingVisibleHolds()
+    {
+        $t = $this->t;
+
+        foreach (["$t-deleted.example", "$t-orphan.example"] as $value) {
+            $view = $this->view($this->admin, null, ['value' => $value]);
+            $this->assertSame(['id' => $this->id($value), 'value' => $value, 'sha256' => hash('sha256', $value), 'attribute_count' => 0], $view['Value']);
+            $this->assertSame([], $view['Attribute']);
+        }
     }
 
     public function testTheViewHoldsOnlyTheAttributesTheUserCanSee()
@@ -544,6 +573,110 @@ class AttributeValueViewDbTest extends TestCase
         $first = $this->attribute->visibleValueIds($this->admin, range(1, 400), 1);
         $this->assertNotEmpty($first, 'Needs a stored value among the first ids.');
         $this->assertSame($first, $this->attribute->visibleValueIds($this->admin, range(1600, 1), 1));
+    }
+
+    /**
+     * An address in the documentation range, made unique by the token.
+     *
+     * @return string
+     */
+    private function ip()
+    {
+        return '2001:db8:' . implode(':', str_split(substr($this->t, 2, 8), 4)) . '::7';
+    }
+
+    private function delete(array $user, $id)
+    {
+        return $this->controller($user, [], [], [])->delete($id);
+    }
+
+    private function countRows($sql)
+    {
+        return (int)$this->exec($sql)[0]['n'];
+    }
+
+    public function testOnlyASiteAdminMayDelete()
+    {
+        $acl = new ACLComponent(new ComponentCollection());
+
+        $this->assertTrue($acl->checkAccess($this->admin, 'values', 'delete', false));
+        $this->assertTrue($acl->checkAccess($this->lesser, 'values', 'view', false));
+        $this->assertTrue($acl->checkAccess($this->lesser, 'values', 'search', false));
+        $this->expectException(ForbiddenException::class);
+        $acl->checkAccess($this->lesser, 'values', 'delete', false);
+    }
+
+    public function testADeleteNamesWhatStillRefersToTheValue()
+    {
+        $t = $this->t;
+        $open = $this->events['open'];
+        $eventUuid = $this->exec("SELECT uuid FROM events WHERE id = $open")[0]['uuid'];
+        $this->exec(sprintf(
+            "INSERT INTO shadow_attributes (event_id, type, category, uuid, org_id, event_org_id, comment, event_uuid, value1_id, deleted) VALUES (%d, 'text', 'Other', '%s', 1, 1, '', '%s', %d, 0)",
+            $open,
+            CakeText::uuid(),
+            $eventUuid,
+            $this->id("$t-proposal.example")
+        ));
+        $proposal = (int)$this->exec('SELECT LAST_INSERT_ID() AS id')[0]['id'];
+        $this->exec(sprintf('INSERT INTO over_correlating_values (value_id, occurrence) VALUES (%d, 0)', $this->id("$t-blocked.example")));
+        $this->exec(sprintf(
+            'INSERT INTO no_acl_correlations (attribute_id, 1_attribute_id, event_id, 1_event_id, value_id) VALUES (%d, %d, %d, %d, %d)',
+            $this->ids['shared_open'],
+            $this->ids['upper'],
+            $open,
+            $open,
+            $this->id("$t-keyed.example")
+        ));
+        $holders = [
+            "$t-hidden.example" => sprintf('1 attributes: #%d in event %d', $this->ids['hidden'], $this->events['hidden']),
+            "$t-deleted.example" => sprintf('1 attributes: #%d in event %d (soft-deleted)', $this->ids['deleted'], $open),
+            md5($t) => sprintf('1 attributes: #%d in event %d', $this->ids['composite'], $open),
+            "$t-proposal.example" => sprintf('1 proposals: #%d in event %d', $proposal, $open),
+            "$t-blocked.example" => '1 over-correlation entries',
+            "$t-keyed.example" => '1 correlations keyed on it (no ACL engine)',
+        ];
+
+        foreach ($holders as $value => $holder) {
+            $id = $this->id($value);
+            $this->assertSame([$holder], $this->values->holders($id), $value);
+            $answer = $this->delete($this->admin, $id);
+            $this->assertFalse($answer['saved'], $value);
+            $this->assertSame("The value is still in use, remove these first: $holder.", $answer['errors'], $value);
+            $this->assertFalse($this->values->deleteUnheld($id), $value);
+            $this->assertSame([$id => $value], $this->values->fetchValues([$id]), $value);
+        }
+        $shared = $this->ids('shared_hidden', 'shared_open');
+        $this->assertSame(
+            [sprintf('2 attributes: #%d in event %d, 1 more', $shared[0], $shared[0] === $this->ids['shared_hidden'] ? $this->events['hidden'] : $open)],
+            $this->values->holders($this->id("$t-shared.example"), 1)
+        );
+    }
+
+    public function testAnUnheldValueIsDeletedWithItsFacetAndCountRows()
+    {
+        $id = $this->id($this->ip());
+        $this->exec("INSERT INTO attr_value_counts (value_id, cnt_v1, cnt_v2) VALUES ($id, 0, 0)");
+        $this->assertSame(1, $this->countRows("SELECT COUNT(*) AS n FROM value_ip_ranges WHERE value_id = $id"));
+
+        $answer = $this->delete($this->admin, $id);
+
+        $this->assertTrue($answer['saved']);
+        $this->assertSame([], $this->values->fetchValues([$id]));
+        $this->assertSame(0, $this->countRows("SELECT COUNT(*) AS n FROM value_ip_ranges WHERE value_id = $id"));
+        $this->assertSame(0, $this->countRows("SELECT COUNT(*) AS n FROM attr_value_counts WHERE value_id = $id"));
+        $log = $this->exec("SELECT title, `change` FROM logs WHERE model = 'AttributeValue' AND model_id = $id AND action = 'delete'");
+        $this->assertSame([['title' => "Value #$id deleted from the value dictionary", 'change' => '']], $log);
+        $orphan = $this->id("{$this->t}-orphan.example");
+        foreach ([$id, 'abc', '0', $orphan . 'x'] as $gone) {
+            try {
+                $this->delete($this->admin, $gone);
+                $this->fail('Deleted ' . $gone);
+            } catch (NotFoundException $e) {
+                $this->assertSame(404, $e->getCode());
+            }
+        }
+        $this->assertCount(1, $this->values->fetchValues([$orphan]));
     }
 
     private function sorted(array $values)

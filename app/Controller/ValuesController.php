@@ -4,7 +4,8 @@ App::uses('ValueConditionRewriter', 'Tools');
 
 /**
  * Stored attribute values, each with the attributes holding it that the user
- * can see. A value no visible attribute holds is reported as missing.
+ * can see. A value no visible attribute holds is reported as missing, except
+ * to a site admin.
  *
  * @property AttributeValue $AttributeValue
  * @property MispAttribute $MispAttribute
@@ -60,7 +61,8 @@ class ValuesController extends AppController
                 'limit' => $limit,
             ], $count, true);
         }
-        if ($count === 0) {
+        // A site admin also sees a value nothing visible holds, to delete it
+        if ($value === null || ($count === 0 && empty($this->Auth->user()['Role']['perm_site_admin']))) {
             throw new NotFoundException(__('Invalid value.'));
         }
         $summary = [
@@ -138,6 +140,43 @@ class ValuesController extends AppController
             }
         }
         return $this->RestResponse->viewData($out, 'json');
+    }
+
+    /**
+     * Removes a stored value once nothing refers to it any more, for text that
+     * must not stay in the database after its attributes are gone.
+     *
+     * @param string $id
+     * @return CakeResponse|void
+     */
+    public function delete($id)
+    {
+        $id = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($id === false) {
+            throw new NotFoundException(__('Invalid value.'));
+        }
+        $this->CRUD->delete($id, [
+            'validate' => function (array $value) {
+                $holders = $this->AttributeValue->holders($value['AttributeValue']['id']);
+                if (!empty($holders)) {
+                    throw new Exception(__('The value is still in use, remove these first: %s.', implode('; ', $holders)));
+                }
+            },
+            'modelFunction' => 'deleteUnheld',
+            'afterDelete' => function (array $value) {
+                $this->loadModel('Log');
+                $this->Log->createLogEntry(
+                    $this->Auth->user(),
+                    'delete',
+                    'AttributeValue',
+                    $value['AttributeValue']['id'],
+                    __('Value #%s deleted from the value dictionary', $value['AttributeValue']['id'])
+                );
+            },
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
     }
 
     /**
