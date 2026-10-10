@@ -34,7 +34,7 @@ if (!$status['enabled']) {
     $verdict = array('level' => 2, 'label' => __('Ready'), 'accent' => '#198754');
 }
 ?>
-<div class="card shadow-sm mb-3 ss-section dg-card" id="ai-status-card" style="--ss-accent: <?= h($verdict['accent']) ?>;">
+<div class="card shadow-sm mb-3 ss-section dg-card dg-scope" id="ai-status-card" style="--ss-accent: <?= h($verdict['accent']) ?>;">
     <div class="card-header ss-section-header" style="cursor:default;">
         <span class="ss-section-icon"><i class="fas fa-robot"></i></span>
         <div class="flex-grow-1">

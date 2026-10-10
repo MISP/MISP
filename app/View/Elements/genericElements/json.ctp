@@ -3,7 +3,7 @@
     echo sprintf(
         '<pre id="%s">%s</pre>',
         $randomId,
-        json_encode($json)
+        h(json_encode($json))
     );
 ?>
 

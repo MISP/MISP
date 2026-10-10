@@ -7,7 +7,6 @@ App::uses('AppModel', 'Model');
  * @property Organisation $Organisation
  * @property Event $Event
  * @property MispAttribute $Attribute
- * @property Thread $Thread
  */
 class SharingGroup extends AppModel
 {
@@ -61,7 +60,6 @@ class SharingGroup extends AppModel
             'foreignKey' => 'sharing_group_id',
             'dependent' => false,
         ],
-        'Thread'
     );
 
     public $belongsTo = array(
@@ -102,9 +100,6 @@ class SharingGroup extends AppModel
     public function beforeDelete($cascade = false)
     {
         if ($this->Event->hasAny(['sharing_group_id' => $this->id])) {
-            return false;
-        }
-        if ($this->Thread->hasAny(['sharing_group_id' => $this->id])) {
             return false;
         }
         if ($this->Attribute->hasAny(['sharing_group_id' => $this->id])) {

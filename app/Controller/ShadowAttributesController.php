@@ -590,7 +590,7 @@ class ShadowAttributesController extends AppController
                 $this->request->data = $this->request->data['request'];
             }
             if (!isset($this->request->data['ShadowAttribute'])) {
-                $this->request->data['ShadowAttribute'] = $this->request->data;
+                $this->request->data = array('ShadowAttribute' => $this->request->data);
             }
             // rearrange the request in case someone didn't RTFM
             $invalidNames = array('Attribute', 'Proposal');

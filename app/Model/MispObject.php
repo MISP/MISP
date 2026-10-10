@@ -111,6 +111,7 @@ class MispObject extends AppModel
         'description' => array(
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty'),
+                'allowEmpty' => true,
                 'on' => 'create'
             ),
         ),
@@ -956,6 +957,10 @@ class MispObject extends AppModel
                             }
                         }
                         $v['disable_correlation'] = $request_item['disable_correlation'];
+                        if (isset($request_item['distribution'])) {
+                            $v['distribution'] = $request_item['distribution'];
+                            $v['sharing_group_id'] = $request_item['sharing_group_id'] ?? 0;
+                        }
                         $template['ObjectTemplateElement'][] = $v;
                         unset($v['uuid']); // force creating a new attribute if template element entry gets reused
                     } else {
@@ -1231,6 +1236,7 @@ class MispObject extends AppModel
                         $newAttribute['distribution'] = $this->Event->Attribute->defaultDistribution();
                     }
                     $this->Event->Attribute->create();
+                    unset($newAttribute[$this->Event->Attribute->alias]);
                     $saveResult = $this->Event->Attribute->save($newAttribute);
                     if ($saveResult) {
                         $newAttribute['id'] = $this->Event->Attribute->id;
@@ -1422,6 +1428,7 @@ class MispObject extends AppModel
         $object['id'] = $existingObject['Object']['id'];
         $object['uuid'] = $existingObject['Object']['uuid'];
         $object['event_id'] = $eventId;
+        unset($object[$this->alias]);
         if ($object['distribution'] == 4) {
             $object['sharing_group_id'] = $this->SharingGroup->captureSG($object['SharingGroup'], $user);
         }
@@ -1893,7 +1900,11 @@ class MispObject extends AppModel
             $params['page'] = 1;
         }
         $this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
-        $tmpfile->write($exportTool->footer($exportToolParams));
+        $footer = $exportTool->footer($exportToolParams);
+        if ($footer instanceof TmpFileTool) {
+            return $footer; // export built the whole file itself
+        }
+        $tmpfile->write($footer);
         return $tmpfile;
     }
 
@@ -1902,7 +1913,6 @@ class MispObject extends AppModel
         $continue = true;
         while ($continue) {
             $temp = '';
-            $this->Allowedlist = ClassRegistry::init('Allowedlist');
             $results = $this->fetchObjects($user, $params, $continue);
             if (empty($results)) {
                 $loop = false;
@@ -1916,9 +1926,6 @@ class MispObject extends AppModel
                 $results = $this->Sightingdb->attachToObjects($results, $user);
             }
             $params['page'] += 1;
-            foreach ($results as $k => $result) {
-                $results[$k]['Attribute'] = $this->Allowedlist->removeAllowedlistedFromArray($result['Attribute'], true);
-            }
             $results = array_values($results);
             $i = 0;
             foreach ($results as $object) {

@@ -49,6 +49,7 @@ echo $this->Form->create($m, [
     'url'        => $formUrl,
     'novalidate' => true,
     'id'         => 'analystDataForm',
+    'data-required-guard' => true,
 ]);
 ?>
 
@@ -121,17 +122,19 @@ echo $this->Form->create($m, [
         <?php if ($m === 'Note'): ?>
             <!-- ── NOTE ────────────────────────────────────────── -->
             <div class="w-100 ">
-                <div class="d-flex align-items-center gap-2 text-<?= $color ?> fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Note') ?>
-                    <span class="badge bg-<?= $color ?>" style="font-size:.55rem; opacity:.8; font-weight:700;">
-                        <?= __('REQUIRED') ?>
-                    </span>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => __('Note'),
+                    'required' => true,
+                    'for' => 'Note',
+                ]) ?>
                 <?= $this->Form->textarea('note', [
                     'class'       => 'form-control',
                     'rows'        => 4,
                     'placeholder' => __('Write your analysis note…'),
+                    'id'                => 'Note',
+                    'required'          => true,
+                    'data-required-msg' => __('Please provide a note.'),
                 ]) ?>
             </div>
             <div class="w-100 ">
