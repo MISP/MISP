@@ -2624,6 +2624,7 @@ class ServersController extends AppController
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
             'collection_sync' => true, // check if Collection sync (indexMinimal/fetch/capture) is supported
+            'event_index_cursor_v1' => (bool) $user['Role']['perm_sync'],
         ];
         return $this->RestResponse->viewData($response, 'json');
     }
