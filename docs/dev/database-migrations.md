@@ -410,8 +410,21 @@ not the reference's shape and are the review list, not noise:
 - the PostgreSQL-only indexes a migration created through `rawSql()` on that
   engine alone (`BaselineGenerator::PGSQL_ONLY_INDEXES`), added because a
   fresh install seeds that migration as applied and would never create them;
+- the indexes whose PostgreSQL form a migration declares itself
+  (`BaselineGenerator::PGSQL_REPLACED_INDEXES`): `attribute_values`' FULLTEXT
+  and `value(128)` indexes become the `pg_trgm` GIN index and the
+  `lower(left(value, 128))` expression index, with `CREATE EXTENSION IF NOT
+  EXISTS pg_trgm` ahead of the DDL;
 - a default dropped from a key column, an index name PostgreSQL would
   truncate, any hint the grammar could not express.
+
+The MySQL rendering notes nothing, but creates `attribute_values` with
+`innodb_ft_enable_stopword` off, as the migration that rebuilt its FULLTEXT
+index did: InnoDB takes the session's stopword setting when it builds the index.
+**Caution:** it also carries the reference server's collation for
+`attribute_values.value` (`utf8mb4_uca1400_ai_ci` on MariaDB 10.10 and later),
+which MariaDB 10.5 and MySQL 8 do not have; the migration picks the collation
+by server version, a static baseline cannot.
 
 The ledger is seeded automatically: `schema_migrations` is a seed table, so
 whatever the reference recorded as applied is carried across. So are the
@@ -435,7 +448,8 @@ For PostgreSQL that can be a scratch schema in an existing database: `'schema'
 search_path TO baseline_check;` inserted after `BEGIN;`. The comparison names
 every column, key and index that differs, in both directions, and knows which
 deviations are the rendering being right — hash indexes, PostgreSQL-only
-indexes, boolean defaults. Anything pending in `migrationStatus` means the
+indexes, the replaced indexes (checked by the shape the driver reads back, so a
+wrong index under the right name is a finding), boolean defaults. Anything pending in `migrationStatus` means the
 reference was not up to date.
 
 ### 4. What CI checks

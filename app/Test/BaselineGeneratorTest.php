@@ -559,6 +559,93 @@ class BaselineGeneratorTest extends TestCase
         $this->assertSame(array(), $this->generator()->compare(new SchemaInspector($db), $schema));
     }
 
+    /**
+     * attribute_values: the FULLTEXT index has no PostgreSQL rendering and the
+     * value(128) prefix index would become a hash index, so the PostgreSQL
+     * baseline carries what the migration declares for PostgreSQL, with
+     * pg_trgm ahead of it; the MySQL one builds the FULLTEXT index without
+     * stopwords, as the migration that rebuilt it.
+     */
+    private function valueDictionarySchema()
+    {
+        return array(
+            'attribute_values' => array(
+                'columns' => array(
+                    'id' => array('type' => 'biginteger', 'length' => 20, 'unsigned' => true, 'null' => false, 'key' => 'primary'),
+                    'value' => array('type' => 'text', 'null' => false),
+                    'hash' => array('type' => 'varbinary', 'length' => 16, 'null' => false),
+                ),
+                'indexes' => array(
+                    'hash' => array('name' => 'hash', 'column' => array('hash'), 'unique' => true),
+                    'value' => array('name' => 'value', 'column' => array('value'), 'unique' => false, 'length' => array('value' => 128)),
+                    'value_search' => array('name' => 'value_search', 'column' => array('value'), 'unique' => false, 'fulltext' => true),
+                ),
+                'primary' => 'id',
+                'options' => array('engine' => 'InnoDB', 'charset' => 'utf8mb4', 'collate' => 'utf8mb4_uca1400_ai_ci'),
+                'expressionDefaults' => array(),
+            ),
+        );
+    }
+
+    public function testTheValueDictionaryRendersTheIndexesItsMigrationDeclares()
+    {
+        $pgsql = $this->generator()->render($this->pgsql, $this->valueDictionarySchema(), array(), 159);
+        $sql = $pgsql['sql'];
+        $extension = strpos($sql, "BEGIN;\nCREATE EXTENSION IF NOT EXISTS pg_trgm;\n");
+        $this->assertNotFalse($extension);
+        $this->assertLessThan(strpos($sql, 'CREATE TABLE'), $extension);
+        $this->assertStringContainsString('CREATE UNIQUE INDEX "idx_attribute_values_hash" ON "attribute_values" ("hash");', $sql);
+        $this->assertStringContainsString('CREATE INDEX "idx_attribute_values_value" ON "attribute_values" (lower(left("value", 128)));', $sql);
+        $this->assertStringContainsString('CREATE INDEX "idx_attribute_values_value_search" ON "attribute_values" USING gin ("value" gin_trgm_ops);', $sql);
+        $this->assertStringNotContainsString('USING hash', $sql);
+        $this->assertCount(3, $pgsql['notes']);
+        $this->assertStringContainsString('Extension pg_trgm created', $pgsql['notes'][0]);
+        $this->assertStringContainsString('Index value on attribute_values rendered as idx_attribute_values_value', $pgsql['notes'][1]);
+        $this->assertStringContainsString('Index value_search on attribute_values rendered as idx_attribute_values_value_search', $pgsql['notes'][2]);
+
+        $mysql = $this->generator()->render($this->mysql, $this->valueDictionarySchema(), array(), 159);
+        $sql = $mysql['sql'];
+        $this->assertStringNotContainsString('pg_trgm', $sql);
+        $this->assertStringContainsString('INDEX `value` (`value`(128))', $sql);
+        $this->assertStringContainsString('FULLTEXT INDEX `value_search` (`value`)', $sql);
+        $off = strpos($sql, 'SET SESSION innodb_ft_enable_stopword = 0;');
+        $back = strpos($sql, 'SET SESSION innodb_ft_enable_stopword = DEFAULT;');
+        $this->assertNotFalse($off);
+        $this->assertLessThan(strpos($sql, 'CREATE TABLE `attribute_values`'), $off);
+        $this->assertGreaterThan(strpos($sql, 'FULLTEXT INDEX'), $back);
+        $this->assertSame(array(), $mysql['notes']);
+
+        $other = $this->generator()->render($this->mysql, $this->fixtureSchema(), array(), 159);
+        $this->assertStringNotContainsString('innodb_ft_enable_stopword', $other['sql']);
+    }
+
+    public function testTheRoundTripReadsTheShapeOfAReplacedIndex()
+    {
+        $db = new BaselineGeneratorTestLoadedPostgres();
+        $db->tables = array('attribute_values');
+        $db->descriptions = array('attribute_values' => array(
+            'id' => array('type' => 'biginteger', 'null' => false, 'default' => null, 'length' => null, 'key' => 'primary'),
+            'value' => array('type' => 'text', 'null' => false, 'default' => null, 'length' => null),
+            'hash' => array('type' => 'binary', 'null' => false, 'default' => null, 'length' => null),
+        ));
+        $db->indexData = array('attribute_values' => array(
+            'PRIMARY' => array('unique' => true, 'column' => 'id'),
+            'idx_attribute_values_hash' => array('unique' => true, 'column' => 'hash'),
+            // What the hash rewrite used to create under the expression index's name
+            'idx_attribute_values_value' => array('unique' => false, 'column' => 'value'),
+        ));
+        $schema = $this->valueDictionarySchema();
+        $this->assertSame(array(
+            'attribute_values: index idx_attribute_values_value over (value), not the index its migration declares',
+            'attribute_values: index idx_attribute_values_value_search missing',
+        ), $this->generator()->compare(new SchemaInspector($db), $schema));
+
+        // As Postgres::index() parses pg_get_indexdef() for the two
+        $db->indexData['attribute_values']['idx_attribute_values_value'] = array('unique' => false, 'column' => array('lower("left"(value', '128'));
+        $db->indexData['attribute_values']['idx_attribute_values_value_search'] = array('unique' => false, 'column' => 'value gin_trgm_ops');
+        $this->assertSame(array(), $this->generator()->compare(new SchemaInspector($db), $schema));
+    }
+
     public function testTheMysqlRenderingKeepsEverythingAndNotesNothing()
     {
         $rendered = $this->generator()->render($this->mysql, $this->fixtureSchema(), $this->fixtureSeeds(), 159);

@@ -30,7 +30,8 @@ packages, PHP, Redis, workers, the web server — is the same.
 
 - PostgreSQL 16 or later. Ubuntu 24.04 ships 16; on RHEL 9 enable the
   `postgresql:16` module stream, as its default PostgreSQL 13 is end-of-life.
-- The `pg_trgm` extension. MISP creates it itself during `runUpdates`; see
+- The `pg_trgm` extension. MISP creates it itself, when the install baseline is
+  loaded or during `runUpdates`; see
   [The pg_trgm extension](#the-pg_trgm-extension) below for what that needs.
 - The `pdo_pgsql` PHP extension (`php-pgsql` on Debian/Ubuntu, `php-pgsql` on
   RHEL), for the CLI, php-fpm and Apache alike.
@@ -40,8 +41,8 @@ packages, PHP, Redis, workers, the web server — is the same.
 ## The pg_trgm extension
 
 MISP indexes attribute values for substring search with a `pg_trgm` GIN
-index, and the migration that creates the index runs
-`CREATE EXTENSION IF NOT EXISTS pg_trgm` first.
+index. `INSTALL/POSTGRESQL.sql` and the migration that creates the index both
+run `CREATE EXTENSION IF NOT EXISTS pg_trgm` first.
 
 - `pg_trgm` is a *trusted* extension, so no superuser is needed: the MISP
   database user only needs `CREATE` on the database. The owner of the
@@ -60,7 +61,9 @@ index, and the migration that creates the index runs
   ```
 
 When neither is possible, the update stops before creating anything, with a
-message saying which of the two is missing.
+message saying which of the two is missing. Loading the baseline fails on that
+statement instead, and as the file is one transaction, leaves the database
+empty.
 
 ## Install
 
