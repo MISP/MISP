@@ -601,7 +601,7 @@ class TestComprehensive(unittest.TestCase):
                     check_response(self.admin_misp_connector.delete_event(event))
 
     def test_remove_orphaned_correlations(self):
-        result = self.admin_misp_connector._check_response(self.admin_misp_connector._prepare_request('GET', 'servers/removeOrphanedCorrelations'))
+        result = self.admin_misp_connector._check_response(self.admin_misp_connector._prepare_request('POST', 'servers/removeOrphanedCorrelations'))
         check_response(result)
         self.assertIn("message", result)
 

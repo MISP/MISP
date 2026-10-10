@@ -4,7 +4,7 @@
         'form' => $this->Form,
         'data' => [
             'title' => __('Confirm disabling Taxonomy Tag'),
-            'description' => __('Tag `%s` will be disabled.', $this->request->data['Taxonomy']['name']),
+            'description' => __('Tag `%s` will be disabled.', h($this->request->data['Taxonomy']['name'])),
             'model' => $modelForForm,
             'fields' => [
                 [

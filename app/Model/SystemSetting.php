@@ -194,7 +194,7 @@ class SystemSetting extends AppModel
         if ($setting === 'Security.encryption_key' || $setting === 'Security.salt') {
             return true;
         }
-        if (str_starts_with($setting, 'Plugin.') && (str_contains($setting, 'apikey') || str_contains($setting, 'secret'))) {
+        if (str_starts_with($setting, 'Plugin.') && (str_contains($setting, 'apikey') || str_contains($setting, 'api_key') || str_contains($setting, 'secret'))) {
             return true;
         }
         return str_contains($setting, 'password');

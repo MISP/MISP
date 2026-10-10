@@ -9,14 +9,14 @@
         if ($hasUnknownCustomClusters) {
             $severity = 'info';
             $content = sprintf(' %s', __('Your instance has detected <b style="font-size: larger;">%s</b> <b>custom cluster(s)</b> that it doesn\'t recognize. This may indicate one of two things: either these clusters haven\'t been properly synchronized, or you weren\'t authorized to view them during the synchronization process. In most cases, you can safely ignore this message. However, if you believe you should have access to these clusters, please check your synchronization settings and ask the instances sending data to you to review theirs as well. Sample(s):', $unknownClustersDetails['unknownCustomClusters']));
-            $tagSampleHTML = sprintf('<li>%s</li>', implode('</li><li>', $unknownClustersDetails['unknownCustomClustersSamples']));
+            $tagSampleHTML = sprintf('<li>%s</li>', implode('</li><li>', array_map('h', $unknownClustersDetails['unknownCustomClustersSamples'])));
             $content .= $tagSampleHTML;
             $notices[] = sprintf('<div class="alert alert-%s" style="max-width: 960px; margin-bottom: 0.25em;"><b style="font-size: larger;">%s:</b>%s</div>', $severity, __('Info'), $content);
         }
         if ($hasUnknownDefaultClusters) {
             $severity = 'info';
             $content = sprintf(' %s', __('Your instance has detected <b style="font-size: larger;">%s</b> <b>default cluster(s)</b> that it doesn\'t recognize, which may mean your galaxies are outdated. To fix this, update to the latest version from the misp-galaxy repository and load the JSON files into your database by clicking the "Update Galaxies" button. Sample(s):', $unknownClustersDetails['unknownDefaultClusters']));
-            $tagSampleHTML = sprintf('<li>%s</li>', implode('</li><li>', $unknownClustersDetails['unknownDefaultClustersSamples']));
+            $tagSampleHTML = sprintf('<li>%s</li>', implode('</li><li>', array_map('h', $unknownClustersDetails['unknownDefaultClustersSamples'])));
             $content .= $tagSampleHTML;
             $notices[] = sprintf('<div class="alert alert-%s" style="max-width: 960px; margin-bottom: 0.25em;"><b style="font-size: larger;">%s:</b>%s</div>', $severity, __('Info'), $content);
         }

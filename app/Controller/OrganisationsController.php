@@ -560,6 +560,12 @@ class OrganisationsController extends AppController
 
         $logo = $this->request->data['Organisation']['logo'];
         if ($logo['size'] > 0 && $logo['error'] == 0) {
+            // Only a genuine PHP upload may reach the filesystem probes below.
+            // A forged tmp_name would otherwise leak file existence and image
+            // type through the distinct validation messages that follow.
+            if (empty($logo['tmp_name']) || !is_uploaded_file($logo['tmp_name'])) {
+                return false;
+            }
             $extension = pathinfo($logo['name'], PATHINFO_EXTENSION);
             $filename = $orgId . '.' . ($extension === 'svg' ? 'svg' : 'png');
 
@@ -622,6 +628,9 @@ class OrganisationsController extends AppController
                 // '../../../../AI-marketing') would allow path traversal to arbitrary png/svg files.
                 if ($candidate !== false && $realBase !== false && str_starts_with($candidate, $realBase . DS)) {
                     $this->response->file($candidate, ['download' => false, 'name' => $org['Organisation']['id'] . '.' . $extension]);
+                    // An SVG logo is a document, not a bitmap: sandbox it so
+                    // whatever it carries cannot run here when opened directly.
+                    $this->RestResponse->sandboxInlineFile($this->response, $extension);
                     return $this->response;
                 }
             }

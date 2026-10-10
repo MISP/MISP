@@ -17,11 +17,16 @@ $useBootstrap5 = OvermindPages::isMigrated($currentController, $currentAction);
 $isAuthPage  = $useBootstrap5 && OvermindPages::isAuthPage($currentController, $currentAction);
 
 
+$isLegacyFullViewportPage = !$useBootstrap5
+    && OvermindPages::normalise($currentController) === 'workflows'
+    && OvermindPages::normalise($currentAction) === 'editor';
+
 // Offset behavior for the legacy navbar 
 $mainStyle = '';
 if (!$useBootstrap5) {
     $debugBarShown = !empty($debugMode) && $debugMode !== 'debugOff';
-    $mainStyle = ' style="padding-top:' . ($debugBarShown ? 0 : 50) . 'px;"';
+    $navbarOffset = ($debugBarShown || $isLegacyFullViewportPage) ? 0 : 50;
+    $mainStyle = ' style="padding-top:' . $navbarOffset . 'px;"';
 }
 
 // Conversion between ISO 639-2 code (`Config.language`) and BCP 47 tag (lang attribute) 
@@ -73,6 +78,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
                 ['misp-iconify', ['preload' => true]],
+                ['onboarding', ['preload' => true]],
             ];
             $js = [
                 ['tom-select.complete.min', ['preload' => true]],
@@ -80,11 +86,11 @@ if (substr($currentAction, 0, 6) === 'admin_') {
         } else {
             $css = [
                 ['bootstrap', ['preload' => true]],
-                ['main', ['preload' => true]],
                 ['bootstrap-datepicker', ['preload' => true]],
                 ['bootstrap-colorpicker', ['preload' => true]],
                 ['font-awesome', ['preload' => true]],
                 ['chosen.min', ['preload' => true]],
+                ['main', ['preload' => true]],
                 ['print', ['media' => 'print']],
             ];
             $js = [
@@ -106,6 +112,15 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             'js' => $js,
         ]);
     ?>
+    <?php if ($isLegacyFullViewportPage): ?>
+        <style>
+            /* Give the workflow editor full viewport height */
+            body[data-controller="workflows"][data-action="editor"] .root-container {
+                height: 100vh;
+                margin-top: 0;
+            }
+        </style>
+    <?php endif; ?>
     <script>(function(){if(localStorage.getItem('darkMode')==='true'){document.documentElement.setAttribute('data-bs-theme','dark');}})()</script>
 </head>
 <body class="bg-light" data-controller="<?= h($currentController) ?>" data-action="<?= h($currentAction) ?>">
@@ -114,7 +129,9 @@ if (substr($currentAction, 0, 6) === 'admin_') {
         <header>
             <?php
                 if (!$useBootstrap5) {
-                    echo $this->element('global_menu');
+                    if (!$isLegacyFullViewportPage) {
+                        echo $this->element('global_menu');
+                    }
                 } elseif (!$isAuthPage) {
                     $context = [
                         'me' => $me ?? null,
@@ -139,8 +156,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             ?>
         </header>
         <?php if ($useBootstrap5 && !$isAuthPage && Configure::read('debug') > 0): ?>
-            <!-- Debug strip. mispOvermind.js moves Cake's .cake-error blocks
-                 in here and badges the count. -->
+            <!-- Debug strip, filled by initDebugStrip() in mispOvermind.js -->
             <div class="accordion mb-0" id="debugAccordionWrapper">
                 <div class="accordion-item border-0">
                     <h2 class="accordion-header" id="debugHeading">
@@ -156,8 +172,12 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                                     <i class="fas fa-bug me-2"></i>
                                     <?= __('Debug Mode Enabled') ?>
                                 </span>
-                                <span id="debugErrorBadge" class="badge bg-success ms-3">
-                                    0 error
+                                <span class="d-flex gap-2 ms-3">
+                                    <span id="debugSqlBadge" class="badge bg-dark d-none"></span>
+                                    <span id="debugInfoBadge" class="badge bg-info text-dark d-none"></span>
+                                    <span id="debugErrorBadge" class="badge bg-success">
+                                        <?= __('0 errors') ?>
+                                    </span>
                                 </span>
                             </div>
                         </button>
@@ -167,9 +187,20 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                         aria-labelledby="debugHeading"
                         data-bs-parent="#debugAccordionWrapper">
                         <div id="debugAccordionContent"
-                            class="accordion-body bg-dark text-light small"
-                            style="max-height:500px; overflow:auto;">
-                            <!-- Errors are injected here -->
+                            class="accordion-body bg-dark text-light small p-0 overflow-auto"
+                            style="max-height:500px;">
+                            <div class="d-flex justify-content-end px-3 pt-2">
+                                <button type="button" id="debugClear"
+                                        class="btn btn-sm btn-outline-secondary py-0">
+                                    <i class="fas fa-eraser me-1"></i><?= __('Clear') ?>
+                                </button>
+                            </div>
+                            <div id="debugEntries" class="px-3 py-2">
+                                <div id="debugEmpty" class="fst-italic opacity-75">
+                                    <?= __('No debug output so far.') ?>
+                                </div>
+                            </div>
+                            <div id="debugSqlLog" class="px-3 pb-3 d-none"></div>
                         </div>
                     </div>
                 </div>
@@ -207,7 +238,9 @@ if (substr($currentAction, 0, 6) === 'admin_') {
     <!-- Footer -->
     <?php
         if (!$useBootstrap5) {
-            echo $this->element('footer');
+            if (!$isLegacyFullViewportPage) {
+                echo $this->element('footer');
+            }
         } elseif (!$isAuthPage) {
             echo $this->element('footerBS5');
         }
@@ -223,11 +256,16 @@ if (substr($currentAction, 0, 6) === 'admin_') {
     <?php
         if ($useBootstrap5) {
             // Bootstrap 5 JS
+            $bs5Js = [
+                'bootstrap.bundle.min',
+                'mispOvermind',
+            ];
+            if (!$isAuthPage) {
+                $bs5Js[] = 'onboarding';
+                $bs5Js[] = 'overmind-invaders';
+            }
             echo $this->element('genericElements/assetLoader', [
-                'js' => [
-                    'bootstrap.bundle.min',
-                    'mispOvermind',
-                ],
+                'js' => $bs5Js,
             ]);
         } else {
             // Bootstrap 2 JS
@@ -248,10 +286,21 @@ if (substr($currentAction, 0, 6) === 'admin_') {
 
     <script>
         var baseurl = <?= json_encode($baseurl, JSON_UNESCAPED_SLASHES) ?>;
+        // CSRF token for hand-built same-origin AJAX, which has no rendered form
+        // to carry _Token fields. Sent as the X-CSRF-Token header - see
+        // BetterSecurityComponent::_validateCsrf().
+        var csrfToken = <?= json_encode(isset($this->request->params['_Token']['key']) ? $this->request->params['_Token']['key'] : '') ?>;
         var here = <?= json_encode($here, JSON_UNESCAPED_SLASHES) ?>;
 
 <?php if ($autoLogoutEnabled): ?>
         window.mispAutoLogout = true;
+<?php endif; ?>
+<?php if ($useBootstrap5 && !$isAuthPage && !empty($onboardingAutostart)): ?>
+        <?php // Set by AppController::beforeRender when the user has never been
+              // shown the tour. onboarding.js reads it on DOMContentLoaded,
+              // which has not fired yet at this point in the document, and
+              // clears the marker server-side once the tour is up. ?>
+        window.mispOnboardingAutostart = true;
 <?php endif; ?>
 
     </script>

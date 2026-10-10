@@ -143,18 +143,57 @@ class UserSetting extends AppModel
             'options' => ['auto', 'light', 'dark'],
             'validation' => 'validate_dashboard_theme',
         ],
+        // One-shot marker for the Overmind onboarding tour. Set at a user's
+        // very first login and cleared the first time the tour is actually
+        // displayed, so a brand new account is walked through the interface
+        // exactly once. Internal: it is plumbing, not a user preference.
+        'onboarding_pending' => [
+            'internal' => true,
+            'placeholder' => true,
+            'validation' => 'validate_json',
+        ],
     );
 
     public static function validate_homepage($value, $user)
     {
         // If it's already an array, use it. Otherwise, decode the string.
         $path = is_string($value) ? json_decode($value, true) : $value;
-        
-        if (empty($path['path'])) {
+
+        if (!is_array($path) || empty($path['path']) || !is_string($path['path'])) {
             return false;
         }
-        return str_starts_with($path['path'], '/');
+        // A leading '/' is not enough: '//attacker.example' also starts with
+        // one and is a protocol-relative, off-site URL once it reaches a
+        // Location header. Share the check with the other post-login
+        // navigation target (pre_login_requested_url) instead of keeping a
+        // second, weaker variant of it here.
+        App::uses('InternalRedirectValidator', 'Tools');
+        return InternalRedirectValidator::sanitize($path['path']) !== '';
     }
+
+    /**
+     * The user's homepage as a safe, same-origin path.
+     *
+     * Revalidated on read, not merely on write: the rows this reads may
+     * predate the store-time check above, and setSettingInternal() writes
+     * without running any validator at all. Every consumer of the homepage
+     * setting - the post-login redirect, the news page's "continue" link
+     * and the menu logo - goes through here, so one guard covers all of
+     * them and there is nothing left to sweep in the database.
+     *
+     * @param int $userId
+     * @return string The path to navigate to, or '' when unset or unsafe.
+     */
+    public function getHomepagePath($userId)
+    {
+        $homepage = $this->getValueForUser($userId, 'homepage');
+        if (!is_array($homepage) || empty($homepage['path']) || !is_string($homepage['path'])) {
+            return '';
+        }
+        App::uses('InternalRedirectValidator', 'Tools');
+        return InternalRedirectValidator::sanitize($homepage['path']);
+    }
+
     public static function validate_theme($value, $user)
     {
         if (empty($value)) {
@@ -180,7 +219,6 @@ class UserSetting extends AppModel
                 'report_count',
                 'sightings',
                 'proposals',
-                'discussion',
                 'creator_user',
                 'timestamp',
                 'publish_timestamp'
@@ -311,6 +349,32 @@ class UserSetting extends AppModel
             }
         }
         return $output;
+    }
+
+    /**
+     * One line per setting on what it changes for the user it belongs to.
+     * Kept apart from VALID_SETTINGS because a constant cannot be translated.
+     *
+     * @return array<string, string>
+     */
+    public function settingDescriptions()
+    {
+        return [
+            'publish_alert_filter' => __('Filters which published events send you an email alert. Matched against the event, its tags and its organisations.'),
+            'dashboard_access' => __('Legacy flag that granted access to the dashboard. Kept for compatibility, it no longer gates anything.'),
+            'dashboard' => __('Layout of your legacy dashboard: the widgets shown, their configuration and their position on the grid.'),
+            'homepage' => __('The page you land on after logging in and when clicking the MISP logo.'),
+            'default_restsearch_parameters' => __('Parameters merged into every restSearch query you run, unless the query overrides them.'),
+            'tag_numerical_value_override' => __('Replaces the numerical value of the listed tags with your own, for the scores computed on your behalf (e.g. decaying models).'),
+            'event_index_hide_columns' => __('Columns hidden from your event index.'),
+            'oidc' => __('Data stored by the OpenID Connect plugin for this account. Managed automatically.'),
+            'periodic_notification_filters' => __('Filters which events make it into your periodic (daily, weekly, monthly) summary emails.'),
+            'ui_beta_opt_in' => __('Opts you in to interface features still in beta.'),
+            'ui_theme' => __('The interface theme used for your account.'),
+            'event_template_user_form_mode' => __('How an event template form is shown to you: every step at once (all) or one step at a time (wizard).'),
+            'dashboard_theme' => __('Light or dark appearance of the dashboard; auto follows your browser.'),
+            'onboarding_pending' => __('Marks that the onboarding tour still has to be shown. Cleared once the tour has been displayed.'),
+        ];
     }
 
     public function getInternalSettingNames()

@@ -130,61 +130,6 @@ class CollectionElement extends AppModel
         );
     }
 
-    public function mayModify(int $user_id, int $collection_id)
-    {
-        $user = $this->User->getAuthUser($user_id);
-        $collection = $this->find('first', [
-            'recursive' => -1,
-            'conditions' => ['Collection.id' => $collection_id]
-        ]);
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if (empty($user['Role']['perm_modify'])) {
-            return false;
-        }
-        if (!empty($user['Role']['perm_modify_org'])) {
-            if ($user['org_id'] == $collection['Collection']['orgc_id']) {
-                return true;
-            }
-            if ($user['Role']['perm_sync'] && $user['org_id'] == $collection['Collection']['org_id']) {
-                return true;
-            }            
-        }
-        if (!empty($user['Role']['perm_modify']) && $user['id'] === $collection['Collection']['user_id']) {
-            return true;
-        }
-        return false;
-    }
-
-    public function mayView(int $user_id, int $collection_id)
-    {
-        $user = $this->User->getAuthUser($user_id);
-        $collection = $this->find('first', [
-            'recursive' => -1,
-            'conditions' => ['Collection.id' => $collection_id]
-        ]);
-        if ($user['Role']['perm_site_admin']) {
-            return true;
-        }
-        if ($collection['Collection']['org_id'] == $user['org_id']) {
-            return true;
-        }
-        if (in_array($collection['Collection']['distribution'], [1,2,3])) {
-            return true;
-        }
-        if ($collection['Collection']['distribution'] === 4) {
-            $SharingGroup = ClassRegistry::init('SharingGroup');
-            $sgs = $this->SharingGroup->fetchAllAuthorised($user, 'uuid');
-            if (isset($sgs[$collection['Collection']['sharing_group_id']])) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-        return false;
-    }
-
     public function deduceType(string $uuid)
     {
         foreach ($this->valid_types as $valid_type) {

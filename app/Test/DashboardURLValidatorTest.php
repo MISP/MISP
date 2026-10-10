@@ -34,6 +34,25 @@ if (!class_exists('Configure', false)) {
     }
 }
 
+/**
+ * Router stub. baseUrl() falls back to Router::url('/', true) — the
+ * request-derived origin — when MISP.baseurl is unset, mirroring the
+ * `MISP.baseurl ?: rtrim(Router::url('/', true), '/')` idiom every
+ * dashboard link emitter uses. The stub lets the fallback be asserted
+ * without a request.
+ */
+if (!class_exists('Router', false)) {
+    class Router
+    {
+        public static $fullBase = 'http://served-from.example.com/';
+
+        public static function url($url = null, $full = false)
+        {
+            return self::$fullBase;
+        }
+    }
+}
+
 use PHPUnit\Framework\TestCase;
 
 class DashboardURLValidatorTest extends TestCase
@@ -286,6 +305,47 @@ class DashboardURLValidatorTest extends TestCase
         $this->assertNull(DashboardURLValidator::validate("/events/index\x7f"));
     }
 
+    // -------- backslash authority bypass (V29) --------
+
+    public function testBackslashAuthorityFormsRejected(): void
+    {
+        // All four resolve to evil.com under the WHATWG parser with base
+        // https://misp.example.com/dashboards/index, but read as
+        // "relative" to a `://` / `//` prefix test.
+        $this->assertNull(DashboardURLValidator::validate('\\\\evil.example.com/x'));
+        $this->assertNull(DashboardURLValidator::validate('/\\evil.example.com/x'));
+        $this->assertNull(DashboardURLValidator::validate('https:/\\evil.example.com'));
+        $this->assertNull(DashboardURLValidator::validate('https:\\\\evil.example.com'));
+    }
+
+    public function testBackslashUserinfoSpoofRejected(): void
+    {
+        // Visible prefix is the real MISP host; the authority is evil.com.
+        $this->assertNull(
+            DashboardURLValidator::validate('\\\\misp.example.com@evil.example.com/x')
+        );
+    }
+
+    public function testBackslashRejectedEvenOnAnAllowedHost(): void
+    {
+        // Blanket rejection, not a host-conditional one — a backslash has
+        // no legitimate place in a dashboard URL.
+        $this->assertNull(
+            DashboardURLValidator::validate('https://misp.example.com/a\\b')
+        );
+        $this->assertNull(DashboardURLValidator::validate('/events\\index'));
+    }
+
+    public function testPercentEncodedBackslashStillAllowed(): void
+    {
+        // %5C stays an ordinary path character — browsers do not decode it
+        // before authority parsing, so it never goes off-host.
+        $this->assertSame(
+            '/events/index/%5Cevil.example.com',
+            DashboardURLValidator::validate('/events/index/%5Cevil.example.com')
+        );
+    }
+
     // -------- no baseurl configured --------
 
     public function testNoBaseurlConfiguredAllowsRelativeRejectsAbsolute(): void
@@ -295,8 +355,44 @@ class DashboardURLValidatorTest extends TestCase
             '/events/index',
             DashboardURLValidator::validate('/events/index')
         );
+        // With MISP.baseurl unset the gate falls back to the served-from
+        // origin, which is NOT misp.example.com — so this absolute URL is
+        // still dropped.
         $this->assertNull(
             DashboardURLValidator::validate('https://misp.example.com/events/index')
+        );
+    }
+
+    public function testBaseurlFallsBackToServedFromOrigin(): void
+    {
+        // MISP.baseurl is nullable (Server.php: 'null' => true). On such an
+        // install every dashboard emitter builds links from
+        // Router::url('/', true); the gate must resolve the same base or it
+        // drops every own-host absolute link on the page.
+        Configure::reset();
+        $this->assertSame(
+            'http://served-from.example.com',
+            DashboardURLValidator::baseUrl()
+        );
+        $this->assertSame(
+            'http://served-from.example.com/events/index',
+            DashboardURLValidator::validate('http://served-from.example.com/events/index')
+        );
+        // The fallback widens nothing else — other hosts stay rejected.
+        $this->assertNull(
+            DashboardURLValidator::validate('http://evil.example.com/events/index')
+        );
+    }
+
+    public function testConfiguredBaseurlWinsOverServedFromOrigin(): void
+    {
+        // setUp() configured MISP.baseurl; the fallback must not fire.
+        $this->assertSame(
+            'https://misp.example.com',
+            DashboardURLValidator::baseUrl()
+        );
+        $this->assertNull(
+            DashboardURLValidator::validate('http://served-from.example.com/events/index')
         );
     }
 }

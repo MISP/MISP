@@ -123,7 +123,7 @@ function submitCollectionCreateAndReturnToEvent() {
                 'data[CollectionElement][description]': '',
                 'data[CollectionElement][element_uuid]': eventUuids
             },
-            headers: { Accept: 'application/json' },
+            headers: { Accept: 'application/json', 'X-CSRF-Token': (window.csrfToken || '') },
             success: function(addData) {
                 var addResponse = addData;
                 if (typeof addData === 'string') {
