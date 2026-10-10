@@ -238,7 +238,7 @@ class Collection extends AppModel
         }
 
         try {
-            $filterRules = $this->buildPullFilterRules($serverSync->server());
+            $filterRules = $serverSync->buildPullFilterRules();
             $remoteData = $serverSync->collectionIndexMinimal($filterRules)->json();
         } catch (Exception $e) {
             $this->logException("Could not fetch collection index from server {$serverSync->server()['Server']['name']}", $e);
@@ -312,26 +312,6 @@ class Collection extends AppModel
         }
 
         return $saved;
-    }
-
-    /**
-     * Translate a server's org pull-rules into the orgc_name OR/NOT filter the
-     * indexMinimal endpoint expects (it resolves names -> orgc_id). Mirrors
-     * AnalystData::buildPullFilterRules verbatim.
-     */
-    private function buildPullFilterRules(array $server): array
-    {
-        $filterRules = ['orgc_name' => []];
-        $pullRules = $this->jsonDecode($server['Server']['pull_rules']);
-        if (!empty($pullRules['orgs']['OR'])) {
-            $filterRules['orgc_name'] = $pullRules['orgs']['OR'];
-        }
-        if (!empty($pullRules['orgs']['NOT'])) {
-            $filterRules['orgc_name'] = array_merge($filterRules['orgc_name'], array_map(function ($orgName) {
-                return '!' . $orgName;
-            }, $pullRules['orgs']['NOT']));
-        }
-        return $filterRules;
     }
 
     /**
