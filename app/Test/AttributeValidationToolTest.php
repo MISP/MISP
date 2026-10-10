@@ -145,6 +145,25 @@ class AttributeValidationToolTest extends TestCase
         $this->assertEquals('127.0.0.1', AttributeValidationTool::modifyBeforeValidation('ip-src', '127.0.0.1'));
     }
 
+    public function testX509FingerprintSeparators()
+    {
+        $expected = 'aa6fc83f37787abea6be2c5126163fd3';
+        // openssl x509 -fingerprint
+        $this->assertEquals($expected, AttributeValidationTool::modifyBeforeValidation('x509-fingerprint-md5', 'AA:6F:C8:3F:37:78:7A:BE:A6:BE:2C:51:26:16:3F:D3'));
+        // Windows certutil -hashfile
+        $this->assertEquals($expected, AttributeValidationTool::modifyBeforeValidation('x509-fingerprint-md5', 'aa 6f c8 3f 37 78 7a be a6 be 2c 51 26 16 3f d3'));
+        $this->assertEquals($expected, AttributeValidationTool::modifyBeforeValidation('x509-fingerprint-md5', "AA 6F C8 3F 37 78 7A BE\nA6 BE 2C 51 26 16 3F D3"));
+        // Already normalised values are left alone
+        $this->assertEquals($expected, AttributeValidationTool::modifyBeforeValidation('x509-fingerprint-md5', $expected));
+
+        $sha1 = 'da39a3ee5e6b4b0d3255bfef95601890afd80709';
+        $this->assertEquals($sha1, AttributeValidationTool::modifyBeforeValidation('x509-fingerprint-sha1', 'DA:39:A3:EE:5E:6B:4B:0D:32:55:BF:EF:95:60:18:90:AF:D8:07:09'));
+        $this->assertEquals($sha1, AttributeValidationTool::modifyBeforeValidation('x509-fingerprint-sha1', 'da 39 a3 ee 5e 6b 4b 0d 32 55 bf ef 95 60 18 90 af d8 07 09'));
+
+        $sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+        $this->assertEquals($sha256, AttributeValidationTool::modifyBeforeValidation('x509-fingerprint-sha256', 'e3 b0 c4 42 98 fc 1c 14 9a fb f4 c8 99 6f b9 24 27 ae 41 e4 64 9b 93 4c a4 95 99 1b 78 52 b8 55'));
+    }
+
     public function testFilenameHashLowercase()
     {
         $this->assertEquals('CMD.EXE|0cc175b9c0f1b6a831c399e269772661', AttributeValidationTool::modifyBeforeValidation('filename|md5', 'CMD.EXE|0CC175B9C0F1B6A831C399E269772661'));
