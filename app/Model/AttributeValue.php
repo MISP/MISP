@@ -3,6 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('ValueFieldTranslator', 'Tools');
 App::uses('ValueConditionRewriter', 'Tools');
 App::uses('ValueFacetTool', 'Tools');
+App::uses('RedisTool', 'Tools');
 
 /**
  * The attribute value dictionary: one row per exact byte string, referenced
@@ -34,6 +35,23 @@ class AttributeValue extends AppModel
 
     const TEXT_OF_ID = ['value1_id' => 'value1', 'value2_id' => 'value2'];
 
+    // At most this many words of a search text go to the FULLTEXT index, the longest
+    const SEARCH_WORDS = 4;
+
+    // InnoDB's default stopword list: an index built with it holds none of these words
+    const STOPWORDS = [
+        'a', 'about', 'an', 'are', 'as', 'at', 'be', 'by', 'com', 'de', 'en', 'for', 'from', 'how',
+        'i', 'in', 'is', 'it', 'la', 'of', 'on', 'or', 'that', 'the', 'this', 'to', 'und', 'was',
+        'what', 'when', 'where', 'who', 'will', 'with', 'www',
+    ];
+
+    // Common stopwords: an index holding any of them was built without the list
+    const STOPWORD_PROBE = 'the with from this';
+
+    const STOPWORD_CACHE_KEY = 'misp:attribute_values:search_stopwords';
+
+    const STOPWORD_CACHE_SECONDS = 3600;
+
     public $useTable = 'attribute_values';
 
     public $recursive = -1;
@@ -52,6 +70,12 @@ class AttributeValue extends AppModel
 
     /** @var ValueFacetTool|null */
     private $facets = null;
+
+    /** @var int[]|null [min, max] word length the FULLTEXT index holds */
+    private $tokenSizes = null;
+
+    /** @var bool|null */
+    private $holdsStopwords = null;
 
     /**
      * @param string $value
@@ -259,20 +283,21 @@ class AttributeValue extends AppModel
      */
     public function resolveLike($pattern, $limit)
     {
-        $limit = (int)$limit;
-        if ($limit < 1) {
-            throw new InvalidArgumentException('The match limit must be at least 1.');
-        }
-        $sql = sprintf('%s LIMIT %d', $this->likeSelect($pattern), $limit + 1);
-        $ids = [];
-        foreach ($this->fetchRows($sql) as $row) {
-            $ids[] = (int)$row['id'];
-        }
-        if (count($ids) > $limit) {
-            return ['ids' => [], 'overflow' => true];
-        }
-        sort($ids);
-        return ['ids' => $ids, 'overflow' => false];
+        return $this->limitedIds($this->likeSelect($pattern), $limit);
+    }
+
+    /**
+     * value_search: ids of the values a search text occurs in. On MySQL the
+     * text must start at the beginning of a word, and the FULLTEXT index
+     * narrows the read; on PostgreSQL it may start anywhere.
+     *
+     * @param string $text Taken literally, wildcards included.
+     * @param int $limit More matches than this is an overflow.
+     * @return array As resolveLike().
+     */
+    public function resolveSearch($text, $limit)
+    {
+        return $this->limitedIds($this->searchSelect($text, true), $limit);
     }
 
     /**
@@ -310,20 +335,68 @@ class AttributeValue extends AppModel
     public function cidrCondition(array $ranges, $alias, $not = false, $limit = ValueConditionRewriter::OVERFLOW)
     {
         $found = $this->facets()->overlapping($ranges, $limit);
+        $selects = $found['starts'] === null ? [] : [$found['starts']];
+        return $this->idColumnsCondition($alias, $found['ids'], $selects, $not);
+    }
+
+    /**
+     * A condition on both id columns for the values one of the search texts
+     * occurs in (value_search). Each text is read ahead through the index,
+     * unless the find is bounded or more values match than the limit: the
+     * text is then checked inside the statement, without the index, which
+     * leaves the database free to check only the rows the rest of the find
+     * keeps.
+     *
+     * @param string[] $texts
+     * @param string $alias
+     * @param bool $not
+     * @param bool $bounded The find reads few rows, such as a few events'.
+     * @param int $limit
+     * @return array
+     */
+    public function searchCondition(array $texts, $alias, $not = false, $bounded = false, $limit = ValueConditionRewriter::OVERFLOW)
+    {
+        $ids = [];
+        $selects = [];
+        foreach ($texts as $text) {
+            if (strlen($this->toValueString($text)) > self::MAX_BYTES) {
+                continue;
+            }
+            $found = $bounded ? null : $this->resolveSearch($text, $limit);
+            if ($found !== null && !$found['overflow']) {
+                $ids = array_merge($ids, $found['ids']);
+            } else {
+                $selects[] = $this->searchSelect($text, false);
+            }
+        }
+        $ids = array_values(array_unique($ids));
+        sort($ids);
+        return $this->idColumnsCondition($alias, $ids, $selects, $not);
+    }
+
+    /**
+     * @param string $alias
+     * @param int[] $ids
+     * @param string[] $selects Statements selecting more ids.
+     * @param bool $not
+     * @return array
+     */
+    private function idColumnsCondition($alias, array $ids, array $selects, $not)
+    {
         $db = $this->getDataSource();
         $columns = [];
         foreach (['value1', 'value2'] as $column) {
             $field = $alias . '.' . $column . '_id';
             $columns[$column] = [];
-            if (!empty($found['ids'])) {
-                $columns[$column][] = [$field . ($not ? ' NOT IN' : ' IN') => $found['ids']];
+            if (!empty($ids)) {
+                $columns[$column][] = [$field . ($not ? ' NOT IN' : ' IN') => $ids];
             }
-            if ($found['starts'] !== null) {
+            foreach ($selects as $select) {
                 $columns[$column][] = $db->expression(sprintf(
                     '%s %s (%s)',
                     $db->name($field),
                     $not ? 'NOT IN' : 'IN',
-                    $found['starts']
+                    $select
                 ));
             }
         }
@@ -333,7 +406,7 @@ class AttributeValue extends AppModel
         if (!$not) {
             return ['OR' => array_merge($columns['value1'], $columns['value2'])];
         }
-        // A NULL value2_id stands for the empty string, which is no address
+        // A NULL value2_id stands for the empty string, which is no address and holds no search text
         return ['AND' => array_merge($columns['value1'], [
             ['OR' => [[$alias . '.value2_id' => null], ['AND' => $columns['value2']]]],
         ])];
@@ -1045,6 +1118,161 @@ class AttributeValue extends AppModel
             $this->isMysqlSource() ? 'LIKE' : 'ILIKE',
             $db->value($this->toValueString($pattern), 'string')
         );
+    }
+
+    /**
+     * @param string $sql
+     * @param int $limit
+     * @return array ['ids' => int[], 'overflow' => bool]
+     */
+    private function limitedIds($sql, $limit)
+    {
+        $limit = (int)$limit;
+        if ($limit < 1) {
+            throw new InvalidArgumentException('The match limit must be at least 1.');
+        }
+        $ids = [];
+        foreach ($this->fetchRows(sprintf('%s LIMIT %d', $sql, $limit + 1)) as $row) {
+            $ids[] = (int)$row['id'];
+        }
+        if (count($ids) > $limit) {
+            return ['ids' => [], 'overflow' => true];
+        }
+        sort($ids);
+        return ['ids' => $ids, 'overflow' => false];
+    }
+
+    /**
+     * @param string $text
+     * @param bool $index Narrow the read through the FULLTEXT index (MySQL),
+     *   for a read ahead of the find only: inside a statement it would run the
+     *   whole index search however few rows the find keeps.
+     * @return string
+     */
+    private function searchSelect($text, $index)
+    {
+        $db = $this->getDataSource();
+        $text = $this->toValueString($text);
+        $value = $db->name('value');
+        $like = $db->value('%' . addcslashes($text, '\\%_') . '%', 'string');
+        if (!$this->isMysqlSource()) {
+            $where = [sprintf('%s ILIKE %s', $value, $like)];
+        } else {
+            $where = [];
+            $words = $index ? $this->searchWords($text) : '';
+            if ($words !== '') {
+                $where[] = sprintf('MATCH(%s) AGAINST(%s IN BOOLEAN MODE)', $value, $db->value($words, 'string'));
+            }
+            $where[] = sprintf('%s LIKE %s', $value, $like);
+            // A text that starts with a letter, digit or _ must start a word
+            $boundary = preg_match('/^[\\p{L}\\p{N}_]/u', $text) ? '(^|[^\\p{L}\\p{N}_])' : '';
+            $where[] = sprintf('%s REGEXP %s', $value, $db->value($boundary . preg_quote($text), 'string'));
+        }
+        return sprintf(
+            'SELECT %s FROM %s WHERE %s',
+            $db->name('id'),
+            $this->quotedTable(),
+            implode(' AND ', $where)
+        );
+    }
+
+    /**
+     * The FULLTEXT boolean query for a search text: its longest words, each
+     * required, the last one as a prefix when the text ends inside it. Words
+     * the index may not hold are left to the LIKE and REGEXP check.
+     *
+     * @param string $text
+     * @return string Empty when no word can go to the index.
+     */
+    private function searchWords($text)
+    {
+        if (!preg_match_all('/[\p{L}\p{N}_]+/u', $text, $matches, PREG_OFFSET_CAPTURE)) {
+            return '';
+        }
+        list($min, $max) = $this->fulltextTokenSizes();
+        $last = count($matches[0]) - 1;
+        $terms = [];
+        $stopwords = [];
+        foreach ($matches[0] as $index => $match) {
+            list($word, $offset) = $match;
+            $length = mb_strlen($word);
+            if ($length < $min || $length > $max) {
+                continue;
+            }
+            $term = '+' . $word . ($index === $last && $offset + strlen($word) === strlen($text) ? '*' : '');
+            $terms[$term] = $length;
+            if (in_array(mb_strtolower($word), self::STOPWORDS, true)) {
+                $stopwords[] = $term;
+            }
+        }
+        if (!empty($stopwords) && !$this->searchIndexHoldsStopwords()) {
+            $terms = array_diff_key($terms, array_flip($stopwords));
+        }
+        arsort($terms);
+        return implode(' ', array_slice(array_keys($terms), 0, self::SEARCH_WORDS));
+    }
+
+    /**
+     * @return int[] [min, max] length in characters of a word the FULLTEXT index holds.
+     */
+    protected function fulltextTokenSizes()
+    {
+        if ($this->tokenSizes === null) {
+            $rows = $this->fetchRows('SELECT @@innodb_ft_min_token_size AS min_size, @@innodb_ft_max_token_size AS max_size');
+            $this->tokenSizes = [
+                isset($rows[0]['min_size']) ? (int)$rows[0]['min_size'] : 3,
+                isset($rows[0]['max_size']) ? (int)$rows[0]['max_size'] : 84,
+            ];
+        }
+        return $this->tokenSizes;
+    }
+
+    /**
+     * Whether the FULLTEXT index holds stopwords as words, which it does
+     * only when built without InnoDB's stopword list. Unconfirmed is no:
+     * the search then leaves those words to the slower check.
+     *
+     * @return bool
+     */
+    protected function searchIndexHoldsStopwords()
+    {
+        if ($this->holdsStopwords !== null) {
+            return $this->holdsStopwords;
+        }
+        try {
+            $redis = RedisTool::init();
+            $cached = $redis->get(self::STOPWORD_CACHE_KEY);
+        } catch (Exception $e) {
+            $redis = null;
+            $cached = false;
+        }
+        if ($cached === '1' || $cached === '0') {
+            return $this->holdsStopwords = $cached === '1';
+        }
+        $db = $this->getDataSource();
+        $rows = $this->fetchRows(sprintf(
+            'SELECT 1 AS %s FROM %s WHERE MATCH(%s) AGAINST(%s IN BOOLEAN MODE) LIMIT 1',
+            $db->name('found'),
+            $this->quotedTable(),
+            $db->name('value'),
+            $db->value(self::STOPWORD_PROBE, 'string')
+        ));
+        $this->holdsStopwords = !empty($rows);
+        if (!$this->holdsStopwords) {
+            CakeLog::write('warning', sprintf(
+                'value_search: the FULLTEXT index of %1$s holds none of the words "%2$s". Either no value has them, or the index was built with InnoDB\'s stopword list (a table rebuild in a session with innodb_ft_enable_stopword on does that), and searches leave every stopword to a slower check. To rebuild it without: SET SESSION innodb_ft_enable_stopword = 0; ALTER TABLE %1$s DROP INDEX value_search; ALTER TABLE %1$s ADD FULLTEXT INDEX value_search (value);',
+                $this->useTable,
+                self::STOPWORD_PROBE
+            ));
+        }
+        if ($redis !== null) {
+            try {
+                $redis->setex(self::STOPWORD_CACHE_KEY, self::STOPWORD_CACHE_SECONDS, $this->holdsStopwords ? '1' : '0');
+            } catch (Exception $e) {
+                // An uncached answer is asked again next time
+            }
+        }
+        return $this->holdsStopwords;
     }
 
     /**

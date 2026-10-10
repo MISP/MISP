@@ -249,6 +249,15 @@ class MispObject extends AppModel
                 );
                 $conditions = $this->Event->set_filter_value_cidr($params, $conditions, $options);
             }
+            if (!empty($params['value_search'])) {
+                $options = array(
+                    'filter' => 'value_search',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Object'
+                );
+                $conditions = $this->Event->set_filter_value_search($params, $conditions, $options);
+            }
         }
         return $conditions;
     }

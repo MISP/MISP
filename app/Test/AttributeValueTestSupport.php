@@ -162,6 +162,15 @@ class TestAttributeValue extends AttributeValue
     /** @var string */
     public $collation = 'utf8mb4_uca1400_ai_ci';
 
+    /** @var int[] innodb_ft_min_token_size and innodb_ft_max_token_size */
+    public $ftTokenSizes = [3, 84];
+
+    /** @var bool */
+    public $indexHoldsStopwords = true;
+
+    /** @var int */
+    public $stopwordChecks = 0;
+
     private $fakeDb;
 
     private $fakeDialect;
@@ -216,5 +225,16 @@ class TestAttributeValue extends AttributeValue
     protected function askValueKeys(array $keys)
     {
         $this->askedKeys[] = $keys;
+    }
+
+    protected function fulltextTokenSizes()
+    {
+        return $this->ftTokenSizes;
+    }
+
+    protected function searchIndexHoldsStopwords()
+    {
+        $this->stopwordChecks++;
+        return $this->indexHoldsStopwords;
     }
 }

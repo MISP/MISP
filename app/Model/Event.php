@@ -1717,6 +1717,15 @@ class Event extends AppModel
                 );
                 $conditions = $this->set_filter_value_cidr($params, $conditions, $options);
             }
+            if (!empty($params['value_search'])) {
+                $options = array(
+                    'filter' => 'value_search',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Event'
+                );
+                $conditions = $this->set_filter_value_search($params, $conditions, $options);
+            }
         }
         $find_params = array(
             'conditions' => $conditions,
@@ -6169,6 +6178,60 @@ class Event extends AppModel
         foreach (['OR', 'AND', 'NOT'] as $operand) {
             if (!empty($ranges[$operand])) {
                 $conditions = $this->add_value_filter_subquery($conditions, $operand, $ranges[$operand], $options, $eventIds, $match);
+            }
+        }
+        return $conditions;
+    }
+
+    /**
+     * Attributes whose value1 or value2 holds one of the search texts: from
+     * the start of a word on MySQL, anywhere on PostgreSQL.
+     *
+     * @param array $params
+     * @param array $conditions
+     * @param array $options
+     * @return array
+     * @throws BadRequestException For a term that is not a search text.
+     */
+    public function set_filter_value_search(&$params, $conditions, $options)
+    {
+        if (empty($params['value_search'])) {
+            return $conditions;
+        }
+        $filter = $this->convert_filters($params['value_search']);
+        $texts = [];
+        foreach (['OR', 'AND', 'NOT'] as $operand) {
+            foreach ((array)($filter[$operand] ?? []) as $term) {
+                if (!is_scalar($term) || (string)$term === '' || !mb_check_encoding((string)$term, 'UTF-8')) {
+                    throw new BadRequestException(__(
+                        'Invalid value_search filter: `%s` is not a search text.',
+                        is_scalar($term) ? (string)$term : JsonTool::encode($term)
+                    ));
+                }
+                $texts[$operand][] = (string)$term;
+            }
+        }
+        $AttributeValue = $this->Attribute->loadAttributeValue();
+        $eventIds = $this->eventIdBound($params);
+        $bounded = $eventIds !== null;
+        if ($options['context'] === 'Attribute') {
+            if (!empty($texts['OR'])) {
+                $conditions['AND'][] = $AttributeValue->searchCondition($texts['OR'], 'Attribute', false, $bounded);
+            }
+            foreach ($texts['AND'] ?? [] as $text) {
+                $conditions['AND'][] = $AttributeValue->searchCondition([$text], 'Attribute', false, $bounded);
+            }
+            if (!empty($texts['NOT'])) {
+                $conditions['AND'][] = $AttributeValue->searchCondition($texts['NOT'], 'Attribute', true, $bounded);
+            }
+            return $conditions;
+        }
+        $match = function (array $texts) use ($AttributeValue, $bounded) {
+            return $AttributeValue->searchCondition($texts, 'Attribute', false, $bounded);
+        };
+        foreach (['OR', 'AND', 'NOT'] as $operand) {
+            if (!empty($texts[$operand])) {
+                $conditions = $this->add_value_filter_subquery($conditions, $operand, $texts[$operand], $options, $eventIds, $match);
             }
         }
         return $conditions;

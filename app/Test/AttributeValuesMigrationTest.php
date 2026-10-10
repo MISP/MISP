@@ -11,6 +11,7 @@ require_once APPLIBS . 'Migration/AbstractMigration.php';
 require_once APPLIBS . 'Migration/Migrations/Migration_20261003_092429_create_attribute_values.php';
 require_once APPLIBS . 'Migration/Migrations/Migration_20261004_093106_create_value_ip_ranges.php';
 require_once APPLIBS . 'Migration/Migrations/Migration_20261004_093749_attribute_value_ids.php';
+require_once APPLIBS . 'Migration/Migrations/Migration_20261010_172929_value_search_without_stopwords.php';
 
 use PHPUnit\Framework\TestCase;
 
@@ -160,6 +161,26 @@ class AttributeValuesMigrationTest extends TestCase
                 'idx_attribute_values_value_search',
             )),
         )));
+    }
+
+    public function testTheSearchIndexIsRebuiltWithoutStopwords()
+    {
+        $class = 'Migration_20261010_172929_value_search_without_stopwords';
+        $existing = array('attribute_values' => self::indexes(array('PRIMARY', 'hash', 'value', 'value_search')));
+
+        $this->assertSame(array(
+            'SET SESSION innodb_ft_enable_stopword = 0;',
+            'ALTER TABLE `attribute_values` FORCE;',
+            'SET SESSION innodb_ft_enable_stopword = DEFAULT;',
+        ), $this->render(new MigrationTestMysqlExtended(), '10.11.14-MariaDB', $existing, $class));
+        $this->assertSame(array(
+            'SET SESSION innodb_ft_enable_stopword = 0;',
+            'ALTER TABLE `attribute_values` ADD FULLTEXT INDEX `value_search` (`value`);',
+            'SET SESSION innodb_ft_enable_stopword = DEFAULT;',
+        ), $this->render(new MigrationTestMysqlExtended(), '10.11.14-MariaDB', array(
+            'attribute_values' => self::indexes(array('PRIMARY', 'hash', 'value')),
+        ), $class));
+        $this->assertSame(array(), $this->render(new MigrationTestPostgres(), '', $existing, $class));
     }
 
     /**

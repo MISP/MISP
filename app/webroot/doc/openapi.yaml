@@ -3673,6 +3673,8 @@ components:
           $ref: "#/components/schemas/AttributeValue"
         value_cidr:
           $ref: "#/components/schemas/ValueCidrRestSearchFilter"
+        value_search:
+          $ref: "#/components/schemas/ValueSearchRestSearchFilter"
         value1:
           $ref: "#/components/schemas/AttributeValue"
         value2:
@@ -4299,6 +4301,8 @@ components:
           $ref: "#/components/schemas/AttributeValue"
         value_cidr:
           $ref: "#/components/schemas/ValueCidrRestSearchFilter"
+        value_search:
+          $ref: "#/components/schemas/ValueSearchRestSearchFilter"
         type:
           $ref: "#/components/schemas/AttributeType"
         category:
@@ -6694,6 +6698,36 @@ components:
               items:
                 type: string
 
+    ValueSearchRestSearchFilter:
+      description: |
+        Search inside attribute values: an attribute matches when its value, or either part of a composite value on its own, holds the given text, ignoring case but not accents.
+        On MySQL and MariaDB the text must start at the beginning of a word (a run of letters, digits and underscores), so `google.com` finds `mail.google.com` but not `notgoogle.com`, and `.com` finds every `.com`; a value that holds the text only inside a longer word, such as part of a hash, is not found. On PostgreSQL the text may start anywhere.
+        The text is taken literally: `%` and `_` are not wildcards. Any attribute type matches; combine with `type` to narrow.
+        Words of fewer than 3 or more than 84 characters (the server's FULLTEXT limits) cannot be looked up in the index; a text made only of such words, such as `1.2.3.4`, is answered by a slower scan of every value.
+        Takes a single term, a list (any of them), `&&`-joined terms, `!` for a negation, or `{"OR": [...], "AND": [...], "NOT": [...]}`.
+      nullable: true
+      oneOf:
+        - type: string
+          example: "google.com"
+        - type: array
+          items:
+            type: string
+          example: ["evil-domain.com", "/wp-admin/", "!.example.org"]
+        - type: object
+          properties:
+            OR:
+              type: array
+              items:
+                type: string
+            AND:
+              type: array
+              items:
+                type: string
+            NOT:
+              type: array
+              items:
+                type: string
+
     ToIDSRestSearchFlag:
       nullable: true
       type: boolean
@@ -7808,6 +7842,8 @@ components:
                 $ref: "#/components/schemas/AttributeValue"
               value_cidr:
                 $ref: "#/components/schemas/ValueCidrRestSearchFilter"
+              value_search:
+                $ref: "#/components/schemas/ValueSearchRestSearchFilter"
               type:
                 $ref: "#/components/schemas/AttributeType"
               category:

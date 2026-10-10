@@ -3796,6 +3796,7 @@ class MispAttribute extends AppModel
                     'sharinggroup' => array('function' => 'set_filter_sharing_group'),
                     'value' => array('function' => 'set_filter_value'),
                     'value_cidr' => array('function' => 'set_filter_value_cidr'),
+                    'value_search' => array('function' => 'set_filter_value_search'),
                     'value1' => array('function' => 'set_filter_simple_attribute'),
                     'value2' => array('function' => 'set_filter_simple_attribute'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
@@ -3834,7 +3835,7 @@ class MispAttribute extends AppModel
                 )
             );
             // Read ahead, the filters below consume them
-            $valueFiltered = !empty($params['value']) || !empty($params['value1']) || !empty($params['value2']);
+            $valueFiltered = !empty($params['value']) || !empty($params['value1']) || !empty($params['value2']) || !empty($params['value_search']);
             foreach ($params as $param => $paramData) {
                 foreach ($simple_params as $scope => $simple_param_scoped) {
                     if (isset($simple_param_scoped[$param]) && isset($params[$param]) && $params[$param] !== false) {

@@ -501,6 +501,157 @@ class AttributeValueTest extends TestCase
         $this->assertSame([], $this->mysql->statements);
     }
 
+    public function testResolveSearchNarrowsByWordsAndChecksTheWordStartOnMysql()
+    {
+        $this->mysql->responder = function ($sql) {
+            return [['id' => '8'], ['id' => '3']];
+        };
+        $model = $this->model($this->mysql);
+
+        $this->assertSame(['ids' => [3, 8], 'overflow' => false], $model->resolveSearch('google.com', 2));
+        $this->assertSame(
+            "SELECT `id` FROM `attribute_values` WHERE MATCH(`value`) AGAINST('+google +com*' IN BOOLEAN MODE)" .
+            " AND `value` LIKE '%google.com%' AND `value` REGEXP '(^|[^\p{L}\p{N}_])google\.com' LIMIT 3",
+            $this->mysql->statements[0]
+        );
+        $this->assertSame(['ids' => [], 'overflow' => true], $model->resolveSearch('google.com', 1));
+    }
+
+    public function testATextStartingWithPunctuationNeedsNoWordBoundaryBeforeIt()
+    {
+        $this->model($this->mysql)->resolveSearch('.com/', 50000);
+
+        $this->assertSame(
+            "SELECT `id` FROM `attribute_values` WHERE MATCH(`value`) AGAINST('+com' IN BOOLEAN MODE)" .
+            " AND `value` LIKE '%.com/%' AND `value` REGEXP '\.com/' LIMIT 50001",
+            $this->mysql->statements[0]
+        );
+    }
+
+    public function testOnlyTheLongestWordsTheIndexHoldsAreSearched()
+    {
+        $model = $this->model($this->mysql);
+        $hash = str_repeat('ab', 64);
+
+        $model->resolveSearch('http://www.ab.example-site.com/wp/x_y.php?q=1', 10);
+        $model->resolveSearch($hash . ' evil', 10);
+        $model->resolveSearch('évil', 10);
+        $model->ftTokenSizes = [1, 84];
+        $model->resolveSearch('1.2.3.4', 10);
+
+        $this->assertStringContainsString("AGAINST('+example +http +site +www' IN BOOLEAN MODE)", $this->mysql->statements[0]);
+        $this->assertStringContainsString("AGAINST('+evil*' IN BOOLEAN MODE)", $this->mysql->statements[1]);
+        $this->assertStringContainsString("AGAINST('+évil*' IN BOOLEAN MODE)", $this->mysql->statements[2]);
+        $this->assertStringContainsString("AGAINST('+1 +2 +3 +4*' IN BOOLEAN MODE)", $this->mysql->statements[3]);
+        // Only the URL holds stopwords (www, com)
+        $this->assertSame(1, $model->stopwordChecks);
+    }
+
+    public function testWithoutAnIndexableWordTheDictionaryIsScanned()
+    {
+        $this->model($this->mysql)->resolveSearch('.ru', 10);
+
+        $this->assertSame(
+            "SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%.ru%' AND `value` REGEXP '\.ru' LIMIT 11",
+            $this->mysql->statements[0]
+        );
+    }
+
+    public function testAStopwordTheIndexMayLackIsLeftToTheCheck()
+    {
+        $model = $this->model($this->mysql);
+        $model->indexHoldsStopwords = false;
+
+        $model->resolveSearch('google.com', 10);
+        $model->resolveSearch('.com', 10);
+
+        $this->assertStringContainsString("AGAINST('+google' IN BOOLEAN MODE) AND `value` LIKE '%google.com%'", $this->mysql->statements[0]);
+        $this->assertStringStartsWith("SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%.com%'", $this->mysql->statements[1]);
+        $this->assertSame(2, $model->stopwordChecks);
+
+        $model->indexHoldsStopwords = true;
+        $model->resolveSearch('.com', 10);
+        $this->assertStringContainsString("AGAINST('+com*' IN BOOLEAN MODE)", $this->mysql->statements[2]);
+    }
+
+    public function testTheSearchTextIsLiteral()
+    {
+        $this->model($this->mysql)->resolveSearch("50%_off\\x's", 10);
+        $this->model($this->pgsql)->resolveSearch("50%_off\\x's", 10);
+
+        $this->assertSame(
+            "SELECT `id` FROM `attribute_values` WHERE MATCH(`value`) AGAINST('+_off' IN BOOLEAN MODE)" .
+            " AND `value` LIKE '%50\%\_off\\\\x''s%' AND `value` REGEXP '(^|[^\p{L}\p{N}_])50%_off\\\\x''s' LIMIT 11",
+            $this->mysql->statements[0]
+        );
+        $this->assertSame(
+            "SELECT \"id\" FROM \"attribute_values\" WHERE \"value\" ILIKE '%50\%\_off\\\\x''s%' LIMIT 11",
+            $this->pgsql->statements[0]
+        );
+    }
+
+    public function testSearchConditionReadsAheadOrInsideTheStatement()
+    {
+        $this->mysql->responder = function ($sql) {
+            if (strpos($sql, 'evil') !== false) {
+                return [['id' => '9'], ['id' => '4']];
+            }
+            return array_fill(0, 3, ['id' => '1']);
+        };
+        $model = $this->model($this->mysql);
+
+        $condition = $model->searchCondition(['evil', 'broad'], 'Attribute', false, false, 2);
+
+        $this->assertCount(2, $this->mysql->statements);
+        $this->assertSame(['Attribute.value1_id IN' => [4, 9]], $condition['OR'][0]);
+        // Inside the statement without the index, as a bounded find
+        $this->assertSame(
+            "`Attribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%broad%'" .
+            " AND `value` REGEXP '(^|[^\p{L}\p{N}_])broad')",
+            $condition['OR'][1]->value
+        );
+        $this->assertSame(['Attribute.value2_id IN' => [4, 9]], $condition['OR'][2]);
+        $this->assertStringStartsWith('`Attribute`.`value2_id` IN (SELECT', $condition['OR'][3]->value);
+
+        $not = $model->searchCondition(['evil'], 'ShadowAttribute', true, false, 2);
+        $this->assertSame(['AND' => [
+            ['ShadowAttribute.value1_id NOT IN' => [4, 9]],
+            ['OR' => [['ShadowAttribute.value2_id' => null], ['AND' => [['ShadowAttribute.value2_id NOT IN' => [4, 9]]]]]],
+        ]], $not);
+    }
+
+    public function testABoundedSearchChecksEachRowWithoutTheIndex()
+    {
+        $condition = $this->model($this->mysql)->searchCondition(['google.com'], 'Attribute', false, true);
+        $pgsql = $this->model($this->pgsql)->searchCondition(['google.com'], 'Attribute', true, true);
+
+        $this->assertSame([], $this->mysql->statements);
+        $this->assertSame(
+            "`Attribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%google.com%'" .
+            " AND `value` REGEXP '(^|[^\p{L}\p{N}_])google\.com')",
+            $condition['OR'][0]->value
+        );
+        $this->assertSame(
+            "\"Attribute\".\"value1_id\" NOT IN (SELECT \"id\" FROM \"attribute_values\" WHERE \"value\" ILIKE '%google.com%')",
+            $pgsql['AND'][0]->value
+        );
+    }
+
+    public function testASearchNothingMatchesIsFalseAndItsNegationTrue()
+    {
+        $model = $this->model($this->mysql);
+
+        $this->assertSame([ValueConditionRewriter::SQL_FALSE], $model->searchCondition(['absent'], 'Attribute'));
+        $this->assertSame([ValueConditionRewriter::SQL_TRUE], $model->searchCondition(['absent'], 'Attribute', true));
+        $this->assertCount(2, $this->mysql->statements);
+
+        $this->assertSame(
+            [ValueConditionRewriter::SQL_FALSE],
+            $model->searchCondition([str_repeat('a', AttributeValue::MAX_BYTES + 1)], 'Attribute')
+        );
+        $this->assertCount(2, $this->mysql->statements);
+    }
+
     public function testMatchesEmptyDecidesLettersDigitsAndWildcardsWithoutTheDatabase()
     {
         foreach ([$this->mysql, $this->pgsql] as $db) {
