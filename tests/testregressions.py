@@ -496,8 +496,7 @@ class ObjectSearchAcl(unittest.TestCase):
         warnings.simplefilter("ignore", ResourceWarning)
         cls.admin = PyMISP(url, key)
         cls.admin.global_pythonify = True
-        probe = cls.admin._prepare_request('POST', 'events/viewObjects/0', data={})
-        if probe.status_code == 403:
+        if not cls.admin.get_server_setting('MISP.enable_themes')['value']:
             raise unittest.SkipTest('events/viewObjects needs MISP.enable_themes')
         cls.role_id = least_privileged_role(cls.admin, 'perm_add')
         cls.owner_org = make_org(cls.admin, 'regression object search owner org')
