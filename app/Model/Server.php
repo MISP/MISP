@@ -3549,6 +3549,14 @@ class Server extends AppModel
         $schemaDiagnostic['migrations_pending_ids'] = $pendingMigrations;
         $schemaDiagnostic['migrations_failed'] = count($failedMigrations);
         $schemaDiagnostic['migrations_failed_ids'] = $failedMigrations;
+        // Deferred ones are pending too, waiting for what their reason names.
+        $ledger = $migrationManager->ledger();
+        $deferredReasons = array();
+        foreach ($migrationManager->deferred() as $id) {
+            $deferredReasons[$id] = (string)$ledger[$id]['error'];
+        }
+        $schemaDiagnostic['migrations_deferred'] = count($deferredReasons);
+        $schemaDiagnostic['migrations_deferred_reasons'] = $deferredReasons;
         $schemaDiagnostic['migrations_applied'] = count($migrationManager->applied());
         if ($this->isMysql()) {
             $dbActualSchema = $this->getActualDBSchema();

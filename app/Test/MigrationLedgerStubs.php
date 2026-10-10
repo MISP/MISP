@@ -19,6 +19,7 @@
  */
 
 require_once __DIR__ . '/MigrationSchemaStubs.php';
+require_once APPLIBS . 'Migration/MigrationDeferredException.php';
 require_once APPLIBS . 'Migration/AbstractMigration.php';
 require_once APPLIBS . 'Migration/MigrationManager.php';
 
@@ -111,13 +112,17 @@ if (!class_exists('Migration_20260107_000000_data_on_both_sides', false)) {
         /** @var array The parts called, in order. */
         public static $calls = array();
 
-        /** @var bool|Exception What beforeUp() answers, or throws. */
+        /** @var bool|Exception|string What beforeUp() answers, or throws, or defers with ('defer: reason'). */
         public static $beforeUpOutcome = true;
 
-        public static function reset($beforeUpOutcome = true)
+        /** @var string|null A reason afterUp() defers with. */
+        public static $afterUpDefers = null;
+
+        public static function reset($beforeUpOutcome = true, $afterUpDefers = null)
         {
             self::$calls = array();
             self::$beforeUpOutcome = $beforeUpOutcome;
+            self::$afterUpDefers = $afterUpDefers;
         }
 
         public function beforeUp()
@@ -125,6 +130,9 @@ if (!class_exists('Migration_20260107_000000_data_on_both_sides', false)) {
             self::$calls[] = 'beforeUp';
             if (self::$beforeUpOutcome instanceof Exception) {
                 throw self::$beforeUpOutcome;
+            }
+            if (is_string(self::$beforeUpOutcome)) {
+                $this->defer(substr(self::$beforeUpOutcome, strlen('defer: ')));
             }
             return self::$beforeUpOutcome;
         }
@@ -137,6 +145,9 @@ if (!class_exists('Migration_20260107_000000_data_on_both_sides', false)) {
         public function afterUp()
         {
             self::$calls[] = 'afterUp';
+            if (self::$afterUpDefers !== null) {
+                $this->defer(self::$afterUpDefers);
+            }
             return true;
         }
     }
@@ -162,6 +173,9 @@ if (!class_exists('TestMigrationManager', false)) {
 
         /** @var array Ids scripted to fail when executed. */
         public $failing = array();
+
+        /** @var array Ids scripted to defer when executed. */
+        public $deferring = array();
 
         /** @var array Ids execute() was actually called for, in order. */
         public $executed = array();
@@ -222,6 +236,10 @@ if (!class_exists('TestMigrationManager', false)) {
             if (in_array($id, $this->failing, true)) {
                 // Reported the way the real execute() reports it.
                 $this->lastError = 'scripted failure of ' . $id;
+                return false;
+            }
+            if (in_array($id, $this->deferring, true)) {
+                $this->deferredReason = 'scripted deferral of ' . $id;
                 return false;
             }
             return true;

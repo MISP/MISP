@@ -98,6 +98,10 @@ difference that nothing has been issued yet, so a failure there leaves the
 schema exactly as it was. Anything that can wait until the DDL has landed
 belongs in `afterUp()`.
 
+A precondition only an administrator can meet — a backfill to run first, say —
+is not a failure. `beforeUp()` calls `$this->defer($reason)` for it, and the
+reason says what to run (§7).
+
 `requiresLogout` carries the meaning the old `DB_CHANGES` value had. Set it if
 the change touches a table the session data is built from.
 
@@ -244,6 +248,16 @@ the next run rather than sitting out the lock's TTL. But `update_fail_number`
 accumulates and no later success resets it, so a migration that keeps failing
 will lock the instance out after four attempts through the existing backstop.
 
+**A deferral halts the run without failing.** `defer()` from `beforeUp()` records
+the migration as `deferred`, with its reason in `error`; it and everything after
+it stay pending, and `update_fail_number` is left alone, so waiting never locks
+the instance. Admin requests start a run each, and the check behind a deferral
+may be costly, so automatic runs leave a deferred migration alone for an hour
+(`MigrationManager::DEFERRAL_RETRY_SECONDS`). `Console/cake Admin runUpdates` run
+by hand and `migrationApply` try it again at once, which is what the reason
+should tell the administrator to do once they have met it. Only `beforeUp()` may
+defer: from `up()` or `afterUp()` it is a failure, since work has run by then.
+
 **A migration is not transactional.** MySQL DDL commits implicitly, so a
 migration whose third statement fails leaves the first two applied and the ledger
 row marked failed. Write migrations that can be re-run. For DDL, `up()` can ask
@@ -315,8 +329,9 @@ It is regenerated before a release; §10 applies.
 
 `schema_migrations`, one row per migration: `id` (the auto-increment integer
 every table keys on), `migration_id` (the migration's id, unique — what every
-read and write goes by), `applied_at`, `duration_ms`, `status` (`applied` /
-`failed`), `error`.
+read and write goes by), `applied_at` (the last attempt, for a migration not
+applied), `duration_ms`, `status` (`applied` / `failed` / `deferred`), `error`
+(for `deferred`, the reason).
 
 It is created on first write, not by a migration — a migration system whose
 ledger is a migration has nowhere to record that it ran. For the same reason it
@@ -470,6 +485,8 @@ curl -s -H "Authorization: $AUTHKEY" -H "Accept: application/json" \
 | `migrations_pending_ids` | list | The ids, in the order the next run applies them. Put them in the alert body: "which boxes are missing `M20260901_120000_x`" is answerable, "which boxes are below 159" no longer is. |
 | `migrations_failed` | int | `> 0` — the ledger records a failure. **New signal**: the old scheme could not express it, because a later success used to advance `db_version` past the failure and reset the counter. Escalate on it. |
 | `migrations_failed_ids` | list | The failed ids. A failed migration is still pending — it is retried first on the next run — so each one is in both lists. |
+| `migrations_deferred` | int | A migration is waiting for something an administrator has to do first; not a failure. Notify rather than page. |
+| `migrations_deferred_reasons` | object | Deferred id => the reason, which names what to run. Each deferred id is also pending. |
 | `migrations_applied` | int | Drift between peers on the same release: two instances on the same code should agree. |
 | `update_locked`, `remaining_lock_time`, `update_fail_number_reached` | as before | Unchanged, still meaningful. |
 

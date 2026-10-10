@@ -18,12 +18,10 @@ class Migration_20261010_103316_drop_attribute_value_text extends AbstractMigrat
     const TEXT = ['value1', 'value2'];
 
     /**
-     * The text goes for good, so this refuses until every row's ids give back
-     * its text and every correlation is keyed by value group. A refusal counts
-     * as a failed update, and runUpdates resets that count.
+     * The text goes for good, so this defers until every row's ids give back
+     * its text and every correlation is keyed by value group.
      *
      * @return bool
-     * @throws RuntimeException With the command that puts it right.
      */
     public function beforeUp()
     {
@@ -36,14 +34,14 @@ class Migration_20261010_103316_drop_attribute_value_text extends AbstractMigrat
             }
             $counts = $backfill->verify($table);
             if ($counts['pending'] > 0) {
-                throw new RuntimeException(sprintf(
+                $this->defer(sprintf(
                     '%d rows of %s have no value ids yet: run `cake AttributeValue backfill`, then `cake Admin runUpdates`.',
                     $counts['pending'],
                     $table
                 ));
             }
             if ($counts['mismatched'] > 0) {
-                throw new RuntimeException(sprintf(
+                $this->defer(sprintf(
                     '%d rows of %s have value ids that do not give back their text (first id %d): set their value1_id and value2_id to NULL, run `cake AttributeValue backfill`, then `cake Admin runUpdates`.',
                     $counts['mismatched'],
                     $table,
@@ -52,7 +50,7 @@ class Migration_20261010_103316_drop_attribute_value_text extends AbstractMigrat
             }
         }
         if (!(new CorrelationRemapTool($AttributeValue))->done()) {
-            throw new RuntimeException('Some correlations are still keyed by correlation_values: run `cake AttributeValue remapCorrelations`, then `cake Admin runUpdates`.');
+            $this->defer('Some correlations are still keyed by correlation_values: run `cake AttributeValue remapCorrelations`, then `cake Admin runUpdates`.');
         }
         if ($inspector->hasColumn('over_correlating_values', 'value')) {
             $OverCorrelatingValue = ClassRegistry::init('OverCorrelatingValue');

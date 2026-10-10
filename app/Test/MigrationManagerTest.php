@@ -257,6 +257,71 @@ class MigrationManagerTest extends TestCase
         $this->assertSame('the rows could not be merged', $row['error']);
     }
 
+    public function testADeferringBeforeUpLeavesTheMigrationPendingButNotFailed()
+    {
+        Migration_20260107_000000_data_on_both_sides::reset('defer: run the backfill first');
+        $manager = $this->executing();
+
+        $this->assertFalse($manager->apply('20260107_000000_data_on_both_sides'));
+        $this->assertSame(array('beforeUp'), Migration_20260107_000000_data_on_both_sides::$calls);
+        $this->assertSame(MigrationManager::STATUS_DEFERRED, $manager->lastStatus());
+        $this->assertSame('run the backfill first', $manager->lastError());
+
+        $row = $manager->ledger();
+        $row = $row['20260107_000000_data_on_both_sides'];
+        $this->assertSame(MigrationManager::STATUS_DEFERRED, $row['status']);
+        $this->assertSame('run the backfill first', $row['error']);
+        $this->assertSame(array('20260107_000000_data_on_both_sides'), $manager->deferred());
+        $this->assertSame(array(), $manager->failed());
+        $this->assertSame(array('20260107_000000_data_on_both_sides'), array_keys($manager->pending()));
+    }
+
+    /**
+     * After beforeUp() the DDL may have landed, so "not yet" is no longer true.
+     */
+    public function testADeferralOutOfAfterUpIsAFailure()
+    {
+        Migration_20260107_000000_data_on_both_sides::reset(true, 'too late');
+        $manager = $this->executing();
+
+        $this->assertFalse($manager->apply('20260107_000000_data_on_both_sides'));
+        $this->assertSame(MigrationManager::STATUS_FAILED, $manager->lastStatus());
+        $this->assertSame(array('20260107_000000_data_on_both_sides'), $manager->failed());
+        $this->assertSame(array(), $manager->deferred());
+    }
+
+    public function testARetrySucceedingClearsTheDeferredRow()
+    {
+        $id = '20260107_000000_data_on_both_sides';
+        Migration_20260107_000000_data_on_both_sides::reset('defer: not yet');
+        $manager = $this->executing();
+        $manager->apply($id);
+
+        Migration_20260107_000000_data_on_both_sides::reset();
+        $this->assertTrue($manager->apply($id));
+
+        $this->assertSame(MigrationManager::STATUS_APPLIED, $manager->lastStatus());
+        $this->assertSame(array(), $manager->deferred());
+        $this->assertSame(array(), $manager->pending());
+    }
+
+    public function testAutomaticRunsWaitBeforeRetryingADeferral()
+    {
+        $id = '20260104_000000_unrelated';
+        $deferred = TestMigrationManager::row($id, MigrationManager::STATUS_DEFERRED);
+        $at = strtotime($deferred['applied_at']);
+        $manager = $this->manager(array($id => $deferred));
+
+        $this->assertTrue($manager->waiting($id, $at));
+        $this->assertTrue($manager->waiting($id, $at + MigrationManager::DEFERRAL_RETRY_SECONDS - 1));
+        $this->assertFalse($manager->waiting($id, $at + MigrationManager::DEFERRAL_RETRY_SECONDS));
+        foreach (array(MigrationManager::STATUS_FAILED, MigrationManager::STATUS_APPLIED) as $status) {
+            $other = $this->manager(array($id => TestMigrationManager::row($id, $status)));
+            $this->assertFalse($other->waiting($id, $at), $status);
+        }
+        $this->assertFalse($this->manager()->waiting($id, $at));
+    }
+
     // ------------------------------------------------------------- rendering
 
     public function testUpIsRenderedThroughTheGrammarWithoutExecutingAnything()
