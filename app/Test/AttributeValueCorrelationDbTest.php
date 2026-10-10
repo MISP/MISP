@@ -225,6 +225,8 @@ class AttributeValueCorrelationDbTest extends TestCase
         $correlation = new Correlation();
         $correlation->Attribute;
         $this->hideTextColumns();
+        // The exclusions load once per process, outside the per-call counts
+        $correlation->isExcludedValue('');
         return $correlation;
     }
 

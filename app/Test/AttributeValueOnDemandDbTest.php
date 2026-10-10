@@ -202,6 +202,8 @@ class AttributeValueOnDemandDbTest extends TestCase
             't_head' => ['target', 'text', "$t-head-q"],
             's_tail_control' => ['source', 'text', "$t-tail-q"],
             't_tail_control' => ['target', 'text', "$t-tail-q"],
+            's_exact' => ['source', 'text', "$t-exact-q"],
+            't_exact' => ['target', 'text', "$t-exact-q"],
             's_many' => ['source', 'text', "$t-many"],
             't_many' => ['target', 'text', "$t-many"],
             't_many_other' => ['target', 'other', "$t-many"],
@@ -254,7 +256,8 @@ class AttributeValueOnDemandDbTest extends TestCase
             $this->ids['s_empty'],
             $this->ids['t_empty']
         ));
-        foreach (["%$t-tail", "$t-head%"] as $exclusion) {
+        // In another case than the values: exclusions fold case
+        foreach (['%' . strtoupper("$t-tail"), strtoupper("$t-head") . '%', strtoupper("$t-exact-q")] as $exclusion) {
             $this->exec(sprintf(
                 "INSERT INTO correlation_exclusions (value, comment) VALUES ('%s', '%s')",
                 $exclusion,
@@ -289,7 +292,7 @@ class AttributeValueOnDemandDbTest extends TestCase
 
     /**
      * The source event's correlations as a site admin, from a fresh engine
-     * (it reads the exclusions when it is set up).
+     * (it reads the exclusions once).
      *
      * @return array "source -> target: value", for the fixture's targets
      */
@@ -300,6 +303,8 @@ class AttributeValueOnDemandDbTest extends TestCase
         $correlation->Attribute;
         $this->hideTextColumns();
         $behavior = $correlation->Behaviors->OnDemandCorrelation;
+        // Cake set it up with the model registered as Correlation, whose exclusions an earlier test read
+        $behavior->setup($correlation, ['deadlockAvoidance' => false]);
         $cache = new ReflectionProperty($behavior, 'correlationCache');
         $cache->setAccessible(true);
         $cache->setValue($behavior, []);

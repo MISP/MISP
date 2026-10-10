@@ -3,7 +3,8 @@
  * The Default and NoAcl correlation tables key a correlation by its value's
  * group in the dictionary (the lowest id of its case variants). A related
  * attribute shows the value as that attribute holds it, in full; exact
- * exclusions and over-correlating values hide their whole group; purging an
+ * exclusions and over-correlating values hide their whole group; a save
+ * leaves out every spelling an exclusion matches; purging an
  * exclusion removes what the exclusion matches; the remap moves 2.x rows from
  * correlation_values to their groups. The tests create their own events, hide
  * the text columns from every attribute model and point the stored text away
@@ -230,30 +231,65 @@ class AttributeValueCorrelationGroupDbTest extends TestCase
             's_qpq' => ['source', 'text', "q$t-pq"],
         ];
         foreach ($specs as $name => list($event, $type, $value)) {
-            foreach (explode('|', $value) as $part) {
-                if (stripos($part, $t) !== false) {
-                    $this->newValues[] = $part;
-                }
-            }
-            $this->attribute->create();
-            $saved = $this->attribute->save(['Attribute' => [
-                'event_id' => $this->events[$event],
-                'category' => $this->attribute->typeDefinitions[$type]['default_category'],
-                'type' => $type,
-                'value' => $value,
-                'distribution' => 5,
-                'to_ids' => 0,
-                'disable_correlation' => 1,
-            ]]);
-            $this->assertNotFalse($saved, $name . ': ' . json_encode($this->attribute->validationErrors));
-            $this->ids[$name] = (int)$this->attribute->id;
-            $parts = explode('|', $value, 2);
-            $this->values[$name] = [$type, $parts[0], isset($parts[1]) ? $parts[1] : ''];
+            $this->addAttribute($name, $event, $type, $value);
         }
-        $ids = implode(', ', $this->ids);
+        $this->enable($this->ids);
+    }
+
+    /**
+     * Saves an attribute with correlation disabled, so that nothing
+     * correlates before a test asks for it.
+     */
+    private function addAttribute($name, $event, $type, $value)
+    {
+        foreach (explode('|', $value) as $part) {
+            if (stripos($part, $this->token) !== false) {
+                $this->newValues[] = $part;
+            }
+        }
+        $this->attribute->create();
+        $saved = $this->attribute->save(['Attribute' => [
+            'event_id' => $this->events[$event],
+            'category' => $this->attribute->typeDefinitions[$type]['default_category'],
+            'type' => $type,
+            'value' => $value,
+            'distribution' => 5,
+            'to_ids' => 0,
+            'disable_correlation' => 1,
+        ]]);
+        $this->assertNotFalse($saved, $name . ': ' . json_encode($this->attribute->validationErrors));
+        $this->ids[$name] = (int)$this->attribute->id;
+        $parts = explode('|', $value, 2);
+        $this->values[$name] = [$type, $parts[0], isset($parts[1]) ? $parts[1] : ''];
+    }
+
+    /**
+     * Turns correlation on and points the stored text away from the
+     * dictionary.
+     *
+     * @param int[] $ids
+     */
+    private function enable(array $ids)
+    {
+        $t = $this->token;
+        $ids = implode(', ', $ids);
         $this->exec("UPDATE attributes SET disable_correlation = 0 WHERE id IN ($ids)");
         AttributeValueTextSupport::diverge($this->db, 'attributes', "UPDATE attributes SET value1 = 'column-$t', value2 = IF(value2 = '', '', 'column-$t') WHERE id IN ($ids)");
         $this->hideTextColumns();
+    }
+
+    /**
+     * @param string[] $values
+     */
+    private function exclude(array $values)
+    {
+        foreach ($values as $value) {
+            $this->exec(sprintf(
+                "INSERT INTO correlation_exclusions (value, comment) VALUES (_utf8mb4 X'%s', '%s')",
+                bin2hex($value),
+                $this->token
+            ));
+        }
     }
 
     private function attributeModels()
@@ -305,16 +341,20 @@ class AttributeValueCorrelationGroupDbTest extends TestCase
     private function correlate(Correlation $correlation)
     {
         foreach ($this->ids as $name => $id) {
-            if ($name[0] !== 's') {
-                continue;
+            if ($name[0] === 's') {
+                $this->correlateOne($correlation, $name);
             }
-            $row = $this->exec(sprintf(
-                'SELECT id, event_id, object_id, type, distribution, sharing_group_id, disable_correlation FROM attributes WHERE id = %d',
-                $id
-            ))[0];
-            list(, $value1, $value2) = $this->values[$name];
-            $this->assertNotFalse($correlation->afterSaveCorrelation($row + ['value1' => $value1, 'value2' => $value2]));
         }
+    }
+
+    private function correlateOne(Correlation $correlation, $name)
+    {
+        $row = $this->exec(sprintf(
+            'SELECT id, event_id, object_id, type, distribution, sharing_group_id, disable_correlation FROM attributes WHERE id = %d',
+            $this->ids[$name]
+        ))[0];
+        list(, $value1, $value2) = $this->values[$name];
+        $this->assertNotFalse($correlation->afterSaveCorrelation($row + ['value1' => $value1, 'value2' => $value2]));
     }
 
     /**
@@ -425,19 +465,62 @@ class AttributeValueCorrelationGroupDbTest extends TestCase
     public function testExactExclusionsAndBlockedValuesHideTheirGroup()
     {
         $t = $this->token;
-        foreach (['"' . strtoupper("$t-excluded") . '"', "\"$t-wild%\""] as $exclusion) {
-            $this->exec(sprintf("INSERT INTO correlation_exclusions (value, comment) VALUES (%s, '%s')", str_replace('"', "'", $exclusion), $t));
-        }
+        // Rows stored before the exclusions existed
         foreach (array_keys(self::ENGINES) as $engine) {
-            $correlation = $this->engine($engine);
-            $this->correlate($correlation);
-            ClassRegistry::init('OverCorrelatingValue')->block(strtoupper("$t-blocked"));
+            $this->correlate($this->engine($engine));
+        }
+        $this->exclude([strtoupper("$t-excluded"), "$t-wild%"]);
+        ClassRegistry::init('OverCorrelatingValue')->block(strtoupper("$t-blocked"));
+        foreach (array_keys(self::ENGINES) as $engine) {
             $related = $this->related($this->engine($engine), 'source');
             $this->assertContains("s_mixed -> t_mixed: $t-mixed", $related);
             $this->assertNotContains("s_excluded -> t_excluded: $t-excluded", $related, "$engine: an exact exclusion in another case");
             $this->assertContains("s_wild -> t_wild: $t-wild-x", $related, "$engine: a wildcard exclusion is left to the save-time check and the purge");
             $this->assertNotContains("s_blocked -> t_blocked: $t-blocked", $related, "$engine: blocked under another spelling");
         }
+    }
+
+    public function testASaveLeavesOutEverySpellingAnExclusionMatches()
+    {
+        $t = $this->token;
+        $this->exclude([strtoupper("$t-excluded"), strtoupper("$t-wild") . '%']);
+        $late = ['Default' => "$t-éxcluded", 'NoAcl' => "$t-exclüded"];
+        foreach (self::ENGINES as $engine => $table) {
+            $correlation = $this->engine($engine);
+            $this->correlate($correlation);
+            $this->assertSame([$this->groupOf("$t-mixed")], $this->valueIds($table, 's_mixed', 't_mixed'));
+            $this->assertSame([], $this->valueIds($table, 's_excluded', 't_excluded'), "$engine: an exact exclusion in another case");
+            $this->assertSame([], $this->valueIds($table, 's_wild', 't_wild'), "$engine: a wildcard exclusion in another case");
+            // Stored after this engine read the exclusions: only its group tells
+            $this->addAttribute("s_late_$engine", 'source', 'text', $late[$engine]);
+            $this->enable([$this->ids["s_late_$engine"]]);
+            $this->correlateOne($correlation, "s_late_$engine");
+            $this->assertSame([], $this->valueIds($table, "s_late_$engine", 't_excluded'), "$engine: a spelling stored after the exclusions were read");
+        }
+
+        $correlation = $this->engine('Default');
+        $this->db->fullDebug = true;
+        $this->db->getLog(false, true);
+        $attributes = [
+            'case' => ['type' => 'text', 'value' => "$t-excluded"],
+            'accent' => ['type' => 'text', 'value' => $late['NoAcl']],
+            'wild' => ['type' => 'text', 'value' => "$t-wild-y"],
+            'wild_upper' => ['type' => 'text', 'value' => strtoupper("$t-wild-z")],
+            'value2' => ['type' => 'regkey|value', 'value' => "HKLM\\x|$t-excluded"],
+            'other' => ['type' => 'text', 'value' => "$t-mixed"],
+            'wild_accent' => ['type' => 'text', 'value' => "$t-wíld-y"],
+        ];
+        $flagged = [];
+        foreach ($correlation->attachCorrelationExclusion(array_map(function ($a) {
+            return $a + ['disable_correlation' => false];
+        }, $attributes)) as $name => $attribute) {
+            if (!empty($attribute['correlation_exclusion'])) {
+                $flagged[] = $name;
+            }
+        }
+        $this->assertSame(['case', 'accent', 'wild', 'wild_upper', 'value2'], $flagged, 'a wildcard folds case, not accents');
+        $reads = preg_grep('/correlation_exclusions/', array_column($this->db->getLog(false, false)['log'], 'query'));
+        $this->assertCount(1, $reads, 'the exclusions load once');
     }
 
     public function testAPurgeRemovesWhatTheExclusionMatches()

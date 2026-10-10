@@ -50,12 +50,6 @@ class OnDemandCorrelationBehavior extends ModelBehavior
 
     private $correlatingTypes = [];
     private $value2CorrelatingTypes = [];
-    private $correlationExclusions = [
-        'substringMatch' => [],
-        'startsWithMatch' => [],
-        'endsWithMatch' => [],
-        'fullMatch' => []
-    ];
 
     private $_nonCorrelatingEvents = [];
 
@@ -80,22 +74,6 @@ class OnDemandCorrelationBehavior extends ModelBehavior
         $this->deadlockAvoidance = $settings['deadlockAvoidance'];
         $this->correlatingTypes = array_diff(array_keys($this->Correlation->Attribute->generateTypeDefinitions()), $this->Correlation->Attribute::NON_CORRELATING_TYPES);
         $this->value2CorrelatingTypes = array_diff($this->correlatingTypes, $this->Correlation->Attribute::PRIMARY_ONLY_CORRELATING_TYPES);
-        $CorrelationExclusion = ClassRegistry::init('CorrelationExclusion');
-        $temp = $CorrelationExclusion->find('column', [
-            'recursive' => -1,
-            'fields' => ['value']
-        ]);
-        foreach ($temp as $exclusion) {
-            if ($exclusion[0] === '%' && $exclusion[-1] === '%') {
-                $this->correlationExclusions['substringMatch'][] = trim($exclusion, '%');
-            } else if ($exclusion[0] === '%') {
-                $this->correlationExclusions['endsWithMatch'][] = trim($exclusion, '%');
-            } else if ($exclusion[-1] === '%') {
-                $this->correlationExclusions['startsWithMatch'][] = trim($exclusion, '%');
-            } else {
-                $this->correlationExclusions['fullMatch'][] = $exclusion;
-            }
-        }
     }
 
     public function getTableName(Model $Model)
@@ -123,29 +101,6 @@ class OnDemandCorrelationBehavior extends ModelBehavior
     public function runBeforeSaveCorrelation(Model $Model, $attribute)
     {
         return true;
-    }
-
-    // return true if there's a hit for an exclusion
-    private function checkForExclusion($value)
-    {   
-        if (in_array($value, $this->correlationExclusions['fullMatch'])) {
-            return true;
-        }
-        foreach ($this->correlationExclusions['substringMatch'] as $pattern) {
-            if (str_contains($value, $pattern)) {
-                return true;
-            }
-        }
-        foreach ($this->correlationExclusions['startsWithMatch'] as $pattern) {
-            if (str_starts_with($value, $pattern)) {
-                return true;
-            }
-        }
-        foreach ($this->correlationExclusions['endsWithMatch'] as $pattern) {
-            if (str_ends_with($value, $pattern)) {
-                return true;
-            }
-        }
     }
 
     public function getContainRules(Model $Model, $filter = null)
@@ -227,7 +182,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
                 $corrValueCounts[$row['value_id']] > $max_value_correlation ||
                 !isset($correlatingEvents[$row['event_id']]) ||
                 !$this->Correlation->CorrelationRule->checkEventIds($eventId, $row['event_id']) ||
-                $this->checkForExclusion($row['value'])
+                $this->Correlation->isExcludedValue($row['value'])
             ) {
                 continue;
             }

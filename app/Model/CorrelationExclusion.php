@@ -5,8 +5,6 @@ class CorrelationExclusion extends AppModel
 {
     public $recursive = -1;
 
-    public $key = 'misp:correlation_exclusions';
-
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -25,11 +23,6 @@ class CorrelationExclusion extends AppModel
         ]
     ];
 
-    public function afterSave($created, $options = array())
-    {
-        $this->cacheValues();
-    }
-
     public function beforeDelete($cascade = true)
     {
         $exclusion = $this->find('first', [
@@ -42,25 +35,6 @@ class CorrelationExclusion extends AppModel
         if (!empty($exclusion)) {
             $this->Correlation->correlateValueRouter($exclusion['CorrelationExclusion']['value']);
         }
-    }
-
-    public function afterDelete()
-    {
-        $this->cacheValues();
-    }
-
-    public function cacheValues()
-    {
-        try {
-            $redis = RedisTool::init();
-        } catch (Exception $e) {
-            return false;
-        }
-        RedisTool::unlink($redis, $this->key);
-        $exclusions = $this->find('column', [
-            'fields' => ['value']
-        ]);
-        $redis->sAddArray($this->key, $exclusions);
     }
 
     public function cleanRouter($user)

@@ -47,9 +47,6 @@ class Correlation extends AppModel
         'Containable'
     );
 
-    /** @var array */
-    private $exclusions;
-
     /** @var bool */
     private $advancedCorrelationEnabled;
 
@@ -61,8 +58,8 @@ class Correlation extends AppModel
     /** @var ValueConditionRewriter|null Holds the value ids of the chunk being recorrelated */
     private $valueRewriter = null;
 
-    /** @var int[]|null The value groups the exclusions name, read once */
-    private $exclusionGroupIds = null;
+    /** @var array|null The exclusions as the checks read them, built once */
+    private $exclusionMatcher = null;
 
     /** @var OverCorrelatingValue */
     public $OverCorrelatingValue;
@@ -354,23 +351,99 @@ class Correlation extends AppModel
      */
     public function excludedValueConditions()
     {
-        if ($this->exclusionGroupIds === null) {
-            $this->CorrelationExclusion = ClassRegistry::init('CorrelationExclusion');
-            $exclusions = $this->CorrelationExclusion->find('column', ['fields' => ['value']]);
-            $groups = [];
-            foreach ($this->attributeValue()->resolveCi($exclusions) as $ids) {
-                if (!empty($ids)) {
-                    $groups[min($ids)] = true;
-                }
-            }
-            $this->exclusionGroupIds = array_keys($groups);
-        }
+        $groups = $this->exclusionMatcher()['groups'];
         $conditions = [];
-        if (!empty($this->exclusionGroupIds)) {
-            $conditions[] = ['Correlation.value_id NOT IN' => $this->exclusionGroupIds];
+        if (!empty($groups)) {
+            $conditions[] = ['Correlation.value_id NOT IN' => array_keys($groups)];
         }
         $conditions[] = $this->OverCorrelatingValue->blockedGroupsCondition('Correlation.value_id');
         return $conditions;
+    }
+
+    /**
+     * Whether an exclusion matches the value: an exact one by the value's
+     * group or any stored spelling of it, a wildcard one ignoring case.
+     *
+     * @param string|null $value
+     * @param int|null $groupId The value's group, when the caller has it; a
+     *   spelling stored after the exclusions were read is known only by it.
+     * @return bool
+     */
+    public function isExcludedValue($value, $groupId = null)
+    {
+        $matcher = $this->exclusionMatcher();
+        $value = (string)$value;
+        if (isset($matcher['spellings'][$value]) || ($groupId !== null && isset($matcher['groups'][$groupId]))) {
+            return true;
+        }
+        if (empty($matcher['contains']) && empty($matcher['endsWith']) && empty($matcher['startsWith'])) {
+            return false;
+        }
+        $value = mb_strtolower($value);
+        foreach ($matcher['contains'] as $pattern) {
+            if (str_contains($value, $pattern)) {
+                return true;
+            }
+        }
+        foreach ($matcher['endsWith'] as $pattern) {
+            if (str_ends_with($value, $pattern)) {
+                return true;
+            }
+        }
+        foreach ($matcher['startsWith'] as $pattern) {
+            if (str_starts_with($value, $pattern)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The exclusions, read once: %x% contains, %x ends with, x% starts with
+     * (lower-cased), anything else exact, with its value group and every
+     * stored spelling.
+     *
+     * @return array
+     */
+    private function exclusionMatcher()
+    {
+        if ($this->exclusionMatcher !== null) {
+            return $this->exclusionMatcher;
+        }
+        $matcher = ['groups' => [], 'spellings' => [], 'contains' => [], 'endsWith' => [], 'startsWith' => []];
+        $this->CorrelationExclusion = ClassRegistry::init('CorrelationExclusion');
+        $exact = [];
+        foreach ($this->CorrelationExclusion->find('column', ['fields' => ['value']]) as $exclusion) {
+            $exclusion = (string)$exclusion;
+            if ($exclusion === '') {
+                continue;
+            }
+            $firstChar = $exclusion[0];
+            $lastChar = substr($exclusion, -1);
+            if ($firstChar === '%' && $lastChar === '%') {
+                $matcher['contains'][] = mb_strtolower(substr($exclusion, 1, -1));
+            } else if ($firstChar === '%') {
+                $matcher['endsWith'][] = mb_strtolower(substr($exclusion, 1));
+            } else if ($lastChar === '%') {
+                $matcher['startsWith'][] = mb_strtolower(substr($exclusion, 0, -1));
+            } else {
+                $exact[] = $exclusion;
+                $matcher['spellings'][$exclusion] = true;
+            }
+        }
+        if (!empty($exact)) {
+            $ids = [];
+            foreach ($this->attributeValue()->resolveCi($exact) as $variants) {
+                if (!empty($variants)) {
+                    $matcher['groups'][min($variants)] = true;
+                    array_push($ids, ...$variants);
+                }
+            }
+            foreach ($this->attributeValue()->fetchValues($ids) as $spelling) {
+                $matcher['spellings'][$spelling] = true;
+            }
+        }
+        return $this->exclusionMatcher = $matcher;
     }
 
     /**
@@ -667,11 +740,17 @@ class Correlation extends AppModel
             return true;
         }
         */
+        $value1 = $a['Attribute']['value1'];
+        $value2 = null;
+        if (!empty($a['Attribute']['value2']) && !in_array($a['Attribute']['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true)) {
+            $value2 = $a['Attribute']['value2'];
+        }
+        $rewriter = $this->valueRewriter ?: $this->attributeValue()->batchRewriter('Attribute', $value2 === null ? [$value1] : [$value1, $value2]);
         // generate additional correlating attribute list based on the advanced correlations
-        $advanced = !$this->__preventExcludedCorrelations($a['Attribute']['value1']);
-        $correlatingValues = $advanced ? [$a['Attribute']['value1']] : [];
-        if (!empty($a['Attribute']['value2']) && !in_array($a['Attribute']['type'], MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES, true) && !$this->__preventExcludedCorrelations($a['Attribute']['value2'])) {
-            $correlatingValues[] = $a['Attribute']['value2'];
+        $advanced = !$this->isExcludedValue($value1, $rewriter->groupId($value1));
+        $correlatingValues = $advanced ? [$value1] : [];
+        if ($value2 !== null && !$this->isExcludedValue($value2, $rewriter->groupId($value2))) {
+            $correlatingValues[] = $value2;
         }
         if (empty($correlatingValues)) {
             return true;
@@ -684,7 +763,6 @@ class Correlation extends AppModel
             }
         }
         $correlations = [];
-        $rewriter = $this->valueRewriter ?: $this->attributeValue()->batchRewriter('Attribute', $correlatingValues);
         $extraConditions = $advanced ? $this->__buildAdvancedCorrelationConditions($a, $rewriter->variantIds($a['Attribute']['value1'])) : null;
         foreach ($correlatingValues as $cV) {
             if ($cV === null) {
@@ -789,51 +867,6 @@ class Correlation extends AppModel
             return true;
         }
         return $this->__saveCorrelations($correlations);
-    }
-
-    /**
-     * @param string $value
-     * @return bool True if attribute value is excluded
-     */
-    private function __preventExcludedCorrelations($value)
-    {
-        if ($this->exclusions === null) {
-            try {
-                $this->exclusions = RedisTool::init()->sMembers('misp:correlation_exclusions');
-            } catch (Exception $e) {
-                return false;
-            }
-        } else if (empty($this->exclusions)) {
-            return false;
-        }
-
-        foreach ($this->exclusions as $exclusion) {
-            if (!empty($exclusion)) {
-                $firstChar = $exclusion[0];
-                $lastChar = substr($exclusion, -1);
-                if ($firstChar === '%' && $lastChar === '%') {
-                    $exclusion = substr($exclusion, 1, -1);
-                    if (str_contains($value, $exclusion)) {
-                        return true;
-                    }
-                } else if ($firstChar === '%') {
-                    $exclusion = substr($exclusion, 1);
-                    if (str_ends_with($value, $exclusion)) {
-                        return true;
-                    }
-                } else if ($lastChar === '%') {
-                    $exclusion = substr($exclusion, 0, -1);
-                    if (str_starts_with($value, $exclusion)) {
-                        return true;
-                    }
-                } else {
-                    if ($value === $exclusion) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     /**
@@ -1069,7 +1102,7 @@ class Correlation extends AppModel
                 'Correlation' => [
                     'value'    => (string)$v,
                     'count'    => $cnt,
-                    'excluded' => $this->__preventExcludedCorrelations((string)$v),
+                    'excluded' => $this->isExcludedValue((string)$v, (int)$row['value_id']),
                 ]
             ];
         }
@@ -1105,7 +1138,7 @@ class Correlation extends AppModel
                 'Correlation' => [
                     'value' => $value,
                     'count' => $count,
-                    'excluded' => $this->__preventExcludedCorrelations($value),
+                    'excluded' => $this->isExcludedValue($value, (int)$valueId),
                 ]
             ];
         }
@@ -1200,7 +1233,7 @@ class Correlation extends AppModel
     public function attachExclusionsToOverCorrelations($data)
     {
         foreach ($data as $k => $v) {
-            $data[$k]['OverCorrelatingValue']['excluded'] = $this->__preventExcludedCorrelations($data[$k]['OverCorrelatingValue']['value']);
+            $data[$k]['OverCorrelatingValue']['excluded'] = $this->isExcludedValue($data[$k]['OverCorrelatingValue']['value']);
         }
         return $data;
     }
@@ -1223,9 +1256,9 @@ class Correlation extends AppModel
                 $values = [$attribute['value']];
             }
 
-            if ($this->__preventExcludedCorrelations($values[0])) {
+            if ($this->isExcludedValue($values[0])) {
                 $attribute['correlation_exclusion'] = true;
-            } elseif (!empty($values[1]) && !$primaryOnly && $this->__preventExcludedCorrelations($values[1])) {
+            } elseif (!empty($values[1]) && !$primaryOnly && $this->isExcludedValue($values[1])) {
                 $attribute['correlation_exclusion'] = true;
             }
 
