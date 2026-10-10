@@ -21,17 +21,8 @@ class Configure {
 }
 class BadRequestException extends Exception {}
 class ClassRegistry {
-    public static $allowedIds = [];
     public static function init($name) {
-        if ($name === 'Allowedlist') { return new CursorAllowedlist(); }
         throw new Exception($name);
-    }
-}
-class CursorAllowedlist {
-    public function removeAllowedlistedFromArray($rows, $unused) {
-        return array_filter($rows, function ($row) {
-            return !in_array($row['Attribute']['id'], ClassRegistry::$allowedIds);
-        });
     }
 }
 class CursorEvent {

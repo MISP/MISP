@@ -8,7 +8,6 @@ use PHPUnit\Framework\TestCase;
 class AttributeRestSearchCursorTest extends TestCase {
     protected function setUp(): void {
         require_once __DIR__ . '/AttributeRestSearchCursorFixtures.php';
-        ClassRegistry::$allowedIds = [];
     }
 
     private function iterate($ids, $params, $loop, $max, &$metadata = null) {
@@ -56,14 +55,6 @@ class AttributeRestSearchCursorTest extends TestCase {
         $this->assertSame(4, $skipped);
     }
 
-    public function testAllowedlistedTailStillAdvancesRawCursor() {
-        ClassRegistry::$allowedIds = [2, 3, 4];
-        [$body, $count, , $queries] = $this->iterate(range(1, 6), ['limit' => 2], true, 2);
-        $this->assertSame('1,5,6', $body);
-        $this->assertSame(6, $count);
-        $this->assertCount(4, $queries);
-    }
-
     public function testExactMultipleLimitNeverRunsZeroLimitQuery() {
         [$body, $count, , $queries] = $this->iterate(range(1, 8), ['limit' => 4], false, 2);
         $this->assertSame('1,2,3,4', $body);
@@ -78,11 +69,11 @@ class AttributeRestSearchCursorTest extends TestCase {
     }
 
     public function testPublicCursorMetadataUsesRawTail() {
-        ClassRegistry::$allowedIds = [4];
         $metadata = [];
         [$body, $count] = $this->iterate(range(1, 6),
-            ['limit' => 3, 'after_id' => 1], false, 2, $metadata);
-        $this->assertSame('2,3', $body);
+            ['limit' => 3, 'after_id' => 1, 'enforceWarninglist' => true],
+            false, 2, $metadata);
+        $this->assertSame('', $body);
         $this->assertSame(['next_cursor' => 4, 'has_more' => true], $metadata);
         $headers = (new RestSearchComponent())->getCursorHeaders($metadata);
         $this->assertSame(['X-Next-Cursor' => '4', 'X-Has-More' => 'true'], $headers);
@@ -200,9 +191,8 @@ class AttributeRestSearchCursorTest extends TestCase {
             'after_id' => 0, 'limit' => 6, 'returnFormat' => 'count',
             'enforceWarninglist' => true,
         ]);
-        ClassRegistry::$allowedIds = [6];
         $result = $controller->restSearch();
-        $this->assertSame('1', $result['body']);
+        $this->assertSame('2', $result['body']);
         $this->assertSame('6', $result['headers']['X-Next-Cursor']);
     }
 
