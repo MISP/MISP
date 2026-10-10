@@ -88,6 +88,31 @@ Search MISP using a list of filter parameters and return the data in the selecte
 ```
 /attributes/restSearch
 ```
+
+### Cursor pagination
+
+For `json`, `text`, `cache`, `hashes` and `count` attribute exports, start with:
+
+```json
+{"returnFormat": "json", "after_id": 0, "limit": 1000}
+```
+
+`after_id` must be a nonnegative integer and `limit` a positive integer.
+Do not supply `page`; the only supported order is `Attribute.id ASC`.
+The usual response body is retained. On each request, read `X-Next-Cursor`
+and send its value as `after_id` with the same filters and limit.
+
+`X-Has-More: true` means the raw SQL scan filled its limit and more matching
+rows may exist. Continue even if the response is empty: warninglist, decay,
+proposal or allowedlist filtering can remove all scanned rows. One final empty
+request may be needed. `X-Has-More: false` ends the traversal. The cursor is the
+last raw ID scanned, including filtered rows, and remains unchanged when no
+rows are scanned. Cursor `X-Result-Count` reports raw scanned rows.
+
+Role limits still apply and authorization is checked on every request. This is
+live traversal, not a snapshot; concurrent writes or visibility changes can
+affect results. Count and text deduplication apply separately to each response.
+
 ### URL Parameters
 
 ### Parameters

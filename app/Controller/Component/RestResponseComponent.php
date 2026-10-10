@@ -56,7 +56,7 @@ class RestResponseComponent extends Component
                 'operationId' => 'restSearchAttributes',
                 'method' => 'POST',
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'sharinggroup', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
+                'optional' => array('page', 'limit', 'after_id', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'sharinggroup', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
                 'params' => array()
             ),
             'addTag' => array(
@@ -792,7 +792,9 @@ class RestResponseComponent extends Component
             $headers["Access-Control-Allow-Headers"] =  "Origin, Content-Type, Authorization, Accept";
             $headers["Access-Control-Allow-Methods"] = "*";
             $headers["Access-Control-Allow-Origin"] = explode(',', Configure::read('Security.cors_origins'));
-            $headers["Access-Control-Expose-Headers"] = ["X-Result-Count"];
+            $headers["Access-Control-Expose-Headers"] = [
+                'X-Result-Count', 'X-Next-Cursor', 'X-Has-More',
+            ];
         }
         if (Configure::read('Security.disable_browser_cache')) {
             $cakeResponse->disableCache();
@@ -1513,6 +1515,18 @@ class RestResponseComponent extends Component
                 'type' => 'string',
                 'operators' => array('equal'),
                 'help' => 'A valid ISO 8601 datetime format, up to milli-seconds. i.e.: 2019-06-13T15:56:56.856074+02:00'
+            ),
+            'after_id' => array(
+                'input' => 'number',
+                'type' => 'integer',
+                'operators' => array('equal'),
+                'validation' => array('min' => 0, 'step' => 1),
+                'help' => __(
+                    'Resume attribute export after this ID. Requires a positive '
+                    . 'limit, no page, and ascending ID order. Repeat filters '
+                    . 'and use X-Next-Cursor until X-Has-More is false. '
+                    . 'Supported formats: json, text, cache, hashes, count.'
+                )
             ),
             'limit' => array(
                 'input' => 'number',
