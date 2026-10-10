@@ -1133,6 +1133,46 @@ class Correlation extends AppModel
     }
 
     /**
+     * The getRelatedAttributes response, keyed by source attribute ID.
+     * Keep unsupported engines on their existing path (including live ACLs,
+     * exclusions and any engine-specific per-source limits).
+     */
+    public function getRelatedAttributesBatch(
+        array $user,
+        array $sgids,
+        array $attributes,
+        array $fields = [],
+        $includeEventData = false
+    ) {
+        $results = [];
+        $correlating = [];
+        foreach ($attributes as $attribute) {
+            $results[$attribute['id']] = [];
+            if (!in_array($attribute['type'], MispAttribute::NON_CORRELATING_TYPES, true)) {
+                $correlating[] = $attribute;
+            }
+        }
+        $engine = $this->getCorrelationModelName();
+        foreach (array_chunk($correlating, 100) as $batch) {
+            if ($engine === 'Default' || $engine === 'NoAcl') {
+                $related = $this->runGetRelatedAttributesBatch(
+                    $user, $sgids, $batch, $fields, $includeEventData
+                );
+                foreach ($related as $id => $rows) {
+                    $results[$id] = $rows;
+                }
+            } else {
+                foreach ($batch as $attribute) {
+                    $results[$attribute['id']] = $this->getRelatedAttributes(
+                        $user, $sgids, $attribute, $fields, $includeEventData
+                    );
+                }
+            }
+        }
+        return $results;
+    }
+
+    /**
      * @param array $user User array
      * @param int $eventId Event ID
      * @param array $sgids List of sharing group IDs
