@@ -23,21 +23,13 @@ echo $this->Form->create('ShadowAttribute', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:#97CC040f; border-bottom:2px solid var(--attribute);">
-    <div>
-        <div class="text-attribute text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Proposal') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-comment-dots text-attribute" style="font-size:1.25rem;"></i>
-            <?= __('Propose a change') ?>
-        </h4>
-    </div>
-    <span class="misp-icon misp-icon-attribute misp-simple text-attribute" style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'attribute',
+    'eyebrow' => __('Proposal'),
+    'title' => __('Propose a change'),
+    'titleIcon' => 'fas fa-comment-dots',
+    'icon' => 'misp-icon misp-icon-attribute misp-simple',
+]) ?>
 
 <div class="container-fluid px-4 py-4">
     <div class="d-flex flex-column gap-4">
@@ -66,10 +58,10 @@ echo $this->Form->create('ShadowAttribute', [
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <div class="text-attribute fw-bold text-uppercase mb-2"
-                         style="font-size:.65rem; letter-spacing:.1em;">
-                        <?= __('Category') ?>
-                    </div>
+                    <?= $this->element('genericElementsBS5/Forms/section_label', [
+                        'accent' => 'attribute',
+                        'label' => __('Category'),
+                    ]) ?>
                     <?= $this->Form->select('category', $categories, [
                         'id'    => 'ShadowAttributeCategory',
                         'class' => 'form-select',
@@ -78,10 +70,10 @@ echo $this->Form->create('ShadowAttribute', [
                     ]) ?>
                 </div>
                 <div class="col-md-6">
-                    <div class="text-attribute fw-bold text-uppercase mb-2"
-                         style="font-size:.65rem; letter-spacing:.1em;">
-                        <?= __('Type') ?>
-                    </div>
+                    <?= $this->element('genericElementsBS5/Forms/section_label', [
+                        'accent' => 'attribute',
+                        'label' => __('Type'),
+                    ]) ?>
                     <?= $this->Form->select('type', $types, [
                         'id'    => 'ShadowAttributeType',
                         'class' => 'form-select',
@@ -92,10 +84,10 @@ echo $this->Form->create('ShadowAttribute', [
             </div>
 
             <div class="w-100">
-                <div class="text-attribute fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Value') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'attribute',
+                    'label' => __('Value'),
+                ]) ?>
                 <?= $this->Form->textarea('value', [
                     'id'    => 'ShadowAttributeValue',
                     'class' => 'w-100 rounded-2 p-3',
@@ -107,10 +99,10 @@ echo $this->Form->create('ShadowAttribute', [
             </div>
 
             <div class="w-100">
-                <div class="text-attribute fw-bold text-uppercase mb-2"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Contextual Comment') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'attribute',
+                    'label' => __('Contextual Comment'),
+                ]) ?>
                 <?= $this->Form->text('comment', [
                     'id'    => 'ShadowAttributeComment',
                     'class' => 'w-100 border-0 bg-transparent py-1',
@@ -149,23 +141,20 @@ echo $this->Form->create('ShadowAttribute', [
         ]) ?>
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?= __('Event') ?>:
-            <strong class="text-body">#<?= h($eventId) ?></strong>
-            &middot; <?= __('Attribute') ?>:
-            <strong class="text-body">#<?= h($attrId) ?></strong>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Cancel') ?>
-            </button>
-            <button type="submit" id="proposalSubmitBtn" class="btn btn-attribute btn-sm text-white">
-                <i class="fas fa-comment-dots me-1"></i><span id="proposalSubmitLabel"><?= __('Submit proposal') ?></span>
-            </button>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'attribute',
+        'meta' => [
+            ['label' => __('Event'), 'id' => $eventId],
+            ['label' => __('Attribute'), 'id' => $attrId],
+        ],
+        'cancel' => ['label' => __('Cancel')],
+        /* The label is a span of its own: the deletion toggle below rewrites it. */
+        'submit' => [
+            'labelHtml' => '<span id="proposalSubmitLabel">' . h(__('Submit proposal')) . '</span>',
+            'icon' => 'fas fa-comment-dots',
+            'id' => 'proposalSubmitBtn',
+        ],
+    ]) ?>
 
 </div>
 

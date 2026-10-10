@@ -3,7 +3,7 @@
     <?php
         echo $this->element('Users/statisticsMenu');
     ?>
-    <p style="margin-bottom: 40px;"><?php echo sprintf(__('A heatmap showing the usage of %s.'), $galaxyName);?></p>
+    <p style="margin-bottom: 40px;"><?php echo sprintf(__('A heatmap showing the usage of %s.'), h($galaxyName));?></p>
 
     <div style="height: 80px;">
         <div class="input select">

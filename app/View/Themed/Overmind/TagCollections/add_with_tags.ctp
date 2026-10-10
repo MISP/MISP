@@ -10,26 +10,13 @@ echo $this->Form->create('TagCollection', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(219,106,71,.06);
-            border-bottom:2px solid var(--bs-tag);">
-    <div>
-        <div class="text-tag text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Tag Collections') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-tag"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Tag Collection') : __('Add Tag Collection') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('A collection groups tags that are usually applied together, so they can be attached in one go.') ?>
-        </p>
-    </div>
-    <i class="fas fa-layer-group text-tag" style="font-size:2rem; opacity:.45;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Tag Collections'),
+    'title' => $isEdit ? __('Edit Tag Collection') : __('Add Tag Collection'),
+    'description' => __('A collection groups the tags and galaxy clusters that are usually applied together, so they can be attached in one go.'),
+    'icon' => 'fas fa-layer-group',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -37,11 +24,11 @@ echo $this->Form->create('TagCollection', [
 
         <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-tag fw-bold
+            <div class="d-flex align-items-center gap-2 text-primary fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Collection Name') ?>
-                <span class="badge bg-tag"
+                <span class="badge bg-primary"
                       style="font-size:.55rem; opacity:.8; font-weight:700;">
                     <?= __('REQUIRED') ?>
                 </span>
@@ -58,10 +45,10 @@ echo $this->Form->create('TagCollection', [
 
         <!-- ── DESCRIPTION ─────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-tag fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Description') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Description'),
+            ]) ?>
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 2,
@@ -96,18 +83,35 @@ echo $this->Form->create('TagCollection', [
             ]) ?>
         </div>
 
+        <!-- ── GALAXIES ────────────────────────────────────────── -->
+        <div class="w-100 px-2">
+            <div class="d-flex align-items-center gap-2 text-galaxy fw-bold
+                        text-uppercase mb-2"
+                 style="font-size:.65rem; letter-spacing:.1em;">
+                <span class="misp-icon misp-icon-galaxy misp-simple"></span>
+                <?= __('Galaxies') ?>
+            </div>
+            <?= $this->element('genericElementsBS5/Forms/galaxy_picker_field', [
+                'field' => 'TagCollection.galaxies',
+                'uid' => 'tag-collection-galaxies',
+                'galaxyList' => $galaxyList ?? [],
+                'selected' => $currentClusters ?? [],
+                'emptyText' => __('No galaxy clusters in this collection yet.'),
+            ]) ?>
+        </div>
+
         <!-- ── VISIBILITY ──────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-tag fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Visibility') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Visibility'),
+            ]) ?>
             <?php $allOrgs = !empty($collection['all_orgs']); ?>
             <label class="d-flex align-items-center gap-3 rounded-2 p-3 w-100
                           user-select-none mb-0"
                    id="TagCollectionAllOrgsCard"
                    style="cursor:pointer; transition:border-color .15s;
-                          border:1px solid <?= $allOrgs ? '#DB6A47' : '#dee2e6' ?>;">
+                          border:1px solid <?= $allOrgs ? 'var(--bs-primary)' : '#dee2e6' ?>;">
                 <?= $this->Form->checkbox('all_orgs', [
                     'id' => 'TagCollectionAllOrgs',
                     'class' => 'form-check-input flex-shrink-0',
@@ -127,36 +131,17 @@ echo $this->Form->create('TagCollection', [
                 </div>
                 <i class="fas fa-globe" id="TagCollectionAllOrgsIcon"
                    style="font-size:.95rem; transition:color .15s;
-                          color:<?= $allOrgs ? '#DB6A47' : '#adb5bd' ?>;"></i>
+                          color:<?= $allOrgs ? 'var(--bs-primary)' : '#adb5bd' ?>;"></i>
             </label>
         </div>
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($collection['id'])): ?>
-                <?= __('Collection') ?>:
-                <strong class="text-body">#<?= h($collection['id']) ?></strong>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add Collection')),
-                [
-                    'class' => 'btn btn-tag btn-sm text-white',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($collection['id']) ? [['label' => __('Collection'), 'id' => $collection['id']]] : [],
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Collection')],
+    ]) ?>
 
 </div>
 
@@ -172,9 +157,11 @@ echo $this->Form->create('TagCollection', [
     var allOrgsIcon = document.getElementById('TagCollectionAllOrgsIcon');
     if (allOrgsBox && allOrgsCard) {
         allOrgsBox.addEventListener('change', function () {
-            allOrgsCard.style.borderColor = allOrgsBox.checked ? '#DB6A47' : '#dee2e6';
+            allOrgsCard.style.setProperty('border-color',
+                allOrgsBox.checked ? 'var(--bs-primary)' : '#dee2e6');
             if (allOrgsIcon) {
-                allOrgsIcon.style.color = allOrgsBox.checked ? '#DB6A47' : '#adb5bd';
+                allOrgsIcon.style.setProperty('color',
+                    allOrgsBox.checked ? 'var(--bs-primary)' : '#adb5bd');
             }
         });
     }

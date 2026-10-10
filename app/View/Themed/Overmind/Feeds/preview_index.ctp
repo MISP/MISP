@@ -112,7 +112,7 @@ $fields = [
                 'label' => __('Fetch this event'),
                 'icon' => 'circle-arrow-down',
                 'url' => $eventFetchURL,
-                'size' => 'sm'
+                'size' => 'md'
             ] : null,
         ]))
     ],

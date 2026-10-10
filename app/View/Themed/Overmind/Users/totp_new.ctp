@@ -9,28 +9,14 @@ echo $this->Form->create('User', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06); border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-primary"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Security') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-shield-halved text-primary" style="font-size:1.25rem;"></i>
-            <?= __('Two-factor authentication') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Scan the QR code with your authenticator app, then enter the generated code to activate.') ?>
-        </p>
-    </div>
-    <?php if (!empty($ajax)): ?>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
-    <?php else: ?>
-        <i class="fas fa-qrcode text-primary" style="font-size:2rem; opacity:.5;"></i>
-    <?php endif; ?>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Security'),
+    'title' => __('Two-factor authentication'),
+    'description' => __('Scan the QR code with your authenticator app, then enter the generated code to activate.'),
+    'titleIcon' => 'fas fa-shield-halved',
+    'icon' => empty($ajax) ? 'fas fa-qrcode' : '',
+    'close' => !empty($ajax),
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="container-fluid px-4 py-4">
@@ -76,18 +62,13 @@ echo $this->Form->create('User', [
     </div>
 </div>
 
-<!-- ── FOOTER ───────────────────────────────────────────────── -->
-<div class="px-4 py-3 d-flex align-items-center justify-content-end gap-2 border-top">
-    <?php if (!empty($ajax)): ?>
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-            <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-        </button>
-    <?php endif; ?>
-    <?= $this->Form->button(
-        '<i class="fas fa-check me-1"></i>' . __('Validate'),
-        ['class' => 'btn btn-primary btn-sm', 'escapeTitle' => false]
-    ) ?>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_footer', [
+    'align' => 'end',
+    'bleed' => true,
+    /* Outside a modal there is nothing to dismiss — the page is the form. */
+    'cancel' => empty($ajax) ? false : [],
+    'submit' => ['label' => __('Validate'), 'icon' => 'fas fa-check'],
+]) ?>
 
 <?= $this->Form->end() ?>
 

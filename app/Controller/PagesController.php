@@ -25,6 +25,7 @@ class PagesController extends AppController
 {
     public $name = 'Pages';
     public $uses = array();
+    public $components = ['RequestHandler'];
 
     // displays a view based on the page to display passed as parameters
     public function display()

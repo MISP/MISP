@@ -146,7 +146,7 @@ $fields = [
                 'label' => __('Fetch this event'),
                 'icon' => 'circle-arrow-down',
                 'url' => $eventPullURL,
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function ($row) {
                     return !empty($row['Event']['published']);
                 }
@@ -158,7 +158,7 @@ $fields = [
                 'icon' => 'circle-arrow-down',
                 'class' => 'text-warning',
                 'url' => $eventPullURL,
-                'size' => 'sm',
+                'size' => 'md',
                 'requirement' => function ($row) {
                     return empty($row['Event']['published']);
                 }

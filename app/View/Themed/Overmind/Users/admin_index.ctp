@@ -164,7 +164,7 @@ $fields = [
                 'label' => __('Destroy sessions'),
                 'icon' => 'bomb',
                 'class' => 'text-danger',
-                'size' => 'sm',
+                'size' => 'md',
                 'url' => $baseurl . '/admin/users/destroy/%id%',
                 'requirement' => !empty($isSiteAdmin),
             ],
@@ -173,7 +173,7 @@ $fields = [
                 'label' => __('Delete'),
                 'icon' => 'trash',
                 'class' => 'text-danger',
-                'size' => 'sm',
+                'size' => 'md',
                 'url' => $baseurl . '/admin/users/delete/%id%',
                 'requirement' => !empty($isSiteAdmin),
             ],
@@ -181,10 +181,44 @@ $fields = [
     ],
 ];
 
+$moreFilters = [];
+
+// `org` is only a filterable field for a site admin
+if (!empty($isSiteAdmin)) {
+    $moreFilters[] = [
+        'type' => 'dropdown',
+        'name' => 'org',
+        'label' => __('Organisation'),
+        'options' => $orgOptions ?? [],
+    ];
+}
+
+$moreFilters[] = [
+    'type' => 'dropdown',
+    'name' => 'role',
+    'label' => __('Role'),
+    'options' => $roleOptions ?? [],
+];
+
+
+$moreFilters[] = [
+    'type' => 'dropdown',
+    'name' => 'status',
+    'label' => __('Status'),
+    'options' => [
+        ''         => __('Any status'),
+        'enabled'  => __('Enabled'),
+        'disabled' => __('Disabled'),
+        'inactive' => __('Inactive'),
+    ],
+];
+
+
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $users,
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'primary_id_path' => 'User.id',
             'row_dblclick_url' => $baseurl . '/admin/users/view/%id%',
             'filter_bar' => [
@@ -198,19 +232,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'more_filters',
                         'label' => __('More filters'),
-                        'children' => [
-                            [
-                                'type' => 'dropdown',
-                                'name' => 'status',
-                                'label' => __('Status'),
-                                'options' => [
-                                    ''         => __(''),
-                                    'enabled'  => __('Enabled'),
-                                    'disabled' => __('Disabled'),
-                                    'inactive' => __('Inactive'),
-                                ]
-                            ]
-                        ]
+                        'children' => $moreFilters,
                     ],
                 ],
             ],

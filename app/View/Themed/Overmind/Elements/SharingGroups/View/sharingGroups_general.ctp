@@ -128,6 +128,19 @@
 </div>
 
 
+<?php if (!isset($sg['SharingGroupOrg'])): ?>
+<div class="card mb-4 shadow-sm border-0 rounded-4">
+    <div class="card-body">
+        <span class="misp-icon misp-icon-organisation misp-simple me-2 text-primary"></span>
+        <?= __n(
+            '%s member organisation',
+            '%s member organisations',
+            (int)($sharingGroup['org_count'] ?? 0),
+            (int)($sharingGroup['org_count'] ?? 0)
+        ) ?>
+    </div>
+</div>
+<?php else: ?>
 <div class="row">
     <div class="col-lg-6 mb-4">
         <div class="card h-100 shadow-sm border-0 rounded-4">
@@ -206,3 +219,4 @@
         </div>
     </div>
 </div>
+<?php endif; ?>
