@@ -67,6 +67,7 @@ class AttributeValueValueFieldDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/OracleBootstrap.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('AppModel', 'Model');
             App::uses('AttributeValue', 'Model');
@@ -139,11 +140,12 @@ class AttributeValueValueFieldDbTest extends TestCase
         // A legacy value2 of spaces: 2.x tested value2 = '', which PAD SPACE holds
         $dictionary = $this->attribute->loadAttributeValue();
         $this->exec(sprintf(
-            "UPDATE attributes SET value2 = '   ', value1_id = %d, value2_id = %d WHERE id = %d",
+            'UPDATE attributes SET value1_id = %d, value2_id = %d WHERE id = %d',
             $dictionary->intern("{$t}a"),
             $dictionary->intern('   '),
             $this->ids['spaces']
         ));
+        AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf("UPDATE attributes SET value2 = '   ' WHERE id = %d", $this->ids['spaces']));
         $this->values[$this->ids['spaces']] = "{$t}a";
 
         $proposal = ClassRegistry::init('ShadowAttribute');
@@ -162,12 +164,12 @@ class AttributeValueValueFieldDbTest extends TestCase
         $this->assertNotFalse($saved, json_encode($proposal->validationErrors));
         $this->ids['proposal'] = (int)$proposal->id;
 
-        $this->exec(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf(
             "UPDATE attributes SET value1 = '%1\$s', value2 = IF(value2 = '', '', '%1\$s') WHERE id IN (%2\$s)",
             $this->columnText(),
             implode(', ', $this->attributeIds())
         ));
-        $this->exec(sprintf("UPDATE shadow_attributes SET value1 = '%s' WHERE id = %d", $this->columnText(), $this->ids['proposal']));
+        AttributeValueTextSupport::diverge($this->db, 'shadow_attributes', sprintf("UPDATE shadow_attributes SET value1 = '%s' WHERE id = %d", $this->columnText(), $this->ids['proposal']));
     }
 
     private function create($type, $value, $category = 'Other')

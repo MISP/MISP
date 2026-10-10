@@ -134,6 +134,8 @@ class Case:
     # recorded value but never compared. Used for multi-request cases such as
     # write round-trips.
     run: Optional[Callable[[Client], tuple]] = None
+    # Rows may come back in any order: compared as unordered_form() gives them.
+    unordered: bool = False
 
     def __post_init__(self):
         if not CASE_NAME.match(self.name):
@@ -468,12 +470,44 @@ def _diff_scalar_lists(a, b, path, out):
         out.append('    added: %s' % ', '.join(added[:SAMPLE]))
 
 
-def compare_results(baseline, current):
+def _sorted_lists(value):
+    if isinstance(value, dict):
+        return {k: _sorted_lists(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return sorted((_sorted_lists(v) for v in value),
+                      key=lambda v: json.dumps(v, sort_keys=True))
+    return value
+
+
+def unordered_form(value):
+    """The value with its row order taken out: text that parses as JSON with
+    every list sorted, other multi-line text as its sorted lines."""
+    if isinstance(value, dict):
+        return {k: unordered_form(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [unordered_form(v) for v in value]
+    if not isinstance(value, str):
+        return value
+    if value.lstrip()[:1] in ('{', '['):
+        try:
+            return json.dumps(_sorted_lists(json.loads(value)), sort_keys=True,
+                              indent=1, ensure_ascii=False)
+        except ValueError:
+            pass
+    if '\n' in value:
+        return '\n'.join(sorted(value.splitlines()))
+    return value
+
+
+def compare_results(baseline, current, unordered=False):
     lines = []
     if baseline['status'] != current['status']:
         lines.append('$status: %s -> %s' % (
             baseline['status'], current['status']))
-    diff(baseline['value'], current['value'], '$', lines)
+    a, b = baseline['value'], current['value']
+    if unordered:
+        a, b = unordered_form(a), unordered_form(b)
+    diff(a, b, '$', lines)
     return lines
 
 

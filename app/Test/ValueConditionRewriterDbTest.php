@@ -1,8 +1,8 @@
 <?php
 /**
  * Rewritten conditions select the same attributes on the value ids as the
- * originals select on the text columns, through Cake against the real
- * database: generic_add_filter's forms, the value field, the empty value2,
+ * originals select on the text, read back from the ids in the collation of
+ * the 2.x text columns, through Cake against the real database: generic_add_filter's forms, the value field, the empty value2,
  * negation, overflow and bounded finds, and a fixed sample of real values.
  *
  * Every test runs in a transaction that is rolled back. Skipped unless
@@ -15,8 +15,11 @@ use PHPUnit\Framework\TestCase;
 
 class ValueConditionRewriterDbTest extends TestCase
 {
-    // The 2.x value field, which the reference reads still need
-    const VALUE_2X = "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END";
+    // A 2.x text column, which the reference reads need, as a virtual field
+    const TEXT_2X = "COALESCE((SELECT v.value FROM attribute_values v WHERE v.id = Attribute.%s_id), '') COLLATE utf8mb4_unicode_ci";
+
+    // The 2.x value field over those
+    const VALUE_2X = "CASE WHEN %2\$s = '' THEN %1\$s ELSE CONCAT(%1\$s, '|', %2\$s) END";
 
     private static $booted = false;
 
@@ -45,6 +48,7 @@ class ValueConditionRewriterDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/OracleBootstrap.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('ValueConditionRewriter', 'Tools');
             App::uses('AttributeValue', 'Model');
@@ -56,7 +60,6 @@ class ValueConditionRewriterDbTest extends TestCase
         if (!($this->db instanceof Mysql)) {
             $this->markTestSkipped('MySQL/MariaDB only.');
         }
-        $this->attribute->virtualFields['value'] = self::VALUE_2X;
         $this->db->begin();
         $this->token = 'avcond' . bin2hex(random_bytes(4));
         $this->event = $this->attribute->Event->find('first', [
@@ -65,6 +68,11 @@ class ValueConditionRewriterDbTest extends TestCase
             'fields' => ['Event.id'],
         ])['Event'];
         $this->createFixture();
+        $text = [];
+        foreach (['value1', 'value2'] as $column) {
+            $text[$column] = $this->attribute->virtualFields[$column] = sprintf(self::TEXT_2X, $column);
+        }
+        $this->attribute->virtualFields['value'] = sprintf(self::VALUE_2X, $text['value1'], $text['value2']);
     }
 
     protected function tearDown(): void
@@ -73,7 +81,7 @@ class ValueConditionRewriterDbTest extends TestCase
             $this->db->rollback();
         }
         if ($this->attribute) {
-            unset($this->attribute->virtualFields['value']);
+            unset($this->attribute->virtualFields['value1'], $this->attribute->virtualFields['value2'], $this->attribute->virtualFields['value']);
         }
     }
 
@@ -102,13 +110,8 @@ class ValueConditionRewriterDbTest extends TestCase
         $this->ids['legacy'] = $this->create('domain|ip', "{$t}lg.example|192.0.2.9");
 
         $values = $this->attribute->loadAttributeValue()->internMany([' ', "{$t}x|y"]);
-        $this->exec(sprintf("UPDATE attributes SET value2 = ' ', value2_id = %d WHERE id = %d", $values[' '], $this->ids['spaced']));
-        $this->exec(sprintf(
-            "UPDATE attributes SET value1 = '%s', value1_id = %d WHERE id = %d",
-            "{$t}x|y",
-            $values["{$t}x|y"],
-            $this->ids['legacy']
-        ));
+        $this->exec(sprintf('UPDATE attributes SET value2_id = %d WHERE id = %d', $values[' '], $this->ids['spaced']));
+        $this->exec(sprintf('UPDATE attributes SET value1_id = %d WHERE id = %d', $values["{$t}x|y"], $this->ids['legacy']));
     }
 
     private function create($type, $value)
@@ -235,12 +238,19 @@ class ValueConditionRewriterDbTest extends TestCase
 
     public function testASampleOfRealValuesSelectsTheSameAttributes()
     {
+        $columns = sprintf(
+            'id, event_id, %s AS value1, %s AS value2',
+            AttributeValueTextSupport::text('attributes', 'value1'),
+            AttributeValueTextSupport::text('attributes', 'value2')
+        );
         $sample = $this->exec(
-            '(SELECT id, event_id, value1, value2 FROM attributes WHERE deleted = 0 AND id % 50021 = 7 ORDER BY id LIMIT 40)'
-            . " UNION ALL (SELECT id, event_id, value1, value2 FROM attributes WHERE deleted = 0 AND value2 <> ''"
+            "(SELECT $columns FROM attributes WHERE deleted = 0 AND id % 50021 = 7 ORDER BY id LIMIT 40)"
+            . " UNION ALL (SELECT $columns FROM attributes WHERE deleted = 0 AND value2_id IS NOT NULL"
             . ' AND id % 5003 = 11 ORDER BY id LIMIT 20)'
         );
         $this->assertNotEmpty($sample);
+        $candidates = $this->candidates(array_column($sample, 'value1'));
+        $this->assertGreaterThanOrEqual(count(array_unique(array_column($sample, 'value1'))), count($candidates));
         foreach ($sample as $row) {
             $value = $row['value2'] === '' ? $row['value1'] : $row['value1'] . '|' . $row['value2'];
             $this->assertSameRows(
@@ -249,7 +259,7 @@ class ValueConditionRewriterDbTest extends TestCase
             );
             $filter = ['OR' => [$row['value1']]];
             $this->assertSameRows(
-                ['Attribute.deleted' => 0],
+                ['Attribute.deleted' => 0, 'OR' => ['Attribute.value1_id' => $candidates, 'Attribute.value2_id' => $candidates]],
                 $this->attribute->generic_add_filter([], $filter, ['Attribute.value1', 'Attribute.value2'])
             );
         }
@@ -272,6 +282,39 @@ class ValueConditionRewriterDbTest extends TestCase
         $this->assertSame($expected, $dictionary->matchesEmpty($terms));
         $this->assertTrue($expected['  ']);
         $this->assertFalse($expected['x']);
+    }
+
+    /**
+     * The dictionary ids that equal a term, or match it where it is a
+     * pattern, in the dictionary collation or the 2.x one. Both sides of an
+     * instance-wide search can only find attributes holding one of them, so
+     * scoping both to these keeps what they find and spares a table scan per
+     * term.
+     *
+     * @param string[] $terms
+     * @return int[]
+     */
+    private function candidates(array $terms)
+    {
+        $exact = [];
+        $ids = [];
+        foreach (array_unique($terms) as $term) {
+            $quoted = $this->db->value($term, 'string');
+            if (str_starts_with($term, '%') || str_ends_with($term, '%')) {
+                $ids = array_merge($ids, array_column($this->exec(
+                    "SELECT id FROM attribute_values WHERE value LIKE $quoted OR value COLLATE utf8mb4_unicode_ci LIKE $quoted"
+                ), 'id'));
+            } else {
+                $exact[] = $quoted;
+            }
+        }
+        if (!empty($exact)) {
+            $list = implode(', ', $exact);
+            $ids = array_merge($ids, array_column($this->exec(
+                "SELECT id FROM attribute_values WHERE value IN ($list) OR value COLLATE utf8mb4_unicode_ci IN ($list)"
+            ), 'id'));
+        }
+        return array_values(array_unique(array_map('intval', $ids)));
     }
 
     private function scopeByUuid()

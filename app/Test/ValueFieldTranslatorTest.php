@@ -65,12 +65,28 @@ class ValueFieldTranslatorTest extends TestCase
         $this->assertSame([['id', 'Attribute.value1_id', 'Attribute.value2_id'], ['value']], $this->fields(['id', ' value ']));
     }
 
-    public function testTheValueColumnsNamedAlongsideAreReported()
+    public function testTheValueColumnsNamedAlongsideReadTheIdsToo()
     {
         list($fields, $keys) = $this->fields(['Attribute.value1', 'value', 'Attribute.value2', 'Attribute.value']);
 
-        $this->assertSame(['Attribute.value1', 'Attribute.value1_id', 'Attribute.value2_id', 'Attribute.value2'], $fields);
+        $this->assertSame(['Attribute.value1_id', 'Attribute.value2_id'], $fields);
         $this->assertSame(['value1', 'value2', 'value'], $keys);
+    }
+
+    public function testAValueColumnWithoutTheValueFieldReadsTheIds()
+    {
+        $this->assertSame(
+            [['Attribute.id', 'Attribute.value1_id', 'Attribute.value2_id'], ['value1']],
+            $this->fields(['Attribute.id', 'Attribute.value1'])
+        );
+        $this->assertSame(
+            [['id', 'Attribute.value1_id', 'Attribute.value2_id'], ['value1']],
+            $this->fields('id, value1')
+        );
+        $this->assertSame(
+            [['Attribute.value2_id', 'Attribute.value1_id', 'type'], ['value2']],
+            $this->fields(['Attribute.value2_id', 'value2', 'type'])
+        );
     }
 
     public function testIdsAlreadyNamedAreNotRepeated()
@@ -90,15 +106,15 @@ class ValueFieldTranslatorTest extends TestCase
         }
     }
 
-    public function testListsWithoutTheValueFieldAreLeftAlone()
+    public function testListsWithoutAValueKeyAreLeftAlone()
     {
         $expression = $this->mysql->expression('COUNT(*) AS count');
         $lists = [
-            ['Attribute.id', 'Attribute.value1'],
-            ['Event.value', 'ShadowAttribute.value', 'Attribute.values'],
+            ['Attribute.id', 'Attribute.type'],
+            ['Event.value', 'ShadowAttribute.value', 'Attribute.values', 'Event.value1'],
             'COUNT(DISTINCT value) AS count',
             [$expression],
-            'id, value1',
+            'id, value1_id',
         ];
         foreach ($lists as $list) {
             $this->assertSame([$list, null], $this->fields($list));

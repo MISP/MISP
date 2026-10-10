@@ -132,7 +132,7 @@ they are listed so nobody discovers them the hard way.
 - **Text comparison is exact.** MySQL's case-insensitive collations do not
   carry over; PostgreSQL compares text as-is.
 - **Some indexes are hash indexes.** MySQL indexes the first 255 characters of
-  `attributes.value1`, `events.info` and seven similar text columns. PostgreSQL
+  `events.info`, `galaxy_clusters.value` and two similar text columns. PostgreSQL
   has no prefix indexes, and a full-column btree would reject values longer
   than about 2.7 KB, which MISP stores routinely. Those columns carry a hash
   index instead: equality lookups, which is how they are queried, at the cost

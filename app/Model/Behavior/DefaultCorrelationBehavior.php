@@ -805,7 +805,6 @@ class DefaultCorrelationBehavior extends ModelBehavior
     {
         if (!$eventId) {
             $Model->query('TRUNCATE TABLE default_correlations;');
-            //$Model->query('TRUNCATE TABLE correlation_values;');
             //$Model->query('TRUNCATE TABLE over_correlating_values;');
         } else {
             $Model->deleteAll([

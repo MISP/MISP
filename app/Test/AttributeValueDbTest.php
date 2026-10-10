@@ -157,39 +157,30 @@ class AttributeValueDbTest extends TestCase
         }
     }
 
-    public function testAttachValuesMatchesTheTextColumns()
+    public function testAttachValuesGivesBackTheText()
     {
         $Attribute = ClassRegistry::init(['class' => 'MispAttribute', 'alias' => 'Attribute']);
-        $ids = [
-            (int)$this->scalar("SELECT id FROM attributes WHERE value2 <> '' AND deleted = 0 ORDER BY id LIMIT 1"),
-            (int)$this->scalar("SELECT id FROM attributes WHERE value2 = '' AND deleted = 0 ORDER BY id LIMIT 1"),
-        ];
-        foreach ($ids as $id) {
-            $text = $Attribute->find('first', [
-                'conditions' => ['Attribute.id' => $id],
-                'fields' => ['Attribute.id', 'Attribute.value1', 'Attribute.value2', 'Attribute.value'],
-                'recursive' => -1,
-            ]);
-            $value1Id = $this->model->intern($text['Attribute']['value1']);
-            $value2Id = $text['Attribute']['value2'] === '' ? 'NULL' : $this->model->intern($text['Attribute']['value2']);
-            $this->db->rawQuery(sprintf(
-                'UPDATE attributes SET value1_id = %d, value2_id = %s WHERE id = %d',
-                $value1Id,
-                $value2Id,
-                $id
-            ));
-
+        foreach (['value2_id IS NOT NULL', 'value2_id IS NULL'] as $where) {
+            $id = (int)$this->scalar("SELECT id FROM attributes WHERE $where AND deleted = 0 ORDER BY id LIMIT 1");
             $rows = $Attribute->find('all', [
                 'conditions' => ['Attribute.id' => $id],
                 'fields' => ['Attribute.id', 'Attribute.value1_id', 'Attribute.value2_id'],
                 'recursive' => -1,
                 'callbacks' => false,
             ]);
-            $this->assertEquals($value1Id, $rows[0]['Attribute']['value1_id']);
+            $value1 = $this->scalar(sprintf('SELECT value FROM attribute_values WHERE id = %d', $rows[0]['Attribute']['value1_id']));
+            $value2 = $rows[0]['Attribute']['value2_id'] === null
+                ? ''
+                : $this->scalar(sprintf('SELECT value FROM attribute_values WHERE id = %d', $rows[0]['Attribute']['value2_id']));
 
             $this->model->attachValues($rows, 'Attribute');
 
-            $this->assertSame($text['Attribute'], $rows[0]['Attribute']);
+            $this->assertSame([
+                'id' => (string)$id,
+                'value1' => $value1,
+                'value2' => $value2,
+                'value' => $value2 === '' ? $value1 : "$value1|$value2",
+            ], $rows[0]['Attribute']);
         }
     }
 }

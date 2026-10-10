@@ -97,6 +97,8 @@ ALLOW = [Entry(*e) for e in [
      'moves the value field of field lists and orders to the ids'),
     ('app/Test/AttributeValue*Test.php', '*',
      'value table tests: the text columns are their reference or data'),
+    ('app/Test/AttributeValue*Support.php', '*',
+     'helpers of the value table tests'),
     ('app/Test/ValueConditionRewriter*.php', '*',
      'rewriter tests: the 2.x conditions are their reference'),
     ('app/Test/ValueFieldTranslatorTest.php', '*',

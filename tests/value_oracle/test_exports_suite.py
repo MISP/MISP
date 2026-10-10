@@ -39,6 +39,9 @@ class CasesTest(unittest.TestCase):
         names = [c.name for c in build(FIXTURES)]
         self.assertEqual(len(names), len(set(names)))
 
+    def test_every_case_ignores_row_order(self):
+        self.assertTrue(all(c.unordered for c in build(FIXTURES)))
+
     def test_every_format_per_scope(self):
         by_name = {c.name for c in build(FIXTURES)}
         for fmt in exports.EVENT_FORMATS:

@@ -44,8 +44,8 @@ $saturationState = function ($percent) {
     return array('level' => 2, 'icon' => 'circle-check', 'label' => __('Healthy'), 'colour' => 'var(--bs-success)');
 };
 
-// `correlation_values` is shared by the Default and NoAcl engines and is never
-// emptied by a truncate, so it must not read as reclaimable space.
+// A table listed under more than one engine is shared, and a truncate never
+// empties it, so it must not read as reclaimable space.
 $sharedTables = array();
 foreach ($correlation_metrics['db'] as $engineData) {
     foreach (array_keys($engineData['tables']) as $tableName) {

@@ -68,6 +68,7 @@ class AttributeValueCorrelationDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/OracleBootstrap.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('AttributeValue', 'Model');
             App::uses('Correlation', 'Model');
@@ -180,7 +181,7 @@ class AttributeValueCorrelationDbTest extends TestCase
             'UPDATE attributes SET disable_correlation = 0 WHERE id IN (%s)',
             implode(', ', $enabled)
         ));
-        $this->exec(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf(
             "UPDATE attributes SET value1 = 'column-%1\$s', value2 = IF(value2 = '', '', 'column-%1\$s') WHERE id IN (%2\$s)",
             $this->token,
             implode(', ', $added)

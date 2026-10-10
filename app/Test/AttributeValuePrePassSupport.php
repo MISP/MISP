@@ -16,6 +16,9 @@ class PrePassRecordingAttributeValue extends AttributeValue
     /** @var int */
     public $statements = 0;
 
+    /** @var array[] [column, the text the save split off, the id it was given] */
+    public $assigned = [];
+
     private $baseDepth;
 
     public function __construct()
@@ -41,6 +44,11 @@ class PrePassRecordingAttributeValue extends AttributeValue
     {
         $before = $this->statements;
         parent::assignIds($row, $fields);
+        foreach (['value1', 'value2'] as $column) {
+            if (array_key_exists($column . '_id', $row)) {
+                $this->assigned[] = [$column, (string)$row[$column], $row[$column . '_id']];
+            }
+        }
         if ($this->statements > $before) {
             $this->calls[] = [
                 'phase' => 'save',

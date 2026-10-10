@@ -66,6 +66,7 @@ class AttributeValueWidgetDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/OracleBootstrap.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('CakeText', 'Utility');
             App::uses('AttributeValue', 'Model');
@@ -195,7 +196,7 @@ class AttributeValueWidgetDbTest extends TestCase
         ));
         $objectId = (int)$this->exec('SELECT LAST_INSERT_ID() AS id')[0]['id'];
         $ids[] = $this->create($first, 'text', 'LU', $objectId, 'countrycode');
-        $this->exec(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf(
             "UPDATE attributes SET value1 = '%s', value2 = IF(value2 = '', '', '%s') WHERE id IN (%s)",
             $this->columnText(),
             $this->columnText(),

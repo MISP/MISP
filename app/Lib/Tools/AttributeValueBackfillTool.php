@@ -1,5 +1,6 @@
 <?php
 App::uses('SqlDialect', 'Migration');
+App::uses('SchemaInspector', 'Migration');
 
 /**
  * Sets value1_id and value2_id on attributes and shadow_attributes from their
@@ -35,6 +36,17 @@ class AttributeValueBackfillTool
         $this->AttributeValue = $AttributeValue;
         $this->db = $AttributeValue->getDataSource();
         $this->dialect = $AttributeValue->getSqlDialect();
+    }
+
+    /**
+     * @param string $table
+     * @return bool Whether the table still has the text columns the ids are
+     *   set from and checked against, which the text-column drop removes.
+     */
+    public function hasText($table)
+    {
+        $inspector = new SchemaInspector($this->db);
+        return $inspector->hasColumn($table, 'value1') && $inspector->hasColumn($table, 'value2');
     }
 
     /**

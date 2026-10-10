@@ -2,9 +2,9 @@
 /**
  * Carries the value field of one attribute or proposal alias, which 2.x
  * computed in SQL from value1 and value2, over to the value ids. A field list
- * that names it reads the ids instead, for afterFind to fill in, and an order
- * on it sorts by the dictionary text, joined by primary key to the rows the
- * find reads.
+ * that names it, value1 or value2 reads the ids instead, for afterFind to fill
+ * in, and an order on it sorts by the dictionary text, joined by primary key
+ * to the rows the find reads.
  */
 class ValueFieldTranslator
 {
@@ -57,8 +57,7 @@ class ValueFieldTranslator
     }
 
     /**
-     * The value keys the field list named, null when it did not name the
-     * value field.
+     * The value keys the field list named, null when it named none.
      *
      * @return string[]|null
      */
@@ -89,7 +88,8 @@ class ValueFieldTranslator
                 $names[] = $this->bare($field);
             }
         }
-        if (!in_array('value', $names, true)) {
+        $named = array_values(array_intersect(self::VALUE_KEYS, $names));
+        if (empty($named)) {
             return $fields;
         }
         // Every column brings the ids, and with them all three value keys
@@ -97,7 +97,7 @@ class ValueFieldTranslator
         $translated = [];
         $added = $everyColumn;
         foreach ($list as $field) {
-            if (!is_string($field) || $this->bare($field) !== 'value') {
+            if (!is_string($field) || !in_array($this->bare($field), self::VALUE_KEYS, true)) {
                 $translated[] = $field;
             } else if (!$added) {
                 foreach (self::ID_FIELDS as $id) {
@@ -109,7 +109,7 @@ class ValueFieldTranslator
             }
         }
         if (!$everyColumn) {
-            $this->keys = array_values(array_intersect(self::VALUE_KEYS, $names));
+            $this->keys = $named;
         }
         return $translated;
     }

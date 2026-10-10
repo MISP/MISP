@@ -44,6 +44,7 @@ class AttributeValueUniquenessDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/OracleBootstrap.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('AttributeValue', 'Model');
             App::uses('CakeText', 'Utility');
@@ -103,6 +104,14 @@ class AttributeValueUniquenessDbTest extends TestCase
     {
         $this->assertFalse($saved);
         $this->assertSame([self::DUPLICATE], $this->attribute->validationErrors['value'] ?? null);
+    }
+
+    /**
+     * The value1 text of a row, as SQL in rowCount()'s conditions.
+     */
+    private function value1()
+    {
+        return AttributeValueTextSupport::text('attributes', 'value1');
     }
 
     private function rowCount($where)
@@ -167,7 +176,7 @@ class AttributeValueUniquenessDbTest extends TestCase
         $this->create('text', $value);
 
         $this->assertDuplicate($this->save('text', $value));
-        $this->assertSame(1, $this->rowCount("comment = '' AND value1 LIKE '%{$this->token}'"));
+        $this->assertSame(1, $this->rowCount("comment = '' AND {$this->value1()} LIKE '%{$this->token}'"));
     }
 
     public function testCaseAndAccentVariantsAreNotDuplicates()
@@ -178,7 +187,7 @@ class AttributeValueUniquenessDbTest extends TestCase
 
         $this->create('text', "valué {$this->token}");
         $this->create('text', "Value {$this->token}");
-        $this->assertSame(3, $this->rowCount("value1 LIKE '%{$this->token}'"));
+        $this->assertSame(3, $this->rowCount("{$this->value1()} LIKE '%{$this->token}'"));
     }
 
     public function testACompositeComparesBothParts()
@@ -259,7 +268,7 @@ class AttributeValueUniquenessDbTest extends TestCase
 
         $this->assertEmpty($errors, json_encode($errors));
         $this->assertSame($id, (int)$this->attribute->id);
-        $this->assertSame(1, $this->rowCount("value1 = '$domain'"));
+        $this->assertSame(1, $this->rowCount("{$this->value1()} = '$domain'"));
         $this->assertSame(1, $this->rowCount("id = $id AND comment = '{$this->token}'"));
     }
 
@@ -277,14 +286,14 @@ class AttributeValueUniquenessDbTest extends TestCase
 
         $this->assertEmpty($errors, json_encode($errors));
         $this->assertNotSame($id, (int)$this->attribute->id);
-        $this->assertSame(2, $this->rowCount("value1 LIKE '%{$this->token}'"));
+        $this->assertSame(2, $this->rowCount("{$this->value1()} LIKE '%{$this->token}'"));
     }
 
     public function testAPulledProposalReplacesOnlyTheOneWithItsExactValue()
     {
         $proposal = $this->proposal('text', "Valué {$this->token}");
         // Found by the ids, so the stored text is not what it compares
-        $this->db->rawQuery("UPDATE shadow_attributes SET value1 = 'column' WHERE id = {$proposal['id']}");
+        AttributeValueTextSupport::diverge($this->db, 'shadow_attributes', "UPDATE shadow_attributes SET value1 = 'column' WHERE id = {$proposal['id']}");
 
         $this->assertSame($proposal['id'], $this->oldProposal($proposal, "Valué {$this->token}"));
         foreach (["valué {$this->token}", "Value {$this->token}", "Valué {$this->token} "] as $variant) {
@@ -297,7 +306,7 @@ class AttributeValueUniquenessDbTest extends TestCase
         $key = "HKLM\\Software\\{$this->token}";
         $data = $this->proposal('regkey|value', "$key|Data");
         $empty = $this->proposal('regkey|value', "$key|");
-        $this->db->rawQuery(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'shadow_attributes', sprintf(
             "UPDATE shadow_attributes SET value1 = 'column', value2 = IF(value2 = '', '', 'column') WHERE id IN (%d, %d)",
             $data['id'],
             $empty['id']

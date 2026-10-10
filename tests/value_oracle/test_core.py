@@ -71,6 +71,28 @@ class DiffTest(unittest.TestCase):
         self.assertEqual(['$: same items, different order'],
                          core.diff([1, 2], [2, 1]))
 
+    def test_unordered_ignores_row_order_only(self):
+        def result(body):
+            return {'status': 200, 'value': {'body': body, 'count': '2'}}
+        lines = 'a,1\nb,2\nc,3'
+        moved = 'c,3\na,1\nb,2'
+        self.assertNotEqual([], core.compare_results(result(lines), result(moved)))
+        self.assertEqual([], core.compare_results(
+            result(lines), result(moved), unordered=True))
+        self.assertNotEqual([], core.compare_results(
+            result(lines), result('a,1\nb,2\nc,4'), unordered=True))
+        self.assertNotEqual([], core.compare_results(
+            result(lines), result('a,1\nb,2'), unordered=True))
+
+    def test_unordered_sorts_json_lists_at_every_depth(self):
+        a = json.dumps({'Event': {'Attribute': [
+            {'id': 1, 'Tag': [{'name': 'x'}, {'name': 'y'}]}, {'id': 2}]}})
+        b = json.dumps({'Event': {'Attribute': [
+            {'id': 2}, {'id': 1, 'Tag': [{'name': 'y'}, {'name': 'x'}]}]}})
+        self.assertEqual(core.unordered_form(a), core.unordered_form(b))
+        c = json.dumps({'Event': {'Attribute': [{'id': 2}, {'id': 3}]}})
+        self.assertNotEqual(core.unordered_form(a), core.unordered_form(c))
+
     def test_nested_and_keys(self):
         lines = core.diff({'x': {'y': 1, 'gone': 2}},
                           {'x': {'y': 3, 'new': 4}})

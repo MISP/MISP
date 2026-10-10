@@ -57,6 +57,10 @@ class AttributeValueShell extends AppShell
     {
         $tool = new AttributeValueBackfillTool($this->AttributeValue);
         foreach (self::TABLES as $table) {
+            if (!$tool->hasText($table)) {
+                $this->out(sprintf('%s: no text columns left, nothing to backfill.', $table));
+                continue;
+            }
             $start = microtime(true);
             $totals = $tool->backfill($table, $this->param('chunk-size'), $this->progress($start, function (array $totals) use ($table) {
                 return sprintf('%s: %d rows given ids, %d values added, up to id %d', $table, $totals['rows'], $totals['values'], $totals['last_id']);
@@ -117,6 +121,10 @@ class AttributeValueShell extends AppShell
         $chunkSize = $this->param('chunk-size');
         $failed = false;
         foreach (self::TABLES as $table) {
+            if (!$tool->hasText($table)) {
+                $this->out(sprintf('%s: no text columns left to check the ids against.', $table));
+                continue;
+            }
             $start = microtime(true);
             $counts = $tool->verify($table, $chunkSize, $this->progress($start, function (array $counts) use ($table) {
                 return sprintf('%s: %d rows checked', $table, $counts['total']);

@@ -40,6 +40,7 @@ class AttributeValueWritePathDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/OracleBootstrap.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('AttributeValue', 'Model');
             AttributeValue::$strictConditions = true;
@@ -102,11 +103,19 @@ class AttributeValueWritePathDbTest extends TestCase
         }, $values);
     }
 
+    /**
+     * Columns of a stored row; value1 and value2 as the ids give them back.
+     */
     private function stored($id, array $columns)
     {
+        $select = array_map(function ($column) {
+            return in_array($column, ['value1', 'value2'], true)
+                ? AttributeValueTextSupport::text('attributes', $column) . ' AS ' . $column
+                : $column;
+        }, $columns);
         $statement = $this->db->rawQuery(sprintf(
             'SELECT %s FROM attributes WHERE id = %d',
-            implode(', ', $columns),
+            implode(', ', $select),
             $id
         ));
         $row = $statement->fetch(PDO::FETCH_ASSOC);

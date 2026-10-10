@@ -57,6 +57,9 @@ class AttributeValueCorrelationGroupDbTest extends TestCase
     /** @var int[] correlation_values rows the test added */
     private $correlationValues = [];
 
+    /** @var bool whether the test created correlation_values, which the text drop removes */
+    private $createdCorrelationValues = false;
+
     /** @var array|null the remap state to put back, by setting */
     private $remapState = null;
 
@@ -79,6 +82,7 @@ class AttributeValueCorrelationGroupDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/OracleBootstrap.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('CakeText', 'Utility');
             App::uses('AttributeValue', 'Model');
@@ -151,11 +155,15 @@ class AttributeValueCorrelationGroupDbTest extends TestCase
             $this->exec("DELETE FROM attributes WHERE event_id IN ($events)");
             $this->exec("DELETE FROM events WHERE id IN ($events)");
         }
-        if (!empty($this->correlationValues)) {
-            $this->exec(sprintf('DELETE FROM correlation_values WHERE id IN (%s)', implode(', ', $this->correlationValues)));
+        if ($this->createdCorrelationValues) {
+            $this->exec('DROP TABLE IF EXISTS correlation_values');
+        } elseif (!empty($this->exec("SHOW TABLES LIKE 'correlation_values'"))) {
+            if (!empty($this->correlationValues)) {
+                $this->exec(sprintf('DELETE FROM correlation_values WHERE id IN (%s)', implode(', ', $this->correlationValues)));
+            }
+            // Rows the 2.x write path would add
+            $this->exec(sprintf("DELETE FROM correlation_values WHERE value LIKE '%%%s%%'", $this->token));
         }
-        // Rows the 2.x write path would add
-        $this->exec(sprintf("DELETE FROM correlation_values WHERE value LIKE '%%%s%%'", $this->token));
         if ($this->remapState !== null) {
             $AdminSetting = ClassRegistry::init('AdminSetting');
             foreach ($this->remapState as $setting => $value) {
@@ -244,7 +252,7 @@ class AttributeValueCorrelationGroupDbTest extends TestCase
         }
         $ids = implode(', ', $this->ids);
         $this->exec("UPDATE attributes SET disable_correlation = 0 WHERE id IN ($ids)");
-        $this->exec("UPDATE attributes SET value1 = 'column-$t', value2 = IF(value2 = '', '', 'column-$t') WHERE id IN ($ids)");
+        AttributeValueTextSupport::diverge($this->db, 'attributes', "UPDATE attributes SET value1 = 'column-$t', value2 = IF(value2 = '', '', 'column-$t') WHERE id IN ($ids)");
         $this->hideTextColumns();
     }
 
@@ -464,6 +472,11 @@ class AttributeValueCorrelationGroupDbTest extends TestCase
         $long = "$t-" . str_repeat('L', 200);
         $cut = mb_substr("$long-a", 0, 191);
         $this->assertSame($cut, mb_substr("$long-b", 0, 191), 'the two long values share their first 191 characters');
+        if (empty($this->exec("SHOW TABLES LIKE 'correlation_values'"))) {
+            // As 2.x left it: an upgraded instance remaps before the text drop
+            $this->exec('CREATE TABLE correlation_values (id int(10) UNSIGNED NOT NULL AUTO_INCREMENT, value varchar(191) NOT NULL, PRIMARY KEY (id), UNIQUE INDEX value (value)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+            $this->createdCorrelationValues = true;
+        }
         $cv = [];
         foreach (['remap' => "$t-Remap", 'cut' => $cut, 'mixed' => "$t-MIXED"] as $key => $text) {
             $this->exec(sprintf("INSERT INTO correlation_values (value) VALUES (_utf8mb4 X'%s')", bin2hex($text)));

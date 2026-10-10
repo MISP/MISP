@@ -58,6 +58,7 @@ class AttributeValuePayloadDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/AttributePayloadOracleSupport.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('CakeText', 'Utility');
             App::uses('AttributeValue', 'Model');
@@ -153,7 +154,7 @@ class AttributeValuePayloadDbTest extends TestCase
         $this->ids['proposal'] = (int)$this->shadow->id;
         $this->expected['proposal'] = [$ip, '443', "$ip|443"];
 
-        $this->exec(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf(
             "UPDATE attributes SET value1 = '%s', value2 = IF(value2 = '', '', '%s') WHERE id IN (%d, %d, %d)",
             $this->columnText(),
             $this->columnText(),
@@ -161,7 +162,7 @@ class AttributeValuePayloadDbTest extends TestCase
             $this->ids['composite'],
             $this->ids['pipe_in_text']
         ));
-        $this->exec(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'shadow_attributes', sprintf(
             "UPDATE shadow_attributes SET value1 = '%s', value2 = '%s' WHERE id = %d",
             $this->columnText(),
             $this->columnText(),

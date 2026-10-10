@@ -65,6 +65,7 @@ class AttributeValueOverCorrelationDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/OracleBootstrap.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('CakeText', 'Utility');
             App::uses('AttributeValue', 'Model');
@@ -157,7 +158,18 @@ class AttributeValueOverCorrelationDbTest extends TestCase
                 $this->exec("DELETE FROM attribute_values WHERE id IN ($ids)");
             }
         }
-        $this->exec(sprintf("DELETE FROM over_correlating_values WHERE value LIKE '%s%%'", $this->token));
+        if ($this->hasTextKey()) {
+            $this->exec(sprintf("DELETE FROM over_correlating_values WHERE value LIKE '%s%%'", $this->token));
+        }
+    }
+
+    /**
+     * Whether over_correlating_values still has its 2.x text key, which the
+     * text-column drop removes.
+     */
+    private function hasTextKey()
+    {
+        return !empty($this->exec("SHOW COLUMNS FROM over_correlating_values LIKE 'value'"));
     }
 
     /**
@@ -225,7 +237,7 @@ class AttributeValueOverCorrelationDbTest extends TestCase
         unset($enabled['t_disabled']);
         $this->exec(sprintf('UPDATE attributes SET disable_correlation = 0 WHERE id IN (%s)', implode(', ', $enabled)));
         $this->exec(sprintf('UPDATE attributes SET deleted = 1 WHERE id = %d', $this->ids['t2_deleted']));
-        $this->exec(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf(
             "UPDATE attributes SET value1 = 'column-%1\$s', value2 = IF(value2 = '', '', 'column-%1\$s') WHERE id IN (%2\$s)",
             $t,
             implode(', ', $this->ids)
@@ -284,7 +296,7 @@ class AttributeValueOverCorrelationDbTest extends TestCase
     private function rowsOf($value)
     {
         return $this->exec(sprintf(
-            "SELECT o.id, o.value_id, o.value, o.occurrence FROM over_correlating_values o JOIN attribute_values v ON v.id = o.value_id WHERE v.value = _utf8mb4'%s'",
+            "SELECT o.id, o.value_id, o.occurrence FROM over_correlating_values o JOIN attribute_values v ON v.id = o.value_id WHERE v.value = _utf8mb4'%s'",
             $value
         ));
     }
@@ -299,7 +311,10 @@ class AttributeValueOverCorrelationDbTest extends TestCase
         $rows = $this->rowsOf("$t-blocked");
         $this->assertCount(1, $rows);
         $this->assertSame($this->idOf("$t-Blocked"), (int)$rows[0]['value_id']);
-        $this->assertNull($rows[0]['value'], 'the text key is no longer written');
+        if ($this->hasTextKey()) {
+            $stored = $this->exec(sprintf('SELECT value FROM over_correlating_values WHERE id = %d', $rows[0]['id']));
+            $this->assertNull($stored[0]['value'], 'the text key is no longer written');
+        }
 
         $model = $this->overCorrelating();
         $this->db->getLog(false, true);
@@ -370,6 +385,10 @@ class AttributeValueOverCorrelationDbTest extends TestCase
     public function testAStoredTextKeyIsRemapped()
     {
         $t = $this->token;
+        if (!$this->hasTextKey()) {
+            $this->assertSame(0, $this->overCorrelating()->remapValueIds(), 'without the text key there is nothing to remap');
+            return;
+        }
         $this->exec("INSERT INTO over_correlating_values (value, occurrence) VALUES ('$t-blocked', 0), ('$t-unknown', 0)");
         $this->overCorrelating()->remapValueIds();
         $rows = array_column($this->exec("SELECT value, value_id FROM over_correlating_values WHERE value LIKE '$t%'"), 'value_id', 'value');

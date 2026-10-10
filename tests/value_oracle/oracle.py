@@ -151,7 +151,7 @@ def compare_suite(name, config, args, baseline, current_store, client, save,
             totals['NEW'] += 1
             print('NEW  %s/%s (no baseline)' % (name, case.name))
             continue
-        lines = core.compare_results(base, current)
+        lines = core.compare_results(base, current, case.unordered)
         if lines:
             totals['DIFF'] += 1
             print('DIFF %s/%s' % (name, case.name))

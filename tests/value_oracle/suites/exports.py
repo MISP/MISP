@@ -18,6 +18,10 @@ Normalisation of every body:
   openioc's 12-hour header dates) are masked.
 - xlsx bodies are unzipped and recorded per member.
 
+Bodies are compared without their row order (core.unordered_form): the event
+fetch reads attributes in whichever index's order the optimizer picks, which
+2.x never fixed and which moves when indexes change.
+
 opendata is not recorded: it publishes to an external portal. HANGS lists
 cases that never complete on 2.x. ProcessTool::execute() reads a converter's
 stdout to EOF before its stderr, so a converter that reports more than a pipe
@@ -194,5 +198,6 @@ def cases(config):
                         export_body(fmt), method='POST', user=user,
                         accept=ACCEPT.get(fmt, 'application/json'),
                         body={'eventid': event_id, 'returnFormat': fmt},
-                        description='%s export of event %s' % (fmt, event_id)))
+                        description='%s export of event %s' % (fmt, event_id),
+                        unordered=True))
     return out

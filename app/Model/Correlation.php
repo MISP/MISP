@@ -5,7 +5,6 @@ App::uses('ValueFacetTool', 'Tools');
 /**
  * @property MispAttribute $Attribute
  * @property Event $Event
- * @property CorrelationValue $CorrelationValue
  * @method saveCorrelations(array $correlations)
  * @method createCorrelationEntry(string $value, array $a, array $b)
  * @method runBeforeSaveCorrelation(array $attribute)
@@ -34,11 +33,7 @@ class Correlation extends AppModel
         'Event' => array(
             'className' => 'Event',
             'foreignKey' => 'event_id'
-        ),
-        'CorrelationValue' => [
-            'className' => 'CorrelationValue',
-            'foreignKey' => 'value_id'
-        ]
+        )
     );
 
     public $validEngines = [
@@ -1254,9 +1249,6 @@ class Correlation extends AppModel
                     'tables' => [
                         'default_correlations' => [
                             'id_limit' => 4294967295
-                        ],
-                        'correlation_values' => [
-                            'id_limit' => 4294967295
                         ]
                     ]
                 ],
@@ -1264,9 +1256,6 @@ class Correlation extends AppModel
                     'name' => __('No ACL correlation engine'),
                     'tables' => [
                         'no_acl_correlations' => [
-                            'id_limit' => 4294967295
-                        ],
-                        'correlation_values' => [
                             'id_limit' => 4294967295
                         ]
                     ]

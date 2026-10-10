@@ -45,6 +45,7 @@ class AttributeValuePrePassDbTest extends TestCase
             App::uses('ClassRegistry', 'Utility');
             App::uses('AttributeValue', 'Model');
             require_once __DIR__ . '/AttributeValuePrePassSupport.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             AttributeValue::$strictConditions = true;
             self::$booted = true;
         }
@@ -108,10 +109,15 @@ class AttributeValuePrePassDbTest extends TestCase
     }
 
     /**
-     * Rows whose ids are not the dictionary's ids for their stored text.
+     * Rows whose ids are not the dictionary's ids for their text: the stored
+     * text while the text columns exist, after that the text their save split
+     * off, which the recorder kept.
      */
     private function mismatched($table, $where)
     {
+        if (!AttributeValueTextSupport::present($this->db, $table)) {
+            return $this->mismatchedOnTheSavedText($table, $where);
+        }
         $statement = $this->db->rawQuery(sprintf(
             'SELECT t.id FROM %s t
              LEFT JOIN attribute_values v1 ON v1.id = t.value1_id
@@ -127,6 +133,34 @@ class AttributeValuePrePassDbTest extends TestCase
         $ids = $statement->fetchAll(PDO::FETCH_COLUMN);
         $statement->closeCursor();
         return $ids;
+    }
+
+    private function mismatchedOnTheSavedText($table, $where)
+    {
+        $given = ['value1' => [], 'value2' => []];
+        foreach ($this->recorder->assigned as list($column, $text, $id)) {
+            if ($id === null ? $text === '' : $this->dictionaryText($id) === $text) {
+                $given[$column][(string)$id] = true;
+            }
+        }
+        $statement = $this->db->rawQuery("SELECT t.id, t.value1_id, t.value2_id FROM $table t WHERE $where");
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        $statement->closeCursor();
+        $ids = [];
+        foreach ($rows as $row) {
+            if (!isset($given['value1'][(string)$row['value1_id']]) || !isset($given['value2'][(string)$row['value2_id']])) {
+                $ids[] = $row['id'];
+            }
+        }
+        return $ids;
+    }
+
+    private function dictionaryText($id)
+    {
+        $statement = $this->db->rawQuery(sprintf('SELECT value FROM attribute_values WHERE id = %d', $id));
+        $text = $statement->fetchColumn();
+        $statement->closeCursor();
+        return $text;
     }
 
     private function rowCount($table, $where)
@@ -227,7 +261,13 @@ class AttributeValuePrePassDbTest extends TestCase
             exec('rm -rf ' . escapeshellarg($directory));
         }
 
-        $where = sprintf("t.event_id = %d AND t.value1 IN ('%s.txt', 'format-%s')", $this->event['Event']['id'], $this->token, $this->token);
+        $where = sprintf(
+            "t.event_id = %d AND %s IN ('%s.txt', 'format-%s')",
+            $this->event['Event']['id'],
+            AttributeValueTextSupport::text('t', 'value1'),
+            $this->token,
+            $this->token
+        );
         $this->assertSame(2, $this->rowCount('attributes t', $where));
         $this->assertSame([], $this->mismatched('attributes', $where));
         $this->assertPrimedOutsideTransactions(1);
@@ -337,7 +377,12 @@ class AttributeValuePrePassDbTest extends TestCase
 
         $this->assertTrue($this->attribute->saveAttributes($rows, $this->user()));
 
-        $where = sprintf("t.event_id = %d AND t.value1 IN ('sa-%s.example.org', '198.51.100.82')", $this->event['Event']['id'], $this->token);
+        $where = sprintf(
+            "t.event_id = %d AND %s IN ('sa-%s.example.org', '198.51.100.82')",
+            $this->event['Event']['id'],
+            AttributeValueTextSupport::text('t', 'value1'),
+            $this->token
+        );
         $this->assertSame(2, $this->rowCount('attributes t', $where));
         $this->assertSame([], $this->mismatched('attributes', $where));
         $this->assertPrimedOutsideTransactions(1);
@@ -470,11 +515,15 @@ class AttributeValuePrePassDbTest extends TestCase
             $ids = $this->recorder->internMany($parts);
             // A row stored before the normalisation existed
             $this->db->rawQuery(sprintf(
-                "UPDATE attributes SET value1 = '%s', value2 = '%s', value1_id = %d, value2_id = %s WHERE id = %d",
-                $parts[0],
-                $parts[1] ?? '',
+                'UPDATE attributes SET value1_id = %d, value2_id = %s WHERE id = %d',
                 $ids[$parts[0]],
                 isset($parts[1]) ? $ids[$parts[1]] : 'NULL',
+                $id
+            ));
+            AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf(
+                "UPDATE attributes SET value1 = '%s', value2 = '%s' WHERE id = %d",
+                $parts[0],
+                $parts[1] ?? '',
                 $id
             ));
             $planted[$id] = [$long, $normalized];
@@ -503,7 +552,12 @@ class AttributeValuePrePassDbTest extends TestCase
         $this->assertSame($planted, $ours);
         $this->assertSame([], $this->mismatched('attributes', $where));
         foreach ($planted as $id => list($long, $normalized)) {
-            $statement = $this->db->rawQuery("SELECT CONCAT_WS('|', value1, NULLIF(value2, '')) FROM attributes WHERE id = $id");
+            $statement = $this->db->rawQuery(sprintf(
+                "SELECT CONCAT_WS('|', %s, NULLIF(%s, '')) FROM attributes WHERE id = %d",
+                AttributeValueTextSupport::text('attributes', 'value1'),
+                AttributeValueTextSupport::text('attributes', 'value2'),
+                $id
+            ));
             $this->assertSame($normalized, $statement->fetchColumn());
             $statement->closeCursor();
         }

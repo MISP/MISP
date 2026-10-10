@@ -57,6 +57,7 @@ class AttributeValueExportDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/OracleBootstrap.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('CakeText', 'Utility');
             App::uses('AttributeValue', 'Model');
@@ -153,7 +154,7 @@ class AttributeValueExportDbTest extends TestCase
             $this->assertNotFalse($saved, json_encode($this->attribute->validationErrors));
             $ids[] = (int)$this->attribute->id;
         }
-        $this->exec(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf(
             "UPDATE attributes SET value1 = '%s', value2 = IF(value2 = '', '', '%s') WHERE id IN (%s)",
             $this->columnText(),
             $this->columnText(),

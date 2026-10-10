@@ -74,6 +74,7 @@ class AttributeValueFilterDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/OracleBootstrap.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('AttributeValue', 'Model');
             App::uses('CakeText', 'Utility');
@@ -152,7 +153,7 @@ class AttributeValueFilterDbTest extends TestCase
             self::OBJECT_ID,
             $this->ids['object']
         ));
-        $this->exec(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf(
             "UPDATE attributes SET value1 = 'column-%1\$s', value2 = IF(value2 = '', '', 'column-%1\$s') WHERE id IN (%2\$s)",
             $t,
             implode(', ', $this->ids)
@@ -217,7 +218,7 @@ class AttributeValueFilterDbTest extends TestCase
         foreach ($specs as $name => $spec) {
             $added[] = $this->ids[$name] = $this->create(...$spec);
         }
-        $this->exec(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf(
             "UPDATE attributes SET value1 = 'column-%1\$s', value2 = IF(value2 = '', '', 'column-%1\$s') WHERE id IN (%2\$s)",
             $this->token,
             implode(', ', $added)
@@ -273,7 +274,7 @@ class AttributeValueFilterDbTest extends TestCase
             $this->assertNotFalse($saved, json_encode($proposal->validationErrors));
             $ids[$name] = (int)$proposal->id;
         }
-        $this->exec(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'shadow_attributes', sprintf(
             "UPDATE shadow_attributes SET value1 = 'column-%1\$s', value2 = IF(value2 = '', '', 'column-%1\$s') WHERE id IN (%2\$s)",
             $this->token,
             implode(', ', $ids)
@@ -367,6 +368,25 @@ class AttributeValueFilterDbTest extends TestCase
         ]));
         sort($ids);
         return $ids;
+    }
+
+    /**
+     * A read that no hook carries to the ids reads the text columns: their
+     * diverged text while they exist, an unknown column once they are dropped.
+     */
+    private function assertReadsTheTextColumns($table, callable $read, array $whileTheyExist)
+    {
+        if (AttributeValueTextSupport::present($this->db, $table)) {
+            $this->assertSame($whileTheyExist, $read());
+            return;
+        }
+        try {
+            $read();
+        } catch (PDOException $e) {
+            $this->assertStringContainsString('Unknown column', $e->getMessage());
+            return;
+        }
+        $this->fail('A read of the dropped text columns returned rows');
     }
 
     private function eventIds(array $params)
@@ -464,8 +484,10 @@ class AttributeValueFilterDbTest extends TestCase
             $this->select(['Attribute.value1 !=' => "$t.example.org"])
         );
         $this->assertSame($this->ids('domain'), $this->select(['Attribute.value1' => "$t.example.org"], 'before'));
-        // Without callbacks there is no beforeFind, and the stored text no longer matches
-        $this->assertSame([], $this->select(['Attribute.value1' => "$t.example.org"], false));
+        // Without callbacks there is no beforeFind
+        $this->assertReadsTheTextColumns('attributes', function () use ($t) {
+            return $this->select(['Attribute.value1' => "$t.example.org"], false);
+        }, []);
     }
 
     public function testTheAttributeScopeValueFilterMatchesOnTheIds()
@@ -735,8 +757,10 @@ class AttributeValueFilterDbTest extends TestCase
         $condition = ['LOWER(Attribute.value1) LIKE' => "column-{$this->token}"];
 
         AttributeValue::$strictConditions = false;
-        // Left on the text columns, which still hold the diverged text
-        $this->assertSame($this->ids(...array_keys($this->ids)), $this->select($condition));
+        // Left on the text columns
+        $this->assertReadsTheTextColumns('attributes', function () use ($condition) {
+            return $this->select($condition);
+        }, $this->ids(...array_keys($this->ids)));
 
         AttributeValue::$strictConditions = true;
         $this->expectException('ValueConditionException');
@@ -811,7 +835,7 @@ class AttributeValueFilterDbTest extends TestCase
             $this->assertNotFalse($saved, json_encode($proposal->validationErrors));
             $ids[] = (int)$proposal->id;
         }
-        $this->exec(sprintf(
+        AttributeValueTextSupport::diverge($this->db, 'shadow_attributes', sprintf(
             "UPDATE shadow_attributes SET value1 = 'column', value2 = IF(value2 = '', '', 'column') WHERE id IN (%s)",
             implode(', ', $ids)
         ));
@@ -864,7 +888,9 @@ class AttributeValueFilterDbTest extends TestCase
         $this->assertSame([$ids['regkey']], $select(['ShadowAttribute.value' => "HKLM\\Software\\x|{$t}prop-data"]));
         $this->assertSame([$ids['text'], $ids['regkey']], $select(['ShadowAttribute.value1 !=' => "{$t}other"]));
         $this->assertSame([$ids['text']], $select(['ShadowAttribute.value1' => "{$t}prop text"], 'before'));
-        $this->assertSame([], $select(['ShadowAttribute.value1' => "{$t}prop text"], false));
+        $this->assertReadsTheTextColumns('shadow_attributes', function () use ($select, $t) {
+            return $select(['ShadowAttribute.value1' => "{$t}prop text"], false);
+        }, []);
 
         // Every proposal find is bounded: an unanchored pattern is checked per row
         $this->clearLog();

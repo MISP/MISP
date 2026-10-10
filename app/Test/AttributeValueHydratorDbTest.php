@@ -52,6 +52,7 @@ class AttributeValueHydratorDbTest extends TestCase
                 $this->markTestSkipped('Needs its own process: run this file alone.');
             }
             require_once __DIR__ . '/OracleBootstrap.php';
+            require_once __DIR__ . '/AttributeValueTextSupport.php';
             App::uses('ClassRegistry', 'Utility');
             App::uses('AppModel', 'Model');
             require_once __DIR__ . '/AttributeValueHydratorSupport.php';
@@ -145,7 +146,7 @@ class AttributeValueHydratorDbTest extends TestCase
 
         foreach (['attributes' => ['standalone', 'composite', 'domain', 'text'], 'shadow_attributes' => ['proposal']] as $table => $names) {
             foreach ($names as $name) {
-                $this->exec(sprintf(
+                AttributeValueTextSupport::diverge($this->db, $table, sprintf(
                     "UPDATE %s SET value1 = '%s', value2 = IF(value2 = '', '', '%s') WHERE id = %d",
                     $table,
                     $this->columnText(),

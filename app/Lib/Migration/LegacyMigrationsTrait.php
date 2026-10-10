@@ -492,9 +492,6 @@ trait LegacyMigrationsTrait
                     'idx_attr_acl_type' => '(event_id, distribution, sharing_group_id, deleted, type(16))',
                     'idx_attr_type_ts' => '(type(16), timestamp)',
                     'idx_attr_type_event' => '(type(16), event_id)',
-                    'idx_attr_value_combo' => '(value1(64), value2(64))',
-                    'idx_attr_value1_only' => '(value1(64))',
-                    'idx_attr_value2_only' => '(value2(64))',
                     'idx_attr_obj_dist' => '(object_id, distribution)',
                     'idx_attr_evt_dist' => '(event_id, distribution)',
                     'idx_attr_objrel_acl' => '(object_relation(32), event_id, distribution, sharing_group_id, deleted)',
@@ -662,26 +659,6 @@ trait LegacyMigrationsTrait
                 ];
                 foreach ($indices as $index => $data) {
                     if (!$this->checkNamedIndexExists('logs', $index)) {
-                        $temp .= " ADD INDEX $index $data,";
-                        $notEmpty = true;
-                    }
-                }
-                if ($notEmpty) {
-                    $temp = rtrim($temp, ',') . " ;";
-                    $sqlArray[] = $temp;
-                }
-                break;
-            case 'OnDemandCorrelationTuning':
-                $temp = "ALTER TABLE attributes";
-                $notEmpty = false;
-                $indices = [
-                    'idx_val1_source' => '(event_id, value1(64), deleted, disable_correlation, type, id)',
-                    'idx_val1_target' => '(value1(64), event_id, deleted, disable_correlation, type, id)',
-                    'idx_val2_source' => '(event_id, value2(64), deleted, disable_correlation, type, id)',
-                    'idx_val2_target' => '(value2(64), event_id, deleted, disable_correlation, type, id)'
-                ];
-                foreach ($indices as $index => $data) {
-                    if (!$this->checkNamedIndexExists('attributes', $index)) {
                         $temp .= " ADD INDEX $index $data,";
                         $notEmpty = true;
                     }
