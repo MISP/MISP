@@ -129,9 +129,9 @@ A few things are deliberately not what MySQL has. None of them need action;
 they are listed so nobody discovers them the hard way.
 
 - **Flags are boolean.** Every `tinyint(1)` column is `boolean` on PostgreSQL.
-  The application still sees `"1"` and `"0"` — the datasource sees to that —
-  but hand-written SQL against those columns must say `TRUE` / `FALSE`, not
-  `1` / `0`.
+  The application sees PHP booleans, as it does on MySQL — the datasource sees
+  to that — but hand-written SQL against those columns must say `TRUE` /
+  `FALSE`, not `1` / `0`.
 - **Text comparison is exact, except for attribute values.** MySQL's
   case-insensitive collations do not carry over; PostgreSQL compares text
   as-is. Attribute values are the exception: searching and correlating them
