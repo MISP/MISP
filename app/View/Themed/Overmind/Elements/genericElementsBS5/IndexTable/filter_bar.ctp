@@ -364,7 +364,7 @@ $activeTotal = count(array_diff_key(
                 id="viewList"
                 type="button"
                 class="btn btn-outline-primary active"
-                title="Table View"
+                title="<?= h(__('Table View')) ?>"
             >
                 <i class="fas fa-list"></i>
             </button>
@@ -372,7 +372,7 @@ $activeTotal = count(array_diff_key(
                 id="viewCard"
                 type="button"
                 class="btn btn-outline-primary"
-                title="Card View"
+                title="<?= h(__('Card View')) ?>"
             >
                 <i class="fas fa-th"></i>
             </button>

@@ -142,7 +142,7 @@ foreach ($data as $row) {
     $chip = sprintf(
         '<span class="misp-health-chip misp-health-chip-%s">%s</span>',
         h($sev),
-        h(__($sev === 'danger' ? 'fail' : 'warn'))
+        h(($sev === 'danger' ? __('fail') : __('warn')))
     );
 
     $inner = $label . '<span class="misp-health-chips">' . $chip . '</span>';

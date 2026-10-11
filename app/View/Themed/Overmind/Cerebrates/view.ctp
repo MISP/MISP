@@ -30,7 +30,7 @@
                 'id' => 'organisations',
                 'title' => __('Organisations'),
                 'icon' => 'fas fa-building-user',
-                'description' => 'Preview of the organisations known to the remote Cerebrate instance.',
+                'description' => __('Preview of the organisations known to the remote Cerebrate instance.'),
                 //'count' => $tag_count ?? 0,
 
                 // Content
@@ -44,7 +44,7 @@
                 'id' => 'sgs',
                 'title' => __('Sharing Groups'),__('.'),
                 'icon' => 'fas fa-share-alt',
-                'description' => 'Preview of the sharing groups known to the remote Cerebrate instance',
+                'description' => __('Preview of the sharing groups known to the remote Cerebrate instance'),
                 //'count' => $tag_count ?? 0,
 
                 // Content

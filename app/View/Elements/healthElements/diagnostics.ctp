@@ -563,7 +563,7 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
         $sessionColours = array(0 => 'green', 1 => 'red', 2 => 'orange', 3 => 'red', 9 => 'red');
         $colour = $sessionColours[$sessionStatus['error_code']];
         echo sprintf('<p><b>%s:</b> %s</p>', __('Session handler'), $sessionStatus['handler']);
-        echo sprintf('<span style="color:%s;">%s</span>', $colour, __($sessionErrors[$sessionStatus['error_code']]));
+        echo sprintf('<span style="color:%s;">%s</span>', $colour, $sessionErrors[$sessionStatus['error_code']]);
         if($sessionStatus['handler'] === 'database'){
             echo sprintf('<br><span style="color:%s;">%s: %s</span>',$colour, __('Expired sessions'), $sessionStatus['expired_count']);
             if ($sessionStatus['error_code'] === 1){

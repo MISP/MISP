@@ -227,7 +227,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search by warninglist name',
+                        'placeholder' => __('Search by warninglist name'),
                         'name'        => 'value',
                         'mode'        => 'legacy',
                     ],

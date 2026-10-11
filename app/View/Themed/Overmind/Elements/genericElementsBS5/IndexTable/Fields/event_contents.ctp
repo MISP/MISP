@@ -25,7 +25,7 @@ $corrCount = (int)Hash::get($event, 'correlation_count', 0);
     <?php if ($corrCount !== 0): ?>
         <a class="d-inline-flex align-items-center fw-bold text-nowrap text-decoration-none text-correlation" href="<?= $this->Html->url(['action' => 'view2', $event['id']]) ?>#tab-correlation">
             <i class="fas fa-link me-1"></i>
-            <span><?= h($corrCount) ?> Correlations</span>
+            <span><?= h($corrCount) ?> <?= h(__('Correlations')) ?></span>
         </a>
     <?php endif; ?>
 

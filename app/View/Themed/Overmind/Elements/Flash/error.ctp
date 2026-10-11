@@ -1,5 +1,5 @@
 <div class="alert alert-danger alert-dismissible fade show m-2" role="alert">
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="<?= h(__('Close')) ?>"></button>
     <?php
         $message = h($message);
         if (strpos('$flashErrorMessage', $message) >= 0 && $this->Session->read('flashErrorMessage')) {

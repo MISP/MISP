@@ -80,7 +80,7 @@
                     'novalidate' => true
                 ]);
                 ?>
-                <h4 class="mb-3 fw-semibold" style="color: #28191B;">Sign in</h4>
+                <h4 class="mb-3 fw-semibold" style="color: #28191B;"><?= h(__('Sign in')) ?></h4>
 
                 <!-- Email -->
                 <div class="form-floating mb-3">

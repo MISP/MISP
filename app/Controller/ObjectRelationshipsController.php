@@ -328,9 +328,9 @@ class ObjectRelationshipsController extends AppController
         $this->layout = false;
 
         $actionTextMap = [
-            'enabled' => $state ? 'enable' : 'disable',
-            'required' => $state ? 'require' : 'make optional',
-            'highlighted' => $state ? 'highlight' : 'remove highlight on',
+            'enabled' => $state ? __('enable') : __('disable'),
+            'required' => $state ? __('require') : __('make optional'),
+            'highlighted' => $state ? __('highlight') : __('remove highlight on'),
         ];
 
         $urlMap = [
@@ -339,7 +339,7 @@ class ObjectRelationshipsController extends AppController
             'highlighted' => $state ? 'massHighlight' : 'massRemovehighlight',
         ];
 
-        $this->set('actionText', __($actionTextMap[$field]));
+        $this->set('actionText', $actionTextMap[$field]);
         $this->set('idArray', $ids);
         $this->set('state', $state);
         // The confirmation form carries the list back in ObjectRelationship.id - a

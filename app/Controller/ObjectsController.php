@@ -690,7 +690,7 @@ class ObjectsController extends AppController
         }
 
         if (empty($element)) {
-            throw new NotFoundException(__("Object template do not contains object relation $object_relation"));
+            throw new NotFoundException(__('Object template does not contain object relation %s', $object_relation));
         }
 
         $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());

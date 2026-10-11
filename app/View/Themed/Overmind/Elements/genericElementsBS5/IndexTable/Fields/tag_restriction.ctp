@@ -45,7 +45,7 @@ if (!empty($user['email'])) {
                 <?= $item['icon'] ?>
 
                 <?php if ($isCard): ?>
-                    <span>Restricted to</span>
+                    <span><?= h(__('Restricted to')) ?></span>
                 <?php endif; ?>
 
                 <?php if (!empty($item['is_org'])): ?>
