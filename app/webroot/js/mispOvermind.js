@@ -17,7 +17,9 @@ function updateDarkModeUI(isDark) {
         icon.className = 'fa-fw dark-mode-icon fas ' + (isDark ? 'fa-sun' : 'fa-moon');
     });
     document.querySelectorAll('.dark-mode-badge').forEach(function(badge) {
-        badge.textContent = isDark ? 'ON' : 'OFF';
+        badge.textContent = isDark
+            ? (badge.dataset.onLabel ?? 'ON')
+            : (badge.dataset.offLabel ?? 'OFF');
         badge.className = 'badge ms-2 dark-mode-badge ' + (isDark ? 'bg-success' : 'bg-secondary');
     });
 }

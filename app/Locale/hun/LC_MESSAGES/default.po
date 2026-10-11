@@ -22008,12 +22008,13 @@ msgid "Contact your MISP administrator to set MISP.enable_themes to 1."
 msgstr ""
 
 #: View/Elements/global_menu.ctp:264
+#: View/Themed/Overmind/Elements/navbar_nav.ctp:78
 #: View/Themed/UiBeta/Elements/global_menu.ctp:692
 msgid "ON"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:264
-#: View/Themed/Overmind/Elements/navbar_nav.ctp:77
+#: View/Themed/Overmind/Elements/navbar_nav.ctp:79
 #: View/Themed/UiBeta/Elements/global_menu.ctp:692
 msgid "OFF"
 msgstr ""

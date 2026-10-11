@@ -64,7 +64,9 @@ The `cake` and `cake_dev` templates contain application calls in those domains;
 The source pass makes natural-language search placeholders, Cerebrate preview
 help, flash/modal close buttons, pagination labels, table/card controls, login,
 footer, API tab labels, and shared card/field labels extractable. Distribution
-labels and descriptions now use literal translation calls. Mass-action verbs,
+labels and descriptions now use literal translation calls. Dark-mode badges
+receive both translated state labels through HTML data attributes, so startup
+and toggles retain localized wording. Mass-action verbs,
 health status labels, the TOTP delete label and an interpolated object-template
 error also now extract correctly. Identifier values, URLs, hashes, JSON samples,
 relationship IDs, date-format tokens and protocol names remain literal.
