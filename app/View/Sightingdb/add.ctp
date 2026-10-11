@@ -29,6 +29,14 @@
                     'class' => 'input-xxlarge'
                 ),
                 array(
+                    'field' => 'api_key',
+                    'label' => __('API key'),
+                    'class' => 'input-xxlarge',
+                    'type' => 'password',
+                    'autocomplete' => 'new-password',
+                    'placeholder' => $this->request->params['action'] === 'edit' ? __('Leave empty to keep the current key') : __('Leave empty if the SightingDB does not require one')
+                ),
+                array(
                     'field' => 'owner',
                     'class' => 'input-xxlarge'
                 ),

@@ -146,6 +146,26 @@ echo $this->Form->create('Sightingdb', [
                     ]) ?>
                     <?= $serverError('owner') ?>
                 </div>
+                <div class="col-md-7">
+                    <label class="form-label text-muted mb-1" for="SightingdbApiKey"
+                           style="font-size:.75rem;">
+                        <i class="fas fa-key me-1" style="font-size:.7rem;"></i>
+                        <?= __('API key') ?>
+                    </label>
+                    <?= $this->Form->password('api_key', [
+                        'id' => 'SightingdbApiKey',
+                        'class' => 'form-control font-monospace',
+                        'placeholder' => $isEdit
+                            ? __('Leave empty to keep the current key')
+                            : __('Leave empty if the SightingDB does not require one'),
+                        'autocomplete' => 'new-password',
+                        'value' => '',
+                    ]) ?>
+                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                        'text' => __('Sent as the Authorization header on every query.'),
+                    ]) ?>
+                    <?= $serverError('api_key') ?>
+                </div>
             </div>
         </div>
 

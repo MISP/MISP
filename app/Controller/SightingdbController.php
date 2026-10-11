@@ -52,11 +52,18 @@ class SightingdbController extends AppController
     public function edit($id)
     {
         $params = [
-            'fields' => ['host', 'port', 'description', 'name', 'owner', 'enabled', 'skip_proxy', 'ssl_skip_verification', 'namespace'],
+            'fields' => ['host', 'port', 'description', 'name', 'owner', 'enabled', 'skip_proxy', 'ssl_skip_verification', 'namespace', 'api_key'],
             'contain' => ['SightingdbOrg.org_id'],
             'redirect' => ['action' => 'index'],
             'afterFind' => function ($data) {
                 return $this->Sightingdb->extractOrgIds($data);
+            },
+            'beforeSave' => function ($data) {
+                // The form never shows the stored key, so an empty one means "keep it"
+                if (empty($this->request->data['Sightingdb']['api_key']) && empty($this->request->data['api_key'])) {
+                    unset($data['Sightingdb']['api_key']);
+                }
+                return $data;
             },
             'afterSave' => function ($data) {
                 if (isset($this->request->data['Sightingdb']['org_id'])) {
@@ -71,6 +78,7 @@ class SightingdbController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        unset($this->request->data['Sightingdb']['api_key'], $this->viewVars['entity']['Sightingdb']['api_key']);
         $orgs = $this->Sightingdb->SightingdbOrg->Organisation->find('list', [
             'conditions' => ['Organisation.local' => 1],
             'order' => ['LOWER(Organisation.name)'],
@@ -126,6 +134,10 @@ class SightingdbController extends AppController
                     }
                     unset($element);
                 }
+                foreach ($data as &$element) {
+                    unset($element['Sightingdb']['api_key']);
+                }
+                unset($element);
                 return $this->Sightingdb->extractOrgIdsFromList($data);
             }
         ];

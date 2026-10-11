@@ -255,6 +255,9 @@ class Sightingdb extends AppModel
                 'Content-Type' => 'application/json'
             )
         );
+        if (!empty($sightingdb['Sightingdb']['api_key'])) {
+            $request['header']['Authorization'] = $sightingdb['Sightingdb']['api_key'];
+        }
         try {
             $response = $HttpSocket->post(
                 sprintf(
