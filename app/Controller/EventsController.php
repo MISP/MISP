@@ -1547,14 +1547,13 @@ class EventsController extends AppController
         $sightingsData = $this->Event->Sighting->eventsStatistic([$event], $user);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, $all, $sightingsData);
-        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+        if (Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->loadModel('Sightingdb');
             $event = $this->Sightingdb->attachToEvent($event, $this->Auth->user());
         }
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
         $this->set('includeOrgColumn', (isset($conditions['extended']) || isset($conditions['extending']) || $containsProposals));
-        $this->set('includeSightingdb', (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')));
         $this->set('deleted', isset($filters['deleted']) && $filters['deleted'] != 0);
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
@@ -1574,7 +1573,7 @@ class EventsController extends AppController
             $this->request->here = implode('/', $uriArray);
         }
 
-        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+        if (Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($user));
         }
         $this->set('currentUri', $this->request->here);
@@ -1748,7 +1747,7 @@ class EventsController extends AppController
         $sightingsData = $this->Sighting->eventsStatistic([$event], $user);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, false, $sightingsData);
-        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+        if (Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->loadModel('Sightingdb');
             $event = $this->Sightingdb->attachToEvent($event, $user);
         }
@@ -1795,11 +1794,10 @@ class EventsController extends AppController
             }
         }
 
-        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+        if (Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($user));
         }
         $this->set('includeOrgColumn', $this->viewVars['extended'] || $this->viewVars['extending'] || $containsProposals);
-        $this->set('includeSightingdb', !empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable'));
         $this->set('relatedEventCorrelationCount', $relatedEventCorrelationCount);
         $this->set('oldest_timestamp', $oldestTimestamp === PHP_INT_MAX ? false : $oldestTimestamp);
         $this->set('missingTaxonomies', $this->Event->missingTaxonomies($event));
@@ -1861,7 +1859,6 @@ class EventsController extends AppController
             $cortex_modules = $this->Module->getEnabledModules($user, false, 'Cortex');
             $this->set('cortex_modules', $cortex_modules);
         }
-        $this->set('sightingsDbEnabled', (bool)Configure::read('Plugin.Sightings_sighting_db_enable'));
     }
 
     public function view($id = null, $continue = false, $fromEvent = null)

@@ -252,7 +252,7 @@ $objectId = intval($object['id']);
   </td>
   <td colspan="2"></td>
   <?php
-    $paddedFields = array('includeSightingdb', 'includeDecayScore');
+    $paddedFields = array('includeDecayScore');
     foreach ($paddedFields as $paddedField) {
         if (!empty(${$paddedField})) {
             echo '<td>&nbsp;</td>';

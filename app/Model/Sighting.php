@@ -656,6 +656,47 @@ class Sighting extends AppModel
     }
 
     /**
+     * Add counts to the Sighting and False-positive columns of a CSV produced by
+     * generateSparkline() with false-positives. The date range grows to cover
+     * the new counts, within the configured maximum range.
+     *
+     * @param string $csv
+     * @param array $counts Keyed by 'sighting' and/or 'false-positive', then by Y-m-d
+     * @return string
+     */
+    public function mergeCountsIntoCsv($csv, array $counts)
+    {
+        $lines = array_values(array_filter(explode('\n', $csv), 'strlen'));
+        $header = array_shift($lines);
+        $rows = [];
+        foreach ($lines as $line) {
+            list($date, $sighting, $falsePositive) = array_pad(explode(',', $line), 3, 0);
+            $rows[$date] = ['sighting' => (int)$sighting, 'false-positive' => (int)$falsePositive];
+        }
+        $rangeStart = date('Y-m-d', $this->getMaximumRange());
+        foreach ($counts as $type => $days) {
+            foreach ($days as $date => $count) {
+                if ($date < $rangeStart) {
+                    continue;
+                }
+                if (!isset($rows[$date])) {
+                    $rows[$date] = ['sighting' => 0, 'false-positive' => 0];
+                }
+                $rows[$date][$type] += $count;
+            }
+        }
+        ksort($rows);
+        $result = $header . '\n';
+        $today = strtotime(date('Y-m-d'));
+        for ($date = strtotime(array_key_first($rows)); $date <= $today; $date += self::ONE_DAY) {
+            $day = date('Y-m-d', $date);
+            $row = $rows[$day] ?? ['sighting' => 0, 'false-positive' => 0];
+            $result .= $day . ',' . $row['sighting'] . ',' . $row['false-positive'] . '\n';
+        }
+        return $result;
+    }
+
+    /**
      * @param array $sparklineData
      * @param bool $csvWithFalsePositive
      * @return array
@@ -921,7 +962,7 @@ class Sighting extends AppModel
         if (empty($filters)) {
             $attributes = $this->Attribute->fetchAttributesSimple($user, [
                 'conditions' => $conditions,
-                'fields' => ['Attribute.id', 'Attribute.event_id'],
+                'fields' => ['Attribute.id', 'Attribute.event_id', 'Attribute.value'],
             ]);
         } else {
             if (!empty($values)) {
@@ -937,6 +978,7 @@ class Sighting extends AppModel
             return 'No valid attributes found that match the criteria.';
         }
         $sightingsAdded = 0;
+        $toPush = [];
         foreach ($attributes as $attribute) {
             if ($type === '2') {
                 // remove existing expiration by the same org if it exists
@@ -964,9 +1006,20 @@ class Sighting extends AppModel
                 return json_encode($this->validationErrors);
             }
             ++$sightingsAdded;
+            // An expiration is a date, not something SightingDB can count
+            if (in_array((int)$type, [0, 1], true) && isset($attribute['Attribute']['value'])) {
+                $toPush[] = [
+                    'value' => $attribute['Attribute']['value'],
+                    'timestamp' => is_numeric($timestamp) ? (int)$timestamp : (strtotime((string)$timestamp) ?: time()),
+                    'type' => (int)$type,
+                ];
+            }
             if ($publish) {
                 $this->Event->publishSightingsRouter($sighting['event_id'],  $user);
             }
+        }
+        if (!empty($toPush)) {
+            ClassRegistry::init('Sightingdb')->pushSightings($toPush, $user);
         }
         return $sightingsAdded;
     }

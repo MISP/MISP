@@ -218,16 +218,6 @@
                         'onClickParams' => array('includeDecayScore')
                     ),
                     array(
-                        'id' => 'show_attribute_sightingdb',
-                        'title' => __('Show SightingDB lookup results'),
-                        'fa-icon' => 'binoculars',
-                        'text' => __('SightingDB'),
-                        'active' => !empty($includeSightingdb),
-                        'onClick' => 'toggleBoolFilter',
-                        'onClickParams' => array('includeSightingdb'),
-                        'requirement' => $sightingsDbEnabled,
-                    ),
-                    array(
                         'id' => 'show_attribute_context',
                         'title' => __('Show attribute context fields'),
                         'fa-icon' => 'info-circle',

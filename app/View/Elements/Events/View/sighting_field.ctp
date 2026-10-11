@@ -1,8 +1,29 @@
 <?php
 $objectId = intval($object['id']);
 $html = '';
-if (isset($sightingsData['data'][$objectId])) {
-    $objectSighting = $sightingsData['data'][$objectId];
+$objectSighting = $sightingsData['data'][$objectId] ?? [];
+// What each SightingDB has counted, as one more source of sightings and false-positives
+foreach ($object['Sightingdb'] ?? [] as $hit) {
+    $source = $sightingdbs[$hit['sightingdb_id']]['Sightingdb']['name'] ?? __('SightingDB');
+    if (stripos($source, 'sightingdb') === false) {
+        $source .= ' (SightingDB)';
+    }
+    $counts = [
+        'sighting' => empty($hit['count']) ? null : $hit,
+        'false-positive' => $hit['false_positive'] ?? null,
+    ];
+    foreach ($counts as $type => $typeHit) {
+        if (empty($typeHit['count'])) {
+            continue;
+        }
+        if (!isset($objectSighting[$type])) {
+            $objectSighting[$type] = ['count' => 0, 'orgs' => []];
+        }
+        $objectSighting[$type]['count'] += $typeHit['count'];
+        $objectSighting[$type]['orgs'][$source] = ['count' => $typeHit['count'], 'date' => $typeHit['last_seen']];
+    }
+}
+if (!empty($objectSighting)) {
     foreach ($objectSighting as $type => $typeData) {
         $name = $type !== 'expiration' ? Inflector::pluralize($type) : $type;
         $html .= '<span class="blue bold">' . ucfirst(h($name)) . '</span><br>';

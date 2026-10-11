@@ -25,6 +25,13 @@ class SightingdbController extends AppController
     {
         $params = [
             'redirect' => ['action' => 'index'],
+            'beforeSave' => function ($data) {
+                // Not given at all, as over the API: false-positives get a namespace of their own
+                if (!array_key_exists('false_positive_namespace', $data['Sightingdb']) && !empty($data['Sightingdb']['namespace'])) {
+                    $data['Sightingdb']['false_positive_namespace'] = $data['Sightingdb']['namespace'] . '/false-positive';
+                }
+                return $data;
+            },
             'afterSave' => function ($data) {
                 if (isset($this->request->data['Sightingdb']['org_id'])) {
                     $this->Sightingdb->SightingdbOrg->resetOrgs(
@@ -52,7 +59,7 @@ class SightingdbController extends AppController
     public function edit($id)
     {
         $params = [
-            'fields' => ['host', 'port', 'description', 'name', 'owner', 'enabled', 'skip_proxy', 'ssl_skip_verification', 'namespace', 'api_key'],
+            'fields' => ['host', 'port', 'description', 'name', 'owner', 'enabled', 'push_sightings', 'skip_proxy', 'ssl_skip_verification', 'namespace', 'false_positive_namespace', 'api_key'],
             'contain' => ['SightingdbOrg.org_id'],
             'redirect' => ['action' => 'index'],
             'afterFind' => function ($data) {
@@ -152,9 +159,9 @@ class SightingdbController extends AppController
     {
         $result = $this->Sightingdb->requestStatus($id);
         if (is_array($result)) {
-            return $this->RestResponse->viewData($result, $this->response->type());
+            return $this->RestResponse->viewData($result, 'json');
         } else {
-            return $this->RestResponse->saveFailResponse('Sightingdb', 'requestStatus', $id, $result, $this->response->type());
+            return $this->RestResponse->saveFailResponse('Sightingdb', 'requestStatus', $id, $result, 'json');
         }
     }
 
@@ -175,18 +182,21 @@ class SightingdbController extends AppController
             $requestValue = trim($this->request->data['value']);
             $result = $this->Sightingdb->queryValues(array($requestValue => array()), $sightingdb);
             if (!empty($result[$requestValue][$sightingdb['Sightingdb']['id']])) {
-                $result = $result[$requestValue][$sightingdb['Sightingdb']['id']];
-                $result = array(
-                    'first_seen' => date('Y-m-d H:i:s', $result['first_seen']),
-                    'last_seen' => date('Y-m-d H:i:s', $result['last_seen']),
-                    'count' => $result['count']
-                );
+                $hit = $result[$requestValue][$sightingdb['Sightingdb']['id']];
+                $result = array('count' => $hit['count']);
+                if (!empty($hit['count'])) {
+                    $result['first_seen'] = date('Y-m-d H:i:s', $hit['first_seen']);
+                    $result['last_seen'] = date('Y-m-d H:i:s', $hit['last_seen']);
+                }
+                if (!empty($hit['false_positive'])) {
+                    $result['false_positives'] = $hit['false_positive']['count'];
+                }
             } else {
                 $result = array('count' => 0);
             }
         } else {
             $result = array('count' => 0);
         }
-        return $this->RestResponse->viewData($result, $this->response->type());
+        return $this->RestResponse->viewData($result, 'json');
     }
 }

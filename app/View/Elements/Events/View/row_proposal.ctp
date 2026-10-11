@@ -152,7 +152,7 @@
   <td class="shortish">&nbsp;</td>
   <td class="short">&nbsp;</td>
   <?php
-    $paddedFields = array('includeSightingdb', 'includeDecayScore');
+    $paddedFields = array('includeDecayScore');
     foreach ($paddedFields as $paddedField) {
         if (!empty(${$paddedField})) {
             echo '<td>&nbsp;</td>';

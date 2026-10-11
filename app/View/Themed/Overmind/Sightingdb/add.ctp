@@ -11,6 +11,12 @@ $options = [
         'icon' => 'fas fa-power-off', 'accent' => '#198754',
     ],
     [
+        'field' => 'push_sightings', 'id' => 'SightingdbPushSightings',
+        'label' => __('Push sightings'),
+        'hint' => __('Write sightings recorded here to it, hashed, under <namespace>/misp'),
+        'icon' => 'fas fa-upload', 'accent' => '#0d6efd',
+    ],
+    [
         'field' => 'skip_proxy', 'id' => 'SightingdbSkipProxy',
         'label' => __('Skip proxy'),
         'hint' => __('Reach it directly, ignoring the configured proxy'),
@@ -130,6 +136,19 @@ echo $this->Form->create('Sightingdb', [
                         'autocomplete' => 'off',
                     ]) ?>
                     <?= $serverError('namespace') ?>
+                </div>
+                <div class="col-md-7">
+                    <label class="form-label text-muted mb-1" for="SightingdbFalsePositiveNamespace"
+                           style="font-size:.75rem;">
+                        <?= __('False-positive namespace') ?>
+                    </label>
+                    <?= $this->Form->text('false_positive_namespace', [
+                        'id' => 'SightingdbFalsePositiveNamespace',
+                        'class' => 'form-control font-monospace',
+                        'placeholder' => __('Left empty, false-positives are left out'),
+                        'autocomplete' => 'off',
+                    ]) ?>
+                    <?= $serverError('false_positive_namespace') ?>
                 </div>
                 <div class="col-md-5">
                     <label class="form-label text-muted mb-1" for="SightingdbOwner"
@@ -290,5 +309,19 @@ echo $this->Form->create('Sightingdb', [
         if (field) { field.addEventListener('input', refreshPreview); }
     });
     refreshPreview();
+
+    /* Follow the namespace with <namespace>/false-positive until edited by hand */
+    var falsePositiveEl = el('SightingdbFalsePositiveNamespace');
+    if (namespaceEl && falsePositiveEl) {
+        var follows = falsePositiveEl.value === ''
+            || falsePositiveEl.value === namespaceEl.value + '/false-positive';
+        falsePositiveEl.addEventListener('input', function () { follows = false; });
+        namespaceEl.addEventListener('input', function () {
+            if (follows) {
+                var namespace = namespaceEl.value.trim();
+                falsePositiveEl.value = namespace ? namespace + '/false-positive' : '';
+            }
+        });
+    }
 })();
 </script>

@@ -348,11 +348,6 @@
           echo $this->element('/Events/View/sighting_field', array(
             'object' => $object,
           ));
-          if (!empty($includeSightingdb)) {
-              echo $this->element('/Events/View/sightingdb_field', array(
-                'object' => $object,
-              ));
-          }
           if (!empty($includeDecayScore)): ?>
               <td class="decayingScoreField">
                     <div class="inline-field-solid">
