@@ -1390,7 +1390,7 @@ class AttributeValue extends AppModel
         $this->holdsStopwords = !empty($rows);
         if (!$this->holdsStopwords) {
             CakeLog::write('warning', sprintf(
-                'value_search: the FULLTEXT index of %1$s holds none of the words "%2$s". Either no value has them, or the index was built with InnoDB\'s stopword list (a table rebuild in a session with innodb_ft_enable_stopword on does that), and searches leave every stopword to a slower check. To rebuild it without: SET SESSION innodb_ft_enable_stopword = 0; ALTER TABLE %1$s DROP INDEX value_search; ALTER TABLE %1$s ADD FULLTEXT INDEX value_search (value);',
+                'value_search: the FULLTEXT index of %1$s holds none of the words "%2$s". Either no value has them, or the index was built with InnoDB\'s stopword list (a table rebuild in a session with innodb_ft_enable_stopword on does that), and searches leave every stopword to a slower check. To rebuild it without: SET SESSION innodb_ft_enable_stopword = 0; ALTER TABLE %1$s FORCE;',
                 $this->useTable,
                 self::STOPWORD_PROBE
             ));
