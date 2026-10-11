@@ -2,7 +2,8 @@
 /**
  * The OnDemand correlation engine matches an event's values on the dictionary
  * ids: one self-join per pair of value columns, through the dictionary for the
- * case variants, with no temporary table and the text from the dictionary.
+ * case variants, each distinct value of the event looked up once, with no
+ * temporary table and the text from the dictionary.
  * The tests create their own events, hide the text columns from every
  * attribute model and point the stored text away from the dictionary, so a
  * read left on them finds the wrong rows.
@@ -26,6 +27,8 @@ class AttributeValueOnDemandDbTest extends TestCase
     ];
 
     const ADMIN = ['id' => 1, 'Role' => ['perm_site_admin' => 1]];
+
+    const PASS = '/JOIN attributes AS source ON/';
 
     private static $booted = false;
 
@@ -215,11 +218,24 @@ class AttributeValueOnDemandDbTest extends TestCase
             't2_two' => ['target2', 'text', "$t-two"],
             's_empty' => ['source', 'text', "$t-empty-s"],
             't_empty' => ['target', 'text', "$t-empty-t"],
+            't_rep' => ['target', 'text', "$t-rep"],
+            // Object attributes, which may repeat a value in an event
+            's_rep_comment' => ['source', 'comment', "$t-rep", 'comment'],
+            's_rep_deleted' => ['source', 'text', "$t-rep", 'text'],
+            's_rep_quiet' => ['source', 'text', "$t-rep", 'text'],
+            // Deleted, not correlating, of a type that never correlates: never looked up
+            's_gone' => ['source', 'text', "$t-gone"],
+            's_quiet' => ['source', 'text', "$t-quiet"],
+            's_note' => ['source', 'comment', "$t-note"],
         ];
+        foreach (range(1, 5) as $i) {
+            $specs["s_rep$i"] = ['source', 'text', "$t-rep", 'text'];
+        }
         foreach ([$ip, "$prefix::8"] as $value) {
             $this->newValues[] = $value;
         }
-        foreach ($specs as $name => list($event, $type, $value)) {
+        foreach ($specs as $name => $spec) {
+            list($event, $type, $value) = $spec;
             foreach (explode('|', $value) as $part) {
                 if (stripos($part, $t) !== false) {
                     $this->newValues[] = $part;
@@ -234,13 +250,24 @@ class AttributeValueOnDemandDbTest extends TestCase
                 'distribution' => 5,
                 'to_ids' => 0,
                 'disable_correlation' => 1,
+                'object_relation' => $spec[3] ?? null,
             ]]);
             $this->assertNotFalse($saved, $name . ': ' . json_encode($this->attribute->validationErrors));
             $this->ids[$name] = (int)$this->attribute->id;
         }
         $ids = implode(', ', $this->ids);
         $this->exec("UPDATE attributes SET disable_correlation = 0 WHERE id IN ($ids)");
-        $this->exec(sprintf('UPDATE attributes SET deleted = 1 WHERE id = %d', $this->ids['t2_deleted']));
+        $this->exec(sprintf(
+            'UPDATE attributes SET deleted = 1 WHERE id IN (%d, %d, %d)',
+            $this->ids['t2_deleted'],
+            $this->ids['s_rep_deleted'],
+            $this->ids['s_gone']
+        ));
+        $this->exec(sprintf(
+            'UPDATE attributes SET disable_correlation = 1 WHERE id IN (%d, %d)',
+            $this->ids['s_quiet'],
+            $this->ids['s_rep_quiet']
+        ));
         AttributeValueTextSupport::diverge($this->db, 'attributes', sprintf(
             "UPDATE attributes SET value1 = 'column-%1\$s', value2 = IF(value2 = '', '', 'column-%1\$s') WHERE id IN (%2\$s)",
             $t,
@@ -300,13 +327,7 @@ class AttributeValueOnDemandDbTest extends TestCase
      */
     private function collect()
     {
-        Configure::write('MISP.correlation_engine', 'OnDemand');
-        $correlation = new Correlation();
-        $correlation->Attribute;
-        $this->hideTextColumns();
-        $behavior = $correlation->Behaviors->OnDemandCorrelation;
-        // Cake set it up with the model registered as Correlation, whose exclusions an earlier test read
-        $behavior->setup($correlation, ['deadlockAvoidance' => false]);
+        $behavior = $this->behavior();
         $cache = new ReflectionProperty($behavior, 'correlationCache');
         $cache->setAccessible(true);
         $cache->setValue($behavior, []);
@@ -325,6 +346,18 @@ class AttributeValueOnDemandDbTest extends TestCase
         return $out;
     }
 
+    private function behavior()
+    {
+        Configure::write('MISP.correlation_engine', 'OnDemand');
+        $correlation = new Correlation();
+        $correlation->Attribute;
+        $this->hideTextColumns();
+        $behavior = $correlation->Behaviors->OnDemandCorrelation;
+        // Cake set it up with the model registered as Correlation, whose exclusions an earlier test read
+        $behavior->setup($correlation, ['deadlockAvoidance' => false]);
+        return $behavior;
+    }
+
     private function statements($pattern)
     {
         $out = [];
@@ -339,7 +372,7 @@ class AttributeValueOnDemandDbTest extends TestCase
     /**
      * @param int $limit The per-value limit: it counts the pairs found before
      *   any filter, so the IP's 4 (two sources, a target in the disabled
-     *   event) go at 3 and below, the 3 of "many" at 2.
+     *   event) go at 3 and below, the 3 of "many" at 2, the 5 of "rep" at 4.
      * @return string[]
      */
     private function expected($limit = 20)
@@ -363,6 +396,11 @@ class AttributeValueOnDemandDbTest extends TestCase
             $expected[] = "s_comp1 -> t_comp: {$this->value('t_comp', 1)}";
             $expected[] = "s_comp2 -> t_comp: {$this->value('t_comp', 1)}";
         }
+        if ($limit >= 5) {
+            foreach (range(1, 5) as $i) {
+                $expected[] = "s_rep$i -> t_rep: $t-rep";
+            }
+        }
         sort($expected);
         return $expected;
     }
@@ -380,7 +418,7 @@ class AttributeValueOnDemandDbTest extends TestCase
     public function testTheEventCorrelatesOnTheIds()
     {
         $this->assertSame($this->expected(), $this->collect());
-        $passes = $this->statements('/FROM attributes AS source/');
+        $passes = $this->statements(self::PASS);
         $this->assertCount(4, $passes);
         foreach ($passes as $pass) {
             $this->assertRegExp('/JOIN attribute_values AS target_value ON target_value\.value = source_value\.value/', $pass);
@@ -405,6 +443,48 @@ class AttributeValueOnDemandDbTest extends TestCase
     {
         Configure::write('MISP.max_correlations_per_event', 3);
         $this->assertLessThanOrEqual(3, count($this->collect()));
-        $this->assertCount(1, $this->statements('/FROM attributes AS source/'), 'the first pass uses the budget up');
+        $this->assertCount(1, $this->statements(self::PASS), 'the first pass uses the budget up');
+    }
+
+    public function testEachValueOfTheEventIsLookedUpOnce()
+    {
+        if (stripos($this->exec('SELECT VERSION() AS v')[0]['v'], 'mariadb') === false) {
+            $this->markTestSkipped('ANALYZE FORMAT=JSON is MariaDB syntax.');
+        }
+        $behavior = $this->behavior();
+        $pass = new ReflectionMethod($behavior, '__passQuery');
+        $pass->setAccessible(true);
+        $source = $this->events['source'];
+        // The ports of s_port are primary only: its value2 is not looked up either
+        $skipped = [
+            'value1_id' => MispAttribute::NON_CORRELATING_TYPES,
+            'value2_id' => array_merge(MispAttribute::NON_CORRELATING_TYPES, MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES),
+        ];
+        $repeats = ['value1_id' => 4, 'value2_id' => 1];
+        foreach ($skipped as $column => $types) {
+            $counts = $this->exec(sprintf(
+                "SELECT COUNT(%1\$s) AS n, COUNT(DISTINCT %1\$s) AS d FROM attributes
+                WHERE event_id = %2\$d AND deleted = 0 AND disable_correlation = 0 AND type NOT IN ('%3\$s')",
+                $column,
+                $source,
+                implode("', '", $types)
+            ))[0];
+            $this->assertEquals($repeats[$column], $counts['n'] - $counts['d'], "$column: the fixture repeats values");
+            $sql = str_replace('?', (string)$source, $pass->invoke($behavior, $column, 'value1_id', 5000));
+            $plan = json_decode(current($this->exec('ANALYZE FORMAT=JSON ' . $sql)[0]), true);
+            $loops = null;
+            $find = function ($node) use (&$find, &$loops) {
+                if (isset($node['table_name']) && $node['table_name'] === 'source_value') {
+                    $loops = $node['r_loops'];
+                }
+                foreach ($node as $child) {
+                    if (is_array($child)) {
+                        $find($child);
+                    }
+                }
+            };
+            $find($plan);
+            $this->assertEquals($counts['d'], $loops, "$column: one dictionary lookup per distinct value, not per attribute");
+        }
     }
 }

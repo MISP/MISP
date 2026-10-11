@@ -162,7 +162,7 @@ class OnDemandCorrelationBehavior extends ModelBehavior
             }
             $chunk = $this->Correlation->Attribute->query(
                 $this->__passQuery($sourceColumn, $targetColumn, $max_correlations),
-                [$eventId, $eventId]
+                [$eventId, $eventId, $eventId]
             );
             $max_correlations -= count($chunk);
             foreach ($chunk as $row) {
@@ -204,10 +204,13 @@ class OnDemandCorrelationBehavior extends ModelBehavior
      * event, one source column against one target column. A side reading
      * value2 takes only the types whose value2 correlates.
      *
+     * Each distinct value is looked up once, then joined back to the event's
+     * attributes; STRAIGHT_JOIN keeps that order, the optimizer undoes it.
+     *
      * @param string $sourceColumn value1_id or value2_id
      * @param string $targetColumn value1_id or value2_id
      * @param int $limit
-     * @return string
+     * @return string Binds the event id three times
      */
     private function __passQuery($sourceColumn, $targetColumn, $limit)
     {
@@ -215,20 +218,35 @@ class OnDemandCorrelationBehavior extends ModelBehavior
             $types = $column === 'value2_id' ? $this->value2CorrelatingTypes : $this->correlatingTypes;
             return "'" . implode("', '", $types) . "'";
         };
+        $excluded = function ($column) {
+            $Attribute = $this->Correlation->Attribute;
+            $types = $Attribute::NON_CORRELATING_TYPES;
+            if ($column === 'value2_id') {
+                $types = array_merge($types, $Attribute::PRIMARY_ONLY_CORRELATING_TYPES);
+            }
+            return "'" . implode("', '", $types) . "'";
+        };
         return sprintf(
-            "SELECT
+            "SELECT STRAIGHT_JOIN
                 target.id AS id,
                 target.event_id AS event_id,
                 target_value.value AS value,
                 target.type AS type,
                 target.%2\$s AS value_id,
                 source.id AS source_id
-            FROM attributes AS source
-            JOIN attribute_values AS source_value ON source_value.id = source.%1\$s
+            FROM (
+                SELECT DISTINCT %1\$s AS id
+                FROM attributes
+                WHERE
+                    event_id = ? AND deleted = 0 AND disable_correlation = 0
+                    AND type NOT IN (%6\$s) AND %1\$s IS NOT NULL
+            ) AS source_ids
+            JOIN attribute_values AS source_value ON source_value.id = source_ids.id
             JOIN attribute_values AS target_value ON target_value.value = source_value.value
             JOIN attributes AS target ON target.%2\$s = target_value.id
+            JOIN attributes AS source ON source.event_id = ? AND source.%1\$s = source_ids.id
             WHERE
-                source.event_id = ? AND target.event_id != ?
+                target.event_id != ?
                 AND source.deleted = 0 AND target.deleted = 0
                 AND source.disable_correlation = 0 AND target.disable_correlation = 0
                 AND source_value.value <> ''
@@ -239,7 +257,8 @@ class OnDemandCorrelationBehavior extends ModelBehavior
             $targetColumn,
             $types($sourceColumn),
             $types($targetColumn),
-            $limit
+            $limit,
+            $excluded($sourceColumn)
         );
     }
 
