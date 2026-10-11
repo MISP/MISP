@@ -23,20 +23,24 @@ attributes/restSearch (includeCorrelations). Then it deletes the event.
 Scratch attributes are relabelled with their fixture names and the scratch
 event as <scratch>; everything is recorded as sorted sets.
 
-The correlation exclusions must be cached in Redis (oracle.py restore
-rebuilds them). Each case clears the Redis CIDR list before and after, since
-deleting an event leaves its CIDRs in it. teardown() restores the engine and
+Each case clears the Redis CIDR list before and after, since deleting an
+event leaves its CIDRs in it. teardown() restores the engine and
 MISP.enable_advanced_correlations.
+
+The rows and over-correlation entries are read with the mysql client, or with
+psql when the restore settings name the PostgreSQL instance ("engine":
+"pgsql", a "pgsql" host/user/database, the password from PGPASSWORD).
 """
 
 import hashlib
 import ipaddress
 import json
+import subprocess
 import unicodedata
 import uuid
 
 from core import Case, Client, OracleError
-from restore import EXCLUSIONS_KEY, Restorer
+from restore import Restorer
 from suites import correlations
 from suites.restsearch import load_fixtures
 
@@ -153,17 +157,45 @@ def ensure_advanced(client):
         STATE['advanced_changed'] = True
 
 
-def check_exclusions(db):
-    """Exclusions are read from Redis only and never re-cached lazily: a
-    missing set silently changes what correlates."""
-    stored = {bytes.fromhex(h) for h in db.query(
-        'SELECT HEX(value) FROM correlation_exclusions').split()}
-    cached = {m for m in db.redis('SMEMBERS', EXCLUSIONS_KEY).split(b'\n')
-              if m}
-    if cached != stored:
-        raise OracleError(
-            'Redis %s holds %d values, the table %d: run oracle.py restore'
-            % (EXCLUSIONS_KEY, len(cached), len(stored)))
+class Postgres:
+    """The PostgreSQL instance, through psql and redis-cli."""
+    flavour = 'pgsql'
+
+    def __init__(self, settings):
+        self.s = settings
+
+    def query(self, sql):
+        pg = self.s['pgsql']
+        return subprocess.run(
+            ['psql', '-X', '-q', '-At', '-F', '\t', '-P', 'null=NULL',
+             '-h', pg['host'], '-U', pg['user'], '-d', pg['database'],
+             '-c', sql], capture_output=True, check=True).stdout.decode()
+
+    def redis(self, *args):
+        return subprocess.run(
+            ['redis-cli', '-n', str(self.s['redis_db'])] + list(args),
+            capture_output=True, check=True).stdout
+
+
+def database(config):
+    if config.restore.get('engine') == 'pgsql':
+        return Postgres(config.restore)
+    return Restorer(config.restore, log=lambda *a: None)
+
+
+def flavour(db):
+    return getattr(db, 'flavour', 'mysql')
+
+
+def hex_of(db, column):
+    if flavour(db) == 'pgsql':
+        return "upper(encode(convert_to(%s, 'UTF8'), 'hex'))" % column
+    return 'HEX(%s)' % column
+
+
+def column_name(db, name):
+    """Quoted on PostgreSQL, which needs it for 1_event_id and its kin."""
+    return '"%s"' % name if flavour(db) == 'pgsql' else name
 
 
 def literal(value, charset):
@@ -245,11 +277,12 @@ class Scratch:
     def rows(self, db, table):
         columns = COLUMNS[table]
         found = db.query(
-            'SELECT %s, HEX(v.value) FROM %s c '
+            'SELECT %s, %s FROM %s c '
             'LEFT JOIN attribute_values v ON v.id = c.value_id '
-            'WHERE c.event_id = %d OR c.1_event_id = %d' % (
-                ', '.join('c.' + c for c in columns), table,
-                int(self.event_id), int(self.event_id)))
+            'WHERE c.event_id = %d OR c.%s = %d' % (
+                ', '.join('c.' + column_name(db, c) for c in columns),
+                hex_of(db, 'v.value'), table, int(self.event_id),
+                column_name(db, '1_event_id'), int(self.event_id)))
         out = []
         for line in found.splitlines():
             fields = line.split('\t')
@@ -329,11 +362,18 @@ def flatten(entries):
 def over_correlating(db, values):
     if not values:
         return []
+    if flavour(db) == 'pgsql':
+        # PostgreSQL folds case only, as the application does there
+        condition = 'lower(b.value) IN (%s)' % ', '.join(
+            "lower(convert_from('\\x%s'::bytea, 'UTF8'))" % v.encode().hex()
+            for v in values)
+    else:
+        condition = 'b.value IN (%s)' % ', '.join(
+            literal(v, 'utf8mb4') for v in values)
     found = db.query(
-        'SELECT HEX(b.value), o.occurrence FROM over_correlating_values o '
-        'JOIN attribute_values b ON b.id = o.value_id '
-        'WHERE b.value IN (%s)' % ', '.join(
-            literal(v, 'utf8mb4') for v in values))
+        'SELECT %s, o.occurrence FROM over_correlating_values o '
+        'JOIN attribute_values b ON b.id = o.value_id WHERE %s' % (
+            hex_of(db, 'b.value'), condition))
     return sorted('%s (occurrence %s)' % (
         json.dumps(bytes.fromhex(h).decode(), ensure_ascii=False), n)
         for h, n in (line.split('\t') for line in found.splitlines()))
@@ -341,8 +381,7 @@ def over_correlating(db, values):
 
 def engine_case(label, engine, table, config):
     def run(client):
-        db = Restorer(config.restore, log=lambda *a: None)
-        check_exclusions(db)
+        db = database(config)
         correlations.switch_engine(client, engine)
         ensure_advanced(client)
         value = {'settings': {

@@ -2203,7 +2203,8 @@ class MispAttribute extends AppModel
                 implode(' OR ', $exists)
             );
             foreach ($db->fetchAll($sql, [], ['cache' => false]) as $row) {
-                $visible[] = (int)$row['AttributeValue']['id'];
+                // Under the table alias on MySQL, under 0 on PostgreSQL
+                $visible[] = (int)array_merge(...array_values($row))['id'];
             }
             if (count($visible) >= $limit) {
                 break;

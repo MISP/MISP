@@ -132,8 +132,13 @@ they are listed so nobody discovers them the hard way.
   The application still sees `"1"` and `"0"` — the datasource sees to that —
   but hand-written SQL against those columns must say `TRUE` / `FALSE`, not
   `1` / `0`.
-- **Text comparison is exact.** MySQL's case-insensitive collations do not
-  carry over; PostgreSQL compares text as-is.
+- **Text comparison is exact, except for attribute values.** MySQL's
+  case-insensitive collations do not carry over; PostgreSQL compares text
+  as-is. Attribute values are the exception: searching and correlating them
+  ignores case on both engines. MySQL and MariaDB also treat accented and
+  plain letters, a no-break space and a space, and trailing spaces as equal;
+  PostgreSQL does not, so `Mise à jour` correlates with `Mise a jour` on
+  MySQL and MariaDB only.
 - **Some indexes are hash indexes.** MySQL indexes the first 255 characters of
   `events.info`, `galaxy_clusters.value` and two similar text columns. PostgreSQL
   has no prefix indexes, and a full-column btree would reject values longer
@@ -142,7 +147,8 @@ they are listed so nobody discovers them the hard way.
   of no ordered scans.
 - **No FULLTEXT.** MySQL-only. Where MySQL has a FULLTEXT index (on
   `attribute_values.value`), PostgreSQL has a `pg_trgm` GIN index instead,
-  so word and substring matches can differ slightly between the engines.
+  so the `value_search` filter matches from the start of a word on MySQL and
+  anywhere in the value on PostgreSQL.
 - **`schemaDiagnostics` declines.** The expected-schema file it compares
   against is a MySQL dump, so on PostgreSQL the diagnostic reports that it is
   not available rather than a meaningless diff. `Admin verifyInstallBaseline`

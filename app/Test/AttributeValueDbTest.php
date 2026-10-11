@@ -43,6 +43,8 @@ class AttributeValueDbTest extends TestCase
         $this->model = ClassRegistry::init('AttributeValue');
         $this->db = $this->model->getDataSource();
         if (!($this->db instanceof Mysql)) {
+            // Skipped before the fixture exists: nothing for tearDown to clean up
+            $this->db = null;
             $this->markTestSkipped('MySQL/MariaDB only.');
         }
         $this->db->begin();

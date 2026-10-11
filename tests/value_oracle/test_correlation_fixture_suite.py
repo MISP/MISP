@@ -49,16 +49,16 @@ class FakeClient:
 
 
 class FakeDb:
-    def __init__(self, rows='', members=b'', stored=''):
+    def __init__(self, rows='', members=b'', flavour='mysql'):
         self.rows = rows
         self.members = members
-        self.stored = stored
+        self.flavour = flavour
         self.sql = []
         self.commands = []
 
     def query(self, sql):
         self.sql.append(sql)
-        return self.stored if 'correlation_exclusions' in sql else self.rows
+        return self.rows
 
     def redis(self, *args):
         self.commands.append(args)
@@ -154,6 +154,20 @@ class ScratchTest(unittest.TestCase):
             'attribute_id=6 event_id=81 1_attribute_id=exact '
             '1_event_id=<scratch> value=NULL'], rows)
         self.assertIn('c.event_id = 900 OR c.1_event_id = 900', db.sql[0])
+        self.assertIn('HEX(v.value)', db.sql[0])
+
+    def test_rows_on_postgres_quote_the_columns(self):
+        scratch = self.scratch()
+        scratch.names = {'7': 'exact'}
+        db = FakeDb(rows='5\t80\t7\t900\t%s\n' % b'x'.hex().upper(),
+                    flavour='pgsql')
+        self.assertEqual(['attribute_id=5 event_id=80 1_attribute_id=exact '
+                          '1_event_id=<scratch> value="x"'],
+                         scratch.rows(db, 'no_acl_correlations'))
+        self.assertIn('c."1_attribute_id"', db.sql[0])
+        self.assertIn('WHERE c.event_id = 900 OR c."1_event_id" = 900', db.sql[0])
+        self.assertIn("upper(encode(convert_to(v.value, 'UTF8'), 'hex'))",
+                      db.sql[0])
 
     def test_views_skip_the_appended_event_level_list(self):
         event = {'Event': {
@@ -205,12 +219,6 @@ class StateTest(unittest.TestCase):
         cf.STATE.update(advanced=None, advanced_changed=False)
         correlations.STATE.update(original=None, current=None)
 
-    def test_exclusions_must_match_the_table(self):
-        stored = '%s\n%s\n' % (b'a'.hex(), b'b%'.hex())
-        cf.check_exclusions(FakeDb(members=b'b%\na\n', stored=stored))
-        with self.assertRaises(core.OracleError):
-            cf.check_exclusions(FakeDb(members=b'', stored=stored))
-
     def test_advanced_correlations_are_enabled_once_and_restored(self):
         client = FakeClient({'/servers/getSetting/': {'value': False}})
         cf.ensure_advanced(client)
@@ -240,6 +248,19 @@ class StateTest(unittest.TestCase):
         self.assertIn("CONVERT(X'%s' USING utf8mb4) COLLATE "
                       "utf8mb4_unicode_ci" % b'GOOGLE.com'.hex(), db.sql[0])
         self.assertEqual([], cf.over_correlating(FakeDb(), []))
+
+    def test_over_correlation_lookup_on_postgres_folds_case(self):
+        db = FakeDb(rows='%s\t0\n' % b'google.com'.hex(), flavour='pgsql')
+        self.assertEqual(['"google.com" (occurrence 0)'],
+                         cf.over_correlating(db, ['GOOGLE.com']))
+        self.assertIn("lower(b.value) IN (lower(convert_from('\\x%s'::bytea, "
+                      "'UTF8')))" % b'GOOGLE.com'.hex(), db.sql[0])
+
+    def test_the_database_follows_the_restore_settings(self):
+        config = core.Config('http://x', {}, '/tmp', restore={
+            'engine': 'pgsql', 'redis_db': 12,
+            'pgsql': {'host': 'h', 'user': 'u', 'database': 'd'}})
+        self.assertEqual('pgsql', cf.flavour(cf.database(config)))
 
     def test_one_case_per_engine(self):
         with tempfile.NamedTemporaryFile('w', suffix='.json') as f:

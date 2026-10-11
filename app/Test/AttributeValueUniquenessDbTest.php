@@ -54,6 +54,8 @@ class AttributeValueUniquenessDbTest extends TestCase
         $this->attribute = ClassRegistry::init('MispAttribute');
         $this->db = $this->attribute->getDataSource();
         if (!($this->db instanceof Mysql)) {
+            // Skipped before the fixture exists: nothing for tearDown to clean up
+            $this->db = null;
             $this->markTestSkipped('MySQL/MariaDB only.');
         }
         // captureAttribute() with breakOnDuplicate off drops the rule for good

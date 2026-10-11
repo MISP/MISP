@@ -58,6 +58,8 @@ class AttributeValueProposalCorrelationDbTest extends TestCase
         $this->event = ClassRegistry::init('Event');
         $this->db = $this->event->getDataSource();
         if (!($this->db instanceof Mysql)) {
+            // Skipped before the fixture exists: nothing for tearDown to clean up
+            $this->db = null;
             $this->markTestSkipped('MySQL/MariaDB only.');
         }
         $this->fullDebug = $this->db->fullDebug;

@@ -85,6 +85,8 @@ class AttributeValueViewDbTest extends TestCase
         $this->values = $this->attribute->loadAttributeValue();
         $this->db = $this->attribute->getDataSource();
         if (!($this->db instanceof Mysql)) {
+            // Skipped before the fixture exists: nothing for tearDown to clean up
+            $this->db = null;
             $this->markTestSkipped('MySQL/MariaDB only.');
         }
         $this->cachedMethods = $this->db->cacheMethods;
