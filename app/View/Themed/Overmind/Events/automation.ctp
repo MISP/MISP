@@ -107,7 +107,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button" data-bs-toggle="collapse" data-bs-target="#search">
-                            Search
+                            <?= h(__('Search')) ?>
                         </button>
                     </h2>
                     <div id="search" class="accordion-collapse collapse show">
@@ -209,11 +209,11 @@
                                     <pre class="bg-light p-2 rounded border mt-1 mb-0"><code><?php echo $url; ?></code></pre>
                                 </div>
                                 <div class="col-md-6">
-                                    <span class="badge bg-info text-dark">Headers</span>
+                                    <span class="badge bg-info text-dark"><?= h(__('Headers')) ?></span>
                                     <pre class="bg-light p-2 rounded border mt-1 mb-0"><code><?php echo $headers; ?></code></pre>
                                 </div>
                                 <div class="col-md-6">
-                                    <span class="badge bg-warning text-dark">Body</span>
+                                    <span class="badge bg-warning text-dark"><?= h(__('Body')) ?></span>
                                     <pre class="bg-light p-2 rounded border mt-1 mb-0"><code><?php echo $body; ?></code></pre>
                                 </div>
                             </div>
@@ -224,7 +224,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#galaxyCluster">
-                            Galaxy Cluster Search
+                            <?= h(__('Galaxy Cluster Search')) ?>
                         </button>
                     </h2>
                     <div id="galaxyCluster" class="accordion-collapse collapse">
@@ -291,7 +291,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#metadata">
-                            Filtering event metadata
+                            <?= h(__('Filtering event metadata')) ?>
                         </button>
                     </h2>
                     <div id="metadata" class="accordion-collapse collapse">
@@ -311,7 +311,7 @@
                                     <pre class="bg-light p-2 rounded border mt-1 mb-0"><code><?php echo $baseurl.'/events/index'; ?></code></pre>
                                 </div>
                                 <div class="col-md-6">
-                                    <span class="badge bg-info text-dark">Headers</span>
+                                    <span class="badge bg-info text-dark"><?= h(__('Headers')) ?></span>
                                     <pre class="bg-light p-2 rounded border mt-1 mb-0 small"><code><?php
                                         echo 'Authorization: ' . $api_key . PHP_EOL;
                                         echo 'Accept: application/json' . PHP_EOL;
@@ -319,7 +319,7 @@
                                     ?></code></pre>
                                 </div>
                                 <div class="col-md-6">
-                                    <span class="badge bg-warning text-dark">Body</span>
+                                    <span class="badge bg-warning text-dark"><?= h(__('Body')) ?></span>
                                     <pre class="bg-dark text-warning p-2 rounded border mt-1 mb-0 small"><code>{"searcheventinfo":"Locky", "searchpublished":1, "searchdistribution":!0}</code></pre>
                                 </div>
                             </div>
@@ -363,7 +363,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button" data-bs-toggle="collapse" data-bs-target="#csv">
-                            CSV specific parameters for the restSearch APIs
+                            <?= h(__('CSV specific parameters for the restSearch APIs')) ?>
                         </button>
                     </h2>
                     <div id="csv" class="accordion-collapse collapse show">
@@ -389,7 +389,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#rpz">
-                            RPZ specific parameters for the restSearch APIs
+                            <?= h(__('RPZ specific parameters for the restSearch APIs')) ?>
                         </button>
                     </h2>
                     <div id="rpz" class="accordion-collapse collapse">
@@ -432,7 +432,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#bro">
-                            Bro IDS export
+                            <?= h(__('Bro IDS export')) ?>
                         </button>
                     </h2>
                     <div id="bro" class="accordion-collapse collapse">
@@ -457,36 +457,36 @@
                             <h5 class="fw-bold mb-3"><?php echo __('Advanced Filters'); ?></h5>
                             <p><?php echo __('It is possible to restrict the bro exports based on a set of filters. POST a JSON object or an XML at the Bro API to filter the results.');?></p>
 
-                            <span class="badge bg-primary mb-1">API Endpoint</span>
+                            <span class="badge bg-primary mb-1"><?= h(__('API Endpoint')) ?></span>
                             <pre class="bg-light p-2 rounded border mb-4"><code><?php echo $baseurl.'/attributes/bro/download'; ?></code></pre>
 
                             <div class="row g-4 mb-4">
                                 <div class="col-md-6">
                                     <div class="card h-100 border-info">
-                                        <div class="card-header bg-info text-dark fw-bold">XML Payload</div>
+                                        <div class="card-header bg-info text-dark fw-bold"><?= h(__('XML Payload')) ?></div>
                                         <div class="card-body bg-light">
-                                            <span class="text-muted small d-block mb-1">Headers:</span>
+                                            <span class="text-muted small d-block mb-1"><?= h(__('Headers:')) ?></span>
                                             <pre class="mb-3 small"><code><?php
                                                 echo 'Authorization: ' . h($api_key) . PHP_EOL;
                                                 echo 'Accept: application/json' . PHP_EOL;
                                                 echo 'Content-type: application/json';
                                             ?></code></pre>
-                                            <span class="text-muted small d-block mb-1">Body:</span>
+                                            <span class="text-muted small d-block mb-1"><?= h(__('Body:')) ?></span>
                                             <pre class="mb-0 text-wrap"><code>&lt;request&gt;&lt;type&gt;ip&lt;/type&gt;&lt;eventid&gt;!51&lt;/eventid&gt;&lt;eventid&gt;!62&lt;/eventid&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code></pre>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="card h-100 border-warning">
-                                        <div class="card-header bg-warning text-dark fw-bold">JSON Payload</div>
+                                        <div class="card-header bg-warning text-dark fw-bold"><?= h(__('JSON Payload')) ?></div>
                                         <div class="card-body bg-light">
-                                            <span class="text-muted small d-block mb-1">Headers:</span>
+                                            <span class="text-muted small d-block mb-1"><?= h(__('Headers:')) ?></span>
                                             <pre class="mb-3 small"><code><?php
                                                 echo 'Authorization: ' . h($api_key) . PHP_EOL;
                                                 echo 'Accept: application/json' . PHP_EOL;
                                                 echo 'Content-type: application/json';
                                             ?></code></pre>
-                                            <span class="text-muted small d-block mb-1">Body:</span>
+                                            <span class="text-muted small d-block mb-1"><?= h(__('Body:')) ?></span>
                                             <pre class="mb-0 text-wrap"><code>{"request": {"type": "ip", "eventid": ["!51","!62"],"withAttachment": false,"tags": ["APT1","!OSINT"],"from": false,"to": "2015-02-15"}}</code></pre>
                                         </div>
                                     </div>
@@ -512,7 +512,7 @@
                                     </ul>
                                 </div>
                                 <div class="col-md-7">
-                                    <h6 class="fw-bold text-primary">Other Parameters:</h6>
+                                    <h6 class="fw-bold text-primary"><?= h(__('Other Parameters:')) ?></h6>
                                     <dl class="row small mb-4">
                                         <dt class="col-sm-3 text-end"><span class="badge bg-secondary">tags</span></dt>
                                         <dd class="col-sm-9"><?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'. You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead).');?></dd>
@@ -549,7 +549,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#xml">
-                            Export attributes of event with specified type as XML
+                            <?= h(__('Export attributes of event with specified type as XML')) ?>
                         </button>
                     </h2>
                     <div id="xml" class="accordion-collapse collapse">
@@ -581,7 +581,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button" data-bs-toggle="collapse" data-bs-target="#attachment">
-                            Download attachment or malware sample
+                            <?= h(__('Download attachment or malware sample')) ?>
                         </button>
                     </h2>
                     <div id="attachment" class="accordion-collapse collapse show">
@@ -597,7 +597,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#hash">
-                            Download malware sample by hash
+                            <?= h(__('Download malware sample by hash')) ?>
                         </button>
                     </h2>
                     <div id="hash" class="accordion-collapse collapse">
@@ -642,13 +642,13 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#upload">
-                            Upload malware samples
+                            <?= h(__('Upload malware samples')) ?>
                         </button>
                     </h2>
                     <div id="upload" class="accordion-collapse collapse">
                         <div class="accordion-body">
                             <div class="mb-4">
-                                <span class="badge bg-primary mb-2">Endpoint</span>
+                                <span class="badge bg-primary mb-2"><?= h(__('Endpoint')) ?></span>
                                 <div class="bg-light p-2 rounded border">
                                     <pre class="mb-0 small"><code><?php echo $baseurl.'/events/upload_sample/[Event_id]';?></code></pre>
                                 </div>
@@ -682,7 +682,7 @@
                                 <div class="col-md-6">
                                     <div class="card h-100 border-info">
                                         <div class="card-header bg-info text-dark fw-bold small">
-                                            XML Example
+                                            <?= h(__('XML Example')) ?>
                                         </div>
                                         <div class="card-body bg-light p-3">
                                             <pre class="mb-0 small text-wrap"><code><?php echo h("<request><files><filename>test3.txt</filename><data>dGVzdA==</data></files><files><filename>test4.txt</filename><data>dGVzdDI=</data></files><info>test</info><distribution>1</distribution><event_id>15</event_id></request>");?></code></pre>
@@ -693,7 +693,7 @@
                                 <div class="col-md-6">
                                     <div class="card h-100 border-warning">
                                         <div class="card-header bg-warning text-dark fw-bold small">
-                                            JSON Example
+                                            <?= h(__('JSON Example')) ?>
                                         </div>
                                         <div class="card-body bg-light p-3">
                                             <pre class="mb-0 small text-wrap"><code>{"request":{"files":[{"filename":"test1.txt","data":"dGVzdA=="},{"filename":"test2.txt","data":"dGVzdDI="}],"distribution":1,"info":"test","event_id":15}}</code></pre>
@@ -781,7 +781,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button" data-bs-toggle="collapse" data-bs-target="#add">
-                            Add or remove tags from events
+                            <?= h(__('Add or remove tags from events')) ?>
                         </button>
                     </h2>
                     <div id="add" class="accordion-collapse collapse show">
@@ -810,7 +810,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#proposals">
-                            Proposals and the API
+                            <?= h(__('Proposals and the API')) ?>
                         </button>
                     </h2>
                     <div id="proposals" class="accordion-collapse collapse">
@@ -910,7 +910,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button" data-bs-toggle="collapse" data-bs-target="#freetext">
-                            Freetext Import API
+                            <?= h(__('Freetext Import API')) ?>
                         </button>
                     </h2>
                     <div id="freetext" class="accordion-collapse collapse show">
@@ -940,7 +940,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#params">
-                            URL parameters
+                            <?= h(__('URL parameters')) ?>
                         </button>
                     </h2>
                     <div id="params" class="accordion-collapse collapse">
@@ -962,7 +962,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#notification">
-                            Setting up the periodic notification scheduled task
+                            <?= h(__('Setting up the periodic notification scheduled task')) ?>
                         </button>
                     </h2>
                     <div id="notification" class="accordion-collapse collapse">
@@ -999,7 +999,7 @@
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button" data-bs-toggle="collapse" data-bs-target="#admin">
-                            Administering the background workers via the API.
+                            <?= h(__('Administering the background workers via the API.')) ?>
                         </button>
                     </h2>
                     <div id="admin" class="accordion-collapse collapse show">

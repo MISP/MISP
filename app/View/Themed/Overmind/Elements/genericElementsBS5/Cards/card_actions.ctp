@@ -123,7 +123,7 @@ $renderDivider = function (array $spec) {
 
                 <?php endforeach; ?>
             <?php else: ?>
-                <p class="text-muted mb-0 small">No action available</p>
+                <p class="text-muted mb-0 small"><?= h(__('No action available')) ?></p>
             <?php endif; ?>
         </div>
     </div>

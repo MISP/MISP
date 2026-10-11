@@ -76,7 +76,7 @@ $payloadAttr = isset($payload) ? 'data-payload="' . $payload . '"' : '';
             <div class="d-flex justify-content-between align-items-center mt-1">
                 <?php if ($status !== 0): ?>
                     <span class="small fw-semibold <?= $statusClass ?>">
-                        Status: <?= h($status) ?>
+                        <?= h(__('Status:')) ?> <?= h($status) ?>
                     </span>
                 <?php endif; ?>
             </div>

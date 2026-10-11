@@ -120,7 +120,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search in all fields',
+                        'placeholder' => __('Search in all fields'),
                         'name'        => '',
                         'mode'        => 'quickFilter',
                     ],

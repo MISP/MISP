@@ -37,13 +37,13 @@ if ($responseCode !== null) {
     <div class="card-header bg-light d-flex justify-content-between align-items-end pt-2 pb-0 px-3">
         <ul class="nav nav-tabs card-header-tabs mb-0">
             <li class="nav-item">
-                <a class="nav-link active small py-2 px-3" data-bs-toggle="tab" href="#response-body">Body</a>
+                <a class="nav-link active small py-2 px-3" data-bs-toggle="tab" href="#response-body"><?= h(__('Body')) ?></a>
             </li>
             <li class="nav-item">
-                <a class="nav-link small py-2 px-3" data-bs-toggle="tab" href="#response-headers">Headers</a>
+                <a class="nav-link small py-2 px-3" data-bs-toggle="tab" href="#response-headers"><?= h(__('Headers')) ?></a>
             </li>
             <li class="nav-item">
-                <a class="nav-link small py-2 px-3" data-bs-toggle="tab" href="#response-cookies">Cookies</a>
+                <a class="nav-link small py-2 px-3" data-bs-toggle="tab" href="#response-cookies"><?= h(__('Cookies')) ?></a>
             </li>
         </ul>
 
@@ -102,7 +102,7 @@ if ($responseCode !== null) {
 
             <div class="tab-pane fade p-3" id="response-cookies">
                 <?php if (empty($responseCookies)): ?>
-                    <div class="text-muted small">No cookies returned by the server.</div>
+                    <div class="text-muted small"><?= h(__('No cookies returned by the server.')) ?></div>
                 <?php else: ?>
                     <ul class="list-group list-group-flush mb-0 small">
                         <?php foreach ($responseCookies as $cookie): ?>

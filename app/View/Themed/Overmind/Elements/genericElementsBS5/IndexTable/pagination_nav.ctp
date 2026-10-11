@@ -16,7 +16,7 @@ if ($end - $start + 1 < $maxPagesToShow) {
 }
 ?>
 
-<nav aria-label="Pagination">
+<nav aria-label="<?= h(__('Pagination')) ?>">
     <ul class="pagination mb-0 <?= $sizeClass ?>">
 
         <!-- PREVIOUS -->

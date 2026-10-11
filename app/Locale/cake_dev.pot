@@ -1,35 +1,26 @@
-# LANGUAGE translation of CakePHP Application
-# Copyright YEAR NAME <EMAIL@ADDRESS>
-#
-#, fuzzy
+# Translation template for MISP. Generated with CakePHP i18n extract.
 msgid ""
 msgstr ""
-"Project-Id-Version: PROJECT VERSION\n"
-"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
-"Last-Translator: NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"Project-Id-Version: MISP 3.0\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
-#: Model/Datasource/Database/MysqlExtendedLogging.php:350
+#: Model/Datasource/Database/MysqlExtendedLogging.php:352
+#, php-format
 msgid "Could not describe table for %s"
 msgstr ""
 
-#: Plugin/LinOTPAuth/Controller/Component/Auth/LinOTPAuthenticate.php:128
-msgid "LinOTP: Missing \"baseUrl\" configuration - access denied!"
+#: Plugin/BinaryFileCache/Engine/BinaryFileEngine.php:203
+#, php-format
+msgid "Could not apply permission mask \"%s\" on cache file \"%s\""
 msgstr ""
 
-#: Plugin/LinOTPAuth/Controller/Component/Auth/LinOTPAuthenticate.php:147
-msgid "Missing OTP Token."
-msgstr ""
-
-#: Plugin/LinOTPAuth/Controller/Component/Auth/LinOTPAuthenticate.php:197
-msgid "User could not be authenticated by LinOTP."
+#: Plugin/BinaryFileCache/Engine/BinaryFileEngine.php:254
+#, php-format
+msgid "Could not write to file %s"
 msgstr ""
 
 #: View/Layouts/error.ctp:19
 msgid "CakePHP: the rapid development php framework"
 msgstr ""
-

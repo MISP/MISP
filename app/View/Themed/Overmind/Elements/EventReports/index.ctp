@@ -190,7 +190,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search by name or by content',
+                        'placeholder' => __('Search by name or by content'),
                         'name'        => 'value',
                         'mode'        => 'legacy',
                     ],

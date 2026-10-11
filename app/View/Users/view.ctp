@@ -62,7 +62,7 @@ if (empty(Configure::read('Security.otp_disabled'))) {
             '<a href="#" onClick="openGenericModal(\'%s/users/totp_delete/%s\')">%s</a>',
             h($baseurl),
             h($user['User']['id']),
-            __($isTotp && !$admin_view ? ' Delete' : 'Delete')
+            ($isTotp && !$admin_view ? __(' Delete') : __('Delete'))
         );
     }
 

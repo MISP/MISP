@@ -51,7 +51,7 @@ $publishedPath = array_key_exists('published_path', $field)
 
 <?php if (!empty($event['extends_uuid'])): ?>
     <div class="text-muted small mt-1 ms-3">
-        Extends:
+        <?= h(__('Extends:')) ?>
         <?php foreach ($extendedEvents as $extendedEvent): ?>
             <?php if ($extendedEvent['uuid'] === $event['extends_uuid']): ?>
                 <a href="/events/view/<?= h($extendedEvent['uuid']); ?>"

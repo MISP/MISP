@@ -102,8 +102,8 @@
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
-                    <th class="w-25">Key</th>
-                    <th class="w-100">Value</th>
+                    <th class="w-25"><?= h(__('Key')) ?></th>
+                    <th class="w-100"><?= h(__('Value')) ?></th>
                     <th></th>
                 </tr>
             </thead>
@@ -219,7 +219,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="bookmarkModalLabel"><i class="fas fa-star text-warning me-2"></i><?= __('Add to Bookmarks') ?></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= h(__('Close')) ?>"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">

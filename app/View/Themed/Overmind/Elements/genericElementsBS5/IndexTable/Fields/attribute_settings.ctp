@@ -27,7 +27,7 @@ $styleOrange = "background: linear-gradient(180deg, #f39c12 0%, #e67e22 50%, #d3
     <?php if (! $disable_correlation): ?>
         <a class="d-inline-flex align-items-center fw-bold text-nowrap text-decoration-none" style="<?= $styleBlue ?>">
             <i class="fas fa-link me-1"></i>
-            <span> Correlate </span>
+            <span> <?= h(__('Correlate')) ?> </span>
         </a>
     <?php endif; ?>
 

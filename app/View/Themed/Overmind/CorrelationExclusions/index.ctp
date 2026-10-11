@@ -147,7 +147,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search by exclusion value',
+                        'placeholder' => __('Search by exclusion value'),
                         'name'        => 'value',
                         'mode'        => 'quickFilter',
                     ],

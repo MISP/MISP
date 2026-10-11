@@ -149,7 +149,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search by taxonomies name',
+                        'placeholder' => __('Search by taxonomies name'),
                         'name'        => 'value',
                         'mode'        => 'legacy',
                     ],

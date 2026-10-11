@@ -74,7 +74,7 @@
                                     <i class="<?= h($child['icon']) ?> fa-fw dark-mode-icon"></i>
                                     <span><?= h($child['label']) ?></span>
                                 </div>
-                                <span class="badge bg-secondary dark-mode-badge ms-2">OFF</span>
+                                <span class="badge bg-secondary dark-mode-badge ms-2"><?= h(__('OFF')) ?></span>
                             </div>
                         </a>
                     </li>

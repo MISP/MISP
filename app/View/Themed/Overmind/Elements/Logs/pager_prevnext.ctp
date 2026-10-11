@@ -5,7 +5,7 @@
 $P    = $this->Paginator;
 $page = $P->params()['page'] ?? 1;
 ?>
-<nav aria-label="Pagination">
+<nav aria-label="<?= h(__('Pagination')) ?>">
     <ul class="pagination pagination-sm mb-0">
 
         <?php if ($P->hasPrev()): ?>

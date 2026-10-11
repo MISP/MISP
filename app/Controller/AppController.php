@@ -8,6 +8,8 @@ App::uses('RequestRearrangeTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 App::uses('BetterCakeEventManager', 'Tools');
 App::uses('MispTheme', 'Lib/MispTheme');
+App::uses('MispL10n', 'Tools');
+App::uses('I18n', 'I18n');
 
 /**
  * Application Controller
@@ -191,6 +193,8 @@ class AppController extends Controller
         } else {
             Configure::write('Config.language', 'eng');
         }
+
+        I18n::getInstance()->l10n = new MispL10n();
 
         if (!empty($this->request->params['named']['disable_background_processing'])) {
             Configure::write('MISP.background_jobs', 0);

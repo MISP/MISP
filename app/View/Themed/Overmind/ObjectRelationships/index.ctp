@@ -127,7 +127,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'search',
                         'button' => 'Search',
-                        'placeholder' => 'Search by relationship name',
+                        'placeholder' => __('Search by relationship name'),
                         'name'        => 'name',
                         'mode'        => 'quickFilter',
                     ],
