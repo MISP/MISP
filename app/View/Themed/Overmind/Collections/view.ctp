@@ -19,29 +19,9 @@ if (!empty($collection['type'])) {
 $this->set('headerTitleHtml', $titleHtml);
 $this->set('headerCountText', '');
 
-$copyButton = function ($icon, $value, $title, $message) {
-    return sprintf(
-        '<button type="button" class="ov-copy-target focus-ring d-inline-flex align-items-center gap-1'
-        . ' border-0 bg-transparent text-body-secondary px-2"'
-        . ' title="%s" aria-label="%s" data-copy-value="%s" data-copy-msg="%s"'
-        . ' onclick="copyValueToClipboard(this.dataset.copyValue, this.dataset.copyMsg)">'
-        . '<i class="%s opacity-50"></i>%s<i class="fas fa-copy fa-xs"></i></button>',
-        h($title),
-        h($title),
-        h($value),
-        h($message),
-        h($icon),
-        h($value)
-    );
-};
+$this->set('headerIdentity', $collection);
 
-$descParts = [
-    '<span class="d-inline-flex align-items-stretch border rounded-pill bg-body-tertiary font-monospace overflow-hidden lh-base">'
-    . $copyButton('fas fa-hashtag', $collection['id'], __('Copy ID'), __('ID copied to clipboard'))
-    . '<span class="vr my-1"></span>'
-    . $copyButton('fas fa-fingerprint', $collection['uuid'], __('Copy UUID'), __('UUID copied to clipboard'))
-    . '</span>',
-];
+$descParts = [];
 if (!empty($collection['created'])) {
     $descParts[] = '<span title="' . h(__('Created')) . '">'
         . '<i class="fas fa-calendar-day me-1 opacity-50"></i>'
@@ -61,6 +41,13 @@ $this->set(
 
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,
+    'ownership' => [
+        'orgc' => $collection['Orgc'] ?? [],
+        'org' => $collection['Org'] ?? [],
+        'user' => $collection['User'] ?? [],
+        'distribution' => $collection['distribution'] ?? null,
+        'sharingGroup' => $collection['SharingGroup'] ?? [],
+    ],
     'tabs' => [
         [
             'id' => 'general',
@@ -68,7 +55,6 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'icon' => 'fas fa-info-circle',
             'left' => [
                 'Collections/View/collection_general',
-                'Collections/View/collection_ownership',
                 'Collections/View/collection_elements_card',
             ],
             'right' => [
