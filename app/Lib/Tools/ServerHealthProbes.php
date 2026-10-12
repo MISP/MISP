@@ -263,6 +263,7 @@ class ServerHealthProbes
         $schema = $data['dbSchemaDiagnostics'];
         $failed = (int)(isset($schema['migrations_failed']) ? $schema['migrations_failed'] : 0);
         $pending = (int)(isset($schema['migrations_pending']) ? $schema['migrations_pending'] : 0);
+        $deferred = isset($schema['migrations_deferred_reasons']) ? (array)$schema['migrations_deferred_reasons'] : array();
         $diffs = self::schemaDifferences($schema);
         $summary = __('db_version %s', isset($schema['actual_db_version']) ? $schema['actual_db_version'] : '?');
 
@@ -274,6 +275,9 @@ class ServerHealthProbes
         }
         if ($failed > 0) {
             return self::make(0, __('%s migration(s) failed', $failed), $summary);
+        }
+        if (!empty($deferred)) {
+            return self::make(1, __('%s migration(s) deferred', count($deferred)), (string)reset($deferred));
         }
         if ($pending > 0) {
             return self::make(1, __('%s migration(s) pending', $pending), $summary);
