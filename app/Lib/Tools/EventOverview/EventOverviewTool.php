@@ -371,7 +371,7 @@ class EventOverviewTool
     private function detectionRules(array $user, $eventId)
     {
         $rows = $this->Attribute->query(
-            'SELECT Attribute.type, Attribute.value1, Attribute.comment,'
+            'SELECT Attribute.type, Attribute.value1_id, Attribute.comment,'
             . ' CASE WHEN Attribute.object_id = 0 THEN 1 ELSE 0 END AS loose, Object.name AS object_name'
             . $this->attributesFrom($user)
             . " AND Attribute.type IN ('snort', 'yara', 'sigma', 'suricata', 'zeek', 'bro', 'kusto-query')"
@@ -379,12 +379,16 @@ class EventOverviewTool
             [$eventId],
             false
         );
+        $rows = array_map([$this, 'flatRow'], $rows);
+        $texts = ClassRegistry::init('AttributeValue')->fetchValues(
+            array_map('intval', array_column($rows, 'value1_id'))
+        );
         $rules = [];
-        foreach ($rows as $row) {
-            $r = $this->flatRow($row);
+        foreach ($rows as $r) {
+            $rule = (string)($texts[(int)$r['value1_id']] ?? '');
             $rules[] = [
                 'type' => $r['type'],
-                'name' => self::ruleName($r['type'], (string)$r['value1'], (string)$r['comment']),
+                'name' => self::ruleName($r['type'], $rule, (string)$r['comment']),
                 'object' => (int)$r['loose'] === 1 ? null : $r['object_name'],
             ];
         }

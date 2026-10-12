@@ -391,17 +391,16 @@ class EventSeenTimelineTool
         $attributes = $objects = [];
         if (isset($parts['attributes'])) {
             list($sql, $params) = $parts['attributes'];
-            $attributes = $this->rows(
+            $attributes = $this->withValues($this->rows(
                 'SELECT Attribute.id, Attribute.uuid, Attribute.event_id, Attribute.type,'
                 . ' Attribute.category, Attribute.to_ids,'
-                . ' LEFT(Attribute.value1, ' . (self::LABEL_MAX + 1) . ') AS value1,'
-                . ' LEFT(Attribute.value2, ' . (self::LABEL_MAX + 1) . ') AS value2,'
+                . ' Attribute.value1_id, Attribute.value2_id,'
                 . ' Attribute.first_seen, Attribute.last_seen, Attribute.timestamp,'
                 . ' ' . self::dateSql($basis, 'Attribute', 's') . ' AS s, '
                 . self::dateSql($basis, 'Attribute', 'e') . ' AS e ' . $sql
                 . ' ORDER BY s, Attribute.id LIMIT ' . (self::ITEM_CAP + 1),
                 $params
-            );
+            ));
         }
         if (isset($parts['objects'])) {
             list($sql, $params) = $parts['objects'];
@@ -511,8 +510,7 @@ class EventSeenTimelineTool
         }
         if (isset($options['q']) && trim($options['q']) !== '') {
             $like = '%' . self::escapeLike(trim($options['q'])) . '%';
-            $sql .= ' AND (Attribute.value1 LIKE ? OR Attribute.value2 LIKE ?)';
-            array_push($params, $like, $like);
+            $sql .= ' AND ' . $this->valueSearchSql($like);
         }
         return [$sql, $params];
     }
@@ -536,8 +534,8 @@ class EventSeenTimelineTool
                 . ' JOIN events Event ON Event.id = Attribute.event_id'
                 . ' JOIN objects Object ON Object.id = Attribute.object_id'
                 . ' WHERE Attribute.object_id = env.id AND Attribute.deleted = 0 AND ' . $acl['attribute']
-                . ' AND (Attribute.value1 LIKE ? OR Attribute.value2 LIKE ?)))';
-            array_push($params, $like, $like, $like);
+                . ' AND ' . $this->valueSearchSql($like) . '))';
+            $params[] = $like;
         }
         return [$sql, $params];
     }
@@ -547,11 +545,10 @@ class EventSeenTimelineTool
      */
     private function children(array $acl, $basis, array $objectIds, $limit)
     {
-        $rows = $this->rows(
+        $rows = $this->withValues($this->rows(
             'SELECT Attribute.id, Attribute.uuid, Attribute.event_id, Attribute.object_id,'
             . ' Attribute.object_relation, Attribute.type, Attribute.category, Attribute.to_ids,'
-            . ' LEFT(Attribute.value1, ' . (self::LABEL_MAX + 1) . ') AS value1,'
-            . ' LEFT(Attribute.value2, ' . (self::LABEL_MAX + 1) . ') AS value2,'
+            . ' Attribute.value1_id, Attribute.value2_id,'
             . ' Attribute.first_seen, Attribute.last_seen, Attribute.timestamp,'
             . ' ' . self::dateSql($basis, 'Attribute', 's') . ' AS s, ' . self::dateSql($basis, 'Attribute', 'e') . ' AS e'
             . ' FROM attributes Attribute JOIN events Event ON Event.id = Attribute.event_id'
@@ -562,7 +559,7 @@ class EventSeenTimelineTool
             . ' AND ' . $acl['attribute'] . ' AND ' . $acl['object']
             . ' ORDER BY Attribute.object_id, s, Attribute.id LIMIT ' . (int)$limit,
             array_map('intval', $objectIds)
-        );
+        ));
         $children = [];
         foreach ($rows as $row) {
             $children[(int)$row['object_id']][] = self::attributeItem($row);
@@ -716,6 +713,48 @@ class EventSeenTimelineTool
     private static function escapeLike($value)
     {
         return addcslashes($value, '%_\\');
+    }
+
+    /**
+     * Rows read with value1_id / value2_id, given their value text cut as
+     * the labels need it; the ids, which never leave the instance, dropped.
+     */
+    private function withValues(array $rows)
+    {
+        $ids = [];
+        foreach ($rows as $row) {
+            foreach (['value1_id', 'value2_id'] as $key) {
+                if (!empty($row[$key])) {
+                    $ids[(int)$row[$key]] = true;
+                }
+            }
+        }
+        $texts = empty($ids) ? [] : $this->dictionary()->fetchValues(array_keys($ids));
+        foreach ($rows as &$row) {
+            foreach (['value1', 'value2'] as $key) {
+                $id = (int)($row[$key . '_id'] ?? 0);
+                $row[$key] = $id ? mb_substr((string)($texts[$id] ?? ''), 0, self::LABEL_MAX + 1) : '';
+                unset($row[$key . '_id']);
+            }
+        }
+        unset($row);
+        return $rows;
+    }
+
+    /**
+     * An attribute whose value1 or value2 matches $like, the dictionary read
+     * per row: the event bounds the rows, so nothing reads it whole.
+     */
+    private function valueSearchSql($like)
+    {
+        $dictionary = $this->dictionary();
+        return '(' . $dictionary->likeCondition('Attribute.value1_id', $like)->value
+            . ' OR ' . $dictionary->likeCondition('Attribute.value2_id', $like)->value . ')';
+    }
+
+    private function dictionary()
+    {
+        return ClassRegistry::init('AttributeValue');
     }
 
     private function rows($sql, array $params = [])
