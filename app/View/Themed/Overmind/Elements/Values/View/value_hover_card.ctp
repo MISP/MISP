@@ -406,23 +406,27 @@ if (!empty($spark) && !empty($spark[0]['from'])) {
         <?php if ($enrichUrl !== null): ?>
             <?php /*
              * Replaced wholesale by what the strip endpoint returns,
-             * or removed where it returns nothing. Two skeleton chips
-             * rather than a spinner: the shape a reader is about to
-             * see, held open, reads as loading without a second idiom
-             * for it.
+             * or removed where it returns nothing. Skeleton rows rather
+             * than a spinner, so the card keeps its height when the
+             * answers land; the script matches their number to the
+             * last section it drew.
              */ ?>
             <div class="vp-hc-sec vp-hc-enr vp-hc-enr-wait"
                  data-vp-hc-enrich="<?= h($enrichUrl) ?>"
                  role="status"
                  aria-label="<?= h(__('Loading enrichment')) ?>">
-                <div class="vp-hc-enr-strip">
-                    <span class="vp-hc-enr-k"><?= h(__('Enrichment')) ?></span>
-                    <span class="vp-hc-enr-flow">
-                    <span class="vp-hc-echip vp-hc-echip-skel"
-                          style="width:82px"></span>
-                    <span class="vp-hc-echip vp-hc-echip-skel"
-                          style="width:64px"></span>
-                    </span>
+                <div class="vp-hc-enr-hd">
+                    <span class="vp-hc-k"><?= h(__('Enrichment')) ?></span>
+                </div>
+                <div class="vp-hc-enr-rows">
+                <?php foreach (array(array(78, 132), array(46, 96)) as $w): ?>
+                    <div class="vp-hc-enr-row vp-hc-enr-skel">
+                        <span class="vp-hc-enr-mod"><span class="vp-hc-enr-bar"
+                            style="width:<?= $w[0] ?>px"></span></span>
+                        <span class="vp-hc-enr-ans"><span class="vp-hc-enr-bar"
+                            style="width:<?= $w[1] ?>px"></span></span>
+                    </div>
+                <?php endforeach; ?>
                 </div>
             </div>
         <?php endif; ?>

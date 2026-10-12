@@ -45,6 +45,7 @@
     var inFlight = null;
     var cache = {};
     var lastHeight = 420;
+    var lastEnrichRows = 0;
 
     /*
      * The enrichment strip is cached apart from the card and only once
@@ -165,6 +166,7 @@
         var node = element();
         node.innerHTML = html;
         node.classList.add('vp-hc-shown');
+        hold(node);
         place(anchor);
         if (value !== undefined) {
             lastHeight = node.getBoundingClientRect().height;
@@ -176,7 +178,7 @@
      * ------------------------------------------------------------------
      * Enrichment, which the card asks for itself.
      * ------------------------------------------------------------------
-     * The card carries a placeholder holding the strip's line open, and
+     * The card carries a placeholder holding the section open, and
      * the strip is a second request because knowing what a reader could
      * ask costs an outbound call to the modules service — the card's
      * whole cost argument is that a hover is worth one assessment and
@@ -188,6 +190,25 @@
      * an endpoint that decides the gate and the reuse window again when
      * it lands. What differs is `shape=chip`.
      */
+
+    /**
+     * Give the placeholder as many skeleton rows as the last section
+     * drew, so the card keeps its height when the answers land.
+     *
+     * @param {Element} node The card
+     */
+    function hold(node) {
+        var rows = node.querySelector('[data-vp-hc-enrich] .vp-hc-enr-rows');
+        if (!rows || !rows.firstElementChild || !lastEnrichRows) {
+            return;
+        }
+        while (rows.children.length > lastEnrichRows) {
+            rows.lastElementChild.remove();
+        }
+        while (rows.children.length < lastEnrichRows) {
+            rows.appendChild(rows.firstElementChild.cloneNode(true));
+        }
+    }
 
     /**
      * @param {Element} node The card
@@ -253,6 +274,7 @@
             return null;
         }
         slot.replaceWith(strip);
+        lastEnrichRows = strip.querySelectorAll('[data-vp-eb-row]').length;
         place(anchor);
         return strip;
     }
@@ -348,11 +370,6 @@
         slot.innerHTML = trimmed
             ? trimmed
             : '<span class="vp-hce-v vp-hce-fail">no answer</span>';
-        /*
-         * A headline is wider than the spinner it replaces, and the
-         * card may be sitting above the cursor — where growing means
-         * moving. Re-placed rather than left to drift.
-         */
         place(anchor);
     }
 
