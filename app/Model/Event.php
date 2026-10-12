@@ -1345,7 +1345,10 @@ class Event extends AppModel
             $conditions['AND'][] = ['OR' => ['Attribute.object_id' => 0, 'Object.uuid !=' => $options['exclude']]];
         }
         return [
-            'conditions' => $conditions,
+            // Callbacks are off: the value search is rewritten here, bounded
+            // by the event so its unanchored LIKE is checked per row
+            'conditions' => ClassRegistry::init('AttributeValue')
+                ->rewriteConditions($conditions, 'Attribute', true),
             'joins' => [
                 ['table' => 'events', 'alias' => 'Event', 'type' => 'INNER', 'conditions' => ['Event.id = Attribute.event_id']],
                 ['table' => 'objects', 'alias' => 'Object', 'type' => 'LEFT', 'conditions' => ['Object.id = Attribute.object_id']],

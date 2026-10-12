@@ -693,7 +693,7 @@ class PivotGraphTool
         do {
             $rows = $this->attributeFind($user, $eventId, [
                 'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.object_id', 'Object.uuid',
-                             'Attribute.type', 'Attribute.value1', 'Attribute.value2', 'Attribute.disable_correlation'],
+                             'Attribute.type', 'Attribute.value1_id', 'Attribute.value2_id', 'Attribute.disable_correlation'],
                 'conditions' => ['Attribute.id >' => $last],
                 'order' => ['Attribute.id'],
                 'limit' => self::PAGE,
@@ -701,6 +701,8 @@ class PivotGraphTool
             if (empty($rows)) {
                 return true;
             }
+            // Callbacks are off, so the value text is attached here
+            ClassRegistry::init('AttributeValue')->attachValues($rows, 'Attribute');
             $attributes = [];
             foreach ($rows as $row) {
                 $attribute = $row['Attribute'];
@@ -871,6 +873,12 @@ class PivotGraphTool
             $conditions['AND'][] = is_int($key) ? $condition : [$key => $condition];
         }
         unset($params['conditions']);
+        if ($model === 'Attribute') {
+            // Callbacks are off: value conditions are rewritten here, bounded
+            // by the event so a search's unanchored LIKE is checked per row
+            $conditions = ClassRegistry::init('AttributeValue')
+                ->rewriteConditions($conditions, 'Attribute', true);
+        }
         return $Model->find($findType, [
             'conditions' => $conditions,
             'joins' => array_merge($joins, $params['joins'] ?? []),
