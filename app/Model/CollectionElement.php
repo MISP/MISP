@@ -26,10 +26,10 @@ class CollectionElement extends AppModel
     ];
 
     /**
-     * A Value element points at no row: it carries the literal, and its
-     * element_uuid is derived from it (Value::uuidFor), so the
+     * A Value element points at its value dictionary row (value_id), and its
+     * element_uuid is derived from the literal (Value::uuidFor), so the
      * (element_uuid, collection_id) unique key keeps a value in a collection
-     * once.
+     * once. Reads and sync carry the literal as `value`, never the id.
      */
     const VALUE_MAX_BYTES = 1024;
 
@@ -120,6 +120,69 @@ class CollectionElement extends AppModel
             $element['value'] = null;
         }
         return true;
+    }
+
+    public function beforeSave($options = array())
+    {
+        $element = &$this->data['CollectionElement'];
+        if (array_key_exists('value', $element)) {
+            $element['value_id'] = ($element['element_type'] ?? null) === 'Value' && $element['value'] !== null
+                ? ClassRegistry::init('AttributeValue')->intern((string)$element['value'])
+                : null;
+            unset($element['value']);
+        }
+        return true;
+    }
+
+    public function afterFind($results, $primary = false)
+    {
+        if (!is_array($results)) {
+            return $results;
+        }
+        $ids = [];
+        $this->valueIdsIn($results, $ids);
+        $texts = empty($ids) ? [] : ClassRegistry::init('AttributeValue')->fetchValues(array_keys($ids));
+        $this->fillValues($results, $texts);
+        return $results;
+    }
+
+    /**
+     * @param array $node A find result, or any part of one
+     * @param array $ids value_id => true, added to
+     * @return void
+     */
+    private function valueIdsIn(array $node, array &$ids)
+    {
+        if (!empty($node['value_id'])) {
+            $ids[(int)$node['value_id']] = true;
+        }
+        foreach ($node as $child) {
+            if (is_array($child)) {
+                $this->valueIdsIn($child, $ids);
+            }
+        }
+    }
+
+    /**
+     * The literal in place of the id, wherever an element row sits in a
+     * result: primary rows and the ones a Collection find contains alike.
+     *
+     * @param array $node
+     * @param array $texts value_id => value
+     * @return void
+     */
+    private function fillValues(array &$node, array $texts)
+    {
+        if (array_key_exists('value_id', $node)) {
+            $node['value'] = empty($node['value_id']) ? null : ($texts[(int)$node['value_id']] ?? null);
+            unset($node['value_id']);
+        }
+        foreach ($node as &$child) {
+            if (is_array($child)) {
+                $this->fillValues($child, $texts);
+            }
+        }
+        unset($child);
     }
 
     /**
