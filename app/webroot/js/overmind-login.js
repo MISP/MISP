@@ -18,7 +18,7 @@
     }
 
     // A page left open outlives its CSRF token: fetch a fresh one just before submitting.
-    var form = document.getElementById('UserLoginForm');
+    var form = document.getElementById('UserLoginForm') || document.getElementById('UserForgotForm');
     if (form && window.fetch && window.DOMParser) {
         form.addEventListener('submit', function (event) {
             event.preventDefault();
@@ -37,7 +37,7 @@
             }).then(function (response) {
                 return response.text();
             }).then(function (html) {
-                var fresh = new DOMParser().parseFromString(html, 'text/html').getElementById('UserLoginForm');
+                var fresh = new DOMParser().parseFromString(html, 'text/html').getElementById(form.id);
                 if (!fresh) {
                     window.location = form.action;
                     return;

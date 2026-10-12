@@ -309,31 +309,36 @@
 [data-misp-mode="dark"] .oml-logo-light { display: none !important; }
 [data-misp-mode="dark"] .oml-logo-dark { display: block !important; }
 
-.oml-brand-partners {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding-left: 16px;
-    border-left: 1px solid var(--oml-hairline);
+/* main logo stays centred and tallest; welcome_logo left, welcome_logo2 right */
+.oml-has-partners {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 14px;
 }
 
-.oml-brand-partners img {
+.oml-brand-partner { display: flex; align-items: center; min-width: 0; }
+.oml-brand-partner-left { justify-content: flex-end; }
+.oml-brand-partner-right { justify-content: flex-start; }
+
+.oml-brand-partner img {
     display: block;
-    max-height: 44px;
-    max-width: 96px;
+    max-height: 40px;
+    max-width: 100%;
     width: auto;
     object-fit: contain;
 }
 
-.oml-has-partners .oml-brand-main img { height: 44px; }
+.oml-has-partners .oml-brand-main img { height: 56px; }
 
 .oml-welcome-top {
     margin: 0 0 18px;
     text-align: center;
-    font-family: var(--oml-font-mono);
-    font-size: 12px;
-    letter-spacing: 0.02em;
-    color: var(--oml-text-muted);
+    font-family: var(--oml-font-sans);
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    color: var(--oml-text);
 }
 
 .oml-title {
@@ -363,7 +368,8 @@
 .oml-flash-info { background: var(--oml-info-bg); border-color: var(--oml-info-border); color: var(--oml-info-text); }
 .oml-flash-info > i { color: var(--oml-info-icon); }
 
-.oml-sso-lead {
+.oml-sso-lead,
+.oml-lead {
     margin: 0 0 16px;
     font-size: 14px;
     color: var(--oml-text-muted);
@@ -518,7 +524,8 @@
     background: var(--oml-hairline);
 }
 
-.oml-register {
+.oml-register,
+.oml-back {
     margin: 20px 0 0;
     text-align: center;
     font-size: 13.5px;
@@ -540,8 +547,9 @@
     .oml-stage { padding: 28px 16px; align-items: flex-start; }
     .oml-panel { padding: 28px 20px 22px; border-radius: 16px; }
     .oml-brand-main img { height: 54px; }
-    .oml-has-partners .oml-brand-main img { height: 36px; }
-    .oml-brand-partners { padding-left: 12px; gap: 8px; }
-    .oml-brand-partners img { max-height: 36px; max-width: 72px; }
+    .oml-has-partners { gap: 10px; }
+    .oml-has-partners .oml-brand-main img { height: 44px; }
+    .oml-brand-partner img { max-height: 32px; }
+    .oml-welcome-top { font-size: 17px; }
     .oml-title { font-size: 20px; }
 }
