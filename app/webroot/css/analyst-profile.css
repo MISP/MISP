@@ -198,6 +198,15 @@ input.num[type="number"]::-webkit-inner-spin-button {
     font-family: var(--bs-font-monospace, ui-monospace, monospace);
     font-size: .75rem;
 }
+.wb-name {
+    font-weight: 600;
+    line-height: 1.35;
+}
+.wb-name-id {
+    margin-top: .05rem;
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+}
 .wb-h {
     font: 600 .8125rem/1.4 var(--bs-font-sans-serif, system-ui);
     margin: 0 0 .15rem;

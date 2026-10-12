@@ -481,7 +481,7 @@ class AnalystProfileFormTool
         }
         $item = array(
             'id' => $id,
-            'title' => $id,
+            'title' => $this->helpName($id, $config),
             'description' => $config === null
                 ? null
                 : $config['description'],
@@ -592,6 +592,21 @@ class AnalystProfileFormTool
                 ));
         }
         return $item;
+    }
+
+    /**
+     * A signal's or rule's name for a reader, or its id when it declares
+     * none.
+     *
+     * @param string $id
+     * @param array|null $config From the loader
+     * @return string
+     */
+    private function helpName($id, $config)
+    {
+        return $config !== null && !empty($config['help']['name'])
+            ? (string)$config['help']['name']
+            : $id;
     }
 
     /**
@@ -1138,7 +1153,7 @@ class AnalystProfileFormTool
         }
         $item = array(
             'id' => $id,
-            'title' => $id,
+            'title' => $this->helpName($id, $config),
             'description' => $config === null
                 ? null
                 : $config['description'],

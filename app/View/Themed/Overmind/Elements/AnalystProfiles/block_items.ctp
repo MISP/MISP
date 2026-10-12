@@ -228,7 +228,11 @@ $columns = $isSignals ? 5 : 3;
                     <?php endif; ?>
                 </td>
                 <td>
-                    <div class="wb-id fw-semibold"><?= h($item['title']) ?></div>
+                    <div class="wb-name"><?= h($item['title']) ?></div>
+                    <?php if ($item['title'] !== $item['id']): ?>
+                        <div class="wb-id wb-name-id"><?=
+                            h($item['id']) ?></div>
+                    <?php endif; ?>
                     <?php foreach ($item['badges'] as $badge): ?>
                         <div class="mt-1">
                             <span class="pill t-missing"
