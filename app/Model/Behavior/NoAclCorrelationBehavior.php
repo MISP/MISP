@@ -500,6 +500,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
         $db = $this->Correlation->getDataSource();
         $eventIds = [];
         $read = 0;
+        $excluded = $this->Correlation->excludedValueConditions();
         foreach ([true, false] as $primary) {
             $source = $primary ? '' : '1_';
             $related = ($primary ? '1_' : '') . 'event_id';
@@ -507,16 +508,10 @@ class NoAclCorrelationBehavior extends ModelBehavior
                 'fields' => [$db->name('Correlation.' . $related)],
                 'table' => $db->fullTableName($this->Correlation),
                 'alias' => 'Correlation',
-                'joins' => [[
-                    'table' => $db->fullTableName($this->Correlation->CorrelationValue),
-                    'alias' => 'CorrelationValue',
-                    'type' => 'INNER',
-                    'conditions' => ['CorrelationValue.id = Correlation.value_id'],
-                ]],
+                'joins' => [],
                 'conditions' => [
                     'Correlation.' . $source . 'event_id' => $eventId,
-                    'CorrelationValue.value NOT IN (select value from correlation_exclusions)',
-                    'CorrelationValue.value NOT IN (select value from over_correlating_values)',
+                    'AND' => $excluded,
                 ],
                 'order' => null,
                 'group' => null,

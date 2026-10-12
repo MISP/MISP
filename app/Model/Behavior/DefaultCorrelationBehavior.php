@@ -699,6 +699,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
             $related[(int)$eventId] = [];
             $read[(int)$eventId] = [0, 0];
         }
+        $excluded = $this->Correlation->excludedValueConditions();
         foreach (array_chunk(array_keys($related), self::COUNT_BATCH) as $chunk) {
             $branches = [];
             foreach ($chunk as $eventId) {
@@ -724,16 +725,10 @@ class DefaultCorrelationBehavior extends ModelBehavior
                         'fields' => $fields,
                         'table' => $db->fullTableName($this->Correlation),
                         'alias' => 'Correlation',
-                        'joins' => [[
-                            'table' => $db->fullTableName($this->Correlation->CorrelationValue),
-                            'alias' => 'CorrelationValue',
-                            'type' => 'INNER',
-                            'conditions' => ['CorrelationValue.id = Correlation.value_id'],
-                        ]],
+                        'joins' => [],
                         'conditions' => [
                             'Correlation.' . $source . 'event_id' => $eventId,
-                            'CorrelationValue.value NOT IN (select value from correlation_exclusions)',
-                            'CorrelationValue.value NOT IN (select value from over_correlating_values)',
+                            'AND' => $excluded,
                         ],
                         'order' => null,
                         'group' => null,
