@@ -11,6 +11,12 @@ $options = [
         'icon' => 'fas fa-power-off', 'accent' => '#198754',
     ],
     [
+        'field' => 'push_sightings', 'id' => 'SightingdbPushSightings',
+        'label' => __('Push sightings'),
+        'hint' => __('Write sightings recorded here to it, hashed, under <namespace>/misp'),
+        'icon' => 'fas fa-upload', 'accent' => '#0d6efd',
+    ],
+    [
         'field' => 'skip_proxy', 'id' => 'SightingdbSkipProxy',
         'label' => __('Skip proxy'),
         'hint' => __('Reach it directly, ignoring the configured proxy'),
@@ -131,6 +137,19 @@ echo $this->Form->create('Sightingdb', [
                     ]) ?>
                     <?= $serverError('namespace') ?>
                 </div>
+                <div class="col-md-7">
+                    <label class="form-label text-muted mb-1" for="SightingdbFalsePositiveNamespace"
+                           style="font-size:.75rem;">
+                        <?= __('False-positive namespace') ?>
+                    </label>
+                    <?= $this->Form->text('false_positive_namespace', [
+                        'id' => 'SightingdbFalsePositiveNamespace',
+                        'class' => 'form-control font-monospace',
+                        'placeholder' => __('Left empty, false-positives are left out'),
+                        'autocomplete' => 'off',
+                    ]) ?>
+                    <?= $serverError('false_positive_namespace') ?>
+                </div>
                 <div class="col-md-5">
                     <label class="form-label text-muted mb-1" for="SightingdbOwner"
                            style="font-size:.75rem;">
@@ -145,6 +164,26 @@ echo $this->Form->create('Sightingdb', [
                         'data-required-msg' => __('Please provide the owner of the database.'),
                     ]) ?>
                     <?= $serverError('owner') ?>
+                </div>
+                <div class="col-md-7">
+                    <label class="form-label text-muted mb-1" for="SightingdbApiKey"
+                           style="font-size:.75rem;">
+                        <i class="fas fa-key me-1" style="font-size:.7rem;"></i>
+                        <?= __('API key') ?>
+                    </label>
+                    <?= $this->Form->password('api_key', [
+                        'id' => 'SightingdbApiKey',
+                        'class' => 'form-control font-monospace',
+                        'placeholder' => $isEdit
+                            ? __('Leave empty to keep the current key')
+                            : __('Leave empty if the SightingDB does not require one'),
+                        'autocomplete' => 'new-password',
+                        'value' => '',
+                    ]) ?>
+                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                        'text' => __('Sent as the Authorization header on every query.'),
+                    ]) ?>
+                    <?= $serverError('api_key') ?>
                 </div>
             </div>
         </div>
@@ -270,5 +309,19 @@ echo $this->Form->create('Sightingdb', [
         if (field) { field.addEventListener('input', refreshPreview); }
     });
     refreshPreview();
+
+    /* Follow the namespace with <namespace>/false-positive until edited by hand */
+    var falsePositiveEl = el('SightingdbFalsePositiveNamespace');
+    if (namespaceEl && falsePositiveEl) {
+        var follows = falsePositiveEl.value === ''
+            || falsePositiveEl.value === namespaceEl.value + '/false-positive';
+        falsePositiveEl.addEventListener('input', function () { follows = false; });
+        namespaceEl.addEventListener('input', function () {
+            if (follows) {
+                var namespace = namespaceEl.value.trim();
+                falsePositiveEl.value = namespace ? namespace + '/false-positive' : '';
+            }
+        });
+    }
 })();
 </script>

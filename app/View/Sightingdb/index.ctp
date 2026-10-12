@@ -73,6 +73,16 @@
                     'data_path' => 'Sightingdb.namespace'
                 ),
                 array(
+                    'name' => __('False-positive namespace'),
+                    'data_path' => 'Sightingdb.false_positive_namespace'
+                ),
+                array(
+                    'name' => __('Push'),
+                    'class' => 'short',
+                    'element' => 'boolean',
+                    'data_path' => 'Sightingdb.push_sightings'
+                ),
+                array(
                     'name' => __('Skip Proxy'),
                     'class' => 'short',
                     'element' => 'boolean',

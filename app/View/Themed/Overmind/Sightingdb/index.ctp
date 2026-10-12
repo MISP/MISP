@@ -76,6 +76,20 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
+        'name' => __('False-positive namespace'),
+        'sort' => 'Sightingdb.false_positive_namespace',
+        'data_path' => 'Sightingdb.false_positive_namespace',
+        'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Push'),
+        'sort' => 'Sightingdb.push_sightings',
+        'data_path' => 'Sightingdb.push_sightings',
+        'element' => 'boolean',
+        'card_section' => 'top',
+        'display_in' => ['table', 'card']
+    ],
+    [
         'name' => __('Skip Proxy'),
         'sort' => 'Sightingdb.skip_proxy',
         'data_path' => 'Sightingdb.skip_proxy',

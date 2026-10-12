@@ -1547,7 +1547,7 @@ class EventsController extends AppController
         $sightingsData = $this->Event->Sighting->eventsStatistic([$event], $user);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, $all, $sightingsData);
-        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+        if (Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->loadModel('Sightingdb');
             $event = $this->Sightingdb->attachToEvent($event, $this->Auth->user());
         }
@@ -1574,7 +1574,7 @@ class EventsController extends AppController
             $this->request->here = implode('/', $uriArray);
         }
 
-        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+        if (Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($user));
         }
         $this->set('currentUri', $this->request->here);
@@ -1748,7 +1748,7 @@ class EventsController extends AppController
         $sightingsData = $this->Sighting->eventsStatistic([$event], $user);
         $this->set('sightingsData', $sightingsData);
         $params = $this->Event->rearrangeEventForView($event, $filters, false, $sightingsData);
-        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+        if (Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->loadModel('Sightingdb');
             $event = $this->Sightingdb->attachToEvent($event, $user);
         }
@@ -1795,7 +1795,7 @@ class EventsController extends AppController
             }
         }
 
-        if (!empty($filters['includeSightingdb']) && Configure::read('Plugin.Sightings_sighting_db_enable')) {
+        if (Configure::read('Plugin.Sightings_sighting_db_enable')) {
             $this->set('sightingdbs', $this->Sightingdb->getSightingdbList($user));
         }
         $this->set('includeOrgColumn', $this->viewVars['extended'] || $this->viewVars['extending'] || $containsProposals);
