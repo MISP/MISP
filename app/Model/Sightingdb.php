@@ -314,9 +314,9 @@ class Sightingdb extends AppModel
 
     /*
      * Daily counts for the given values from the hourly statistics SightingDB
-     * keeps, summed over every SightingDB the user may query, for the sightings
-     * graph. Keyed by MISP sighting type ('sighting', 'false-positive'), then
-     * by Y-m-d.
+     * keeps, for the sightings graph: per SightingDB the user may query, keyed by
+     * its name, then by type ('sighting', and 'false-positive' when the
+     * connection has a false-positive namespace), then by Y-m-d.
      */
     public function queryDailyCounts(array $values, array $user)
     {
@@ -347,15 +347,18 @@ class Sightingdb extends AppModel
             if (empty($responseData['items'])) {
                 continue;
             }
+            // Every line the connection can draw, flat at zero where nothing was counted
+            $counts = array_fill_keys(array_keys($namespaces), array());
             foreach ($responseData['items'] as $n => $item) {
                 if (!empty($item['error']) || empty($item['stats']) || !isset($types[$n])) {
                     continue;
                 }
                 foreach ($item['stats'] as $hour => $count) {
                     $day = date('Y-m-d', (int)$hour);
-                    $result[$types[$n]][$day] = ($result[$types[$n]][$day] ?? 0) + (int)$count;
+                    $counts[$types[$n]][$day] = ($counts[$types[$n]][$day] ?? 0) + (int)$count;
                 }
             }
+            $result[$sightingdb['Sightingdb']['name']] = $counts;
         }
         return $result;
     }

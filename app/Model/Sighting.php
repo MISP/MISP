@@ -656,42 +656,54 @@ class Sighting extends AppModel
     }
 
     /**
-     * Add counts to the Sighting and False-positive columns of a CSV produced by
-     * generateSparkline() with false-positives. The date range grows to cover
-     * the new counts, within the configured maximum range.
+     * Add a line to a CSV produced by generateSparkline() for each SightingDB:
+     * its sightings, and its false-positives when it counts them. The date range
+     * grows to cover them, within the configured maximum range.
      *
      * @param string $csv
-     * @param array $counts Keyed by 'sighting' and/or 'false-positive', then by Y-m-d
+     * @param array $series As Sightingdb::queryDailyCounts() returns it
      * @return string
      */
-    public function mergeCountsIntoCsv($csv, array $counts)
+    public function addSightingdbSeriesToCsv($csv, array $series)
     {
         $lines = array_values(array_filter(explode('\n', $csv), 'strlen'));
-        $header = array_shift($lines);
+        $header = explode(',', array_shift($lines));
         $rows = [];
         foreach ($lines as $line) {
-            list($date, $sighting, $falsePositive) = array_pad(explode(',', $line), 3, 0);
-            $rows[$date] = ['sighting' => (int)$sighting, 'false-positive' => (int)$falsePositive];
+            $cells = explode(',', $line);
+            $rows[array_shift($cells)] = $cells;
         }
-        $rangeStart = date('Y-m-d', $this->getMaximumRange());
-        foreach ($counts as $type => $days) {
-            foreach ($days as $date => $count) {
-                if ($date < $rangeStart) {
-                    continue;
-                }
-                if (!isset($rows[$date])) {
-                    $rows[$date] = ['sighting' => 0, 'false-positive' => 0];
-                }
-                $rows[$date][$type] += $count;
+        $columns = [];
+        foreach ($series as $name => $types) {
+            $label = stripos($name, 'sightingdb') === false ? $name . ' (SightingDB)' : $name;
+            foreach ($types as $type => $days) {
+                $columns[] = [
+                    // A column header in a CSV the view embeds in a JS string
+                    'name' => str_replace([',', '\\', '"', "'", '<', '>', "\n", "\r"], ' ', $type === 'sighting' ? $label : $label . ' false-positives'),
+                    'days' => $days,
+                ];
             }
         }
-        ksort($rows);
-        $result = $header . '\n';
+        $rangeStart = date('Y-m-d', $this->getMaximumRange());
+        $dates = array_keys($rows);
+        foreach ($columns as $column) {
+            foreach (array_keys($column['days']) as $date) {
+                if ($date >= $rangeStart) {
+                    $dates[] = $date;
+                }
+            }
+        }
+        sort($dates);
+        $empty = array_fill(0, count($header) - 1, '0');
         $today = strtotime(date('Y-m-d'));
-        for ($date = strtotime(array_key_first($rows)); $date <= $today; $date += self::ONE_DAY) {
+        $result = implode(',', array_merge($header, array_column($columns, 'name'))) . '\n';
+        for ($date = strtotime($dates[0]); $date <= $today; $date += self::ONE_DAY) {
             $day = date('Y-m-d', $date);
-            $row = $rows[$day] ?? ['sighting' => 0, 'false-positive' => 0];
-            $result .= $day . ',' . $row['sighting'] . ',' . $row['false-positive'] . '\n';
+            $cells = $rows[$day] ?? $empty;
+            foreach ($columns as $column) {
+                $cells[] = (string)($column['days'][$day] ?? 0);
+            }
+            $result .= $day . ',' . implode(',', $cells) . '\n';
         }
         return $result;
     }

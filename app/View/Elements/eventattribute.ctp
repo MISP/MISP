@@ -124,6 +124,13 @@
             <th><?php echo __('Sightings');?></th>
             <th><?php echo __('Activity');?></th>
             <?php
+                if ($includeSightingdb) {
+                    echo sprintf(
+                        '<th>%s</th>',
+                        __('SightingDB')
+                    );
+                    $fieldCount++;
+                }
                 if ($includeDecayScore) {
                     echo sprintf(
                         '<th class="decayingScoreField" title="%s">%s</th>',

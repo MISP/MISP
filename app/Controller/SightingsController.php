@@ -331,7 +331,7 @@ class SightingsController extends AppController
                 throw new MethodNotAllowedException('Invalid object.');
             }
             $statistics = $this->Sighting->attributesStatistics($objects, $this->Auth->user(), true);
-            $this->addSightingdbCounts($statistics, array_column(array_column($objects, 'Attribute'), 'value'));
+            $this->addSightingdbSeries($statistics, array_column(array_column($objects, 'Attribute'), 'value'));
         } elseif ($context === 'event') {
             // let's set the context to event here, since we reuse the variable later on for some additional lookups.
             // Passing $context = 'org' could have interesting results otherwise...
@@ -342,7 +342,7 @@ class SightingsController extends AppController
                     'conditions' => ['Attribute.event_id' => array_column(array_column($events, 'Event'), 'id'), 'Attribute.deleted' => 0],
                     'fields' => ['Attribute.value'],
                 ]);
-                $this->addSightingdbCounts($statistics, array_column(array_column($attributes, 'Attribute'), 'value'));
+                $this->addSightingdbSeries($statistics, array_column(array_column($attributes, 'Attribute'), 'value'));
             }
         } else {
             throw new MethodNotAllowedException('Invalid context');
@@ -354,15 +354,15 @@ class SightingsController extends AppController
     }
 
     /**
-     * Count what every SightingDB the user may query has seen of these values in
-     * the graph's sightings and false-positives.
+     * Draw what every SightingDB the user may query has seen of these values as
+     * lines of its own, beside MISP's sightings and false-positives.
      */
-    private function addSightingdbCounts(array &$statistics, array $values)
+    private function addSightingdbSeries(array &$statistics, array $values)
     {
         $this->loadModel('Sightingdb');
-        $counts = $this->Sightingdb->queryDailyCounts($values, $this->Auth->user());
-        if (!empty($counts)) {
-            $statistics['csv']['all'] = $this->Sighting->mergeCountsIntoCsv($statistics['csv']['all'], $counts);
+        $series = $this->Sightingdb->queryDailyCounts($values, $this->Auth->user());
+        if (!empty($series)) {
+            $statistics['csv']['all'] = $this->Sighting->addSightingdbSeriesToCsv($statistics['csv']['all'], $series);
         }
     }
 
