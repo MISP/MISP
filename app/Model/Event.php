@@ -11700,35 +11700,25 @@ class Event extends AppModel
 
     private function __findOriginalUUID($attribute_type, $attribute_value, $event_id)
     {
-        $original_uuid = $this->Object->Attribute->find(
+        $original_uuid = $this->__caseTwin($event_id, $attribute_type, $attribute_value);
+        if (!empty($original_uuid)) {
+            return $original_uuid;
+        }
+        $value = (string)$attribute_value;
+        $ids = ClassRegistry::init('Value')->caseIdsFor([$value])[$value] ?? [];
+        if (empty($ids)) {
+            return [];
+        }
+        $original_uuid = $this->Object->find(
             'first',
             array(
                 'conditions' => array(
                     'Attribute.event_id' => $event_id,
                     'Attribute.deleted' => 0,
-                    'Attribute.object_id' => 0,
                     'Attribute.type' => $attribute_type,
-                    'Attribute.value' => $attribute_value
+                    'Attribute.value1_id' => $ids,
+                    'Object.event_id' => $event_id
                 ),
-                'recursive' => -1,
-                'fields' => array('Attribute.uuid', 'Attribute.id')
-            )
-        );
-        if (!empty($original_uuid)) {
-            return $original_uuid['Attribute'];
-        }
-        // An Object find: its beforeFind leaves the joined attribute's value alone
-        $conditions = $this->Object->Attribute->loadAttributeValue()->rewriteConditions(array(
-            'Attribute.event_id' => $event_id,
-            'Attribute.deleted' => 0,
-            'Attribute.type' => $attribute_type,
-            'Attribute.value1' => $attribute_value,
-            'Object.event_id' => $event_id
-        ), 'Attribute');
-        $original_uuid = $this->Object->find(
-            'first',
-            array(
-                'conditions' => $conditions,
                 'recursive' => -1,
                 'fields' => array('Object.uuid'),
                 'joins' => array(
@@ -11744,6 +11734,58 @@ class Event extends AppModel
             )
         );
         return (!empty($original_uuid)) ? ['uuid' => $original_uuid['Object']['uuid']] : $original_uuid;
+    }
+
+    /**
+     * The attribute the event holds outside objects with this type and
+     * value up to case, its own spelling first. Accents are not folded: an
+     * accent can make a different domain.
+     *
+     * @param int $eventId
+     * @param string $type
+     * @param string $value
+     * @param string|null $category
+     * @param array|null $caseIds As Value::caseIdsFor() returns them
+     * @return array `uuid` and `id`, or none
+     */
+    private function __caseTwin($eventId, $type, $value, $category = null, $caseIds = null)
+    {
+        $value = (string)$value;
+        $parts = $this->Attribute->valueParts($type, $value);
+        if (empty($parts)) {
+            return [];
+        }
+        if ($caseIds === null) {
+            $caseIds = ClassRegistry::init('Value')->caseIdsFor($parts);
+        }
+        $first = $caseIds[$parts[0]] ?? [];
+        $second = isset($parts[1]) ? ($caseIds[$parts[1]] ?? []) : null;
+        if (empty($first) || $second === []) {
+            return [];
+        }
+        $conditions = [
+            'Attribute.event_id' => $eventId,
+            'Attribute.deleted' => 0,
+            'Attribute.object_id' => 0,
+            'Attribute.type' => $type,
+            'Attribute.value1_id' => $first,
+            'Attribute.value2_id' => $second,
+        ];
+        if ($category !== null) {
+            $conditions['Attribute.category'] = $category;
+        }
+        $twin = [];
+        $rows = $this->Attribute->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.value'],
+        ]);
+        foreach ($rows as $row) {
+            if (empty($twin) || $row['Attribute']['value'] === $value) {
+                $twin = ['uuid' => $row['Attribute']['uuid'], 'id' => $row['Attribute']['id']];
+            }
+        }
+        return $twin;
     }
 
     /**
@@ -11921,6 +11963,11 @@ class Event extends AppModel
                 $sentAttributes[] = $attribute['uuid'];
             }
         }
+        // MISP would save a case variant as a new attribute
+        $twins = $this->__enrichmentCaseTwins($eventId, $resolved['Attribute']);
+        $resolved['Attribute'] = array_values(array_filter($resolved['Attribute'], function (array $attribute) use ($twins) {
+            return !isset($twins[$attribute['uuid']]);
+        }));
 
         $templates = [];
         $objectTemplate = ClassRegistry::init('ObjectTemplate');
@@ -11957,7 +12004,7 @@ class Event extends AppModel
                 if ($this->__enrichmentReference($reference)) {
                     $references[] = [
                         'object_uuid' => $object['uuid'],
-                        'referenced_uuid' => $reference['referenced_uuid'],
+                        'referenced_uuid' => $twins[$reference['referenced_uuid']] ?? $reference['referenced_uuid'],
                         'relationship_type' => $reference['relationship_type'],
                     ];
                 }
@@ -11994,7 +12041,7 @@ class Event extends AppModel
         if (!empty($resolved['Attribute']) || !empty($resolved['Object'])) {
             $message = $this->processModuleResultsData($user, $resolved, $eventId, '', false, false, false, $outcome);
         }
-        $recovered = $outcome['recovered'];
+        $recovered = $twins + $outcome['recovered'];
 
         $referenceErrors = 0;
         foreach ($originReferences as $reference) {
@@ -12046,6 +12093,41 @@ class Event extends AppModel
             }
         }
         return ['results' => $results, 'message' => trim($message)];
+    }
+
+    /**
+     * The results the event already holds as attributes outside objects,
+     * with the value as MISP would store it, up to case.
+     *
+     * @param int $eventId
+     * @param array $attributes As saveEnrichmentResults() shapes them
+     * @return array sent uuid => held uuid
+     */
+    private function __enrichmentCaseTwins($eventId, array $attributes)
+    {
+        $values = $parts = [];
+        foreach ($attributes as $i => $attribute) {
+            if (!is_string($attribute['type'] ?? null) || !is_scalar($attribute['value'] ?? null)) {
+                continue;
+            }
+            $values[$i] = $this->Attribute->massageValue($attribute['type'], (string)$attribute['value']);
+            foreach ($this->Attribute->valueParts($attribute['type'], $values[$i]) as $part) {
+                $parts[$part] = true;
+            }
+        }
+        if (empty($parts)) {
+            return [];
+        }
+        $caseIds = ClassRegistry::init('Value')->caseIdsFor(array_map('strval', array_keys($parts)));
+        $twins = [];
+        foreach ($values as $i => $value) {
+            $attribute = $attributes[$i];
+            $twin = $this->__caseTwin($eventId, $attribute['type'], $value, $attribute['category'] ?? null, $caseIds);
+            if (!empty($twin)) {
+                $twins[$attribute['uuid']] = $twin['uuid'];
+            }
+        }
+        return $twins;
     }
 
     /**

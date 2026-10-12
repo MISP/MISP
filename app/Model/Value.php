@@ -3419,4 +3419,45 @@ class Value extends AppModel
          */
         return array_map('strval', array_keys($spellings));
     }
+
+    /**
+     * Ids of the stored spellings of each term that differ from it in
+     * case at most, its own spelling first. Narrower than the value
+     * group, which folds accents too: an accent can make a different
+     * domain.
+     *
+     * @param array<string> $terms
+     * @return array<string, array<int>> term => ids, empty when the
+     *                                   instance holds no such spelling
+     */
+    public function caseIdsFor(array $terms)
+    {
+        $dictionary = ClassRegistry::init('AttributeValue');
+        $groups = $dictionary->resolveCi(array_map('strval', $terms));
+        $members = array();
+        foreach ($groups as $ids) {
+            foreach ($ids as $id) {
+                $members[(int)$id] = true;
+            }
+        }
+        $texts = empty($members)
+            ? array()
+            : $dictionary->fetchValues(array_keys($members));
+        $out = array();
+        foreach ($groups as $term => $ids) {
+            $term = (string)$term;
+            $folded = mb_strtolower($term);
+            $own = $others = array();
+            foreach ($ids as $id) {
+                $text = isset($texts[(int)$id]) ? $texts[(int)$id] : null;
+                if ($text === $term) {
+                    $own[] = (int)$id;
+                } elseif ($text !== null && mb_strtolower($text) === $folded) {
+                    $others[] = (int)$id;
+                }
+            }
+            $out[$term] = array_merge($own, $others);
+        }
+        return $out;
+    }
 }
