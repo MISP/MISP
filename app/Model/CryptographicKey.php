@@ -128,6 +128,41 @@ class CryptographicKey extends AppModel
         return $fingerprint;
     }
 
+    /** SQL eligibility for the event index, before counting and pagination. */
+    public function eventIndexConditions($skipProtected = false)
+    {
+        // protected is nullable and defaults to NULL. Match the existing PHP
+        // filter, which treats both NULL and zero as unprotected.
+        $unprotected = ['OR' => [
+            ['Event.protected' => 0], ['Event.protected' => null],
+        ]];
+        // Retain #11197's GPG fast path and support old pulling instances that
+        // cannot process protected events, including the NULL schema default.
+        if ($skipProtected || !$this->hasAny(['CryptographicKey.parent_type' => 'Event'])) {
+            return $unprotected;
+        }
+        try {
+            $fingerprint = $this->ingestInstanceKey();
+        } catch (Exception $e) {
+            $fingerprint = false;
+        }
+        if (!$fingerprint) {
+            return $unprotected;
+        }
+        $db = $this->getDataSource();
+        $query = $db->buildStatement([
+            'fields' => ['CryptographicKey.parent_id'],
+            'table' => $db->fullTableName($this), 'alias' => 'CryptographicKey',
+            'limit' => null, 'offset' => null, 'joins' => [], 'group' => false,
+            'conditions' => [
+                'CryptographicKey.parent_type' => 'Event',
+                'CryptographicKey.fingerprint' => $fingerprint,
+                'CryptographicKey.parent_id = Event.id',
+            ],
+        ], $this);
+        return ['OR' => [$unprotected, 'EXISTS (' . $query . ')']];
+    }
+
     /**
      * IDs of the protected events that the instance key is allowed to sign
      * @return array

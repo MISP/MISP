@@ -758,7 +758,9 @@ class RestResponseComponent extends Component
             if ($requestEtag !== null) {
                 $etag = '"' . $response->hash('sha1') . '"';
                 if ($requestEtag === $etag) {
-                    return new CakeResponse(['status' => 304]);
+                    $notModified = new CakeResponse(['status' => 304]);
+                    $notModified->header('ETag', $etag);
+                    return $notModified;
                 }
                 $headers['ETag'] = $etag;
             }
@@ -777,7 +779,9 @@ class RestResponseComponent extends Component
             if ($requestEtag !== null) {
                 $etag = '"' . sha1($response) . '"';
                 if ($requestEtag === $etag) {
-                    return new CakeResponse(['status' => 304]);
+                    $notModified = new CakeResponse(['status' => 304]);
+                    $notModified->header('ETag', $etag);
+                    return $notModified;
                 }
                 // Generate etag just when HTTP_IF_NONE_MATCH is set
                 $headers['ETag'] = $etag;
