@@ -12,7 +12,7 @@
  */
 $isCard    = isset($viewMode) && $viewMode === 'card';
 $attribute = isset($row['Attribute']) ? $row['Attribute'] : $row;
-$event     = isset($row['Event'])     ? $row['Event']     : $event;
+$event     = $row['Event'] ?? ($event ?? null);
 
 if ($attribute && $event && isset($attribute['id'], $attribute['type'])):
     $objectId    = h($attribute['id']);
