@@ -2598,7 +2598,8 @@ class Value extends AppModel
                 'Attribute.timestamp',
             ),
             'contain' => self::CONTEXT_FIELDS,
-            'order' => array('Attribute.value1' => 'DESC'),
+            // `value` is value1 for a datetime, and the one the hooks order by
+            'order' => array('Attribute.value' => 'DESC'),
         );
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
@@ -2675,10 +2676,16 @@ class Value extends AppModel
         $rows = $attributes->find('all', array(
             'conditions' => $conditions,
             'fields' => array(
-                'LEFT(Attribute.value1, 10) AS day',
+                'LEFT(DateValue.value, 10) AS day',
                 'Attribute.object_relation',
                 'COUNT(*) AS n',
             ),
+            'joins' => array(array(
+                'table' => 'attribute_values',
+                'alias' => 'DateValue',
+                'type' => 'INNER',
+                'conditions' => array('DateValue.id = Attribute.value1_id'),
+            )),
             'group' => array('day', 'Attribute.object_relation'),
             'order' => array('day' => 'ASC'),
             'recursive' => -1,
@@ -2902,18 +2909,22 @@ class Value extends AppModel
             'Event.id',
             'Event.info',
             // What the target holds today, so a row that changes the
-            // value can name both ends of the change.
+            // value can name both ends of the change. An association's
+            // value columns are ids, given text through `valueKeys`.
             'Attribute.id',
-            'Attribute.value1',
-            'Attribute.value2',
+            'Attribute.value1_id',
+            'Attribute.value2_id',
         );
         // `alias` is passed on a fresh array and never on the caller's,
         // so a page-wide options array cannot pick it up and re-point
-        // some other fetcher at a table it does not read.
+        // some other fetcher at a table it does not read. The target
+        // scope names the joined Attribute, which no proposal hook
+        // rewrites.
         $scopes = array(
             'proposed' => $this->conditionsFor($value,
                 array('alias' => 'ShadowAttribute')),
-            'target' => $this->conditionsFor($value),
+            'target' => ClassRegistry::init('AttributeValue')
+                ->rewriteConditions($this->conditionsFor($value), 'Attribute'),
         );
         if (!empty($options['reach'])) {
             $scopes = array_intersect_key(
@@ -2937,6 +2948,7 @@ class Value extends AppModel
                  * Timeline is attributed to.
                  */
                 'contain' => array('Event', 'Attribute', 'Org'),
+                'valueKeys' => array('value1', 'value2'),
             ));
             foreach ($rows as $row) {
                 $id = (int)$row['ShadowAttribute']['id'];
