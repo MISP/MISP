@@ -22,6 +22,14 @@ foreach ($object['Sightingdb'] ?? [] as $hit) {
         $objectSighting[$type]['count'] += $typeHit['count'];
         $objectSighting[$type]['orgs'][$source] = ['count' => $typeHit['count'], 'date' => $typeHit['last_seen']];
     }
+    // A TTL is SightingDB's word for when a value stops being valid, as an org's expiration is MISP's
+    if (!empty($hit['expiration'])) {
+        if (!isset($objectSighting['expiration'])) {
+            $objectSighting['expiration'] = ['count' => 0, 'orgs' => []];
+        }
+        $objectSighting['expiration']['count'] += 1;
+        $objectSighting['expiration']['orgs'][$source] = ['count' => 1, 'date' => $hit['expiration']];
+    }
 }
 if (!empty($objectSighting)) {
     foreach ($objectSighting as $type => $typeData) {

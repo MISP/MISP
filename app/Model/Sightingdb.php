@@ -258,7 +258,9 @@ class Sightingdb extends AppModel
      * and, when the connection has a false-positive namespace, how often it was
      * reported as a false-positive. A hit is attached under the connection's id
      * with `count`, `first_seen` and `last_seen` for sightings, and the same
-     * under `false_positive`.
+     * under `false_positive`. A sighted value SightingDB will expire - it has a
+     * TTL - also carries `expiration`, the Unix time it stops being valid: its
+     * last sighting plus the TTL.
      */
     public function queryValues($values, $sightingdb)
     {
@@ -300,6 +302,9 @@ class Sightingdb extends AppModel
             );
             if ($type === 'sighting') {
                 $values[$k][$id] = array_merge($values[$k][$id], $hit);
+                if (!empty($item['ttl'])) {
+                    $values[$k][$id]['expiration'] = (int)$item['last_seen'] + (int)$item['ttl'];
+                }
             } else {
                 $values[$k][$id]['false_positive'] = $hit;
             }

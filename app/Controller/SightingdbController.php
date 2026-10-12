@@ -191,6 +191,9 @@ class SightingdbController extends AppController
                 if (!empty($hit['false_positive'])) {
                     $result['false_positives'] = $hit['false_positive']['count'];
                 }
+                if (!empty($hit['expiration'])) {
+                    $result['expiration'] = date('Y-m-d H:i:s', $hit['expiration']);
+                }
             } else {
                 $result = array('count' => 0);
             }
