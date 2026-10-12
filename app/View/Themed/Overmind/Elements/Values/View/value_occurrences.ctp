@@ -124,6 +124,7 @@ $fields = array(
         'object_id_path' => 'Object.id',
         'relation_path' => 'Attribute.object_relation',
         'comment_path' => 'Attribute.comment',
+        'spelled_path' => 'spelled',
     ),
     array(
         'name' => __('Tags'),

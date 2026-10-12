@@ -3318,44 +3318,20 @@ class Value extends AppModel
     }
 
     /**
-     * How this instance actually spells these values, for this viewer.
+     * How this instance actually spells these values, for this viewer:
+     * the members of each value's group that an attribute the viewer
+     * can read holds. The group folds case and accents, so the caller
+     * decides which spelling counts as the reader's.
      *
-     * **The value columns are case-insensitive and the URL is not.**
-     * `attributes.value1` and `value2` are `utf8mb3_unicode_ci` in
-     * `db_schema.json`, and `AttributeValidationTool::
-     * modifyBeforeValidation()` lowercases every hash type, `hostname`,
-     * `domain`, `domain|ip`, the email types and `onion-address` on the
-     * way in — so a reader who types `CiRcL.lu` matches rows that all
-     * store `circl.lu`. The profile page renders the string it was
-     * given, so without this the banner reads a spelling nobody holds
-     * over nine occurrences of one that everybody does.
-     *
-     * A caller resolving a reader's own typing therefore asks this
-     * rather than asking whether the value exists: the answer is both.
-     * Nothing already holding a stored value needs it — every hover
-     * card in MISP links with the string it read out of the database.
-     *
-     * **One statement, bounded by `$limit` rows and not by the value's
-     * size.** An equality on the two indexed columns, ACL-scoped by
-     * `fetchAttributesSimple`, unordered — the model's default
-     * `event_id DESC` over `443`'s 48,255 occurrences would be a
-     * filesort to answer a question the first row answers. Both
-     * columns come back because a value is an identity when it is
-     * either one (`conditionsFor`), and which of them matched is not
-     * something the row says.
-     *
-     * A few rows rather than one so the caller can prefer an exact
-     * spelling where the instance holds more than one — a type MISP
-     * does not lowercase can hold `Report.doc` and `report.doc` at
-     * once, and any answer is better than a spelling that is neither,
-     * but the reader's own is better still.
+     * Bounded by `$limit` rows read, not by the value's size; a few
+     * rather than one, so a caller can prefer the reader's own spelling
+     * where the instance holds several.
      *
      * @param array $user
      * @param array $values Values to look for, exactly as spelled
      * @param array $options As conditionsFor
      * @param int $limit Rows read, not values returned
-     * @return array<string> The distinct non-empty spellings those
-     *                       rows hold, in the order they were read
+     * @return array<string> The distinct spellings those rows hold
      */
     public function spellingsFor(array $user, array $values,
         array $options = array(), $limit = self::SPELLING_ROW_CAP
@@ -3363,19 +3339,29 @@ class Value extends AppModel
         $wanted = array();
         foreach ($values as $value) {
             if ($value !== '' && $value !== null) {
-                // As `prevalenceFor`: an array key that looks like an
-                // integer comes back as one, and MariaDB abandons the
-                // `value1` index comparing a varchar to a number.
                 $wanted[(string)$value] = true;
             }
         }
         if (empty($wanted)) {
             return array();
         }
-        $keys = array_map('strval', array_keys($wanted));
+        $dictionary = ClassRegistry::init('AttributeValue');
+        $members = array();
+        $groups = $dictionary->resolveCi(
+            array_map('strval', array_keys($wanted))
+        );
+        foreach ($groups as $ids) {
+            foreach ($ids as $id) {
+                $members[(int)$id] = true;
+            }
+        }
+        if (empty($members)) {
+            return array();
+        }
+        $ids = array_keys($members);
         $conditions = array('OR' => array(
-            'Attribute.value1' => $keys,
-            'Attribute.value2' => $keys,
+            'Attribute.value1_id' => $ids,
+            'Attribute.value2_id' => $ids,
         ));
         if (!empty($options['types'])) {
             $conditions = array(
@@ -3385,25 +3371,28 @@ class Value extends AppModel
         }
         $rows = $this->attributes()->fetchAttributesSimple($user, array(
             'conditions' => $conditions,
-            'fields' => array('Attribute.value1', 'Attribute.value2'),
+            'fields' => array('Attribute.value1_id', 'Attribute.value2_id'),
             'limit' => (int)$limit,
         ));
+        $isMember = array();
+        foreach ($dictionary->fetchValues($ids) as $text) {
+            $isMember[(string)$text] = true;
+        }
         $spellings = array();
         foreach ($rows as $row) {
-            foreach (array('value1', 'value2') as $column) {
-                $spelling = isset($row['Attribute'][$column])
-                    ? (string)$row['Attribute'][$column]
-                    : '';
-                if ($spelling !== '') {
-                    $spellings[$spelling] = true;
+            $halves = array(
+                isset($row['Attribute']['value1'])
+                    ? (string)$row['Attribute']['value1'] : '',
+                isset($row['Attribute']['value2'])
+                    ? (string)$row['Attribute']['value2'] : '',
+            );
+            foreach ($halves as $half) {
+                if ($half !== '' && isset($isMember[$half])) {
+                    $spellings[$half] = true;
                 }
             }
         }
-        /*
-         * Back to strings for the same reason the keys went in as
-         * strings: `array_keys` hands back `443` as an integer, and
-         * the caller compares these against the reader's typing.
-         */
+        // `array_keys` hands back `443` as an integer
         return array_map('strval', array_keys($spellings));
     }
 

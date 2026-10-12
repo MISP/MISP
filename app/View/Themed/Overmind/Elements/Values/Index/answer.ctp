@@ -55,11 +55,11 @@ $profileUrl = function ($value) {
         'The surrounding quotes were removed before the lookup.'
     )) ?></p>
 <?php   endif; ?>
+<?php   if ($resolution['suggestion'] === null): ?>
     <p><?= h(__(
         'Nothing you can see records this value, so there is nothing'
         . ' to assess.'
     )) ?></p>
-<?php   if ($resolution['suggestion'] === null): ?>
     <div class="vi-offer">
         <a class="vi-btn" href="<?= h($profileUrl($resolution['value'])) ?>">
             <?= h(__('Open the Value Intelligence anyway')) ?>
@@ -69,22 +69,24 @@ $profileUrl = function ($value) {
         )) ?></span>
     </div>
 <?php   else: ?>
+    <p><?= sprintf(
+        h(__('Not recorded as typed. Recorded as %s.')),
+        '<b class="vi-said-inline">' . h($resolution['suggestion']) . '</b>'
+    ) ?></p>
     <div class="vi-offer">
         <a class="vi-btn vi-btn--lead"
            href="<?= h($profileUrl($resolution['suggestion'])) ?>">
-            <?= h(__('Did you mean')) ?>
-            <b class="vi-said-inline"><?= h($resolution['suggestion']) ?></b>?
+            <?= h(sprintf(__('Open %s'), $resolution['suggestion'])) ?>
         </a>
         <a class="vi-btn vi-btn--quiet"
            href="<?= h($profileUrl($resolution['value'])) ?>">
             <?= h(sprintf(__('Open %s anyway'), $resolution['value'])) ?>
         </a>
     </div>
-    <p class="vi-quiet"><?= h(sprintf(
-        __('%1$s and %2$s are stored as different values. Only you'
-            . ' can tell which one your source meant.'),
-        $resolution['value'],
-        $resolution['suggestion']
+    <p class="vi-quiet"><?= h(__(
+        'MISP shows the two spellings together, but an accent can make a'
+        . ' different domain. Only you can tell which one your source'
+        . ' meant.'
     )) ?></p>
 <?php   endif; ?>
 <?php elseif ($kind === 'over'): ?>

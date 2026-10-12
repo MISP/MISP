@@ -1038,115 +1038,50 @@ class ValueIntelligence extends AppModel
      * How this instance spells the value the reader typed, if it holds
      * it at all — and the one neighbour worth offering if it does not.
      *
-     * The resolver's whole read (`value-index.md` §7.1). It answers the
-     * question the paste box asks — *is this here?* — and nothing else:
-     * no assessment, no counts, no types. A hit sends the reader to the
-     * profile, which is the page that says everything else, and a miss
-     * is an answer rather than an error.
+     * The resolver's whole read: is this here? It answers with the
+     * stored spelling, not the reader's, since `/values/view` renders
+     * the string in its URL. A value the reader may not see is absent
+     * here exactly as a value nobody recorded is.
      *
-     * **It answers with the stored spelling, not the reader's.** The
-     * value columns are `utf8mb3_unicode_ci` and MISP lowercases every
-     * hash, domain, hostname and email address on the way in, so
-     * `CiRcL.lu` matches nine rows that all say `circl.lu` — and
-     * `/values/view` renders the string in its URL. Sending the
-     * reader's own spelling through would title a page with a value
-     * nobody holds, over the occurrences, orgs and types of one
-     * everybody does. `Value::spellingsFor` therefore answers both
-     * halves in one statement: what is recorded, and how.
-     *
-     * **One bounded statement, and it is not an aggregate.** An
-     * existence test wants to stop at the first row:
-     * `occurrenceCountFor` reads all 48,255 occurrences of `443` to
-     * say *yes*, where this reads four. It is an equality on the
-     * indexed `value1` and `value2`, scoped by the same
-     * `buildConditions` the profile uses — so **a value the reader may
-     * not see is absent here exactly as a value nobody recorded is**
-     * (§4.2, and `value-index.md` §8 G3).
-     *
-     * **The case probe runs on the miss path only**, and on a
-     * conformant instance it can only miss, because a spelling it
-     * would find has already been found by the exact match. It is for
-     * an instance whose value columns were created under MISP's
-     * `utf8mb3_bin` table default — drift that `schemaDiagnostics`
-     * reports — where `Google.com` and `google.com` really are two
-     * values. What it asks is `caseVariants`: the two or three
-     * spellings a paste arrives in, each an indexed equality, in one
-     * further statement. A fold would be correct on both collations
-     * and is refused: `LOWER()` on the stored column discards the
-     * 255-character prefix index over 3.9M rows. A value with no cased
-     * letters, `8.8.8.8` among them, issues no second statement.
-     *
-     * What comes back from that probe is an offer and never a
-     * redirect: only the reader knows which spelling the report meant.
+     * The reader's own spelling wins; a spelling differing only in case
+     * is where the reader is sent. Any other spelling of the value's
+     * group, an accent variant above all, is only offered: MISP shows
+     * them together, but an accent can make a different domain.
      *
      * @param array $user
      * @param string $value A value, already normalised
      * @param array $options As conditionsFor
      * @return array `value` as asked, `recorded`, `stored` — how the
      *               instance spells it, null when it does not hold it
-     *               — `suggestion`, a stored spelling differing only
-     *               in case, and `probed`, the spellings the second
-     *               statement asked about, empty when it was not
-     *               issued
+     *               — and `suggestion`, another stored spelling of it
      */
     public function forResolve(array $user, $value,
         array $options = array()
     ) {
-        $valueModel = $this->model('Value');
         $answer = array(
             'value' => $value,
             'recorded' => false,
             'stored' => null,
             'suggestion' => null,
-            'probed' => array(),
         );
-        $stored = self::spellingOf($value, $valueModel->spellingsFor(
+        $spellings = $this->model('Value')->spellingsFor(
             $user,
             array($value),
             $options
-        ));
+        );
+        $stored = self::spellingOf($value, $spellings);
         if ($stored !== null) {
             $answer['recorded'] = true;
             $answer['stored'] = $stored;
-            return $answer;
-        }
-        $variants = self::caseVariants($value);
-        if (empty($variants)) {
-            return $answer;
-        }
-        $answer['probed'] = $variants;
-        $spellings = $valueModel->spellingsFor(
-            $user,
-            $variants,
-            $options
-        );
-        foreach ($variants as $variant) {
-            $found = self::spellingOf($variant, $spellings);
-            if ($found !== null) {
-                $answer['suggestion'] = $found;
-                break;
-            }
+        } elseif (!empty($spellings)) {
+            $answer['suggestion'] = reset($spellings);
         }
         return $answer;
     }
 
     /**
-     * Which of the spellings that came back is this value's.
-     *
-     * The row says `value1` and `value2` and not which of them the
-     * collation matched, and a probe of three variants gets one
-     * answer for all three — so the caller asks per value and the
-     * folding is done here, in PHP, against strings already fetched.
-     * That is not the `LOWER()` the hot path refuses: this folds two
-     * short strings in memory rather than a `text` column in MariaDB.
-     *
-     * **The reader's own spelling wins when the instance holds it**,
-     * which is the case where nothing should change under them; a
-     * fold match is what redirects `CiRcL.lu` to `circl.lu`. A
-     * collation that folded something case does not — the accents
-     * `utf8mb3_unicode_ci` also equates — matches neither test, and
-     * answering null there is honest: this can say *recorded* only
-     * about a spelling it can name.
+     * Which of the spellings that came back is this value's: the
+     * reader's own, else one differing from it only in case.
      *
      * @param string $value The value as asked about
      * @param array<string> $spellings What `spellingsFor` returned
@@ -1167,54 +1102,15 @@ class ValueIntelligence extends AppModel
     }
 
     /**
-     * A pasted list, as the rows a worklist draws.
+     * A pasted list, as the rows a worklist draws: every row linked to
+     * the spelling the instance holds, and nothing else. A row saying
+     * *not recorded* would look different for a value the reader may
+     * not see.
      *
-     * The resolver's read at a hundred times the scale, and it does
-     * the same one job: **give every row a link to a value the
-     * instance actually holds**. A report's IOC section arrives in
-     * whatever case its author's tooling wrote, and MISP lowercases
-     * every hash, domain, hostname and email address on the way in —
-     * so a pasted list of uppercase `sha256`es is otherwise a hundred
-     * links to values nobody has filed. `value-index.md` §7.2.
-     *
-     * **Canonicalisation, and deliberately nothing else.** It does not
-     * answer whether a value is recorded, though the read it makes
-     * could: a row saying *not recorded* here would be a row that
-     * looks different for a value the reader may not see, which is
-     * exactly the identity §4.2 holds and which phase 5 has the
-     * machinery to keep. What a row shows about a value is the
-     * assessment or nothing.
-     *
-     * **One bounded statement per value that has a case to vary, not
-     * one statement for the list.** The array-shaped read is the
-     * obvious shape and it is wrong, measured rather than reasoned:
-     * `value1 IN (100 values) OR value2 IN (…)` plans as an
-     * `index_merge sort_union`, which collects row ids for **every**
-     * occurrence of every value before any `LIMIT` applies, and the
-     * limit then takes a prefix of them in row-id order. A paste
-     * carrying one hot value spends that prefix on it — on the
-     * verification instance, a hundred values including `flood`
-     * (65,717 occurrences) answered **75 of 99** at four rows a value,
-     * and answering all of them meant reading 357 rows in 1,288 ms.
-     * The same list as bounded per-value equalities answered 99 of 99
-     * in 120 ms. The per-value shape also costs what the *list* is
-     * long rather than what its most popular value is popular, which
-     * is the property a page with a hundred-value cap needs.
-     *
-     * **A value with no cased letters is not asked about at all.** It
-     * has one possible spelling — `caseVariants` empty is that test,
-     * and it is the same one that saves the resolver its second
-     * statement — so an IP, a port or a timestamp costs nothing here.
-     * An IOC list is rarely all hashes: the two pastes measured above
-     * asked 64 and 59 statements for their hundred values.
-     *
-     * **The collapse happens after the read, not before.** Two
-     * spellings of one value are two values to `ValueInputTool`, which
-     * does not fold case because the instance's collation decides
-     * whether they are one thing — and here that question has just
-     * been answered. `GOOGLE.COM` and `google.com` therefore become
-     * one row on a `_ci` instance and stay two on a `_bin` one, which
-     * is the truth in both cases.
+     * One dictionary read for the list finds the values stored in
+     * another case; only those are asked about, each in one bounded
+     * statement scoped to what the reader can see. Two spellings of one
+     * value collapse into one row after that.
      *
      * @param array $user
      * @param array<string> $values Normalised, deduplicated, in the
@@ -1229,13 +1125,14 @@ class ValueIntelligence extends AppModel
         array $options = array()
     ) {
         $valueModel = $this->model('Value');
+        $values = array_map('strval', $values);
+        $recasable = $this->storedInAnotherCase($values);
         $rows = array();
         $at = array();
         $recased = 0;
         $collapsed = 0;
         foreach ($values as $value) {
-            $value = (string)$value;
-            $stored = self::caseVariants($value) === array()
+            $stored = empty($recasable[$value])
                 ? $value
                 : self::spellingOf($value, $valueModel->spellingsFor(
                     $user,
@@ -1261,44 +1158,40 @@ class ValueIntelligence extends AppModel
     }
 
     /**
-     * The spellings of a value that differ from it only in case.
+     * The values the dictionary also holds in another case, whoever
+     * can see them.
      *
-     * Three, because three is what a paste arrives as: all lower, the
-     * form a tool writes; all upper, the form a report's hash table
-     * carries; and capitalised, the form a domain takes at the start
-     * of a sentence. **Lower first**, because it is both the most
-     * common storage form and the one a reader who typed a capital
-     * most often meant.
-     *
-     * This is a probe list and not a case fold, and the difference is
-     * the whole point: a fold is `LOWER(value1) = LOWER(?)`, which
-     * cannot use the prefix index, and these are equalities that can.
-     * What it therefore cannot find is a stored `GoOgLe.com` — a
-     * spelling no paste produces, and the price of the index.
-     *
-     * Empty when the value has no cased letters, so an IP or a decimal
-     * costs no second statement.
-     *
-     * @param string $value
-     * @return array<string> Without the value itself, deduplicated
+     * @param array<string> $values
+     * @return array<string, true>
      */
-    private static function caseVariants($value)
+    private function storedInAnotherCase(array $values)
     {
-        $value = (string)$value;
-        $lower = mb_strtolower($value, 'UTF-8');
-        $upper = mb_strtoupper($value, 'UTF-8');
-        if ($lower === $upper) {
-            return array();
-        }
-        $capitalised = mb_strtoupper(mb_substr($lower, 0, 1, 'UTF-8'),
-            'UTF-8') . mb_substr($lower, 1, null, 'UTF-8');
-        $variants = array();
-        foreach (array($lower, $upper, $capitalised) as $variant) {
-            if ($variant !== $value && !in_array($variant, $variants, true)) {
-                $variants[] = $variant;
+        $dictionary = $this->model('AttributeValue');
+        $groups = $dictionary->resolveCi($values);
+        $ids = array();
+        foreach ($groups as $members) {
+            foreach ($members as $id) {
+                $ids[(int)$id] = true;
             }
         }
-        return $variants;
+        $texts = empty($ids)
+            ? array()
+            : $dictionary->fetchValues(array_keys($ids));
+        $out = array();
+        foreach ($groups as $value => $members) {
+            $value = (string)$value;
+            $folded = mb_strtolower($value, 'UTF-8');
+            foreach ($members as $id) {
+                $text = isset($texts[(int)$id]) ? $texts[(int)$id] : null;
+                if ($text !== null && $text !== $value
+                    && mb_strtolower($text, 'UTF-8') === $folded
+                ) {
+                    $out[$value] = true;
+                    break;
+                }
+            }
+        }
+        return $out;
     }
 
     /**
@@ -1905,6 +1798,7 @@ class ValueIntelligence extends AppModel
         // that survived it rather than over the rows fetched.
         $this->attachEventTags($rows);
         $this->attachProposalCounts($rows);
+        $this->attachSpellings($rows, $value);
         $this->attachEffectiveDistribution($user, $rows);
 
         $stats = ValueStatsTool::occurrenceStats($rows, $summary['occurrences']);
@@ -2737,6 +2631,7 @@ class ValueIntelligence extends AppModel
         // of either scope, ruled on together in one call.
         $this->attachClusters($user, $rows);
         $this->attachProposalCounts($rows, true);
+        $this->attachSpellings($rows, $value);
         $this->attachEffectiveDistribution($user, $rows);
         $this->attachFeedHits($user, $rows);
 
@@ -3836,6 +3731,40 @@ class ValueIntelligence extends AppModel
      * @param bool $content
      * @return void
      */
+    /**
+     * `spelled` on each row holding the value in another spelling than
+     * the page's.
+     */
+    private function attachSpellings(array &$rows, $value)
+    {
+        if (empty($rows)) {
+            return;
+        }
+        $value = (string)$value;
+        $dictionary = $this->model('AttributeValue');
+        $ids = $dictionary->resolveCi(array($value))[$value] ?? array();
+        $isMember = array();
+        foreach (empty($ids) ? array() : $dictionary->fetchValues($ids) as $text) {
+            $isMember[(string)$text] = true;
+        }
+        foreach ($rows as &$row) {
+            $halves = array(
+                (string)($row['Attribute']['value1'] ?? ''),
+                (string)($row['Attribute']['value2'] ?? ''),
+            );
+            if (in_array($value, $halves, true)) {
+                continue;
+            }
+            foreach ($halves as $half) {
+                if ($half !== '' && isset($isMember[$half])) {
+                    $row['spelled'] = $half;
+                    break;
+                }
+            }
+        }
+        unset($row);
+    }
+
     private function attachProposalCounts(array &$rows, $content = false)
     {
         if (empty($rows)) {
