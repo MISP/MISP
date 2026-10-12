@@ -1237,10 +1237,14 @@ class Event extends AppModel
             'fields' => ['COUNT(DISTINCT NULLIF(Attribute.object_id, 0)) AS objects', 'SUM(Attribute.object_id = 0) AS free'],
         ] + $this->cardElementQuery($user, $eventId, $options));
         $result = ['total' => (int)$units[0]['objects'] + (int)$units[0]['free']];
-        foreach (['by_type' => ['types', 'type'], 'by_category' => ['category', 'category']] as $key => [$skip, $column]) {
+        $groups = [
+            'by_type' => ['types', 'Attribute.type', 'type'],
+            'by_category' => ['category', 'Attribute.category', 'category'],
+        ];
+        foreach ($groups as $key => [$skip, $field, $column]) {
             $rows = $this->Attribute->find('all', [
-                'fields' => ['Attribute.' . $column, 'COUNT(*) AS n'],
-                'group' => ['Attribute.' . $column],
+                'fields' => [$field, 'COUNT(*) AS n'],
+                'group' => [$field],
             ] + $this->cardElementQuery($user, $eventId, $options, $skip));
             $result[$key] = [];
             foreach ($rows as $row) {

@@ -300,12 +300,20 @@ class Value extends AppModel
     public function conditionsFor($value, array $options = array())
     {
         $alias = empty($options['alias']) ? 'Attribute' : $options['alias'];
-        $conditions = array(
-            'OR' => array(
-                $alias . '.value1' => $value,
-                $alias . '.value2' => $value,
-            ),
-        );
+        if ($alias === 'Attribute') {
+            $matches = array(
+                'Attribute.value1' => $value,
+                'Attribute.value2' => $value,
+            );
+        } elseif ($alias === 'ShadowAttribute') {
+            $matches = array(
+                'ShadowAttribute.value1' => $value,
+                'ShadowAttribute.value2' => $value,
+            );
+        } else {
+            throw new InvalidArgumentException('No value hook on ' . $alias);
+        }
+        $conditions = array('OR' => $matches);
         $parts = array($conditions);
         if (!empty($options['types'])) {
             $parts[] = array($alias . '.type' => $options['types']);
@@ -1493,7 +1501,9 @@ class Value extends AppModel
         $acl = $attributes->buildConditions($user);
         $object = isset($options['unit'])
             && $options['unit'] === 'object';
-        $idKey = $object ? 'object_id' : 'event_id';
+        $probeField = $object
+            ? 'Attribute.object_id AS probe_id'
+            : 'Attribute.event_id AS probe_id';
         $joins = array(
             array(
                 'table' => $db->fullTableName(ClassRegistry::init('Event')),
@@ -1551,9 +1561,7 @@ class Value extends AppModel
                  * the arm matched.
                  */
                 $inner = $db->buildStatement(array(
-                    'fields' => array(
-                        'Attribute.' . $idKey . ' AS probe_id',
-                    ),
+                    'fields' => array($probeField),
                     'table' => $db->fullTableName($attributes),
                     'alias' => 'Attribute',
                     'joins' => $joins,
@@ -2594,11 +2602,10 @@ class Value extends AppModel
                 'Attribute.event_id',
                 'Attribute.object_id',
                 'Attribute.object_relation',
-                'Attribute.value1',
+                'Attribute.value',
                 'Attribute.timestamp',
             ),
             'contain' => self::CONTEXT_FIELDS,
-            // `value` is value1 for a datetime, and the one the hooks order by
             'order' => array('Attribute.value' => 'DESC'),
         );
         if (isset($options['limit'])) {
@@ -2615,7 +2622,7 @@ class Value extends AppModel
                 'relation' => $row['Attribute']['object_relation'] === null
                     ? ''
                     : $row['Attribute']['object_relation'],
-                'at' => $row['Attribute']['value1'],
+                'at' => $row['Attribute']['value'],
                 'object' => isset($row['Object']['name'])
                     ? $row['Object']['name']
                     : '',
@@ -2893,8 +2900,7 @@ class Value extends AppModel
             'ShadowAttribute.event_id',
             'ShadowAttribute.type',
             'ShadowAttribute.category',
-            'ShadowAttribute.value1',
-            'ShadowAttribute.value2',
+            'ShadowAttribute.value',
             'ShadowAttribute.comment',
             // What the proposal asks the flag to be. The occurrence
             // table carries an IDS column and a proposed addition
@@ -2910,7 +2916,7 @@ class Value extends AppModel
             'Event.info',
             // What the target holds today, so a row that changes the
             // value can name both ends of the change. An association's
-            // value columns are ids, given text through `valueKeys`.
+            // value columns are ids, given its text through `valueKeys`.
             'Attribute.id',
             'Attribute.value1_id',
             'Attribute.value2_id',
@@ -2948,7 +2954,7 @@ class Value extends AppModel
                  * Timeline is attributed to.
                  */
                 'contain' => array('Event', 'Attribute', 'Org'),
-                'valueKeys' => array('value1', 'value2'),
+                'valueKeys' => array('value'),
             ));
             foreach ($rows as $row) {
                 $id = (int)$row['ShadowAttribute']['id'];
@@ -2984,7 +2990,7 @@ class Value extends AppModel
             'event_id' => (int)$proposal['event_id'],
             'type' => $proposal['type'],
             'category' => $proposal['category'],
-            'value' => self::composite($proposal),
+            'value' => (string)$proposal['value'],
             'comment' => $proposal['comment'],
             'to_ids' => !empty($proposal['to_ids']),
             'deleted' => !empty($proposal['deleted']),
@@ -3012,28 +3018,9 @@ class Value extends AppModel
              */
             'target' => $target === null ? null : array(
                 'id' => (int)$target['id'],
-                'value' => self::composite($target),
+                'value' => (string)$target['value'],
             ),
         );
-    }
-
-    /**
-     * `value1|value2`, the way MISP spells a composite everywhere else.
-     *
-     * `ShadowAttribute` and `MispAttribute` both define this as a
-     * virtual field, and neither is selected here: both fetches list
-     * their columns explicitly, and a virtual field is not one.
-     *
-     * @param array $row A record holding `value1` and `value2`
-     * @return string
-     */
-    private static function composite(array $row)
-    {
-        $second = isset($row['value2']) ? $row['value2'] : '';
-        if ($second === '' || $second === null) {
-            return (string)$row['value1'];
-        }
-        return $row['value1'] . '|' . $second;
     }
 
     /**

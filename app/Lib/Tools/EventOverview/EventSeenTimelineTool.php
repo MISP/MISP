@@ -730,12 +730,13 @@ class EventSeenTimelineTool
             }
         }
         $texts = empty($ids) ? [] : $this->dictionary()->fetchValues(array_keys($ids));
+        $cut = function ($id) use ($texts) {
+            return $id ? mb_substr((string)($texts[$id] ?? ''), 0, self::LABEL_MAX + 1) : '';
+        };
         foreach ($rows as &$row) {
-            foreach (['value1', 'value2'] as $key) {
-                $id = (int)($row[$key . '_id'] ?? 0);
-                $row[$key] = $id ? mb_substr((string)($texts[$id] ?? ''), 0, self::LABEL_MAX + 1) : '';
-                unset($row[$key . '_id']);
-            }
+            $row['value1'] = $cut((int)($row['value1_id'] ?? 0));
+            $row['value2'] = $cut((int)($row['value2_id'] ?? 0));
+            unset($row['value1_id'], $row['value2_id']);
         }
         unset($row);
         return $rows;

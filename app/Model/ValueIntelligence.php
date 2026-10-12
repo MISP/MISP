@@ -3860,8 +3860,7 @@ class ValueIntelligence extends AppModel
                     'ShadowAttribute.event_id',
                     'ShadowAttribute.type',
                     'ShadowAttribute.category',
-                    'ShadowAttribute.value1',
-                    'ShadowAttribute.value2',
+                    'ShadowAttribute.value',
                     'ShadowAttribute.to_ids',
                     'ShadowAttribute.comment',
                     'ShadowAttribute.first_seen',
@@ -3935,9 +3934,7 @@ class ValueIntelligence extends AppModel
         if (!empty($shadow['proposal_to_delete'])) {
             return $item;
         }
-        $value = $shadow['value2'] === '' || $shadow['value2'] === null
-            ? (string)$shadow['value1']
-            : $shadow['value1'] . '|' . $shadow['value2'];
+        $value = (string)$shadow['value'];
         $seen = function ($iso) {
             return empty($iso) ? '' : date('Y-m-d H:i', strtotime($iso));
         };
