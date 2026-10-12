@@ -181,6 +181,16 @@ abstract class ValueSignalBase
     public $description = 'to-override';
 
     /**
+     * What the editor's "More info" popover says about this signal.
+     *
+     * `name`, `what`, `how`, an optional `note`, `settings` (key =>
+     * what changing it does) and `recipes` (each a `want` and a `do`).
+     * `{key}` in any of them is replaced by that setting's value. A
+     * signal that declares none gets a popover built from its schema.
+     */
+    public $help = array();
+
+    /**
      * The keys this signal reads from `points`, so the editor can
      * render a form for a signal it has never seen.
      *
@@ -287,6 +297,7 @@ abstract class ValueSignalBase
             'id' => $this->id,
             'group' => $this->group,
             'description' => $this->description,
+            'help' => $this->help,
             'points_schema' => $this->points_schema,
             'config_schema' => $this->config_schema,
             'absence_key' => $this->absence_key,

@@ -52,7 +52,63 @@ class SightingsVolumeRecency extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'Sighting volume, organisation spread and recency.'
+            'Adds points for sightings of the value: the first few count'
+            . ' most, and a history that has gone quiet counts for less.'
+        );
+        $this->help = array(
+            'name' => __('Sightings'),
+            'what' => __(
+                'How many sightings organisations reported, and how long'
+                . ' ago the last one was. False-positive and expiration'
+                . ' reports are not sightings here. Going from 1 to 10'
+                . ' sightings says far more than from 400 to 410, so the'
+                . ' points flatten out.'
+            ),
+            'how' => __(
+                'Climbs on a curve to {cap} points at {saturation}'
+                . ' sightings. Once the last one is over {stale_days} days'
+                . ' old, the whole row is worth {stale_factor} times as'
+                . ' much. No sighting at all is worth {none_recent}.'
+            ),
+            'note' => __(
+                'With the shipped numbers, 1 sighting is worth about 4'
+                . ' points, 10 about 15, and 50 or more the full 24.'
+            ),
+            'settings' => array(
+                'cap' => __('The most sightings can add.'),
+                'none_recent' => __(
+                    'Points when nobody has sighted the value. Lower it to'
+                    . ' push unsighted values down.'
+                ),
+                'saturation' => __(
+                    'How many sightings earn the full cap. Lower it and a'
+                    . ' handful counts for a lot.'
+                ),
+                'stale_days' => __(
+                    'Days after the last sighting before the history counts'
+                    . ' as stale.'
+                ),
+                'stale_factor' => __(
+                    'What a stale history is worth: 1 keeps it whole, 0'
+                    . ' makes it worthless.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('A handful of sightings should already'
+                        . ' count fully'),
+                    'do' => __('Lower saturation, e.g. to 10.'),
+                ),
+                array(
+                    'want' => __('Old sightings should keep their weight'),
+                    'do' => __('Set stale_factor to 1.'),
+                ),
+                array(
+                    'want' => __('Sightings should outweigh the other'
+                        . ' evidence'),
+                    'do' => __('Raise cap, e.g. to 36.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'cap' => array(

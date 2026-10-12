@@ -318,6 +318,7 @@ class AnalystProfileFormTool
                 . ' sighting, argue for or against the lean instead and'
                 . ' are kept apart from the signal strength.'
             ),
+            'primer' => $this->signalPrimer($parameters),
             'blocks' => array(
                 array(
                     'kind' => 'items',
@@ -480,7 +481,7 @@ class AnalystProfileFormTool
         }
         $item = array(
             'id' => $id,
-            'title' => $id,
+            'title' => $this->helpName($id, $config),
             'description' => $config === null
                 ? null
                 : $config['description'],
@@ -563,7 +564,149 @@ class AnalystProfileFormTool
                 $item['fields'][] = $field;
             }
         }
+        if ($config !== null) {
+            $readsValue = isset($config['axis'])
+                && $config['axis'] === ValueVerdictTool::AXIS_LEAN;
+            $tags = array($readsValue
+                ? array('style' => 'pill', 'label' => __('reads the value'))
+                : array('style' => 'tag', 'label' => __('signal strength')));
+            $lands = $readsValue
+                ? __('It argues whether the value is harmful or harmless,'
+                    . ' so its points are weighed against the reading and'
+                    . ' kept out of the signal strength.')
+                : __('Its points add up with the other signals\' into the'
+                    . ' signal strength: how well documented the record is,'
+                    . ' whichever way it leans.');
+            if ($item['trust_weighted']) {
+                $tags[] = array('style' => 'mult',
+                    'label' => __('trust weighted'));
+                $lands .= ' ' . __('Each organisation\'s part is scaled by'
+                    . ' the grade you gave it under Sources & reputation.');
+            }
+            $item['help'] = $this->itemHelp($item,
+                isset($config['help']) ? $config['help'] : null,
+                array(
+                    'tags' => $tags,
+                    'lands' => $lands,
+                    'how_title' => __('How it scores'),
+                ));
+        }
         return $item;
+    }
+
+    /**
+     * A signal's or rule's name for a reader, or its id when it declares
+     * none.
+     *
+     * @param string $id
+     * @param array|null $config From the loader
+     * @return string
+     */
+    private function helpName($id, $config)
+    {
+        return $config !== null && !empty($config['help']['name'])
+            ? (string)$config['help']['name']
+            : $id;
+    }
+
+    /**
+     * What a row's "How it works" popover says: the row's own `help`,
+     * filled in from its schema where that says nothing.
+     *
+     * @param array $item
+     * @param mixed $help As `ValueSignalBase::$help`
+     * @param array $frame What the kind of row adds: `tags` (each a
+     *                     `style` of pill, tag or mult, a `label`, an
+     *                     optional `key` and `title`), `lands` (where
+     *                     its effect goes) and `how_title`
+     * @return array
+     */
+    private function itemHelp(array $item, $help, array $frame)
+    {
+        $help = is_array($help) ? $help : array();
+        $texts = isset($help['settings']) && is_array($help['settings'])
+            ? $help['settings']
+            : array();
+        $settings = array();
+        $values = array();
+        foreach ($item['fields'] as $field) {
+            if ($field['key'] === 'enabled' && $field['type'] === 'bool') {
+                continue;
+            }
+            $key = $field['key'];
+            $values[$key] = array(
+                'value' => $field['value'] !== null
+                    ? $field['value']
+                    : $field['default'],
+                'fallback' => isset($field['resolved'])
+                    ? $field['resolved']
+                    : null,
+                'input' => self::fieldId($field['path']),
+            );
+            $settings[] = array(
+                'key' => $key,
+                'text' => isset($texts[$key]) ? $texts[$key] : $field['label'],
+            );
+        }
+        return array(
+            'id' => $item['id'],
+            'name' => isset($help['name']) ? $help['name'] : $item['title'],
+            'what' => isset($help['what'])
+                ? $help['what']
+                : $item['description'],
+            'how' => isset($help['how']) ? $help['how'] : null,
+            'note' => isset($help['note']) ? $help['note'] : null,
+            'settings' => $settings,
+            'recipes' => isset($help['recipes']) && is_array($help['recipes'])
+                ? $help['recipes']
+                : array(),
+            'values' => $values,
+            'tags' => $frame['tags'],
+            'lands' => $frame['lands'],
+            'how_title' => $frame['how_title'],
+        );
+    }
+
+    /**
+     * The numbers the Signals pane's primer quotes, from this profile.
+     * `kind` picks the element that renders a primer, `label` its button.
+     *
+     * @param array $parameters
+     * @return array
+     */
+    private function signalPrimer(array $parameters)
+    {
+        $thresholds = $this->section($parameters, 'thresholds');
+        $bands = isset($thresholds['signal_strength_bands'])
+            && is_array($thresholds['signal_strength_bands'])
+            ? $thresholds['signal_strength_bands']
+            : array();
+        $clamp = isset($thresholds['thin_record_clamp'])
+            && is_array($thresholds['thin_record_clamp'])
+            ? $thresholds['thin_record_clamp']
+            : array();
+        return array(
+            'kind' => 'signal',
+            'label' => __('How signals add up'),
+            'medium' => isset($bands['medium']) ? (int)$bands['medium'] : 30,
+            'high' => isset($bands['high']) ? (int)$bands['high'] : 60,
+            'min_signals' => isset(
+                $thresholds['signal_strength_high_min_signals']
+            )
+                ? (int)$thresholds['signal_strength_high_min_signals']
+                : 4,
+            'clamp' => empty($clamp['max_band'])
+                ? null
+                : array(
+                    'voices' => isset($clamp['max_voices'])
+                        ? $clamp['max_voices'] + 0
+                        : 1,
+                    'sightings' => isset($clamp['max_sightings'])
+                        ? $clamp['max_sightings'] + 0
+                        : 0,
+                    'band' => (string)$clamp['max_band'],
+                ),
+        );
     }
 
     /**
@@ -893,6 +1036,7 @@ class AnalystProfileFormTool
      */
     private function sectionEscalations(array $parameters, array $sources)
     {
+        $items = $this->escalationPalette($parameters);
         return array(
             'id' => 'escalations',
             'title' => __('Conflict rules'),
@@ -901,13 +1045,49 @@ class AnalystProfileFormTool
                 . ' any lean to be honest. A rule can only ever mark the'
                 . ' value contested.'
             ),
+            'primer' => $this->escalationPrimer($parameters, $items),
             'blocks' => array(
                 array(
                     'kind' => 'items',
                     'id' => 'escalations',
                     'path' => array('escalations'),
-                    'items' => $this->escalationPalette($parameters),
+                    'items' => $items,
                 ),
+            ),
+        );
+    }
+
+    /**
+     * What the Conflict rules pane's primer quotes: the order this
+     * profile tries its rules in, and the share the count falls back to.
+     *
+     * @param array $parameters
+     * @param array $items From escalationPalette()
+     * @return array
+     */
+    private function escalationPrimer(array $parameters, array $items)
+    {
+        $names = array();
+        foreach ($items as $item) {
+            $names[$item['id']] = isset($item['help']['name'])
+                ? $item['help']['name']
+                : $item['id'];
+        }
+        $order = array();
+        foreach (array_keys($this->entriesById($parameters, 'escalations'))
+            as $id
+        ) {
+            $order[] = array(
+                'id' => $id,
+                'name' => isset($names[$id]) ? $names[$id] : $id,
+            );
+        }
+        return array(
+            'kind' => 'escalation',
+            'label' => __('How conflict rules decide'),
+            'order' => $order,
+            'supermajority' => ValueLeanTool::supermajority(
+                array('parameters' => $parameters)
             ),
         );
     }
@@ -973,7 +1153,7 @@ class AnalystProfileFormTool
         }
         $item = array(
             'id' => $id,
-            'title' => $id,
+            'title' => $this->helpName($id, $config),
             'description' => $config === null
                 ? null
                 : $config['description'],
@@ -1008,6 +1188,23 @@ class AnalystProfileFormTool
             $field['map'] = 'when';
             $item['fields'][] = $field;
         }
+        if ($config !== null) {
+            $item['help'] = $this->itemHelp(
+                $item,
+                isset($config['help']) ? $config['help'] : null,
+                array(
+                    'tags' => array(array('style' => 'tag',
+                        'key' => __('makes it'),
+                        'label' => __('contested'))),
+                    'lands' => __('It is tried before the count of'
+                        . ' organisations decides the lean. The first ticked'
+                        . ' rule that fires decides instead, and the reading'
+                        . ' carries its sentence. It adds no points and'
+                        . ' leaves the signal strength alone.'),
+                    'how_title' => __('When it fires'),
+                )
+            );
+        }
         return $item;
     }
 
@@ -1028,6 +1225,11 @@ class AnalystProfileFormTool
                 'Evidence you have decided not to count. Anything an'
                 . ' exclusion removes is listed in the assessment as not'
                 . ' counted, naming the rule.'
+            ),
+            'primer' => array(
+                'kind' => 'exclusion',
+                'label' => __('How exclusions work'),
+                'layers' => ValueExclusionTool::layers(),
             ),
             'blocks' => array(
                 array(
@@ -1116,6 +1318,22 @@ class AnalystProfileFormTool
             ) as $field) {
                 $item['fields'][] = $field;
             }
+            $item['help'] = $this->itemHelp(
+                $item,
+                isset($declaration['help']) ? $declaration['help'] : null,
+                array(
+                    'tags' => array(array('style' => 'tag',
+                        'key' => __('applies to'),
+                        'label' => $item['layer_label'],
+                        'title' => $item['layer_title'])),
+                    'lands' => __('It removes evidence before any signal'
+                        . ' reads it, so it changes what the signals count'
+                        . ' rather than what a point is worth. What it'
+                        . ' removes is listed in the assessment under not'
+                        . ' counted.'),
+                    'how_title' => __('What it removes'),
+                )
+            );
             $items[] = $item;
         }
         foreach ($entries as $id => $entry) {
@@ -3054,6 +3272,7 @@ class AnalystProfileFormTool
             $follows['name'],
             $resolved
         );
+        $field['resolved'] = $resolved;
         $field['follows'] = $follows['name'];
         return $field;
     }

@@ -3,6 +3,7 @@
 App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
+App::uses('ShippedProfileTool', 'Tools/AnalystProfile');
 
 /**
  * The Analyst Profile — the configuration object the value assessment is
@@ -1688,13 +1689,13 @@ class AnalystProfile extends AppModel
         }
         $dir = new Folder(self::DEFAULT_PROFILE_PATH);
         $files = $dir->find('.*\.json', true);
-        $profiles = array();
+        $documents = array();
         foreach ($files as $filename) {
             $file = new File(self::DEFAULT_PROFILE_PATH . $filename);
-            $decoded = json_decode($file->read(), true);
+            $decoded = json_decode($file->read());
             $file->close();
-            if (empty($decoded['uuid']) || empty($decoded['name'])
-                || !isset($decoded['parameters'])) {
+            if (!is_object($decoded) || empty($decoded->uuid)
+                || empty($decoded->name) || !isset($decoded->parameters)) {
                 $this->log(sprintf(
                     'AnalystProfile: shipped profile %s is missing uuid,'
                         . ' name or parameters.',
@@ -1702,17 +1703,20 @@ class AnalystProfile extends AppModel
                 ));
                 continue;
             }
-            $profiles[] = array(
-                'uuid' => $decoded['uuid'],
-                'name' => $decoded['name'],
-                'description' => isset($decoded['description'])
-                    ? $decoded['description']
-                    : null,
-                'parameters' => json_encode($decoded['parameters']),
-                'version' => isset($decoded['version'])
-                    ? (int)$decoded['version']
-                    : 1,
-            );
+            $documents[basename($filename, '.json')] = $decoded;
+        }
+        $resolved = ShippedProfileTool::resolve($documents);
+        foreach ($resolved['errors'] as $slug => $error) {
+            $this->log(sprintf(
+                'AnalystProfile: shipped profile %s.json skipped: %s.',
+                $slug,
+                $error
+            ));
+        }
+        $profiles = array();
+        foreach ($resolved['profiles'] as $profile) {
+            $profile['parameters'] = json_encode($profile['parameters']);
+            $profiles[] = $profile;
         }
         return $profiles;
     }

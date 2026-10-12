@@ -26,8 +26,54 @@ class ExposureOwnEstate extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'Whether your organisation has sighted this value, against'
-            . ' everyone else\'s sightings.'
+            'Adds points when your own organisation has sighted this'
+            . ' value, more when the sighting is recent.'
+        );
+        $this->help = array(
+            'name' => __('Your own sightings'),
+            'what' => __(
+                'Whether your organisation reported a sighting of this'
+                . ' value: evidence from your own estate rather than'
+                . ' somebody else\'s. Silent when nobody has sighted it.'
+            ),
+            'how' => __(
+                'Your sighting in the last {stale_days} days is worth'
+                . ' {own} points, an older one {own_stale}. Sightings only'
+                . ' by other organisations are worth {others_only}.'
+            ),
+            'settings' => array(
+                'own' => __(
+                    'What your organisation seeing it lately is worth.'
+                    . ' Raise it to put what touches your estate first.'
+                ),
+                'own_stale' => __(
+                    'What an old sighting of yours is still worth.'
+                ),
+                'others_only' => __(
+                    'Points when others sighted it and you did not. Below'
+                    . ' zero pushes down what only other estates have seen.'
+                ),
+                'stale_days' => __(
+                    'For how many days your sighting counts as recent.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('What your own SOC saw should come'
+                        . ' first'),
+                    'do' => __('Raise own, e.g. to 12.'),
+                ),
+                array(
+                    'want' => __('Values only other organisations saw'
+                        . ' should rank lower'),
+                    'do' => __('Lower others_only, e.g. to -3.'),
+                ),
+                array(
+                    'want' => __('Your sightings should stay recent for'
+                        . ' six months'),
+                    'do' => __('Raise stale_days to 180.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'own' => array(

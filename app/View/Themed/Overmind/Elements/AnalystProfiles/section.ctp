@@ -59,7 +59,21 @@ foreach ($section['blocks'] as $block) {
             </p>
             <p class="wb-blurb">
                 <?= h($blurb) ?>
-                <?php if ($rest !== ''): ?>
+                <?php if (!empty($section['primer'])): ?>
+                    <button type="button" class="sig-more"
+                            data-ap-help aria-haspopup="dialog"
+                            aria-expanded="false">
+                        <i class="fa-solid fa-circle-question"
+                           aria-hidden="true"></i><?=
+                        h($section['primer']['label']) ?>
+                    </button>
+                    <template class="sig-help-tpl"><?=
+                        $this->element(
+                            'AnalystProfiles/'
+                                . $section['primer']['kind'] . '_primer',
+                            array('primer' => $section['primer'])
+                        ) ?></template>
+                <?php elseif ($rest !== ''): ?>
                     <a href="#" class="wb-i" onclick="return false;"
                        title="<?= h($rest) ?>">i</a>
                 <?php endif; ?>

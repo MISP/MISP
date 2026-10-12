@@ -63,9 +63,63 @@ class AttributionGalaxy extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'Galaxy clusters attached to this value\'s own'
-            . ' occurrences, and, for less, to the events that flag'
-            . ' it for detection.'
+            'Adds points when the value is tied to a threat actor, malware'
+            . ' family or campaign by a galaxy cluster; fewer when only the'
+            . ' event flagging it is.'
+        );
+        $this->help = array(
+            'name' => __('Attributed to a threat'),
+            'what' => __(
+                'Galaxy clusters on the value itself: somebody\'s judgement'
+                . ' that it belongs to a named actor, family or campaign.'
+                . ' A cluster counts once however many occurrences carry'
+                . ' it. Clusters on an event that flags the value for'
+                . ' detection count too, for less. Which galaxies count is'
+                . ' set under What counts as an attribution.'
+            ),
+            'how' => __(
+                'Each cluster on the value is worth {per_cluster} points,'
+                . ' up to {cap}. Each cluster only on a flagging event is'
+                . ' worth {per_event_cluster}, up to {event_cap}. Nothing'
+                . ' attributed at all: {absent}.'
+            ),
+            'settings' => array(
+                'per_cluster' => __(
+                    'What one cluster on the value is worth.'
+                ),
+                'cap' => __('The most clusters on the value can add.'),
+                'per_event_cluster' => __(
+                    'What one cluster on a flagging event is worth. Raise'
+                    . ' it if your reporters attribute events rather than'
+                    . ' each attribute.'
+                ),
+                'event_cap' => __(
+                    'The most the events\' clusters can add.'
+                ),
+                'absent' => __(
+                    'Points when nobody attributed the value. Lower it to'
+                    . ' push unattributed values down.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('An event\'s attribution should count as'
+                        . ' much as the value\'s own'),
+                    'do' => __('Set per_event_cluster and event_cap to'
+                        . ' per_cluster and cap, e.g. 7 and 21.'),
+                ),
+                array(
+                    'want' => __('Unattributed values should rank'
+                        . ' clearly lower'),
+                    'do' => __('Lower absent, e.g. to -5.'),
+                ),
+                array(
+                    'want' => __('Another galaxy, e.g. sectors, should'
+                        . ' count as attribution'),
+                    'do' => __('Add it under What counts as an'
+                        . ' attribution → Attribution galaxies.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'per_cluster' => array(
