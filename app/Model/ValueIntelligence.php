@@ -4103,16 +4103,13 @@ class ValueIntelligence extends AppModel
      */
     private function overCorrelating($value)
     {
-        // isBlocked() reads stored spellings only; any member speaks for the group
+        // An indexed probe for the group; isBlocked() loads every blocked spelling
         $value = (string)$value;
-        $dictionary = $this->model('AttributeValue');
-        $ids = $dictionary->resolveCi(array($value))[$value] ?? array();
-        if (empty($ids)) {
-            return false;
-        }
-        $spelling = $dictionary->fetchValues(array(reset($ids)));
-        return !empty($spelling) && $this->model('OverCorrelatingValue')
-            ->isBlocked((string)reset($spelling));
+        $ids = $this->model('AttributeValue')
+            ->resolveCi(array($value))[$value] ?? array();
+        return !empty($ids) && $this->model('OverCorrelatingValue')->hasAny(
+            array('OverCorrelatingValue.value_id' => array_map('intval', $ids))
+        );
     }
 
     /*
