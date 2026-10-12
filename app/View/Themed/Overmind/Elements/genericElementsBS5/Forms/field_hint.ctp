@@ -21,5 +21,5 @@ $icon = $icon ?? 'fas fa-circle-info mt-1';
 <div class="d-flex align-items-top gap-1 <?= h($class ?? 'mt-1') ?> text-muted"
      style="font-size:.75rem;">
     <?php if ($icon !== ''): ?><i class="<?= h($icon) ?>" style="font-size:.65rem;"></i><?php endif; ?>
-    <?= h($text ?? '') ?>
+    <span data-hint-text><?= h($text ?? '') ?></span>
 </div>

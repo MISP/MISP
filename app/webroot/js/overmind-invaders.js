@@ -10,6 +10,7 @@
     var SHIP_Y = H - 40;
     var COLS = 8, ROWS = 4;
     var OVER_LOCK = 700;        // ms an end screen ignores the keyboard
+    var FLY_MS = 3600;          // the logo's trip from the navbar to the ship
     var BEST_KEY = 'mispInvadersBest';
 
     var ATTR_COLOUR = ['#e8c547', '#4fc3dd', '#4fc3dd', '#7ad3a1'];
@@ -17,7 +18,24 @@
 
     var CSS =
         '.mi-overlay{position:fixed;inset:0;z-index:20000;display:flex;align-items:center;' +
-        'justify-content:center;background:rgba(20,13,14,.9);backdrop-filter:blur(3px);}' +
+        'justify-content:center;background:rgba(20,13,14,.9);backdrop-filter:blur(3px);' +
+        'animation:mi-fade .35s ease both;}' +
+        '@keyframes mi-fade{from{opacity:0}to{opacity:1}}' +
+        '.mi-box{transition:opacity .4s ease;}' +
+        '.mi-overlay.mi-booting .mi-box{opacity:0;}' +
+        '.mi-fly{position:fixed;z-index:20001;pointer-events:none;}' +
+        '.mi-fly img{position:relative;z-index:1;display:block;width:100%;height:100%;}' +
+        '.mi-trail{position:absolute;left:15%;bottom:50%;width:70%;height:260%;' +
+        'transform-origin:50% 100%;}' +
+        '.mi-trail b{position:absolute;bottom:0;width:3px;border-radius:2px;' +
+        'background:linear-gradient(to top,rgba(155,231,255,1),rgba(79,195,221,.35),transparent);' +
+        'box-shadow:0 0 7px rgba(79,195,221,.85);' +
+        'animation:mi-streak .5s linear infinite;}' +
+        '.mi-trail b:nth-child(1){left:8%;height:62%;animation-delay:-.18s;}' +
+        '.mi-trail b:nth-child(2){left:46%;height:100%;}' +
+        '.mi-trail b:nth-child(3){left:84%;height:48%;animation-delay:-.33s;}' +
+        '@keyframes mi-streak{0%{transform:translateY(30%);opacity:0}' +
+        '18%{opacity:1}72%{opacity:.9}100%{transform:translateY(-130%);opacity:0}}' +
         '.mi-box{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#e6eef0;text-align:center;}' +
         '.mi-bar{display:flex;;gap:1rem;justify-content:space-between;padding:0 .25rem .5rem;}' +
         '.mi-title{color:#1892B1;letter-spacing:.18em;font-size:.8rem;font-weight:700;}' +
@@ -94,7 +112,7 @@
         return tints[key];
     }
 
-    // --- the game ---------------------------------------------------------
+    // --- the challenge ---------------------------------------------------------
 
     function launch(logo) {
         if (document.querySelector('.mi-overlay')) { return; }
@@ -104,7 +122,7 @@
         document.head.appendChild(style);
 
         var overlay = document.createElement('div');
-        overlay.className = 'mi-overlay';
+        overlay.className = 'mi-overlay mi-booting';
         overlay.innerHTML =
             '<div class="mi-box">' +
                 '<div class="mi-bar">' +
@@ -118,25 +136,121 @@
             '</div>';
         document.body.appendChild(overlay);
 
-        var ctx = overlay.querySelector('.mi-canvas').getContext('2d');
+        var cv = overlay.querySelector('.mi-canvas');
+        var ctx = cv.getContext('2d');
         var elScore = overlay.querySelector('.mi-score');
         var elBest = overlay.querySelector('.mi-best');
         var elLives = overlay.querySelector('.mi-lives');
         var art = {}, pending = 3;
         var keys = {}, raf = null, last = 0, best = readBest(), s, closed = false;
+        var booting = true, waiting = true, flight = null, flyEl = null;
 
         function ready(name) {
             return function (img) {
                 art[name] = img;
                 if (--pending === 0 && !closed) {
                     wave(1, 0, 1);
-                    raf = window.requestAnimationFrame(function (t) { last = t; frame(t); });
+                    draw();     // the formation, with the ship still in flight
+                    overlay.classList.remove('mi-booting');
+                    flyIn(function () {
+                        booting = false;
+                        if (closed) { return; }
+                        raf = window.requestAnimationFrame(function (t) { last = t; frame(t); });
+                    });
                 }
             };
         }
         load('ship', logo.currentSrc || logo.src, ready('ship'));
         load('attr', maskUrl('attribute'), ready('attr'));
         load('obj', maskUrl('object'), ready('obj'));
+
+        // The logo lands exactly where the ship is about to be drawn, at its
+        // size: the ship is held back until then, so the two read as one.
+        function flyIn(after) {
+            var fly = document.createElement('div');
+            var from = logo.getBoundingClientRect();
+            var box = cv.getBoundingClientRect();
+            var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+            if (!fly.animate || !from.width || !box.width || (reduce && reduce.matches)) {
+                return after();
+            }
+            var unit = box.width / W;   // canvas pixels per logical pixel
+            var k = SW * unit / from.width;
+            var dx = box.left + (s.ship.x + SW / 2) * unit - (from.left + from.width / 2);
+            var dy = box.top + (SHIP_Y + SH / 2) * unit - (from.top + from.height / 2);
+
+            fly.className = 'mi-fly';
+            fly.innerHTML = '<i class="mi-trail"><b></b><b></b><b></b></i>';
+            var pic = document.createElement('img');
+            pic.alt = '';
+            pic.src = logo.currentSrc || logo.src;   // never through innerHTML
+            fly.appendChild(pic);
+            fly.style.cssText = 'left:' + from.left + 'px;top:' + from.top +
+                'px;width:' + from.width + 'px;height:' + from.height + 'px;';
+            document.body.appendChild(fly);
+            logo.style.visibility = 'hidden';   // restored by close()
+            flyEl = fly;
+
+            // The streaks trail the direction of travel, which is not where
+            // the logo points: the path turns 90° while the logo turns 180°.
+            function tail(deg, alpha, offset) {
+                return {
+                    transform: 'rotate(' + deg.toFixed(0) + 'deg)',
+                    opacity: alpha.toFixed(2),
+                    offset: offset
+                };
+            }
+
+            function step(fx, fy, deg, fk, offset) {
+                return {
+                    transform: 'translate(' + (dx * fx).toFixed(1) + 'px,' +
+                        (dy * fy).toFixed(1) + 'px) rotate(' + deg + 'deg) scale(' +
+                        (1 + (k - 1) * fk).toFixed(3) + ')',
+                    offset: offset
+                };
+            }
+            // Straight down the side of the screen, then one quarter-ellipse
+            // that flattens out onto the mark. TURN is the share of the drop
+            // the turn eats, FALL the share of the trip spent falling.
+            var TURN = 0.55, FALL = 0.36, frames = [], tails = [], i, t, a, deg, at;
+            for (i = 0; i <= 2; i++) {
+                t = i / 2;
+                // negative: a positive CSS angle turns clockwise
+                frames.push(step(0, (1 - TURN) * t, -12 * t, 0.2 * t, FALL * t));
+                tails.push(tail(12 * t, Math.min(1, t * 2.5), FALL * t));   // straight up
+            }
+            for (i = 1; i <= 6; i++) {
+                t = i / 6;
+                a = Math.PI * (1 - t / 2);      // 180° -> 90° of the ellipse
+                deg = -(12 + 168 * t);
+                at = FALL + (1 - FALL) * t;
+                frames.push(step(
+                    1 + Math.cos(a),
+                    (1 - TURN) + TURN * Math.sin(a),
+                    deg,
+                    0.2 + 0.8 * t,
+                    at
+                ));
+                // heading of the ellipse, minus the logo's own spin
+                tails.push(tail(
+                    Math.atan2(-TURN * dy * Math.cos(a), dx * Math.sin(a)) * 180 / Math.PI - 90 - deg,
+                    Math.min(1, (1 - t) * 2.5),
+                    at
+                ));
+            }
+            var ride = {
+                duration: FLY_MS,
+                easing: 'cubic-bezier(.4,0,.25,1)',
+                fill: 'forwards'    // or it snaps back for the frame before onfinish
+            };
+            flight = fly.animate(frames, ride);
+            fly.querySelector('.mi-trail').animate(tails, ride);
+            flight.onfinish = function () {
+                fly.remove();
+                flyEl = null;
+                after();
+            };
+        }
 
         function wave(level, score, lives) {
             var aliens = [], r, c, mid;
@@ -194,7 +308,7 @@
         }
 
         function update(dt) {
-            if (s.over) { return; }
+            if (waiting || s.over) { return; }
             var i, a, list = alive();
 
             // Ship
@@ -295,7 +409,7 @@
                 }
             });
 
-            if (!s.over || s.over === 'clear') {
+            if (!booting && s.over !== 'dead') {
                 if (art.ship) {
                     ctx.save();
                     ctx.translate(s.ship.x + SW / 2, SHIP_Y + SH / 2);
@@ -320,17 +434,25 @@
                 ctx.stroke();
             });
 
-            if (s.over) {
-                ctx.fillStyle = 'rgba(13,7,8,.72)';
-                ctx.fillRect(0, H / 2 - 34, W, 68);
-                ctx.textAlign = 'center';
-                ctx.fillStyle = s.over === 'dead' ? '#ff6b6b' : '#7ad3a1';
-                ctx.font = 'bold 20px ui-monospace, monospace';
-                ctx.fillText(s.over === 'dead' ? 'GAME OVER' : 'WAVE ' + s.level + ' CLEARED', W / 2, H / 2 - 6);
-                ctx.fillStyle = '#e6eef0';
-                ctx.font = '11px ui-monospace, monospace';
-                ctx.fillText(s.over === 'dead' ? 'press R to play again' : 'press N for the next wave', W / 2, H / 2 + 18);
+            if (s.over === 'dead') {
+                banner('MISSION OVER', 'press R to play again', '#ff6b6b');
+            } else if (s.over === 'clear') {
+                banner('WAVE ' + s.level + ' CLEARED', 'press N for the next wave', '#7ad3a1');
+            } else if (waiting && !booting) {
+                banner('READY', 'press SPACE to start', '#4fc3dd');
             }
+        }
+
+        function banner(title, hint, colour) {
+            ctx.fillStyle = 'rgba(13,7,8,.72)';
+            ctx.fillRect(0, H / 2 - 34, W, 68);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = colour;
+            ctx.font = 'bold 20px ui-monospace, monospace';
+            ctx.fillText(title, W / 2, H / 2 - 6);
+            ctx.fillStyle = '#e6eef0';
+            ctx.font = '11px ui-monospace, monospace';
+            ctx.fillText(hint, W / 2, H / 2 + 18);
         }
 
         function frame(now) {
@@ -349,6 +471,10 @@
                 e.preventDefault();
             }
             if (!s) { return; }
+            if (waiting) {      // the intro, then the ready screen
+                if (!booting && down && !e.repeat && key === ' ') { waiting = false; }
+                return;
+            }
             if (s.over) {
                 if (!down || e.repeat || window.performance.now() - s.overAt < OVER_LOCK) { return; }
                 if (s.over === 'clear' && key === 'n') { wave(s.level + 1, s.score, s.lives); }
@@ -362,6 +488,9 @@
 
         function close() {
             closed = true;      // the art may still be loading — see ready()
+            if (flight) { flight.cancel(); }    // cancel() skips onfinish
+            if (flyEl) { flyEl.remove(); }
+            logo.style.visibility = '';
             window.cancelAnimationFrame(raf);
             document.removeEventListener('keydown', onKey);
             document.removeEventListener('keyup', onKey);

@@ -25,7 +25,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/taxonomies/taxonomy_tags/%s', h($taxonomy['id']))
+                        'ajax' => sprintf('%s/taxonomies/taxonomy_tags/%s', $baseurl, h($taxonomy['id']))
                     ]
                 ],
             ]

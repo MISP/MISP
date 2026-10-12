@@ -1,17 +1,6 @@
 <div class="card mb-3 shadow-sm">
     <div class="card-body p-4">
 
-        <!-- NAME -->
-        <div class="mb-4">
-            <div class="text-muted small bold text-uppercase fw-bold mb-1">
-                <?= __('Name') ?>
-            </div>
-
-            <div class="fw-semibold fs-5">
-                <?= h($data['Cerebrate']['name'] ?? '') ?>
-            </div>
-        </div>
-
         <!-- DESCRIPTION -->
         <div class="mb-4">
             <div class="text-muted small text-uppercase fw-bold mb-1">
@@ -53,7 +42,7 @@
                     <?= __('Skip Proxy') ?>
                 </div>
 
-                <div class="d-flex align-items-center py-2"">
+                <div class="d-flex align-items-center py-2">
                     <?= $this->element('genericElementsBS5/Badges/boolean', [
                         'boolean' => $data['Cerebrate']['skip_proxy'],
                         'full' => false
@@ -89,23 +78,16 @@
                 <?= __('Auth Key') ?>
             </div>
 
-            <div class="d-flex align-items-center">
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fas fa-key"></i></span>
-                    <input type="password" 
-                           class="form-control bg-white border-start-0 border-end-0" 
-                           id="apiKeyField" 
-                           value="<?= h($data['Cerebrate']['authkey'] ?? '') ?>" 
-                           readonly>
-                    <button class="btn btn-light border border-start-0" 
-                            type="button" 
-                            onclick="toggleSecret('apiKeyField', this)"
-                            data-bs-toggle="tooltip" 
-                            title="<?= __('Show/Hide') ?>">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-            </div>
+            <?= $this->element('genericElementsBS5/Badges/boolean', [
+                'boolean' => !empty($data['Cerebrate']['authkey']),
+                'full' => true,
+                'true' => __('Configured'),
+                'false' => __('Not set'),
+                'trueIcon' => 'fa-key',
+                'falseIcon' => 'fa-times-circle',
+                'trueColor' => 'success',
+                'falseColor' => 'secondary',
+            ]); ?>
         </div>
     </div>
 </div>

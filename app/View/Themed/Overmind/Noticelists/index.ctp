@@ -25,6 +25,7 @@ $fields = [
     [
         'element' => 'checkbox',
         'data_path' => 'Noticelist.id',
+        'enable_path' => 'Noticelist.enabled',
         'card_section' => 'selector',
     ],
     [

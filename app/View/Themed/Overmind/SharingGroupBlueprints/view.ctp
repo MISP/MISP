@@ -25,7 +25,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/SharingGroupBlueprints/viewOrgs/%s', h($data['SharingGroupBlueprint']['id']))
+                        'ajax' => sprintf('%s/SharingGroupBlueprints/viewOrgs/%s', $baseurl, h($data['SharingGroupBlueprint']['id']))
                     ]
                 ],
             ]

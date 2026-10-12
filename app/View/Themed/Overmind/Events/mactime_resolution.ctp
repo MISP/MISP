@@ -242,7 +242,7 @@ $eventId = (int)$eventId;
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(function (r) { return r.text(); })
-            .then(function () { window.location = baseurl + '/events/view2/' + EVENT_ID; })
+            .then(function () { returnToEventView(EVENT_ID); })
             .catch(function () { createBtn.disabled = false; });
         });
     }

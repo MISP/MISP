@@ -23,7 +23,7 @@ class WarninglistsController extends AppController
     public function index()
     {
         $filters = $this->IndexFilter->harvestParameters(
-            ['value', 'category', 'type', 'enabled', 'id', 'matchValue']
+            ['value', 'category', 'type', 'enabled', 'default', 'id', 'matchValue']
         );
         if (!empty($filters['value'])) {
             $this->paginate['conditions'] = [
@@ -48,6 +48,9 @@ class WarninglistsController extends AppController
         }
         if (isset($filters['enabled'])) {
             $this->paginate['conditions'][] = ['Warninglist.enabled' => $filters['enabled']];
+        }
+        if (isset($filters['default'])) {
+            $this->paginate['conditions'][] = ['Warninglist.default' => $filters['default']];
         }
         // `matchValue:8.8.8.8` (or `a||b`) — keep only the lists that actually
         // match the value, using the same lookup as checkValue(). Only enabled

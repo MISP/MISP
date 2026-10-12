@@ -40,36 +40,6 @@ $attrDeleted = !empty($attr['deleted']);
                 <?= __('Copy UUID') ?>
             </a>
         </li>
-        <?php if (!empty($me['Role']['perm_add']) && !$attrDeleted): ?>
-        <li>
-            <a class="dropdown-item justify-content-start"
-               href="#"
-               onclick="event.preventDefault(); openModal('<?= $baseurl ?>/shadow_attributes/edit/<?= $attrId ?>');">
-                <i class="fas fa-comment-dots me-2"></i>
-                <?= __('Propose change') ?>
-            </a>
-        </li>
-        <?php endif; ?>
-        <?php if ($canEdit && !empty($enrichmentEnabled) && !$attrDeleted): ?>
-        <li>
-            <a class="dropdown-item justify-content-start"
-               href="#"
-               onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Enrichment/Attribute');">
-                <i class="fas fa-wand-magic-sparkles text-enrichment me-2"></i>
-                <?= __('Enrich') ?>
-            </a>
-        </li>
-        <?php endif; ?>
-        <?php if ($canEdit && !empty($cortexEnabled) && !$attrDeleted): ?>
-        <li>
-            <a class="dropdown-item justify-content-start"
-               href="#"
-               onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Cortex/Attribute');">
-                <i class="fas fa-eye me-2"></i>
-                <?= __('Enrich (Cortex)') ?>
-            </a>
-        </li>
-        <?php endif; ?>
         <?php if ($canEdit): ?>
         <li><hr class="dropdown-divider"></li>
         <li>
@@ -89,10 +59,44 @@ $attrDeleted = !empty($attr['deleted']);
             </a>
         </li>
         <?php endif; ?>
+        <?php if ($canEdit && !empty($enrichmentEnabled) && !$attrDeleted): ?>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <a class="dropdown-item justify-content-start"
+               href="#"
+               onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Enrichment/Attribute');">
+                <i class="fas fa-wand-magic-sparkles text-enrichment me-2"></i>
+                <?= __('Enrich') ?>
+            </a>
+        </li>
+        <?php endif; ?>
+        <?php if ($canEdit && !empty($cortexEnabled) && !$attrDeleted): ?>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <a class="dropdown-item justify-content-start"
+               href="#"
+               onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Cortex/Attribute');">
+                <i class="fas fa-eye me-2"></i>
+                <?= __('Enrich (Cortex)') ?>
+            </a>
+        </li>
+        <?php endif; ?>
+        <?php if (!empty($me['Role']['perm_add']) && !$attrDeleted): ?>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <a class="dropdown-item justify-content-start"
+               href="#"
+               onclick="event.preventDefault(); openModal('<?= $baseurl ?>/shadow_attributes/edit/<?= $attrId ?>');">
+                <i class="fas fa-comment-dots me-2"></i>
+                <?= __('Propose change') ?>
+            </a>
+        </li>
+        <?php endif; ?>
         <?= $this->element('AnalystData/add_controls', [
             'objectType' => 'Attribute',
             'objectUuid' => $attr['uuid'] ?? '',
             'mode' => 'menu_items',
+            'showView' => $showView ?? true,
         ]) ?>
     </ul>
 </div>
