@@ -971,22 +971,23 @@ class Server extends AppModel
             }
         }
 
-        // Save to cache for 24 hours if ETag provided
-        $etag = $response->getHeader('etag');
-        if ($etag) {
-            $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
-            $data = RedisTool::compress($response->body);
-            $redis->setex($etagCacheKey, 3600 * 24, $etag);
-            $redis->setex($contentCacheKey, 3600 * 24, $data);
-            unset($data);
-        }
-
         $count = $response->getHeader('X-Result-Count');
         if (is_numeric($count)) {
             $resultCount = (int)$count;
         }
 
         $eventIndex = $response->json();
+
+        // Save to cache for 24 hours if ETag provided. Empty pages are not
+        // cached: a 304 has no X-Result-Count to tell a filtered page from the end.
+        $etag = $response->getHeader('etag');
+        if ($etag && !empty($eventIndex)) {
+            $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
+            $data = RedisTool::compress($response->body);
+            $redis->setex($etagCacheKey, 3600 * 24, $etag);
+            $redis->setex($contentCacheKey, 3600 * 24, $data);
+            unset($data);
+        }
 
         // correct $eventArray if just one event, probably this response returns old MISP
         if (isset($eventIndex['id'])) {
