@@ -15,6 +15,9 @@
  *     heading      string  sets the page's headerTitle
  *     left, right  array   element paths, ['element' => path] or
  *                          ['ajax' => url] for a lazy fragment
+ *   $ownership  array  for a record with a creator org and a distribution:
+ *                      Cards/ownership_card's parameters; the card opens the
+ *                      first tab's left column
  *
  * Like an action declared with 'tab', the per-tab descriptions are all
  * rendered in the header and toggled by syncHeaderActions() below.
@@ -87,6 +90,9 @@ foreach ($tabs as $i => $tab) {
                     <!-- LEFT COLUMN -->
                     <div class="<?= !empty($tab['right']) ? 'col-lg-9' : 'col-12' ?>">
                         <?php
+                            if ($i === 0 && !empty($ownership)) {
+                                echo $this->element('genericElementsBS5/Cards/ownership_card', $ownership);
+                            }
                             if (!empty($tab['left'])) {
                                 foreach ($tab['left'] as $card) {
                                     if (is_array($card)) {
