@@ -38,8 +38,8 @@ class ConflictKnownInfrastructure extends ValueEscalationBase
     {
         $this->description = __(
             'Marks the value contested when a warninglist knows it as'
-            . ' shared infrastructure and several organisations have'
-            . ' taken a side on it.'
+            . ' shared infrastructure and several organisations flag it'
+            . ' as a threat.'
         );
         $this->help = array(
             'name' => __('Shared infrastructure that gets reported'),
@@ -53,16 +53,15 @@ class ConflictKnownInfrastructure extends ValueEscalationBase
             'how' => __(
                 'Fires when the value is on a {warninglist_category} list'
                 . ' and at least {min_independent_reports} organisations'
-                . ' have taken a side on it. The reading is then contested,'
-                . ' whatever the count of organisations would have said.'
+                . ' flag it for detection. The reading is then contested,'
+                . ' however many others call it harmless.'
             ),
             'note' => __(
-                'It counts organisations on either side, those calling it'
-                . ' a false positive as well as those flagging it.'
-                . ' Unticked, the organisations are counted as for any'
-                . ' value, and only a known_hit below zero (Signals →'
-                . ' lifecycle.warninglist) can still contest a threat'
-                . ' reading.'
+                'An organisation counts when its grade under Sources &'
+                . ' reputation lets it vote. Unticked, the organisations'
+                . ' are counted as for any value, and only a known_hit'
+                . ' below zero (Signals → lifecycle.warninglist) can still'
+                . ' contest a threat reading.'
             ),
             'settings' => array(
                 'warninglist_category' => __(
@@ -106,7 +105,7 @@ class ConflictKnownInfrastructure extends ValueEscalationBase
             'min_independent_reports' => array(
                 'type' => 'int',
                 'default' => 3,
-                'label' => __('Organisations reporting it, at least'),
+                'label' => __('Organisations flagging it, at least'),
             ),
         );
     }
@@ -118,7 +117,7 @@ class ConflictKnownInfrastructure extends ValueEscalationBase
         if (empty($lists)) {
             return null;
         }
-        $orgs = $this->orgCount($context);
+        $orgs = $this->threatOrgCount($context);
         $minimum = (int)$this->when($config, 'min_independent_reports');
         if ($orgs < $minimum) {
             return null;
@@ -131,7 +130,7 @@ class ConflictKnownInfrastructure extends ValueEscalationBase
                 $orgs
             ),
             'evidence' => sprintf(
-                __('%1$s · %2$d reporting organisations'),
+                __('%1$s · %2$d organisations flag it'),
                 implode(', ', $lists),
                 $orgs
             ),

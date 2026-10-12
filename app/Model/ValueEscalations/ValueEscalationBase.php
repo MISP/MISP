@@ -375,9 +375,9 @@ abstract class ValueEscalationBase
     }
 
     /**
-     * How many organisations hold this value, which is what every
-     * shipped rule means by *reports*: an organisation is one voice
-     * however many events it puts the value in.
+     * How many organisations took a side on this value, either way: an
+     * organisation is one voice however many events it puts the value
+     * in.
      *
      * @param array $context
      * @return int
@@ -388,6 +388,29 @@ abstract class ValueEscalationBase
             return (int)$context['stances']['orgs'];
         }
         return isset($context['orgs']) ? count($context['orgs']) : 0;
+    }
+
+    /**
+     * How many of those report it as a threat: they flag it for
+     * detection, and the profile's grades let them count.
+     *
+     * @param array $context
+     * @return int
+     */
+    protected function threatOrgCount(array $context)
+    {
+        if (isset($context['stances']['threat_orgs'])) {
+            return (int)$context['stances']['threat_orgs'];
+        }
+        $count = 0;
+        foreach (isset($context['orgs']) ? $context['orgs'] : array()
+            as $org
+        ) {
+            if (!empty($org['to_ids_yes'])) {
+                $count++;
+            }
+        }
+        return $count;
     }
 
     /**
