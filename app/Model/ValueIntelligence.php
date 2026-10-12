@@ -4177,7 +4177,16 @@ class ValueIntelligence extends AppModel
      */
     private function overCorrelating($value)
     {
-        return (bool)$this->model('OverCorrelatingValue')->isBlocked($value);
+        // isBlocked() reads stored spellings only; any member speaks for the group
+        $value = (string)$value;
+        $dictionary = $this->model('AttributeValue');
+        $ids = $dictionary->resolveCi(array($value))[$value] ?? array();
+        if (empty($ids)) {
+            return false;
+        }
+        $spelling = $dictionary->fetchValues(array(reset($ids)));
+        return !empty($spelling) && $this->model('OverCorrelatingValue')
+            ->isBlocked((string)reset($spelling));
     }
 
     /*
@@ -8277,8 +8286,7 @@ class ValueIntelligence extends AppModel
             'ssdeep_threshold' => $this->ssdeepThreshold(),
             'excluded' => $this->model('Correlation')
                 ->isValueExcluded($value),
-            'over_correlating' => $this
-                ->model('OverCorrelatingValue')->isBlocked($value),
+            'over_correlating' => $this->overCorrelating($value),
             /*
              * Section four is governed by the feed cache rather than by
              * the correlation engine, and its rules are just as
@@ -17066,8 +17074,7 @@ class ValueIntelligence extends AppModel
             && $occurrences >= $threshold);
         return array(
             'window_days' => $inForce ? $window : null,
-            'hot' => $this->model('OverCorrelatingValue')
-                ->isBlocked($value),
+            'hot' => $this->overCorrelating($value),
             'occurrences' => $occurrences,
             'threshold' => $threshold,
         );
