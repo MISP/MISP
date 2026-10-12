@@ -229,7 +229,7 @@ class EventCardToolTest extends TestCase
         $this->assertSame([], $rows['classification']);
     }
 
-    public function testMarkingsFollowTheProfileAndTheRail(): void
+    public function testMarkingsFollowTheProfile(): void
     {
         $context = EventContextTool::rows(
             [$this->eventTag(1, 'tlp:amber', ['colour' => '#FFC000'])],
@@ -247,16 +247,15 @@ class EventCardToolTest extends TestCase
         $this->assertSame('amber', $markings['slots'][0]['value']);
         $this->assertFalse($markings['slots'][0]['neutral']);
         $this->assertSame(['key' => 'pap', 'present' => false], $markings['slots'][1]);
-        $this->assertSame(['class' => '', 'colour' => '#FFC000'], $markings['rail']);
 
         $clear = EventCardTool::markings(['markings' => [
             ['key' => 'tlp', 'name' => 'tlp:clear', 'tag' => ['Tag' => ['colour' => '#ffffff']]],
         ], 'markings_absent' => []], ['tlp', 'pap']);
-        $this->assertSame('dk-m-clear', $clear['rail']['class']);
+        $this->assertTrue($clear['slots'][0]['neutral']);
         $this->assertCount(1, $clear['slots'], 'a namespace neither present nor absent gets no slot');
 
         $none = EventCardTool::markings(['markings' => [], 'markings_absent' => [['key' => 'tlp']]], ['tlp', 'pap']);
-        $this->assertSame('dk-m-none', $none['rail']['class']);
+        $this->assertSame([['key' => 'tlp', 'present' => false]], $none['slots']);
     }
 
     private function profileContext(array $tags, array $profile)
@@ -297,7 +296,6 @@ class EventCardToolTest extends TestCase
         $this->assertSame('likely', $markings['slots'][1]['tags'][0]['value']);
         $this->assertSame('#123456', $markings['slots'][1]['tags'][0]['colour']);
         $this->assertSame(['key' => 'pap', 'present' => false], $markings['slots'][3]);
-        $this->assertSame(['class' => '', 'colour' => '#FFC000'], $markings['rail']);
     }
 
     public function testAdmiraltyIsOneCode(): void

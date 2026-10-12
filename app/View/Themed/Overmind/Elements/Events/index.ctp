@@ -372,8 +372,8 @@ $children[] = [
     'label' => __('Published'),
     'icon' => 'fas fa-upload',
     'options' => [
-        ['value' => '1', 'label' => __('Published'), 'style' => null],
-        ['value' => '0', 'label' => __('Unpublished'), 'style' => null],
+        ['value' => '1', 'label' => __('Published'), 'style' => ['icon' => 'fas fa-circle-check']],
+        ['value' => '0', 'label' => __('Unpublished'), 'style' => ['icon' => 'fas fa-file-pen']],
     ],
 ];
 $timePresets = [
@@ -546,11 +546,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'row_dblclick_url' => $baseurl . '/events/view2/%id%',
             'table_class' => 'te-table',
             'row_class_callable' => function ($row) {
-                return trim('te-row ' . ($row['EventCard']['markings']['rail']['class'] ?? ''));
-            },
-            'row_style_callable' => function ($row) {
-                $colour = $row['EventCard']['markings']['rail']['colour'] ?? null;
-                return preg_match('/^#[0-9a-f]{3,8}$/i', (string)$colour) ? '--te-rail:' . $colour : '';
+                return 'te-row';
             },
             'row_data_callable' => function ($row) {
                 return ['event-id' => $row['Event']['id']];
