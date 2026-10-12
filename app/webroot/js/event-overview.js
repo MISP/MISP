@@ -1,5 +1,5 @@
 // The Overmind event overview (General tab of /events/view2): lazy cards,
-// the lead report and its modal, the object graph, and the inventory's
+// the report card and its picker, the object graph, and the inventory's
 // filters into the Objects and Attributes tabs.
 (function () {
     'use strict';
@@ -186,96 +186,70 @@
         var tab = e.target.closest('[data-eo-tab]');
         if (tab) {
             showTab(tab.getAttribute('data-eo-tab'));
-            return;
-        }
-        var open = e.target.closest('[data-eo-report-open]');
-        if (open) {
-            var modal = document.getElementById('eo-report-modal');
-            if (modal && window.bootstrap) window.bootstrap.Modal.getOrCreateInstance(modal).show();
         }
     }
 
     /* ── report ─────────────────────────────────────────────── */
-    var mermaidReady = null;
-
-    function loadMermaid() {
-        if (window.mermaid) return Promise.resolve(window.mermaid);
-        if (mermaidReady) return mermaidReady;
-        mermaidReady = new Promise(function (resolve, reject) {
-            var s = document.createElement('script');
-            s.src = base() + '/js/mermaid.js';
-            s.onload = function () { window.mermaid ? resolve(window.mermaid) : reject(new Error('mermaid')); };
-            s.onerror = reject;
-            document.head.appendChild(s);
-        });
-        return mermaidReady;
-    }
-
-    function isMermaid(code) {
-        if (code.classList.contains('language-mermaid')) return true;
-        var first = (code.textContent || '').trim().split(/\n/)[0].trim();
-        return /^(gantt|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|pie|mindmap|timeline|flowchart|graph (TB|BT|RL|LR|TD))\b/.test(first);
-    }
-
-    var mermaidSeq = 0;
-    function drawMermaid(root) {
-        var blocks = Array.prototype.filter.call(root.querySelectorAll('pre > code'), isMermaid);
-        if (!blocks.length) return Promise.resolve();
-        return loadMermaid().then(function (mermaid) {
-            var dark = document.documentElement.getAttribute('data-misp-mode') === 'dark';
-            mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'neutral' });
-            return blocks.reduce(function (chain, code) {
-                return chain.then(function () {
-                    var id = 'eo-mermaid-' + (++mermaidSeq);
-                    return mermaid.mermaidAPI.render(id, code.textContent).then(function (out) {
-                        var div = document.createElement('div');
-                        div.className = 'mermaid eo-mermaid';
-                        div.innerHTML = out.svg;
-                        code.parentNode.replaceWith(div);
-                    }, function () { /* an unparsable diagram stays as source */ });
-                });
-            }, Promise.resolve());
-        }, function () { /* no mermaid: the source stays readable */ });
-    }
-
+    // The lead report renders on load; the picker swaps another one in.
     function initReport() {
         var card = document.getElementById('eo-report-card');
-        if (!card || !card.hasAttribute('data-eo-report-id')) return;
-        var raw = card.getAttribute('data-eo-report-content') || '';
+        var reader = window.MispReportReader;
+        if (!card || !card.hasAttribute('data-eo-report-id') || !reader) return;
         var preview = card.querySelector('[data-eo-report-preview]');
-        var full = document.querySelector('[data-eo-report-full]');
-        var renderer = null;
+        var clamp = card.querySelector('.eo-report-clamp');
+        var title = card.querySelector('[data-eo-report-name]');
+        var sub = card.querySelector('[data-eo-report-sub]');
+        var read = card.querySelector('[data-report-read]');
+        var shown = card.getAttribute('data-eo-report-id');
+        var token = 0;
 
-        function render(target) {
-            if (!window.MispReportMarkdown) {
-                target.textContent = raw;
-                return Promise.resolve();
-            }
-            if (!renderer) {
-                renderer = window.MispReportMarkdown.create({
-                    reportId: parseInt(card.getAttribute('data-eo-report-id'), 10),
-                    eventId: parseInt(card.getAttribute('data-eo-event-id'), 10)
-                });
-            }
-            return renderer.ready.then(function () {
-                renderer.render(raw, target);
-                return drawMermaid(target);
-            });
-        }
-
-        render(preview).then(function () {
-            var clamp = card.querySelector('.eo-report-clamp');
-            if (clamp && clamp.scrollHeight > clamp.clientHeight + 4) card.classList.add('is-clamped');
+        reader.seed({
+            id: shown,
+            eventId: card.getAttribute('data-eo-event-id'),
+            name: title.textContent,
+            content: card.getAttribute('data-eo-report-content') || ''
         });
 
-        var modal = document.getElementById('eo-report-modal');
-        if (modal && full) {
-            modal.addEventListener('show.bs.modal', function () {
-                if (full.getAttribute('data-eo-rendered')) return;
-                full.setAttribute('data-eo-rendered', '1');
-                render(full);
+        function show(id) {
+            var t = ++token;
+            card.classList.remove('is-clamped');
+            return reader.load(id).then(function (report) {
+                if (t !== token) return null;
+                return reader.render(report, preview);
+            }).then(function () {
+                if (t !== token) return;
+                clamp.style.minHeight = '';
+                if (clamp.scrollHeight > clamp.clientHeight + 4) card.classList.add('is-clamped');
+            }, function () {
+                if (t !== token) return;
+                clamp.style.minHeight = '';
+                failure(preview);
             });
         }
+
+        card.addEventListener('click', function (e) {
+            var item = e.target.closest('[data-eo-report-pick]');
+            if (!item) return;
+            var id = item.getAttribute('data-eo-report-pick');
+            if (id === shown) return;
+            shown = id;
+            card.querySelectorAll('[data-eo-report-pick]').forEach(function (other) {
+                other.setAttribute('aria-current', other === item ? 'true' : 'false');
+            });
+            ['data-report-name', 'data-report-sub'].forEach(function (attr) {
+                read.setAttribute(attr, item.getAttribute(attr));
+            });
+            read.setAttribute('data-report-read', id);
+            title.textContent = item.getAttribute('data-report-name');
+            title.title = title.textContent;
+            sub.innerHTML = item.getAttribute('data-report-sub');
+            // Hold the card's height while the next report loads.
+            clamp.style.minHeight = clamp.offsetHeight + 'px';
+            preview.innerHTML = '<div class="text-center text-muted py-4"><div class="misp-loader misp-loader-sm" role="status"></div></div>';
+            show(id);
+        });
+
+        show(shown);
     }
 
     /* ── graph ──────────────────────────────────────────────── */
