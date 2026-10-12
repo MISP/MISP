@@ -153,6 +153,14 @@
 .eo-report-link:hover { color: var(--bs-report) !important; text-decoration: underline !important; text-underline-offset: .15em; }
 .eo-report-link:focus-visible { outline: 2px solid var(--bs-report); outline-offset: 2px; border-radius: .2rem; }
 
+/* report openings in the Reports tab's cards */
+/* contain: an unbreakable line in the report must not widen the card's column */
+.eo-report-snippet { contain: inline-size; margin-top: .4rem; padding-top: .6rem; border-top: 1px solid var(--bs-border-color); }
+.eo-report-snippet .eo-report-clamp { max-height: 15rem; padding: 0; }
+.eo-report-snippet-read { align-self: flex-start; padding: .1rem 0; font-size: .8rem; font-weight: 600; color: var(--bs-report); text-decoration: none; }
+.eo-report-snippet-read:hover, .eo-report-snippet-read:focus-visible { color: var(--bs-report); text-decoration: underline; text-underline-offset: .15em; }
+.eo-report-snippet-empty { margin: .35rem 0 0; font-size: .82rem; font-style: italic; color: var(--bs-secondary-color); }
+
 /* report reader */
 .eo-reader-head { gap: .65rem; }
 .eo-reader-title {

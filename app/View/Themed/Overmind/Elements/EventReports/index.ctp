@@ -48,6 +48,13 @@ $fields = [
         'display_in' => ['table', 'card']
     ],
     [
+        'name' => __('Preview'),
+        'element' => 'report_preview',
+        'card_section' => 'body',
+        'display_in' => ['card'],
+        'requirement' => !empty($eventView),
+    ],
+    [
         'name' => __('Event'),
         'sort' => 'Event.id',
         'data_path' => 'Event.id, Event.info',

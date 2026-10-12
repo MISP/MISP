@@ -1,7 +1,8 @@
 // The Overmind event page's report reader: renders a report (MISP elements,
-// template variables, mermaid) and reads any of the event's reports in one
-// modal. A [data-report-read="<id>"] element opens it, carrying the name and
-// sub line the server rendered for that report.
+// template variables, mermaid), draws report openings in the Reports tab's
+// cards, and reads any of the event's reports in one modal. A
+// [data-report-read="<id>"] element opens it; the one carrying the name and
+// sub line the server rendered for that report supplies the header.
 (function () {
     'use strict';
 
@@ -174,6 +175,55 @@
         });
     }
 
+    // Fade a clamped preview out; pictures still loading can push it over.
+    function fade(holder, clamp) {
+        function check() {
+            holder.classList.toggle('is-clamped', clamp.scrollHeight > clamp.clientHeight + 4);
+        }
+        check();
+        clamp.querySelectorAll('img').forEach(function (img) {
+            if (!img.complete) img.addEventListener('load', check, { once: true });
+        });
+    }
+
+    /* ── previews ───────────────────────────────────────────── */
+    // [data-report-preview] holds the opening of a report; it renders once
+    // it is on screen, which also leaves the hidden card view of an index
+    // alone until it is switched to.
+    var watcher = null;
+
+    function drawPreview(holder) {
+        var body = holder.querySelector('[data-report-preview-body]');
+        var clamp = holder.querySelector('.eo-report-clamp');
+        render({
+            id: holder.getAttribute('data-report-preview'),
+            eventId: holder.getAttribute('data-report-event'),
+            content: holder.getAttribute('data-report-content') || ''
+        }, body).then(function () {
+            fade(holder, clamp);
+        }, function () {
+            body.textContent = holder.getAttribute('data-report-content') || '';
+        });
+    }
+
+    function previews(root) {
+        var holders = (root || document).querySelectorAll('[data-report-preview]:not([data-report-watched])');
+        if (!holders.length) return;
+        if (!watcher) {
+            watcher = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    watcher.unobserve(entry.target);
+                    drawPreview(entry.target);
+                });
+            }, { rootMargin: '200px 0px' });
+        }
+        holders.forEach(function (holder) {
+            holder.setAttribute('data-report-watched', '');
+            watcher.observe(holder);
+        });
+    }
+
     // A plain click reads in place; a modified or middle click on a link
     // still opens the report page.
     function onClick(e) {
@@ -185,11 +235,18 @@
     }
 
     document.addEventListener('click', onClick);
+    document.addEventListener('misp:container-loaded', function (e) { previews(e.target); });
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { previews(document); });
+    } else {
+        previews(document);
+    }
 
     window.MispReportReader = {
         seed: seed,
         load: load,
         render: render,
+        fade: fade,
         open: open
     };
 })();

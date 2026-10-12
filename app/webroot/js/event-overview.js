@@ -219,7 +219,7 @@
             }).then(function () {
                 if (t !== token) return;
                 clamp.style.minHeight = '';
-                if (clamp.scrollHeight > clamp.clientHeight + 4) card.classList.add('is-clamped');
+                reader.fade(card, clamp);
             }, function () {
                 if (t !== token) return;
                 clamp.style.minHeight = '';
