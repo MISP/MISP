@@ -307,6 +307,7 @@ jobs:
           app/Console/cake Admin setSetting "MISP.host_org_id" 1
           app/Console/cake Admin setSetting "MISP.email" "info@admin.test"
           app/Console/cake Admin setSetting "MISP.disable_emailing" false
+          app/Console/cake Admin setSetting "MISP.enable_themes" 1
           app/Console/cake Admin setSetting --force "debug" true
           app/Console/cake Admin setSetting "Plugin.CustomAuth_disable_logout" false
           app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"

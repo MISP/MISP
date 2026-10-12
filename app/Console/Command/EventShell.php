@@ -730,7 +730,7 @@ class EventShell extends AppShell
 
     public function reportValidationIssuesAttributes()
     {
-        foreach ($this->Event->MispAttribute->reportValidationIssuesAttributes() as $validationIssue) {
+        foreach ($this->MispAttribute->reportValidationIssuesAttributes() as $validationIssue) {
             echo $this->json($validationIssue) . "\n";
         }
     }
@@ -740,7 +740,7 @@ class EventShell extends AppShell
         $dryRun = $this->param('dry-run');
 
         $count = 0;
-        foreach ($this->Event->MispAttribute->normalizeIpAddress($dryRun) as $attribute) {
+        foreach ($this->MispAttribute->normalizeIpAddress($dryRun) as $attribute) {
             $count++;
             echo JsonTool::encode($attribute) . "\n";
         }
