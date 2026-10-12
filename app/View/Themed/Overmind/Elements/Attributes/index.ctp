@@ -510,10 +510,37 @@ $remotePickers[] = [
     'icon' => 'fas fa-tag',
     'source' => $baseurl . '/tags/pickerSearch',
     'resolved' => $filterLabels['tag'],
-] + ($inEventView ? ['single' => true] : ['separator' => '||', 'exclude' => true]);
+] + ($inEventView ? ['single' => true] : [
+    'separator' => '||',
+    'exclude' => true,
+    'hint' => __('Attribute or event tags.'),
+    'browser' => [
+        'kind' => 'tag',
+        'scopes' => $baseurl . '/tags/pickerScopes',
+        'tree' => $baseurl . '/tags/pickerTree',
+    ],
+]);
+// The event tab filters on a whole galaxy; here on clusters, as on the events index.
+if (!$inEventView) {
+    $remotePickers[] = [
+        'type' => 'picker',
+        'name' => 'galaxy',
+        'label' => __('Galaxy'),
+        'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+        'source' => $baseurl . '/galaxy_clusters/pickerSearch',
+        'separator' => '||',
+        'exclude' => true,
+        'resolved' => $filterLabels['galaxy'],
+        'hint' => __('Clusters attached to the attribute or its event.'),
+        'browser' => [
+            'kind' => 'galaxy',
+            'scopes' => $baseurl . '/galaxies/pickerScopes',
+        ],
+    ];
+}
 foreach (AttributeFilterPanel::children(
     compact('categoryOptions', 'typeOptions', 'orgOptions')
-        + ['galaxyOptions' => $galaxyOptions ?? null],
+        + ['galaxyOptions' => $inEventView ? ($galaxyOptions ?? null) : null],
     $inEventView
 ) as $filter) {
     $children[] = $filter + ($pickerSettings[$filter['name']] ?? []);
