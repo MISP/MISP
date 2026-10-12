@@ -1,251 +1,232 @@
-<div class="d-flex align-items-center justify-content-center overflow-y-auto" style="position: fixed; inset: 0;">
-    <div class="col-md-auto py-4" style="max-width: 560px; width: 100%;">
-        <div class="card shadow-lg p-4" style="background-color: var(--misp-login-card-bg, #ffffff)">
+<?php
+$customLogo = function ($setting) {
+    $file = Configure::read($setting);
+    if (empty($file) || !file_exists(APP . 'files/img/custom/' . $file)) {
+        return null;
+    }
+    return $this->Image->base64(APP . 'files/img/custom/' . $file);
+};
+$mainLogo = $customLogo('MISP.main_logo');
+$partnerLogos = [
+    'left' => $customLogo('MISP.welcome_logo'),
+    'right' => $customLogo('MISP.welcome_logo2'),
+];
+$hasPartners = !empty(array_filter($partnerLogos));
 
-            <!-- Logo -->
-            <div class="d-flex align-items-center justify-content-center mb-4">
-                <?php
-                if (Configure::read('MISP.main_logo') && file_exists(APP . '/files/img/custom/' . Configure::read('MISP.main_logo'))) {
-                    echo $this->Html->image('files/img/custom/' . Configure::read('MISP.main_logo'), [
-                        'alt' => __('Main Logo'),
-                        'class' => 'main-logo',
-                        'style' => 'max-height: 80px; height: auto; width: auto;'
-                    ]);
-                } else {
-                    echo $this->Html->image('misp-logo-main-cmyk-hori-.png', [
-                        'alt' => __('MISP Logo'),
-                        'class' => 'main-logo misp-artwork-logo',
-                        'style' => 'max-height: 80px; height: auto; width: auto;'
-                    ]);
-                }
-                ?>
-            </div>
+// Rendered inside the panel rather than in the layout's flash overlay.
+$flashes = [];
+foreach (['flash', 'auth'] as $flashKey) {
+    $messages = CakeSession::read('Message.' . $flashKey);
+    if (empty($messages)) {
+        continue;
+    }
+    CakeSession::delete('Message.' . $flashKey);
+    foreach ($messages as $flash) {
+        $flashes[] = [
+            'message' => $flash['message'],
+            'error' => isset($flash['element']) && basename($flash['element']) === 'error',
+        ];
+    }
+}
 
-            <!-- Title -->
-            <div class="d-flex align-items-center justify-content-center gap-3 mb-4">
-                <h4 class="fw-semibold text-center" style="color: var(--misp-login-heading, #28191B);">
-                    <?= __('Register for a new user account') ?>
-                </h4>
-                <!-- Self-registration message -->
-                <?php if (!empty($message)): ?>
-                    <i class="fa-solid fa-info-circle text-accent mb-1"
-                    tabindex="0"
-                    title="<?= h($message) ?>"
-                    aria-label="<?= h($message) ?>"></i>
+$rolePerms = [
+    'perm_publish' => [
+        'id' => 'UserPermPublish',
+        'label' => __('Publish permission'),
+        'hint' => __('Publish events so they can be shared with and distributed to other users and communities.'),
+    ],
+    'perm_admin' => [
+        'id' => 'UserPermAdmin',
+        'label' => __('Org admin permission'),
+        'hint' => __('Manage the users and settings of your own organisation.'),
+    ],
+    'perm_sync' => [
+        'id' => 'UserPermSync',
+        'label' => __('Sync permission'),
+        'hint' => __('Synchronise events with connected MISP servers, used for server-to-server connections.'),
+    ],
+];
+
+echo $this->element('genericElements/assetLoader', [
+    'css' => ['overmind-login'],
+]);
+?>
+<div class="oml">
+    <canvas class="oml-sky" id="omlSky" aria-hidden="true"></canvas>
+    <div class="oml-stage">
+        <section class="oml-panel" aria-labelledby="omlTitle">
+            <div class="oml-rule" aria-hidden="true"></div>
+            <?php foreach (['omlPortHub' => 'oml-port-hub', 'omlPortSide' => 'oml-port-side'] as $portId => $portClass): ?>
+                <svg class="oml-port <?= $portClass ?>" id="<?= $portId ?>" viewBox="-12 -12 24 24" aria-hidden="true" focusable="false">
+                    <polygon class="oml-port-ring" points="0,-7 6.06,-3.5 6.06,3.5 0,7 -6.06,3.5 -6.06,-3.5"/>
+                    <polygon class="oml-port-core" points="0,-7 6.06,-3.5 6.06,3.5 0,7 -6.06,3.5 -6.06,-3.5"/>
+                </svg>
+            <?php endforeach; ?>
+
+            <header class="oml-brand<?= $hasPartners ? ' oml-has-partners' : '' ?>">
+                <?php if ($hasPartners): ?>
+                    <div class="oml-brand-partner oml-brand-partner-left">
+                        <?php if ($partnerLogos['left']): ?>
+                            <img src="<?= $partnerLogos['left'] ?>" alt="<?= __('Logo') ?>" onerror="this.style.display='none';">
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
-            </div>
-
-            <!-- Form -->
-            <?php
-            echo $this->Form->create('User', [
-                'class' => 'needs-validation',
-                'novalidate' => true,
-                'url' => ['controller' => 'users', 'action' => 'register']
-            ]);
-            ?>
-
-            <!-- Email (required) -->
-            <label for="UserEmail" class="form-label fw-semibold">
-                <?= __('Please provide your email') ?> <span class="text-danger">*</span>
-            </label>
-            <div class="form-floating mb-4">
-                <?= $this->Form->input('email', [
-                    'type' => 'email',
-                    'id' => 'UserEmail',
-                    'class' => 'form-control',
-                    'placeholder' => __('Email'),
-                    'required' => true,
-                    'label' => false,
-                    'div' => false
-                ]) ?>
-                <label for="UserEmail"><?= __('Email') ?></label>
-            </div>
-
-            <!-- Organisation name -->
-            <div class="form-label fw-semibold">
-                <?= __("You can also provide your organisation's name and/or its MISP UUID.") ?>
-            </div>
-            <div class="form-floating mb-3">
-                <?= $this->Form->input('org_name', [
-                    'type' => 'text',
-                    'id' => 'UserOrgName',
-                    'class' => 'form-control',
-                    'placeholder' => __("Org name"),
-                    'label' => false,
-                    'div' => false
-                ]) ?>
-                <label for="UserOrgName"><?= __("Org name") ?></label>
-            </div>
-
-            <!-- Organisation UUID -->
-            <div class="form-floating mb-4">
-                <?= $this->Form->input('org_uuid', [
-                    'type' => 'text',
-                    'id' => 'UserOrgUuid',
-                    'class' => 'form-control',
-                    'placeholder' => __('Org uuid'),
-                    'label' => false,
-                    'div' => false
-                ]) ?>
-                <label for="UserOrgUuid"><?= __('Org uuid') ?></label>
-            </div>
-
-            <!-- Custom role request -->
-            <div class="form-switch d-flex align-items-center justify-content-between ps-0 mb-4" id="CustomWrapper">
-                <label class="form-check-label fw-semibold mb-0" for="UserCustomPerms">
-                    <?= __('Request custom role') ?>
-                </label>
-                <?= $this->Form->checkbox('custom_perms', [
-                    'id' => 'UserCustomPerms',
-                    'class' => 'form-check-input m-0',
-                    'role' => 'switch'
-                ]) ?>
-            </div>
-
-            <!-- Permission switches (revealed when a custom role is requested) -->
-            <div id="rolePermsWrapper" class="collapse mb-4">
-                <div class="border rounded p-3 bg-light">
-                    <!-- Publish -->
-                    <div class="mb-3">
-                        <div class="form-switch d-flex align-items-center justify-content-between ps-0">
-                            <label class="form-check-label" for="UserPermPublish">
-                                <?= __('Publish permission') ?>
-                            </label>
-                            <?= $this->Form->checkbox('perm_publish', [
-                                'id' => 'UserPermPublish',
-                                'class' => 'form-check-input role-field m-0',
-                                'role' => 'switch'
-                            ]) ?>
-                        </div>
-                        <div style="color:var(--bs-secondary-color); font-size:0.875rem">
-                            <?= __('Publish events so they can be shared with and distributed to other users and communities.') ?>
-                        </div>
-                    </div>
-
-                    <!-- Org admin -->
-                    <div class="mb-3">
-                        <div class="form-switch d-flex align-items-center justify-content-between ps-0">
-                            <label class="form-check-label" for="UserPermAdmin">
-                                <?= __('Org admin permission') ?>
-                            </label>
-                            <?= $this->Form->checkbox('perm_admin', [
-                                'id' => 'UserPermAdmin',
-                                'class' => 'form-check-input role-field m-0',
-                                'role' => 'switch'
-                            ]) ?>
-                        </div>
-                        <div style="color:var(--bs-secondary-color); font-size:0.875rem">
-                            <?= __("Manage the users and settings of your own organisation.") ?>
-                        </div>
-                    </div>
-
-                    <!-- Sync -->
-                    <div>
-                        <div class="form-switch d-flex align-items-center justify-content-between ps-0">
-                            <label class="form-check-label" for="UserPermSync">
-                                <?= __('Sync permission') ?>
-                            </label>
-                            <?= $this->Form->checkbox('perm_sync', [
-                                'id' => 'UserPermSync',
-                                'class' => 'form-check-input role-field m-0',
-                                'role' => 'switch'
-                            ]) ?>
-                        </div>
-                        <div style="color:var(--bs-secondary-color); font-size:0.875rem">
-                            <?= __('Synchronise events with connected MISP servers, used for server-to-server connections.') ?>
-                        </div>
-                    </div>
+                <div class="oml-brand-main">
+                    <?php if ($mainLogo): ?>
+                        <img src="<?= $mainLogo ?>" alt="<?= __('Logo') ?>">
+                    <?php else: ?>
+                        <img class="oml-logo-light" src="<?= $baseurl ?>/img/misp-logo-horizontal.png" alt="<?= __('MISP — Intelligence Sharing') ?>" width="1200" height="352">
+                        <img class="oml-logo-dark" src="<?= $baseurl ?>/img/misp-logo-horizontal-light.png" alt="<?= __('MISP — Intelligence Sharing') ?>" width="1200" height="352">
+                    <?php endif; ?>
                 </div>
-            </div>
+                <?php if ($hasPartners): ?>
+                    <div class="oml-brand-partner oml-brand-partner-right">
+                        <?php if ($partnerLogos['right']): ?>
+                            <img src="<?= $partnerLogos['right'] ?>" alt="<?= __('Logo') ?>" onerror="this.style.display='none';">
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </header>
 
-            <!-- PGP key -->
-            <div class="mb-4">
-                <label for="UserPgp" class="form-label fw-semibold"><?= __('Your PGP key') ?></label>
-                <?= $this->Form->input('pgp', [
-                    'type' => 'textarea',
-                    'id' => 'UserPgp',
-                    'class' => 'form-control',
-                    'rows' => 4,
-                    'label' => false,
-                    'div' => false
-                ]) ?>
-            </div>
+            <?php foreach ($flashes as $flash): ?>
+                <?php if ($flash['error']): ?>
+                    <div class="oml-flash oml-flash-error" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                        <span><?= h($flash['message']) ?></span>
+                    </div>
+                <?php else: ?>
+                    <div class="oml-flash oml-flash-info" role="status">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        <span><?= h($flash['message']) ?></span>
+                    </div>
+                <?php endif; ?>
+            <?php endforeach; ?>
 
-            <!-- Message to admins -->
-            <div class="mb-4">
-                <label for="UserMessage" class="form-label fw-semibold"><?= __('Message to the admins') ?></label>
-                <?= $this->Form->input('message', [
-                    'type' => 'textarea',
-                    'id' => 'UserMessage',
-                    'class' => 'form-control',
-                    'rows' => 3,
-                    'label' => false,
-                    'div' => false
-                ]) ?>
-            </div>
+            <h1 class="oml-title" id="omlTitle"><?= __('Request access') ?></h1>
 
-            <!-- Submit -->
-            <div class="d-grid mb-3">
-                <?= $this->Form->button(
-                    '<i class="fa-solid fa-user-plus me-2"></i>' . __('Submit registration'),
-                    [
-                        'class' => 'btn btn-primary btn-login btn-lg',
-                        'escape' => false
-                    ]
-                ); ?>
-            </div>
+            <?php if (!empty($message)): ?>
+                <p class="oml-lead"><?= h($message) ?></p>
+            <?php endif; ?>
 
-            <?= $this->Form->end(); ?>
+            <?= $this->Form->create('User', ['novalidate' => true]) ?>
+                <div class="oml-field">
+                    <div class="oml-field-head">
+                        <label for="UserEmail"><?= __('Email') ?></label>
+                    </div>
+                    <?= $this->Form->input('email', [
+                        'type' => 'email',
+                        'id' => 'UserEmail',
+                        'class' => 'oml-input',
+                        'autocomplete' => 'email',
+                        'autofocus' => true,
+                        'required' => true,
+                        'label' => false,
+                        'div' => false,
+                        'error' => false,
+                    ]) ?>
+                </div>
 
-            <!-- Back to login -->
-            <div class="text-center">
-                <a href="<?= $baseurl ?>/users/login" class="text-decoration-none">
-                    <i class="fa-solid fa-arrow-left me-2"></i><?= __('Back to login') ?>
-                </a>
-            </div>
+                <div class="oml-field">
+                    <div class="oml-field-head">
+                        <label for="UserOrgName"><?= __('Organisation name') ?></label>
+                        <span class="oml-optional"><?= __('Optional') ?></span>
+                    </div>
+                    <?= $this->Form->input('org_name', [
+                        'type' => 'text',
+                        'id' => 'UserOrgName',
+                        'class' => 'oml-input',
+                        'autocomplete' => 'organization',
+                        'label' => false,
+                        'div' => false,
+                        'error' => false,
+                    ]) ?>
+                </div>
 
-        </div>
+                <div class="oml-field">
+                    <div class="oml-field-head">
+                        <label for="UserOrgUuid"><?= __('Organisation UUID') ?></label>
+                        <span class="oml-optional"><?= __('Optional') ?></span>
+                    </div>
+                    <?= $this->Form->input('org_uuid', [
+                        'type' => 'text',
+                        'id' => 'UserOrgUuid',
+                        'class' => 'oml-input oml-input-mono',
+                        'autocomplete' => 'off',
+                        'spellcheck' => 'false',
+                        'label' => false,
+                        'div' => false,
+                        'error' => false,
+                    ]) ?>
+                    <p class="oml-hint"><?= __("You can also provide your organisation's name and/or its MISP UUID.") ?></p>
+                </div>
+
+                <div class="oml-field oml-switch">
+                    <label for="UserCustomPerms"><?= __('Request custom role') ?></label>
+                    <?= $this->Form->checkbox('custom_perms', [
+                        'id' => 'UserCustomPerms',
+                        'role' => 'switch',
+                        'aria-controls' => 'omlRolePerms',
+                        'aria-expanded' => 'false',
+                    ]) ?>
+                </div>
+
+                <div class="oml-perms" id="omlRolePerms" hidden>
+                    <?php foreach ($rolePerms as $field => $perm): ?>
+                        <div class="oml-perm">
+                            <div class="oml-switch">
+                                <label for="<?= $perm['id'] ?>"><?= $perm['label'] ?></label>
+                                <?= $this->Form->checkbox($field, [
+                                    'id' => $perm['id'],
+                                    'role' => 'switch',
+                                ]) ?>
+                            </div>
+                            <p class="oml-hint"><?= $perm['hint'] ?></p>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <div class="oml-field">
+                    <div class="oml-field-head">
+                        <label for="UserPgp"><?= __('Your PGP key') ?></label>
+                        <span class="oml-optional"><?= __('Optional') ?></span>
+                    </div>
+                    <?= $this->Form->input('pgp', [
+                        'type' => 'textarea',
+                        'id' => 'UserPgp',
+                        'class' => 'oml-input oml-input-mono',
+                        'rows' => 4,
+                        'spellcheck' => 'false',
+                        'label' => false,
+                        'div' => false,
+                        'error' => false,
+                    ]) ?>
+                </div>
+
+                <div class="oml-field">
+                    <div class="oml-field-head">
+                        <label for="UserMessage"><?= __('Message to the admins') ?></label>
+                        <span class="oml-optional"><?= __('Optional') ?></span>
+                    </div>
+                    <?= $this->Form->input('message', [
+                        'type' => 'textarea',
+                        'id' => 'UserMessage',
+                        'class' => 'oml-input',
+                        'rows' => 3,
+                        'label' => false,
+                        'div' => false,
+                        'error' => false,
+                    ]) ?>
+                </div>
+
+                <button class="oml-btn oml-btn-primary" type="submit"><?= __('Submit registration') ?></button>
+            <?= $this->Form->end() ?>
+
+            <p class="oml-back">
+                <a href="<?= $baseurl ?>/users/login"><?= __('Back to login') ?></a>
+            </p>
+        </section>
     </div>
 </div>
-
-<script>
-// Reveal the permission checkboxes only when a custom role is requested
-(function () {
-    var wrapper = document.getElementById('CustomWrapper');
-    var customPerms = document.getElementById('UserCustomPerms');
-    var rolesWrapper = document.getElementById('rolePermsWrapper');
-    if (customPerms && rolesWrapper) {
-        customPerms.addEventListener('change', function () {
-            if (customPerms.checked) {
-                wrapper.classList.remove('mb-4');
-                wrapper.classList.add('mb-2');
-                rolesWrapper.classList.add('show');
-            } else {
-                wrapper.classList.add('mb-4');
-                wrapper.classList.remove('mb-2');
-                rolesWrapper.classList.remove('show');
-                // Reset the role checkboxes when the custom role request is cleared
-                rolesWrapper.querySelectorAll('.role-field').forEach(function (cb) {
-                    cb.checked = false;
-                });
-            }
-        });
-    }
-})();
-
-// Flag email input if not filled
-(function () {
-    var form = document.querySelector('form.needs-validation');
-    if (!form) {
-        return;
-    }
-    form.addEventListener('submit', function (event) {
-        if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        form.classList.add('was-validated');
-    }, false);
-})();
-</script>
-
+<?= $this->element('genericElements/assetLoader', [
+    'js' => ['overmind-login'],
+]) ?>

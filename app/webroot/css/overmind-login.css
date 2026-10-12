@@ -449,6 +449,87 @@
     color: var(--oml-text-muted);
 }
 
+.oml-optional {
+    font-size: 12px;
+    color: var(--oml-text-muted);
+}
+
+textarea.oml-input {
+    height: auto;
+    min-height: 80px;
+    padding: 10px 14px;
+    line-height: 1.45;
+    resize: vertical;
+}
+.oml-input-mono {
+    font-family: var(--oml-font-mono);
+    font-size: 13px;
+}
+
+.oml-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.oml-switch input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    flex: 0 0 auto;
+    width: 38px;
+    height: 22px;
+    margin: 0;
+    border-radius: 11px;
+    border: 1px solid var(--oml-input-border);
+    background: var(--oml-input-bg);
+    cursor: pointer;
+    transition: background-color .15s, border-color .15s;
+}
+.oml-switch input[type="checkbox"]::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--oml-input-border);
+    transition: transform .15s, background-color .15s;
+}
+.oml-switch input[type="checkbox"]:hover { border-color: var(--oml-input-border-hover); }
+.oml-switch input[type="checkbox"]:checked {
+    border-color: var(--oml-btn-bg);
+    background: var(--oml-btn-bg);
+}
+.oml-switch input[type="checkbox"]:checked::before {
+    transform: translateX(16px);
+    background: var(--oml-btn-text);
+}
+.oml-switch input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--oml-focus);
+    outline-offset: 2px;
+}
+
+.oml-perms {
+    margin: -4px 0 16px;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--oml-hairline);
+    background: var(--oml-input-bg);
+}
+.oml-perm + .oml-perm {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--oml-hairline);
+}
+.oml-perm .oml-hint { margin-top: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .oml-switch input[type="checkbox"],
+    .oml-switch input[type="checkbox"]::before { transition: none; }
+}
+
 .oml a {
     color: var(--oml-link);
     text-decoration: underline;
