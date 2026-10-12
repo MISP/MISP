@@ -76,8 +76,47 @@
             window.clearTimeout(hideTimer);
         });
         host.addEventListener('mouseleave', hide);
+        host.addEventListener('click', function (event) {
+            var more = event.target.closest('[data-vp-hce-more]');
+            if (more) {
+                expand(more);
+            }
+        });
         document.body.appendChild(host);
         return host;
+    }
+
+    /**
+     * Open or close the rest of one module's answer.
+     *
+     * @param {Element} button
+     */
+    function expand(button) {
+        var row = button.closest('[data-vp-eb-row]');
+        if (!row) {
+            return;
+        }
+        var open = !row.classList.contains('vp-hc-enr-open');
+        row.classList.toggle('vp-hc-enr-open', open);
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        refit();
+    }
+
+    /*
+     * Grown by the reader, so it stays where it is rather than being
+     * re-placed — which, above the anchor, would move the button out
+     * from under the pointer — and only moves up as far as it has to
+     * to stay on screen.
+     */
+    function refit() {
+        var node = element();
+        var margin = 12;
+        var box = node.getBoundingClientRect();
+        var over = box.bottom - (window.innerHeight - margin);
+        if (over > 0) {
+            node.style.top = Math.round(Math.max(margin, box.top - over))
+                + 'px';
+        }
     }
 
     /*
@@ -369,7 +408,9 @@
         var trimmed = (html || '').trim();
         slot.innerHTML = trimmed
             ? trimmed
-            : '<span class="vp-hce-v vp-hce-fail">no answer</span>';
+            : '<span class="vp-hc-enr-ans">'
+                + '<span class="vp-hce-v vp-hce-fail">no answer</span>'
+                + '</span>';
         place(anchor);
     }
 
@@ -392,7 +433,14 @@
              */
             return;
         }
-        enrichCache[value] = strip.outerHTML;
+        var copy = strip.cloneNode(true);
+        copy.querySelectorAll('.vp-hc-enr-open').forEach(function (row) {
+            row.classList.remove('vp-hc-enr-open');
+        });
+        copy.querySelectorAll('[data-vp-hce-more]').forEach(function (b) {
+            b.setAttribute('aria-expanded', 'false');
+        });
+        enrichCache[value] = copy.outerHTML;
     }
 
     /**

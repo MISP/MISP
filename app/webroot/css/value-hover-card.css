@@ -532,8 +532,9 @@
  * ------------------------------------------------------------------
  * External knowledge, kept apart from the instance's own evidence by
  * the rule above it. One row a module: its name in a gutter sized to
- * the longest one, then the headline answer with its field label, and
- * what the headline left out counted at the right edge.
+ * the longest one, linking to that module on the Enrichment tab, then
+ * the headline answer with its field label, and what the headline left
+ * out counted at the right edge — pressing the count opens it below.
  * ================================================================== */
 
 .vp-hc-sec.vp-hc-enr { padding: 6px 11px 7px; }
@@ -550,7 +551,14 @@
     font-size: 9.5px;
     line-height: 1;
     color: var(--vp-hc-mute);
-    cursor: help;
+    text-decoration: none;
+}
+
+.vp-hc-enr-more:hover,
+.vp-hc-enr-more:focus-visible {
+    color: var(--vp-hc-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 
 .vp-hc-enr-rows {
@@ -563,19 +571,35 @@
     align-items: baseline;
 }
 
-/* The row exists for the script to address; the grid lays out its cells. */
-.vp-hc-enr-row { display: contents; }
+/* Both exist for the script to address; the grid lays out their cells. */
+.vp-hc-enr-row,
+.vp-hc-enr-slot { display: contents; }
 
 .vp-hc-enr-mod {
+    grid-column: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font: 400 10px/13px var(--vp-hc-mono);
     color: var(--vp-hc-mute);
+    text-decoration: none;
+}
+
+a.vp-hc-enr-mod {
+    text-decoration: underline dotted
+        color-mix(in srgb, currentColor 45%, transparent);
+    text-underline-offset: 2px;
+}
+
+a.vp-hc-enr-mod:hover,
+a.vp-hc-enr-mod:focus-visible {
+    color: var(--vp-hc-ink);
+    text-decoration: underline solid currentColor;
 }
 
 .vp-hc-enr-ans {
+    grid-column: 2;
     display: flex;
     align-items: baseline;
     gap: 6px;
@@ -617,13 +641,71 @@
 /* Pinned to the edge, outside the clipped text, so it is never cut. */
 .vp-hce-more {
     flex: none;
-    margin-left: auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    margin: -1px -4px -1px auto;
+    padding: 1px 4px;
+    border: 0;
+    border-radius: 3px;
+    background: none;
+    font-family: inherit;
     font-size: 10px;
-    line-height: 1;
     font-weight: 600;
+    line-height: 1;
     color: var(--vp-hc-mute);
-    cursor: help;
+    cursor: pointer;
 }
+
+.vp-hce-more:hover,
+.vp-hce-more:focus-visible,
+.vp-hce-more[aria-expanded="true"] {
+    color: var(--vp-hc-ink);
+    background: color-mix(in srgb, var(--vp-hc-ink) 8%, transparent);
+}
+
+.vp-hce-more:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--vp-hc-ink) 45%, transparent);
+    outline-offset: 0;
+}
+
+.vp-hce-more .fa-angle-down { font-size: 9px; transition: transform 0.15s; }
+
+.vp-hce-more[aria-expanded="true"] .fa-angle-down { transform: rotate(180deg); }
+
+/* The rest of one answer, hung under its headline. */
+.vp-hc-enr-rest {
+    grid-column: 2;
+    display: none;
+    min-width: 0;
+    padding-left: 8px;
+    border-left: 1px solid var(--vp-hc-line);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--vp-hc-ink);
+}
+
+.vp-hc-enr-open .vp-hc-enr-rest { display: block; }
+
+.vp-hc-enr-rest .vp-hce-x { font-weight: 500; }
+
+.vp-hc-enr-rest-link {
+    font-size: 10px;
+    color: var(--vp-hc-mute);
+    text-decoration: none;
+}
+
+.vp-hc-enr-rest-link:hover,
+.vp-hc-enr-rest-link:focus-visible {
+    color: var(--vp-hc-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.vp-hc-enr-rest-link .fa-arrow-right { margin-left: 4px; font-size: 8.5px; }
 
 .vp-hc-enr-bar {
     display: block;
@@ -644,4 +726,5 @@
 @media (prefers-reduced-motion: reduce) {
     .vp-hc-enr-skel .vp-hc-enr-mod,
     .vp-hc-enr-skel .vp-hc-enr-ans { animation: none; }
+    .vp-hce-more .fa-angle-down { transition: none; }
 }

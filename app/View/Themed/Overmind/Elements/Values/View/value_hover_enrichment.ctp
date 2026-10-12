@@ -76,27 +76,45 @@ foreach ($panel['fire'] as $one) {
     <div class="vp-hc-enr-hd">
         <span class="vp-hc-k"><?= h(__('Enrichment')) ?></span>
         <?php if ($more > 0): ?>
-            <span class="vp-hc-enr-more"
-                  title="<?= h(__('Shown on the Enrichment tab')) ?>"><?=
+            <a class="vp-hc-enr-more"
+               href="<?= h($this->Html->url(array(
+                   'controller' => 'values',
+                   'action' => 'view',
+                   $valueB64,
+                   '#' => 'tab-enrichment',
+               ))) ?>"
+               title="<?= h(__('Open the Enrichment tab')) ?>"><?=
                 h(__n(
                     '+%s more module',
                     '+%s more modules',
                     $more,
                     $more
-                )) ?></span>
+                )) ?></a>
         <?php endif; ?>
     </div>
     <div class="vp-hc-enr-rows">
     <?php foreach ($shown as $entry): ?>
         <div class="vp-hc-enr-row" data-vp-eb-row="<?= h($entry['module']) ?>">
-            <span class="vp-hc-enr-mod" title="<?= h($entry['module']) ?>"><?=
-                h($entry['module']) ?></span>
-            <span class="vp-hc-enr-ans" data-vp-eb-slot>
+            <a class="vp-hc-enr-mod"
+               href="<?= h($this->Html->url(array(
+                   'controller' => 'values',
+                   'action' => 'view',
+                   $valueB64,
+                   '?' => array('module' => $entry['module']),
+                   '#' => 'tab-enrichment',
+               ))) ?>"
+               title="<?= h(sprintf(
+                   __('Open %s on the Enrichment tab'),
+                   $entry['module']
+               )) ?>"><?= h($entry['module']) ?></a>
+            <span class="vp-hc-enr-slot" data-vp-eb-slot>
                 <?php if ($entry['pending'] === 'fire'): ?>
-                    <span class="vp-hce-v vp-hce-ask">
-                        <i class="fas fa-circle-notch fa-spin"
-                           aria-hidden="true"></i>
-                        <?= h(__('asking')) ?>
+                    <span class="vp-hc-enr-ans">
+                        <span class="vp-hce-v vp-hce-ask">
+                            <i class="fas fa-circle-notch fa-spin"
+                               aria-hidden="true"></i>
+                            <?= h(__('asking')) ?>
+                        </span>
                     </span>
                 <?php elseif ($entry['pending'] === 'in_flight'): ?>
                     <?php
@@ -106,8 +124,10 @@ foreach ($panel['fire'] as $one) {
                      * second query rather than wait for the first.
                      */
                     ?>
-                    <span class="vp-hce-v vp-hce-wait"><?=
-                        h(__('being asked')) ?></span>
+                    <span class="vp-hc-enr-ans">
+                        <span class="vp-hce-v vp-hce-wait"><?=
+                            h(__('being asked')) ?></span>
+                    </span>
                 <?php else: ?>
                     <?= $this->element(
                         'Values/View/value_enrichment_chip',

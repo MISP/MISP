@@ -19,6 +19,7 @@
  *
  * @var array $valueIntelligence Set when rendered as an endpoint
  * @var array $badge        Set when included by the strip
+ * @var string $valueB64
  */
 $badge = isset($badge) ? $badge : array(
     'module' => $valueIntelligence['run']['module'],
@@ -68,36 +69,54 @@ if ($state === 'ok' && $chips['kind'] === 'count') {
  * What the headline left behind, counted. A reader has to know the row
  * is a summary of an answer rather than the whole of one.
  */
-$rest = 0;
-$restTitle = array();
+$rest = array();
+$beyond = 0;
 if ($mark === 'ok' && $chips['kind'] === 'chips') {
-    $rest = max(0, count($chips['chips']) - 1) + (int)$chips['more'];
-    foreach (array_slice($chips['chips'], 1) as $chip) {
-        $restTitle[] = $chip['label'] . ' ' . $chip['value'];
-    }
-    if ((int)$chips['more'] > 0) {
-        $restTitle[] = sprintf(
-            __('%s more on the Enrichment tab'),
-            (int)$chips['more']
-        );
-    }
+    $rest = array_slice($chips['chips'], 1);
+    $beyond = (int)$chips['more'];
 }
+$restCount = count($rest) + $beyond;
+
 // A count reads number first (`1,375 domain`), a field label first (`asn 15169`).
 $labelAfter = $mark === 'ok' && $chips['kind'] === 'count';
 $full = $labelAfter
     ? trim($headline . ' ' . $label)
     : trim($label . ' ' . $headline);
 ?>
-<span class="vp-hce-v vp-hce-<?= h($mark) ?>" title="<?= h($full) ?>">
-    <?php if ($label !== null && !$labelAfter): ?>
-        <span class="vp-hce-l"><?= h($label) ?></span>
-    <?php endif; ?>
-    <span class="vp-hce-x"><?= h($headline) ?></span>
-    <?php if ($label !== null && $labelAfter): ?>
-        <span class="vp-hce-l"><?= h($label) ?></span>
+<span class="vp-hc-enr-ans">
+    <span class="vp-hce-v vp-hce-<?= h($mark) ?>" title="<?= h($full) ?>">
+        <?php if ($label !== null && !$labelAfter): ?>
+            <span class="vp-hce-l"><?= h($label) ?></span>
+        <?php endif; ?>
+        <span class="vp-hce-x"><?= h($headline) ?></span>
+        <?php if ($label !== null && $labelAfter): ?>
+            <span class="vp-hce-l"><?= h($label) ?></span>
+        <?php endif; ?>
+    </span>
+    <?php if ($restCount > 0): ?>
+        <button type="button" class="vp-hce-more" data-vp-hce-more
+                aria-expanded="false"
+                title="<?= h(__('Show the rest of this answer')) ?>">+<?=
+            h($restCount) ?><i class="fas fa-angle-down"
+            aria-hidden="true"></i></button>
     <?php endif; ?>
 </span>
-<?php if ($rest > 0): ?>
-    <span class="vp-hce-more"
-          title="<?= h(implode("\n", $restTitle)) ?>">+<?= h($rest) ?></span>
+<?php foreach ($rest as $chip): ?>
+    <span class="vp-hc-enr-rest"
+          title="<?= h($chip['label'] . ' ' . $chip['value']) ?>">
+        <span class="vp-hce-l"><?= h($chip['label']) ?></span>
+        <span class="vp-hce-x"><?= h($chip['value']) ?></span>
+    </span>
+<?php endforeach; ?>
+<?php if ($beyond > 0): ?>
+    <a class="vp-hc-enr-rest vp-hc-enr-rest-link" href="<?= h($this->Html->url(array(
+        'controller' => 'values',
+        'action' => 'view',
+        $valueB64,
+        '?' => array('module' => $badge['module']),
+        '#' => 'tab-enrichment',
+    ))) ?>"><?= h(sprintf(
+        __('%s more on the Enrichment tab'),
+        $beyond
+    )) ?><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
 <?php endif; ?>
