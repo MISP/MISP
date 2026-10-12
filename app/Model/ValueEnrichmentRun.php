@@ -427,6 +427,22 @@ class ValueEnrichmentRun extends AppModel
     }
 
     /**
+     * Every organisation's runs of one value, exactly as spelled: its
+     * erasure from the value dictionary takes this cache with it.
+     *
+     * @param string $value
+     * @return int Rows deleted
+     */
+    public function purgeValue($value)
+    {
+        $this->deleteAll(
+            array('ValueEnrichmentRun.value_hash' => self::hashFor($value)),
+            false
+        );
+        return $this->getAffectedRows();
+    }
+
+    /**
      * `RUN_RETENTION_DAYS`, raised to fit the longest reuse window any
      * enabled profile declares.
      *

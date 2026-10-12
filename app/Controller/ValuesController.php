@@ -2110,12 +2110,19 @@ class ValuesController extends AppController
         $this->CRUD->delete($id, [
             'validate' => function (array $value) {
                 $holders = $this->AttributeValue->holders($value['AttributeValue']['id']);
+                $elements = ClassRegistry::init('CollectionElement')->find('count', [
+                    'conditions' => ['CollectionElement.value_id' => $value['AttributeValue']['id']],
+                ]);
+                if ($elements > 0) {
+                    $holders[] = __n('%s collection element', '%s collection elements', $elements, $elements);
+                }
                 if (!empty($holders)) {
                     throw new Exception(__('The value is still in use, remove these first: %s.', implode('; ', $holders)));
                 }
             },
             'modelFunction' => 'deleteUnheld',
             'afterDelete' => function (array $value) {
+                ClassRegistry::init('ValueEnrichmentRun')->purgeValue($value['AttributeValue']['value']);
                 $this->loadModel('Log');
                 $this->Log->createLogEntry(
                     $this->Auth->user(),
