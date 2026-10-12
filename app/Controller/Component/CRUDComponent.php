@@ -318,6 +318,7 @@ class CRUDComponent extends Component
                 $validationError = $e->getMessage();
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveFailResponse($modelName, 'delete', $id, $validationError);
+                    return;
                 }
             }
         }
