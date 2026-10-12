@@ -277,9 +277,15 @@
 
     /* ── selection ────────────────────────────────────────────────────── */
 
-    function serialize(selection, pc) {
+    // `a&b` asks for all of them, which only means something with two or more included.
+    function serialize(selection, pc, allOf) {
         if (!selection.length) { return null; }
-        return selection.map(function (s) { return (s.exclude ? '!' : '') + s.value; }).join(pc.sep || '|');
+        var sep = allOf && includedCount(selection) > 1 ? '&' : (pc.sep || '|');
+        return selection.map(function (s) { return (s.exclude ? '!' : '') + s.value; }).join(sep);
+    }
+
+    function includedCount(selection) {
+        return selection.filter(function (s) { return !s.exclude; }).length;
     }
 
     function stateOf(value) {
@@ -1340,7 +1346,7 @@
             html = '<span class="ifb-tray-empty"><i class="fas fa-hand-pointer" aria-hidden="true"></i>'
                 + esc(T('trayEmpty')) + ' <i class="fas fa-ban" aria-hidden="true"></i> ' + esc(T('trayEmptyExclude')) + '</span>';
         } else {
-            html = '<span class="ifb-tray-label">' + esc(T('selected')) + '</span><div class="ifb-tray-items">'
+            html = '<span class="ifb-tray-label">' + esc(T('selected')) + '</span>' + modeHtml() + '<div class="ifb-tray-items">'
                 + sel.map(function (s, i) {
                     return '<span class="ifb-pick' + (s.exclude ? ' is-ex' : '') + (s.unresolved ? ' is-unres' : '') + '">'
                         + (s.exclude ? '<span class="ifb-not">' + esc(T('not')) + '</span>' : '')
@@ -1352,14 +1358,21 @@
                 + '</div><span class="ifb-tray-more" hidden></span>'
                 + '<button type="button" class="ifb-tray-clear" data-ifb-clear>' + esc(T('clear')) + '</button>';
         }
-        if (st.pc.allOf) {
-            html += '<span class="ifb-tray-note" title="' + esc(T('allOfTitle')) + '">'
-                + '<i class="fas fa-circle-info" aria-hidden="true"></i>' + esc(T('allOfShort')) + '</span>';
-        }
         html += '<span class="ifb-keys"><kbd>↵</kbd> ' + esc(T('keyInclude')) + ' <kbd>⇧↵</kbd> ' + esc(T('keyExclude'))
             + ' <kbd>⌫</kbd> ' + esc(T('keyBack')) + ' <kbd>Esc</kbd> ' + esc(T('keyApply')) + '</span>';
         st.tray.innerHTML = html;
         fitTray();
+    }
+
+    function modeHtml() {
+        if (!st.pc.allOfMode || includedCount(st.selection) < 2) { return ''; }
+        return '<span class="ifb-mode" role="group" aria-label="' + esc(T('matchLabel')) + '">'
+            + [['any', false], ['all', true]].map(function (m) {
+                var key = m[1] ? 'matchAll' : 'matchAny';
+                return '<button type="button" class="ifb-mode-btn" data-ifb-mode="' + m[0] + '" aria-pressed="' + (st.allOf === m[1]) + '"'
+                    + ' title="' + esc(T(key + 'Title')) + '">' + esc(T(key)) + '</button>';
+            }).join('')
+            + '</span>';
     }
 
     // One row of picks: the ones that do not fit fold into "+N".
@@ -1495,12 +1508,13 @@
         st = {
             kind: pc.browser.kind, picker: picker, bar: bar, btn: btn, pc: pc, urls: pc.browser, model: null,
             selection: pc.selected.map(function (s) { return Object.assign({}, s); }),
+            allOf: !!pc.allOf,
             initial: null,
             dirty: false, path: [], term: '', inUse: false,
             data: null, dataKey: null, loading: false, error: false, timer: null, req: null,
             acts: [], vals: [], grid: [], colKeys: [], active: null, geo: null,
         };
-        st.initial = pc.allOf ? null : serialize(st.selection, pc);
+        st.initial = serialize(st.selection, pc, st.allOf);
         btn.setAttribute('aria-expanded', 'true');
         build();
         st.input.focus();
@@ -1525,7 +1539,7 @@
         state.panel.remove();
         state.btn.setAttribute('aria-expanded', 'false');
         if (!apply || !state.dirty) { return; }
-        var next = serialize(state.selection, state.pc);
+        var next = serialize(state.selection, state.pc, state.allOf);
         if (next === state.initial) { return; }
         // The bar may have re-rendered the picker while the panel was open.
         var btn = state.btn.isConnected ? state.btn
@@ -1542,6 +1556,14 @@
         if (ex) { toggle(st.vals[+ex.getAttribute('data-ifb-ex')].row, true); st.input.focus(); return; }
         var val = t.closest('[data-ifb-val]');
         if (val) { toggle(st.vals[+val.getAttribute('data-ifb-val')].row, false); st.input.focus(); return; }
+        var mode = t.closest('[data-ifb-mode]');
+        if (mode) {
+            st.allOf = mode.getAttribute('data-ifb-mode') === 'all';
+            st.dirty = true;
+            renderTray();
+            st.input.focus();
+            return;
+        }
         var rm = t.closest('[data-ifb-rm]');
         if (rm) {
             st.selection.splice(+rm.getAttribute('data-ifb-rm'), 1);
