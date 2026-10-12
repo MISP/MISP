@@ -46,8 +46,7 @@ $oneOf = array_flip((array)($requirements['requiredOneOf'] ?? []));
                     <div class="min-w-0 flex-grow-1 lh-sm">
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <span class="fw-semibold font-monospace text-break"><?= h($relation) ?></span>
-                            <span class="badge rounded-pill fw-normal font-monospace"
-                                  style="background:rgba(var(--bs-type-rgb),.12);color:rgb(var(--bs-type-rgb));"
+                            <span class="badge rounded-pill border bg-body-tertiary text-body-emphasis fw-normal font-monospace"
                                   title="<?= h(__('Attribute type')) ?>"><?= h($e['type']) ?></span>
                         </div>
                         <?php if (trim((string)$e['description']) !== ''): ?>
