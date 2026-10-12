@@ -18,7 +18,7 @@
     }
 
     // A page left open outlives its CSRF token: fetch a fresh one just before submitting.
-    var form = document.getElementById('UserLoginForm');
+    var form = document.querySelector('.oml-panel form[id]');
     if (form && window.fetch && window.DOMParser) {
         form.addEventListener('submit', function (event) {
             event.preventDefault();
@@ -37,15 +37,16 @@
             }).then(function (response) {
                 return response.text();
             }).then(function (html) {
-                var fresh = new DOMParser().parseFromString(html, 'text/html').getElementById('UserLoginForm');
+                var fresh = new DOMParser().parseFromString(html, 'text/html').getElementById(form.id);
                 if (!fresh) {
                     window.location = form.action;
                     return;
                 }
-                form.querySelectorAll('input[type="hidden"]').forEach(function (input) {
+                // Only the token: a checkbox's hidden "0" must stay ahead of the checkbox.
+                form.querySelectorAll('input[name^="data[_Token]"]').forEach(function (input) {
                     input.remove();
                 });
-                fresh.querySelectorAll('input[type="hidden"]').forEach(function (input) {
+                fresh.querySelectorAll('input[name^="data[_Token]"]').forEach(function (input) {
                     form.appendChild(document.importNode(input, true));
                 });
                 form.submit();
@@ -53,6 +54,22 @@
                 form.submit();
             });
         });
+    }
+
+    var customPerms = document.getElementById('UserCustomPerms');
+    var rolePerms = document.getElementById('omlRolePerms');
+    if (customPerms && rolePerms) {
+        var syncRolePerms = function () {
+            rolePerms.hidden = !customPerms.checked;
+            customPerms.setAttribute('aria-expanded', customPerms.checked ? 'true' : 'false');
+            if (!customPerms.checked) {
+                rolePerms.querySelectorAll('input[type="checkbox"]').forEach(function (input) {
+                    input.checked = false;
+                });
+            }
+        };
+        customPerms.addEventListener('change', syncRolePerms);
+        syncRolePerms();
     }
 
     var canvas = document.getElementById('omlSky');

@@ -7,10 +7,11 @@ $customLogo = function ($setting) {
     return $this->Image->base64(APP . 'files/img/custom/' . $file);
 };
 $mainLogo = $customLogo('MISP.main_logo');
-$partnerLogos = array_filter([
-    $customLogo('MISP.welcome_logo'),
-    $customLogo('MISP.welcome_logo2'),
-]);
+$partnerLogos = [
+    'left' => $customLogo('MISP.welcome_logo'),
+    'right' => $customLogo('MISP.welcome_logo2'),
+];
+$hasPartners = !empty(array_filter($partnerLogos));
 
 // Rendered inside the panel rather than in the layout's flash overlay.
 $flashes = [];
@@ -70,7 +71,18 @@ echo $this->element('genericElements/assetLoader', [
                     <polygon class="oml-port-core" points="0,-7 6.06,-3.5 6.06,3.5 0,7 -6.06,3.5 -6.06,-3.5"/>
                 </svg>
             <?php endforeach; ?>
-            <header class="oml-brand<?= $partnerLogos ? ' oml-has-partners' : '' ?>">
+            <?php if ($welcomeTop): ?>
+                <p class="oml-welcome-top"><?= h($welcomeTop) ?></p>
+            <?php endif; ?>
+
+            <header class="oml-brand<?= $hasPartners ? ' oml-has-partners' : '' ?>">
+                <?php if ($hasPartners): ?>
+                    <div class="oml-brand-partner oml-brand-partner-left">
+                        <?php if ($partnerLogos['left']): ?>
+                            <img src="<?= $partnerLogos['left'] ?>" alt="<?= __('Logo') ?>" onerror="this.style.display='none';">
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
                 <div class="oml-brand-main">
                     <?php if ($mainLogo): ?>
                         <img src="<?= $mainLogo ?>" alt="<?= __('Logo') ?>">
@@ -79,20 +91,14 @@ echo $this->element('genericElements/assetLoader', [
                         <img class="oml-logo-dark" src="<?= $baseurl ?>/img/misp-logo-horizontal-light.png" alt="<?= __('MISP — Intelligence Sharing') ?>" width="1200" height="352">
                     <?php endif; ?>
                 </div>
-                <?php if ($partnerLogos): ?>
-                    <div class="oml-brand-partners">
-                        <?php foreach ($partnerLogos as $partnerLogo): ?>
-                            <img src="<?= $partnerLogo ?>" alt="<?= __('Logo') ?>" onerror="this.style.display='none';">
-                        <?php endforeach; ?>
+                <?php if ($hasPartners): ?>
+                    <div class="oml-brand-partner oml-brand-partner-right">
+                        <?php if ($partnerLogos['right']): ?>
+                            <img src="<?= $partnerLogos['right'] ?>" alt="<?= __('Logo') ?>" onerror="this.style.display='none';">
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
             </header>
-
-            <?php if ($welcomeTop): ?>
-                <p class="oml-welcome-top"><?= h($welcomeTop) ?></p>
-            <?php endif; ?>
-
-            <h1 class="oml-title" id="omlTitle"><?= __('Log in') ?></h1>
 
             <?php foreach ($flashes as $flash): ?>
                 <?php if ($flash['error']): ?>
@@ -107,6 +113,8 @@ echo $this->element('genericElements/assetLoader', [
                     </div>
                 <?php endif; ?>
             <?php endforeach; ?>
+
+            <h1 class="oml-title" id="omlTitle"><?= __('Log in') ?></h1>
 
             <?php if (!$formLoginEnabled && $ssoButtons): ?>
                 <p class="oml-sso-lead"><?= __('This instance uses single sign-on. Choose your identity provider.') ?></p>
