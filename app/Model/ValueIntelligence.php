@@ -5,6 +5,8 @@ App::uses('ValueStatsTool', 'Tools/ValueIntelligence');
 App::uses('ValueRelevanceTool', 'Tools/ValueIntelligence');
 App::uses('ValueExclusionTool', 'Tools/ValueIntelligence');
 App::uses('ValueRelationTool', 'Tools/ValueIntelligence');
+App::uses('ValueFacetTool', 'Tools');
+App::uses('Correlation', 'Model');
 App::uses('RedisTool', 'Tools');
 App::uses('ValueWarninglistTool', 'Tools/ValueIntelligence');
 App::uses('ValueTrustTool', 'Tools/ValueIntelligence');
@@ -97,6 +99,13 @@ class ValueIntelligence extends AppModel
      * because a cap is not a permission.
      */
     const OCCURRENCE_CAP = 300;
+
+    /**
+     * CIDR containment's read: occurrences of the blocks or addresses it
+     * found, newest first, and how many addresses a block's page shows.
+     */
+    const CIDR_ROWS = 2000;
+    const CIDR_SHOWN = 100;
 
     /**
      * The same, for the Overview's card rather than the tab's table.
@@ -6935,23 +6944,15 @@ class ValueIntelligence extends AppModel
     }
 
     /**
-     * CIDR containment, re-derived from the same list the engine walks.
+     * CIDR containment through the value table's IP index, under the
+     * correlation engine's rules: an address lists the recorded blocks
+     * holding it (`ip-src`/`ip-dst`), a block the single addresses inside
+     * it (the four IP types), an IPv4 address is never inside an IPv6
+     * block, and a block never lists another block.
      *
-     * `Correlation::getCidrList()` is the network-block set MISP itself
-     * tests against — Redis-cached, 53 entries on the verification
-     * instance — so the containment answer here is the engine's own
-     * rather than an approximation of it. The blocks are then fetched
-     * as attributes so the rows carry an event, a reporter and a
-     * distribution the viewer may actually see.
-     *
-     * Two queries at most: the list (usually Redis, one query on a
-     * cold cache) and one fetch for whichever blocks contained us.
-     *
-     * That Redis set is rebuilt only by
-     * `Correlation::advancedCorrelationsUpdate` on an attribute save, so
-     * a block inserted outside the save path is invisible to the engine
-     * and to this panel alike until `updateCidrList()` runs. Reporting
-     * *found nothing* there is the engine's answer, not a wrong one.
+     * One row per block or address, from the newest occurrence the reader
+     * may see; a block shows its newest CIDR_SHOWN addresses and counts
+     * the ones read, `capped` when the CIDR_ROWS occurrence read ran out.
      *
      * @param array $user
      * @param string $value
@@ -6960,57 +6961,89 @@ class ValueIntelligence extends AppModel
      */
     private function cidrEngine(array $user, $value, array $types)
     {
-        $ipTypes = array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port');
-        if (empty(array_intersect($ipTypes, array_keys($types)))) {
+        $range = ValueFacetTool::ipRange($value);
+        $this->model('Correlation');
+        if ($range === null
+            || empty(array_intersect(Correlation::IP_TYPES, array_keys($types)))
+        ) {
             return array(
                 'id' => 'cidr',
                 'state' => 'not_applicable',
                 'rows' => array(),
             );
         }
-        $blocks = ValueRelationTool::containingBlocks(
-            $value,
-            $this->model('Correlation')->getCidrList()
-        );
-        if (empty($blocks)) {
-            return array(
-                'id' => 'cidr',
-                'state' => 'active',
-                'rows' => array(),
+        $AttributeValue = $this->model('AttributeValue');
+        $facets = $AttributeValue->facets();
+        if ($range[2] === 128) {
+            $direction = 'containing';
+            $held = $facets->containing(array($range[0]))[0];
+            $ids = array_keys(array_filter($held));
+            $holderTypes = Correlation::CIDR_TYPES;
+        } else {
+            $direction = 'members';
+            $ids = array();
+            $found = $AttributeValue->getDataSource()->fetchAll(
+                $facets->membersQuery($range),
+                array(),
+                array('cache' => false)
             );
-        }
-        $width = strpos($value, ':') === false ? 32 : 128;
-        $byBlock = array();
-        foreach ($blocks as $block) {
-            $byBlock[$block['block']] = $block['prefix'];
-        }
-        $rows = $this->model('Value')->occurrencesForAny(
-            $user,
-            array_keys($byBlock),
-            array('types' => array('ip-src', 'ip-dst'))
-        );
-        $out = array();
-        $seen = array();
-        foreach ($this->decorate($user, $rows) as $row) {
-            $block = $row['Attribute']['value'];
-            // One row per block. A `/8` is an attribute in dozens of
-            // events and the panel names a containment, not a report.
-            if (!isset($byBlock[$block]) || isset($seen[$block])) {
-                continue;
+            foreach ($found as $row) {
+                $row = reset($row);
+                $ids[] = (int)$row['value_id'];
             }
-            $seen[$block] = true;
+            $holderTypes = Correlation::IP_TYPES;
+        }
+        $result = array(
+            'id' => 'cidr',
+            'state' => 'active',
+            'direction' => $direction,
+            'rows' => array(),
+            'total' => 0,
+            'capped' => false,
+        );
+        if (empty($ids)) {
+            return $result;
+        }
+        $texts = $AttributeValue->fetchValues($ids);
+        $occurrences = $this->model('Value')->occurrencesForAny(
+            $user,
+            array_values($texts),
+            array('types' => $holderTypes, 'limit' => self::CIDR_ROWS)
+        );
+        $wanted = array_flip(array_map('strval', $texts));
+        $newest = array();
+        foreach ($occurrences as $row) {
+            // value1 is the address or block; value2 of a composite is a port
+            $text = explode('|', (string)$row['Attribute']['value'], 2)[0];
+            if (isset($wanted[$text]) && !isset($newest[$text])) {
+                $newest[$text] = $row;
+            }
+        }
+        $result['total'] = count($newest);
+        $result['capped'] = count($occurrences) >= self::CIDR_ROWS;
+        if ($direction === 'members') {
+            $newest = array_slice($newest, 0, self::CIDR_SHOWN, true);
+        }
+        $width = ValueFacetTool::isIpv4($range[0]) ? 32 : 128;
+        $out = array();
+        foreach ($this->decorate($user, array_values($newest)) as $row) {
+            $text = explode('|', (string)$row['Attribute']['value'], 2)[0];
+            $prefix = ValueFacetTool::ipRange($text)[2] - ($width === 32 ? 96 : 0);
             $out[] = $this->nearRow(
                 $row,
-                $block,
-                $byBlock[$block],
-                ValueRelationTool::addressSpace($byBlock[$block], $width),
+                $text,
+                $prefix,
+                ValueRelationTool::addressSpace($prefix, $width),
                 $width
             );
         }
-        usort($out, function ($a, $b) {
-            return $b['prefix'] - $a['prefix'];
-        });
-        return array('id' => 'cidr', 'state' => 'active', 'rows' => $out);
+        if ($direction === 'containing') {
+            usort($out, function ($a, $b) {
+                return $b['prefix'] - $a['prefix'];
+            });
+        }
+        $result['rows'] = $out;
+        return $result;
     }
 
     /**

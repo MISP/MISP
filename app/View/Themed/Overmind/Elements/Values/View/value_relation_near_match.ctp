@@ -538,16 +538,33 @@ if (!$offerSimilarity) {
                         <?= __('CIDR containment') ?>
                     </div>
                     <div class="small text-muted mt-1">
-                        <?= h(__n(
-                            '%d network-block attribute contains this'
-                            . ' address.',
-                            '%d network-block attributes contain this'
-                            . ' address.',
-                            count($cidr['rows']),
-                            count($cidr['rows'])
-                        )) ?>
-                        <?= __('Re-derived from the same CIDR list'
-                            . ' the engine walks.') ?>
+                        <?php
+                        $members = isset($cidr['direction'])
+                            && $cidr['direction'] === 'members';
+                        $shown = count($cidr['rows']);
+                        ?>
+                        <?php if ($members): ?>
+                            <?= h(sprintf(__n(
+                                '%s recorded address is inside this'
+                                    . ' block.',
+                                '%s recorded addresses are inside this'
+                                    . ' block.',
+                                $cidr['total']
+                            ), ($cidr['capped'] ? __('At least') . ' ' : '')
+                                . number_format($cidr['total']))) ?>
+                            <?php if ($cidr['total'] > $shown): ?>
+                                <?= h(__('Showing the newest %s.', $shown)) ?>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <?= h(__n(
+                                '%d recorded block contains this address.',
+                                '%d recorded blocks contain this address.',
+                                count($cidr['rows']),
+                                count($cidr['rows'])
+                            )) ?>
+                        <?php endif; ?>
+                        <?= __('Read from the IP index the correlation'
+                            . ' engine uses.') ?>
                     </div>
                 </div>
             </div>
@@ -555,7 +572,7 @@ if (!$offerSimilarity) {
             <?php if (!empty($cidr['rows'])): ?>
                 <?php $engineTable(
                     $cidr,
-                    __('Containing block'),
+                    $members ? __('Address inside') : __('Containing block'),
                     __('Closeness'),
                     __('Addresses')
                 ) ?>
@@ -564,8 +581,10 @@ if (!$offerSimilarity) {
                     <div class="vp-empty vp-empty-inline">
                         <i class="fas fa-filter"></i>
                         <span>
-                            <?= __('No containing block is that'
-                                . ' close.') ?>
+                            <?= $members
+                                ? __('No address inside is that close.')
+                                : __('No containing block is that'
+                                    . ' close.') ?>
                         </span>
                     </div>
                 </div>
