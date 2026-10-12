@@ -479,6 +479,8 @@ $migrationsApplied = (int)($dbSchemaDiagnostics['migrations_applied'] ?? 0);
 
 if ($migrationsFailed > 0) {
     $databaseBadge = array('level' => 0, 'label' => __('%s migration(s) failed', $migrationsFailed));
+} elseif ($migrationsDeferredReasons) {
+    $databaseBadge = array('level' => 1, 'label' => __('%s migration(s) deferred', count($migrationsDeferredReasons)));
 } elseif ($migrationsPending > 0) {
     $databaseBadge = array('level' => 1, 'label' => __('%s migration(s) pending', $migrationsPending));
 } elseif ($schemaTotal) {
@@ -511,6 +513,8 @@ $openCard('database', '#0dcaf0', __('Database status'),
                 <?php
                 if ($migrationsFailed > 0) {
                     echo $pill(0, __('%s failed', $migrationsFailed));
+                } elseif ($migrationsDeferredReasons) {
+                    echo $pill(1, __('%s deferred', count($migrationsDeferredReasons)));
                 } elseif ($migrationsPending > 0) {
                     echo $pill(1, __('%s pending', $migrationsPending));
                 } else {
