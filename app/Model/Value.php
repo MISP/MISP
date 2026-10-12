@@ -1513,11 +1513,26 @@ class Value extends AppModel
 
         $counts = array();
         $capped = array();
+        // buildStatement() skips the attribute hooks: translate the value
+        // conditions here, every key resolved in one statement
+        $terms = array();
+        foreach ($keys as $key) {
+            $terms[] = (string)$key;
+            $cut = strpos($key, '|');
+            if ($cut !== false && $cut > 0) {
+                $terms[] = substr($key, 0, $cut);
+                $terms[] = substr($key, $cut + 1);
+            }
+        }
+        $rewriter = ClassRegistry::init('AttributeValue')
+            ->batchRewriter('Attribute', $terms);
         foreach (array_chunk($keys, self::PREVALENCE_CHUNK) as $chunk) {
             $arms = array();
             foreach ($chunk as $key) {
                 $conditions = $acl;
-                $conditions['AND'][] = $this->prevalencePredicate($key);
+                $conditions['AND'][] = $rewriter->rewrite(
+                    $this->prevalencePredicate($key)
+                );
                 if (!empty($options['types'])) {
                     $conditions['AND'][] = array(
                         'Attribute.type' => $options['types'],
