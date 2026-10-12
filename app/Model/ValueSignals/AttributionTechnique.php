@@ -26,7 +26,34 @@ class AttributionTechnique extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'ATT&CK techniques marked on this value\'s occurrences.'
+            'Adds points for each ATT&CK technique tagged on this value.'
+        );
+        $this->help = array(
+            'name' => __('ATT&CK techniques'),
+            'what' => __(
+                'MITRE ATT&CK techniques, or galaxies shaped like them,'
+                . ' tagged on the value\'s occurrences: somebody mapped'
+                . ' what the indicator is used for.'
+            ),
+            'how' => __(
+                'Each distinct technique is worth {per_technique} points,'
+                . ' up to {cap}.'
+            ),
+            'settings' => array(
+                'per_technique' => __('What one technique is worth.'),
+                'cap' => __('The most techniques can add.'),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('ATT&CK mapping should be strong'
+                        . ' evidence'),
+                    'do' => __('Raise per_technique to 6 and cap to 18.'),
+                ),
+                array(
+                    'want' => __('Ignore technique tags'),
+                    'do' => __('Untick the signal.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'per_technique' => array(

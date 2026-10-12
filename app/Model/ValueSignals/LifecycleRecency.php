@@ -34,7 +34,48 @@ class LifecycleRecency extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'How recently this value was last reported by anybody.'
+            'Adds points when the value was reported recently, and takes'
+            . ' points off once nobody has reported it for a long time.'
+        );
+        $this->help = array(
+            'name' => __('Recently reported'),
+            'what' => __(
+                'How long ago anybody last reported this value.'
+            ),
+            'how' => __(
+                'Reported in the last {recent_days} days: {recent} points.'
+                . ' Not for {old_days} days or more: {old}. In between it'
+                . ' slides from one to the other.'
+            ),
+            'settings' => array(
+                'recent' => __('What a fresh report is worth.'),
+                'old' => __(
+                    'What a long-untouched value is worth. At 0 age is not'
+                    . ' held against it.'
+                ),
+                'recent_days' => __('For how many days a report is'
+                    . ' fresh.'),
+                'old_days' => __('After how many days a value counts as'
+                    . ' old.'),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Fresh indicators should clearly win'
+                        . ' (triage)'),
+                    'do' => __('Raise recent to 12 and lower recent_days'
+                        . ' to 14.'),
+                ),
+                array(
+                    'want' => __('Old values should not lose points'
+                        . ' (investigations)'),
+                    'do' => __('Set old to 0.'),
+                ),
+                array(
+                    'want' => __('Anything from the last quarter should'
+                        . ' count as fresh'),
+                    'do' => __('Raise recent_days to 90.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'recent' => array(

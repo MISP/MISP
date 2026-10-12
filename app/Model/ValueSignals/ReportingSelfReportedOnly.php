@@ -23,8 +23,43 @@ class ReportingSelfReportedOnly extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'Whether your organisation is the only one reporting this'
-            . ' value.'
+            'Takes points off when your own organisation is the only one'
+            . ' reporting this value: nobody else backs it up.'
+        );
+        $this->help = array(
+            'name' => __('Only you report it'),
+            'what' => __(
+                'Fires when the one organisation reporting this value is'
+                . ' yours. Independent reporters already paid your'
+                . ' organisation its points; this takes part of them back,'
+                . ' because your own report is not corroboration you can'
+                . ' cite.'
+            ),
+            'how' => __(
+                'Worth {only_you} points when only your organisation'
+                . ' reports it. Silent otherwise.'
+            ),
+            'settings' => array(
+                'only_you' => __(
+                    'The further below zero, the less a value backed only'
+                    . ' by your own reporting scores. At 0 your report'
+                    . ' counts like anybody else\'s.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Your own team\'s reporting should count'
+                        . ' in full'),
+                    'do' => __('Set only_you to 0.'),
+                ),
+                array(
+                    'want' => __('A value only you report should earn'
+                        . ' nothing for it'),
+                    'do' => __('Set only_you to minus Independent'
+                        . ' reporters\' per_org, e.g. -7, so the two'
+                        . ' cancel.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'only_you' => array(

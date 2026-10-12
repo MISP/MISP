@@ -110,8 +110,87 @@ class EnrichmentAnswer extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'What enrichment modules said about this value, weighted by'
-            . ' how far your profile trusts each one.'
+            'Verdicts from enrichment modules such as reputation services'
+            . ' and antivirus scans. Only modules you have graded count.'
+        );
+        $this->help = array(
+            'name' => __('Enrichment verdicts'),
+            'what' => __(
+                'When somebody runs an enrichment module, some answers carry'
+                . ' a verdict: malicious, suspicious, clean, a detection'
+                . ' count. A verdict counts at its module\'s grade, and'
+                . ' "suspicious" at half of it. An ungraded module is shown'
+                . ' and never counted, and an answer stops counting once it'
+                . ' is older than the window.'
+            ),
+            'how' => __(
+                'Each verdict is drawn as {per_verdict} points times the'
+                . ' module\'s grade, {cap} at most, in the lean evidence. A'
+                . ' verdict agreeing with the reading adds {per_agreeing}'
+                . ' times the grade to the signal strength, {agreeing_cap}'
+                . ' at most. Answers count for {window_hours} hours.'
+            ),
+            'note' => __(
+                'Only the agreeing points reach the signal strength. Every'
+                . ' counted verdict is already a vote in the lean, so'
+                . ' per_verdict and cap only size its rows. Grade modules'
+                . ' under Sources & reputation → Enrichment module'
+                . ' reputation.'
+            ),
+            'settings' => array(
+                'per_verdict' => __(
+                    'How large one verdict is drawn in the lean evidence.'
+                ),
+                'cap' => __('The most all verdicts together are drawn'
+                    . ' as.'),
+                'per_agreeing' => __(
+                    'What an outside source confirming the reporters adds'
+                    . ' to the signal strength: the one way a single-source'
+                    . ' record gains strength from outside MISP.'
+                ),
+                'agreeing_cap' => __(
+                    'The most agreeing verdicts can add.'
+                ),
+                'window_hours' => __(
+                    'How long an answer keeps counting after it was asked.'
+                    . ' 168 is a week.'
+                ),
+                'abuse_confidence_min' => __(
+                    'A reputation score (e.g. AbuseIPDB\'s confidence) at'
+                    . ' or above which an answer reads as malicious.'
+                ),
+                'malicious_ratio' => __(
+                    'How many antivirus engines must detect a file for it'
+                    . ' to read as malicious.'
+                ),
+                'benign_engines' => __(
+                    'How many engines must have answered before zero'
+                    . ' detections reads as clean.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('An outside verdict should count at all'),
+                    'do' => __('Grade its module under Sources &'
+                        . ' reputation: an ungraded module never'
+                        . ' counts.'),
+                ),
+                array(
+                    'want' => __('An outside confirmation should'
+                        . ' strengthen a thin record more'),
+                    'do' => __('Raise per_agreeing to 12 and agreeing_cap'
+                        . ' to 24.'),
+                ),
+                array(
+                    'want' => __('Answers should count for a month'),
+                    'do' => __('Raise window_hours to 720.'),
+                ),
+                array(
+                    'want' => __('Fewer detections should read as'
+                        . ' malicious'),
+                    'do' => __('Lower malicious_ratio, e.g. to 3.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'per_verdict' => array(

@@ -248,8 +248,35 @@ $columns = $isSignals ? 5 : 3;
                             $item['emits']
                         )) ?></div>
                     <?php endif; ?>
-                    <?php if (!empty($item['description'])): ?>
-                        <div class="wb-sub"><?= h($item['description']) ?></div>
+                    <?php
+                    $help = $isSignals && isset($item['help'])
+                        ? $item['help'] : null;
+                    ?>
+                    <?php if (!empty($item['description'])
+                        || $help !== null): ?>
+                        <div class="wb-sub">
+                            <?= h((string)$item['description']) ?>
+                            <?php if ($help !== null): ?>
+                                <button type="button" class="sig-more"
+                                        data-ap-help aria-haspopup="dialog"
+                                        aria-expanded="false">
+                                    <i class="fa-solid fa-circle-question"
+                                       aria-hidden="true"></i><?=
+                                    h(__('How it works')) ?>
+                                </button>
+                                <template class="sig-help-tpl"><?=
+                                    $this->element(
+                                        'AnalystProfiles/signal_help',
+                                        array(
+                                            'signalId' => $item['id'],
+                                            'help' => $help,
+                                            'trustWeighted' => !empty(
+                                                $item['trust_weighted']
+                                            ),
+                                        )
+                                    ) ?></template>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
                     <?php
                     /*

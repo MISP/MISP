@@ -37,7 +37,55 @@ class ReportingIndependentOrgs extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'How many organisations independently report this value.'
+            'Adds points for each organisation that reported this value,'
+            . ' up to a limit.'
+        );
+        $this->help = array(
+            'name' => __('Independent reporters'),
+            'what' => __(
+                'How many different organisations have this value in their'
+                . ' events. An organisation counts once however many events'
+                . ' it used, so one busy reporter cannot pass for a crowd.'
+            ),
+            'how' => __(
+                'Each organisation is worth {per_org} points, up to {cap}'
+                . ' in total.'
+            ),
+            'settings' => array(
+                'per_org' => __(
+                    'What one organisation is worth. Raise it and fewer'
+                    . ' organisations are needed for a value to look well'
+                    . ' corroborated.'
+                ),
+                'cap' => __(
+                    'The most this signal can add. Divide it by per_org to'
+                    . ' see how many organisations reach it.'
+                ),
+                'named' => __(
+                    'How many organisation names the value page lists'
+                    . ' beside this signal. Changes no score.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Two organisations agreeing should'
+                        . ' already be full corroboration'),
+                    'do' => __('Raise per_org, e.g. to 14: with a cap of'
+                        . ' 28, two organisations reach it.'),
+                ),
+                array(
+                    'want' => __('Large communities should keep counting'
+                        . ' past four reporters'),
+                    'do' => __('Raise cap, e.g. to 49: seven'
+                        . ' organisations at 7 each.'),
+                ),
+                array(
+                    'want' => __('The number of reporters should matter'
+                        . ' less'),
+                    'do' => __('Lower cap, e.g. to 14: only the first two'
+                        . ' organisations count.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'per_org' => array(

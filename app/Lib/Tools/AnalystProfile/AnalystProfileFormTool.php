@@ -318,6 +318,7 @@ class AnalystProfileFormTool
                 . ' sighting, argue for or against the lean instead and'
                 . ' are kept apart from the signal strength.'
             ),
+            'primer' => $this->signalPrimer($parameters),
             'blocks' => array(
                 array(
                     'kind' => 'items',
@@ -563,7 +564,100 @@ class AnalystProfileFormTool
                 $item['fields'][] = $field;
             }
         }
+        $item['help'] = $this->signalHelp($item, $config);
         return $item;
+    }
+
+    /**
+     * What the row's "How it works" popover says: the signal's own
+     * `help`, or what its schema declares when it has none.
+     *
+     * @param array $item
+     * @param array|null $config From the loader
+     * @return array
+     */
+    private function signalHelp(array $item, $config)
+    {
+        $help = $config !== null && !empty($config['help'])
+            && is_array($config['help'])
+            ? $config['help']
+            : array();
+        $texts = isset($help['settings']) && is_array($help['settings'])
+            ? $help['settings']
+            : array();
+        $settings = array();
+        $values = array();
+        foreach ($item['fields'] as $field) {
+            if ($field['key'] === 'enabled' && $field['type'] === 'bool') {
+                continue;
+            }
+            $key = $field['key'];
+            $values[$key] = array(
+                'value' => $field['value'] !== null
+                    ? $field['value']
+                    : $field['default'],
+                'input' => self::fieldId($field['path']),
+            );
+            $settings[] = array(
+                'key' => $key,
+                'text' => isset($texts[$key]) ? $texts[$key] : $field['label'],
+            );
+        }
+        return array(
+            'name' => isset($help['name']) ? $help['name'] : $item['id'],
+            'what' => isset($help['what'])
+                ? $help['what']
+                : $item['description'],
+            'how' => isset($help['how']) ? $help['how'] : null,
+            'note' => isset($help['note']) ? $help['note'] : null,
+            'settings' => $settings,
+            'recipes' => isset($help['recipes']) && is_array($help['recipes'])
+                ? $help['recipes']
+                : array(),
+            'values' => $values,
+            'axis' => $config !== null && isset($config['axis'])
+                ? $config['axis']
+                : ValueVerdictTool::AXIS_SIGNAL_STRENGTH,
+        );
+    }
+
+    /**
+     * The numbers the Signals pane's primer quotes, from this profile.
+     *
+     * @param array $parameters
+     * @return array
+     */
+    private function signalPrimer(array $parameters)
+    {
+        $thresholds = $this->section($parameters, 'thresholds');
+        $bands = isset($thresholds['signal_strength_bands'])
+            && is_array($thresholds['signal_strength_bands'])
+            ? $thresholds['signal_strength_bands']
+            : array();
+        $clamp = isset($thresholds['thin_record_clamp'])
+            && is_array($thresholds['thin_record_clamp'])
+            ? $thresholds['thin_record_clamp']
+            : array();
+        return array(
+            'medium' => isset($bands['medium']) ? (int)$bands['medium'] : 30,
+            'high' => isset($bands['high']) ? (int)$bands['high'] : 60,
+            'min_signals' => isset(
+                $thresholds['signal_strength_high_min_signals']
+            )
+                ? (int)$thresholds['signal_strength_high_min_signals']
+                : 4,
+            'clamp' => empty($clamp['max_band'])
+                ? null
+                : array(
+                    'voices' => isset($clamp['max_voices'])
+                        ? $clamp['max_voices'] + 0
+                        : 1,
+                    'sightings' => isset($clamp['max_sightings'])
+                        ? $clamp['max_sightings'] + 0
+                        : 0,
+                    'band' => (string)$clamp['max_band'],
+                ),
+        );
     }
 
     /**

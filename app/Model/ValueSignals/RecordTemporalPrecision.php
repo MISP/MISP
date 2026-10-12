@@ -39,8 +39,36 @@ class RecordTemporalPrecision extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'Whether the occurrences date their own observations, or'
-            . ' only their encoding.'
+            'Adds points when a report says when the value was actually'
+            . ' seen (first seen); takes one off when none does.'
+        );
+        $this->help = array(
+            'name' => __('Dated observations'),
+            'what' => __(
+                'Whether any occurrence carries a first-seen date: when the'
+                . ' value was observed, as opposed to when it was typed'
+                . ' into MISP. A dated report can be placed on a timeline.'
+            ),
+            'how' => __(
+                'Any occurrence dated: {dated} points. None: {undated}.'
+            ),
+            'settings' => array(
+                'dated' => __('What a dated observation is worth.'),
+                'undated' => __(
+                    'Points when no occurrence is dated. At 0 that is not'
+                    . ' held against the value.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Reward precise reporting more'),
+                    'do' => __('Raise dated, e.g. to 8.'),
+                ),
+                array(
+                    'want' => __('Missing dates should cost nothing'),
+                    'do' => __('Set undated to 0.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'dated' => array(

@@ -66,8 +66,69 @@ class LifecycleWarninglist extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'Whether the value hits a warninglist, and what kind of'
-            . ' list it is.'
+            'Checks the value against the warninglists. A hit on a'
+            . ' false-positive list argues it is harmless; no hit adds a'
+            . ' point.'
+        );
+        $this->help = array(
+            'name' => __('Warninglists'),
+            'what' => __(
+                'Warninglists are lists of things that are usually not'
+                . ' threats: public resolvers, private ranges, popular'
+                . ' domains, CDNs. A false-positive list says "this is not'
+                . ' an indicator"; a known-infrastructure list says "this'
+                . ' is shared infrastructure", which is not the same as'
+                . ' harmless.'
+            ),
+            'how' => __(
+                'A hit on a false-positive list: {false_positive_hit}'
+                . ' points. On a known-infrastructure list: {known_hit}.'
+                . ' No hit: {no_hit}, added to the signal strength.'
+            ),
+            'note' => __(
+                'A hit\'s points are weighed against the reading: any minus'
+                . ' against a threat reading makes it contested, so the'
+                . ' sign matters more than the size. Two things act on a'
+                . ' hit whatever its points: a false-positive hit makes the'
+                . ' reading harmless when reporters are not a clear'
+                . ' majority, and the two shipped conflict rules contest a'
+                . ' hit that several organisations flag.'
+            ),
+            'settings' => array(
+                'no_hit' => __(
+                    'Points for passing the check. Small on purpose: it'
+                    . ' fires on nearly every value.'
+                ),
+                'false_positive_hit' => __(
+                    'Below zero, a false-positive list argues harmless. At'
+                    . ' 0 the hit is shown and argues nothing.'
+                ),
+                'known_hit' => __(
+                    '0 notes shared infrastructure without taking a side.'
+                    . ' Below zero, a CDN or hosting hit contests a threat'
+                    . ' reading too.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('A false-positive list should not contest'
+                        . ' a value reporters flag'),
+                    'do' => __('Set false_positive_hit to 0, and untick'
+                        . ' conflict:listed-vs-asserted under Conflict'
+                        . ' rules.'),
+                ),
+                array(
+                    'want' => __('A CDN or hosting hit should contest a'
+                        . ' threat reading, even with one reporter'),
+                    'do' => __('Lower known_hit, e.g. to -10.'),
+                ),
+                array(
+                    'want' => __('Treat a list as false-positive, or as'
+                        . ' known infrastructure'),
+                    'do' => __('Set its category under Sources &'
+                        . ' reputation → Warninglist categories.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'no_hit' => array(

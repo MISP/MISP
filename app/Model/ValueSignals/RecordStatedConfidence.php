@@ -38,8 +38,47 @@ class RecordStatedConfidence extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'The confidence a reporter stated in its own claim, through'
-            . ' the admiralty scale or estimative language.'
+            'Adds points when reporters tagged their report as confident,'
+            . ' and takes points off when they tagged doubt.'
+        );
+        $this->help = array(
+            'name' => __('Reporters\' stated confidence'),
+            'what' => __(
+                'Some reporters say how sure they are, with the'
+                . ' admiralty-scale credibility tags or the'
+                . ' estimative-language tags. The top of a scale ("confirmed'
+                . ' by other sources") is full confidence, the middle is'
+                . ' neutral, the bottom is doubt. Several reporters are'
+                . ' averaged.'
+            ),
+            'how' => __(
+                'Full confidence is worth {scale} points, full doubt as'
+                . ' much taken off, the middle nothing. Silent when nobody'
+                . ' tagged anything.'
+            ),
+            'note' => __(
+                'Organisation grades can only lower this: a statement from'
+                . ' an organisation graded A counts the same as an ungraded'
+                . ' one.'
+            ),
+            'settings' => array(
+                'scale' => __(
+                    'How far a stated confidence can move the score, either'
+                    . ' way. Raise it to let labelled reports stand out.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Reward reporters who state their'
+                        . ' confidence'),
+                    'do' => __('Raise scale, e.g. to 15.'),
+                ),
+                array(
+                    'want' => __('Ignore what reporters say about their'
+                        . ' own claims'),
+                    'do' => __('Untick the signal.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'scale' => array(
