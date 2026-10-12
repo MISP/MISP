@@ -81,7 +81,7 @@ if (!empty($user['email'])) {
 <div class="card mb-3 shadow-sm">
     <div class="card-body py-2 d-flex flex-column flex-md-row gap-2 gap-md-3">
 
-        <div class="flex-fill min-w-0 d-flex flex-column">
+        <div class="min-w-0 d-flex flex-column" style="flex:1 3 100%;">
             <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>">
                 <?= __('Ownership') ?>
             </div>
@@ -99,7 +99,7 @@ if (!empty($user['email'])) {
         <div class="vr d-none d-md-block"></div>
         <hr class="d-md-none my-0">
 
-        <div class="flex-fill min-w-0">
+        <div class="min-w-0" style="flex:1 2 100%;">
             <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
                 <span class="<?= $labelClass ?>" style="<?= $labelStyle ?>"><?= __('Distribution') ?></span>
                 <?php if (isset($sharingGroup['org_count'])): ?>
