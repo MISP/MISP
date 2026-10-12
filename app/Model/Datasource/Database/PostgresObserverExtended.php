@@ -73,6 +73,12 @@ App::uses('RedisTool', 'Tools');
  * the bare alias to `attribute` and reports a missing FROM-clause entry.
  * _quoteFields() here quotes the alias after AS whenever Cake left it bare.
  *
+ * **What an expression in a field list becomes.** DboSource::fields()
+ * unwraps a $db->expression() into its SQL; Postgres::fields() asks the
+ * parent not to quote and then runs its own quoting over every field,
+ * expression objects included, which preg_match() refuses. fields() here
+ * unwraps them first, as the parent would have.
+ *
  * **What the operator sees in the logs.** Every statement is prefixed with
  * the user, controller and action the way MysqlObserver's are, timed the
  * same way, and reported to the same slow-query log when benchmarking is on.
@@ -255,6 +261,28 @@ class PostgresObserverExtended extends Postgres
             '$1 AS ' . $this->startQuote . '$2' . $this->endQuote,
             $conditions
         );
+    }
+
+    /**
+     * Cake's field list, with expression objects unwrapped first. See the
+     * class docblock.
+     *
+     * @param Model $model
+     * @param string|null $alias
+     * @param array|string $fields
+     * @param bool $quote
+     * @return array
+     */
+    public function fields(Model $model, $alias = null, $fields = array(), $quote = true)
+    {
+        if (is_array($fields)) {
+            foreach ($fields as $i => $field) {
+                if (is_object($field) && isset($field->type) && $field->type === 'expression') {
+                    $fields[$i] = $field->value;
+                }
+            }
+        }
+        return parent::fields($model, $alias, $fields, $quote);
     }
 
     /**

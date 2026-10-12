@@ -1,5 +1,6 @@
 <?php
 App::uses('AuditLog', 'Model');
+App::uses('AttributeValue', 'Model');
 
 class AuditLogBehavior extends ModelBehavior
 {
@@ -11,6 +12,9 @@ class AuditLogBehavior extends ModelBehavior
 
     /** @var AuditLog|null */
     private $AuditLog;
+
+    /** @var AttributeValue|null */
+    private $AttributeValue;
 
     /** @var bool */
     private $enabled;
@@ -32,6 +36,8 @@ class AuditLogBehavior extends ModelBehavior
         'enable_password' => true,
         'confirm_password' => true,
         'totp' => true,
+        'value1_id' => true, // Attribute, ShadowAttribute
+        'value2_id' => true, // Attribute, ShadowAttribute
     ];
 
     private $modelInfo = [
@@ -117,12 +123,7 @@ class AuditLogBehavior extends ModelBehavior
             }
         }
         if ($model->id) {
-            $this->beforeSave = $model->find('first', [
-                'conditions' => [$model->alias . '.' . $model->primaryKey => $model->id],
-                'recursive' => -1,
-                'callbacks' => false,
-                'fields' => $fieldToFetch,
-            ]);
+            $this->beforeSave = $this->findStored($model, $fieldToFetch);
         } else {
             $this->beforeSave = null;
         }
@@ -227,12 +228,39 @@ class AuditLogBehavior extends ModelBehavior
             return true;
         }
 
-        $this->beforeDelete[$model->name] = $model->find('first', [
-            'conditions' => array($model->alias . '.' . $model->primaryKey => $model->id),
+        $this->beforeDelete[$model->name] = $this->findStored($model, []);
+        return true;
+    }
+
+    /**
+     * The stored row, read with callbacks off, with the value text of the
+     * ids it references filled in.
+     *
+     * @param Model $model
+     * @param array $fields Empty for every column.
+     * @return array
+     */
+    private function findStored(Model $model, array $fields)
+    {
+        $hasValueIds = isset($model->schema()['value1_id']);
+        if ($hasValueIds && !empty($fields)) {
+            $fields = array_values(array_filter(
+                $this->attributeValue()->withIdFields($fields),
+                [$model, 'hasField']
+            ));
+        }
+        $row = $model->find('first', [
+            'conditions' => [$model->alias . '.' . $model->primaryKey => $model->id],
             'recursive' => -1,
             'callbacks' => false,
+            'fields' => $fields,
         ]);
-        return true;
+        if ($hasValueIds && !empty($row)) {
+            $rows = [$row];
+            $this->attributeValue()->attachValues($rows, $model->alias);
+            $row = $rows[0];
+        }
+        return $row;
     }
 
     public function afterDelete(Model $model)
@@ -347,7 +375,7 @@ class AuditLogBehavior extends ModelBehavior
      */
     private function changedFields(Model $model, $oldData, $fieldsToSave = null)
     {
-        $dbFields = $model->schema();
+        $dbFields = AttributeValue::withValueColumns($model->schema());
         $changedFields = [];
         $hasPrimaryField = isset($model->data[$model->alias][$model->primaryKey]);
         foreach ($model->data[$model->alias] as $key => $value) {
@@ -419,5 +447,16 @@ class AuditLogBehavior extends ModelBehavior
             $this->AuditLog = ClassRegistry::init('AuditLog');
         }
         return $this->AuditLog;
+    }
+
+    /**
+     * @return AttributeValue
+     */
+    private function attributeValue()
+    {
+        if ($this->AttributeValue === null) {
+            $this->AttributeValue = ClassRegistry::init('AttributeValue');
+        }
+        return $this->AttributeValue;
     }
 }

@@ -6,6 +6,7 @@ App::uses('AttachmentTool', 'Tools');
 App::uses('ComplexTypeTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
+App::uses('MispAttribute', 'Model');
 
 /**
  * @property Event $Event
@@ -26,7 +27,8 @@ class ShadowAttribute extends AppModel
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
-            'change' => 'full'),
+            'change' => 'full',
+            'ignore' => ['value1_id', 'value2_id']),
         'Trim',
         'Containable',
         'Regexp' => array('fields' => array('value', 'value2')),
@@ -56,10 +58,6 @@ class ShadowAttribute extends AppModel
     );
 
     public $displayField = 'value';
-
-    public $virtualFields = array(
-            'value' => "CASE WHEN ShadowAttribute.value2 = '' THEN ShadowAttribute.value1 ELSE CONCAT(ShadowAttribute.value1, '|', ShadowAttribute.value2) END",
-    ); // TODO hardcoded
 
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
@@ -105,9 +103,20 @@ class ShadowAttribute extends AppModel
             'stringNotEmpty' => array(
                 'rule' => array('stringNotEmpty'),
             ),
+            'stringControlCharacters' => array(
+                'rule' => array('stringNotControlCharacters'),
+                'message' => 'Value provided consists purely of control characters and is therefore considered to be empty.',
+            ),
+            'validComposite' => array(
+                'rule' => array('validComposite'),
+                'message' => 'Composite type found but the value not in the composite (value1|value2) format.',
+            ),
             'userdefined' => array(
                 'rule' => array('validateAttributeValue'),
                 'message' => 'Value not in the right type/format. Please double check the value or select type "other".',
+            ),
+            'maxTextLength' => array(
+                'rule' => array('maxTextLength'),
             ),
         ),
         'to_ids' => array(
@@ -168,6 +177,8 @@ class ShadowAttribute extends AppModel
 
     public function beforeSave($options = array())
     {
+        // The before-save workflow must not see ids sent in
+        unset($this->data['ShadowAttribute']['value1_id'], $this->data['ShadowAttribute']['value2_id']);
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
         if (!empty($this->data['ShadowAttribute']['type'])) {
@@ -188,10 +199,6 @@ class ShadowAttribute extends AppModel
         }
         if (!isset($this->data['ShadowAttribute']['deleted'])) {
             $this->data['ShadowAttribute']['deleted'] = 0;
-        }
-        if ($this->data['ShadowAttribute']['deleted']) {
-            // correlations for proposals are deprecated.
-            //$this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
         }
 
         // convert into utc and micro sec
@@ -214,72 +221,10 @@ class ShadowAttribute extends AppModel
                 return false;
             }
         }
+        $attributeValue = $this->Attribute->loadAttributeValue();
+        $attributeValue->assignIds($this->data['ShadowAttribute'], $this->whitelist);
+        $this->whitelist = $attributeValue->withIdFields($this->whitelist);
         return true;
-    }
-
-    private function __beforeDeleteCorrelation($sa)
-    {
-        if (isset($sa['ShadowAttribute'])) {
-            $sa = $sa['ShadowAttribute'];
-        }
-        $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
-        $this->ShadowAttributeCorrelation->deleteAll(array('ShadowAttributeCorrelation.1_shadow_attribute_id' => $sa['id']));
-    }
-
-    private function __afterSaveCorrelation($sa)
-    {
-        if (isset($sa['ShadowAttribute'])) {
-            $sa = $sa['ShadowAttribute'];
-        }
-        if (in_array($sa['type'], MispAttribute::NON_CORRELATING_TYPES, true)) {
-            return;
-        }
-        $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
-        $shadow_attribute_correlations = array();
-        $correlatingValues = array($sa['value1']);
-        if (!empty($sa['value2'])) {
-            $correlatingValues[] = $sa['value2'];
-        }
-        foreach ($correlatingValues as $k => $cV) {
-            $correlatingAttributes[$k] = $this->Attribute->find('all', array(
-                    'conditions' => array(
-                            'AND' => array(
-                                    'OR' => array(
-                                            'Attribute.value1' => $cV,
-                                            'Attribute.value2' => $cV
-                                    ),
-                                    'Attribute.type !=' => MispAttribute::NON_CORRELATING_TYPES,
-                                    'Attribute.deleted' => 0,
-                                    'Attribute.event_id !=' => $sa['event_id']
-                            ),
-                    ),
-                    'recursive' => -1,
-                    'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id'),
-                    'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
-                    'order' => array(),
-            ));
-            foreach ($correlatingAttributes as $key => $cA) {
-                foreach ($cA as $corr) {
-                    $shadow_attribute_correlations[] = array(
-                            'value' => $correlatingValues[$key],
-                            '1_event_id' => $sa['event_id'],
-                            '1_shadow_attribute_id' => $sa['id'],
-                            'event_id' => $corr['Attribute']['event_id'],
-                            'attribute_id' => $corr['Attribute']['id'],
-                            'org_id' => $corr['Event']['org_id'],
-                            'distribution' => $corr['Event']['distribution'],
-                            'a_distribution' => $corr['Attribute']['distribution'],
-                            'sharing_group_id' => $corr['Event']['sharing_group_id'],
-                            'a_sharing_group_id' => $corr['Attribute']['sharing_group_id'],
-                            'date' => $corr['Event']['date'],
-                            'info' => $corr['Event']['info'],
-                    );
-                }
-            }
-        }
-        if (!empty($shadow_attribute_correlations)) {
-            $this->ShadowAttributeCorrelation->saveMany($shadow_attribute_correlations);
-        }
     }
 
     public function afterSave($created, $options = array())
@@ -296,21 +241,14 @@ class ShadowAttribute extends AppModel
                 $result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
             }
         }
-        /*
-         * correlations are deprecated for proposals
-        if ((isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) || (isset($this->data['ShadowAttribute']['proposal_to_delete']) && $this->data['ShadowAttribute']['proposal_to_delete'])) {
-            // this is a deletion
-            // Could be a proposal to delete or flagging a proposal that it was discarded / accepted - either way, we don't want to correlate here for now
-        } else {
-            $this->__afterSaveCorrelation($this->data['ShadowAttribute']);
-        }
-        */
         if (empty($this->data['ShadowAttribute']['deleted'])) {
             $action = $created ? 'add' : 'edit';
-            $this->publishKafkaNotification('shadow_attribute', $this->data, $action);
+            $proposal = $this->data;
+            unset($proposal['ShadowAttribute']['value1_id'], $proposal['ShadowAttribute']['value2_id']);
+            $this->publishKafkaNotification('shadow_attribute', $proposal, $action);
             $isTriggerCallable = $this->isTriggerCallable('shadow-attribute-after-save');
             if ($isTriggerCallable) {
-                $shadowAttr = $this->data['ShadowAttribute'];
+                $shadowAttr = $proposal['ShadowAttribute'];
                 $workflowErrors = [];
                 $logging = [
                     'model' => 'ShadowAttribute',
@@ -386,17 +324,42 @@ class ShadowAttribute extends AppModel
         return true;
     }
 
+    // The paginator sorts only by fields and virtual fields; beforeFind sorts by the value
+    public function hasField($name, $checkVirtual = false)
+    {
+        if ($checkVirtual && in_array($name, ['value', $this->alias . '.value'], true)) {
+            return true;
+        }
+        return parent::hasField($name, $checkVirtual);
+    }
+
+    public function beforeFind($query)
+    {
+        $attributeValue = $this->Attribute->loadAttributeValue();
+        if (!empty($query['conditions'])) {
+            // Proposals are few: a pattern is checked per row, not resolved
+            $query['conditions'] = $attributeValue->rewriteConditions($query['conditions'], $this->alias, true);
+        }
+        return $attributeValue->prepareFind($query, $this->alias);
+    }
+
     public function afterFind($results, $primary = false)
     {
         foreach ($results as &$v) {
-            $proposal = &$v['ShadowAttribute'];
+            if (!isset($v[$this->alias]) || !is_array($v[$this->alias])) {
+                continue;
+            }
+            $proposal = &$v[$this->alias];
             if (!empty($proposal['first_seen'])) {
                 $proposal['first_seen'] = $this->microTimestampToIso($proposal['first_seen']);
             }
             if (!empty($proposal['last_seen'])) {
                 $proposal['last_seen'] = $this->microTimestampToIso($proposal['last_seen']);
             }
+            unset($proposal);
         }
+        unset($v);
+        $this->Attribute->loadAttributeValue()->attachFound($results, $this->alias, $primary);
         return $results;
     }
 
@@ -418,6 +381,42 @@ class ShadowAttribute extends AppModel
     {
         $value = $fields['value'];
         return AttributeValidationTool::validate($this->data['ShadowAttribute']['type'], $value);
+    }
+
+    public function stringNotControlCharacters($fields)
+    {
+        $proposal = $this->data['ShadowAttribute'];
+        return $this->Attribute->notOnlyControlCharacters($proposal['type'], $proposal['value']);
+    }
+
+    public function validComposite($fields)
+    {
+        return $this->Attribute->compositeValueIsValid($this->data['ShadowAttribute']['type'], $fields['value']);
+    }
+
+    public function maxTextLength($fields)
+    {
+        return $this->Attribute->maxTextLength($fields);
+    }
+
+    /**
+     * MispAttribute::primeValues() for proposals, which skip the import
+     * regexps. Hand the result to $this->Attribute->releaseValues().
+     *
+     * @param array $rows Flat proposal rows
+     * @return array
+     */
+    public function primeValues(array $rows)
+    {
+        $values = [];
+        foreach ($rows as $row) {
+            if (empty($row['type']) || !isset($row['value']) || !is_scalar($row['value'])) {
+                continue;
+            }
+            $value = $this->Attribute->massageValue($row['type'], (string)$row['value']);
+            array_push($values, ...$this->Attribute->valueParts($row['type'], $value));
+        }
+        return $this->Attribute->loadAttributeValue()->prime($values);
     }
 
     public function getCompositeTypes()
@@ -523,16 +522,32 @@ class ShadowAttribute extends AppModel
 
     public function findOldProposal($sa)
     {
+        if (!isset($sa['value']) || !is_scalar($sa['value'])) {
+            return false;
+        }
+        $parts = $this->Attribute->valueParts($sa['type'], (string)$sa['value']);
+        if (empty($parts)) {
+            return false;
+        }
+        $ids = $this->Attribute->loadAttributeValue()->idsOf($parts);
+        // A value the dictionary does not hold is stored on no proposal
+        if (count($ids) < count(array_unique($parts))) {
+            return false;
+        }
+        $conditions = array(
+            'ShadowAttribute.event_uuid' => $sa['event_uuid'],
+            'ShadowAttribute.uuid' => $sa['uuid'],
+            'ShadowAttribute.value1_id' => $ids[$parts[0]],
+            'ShadowAttribute.type' => $sa['type'],
+            'ShadowAttribute.category' => $sa['category'],
+            'ShadowAttribute.to_ids' => $sa['to_ids'],
+            'ShadowAttribute.comment' => $sa['comment']
+        );
+        if (in_array($sa['type'], $this->getCompositeTypes(), true)) {
+            $conditions['ShadowAttribute.value2_id'] = isset($parts[1]) ? $ids[$parts[1]] : null;
+        }
         $oldsa = $this->find('first', array(
-            'conditions' => array(
-                'ShadowAttribute.event_uuid' => $sa['event_uuid'],
-                'ShadowAttribute.uuid' => $sa['uuid'],
-                'ShadowAttribute.value' => $sa['value'],
-                'ShadowAttribute.type' => $sa['type'],
-                'ShadowAttribute.category' => $sa['category'],
-                'ShadowAttribute.to_ids' => $sa['to_ids'],
-                'ShadowAttribute.comment' => $sa['comment']
-            ),
+            'conditions' => $conditions,
         ));
         if (empty($oldsa)) {
             return false;
@@ -617,33 +632,6 @@ class ShadowAttribute extends AppModel
         $event['Event']['skip_zmq'] = 1;
         $event['Event']['skip_kafka'] = 1;
         $this->Event->save($event, array('fieldList' => $fieldList));
-    }
-
-    public function generateCorrelation($jobId = false)
-    {
-        $this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
-        $this->ShadowAttributeCorrelation->deleteAll(array('id !=' => 0), false);
-        // get all proposals..
-        $proposals = $this->find('all', array('recursive' => -1, 'conditions' => array('ShadowAttribute.deleted' => 0, 'ShadowAttribute.proposal_to_delete' => 0)));
-        $proposalCount = count($proposals);
-        if ($jobId && Configure::read('MISP.background_jobs')) {
-            $this->Job = ClassRegistry::init('Job');
-            $this->Job->id = $jobId;
-        }
-        if ($proposalCount > 0) {
-            foreach ($proposals as $k => $proposal) {
-                $this->__afterSaveCorrelation($proposal['ShadowAttribute']);
-                if ($jobId && Configure::read('MISP.background_jobs') && $k > 0 && $proposalCount % $k == 10) {
-                    $this->Job->saveField('progress', ($k / $proposalCount * 100));
-                }
-            }
-        }
-        if ($jobId && Configure::read('MISP.background_jobs')) {
-            $this->Job->saveField('progress', 100);
-            $this->Job->saveField('status', 4);
-            $this->Job->saveField('message', 'Job done.');
-        }
-        return $proposalCount;
     }
 
     /**
@@ -742,11 +730,16 @@ class ShadowAttribute extends AppModel
             if ($returnSize === 0) {
                 return $fetchedCount;
             }
-            foreach ($data as $proposal) {
-                $result = $this->capture($proposal['ShadowAttribute'], $user);
-                if ($result) {
-                    $fetchedCount++;
+            $primed = $this->primeValues(array_column($data, 'ShadowAttribute'));
+            try {
+                foreach ($data as $proposal) {
+                    $result = $this->capture($proposal['ShadowAttribute'], $user);
+                    if ($result) {
+                        $fetchedCount++;
+                    }
                 }
+            } finally {
+                $this->Attribute->releaseValues($primed);
             }
             if ($returnSize < $chunkSize) {
                 return $fetchedCount;
@@ -815,83 +808,6 @@ class ShadowAttribute extends AppModel
             );
         }
         return $conditions;
-    }
-
-    public function upgradeToProposalCorrelation()
-    {
-        $this->Log = ClassRegistry::init('Log');
-        if (!Configure::read('MISP.background_jobs')) {
-            $this->Log->create();
-            $this->Log->saveOrFailSilently(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => 'SYSTEM',
-                    'action' => 'update_database',
-                    'user_id' => 0,
-                    'title' => 'Starting proposal correlation generation',
-                    'change' => 'The generation of Proposal correlations as part of the 2.4.20 datamodel upgrade has started'
-            ));
-            $count = $this->generateCorrelation();
-            $this->Log->create();
-            if (is_numeric($count)) {
-                $this->Log->saveOrFailSilently(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => 'SYSTEM',
-                        'action' => 'update_database',
-                        'user_id' => 0,
-                        'title' => 'Proposal correlation generation complete',
-                        'change' => 'The generation of Proposal correlations as part of the 2.4.20 datamodel upgrade is completed. ' . $count . ' proposals used.'
-                ));
-            } else {
-                $this->Log->saveOrFailSilently(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => 'SYSTEM',
-                        'action' => 'update_database',
-                        'user_id' => 0,
-                        'title' => 'Proposal correlation generation failed',
-                        'change' => 'The generation of Proposal correlations as part of the 2.4.20 has failed. You can rerun it from the administrative tools.'
-                ));
-            }
-        } else {
-
-            /** @var Job $job */
-            $job = ClassRegistry::init('Job');
-            $jobId = $job->createJob(
-                'SYSTEM',
-                Job::WORKER_DEFAULT,
-                'generate proposal correlation',
-                'All attributes',
-                'Correlating Proposals.'
-            );
-
-            $this->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_ADMIN,
-                [
-                    'jobGenerateShadowAttributeCorrelation',
-                    $jobId
-                ],
-                true,
-                $jobId
-            );
-
-            $this->Log->create();
-            $this->Log->saveOrFailSilently(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => 0,
-                    'email' => 'SYSTEM',
-                    'action' => 'update_database',
-                    'user_id' => 0,
-                    'title' => 'Proposal correlation generation job queued',
-                    'change' => 'The job for the generation of Proposal correlations as part of the 2.4.20 datamodel upgrade has been queued'
-            ));
-        }
     }
 
     public function saveAttachment($shadowAttribute, $path_suffix='')

@@ -73,6 +73,14 @@ class AppModel extends Model
     /** @var SqlDialect|null */
     private $sqlDialect = null;
 
+    /**
+     * @var array Per find() in progress: whether association rows in it still
+     *   hold value ids, the value keys the find was asked for (valueKeys), the
+     *   ones its primary model's field list named, and whether it wants the
+     *   value text at all (valueText).
+     */
+    private static $valueFinds = [];
+
     // deprecated, use $db_changes
     // major -> minor -> hotfix -> requires_logout
     const OLD_DB_CHANGES = array(
@@ -340,7 +348,7 @@ class AppModel extends Model
         }
     }
 
-    public function runUpdates($verbose = false, $useWorker = true, $processId = false, $avoidSilentFail = false)
+    public function runUpdates($verbose = false, $useWorker = true, $processId = false, $avoidSilentFail = false, $retryDeferred = false)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->Job = ClassRegistry::init('Job');
@@ -467,6 +475,7 @@ class AppModel extends Model
 
                 $update_done = 0;
                 $haltedOn = null;
+                $deferred = false;
                 $migrationManager = $this->getMigrationManager();
                 foreach ($updates as $update => $temp) {
                     if ($verbose) {
@@ -480,6 +489,14 @@ class AppModel extends Model
                     // findUpgrades() merged two key spaces into one map; this is
                     // where they part company again.
                     $isMigration = $migrationManager->has($update);
+                    if ($isMigration && !$retryDeferred && $migrationManager->waiting($update)) {
+                        $haltedOn = $update;
+                        $deferred = true;
+                        if ($verbose) {
+                            echo "\033[33mDeferred\033[0m" . PHP_EOL;
+                        }
+                        break;
+                    }
                     $dbUpdateSuccess = $isMigration ? $migrationManager->apply($update) : $this->updateMISP($update);
                     if ($temp) {
                         $requiresLogout = true;
@@ -496,6 +513,16 @@ class AppModel extends Model
                         if ($verbose) {
                             echo "\033[32mDone\033[0m" . PHP_EOL;
                         }
+                    } elseif ($isMigration && $migrationManager->lastStatus() === MigrationManager::STATUS_DEFERRED) {
+                        // Not ready yet, which is not a failure: the run stops
+                        // here, but the failure count and the lock stay as they are.
+                        $haltedOn = $update;
+                        $deferred = true;
+                        $this->__logUpdateDeferred($update, $migrationManager->lastError(), array_slice(array_keys($updates), $update_done));
+                        if ($verbose) {
+                            echo "\033[33mDeferred\033[0m" . PHP_EOL . $migrationManager->lastError() . PHP_EOL;
+                        }
+                        break;
                     } else {
                         $haltedOn = $update;
                         $this->__increaseUpdateFailNumber();
@@ -518,9 +545,13 @@ class AppModel extends Model
                     // A halted run is not a finished one. Saying "Update done"
                     // over a stalled instance is the same silence the ledger
                     // fields in the schema diagnostic exist to break.
-                    $job['Job']['message'] = $haltedOn === null
-                        ? __('Update done')
-                        : __('Update halted: %s failed', $haltedOn);
+                    if ($haltedOn === null) {
+                        $job['Job']['message'] = __('Update done');
+                    } elseif ($deferred) {
+                        $job['Job']['message'] = __('Update waiting: %s is deferred', $haltedOn);
+                    } else {
+                        $job['Job']['message'] = __('Update halted: %s failed', $haltedOn);
+                    }
                 }
                 $this->changeLockState(false);
                 $this->__queueCleanDB();
@@ -573,6 +604,30 @@ class AppModel extends Model
             'change' => empty($blocked)
                 ? __('Nothing was left to run after it.')
                 : __('%s update(s) after it were not attempted and remain pending: %s', count($blocked), implode(', ', $blocked)),
+        ));
+    }
+
+    /**
+     * @param string $migration The deferred migration.
+     * @param string|null $reason
+     * @param array $blocked The updates after it, none of which were attempted.
+     * @return void
+     */
+    private function __logUpdateDeferred($migration, $reason, array $blocked)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        $this->Log->saveOrFailSilently(array(
+            'org' => 'SYSTEM',
+            'model' => 'Server',
+            'model_id' => 0,
+            'email' => 'SYSTEM',
+            'action' => 'update_database',
+            'user_id' => 0,
+            'title' => __('Database updates waiting: %s is deferred', $migration),
+            'change' => trim($reason . PHP_EOL . (empty($blocked)
+                ? ''
+                : __('%s update(s) after it wait with it: %s', count($blocked), implode(', ', $blocked)))),
         ));
     }
 
@@ -963,6 +1018,19 @@ class AppModel extends Model
         );
     }
 
+    /**
+     * The conditions of a subquery on this model's table. No beforeFind sees
+     * them, so a model that rewrites its conditions there does it here too.
+     *
+     * @param mixed $conditions
+     * @param string $alias
+     * @return mixed
+     */
+    public function subQueryConditions($conditions, $alias)
+    {
+        return $conditions;
+    }
+
     protected function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
     {
         $defaults = array(
@@ -984,6 +1052,7 @@ class AppModel extends Model
                 $params[$key] = $defaultValue;
             }
         }
+        $params['conditions'] = $model->subQueryConditions($params['conditions'], $params['alias']);
         $db = $model->getDataSource();
         $subQuery = $db->buildStatement($params, $model);
         if ($negation) {
@@ -1785,7 +1854,20 @@ class AppModel extends Model
         if (!empty($query['order']) && $this->validOrderClause($query['order']) === false) {
             throw new InvalidArgumentException('Invalid order clause');
         }
-        $results = parent::find($type, $query);
+        self::$valueFinds[] = [
+            'deferred' => false,
+            'keys' => isset($query['valueKeys']) ? $query['valueKeys'] : null,
+            'primaryKeys' => null,
+            'text' => !isset($query['valueText']) || $query['valueText'],
+        ];
+        try {
+            $results = parent::find($type, $query);
+        } finally {
+            $find = array_pop(self::$valueFinds);
+        }
+        if ($find['deferred'] && $find['text']) {
+            ClassRegistry::init('AttributeValue')->attachNested($results, $find['keys']);
+        }
         if (!empty($query['includeAnalystData']) && $this->Behaviors->enabled('AnalystDataParent')) {
             if ($type === 'first') {
                 $results[$this->alias] = array_merge($results[$this->alias], $this->attachAnalystData($results[$this->alias]));
@@ -1796,6 +1878,60 @@ class AppModel extends Model
             }
         }
         return $results;
+    }
+
+    /**
+     * Leaves the value text of association rows to the find in progress, which
+     * fills in all of them at once when it returns.
+     *
+     * @return bool False when no find is in progress.
+     */
+    public static function deferValueRows()
+    {
+        if (empty(self::$valueFinds)) {
+            return false;
+        }
+        self::$valueFinds[count(self::$valueFinds) - 1]['deferred'] = true;
+        return true;
+    }
+
+    /**
+     * The value keys for the primary rows of the find in progress: the ones
+     * it was asked for, else the ones its field list named.
+     *
+     * @return string[]|null Null for all of them.
+     */
+    public static function primaryValueKeys()
+    {
+        if (empty(self::$valueFinds)) {
+            return null;
+        }
+        $find = end(self::$valueFinds);
+        return $find['keys'] !== null ? $find['keys'] : $find['primaryKeys'];
+    }
+
+    /**
+     * Whether the find in progress wants value text. One asked for
+     * valueText => false hands its attribute rows back with their ids, for
+     * the caller to fill in later (AttributeValue::attachNested), together
+     * with those of other finds.
+     *
+     * @return bool
+     */
+    public static function valueTextWanted()
+    {
+        return empty(self::$valueFinds) || end(self::$valueFinds)['text'];
+    }
+
+    /**
+     * @param string[] $keys The value keys the find in progress named.
+     * @return void
+     */
+    public static function setPrimaryValueKeys(array $keys)
+    {
+        if (!empty(self::$valueFinds)) {
+            self::$valueFinds[count(self::$valueFinds) - 1]['primaryKeys'] = $keys;
+        }
     }
 
     private function validOrderClause($order)

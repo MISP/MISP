@@ -6,9 +6,9 @@ name: misp
 # events but only for the 2.4 and develop branches
 on:
   push:
-    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix, taxii, ondemandcorr, attribute_filter_pipeline, crud_refactor, templating, mps-ldapauth-revamp]
+    branches: [ '2.5', '3.0_wip', '2.4', develop, '2.4-develop', misp-stix, taxii, ondemandcorr, attribute_filter_pipeline, crud_refactor, templating, mps-ldapauth-revamp]
   pull_request:
-    branches: [ '2.5', '2.4', develop, '2.4-develop', misp-stix]
+    branches: [ '2.5', '3.0_wip', '2.4', develop, '2.4-develop', misp-stix]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -378,6 +378,7 @@ jobs:
       - name: Run PHP tests
         run: |
           ./app/Vendor/bin/parallel-lint --exclude app/Lib/cakephp/ --exclude app/Vendor/ -e php,ctp app/
+          python3 tests/value_oracle/lint_value_columns.py --strict
           sudo -u www-data ./app/Vendor/bin/phpunit app/Test/
 
       - name: Clone test files

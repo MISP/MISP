@@ -53,7 +53,9 @@ App::uses('SqlDialect', 'Migration');
  *   indexes instead - equality only, which is how the columns are looked up -
  *   unless the index is unique, since a hash index cannot be, in which case
  *   it becomes a full-column btree. Every such rewrite is reported in the
- *   notes so the list can be reviewed rather than trusted.
+ *   notes so the list can be reviewed rather than trusted. Where a migration
+ *   declares the PostgreSQL index itself, that statement is rendered instead
+ *   (PGSQL_REPLACED_INDEXES).
  * - Expression defaults are translated from a short table; an expression
  *   this class does not know is a hard error rather than a silent drop.
  *
@@ -87,6 +89,51 @@ class BaselineGenerator
             'idx_tags_name_lower' => 'CREATE UNIQUE INDEX %1$s ON %2$s (lower("name"));',
         ),
     );
+
+    /**
+     * Reference indexes whose PostgreSQL counterpart is not a rendering of
+     * the MySQL index but what its migration declares for PostgreSQL through
+     * rawSql(): FULLTEXT has no rendering at all, and a prefix index on text
+     * would become a hash index under the name of the migration's expression
+     * index. 'reads' is what Postgres::index() reads back as the index's
+     * column, which tells the round trip that index from another of the same
+     * name; 'extension' is created ahead of the DDL.
+     *
+     * Table => MySQL index name => array('name', 'sql', 'reads'[, 'extension']),
+     * with %1$s the quoted index name and %2$s the quoted table in 'sql'.
+     */
+    const PGSQL_REPLACED_INDEXES = array(
+        'attribute_values' => array(
+            // 20261003_092429_create_attribute_values
+            'value' => array(
+                'name' => 'idx_attribute_values_value',
+                'sql' => 'CREATE INDEX %1$s ON %2$s (lower(left("value", 128)));',
+                'reads' => 'lower(',
+            ),
+            'value_search' => array(
+                'name' => 'idx_attribute_values_value_search',
+                'sql' => 'CREATE INDEX %1$s ON %2$s USING gin ("value" gin_trgm_ops);',
+                'reads' => 'gin_trgm_ops',
+                'extension' => 'pg_trgm',
+            ),
+        ),
+    );
+
+    /**
+     * Tables whose FULLTEXT index is built without stopwords
+     * (20261010_172929_value_search_without_stopwords). InnoDB takes the
+     * session's stopword setting when it builds the index, so the MySQL
+     * rendering turns it off around the CREATE TABLE.
+     */
+    const MYSQL_FULLTEXT_WITHOUT_STOPWORDS = array('attribute_values');
+
+    /**
+     * Tables whose collation their migration picks by server version
+     * (20261003_092429_create_attribute_values). A static baseline cannot,
+     * so the MySQL rendering uses the one every supported server has rather
+     * than the reference server's.
+     */
+    const MYSQL_PORTABLE_COLLATIONS = array('attribute_values' => 'utf8mb4_unicode_520_ci');
 
     /**
      * The tables a fresh install starts with rows in: the ones MYSQL.sql seeds,
@@ -599,6 +646,15 @@ class BaselineGenerator
         foreach ($this->preamble($flavour) as $statement) {
             $out[] = $statement;
         }
+        if ($flavour === AbstractGrammar::FLAVOUR_PGSQL) {
+            foreach (self::pgsqlExtensions($schema) as $extension) {
+                $out[] = sprintf('CREATE EXTENSION IF NOT EXISTS %s;', $extension);
+                $notes[] = sprintf(
+                    'Extension %s created ahead of the DDL: the loading role needs CREATE on the database (docs/CONFIG.postgresql.md).',
+                    $extension
+                );
+            }
+        }
         $out[] = '';
 
         foreach ($schema as $table => $definition) {
@@ -643,8 +699,13 @@ class BaselineGenerator
         $columns = $definition['columns'];
         $indexes = $definition['indexes'];
         $hashIndexes = array();
+        $replaced = array();
 
         if ($flavour === AbstractGrammar::FLAVOUR_PGSQL) {
+            foreach (self::replacedIndexes($table, $indexes) as $name => $replacement) {
+                $replaced[$name] = $replacement;
+                unset($indexes[$name]);
+            }
             foreach ($indexes as $name => $options) {
                 if (!self::needsHashRewrite($options, $columns)) {
                     continue;
@@ -671,6 +732,28 @@ class BaselineGenerator
         $schema = new SchemaBuilder($grammar);
         $options = $definition['options'];
         $options['indexes'] = $indexes;
+        if ($flavour === AbstractGrammar::FLAVOUR_MYSQL && isset(self::MYSQL_PORTABLE_COLLATIONS[$table])) {
+            $portable = self::MYSQL_PORTABLE_COLLATIONS[$table];
+            $collations = array();
+            if (isset($options['collate']) && $options['collate'] !== $portable) {
+                $collations[$options['collate']] = true;
+                $options['collate'] = $portable;
+            }
+            foreach ($columns as $name => $spec) {
+                if (isset($spec['collate']) && $spec['collate'] !== $portable) {
+                    $collations[$spec['collate']] = true;
+                    $columns[$name]['collate'] = $portable;
+                }
+            }
+            if (!empty($collations)) {
+                $notes[] = sprintf(
+                    'Collation of %s rendered as %s instead of the reference\'s %s: its migration picks the collation by server version, and every supported server has this one.',
+                    $table,
+                    $portable,
+                    implode(', ', array_keys($collations))
+                );
+            }
+        }
         $schema->createTable($table, $columns, $options);
         $statements = $schema->toSql();
 
@@ -693,6 +776,21 @@ class BaselineGenerator
                 $column,
                 $options['length'][$column]
             );
+        }
+
+        foreach ($replaced as $name => $replacement) {
+            $statements[] = sprintf($replacement['sql'], $grammar->name($replacement['name']), $grammar->name($table));
+            $notes[] = sprintf(
+                'Index %s on %s rendered as %s, the index its migration declares for PostgreSQL.',
+                $name,
+                $table,
+                $replacement['name']
+            );
+        }
+
+        if ($flavour === AbstractGrammar::FLAVOUR_MYSQL && in_array($table, self::MYSQL_FULLTEXT_WITHOUT_STOPWORDS, true)) {
+            array_unshift($statements, 'SET SESSION innodb_ft_enable_stopword = 0;');
+            $statements[] = 'SET SESSION innodb_ft_enable_stopword = DEFAULT;';
         }
 
         if ($flavour === AbstractGrammar::FLAVOUR_PGSQL && isset(self::PGSQL_ONLY_INDEXES[$table])) {
@@ -1030,7 +1128,28 @@ class BaselineGenerator
                 $findings[] = sprintf('%s: primary key (%s) not in the reference', $table, implode(', ', $primary));
             }
 
+            $replaced = $flavour === AbstractGrammar::FLAVOUR_PGSQL
+                ? self::replacedIndexes($table, $definition['indexes'])
+                : array();
+            foreach ($replaced as $name => $replacement) {
+                $physical = $replacement['name'];
+                if (!isset($indexes[$physical])) {
+                    $findings[] = sprintf('%s: index %s missing', $table, $physical);
+                    continue;
+                }
+                $read = implode(', ', (array)$indexes[$physical]['column']);
+                if (strpos($read, $replacement['reads']) === false) {
+                    $findings[] = sprintf(
+                        '%s: index %s over (%s), not the index its migration declares',
+                        $table, $physical, $read
+                    );
+                }
+                unset($indexes[$physical]);
+            }
             foreach ($definition['indexes'] as $name => $options) {
+                if (isset($replaced[$name])) {
+                    continue;
+                }
                 $physical = $grammar->indexName($table, $options['column'], $options);
                 if (!isset($indexes[$physical])) {
                     $findings[] = sprintf('%s: index %s missing', $table, $physical);
@@ -1120,6 +1239,37 @@ class BaselineGenerator
     }
 
     // --------------------------------------------------------------- helpers
+
+    /**
+     * @param string $table
+     * @param array $indexes The reference's index declarations for it.
+     * @return array MySQL index name => its PGSQL_REPLACED_INDEXES entry, for
+     *   the replaced indexes the reference has.
+     */
+    private static function replacedIndexes($table, array $indexes)
+    {
+        if (!isset(self::PGSQL_REPLACED_INDEXES[$table])) {
+            return array();
+        }
+        return array_intersect_key(self::PGSQL_REPLACED_INDEXES[$table], $indexes);
+    }
+
+    /**
+     * @param array $schema From readSchema().
+     * @return string[] The extensions the replaced indexes of the schema need.
+     */
+    private static function pgsqlExtensions(array $schema)
+    {
+        $extensions = array();
+        foreach ($schema as $table => $definition) {
+            foreach (self::replacedIndexes($table, $definition['indexes']) as $replacement) {
+                if (isset($replacement['extension'])) {
+                    $extensions[$replacement['extension']] = true;
+                }
+            }
+        }
+        return array_keys($extensions);
+    }
 
     /**
      * PostgreSQL truncates an identifier to 63 bytes without complaint, and

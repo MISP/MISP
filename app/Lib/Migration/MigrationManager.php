@@ -1,6 +1,7 @@
 <?php
 
 App::uses('AbstractMigration', 'Migration');
+App::uses('MigrationDeferredException', 'Migration');
 App::uses('MigrationRunner', 'Migration');
 App::uses('SchemaBuilder', 'Migration');
 App::uses('SchemaInspector', 'Migration');
@@ -37,6 +38,11 @@ App::uses('Folder', 'Utility');
  * must not run its third step when its first one failed. The failed migration
  * is retried first on the next run.
  *
+ * A migration whose beforeUp() defers halts the run the same way but is not a
+ * failure: it is recorded as 'deferred', with its reason, and stays pending.
+ * Automatic runs leave it alone for DEFERRAL_RETRY_SECONDS (waiting()); an
+ * explicit run tries it again at once.
+ *
  * ## The ledger is written without a model
  *
  * schema_migrations is created and written through plain statements rather than
@@ -63,6 +69,13 @@ class MigrationManager
 
     const STATUS_APPLIED = 'applied';
     const STATUS_FAILED = 'failed';
+    const STATUS_DEFERRED = 'deferred';
+
+    /**
+     * How long automatic runs leave a deferred migration alone. Its check may
+     * be costly, and admin requests start a run each.
+     */
+    const DEFERRAL_RETRY_SECONDS = 3600;
 
     /**
      * App::uses() package the migration classes are resolved from.
@@ -137,6 +150,12 @@ class MigrationManager
      * @var string|null Why the most recent apply() failed. Set by execute().
      */
     protected $lastError;
+
+    /** @var string|null Why the most recent apply() was deferred. */
+    protected $deferredReason;
+
+    /** @var string|null The status the most recent apply() recorded. */
+    private $lastStatus;
 
     /**
      * @param Model $model Supplies the datasource and carries the statements.
@@ -323,6 +342,33 @@ class MigrationManager
     }
 
     /**
+     * @return array Ids the ledger records as deferred. Still pending.
+     */
+    public function deferred()
+    {
+        return array_keys($this->ledgerByStatus(self::STATUS_DEFERRED));
+    }
+
+    /**
+     * Whether an automatic run should leave this migration alone: it was
+     * deferred less than DEFERRAL_RETRY_SECONDS ago.
+     *
+     * @param string $id
+     * @param int|null $now
+     * @return bool
+     */
+    public function waiting($id, $now = null)
+    {
+        $rows = $this->ledgerByStatus(self::STATUS_DEFERRED);
+        if (!isset($rows[$id]['applied_at'])) {
+            return false;
+        }
+        $deferredAt = strtotime($rows[$id]['applied_at']);
+        return $deferredAt !== false
+            && $deferredAt + self::DEFERRAL_RETRY_SECONDS > ($now === null ? time() : $now);
+    }
+
+    /**
      * Migrations that have not successfully run, in id order.
      *
      * The shape is deliberately the one findUpgrades() already produces -
@@ -356,6 +402,7 @@ class MigrationManager
         $migration = $this->migration($id);
         $this->ensureLedger();
         $this->lastError = null;
+        $this->deferredReason = null;
 
         $startedAt = microtime(true);
         try {
@@ -366,17 +413,29 @@ class MigrationManager
         }
         $durationMs = (int)round((microtime(true) - $startedAt) * 1000);
 
-        $this->writeLedger(
-            $id,
-            $success ? self::STATUS_APPLIED : self::STATUS_FAILED,
-            $durationMs,
-            $success ? null : $this->lastError
-        );
+        if ($success) {
+            $this->lastStatus = self::STATUS_APPLIED;
+        } elseif ($this->deferredReason !== null) {
+            $this->lastStatus = self::STATUS_DEFERRED;
+            $this->lastError = $this->deferredReason;
+        } else {
+            $this->lastStatus = self::STATUS_FAILED;
+        }
+        $this->writeLedger($id, $this->lastStatus, $durationMs, $success ? null : $this->lastError);
         return $success;
     }
 
     /**
-     * Apply every pending migration in order, stopping at the first failure.
+     * @return string|null The status the most recent apply() recorded.
+     */
+    public function lastStatus()
+    {
+        return $this->lastStatus;
+    }
+
+    /**
+     * Apply every pending migration in order, stopping at the first failure or
+     * deferral.
      *
      * The halt is the contract, not an optimisation. A migration that depends on
      * its predecessor - and migrations authored together in one branch routinely
@@ -417,7 +476,7 @@ class MigrationManager
     }
 
     /**
-     * @return string|null Why the most recent apply() failed.
+     * @return string|null Why the most recent apply() failed or was deferred.
      */
     public function lastError()
     {
@@ -509,7 +568,13 @@ class MigrationManager
         // The data work the DDL depends on comes first, and a failure there
         // stops everything: no statement runs against rows the migration could
         // not put right.
-        if ($migration->beforeUp() === false) {
+        try {
+            $ready = $migration->beforeUp();
+        } catch (MigrationDeferredException $e) {
+            $this->deferredReason = $e->getMessage();
+            return false;
+        }
+        if ($ready === false) {
             $this->lastError = __('beforeUp() reported failure.');
             return false;
         }

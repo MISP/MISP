@@ -93,6 +93,17 @@ if (!class_exists('Configure', false)) {
     }
 }
 
+if (!class_exists('ConnectionManager', false)) {
+    class ConnectionManager
+    {
+        // DboSource::fields() names the connection in its cache key.
+        public static function getSourceName($source)
+        {
+            return 'test';
+        }
+    }
+}
+
 // -------- the real CakePHP datasource classes --------
 
 require_once CAKE . 'Core/CakeObject.php';

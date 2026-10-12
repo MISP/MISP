@@ -863,8 +863,8 @@ class ShadowAttributesController extends AppController
         if (!empty($this->request['named']['searchall'])) {
             $term = '%' . strtolower(trim($this->request['named']['searchall'])) . '%';
             $conditions['AND'][] = array('OR' => array(
-                'LOWER(ShadowAttribute.value1) LIKE' => $term,
-                'LOWER(ShadowAttribute.value2) LIKE' => $term,
+                'ShadowAttribute.value1 LIKE' => $term,
+                'ShadowAttribute.value2 LIKE' => $term,
                 'LOWER(ShadowAttribute.comment) LIKE' => $term,
                 'LOWER(Event.info) LIKE' => $term,
                 'LOWER(Org.name) LIKE' => $term,
@@ -927,17 +927,9 @@ class ShadowAttributesController extends AppController
                 $params[$simpleParam] = $this->request['named'][$simpleParam];
             }
         }
-        if (isset($this->request['named']['sort'])) {
-            $sortField = $this->request['named']['sort'];
-            $schema = $this->ShadowAttribute->schema();
-            if (isset($schema[$sortField])) {
-                $sortDirection = 'ASC';
-                if (!empty($this->request['named']['direction'])) {
-                    $direction = trim(strtolower($this->request['named']['direction']));
-                    $sortDirection = ($direction === 'asc' ? 'ASC' : 'DESC');
-                }
-                $params['order'] = array('ShadowAttribute.' . $sortField => $sortDirection);
-            }
+        $order = $this->__indexOrder($this->request['named']);
+        if ($order !== null) {
+            $params['order'] = $order;
         }
         if (empty($params['order'])) {
             // Insertion order, stated. MySQL returns it off the primary key
@@ -969,6 +961,32 @@ class ShadowAttributesController extends AppController
             $this->set('shadowAttributes', $results);
             $this->set('all', $all);
         }
+    }
+
+    /**
+     * @param array $named
+     * @return array|null The order the sort parameter asks for, if it names a sort key.
+     */
+    private function __indexOrder(array $named)
+    {
+        if (!isset($named['sort'])) {
+            return null;
+        }
+        $sortField = $named['sort'];
+        $schema = $this->ShadowAttribute->schema();
+        // The value sorts by the dictionary text; its id and text columns are no sort keys
+        if ($sortField !== 'value' && (
+            !isset($schema[$sortField]) || in_array($sortField, ['value1', 'value2', 'value1_id', 'value2_id'], true)
+        )) {
+            return null;
+        }
+        $sortDirection = 'ASC';
+        if (!empty($named['direction'])) {
+            $direction = trim(strtolower($named['direction']));
+            $sortDirection = ($direction === 'asc' ? 'ASC' : 'DESC');
+        }
+        $order = array('ShadowAttribute.' . $sortField => $sortDirection);
+        return $order;
     }
 
     public function discardSelected($id)
@@ -1058,42 +1076,6 @@ class ShadowAttributesController extends AppController
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted.')), 'status'=>200, 'type' => 'json'));
         } else {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be accepted.')), 'status'=>200, 'type' => 'json'));
-        }
-    }
-
-    public function generateCorrelation()
-    {
-        if (!self::_isSiteAdmin() || !$this->request->is('post')) {
-            throw new NotFoundException();
-        }
-        if (!Configure::read('MISP.background_jobs')) {
-            $k = $this->ShadowAttribute->generateCorrelation();
-            $this->Flash->success(__('All done. ' . $k . ' proposals processed.'));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        } else {
-            /** @var Job $job */
-            $job = ClassRegistry::init('Job');
-            $jobId = $job->createJob(
-                'SYSTEM',
-                Job::WORKER_DEFAULT,
-                'generate proposal correlation',
-                'All attributes',
-                'Job created.'
-            );
-
-            $this->MispAttribute->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_ADMIN,
-                [
-                    'jobGenerateShadowAttributeCorrelation',
-                    $jobId
-                ],
-                true,
-                $jobId
-            );
-
-            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
         }
     }
 

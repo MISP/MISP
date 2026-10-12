@@ -144,14 +144,19 @@ class MispObject extends AppModel
     {
         $conditions = [];
         if (isset($params['wildcard'])) {
-            $temp = array();
-            $options = array(
-                'filter' => 'wildcard',
-                'scope' => 'Object',
-                'pop' => false,
-                'context' => 'Event'
+            // The attribute conditions need an attribute query of their own
+            $subQueryOptions = array(
+                'fields' => ['Attribute.object_id'],
+                'recursive' => -1,
+                'conditions' => array(
+                    'Attribute.object_id NOT' => 0,
+                    'OR' => $this->Event->wildcardAttributeConditions($params['wildcard'])
+                )
             );
-            $conditions['AND'][] = array('OR' => $this->Event->set_filter_wildcard_attributes($params, $temp, $options));
+            $conditions['AND'][] = array('OR' => array(
+                array('Event.info LIKE' => $params['wildcard']),
+                $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Object.id')
+            ));
         } else {
             if (isset($params['ignore'])) {
                 $params['to_ids'] = array(0, 1);
@@ -184,7 +189,6 @@ class MispObject extends AppModel
                     'published' => array('function' => 'set_filter_published')
                 ),
                 'Attribute' => array(
-                    'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_simple_attribute'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
@@ -224,6 +228,35 @@ class MispObject extends AppModel
                         }
                     }
                 }
+            }
+            if (isset($params['value']) && $params['value'] !== false) {
+                // It reads the attributes in a subquery of its own. Added last,
+                // so that the attribute subqueries above do not repeat it.
+                $options = array(
+                    'filter' => 'value',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Object'
+                );
+                $conditions = $this->Event->set_filter_value($params, $conditions, $options);
+            }
+            if (!empty($params['value_cidr'])) {
+                $options = array(
+                    'filter' => 'value_cidr',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Object'
+                );
+                $conditions = $this->Event->set_filter_value_cidr($params, $conditions, $options);
+            }
+            if (!empty($params['value_search'])) {
+                $options = array(
+                    'filter' => 'value_search',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Object'
+                );
+                $conditions = $this->Event->set_filter_value_search($params, $conditions, $options);
             }
         }
         return $conditions;
@@ -448,9 +481,10 @@ class MispObject extends AppModel
         if (!isset($this->__objectDuplicationCheckCache[$object['Object']['template_uuid']])) {
             $this->__objectDuplicationCheckCache[$object['Object']['template_uuid']] = $this->find('all', array(
                 'recursive' => -1,
+                'valueKeys' => ['value'],
                 'contain' => array(
                     'Attribute' => array(
-                        'fields' => array('value', 'type', 'category', 'object_relation'),
+                        'fields' => array('value1_id', 'value2_id', 'type', 'category', 'object_relation'),
                         'conditions' => array('Attribute.deleted' => 0)
                     )
                 ),
@@ -1331,6 +1365,24 @@ class MispObject extends AppModel
     }
 
     /**
+     * @param array $objects Objects, flat or under the Object key
+     * @return array Their attributes, flat
+     */
+    public function objectAttributes(array $objects)
+    {
+        $attributes = [];
+        foreach ($objects as $object) {
+            $object = $object['Object'] ?? $object;
+            if (!empty($object['Attribute']) && is_array($object['Attribute'])) {
+                foreach ($object['Attribute'] as $attribute) {
+                    $attributes[] = $attribute;
+                }
+            }
+        }
+        return $attributes;
+    }
+
+    /**
      * @param array $object
      * @param int $eventId
      * @param array $user
@@ -1377,11 +1429,16 @@ class MispObject extends AppModel
         }
         $objectId = $this->id;
         if (!empty($object['Object']['Attribute'])) {
-            foreach ($object['Object']['Attribute'] as $attribute) {
-                if (!empty($object['Object']['deleted'])) {
-                    $attribute['deleted'] = 1;
+            $primed = $this->Attribute->primeValues($object['Object']['Attribute']);
+            try {
+                foreach ($object['Object']['Attribute'] as $attribute) {
+                    if (!empty($object['Object']['deleted'])) {
+                        $attribute['deleted'] = 1;
+                    }
+                    $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
                 }
-                $this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, false, $parentEvent);
+            } finally {
+                $this->Attribute->releaseValues($primed);
             }
         }
         if (empty($object['Object']['uuid'])) {

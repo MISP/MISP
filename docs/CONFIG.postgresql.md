@@ -28,11 +28,42 @@ packages, PHP, Redis, workers, the web server — is the same.
 
 ## Requirements
 
-- PostgreSQL 13 or later. Developed and verified against 16.
+- PostgreSQL 16 or later. Ubuntu 24.04 ships 16; on RHEL 9 enable the
+  `postgresql:16` module stream, as its default PostgreSQL 13 is end-of-life.
+- The `pg_trgm` extension. MISP creates it itself, when the install baseline is
+  loaded or during `runUpdates`; see
+  [The pg_trgm extension](#the-pg_trgm-extension) below for what that needs.
 - The `pdo_pgsql` PHP extension (`php-pgsql` on Debian/Ubuntu, `php-pgsql` on
   RHEL), for the CLI, php-fpm and Apache alike.
 - A database created with **UTF8** encoding. MISP does not set encoding per
   table or column on PostgreSQL; the database does.
+
+## The pg_trgm extension
+
+MISP indexes attribute values for substring search with a `pg_trgm` GIN
+index. `INSTALL/POSTGRESQL.sql` and the migration that creates the index both
+run `CREATE EXTENSION IF NOT EXISTS pg_trgm` first.
+
+- `pg_trgm` is a *trusted* extension, so no superuser is needed: the MISP
+  database user only needs `CREATE` on the database. The owner of the
+  database has it, so the install below needs nothing extra.
+- On RHEL the extension ships in a separate package, which has to be
+  installed on the database server: `dnf install postgresql-contrib`, from
+  the same module stream as the server. Debian and Ubuntu ship it with the
+  server package.
+- If the MISP user does not own the database, either grant it the privilege
+  or create the extension yourself, as a superuser, in the MISP database:
+
+  ```sql
+  GRANT CREATE ON DATABASE misp TO misp;
+  -- or
+  CREATE EXTENSION pg_trgm;
+  ```
+
+When neither is possible, the update stops before creating anything, with a
+message saying which of the two is missing. Loading the baseline fails on that
+statement instead, and as the file is one transaction, leaves the database
+empty.
 
 ## Install
 
@@ -98,18 +129,26 @@ A few things are deliberately not what MySQL has. None of them need action;
 they are listed so nobody discovers them the hard way.
 
 - **Flags are boolean.** Every `tinyint(1)` column is `boolean` on PostgreSQL.
-  The application still sees `"1"` and `"0"` — the datasource sees to that —
-  but hand-written SQL against those columns must say `TRUE` / `FALSE`, not
-  `1` / `0`.
-- **Text comparison is exact.** MySQL's case-insensitive collations do not
-  carry over; PostgreSQL compares text as-is.
+  The application sees PHP booleans, as it does on MySQL — the datasource sees
+  to that — but hand-written SQL against those columns must say `TRUE` /
+  `FALSE`, not `1` / `0`.
+- **Text comparison is exact, except for attribute values.** MySQL's
+  case-insensitive collations do not carry over; PostgreSQL compares text
+  as-is. Attribute values are the exception: searching and correlating them
+  ignores case on both engines. MySQL and MariaDB also treat accented and
+  plain letters, a no-break space and a space, and trailing spaces as equal;
+  PostgreSQL does not, so `Mise à jour` correlates with `Mise a jour` on
+  MySQL and MariaDB only.
 - **Some indexes are hash indexes.** MySQL indexes the first 255 characters of
-  `attributes.value1`, `events.info` and seven similar text columns. PostgreSQL
+  `events.info`, `galaxy_clusters.value` and two similar text columns. PostgreSQL
   has no prefix indexes, and a full-column btree would reject values longer
   than about 2.7 KB, which MISP stores routinely. Those columns carry a hash
   index instead: equality lookups, which is how they are queried, at the cost
   of no ordered scans.
-- **No FULLTEXT.** MySQL-only. Nothing in MISP requires it.
+- **No FULLTEXT.** MySQL-only. Where MySQL has a FULLTEXT index (on
+  `attribute_values.value`), PostgreSQL has a `pg_trgm` GIN index instead,
+  so the `value_search` filter matches from the start of a word on MySQL and
+  anywhere in the value on PostgreSQL.
 - **`schemaDiagnostics` declines.** The expected-schema file it compares
   against is a MySQL dump, so on PostgreSQL the diagnostic reports that it is
   not available rather than a meaningless diff. `Admin verifyInstallBaseline`

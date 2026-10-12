@@ -474,6 +474,7 @@ $migrationsPending = (int)($dbSchemaDiagnostics['migrations_pending'] ?? 0);
 $migrationsPendingIds = $dbSchemaDiagnostics['migrations_pending_ids'] ?? array();
 $migrationsFailed = (int)($dbSchemaDiagnostics['migrations_failed'] ?? 0);
 $migrationsFailedIds = $dbSchemaDiagnostics['migrations_failed_ids'] ?? array();
+$migrationsDeferredReasons = $dbSchemaDiagnostics['migrations_deferred_reasons'] ?? array();
 $migrationsApplied = (int)($dbSchemaDiagnostics['migrations_applied'] ?? 0);
 
 if ($migrationsFailed > 0) {
@@ -584,6 +585,9 @@ $openCard('database', '#0dcaf0', __('Database status'),
                         <code><?= h($migrationId) ?></code>
                         <?php if (in_array($migrationId, $migrationsFailedIds, true)): ?>
                             <?= $pill(0, __('failed')) ?>
+                        <?php elseif (isset($migrationsDeferredReasons[$migrationId])): ?>
+                            <?= $pill(1, __('deferred')) ?>
+                            <div class="small"><?= h($migrationsDeferredReasons[$migrationId]) ?></div>
                         <?php endif; ?>
                     </li>
                 <?php endforeach; ?>

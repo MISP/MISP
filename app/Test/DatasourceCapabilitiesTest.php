@@ -127,9 +127,9 @@ if (!class_exists('DatasourceTestPostgresObserverExtended', false)) {
             return false;
         }
 
-        public function getVirtualField($field)
+        public function getVirtualField($field = null)
         {
-            return null;
+            return $field === null ? array() : null;
         }
 
         public function __get($name)
@@ -410,6 +410,21 @@ class DatasourceCapabilitiesTest extends TestCase
         $expected = ' ORDER BY "News"."date_created" DESC, "News"."id" ASC';
         $this->assertSame($expected, $db->order('date_created DESC, id', 'ASC', $News), 'a comma-separated string');
         $this->assertSame($expected, $db->order(array(array('date_created' => 'DESC'), 'id'), 'ASC', $News), 'nested');
+    }
+
+    /**
+     * DboSource::fields() unwraps an expression into its SQL; Postgres::fields()
+     * quotes with preg_match() over every field and refused the object.
+     */
+    public function testFieldsUnwrapsAnExpressionLikeTheBaseClass()
+    {
+        $db = new DatasourceTestPostgresObserverExtended();
+        $News = new Model('News', array('id', 'date_created', 'user_id'));
+        $case = 'CASE WHEN "News"."id" > 1 THEN 1 ELSE 0 END AS "late"';
+        $this->assertSame(
+            array('"News"."id" AS "News__id"', $case),
+            $db->fields($News, 'News', array('id', $db->expression($case)))
+        );
     }
 
     /**

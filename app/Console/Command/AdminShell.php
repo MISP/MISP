@@ -311,19 +311,6 @@ class AdminShell extends AppShell
         $this->Job->saveStatus($jobId);
     }
 
-    public function jobGenerateShadowAttributeCorrelation()
-    {
-        if (empty($this->args[0])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Generate shadow attribute correlation']);
-        }
-
-        $jobId = $this->args[0];
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('ShadowAttribute');
-        $this->ShadowAttribute->generateCorrelation($jobId);
-    }
-
     public function updateMISP()
     {
         $status = array('branch' => '2.4');
@@ -863,7 +850,8 @@ class AdminShell extends AppShell
             $this->AdminSetting->delete($lock['AdminSetting']['id']);
         }
         $processId = empty($this->args[0]) ? false : $this->args[0];
-        $this->Server->runUpdates(true, false, $processId, true);
+        // Run by hand, not by a worker: try deferred migrations again now.
+        $this->Server->runUpdates(true, false, $processId, true, $processId === false);
         $this->Server->cleanCacheFiles();
         $this->out('All updates completed.');
     }
@@ -906,22 +894,26 @@ class AdminShell extends AppShell
 
         $applied = [];
         $failed = [];
+        $deferred = [];
         $orphaned = [];
         foreach ($ledger as $id => $row) {
+            $status = isset($row['status']) ? $row['status'] : null;
             if (!isset($onDisk[$id])) {
                 $orphaned[$id] = $row;
-            } elseif (isset($row['status']) && $row['status'] === MigrationManager::STATUS_FAILED) {
+            } elseif ($status === MigrationManager::STATUS_FAILED) {
                 $failed[$id] = $row;
+            } elseif ($status === MigrationManager::STATUS_DEFERRED) {
+                $deferred[$id] = $row;
             } else {
                 $applied[$id] = $row;
             }
         }
         // pending() is everything on disk the ledger does not call applied, so
-        // it holds the failed ones too - they are a retry, not a decision.
-        $untried = array_diff_key($manager->pending(), $failed);
+        // it holds the failed and deferred ones too - a retry, not a decision.
+        $untried = array_diff_key($manager->pending(), $failed, $deferred);
 
         if (!empty($this->params['json'])) {
-            $this->__outMigrationStatusJson($manager, $onDisk, $applied, $failed, $untried, $orphaned);
+            $this->__outMigrationStatusJson($manager, $onDisk, $applied, $failed, $deferred, $untried, $orphaned);
             return;
         }
 
@@ -944,6 +936,13 @@ class AdminShell extends AppShell
             $onDisk,
             $width
         );
+        $this->__outMigrationGroup(
+            __('Deferred (%s) - waiting for what the reason names; `Admin runUpdates` tries again', count($deferred)),
+            array_keys($deferred),
+            $ledger,
+            $onDisk,
+            $width
+        );
         $this->__outMigrationGroup(__('Pending (%s)', count($untried)), array_keys($untried), $ledger, $onDisk, $width);
         $this->__outMigrationGroup(
             __('Recorded but no longer on disk (%s)', count($orphaned)),
@@ -953,7 +952,7 @@ class AdminShell extends AppShell
             $width
         );
 
-        if (empty($untried) && empty($failed)) {
+        if (empty($untried) && empty($failed) && empty($deferred)) {
             $this->out();
             $this->out('<info>' . __('Everything on disk has been applied.') . '</info>');
         }
@@ -995,7 +994,8 @@ class AdminShell extends AppShell
                 $this->out('    ' . $description);
             }
             if (!empty($row['error'])) {
-                $this->out('    <error>' . $row['error'] . '</error>');
+                $style = isset($row['status']) && $row['status'] === MigrationManager::STATUS_DEFERRED ? 'warning' : 'error';
+                $this->out(sprintf('    <%s>%s</%s>', $style, $row['error'], $style));
             }
         }
     }
@@ -1014,6 +1014,7 @@ class AdminShell extends AppShell
      * @param array $onDisk id => AbstractMigration
      * @param array $applied id => ledger row
      * @param array $failed id => ledger row
+     * @param array $deferred id => ledger row
      * @param array $untried id => requiresLogout
      * @param array $orphaned id => ledger row, for migrations no longer on disk
      * @return void
@@ -1023,6 +1024,7 @@ class AdminShell extends AppShell
         array $onDisk,
         array $applied,
         array $failed,
+        array $deferred,
         array $untried,
         array $orphaned
     ) {
@@ -1059,6 +1061,7 @@ class AdminShell extends AppShell
             'directory' => $manager->directory(),
             'applied' => $describe($applied),
             'failed' => $describe($failed),
+            'deferred' => $describe($deferred),
             'pending' => $pending,
             'orphaned' => $describe($orphaned),
         ], true));
@@ -1129,6 +1132,11 @@ class AdminShell extends AppShell
             $duration = isset($row['duration_ms']) ? sprintf(' (%s ms)', (int)$row['duration_ms']) : '';
             if ($success) {
                 $this->out('<info>' . __('applied') . '</info> ' . $migrationId . $duration);
+                continue;
+            }
+            if (isset($row['status']) && $row['status'] === MigrationManager::STATUS_DEFERRED) {
+                $this->out('<warning>' . __('deferred') . '</warning> ' . $migrationId . $duration);
+                $this->out('  ' . $row['error']);
                 continue;
             }
             $failures++;
@@ -1336,12 +1344,6 @@ class AdminShell extends AppShell
                     'highPerformanceLogSearchIndexing',
                 ],
                 'help' => __('High performance indexing of logs. Drastically improves log search performance as well  as functionalities such as checking the past 10 logins. This is a slow reindexing process and is meant for servers with abundant RAM and innodb_buffer_pool_size set to a high value.'),
-            ],
-            'OnDemandCorrelationTuning' => [
-                'scripts' => [
-                    'OnDemandCorrelationTuning',
-                ],
-                'help' => __('Additional indices specifically to help with the unusual search patterns of the on demand correlation tuning.'),
             ]
         ];
 
@@ -1941,11 +1943,14 @@ class AdminShell extends AppShell
         $this->out('# Migrations');
         $this->out(' Applied: ' . $dbSchemaDiagnostics['migrations_applied']);
         $this->out(' Failed:  ' . $dbSchemaDiagnostics['migrations_failed']);
+        $this->out(' Deferred: ' . $dbSchemaDiagnostics['migrations_deferred']);
         $this->out(' Pending: ' . $dbSchemaDiagnostics['migrations_pending']);
         foreach ($dbSchemaDiagnostics['migrations_pending_ids'] as $id) {
             $line = ' - ' . $id;
             if (in_array($id, $dbSchemaDiagnostics['migrations_failed_ids'], true)) {
                 $line .= ' <error>' . __('(failed - retried before anything else on the next run)') . '</error>';
+            } elseif (isset($dbSchemaDiagnostics['migrations_deferred_reasons'][$id])) {
+                $line .= ' <warning>' . __('(deferred: %s)', $dbSchemaDiagnostics['migrations_deferred_reasons'][$id]) . '</warning>';
             }
             $this->out($line);
         }

@@ -136,6 +136,29 @@ class MigrationOrderingTest extends TestCase
         $this->assertSame(array('20260102_000000_backfill_column'), $manager->failed());
     }
 
+    public function testADeferralHaltsTheRunWithoutAFailure()
+    {
+        $manager = new TestMigrationManager(self::$threeStepFiles);
+        $manager->deferring = array('20260102_000000_backfill_column');
+
+        $results = $manager->applyPending();
+
+        $this->assertSame(
+            array('20260101_000000_add_column' => true, '20260102_000000_backfill_column' => false),
+            $results
+        );
+        $this->assertSame(array('20260102_000000_backfill_column'), $manager->deferred());
+        $this->assertSame(array(), $manager->failed());
+        $this->assertSame(
+            array(
+                '20260102_000000_backfill_column',
+                '20260103_000000_drop_old_column',
+                '20260104_000000_unrelated',
+            ),
+            array_keys($manager->pending())
+        );
+    }
+
     public function testTheNextRunRetriesTheFailedMigrationFirst()
     {
         $manager = new TestMigrationManager(self::$threeStepFiles);

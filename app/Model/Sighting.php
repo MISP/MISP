@@ -303,9 +303,10 @@ class Sighting extends AppModel
     {
         $sighting = $this->find('first', array(
             'recursive' => -1,
+            'valueKeys' => ['value'],
             'contain' => array(
                 'Attribute' => array(
-                    'fields' => array('Attribute.value', 'Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids')
+                    'fields' => array('Attribute.value1_id', 'Attribute.value2_id', 'Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids')
                 ),
                 'Event' => array(
                     'fields' => ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'],
@@ -908,13 +909,14 @@ class Sighting extends AppModel
                 $values = array($values);
             }
             if (empty($filters)) {
-                foreach ($values as $value) {
-                    foreach (array('value1', 'value2') as $field) {
-                        $conditions['OR'][] = array(
-                            'Attribute.' . $field => $value
-                        );
-                    }
-                }
+                // Lists rather than a condition per value, resolved in one statement
+                $terms = array_values(array_filter($values, function ($value) {
+                    return is_string($value) || is_int($value) || is_float($value);
+                }));
+                $conditions['OR'] = array(
+                    'Attribute.value1' => $terms,
+                    'Attribute.value2' => $terms,
+                );
             }
         }
         $attributes = [];

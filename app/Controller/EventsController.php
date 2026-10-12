@@ -818,6 +818,9 @@ class EventsController extends AppController
                     if ($v == "") {
                         continue 2;
                     }
+                    if (is_scalar($v)) {
+                        $v = (string)$v;
+                    }
                     $conditions['OR'] = [
                         ['Attribute.value1' => $v],
                         ['Attribute.value2' => $v],

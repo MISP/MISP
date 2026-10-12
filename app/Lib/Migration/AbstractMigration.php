@@ -1,5 +1,6 @@
 <?php
 
+App::uses('MigrationDeferredException', 'Migration');
 App::uses('SchemaBuilder', 'Migration');
 App::uses('SchemaInspector', 'Migration');
 
@@ -148,13 +149,28 @@ abstract class AbstractMigration
      * Same contract as afterUp(): runs once, and returning false or throwing
      * marks the migration failed and halts the run - here before any statement
      * has been issued. The inspector is available, so the work can be guarded
-     * the way the DDL is, and a retry finds nothing left to do.
+     * the way the DDL is, and a retry finds nothing left to do. A precondition
+     * only an administrator can meet calls defer() instead.
      *
      * @return bool
      */
     public function beforeUp()
     {
         return true;
+    }
+
+    /**
+     * Not yet: halt the run and leave this migration pending, without counting
+     * a failed update. For beforeUp() only, where nothing has run; the reason
+     * should say what the administrator has to do first.
+     *
+     * @param string $reason
+     * @return void
+     * @throws MigrationDeferredException
+     */
+    protected function defer($reason)
+    {
+        throw new MigrationDeferredException($reason);
     }
 
     /**

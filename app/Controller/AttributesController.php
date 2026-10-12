@@ -276,17 +276,12 @@ class AttributesController extends AppController
         ]);
         $orgTable = Hash::combine($orgTable, '{n}.Orgc.id', '{n}.Orgc');
         $sgids = $this->MispAttribute->SharingGroup->authorizedIds($user);
+        $related = $this->MispAttribute->relatedAttributesOf($user, $sgids, $attributes, []);
         foreach ($attributes as &$attribute) {
             if (isset($orgTable[$attribute['Event']['orgc_id']])) {
                 $attribute['Event']['Orgc'] = $orgTable[$attribute['Event']['orgc_id']];
             }
-            $temp = $this->MispAttribute->Correlation->getRelatedAttributes(
-                $user,
-                $sgids,
-                $attribute['Attribute'],
-                [],
-                true
-            );
+            $temp = $related[$attribute['Attribute']['id']];
             foreach ($temp as &$t) {
                 $t['info'] = $t['Event']['info'];
                 $t['org_id'] = $t['Event']['org_id'];
@@ -1960,9 +1955,19 @@ class AttributesController extends AppController
                     $shadowAttribute['ShadowAttribute']['old_id'] = $attribute['Attribute']['id'];
                     $shadowAttributes[] = $shadowAttribute;
                 }
-                $saveSuccess = $this->MispAttribute->Event->ShadowAttribute->saveMany($shadowAttributes);
+                $primed = $this->MispAttribute->Event->ShadowAttribute->primeValues(array_column($shadowAttributes, 'ShadowAttribute'));
+                try {
+                    $saveSuccess = $this->MispAttribute->Event->ShadowAttribute->saveMany($shadowAttributes);
+                } finally {
+                    $this->MispAttribute->releaseValues($primed);
+                }
             } else {
-                $saveSuccess = $this->MispAttribute->saveMany($attributes);
+                $primed = $this->MispAttribute->primeValues(array_column($attributes, 'Attribute'));
+                try {
+                    $saveSuccess = $this->MispAttribute->saveMany($attributes);
+                } finally {
+                    $this->MispAttribute->releaseValues($primed);
+                }
             }
             if ($saveSuccess) {
                 if (!$this->_isRest()) {
@@ -2775,10 +2780,10 @@ class AttributesController extends AppController
                         'conditions' => array(
                             'OR' => array(
                                 'AND' => array(
-                                    'LOWER(Attribute.value1) LIKE' => strtolower($hash),
+                                    'Attribute.value1 LIKE' => strtolower($hash),
                                     'Attribute.value2' => '',
                                 ),
-                                'LOWER(Attribute.value2) LIKE' => strtolower($hash)
+                                'Attribute.value2 LIKE' => strtolower($hash)
                             )
                         ),
                     ));
@@ -2794,7 +2799,7 @@ class AttributesController extends AppController
                     $error = 'Only MD5 hashes can be used to fetch malware samples at this point in time.';
                 }
                 if (empty($error)) {
-                    $searchConditions = array('AND' => array('LOWER(Attribute.value2) LIKE' => strtolower($hash)));
+                    $searchConditions = array('AND' => array('Attribute.value2 LIKE' => strtolower($hash)));
                 }
             }
         }
@@ -2807,7 +2812,7 @@ class AttributesController extends AppController
             $attributes = $this->MispAttribute->fetchAttributes(
                 $this->Auth->user(),
                 array(
-                    'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.value1', 'Attribute.value2', 'Event.info'),
+                    'fields' => array('Attribute.event_id', 'Attribute.id', 'Event.info'),
                     'conditions' => array(
                         'AND' => array(
                             $searchConditions,
@@ -2887,7 +2892,7 @@ class AttributesController extends AppController
         switch ($script) {
             case 'urlSanitisation':
                 $replaceConditions = array(
-                    array('search' => 'UPPER(Attribute.value1) LIKE', 'from' => 'HXXP', 'to' => 'http', 'ci' => true, 'condition' => 'startsWith'),
+                    array('search' => 'Attribute.value1 LIKE', 'from' => 'HXXP', 'to' => 'http', 'ci' => true, 'condition' => 'startsWith'),
                     array('search' => 'Attribute.value1 LIKE', 'from' => '[.]', 'to' => '.', 'ci' => false, 'condition' => 'contains'),
                 );
                 break;
@@ -4588,13 +4593,32 @@ class AttributesController extends AppController
         }
         $conditions['AND'][] = $this->MispAttribute->buildConditions($this->Auth->user());
 
-        $this->MispAttribute->virtualFields['md5_value1'] = 'MD5(Attribute.value1)';
-        $this->MispAttribute->virtualFields['md5_value2'] = "MD5(NULLIF(Attribute.value2, ''))";
+        $db = $this->MispAttribute->getDataSource();
+        $value1 = $db->name('Value1.value');
+        $value2 = $db->name('Value2.value');
+        $this->MispAttribute->virtualFields['md5_value1'] = "MD5($value1)";
+        // A value2 of spaces is empty, as 2.x compared it to ''
+        $this->MispAttribute->virtualFields['md5_value2'] = "CASE WHEN LENGTH(TRIM(TRAILING ' ' FROM $value2)) = 0 THEN NULL ELSE MD5($value2) END";
+        $valueTable = $this->MispAttribute->loadAttributeValue()->useTable;
 
         $rows = $this->MispAttribute->find('all', [
             'conditions' => $conditions,
             'recursive'  => -1,
             'contain'    => ['Event', 'Object.distribution', 'Object.sharing_group_id'],
+            'joins'      => [
+                [
+                    'table' => $valueTable,
+                    'alias' => 'Value1',
+                    'type' => 'LEFT',
+                    'conditions' => ['Value1.id = Attribute.value1_id'],
+                ],
+                [
+                    'table' => $valueTable,
+                    'alias' => 'Value2',
+                    'type' => 'LEFT',
+                    'conditions' => ['Value2.id = Attribute.value2_id'],
+                ],
+            ],
             'fields'     => [
                 'Attribute.id',
                 'Attribute.md5_value1',
@@ -4655,16 +4679,24 @@ class AttributesController extends AppController
         
         // Build efficient query conditions - search directly on indexed value1 column
         // Also check value2 for composite attributes (e.g., ip|port)
+        $valueConditions = [
+            "Attribute.value1" => $decodedValue,
+            "Attribute.value2" => $decodedValue,
+        ];
+        // value1|value2 as one string, split at each of its pipes
+        $offset = 0;
+        while (($pipe = strpos($decodedValue, '|', $offset)) !== false) {
+            $valueConditions[] = [
+                "Attribute.value1" => substr($decodedValue, 0, $pipe),
+                "Attribute.value2" => substr($decodedValue, $pipe + 1),
+            ];
+            $offset = $pipe + 1;
+        }
         $conditions = [
             "AND" => [
                 $this->MispAttribute->buildConditions($user),
                 "Attribute.deleted" => 0,
-                "OR" => [
-                    "Attribute.value1" => $decodedValue,
-                    "Attribute.value2" => $decodedValue,
-                    // For composite values like "ip|port", also search on the virtual value field
-                    "CONCAT(Attribute.value1, '|', Attribute.value2)" => $decodedValue
-                ]
+                "OR" => $valueConditions
             ]
         ];
         

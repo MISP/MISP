@@ -148,6 +148,11 @@ class AttributeGeoMapWidget
     const ASN_COUNTRY_MAP_FILE = APP . 'files' . DS . 'geo-open' . DS . 'asn-country.json';
 
     private $allSources = ['ip', 'domain_tld', 'asn', 'country_galaxy', 'threat_actor', 'geolocation', 'country_code'];
+
+    const VALUE_JOINS = [
+        'value1_id' => 'Value.id = Attribute.value1_id',
+        'value2_id' => 'Value.id = Attribute.value2_id',
+    ];
     private $asnMapCache = null;
 
     public function handler($user, $options = array())
@@ -241,8 +246,8 @@ class AttributeGeoMapWidget
     {
         $attribute = ClassRegistry::init('MispAttribute');
         $ips = array_merge(
-            $this->fetchAttributeValues($attribute, ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'], 'value1', $since, $cap),
-            $this->fetchAttributeValues($attribute, ['domain|ip'], 'value2', $since, $cap)
+            $this->fetchAttributeValues($attribute, ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port'], 'value1_id', $since, $cap),
+            $this->fetchAttributeValues($attribute, ['domain|ip'], 'value2_id', $since, $cap)
         );
         return $this->geolocateIps($ips);
     }
@@ -254,7 +259,7 @@ class AttributeGeoMapWidget
     private function domainTldCounts($since, $cap)
     {
         $attribute = ClassRegistry::init('MispAttribute');
-        $domains = $this->fetchAttributeValues($attribute, ['domain', 'domain|ip'], 'value1', $since, $cap);
+        $domains = $this->fetchAttributeValues($attribute, ['domain', 'domain|ip'], 'value1_id', $since, $cap);
         $tldMap = $this->tldToIso();
         if (empty($tldMap)) {
             return [];
@@ -281,7 +286,7 @@ class AttributeGeoMapWidget
             return [];
         }
         $attribute = ClassRegistry::init('MispAttribute');
-        $asns = $this->fetchAttributeValues($attribute, ['AS'], 'value1', $since, $cap);
+        $asns = $this->fetchAttributeValues($attribute, ['AS'], 'value1_id', $since, $cap);
         $counts = [];
         foreach ($asns as $asn) {
             if (!is_string($asn)) {
@@ -327,7 +332,7 @@ class AttributeGeoMapWidget
      * MispAttribute::fetchAttributes) no implicit object_id=0 filter, so
      * IPs/domains living inside objects are included.
      */
-    private function fetchAttributeValues($attribute, array $types, $field, $since, $cap)
+    private function fetchAttributeValues($attribute, array $types, $idField, $since, $cap)
     {
         $conditions = [
             'Attribute.type' => $types,
@@ -336,13 +341,41 @@ class AttributeGeoMapWidget
         if ($since !== null) {
             $conditions['Attribute.timestamp >='] = $since;
         }
-        return $attribute->find('column', [
-            'fields' => ['Attribute.' . $field],
+        return $this->valueText($attribute->find('column', [
+            'fields' => ['Value.value'],
+            'joins' => [$this->valueJoin($attribute, $idField)],
             'conditions' => $conditions,
             'recursive' => -1,
             'order' => ['Attribute.timestamp' => 'DESC'],
             'limit' => $cap,
-        ]);
+        ]));
+    }
+
+    /**
+     * The dictionary row of one value part, by its id column on Attribute.
+     */
+    private function valueJoin($attribute, $idField)
+    {
+        return [
+            'table' => $attribute->loadAttributeValue()->useTable,
+            'alias' => 'Value',
+            'type' => 'LEFT',
+            'conditions' => [self::VALUE_JOINS[$idField]],
+        ];
+    }
+
+    /**
+     * A part without a dictionary row (an empty value2) reads as '', as the
+     * text column did.
+     */
+    private function valueText(array $values)
+    {
+        foreach ($values as &$value) {
+            if ($value === null) {
+                $value = '';
+            }
+        }
+        return $values;
     }
 
     /**
@@ -544,26 +577,25 @@ class AttributeGeoMapWidget
             $conditions['Attribute.timestamp >='] = $since;
         }
         $params = [
-            'fields' => ['Attribute.value1'],
+            'fields' => ['Value.value'],
+            'joins' => [$this->valueJoin($attribute, 'value1_id')],
             'conditions' => $conditions,
             'recursive' => -1,
             'order' => ['Attribute.timestamp' => 'DESC'],
             'limit' => $cap,
         ];
         if ($objectName !== null) {
-            $params['joins'] = [
-                [
-                    'table' => 'objects',
-                    'alias' => 'MispObject',
-                    'type' => 'inner',
-                    'conditions' => [
-                        'MispObject.id = Attribute.object_id',
-                        'MispObject.name' => $objectName,
-                    ],
+            $params['joins'][] = [
+                'table' => 'objects',
+                'alias' => 'MispObject',
+                'type' => 'inner',
+                'conditions' => [
+                    'MispObject.id = Attribute.object_id',
+                    'MispObject.name' => $objectName,
                 ],
             ];
         }
-        return $attribute->find('column', $params);
+        return $this->valueText($attribute->find('column', $params));
     }
 
     /**

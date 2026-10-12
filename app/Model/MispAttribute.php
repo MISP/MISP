@@ -34,7 +34,8 @@ class MispAttribute extends AppModel
         'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
-            'change' => 'full'),
+            'change' => 'full',
+            'ignore' => ['value1_id', 'value2_id']),
         'Trim',
         'Containable',
         'Regexp' => array('fields' => array('value')),
@@ -51,10 +52,6 @@ class MispAttribute extends AppModel
 
     /** @var array Cached ACL conditions keyed by "{perm_site_admin}-{org_id}" */
     private $aclConditionsCache = [];
-
-    public $virtualFields = array(
-            'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
-    );
 
     // explanations of certain fields to be used in various views
     public $fieldDescriptions = array(
@@ -329,6 +326,11 @@ class MispAttribute extends AppModel
         'hostname|port',
     );
 
+    // Rows per pre-pass of a bulk save, see primeValues()
+    const PRIME_CHUNK = 1000;
+
+    const RELATED_FIELDS = ['id','event_id','object_id','object_relation','category','type','value','uuid','timestamp','distribution','sharing_group_id','to_ids','comment'];
+
     const CAPTURE_FIELDS = array(
         'event_id',
         'category',
@@ -532,18 +534,178 @@ class MispAttribute extends AppModel
 
     public $fast_update = false;
 
+    // The paginator sorts only by fields and virtual fields; beforeFind sorts by the value
+    public function hasField($name, $checkVirtual = false)
+    {
+        if ($checkVirtual && in_array($name, ['value', $this->alias . '.value'], true)) {
+            return true;
+        }
+        return parent::hasField($name, $checkVirtual);
+    }
+
+    public function beforeFind($query)
+    {
+        if (!empty($query['conditions'])) {
+            $query['conditions'] = $this->loadAttributeValue()->rewriteConditions($query['conditions'], $this->alias);
+        }
+        return $this->loadAttributeValue()->prepareFind($query, $this->alias);
+    }
+
+    public function subQueryConditions($conditions, $alias)
+    {
+        return $this->loadAttributeValue()->rewriteConditions($conditions, $alias);
+    }
+
     public function afterFind($results, $primary = false)
     {
         foreach ($results as &$v) {
-            $attribute = &$v['Attribute'];
+            if (!isset($v[$this->alias]) || !is_array($v[$this->alias])) {
+                continue;
+            }
+            $attribute = &$v[$this->alias];
             if (!empty($attribute['first_seen'])) {
                 $attribute['first_seen'] = $this->microTimestampToIso($attribute['first_seen']);
             }
             if (!empty($attribute['last_seen'])) {
                 $attribute['last_seen'] = $this->microTimestampToIso($attribute['last_seen']);
             }
+            unset($attribute);
         }
+        unset($v);
+        $this->loadAttributeValue()->attachFound($results, $this->alias, $primary);
         return $results;
+    }
+
+    /**
+     * The value as beforeValidate shapes it, before the import regexps run.
+     *
+     * @param string $type
+     * @param string|null $value
+     * @return string
+     */
+    public function massageValue($type, $value)
+    {
+        $value = ComplexTypeTool::refangValue(trim($value), $type);
+        return AttributeValidationTool::modifyBeforeValidation($type, $value);
+    }
+
+    /**
+     * The value1 and non-empty value2 that beforeSave splits a value into,
+     * none when a composite value does not split in two.
+     *
+     * @param string $type
+     * @param string $value
+     * @return string[]
+     */
+    public function valueParts($type, $value)
+    {
+        if (!in_array($type, $this->getCompositeTypes(), true)) {
+            return [$value];
+        }
+        $pieces = explode('|', $value);
+        if (count($pieces) !== 2) {
+            return [];
+        }
+        return $pieces[1] === '' ? [$pieces[0]] : $pieces;
+    }
+
+    /**
+     * Interns the values that saving $rows will write, ahead of the saves and
+     * of any transaction around them. Hand the result to releaseValues() once
+     * they are done.
+     *
+     * @param array $rows Flat attribute rows
+     * @param bool $massaged True when beforeValidate already ran on the rows
+     *   and their saves skip validation
+     * @return array
+     */
+    public function primeValues(array $rows, $massaged = false)
+    {
+        $values = [];
+        foreach ($rows as $row) {
+            if (empty($row['type']) || !isset($this->typeDefinitions[$row['type']])) {
+                continue;
+            }
+            $value = $this->shapedValue($row, $massaged);
+            if ($value !== null) {
+                array_push($values, ...$this->valueParts($row['type'], $value));
+            }
+        }
+        return $this->loadAttributeValue()->prime($values);
+    }
+
+    /**
+     * The value beforeValidate will leave in $row, or null when there is
+     * none or an import regexp blocks it.
+     *
+     * @param array $row A flat attribute row with a known type
+     * @param bool $massaged True when beforeValidate already ran on the row
+     * @return string|null
+     */
+    private function shapedValue(array $row, $massaged = false)
+    {
+        $type = $row['type'];
+        $value = $row['value'] ?? null;
+        if (empty($value)) {
+            if (!empty($row['value1']) && !empty($row['value2'])) {
+                $value = "{$row['value1']}|{$row['value2']}";
+            } else if (!empty($row['value1'])) {
+                $value = $row['value1'];
+            }
+        }
+        if (!is_scalar($value)) {
+            return null;
+        }
+        $value = (string)$value;
+        if (!$massaged) {
+            $value = $this->massageValue($type, $value);
+            if (!$this->fast_update) {
+                $value = $this->runRegexp($type, $value);
+                if ($value === false) {
+                    return null;
+                }
+            }
+        }
+        return $value;
+    }
+
+    /**
+     * @param array $previous What primeValues() returned
+     * @return void
+     */
+    public function releaseValues(array $previous)
+    {
+        $this->loadAttributeValue()->release($previous);
+    }
+
+    /**
+     * $rows in chunks, each primed while the caller saves it.
+     *
+     * @param array $rows Flat attribute rows
+     * @param int $size
+     * @return Generator
+     */
+    public function primedChunks(array $rows, $size = self::PRIME_CHUNK)
+    {
+        foreach (array_chunk($rows, $size) as $key => $chunk) {
+            $previous = $this->primeValues($chunk);
+            try {
+                yield $key => $chunk;
+            } finally {
+                $this->releaseValues($previous);
+            }
+        }
+    }
+
+    /**
+     * @return AttributeValue
+     */
+    public function loadAttributeValue()
+    {
+        if (!isset($this->AttributeValue)) {
+            $this->AttributeValue = ClassRegistry::init('AttributeValue');
+        }
+        return $this->AttributeValue;
     }
 
     public function beforeSave($options = array())
@@ -577,6 +739,9 @@ class MispAttribute extends AppModel
                 $attribute['value2'] = '';
             }
         }
+        $attributeValue = $this->loadAttributeValue();
+        $attributeValue->assignIds($attribute, $this->whitelist);
+        $this->whitelist = $attributeValue->withIdFields($this->whitelist);
 
         $this->data = $this->ISODatetimeToUTC($this->data, $this->alias);
         // always return true after a beforeSave()
@@ -651,7 +816,6 @@ class MispAttribute extends AppModel
             if (isset($attribute['deleted']) && $attribute['deleted']) {
                 if ($this->Correlation->getCorrelationModelName() !== 'OnDemand') {
                     $this->Correlation->beforeSaveCorrelation($attribute);
-                    $this->Correlation->advancedCorrelationsUpdate($attribute);
                 }
                 if (isset($attribute['event_id'])) {
                     $this->__alterAttributeCount($attribute['event_id'], false);
@@ -678,11 +842,9 @@ class MispAttribute extends AppModel
                     ) {
                         $this->Correlation->beforeSaveCorrelation($attribute);
                         $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
-                        $this->Correlation->advancedCorrelationsUpdate($attribute);
                     }
                 } else {
                     $this->Correlation->afterSaveCorrelation($attribute, false, $passedEvent);
-                    $this->Correlation->advancedCorrelationsUpdate($attribute);
                 }
             }
         }
@@ -800,9 +962,6 @@ class MispAttribute extends AppModel
 
     public function afterDelete()
     {
-        if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], ['ip-src', 'ip-dst'], true) && str_contains($this->data['Attribute']['value'], '/')) {
-            $this->Correlation->updateCidrList();
-        }
         if (isset($this->data['Attribute']['event_id'])) {
             if (empty($this->data['Attribute']['deleted'])) {
                 $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
@@ -864,10 +1023,7 @@ class MispAttribute extends AppModel
             }
         }
 
-        // remove leading and trailing blanks and refang value and
-        $attribute['value'] = ComplexTypeTool::refangValue(trim($attribute['value']), $type);
-        // make some changes to the inserted value
-        $attribute['value'] = AttributeValidationTool::modifyBeforeValidation($type, $attribute['value']);
+        $attribute['value'] = $this->massageValue($type, $attribute['value']);
         // Run user defined regexp to attribute value
         if (!$this->fast_update) {
             $result = $this->runRegexp($type, $attribute['value']);
@@ -929,8 +1085,18 @@ class MispAttribute extends AppModel
 
     public function validComposite($fields)
     {
-        if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes(), true)) {
-            if (substr_count($fields['value'], '|') !== 1) {
+        return $this->compositeValueIsValid($this->data['Attribute']['type'], $fields['value']);
+    }
+
+    /**
+     * @param string $type
+     * @param string $value
+     * @return bool
+     */
+    public function compositeValueIsValid($type, $value)
+    {
+        if (in_array($type, $this->getCompositeTypes(), true)) {
+            if (substr_count($value, '|') !== 1) {
                 return false;
             }
         }
@@ -939,11 +1105,21 @@ class MispAttribute extends AppModel
 
     public function stringNotControlCharacters($fields)
     {
-        if (ctype_cntrl($this->data['Attribute']['value'])) {
+        return $this->notOnlyControlCharacters($this->data['Attribute']['type'], $this->data['Attribute']['value']);
+    }
+
+    /**
+     * @param string $type
+     * @param string $value
+     * @return bool False when the value, or a part of a composite, is only control characters
+     */
+    public function notOnlyControlCharacters($type, $value)
+    {
+        if (ctype_cntrl($value)) {
             return false;
         }
-        if (in_array($this->data['Attribute']['type'], $this->getCompositeTypes(), true)) {
-            $values = explode('|', $this->data['Attribute']['value']);
+        if (in_array($type, $this->getCompositeTypes(), true)) {
+            $values = explode('|', $value);
             if (ctype_cntrl($values[0])) {
                 return false;
             }
@@ -1219,6 +1395,8 @@ class MispAttribute extends AppModel
         }
 
         $composeTypes = $this->getCompositeTypes();
+        $ors = [];
+        $terms = [];
         foreach ($resultArray as $key => $result) {
             if (in_array($result['default_type'], $composeTypes, true)) {
                 $pieces = explode('|', $result['value']);
@@ -1230,21 +1408,34 @@ class MispAttribute extends AppModel
             } else {
                 $or = ['Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value']];
             }
+            $ors[$key] = $or;
+            array_push($terms, ...(array)$or['Attribute.value1']);
+        }
+        // One dictionary read for the terms of every row, one for the values found
+        $attributeValue = $this->loadAttributeValue();
+        $rewriter = $attributeValue->batchRewriter($this->alias, $terms);
+        $related = [];
+        foreach ($ors as $key => $or) {
             $options = array(
-                'conditions' => [
+                'conditions' => $rewriter->rewrite([
                     'OR' => $or,
                     'NOT' => [
                         'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
                     ],
                     'Attribute.disable_correlation' => 0,
-                ],
+                ]),
                 'fields' => ['Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'],
                 'order' => false,
                 'limit' => 11,
                 'flatten' => 1,
                 'contain' => ['AttributeTag' => false],
+                'valueText' => false,
             );
-            $resultArray[$key]['related'] = $this->fetchAttributes($user, $options);
+            $related[$key] = $this->fetchAttributes($user, $options);
+        }
+        $attributeValue->attachNested($related);
+        foreach ($related as $key => $rows) {
+            $resultArray[$key]['related'] = $rows;
         }
     }
 
@@ -1671,21 +1862,51 @@ class MispAttribute extends AppModel
 
     /**
      * @param bool $dryRun If true, no changes will be made to
+     * @param int $chunkSize Changed attributes primed and saved together
      * @return Generator
      * @throws Exception
      */
-    public function normalizeIpAddress($dryRun = false)
+    public function normalizeIpAddress($dryRun = false, $chunkSize = self::PRIME_CHUNK)
     {
         $attributes = $this->fetchAttributesInChunks([
             'Attribute.type' => ['ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'domain|ip'],
         ]);
 
+        $changed = [];
         foreach ($attributes as $attribute) {
             $value = $attribute['Attribute']['value'];
             $normalizedValue = AttributeValidationTool::modifyBeforeValidation($attribute['Attribute']['type'], $value);
             if ($value !== $normalizedValue) {
+                $attribute['Attribute']['value'] = $normalizedValue;
+                $changed[] = ['attribute' => $attribute, 'value' => $value];
+                if (count($changed) >= $chunkSize) {
+                    foreach ($this->saveNormalizedIps($changed, $dryRun) as $result) {
+                        yield $result;
+                    }
+                    $changed = [];
+                }
+            }
+        }
+        foreach ($this->saveNormalizedIps($changed, $dryRun) as $result) {
+            yield $result;
+        }
+    }
+
+    /**
+     * @param array $changed ['attribute' => normalized attribute, 'value' => original value]
+     * @param bool $dryRun
+     * @return Generator
+     */
+    private function saveNormalizedIps(array $changed, $dryRun)
+    {
+        $primed = null;
+        if (!$dryRun && !empty($changed)) {
+            $primed = $this->primeValues(array_column(array_column($changed, 'attribute'), 'Attribute'));
+        }
+        try {
+            foreach ($changed as $item) {
+                $attribute = $item['attribute'];
                 if (!$dryRun) {
-                    $attribute['Attribute']['value'] = $normalizedValue;
                     $this->save($attribute, true, ['value1', 'value2']);
                 }
 
@@ -1693,9 +1914,13 @@ class MispAttribute extends AppModel
                     'id' => (int) $attribute['Attribute']['id'],
                     'event_id' => (int) $attribute['Attribute']['event_id'],
                     'type' => $attribute['Attribute']['type'],
-                    'value' => $value,
-                    'normalized_value' => $normalizedValue,
+                    'value' => $item['value'],
+                    'normalized_value' => $attribute['Attribute']['value'],
                 ];
+            }
+        } finally {
+            if ($primed !== null) {
+                $this->releaseValues($primed);
             }
         }
     }
@@ -1913,6 +2138,75 @@ class MispAttribute extends AppModel
 
         $this->aclConditionsCache[$cacheKey] = $conditions;
         return $conditions;
+    }
+
+    /**
+     * The values that at least one attribute the user can see holds, as
+     * value1 or value2, by the rules of fetchAttributes().
+     *
+     * @param array $user
+     * @param array $valueIds
+     * @param int $limit Stop once this many are found.
+     * @return int[] in ascending order
+     */
+    public function visibleValueIds(array $user, array $valueIds, $limit)
+    {
+        $valueIds = array_values(array_unique(array_map('intval', $valueIds)));
+        sort($valueIds);
+        $db = $this->getDataSource();
+        $values = $this->loadAttributeValue();
+        $conditions = ['Attribute.deleted' => 0];
+        $joins = [[
+            'table' => 'events',
+            'alias' => 'Event',
+            'type' => 'INNER',
+            'conditions' => ['Event.id = Attribute.event_id'],
+        ]];
+        $acl = $this->buildConditions($user);
+        if (!empty($acl)) {
+            $conditions['AND'][] = $acl;
+            $joins[] = [
+                'table' => 'objects',
+                'alias' => 'Object',
+                'type' => 'LEFT',
+                'conditions' => ['Object.id = Attribute.object_id'],
+            ];
+        }
+        $exists = [];
+        foreach (['value1_id', 'value2_id'] as $column) {
+            $exists[] = 'EXISTS (' . $db->buildStatement([
+                'fields' => ['1'],
+                'table' => $db->fullTableName($this),
+                'alias' => 'Attribute',
+                'joins' => $joins,
+                'conditions' => array_merge($conditions, ["Attribute.$column = AttributeValue.id"]),
+                'limit' => null,
+                'offset' => null,
+                'order' => null,
+                'group' => null,
+            ], $this) . ')';
+        }
+        $visible = [];
+        // Under 1000: MariaDB turns a longer IN list into a join, and the
+        // EXISTS checks into a scan of every attribute
+        foreach (array_chunk($valueIds, 500) as $chunk) {
+            $sql = sprintf(
+                'SELECT %1$s FROM %2$s AS %3$s WHERE %1$s IN (%4$s) AND (%5$s) ORDER BY %1$s',
+                $db->name('AttributeValue.id'),
+                $db->fullTableName($values, true, false),
+                $db->name('AttributeValue'),
+                implode(', ', $chunk),
+                implode(' OR ', $exists)
+            );
+            foreach ($db->fetchAll($sql, [], ['cache' => false]) as $row) {
+                // Under the table alias on MySQL, under 0 on PostgreSQL
+                $visible[] = (int)array_merge(...array_values($row))['id'];
+            }
+            if (count($visible) >= $limit) {
+                break;
+            }
+        }
+        return array_slice($visible, 0, $limit);
     }
 
     /**
@@ -2236,9 +2530,9 @@ class MispAttribute extends AppModel
                             'foreignKey' => 'old_id',
                             'conditions' => ['ShadowAttribute.deleted' => 0],
                             'fields'     => [
-                                'id','old_id','event_id','type','category','value1','value2',
+                                'id','old_id','event_id','type','category','value1_id','value2_id',
                                 'to_ids','uuid','org_id','event_org_id','comment','timestamp',
-                                'proposal_to_delete','disable_correlation','value'
+                                'proposal_to_delete','disable_correlation'
                             ]
                         ]
                     ]
@@ -2250,6 +2544,8 @@ class MispAttribute extends AppModel
             if (isset($options['page']))   $params['page']   = $options['page'];
             if (isset($options['limit']))  $params['limit']  = $options['limit'];
             if (isset($options['offset'])) $params['offset'] = $options['offset'];
+            // False leaves the value ids for the caller to fill in, with those of other fetches
+            if (isset($options['valueText'])) $params['valueText'] = $options['valueText'];
         
             if (!empty($options['order'])) {
                 $params['order'] = $this->findOrder(
@@ -2276,7 +2572,9 @@ class MispAttribute extends AppModel
                 $params['limit'] = 50000;
                 $params['page']  = 1;
             }
-        
+            // Resolved once for the count and every page
+            $params['conditions'] = $this->loadAttributeValue()->rewriteConditions($params['conditions'], $this->alias);
+
             if ($result_count !== false && $real_count) {
                 $cnt = $params;
                 unset($cnt['limit'], $cnt['page']);
@@ -2336,7 +2634,10 @@ class MispAttribute extends AppModel
                     // Conditions are built from the raw joined Event fields, before the context substitution below.
                     $sightingsByAttributeId = $this->Sighting->attachToAttributes($batch, $user);
                 }
-        
+                if (!empty($options['includeCorrelations'])) {
+                    $relatedByAttributeId = $this->relatedAttributesOf($user, $sgids, $batch);
+                }
+
                 // per-attribute pipeline
                 foreach ($batch as $attr) {
                     if (!empty($options['includeContext'])) {
@@ -2358,9 +2659,8 @@ class MispAttribute extends AppModel
                             $sightingsByAttributeId[$attr['Attribute']['id']] ?? [];
                     }
                     if (!empty($options['includeCorrelations'])) {
-                        $fields = ['id','event_id','object_id','object_relation','category','type','value','uuid','timestamp','distribution','sharing_group_id','to_ids','comment'];
                         $attr['Attribute']['RelatedAttribute'] =
-                            $this->Correlation->getRelatedAttributes($user, $sgids, $attr['Attribute'], $fields, true);
+                            $relatedByAttributeId[$attr['Attribute']['id']];
                     }
                     if (!empty($options['enforceWarninglist'])
                         && !$this->Warninglist->filterWarninglistAttribute($attr['Attribute'])
@@ -2438,7 +2738,30 @@ class MispAttribute extends AppModel
             return $all;
         }
 
-    
+    /**
+     * The correlations of each attribute in a batch, by attribute id, with
+     * the related values read from the dictionary at once rather than per
+     * attribute.
+     *
+     * @param array $user
+     * @param array $sgids
+     * @param array $batch Rows as find('all') returns them.
+     * @param array $fields The related attributes' fields, [] for every column.
+     * @return array
+     */
+    public function relatedAttributesOf(array $user, array $sgids, array $batch, array $fields = self::RELATED_FIELDS)
+    {
+        $related = [];
+        foreach ($batch as $row) {
+            $related[$row['Attribute']['id']] =
+                $this->Correlation->getRelatedAttributes($user, $sgids, $row['Attribute'], $fields, true, false);
+        }
+        // The value keys a find with these fields fills: every column brings all three
+        $keys = empty($fields) ? null : array_values(array_intersect(['value1', 'value2', 'value'], $fields));
+        $this->loadAttributeValue()->attachNested($related, $keys);
+        return $related;
+    }
+
     /**
      * @param array $user
      * @param array $eventIds
@@ -2858,21 +3181,26 @@ class MispAttribute extends AppModel
     {
         $defaultDistribution = $this->defaultDistribution();
         $saveResult = true;
-        foreach ($attributes as $attribute) {
-            if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
-                $attribute = $this->onDemandEncrypt($attribute);
+        $primed = $this->primeValues($attributes);
+        try {
+            foreach ($attributes as $attribute) {
+                if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
+                    $attribute = $this->onDemandEncrypt($attribute);
+                }
+                if (!isset($attribute['distribution'])) {
+                    $attribute['distribution'] = $defaultDistribution;
+                }
+                unset($attribute['Attachment'], $attribute[$this->alias]);
+                $this->create();
+                $currentSave = $this->save($attribute);
+                $saveResult = $saveResult && $currentSave;
+                if ($currentSave) {
+                    $attribute['id'] = $this->id;
+                    $this->AttributeTag->handleAttributeTags($user, $attribute, $attribute['event_id'], $capture=true);
+                }
             }
-            if (!isset($attribute['distribution'])) {
-                $attribute['distribution'] = $defaultDistribution;
-            }
-            unset($attribute['Attachment'], $attribute[$this->alias]);
-            $this->create();
-            $currentSave = $this->save($attribute);
-            $saveResult = $saveResult && $currentSave;
-            if ($currentSave) {
-                $attribute['id'] = $this->id;
-                $this->AttributeTag->handleAttributeTags($user, $attribute, $attribute['event_id'], $capture=true);
-            }
+        } finally {
+            $this->releaseValues($primed);
         }
         return $saveResult;
     }
@@ -3147,17 +3475,9 @@ class MispAttribute extends AppModel
         // if breakOnDuplicate=false, try to find the existing attribute by value and set the id and uuid
         if ($breakOnDuplicate === false) {
             unset($this->validate['value']['uniqueValue']);
-            // Look the value up as beforeValidate will store it
-            $lookup = $attribute;
-            if (isset($lookup['value']) && is_scalar($lookup['value'])) {
-                $lookup['value'] = ComplexTypeTool::refangValue(trim($lookup['value']), $lookup['type']);
-                $lookup['value'] = AttributeValidationTool::modifyBeforeValidation($lookup['type'], $lookup['value']);
-                if (!$this->fast_update) {
-                    $regexp = $this->runRegexp($lookup['type'], $lookup['value']);
-                    $lookup['value'] = $regexp === false ? $lookup['value'] : $regexp;
-                }
-            }
-            $existingAttribute = $this->findAttributeByValue($lookup);
+            // Look the value up as the save will store it
+            $lookup = ['value' => $this->shapedValue($attribute)] + $attribute;
+            $existingAttribute = $lookup['value'] === null ? [] : $this->findAttributeByValue($lookup);
             if (!empty($existingAttribute)) {
                 $attribute['id'] = $existingAttribute['Attribute']['id'];
                 $attribute['uuid'] = $existingAttribute['Attribute']['uuid'];
@@ -3340,7 +3660,12 @@ class MispAttribute extends AppModel
         $saveOptions['validate'] = false;
         // actual save, though we still need to validate in order for the beforeValidate massaging scripts to fire.
         if (!empty($attributes)) {
-            $this->saveMany($attributes, $saveOptions);
+            $primed = $this->primeValues($attributes, true);
+            try {
+                $this->saveMany($attributes, $saveOptions);
+            } finally {
+                $this->releaseValues($primed);
+            }
         }
         return $this->editAttributePostProcessing($attributes, $event, $user, $server);
     }
@@ -3573,6 +3898,8 @@ class MispAttribute extends AppModel
                 'Attribute' => array(
                     'sharinggroup' => array('function' => 'set_filter_sharing_group'),
                     'value' => array('function' => 'set_filter_value'),
+                    'value_cidr' => array('function' => 'set_filter_value_cidr'),
+                    'value_search' => array('function' => 'set_filter_value_search'),
                     'value1' => array('function' => 'set_filter_simple_attribute'),
                     'value2' => array('function' => 'set_filter_simple_attribute'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
@@ -3610,6 +3937,8 @@ class MispAttribute extends AppModel
                     'object_name' => array('function' => 'set_filter_object_name')
                 )
             );
+            // Read ahead, the filters below consume them
+            $valueFiltered = !empty($params['value']) || !empty($params['value1']) || !empty($params['value2']) || !empty($params['value_search']);
             foreach ($params as $param => $paramData) {
                 foreach ($simple_params as $scope => $simple_param_scoped) {
                     if (isset($simple_param_scoped[$param]) && isset($params[$param]) && $params[$param] !== false) {
@@ -3622,6 +3951,11 @@ class MispAttribute extends AppModel
                         $conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
                     }
                 }
+            }
+            $eventIds = $valueFiltered ? $this->Event->eventIdBound($params) : null;
+            if ($eventIds !== null) {
+                // Repeats the eventid condition on the attribute itself, where it bounds a value pattern
+                $conditions['AND'][] = ['Attribute.event_id' => $eventIds];
             }
         }
         return $conditions;
@@ -3811,6 +4145,8 @@ class MispAttribute extends AppModel
             $loop = true;
         }
         unset($params['page']);
+        // Resolved once for every page
+        $params['conditions'] = $this->loadAttributeValue()->rewriteConditions($params['conditions'], $this->alias);
         // Use cursor-based (ID sliding window) pagination
         // when looping internally and no explicit sort order
         // was requested.  Instead of OFFSET N (which must scan
@@ -3944,9 +4280,8 @@ class MispAttribute extends AppModel
             $user,
             array(
                 'conditions' => $conditions, // array of conditions
-                'order' => 'Attribute.value' . $valueField . ' ASC',
                 'recursive' => -1, // int
-                'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.comment', 'Attribute.to_ids', 'Attribute.value', 'Attribute.value' . $valueField),
+                'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.comment', 'Attribute.to_ids'),
                 'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
                 'enforceWarninglist' => $enforceWarninglist,
                 'allow_proposal_blocking' => true,
@@ -4471,12 +4806,25 @@ class MispAttribute extends AppModel
 
     private function findAttributeByValue(array $attribute)
     {
+        if (!isset($attribute['value']) || !is_scalar($attribute['value'])) {
+            return [];
+        }
         $type = $attribute['type'];
+        $parts = $this->valueParts($type, (string)$attribute['value']);
+        if (empty($parts)) {
+            return [];
+        }
+        $ids = $this->loadAttributeValue()->idsOf($parts);
+        // A value the dictionary does not hold is stored on no attribute
+        if (count($ids) < count(array_unique($parts))) {
+            return [];
+        }
         $conditions = [
             'Attribute.event_id' => $attribute['event_id'],
             'Attribute.type' => $type,
             'Attribute.deleted' => 0,
             'Attribute.object_id' => 0,
+            'Attribute.value1_id' => $ids[$parts[0]],
         ];
 
         if (isset($attribute['category'])) {
@@ -4484,11 +4832,7 @@ class MispAttribute extends AppModel
         }
 
         if (in_array($type, $this->getCompositeTypes(), true)) {
-            $value = explode('|', $attribute['value']);
-            $conditions['Attribute.value1'] = $value[0];
-            $conditions['Attribute.value2'] = $value[1];
-        } else {
-            $conditions['Attribute.value1'] = $attribute['value'];
+            $conditions['Attribute.value2_id'] = isset($parts[1]) ? $ids[$parts[1]] : null;
         }
 
         if (isset($attribute['id'])) {

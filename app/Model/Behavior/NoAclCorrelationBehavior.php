@@ -14,8 +14,8 @@ class NoAclCorrelationBehavior extends ModelBehavior
                 'Attribute.event_id',
                 'Attribute.id',
                 'Attribute.type',
-                'Attribute.value1',
-                'Attribute.value2',
+                'Attribute.value1_id',
+                'Attribute.value2_id',
             ],
             'contain' => [
                 'Event' => [
@@ -98,8 +98,6 @@ class NoAclCorrelationBehavior extends ModelBehavior
             'attribute_id'
         ];
 
-        $this->Correlation->CorrelationValue->replaceValueWithId($correlations, $this->deadlockAvoidance ? 'value_id' : 0);
-
         if ($this->deadlockAvoidance) {
             return $this->Correlation->saveMany($correlations, [
                 'atomic' => false,
@@ -171,33 +169,22 @@ class NoAclCorrelationBehavior extends ModelBehavior
         $max_correlations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
         $source = $primary ? '' : '1_';
         $prefix = $primary ? '1_' : '';
+        $display = $this->Correlation->displayValueQuery('Correlation.' . $prefix . 'attribute_id');
         return $this->Correlation->find('all', [
             'fields' => [
                 $source . 'attribute_id',
                 $prefix . 'attribute_id',
-                $prefix . 'event_id'
+                $prefix . 'event_id',
+                $display['field']
             ],
             'conditions' => [
                 'OR' => [
-                    $source . 'event_id' => $eventId
+                    'Correlation.' . $source . 'event_id' => $eventId
                 ],
-                'AND' => [
-                    [
-                        'CorrelationValue.value NOT IN (select value from correlation_exclusions)'
-                    ],
-                    [
-                        'CorrelationValue.value NOT IN (select value from over_correlating_values)'
-                    ]
-                ]
+                'AND' => $this->Correlation->excludedValueConditions()
             ],
             'recursive' => -1,
-            'contain' => [
-                'CorrelationValue' => [
-                    'fields' => [
-                        'CorrelationValue.value'
-                    ]
-                ]
-            ],
+            'joins' => $display['joins'],
             'order' => false,
             'limit' => $max_correlations
         ]);
@@ -220,7 +207,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
                 'id' => $temp_correlation['Correlation']['event_id'],
                 'attribute_id' => $temp_correlation['Correlation']['attribute_id'],
                 'parent_id' => $temp_correlation['Correlation']['1_attribute_id'],
-                'value' => $temp_correlation['CorrelationValue']['value'],
+                'value' => isset($temp_correlation[0]['display_value']) ? $temp_correlation[0]['display_value'] : '',
             ];
             $eventIds[$temp_correlation['Correlation']['event_id']] = true;
         }
@@ -231,7 +218,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
                 'id' => $temp_correlation['Correlation']['1_event_id'],
                 'attribute_id' => $temp_correlation['Correlation']['1_attribute_id'],
                 'parent_id' => $temp_correlation['Correlation']['attribute_id'],
-                'value' => $temp_correlation['CorrelationValue']['value'],
+                'value' => isset($temp_correlation[0]['display_value']) ? $temp_correlation[0]['display_value'] : '',
             ];
             $eventIds[$temp_correlation['Correlation']['1_event_id']] = true;
         }
@@ -272,9 +259,10 @@ class NoAclCorrelationBehavior extends ModelBehavior
      * @param array $attribute
      * @param array $fields Attribute fields to fetch
      * @param bool $includeEventData
+     * @param bool $valueText See Correlation::getRelatedAttributes()
      * @return array
      */
-    public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false)
+    public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false, $valueText = true)
     {
         $correlatedAttributeIds = $Model->find('column', [
             'conditions' => [
@@ -326,7 +314,8 @@ class NoAclCorrelationBehavior extends ModelBehavior
                 'Attribute.id' => $correlatedAttributeIds
             ],
             'fields' => $fields,
-            'contain' => $contain
+            'contain' => $contain,
+            'valueText' => $valueText,
         ]);
         if (!empty($includeEventData)) {
             $results = [];
@@ -385,12 +374,13 @@ class NoAclCorrelationBehavior extends ModelBehavior
 
         $correlations = [];
         $eventIds = [];
-        $valueIds = [];
         foreach ($conditions as $k => $condition) {
+            $display = $Model->displayValueQuery('Correlation.' . $prefixes[$k] . 'attribute_id');
             $rows = $Model->find('all', [
                 'recursive' => -1,
                 'conditions' => $condition,
-                'fields' => $fields[$k],
+                'fields' => array_merge($fields[$k], [$display['field']]),
+                'joins' => $display['joins'],
             ]);
             $prefix = $prefixes[$k];
             $sourceField = $sourceFields[$k];
@@ -408,10 +398,9 @@ class NoAclCorrelationBehavior extends ModelBehavior
                         $prefix . 'attribute_id'
                     ],
                     'parent_id' => $parentId,
-                    'value_id' => $corr['value_id'],
+                    'value' => isset($row[0]['display_value']) ? $row[0]['display_value'] : '',
                 ];
                 $eventIds[$targetEventId] = true;
-                $valueIds[$corr['value_id']] = true;
             }
         }
 
@@ -419,18 +408,6 @@ class NoAclCorrelationBehavior extends ModelBehavior
             return [];
         }
 
-        // Resolve values in bulk
-        $values = $Model->CorrelationValue->find('list', [
-            'recursive' => -1,
-            'conditions' => [
-                'CorrelationValue.id' =>
-                    array_keys($valueIds),
-            ],
-            'fields' => [
-                'CorrelationValue.id',
-                'CorrelationValue.value',
-            ],
-        ]);
 
         // Event-level ACL only
         $eventConditions = $Model->Event
@@ -459,7 +436,7 @@ class NoAclCorrelationBehavior extends ModelBehavior
             $result[$parentId][] = [
                 'id' => $evId,
                 'attribute_id' => $corr['attribute_id'],
-                'value' => $values[$corr['value_id']] ?? '',
+                'value' => $corr['value'],
                 'org_id' => $event['orgc_id'],
                 'info' => $event['info'],
                 'date' => $event['date'],
@@ -623,20 +600,9 @@ class NoAclCorrelationBehavior extends ModelBehavior
      */
     public function purgeByValue(Model $Model, string $value)
     {
-        $valueIds = $Model->CorrelationValue->find('column', [
-            'recursive' => -1,
-            'conditions' => [
-                'OR' => [
-                    ['CorrelationValue.value LIKE' => '%' . $value],
-                    ['CorrelationValue.value LIKE' => $value . '%'],
-                ]
-            ],
-            'fields' => [
-                'CorrelationValue.id'
-            ]
-        ]);
-        $Model->deleteAll([
-            'Correlation.value_id' => $valueIds
-        ], false);
+        $condition = $Model->exclusionMatchCondition($value);
+        if ($condition !== null) {
+            $Model->deleteAll($condition, false);
+        }
     }
 }

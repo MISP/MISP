@@ -5,7 +5,6 @@
         <li><a href="<?php echo $baseurl;?>/attributes/reportValidationIssuesAttributes">reportValidationIssuesAttributes</a></li>
         <li><?php echo $this->Form->postLink(__('Reset the attribute counts'), $baseurl . '/events/generateCount');?> (<?php echo __('Events need to have no validation issues');?>)</li>
         <li><?php echo $this->Form->postLink(__('Recorrelate attributes'), $baseurl . '/attributes/generateCorrelation');?></li>
-        <li><?php echo $this->Form->postLink(__('Recorrelate proposals'), $baseurl . '/shadow_attributes/generateCorrelation');?></li>
         <li><a href="<?php echo $baseurl;?>/users/verifyGPG"><?php echo __('Verify GnuPG keys');?></a> (<?php echo __('Check whether every user\'s GnuPG key is usable');?>)</li>
         <li><a href="<?php echo $baseurl;?>/users/verifyCertificate"><?php echo __('Verify Certificates');?></a> (<?php echo __('Check whether every user\'s certificate is usable');?>)</li>
         <li><?php echo $this->Form->postLink(__('Extend Organization length'), $baseurl . '/servers/updateDatabase/extendServerOrganizationLength');?> (<?php echo __('Hotfix 2.3.57: Increase the max length of the organization field when adding a new server connection.');?>)</li>

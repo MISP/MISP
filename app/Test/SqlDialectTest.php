@@ -201,6 +201,68 @@ class SqlDialectTest extends TestCase
     }
 
     /**
+     * The bytes a hash is made of are rarely valid UTF-8, so they never travel
+     * as quoted text.
+     */
+    public function testBinaryLiteralIsHexOnBothEngines()
+    {
+        $bytes = "\x00\xff'a";
+        $this->assertSame("X'00ff2761'", $this->mysql->binaryLiteral($bytes));
+        $this->assertSame("decode('00ff2761', 'hex')", $this->pgsql->binaryLiteral($bytes));
+        $this->assertSame("X''", $this->mysql->binaryLiteral(''));
+    }
+
+    public function testBytesOf()
+    {
+        $this->assertSame('CAST(v.value AS BINARY)', $this->mysql->bytesOf('v.value'));
+        $this->assertSame("convert_to(v.value, 'UTF8')", $this->pgsql->bytesOf('v.value'));
+    }
+
+    /**
+     * The same bytes PHP's substr(hash('sha256', $v, true), 0, 16) gives:
+     * MySQL's SHA2() returns hex, two characters per byte.
+     */
+    public function testSha256Prefix()
+    {
+        $this->assertSame('UNHEX(LEFT(SHA2(a.value1, 256), 32))', $this->mysql->sha256Prefix('a.value1', 16));
+        $this->assertSame(
+            "substring(sha256(convert_to(a.value1, 'UTF8')) from 1 for 16)",
+            $this->pgsql->sha256Prefix('a.value1', 16)
+        );
+        $this->assertSame('UNHEX(LEFT(SHA2(x, 256), 64))', $this->mysql->sha256Prefix('x', 32));
+        $this->assertSame("substring(sha256(convert_to(x, 'UTF8')) from 1 for 1)", $this->pgsql->sha256Prefix('x', 1));
+    }
+
+    public function testSha256PrefixRefusesALengthSha256DoesNotHave()
+    {
+        foreach (array(0, 33) as $length) {
+            foreach (array($this->mysql, $this->pgsql) as $dialect) {
+                try {
+                    $dialect->sha256Prefix('x', $length);
+                    $this->fail("Length $length was accepted.");
+                } catch (InvalidArgumentException $e) {
+                    $this->assertStringContainsString('1 to 32', $e->getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * MariaDB has no `FOR SHARE`, and PostgreSQL's READ COMMITTED needs no lock
+     * to see what other sessions committed.
+     */
+    public function testCurrentReadLocksOnMysqlOnly()
+    {
+        $select = "SELECT id FROM t WHERE h IN (X'00');\n";
+        $this->assertSame(
+            "SELECT id FROM t WHERE h IN (X'00') LOCK IN SHARE MODE",
+            $this->mysql->currentRead($select)
+        );
+        $this->assertStringNotContainsString('FOR SHARE', $this->mysql->currentRead($select));
+        $this->assertSame('SELECT id FROM t WHERE h = 1', $this->pgsql->currentRead('SELECT id FROM t WHERE h = 1;'));
+    }
+
+    /**
      * An expression is a fragment: it gets embedded in a larger query or in a
      * CakePHP `fields` array, so a trailing semicolon would be a syntax error
      * rather than a harmless flourish. Statements are the other way round.
@@ -213,6 +275,10 @@ class SqlDialectTest extends TestCase
             $this->pgsql->fromUnixtime('t'),
             $this->pgsql->formatYearMonth('created'),
             $this->pgsql->regexpMatch('col', 'x'),
+            $this->pgsql->binaryLiteral('x'),
+            $this->pgsql->bytesOf('x'),
+            $this->pgsql->sha256Prefix('x', 16),
+            $this->pgsql->currentRead('SELECT 1;'),
         );
         foreach ($expressions as $expression) {
             $this->assertStringEndsNotWith(';', $expression);
@@ -221,6 +287,7 @@ class SqlDialectTest extends TestCase
         $this->assertStringEndsWith(';', $this->pgsql->optimizeTable('t'));
         $this->assertStringEndsWith(';', $this->pgsql->resetSequence('t', 'id'));
         $this->assertStringEndsWith(';', $this->pgsql->upsert('INSERT INTO t (a) VALUES (1)', array('a'), array('a')));
+        $this->assertStringEndsWith(';', $this->pgsql->insertIgnore('INSERT INTO t (a) VALUES (1)', array('a')));
     }
 
     // ------------------------------------------------------------ statements
@@ -238,25 +305,24 @@ class SqlDialectTest extends TestCase
     }
 
     /**
-     * Correlation::generateTopOnDemand()'s statement, which is the only upsert
-     * in the tree. Everything before the clause this method appends is already
-     * portable - PostgreSQL has left() too - so the whole statement has to come
-     * back unaltered apart from the tail.
+     * Everything before the clause this method appends is already portable -
+     * PostgreSQL has left() too - so the whole statement has to come back
+     * unaltered apart from the tail.
      */
     public function testUpsertAppendsTheEnginesConflictClause()
     {
-        $insert = "INSERT INTO attr_value_counts (value, cnt_v1)\n"
-            . "SELECT LEFT(a.value1, 64) AS value, COUNT(*) AS c\n"
-            . "FROM attributes a\n"
-            . "GROUP BY LEFT(a.value1, 64)";
+        $insert = "INSERT INTO name_counts (name, cnt)\n"
+            . "SELECT LEFT(t.name, 64) AS name, COUNT(*) AS c\n"
+            . "FROM tags t\n"
+            . "GROUP BY LEFT(t.name, 64)";
 
         $this->assertSame(
-            $insert . ' ON DUPLICATE KEY UPDATE `cnt_v1` = VALUES(`cnt_v1`);',
-            $this->mysql->upsert($insert, array('value'), array('cnt_v1'))
+            $insert . ' ON DUPLICATE KEY UPDATE `cnt` = VALUES(`cnt`);',
+            $this->mysql->upsert($insert, array('name'), array('cnt'))
         );
         $this->assertSame(
-            $insert . ' ON CONFLICT ("value") DO UPDATE SET "cnt_v1" = EXCLUDED."cnt_v1";',
-            $this->pgsql->upsert($insert, array('value'), array('cnt_v1'))
+            $insert . ' ON CONFLICT ("name") DO UPDATE SET "cnt" = EXCLUDED."cnt";',
+            $this->pgsql->upsert($insert, array('name'), array('cnt'))
         );
     }
 
@@ -310,6 +376,68 @@ class SqlDialectTest extends TestCase
         $this->expectException('InvalidArgumentException');
         $this->expectExceptionMessage('at least one column to update');
         $this->pgsql->upsert('INSERT INTO t (a) VALUES (1)', array('a'), array());
+    }
+
+    /**
+     * The value-dictionary intern, as AttributeValue::internMany() issues it.
+     * Never `INSERT IGNORE` on MySQL: it would store a too-long value
+     * truncated, under a hash computed over the full one.
+     */
+    public function testInsertIgnoreAppendsTheEnginesConflictClause()
+    {
+        $insert = "INSERT INTO attribute_values (value, hash) VALUES ('a', 0x01), ('b', 0x02)";
+
+        $this->assertSame(
+            $insert . ' ON DUPLICATE KEY UPDATE `hash` = `hash`;',
+            $this->mysql->insertIgnore($insert, array('hash'))
+        );
+        $this->assertSame(
+            $insert . ' ON CONFLICT ("hash") DO NOTHING;',
+            $this->pgsql->insertIgnore($insert, array('hash'))
+        );
+        $this->assertStringNotContainsString('IGNORE', $this->mysql->insertIgnore($insert, array('hash')));
+    }
+
+    /**
+     * MySQL needs only one column for its no-op assignment; PostgreSQL needs
+     * all of them to name the constraint.
+     */
+    public function testInsertIgnoreWithACompositeKey()
+    {
+        $insert = 'INSERT INTO t (a, b, c) SELECT a, b, c FROM s WHERE true';
+
+        $this->assertSame(
+            $insert . ' ON DUPLICATE KEY UPDATE `a` = `a`;',
+            $this->mysql->insertIgnore($insert, array('a', 'b'))
+        );
+        $this->assertSame(
+            $insert . ' ON CONFLICT ("a", "b") DO NOTHING;',
+            $this->pgsql->insertIgnore($insert, array('a', 'b'))
+        );
+    }
+
+    public function testInsertIgnoreTrimsATrailingSemicolonFromTheInsert()
+    {
+        $this->assertSame(
+            'INSERT INTO t (a) VALUES (1), (2) ON DUPLICATE KEY UPDATE `a` = `a`;',
+            $this->mysql->insertIgnore("INSERT INTO t (a) VALUES (1), (2) ;\n", array('a'))
+        );
+        $this->assertSame(
+            'INSERT INTO t (a) VALUES (1), (2) ON CONFLICT ("a") DO NOTHING;',
+            $this->pgsql->insertIgnore("  INSERT INTO t (a) VALUES (1), (2);", array('a'))
+        );
+    }
+
+    public function testInsertIgnoreRefusesToGuessTheConflictColumnsOnEitherEngine()
+    {
+        foreach (array($this->mysql, $this->pgsql) as $dialect) {
+            try {
+                $dialect->insertIgnore('INSERT INTO t (a) VALUES (1)', array());
+                $this->fail('An insert-ignore with no conflict columns should have been refused.');
+            } catch (InvalidArgumentException $e) {
+                $this->assertStringContainsString('PostgreSQL cannot', $e->getMessage());
+            }
+        }
     }
 
     /**

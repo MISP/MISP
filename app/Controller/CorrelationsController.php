@@ -101,7 +101,7 @@ class CorrelationsController extends AppController
             $scope = 'all';
         }
         if (!empty($this->request->params['named']['quickFilter'])) {
-            $query['conditions'][] = ['value LIKE' => '%' . $this->request->params['named']['quickFilter'] . '%'];
+            $query['conditions'][] = ['BlockedValue.value LIKE' => '%' . $this->request->params['named']['quickFilter'] . '%'];
         }
         $data = $this->Correlation->OverCorrelatingValue->getOverCorrelations($query);
         $data = $this->Correlation->attachExclusionsToOverCorrelations($data);

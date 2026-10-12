@@ -9,6 +9,9 @@ class RateLimitComponent extends Component
         ),
         'events' => array(
             'restSearch' => 1
+        ),
+        'values' => array(
+            'search' => 1
         )
     );
 

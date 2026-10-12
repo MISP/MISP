@@ -3046,6 +3046,7 @@ public function updateJSON()
             $this->set('migrationsPendingIds', $dbSchemaDiagnostics['migrations_pending_ids']);
             $this->set('migrationsFailed', $dbSchemaDiagnostics['migrations_failed']);
             $this->set('migrationsFailedIds', $dbSchemaDiagnostics['migrations_failed_ids']);
+            $this->set('migrationsDeferredReasons', $dbSchemaDiagnostics['migrations_deferred_reasons']);
             $this->set('migrationsApplied', $dbSchemaDiagnostics['migrations_applied']);
             $this->render('/Elements/healthElements/db_schema_diagnostic');
         }

@@ -3637,6 +3637,14 @@ class Server extends AppModel
         $schemaDiagnostic['migrations_pending_ids'] = $pendingMigrations;
         $schemaDiagnostic['migrations_failed'] = count($failedMigrations);
         $schemaDiagnostic['migrations_failed_ids'] = $failedMigrations;
+        // Deferred ones are pending too, waiting for what their reason names.
+        $ledger = $migrationManager->ledger();
+        $deferredReasons = array();
+        foreach ($migrationManager->deferred() as $id) {
+            $deferredReasons[$id] = (string)$ledger[$id]['error'];
+        }
+        $schemaDiagnostic['migrations_deferred'] = count($deferredReasons);
+        $schemaDiagnostic['migrations_deferred_reasons'] = $deferredReasons;
         $schemaDiagnostic['migrations_applied'] = count($migrationManager->applied());
         if ($this->isMysql()) {
             $dbActualSchema = $this->getActualDBSchema();
@@ -7854,7 +7862,7 @@ class Server extends AppModel
                 ),
                 'sanitise_attribute_on_delete' => array(
                     'level' => 1,
-                    'description' => __('Enabling this setting will sanitise the contents of an attribute on a soft delete'),
+                    'description' => __('Enabling this setting will sanitise the contents of an attribute on a soft delete. The original text stays in the value dictionary: once nothing refers to it any more, a site admin can remove it with /values/delete/[id] (look the id up with /values/view?value=…).'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -9374,7 +9382,6 @@ class Server extends AppModel
                     'Generate correlation' => 'MISP/app/Console/cake Admin jobGenerateCorrelation [job_id]',
                     'Truncate correlation table' => 'MISP/app/Console/cake Admin truncateTable [user_id] [correlation_engine_name] [job_id]',
                     'Purge correlation' => 'MISP/app/Console/cake Admin jobPurgeCorrelation [job_id]',
-                    'Generate shadow attribute correlation' => 'MISP/app/Console/cake Admin jobGenerateShadowAttributeCorrelation [job_id]',
                     'Update MISP' => 'MISP/app/Console/cake Admin updateMISP',
                     'Update after pull' => 'MISP/app/Console/cake Admin updateAfterPull [submodule_name] [job_id] [user_id]',
                     'Job upgrade' => 'MISP/app/Console/cake Admin jobUpgrade24 [job_id] [user_id]',

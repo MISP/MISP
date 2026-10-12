@@ -881,7 +881,6 @@ class ACLComponent extends Component
             'discardSelected' => array('perm_add'),
             'download' => array('*'),
             'edit' => array('perm_add'),
-            'generateCorrelation' => array(),
             'index' => array('*'),
             'view' => array('*'),
             'viewPicture' => array('*'),
@@ -1129,7 +1128,8 @@ class ACLComponent extends Component
             'resolve' => array('theming_enabled'),
             'triage' => array('theming_enabled'),
             'assess' => array('theming_enabled'),
-            'view' => array('theming_enabled'),
+            // JSON for any role; the page checks MISP.enable_themes
+            'view' => array('*'),
             'viewOccurrences' => array('theming_enabled'),
             'viewReporting' => array('theming_enabled'),
             'viewContext' => array('theming_enabled'),
@@ -1198,6 +1198,8 @@ class ACLComponent extends Component
             'viewAnalystComments' => array('theming_enabled'),
             'viewTimeline' => array('theming_enabled'),
             'viewHistory' => array('theming_enabled'),
+            'search' => array('*'),
+            'delete' => array(),
         ),
         'warninglists' => array(
             'checkValue' => ['*'],

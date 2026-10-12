@@ -1,6 +1,7 @@
 <?php
 
 App::import('Lib', 'SysLog.SysLog');	// Audit, syslogd, extra
+App::uses('AttributeValue', 'Model');
 
 class SysLogLogableBehavior extends LogableBehavior
 {
@@ -124,7 +125,7 @@ class SysLogLogableBehavior extends LogableBehavior
 		}
 		if (isset($this->schema['change'])) {
 			$logData['Log']['change'] = '';
-			$db_fields = array_keys($Model->schema());
+			$db_fields = array_keys(AttributeValue::withValueColumns($Model->schema()));
 			$changed_fields = array();
 			foreach ( $Model->data[$Model->alias] as $key => $value ) {
 				if (isset($Model->data[$Model->alias][$Model->primaryKey]) && !empty($this->old) && isset($this->old[$Model->alias][$key])) {

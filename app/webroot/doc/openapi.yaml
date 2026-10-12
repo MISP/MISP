@@ -136,6 +136,8 @@ tags:
     description: "MISP Taxonomies is a set of common classification libraries to tag, classify and organise information. Taxonomy allows to express the same vocabulary among a distributed set of users and organisations."
     externalDocs:
       url: https://www.circl.lu/doc/misp/taxonomy/#taxonomies
+  - name: Values
+    description: "Each distinct attribute value is stored once. A value is shown with the attributes holding it that the user can see; a value no visible attribute holds is reported as not found, exactly like a value that does not exist (a site admin still sees it, with an attribute count of 0)."
   - name: Event Report
     description: "Event reports can contain text under the markdown format and are stored inside an event. They can be used to describe events or processes in a readable way."
 
@@ -2372,6 +2374,126 @@ paths:
         default:
           $ref: "#/components/responses/ApiErrorResponse"
 
+  /values/view/{valueId}:
+    get:
+      summary: "Get a value and the attributes holding it"
+      description: "The attributes are those the user can see, newest first, paged. The `page` and `limit` named parameters may also be given in the path (`/values/view/12/page:2/limit:100`)."
+      operationId: getValueById
+      tags:
+        - Values
+      parameters:
+        - $ref: "#/components/parameters/valueIdParameter"
+        - $ref: "#/components/parameters/valuePageParameter"
+        - $ref: "#/components/parameters/valueLimitParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValueViewResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /values/view/sha256:{valueSha256}:
+    get:
+      summary: "Get a value by the SHA-256 of its text"
+      operationId: getValueBySha256
+      tags:
+        - Values
+      parameters:
+        - $ref: "#/components/parameters/valueSha256Parameter"
+        - $ref: "#/components/parameters/valuePageParameter"
+        - $ref: "#/components/parameters/valueLimitParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValueViewResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /values/view:
+    get:
+      summary: "Get a value by its text"
+      description: "The text must match the stored value byte for byte; use `/values/search` with the `exact` mode to find it ignoring case."
+      operationId: getValueByText
+      tags:
+        - Values
+      parameters:
+        - name: value
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "evil.example"
+        - $ref: "#/components/parameters/valuePageParameter"
+        - $ref: "#/components/parameters/valueLimitParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValueViewResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+    post:
+      summary: "Get a value by its text"
+      description: "As the GET form, with the text in the request body."
+      operationId: postValueByText
+      tags:
+        - Values
+      requestBody:
+        $ref: "#/components/requestBodies/ValueViewRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValueViewResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /values/delete/{valueId}:
+    post:
+      summary: "Delete a stored value"
+      description: "Site admins only. Deletes a value that nothing refers to any more, for text that must not stay in the database once its attributes are gone. A value still held by an attribute or a proposal (soft-deleted ones included), an over-correlation entry or a correlation is refused, naming them. Look the id up with `/values/view?value=…`."
+      operationId: deleteValue
+      tags:
+        - Values
+      parameters:
+        - $ref: "#/components/parameters/valueIdParameter"
+      responses:
+        "200":
+          $ref: "#/components/responses/DeleteValueResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
+  /values/search:
+    post:
+      summary: "Search the stored values"
+      description: "Lists the values matching the search that at least one attribute the user can see holds, in id order, paged. A search matching more than 50,000 stored values is refused; narrow it down. Counts towards the role's search rate limit."
+      operationId: searchValues
+      tags:
+        - Values
+      requestBody:
+        $ref: "#/components/requestBodies/ValueSearchRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValueSearchResponse"
+        "403":
+          $ref: "#/components/responses/UnauthorizedApiErrorResponse"
+        default:
+          $ref: "#/components/responses/ApiErrorResponse"
+
   /warninglists:
     get:
       summary: "Get a list of warninglists"
@@ -3671,6 +3793,10 @@ components:
           $ref: "#/components/schemas/LimitSearchFilter"
         value:
           $ref: "#/components/schemas/AttributeValue"
+        value_cidr:
+          $ref: "#/components/schemas/ValueCidrRestSearchFilter"
+        value_search:
+          $ref: "#/components/schemas/ValueSearchRestSearchFilter"
         value1:
           $ref: "#/components/schemas/AttributeValue"
         value2:
@@ -4295,6 +4421,10 @@ components:
           $ref: "#/components/schemas/UUID"
         value:
           $ref: "#/components/schemas/AttributeValue"
+        value_cidr:
+          $ref: "#/components/schemas/ValueCidrRestSearchFilter"
+        value_search:
+          $ref: "#/components/schemas/ValueSearchRestSearchFilter"
         type:
           $ref: "#/components/schemas/AttributeType"
         category:
@@ -6660,6 +6790,134 @@ components:
       type: string
       example: malware
 
+    ValueCidrRestSearchFilter:
+      description: |
+        Match attributes whose value (either part of a composite) is an IP address or CIDR block overlapping one of the given ones: inside it or holding it.
+        An address matches itself in any spelling (`/32`, `/128`, IPv4-mapped IPv6, uncompressed IPv6) and the CIDR blocks holding it; a block matches the addresses and blocks inside it and the blocks holding it.
+        Host bits under the mask are ignored, and IPv4 is in no IPv6 block wider than `::ffff:0:0/96`. Any attribute type matches; combine with `type` to narrow.
+        Takes a single term, a list (any of them), `&&`-joined terms, `!` for a negation, or `{"OR": [...], "AND": [...], "NOT": [...]}`.
+        A term that is not an IP address or CIDR block is rejected with a 400.
+      nullable: true
+      oneOf:
+        - type: string
+          example: "198.51.100.0/24"
+        - type: array
+          items:
+            type: string
+          example: ["198.51.100.0/24", "2001:db8::/32", "!198.51.100.128/25"]
+        - type: object
+          properties:
+            OR:
+              type: array
+              items:
+                type: string
+            AND:
+              type: array
+              items:
+                type: string
+            NOT:
+              type: array
+              items:
+                type: string
+
+    ValueId:
+      type: integer
+      minimum: 1
+      example: 12345
+
+    Value:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ValueId"
+        value:
+          type: string
+          example: "evil.example"
+
+    ValueSummary:
+      allOf:
+        - $ref: "#/components/schemas/Value"
+        - type: object
+          properties:
+            sha256:
+              type: string
+              pattern: '^[0-9a-f]{64}$'
+            attribute_count:
+              type: integer
+              description: "Attributes holding the value that the user can see"
+
+    ValueHolder:
+      allOf:
+        - $ref: "#/components/schemas/Attribute"
+        - type: object
+          properties:
+            Event:
+              type: object
+              properties:
+                id:
+                  $ref: "#/components/schemas/EventId"
+                uuid:
+                  $ref: "#/components/schemas/UUID"
+                info:
+                  $ref: "#/components/schemas/EventInfo"
+                date:
+                  type: string
+                  format: date
+                distribution:
+                  $ref: "#/components/schemas/DistributionLevelId"
+                sharing_group_id:
+                  $ref: "#/components/schemas/SharingGroupId"
+                published:
+                  type: boolean
+                timestamp:
+                  $ref: "#/components/schemas/NullableTimestamp"
+                Orgc:
+                  $ref: "#/components/schemas/Organisation"
+            Object:
+              description: "Only for an attribute of an object"
+              type: object
+              properties:
+                id:
+                  $ref: "#/components/schemas/ObjectId"
+                uuid:
+                  $ref: "#/components/schemas/UUID"
+                name:
+                  $ref: "#/components/schemas/ObjectName"
+                distribution:
+                  $ref: "#/components/schemas/DistributionLevelId"
+                sharing_group_id:
+                  $ref: "#/components/schemas/SharingGroupId"
+
+    ValueSearchRestSearchFilter:
+      description: |
+        Search inside attribute values: an attribute matches when its value, or either part of a composite value on its own, holds the given text, ignoring case but not accents.
+        On MySQL and MariaDB the text must start at the beginning of a word (a run of letters, digits and underscores), so `google.com` finds `mail.google.com` but not `notgoogle.com`, and `.com` finds every `.com`; a value that holds the text only inside a longer word, such as part of a hash, is not found. On PostgreSQL the text may start anywhere.
+        The text is taken literally: `%` and `_` are not wildcards. Any attribute type matches; combine with `type` to narrow.
+        Words of fewer than 3 or more than 84 characters (the server's FULLTEXT limits) cannot be looked up in the index; a text made only of such words, such as `1.2.3.4`, is answered by a slower scan of every value.
+        Takes a single term, a list (any of them), `&&`-joined terms, `!` for a negation, or `{"OR": [...], "AND": [...], "NOT": [...]}`.
+      nullable: true
+      oneOf:
+        - type: string
+          example: "google.com"
+        - type: array
+          items:
+            type: string
+          example: ["evil-domain.com", "/wp-admin/", "!.example.org"]
+        - type: object
+          properties:
+            OR:
+              type: array
+              items:
+                type: string
+            AND:
+              type: array
+              items:
+                type: string
+            NOT:
+              type: array
+              items:
+                type: string
+
     ToIDSRestSearchFlag:
       nullable: true
       type: boolean
@@ -7365,6 +7623,43 @@ components:
       schema:
         $ref: "#/components/schemas/WarninglistId"
 
+    valueIdParameter:
+      name: valueId
+      in: path
+      description: "Numeric ID of the value"
+      required: true
+      schema:
+        $ref: "#/components/schemas/ValueId"
+
+    valueSha256Parameter:
+      name: valueSha256
+      in: path
+      description: "SHA-256 of the value's text, in hexadecimal"
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{64}$'
+
+    valuePageParameter:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000000
+        default: 1
+
+    valueLimitParameter:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 60
+
     noticelistIdParameter:
       name: noticelistId
       in: path
@@ -7772,6 +8067,10 @@ components:
                 $ref: "#/components/schemas/LimitSearchFilter"
               value:
                 $ref: "#/components/schemas/AttributeValue"
+              value_cidr:
+                $ref: "#/components/schemas/ValueCidrRestSearchFilter"
+              value_search:
+                $ref: "#/components/schemas/ValueSearchRestSearchFilter"
               type:
                 $ref: "#/components/schemas/AttributeType"
               category:
@@ -8238,6 +8537,54 @@ components:
             items:
               type: string
               example: "10.128.0.2"
+
+    ValueViewRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - value
+            properties:
+              value:
+                type: string
+                example: "evil.example"
+              page:
+                type: integer
+                minimum: 1
+                maximum: 1000000
+              limit:
+                type: integer
+                minimum: 1
+                maximum: 1000
+
+    ValueSearchRequest:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - value
+            properties:
+              value:
+                type: string
+                example: "evil.example"
+              mode:
+                type: string
+                enum:
+                  - search
+                  - like
+                  - exact
+                default: search
+                description: "`search` finds the text where it starts a word, as the `value_search` restSearch filter does; `like` takes a LIKE pattern with `%` and `_` wildcards; `exact` matches the whole value, ignoring case"
+              page:
+                type: integer
+                minimum: 1
+                maximum: 1000000
+              limit:
+                type: integer
+                minimum: 1
+                maximum: 1000
 
     ToggleEnableNoticelistRequest:
       content:
@@ -10428,6 +10775,32 @@ components:
               Warninglist:
                 $ref: "#/components/schemas/Warninglist"
 
+    ValueViewResponse:
+      description: "A value and the attributes holding it that the user can see"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              Value:
+                $ref: "#/components/schemas/ValueSummary"
+              Attribute:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ValueHolder"
+
+    ValueSearchResponse:
+      description: "The matching values"
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Value:
+                  $ref: "#/components/schemas/Value"
+
     WarninglistMatchListResponse:
       description: "List of values matching warninglists response"
       content:
@@ -10762,6 +11135,27 @@ components:
               url:
                 type: string
                 example: "/auth_keys/delete/1234"
+
+    DeleteValueResponse:
+      description: "Delete value response"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              saved:
+                type: boolean
+              success:
+                type: boolean
+              name:
+                type: string
+                example: "AttributeValue deleted."
+              message:
+                type: string
+                example: "AttributeValue deleted."
+              url:
+                type: string
+                example: "/attribute_values/delete/1234"
 
     GetUserSettingsResponse:
       description: "Get user settings response"

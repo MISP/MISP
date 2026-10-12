@@ -344,7 +344,7 @@ class ObjectReferencesController extends AppController
         $attributes = $this->ObjectReference->Object->Attribute->find('all', [
             'recursive' => -1,
             'conditions' => $attributeConditions,
-            'fields' => ['Attribute.uuid', 'Attribute.value1', 'Attribute.value2',
+            'fields' => ['Attribute.uuid', 'Attribute.value',
                          'Attribute.type', 'Attribute.category'],
             'order' => ['Attribute.id' => 'desc'],
             'limit' => $limit,
@@ -360,14 +360,10 @@ class ObjectReferencesController extends AppController
             ];
         }
         foreach ($attributes as $row) {
-            $value = $row['Attribute']['value1'];
-            if ($row['Attribute']['value2'] !== '') {
-                $value .= '|' . $row['Attribute']['value2'];
-            }
             $targets[] = [
                 'uuid' => $row['Attribute']['uuid'],
                 'kind' => 'attribute',
-                'label' => $value,
+                'label' => $row['Attribute']['value'],
                 'context' => $row['Attribute']['category'] . '/' . $row['Attribute']['type'],
             ];
         }
@@ -461,17 +457,18 @@ class ObjectReferencesController extends AppController
             ),
             'recursive' => -1,
             'fields' => array('Event.id'),
+            'valueKeys' => ['value'],
             'contain' => array(
                 'Attribute' => array(
                     'conditions' => $attributeConditions,
-                    'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
+                    'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value1_id', 'Attribute.value2_id', 'Attribute.to_ids')
                 ),
                 'Object' => array(
                     'conditions' => $objectConditions,
                     'fields' => array('Object.id', 'Object.uuid', 'Object.name', 'Object.meta-category'),
                     'Attribute' => array(
                         'conditions' => $objectAttributeConditions,
-                        'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
+                        'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value1_id', 'Attribute.value2_id', 'Attribute.to_ids')
                     )
                 )
             )

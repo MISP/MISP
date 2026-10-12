@@ -5,6 +5,8 @@ App::uses('AttachmentTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('SendEmailTemplate', 'Tools');
 App::uses('ProcessTool', 'Tools');
+App::uses('ValueConditionRewriter', 'Tools');
+App::uses('ValueFacetTool', 'Tools');
 
 /**
  * @property User $User
@@ -2048,16 +2050,6 @@ class Event extends AppModel
                 'table' => 'event_graph',
                 'foreign_key' => 'event_id',
                 'value' => $id
-            ),
-            array(
-                'table' => 'shadow_attribute_correlations',
-                'foreign_key' => 'event_id',
-                'value' => $id
-            ),
-            array(
-                'table' => 'shadow_attribute_correlations',
-                'foreign_key' => '1_event_id',
-                'value' => $id
             )
         );
         if (!Configure::read('MISP.completely_disable_correlation')) {
@@ -2152,10 +2144,17 @@ class Event extends AppModel
     {
         $tempConditions = array();
         $tempConditions[] = array('Event.info LIKE' => $params['wildcard']);
-        $attributeParams = array('value1', 'value2', 'comment');
-        foreach ($attributeParams as $attributeParam) {
+        // One subquery for both value columns resolves the pattern once
+        $attributeConditions = array(
+            array('OR' => array(
+                'Attribute.value1 LIKE' => $params['wildcard'],
+                'Attribute.value2 LIKE' => $params['wildcard'],
+            )),
+            array('Attribute.comment LIKE' => $params['wildcard']),
+        );
+        foreach ($attributeConditions as $attributeCondition) {
             $subQueryOptions = array(
-                'conditions' => array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']),
+                'conditions' => $attributeCondition,
                 'fields' => array('event_id')
             );
             $tempConditions[] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
@@ -2183,15 +2182,29 @@ class Event extends AppModel
 
     public function set_filter_wildcard_attributes(&$params, $conditions, $options)
     {
+        return array_merge(
+            [['Event.info LIKE' => $params['wildcard']]],
+            $this->wildcardAttributeConditions($params['wildcard'])
+        );
+    }
+
+    /**
+     * The wildcard's conditions on the attribute itself: its value, its
+     * comment, and its own or its event's tags. Alternatives, to be OR'd.
+     *
+     * @param string $wildcard
+     * @return array
+     */
+    public function wildcardAttributeConditions($wildcard)
+    {
         $tempConditions = array();
-        $tempConditions[] = array('Event.info LIKE' => $params['wildcard']);
         $attributeParams = array('value1', 'value2', 'comment');
         foreach ($attributeParams as $attributeParam) {
-            $tempConditions[] = array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']);
+            $tempConditions[] = array('Attribute.' . $attributeParam . ' LIKE' => $wildcard);
         }
         $tagIds = $this->Attribute->AttributeTag->Tag->find('column', array(
             'recursive' => -1,
-            'conditions' => array('Tag.name LIKE' => $params['wildcard']),
+            'conditions' => array('Tag.name LIKE' => $wildcard),
             'fields' => array('Tag.id')
         ));
         if (!empty($tagIds)) {
@@ -2299,17 +2312,31 @@ class Event extends AppModel
                                         'event_id'
                                     )
                                 );
-                                $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
-                                if ($param === 'value') {
-                                    $subQuery[0] = explode('WHERE', $subQuery[0]);
-                                    //$subQuery[0][0] .= ' USE INDEX (value1, value2) ';
-                                    $subQuery[0] = implode('WHERE', $subQuery[0]);
-                                }
-                                $conditions['AND'][] = $subQuery;
+                                $conditions['AND'][] = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
                             }
                         }
                     }
                 }
+            }
+            if (!empty($params['value_cidr'])) {
+                // It reads the attributes in a subquery of its own, which a
+                // second one around it would run per event
+                $options = array(
+                    'filter' => 'value_cidr',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Event'
+                );
+                $conditions = $this->set_filter_value_cidr($params, $conditions, $options);
+            }
+            if (!empty($params['value_search'])) {
+                $options = array(
+                    'filter' => 'value_search',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Event'
+                );
+                $conditions = $this->set_filter_value_search($params, $conditions, $options);
             }
         }
         $find_params = array(
@@ -2739,6 +2766,11 @@ class Event extends AppModel
                 ];
             }
         }
+
+        // One resolve for the count, the page and the warninglist hits
+        $conditions = $this->Attribute->loadAttributeValue()->rewriteConditions(
+            $conditions, $this->Attribute->alias
+        );
 
         // Warninglist filter. Kept last so the hit set is resolved against the
         // fully built (and ACL-restricted) condition set.
@@ -3839,29 +3871,27 @@ class Event extends AppModel
         ];
 
         // If searchFor is set, keep the objects that match it themselves or
-        // hold at least one attribute that does - the latter through a
-        // subquery on the object IDs. Matching a UUID on either side is what
-        // lets a deep link onto one object, or onto one of its attributes,
-        // land on it.
+        // hold at least one matching attribute among those they show. Matching
+        // a UUID on either side is what lets a deep link onto one object, or
+        // onto one of its attributes, land on it. The attribute side is read
+        // once, for both the count and the page.
         if (!empty($options['searchFor'])) {
             $needle = '%' . $options['searchFor'] . '%';
-            $db = $this->getDataSource();
-            $subQuery = $db->buildStatement([
-                'fields' => ['DISTINCT Attribute.object_id'],
-                'table' => 'attributes',
-                'alias' => 'Attribute',
+            $matchingObjectIds = $this->Attribute->find('column', [
+                'fields' => ['Attribute.object_id'],
                 'conditions' => $attrScope + [
                     'OR' => [
                         'Attribute.value1 LIKE' => $needle,
                         'Attribute.uuid LIKE' => $needle,
                     ],
                 ],
-            ], $this->Attribute);
+                'unique' => true,
+            ]);
             $conditions[] = ['OR' => [
                 'Object.uuid LIKE' => $needle,
                 'Object.name LIKE' => $needle,
                 'Object.comment LIKE' => $needle,
-                'Object.id IN (' . $subQuery . ')',
+                'Object.id' => empty($matchingObjectIds) ? [-1] : $matchingObjectIds,
             ]];
         }
 
@@ -5680,13 +5710,14 @@ class Event extends AppModel
 
         // do not expose all the data ...
         $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.first_publication', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
-        $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
-        $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
+        $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value1_id', 'Attribute.value2_id', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
+        $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value1_id', 'ShadowAttribute.value2_id', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
         $params = array(
             'conditions' => $conditions,
             'recursive' => 0,
             'fields' => $fields,
+            'valueKeys' => ['value'],
             'contain' => array(
                 'ThreatLevel' => array(
                         'fields' => array('ThreatLevel.name')
@@ -5892,7 +5923,6 @@ class Event extends AppModel
                 if (!empty($options['includeRelatedTags'])) {
                     $event = $this->includeRelatedTags($event, $options);
                 }
-                //$event['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], true);
             }
             if (!empty($options['includeScoresOnEvent'])) {
                 // $event = $this->DecayingModel->attachBaseScoresToEvent($user, $event);
@@ -6851,10 +6881,12 @@ class Event extends AppModel
             }
 
             if ($options['context'] !== 'Attribute') {
+                // An object's attributes are in its event, so its value subquery takes the bound too
+                $eventIds = $this->eventIdBound($params);
                 foreach (['OR', 'AND', 'NOT'] as $operand) {
                     if (!empty($params[$options['filter']][$operand])) {
                         $values = $params[$options['filter']][$operand];
-                        $conditions = $this->add_value_filter_subquery($conditions, $operand, $values, $options);
+                        $conditions = $this->add_value_filter_subquery($conditions, $operand, $values, $options, $eventIds);
                         unset($params[$options['filter']][$operand]);
                     }
                 }
@@ -6866,18 +6898,170 @@ class Event extends AppModel
         return $conditions;
     }
 
+    /**
+     * Attributes whose value1 or value2 is an address or CIDR overlapping one
+     * of the filter's: inside it or holding it.
+     *
+     * @param array $params
+     * @param array $conditions
+     * @param array $options
+     * @return array
+     * @throws BadRequestException For a term that is not an address or CIDR.
+     */
+    public function set_filter_value_cidr(&$params, $conditions, $options)
+    {
+        if (empty($params['value_cidr'])) {
+            return $conditions;
+        }
+        $filter = $this->convert_filters($params['value_cidr']);
+        $ranges = [];
+        foreach (['OR', 'AND', 'NOT'] as $operand) {
+            foreach ((array)($filter[$operand] ?? []) as $term) {
+                $range = is_scalar($term) ? ValueFacetTool::ipRange(trim((string)$term)) : null;
+                if ($range === null) {
+                    throw new BadRequestException(__(
+                        'Invalid value_cidr filter: `%s` is not an IP address or CIDR block.',
+                        is_scalar($term) ? (string)$term : JsonTool::encode($term)
+                    ));
+                }
+                $ranges[$operand][] = $range;
+            }
+        }
+        $AttributeValue = $this->Attribute->loadAttributeValue();
+        if ($options['context'] === 'Attribute') {
+            if (!empty($ranges['OR'])) {
+                $conditions['AND'][] = $AttributeValue->cidrCondition($ranges['OR'], 'Attribute');
+            }
+            foreach ($ranges['AND'] ?? [] as $range) {
+                $conditions['AND'][] = $AttributeValue->cidrCondition([$range], 'Attribute');
+            }
+            if (!empty($ranges['NOT'])) {
+                $conditions['AND'][] = $AttributeValue->cidrCondition($ranges['NOT'], 'Attribute', true);
+            }
+            return $conditions;
+        }
+        $eventIds = $this->eventIdBound($params);
+        $match = function (array $ranges) use ($AttributeValue) {
+            return $AttributeValue->cidrCondition($ranges, 'Attribute');
+        };
+        foreach (['OR', 'AND', 'NOT'] as $operand) {
+            if (!empty($ranges[$operand])) {
+                $conditions = $this->add_value_filter_subquery($conditions, $operand, $ranges[$operand], $options, $eventIds, $match);
+            }
+        }
+        return $conditions;
+    }
+
+    /**
+     * Attributes whose value1 or value2 holds one of the search texts: from
+     * the start of a word on MySQL, anywhere on PostgreSQL.
+     *
+     * @param array $params
+     * @param array $conditions
+     * @param array $options
+     * @return array
+     * @throws BadRequestException For a term that is not a search text.
+     */
+    public function set_filter_value_search(&$params, $conditions, $options)
+    {
+        if (empty($params['value_search'])) {
+            return $conditions;
+        }
+        $filter = $this->convert_filters($params['value_search']);
+        $texts = [];
+        foreach (['OR', 'AND', 'NOT'] as $operand) {
+            foreach ((array)($filter[$operand] ?? []) as $term) {
+                if (!is_scalar($term) || (string)$term === '' || !mb_check_encoding((string)$term, 'UTF-8')) {
+                    throw new BadRequestException(__(
+                        'Invalid value_search filter: `%s` is not a search text.',
+                        is_scalar($term) ? (string)$term : JsonTool::encode($term)
+                    ));
+                }
+                $texts[$operand][] = (string)$term;
+            }
+        }
+        $AttributeValue = $this->Attribute->loadAttributeValue();
+        $eventIds = $this->eventIdBound($params);
+        $bounded = $eventIds !== null;
+        if ($options['context'] === 'Attribute') {
+            if (!empty($texts['OR'])) {
+                $conditions['AND'][] = $AttributeValue->searchCondition($texts['OR'], 'Attribute', false, $bounded);
+            }
+            foreach ($texts['AND'] ?? [] as $text) {
+                $conditions['AND'][] = $AttributeValue->searchCondition([$text], 'Attribute', false, $bounded);
+            }
+            if (!empty($texts['NOT'])) {
+                $conditions['AND'][] = $AttributeValue->searchCondition($texts['NOT'], 'Attribute', true, $bounded);
+            }
+            return $conditions;
+        }
+        $match = function (array $texts) use ($AttributeValue, $bounded) {
+            return $AttributeValue->searchCondition($texts, 'Attribute', false, $bounded);
+        };
+        foreach (['OR', 'AND', 'NOT'] as $operand) {
+            if (!empty($texts[$operand])) {
+                $conditions = $this->add_value_filter_subquery($conditions, $operand, $texts[$operand], $options, $eventIds, $match);
+            }
+        }
+        return $conditions;
+    }
+
+    /**
+     * The events an eventid filter limits the search to, when it lists a few
+     * of them by id. A value condition tied to them reads the dictionary per
+     * attribute rather than scanning it ahead of the search.
+     *
+     * @param array $params
+     * @return int[]|null
+     */
+    public function eventIdBound(array $params)
+    {
+        if (empty($params['eventid']) || $params['eventid'] === 'all') {
+            return null;
+        }
+        $filter = $this->convert_filters($params['eventid']);
+        if (empty($filter['OR']) || count($filter['OR']) > ValueConditionRewriter::BOUND) {
+            return null;
+        }
+        $ids = [];
+        foreach ($filter['OR'] as $id) {
+            if (!is_int($id) && !ctype_digit((string)$id)) {
+                return null;
+            }
+            $ids[] = (int)$id;
+        }
+        return $ids;
+    }
+
     private function add_value_filter_subquery(
       $conditions,
       $operand,
       $values,
-      $options
+      $options,
+      $eventIds = null,
+      ?callable $match = null
     ) {
+        $match = $match ?? function (array $values) {
+            $sub_filter = ['OR' => $values];
+            $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
+            $sub_filter = ['OR' => $values];
+            $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
+            return [
+                'OR' => [
+                    ...$subconditions_value1['AND'],
+                    ...$subconditions_value2['AND'],
+                ],
+            ];
+        };
+        $scope = $eventIds === null ? [] : ['Attribute.event_id' => $eventIds];
         $lookup_field = null;
         $field = null;
         switch ($options['context']) {
             case 'Object':
                 $lookup_field = 'Object.id';
                 $field = 'object_id';
+                // Redundant, but it lets a selective value be read before the objects
+                $scope['Attribute.object_id !='] = 0;
                 break;
             case 'Event':
                 $lookup_field = 'Event.id';
@@ -6889,17 +7073,8 @@ class Event extends AppModel
         switch ($operand) {
             case 'OR':
             case 'NOT':
-                $sub_filter = ['OR' => $values];
-                $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
-                $sub_filter = ['OR' => $values];
-                $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
                 $subquery_options = [
-                  'conditions' => [
-                    'OR' => [
-                      ...$subconditions_value1['AND'],
-                      ...$subconditions_value2['AND'],
-                    ],
-                  ],
+                  'conditions' => $scope + $match($values),
                   'fields' => [
                     $field,
                   ],
@@ -6910,28 +7085,20 @@ class Event extends AppModel
                   $lookup_field,
                   $operand === 'NOT'
                 );
-                // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
-                // The support probe comes first: an engine with no index hints has no use for the answer, and asking for it costs a MySQL-only SHOW INDEX
-                if ($this->checkDbSupport('indexHints') && $this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
-                    $subQuery[0] = explode('WHERE', $subQuery[0]);
-                    $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
-                    $subQuery[0] = implode('WHERE', $subQuery[0]);
-                }
                 $conditions['AND'][] = $subQuery;
+                if ($operand === 'NOT' && $options['context'] === 'Object') {
+                    // An object matches through its attributes, also when negated
+                    $conditions['AND'][] = $this->subQueryGenerator(
+                      $this->Attribute,
+                      ['conditions' => ['Attribute.object_id !=' => 0], 'fields' => [$field]],
+                      $lookup_field
+                    );
+                }
                 break;
             case 'AND':
                 foreach ($values as $v) {
-                    $sub_filter = ['OR' => $v];
-                    $subconditions_value1 = $this->generic_add_filter([], $sub_filter, ['Attribute.value1']);
-                    $sub_filter = ['OR' => $v];
-                    $subconditions_value2 = $this->generic_add_filter([], $sub_filter, ['Attribute.value2']);
                     $subquery_options = [
-                      'conditions' => [
-                        'OR' => [
-                          ...$subconditions_value1['AND'],
-                          ...$subconditions_value2['AND'],
-                        ],
-                      ],
+                      'conditions' => $scope + $match([$v]),
                       'fields' => [
                         $field,
                       ],
@@ -6941,13 +7108,6 @@ class Event extends AppModel
                       $subquery_options,
                       $lookup_field
                     );
-                    // Check if value1/value2 indices exist, this will not be the case when high performance indexing is enabled. Gracefully fall back to whatever the query planner suggests
-                    // The support probe comes first: an engine with no index hints has no use for the answer, and asking for it costs a MySQL-only SHOW INDEX
-                    if ($this->checkDbSupport('indexHints') && $this->checkNamedIndexExists('attributes', 'value1') && $this->checkNamedIndexExists('attributes', 'value2')) {
-                        $subQuery[0] = explode('WHERE', $subQuery[0]);
-                        $subQuery[0][0] .= ' USE INDEX (value1, value2) ';
-                        $subQuery[0] = implode('WHERE', $subQuery[0]);
-                    }
                     $conditions['AND'][] = $subQuery;
                 }
                 break;
@@ -7968,14 +8128,16 @@ class Event extends AppModel
 
             if (!empty($data['Event']['Attribute'])) {
                 $attributeHashes = [];
-                foreach ($data['Event']['Attribute'] as $attribute) {
-                    if (!empty($attribute['deleted'])) {
-                        $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
-                    } else {
-                        $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
-                        if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
-                            $attributeHashes[$attributeHash] = true;
+                foreach ($this->Attribute->primedChunks($data['Event']['Attribute']) as $attributes) {
+                    foreach ($attributes as $attribute) {
+                        if (!empty($attribute['deleted'])) {
                             $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                        } else {
+                            $attributeHash = sha1($attribute['value'] . '|' . $attribute['type'] . '|' . $attribute['category'], true);
+                            if (!isset($attributeHashes[$attributeHash])) { // do not save duplicate values
+                                $attributeHashes[$attributeHash] = true;
+                                $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, null, $parentEvent);
+                            }
                         }
                     }
                 }
@@ -7984,13 +8146,20 @@ class Event extends AppModel
 
             if (!empty($data['Event']['Object'])) {
                 $referencesToCapture = [];
-                foreach ($data['Event']['Object'] as $object) {
-                    $result = $this->Object->captureObject($object, $this->id, $user, false, $breakOnDuplicate, $parentEvent);
-                    if (isset($object['ObjectReference'])) {
-                        foreach ($object['ObjectReference'] as $objectRef) {
-                            $objectRef['source_uuid'] = $object['uuid'];
-                            $referencesToCapture[] = $objectRef;
+                foreach (array_chunk($data['Event']['Object'], MispAttribute::PRIME_CHUNK) as $objects) {
+                    $primed = $this->Attribute->primeValues($this->Object->objectAttributes($objects));
+                    try {
+                        foreach ($objects as $object) {
+                            $result = $this->Object->captureObject($object, $this->id, $user, false, $breakOnDuplicate, $parentEvent);
+                            if (isset($object['ObjectReference'])) {
+                                foreach ($object['ObjectReference'] as $objectRef) {
+                                    $objectRef['source_uuid'] = $object['uuid'];
+                                    $referencesToCapture[] = $objectRef;
+                                }
+                            }
                         }
+                    } finally {
+                        $this->Attribute->releaseValues($primed);
                     }
                 }
                 foreach ($referencesToCapture as $referenceToCapture) {
@@ -9231,7 +9400,6 @@ class Event extends AppModel
     /**
      * @param array $attribute
      * @param array $correlatedAttributes
-     * @param array $correlatedShadowAttributes
      * @param array $filterType
      * @param array $sightingsData
      * @return array|null
@@ -9239,7 +9407,6 @@ class Event extends AppModel
     private function __prepareAttributeForView(
         $attribute,
         $correlatedAttributes,
-        $correlatedShadowAttributes,
         $filterType = false,
         $sightingsData
     ) {
@@ -9361,7 +9528,7 @@ class Event extends AppModel
         if (!empty($attribute['ShadowAttribute'])) {
             $temp = array();
             foreach ($attribute['ShadowAttribute'] as $proposal) {
-                $result = $this->__prepareProposalForView($proposal, $correlatedShadowAttributes, $filterType);
+                $result = $this->__prepareProposalForView($proposal, $filterType);
                 if ($result) {
                     $temp[] = $result;
                 }
@@ -9373,11 +9540,10 @@ class Event extends AppModel
 
     /**
      * @param array $proposal
-     * @param array $correlatedShadowAttributes
      * @param array $filterType
      * @return array|null
      */
-    private function __prepareProposalForView($proposal, $correlatedShadowAttributes, $filterType = false)
+    private function __prepareProposalForView($proposal, $filterType = false)
     {
         if ($proposal['proposal_to_delete']) {
             $proposal['objectType'] = 'proposal_delete';
@@ -9389,25 +9555,12 @@ class Event extends AppModel
         if ($filterType) {
             $include = $filterType['proposal'] != 2;
 
-            /* correlation */
-            if ($filterType['correlation'] == 0) { // `both`
-                // pass, do not consider as `both` is selected
-            } else if (isset($correlatedShadowAttributes[$proposal['id']])) { // `include only`
-                $include = $include && ($filterType['correlation'] == 1);
-            } else { // `exclude`
+            /* correlation: proposals do not correlate */
+            if ($filterType['correlation'] != 0) {
                 $include = $include && ($filterType['correlation'] == 2);
             }
-
-            if ($filterType['correlationId'] && $include) {
+            if ($filterType['correlationId']) {
                 $include = false;
-                if (isset($correlatedShadowAttributes[$proposal['id']])) {
-                    foreach ($correlatedShadowAttributes[$proposal['id']] as $correlation) {
-                        if (in_array($correlation['id'], $filterType['correlationId'])) {
-                            $include = true;
-                            break;
-                        }
-                    }
-                }
             }
 
             /* feed */
@@ -9457,7 +9610,6 @@ class Event extends AppModel
     private function __prepareObjectForView(
         $object,
         $correlatedAttributes,
-        $correlatedShadowAttributes,
         $filterType,
         $sightingsData
     ) {
@@ -9477,7 +9629,6 @@ class Event extends AppModel
                 $result = $this->__prepareAttributeForView(
                     $attribute,
                     $correlatedAttributes,
-                    $correlatedShadowAttributes,
                     false,
                     $sightingsData
                 );
@@ -9499,7 +9650,7 @@ class Event extends AppModel
             || $filterType['warninglistId'] !== null
             || $filterType['correlationId'] !== null
         ) {
-            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData);
+            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $sightingsData);
             if (!$include) {
                 return null;
             }
@@ -9512,11 +9663,10 @@ class Event extends AppModel
      * @param array $object
      * @param array $filterType
      * @param array $correlatedAttributes
-     * @param array $correlatedShadowAttributes
      * @param array $sightingsData
      * @return bool
      */
-    private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes, $sightingsData)
+    private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $sightingsData)
     {
         if (empty($object['Attribute'])) { // reject empty object
             return false;
@@ -9596,18 +9746,6 @@ class Event extends AppModel
                         }
                     }
                 }
-                if (!empty($attribute['ShadowAttribute'])) {
-                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
-                        if (isset($correlatedShadowAttributes[$shadowAttribute['id']])) {
-                            foreach ($correlatedShadowAttributes[$shadowAttribute['id']] as $correlation) {
-                                if (in_array($correlation['id'], $filterType['correlationId'])) {
-                                    $flagKeep = true;
-                                    break 2;
-                                }
-                            }
-                        }
-                    }
-                }
             }
             if (!$flagKeep) {
                 return false;
@@ -9624,14 +9762,6 @@ class Event extends AppModel
                     $flagKeep = ($filterType['correlation'] == 1); // keep if correlations are included
                 } else {
                     $flagKeep = ($filterType['correlation'] == 2); // keep if correlations are excluded
-                }
-                if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
-                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
-                        if (isset($correlatedShadowAttributes[$shadowAttribute['id']])) {
-                            $flagKeep = ($filterType['correlation'] == 1); // keep if correlations are included
-                            break;
-                        }
-                    }
                 }
                 if ($flagKeep) {
                     break;
@@ -9791,7 +9921,6 @@ class Event extends AppModel
         }
 
         $correlatedAttributes = isset($event['RelatedAttribute']) ? $event['RelatedAttribute'] : [];
-        $correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? $event['RelatedShadowAttribute'] : [];
         $objects = array();
 
         if (isset($event['Attribute'])) {
@@ -9799,7 +9928,6 @@ class Event extends AppModel
                 $result = $this->__prepareAttributeForView(
                     $attribute,
                     $correlatedAttributes,
-                    $correlatedShadowAttributes,
                     $filterType,
                     $sightingsData
                 );
@@ -9814,7 +9942,6 @@ class Event extends AppModel
             foreach ($event['ShadowAttribute'] as $proposal) {
                 $result = $this->__prepareProposalForView(
                     $proposal,
-                    $correlatedShadowAttributes,
                     $filterType
                 );
                 if ($result) {
@@ -9829,7 +9956,6 @@ class Event extends AppModel
                 $result = $this->__prepareObjectForView(
                     $object,
                     $correlatedAttributes,
-                    $correlatedShadowAttributes,
                     $filterType,
                     $sightingsData
                 );
@@ -11588,16 +11714,18 @@ class Event extends AppModel
         if (!empty($original_uuid)) {
             return $original_uuid['Attribute'];
         }
+        // An Object find: its beforeFind leaves the joined attribute's value alone
+        $conditions = $this->Object->Attribute->loadAttributeValue()->rewriteConditions(array(
+            'Attribute.event_id' => $event_id,
+            'Attribute.deleted' => 0,
+            'Attribute.type' => $attribute_type,
+            'Attribute.value1' => $attribute_value,
+            'Object.event_id' => $event_id
+        ), 'Attribute');
         $original_uuid = $this->Object->find(
             'first',
             array(
-                'conditions' => array(
-                    'Attribute.event_id' => $event_id,
-                    'Attribute.deleted' => 0,
-                    'Attribute.type' => $attribute_type,
-                    'Attribute.value1' => $attribute_value,
-                    'Object.event_id' => $event_id
-                ),
+                'conditions' => $conditions,
                 'recursive' => -1,
                 'fields' => array('Object.uuid'),
                 'joins' => array(
@@ -12558,7 +12686,13 @@ class Event extends AppModel
                 'disable_correlation' => true
             )
         );
-        if (!$this->Attribute->saveMany($attributes)) {
+        $primed = $this->Attribute->primeValues($attributes);
+        try {
+            $saved = $this->Attribute->saveMany($attributes);
+        } finally {
+            $this->Attribute->releaseValues($primed);
+        }
+        if (!$saved) {
             throw new Exception("Could not save attributes for original file because of validation errors:" . json_encode($this->Attribute->validationErrors));
         }
         return true;

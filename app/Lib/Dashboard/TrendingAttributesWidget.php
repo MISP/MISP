@@ -122,15 +122,15 @@ class TrendingAttributesWidget
                 $conditions['Event.orgc_id IN'] = [-1];
             }
         }
-        $attributeModel->virtualFields['frequency'] = 0;
+        // Grouped on the exact value: case variants are counted apart, unlike 2.x
         if (!empty($user['Role']['perm_site_admin'])) {
             $values = $attributeModel->find('all', [
                 'recursive' => -1,
-                'fields' => ['Attribute.value1', 'count(Attribute.value1) as Attribute__frequency'],
-                'group' => ['Attribute.value1', ],
+                'fields' => ['Attribute.value1_id', 'count(Attribute.id) AS frequency'],
+                'group' => ['Attribute.value1_id'],
                 'conditions' => $conditions,
                 'contain' => ['Event.orgc_id'],
-                'order' => 'count(Attribute.value1) desc',
+                'order' => 'count(Attribute.id) desc',
                 'limit' => empty($options['threshold']) ? 10 : $options['threshold']
             ]);
         } else {
@@ -142,8 +142,8 @@ class TrendingAttributesWidget
             ];
             $values = $attributeModel->find('all', [
                 'recursive' => -1,
-                'fields' => ['Attribute.value1', 'count(Attribute.value1) as Attribute__frequency', 'Attribute.distribution', 'Attribute.sharing_group_id'],
-                'group' => 'Attribute.value1',
+                'fields' => ['Attribute.value1_id', 'count(Attribute.id) AS frequency', 'Attribute.distribution', 'Attribute.sharing_group_id'],
+                'group' => 'Attribute.value1_id',
                 'contain' => [
                     'Event.org_id',
                     'Event.distribution',
@@ -152,13 +152,13 @@ class TrendingAttributesWidget
                     'Object.sharing_group_id'
                 ],
                 'conditions' => $conditions,
-                'order' => 'count(Attribute.value1) desc',
+                'order' => 'count(Attribute.id) desc',
                 'limit' => empty($options['threshold']) ? 10 : $options['threshold']
             ]);
         }
         $data = [];
         foreach ($values as $value) {
-            $data[$value['Attribute']['value1']] = $value['Attribute']['frequency'];
+            $data[$value['Attribute']['value1']] = $value[0]['frequency'];
         }
         return ['data' => $data];
 	}

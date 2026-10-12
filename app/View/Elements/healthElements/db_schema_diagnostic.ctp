@@ -49,6 +49,7 @@ function highlightAndSanitize($dirty, $toHighlight, $colorType = 'success')
     $migrationsPendingIds = isset($migrationsPendingIds) ? (array)$migrationsPendingIds : array();
     $migrationsFailed = isset($migrationsFailed) ? (int)$migrationsFailed : 0;
     $migrationsFailedIds = isset($migrationsFailedIds) ? (array)$migrationsFailedIds : array();
+    $migrationsDeferredReasons = isset($migrationsDeferredReasons) ? (array)$migrationsDeferredReasons : array();
     $migrationsApplied = isset($migrationsApplied) ? (int)$migrationsApplied : 0;
 
     $hasAtLeastOneCriticalWarning = false;
@@ -215,10 +216,13 @@ function highlightAndSanitize($dirty, $toHighlight, $colorType = 'success')
     if ($migrationsPending > 0) {
         $pendingItems = '';
         foreach ($migrationsPendingIds as $migrationId) {
-            $pendingItems .= sprintf('<li><code>%s</code>%s</li>',
-                h($migrationId),
-                in_array($migrationId, $migrationsFailedIds, true) ? sprintf(' <span class="label label-important">%s</span>', __('failed')) : ''
-            );
+            $marker = '';
+            if (in_array($migrationId, $migrationsFailedIds, true)) {
+                $marker = sprintf(' <span class="label label-important">%s</span>', __('failed'));
+            } elseif (isset($migrationsDeferredReasons[$migrationId])) {
+                $marker = sprintf(' <span class="label label-warning">%s</span><br/>%s', __('deferred'), h($migrationsDeferredReasons[$migrationId]));
+            }
+            $pendingItems .= sprintf('<li><code>%s</code>%s</li>', h($migrationId), $marker);
         }
         echo sprintf('<div style="margin-top: 5px;">%s <a href="%s">%s</a></div><ul>%s</ul>',
             __('Pending migrations, applied in this order by the next update run:'),

@@ -5,37 +5,77 @@ class OverCorrelatingValue extends AppModel
 {
     public $recursive = -1;
 
-    /** @var array */
-    private $blockedValues = [];
-
-    public static function truncate(?string $value): string
-    {
-        if ($value === null) {
-            return '';
-        }
-        $value = mb_strtolower($value);
-        return mb_substr($value, 0, 191);
-    }
-    public static function truncateValues(array $values): array
-    {
-        return array_map(function(string $value) {
-            return self::truncate($value);
-        }, $values);
-    }
+    /** @var array|null Every spelling of every blocked value => true, loaded on first use */
+    private $blockedValues = null;
 
     /**
+     * Whether the value, or a variant the dictionary collation holds equal
+     * to it, is blocked.
+     *
      * @param string $value
      * @return bool
      */
     public function isBlocked($value)
     {
-        $value = self::truncate($value);
-        if (isset($this->blockedValues[$value])) {
-            return $this->blockedValues[$value];
+        if ($this->blockedValues === null) {
+            $this->blockedValues = [];
+            $rows = $this->find('all', [
+                'fields' => ['Spelling.value'],
+                'joins' => [
+                    $this->blockedValueJoin('INNER'),
+                    [
+                        'table' => 'attribute_values',
+                        'alias' => 'Spelling',
+                        'type' => 'INNER',
+                        'conditions' => ['Spelling.value = BlockedValue.value'],
+                    ],
+                ],
+            ]);
+            foreach ($rows as $row) {
+                $this->blockedValues[$row['Spelling']['value']] = true;
+            }
         }
+        return isset($this->blockedValues[(string)$value]);
+    }
 
-        $isBlocked = $this->hasAny(['value' => $value]);
-        return $this->blockedValues[$value] = $isBlocked;
+    /**
+     * SQL leaving out the value groups that are blocked, read live.
+     *
+     * @param string $field A column holding value group ids
+     * @return string
+     */
+    public function blockedGroupsCondition($field)
+    {
+        $db = $this->getDataSource();
+        $AttributeValue = ClassRegistry::init('AttributeValue');
+        $id = $db->name('id');
+        $value = $db->name('value');
+        return sprintf(
+            '%s NOT IN (SELECT MIN(w.%s) FROM %s o JOIN %s b ON b.%s = o.%s JOIN %s w ON %s GROUP BY o.%s)',
+            $db->name($field),
+            $id,
+            $db->fullTableName($this),
+            $db->fullTableName($AttributeValue),
+            $id,
+            $db->name('value_id'),
+            $db->fullTableName($AttributeValue),
+            $AttributeValue->ciEqualColumns('w.' . $value, 'b.' . $value),
+            $id
+        );
+    }
+
+    /**
+     * @param string $type
+     * @return array
+     */
+    private function blockedValueJoin($type)
+    {
+        return [
+            'table' => 'attribute_values',
+            'alias' => 'BlockedValue',
+            'type' => $type,
+            'conditions' => ['BlockedValue.id = OverCorrelatingValue.value_id'],
+        ];
     }
 
     /**
@@ -45,19 +85,21 @@ class OverCorrelatingValue extends AppModel
      */
     public function block($value)
     {
-        if (!$this->isBlocked($value)) {
-            $value = self::truncate($value);
-            $this->create();
-            try {
-                $this->save([
-                    'value' => mb_strtolower($value),
-                    'occurrence' => 0
-                ]);
-                $this->blockedValues[$value] = true;
-            } catch (Exception $e) {
-                //most likely we ran into an issue with capitalisation, there's no reason to break the process for this
-            }
+        if ($this->isBlocked($value)) {
+            return;
         }
+        $valueId = ClassRegistry::init('AttributeValue')->intern((string)$value);
+        $this->create();
+        try {
+            $this->save([
+                'value_id' => $valueId,
+                'occurrence' => 0
+            ]);
+        } catch (Exception $e) {
+            //most likely another process blocked it meanwhile, there's no reason to break the process for this
+        }
+        // Its variants are blocked with it
+        $this->blockedValues = null;
     }
 
     /**
@@ -66,16 +108,20 @@ class OverCorrelatingValue extends AppModel
      */
     public function unblock($value)
     {
-        $value = self::truncate($value);
-        $this->deleteAll([
-            'OverCorrelatingValue.value' => $value,
-        ], false);
-        $this->blockedValues[$value] = false;
+        $ids = $this->find('column', [
+            'fields' => ['OverCorrelatingValue.id'],
+            'joins' => [$this->blockedValueJoin('INNER')],
+            'conditions' => ['BlockedValue.value' => (string)$value],
+        ]);
+        if (!empty($ids)) {
+            $this->deleteAll(['OverCorrelatingValue.id' => $ids], false);
+            $this->blockedValues = null;
+        }
     }
 
     public function cleanCache()
     {
-        $this->blockedValues = [];
+        $this->blockedValues = null;
     }
 
     /**
@@ -86,11 +132,29 @@ class OverCorrelatingValue extends AppModel
         return Configure::read('MISP.correlation_limit') ?: 20;
     }
 
+    /**
+     * The blocked values as stored.
+     *
+     * @param array $query
+     * @return array
+     */
     public function getOverCorrelations($query)
     {
+        $query['fields'] = [
+            'OverCorrelatingValue.id',
+            'OverCorrelatingValue.occurrence',
+            'BlockedValue.value',
+        ];
+        $query['joins'][] = $this->blockedValueJoin('INNER');
         $data = $this->find('all', $query);
         $limit = $this->getLimit();
         foreach ($data as $k => $v) {
+            $data[$k]['OverCorrelatingValue'] = [
+                'id' => $v['OverCorrelatingValue']['id'],
+                'value' => $v['BlockedValue']['value'],
+                'occurrence' => $v['OverCorrelatingValue']['occurrence'],
+            ];
+            unset($data[$k]['BlockedValue']);
             if ($v['OverCorrelatingValue']['occurrence'] >= $limit) {
                 $data[$k]['OverCorrelatingValue']['over_correlation'] = true;
             } else {
@@ -100,13 +164,47 @@ class OverCorrelatingValue extends AppModel
         return $data;
     }
 
-    public function findOverCorrelatingValues(array $valuesToCheck): array
+    /**
+     * Points the rows without a value id at the dictionary entry of their
+     * text key: the lowest id among the values the dictionary collation holds
+     * equal to it. A key whose entry another row already holds keeps no id.
+     *
+     * @return int The rows remapped.
+     */
+    public function remapValueIds()
     {
-        $valuesToCheck = array_unique(self::truncateValues($valuesToCheck), SORT_REGULAR);
-        return $this->find('column', [
-            'conditions' => ['value' => $valuesToCheck],
-            'fields' => ['value'],
+        // The gated text drop removes the text key
+        if (!array_key_exists('value', $this->schema())) {
+            return 0;
+        }
+        $rows = $this->find('list', [
+            'fields' => ['OverCorrelatingValue.id', 'OverCorrelatingValue.value'],
+            'conditions' => ['OverCorrelatingValue.value_id' => null],
+            'order' => ['OverCorrelatingValue.id' => 'ASC'],
         ]);
+        if (empty($rows)) {
+            return 0;
+        }
+        $resolved = ClassRegistry::init('AttributeValue')->resolveCi(array_values($rows));
+        $taken = array_flip($this->find('column', [
+            'fields' => ['OverCorrelatingValue.value_id'],
+            'conditions' => ['OverCorrelatingValue.value_id !=' => null],
+        ]));
+        $remapped = 0;
+        foreach ($rows as $id => $value) {
+            $ids = isset($resolved[(string)$value]) ? $resolved[(string)$value] : [];
+            if (empty($ids) || isset($taken[min($ids)])) {
+                continue;
+            }
+            $this->updateAll(
+                ['OverCorrelatingValue.value_id' => min($ids)],
+                ['OverCorrelatingValue.id' => $id]
+            );
+            $taken[min($ids)] = true;
+            $remapped++;
+        }
+        $this->blockedValues = null;
+        return $remapped;
     }
 
     public function generateOccurrencesRouter()
@@ -137,21 +235,38 @@ class OverCorrelatingValue extends AppModel
         }
     }
 
+    /**
+     * Counts the attributes that correlate on each blocked value, its case
+     * variants included, as the correlation limit counts them.
+     *
+     * @return void
+     */
     public function generateOccurrences()
     {
         $overCorrelations = $this->find('all', [
-            'recursive' => -1
+            'fields' => ['OverCorrelatingValue.id', 'OverCorrelatingValue.value_id'],
+            'conditions' => ['OverCorrelatingValue.value_id !=' => null],
         ]);
+        if (empty($overCorrelations)) {
+            return;
+        }
+        $AttributeValue = ClassRegistry::init('AttributeValue');
+        $values = $AttributeValue->fetchValues(array_column(array_column($overCorrelations, 'OverCorrelatingValue'), 'value_id'));
+        $rewriter = $AttributeValue->batchRewriter('Attribute', array_values($values));
         $this->Attribute = ClassRegistry::init('MispAttribute');
-        foreach ($overCorrelations as &$overCorrelation) {
-            $value = $overCorrelation['OverCorrelatingValue']['value'] . '%';
+        $counts = [];
+        foreach ($overCorrelations as $overCorrelation) {
+            $valueId = (int)$overCorrelation['OverCorrelatingValue']['value_id'];
+            if (!isset($values[$valueId])) {
+                continue;
+            }
             $count = $this->Attribute->find('count', [
                 'recursive' => -1,
-                'conditions' => [
+                'conditions' => $rewriter->rewrite([
                     'OR' => [
-                        'Attribute.value1 LIKE' => $value,
+                        'Attribute.value1' => $values[$valueId],
                         'AND' => [
-                            'Attribute.value2 LIKE' => $value,
+                            'Attribute.value2' => $values[$valueId],
                             'NOT' => ['Attribute.type' => MispAttribute::PRIMARY_ONLY_CORRELATING_TYPES]
                         ],
                     ],
@@ -159,12 +274,15 @@ class OverCorrelatingValue extends AppModel
                     'Attribute.disable_correlation' => 0,
                     'Event.disable_correlation' => 0,
                     'Attribute.deleted' => 0,
-                ],
+                ]),
                 'contain' => ['Event'],
             ]);
-            $overCorrelation['OverCorrelatingValue']['occurrence'] = $count;
+            $counts[] = ['OverCorrelatingValue' => [
+                'id' => $overCorrelation['OverCorrelatingValue']['id'],
+                'occurrence' => $count,
+            ]];
         }
-        $this->saveMany($overCorrelations);
+        $this->saveMany($counts);
     }
 
     public function truncateTable()

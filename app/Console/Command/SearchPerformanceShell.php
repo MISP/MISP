@@ -19,6 +19,7 @@
  *   app/Console/cake SearchPerformance report --json
  */
 App::uses('SqlDialect', 'Migration');
+App::uses('ValueConditionRewriter', 'Tools');
 
 class SearchPerformanceShell extends AppShell
 {
@@ -231,9 +232,9 @@ class SearchPerformanceShell extends AppShell
             $stats['composite_value_ratio'] =
                 $this->__singleQuery(
                     "SELECT "
-                    . "SUM(value2 != '') "
+                    . "SUM(value2_id IS NOT NULL) "
                         . "AS has_value2, "
-                    . "SUM(value2 = '') "
+                    . "SUM(value2_id IS NULL) "
                         . "AS no_value2 "
                     . "FROM attributes "
                     . $sampleWhere,
@@ -243,9 +244,9 @@ class SearchPerformanceShell extends AppShell
             $stats['composite_value_ratio'] =
                 $this->__singleQuery(
                     "SELECT "
-                    . "SUM(value2 != '') "
+                    . "SUM(value2_id IS NOT NULL) "
                         . "AS has_value2, "
-                    . "SUM(value2 = '') "
+                    . "SUM(value2_id IS NULL) "
                         . "AS no_value2 "
                     . "FROM attributes",
                     'composite_value_ratio'
@@ -567,7 +568,8 @@ class SearchPerformanceShell extends AppShell
     private function __tableCounts()
     {
         $tables = [
-            'attributes', 'events', 'objects',
+            'attributes', 'attribute_values',
+            'events', 'objects',
             'attribute_tags', 'event_tags', 'tags',
             'sharing_groups', 'organisations',
             'sightings', 'default_correlations',
@@ -594,7 +596,8 @@ class SearchPerformanceShell extends AppShell
     private function __tableCountsFast()
     {
         $tables = [
-            'attributes', 'events', 'objects',
+            'attributes', 'attribute_values',
+            'events', 'objects',
             'attribute_tags', 'event_tags', 'tags',
             'sharing_groups', 'organisations',
             'sightings', 'default_correlations',
@@ -873,8 +876,9 @@ class SearchPerformanceShell extends AppShell
     private function __indexInfo()
     {
         $tables = [
-            'attributes', 'attribute_tags',
-            'event_tags', 'events', 'objects',
+            'attributes', 'attribute_values',
+            'attribute_tags', 'event_tags', 'events',
+            'objects',
         ];
         $out = [];
         foreach ($tables as $table) {
@@ -1004,11 +1008,6 @@ class SearchPerformanceShell extends AppShell
 
         // Value cardinality: assumed high (not queried)
         $valueUniqueness = 0.80;
-
-        // Composite value ratio
-        $cv = $stats['composite_value_ratio'];
-        $compositeRatio = $total > 0
-            ? ($cv['has_value2'] ?? 0) / $total : 0;
 
         // Timestamp selectivity
         $ts = $stats['timestamp_ranges'];
@@ -1215,57 +1214,46 @@ class SearchPerformanceShell extends AppShell
             ['OK', 'Event ID narrows to single event.']
         );
 
-        $v2Note = $compositeRatio < 0.05
-            ? sprintf(
-                ' Only %.1f%% of attrs have value2 '
-                . '— the value2 OR leg is nearly '
-                . 'always wasted.',
-                $compositeRatio * 100)
-            : '';
+        $dictionaryScan = sprintf(
+            'Full scan of the value dictionary (%s '
+            . 'rows; once per value column past %s '
+            . 'matches), then attributes by value id.',
+            number_format($tc['attribute_values']),
+            number_format(
+                ValueConditionRewriter::OVERFLOW
+            )
+        );
 
         $combos[] = $this->__combo(++$id,
             'value (%%suffix)',
             'Investigation',
             ['value'],
-            ['SLOW', sprintf(
-                'Suffix LIKE cannot use B-tree index.'
-                . ' Full scan of %s rows (x2: OR '
-                . 'across value1 + value2).%s',
-                number_format($total), $v2Note
-            )]
+            ['SLOW', 'Suffix LIKE cannot use B-tree '
+                . 'index. ' . $dictionaryScan]
         );
 
         $combos[] = $this->__combo(++$id,
             'value (%%mid%%)',
             'Investigation',
             ['value'],
-            ['SLOW', sprintf(
-                'Middle wildcard — full scan of %s '
-                . 'rows (x2: value1 + value2).%s',
-                number_format($total), $v2Note
-            )]
+            ['SLOW', 'Middle wildcard. '
+                . $dictionaryScan]
         );
 
         $combos[] = $this->__combo(++$id,
             'value (suffix) + tags',
             'Investigation',
             ['value', 'tags'],
-            ['SLOW', sprintf(
-                'Value suffix scan dominates. '
-                . 'Tag filter cannot reduce I/O.%s',
-                $v2Note
-            )]
+            ['SLOW', 'Value suffix scan dominates. '
+                . 'Tag filter cannot reduce it.']
         );
 
         $combos[] = $this->__combo(++$id,
             'value (suffix) + type',
             'Investigation',
             ['value', 'type'],
-            ['SLOW', sprintf(
-                'Value suffix scan dominates. '
-                . 'Type index unusable.%s',
-                $v2Note
-            )]
+            ['SLOW', 'Value suffix scan dominates. '
+                . 'Type filter cannot reduce it.']
         );
 
         $combos[] = $this->__combo(++$id,
@@ -1354,10 +1342,10 @@ class SearchPerformanceShell extends AppShell
             'Investigation',
             ['searchall'],
             ['SLOW', sprintf(
-                'Converts to wildcard LIKE — full '
-                . 'scan of %s rows (x2: value1 '
-                . '+ value2).%s',
-                number_format($total), $v2Note
+                'Converts to wildcard LIKE on values, '
+                . 'comments and tag names. %s The '
+                . 'comment LIKE scans all %s rows.',
+                $dictionaryScan, number_format($total)
             )]
         );
 
@@ -1508,11 +1496,11 @@ class SearchPerformanceShell extends AppShell
             'Complex',
             ['value', 'tags', 'timestamp'],
             ['SLOW', sprintf(
-                'Value suffix scan dominates '
-                . '(%s rows, x2: value1 + value2).'
+                'Value suffix scan of the value '
+                . 'dictionary dominates (%s rows).'
                 . ' Tags and timestamp cannot '
-                . 'help.%s',
-                number_format($total), $v2Note
+                . 'help.',
+                number_format($tc['attribute_values'])
             )]
         );
 
@@ -1827,13 +1815,6 @@ class SearchPerformanceShell extends AppShell
             . '%s (%.1f%%)',
             number_format($v2cnt), $v2pct
         ));
-        if ($v2pct < 5) {
-            $this->out(
-                '    -> value2 nearly always empty;'
-                . ' the value2 leg of OR in value'
-                . ' searches is mostly wasted I/O'
-            );
-        }
         $this->out('');
 
         // ── Timestamp ───────────────────────────────

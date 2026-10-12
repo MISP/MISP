@@ -21,8 +21,8 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 'Attribute.type',
                 'Attribute.distribution',
                 'Attribute.sharing_group_id',
-                'Attribute.value1',
-                'Attribute.value2',
+                'Attribute.value1_id',
+                'Attribute.value2_id',
             ],
             'contain' => [
                 'Event' => [
@@ -154,8 +154,6 @@ class DefaultCorrelationBehavior extends ModelBehavior
             'object_sharing_group_id'
         ];
 
-        $this->Correlation->CorrelationValue->replaceValueWithId($correlations, $this->deadlockAvoidance ? 'value_id' : 0);
-
         if ($this->deadlockAvoidance) {
             return $this->Correlation->saveMany($correlations, [
                 'atomic' => false,
@@ -224,6 +222,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         $maxCorrelations = Configure::read('MISP.max_correlations_per_event') ?: 5000;
         $source = $primary ? '' : '1_';
         $prefix = $primary ? '1_' : '';
+        $display = $this->Correlation->displayValueQuery('Correlation.' . $prefix . 'attribute_id');
         $correlations = $this->Correlation->find('all', array(
             'fields' => [
                 $source . 'attribute_id',
@@ -236,29 +235,17 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 $prefix . 'object_distribution',
                 $prefix . 'object_sharing_group_id',
                 $prefix . 'distribution',
-                $prefix . 'sharing_group_id'
+                $prefix . 'sharing_group_id',
+                $display['field']
             ],
             'conditions' => [
                 'OR' => [
-                    $source . 'event_id' => $eventId
+                    'Correlation.' . $source . 'event_id' => $eventId
                 ],
-                'AND' => [
-                    [
-                        'CorrelationValue.value NOT IN (select value from correlation_exclusions)'
-                    ],
-                    [
-                        'CorrelationValue.value NOT IN (select value from over_correlating_values)'
-                    ]
-                ]
+                'AND' => $this->Correlation->excludedValueConditions()
             ],
             'recursive' => -1,
-            'contain' => [
-                'CorrelationValue' => [
-                    'fields' => [
-                        'CorrelationValue.value'
-                    ]
-                ]
-            ],
+            'joins' => $display['joins'],
             'order' => false,
             'limit' => $maxCorrelations
         ));
@@ -286,7 +273,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 'id' => $correlation['Correlation']['event_id'],
                 'attribute_id' => $correlation['Correlation']['attribute_id'],
                 'parent_id' => $correlation['Correlation']['1_attribute_id'],
-                'value' => $correlation['CorrelationValue']['value']
+                'value' => isset($correlation[0]['display_value']) ? $correlation[0]['display_value'] : ''
             ];
             $eventIds[$correlation['Correlation']['event_id']] = true;
         }
@@ -295,7 +282,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
                 'id' => $correlation['Correlation']['1_event_id'],
                 'attribute_id' => $correlation['Correlation']['1_attribute_id'],
                 'parent_id' => $correlation['Correlation']['attribute_id'],
-                'value' => $correlation['CorrelationValue']['value']
+                'value' => isset($correlation[0]['display_value']) ? $correlation[0]['display_value'] : ''
             ];
             $eventIds[$correlation['Correlation']['1_event_id']] = true;
         }
@@ -329,7 +316,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
         return $relatedAttributes;
     }
 
-    public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false)
+    public function runGetRelatedAttributes(Model $Model, $user, $sgids, $attribute, $fields = [], $includeEventData = false, $valueText = true)
     {
         // LATER getRelatedAttributes($attribute) this might become a performance bottleneck
         // prepare the conditions
@@ -426,7 +413,8 @@ class DefaultCorrelationBehavior extends ModelBehavior
             'recursive' => -1,
             'conditions' => $conditions,
             'fields' => $fields,
-            'contain' => $contain
+            'contain' => $contain,
+            'valueText' => $valueText,
         ]);
         if (!empty($includeEventData)) {
             $results = [];
@@ -516,12 +504,13 @@ class DefaultCorrelationBehavior extends ModelBehavior
 
         $correlations = [];
         $eventIds = [];
-        $valueIds = [];
         foreach ($conditions as $k => $condition) {
+            $display = $Model->displayValueQuery('Correlation.' . $prefixes[$k] . 'attribute_id');
             $rows = $Model->find('all', [
                 'recursive' => -1,
                 'conditions' => $condition,
-                'fields' => $corrFields[$k],
+                'fields' => array_merge($corrFields[$k], [$display['field']]),
+                'joins' => $display['joins'],
             ]);
             $prefix = $prefixes[$k];
             $sourceField = $sourceFields[$k];
@@ -547,10 +536,9 @@ class DefaultCorrelationBehavior extends ModelBehavior
                         $prefix . 'attribute_id'
                     ],
                     'parent_id' => $parentId,
-                    'value_id' => $corr['value_id'],
+                    'value' => isset($row[0]['display_value']) ? $row[0]['display_value'] : '',
                 ];
                 $eventIds[$targetEventId] = true;
-                $valueIds[$corr['value_id']] = true;
             }
         }
 
@@ -558,18 +546,6 @@ class DefaultCorrelationBehavior extends ModelBehavior
             return [];
         }
 
-        // Resolve correlation values in bulk
-        $values = $Model->CorrelationValue->find('list', [
-            'recursive' => -1,
-            'conditions' => [
-                'CorrelationValue.id' =>
-                    array_keys($valueIds),
-            ],
-            'fields' => [
-                'CorrelationValue.id',
-                'CorrelationValue.value',
-            ],
-        ]);
 
         // Enrich with event metadata
         $eventConditions = $Model->Event
@@ -598,7 +574,7 @@ class DefaultCorrelationBehavior extends ModelBehavior
             $result[$parentId][] = [
                 'id' => $evId,
                 'attribute_id' => $corr['attribute_id'],
-                'value' => $values[$corr['value_id']] ?? '',
+                'value' => $corr['value'],
                 'org_id' => $event['orgc_id'],
                 'info' => $event['info'],
                 'date' => $event['date'],
@@ -982,7 +958,6 @@ class DefaultCorrelationBehavior extends ModelBehavior
     {
         if (!$eventId) {
             $Model->query('TRUNCATE TABLE default_correlations;');
-            //$Model->query('TRUNCATE TABLE correlation_values;');
             //$Model->query('TRUNCATE TABLE over_correlating_values;');
         } else {
             $Model->deleteAll([
@@ -996,20 +971,9 @@ class DefaultCorrelationBehavior extends ModelBehavior
 
     public function purgeByValue(Model $Model, string $value)
     {
-        $valueIds = $Model->CorrelationValue->find('column', [
-            'recursive' => -1,
-            'conditions' => [
-                'OR' => [
-                    ['CorrelationValue.value LIKE' => '%' . $value],
-                    ['CorrelationValue.value LIKE' => $value . '%'],
-                ]
-            ],
-            'fields' => [
-                'CorrelationValue.id'
-            ]
-        ]);
-        $Model->deleteAll([
-            'Correlation.value_id' => $valueIds
-        ], false);
+        $condition = $Model->exclusionMatchCondition($value);
+        if ($condition !== null) {
+            $Model->deleteAll($condition, false);
+        }
     }
 }

@@ -44,11 +44,14 @@ App::uses('ConnectionManager', 'Model');
  * The methods split into two kinds, and the return values say which is which:
  *
  * - **Expression methods** (dateOf, unixTimestamp, fromUnixtime,
- *   formatYearMonth, regexpMatch) return a fragment with no trailing semicolon,
- *   to be embedded in a larger query or in a `fields` array.
- * - **Statement methods** (optimizeTable, upsert, resetSequence) return a
- *   complete statement ending in a semicolon, matching what the grammars
- *   produce. resetSequence returns null where the engine has nothing to do.
+ *   formatYearMonth, regexpMatch, binaryLiteral, bytesOf, sha256Prefix)
+ *   return a fragment with no trailing semicolon, to be embedded in a larger
+ *   query or in a `fields` array. currentRead returns a whole SELECT, also
+ *   without one.
+ * - **Statement methods** (optimizeTable, upsert, insertIgnore,
+ *   resetSequence) return a complete statement ending in a semicolon,
+ *   matching what the grammars produce. resetSequence returns null where the
+ *   engine has nothing to do.
  *
  * ## Where the two engines still differ in more than spelling
  *
@@ -62,8 +65,9 @@ App::uses('ConnectionManager', 'Model');
  *   unless NO_BACKSLASH_ESCAPES is set, while PostgreSQL's standard_conforming_
  *   strings leaves it literal. A pattern with backslashes is not the same
  *   pattern on both engines, and no amount of quoting makes it so.
- * - upsert() needs a unique constraint over the conflict columns on
- *   PostgreSQL, where MySQL will match whichever unique key it likes.
+ * - upsert() and insertIgnore() need a unique constraint over the conflict
+ *   columns on PostgreSQL, where MySQL will match whichever unique key it
+ *   likes. A collision on any other key still fails on PostgreSQL.
  * - optimizeTable() renders `VACUUM ANALYZE` on PostgreSQL, which cannot run
  *   inside a transaction block.
  */
@@ -204,6 +208,89 @@ class SqlDialect
         return sprintf('%s ~ %s', $expr, $quoted);
     }
 
+    /**
+     * A binary string as a hex literal.
+     *
+     * Quoting raw bytes through value() would send them as text in the
+     * connection's character set, where a byte sequence that is not valid
+     * UTF-8 can be rejected or altered before it reaches a binary column.
+     *
+     * @param string $bytes
+     * @return string
+     */
+    public function binaryLiteral($bytes)
+    {
+        $hex = bin2hex($bytes);
+        if ($this->isMysql()) {
+            return sprintf("X'%s'", $hex);
+        }
+        return sprintf("decode('%s', 'hex')", $hex);
+    }
+
+    /**
+     * The bytes of a text expression, so that comparing two of them is exact:
+     * on the text itself, a case- or accent-insensitive collation or MySQL's
+     * PAD SPACE equates strings that differ.
+     *
+     * MySQL gives the bytes of the expression's character set, which is UTF-8
+     * for utf8mb3 and utf8mb4 columns.
+     *
+     * @param string $expr An SQL expression, already quoted by the caller.
+     * @return string
+     */
+    public function bytesOf($expr)
+    {
+        if ($this->isMysql()) {
+            return sprintf('CAST(%s AS BINARY)', $expr);
+        }
+        return sprintf("convert_to(%s, 'UTF8')", $expr);
+    }
+
+    /**
+     * The first bytes of the SHA-256 of a UTF-8 text expression, as a binary
+     * string: what PHP computes as substr(hash('sha256', $v, true), 0, $length).
+     *
+     * @param string $expr An SQL expression, already quoted by the caller.
+     * @param int $length Bytes to keep, 1 to 32.
+     * @return string
+     * @throws InvalidArgumentException For a length outside 1 to 32.
+     */
+    public function sha256Prefix($expr, $length)
+    {
+        $length = (int)$length;
+        if ($length < 1 || $length > 32) {
+            throw new InvalidArgumentException('A SHA-256 prefix is 1 to 32 bytes long.');
+        }
+        if ($this->isMysql()) {
+            return sprintf('UNHEX(LEFT(SHA2(%s, 256), %d))', $expr, $length * 2);
+        }
+        return sprintf('substring(sha256(%s) from 1 for %d)', $this->bytesOf($expr), $length);
+    }
+
+    /**
+     * A SELECT that sees every row committed before it starts, even inside an
+     * open REPEATABLE READ transaction, whose snapshot would hide rows another
+     * session committed since.
+     *
+     * MySQL gets a locking read, `LOCK IN SHARE MODE` rather than `FOR SHARE`,
+     * which MariaDB does not have. Its shared locks last until the transaction
+     * ends. PostgreSQL's default READ COMMITTED already gives every statement a
+     * fresh snapshot, so the select comes back unchanged: `FOR SHARE` would
+     * write a lock into every row it returns, and under REPEATABLE READ it
+     * still would not see rows inserted after the snapshot.
+     *
+     * @param string $select A SELECT, with or without its trailing semicolon.
+     * @return string The SELECT without a trailing semicolon.
+     */
+    public function currentRead($select)
+    {
+        $select = rtrim(rtrim(trim($select), ';'));
+        if ($this->isMysql()) {
+            return $select . ' LOCK IN SHARE MODE';
+        }
+        return $select;
+    }
+
     // ------------------------------------------------------------- statements
 
     /**
@@ -288,6 +375,47 @@ class SqlDialect
             implode(', ', $conflict),
             implode(', ', $assignments)
         );
+    }
+
+    /**
+     * Complete an INSERT so that a row colliding with an existing key is
+     * skipped instead of failing, leaving the existing row as it was.
+     *
+     * MySQL's half is a no-op `ON DUPLICATE KEY UPDATE`, not `INSERT IGNORE`:
+     * IGNORE also downgrades every other error to a warning, so a value too
+     * long for its column would be truncated and stored, and a NULL in a NOT
+     * NULL column replaced by the type's default. Only duplicate keys are
+     * meant to be absorbed here.
+     *
+     * The conflict columns are required for the same reason as in upsert(),
+     * and the same `FROM t ON CONFLICT` parse trap applies. Neither engine
+     * gives back the auto-increment ids it reserved for the skipped rows, so a
+     * caller that expects many collisions should select first and insert only
+     * what is missing.
+     *
+     * @param string $insert A complete INSERT statement, with or without its
+     *   trailing semicolon.
+     * @param array $conflictColumns The columns whose uniqueness is being
+     *   violated.
+     * @return string One statement.
+     * @throws InvalidArgumentException When the column list is empty.
+     */
+    public function insertIgnore($insert, array $conflictColumns)
+    {
+        if (empty($conflictColumns)) {
+            throw new InvalidArgumentException(
+                'An insert-ignore needs the columns it conflicts on. MySQL infers them, PostgreSQL cannot.'
+            );
+        }
+        $insert = rtrim(rtrim(trim($insert), ';'));
+        $conflict = array();
+        foreach ($conflictColumns as $column) {
+            $conflict[] = $this->db->name($column);
+        }
+        if ($this->isMysql()) {
+            return sprintf('%s ON DUPLICATE KEY UPDATE %s = %s;', $insert, $conflict[0], $conflict[0]);
+        }
+        return sprintf('%s ON CONFLICT (%s) DO NOTHING;', $insert, implode(', ', $conflict));
     }
 
     /**

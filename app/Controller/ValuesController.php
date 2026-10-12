@@ -4,6 +4,7 @@ App::uses('MispTheme', 'MispTheme');
 App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 App::uses('ValueLean', 'Tools/ValueIntelligence');
 App::uses('ValueInputTool', 'Tools/ValueIntelligence');
+App::uses('ValueConditionRewriter', 'Tools');
 
 /**
  * Value Intelligence controller, mounted at /values/* via CakePHP's default
@@ -20,14 +21,19 @@ App::uses('ValueInputTool', 'Tools/ValueIntelligence');
  * `viewEnrichmentRun` queries a third-party module. It still writes
  * nothing to MISP — see its docblock for what that costs instead, and
  * why it is the page's only POST.
+ *
+ * As JSON, `view`, `search` and `delete` are the value dictionary's API:
+ * a stored value and the attributes holding it that the user can see.
+ *
+ * @property AttributeValue $AttributeValue
+ * @property MispAttribute $MispAttribute
  */
 class ValuesController extends AppController
 {
     public $components = array('Session', 'RequestHandler');
 
-    // The subject is a value, not a row of one table, so there is no
-    // default model to bind. Panels load their own models as they land.
-    public $uses = array();
+    // The dictionary API's model; the panels load their own as they land.
+    public $uses = array('AttributeValue');
 
     /**
      * Where every element this controller renders lives, and the only
@@ -35,6 +41,14 @@ class ValuesController extends AppController
      * There is no unthemed fallback to fall back to.
      */
     const THEME = 'Overmind';
+
+    const LIMIT = 60;
+
+    const MAX_LIMIT = 1000;
+
+    const MAX_PAGE = 1000000;
+
+    const SEARCH_MODES = ['search', 'like', 'exact'];
 
     /**
      * A panel is an HTML fragment and has no other representation.
@@ -61,7 +75,8 @@ class ValuesController extends AppController
         $json = in_array(
             $this->request->params['action'] ?? null,
             array('graph', 'graphOccurrences', 'enrichmentTypes',
-                'enrichmentStored', 'enrichmentRun'),
+                'enrichmentStored', 'enrichmentRun', 'view', 'search',
+                'delete'),
             true
         );
         if (!$json) {
@@ -663,13 +678,20 @@ class ValuesController extends AppController
     }
 
     /**
-     * The full profile page for one value.
+     * The full profile page for one value: what `view` renders for a
+     * browser.
      *
      * @param string $b64value
      * @return void
+     * @throws ForbiddenException
      */
-    public function view($b64value = null)
+    private function __valuePage($b64value)
     {
+        if (!Configure::read('MISP.enable_themes')) {
+            throw new ForbiddenException(
+                'You do not have permission to use this functionality.'
+            );
+        }
         /*
          * The frame, live since phase 29 — the banner's type and
          * warninglist chips, the `value2` note, the fact strip and the
@@ -1949,5 +1971,232 @@ class ValuesController extends AppController
             throw new NotFoundException(__('Invalid base64 encoding.'));
         }
         return $value;
+    }
+
+    /**
+     * GET /values/view/<id>, /values/view/sha256:<hex> or /values/view?value=…,
+     * or POST {"value": …}. page and limit page the attributes.
+     *
+     * @param string|null $id
+     * @return CakeResponse|void
+     */
+    public function view($id = null)
+    {
+        if (!$this->_isRest()) {
+            return $this->__valuePage($id);
+        }
+        $params = $this->__params();
+        if ($id !== null) {
+            $address = ['id' => $id];
+        } elseif (isset($this->request->params['named']['sha256'])) {
+            $address = ['sha256' => $this->request->params['named']['sha256']];
+        } elseif (isset($params['value'])) {
+            $address = ['value' => $params['value']];
+        } else {
+            throw new BadRequestException(__('Name the value by its id, its sha256 or its text.'));
+        }
+        list($page, $limit) = $this->__paging($params);
+        $value = $this->AttributeValue->findAddressed($address);
+        $count = 0;
+        $attributes = [];
+        if ($value !== null) {
+            $this->loadModel('MispAttribute');
+            $attributes = $this->MispAttribute->fetchAttributes($this->Auth->user(), [
+                'conditions' => ['OR' => [
+                    'Attribute.value1_id' => $value['id'],
+                    'Attribute.value2_id' => $value['id'],
+                ]],
+                'flatten' => 1,
+                'fields' => ['Event.published', 'Event.sharing_group_id', 'Object.name', 'Object.uuid'],
+                'order' => 'Attribute.id DESC',
+                'page' => $page,
+                'limit' => $limit,
+            ], $count, true);
+        }
+        // A site admin also sees a value nothing visible holds, to delete it
+        if ($value === null || ($count === 0 && empty($this->Auth->user()['Role']['perm_site_admin']))) {
+            throw new NotFoundException(__('Invalid value.'));
+        }
+        $summary = [
+            'id' => $value['id'],
+            'value' => $value['value'],
+            'sha256' => hash('sha256', $value['value']),
+            'attribute_count' => $count,
+        ];
+        if ($this->_isRest()) {
+            $out = [];
+            foreach ($attributes as $row) {
+                $out[] = $this->__attribute($row);
+            }
+            return $this->RestResponse->viewData(['Value' => $summary, 'Attribute' => $out], $this->response->type());
+        }
+        if (!isset($address['id'])) {
+            return $this->redirect(['action' => 'view', $value['id']]);
+        }
+        $this->request->params['paging']['Attribute'] = [
+            'page' => $page,
+            'current' => count($attributes),
+            'count' => $count,
+            'prevPage' => $page > 1,
+            'nextPage' => $page * $limit < $count,
+            'pageCount' => (int)ceil($count / $limit),
+            'order' => null,
+            'limit' => $limit,
+            'options' => $limit === self::LIMIT ? [] : ['limit' => $limit],
+            'paramType' => 'named',
+        ];
+        $this->set('value', $summary);
+        $this->set('attributes', $attributes);
+        $this->set('title_for_layout', __('Value'));
+    }
+
+    /**
+     * POST {"value": …, "mode": "search"|"like"|"exact", "page": …, "limit": …}.
+     * search finds the text from the start of a word, like takes a LIKE
+     * pattern and exact matches the whole value, ignoring case.
+     *
+     * @return CakeResponse
+     */
+    public function search()
+    {
+        $params = $this->__params();
+        $text = $params['value'] ?? null;
+        if (!is_scalar($text) || (string)$text === '' || strlen((string)$text) > AttributeValue::MAX_BYTES) {
+            throw new BadRequestException(__('Give the text to search for as value.'));
+        }
+        $text = (string)$text;
+        $mode = $params['mode'] ?? 'search';
+        if (!in_array($mode, self::SEARCH_MODES, true)) {
+            throw new BadRequestException(__('Invalid mode: use search, like or exact.'));
+        }
+        list($page, $limit) = $this->__paging($params);
+        if ($mode === 'exact') {
+            $ids = $this->AttributeValue->resolveCi([$text])[$text];
+        } else {
+            $found = $mode === 'like'
+                ? $this->AttributeValue->resolveLike($text, ValueConditionRewriter::OVERFLOW)
+                : $this->AttributeValue->resolveSearch($text, ValueConditionRewriter::OVERFLOW);
+            if ($found['overflow']) {
+                throw new BadRequestException(__('The search matches too many values, narrow it down.'));
+            }
+            $ids = $found['ids'];
+        }
+        $this->loadModel('MispAttribute');
+        $visible = $this->MispAttribute->visibleValueIds($this->Auth->user(), $ids, $page * $limit);
+        $ids = array_slice($visible, ($page - 1) * $limit, $limit);
+        $values = $this->AttributeValue->fetchValues($ids);
+        $out = [];
+        foreach ($ids as $id) {
+            if (isset($values[$id])) {
+                $out[] = ['Value' => ['id' => $id, 'value' => $values[$id]]];
+            }
+        }
+        return $this->RestResponse->viewData($out, 'json');
+    }
+
+    /**
+     * Removes a stored value once nothing refers to it any more, for text that
+     * must not stay in the database after its attributes are gone.
+     *
+     * @param string $id
+     * @return CakeResponse|void
+     */
+    public function delete($id)
+    {
+        $id = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($id === false) {
+            throw new NotFoundException(__('Invalid value.'));
+        }
+        $this->CRUD->delete($id, [
+            'validate' => function (array $value) {
+                $holders = $this->AttributeValue->holders($value['AttributeValue']['id']);
+                if (!empty($holders)) {
+                    throw new Exception(__('The value is still in use, remove these first: %s.', implode('; ', $holders)));
+                }
+            },
+            'modelFunction' => 'deleteUnheld',
+            'afterDelete' => function (array $value) {
+                $this->loadModel('Log');
+                $this->Log->createLogEntry(
+                    $this->Auth->user(),
+                    'delete',
+                    'AttributeValue',
+                    $value['AttributeValue']['id'],
+                    __('Value #%s deleted from the value dictionary', $value['AttributeValue']['id'])
+                );
+            },
+        ]);
+        if ($this->IndexFilter->isRest()) {
+            return $this->restResponsePayload;
+        }
+    }
+
+    /**
+     * @return array The query string, with the posted fields over it.
+     */
+    private function __params()
+    {
+        $params = $this->request->query;
+        if ($this->request->is('post') && is_array($this->request->data)) {
+            $params = array_merge($params, $this->request->data);
+        }
+        return $params;
+    }
+
+    /**
+     * @param array $params
+     * @return int[] [page, limit]
+     */
+    private function __paging(array $params)
+    {
+        $named = $this->request->params['named'] ?? [];
+        $page = filter_var($params['page'] ?? $named['page'] ?? 1, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => self::MAX_PAGE],
+        ]);
+        $limit = filter_var($params['limit'] ?? $named['limit'] ?? self::LIMIT, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => self::MAX_LIMIT],
+        ]);
+        if ($page === false || $limit === false) {
+            throw new BadRequestException(__('Invalid paging: page from 1 to %s, limit from 1 to %s.', self::MAX_PAGE, self::MAX_LIMIT));
+        }
+        return [$page, $limit];
+    }
+
+    /**
+     * @param array $row As fetchAttributes() returns it.
+     * @return array
+     */
+    private function __attribute(array $row)
+    {
+        $attribute = $row['Attribute'];
+        unset($attribute['value1'], $attribute['value2']);
+        $event = $row['Event'];
+        $attribute['Event'] = [
+            'id' => $event['id'],
+            'uuid' => $event['uuid'],
+            'info' => $event['info'],
+            'date' => $event['date'],
+            'distribution' => $event['distribution'],
+            'sharing_group_id' => $event['sharing_group_id'],
+            'published' => $event['published'],
+            'timestamp' => $event['timestamp'],
+            'Orgc' => $event['Orgc'],
+        ];
+        if (!empty($attribute['object_id'])) {
+            $attribute['Object'] = [
+                'id' => $row['Object']['id'],
+                'uuid' => $row['Object']['uuid'],
+                'name' => $row['Object']['name'],
+                'distribution' => $row['Object']['distribution'],
+                'sharing_group_id' => $row['Object']['sharing_group_id'],
+            ];
+        }
+        $attribute['Tag'] = [];
+        foreach ($row['AttributeTag'] ?? [] as $attributeTag) {
+            if (isset($attributeTag['Tag'])) {
+                $attribute['Tag'][] = $attributeTag['Tag'];
+            }
+        }
+        return $attribute;
     }
 }
