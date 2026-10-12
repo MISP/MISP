@@ -1,8 +1,9 @@
 <?php
 
-$objectTemplateId = h($data['ObjectTemplate']['id']);
-$objectTemplateName = h($data['ObjectTemplate']['name']);
-$activated = h($data['ObjectTemplate']['active']);
+$objectTemplateId = (int)$data['ObjectTemplate']['id'];
+$objectTemplateName = (string)$data['ObjectTemplate']['name'];
+$activated = !empty($data['ObjectTemplate']['active']);
+$fromLibrary = !empty($data['ObjectTemplate']['fixed']);
 
 $actions = [];
 
@@ -27,11 +28,15 @@ if ($isSiteAdmin) {
         ];
     }
 
-    $actions[] = [
-        'url' => "$baseurl/objectTemplates/update/$objectTemplateName/$objectTemplateId",
-        'icon' => 'fas fa-sync',
-        'label' => __('Update Object Template')
-    ];
+    if ($fromLibrary) {
+        $updateUrl = $baseurl . '/objectTemplates/update/' . rawurlencode($objectTemplateName);
+        $actions[] = [
+            'url' => $updateUrl,
+            'onclick' => "event.preventDefault(); openModal('" . h($updateUrl) . "', 'md');",
+            'icon' => 'fas fa-sync',
+            'label' => __('Update Object Template')
+        ];
+    }
 
     $actions[] = [
         'url' => "$baseurl/objectTemplates/delete/$objectTemplateId",
