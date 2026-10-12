@@ -2068,8 +2068,13 @@ class Value extends AppModel
         $conditions = $attributes->buildConditions($user);
         $conditions['AND'][] = $this->conditionsFor($value, $options);
         $conditions['AND'][] = array('Attribute.deleted' => 0);
-        $first = 'Attribute.value1 = '
-            . $attributes->getDataSource()->value((string)$value, 'string');
+        // Folded like the conditions, so a case variant counts as this half
+        $ids = ClassRegistry::init('AttributeValue')
+            ->resolveCi(array((string)$value))[(string)$value] ?? array();
+        $first = empty($ids)
+            ? '0'
+            : 'Attribute.value1_id IN ('
+                . implode(', ', array_map('intval', $ids)) . ')';
         $rows = $attributes->find('all', array(
             'fields' => array(
                 'Attribute.type',
