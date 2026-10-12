@@ -1854,6 +1854,14 @@ input.num[type="number"]::-webkit-inner-spin-button {
     grid-template-areas: "a b c";
     gap: 0;
 }
+/* No settings column: the examples take its place */
+.sig-pop.is-two .sig-pop-grid.no-b,
+.sig-pop.is-three .sig-pop-grid.no-b {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: "a c";
+    gap: 0;
+}
 .sig-pop.is-two .sig-pop-col[data-col="a"],
 .sig-pop.is-three .sig-pop-col:not(:last-child) {
     padding-right: 1.1rem;
@@ -1976,7 +1984,7 @@ input.num[type="number"]::-webkit-inner-spin-button {
     line-height: 1;
     color: var(--bs-primary);
 }
-.sig-pop-recipes code {
+.sig-pop code {
     padding: 0 .2rem;
     border-radius: .2rem;
     background: color-mix(in srgb, var(--bs-secondary-color) 14%, transparent);
@@ -2006,4 +2014,33 @@ input.num[type="number"]::-webkit-inner-spin-button {
 .sig-pop-bands .pill {
     min-width: 4rem;
     justify-content: center;
+}
+
+.sig-pop-order {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    margin: .2rem 0 .5rem;
+    padding: 0;
+    list-style: none;
+}
+.sig-pop-order li {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+}
+.sig-pop-order .sig-pop-id { margin: 0; }
+.sig-pop-step {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
+    color: var(--bs-primary);
+    font-size: .6875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    transform: translateY(-.05rem);
 }

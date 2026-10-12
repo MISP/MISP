@@ -37,8 +37,64 @@ class ConflictKnownInfrastructure extends ValueEscalationBase
     public function __construct()
     {
         $this->description = __(
-            'A warninglist knows the value as shared infrastructure'
-            . ' while several organisations report it as a threat.'
+            'Marks the value contested when a warninglist knows it as'
+            . ' shared infrastructure and several organisations have'
+            . ' taken a side on it.'
+        );
+        $this->help = array(
+            'name' => __('Shared infrastructure that gets reported'),
+            'what' => __(
+                'A value MISP knows as shared infrastructure, such as a'
+                . ' CDN edge or a hosting range, that organisations report.'
+                . ' Shared does not mean harmless, and reported does not'
+                . ' make it one tenant\'s: blocking it may hit everyone'
+                . ' else on it, ignoring it may miss what peers flagged.'
+            ),
+            'how' => __(
+                'Fires when the value is on a {warninglist_category} list'
+                . ' and at least {min_independent_reports} organisations'
+                . ' have taken a side on it. The reading is then contested,'
+                . ' whatever the count of organisations would have said.'
+            ),
+            'note' => __(
+                'It counts organisations on either side, those calling it'
+                . ' a false positive as well as those flagging it.'
+                . ' Unticked, the organisations are counted as for any'
+                . ' value, and only a known_hit below zero (Signals →'
+                . ' lifecycle.warninglist) can still contest a threat'
+                . ' reading.'
+            ),
+            'settings' => array(
+                'warninglist_category' => __(
+                    'Which kind of list must match. A list\'s category is'
+                    . ' set under Sources & reputation → Warninglist'
+                    . ' categories.'
+                ),
+                'min_independent_reports' => __(
+                    'The fewest organisations for the rule to fire. One'
+                    . ' organisation tagging a CDN address is a mistake in'
+                    . ' one event; several arriving at it separately is a'
+                    . ' pattern.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Let the organisations decide a value on'
+                        . ' a CDN or hosting list'),
+                    'do' => __('Untick this rule.'),
+                ),
+                array(
+                    'want' => __('Contest it only when many organisations'
+                        . ' report it'),
+                    'do' => __('Raise min_independent_reports, e.g. to'
+                        . ' 6.'),
+                ),
+                array(
+                    'want' => __('Contest it as soon as one organisation'
+                        . ' reports it'),
+                    'do' => __('Set min_independent_reports to 1.'),
+                ),
+            ),
         );
         $this->when_schema = array(
             'warninglist_category' => array(

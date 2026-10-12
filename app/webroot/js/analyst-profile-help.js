@@ -1,5 +1,6 @@
 /*
- * The "How it works" popovers on the Analyst Profile's Signals pane.
+ * The "How it works" popovers on the Analyst Profile's Signals, Conflict
+ * rules and Exclusions panes, and the primer on each pane's blurb.
  *
  * One panel, appended to the body so no table cell clips it, filled from
  * the <template> beside the button that opened it. It never scrolls: it
@@ -38,7 +39,8 @@
                     return;
                 }
                 var value = input.value !== '' ? input.value
-                    : input.placeholder;
+                    : (slot.getAttribute('data-ap-help-fallback')
+                        || input.placeholder);
                 if (value !== '') {
                     slot.textContent = value;
                 }

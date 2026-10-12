@@ -88,10 +88,15 @@ if ($isSignals) {
 $pointsHead = __('Points');
 if ($sectionId === 'escalations') {
     $settingsHead = __('When it fires');
+    $availableTitle = __('This instance has this rule and this profile'
+        . ' does not use it.');
 } elseif ($sectionId === 'exclusions') {
     $settingsHead = __('Settings');
+    $availableTitle = __('This profile does not use this exclusion.');
 } else {
     $settingsHead = __('Tuning');
+    $availableTitle = __('This instance has this signal and this profile'
+        . ' does not use it.');
 }
 $columns = $isSignals ? 5 : 3;
 ?>
@@ -235,22 +240,13 @@ $columns = $isSignals ? 5 : 3;
                     <?php if ($state === 'available'): ?>
                         <div class="mt-1">
                             <span class="pill t-plain"
-                                  title="<?= h(__('This instance has this'
-                                      . ' signal and this profile does not'
-                                      . ' use it.')) ?>">
+                                  title="<?= h($availableTitle) ?>">
                                 <?= h(__('available')) ?>
                             </span>
                         </div>
                     <?php endif; ?>
-                    <?php if (!empty($item['emits'])): ?>
-                        <div class="wb-sub"><?= h(sprintf(
-                            __('Forces the lean to %s when it fires.'),
-                            $item['emits']
-                        )) ?></div>
-                    <?php endif; ?>
                     <?php
-                    $help = $isSignals && isset($item['help'])
-                        ? $item['help'] : null;
+                    $help = isset($item['help']) ? $item['help'] : null;
                     ?>
                     <?php if (!empty($item['description'])
                         || $help !== null): ?>
@@ -265,16 +261,8 @@ $columns = $isSignals ? 5 : 3;
                                     h(__('How it works')) ?>
                                 </button>
                                 <template class="sig-help-tpl"><?=
-                                    $this->element(
-                                        'AnalystProfiles/signal_help',
-                                        array(
-                                            'signalId' => $item['id'],
-                                            'help' => $help,
-                                            'trustWeighted' => !empty(
-                                                $item['trust_weighted']
-                                            ),
-                                        )
-                                    ) ?></template>
+                                    $this->element('AnalystProfiles/item_help',
+                                        array('help' => $help)) ?></template>
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>

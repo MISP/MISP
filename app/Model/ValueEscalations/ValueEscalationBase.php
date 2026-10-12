@@ -110,6 +110,12 @@ abstract class ValueEscalationBase
     public $description = 'to-override';
 
     /**
+     * What the editor's "How it works" popover says about this rule, in
+     * the shape of `ValueSignalBase::$help`; `{key}` is a `when` value.
+     */
+    public $help = array();
+
+    /**
      * The lean this rule produces. Constrained to `contested`: a rule
      * that could name a side would be a score override wearing a
      * different hat, and that is the one thing the design took out.
@@ -155,6 +161,7 @@ abstract class ValueEscalationBase
         return array(
             'id' => $this->id,
             'description' => $this->description,
+            'help' => $this->help,
             'emits' => $this->emits,
             'when_schema' => $this->when_schema,
             'reads' => $this->reads,

@@ -65,12 +65,14 @@ foreach ($section['blocks'] as $block) {
                             aria-expanded="false">
                         <i class="fa-solid fa-circle-question"
                            aria-hidden="true"></i><?=
-                        h(__('How signals add up')) ?>
+                        h($section['primer']['label']) ?>
                     </button>
                     <template class="sig-help-tpl"><?=
-                        $this->element('AnalystProfiles/signal_primer', array(
-                            'primer' => $section['primer'],
-                        )) ?></template>
+                        $this->element(
+                            'AnalystProfiles/'
+                                . $section['primer']['kind'] . '_primer',
+                            array('primer' => $section['primer'])
+                        ) ?></template>
                 <?php elseif ($rest !== ''): ?>
                     <a href="#" class="wb-i" onclick="return false;"
                        title="<?= h($rest) ?>">i</a>

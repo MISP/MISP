@@ -43,8 +43,70 @@ class ConflictListedVsAsserted extends ValueEscalationBase
     public function __construct()
     {
         $this->description = __(
-            'A list marks the value as a false positive while a'
-            . ' supermajority of organisations report it as a threat.'
+            'Marks the value contested when a warninglist calls it a false'
+            . ' positive while a clear majority of organisations flag it.'
+        );
+        $this->help = array(
+            'name' => __('A false-positive list against the reporters'),
+            'what' => __(
+                'A value on a false-positive warninglist (a public'
+                . ' resolver, a private range, a popular domain) that'
+                . ' organisations nevertheless flag for detection. The'
+                . ' list and the organisations are both deliberate'
+                . ' judgements, so neither is allowed to win quietly.'
+            ),
+            'how' => __(
+                'Fires when the value is on a {warninglist_category} list,'
+                . ' at least {threat_share_at_least} of the voices call it'
+                . ' a threat, and at least {min_threat_orgs} organisations'
+                . ' flag it. The reading is then contested.'
+            ),
+            'note' => __(
+                'Short of that, the list decides and the value reads'
+                . ' harmless. Unticked, the list still wins short of a clear'
+                . ' majority, but a clear majority makes it a threat,'
+                . ' which the warninglist signal\'s negative points then'
+                . ' contest unless its false_positive_hit is 0 (Signals →'
+                . ' lifecycle.warninglist).'
+            ),
+            'settings' => array(
+                'warninglist_category' => __(
+                    'Which kind of list must match. A list\'s category is'
+                    . ' set under Sources & reputation → Warninglist'
+                    . ' categories.'
+                ),
+                'threat_share_at_least' => __(
+                    'Empty, it follows the profile\'s clear majority'
+                    . ' (Thresholds → The lean). Lower, a listed value that'
+                    . ' fewer voices flag reads contested instead of'
+                    . ' harmless.'
+                ),
+                'min_threat_orgs' => __(
+                    'Below this many flagging organisations the list wins,'
+                    . ' however unanimous they are: one organisation alone'
+                    . ' is all of the voices. Only read for the'
+                    . ' false_positive category.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Let the list win unless many'
+                        . ' organisations disagree'),
+                    'do' => __('Raise min_threat_orgs, e.g. to 5.'),
+                ),
+                array(
+                    'want' => __('Contest a listed value that a plain'
+                        . ' majority flags'),
+                    'do' => __('Set threat_share_at_least to 0.5.'),
+                ),
+                array(
+                    'want' => __('Let a clear majority of reporters'
+                        . ' outweigh the list'),
+                    'do' => __('Untick this rule, and set'
+                        . ' false_positive_hit to 0 on'
+                        . ' lifecycle.warninglist under Signals.'),
+                ),
+            ),
         );
         $this->when_schema = array(
             'warninglist_category' => array(
