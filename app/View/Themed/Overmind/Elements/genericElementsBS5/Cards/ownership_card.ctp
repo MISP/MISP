@@ -12,6 +12,9 @@
  *                            (default true; false for a remote record whose
  *                            ids mean nothing here)
  *   $noOrgText     string    shown when there is neither organisation
+ *   $inherited     array     at level 5, what the record follows:
+ *                            ['distribution', 'sharingGroup', 'label', 'url'];
+ *                            the card then shows that level as the effective one
  *   $outliers      array     what is shared more narrowly than the record,
  *                            one ['level' => 0-5, 'text' => '3 attributes',
  *                            'url' => filtered list] per row
@@ -29,6 +32,12 @@ $orgKey = function (array $organisation) {
 $sameOrg = empty($org) || $orgKey($orgc) === $orgKey($org);
 
 $distribution = $distribution ?? null;
+$inheritedFrom = null;
+if ($distribution !== null && (int)$distribution === 5 && !empty($inherited)) {
+    $inheritedFrom = $inherited;
+    $distribution = $inherited['distribution'] ?? null;
+    $sharingGroup = $inherited['sharingGroup'] ?? [];
+}
 $isSharingGroup = $distribution !== null && (int)$distribution === 4;
 $level = $this->DistributionLevel->get($distribution);
 $sharingGroup = $isSharingGroup ? ($sharingGroup ?? []) : [];
@@ -118,7 +127,17 @@ if (!empty($user['email'])) {
                     <div class="min-w-0">
                         <div class="fw-semibold lh-sm"><?= h($level['label']) ?></div>
                         <div class="small text-truncate">
-                            <?php if (!empty($sharingGroup['name'])): ?>
+                            <?php if ($inheritedFrom): ?>
+                                <span class="text-body-secondary" title="<?= h($level['sub']) ?>">
+                                    <i class="fas fa-code-fork me-1 opacity-75"></i><?php if (!empty($inheritedFrom['url'])): ?><a class="text-reset" href="<?= h($inheritedFrom['url']) ?>"><?= h($inheritedFrom['label']) ?></a><?php else: ?><?= h($inheritedFrom['label']) ?><?php endif; ?>
+                                </span>
+                                <?php if (!empty($sharingGroup['name'])): ?>
+                                    &middot; <?= $this->element('genericElementsBS5/Badges/sharing_group', [
+                                        'sharingGroup' => $sharingGroup,
+                                        'link' => $link,
+                                    ]) ?>
+                                <?php endif; ?>
+                            <?php elseif (!empty($sharingGroup['name'])): ?>
                                 <?= $this->element('genericElementsBS5/Badges/sharing_group', [
                                     'sharingGroup' => $sharingGroup,
                                     'link' => $link,
