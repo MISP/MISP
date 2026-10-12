@@ -5,7 +5,7 @@ value page's graph, occurrences and stored enrichment runs.
 Values and events come from the fixtures file (see discover_fixtures.py); a
 case whose fixture was not found is skipped. NEVER_RECORDED is a value no
 attribute holds, so the unheld path is covered as well. Each case runs as a
-site admin and as a lesser org user. Rows may come back in any order.
+site admin and as a lesser org user. Answers compare in their row order.
 """
 
 import base64
@@ -47,7 +47,7 @@ def b64(value):
 
 def json_case(name, path, user, method='GET', body=None, description=''):
     return Case(name, path, json_without(), method=method, body=body,
-                user=user, description=description, unordered=True)
+                user=user, description=description)
 
 
 def value_cases(name, value, enrichment_type):

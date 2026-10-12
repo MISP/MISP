@@ -62,8 +62,8 @@ class CasesTest(unittest.TestCase):
                 self.assertIn(decoded, list(FIXTURES.values())
                               + [v3_json.NEVER_RECORDED])
 
-    def test_rows_compare_unordered(self):
-        self.assertTrue(all(c.unordered for c in build(FIXTURES)))
+    def test_rows_compare_in_order(self):
+        self.assertFalse(any(c.unordered for c in build(FIXTURES)))
 
 
 if __name__ == '__main__':
