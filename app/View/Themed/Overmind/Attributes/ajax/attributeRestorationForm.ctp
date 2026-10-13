@@ -57,7 +57,13 @@ $postUrl  = $baseurl . '/attributes/restore/' . $attrId;
 
             if (data.saved) {
                 var row = document.querySelector('tr[data-primary-id="' + attrId + '"]');
-                if (row) row.remove();
+                // An object keeps its deleted attributes listed: show this one live again.
+                var objectsTab = document.querySelector('.ajax-tab-content[data-url*="viewObjects"]');
+                if (objectsTab && objectsTab.offsetParent !== null) {
+                    reloadEventViewIndexTab();
+                } else if (row) {
+                    row.remove();
+                }
 
                 var modalEl = document.getElementById('mainModal');
                 if (modalEl) {

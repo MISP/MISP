@@ -4081,6 +4081,8 @@ class Event extends AppModel
                 'ObjectReference.deleted' => 0,
             ],
             'fields' => [
+                'ObjectReference.id',
+                'ObjectReference.uuid',
                 'ObjectReference.object_id',
                 'ObjectReference.referenced_id',
                 'ObjectReference.referenced_uuid',
@@ -4090,9 +4092,13 @@ class Event extends AppModel
             ],
             'order' => ['ObjectReference.id' => 'ASC'],
         ]);
+        $referenceTargets = $this->Object->ObjectReference->describeTargets(
+            $user, array_column($references, 'ObjectReference')
+        );
         $referencesByObject = [];
         foreach ($references as $reference) {
             $row = $reference['ObjectReference'];
+            $row['Target'] = $referenceTargets[$row['referenced_uuid']] ?? null;
             $referencesByObject[$row['object_id']][] = $row;
         }
         foreach ($flat as $objId => &$obj) {
@@ -4304,6 +4310,19 @@ class Event extends AppModel
             $attributes
         );
 
+        $scanAttachments = $this->loadAttachmentScan()->isEnabled();
+        foreach ($attributes as &$attribute) {
+            if (($attribute['category'] ?? '') === 'Financial fraud') {
+                $attribute = $this->Attribute->attachValidationWarnings($attribute);
+            }
+            if ($scanAttachments && ($attribute['type'] ?? '') === 'attachment') {
+                $attribute['infected'] = $this->loadAttachmentScan()->isInfected(
+                    AttachmentScan::TYPE_ATTRIBUTE, $attribute['id']
+                );
+            }
+        }
+        unset($attribute);
+
         $attributes = $this->__attachFeedAndServerHits(
             $attributes, $user, $eventId
         );
@@ -4315,9 +4334,26 @@ class Event extends AppModel
             ->getAttributeCorrelations(
                 $user, $eventId, $sgids, $attributeIds
             );
+        $correlatedOrgIds = [];
+        foreach ($correlations as $related) {
+            foreach ($related as $entry) {
+                if (!empty($entry['org_id'])) {
+                    $correlatedOrgIds[$entry['org_id']] = true;
+                }
+            }
+        }
+        $orgNames = empty($correlatedOrgIds) ? [] : $this->Orgc->find('list', [
+            'conditions' => ['Orgc.id' => array_keys($correlatedOrgIds)],
+            'fields' => ['Orgc.id', 'Orgc.name'],
+            'recursive' => -1,
+        ]);
         foreach ($attributes as &$attribute) {
-            $attribute['RelatedAttribute'] =
-                $correlations[$attribute['id']] ?? [];
+            $related = $correlations[$attribute['id']] ?? [];
+            foreach ($related as &$entry) {
+                $entry['org_name'] = $orgNames[$entry['org_id'] ?? 0] ?? null;
+            }
+            unset($entry);
+            $attribute['RelatedAttribute'] = $related;
         }
         unset($attribute);
 

@@ -69,6 +69,7 @@
                     'Events/View/overview_details',
                 ],
                 'right' => [
+                    'Events/View/event_warnings',
                     'Events/View/event_actions',
                     'Events/View/event_matrix',
                     'Events/View/event_warninglists',

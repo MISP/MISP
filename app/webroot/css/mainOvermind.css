@@ -5534,3 +5534,39 @@ tr.evt-extension-row td:first-child { position: relative; }
 #multiSelectToolbar .ms-clear { padding-left: 4px; padding-right: 4px; text-decoration: none; }
 #multiSelectToolbar .ms-clear:hover { text-decoration: underline; }
 body.ms-float-open { padding-bottom: calc(var(--ms-float-h, 56px) + 32px); }
+
+/* Attribute values (Attributes/value_display.ctp, value_flags.ctp) */
+.om-value-text { white-space: pre-wrap; }
+.om-value-more { font-size: .8em; font-weight: 400; text-decoration: none; vertical-align: baseline; }
+.om-value-ext { font-size: .7em; opacity: .6; }
+.om-value-hex-toggle { font-size: .75em; line-height: 1; color: var(--bs-secondary-color); }
+.om-value-hex-toggle:hover { color: var(--bs-link-hover-color); }
+.om-value-binary { word-spacing: .15em; }
+.om-value-zip {
+    font-size: .65rem; font-weight: 500; font-family: var(--bs-font-monospace);
+    color: var(--bs-warning-text-emphasis); background: var(--bs-warning-bg-subtle);
+    border: 1px solid var(--bs-warning-border-subtle); vertical-align: .1em; cursor: help;
+}
+.om-wl-popover { --bs-popover-max-width: 22rem; }
+.om-wl-popover .om-wl-hit + .om-wl-hit {
+    margin-top: .4rem; padding-top: .4rem; border-top: 1px solid var(--bs-border-color-translucent);
+}
+.om-corr-popover { --bs-popover-max-width: 22rem; }
+
+.ov-obj-rel-empty { opacity: .6; }
+.ov-obj-rel-empty:hover, .ov-obj-rel-empty[aria-expanded="true"] { opacity: 1; }
+.ov-obj-rel-menu { min-width: 18rem; max-width: min(30rem, 90vw); }
+.ov-obj-rel-target { min-width: 0; line-height: 1.25; }
+.ov-obj-rel-delete { color: var(--bs-secondary-color); padding: .15rem .4rem; }
+.ov-obj-rel-delete:hover, .ov-obj-rel-delete:focus-visible { color: var(--bs-danger); }
+
+/* Event warnings card (Events/View/event_warnings.ctp) */
+.ev-warnings-card { border-color: var(--bs-warning-border-subtle); }
+.ev-warnings-tile { width: 36px; height: 36px; background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); }
+.ev-warnings-list li { padding: .6rem 1rem; font-size: .8rem; line-height: 1.4; }
+.ev-warnings-list li + li { border-top: 1px solid var(--bs-border-color-translucent); }
+.ev-warnings-category {
+    display: block; margin-bottom: .15rem; font-size: .66rem; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--bs-warning-text-emphasis);
+}
+.ev-warnings-text { color: var(--bs-body-color); }

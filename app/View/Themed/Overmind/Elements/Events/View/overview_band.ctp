@@ -134,6 +134,32 @@ $ownerDiffers = !empty($org['id']) && (int)$org['id'] !== (int)($orgc['id'] ?? 0
                 </div>
             <?php endif; ?>
         </div>
+        <?php if (!empty($contributors)): ?>
+            <?php $contribLabel = __n('%s contributing organisation', '%s contributing organisations', count($contributors), count($contributors)); ?>
+            <div class="dropdown eo-contrib">
+                <button type="button" class="btn btn-sm eo-contrib-toggle" data-bs-toggle="dropdown" aria-expanded="false"
+                        title="<?= h($contribLabel) ?>" aria-label="<?= h($contribLabel) ?>">
+                    <span class="eo-contrib-stack">
+                        <?php foreach (array_slice($contributors, 0, 3, true) as $contribId => $contribName): ?>
+                            <?php $contribLogo = $this->OrgImg->getOrgLogoV2(['id' => $contribId, 'name' => $contribName], 20, false); ?>
+                            <span class="eo-contrib-avatar"><?= $contribLogo !== '' ? $contribLogo : h(strtoupper(preg_match('/^./u', $contribName, $initial) ? $initial[0] : '?')) ?></span>
+                        <?php endforeach; ?>
+                    </span>
+                    <span class="eo-contrib-count"><?= count($contributors) ?></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><h6 class="dropdown-header"><?= __('Contributors') ?></h6></li>
+                    <li><p class="px-3 mb-1 small text-muted"><?= __('Organisations that proposed changes to this event.') ?></p></li>
+                    <?php foreach ($contributors as $contribId => $contribName): ?>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2" href="<?= h($baseurl . '/organisations/view/' . (int)$contribId) ?>">
+                                <i class="misp-icon misp-icon-organisation misp-simple text-muted"></i><?= h($contribName) ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
     </div>
 
     <div class="eo-band-cell eo-band-dist">

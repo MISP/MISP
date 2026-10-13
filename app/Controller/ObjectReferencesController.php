@@ -102,6 +102,12 @@ class ObjectReferencesController extends AppController
             if ($this->_isRest()) {
                 return $this->RestResponse->describe('ObjectReferences', 'add', false, $this->response->type());
             }
+            // The Overmind form searches targets through targets() instead.
+            if ($this->theme === 'Overmind') {
+                $this->set('object', $object);
+                $this->layout = false;
+                return $this->render('ajax/add');
+            }
 
             list($event, $relationships) = $this->__referenceChoices(
                 $object,

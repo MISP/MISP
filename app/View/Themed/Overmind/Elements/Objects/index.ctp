@@ -285,11 +285,12 @@ $foldChildren = empty($objects) ? [] : [
                  */
                 $objRefs = $object['ObjectReference'] ?? [];
                 ?>
-                <?php if (!empty($objRefs)): ?>
+                <?php if (!empty($objRefs) || ($objCanEdit && !$isDeleted)): ?>
                     <?= $this->element('Objects/object_relationships', [
                         'references' => $objRefs,
                         'objId' => $objId,
                         'eventId' => $object['event_id'] ?? null,
+                        'canEdit' => $objCanEdit && !$isDeleted,
                     ]) ?>
                 <?php endif; ?>
             </h2>

@@ -2466,6 +2466,17 @@ class EventsController extends AppController
         $this->set('correlation_count', $this->Event->getRelatedEventCount($user, $event['Event']['id'], $sgids, true));
 
         $this->set('event', $event);
+        $this->set('contributors', $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']));
+
+        // The checks only ask whether the event has content, so counts stand in for the rows.
+        $eventWarnings = [];
+        if ($this->__canModifyEvent($event, $user)) {
+            $warningEvent = $event;
+            $warningEvent['Attribute'] = $this->viewVars['attribute_count'] ? [[]] : [];
+            $warningEvent['objects'] = $objectCount ? [[]] : [];
+            $eventWarnings = $this->Event->generateWarnings($warningEvent);
+        }
+        $this->set('eventWarnings', $eventWarnings);
 
         $this->loadModel('AnalystProfile');
         $profile = $this->AnalystProfile->resolveFor($user);
@@ -4270,6 +4281,10 @@ class EventsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($rows, 'json');
         }
+        $ownTags = $setIds ? $this->__ownEventTags($event) : $event['EventTag'];
+        $this->loadModel('Taxonomy');
+        $this->set('tagConflicts', $this->Taxonomy->checkIfTagInconsistencies($ownTags));
+        $this->set('missingTaxonomies', $this->Event->missingTaxonomies(['EventTag' => $ownTags]));
         $this->set('rows', $rows);
         $this->set('rolledUp', $rollup !== null);
         $this->set('profileName', $profile['name'] ?? null);

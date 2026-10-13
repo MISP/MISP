@@ -53,7 +53,8 @@ if ($vpHoverValue !== null && $hoverEnrichId && !$hoverClickOnly) {
  * The value, wrapped only where there is something to wrap it for, so
  * an instance with the card off emits exactly the markup it did before.
  */
-$vpValueHtml = h($attribute['value']);
+$valueBody = $this->element('Attributes/value_display', ['attribute' => $attribute]);
+$vpValueHtml = $valueBody;
 if ($vpHoverValue !== null) {
     $vpValueHtml = '<span class="vp-hc-trigger"'
         . ' data-vp-hc-value="' . h($vpHoverValue) . '"'
@@ -130,14 +131,9 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
             </p>
         <?php endif; ?>
 
-        <?php if (!empty($attribute['warnings'])): ?>
-            <i class="fas fa-exclamation-triangle
-                        text-warning"
-                title="<?= h(implode(', ', array_column(
-                    $attribute['warnings'],
-                    'warninglist_name'
-                ))) ?>"></i>
-        <?php endif; ?>
+        <?php if (!isset($showFlags) || $showFlags) {
+            echo $this->element('Attributes/value_flags', ['attribute' => $attribute]);
+        } ?>
 
         <?php if ($isProposalRow): ?>
             <?php if (!empty($attribute['proposal_org_name'])): ?>

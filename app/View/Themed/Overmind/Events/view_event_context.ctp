@@ -154,6 +154,52 @@ foreach ($rows as $items) {
         <div class="eo-figure"><b><?= $labelCount ?></b> <?= h(__n('label', 'labels', $labelCount)) ?></div>
     </div>
 
+    <?php
+    $conflicts = [];
+    foreach (['global' => 'fas fa-globe', 'local' => 'fas fa-user'] as $scope => $scopeIcon) {
+        foreach ($tagConflicts[$scope] ?? [] as $conflict) {
+            $conflict['icon'] = $scopeIcon;
+            $conflict['scope'] = $scope === 'local' ? __('Local tags') : __('Global tags');
+            $conflicts[] = $conflict;
+        }
+    }
+    ?>
+    <?php if (!empty($conflicts) || !empty($missingTaxonomies)): ?>
+        <div class="eo-tag-warnings" role="alert">
+            <?php foreach ($conflicts as $conflict): ?>
+                <div class="eo-tag-warning">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <div class="min-w-0">
+                        <?php $taxonomyId = $conflict['taxonomy']['Taxonomy']['id'] ?? null; ?>
+                        <span class="fw-semibold"><?= h($conflict['conflict']) ?></span>
+                        <span class="eo-muted small" title="<?= h($conflict['scope']) ?>"><i class="<?= $conflict['icon'] ?> me-1"></i></span>
+                        <div class="eo-tag-warning-tags">
+                            <?php foreach ($conflict['tags'] as $tagName): ?>
+                                <code><?= h($tagName) ?></code>
+                            <?php endforeach; ?>
+                            <?php if ($taxonomyId): ?>
+                                <a href="<?= h($baseurl . '/taxonomies/view/' . (int)$taxonomyId) ?>" class="small"><?= __('View taxonomy') ?></a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+            <?php if (!empty($missingTaxonomies)): ?>
+                <div class="eo-tag-warning">
+                    <i class="fas fa-tags"></i>
+                    <div class="min-w-0">
+                        <span class="fw-semibold"><?= __n('Missing a required taxonomy', 'Missing required taxonomies', count($missingTaxonomies)) ?></span>
+                        <div class="eo-tag-warning-tags">
+                            <?php foreach ($missingTaxonomies as $namespace): ?>
+                                <code><?= h($namespace) ?></code>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
     <dl class="eo-rows">
         <dt><?= __('Attribution') ?></dt>
         <dd>
