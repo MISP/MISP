@@ -8,8 +8,10 @@
  * it is what makes `medium` above `high` — or a band nothing could ever
  * reach — visibly wrong rather than silently saved.
  *
- * @var array $strip `bound`, `attainable`, `bands`, `problems`, `ok`
+ * @var array $strip `bound`, `attainable`, `bands`, `problems`, `ok`,
+ *                   and in the editor `title`, `blurb` and `fields`
  * @var array|null $marks Values to mark on the strip: `now` and `was`
+ * @var bool|null $editable
  */
 $bound = max(1, (int)$strip['bound']);
 $marks = isset($marks) ? $marks : array();
@@ -35,7 +37,9 @@ $pct = function ($points) use ($bound) {
 $markAt = function ($points) use ($pct) {
     return max(2, min(98, $pct($points)));
 };
+$editable = !empty($editable);
 ?>
+<?= $this->element('AnalystProfiles/block_head', array('block' => $strip)) ?>
 <div class="wb-strip mb-1">
     <?php foreach ($bands as $band): ?>
         <?php
@@ -68,6 +72,13 @@ $markAt = function ($points) use ($pct) {
         __('%s reachable'), $strip['bound']
     )) ?></span>
 </div>
+
+<?php if (!empty($strip['fields'])): ?>
+    <?= $this->element('AnalystProfiles/block_fields', array(
+        'block' => array('fields' => $strip['fields']),
+        'editable' => $editable,
+    )) ?>
+<?php endif; ?>
 
 <?php foreach ($strip['problems'] as $problem): ?>
     <div class="wb-note <?= empty($problem['advisory']) ? 'bad' : 'warn' ?> mt-2">

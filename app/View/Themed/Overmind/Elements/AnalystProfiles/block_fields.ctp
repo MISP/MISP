@@ -10,19 +10,10 @@
  * @var bool $editable
  */
 ?>
-<?php if (!empty($block['title'])): ?>
-    <p class="wb-h mt-3">
-        <?= h($block['title']) ?>
-        <?php if (!empty($block['axis'])): ?>
-            <span class="wb-ax"><?= h($block['axis']) ?></span>
-        <?php endif; ?>
-    </p>
-<?php endif; ?>
-<?php if (!empty($block['blurb'])): ?>
-    <p class="wb-blurb"><?= h($block['blurb']) ?></p>
-<?php endif; ?>
+<?= $this->element('AnalystProfiles/block_head', array('block' => $block)) ?>
 
-<div class="wb-fields">
+<div class="wb-fields<?= ($block['layout'] ?? '') === 'dense'
+    ? ' is-dense' : '' ?>">
     <?php foreach ($block['fields'] as $field): ?>
         <?php
         /*

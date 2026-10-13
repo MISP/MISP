@@ -11,15 +11,18 @@
  * @var string $panelIcon  Font Awesome class, or a full misp-icon triplet
  * @var string $panelColor CSS colour for the tile, a variable by intent
  * @var string $panelSub   Markup for the line under the title
+ * @var string $panelNotes Markup under that line, aligned with the title
  * @var string $panelExtra Markup for the right-hand side
  */
 $panelIcon = $panelIcon ?? 'fas fa-cube';
 $panelColor = $panelColor ?? 'var(--bs-secondary-color)';
 $panelSub = $panelSub ?? null;
+$panelNotes = $panelNotes ?? null;
 $panelExtra = $panelExtra ?? null;
 $isMispGlyph = strpos($panelIcon, 'misp-icon') === 0;
 ?>
-<div class="p-3 border-bottom d-flex align-items-center gap-2">
+<div class="p-3 border-bottom d-flex gap-2 <?= $panelNotes === null
+    ? 'align-items-center' : 'align-items-start' ?>">
     <span class="vp-panel-glyph">
         <?php if ($isMispGlyph): ?>
             <span class="<?= h($panelIcon) ?>"></span>
@@ -31,6 +34,9 @@ $isMispGlyph = strpos($panelIcon, 'misp-icon') === 0;
         <div class="fw-bold lh-1"><?= h($panelTitle) ?></div>
         <?php if ($panelSub !== null): ?>
             <div class="small text-muted mt-1"><?= $panelSub ?></div>
+        <?php endif; ?>
+        <?php if ($panelNotes !== null): ?>
+            <div class="vp-panel-head-notes"><?= $panelNotes ?></div>
         <?php endif; ?>
     </div>
     <?php if ($panelExtra !== null): ?>

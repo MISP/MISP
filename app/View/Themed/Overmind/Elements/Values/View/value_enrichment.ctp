@@ -74,9 +74,104 @@ $noRun = __(
  * a value is several, and a reader has to know which of them put a
  * module on the rail.
  */
+$typing = isset($enrichment['typing']) ? $enrichment['typing'] : null;
+$typeView = null;
+$notes = '';
 $bits = array();
-if (empty($types)) {
+if ($typing !== null) {
+    /*
+     * No occurrence, so the type is read from the value or picked by the
+     * reader, and the sub-line's type becomes the control that changes it.
+     */
+    $groupOf = $modulesOf = array();
+    foreach ($typing['choices'] as $group => $choices) {
+        foreach ($choices as $choice) {
+            $groupOf[$choice['type']] = $group;
+            $modulesOf[$choice['type']] = $choice['modules'];
+        }
+    }
+    $lead = $heldTypes = $kept = array();
+    foreach ($types as $row) {
+        if ($row['basis'] === 'held') {
+            $heldTypes[] = $row['type'];
+        } else {
+            $lead[] = $row['type'];
+        }
+        if (!empty($row['kept'])) {
+            $kept[] = $row['type'];
+        }
+    }
+    $failing = array_values(array_filter(
+        $lead,
+        function ($type) use ($groupOf) {
+            return isset($groupOf[$type]) && $groupOf[$type] === 'fails';
+        }
+    ));
+    $typeView = array(
+        'uid' => 'vp-et-' . substr(sha1(uniqid('', true)), 0, 8),
+        'source' => $typing['source'],
+        'read' => $typing['read'],
+        'lead' => $lead,
+        'held' => $heldTypes,
+        'kept' => $kept,
+        'failing' => $failing,
+        'choices' => $typing['choices'],
+        'modulesOf' => $modulesOf,
+        'workflow' => !empty($typing['workflow_blocks']),
+        'canRun' => $canRun,
+    );
+    $mono = function (array $list) {
+        return implode(', ', array_map(function ($type) {
+            return '<span class="vp-et-mono">' . h($type) . '</span>';
+        }, $list));
+    };
+
     $bits[] = h(__('No occurrence you can see'));
+    if (!empty($types)) {
+        $bits[] = $this->element(
+            'Values/View/value_enrichment_type_chip',
+            array('typeView' => $typeView)
+        );
+        if ($typeView['source'] === 'picked' && !empty($typeView['read'])) {
+            $bits[] = '<button type="button" class="vp-et-back"'
+                . ' data-vp-et-back>'
+                . '<i class="fas fa-rotate-left" aria-hidden="true"></i>'
+                . '<span class="vp-et-back-text">' . h(__n(
+                    'back to the type MISP read:',
+                    'back to the types MISP read:',
+                    count($typeView['read'])
+                )) . ' ' . $mono($typeView['read']) . '</span></button>';
+        }
+    } else {
+        $bits[] = h(__('no type read from the value'));
+    }
+
+    if (!empty($failing)) {
+        $notes .= '<div class="vp-et-note" role="note">'
+            . '<i class="fas fa-triangle-exclamation" aria-hidden="true"></i>'
+            . '<span>' . sprintf(
+                __n(
+                    '<strong>This value fails MISP’s %s check.</strong> MISP'
+                        . ' would not store it as one. You can still ask;'
+                        . ' expect a module to refuse it or find nothing.',
+                    '<strong>This value fails MISP’s check for %s.</strong>'
+                        . ' MISP would not store it as these. You can still'
+                        . ' ask; expect a module to refuse it or find nothing.',
+                    count($failing)
+                ),
+                $mono($failing)
+            ) . '</span></div>';
+    }
+    if ($typeView['workflow']) {
+        $notes .= '<div class="vp-et-note" role="note">'
+            . '<i class="fas fa-ban" aria-hidden="true"></i><span>'
+            . __('<strong>Runs will be refused here.</strong> This instance'
+                . ' checks every enrichment query against a workflow, and'
+                . ' that check needs an attribute — you hold no occurrence'
+                . ' of this value. You can still look at what each module'
+                . ' would be asked.')
+            . '</span></div>';
+    }
 } else {
     $names = array();
     foreach ($types as $row) {
@@ -183,6 +278,13 @@ if ($service['reachable']) {
      ?>
      data-vp-e-auto="<?= h(json_encode($autoFire)) ?>"
      data-vp-e-auto-max="5"
+     <?php if ($typeView !== null): ?>
+     data-vp-et
+     data-vp-et-source="<?= h($typeView['source']) ?>"
+     data-vp-et-read="<?= h(json_encode($typeView['read'])) ?>"
+     data-vp-et-lead="<?= h(json_encode($typeView['lead'])) ?>"
+     data-vp-et-failing="<?= empty($typeView['failing']) ? '0' : '1' ?>"
+     <?php endif; ?>
      data-vp-e-url="<?= h($baseurl . '/values/viewEnrichmentRun/'
         . $valueB64) ?>">
 
@@ -191,6 +293,7 @@ if ($service['reachable']) {
         'panelIcon' => 'fas fa-wand-magic-sparkles',
         'panelColor' => 'var(--vp-e-accent)',
         'panelSub' => implode(' &middot; ', $bits),
+        'panelNotes' => $notes === '' ? null : $notes,
     )) ?>
 
     <?php
@@ -235,27 +338,42 @@ if ($service['reachable']) {
             <?php endif; ?>
         </div>
 
+    <?php elseif (empty($types) && $typeView !== null
+        && array_filter($typeView['choices'])
+    ): ?>
+
+        <div class="vp-et-inline">
+            <div class="vp-et-inline-title">
+                <?= h(__('No type read from this value')) ?>
+            </div>
+            <div class="vp-et-inline-prose">
+                <?= h(__(
+                    'Modules are matched on an attribute type, and MISP could'
+                    . ' not read one from this value. Pick the type you mean:'
+                    . ' that lists the modules taking it, and sends nothing.'
+                )) ?>
+            </div>
+            <?= $this->element(
+                'Values/View/value_enrichment_type_picker',
+                array('typeView' => $typeView, 'inline' => true)
+            ) ?>
+        </div>
+
     <?php elseif (empty($types)): ?>
 
         <?php
-        /*
-         * No type, and the reason is this reader's rather than the
-         * value's: modules are matched on the type an occurrence
-         * carries, and a reader who may see none has nothing to match
-         * against. Deliberately not phrased as "MISP cannot classify
-         * this value" — that is a claim about the string, which is not
-         * what is missing.
-         */
+        // No occurrence to take a type from, and the value's shape gave none.
         ?>
         <div class="vp-empty p-4">
             <div class="fw-semibold mb-1">
-                <?= h(__('Nothing to enrich here.')) ?>
+                <?= h(__('No type to match modules on.')) ?>
             </div>
             <div class="small text-muted">
                 <?= h(__(
-                    'Enrichment modules accept attribute types, and'
-                    . ' you hold no occurrence of this value to take a'
-                    . ' type from. Nothing has been sent anywhere.'
+                    'Enrichment modules accept attribute types. You hold'
+                    . ' no occurrence of this value to take one from, and'
+                    . ' MISP could not read one from the value itself.'
+                    . ' Nothing has been sent anywhere.'
                 )) ?>
             </div>
         </div>

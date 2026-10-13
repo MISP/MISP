@@ -32,6 +32,7 @@ $cap = isset($block['cap']) ? (int)$block['cap'] : 0;
 $name = AnalystProfileFormTool::fieldName($block['path']);
 $canAdd = $editable && !empty($block['add']['options']);
 ?>
+<?= $this->element('AnalystProfiles/block_head', array('block' => $block)) ?>
 <div class="ap-order" data-ap-order
      data-ap-order-name="<?= h($name) ?>"
      data-ap-order-cap="<?= h($cap) ?>">
@@ -45,9 +46,10 @@ $canAdd = $editable && !empty($block['add']['options']);
 
     <div class="wb-empty" data-ap-order-empty
          <?= empty($entries) ? '' : 'hidden' ?>>
-        <div class="fw-semibold"><?= h($block['empty_label']) ?></div>
-        <p class="mb-0 mt-1"><?= h(__('Nothing ranked, so each value page'
-            . ' uses the order this instance ships.')) ?></p>
+        <span class="wb-empty-h"><?= h($block['empty_label']) ?></span>
+        <?php if (!empty($block['empty_note'])): ?>
+            <span><?= h($block['empty_note']) ?></span>
+        <?php endif; ?>
     </div>
 
     <ol class="ap-order-list" data-ap-order-list
@@ -144,14 +146,20 @@ $canAdd = $editable && !empty($block['add']['options']);
     <?php endif; ?>
 
     <?php if ($canAdd): ?>
-        <div class="ap-order-add" data-ap-order-add
+        <div class="ap-order-add ap-map-add" data-ap-order-add
              data-ap-order-options="<?= h(json_encode(
                  $block['add']['options'])) ?>">
+            <label for="<?= h(AnalystProfileFormTool::fieldId(
+                $block['path'], array('add'))) ?>">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                <?= h($block['add']['label']) ?>
+            </label>
             <select class="form-select form-select-sm"
+                    id="<?= h(AnalystProfileFormTool::fieldId(
+                        $block['path'], array('add'))) ?>"
                     data-ap-order-pick
-                    style="max-width:18rem"
-                    aria-label="<?= h($block['add']['label']) ?>">
-                <option value=""><?= h($block['add']['label']) ?></option>
+                    style="max-width:16rem">
+                <option value=""><?= h(__('pick one…')) ?></option>
                 <?php foreach ($block['add']['options']
                     as $key => $label): ?>
                     <option value="<?= h($key) ?>"><?=

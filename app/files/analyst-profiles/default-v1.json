@@ -260,7 +260,6 @@
                 "onion-address": { "onion_lookup": "ticked" },
                 "ssh-fingerprint": { "passive_ssh": "ticked" }
             },
-            "locality": {},
             "max_age_hours": 24
         },
         "context": {

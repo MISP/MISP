@@ -1403,15 +1403,20 @@ class ValuesController extends AppController
      * module never holds up a fast one, and every one of them is the
      * same request a press makes.
      *
+     * `?as=<type>` names the type to match modules on when the reader
+     * holds no occurrence of the value.
+     *
      * @param string $b64value
      * @return void
      */
     public function viewEnrichment($b64value = null)
     {
+        $as = $this->request->query('as');
         $this->__renderLivePanel(
             $b64value,
             'forEnrichment',
-            'value_enrichment'
+            'value_enrichment',
+            is_string($as) && $as !== '' ? array('as' => $as) : array()
         );
     }
 

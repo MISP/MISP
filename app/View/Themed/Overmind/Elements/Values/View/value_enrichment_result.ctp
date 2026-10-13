@@ -66,6 +66,8 @@ $headings = array(
      * answer and no longer holding it.
      */
     'auto_not_allowed' => __('%s was not run on its own.'),
+    'auto_typed' => __('%s was not run on its own.'),
+    'needs_occurrence' => __('MISP did not send the query.'),
     'expired' => __('%s was asked, and the answer is no longer kept.'),
 );
 $heading = isset($headings[$state])
@@ -91,6 +93,8 @@ $marks = array(
     'unreachable' => array('fa-plug-circle-xmark', 'vp-e-mark-bad'),
     'ineligible' => array('fa-circle-question', 'vp-e-mark-quiet'),
     'auto_not_allowed' => array('fa-hand', 'vp-e-mark-quiet'),
+    'auto_typed' => array('fa-hand', 'vp-e-mark-quiet'),
+    'needs_occurrence' => array('fa-ban', 'vp-e-mark-quiet'),
     'expired' => array('fa-clock-rotate-left', 'vp-e-mark-quiet'),
 );
 $mark = isset($marks[$state]) ? $marks[$state] : $marks['ok'];
@@ -127,13 +131,24 @@ $prose = array(
         . ' to any module.'
     ),
     'ineligible' => __(
-        'A run may only name a module offered for a type you hold an'
-        . ' occurrence of. Nothing was sent anywhere.'
+        'A run may only name a module offered for this value, under a'
+        . ' type that module accepts. Nothing was sent anywhere.'
     ),
     'auto_not_allowed' => __(
         'Your profile asks for this module to run on its own, and this'
         . ' instance does not allow that. Nothing was sent anywhere,'
         . ' and pressing Run still works.'
+    ),
+    'auto_typed' => __(
+        'Modules only run on their own for a type you hold an'
+        . ' occurrence of. Nothing was sent anywhere, and pressing Run'
+        . ' still works.'
+    ),
+    'needs_occurrence' => __(
+        'This instance checks every enrichment query against an'
+        . ' `enrichment-before-query` workflow, and that check needs an'
+        . ' attribute. You hold no occurrence of this value, so nothing'
+        . ' was sent anywhere.'
     ),
     'expired' => __(
         'The module was asked and what it said is no longer held —'

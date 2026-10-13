@@ -318,8 +318,9 @@ $width = $numeric ? 'max(4.6rem, ' . (int)$chars . 'ch)' : '';
                 && $state === '' && !$gone;
             ?>
             <div class="mod-row <?= $gone ? 'is-off' : '' ?><?=
-                $folded ? ' mod-folded' : '' ?>"
-                <span class="wb-id"><?= h($rowName) ?></span>
+                $folded ? ' mod-folded' : '' ?>">
+                <span class="wb-id" title="<?= h($rowName) ?>"><?=
+                    h($rowName) ?></span>
                 <?php if ($gone): ?>
                     <span class="pill t-missing"><?= h($goneLabel) ?></span>
                 <?php endif; ?>
