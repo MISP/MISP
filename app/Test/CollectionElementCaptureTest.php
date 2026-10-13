@@ -58,6 +58,16 @@ if (!class_exists('AppModel', false)) {
     }
 }
 
+if (!function_exists('__')) {
+    function __($string)
+    {
+        $args = func_get_args();
+        $format = array_shift($args);
+        return empty($args) ? $format : vsprintf($format, $args);
+    }
+}
+
+require_once __DIR__ . '/../Model/Value.php';
 require_once __DIR__ . '/../Model/CollectionElement.php';
 
 use PHPUnit\Framework\TestCase;
@@ -93,9 +103,21 @@ class CaptureTestCollectionElement extends CollectionElement
         $this->id = false;
     }
 
+    public function invalidate($field, $value = true)
+    {
+        $this->validationErrors[$field][] = $value;
+    }
+
     public function save($data = null, $validate = true, $fieldList = array())
     {
-        $row = isset($data['CollectionElement']) ? $data['CollectionElement'] : $data;
+        $this->data = isset($data['CollectionElement']) ? $data : array('CollectionElement' => $data);
+        $this->id = isset($this->data['CollectionElement']['id']) ? $this->data['CollectionElement']['id'] : false;
+        $this->validationErrors = array();
+        $this->beforeValidate();
+        if (!empty($this->validationErrors)) {
+            return false;
+        }
+        $row = $this->data['CollectionElement'];
         $id = isset($row['id']) ? $row['id'] : null;
         foreach ($this->rows as $other) {
             if ($other['id'] === $id) {
@@ -138,6 +160,7 @@ class CollectionElementCaptureTest extends TestCase
     const CLUSTER = '1c4e5d32-1fe9-4116-9d9d-59e3925bd6a2';
     const ROW_A = '280f9534-6006-48ca-b172-7f8361cdc76d';
     const ROW_B = '2bec48f9-bcac-42f0-b9b5-a9adc2259267';
+    const ROW_V = '3a6175d7-4e30-4c40-a3c1-f4830a44dddb';
 
     /** @var CaptureTestCollectionElement */
     private $model;
@@ -245,5 +268,39 @@ class CollectionElementCaptureTest extends TestCase
             array('element_uuid' => self::EVENT_B, 'element_type' => 'Event'),
         ));
         $this->assertSame(array(self::ROW_B), array_column($data['Collection']['CollectionElement'], 'uuid'));
+    }
+
+    private function seedValue()
+    {
+        return $this->model->seed(array(
+            'uuid' => self::ROW_V, 'element_uuid' => Value::uuidFor('8.8.8.8'),
+            'element_type' => 'Value', 'value' => '8.8.8.8', 'collection_id' => self::COLLECTION,
+        ));
+    }
+
+    public function testAValueElementResentAsItsTextKeepsItsRow()
+    {
+        $id = $this->seedValue();
+        $this->capture(array(
+            array('element_type' => 'Value', 'value' => " 8.8.8.8\n", 'description' => 'resolver'),
+        ));
+        $rows = $this->rowsByElement();
+        $this->assertSame(array(Value::uuidFor('8.8.8.8')), array_keys($rows));
+        $row = $rows[Value::uuidFor('8.8.8.8')];
+        $this->assertSame(array($id, self::ROW_V, 'resolver'), array($row['id'], $row['uuid'], $row['description']));
+        $this->assertSame(array(), $this->model->logged);
+    }
+
+    public function testAValueElementIsKeyedByItsTextNotAPayloadUuid()
+    {
+        $id = $this->seedValue();
+        $this->capture(array(
+            array('uuid' => '6d1f3c2e-8a4b-4c7d-9e0f-1a2b3c4d5e6f', 'element_type' => 'Value',
+                'value' => '8.8.8.8', 'element_uuid' => self::EVENT_B),
+        ));
+        $rows = $this->rowsByElement();
+        $this->assertSame(array(Value::uuidFor('8.8.8.8')), array_keys($rows));
+        $this->assertSame($id, $rows[Value::uuidFor('8.8.8.8')]['id']);
+        $this->assertSame(array(), $this->model->logged);
     }
 }

@@ -509,6 +509,14 @@ class CollectionElement extends AppModel
     private function elementKey(array $element)
     {
         $uuid = $element['element_uuid'] ?? null;
+        $value = ($element['element_type'] ?? null) === 'Value' && isset($element['value']) && is_scalar($element['value'])
+            ? trim((string)$element['value'])
+            : '';
+        if ($value !== '') {
+            // beforeValidate() derives a Value element's uuid from its text and ignores a payload one
+            App::uses('Value', 'Model');
+            $uuid = Value::uuidFor($value);
+        }
         return is_string($uuid) && $uuid !== '' ? strtolower($uuid) : null;
     }
 }
