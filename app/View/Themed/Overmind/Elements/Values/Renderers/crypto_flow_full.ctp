@@ -25,7 +25,9 @@ $wallet = $data['wallet'];
                         h($wallet['address']) ?></span>
                 <?php endif; ?>
                 <span class="vp-rf-dim font-monospace"><?=
-                    h((string)$wallet['module']) ?></span>
+                    $this->element('Values/Renderers/source_cell',
+                        array('sources' => $wallet['module'])
+                    ) ?></span>
             </div>
             <dl class="vp-rf-pairs">
                 <?php

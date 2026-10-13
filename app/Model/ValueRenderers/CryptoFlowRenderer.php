@@ -73,6 +73,7 @@ class CryptoFlowRenderer extends ValueRendererBase
             if (!isset($groups[$address])) {
                 $groups[$address] = array(
                     'subject' => $address,
+                    'kind' => self::SUBJECT_NAMED,
                     'objects' => array(),
                 );
             }
@@ -96,9 +97,25 @@ class CryptoFlowRenderer extends ValueRendererBase
         }
         $out = array_values($groups);
         if (!empty($loose)) {
-            $out[] = array('subject' => null, 'objects' => $loose);
+            $out[] = array(
+                'subject' => null,
+                'kind' => self::SUBJECT_NONE,
+                'objects' => $loose,
+            );
         }
         return $out;
+    }
+
+    public function subjectWords()
+    {
+        return array(
+            'one' => __('wallet'),
+            'many' => __('wallets'),
+            'none' => __('No wallet named'),
+            'none_title' => __('Transactions naming no wallet of this event'),
+            'none_group' => __('of transactions naming no wallet of this'
+                . ' event'),
+        );
     }
 
     public function matches(array $objects, array $attributes)

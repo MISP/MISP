@@ -15,3 +15,6 @@ $eventId = (int)($data['Event']['id'] ?? 0);
         </div>
     </div>
 </div>
+<?php // What the objects describe: empty until it has something to draw. ?>
+<div id="eo-object-views"
+     data-eo-fragment="<?= h($baseurl . '/events/viewEventObjectViews/' . $eventId . ($extensionSuffix ?? '')) ?>"></div>

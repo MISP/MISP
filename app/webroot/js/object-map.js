@@ -110,12 +110,21 @@
         return name ? name.textContent.trim() : '';
     }
 
-    function drawGpx(map, text) {
+    // A dot rather than a pin, where one map carries several kinds of thing.
+    function dot(at, colour, radius) {
+        return L.circleMarker(at, {
+            radius: radius, color: '#fff', weight: 1.5, fillColor: colour, fillOpacity: 0.95
+        });
+    }
+
+    // opts (drawAll): bounds to extend instead of fitting, and one colour.
+    function drawGpx(map, text, opts) {
+        opts = opts || {};
         var gpx = new DOMParser().parseFromString(text, 'application/xml');
         if (gpx.querySelector('parsererror')) {
             return 'The attachment is not valid GPX.';
         }
-        var bounds = L.latLngBounds();
+        var bounds = opts.bounds || L.latLngBounds();
         var waypoints = 0, tracks = 0, routes = 0;
 
         gpx.querySelectorAll('wpt').forEach(function (wpt) {
@@ -123,7 +132,7 @@
             if (!at) {
                 return;
             }
-            var marker = L.marker(at).addTo(map);
+            var marker = (opts.colour ? dot(at, opts.colour, 4) : L.marker(at)).addTo(map);
             var name = childName(wpt);
             if (name) {
                 marker.bindPopup(popup([[null, name]]));
@@ -136,7 +145,7 @@
             trk.querySelectorAll('trkseg').forEach(function (seg) {
                 var points = gpxPoints(seg.querySelectorAll('trkpt'));
                 if (points.length) {
-                    var line = L.polyline(points, {color: TRACK_COLOUR, weight: 3}).addTo(map);
+                    var line = L.polyline(points, {color: opts.colour || TRACK_COLOUR, weight: 3}).addTo(map);
                     line.bindPopup(popup([['Track', childName(trk) || '—']]));
                     bounds.extend(line.getBounds());
                     drawn = true;
@@ -147,14 +156,14 @@
         gpx.querySelectorAll('rte').forEach(function (rte) {
             var points = gpxPoints(rte.querySelectorAll('rtept'));
             if (points.length) {
-                var line = L.polyline(points, {color: ROUTE_COLOUR, weight: 3, dashArray: '6 6'}).addTo(map);
+                var line = L.polyline(points, {color: opts.colour || ROUTE_COLOUR, weight: 3, dashArray: '6 6'}).addTo(map);
                 line.bindPopup(popup([['Route', childName(rte) || '—']]));
                 bounds.extend(line.getBounds());
                 routes++;
             }
         });
 
-        if (bounds.isValid()) {
+        if (!opts.bounds && bounds.isValid()) {
             map.fitBounds(bounds, {padding: [20, 20]});
         }
         var parts = [];
@@ -164,10 +173,18 @@
         return parts.length ? parts.join(' · ') : 'No geographic data found.';
     }
 
-    function drawGeojson(map, data) {
+    function drawGeojson(map, data, opts) {
+        opts = opts || {};
         var types = {};
         var count = 0;
+        var colour = opts.colour;
         var layer = L.geoJSON(data, {
+            style: colour ? function () {
+                return {color: colour, weight: 2, fillColor: colour, fillOpacity: 0.16};
+            } : undefined,
+            pointToLayer: colour ? function (feature, at) {
+                return dot(at, colour, 5);
+            } : undefined,
             onEachFeature: function (feature, featureLayer) {
                 count++;
                 if (feature.geometry && feature.geometry.type) {
@@ -186,7 +203,11 @@
             }
         }).addTo(map);
         var bounds = layer.getBounds();
-        if (bounds.isValid()) {
+        if (opts.bounds) {
+            if (bounds.isValid()) {
+                opts.bounds.extend(bounds);
+            }
+        } else if (bounds.isValid()) {
             map.fitBounds(bounds, {padding: [20, 20]});
         }
         if (!count) {
@@ -221,6 +242,85 @@
                     : 'The attachment could not be loaded.';
             });
     }
+
+    /*
+     * Several geo objects on one map, fitted once to all of them (the
+     * event overview's object views). The files are fetched here; the tiles
+     * are added after the fit, so they load for the final view alone.
+     *
+     * spec: {tileUrl, points: [{lat, lon, popup: [line, …]}],
+     *        files: [{attachment, kind: 'area' | 'track'}]}
+     * opts: {colours: {point, area, track}, tileClass,
+     *        onStatus(attachment, text), onReady()}
+     */
+    function drawAll(holder, spec, opts) {
+        opts = opts || {};
+        var colours = opts.colours || {point: TRACK_COLOUR, area: TRACK_COLOUR, track: ROUTE_COLOUR};
+        var map = L.map(holder, {scrollWheelZoom: false});
+        map.setView([20, 0], 2);
+        var bounds = L.latLngBounds([]);
+        var removed = false;
+        (spec.points || []).forEach(function (point) {
+            var at = L.latLng(point.lat, point.lon);
+            var marker = dot(at, colours.point, 7).addTo(map);
+            if (point.popup && point.popup.length) {
+                marker.bindPopup(popup(point.popup.map(function (line) { return [null, line]; })));
+            }
+            bounds.extend(at);
+        });
+        var say = opts.onStatus || function () {};
+        var loads = (spec.files || []).map(function (file) {
+            return fetch(baseurl + '/attributes/download/' + encodeURIComponent(file.attachment),
+                {credentials: 'same-origin'})
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error(response.status);
+                    }
+                    return response.text();
+                })
+                .then(function (text) {
+                    if (removed) {
+                        return;
+                    }
+                    say(file.attachment, file.kind === 'area'
+                        ? drawGeojson(map, JSON.parse(text), {bounds: bounds, colour: colours.area})
+                        : drawGpx(map, text, {bounds: bounds, colour: colours.track}));
+                })
+                .catch(function () {
+                    say(file.attachment, file.kind === 'area'
+                        ? 'The attachment could not be loaded as GeoJSON.'
+                        : 'The attachment could not be loaded.');
+                });
+        });
+        Promise.all(loads).then(function () {
+            if (removed) {
+                return;
+            }
+            map.invalidateSize();
+            if (bounds.isValid()) {
+                map.fitBounds(bounds, {padding: [28, 28], maxZoom: 15, animate: false});
+            }
+            var tiles = L.tileLayer(spec.tileUrl + '/hot/{z}/{x}/{y}.png', {
+                maxZoom: 21,
+                maxNativeZoom: 20,
+                className: opts.tileClass || '',
+                attribution: '&copy; OpenStreetMap contributors'
+            });
+            if (opts.onReady) {
+                tiles.once('load', opts.onReady);
+            }
+            tiles.addTo(map);
+        });
+        return {
+            map: map,
+            remove: function () {
+                removed = true;
+                map.remove();
+            }
+        };
+    }
+
+    window.ObjectMap = {drawAll: drawAll};
 
     function open(button) {
         var modalEl = document.getElementById('mainModal');

@@ -74,6 +74,14 @@ class ReputationRenderer extends ValueRendererBase
             . ' address, and how sure they are.');
     }
 
+    public function subjectWords()
+    {
+        return array_merge(parent::subjectWords(), array(
+            'one' => __('address'),
+            'many' => __('addresses'),
+        ));
+    }
+
     public function subjectsOf(array $object)
     {
         $address = $this->firstValue($object, array('ip-src', 'ip'));

@@ -59,6 +59,14 @@ class PortServiceSetRenderer extends ValueRendererBase
             . ' exposes.');
     }
 
+    public function subjectWords()
+    {
+        return array_merge(parent::subjectWords(), array(
+            'one' => __('host'),
+            'many' => __('hosts'),
+        ));
+    }
+
     public function subjectsOf(array $object)
     {
         $host = ($object['name'] ?? null) === 'http-request'

@@ -227,6 +227,15 @@ abstract class ValueRendererBase
      */
     public $eventUse = null;
 
+    /** An `each` group about the subject it names. */
+    const SUBJECT_NAMED = 'named';
+
+    /** An `each` group of one object that names no subject: its own. */
+    const SUBJECT_OWN = 'own';
+
+    /** An `each` group of objects that name nothing the event holds. */
+    const SUBJECT_NONE = 'none';
+
     public function checkLoading()
     {
         return self::LOADED;
@@ -272,7 +281,8 @@ abstract class ValueRendererBase
      * one object, with a null subject.
      *
      * @param array $objects Tagged objects claiming this shape
-     * @return array [['subject' => string|null, 'objects' => [...]], …]
+     * @return array [['subject' => string|null, 'kind' => SUBJECT_*,
+     *         'objects' => [...]], …]
      */
     public function groupsOf(array $objects)
     {
@@ -287,6 +297,7 @@ abstract class ValueRendererBase
             if (empty($subjects)) {
                 $groups["\0" . $index] = array(
                     'subject' => null,
+                    'kind' => self::SUBJECT_OWN,
                     'objects' => array($object),
                 );
                 continue;
@@ -296,6 +307,7 @@ abstract class ValueRendererBase
                 if (!isset($groups[$subject])) {
                     $groups[$subject] = array(
                         'subject' => $subject,
+                        'kind' => self::SUBJECT_NAMED,
                         'objects' => array(),
                     );
                 }
@@ -303,6 +315,24 @@ abstract class ValueRendererBase
             }
         }
         return array_values($groups);
+    }
+
+    /**
+     * `each` only: what the event page calls one subject and several
+     * ("host", "hosts"), and how a group naming none reads: on its tile,
+     * as its title, and after a count of such groups.
+     *
+     * @return array one, many, none, none_title, none_group
+     */
+    public function subjectWords()
+    {
+        return array(
+            'one' => __('subject'),
+            'many' => __('subjects'),
+            'none' => __('Nothing named'),
+            'none_title' => __('Objects naming nothing'),
+            'none_group' => __('naming nothing'),
+        );
     }
 
     /**

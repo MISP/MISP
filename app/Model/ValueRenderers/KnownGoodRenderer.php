@@ -42,6 +42,14 @@ class KnownGoodRenderer extends ValueRendererBase
             . ' something a vendor shipped.');
     }
 
+    public function subjectWords()
+    {
+        return array_merge(parent::subjectWords(), array(
+            'one' => __('hash'),
+            'many' => __('hashes'),
+        ));
+    }
+
     public function subjectsOf(array $object)
     {
         $hash = $this->firstValue($object, array('SHA-256', 'SHA-1', 'MD5'));

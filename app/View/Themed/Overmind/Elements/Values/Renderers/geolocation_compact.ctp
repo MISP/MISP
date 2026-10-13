@@ -32,9 +32,50 @@ $code = $place === null ? null : $place['code'];
  */
 $headline = $city !== null ? $city : ($country !== null ? $country : null);
 $sub = $city !== null && $country !== null ? $country : null;
+$tagTitle = trim(($city === null ? '' : $city . ', ')
+    . ($country === null ? '' : $country));
+
+/*
+ * On the event page the drawing is every place the objects name, not one
+ * address's placing: several places are counted rather than named after
+ * the newest, and areas and tracks are drawn and counted beside them.
+ */
+$eventScope = !empty($this->viewVars['vpEventScope']);
+$extents = $eventScope ? ($data['extents'] ?? array()) : array();
+$boxes = array_values(array_filter(array_column($extents, 'box')));
+$extentNote = null;
+if ($eventScope) {
+    $placeCount = count($data['places']);
+    if ($placeCount > 1) {
+        $headline = sprintf(__n('%s place', '%s places', $placeCount),
+            $placeCount);
+        $countries = count(array_unique(array_filter(
+            array_column($data['places'], 'country')
+        )));
+        $sub = $countries > 0 ? sprintf(
+            __n('%s country', '%s countries', $countries),
+            $countries
+        ) : null;
+        $code = null;
+        $tagTitle = $headline . ($sub !== null ? ', ' . $sub : '');
+    }
+    $areas = count(array_filter($extents, function ($extent) {
+        return $extent['template'] === 'geojson';
+    }));
+    $tracks = count($extents) - $areas;
+    $extentNote = implode(' · ', array_filter(array(
+        $areas ? sprintf(__n('%s area', '%s areas', $areas), $areas) : null,
+        $tracks ? sprintf(__n('%s track', '%s tracks', $tracks), $tracks)
+            : null,
+    )));
+    if ($headline === null && $extentNote !== '') {
+        $headline = $extentNote;
+        $extentNote = null;
+    }
+}
 ?>
 <div class="vp-rw-in vp-rw-geo">
-    <?php if (empty($points)): ?>
+    <?php if (empty($points) && empty($boxes)): ?>
         <?php
         /*
          * A module that resolved a country and no coordinates. There
@@ -44,10 +85,8 @@ $sub = $city !== null && $country !== null ? $country : null;
          */
         ?>
         <?php if ($headline !== null): ?>
-            <div class="vp-rw-head" title="<?= h(trim(
-                ($city === null ? '' : $city . ', ')
-                . ($country === null ? '' : $country)
-            )) ?>"><?= h($headline) ?></div>
+            <div class="vp-rw-head" title="<?= h($tagTitle) ?>"><?=
+                h($headline) ?></div>
             <?php if ($sub !== null): ?>
                 <div class="vp-rw-sub"><?= h($sub) ?><?php
                     if ($code !== null && $code !== $sub): ?>
@@ -98,6 +137,10 @@ $sub = $city !== null && $country !== null ? $country : null;
             $xs[] = $point['lon'] + 180;
             $ys[] = 90 - $point['lat'];
         }
+        foreach ($boxes as $box) {
+            array_push($xs, $box[1] + 180, $box[3] + 180);
+            array_push($ys, 90 - $box[2], 90 - $box[0]);
+        }
         if ((max($xs) - min($xs)) > $VIEW_W - 30) {
             /*
              * Two placings an ocean apart. The disagreement is the
@@ -127,6 +170,8 @@ $sub = $city !== null && $country !== null ? $country : null;
                       class="vp-rw-plot-bg"/>
                 <use href="#vp-world" x="0" y="0" width="360"
                      height="180"/>
+                <?= $this->element('Values/Renderers/geolocation_boxes',
+                    array('boxes' => $boxes, 'min' => 4)) ?>
                 <?php foreach ($points as $point): ?>
                     <?php
                     $cx = round($point['lon'] + 180, 2);
@@ -147,10 +192,7 @@ $sub = $city !== null && $country !== null ? $country : null;
                  * caption on a picture, which is what it is.
                  */
                 ?>
-                <div class="vp-rw-geo-tag" title="<?= h(trim(
-                    ($city === null ? '' : $city . ', ')
-                    . ($country === null ? '' : $country)
-                )) ?>">
+                <div class="vp-rw-geo-tag" title="<?= h($tagTitle) ?>">
                     <span class="vp-rw-geo-place"><?=
                         h($headline) ?></span>
                     <?php if ($sub !== null): ?>
@@ -164,7 +206,7 @@ $sub = $city !== null && $country !== null ? $country : null;
         </div>
     <?php endif; ?>
 
-    <?php if (!$data['agreed']): ?>
+    <?php if (!$eventScope && !$data['agreed']): ?>
         <?php
         /*
          * Two services placing one address in two cities is the fact a
@@ -177,5 +219,7 @@ $sub = $city !== null && $country !== null ? $country : null;
             __('%s placings'),
             count($data['places'])
         )) ?></div>
+    <?php elseif ($extentNote !== null && $extentNote !== ''): ?>
+        <div class="vp-rw-note"><?= h($extentNote) ?></div>
     <?php endif; ?>
 </div>

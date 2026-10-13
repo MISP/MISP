@@ -4251,7 +4251,12 @@ class EventsController extends AppController
             }
         }
         $views = (new EventObjectViewsTool())->views($user, $events);
-        return $this->RestResponse->viewData($views, 'json');
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($views, 'json');
+        }
+        $this->set('views', $views);
+        $this->set('event', $event);
+        $this->layout = false;
     }
 
     /**

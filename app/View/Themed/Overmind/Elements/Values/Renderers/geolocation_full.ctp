@@ -19,15 +19,22 @@
  */
 $points = $data['points'];
 $places = $data['places'];
+// On the event page: the objects' areas too, and no agreement to report.
+$eventScope = !empty($this->viewVars['vpEventScope']);
+$boxes = $eventScope ? array_values(array_filter(
+    array_column($data['extents'] ?? array(), 'box')
+)) : array();
 ?>
 <div class="vp-rf vp-rf-geo">
-    <?php if (!empty($points)): ?>
+    <?php if (!empty($points) || !empty($boxes)): ?>
         <?= $this->element('Values/Renderers/world_outline') ?>
         <svg class="vp-rf-plot" viewBox="0 6 360 142"
              preserveAspectRatio="xMidYMid meet" aria-hidden="true">
             <rect x="0" y="6" width="360" height="142"
                   class="vp-rw-plot-bg"/>
             <use href="#vp-world" x="0" y="0" width="360" height="180"/>
+            <?= $this->element('Values/Renderers/geolocation_boxes',
+                array('boxes' => $boxes, 'min' => 3)) ?>
             <?php foreach ($points as $point): ?>
                 <?php
                 $cx = round($point['lon'] + 180, 2);
@@ -41,7 +48,7 @@ $places = $data['places'];
         </svg>
     <?php endif; ?>
 
-    <?php if (!$data['agreed']): ?>
+    <?php if (!$eventScope && !$data['agreed']): ?>
         <p class="vp-rf-note"><?= h(sprintf(
             __('%1$s sources place this value in %2$s different'
                 . ' locations.'),
@@ -50,6 +57,7 @@ $places = $data['places'];
         )) ?></p>
     <?php endif; ?>
 
+    <?php if (!empty($points) || !empty($places)): ?>
     <table class="table table-sm vp-rf-table">
         <thead>
             <tr>
@@ -89,9 +97,12 @@ $places = $data['places'];
                             $row['lon']))
                         : '—' ?></td>
                     <td class="font-monospace vp-rf-dim"><?=
-                        h((string)$row['module']) ?></td>
+                        $this->element('Values/Renderers/source_cell',
+                            array('sources' => $row['module'])
+                        ) ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
+    <?php endif; ?>
 </div>

@@ -48,7 +48,9 @@ $readingLabel = function ($reading) {
                 <span class="vp-rf-dim"><?=
                     h($readingLabel($verdict['reading'])) ?></span>
                 <span class="vp-rf-name font-monospace"><?=
-                    h((string)$verdict['module']) ?></span>
+                    $this->element('Values/Renderers/source_cell',
+                        array('sources' => $verdict['module'])
+                    ) ?></span>
                 <span class="vp-rf-dim font-monospace"><?=
                     h((string)$verdict['template']) ?></span>
                 <?php if ($verdict['link'] !== null): ?>

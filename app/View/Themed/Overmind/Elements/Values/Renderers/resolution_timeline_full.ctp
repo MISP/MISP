@@ -17,7 +17,10 @@
  */
 $periods = $data['periods'] ?? array();
 $peak = empty($periods) ? 0 : max(array_column($periods, 'count'));
-$brushed = $data['dated'] && $peak > 0 && count($periods) > 1;
+$drawn = $data['dated'] && $peak > 0 && count($periods) > 1;
+// The brush runs on the value page's list engine; elsewhere the strip is
+// only read.
+$brushed = $drawn && empty($this->viewVars['vpEventScope']);
 $stamp = function ($row) {
     $first = $row['first'] ?? $row['last'];
     $last = $row['last'] ?? $row['first'];
@@ -94,6 +97,23 @@ $stamp = function ($row) {
         <p class="vp-rf-note d-none" data-vp-list-empty><?= h(__(
             'No resolution was current in that period.'
         )) ?></p>
+    <?php elseif ($drawn): ?>
+        <div class="vp-rw-months" role="img" aria-label="<?= h(__(
+            'Resolutions current per month, oldest first.'
+        )) ?>">
+            <?php foreach ($periods as $period): ?>
+                <span class="vp-rw-month<?= $period['count'] === 0
+                    ? ' vp-rw-month-empty' : '' ?>"
+                      style="--vp-rw-month-h: <?= h(round(
+                          100 * $period['count'] / $peak
+                      )) ?>%"
+                      title="<?= h($period['label'] . ' · '
+                          . $period['count']) ?>"></span>
+            <?php endforeach; ?>
+        </div>
+        <div class="vp-rf-sub vp-rf-res-foot"><?= h(
+            reset($periods)['label'] . ' – ' . end($periods)['label']
+        ) ?></div>
     <?php endif; ?>
 
     <table class="table table-sm vp-rf-table"<?= $brushed
@@ -126,10 +146,10 @@ $stamp = function ($row) {
                         ? '—' : date('Y-m-d', $row['last'])) ?></td>
                     <td class="text-end"><?= h($row['count'] > 1
                         ? number_format($row['count']) : '') ?></td>
-                    <td class="font-monospace vp-rf-dim"><?= h(implode(
-                        ', ',
-                        array_filter($row['sources'])
-                    )) ?></td>
+                    <td class="font-monospace vp-rf-dim"><?=
+                        $this->element('Values/Renderers/source_cell',
+                            array('sources' => $row['sources'])
+                        ) ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>

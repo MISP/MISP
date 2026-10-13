@@ -74,6 +74,24 @@ class ValueRendererEventUseTest extends TestCase
             $this->object('abuseipdb', ['abuse-confidence-score' => '10'], 'd'),
         ]);
         $this->assertSame([['1.2.3.4', 2], [null, 1], [null, 1]], $this->subjects($groups));
+        $this->assertSame(
+            [ValueRendererBase::SUBJECT_NAMED, ValueRendererBase::SUBJECT_OWN, ValueRendererBase::SUBJECT_OWN],
+            array_column($groups, 'kind')
+        );
+    }
+
+    public function testEveryEachRendererNamesItsOwnSubjects(): void
+    {
+        foreach (glob(__DIR__ . '/../Model/ValueRenderers/*Renderer.php') as $file) {
+            $class = basename($file, '.php');
+            $renderer = new $class();
+            if ($renderer->eventUse !== ValueRendererBase::EVENT_EACH) {
+                continue;
+            }
+            $words = $renderer->subjectWords();
+            $this->assertSame(['one', 'many', 'none', 'none_title', 'none_group'], array_keys($words), $class);
+            $this->assertNotSame('subject', $words['one'], $class);
+        }
     }
 
     public function testCryptoTransactionsJoinTheWalletsTheyName(): void
@@ -87,6 +105,10 @@ class ValueRendererEventUseTest extends TestCase
         ]);
         $this->assertSame([['A', 2], ['B', 2], [null, 1]], $this->subjects($groups));
         $this->assertSame('t2', $groups[2]['objects'][0]['module']);
+        $this->assertSame(
+            [ValueRendererBase::SUBJECT_NAMED, ValueRendererBase::SUBJECT_NAMED, ValueRendererBase::SUBJECT_NONE],
+            array_column($groups, 'kind')
+        );
     }
 
     public function testPortServiceHostReadsTheDestinationAddress(): void
@@ -124,6 +146,23 @@ class ValueRendererEventUseTest extends TestCase
         $this->assertNull($data['extents'][0]['box']);
         $this->assertSame([49.6, 6.1, 49.7, 6.2], $data['extents'][1]['box']);
         $this->assertNotNull($data['extents'][0]['start']);
+    }
+
+    public function testAUavIsAnExtentNamedAndTimedByItsOwnRelations(): void
+    {
+        $renderer = new GeolocationRenderer();
+        $uav = $this->object('uav', [
+            'craftname' => 'Courier drone',
+            'first-seen' => '2026-10-03T07:00:00Z',
+            'last-seen' => '2026-10-03T07:40:00Z',
+        ], 'u');
+        $this->assertTrue($renderer->matches([$uav], []));
+        $data = $renderer->prepare([$uav], []);
+        $this->assertSame([], $data['points']);
+        $this->assertSame('uav', $data['extents'][0]['template']);
+        $this->assertSame('Courier drone', $data['extents'][0]['name']);
+        $this->assertNull($data['extents'][0]['box']);
+        $this->assertSame(2400, $data['extents'][0]['end'] - $data['extents'][0]['start']);
     }
 
     public function testAnInvertedOrOutOfRangeBoxIsNotDrawn(): void

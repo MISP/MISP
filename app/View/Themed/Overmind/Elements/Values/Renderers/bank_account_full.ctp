@@ -18,7 +18,9 @@
                         h($account['institution']) ?></span>
                 <?php endif; ?>
                 <span class="vp-rf-dim font-monospace"><?=
-                    h((string)$account['module']) ?></span>
+                    $this->element('Values/Renderers/source_cell',
+                        array('sources' => $account['module'])
+                    ) ?></span>
             </div>
             <dl class="vp-rf-pairs">
                 <?php

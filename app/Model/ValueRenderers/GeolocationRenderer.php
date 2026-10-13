@@ -23,7 +23,7 @@ class GeolocationRenderer extends ValueRendererBase
     public $id = 'geolocation';
 
     public $templates = array('geolocation', 'ip-api-address', 'gpx',
-        'geojson');
+        'geojson', 'uav');
 
     public $compact = 'Values/Renderers/geolocation_compact';
 
@@ -40,8 +40,19 @@ class GeolocationRenderer extends ValueRendererBase
 
     const REGION = array('region', 'state', 'region-code');
 
-    /** Files describing an area or a path, drawn by their bounding box. */
-    const EXTENT = array('gpx', 'geojson');
+    /**
+     * Objects describing an area or a path, drawn by their bounding box. A
+     * uav carries no box: its path is in its flight-path files.
+     */
+    const EXTENT = array('gpx', 'geojson', 'uav');
+
+    /** An extent's name and times, across the three templates' relations. */
+    const EXTENT_NAME = array('name', 'filename', 'craftname',
+        'registration-id', 'model');
+
+    const EXTENT_START = array('start-time', 'first-seen');
+
+    const EXTENT_END = array('end-time', 'last-seen');
 
     public function __construct()
     {
@@ -135,8 +146,9 @@ class GeolocationRenderer extends ValueRendererBase
     }
 
     /**
-     * A gpx or geojson file as its bounding box. The box is optional in
-     * both templates, so `box` is null where any edge is missing.
+     * A gpx, geojson or uav object as its bounding box. The box is optional
+     * in the first two and absent from uav, so `box` is null where any edge
+     * is missing.
      *
      * @param array $object
      * @return array
@@ -159,10 +171,14 @@ class GeolocationRenderer extends ValueRendererBase
         }
         return array(
             'template' => $object['name'],
-            'name' => $this->firstValue($object, array('name', 'filename')),
+            'name' => $this->firstValue($object, self::EXTENT_NAME),
             'box' => $box,
-            'start' => $this->stamp($this->value($object, 'start-time')),
-            'end' => $this->stamp($this->value($object, 'end-time')),
+            'start' => $this->stamp(
+                $this->firstValue($object, self::EXTENT_START)
+            ),
+            'end' => $this->stamp(
+                $this->firstValue($object, self::EXTENT_END)
+            ),
             'module' => $object['module'] ?? null,
             'ran_at' => $object['ran_at'] ?? null,
         );

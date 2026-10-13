@@ -341,6 +341,15 @@
     vector-effect: non-scaling-stroke;
 }
 
+/* An area an event's object draws (a GeoJSON box), under its points. */
+.vp-rw-plot-area {
+    fill: var(--vp-e-accent, #6f5fb5);
+    fill-opacity: 0.18;
+    stroke: var(--vp-e-accent, #6f5fb5);
+    stroke-width: 1.25;
+    vector-effect: non-scaling-stroke;
+}
+
 /* A ring around the point, which is what makes it findable rather
    than merely present: a 3px dot on a map of the world is a speck
    until something on the map is pointing at it. `non-scaling-stroke`

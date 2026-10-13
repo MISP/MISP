@@ -73,7 +73,7 @@ class EventObjectViewsTool
             $parts[] = (int)$event['id'] . '-' . (int)$event['timestamp']
                 . '-' . $this->overview->scope($user, $event)['key'];
         }
-        $kind = 'object-views-v1:' . md5(implode(',', $parts));
+        $kind = 'object-views-v2:' . md5(implode(',', $parts));
         $views = $this->overview->cached(
             $kind,
             $viewed,
@@ -82,7 +82,18 @@ class EventObjectViewsTool
                 return $this->compute($user, $events);
             }
         );
-        $views['map']['tiles'] = (bool)Configure::read('Plugin.Geolocation_enabled');
+        $tiles = (bool)Configure::read('Plugin.Geolocation_enabled');
+        $views['map']['tiles'] = $tiles;
+        $views['map']['tile_url'] = $tiles
+            ? (Configure::read('Plugin.Geolocation_url') ?: 'https://geo.circl.lu')
+            : null;
+        $renderers = ValueRendererTool::renderers();
+        foreach ($views['shapes'] as &$shape) {
+            if ($shape['use'] === ValueRendererBase::EVENT_EACH && isset($renderers[$shape['shape']])) {
+                $shape['words'] = $renderers[$shape['shape']]->subjectWords();
+            }
+        }
+        unset($shape);
         return $views;
     }
 
@@ -229,7 +240,10 @@ class EventObjectViewsTool
         );
         $shape['drawings'] = array();
         foreach (array_slice($drawable, 0, self::SUBJECT_CAP) as $group) {
-            $shape['drawings'][] = $this->drawing($renderer, $group['subject'], $group['objects']);
+            $drawing = $this->drawing($renderer, $group['subject'], $group['objects']);
+            $drawing['subject_kind'] = $group['kind'] ?? ($group['subject'] === null
+                ? ValueRendererBase::SUBJECT_OWN : ValueRendererBase::SUBJECT_NAMED);
+            $shape['drawings'][] = $drawing;
         }
         return $shape;
     }
@@ -243,6 +257,12 @@ class EventObjectViewsTool
         );
     }
 
+    private static function ownSubject(array $drawing)
+    {
+        return ($drawing['subject_kind'] ?? null) === ValueRendererBase::SUBJECT_OWN
+            && count($drawing['origins']) === 1;
+    }
+
     /**
      * Names the subject of a one-object drawing whose renderer could not, by
      * the one object it references or is referenced by (a virustotal-report
@@ -253,10 +273,7 @@ class EventObjectViewsTool
         $wanted = array();
         foreach ($shapes as $shape) {
             foreach ($shape['drawings'] as $drawing) {
-                if ($shape['use'] === ValueRendererBase::EVENT_EACH
-                    && $drawing['subject'] === null
-                    && count($drawing['origins']) === 1
-                ) {
+                if (self::ownSubject($drawing)) {
                     $wanted[$origins[$drawing['origins'][0]]['object_id']] = true;
                 }
             }
@@ -290,7 +307,7 @@ class EventObjectViewsTool
         $neighbours = $this->describeObjects($user, array_unique(array_values($neighbourOf)));
         foreach ($shapes as &$shape) {
             foreach ($shape['drawings'] as &$drawing) {
-                if ($drawing['subject'] !== null || count($drawing['origins']) !== 1) {
+                if (!self::ownSubject($drawing)) {
                     continue;
                 }
                 $objectId = $origins[$drawing['origins'][0]]['object_id'];
@@ -420,6 +437,26 @@ class EventObjectViewsTool
             }
         }
         return $out;
+    }
+
+    /**
+     * A label cut in the middle, so a hash keeps both ends and a file name
+     * its extension.
+     *
+     * @param string $text
+     * @param int $max characters
+     * @return string
+     */
+    public static function shorten($text, $max)
+    {
+        $chars = preg_split('//u', (string)$text, -1, PREG_SPLIT_NO_EMPTY);
+        if ($chars === false || count($chars) <= $max) {
+            return (string)$text;
+        }
+        $head = (int)ceil(($max - 1) * 0.6);
+        $tail = $max - 1 - $head;
+        return implode('', array_slice($chars, 0, $head)) . '…'
+            . implode('', array_slice($chars, -$tail));
     }
 
     private function labelOf(array $attributes)

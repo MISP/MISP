@@ -27,7 +27,9 @@
                 <span class="vp-rw-verdict vp-rw-v-<?= h($mark) ?>"><?=
                     h($report['ratio']) ?></span>
                 <span class="vp-rf-name font-monospace"><?=
-                    h((string)$report['module']) ?></span>
+                    $this->element('Values/Renderers/source_cell',
+                        array('sources' => $report['module'])
+                    ) ?></span>
                 <?php if ($report['verdict'] !== null): ?>
                     <span class="vp-rf-dim"><?=
                         h($report['verdict']) ?></span>

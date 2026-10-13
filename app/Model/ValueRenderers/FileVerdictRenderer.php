@@ -46,6 +46,14 @@ class FileVerdictRenderer extends ValueRendererBase
             . ' the ones that answered.');
     }
 
+    public function subjectWords()
+    {
+        return array_merge(parent::subjectWords(), array(
+            'one' => __('report'),
+            'many' => __('reports'),
+        ));
+    }
+
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {

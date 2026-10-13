@@ -56,6 +56,7 @@
                 inventory.getAttribute('data-eo-narrower-tab') || 'objects'
             );
         }
+        document.dispatchEvent(new CustomEvent('misp:overview-fragment', { detail: { el: el } }));
     }
 
     function fillNarrower(count, tab) {
@@ -110,7 +111,7 @@
     }
 
     function reloadCards() {
-        document.querySelectorAll('#eo-context-card, #eo-inventory-card, .eo-details-activity[data-eo-loaded]')
+        document.querySelectorAll('#eo-context-card, #eo-inventory-card, #eo-object-views, .eo-details-activity[data-eo-loaded]')
             .forEach(loadFragment);
     }
 
@@ -554,7 +555,7 @@
     function boot() {
         reopenTab();
         if (!document.querySelector('.eo-band')) return;
-        document.querySelectorAll('#eo-context-card, #eo-inventory-card')
+        document.querySelectorAll('#eo-context-card, #eo-inventory-card, #eo-object-views')
             .forEach(loadFragment);
         document.querySelectorAll('[data-eo-fragment-lazy]').forEach(function (el) {
             var holder = el.closest('.collapse');
