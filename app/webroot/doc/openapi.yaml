@@ -7407,7 +7407,13 @@ components:
           $ref: "#/components/schemas/UUID"
         element_type:
           type: string
-          enum: [ "Event", "GalaxyCluster" ]
+          enum: [ "Event", "GalaxyCluster", "Attribute", "Object", "Value" ]
+        value:
+          type: string
+          nullable: true
+          maxLength: 1024
+          description: "A Value element's text, trimmed, at most 1024 bytes; null for every other type. A Value element's element_uuid is a UUIDv5 of this text."
+          example: "8.8.8.8"
         description:
           $ref: "#/components/schemas/CollectionElementDescription"
 
