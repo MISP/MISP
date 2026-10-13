@@ -1128,6 +1128,7 @@ class ACLComponent extends Component
             'resolve' => array('theming_enabled'),
             'triage' => array('theming_enabled'),
             'assess' => array('theming_enabled'),
+            'matches' => array('theming_enabled'),
             // JSON for any role; the page checks MISP.enable_themes
             'view' => array('*'),
             'viewOccurrences' => array('theming_enabled'),

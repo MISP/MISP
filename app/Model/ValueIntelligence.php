@@ -6,6 +6,7 @@ App::uses('ValueRelevanceTool', 'Tools/ValueIntelligence');
 App::uses('ValueExclusionTool', 'Tools/ValueIntelligence');
 App::uses('ValueRelationTool', 'Tools/ValueIntelligence');
 App::uses('ValueFacetTool', 'Tools');
+App::uses('ValueInputTool', 'Tools/ValueIntelligence');
 App::uses('Correlation', 'Model');
 App::uses('RedisTool', 'Tools');
 App::uses('ValueWarninglistTool', 'Tools/ValueIntelligence');
@@ -1155,6 +1156,29 @@ class ValueIntelligence extends AppModel
             'recased' => $recased,
             'collapsed' => $collapsed,
         );
+    }
+
+    /**
+     * The stored values a search text matches that this reader can see
+     * held, one page of them, as `Value::matchesFor` reads them. The text
+     * is refanged first, as the box reads a lookup.
+     *
+     * @param array $user
+     * @param string $raw What was typed
+     * @param int $page
+     * @return array As `Value::matchesFor`, plus `changed`, what the parse
+     *               did to the text
+     */
+    public function forMatches(array $user, $raw, $page = 1)
+    {
+        $one = ValueInputTool::normalise($raw);
+        $matches = $this->model('Value')->matchesFor(
+            $user,
+            $one['value'] === null ? '' : $one['value'],
+            $page
+        );
+        $matches['changed'] = $one['changed'];
+        return $matches;
     }
 
     /**

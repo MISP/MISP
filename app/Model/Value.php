@@ -1,6 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('ValueFieldKind', 'Tools/ValueIntelligence');
+App::uses('ValueFacetTool', 'Tools');
+App::uses('ValueConditionRewriter', 'Tools');
 
 /**
  * The value-identity seam for the Value Intelligence page.
@@ -135,6 +137,18 @@ class Value extends AppModel
      * being a function of the value's popularity.
      */
     const SPELLING_ROW_CAP = 4;
+
+    /** Values a search answers per page. */
+    const MATCH_PAGE = 50;
+
+    /** The shortest text a search runs on; one character matches too much to read. */
+    const MATCH_MIN_LENGTH = 2;
+
+    /**
+     * Candidates whose visibility one statement checks. Under 1000: MariaDB
+     * turns a longer IN list into a join (visibleValueIds).
+     */
+    const MATCH_CHUNK = 500;
 
     /**
      * MISP's attribute type for a date an object template records in a
@@ -3435,5 +3449,129 @@ class Value extends AppModel
             $out[$term] = array_merge($own, $others);
         }
         return $out;
+    }
+
+    /**
+     * Stored values matching a search text that an attribute the reader
+     * can see holds, ranked by rankMatches(): those with a word starting
+     * with the text; those starting with it, when it holds no word the
+     * index can look up; or, for a CIDR block, the addresses and blocks
+     * overlapping it. Hidden and unheld values are left out alike.
+     *
+     * The candidates are read before the ACL, so a text matching more than
+     * ValueConditionRewriter::OVERFLOW stored values is refused whoever
+     * asks; that count is the instance's, never the reader's.
+     *
+     * @param array $user
+     * @param string $text
+     * @param int $page
+     * @param int $limit
+     * @return array `text`, `mode` (words, prefix or block), `refused`
+     *               (null, short or many), `values` on this page, `page`
+     *               and `more`
+     */
+    public function matchesFor(array $user, $text, $page = 1,
+        $limit = self::MATCH_PAGE
+    ) {
+        $text = trim((string)$text);
+        $page = max(1, (int)$page);
+        $out = array(
+            'text' => $text,
+            'mode' => null,
+            'refused' => null,
+            'values' => array(),
+            'page' => $page,
+            'more' => false,
+        );
+        if (mb_strlen($text) < self::MATCH_MIN_LENGTH) {
+            $out['refused'] = 'short';
+            return $out;
+        }
+        $dictionary = ClassRegistry::init('AttributeValue');
+        $range = strpos($text, '/') === false
+            ? null
+            : ValueFacetTool::ipRange($text);
+        if ($range !== null) {
+            $out['mode'] = 'block';
+            $found = $dictionary->facets()->overlapping(
+                array($range),
+                ValueConditionRewriter::OVERFLOW
+            );
+            $found['overflow'] = $found['starts'] !== null;
+        } elseif (preg_match('/[\p{L}\p{N}_]{3,}/u', $text)) {
+            $out['mode'] = 'words';
+            $found = $dictionary->resolveSearch(
+                $text,
+                ValueConditionRewriter::OVERFLOW
+            );
+        } else {
+            $out['mode'] = 'prefix';
+            $found = $dictionary->resolveLike(
+                addcslashes($text, '\\%_') . '%',
+                ValueConditionRewriter::OVERFLOW
+            );
+        }
+        if ($found['overflow']) {
+            $out['refused'] = 'many';
+            return $out;
+        }
+        $texts = empty($found['ids'])
+            ? array()
+            : $dictionary->fetchValues($found['ids']);
+        $texts = self::rankMatches($texts, $text);
+        $wanted = $page * (int)$limit + 1;
+        $visible = array();
+        $attributes = $this->attributes();
+        foreach (array_chunk(array_keys($texts), self::MATCH_CHUNK) as $chunk) {
+            $held = array_flip($attributes->visibleValueIds(
+                $user,
+                $chunk,
+                count($chunk)
+            ));
+            foreach ($chunk as $id) {
+                if (isset($held[$id])) {
+                    $visible[] = (string)$texts[$id];
+                    if (count($visible) >= $wanted) {
+                        break 2;
+                    }
+                }
+            }
+        }
+        $out['values'] = array_slice(
+            $visible,
+            ($page - 1) * (int)$limit,
+            (int)$limit
+        );
+        $out['more'] = count($visible) > $page * (int)$limit;
+        return $out;
+    }
+
+    /**
+     * Matches in the order a reader looking for an indicator wants them:
+     * the text itself, then values starting with it, then the rest;
+     * shorter before longer within each, so a pasted rule or report that
+     * happens to contain the text comes last.
+     *
+     * @param array $texts id => text
+     * @param string $text
+     * @return array id => text, ranked
+     */
+    private static function rankMatches(array $texts, $text)
+    {
+        $needle = mb_strtolower($text);
+        $keys = array();
+        foreach ($texts as $id => $value) {
+            $folded = mb_strtolower((string)$value);
+            $keys[$id] = array(
+                $folded === $needle ? 0 : (strpos($folded, $needle) === 0 ? 1 : 2),
+                mb_strlen((string)$value),
+            );
+        }
+        uksort($texts, function ($a, $b) use ($keys, $texts) {
+            return $keys[$a][0] <=> $keys[$b][0]
+                ?: $keys[$a][1] <=> $keys[$b][1]
+                ?: strnatcasecmp((string)$texts[$a], (string)$texts[$b]);
+        });
+        return $texts;
     }
 }

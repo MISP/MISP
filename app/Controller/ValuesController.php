@@ -111,7 +111,7 @@ class ValuesController extends AppController
         if (in_array(
             $this->request->params['action'] ?? null,
             array('viewEnrichmentRun', 'viewEnrichmentBadge', 'triage',
-                'assess'),
+                'assess', 'matches'),
             true
         )) {
             $this->Security->validatePost = false;
@@ -492,6 +492,39 @@ class ValuesController extends AppController
         ));
         $this->layout = false;
         return $this->render('/Elements/Values/Index/assessment');
+    }
+
+    /**
+     * The stored values the box's text matches, one page of them, for the
+     * worklist to draw — text only, never a dictionary id.
+     *
+     * A POST like the rest of the page, so the search text stays out of
+     * URLs and logs; `page` rides in the body beside it.
+     *
+     * @return CakeResponse
+     */
+    public function matches()
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__(
+                'This endpoint only accepts POST requests.'
+            ));
+        }
+        $this->loadModel('ValueIntelligence');
+        $page = filter_var(
+            $this->request->data['Value']['page'] ?? 1,
+            FILTER_VALIDATE_INT,
+            array('options' => array('min_range' => 1, 'max_range' => self::MAX_PAGE))
+        );
+        if ($page === false) {
+            throw new BadRequestException(__('Invalid page.'));
+        }
+        $matches = $this->ValueIntelligence->forMatches(
+            $this->Auth->user(),
+            $this->__pasted(),
+            $page
+        );
+        return $this->RestResponse->viewData($matches, 'json');
     }
 
     /**
