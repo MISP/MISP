@@ -813,65 +813,87 @@ th .sort-icon::before {
 
 
 /* =======================================================
-   REST Custom CSS
+   REST client (api/rest)
 ======================================================= */
 
-
-.custom-code-text {
-    color: #38005e !important;
-    font-size: 13px; 
+/* Only what no utility covers: the row hover and its hidden tools, a fixed
+   width for the method badge, the code panes' height and wrap, and the
+   library staying in view beside a long form. */
+.rest-row {
+    cursor: pointer;
+}
+.rest-row:hover,
+.rest-row:focus-visible,
+.rest-row.active {
+    background-color: var(--bs-primary-bg-subtle);
+}
+.rest-row .rest-row-tool {
+    opacity: 0;
+}
+.rest-row:hover .rest-row-tool,
+.rest-row:focus-within .rest-row-tool {
+    opacity: 1;
+}
+.rest-method {
+    min-width: 3.75rem;
+}
+.rest-group-toggle:hover {
+    background-color: var(--bs-tertiary-bg);
+}
+.rest-request-line {
+    flex-basis: 24rem;
+    min-width: 0;
+}
+.rest-library-body {
+    max-height: 28rem;
+}
+@media (min-width: 992px) {
+    .rest-library {
+        position: sticky;
+        top: 1rem;
+    }
+    .rest-library-body {
+        max-height: calc(100vh - 14rem);
+    }
 }
 
-[data-bs-theme="dark"] .custom-code-text  {
-    color: #6cff9a !important;
+.rest-code {
+    max-height: 32rem;
 }
-
+.rest-code pre {
+    font-size: .8rem;
+    line-height: 1.6;
+}
+.rest-code-text {
+    color: #38005e;
+}
+[data-bs-theme="dark"] .rest-code-text {
+    color: #6cff9a;
+}
+.rest-code.is-wrapped .rest-code-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
 
 .api-tooltip {
     position: absolute;
-    z-index: 9999;
+    z-index: 1080;
+    display: none;
     width: 350px;
+    max-width: calc(100vw - 1rem);
     max-height: 400px;
     overflow-y: auto;
-
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-
-    padding: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-
-    display: none;
+    padding: .75rem;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    box-shadow: var(--bs-box-shadow-lg);
 }
 
-
-/* =======================================================
-   Category & Query Card Custom CSS
-======================================================= */
-
-/* Left border color */
-.query-container,
-.category-container {
-    --misp-border-color: var(--bs-secondary-rgb);
-    border-inline-start-color: rgba(var(--misp-border-color), 1) !important;
-    transition: border-color 0.2s ease;
+.nav-pills .nav-link.active {
+    background-color: var(--bs-primary);
+    color: var(--bs-light);
 }
-
-/* Left border color hovered */
-.query-container:has(.card-body:hover),
-.category-container:has(.card-header:hover),
-.category-container:has(.card-header:not(.collapsed)) {
-    border-inline-start-color: var(--bs-primary) !important;
-}
-
-/* Header color hovered */
-.query-card .card-body:hover,
-.category-card .card-header:hover,
-.category-card .card-header:not(.collapsed) {
-    background-color: rgba(135, 198, 214, 0.2);
-    border-radius: 0;
-}
-
 
 /* =======================================================
    Drag and Drop CSS
