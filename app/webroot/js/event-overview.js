@@ -131,7 +131,8 @@
 
     function unfilteredUrl(container) {
         if (!container.hasAttribute('data-eo-base-url')) {
-            container.setAttribute('data-eo-base-url', container.getAttribute('data-url'));
+            // The one object a link opened the page on is not part of the tab's scope.
+            container.setAttribute('data-eo-base-url', container.getAttribute('data-url').replace(/\/object:[^/]*/, ''));
         }
         return container.getAttribute('data-eo-base-url');
     }
@@ -553,6 +554,11 @@
     window.MispEventOverview = { openFiltered: openFiltered };
 
     function boot() {
+        // index-filters.js takes the URL a tab first loads as its scope, with no chips: pin it
+        // to the unfiltered URL so openFiltered() and a link to one object stay removable.
+        document.querySelectorAll('[id^="tab-"] .ajax-tab-content[data-url]').forEach(function (container) {
+            container.dataset.ifpOrigin = unfilteredUrl(container);
+        });
         reopenTab();
         if (!document.querySelector('.eo-band')) return;
         document.querySelectorAll('#eo-context-card, #eo-inventory-card, #eo-object-views')

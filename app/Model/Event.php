@@ -3682,6 +3682,7 @@ class Event extends AppModel
      *   - direction (string, default 'desc')
      *   - deleted (int, 0/1/2)
      *   - name (string|null) object template name filter
+     *   - object (int|null) one object, by id
      *   - meta-category (string|null)
      *   - searchFor (string|null) substring search over the object's own
      *     uuid / name / comment and its attributes' values and uuids
@@ -3772,6 +3773,9 @@ class Event extends AppModel
         // Optional filters
         if (!empty($options['name'])) {
             $conditions['Object.name'] = $options['name'];
+        }
+        if (!empty($options['object'])) {
+            $conditions[] = ['Object.id' => (int)$options['object']];
         }
         if (!empty($options['meta-category'])) {
             $conditions['Object.meta-category'] =

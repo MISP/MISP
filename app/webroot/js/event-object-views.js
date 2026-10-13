@@ -335,6 +335,13 @@
     };
 
     Shelf.prototype.onClick = function (e) {
+        var object = e.target.closest('a[data-eov-object]');
+        if (object && window.MispEventOverview && e.button === 0
+            && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            window.MispEventOverview.openFiltered('objects', { object: object.getAttribute('data-eov-object') });
+            return;
+        }
         var objects = e.target.closest('[data-eov-objects]');
         if (objects) {
             e.preventDefault();

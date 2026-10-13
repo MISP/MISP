@@ -55,6 +55,8 @@
     $searchFor = $this->request->params['named']['searchFor'] ?? '';
     $listSuffix = $extensionSuffix
         . ($searchFor !== '' ? '/searchFor:' . rawurlencode($searchFor) : '');
+    $objectFilter = (int)($this->request->params['named']['object'] ?? 0);
+    $objectsSuffix = $listSuffix . ($objectFilter > 0 ? '/object:' . $objectFilter : '');
 
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
@@ -94,7 +96,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']), $listSuffix)
+                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']), $objectsSuffix)
                     ]
                 ],
             ],

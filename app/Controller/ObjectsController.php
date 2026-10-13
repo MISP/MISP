@@ -1466,17 +1466,14 @@ class ObjectsController extends AppController
             }
             return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
         } else if (($this->theme ?? null) === 'Overmind') {
-            $this->redirect('/events/view2/' . $object['Object']['event_id'] . '#tab-objects');
+            $this->redirect([
+                'controller' => 'events',
+                'action' => 'view2',
+                $object['Object']['event_id'],
+                'object' => $object['Object']['id'],
+                '#' => 'tab-objects',
+            ]);
         } else {
-            if ($this->theme === 'Overmind') {
-                $this->redirect([
-                    'controller' => 'events',
-                    'action' => 'view2',
-                    $object['Object']['event_id'],
-                    'searchFor' => $object['Object']['uuid'],
-                    '#' => 'tab-objects',
-                ]);
-            }
             $this->redirect('/events/view/' . $object['Object']['event_id']);
         }
     }

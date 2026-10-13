@@ -32,8 +32,9 @@ foreach ($sources as $i => $uuid) {
     $short = EventObjectViewsTool::shorten($label, 28);
     if (!empty($scope['link'])) {
         printf(
-            '<a class="eov-src" href="%s" title="%s">%s</a>',
+            '<a class="eov-src" href="%s" data-eov-object="%d" title="%s">%s</a>',
             h($scope['baseurl'] . '/objects/view/' . $origin['object_id']),
+            (int)$origin['object_id'],
             h($title),
             h($short)
         );

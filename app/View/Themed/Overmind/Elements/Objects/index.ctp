@@ -7,6 +7,7 @@ $objectsUrl = '/events/viewObjects/' . $eventId . ($extensionSuffix ?? '');
 $namedParams     = $this->request->params['named'] ?? [];
 $currentDeleted  = (int)($namedParams['deleted'] ?? 0);
 $currentProposal = (int)($namedParams['proposal'] ?? 0);
+$currentObject   = (int)($namedParams['object'] ?? 0);
 // deleted:2 is "only what holds something soft-deleted"
 $toggleDeleted   = $currentDeleted ? 0 : 2;
 $toggleProposal  = $currentProposal ? 0 : 1;
@@ -43,7 +44,8 @@ $inExtensionView = count($extensionEvents) > 1;
 // grid) need to derive from it. Computed once per object, by whichever loop is
 // rendering — the two must not drift on rights, origin or ordering.
 $objContext = function (array $object) use (
-    $inExtensionView, $extensionEvents, $canEdit, $canTagObj, $currentProposal
+    $inExtensionView, $extensionEvents, $canEdit, $canTagObj, $currentProposal,
+    $currentObject
 ) {
     $attrs = $object['Attribute'] ?? [];
     $origin = $inExtensionView
@@ -73,9 +75,20 @@ $objContext = function (array $object) use (
         'firstValue' => $first === null ? '' : (string)($first['value'] ?? ''),
         'firstRelation' => $first === null
             ? '' : (string)($first['object_relation'] ?? ''),
-        // Auto-expand objects that carry a proposal while the Proposals toggle is on
-        'expand' => $currentProposal && $hasProposal,
+        // Auto-expand objects that carry a proposal while the Proposals toggle
+        // is on, and the one object a link pointed at
+        'expand' => ($currentProposal && $hasProposal)
+            || $currentObject === (int)$object['id'],
     ];
+};
+
+$objectChip = function ($value) use ($objects) {
+    foreach ($objects as $object) {
+        if ((string)$object['id'] === (string)$value) {
+            return $object['name'] . ' #' . $object['id'];
+        }
+    }
+    return '#' . $value;
 };
 
 // The attribute index's pickers, led by what only an object has. An attribute
@@ -151,10 +164,12 @@ $foldChildren = empty($objects) ? [] : [
                                     'deleted' => __('Deleted'),
                                     'proposal' => __('Proposals'),
                                     'name' => __('Template'),
+                                    'object' => __('Object'),
                                 ],
                                 'values' => [
                                     'deleted' => ['1' => __('included'), '2' => __('only')],
                                     'proposal' => ['1' => __('only')],
+                                    'object' => $objectChip,
                                 ],
                             ],
                             'children' => array_merge([

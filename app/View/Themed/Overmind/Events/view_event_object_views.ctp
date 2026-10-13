@@ -153,6 +153,7 @@ $index = 0;
                         $setCount
                     ),
                     'eventId' => $eventId,
+                    'eventIds' => $eventIds,
                     'origins' => $origins,
                     'map' => $views['map'],
                     'label' => $label,
@@ -252,6 +253,7 @@ $index = 0;
                                 $drawn === 1 ? $words['one'] : $words['many']
                             ),
                         'eventId' => $eventId,
+                        'eventIds' => $eventIds,
                         'origins' => $origins,
                         'map' => $views['map'],
                         'label' => $label,

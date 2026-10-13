@@ -3144,7 +3144,7 @@ class EventsController extends AppController
         $options = [];
         $paramKeys = [
             'page', 'limit', 'sort', 'direction',
-            'deleted', 'name', 'meta-category', 'searchFor', 'proposal',
+            'deleted', 'name', 'object', 'meta-category', 'searchFor', 'proposal',
             'category', 'type', 'tags', 'galaxy', 'org', 'toIDS',
             'correlation', 'feed', 'warning', 'analystData', 'narrower', 'seen',
         ];

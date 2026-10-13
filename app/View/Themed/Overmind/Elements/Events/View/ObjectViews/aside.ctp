@@ -7,6 +7,7 @@
  * @var array $drawing
  * @var array $subject see the shelf's subjectOf
  * @var int $eventId
+ * @var int[] $eventIds the events the shelf drew from
  * @var array $origins
  */
 App::uses('EventObjectViewsTool', 'Tools/EventOverview');
@@ -36,7 +37,10 @@ foreach ($shape['drawings'] as $one) {
                 <div>
                     <?= $objectIcon ?>
                     <a href="<?= h($baseurl . '/objects/view/'
-                        . (int)$ref['object_id']) ?>"><?=
+                        . (int)$ref['object_id']) ?>"<?=
+                        in_array((int)$ref['event_id'], $eventIds, true)
+                            ? ' data-eov-object="' . (int)$ref['object_id'] . '"'
+                            : '' ?>><?=
                         h($ref['template'] . ' #' . $ref['object_id']) ?></a>
                     <?php if ((int)$ref['event_id'] !== $eventId): ?>
                         <?= $this->element('Events/View/ObjectViews/event_badge',
@@ -72,6 +76,7 @@ foreach ($shape['drawings'] as $one) {
                     <a class="eov-olink<?= $code ? ' eov-mono' : '' ?>"
                        href="<?= h($baseurl . '/objects/view/'
                            . (int)$origin['object_id']) ?>"
+                       data-eov-object="<?= (int)$origin['object_id'] ?>"
                        title="<?= h($origin['template'] . ' #'
                            . $origin['object_id']
                            . ($origin['label'] !== null

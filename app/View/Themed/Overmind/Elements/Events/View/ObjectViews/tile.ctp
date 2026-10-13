@@ -12,6 +12,7 @@
  * @var int $index position on the shelf
  * @var string $position where the tile sits among its own ("3 of 8 hosts")
  * @var int $eventId the event being viewed
+ * @var int[] $eventIds the events the shelf drew from
  * @var array $origins uuid => object_id, event_id, template, label
  * @var array $map the view model's `map`
  * @var callable $label shape id => heading
@@ -191,6 +192,7 @@ $scope = array(
                 'drawing' => $drawing,
                 'subject' => $subject,
                 'eventId' => $eventId,
+                'eventIds' => $eventIds,
                 'origins' => $origins,
             )) ?>
         </div>

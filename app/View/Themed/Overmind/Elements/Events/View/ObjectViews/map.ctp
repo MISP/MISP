@@ -18,8 +18,9 @@ $name = function ($origin) {
         : ($origin['label'] ?? ($origin['template'] . ' #' . $origin['object_id']));
 };
 $link = function ($origin, $text) use ($baseurl) {
-    return $origin === null ? '' : sprintf('<a href="%s">%s</a>',
-        h($baseurl . '/objects/view/' . (int)$origin['object_id']), h($text));
+    return $origin === null ? '' : sprintf('<a href="%s" data-eov-object="%d">%s</a>',
+        h($baseurl . '/objects/view/' . (int)$origin['object_id']),
+        (int)$origin['object_id'], h($text));
 };
 $kindOf = function ($template) {
     return $template === 'geojson' ? 'area' : 'track';

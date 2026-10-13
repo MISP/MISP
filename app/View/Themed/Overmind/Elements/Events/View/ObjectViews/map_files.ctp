@@ -22,7 +22,8 @@
                 h($file['name']) ?></span>
             <span class="eov-lg-meta"><?= h($file['template']) ?><?php
                 if ($origin !== null): ?> · <a href="<?= h($baseurl
-                    . '/objects/view/' . (int)$origin['object_id']) ?>"><?= h(
+                    . '/objects/view/' . (int)$origin['object_id']) ?>"
+                    data-eov-object="<?= (int)$origin['object_id'] ?>"><?= h(
                     $origin['label'] ?? ($origin['template'] . ' #'
                         . $origin['object_id'])) ?></a><?php endif; ?></span>
             <a class="btn btn-sm btn-outline-secondary"
