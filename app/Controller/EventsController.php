@@ -953,7 +953,7 @@ class EventsController extends AppController
             }
             $rules = [
                 'recursive' => -1,
-                'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid', 'protected'),
+                'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid'),
                 'contain' => $contain,
             ];
         } else {
@@ -975,9 +975,16 @@ class EventsController extends AppController
         if (isset($this->paginate['conditions'])) {
             $rules['conditions'] = $this->paginate['conditions'];
         }
-        if ($skipProtected) {
-            $rules['conditions']['Event.protected'] = 0;
+        // Protected events this instance cannot sign are excluded in the query
+        // itself, so pages stay full and X-Result-Count matches what is served.
+        $visible = [['Event.protected' => null], ['Event.protected' => 0]];
+        if (!$skipProtected) {
+            $signableEventIds = $this->Event->CryptographicKey->eventIdsSignableByInstanceKey();
+            if (!empty($signableEventIds)) {
+                $visible[] = ['Event.id' => $signableEventIds];
+            }
         }
+        $rules['conditions']['AND'][] = ['OR' => $visible];
         $paginationRules = array('page', 'limit', 'sort', 'direction');
         foreach ($paginationRules as $paginationRule) {
             if (isset($passedArgs[$paginationRule])) {
@@ -1023,9 +1030,6 @@ class EventsController extends AppController
 
         $isCsvResponse = $this->response->type() === 'text/csv';
 
-        $protectedEventsByInstanceKey = $this->Event->CryptographicKey->protectedEventsByInstanceKey($events);
-        $protectedEventsByInstanceKey = array_flip($protectedEventsByInstanceKey);
-
         // Collect all tag IDs that are events
         if (!$minimal || $includeEventTagsFingerprint) {
             $tagIds = [];
@@ -1070,15 +1074,11 @@ class EventsController extends AppController
             // Fetch all org and sharing groups that are in events
             $orgIds = [];
             $sharingGroupIds = [];
-            foreach ($events as $k => $event) {
+            foreach ($events as $event) {
                 $orgIds[$event['Event']['org_id']] = true;
                 $orgIds[$event['Event']['orgc_id']] = true;
                 $sharingGroupIds[$event['Event']['sharing_group_id']] = true;
-                if ($event['Event']['protected'] && !isset($protectedEventsByInstanceKey[$event['Event']['id']])) {
-                    unset($events[$k]);
-                }
             }
-            $events = array_values($events);
             if (!empty($orgIds)) {
                 $orgs = $this->Event->Org->find('all', [
                     'conditions' => ['Org.id' => array_keys($orgIds)],
@@ -1122,18 +1122,12 @@ class EventsController extends AppController
             }
         } else { // minimal
             foreach ($events as $key => $event) {
-                if ($event['Event']['protected'] && !isset($protectedEventsByInstanceKey[$event['Event']['id']])) {
-                    unset($events[$key]);
-                    continue;
-                }
                 $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
-                unset($event['Event']['protected']);
                 if ($includeEventTagsFingerprint) {
                     $event['Event']['event_tags_fingerprint'] = $this->Event->getTagsFingerprint($event['EventTag']);
                 }
                 $events[$key] = $event['Event'];
             }
-            $events = array_values($events);
         }
 
         if ($isCsvResponse) {
