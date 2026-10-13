@@ -162,6 +162,12 @@ class AttributeValidationToolTest extends TestCase
         $this->assertEquals('xn--hkyrky-ptac70bc.cz|127.0.0.1', AttributeValidationTool::modifyBeforeValidation('domain|ip', 'HÁČKYČÁRKY.CZ|127.0.0.1'));
     }
 
+    public function testFourByteCharactersKept()
+    {
+        $this->assertEquals("payload \u{1F600} \u{20000}", AttributeValidationTool::modifyBeforeValidation('text', "payload \u{1F600} \u{20000}"));
+        $this->assertEquals("\u{1F600}x.example.com", AttributeValidationTool::modifyBeforeValidation('hostname', "\u{1F600}X.EXAMPLE.COM"));
+    }
+
     public function testSssdeep()
     {
         $this->shouldBeValid('ssdeep', ["768:+OFu8Q3w6QzfR5Jni6SQD7qSFDs6P93/q0XIc/UB5EPABWX:RFu8QAFzffJui79f13/AnB5EPAkX"]);
