@@ -1042,20 +1042,21 @@ class AnalystGraphData extends AppModel
             $add($edge);
         }
 
-        $valueUuids = [];
-        foreach ($values as $value) {
-            $valueUuids[mb_strtolower($value['value'])][] = $value['uuid'];
-        }
-        if (!empty($valueUuids)) {
+        $nodesBySpelling = $this->valueNodesBySpelling($values);
+        if (!empty($nodesBySpelling)) {
             foreach ($ends as $uuid => $attribute) {
                 foreach ($this->valueParts($attribute) as $part) {
-                    foreach ($valueUuids[mb_strtolower($part)] ?? [] as $valueUuid) {
-                        $add([
+                    foreach ($nodesBySpelling[$part] ?? [] as $valueUuid => $nodeValue) {
+                        $edge = [
                             'id' => 'value:' . $valueUuid . '>' . $uuid,
                             'kind' => 'value',
                             'from' => 'Value:' . $valueUuid,
                             'to' => 'Attribute:' . $uuid,
-                        ]);
+                        ];
+                        if ($part !== $nodeValue) {
+                            $edge['label'] = __('spelled %s', $part);
+                        }
+                        $add($edge);
                     }
                 }
             }
@@ -1255,6 +1256,44 @@ class AnalystGraphData extends AppModel
      * @param array $attribute
      * @return string[]
      */
+    /**
+     * Every stored spelling of each Value node's value group, and the nodes
+     * holding that group, so an attribute spelled another way still links.
+     *
+     * @param array $values Value nodes, each with its value and uuid
+     * @return array spelling => [node uuid => the node's own value]
+     */
+    private function valueNodesBySpelling(array $values)
+    {
+        if (empty($values)) {
+            return [];
+        }
+        $texts = array_values(array_unique(array_map('strval', array_column($values, 'value'))));
+        $dictionary = $this->model('AttributeValue');
+        $groups = $dictionary->resolveCi($texts);
+        $ids = [];
+        foreach ($groups as $members) {
+            foreach ($members as $id) {
+                $ids[$id] = true;
+            }
+        }
+        $spellings = empty($ids) ? [] : $dictionary->fetchValues(array_keys($ids));
+        $out = [];
+        foreach ($values as $value) {
+            $text = (string)$value['value'];
+            $members = [$text];
+            foreach ($groups[$text] ?? [] as $id) {
+                if (isset($spellings[$id])) {
+                    $members[] = (string)$spellings[$id];
+                }
+            }
+            foreach (array_unique($members) as $member) {
+                $out[$member][$value['uuid']] = $text;
+            }
+        }
+        return $out;
+    }
+
     private function valueParts(array $attribute)
     {
         if (isset($attribute['value1'])) {

@@ -1134,6 +1134,32 @@ class GraphTest extends TestCase
                 'galaxy_cluster_uuid' => self::C1, 'referenced_galaxy_cluster_uuid' => self::C2, 'referenced_galaxy_cluster_type' => 'uses',
             )));
         });
+        // The dictionary: each group lists its stored spellings, by id
+        $groups = array(
+            array(1 => '8.8.8.8'),
+            array(2 => 'example.org', 3 => 'EXAMPLE.ORG', 4 => 'exämple.org'),
+            array(5 => '1.2.3.4'),
+        );
+        $this->fake('AttributeValue')
+            ->on('resolveCi', function ($terms) use ($groups) {
+                $out = array();
+                foreach ($terms as $term) {
+                    $out[$term] = array();
+                    foreach ($groups as $group) {
+                        $folded = array_map(function ($s) {
+                            return str_replace('ä', 'a', mb_strtolower($s));
+                        }, $group);
+                        if (in_array(str_replace('ä', 'a', mb_strtolower($term)), $folded, true)) {
+                            $out[$term] = array_keys($group);
+                        }
+                    }
+                }
+                return $out;
+            })
+            ->on('fetchValues', function ($ids) use ($groups) {
+                $all = array_replace(...$groups);
+                return array_intersect_key($all, array_flip($ids));
+            });
     }
 
     private function resolveFixture()
@@ -1213,7 +1239,7 @@ class GraphTest extends TestCase
         $this->assertSame($expected, $edges);
     }
 
-    public function testValueNodesThatDifferInCaseEachKeepTheirEdges()
+    public function testValueNodesLinkEverySpellingOfTheirGroupAndSaySo()
     {
         $this->registerResolveFakes(array(self::E1, self::O1, self::O2, self::A1, self::A_CHILD1, self::A3, self::C1, self::C2));
         list($document) = AnalystGraphDocumentTool::normalise(array('nodes' => array(
@@ -1222,21 +1248,26 @@ class GraphTest extends TestCase
             self::node('Object', self::O2),
             self::valueNode('EXAMPLE.ORG'),
             self::valueNode('example.org'),
+            self::valueNode('exämple.org'),
+            self::valueNode('8.8.8.8'),
         )));
         $resolved = (new AnalystGraphData())->resolve(array('id' => 1), $document);
 
         $valueEdges = array();
         foreach ($resolved['edges'] as $edge) {
             if ($edge['kind'] === 'value') {
-                $valueEdges[] = $edge['from'] . ' > ' . $edge['to'];
+                $valueEdges[$edge['from'] . ' > ' . $edge['to']] = $edge['label'] ?? null;
             }
         }
-        sort($valueEdges);
+        ksort($valueEdges);
+        $to = ' > Attribute:' . self::A_CHILD2;
         $expected = array(
-            'Value:' . Value::uuidFor('EXAMPLE.ORG') . ' > Attribute:' . self::A_CHILD2,
-            'Value:' . Value::uuidFor('example.org') . ' > Attribute:' . self::A_CHILD2,
+            'Value:' . Value::uuidFor('EXAMPLE.ORG') . $to => 'spelled example.org',
+            'Value:' . Value::uuidFor('example.org') . $to => null,
+            'Value:' . Value::uuidFor('exämple.org') . $to => 'spelled example.org',
+            'Value:' . Value::uuidFor('8.8.8.8') . ' > Attribute:' . self::A_CHILD1 => null,
         );
-        sort($expected);
+        ksort($expected);
         $this->assertSame($expected, $valueEdges);
     }
 
