@@ -4405,7 +4405,6 @@ class ValueIntelligence extends AppModel
         return array(
             'value' => $value,
             'relationships' => array(
-                'summary' => $digest['summary'],
                 'threats' => $digest['threats'],
                 'tactics' => $digest['tactics'],
                 'read_at' => $digest['read_at'],
@@ -4806,37 +4805,18 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     /**
-     * The tab's numbers, held as one small entry.
+     * The threats card's rows, held as one small entry so the card does
+     * not inflate the whole scan out of Redis on every request.
      *
-     * **This is §15.1 item 1.** The tab fires six requests, and two of
-     * them are rail cards that describe the other four. They used to
-     * re-assemble every section to do it: on `8.8.8.8` the graph card
-     * cost 245 ms and the settings card 210 ms against a warm cache,
-     * more than the 190 ms section they were summarising, because both
-     * inflated an 11.6 MB scan out of Redis and re-folded 21,904 rows to
-     * print a handful of counts.
-     *
-     * What they actually need is small — four integers and a suppressed
-     * flag. That is what is stored here, under its own key, so a rail
-     * card reads kilobytes instead of megabytes.
-     *
-     * **Held on the same terms as the scan** (§16.7): the same TTL, the
-     * same per-viewer key because every number in it went through
-     * `buildConditions($user)`, and Redis being unavailable falls
-     * through to computing it. `read_at` is the *scan's* stamp rather
-     * than this entry's, because the co-occurrence counts are the oldest
-     * thing in here and the honest age to disclose is the oldest one.
-     * Both rail cards print it, for the reason §16.7 gives: a cached
-     * read that does not say how old it is is a trap.
-     *
-     * Cold costs what it always did — whichever request misses first
-     * assembles everything, and on a cold tab several miss at once.
-     * What this removes is the repeat.
+     * Held on the same terms as the scan: the same TTL, and the same
+     * per-viewer key because every row went through
+     * `buildConditions($user)`. `read_at` is the scan's stamp, the
+     * oldest thing in here.
      *
      * @param array $user
      * @param string $value
      * @param array $options
-     * @return array `summary`, `suppressed`, `read_at`
+     * @return array `threats`, `tactics`, `read_at`
      */
     private function relationDigest(array $user, $value,
         array $options = array()
@@ -4871,9 +4851,7 @@ class ValueIntelligence extends AppModel
      * The digest itself, once the cache has decided it must be read.
      *
      * Split out so `cachedFold` can hold the single-flight lock over
-     * it: the threats card reads this, and the four sections it
-     * composes are the same four the near-match, external, reference and
-     * claim panels are asking for beside it.
+     * it.
      *
      * @param array $user
      * @param string $value
@@ -4884,22 +4862,9 @@ class ValueIntelligence extends AppModel
         array $options
     ) {
         $context = $this->cooccurrenceContext($user, $value, $options);
-        $types = $this->model('Value')->typesFor($user, $value, $options);
-        $near = $this->nearMatches($user, $value, $types);
         $asserted = $this->assertedClaims($user, $value, $options);
-        $external = $this->externalPresence($user, $value);
-        $references = $this->referenceSection($user, $value, $options);
 
         $digest = array(
-            'summary' => $this->relationSummary($user, $value, $options,
-                array(
-                    'cooccurrence' => $context['co'],
-                    'near' => $near,
-                    'asserted' => $asserted,
-                    'external' => $external,
-                    'references' => $references,
-                )),
-            'suppressed' => !empty($context['co']['suppressed']),
             /*
              * **Read off the scan now, and the property that made that
              * safe is the scan's, not this card's.** The scan skips an
