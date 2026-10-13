@@ -14599,7 +14599,9 @@ class ValueIntelligence extends AppModel
         foreach ($picked === null ? $read : array($picked) as $type) {
             $basis[$type] = $picked === null ? 'read' : 'picked';
         }
+        $kept = array();
         foreach ($stored as $row) {
+            $kept[$row['type']] = true;
             if (!isset($basis[$row['type']]) && isset($offered[$row['type']])) {
                 $basis[$row['type']] = 'held';
             }
@@ -14611,6 +14613,7 @@ class ValueIntelligence extends AppModel
                 'count' => 0,
                 'stored' => array(),
                 'basis' => $how,
+                'kept' => isset($kept[$type]),
             );
         }
 
