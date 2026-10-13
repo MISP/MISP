@@ -1044,13 +1044,12 @@ class AnalystGraphData extends AppModel
 
         $valueUuids = [];
         foreach ($values as $value) {
-            $valueUuids[mb_strtolower($value['value'])] = $value['uuid'];
+            $valueUuids[mb_strtolower($value['value'])][] = $value['uuid'];
         }
         if (!empty($valueUuids)) {
             foreach ($ends as $uuid => $attribute) {
                 foreach ($this->valueParts($attribute) as $part) {
-                    $valueUuid = $valueUuids[mb_strtolower($part)] ?? null;
-                    if ($valueUuid !== null) {
+                    foreach ($valueUuids[mb_strtolower($part)] ?? [] as $valueUuid) {
                         $add([
                             'id' => 'value:' . $valueUuid . '>' . $uuid,
                             'kind' => 'value',

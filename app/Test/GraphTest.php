@@ -1213,6 +1213,33 @@ class GraphTest extends TestCase
         $this->assertSame($expected, $edges);
     }
 
+    public function testValueNodesThatDifferInCaseEachKeepTheirEdges()
+    {
+        $this->registerResolveFakes(array(self::E1, self::O1, self::O2, self::A1, self::A_CHILD1, self::A3, self::C1, self::C2));
+        list($document) = AnalystGraphDocumentTool::normalise(array('nodes' => array(
+            self::node('Event', self::E1),
+            self::node('Object', self::O1),
+            self::node('Object', self::O2),
+            self::valueNode('EXAMPLE.ORG'),
+            self::valueNode('example.org'),
+        )));
+        $resolved = (new AnalystGraphData())->resolve(array('id' => 1), $document);
+
+        $valueEdges = array();
+        foreach ($resolved['edges'] as $edge) {
+            if ($edge['kind'] === 'value') {
+                $valueEdges[] = $edge['from'] . ' > ' . $edge['to'];
+            }
+        }
+        sort($valueEdges);
+        $expected = array(
+            'Value:' . Value::uuidFor('EXAMPLE.ORG') . ' > Attribute:' . self::A_CHILD2,
+            'Value:' . Value::uuidFor('example.org') . ' > Attribute:' . self::A_CHILD2,
+        );
+        sort($expected);
+        $this->assertSame($expected, $valueEdges);
+    }
+
     public function testThumbnailFoldsAnObjectsAttributesAndKeepsTheLayout()
     {
         $this->registerResolveFakes(array(self::E1, self::O1, self::O2, self::A1, self::A_CHILD1, self::A3, self::C1, self::C2));
