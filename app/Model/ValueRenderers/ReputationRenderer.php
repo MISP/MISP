@@ -45,6 +45,8 @@ class ReputationRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/reputation_full';
 
+    public $eventUse = self::EVENT_EACH;
+
     const TOWARD_THREAT = 'threat';
 
     const TOWARD_BENIGN = 'benign';
@@ -70,6 +72,12 @@ class ReputationRenderer extends ValueRendererBase
     {
         $this->description = __('What reputation services say about an'
             . ' address, and how sure they are.');
+    }
+
+    public function subjectsOf(array $object)
+    {
+        $address = $this->firstValue($object, array('ip-src', 'ip'));
+        return $address === null ? array() : array($address);
     }
 
     public function matches(array $objects, array $attributes)

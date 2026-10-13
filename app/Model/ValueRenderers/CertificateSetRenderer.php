@@ -26,6 +26,8 @@ class CertificateSetRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/certificate_set_full';
 
+    public $eventUse = self::EVENT_SET;
+
     const SUBJECT = array('subject-common-name', 'subject');
 
     const ISSUER = array('issuer-common-name', 'issuer');

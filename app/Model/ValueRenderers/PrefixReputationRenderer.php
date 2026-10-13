@@ -26,6 +26,8 @@ class PrefixReputationRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/prefix_reputation_full';
 
+    public $eventUse = self::EVENT_SET;
+
     public $producer = self::PRODUCER_NONE;
 
     public function __construct()

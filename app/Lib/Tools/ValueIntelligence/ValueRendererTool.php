@@ -1,4 +1,6 @@
 <?php
+App::uses('MispAttribute', 'Model');
+App::uses('ValueSignalLoader', 'Tools/ValueIntelligence');
 
 /**
  * Which widget draws which answer, and which widgets get a slot.
@@ -531,6 +533,61 @@ class ValueRendererTool
             }
         }
         return $newest;
+    }
+
+    /**
+     * A `misp_standard` object — a module's answer or a stored event
+     * object, which share the shape — as the renderers read it.
+     *
+     * @param array $object `Object` fields with an `Attribute` list
+     * @return array
+     */
+    public static function shapeObject(array $object)
+    {
+        $attributes = array();
+        foreach ($object['Attribute'] ?? array() as $attribute) {
+            $attributes[] = array(
+                'relation' => $attribute['object_relation'] ?? null,
+                'type' => $attribute['type'] ?? null,
+                'value' => $attribute['value'] ?? null,
+                'category' => $attribute['category'] ?? null,
+                'comment' => $attribute['comment'] ?? null,
+                'to_ids' => !empty($attribute['to_ids']),
+                'correlates' => self::correlates($attribute),
+                'known' => false,
+            );
+        }
+        return array(
+            'name' => $object['name'] ?? null,
+            'meta_category' => $object['meta-category'] ?? null,
+            'description' => $object['description'] ?? null,
+            'comment' => $object['comment'] ?? null,
+            'attributes' => $attributes,
+        );
+    }
+
+    /**
+     * Whether a value is an identity, by MISP's own reckoning: the
+     * attribute's `disable_correlation` flag (set from the object
+     * template), then `NON_CORRELATING_TYPES` for an answer that omits
+     * the flag.
+     *
+     * @param array $attribute
+     * @return bool
+     */
+    public static function correlates(array $attribute)
+    {
+        if (!empty($attribute['disable_correlation'])) {
+            return false;
+        }
+        if (empty($attribute['type'])) {
+            return true;
+        }
+        return !in_array(
+            $attribute['type'],
+            MispAttribute::NON_CORRELATING_TYPES,
+            true
+        );
     }
 
     /**

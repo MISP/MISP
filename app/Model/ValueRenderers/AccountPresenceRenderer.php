@@ -60,6 +60,8 @@ class AccountPresenceRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/account_presence_full';
 
+    public $eventUse = self::EVENT_SET;
+
     public function __construct()
     {
         $this->description = __('The platforms an identifier has an'

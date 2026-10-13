@@ -28,6 +28,8 @@ class FileVerdictRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/file_verdict_full';
 
+    public $eventUse = self::EVENT_EACH;
+
     /**
      * The defaults the reading uses, stated here for the same reason
      * the reputation renderer states its own: a widget drawn with no

@@ -15859,7 +15859,7 @@ class ValueIntelligence extends AppModel
                     break;
                 }
                 $budget--;
-                $run['objects'][] = $this->enrichmentObject($object);
+                $run['objects'][] = ValueRendererTool::shapeObject($object);
             }
         } else {
             foreach ($results as $entry) {
@@ -15923,7 +15923,7 @@ class ValueIntelligence extends AppModel
      * may make.
      *
      * **Only values MISP would correlate on are asked about**, per
-     * `enrichmentCorrelates`. A row the probe is not asked about is
+     * `ValueRendererTool::correlates()`. A row the probe is not asked about is
      * `known => false` and wears no chip, which is the honest state:
      * the page did not look, because there was nothing worth looking
      * for. This is what stops `count: 1` and `rrtype: A` from wearing
@@ -15971,7 +15971,7 @@ class ValueIntelligence extends AppModel
         foreach ($contents as $content) {
             switch ($content['kind'] ?? null) {
                 case 'attribute':
-                    if ($this->enrichmentCorrelates(array('type' => $content['type']))) {
+                    if (ValueRendererTool::correlates(array('type' => $content['type']))) {
                         $wanted[] = (string)$content['value'];
                     }
                     break;
@@ -15982,7 +15982,7 @@ class ValueIntelligence extends AppModel
                     break;
                 case 'object':
                     foreach ($content['attributes'] as $attribute) {
-                        if ($this->enrichmentCorrelates(array('type' => $attribute['type']))) {
+                        if (ValueRendererTool::correlates(array('type' => $attribute['type']))) {
                             $wanted[] = (string)$attribute['value'];
                         }
                     }
@@ -16104,97 +16104,9 @@ class ValueIntelligence extends AppModel
             'comment' => isset($attribute['comment'])
                 ? $attribute['comment'] : null,
             'to_ids' => !empty($attribute['to_ids']),
-            'correlates' => $this->enrichmentCorrelates($attribute),
+            'correlates' => ValueRendererTool::correlates($attribute),
             // Filled by enrichmentKnown; false where it never asked.
             'known' => false,
-        );
-    }
-
-    /**
-     * Whether this value is an identity, by MISP's own reckoning.
-     *
-     * **`Already in MISP` is a claim about a duplicate**, and a
-     * duplicate is only a thing for a value that identifies something.
-     * MISP answers that question twice over and both answers are on
-     * the wire: the module sends `disable_correlation` per attribute —
-     * set from the object template — and `NON_CORRELATING_TYPES` names
-     * the types whose values are never identities whatever a template
-     * says. The flag alone does the work in practice; the type list is
-     * here because a hand-built module may omit the flag, and a
-     * `counter` must not carry the chip on anybody's say-so.
-     *
-     * Measured on the instance rather than reasoned about: this drops
-     * every chip the maintainer objected to — `count: 1`, `rrtype: A`,
-     * `origin`, `FileSize: 4`, `latitude: 38` — and keeps every one
-     * that was doing the job: the MD5, the SHA-1, the SHA-256, the
-     * SSDEEP, `country` and `countrycode`.
-     *
-     * @param array $attribute As the module sent it
-     * @return bool
-     */
-    private function enrichmentCorrelates(array $attribute)
-    {
-        if (!empty($attribute['disable_correlation'])) {
-            return false;
-        }
-        if (empty($attribute['type'])) {
-            return true;
-        }
-        return !in_array(
-            $attribute['type'],
-            MispAttribute::NON_CORRELATING_TYPES,
-            true
-        );
-    }
-
-    /**
-     * A returned object, carrying what MISP's own object render shows.
-     *
-     * The pane draws these the way `Objects/index.ctp` draws a stored
-     * object, so it needs the same fields: the template's
-     * meta-category and description name what kind of thing this is,
-     * and the attribute rows carry the category and the IDS flag that
-     * every other object table in MISP has a column for. A module is
-     * free to omit any of them — `mmdb_lookup` sends no comment,
-     * `hashlookup` no description — so each is null rather than
-     * assumed, and the view draws only what arrived.
-     *
-     * @param array $object
-     * @return array
-     */
-    private function enrichmentObject(array $object)
-    {
-        $attributes = array();
-        if (!empty($object['Attribute'])) {
-            foreach ($object['Attribute'] as $attribute) {
-                $attributes[] = array(
-                    'relation' => isset($attribute['object_relation'])
-                        ? $attribute['object_relation'] : null,
-                    'type' => isset($attribute['type'])
-                        ? $attribute['type'] : null,
-                    'value' => isset($attribute['value'])
-                        ? $attribute['value'] : null,
-                    'category' => isset($attribute['category'])
-                        ? $attribute['category'] : null,
-                    'comment' => isset($attribute['comment'])
-                        ? $attribute['comment'] : null,
-                    'to_ids' => !empty($attribute['to_ids']),
-                    'correlates' => $this->enrichmentCorrelates(
-                        $attribute
-                    ),
-                    'known' => false,
-                );
-            }
-        }
-        return array(
-            'name' => isset($object['name']) ? $object['name'] : null,
-            'meta_category' => isset($object['meta-category'])
-                ? $object['meta-category'] : null,
-            'description' => isset($object['description'])
-                ? $object['description'] : null,
-            'comment' => isset($object['comment'])
-                ? $object['comment'] : null,
-            'attributes' => $attributes,
         );
     }
 

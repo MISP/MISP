@@ -22,11 +22,14 @@ class GeolocationRenderer extends ValueRendererBase
 {
     public $id = 'geolocation';
 
-    public $templates = array('geolocation', 'ip-api-address');
+    public $templates = array('geolocation', 'ip-api-address', 'gpx',
+        'geojson');
 
     public $compact = 'Values/Renderers/geolocation_compact';
 
     public $full = 'Values/Renderers/geolocation_full';
+
+    public $eventUse = self::EVENT_SET;
 
     /** The two spellings of each field, in preference order. */
     const COUNTRY = array('country', 'countrycode', 'country-code');
@@ -36,6 +39,9 @@ class GeolocationRenderer extends ValueRendererBase
     const CITY = array('city', 'neighborhood');
 
     const REGION = array('region', 'state', 'region-code');
+
+    /** Files describing an area or a path, drawn by their bounding box. */
+    const EXTENT = array('gpx', 'geojson');
 
     public function __construct()
     {
@@ -51,7 +57,8 @@ class GeolocationRenderer extends ValueRendererBase
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {
-            if ($this->placeOf($object) !== null
+            if ($this->isExtent($object)
+                || $this->placeOf($object) !== null
                 || $this->pointOf($object) !== null
             ) {
                 return true;
@@ -64,7 +71,14 @@ class GeolocationRenderer extends ValueRendererBase
     {
         $points = array();
         $places = array();
+        $extents = array();
+        $located = array();
         foreach ($objects as $object) {
+            if ($this->isExtent($object)) {
+                $extents[] = $this->extentOf($object);
+                continue;
+            }
+            $located[] = $object;
             $place = $this->placeOf($object);
             $point = $this->pointOf($object);
             if ($place === null && $point === null) {
@@ -95,10 +109,11 @@ class GeolocationRenderer extends ValueRendererBase
                 $places[$place] = $entry;
             }
         }
-        $newest = $this->newest($objects);
+        $newest = $this->newest($located);
         return array(
             'points' => $points,
             'places' => array_values($places),
+            'extents' => $extents,
             'place' => $newest === null ? null : array(
                 'country' => $this->firstValue($newest, self::COUNTRY),
                 'code' => $this->firstValue($newest, self::CODE),
@@ -107,6 +122,49 @@ class GeolocationRenderer extends ValueRendererBase
             ),
             'sources' => $this->sources($objects),
             'agreed' => count($places) < 2,
+        );
+    }
+
+    /**
+     * @param array $object
+     * @return bool
+     */
+    private function isExtent(array $object)
+    {
+        return in_array($object['name'] ?? null, self::EXTENT, true);
+    }
+
+    /**
+     * A gpx or geojson file as its bounding box. The box is optional in
+     * both templates, so `box` is null where any edge is missing.
+     *
+     * @param array $object
+     * @return array
+     */
+    private function extentOf(array $object)
+    {
+        $edges = array();
+        foreach (array('min-latitude', 'min-longitude', 'max-latitude',
+            'max-longitude') as $relation
+        ) {
+            $edges[] = $this->number($this->value($object, $relation));
+        }
+        list($minLat, $minLon, $maxLat, $maxLon) = $edges;
+        $box = null;
+        if (!in_array(null, $edges, true)
+            && $minLat >= -90 && $maxLat <= 90 && $minLat <= $maxLat
+            && $minLon >= -180 && $maxLon <= 180 && $minLon <= $maxLon
+        ) {
+            $box = $edges;
+        }
+        return array(
+            'template' => $object['name'],
+            'name' => $this->firstValue($object, array('name', 'filename')),
+            'box' => $box,
+            'start' => $this->stamp($this->value($object, 'start-time')),
+            'end' => $this->stamp($this->value($object, 'end-time')),
+            'module' => $object['module'] ?? null,
+            'ran_at' => $object['ran_at'] ?? null,
         );
     }
 

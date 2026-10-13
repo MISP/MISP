@@ -215,6 +215,18 @@ abstract class ValueRendererBase
     /** Set by the loader on anything found under `app/Lib/`. */
     public $is_custom = false;
 
+    const EVENT_SET = 'set';
+
+    const EVENT_EACH = 'each';
+
+    /**
+     * How the event page may draw this shape. null keeps it off the
+     * event page; `set` means prepare() is right over every object of the
+     * event at once; `each` means prepare() is about one subject, so the
+     * caller groups the event's objects by subjectsOf() first.
+     */
+    public $eventUse = null;
+
     public function checkLoading()
     {
         return self::LOADED;
@@ -237,7 +249,60 @@ abstract class ValueRendererBase
             'producer_note' => $this->producer_note,
             'version' => $this->version,
             'is_custom' => $this->is_custom,
+            'event_use' => $this->eventUse,
         );
+    }
+
+    /**
+     * The subjects an object is about, for an `each` shape. An object may
+     * name several (a transaction names every address it moved value
+     * between); an empty list makes the object its own subject.
+     *
+     * @param array $object
+     * @return array
+     */
+    public function subjectsOf(array $object)
+    {
+        return array();
+    }
+
+    /**
+     * An `each` shape's objects split into the groups prepare() is called
+     * on, in first-seen order. A group whose objects name no subject is
+     * one object, with a null subject.
+     *
+     * @param array $objects Tagged objects claiming this shape
+     * @return array [['subject' => string|null, 'objects' => [...]], …]
+     */
+    public function groupsOf(array $objects)
+    {
+        $groups = array();
+        foreach ($objects as $index => $object) {
+            $subjects = array_unique(array_filter(
+                $this->subjectsOf($object),
+                function ($one) {
+                    return $one !== null && $one !== '';
+                }
+            ));
+            if (empty($subjects)) {
+                $groups["\0" . $index] = array(
+                    'subject' => null,
+                    'objects' => array($object),
+                );
+                continue;
+            }
+            foreach ($subjects as $subject) {
+                $subject = (string)$subject;
+                if (!isset($groups[$subject])) {
+                    $groups[$subject] = array(
+                        'subject' => $subject,
+                        'objects' => array(),
+                    );
+                }
+                $groups[$subject]['objects'][] = $object;
+            }
+        }
+        return array_values($groups);
     }
 
     /**
