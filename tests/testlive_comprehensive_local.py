@@ -1077,6 +1077,44 @@ class TestComprehensive(unittest.TestCase):
             self.admin_misp_connector.delete_event(event_2son_1son)
 
 
+    def test_capture_reference_to_extended_event(self):
+        # A reference from an object in an extending event to an object in the *extended*
+        # event must survive the capture path (_add/_edit -> ObjectReference::captureReference),
+        # not just the interactive add path.
+        event_a = None
+        event_b = None
+        try:
+            # Event A (the extended event) holds the reference *target* object.
+            event_a = create_simple_event()
+            target_obj = DomainIPObject({'ip': ['10.0.0.1']})
+            event_a.add_object(target_obj)
+            event_a = self.admin_misp_connector.add_event(event_a)
+            check_response(event_a)
+            target_uuid = event_a.objects[0].uuid
+
+            # Event B extends A and holds the *source* object plus a reference into A.
+            event_b = create_simple_event()
+            event_b.extends_uuid = event_a.uuid
+            source_obj = DomainIPObject({'ip': ['10.0.0.2']})
+            source_obj.add_reference(target_uuid, 'related-to')
+            event_b.add_object(source_obj)
+            event_b = self.admin_misp_connector.add_event(event_b)
+            check_response(event_b)
+
+            # Re-fetch B and confirm the cross-event reference was captured, not dropped.
+            fetched_b = self.admin_misp_connector.get_event(event_b.uuid, pythonify=True)
+            check_response(fetched_b)
+            self.assertEqual(len(fetched_b.objects), 1, fetched_b.to_json())
+            references = fetched_b.objects[0].references
+            self.assertEqual(len(references), 1, [r.to_json() for r in references])
+            self.assertEqual(references[0].referenced_uuid, target_uuid)
+        finally:
+            if event_a is not None:
+                self.admin_misp_connector.delete_event(event_a)
+            if event_b is not None:
+                self.admin_misp_connector.delete_event(event_b)
+
+
     def test_warninglists_category(self):
         try:
             #Create a test event
