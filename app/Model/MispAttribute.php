@@ -50,6 +50,9 @@ class MispAttribute extends AppModel
     /** @var bool|null Cached result of checking if 'deleted' index exists on attributes table */
     private static $hasDeletedIndex = null;
 
+    /** @var bool|null Cached result of checking if 'idx_event_deleted_object' exists on attributes table */
+    private static $hasLooseAttributeIndex = null;
+
     /** @var array Cached ACL conditions keyed by "{perm_site_admin}-{org_id}" */
     private $aclConditionsCache = [];
 
@@ -2344,6 +2347,22 @@ class MispAttribute extends AppModel
             $out[] = $shaped[0];
         }
         return $out;
+    }
+
+    /**
+     * The index to pin a read of some events' live loose attributes to:
+     * (event_id, deleted, object_id) once its migration has run, event_id
+     * before. Left alone, the optimiser intersects event_id with object_id,
+     * whose 0 range holds every loose attribute of the instance.
+     *
+     * @return string
+     */
+    public function looseAttributeIndex()
+    {
+        if (self::$hasLooseAttributeIndex === null) {
+            self::$hasLooseAttributeIndex = $this->getSchemaInspector()->hasNamedIndex('attributes', 'idx_event_deleted_object');
+        }
+        return self::$hasLooseAttributeIndex ? 'idx_event_deleted_object' : 'event_id';
     }
 
     /**

@@ -661,14 +661,12 @@ class EventSeenTimelineTool
     }
 
     /**
-     * FROM … WHERE for the events' loose attributes the user may read.
-     *
-     * Pinned to event_id: left alone, the optimiser intersects it with
-     * object_id, whose 0 range holds every loose attribute of the instance.
+     * FROM … WHERE for the events' loose attributes the user may read, pinned
+     * to MispAttribute::looseAttributeIndex().
      */
     private function looseFrom(array $acl)
     {
-        return 'FROM attributes Attribute FORCE INDEX (event_id)'
+        return 'FROM attributes Attribute FORCE INDEX (' . $this->Attribute->looseAttributeIndex() . ')'
             . ' JOIN events Event ON Event.id = Attribute.event_id'
             . ' LEFT JOIN objects Object ON Object.id = Attribute.object_id'
             . ' WHERE Attribute.event_id IN (' . $acl['events'] . ') AND Attribute.object_id = 0'

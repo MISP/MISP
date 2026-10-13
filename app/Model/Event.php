@@ -763,6 +763,7 @@ class Event extends AppModel
             'conditions' => array('Attribute.event_id' => $eventIds, 'Attribute.deleted' => 0, 'Attribute.object_id' => 0),
             'recursive' => -1,
             'group' => array('Attribute.event_id'),
+            'forceIndexHint' => $this->Attribute->looseAttributeIndex(),
         ));
         $attributeCounts = Hash::combine($attributeCounts, '{n}.Attribute.event_id', '{n}.0.count');
         foreach ($events as $key => $event) {
