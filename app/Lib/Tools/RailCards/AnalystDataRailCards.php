@@ -23,6 +23,17 @@ class AnalystDataRailCards
         $uuid = (string)($record['object_uuid'] ?? '');
         $resolved = $uuid === '' ? null : $this->resolve($user, $type, $uuid);
         $items = [['label' => __('Type'), 'value' => $type === '' ? __('Unknown') : $type]];
+        if ($type === 'Value' && $uuid !== '') {
+            $items[] = ['label' => __('UUID'), 'value' => $uuid];
+            return RailCard::status(
+                'analyst-target',
+                __('Annotates'),
+                'fas fa-crosshairs',
+                'muted',
+                __('A value, named by a fingerprint of its text. The fingerprint does not say which value it is.'),
+                $items
+            );
+        }
         if ($resolved === null) {
             $items[] = ['label' => __('UUID'), 'value' => $uuid];
             return RailCard::status(

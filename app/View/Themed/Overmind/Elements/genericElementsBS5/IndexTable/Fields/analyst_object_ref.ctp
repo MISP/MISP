@@ -26,7 +26,8 @@ if (in_array($type, ['Note', 'Opinion', 'Relationship'], true)) {
     $url = $baseurl . '/' . Inflector::tableize($type) . '/view/' . $uuid;
 }
 
-$resolves = !isset($analystTargetExists) || !empty($analystTargetExists[$uuid]);
+$isValue = $type === 'Value';
+$resolves = !$isValue && (!isset($analystTargetExists) || !empty($analystTargetExists[$uuid]));
 $missingTitle = __(
     'This %s is not on this instance, or is not visible to you.',
     $type !== '' ? $type : __('object')
@@ -43,6 +44,11 @@ $missingTitle = __(
            href="<?= h($url) ?>" title="<?= h($uuid) ?>">
             <?= h($uuid) ?>
         </a>
+    <?php elseif ($isValue): ?>
+        <span class="font-monospace small text-body-secondary text-break"
+              title="<?= h(__('A value is named by a fingerprint of its text, which does not say which value it is.')) ?>">
+            <?= h($uuid) ?>
+        </span>
     <?php else: ?>
         <span class="font-monospace small text-muted text-break text-decoration-line-through"
               title="<?= h($missingTitle) ?>">

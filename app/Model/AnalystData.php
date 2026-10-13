@@ -447,7 +447,8 @@ class AnalystData extends AppModel
      *
      * @param array $user
      * @param array $targets list of ['type' => string, 'uuid' => string]
-     * @return array uuid => true for every target that resolves
+     * @return array uuid => true for every target that resolves. A value never
+     *   does: it has no row, only a uuid derived from its text.
      */
     public function existingTargets(array $user, array $targets): array
     {
@@ -455,7 +456,7 @@ class AnalystData extends AppModel
         foreach ($targets as $target) {
             $type = $target['type'] ?? '';
             $uuid = $target['uuid'] ?? '';
-            if ($uuid === '' || !in_array($type, self::valid_targets, true)) {
+            if ($uuid === '' || $type === 'Value' || !in_array($type, self::valid_targets, true)) {
                 continue;
             }
             $byType[$type][$uuid] = $uuid;

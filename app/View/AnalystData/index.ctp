@@ -85,6 +85,13 @@
                     'name' => __('Related Object'),
                     'element' => 'custom',
                     'function' => function (array $row) use ($baseurl, $modelSelection) {
+                        if ($row[$modelSelection]['related_object_type'] === 'Value') {
+                            return sprintf(
+                                '<span class="bold">%s</span>: %s',
+                                h($row[$modelSelection]['related_object_type']),
+                                h($row[$modelSelection]['related_object_uuid'])
+                            );
+                        }
                         $path = Inflector::pluralize(strtolower($row[$modelSelection]['related_object_type']));
                         return sprintf(
                             '<span class="bold">%s</span>: <a href="%s/%s/view/%s">%s</a>',

@@ -21,6 +21,15 @@ $objLink = function ($type, $uuid) use ($baseurl) {
     if (empty($uuid)) {
         return '<span class="text-muted">&mdash;</span>';
     }
+    if ($type === 'Value') {
+        return sprintf(
+            '<span class="badge bg-secondary-subtle text-secondary-emphasis me-1">%s</span>'
+            . '<span class="font-monospace small text-body-secondary" title="%s">%s</span>',
+            h($type),
+            h(__('A value is named by a fingerprint of its text, which does not say which value it is.')),
+            h($uuid)
+        );
+    }
     if (in_array($type, ['Note', 'Opinion', 'Relationship'], true)) {
         $url = $baseurl . '/analystData/view/' . $type . '/' . $uuid;
     } else {

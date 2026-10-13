@@ -18,6 +18,13 @@ $fields = [
         'key' => __('Target Object'),
         'type' => 'custom',
         'function' => function (array $row) use ($baseurl, $modelSelection) {
+            if ($row[$modelSelection]['object_type'] === 'Value') {
+                return sprintf(
+                    '<span class="bold">%s</span>: %s',
+                    h($row[$modelSelection]['object_type']),
+                    h($row[$modelSelection]['object_uuid'])
+                );
+            }
             $path = Inflector::tableize($row[$modelSelection]['object_type']);
             $url = sprintf('%s/%s/view/%s',
                 h($baseurl),
