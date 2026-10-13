@@ -8,6 +8,8 @@ class ObjectReferencesController extends AppController
 {
     public $components = array('RequestHandler', 'Session');
 
+    const TARGET_SEARCH_WINDOW = 20000;
+
     public function beforeFilter()
     {
         parent::beforeFilter();
@@ -326,7 +328,21 @@ class ObjectReferencesController extends AppController
             $objectConditions[] = $reach['object'];
             $attributeConditions[] = $reach['attribute'];
         }
-        if ($search !== '') {
+        $windowed = false;
+        if ($search !== '' && Validation::uuid($search)) {
+            $objectConditions['Object.uuid'] = $search;
+            $attributeConditions['Attribute.uuid'] = $search;
+        } elseif ($search !== '') {
+            // A substring match cannot use an index, so it only reads the event's newest rows.
+            $objectFloor = $this->__searchFloor($this->ObjectReference->Object, $eventId);
+            $attributeFloor = $this->__searchFloor($this->ObjectReference->Object->Attribute, $eventId);
+            if ($objectFloor !== null) {
+                $objectConditions['Object.id >'] = $objectFloor;
+            }
+            if ($attributeFloor !== null) {
+                $attributeConditions['Attribute.id >'] = $attributeFloor;
+            }
+            $windowed = $objectFloor !== null || $attributeFloor !== null;
             $like = '%' . $search . '%';
             $objectConditions[] = ['OR' => [
                 'Object.name LIKE' => $like,
@@ -391,10 +407,33 @@ class ObjectReferencesController extends AppController
                 'relationships' => $relationships,
                 'targets' => $targets,
                 'truncated' => count($objects) >= $limit || count($attributes) >= $limit,
+                'windowed' => $windowed,
+                'window' => self::TARGET_SEARCH_WINDOW,
             ]),
             'status' => 200,
             'type' => 'json',
         ]);
+    }
+
+    /**
+     * The id below which a substring search of the event stops reading, or null
+     * when the event holds fewer rows than the window.
+     *
+     * @param Model $model
+     * @param int $eventId
+     * @return int|null
+     */
+    private function __searchFloor(Model $model, $eventId)
+    {
+        $alias = $model->alias;
+        $row = $model->find('first', [
+            'recursive' => -1,
+            'conditions' => [$alias . '.event_id' => $eventId],
+            'fields' => [$alias . '.id'],
+            'order' => [$alias . '.id' => 'desc'],
+            'offset' => self::TARGET_SEARCH_WINDOW,
+        ]);
+        return empty($row) ? null : (int)$row[$alias]['id'];
     }
 
     /**

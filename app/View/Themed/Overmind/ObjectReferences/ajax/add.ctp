@@ -1,4 +1,5 @@
 <?php
+App::uses('CakeNumber', 'Utility');
 /*
  * GET /objectReferences/add/{objectId}: one relationship from this object.
  * Targets are searched through /objectReferences/targets/{eventId}.
@@ -17,6 +18,11 @@ $config = [
         'choices' => __('Could not load the relationship choices.'),
         'search' => __('Search the event, or paste a UUID'),
         'uuid' => __('Use this UUID'),
+        'hint' => __('Type at least 3 characters, or paste a UUID.'),
+        'windowed' => __(
+            'Searched the newest %s objects and attributes of this event. Paste the UUID of an older one.',
+            CakeNumber::format(ObjectReferencesController::TARGET_SEARCH_WINDOW)
+        ),
     ],
 ];
 ?>
@@ -51,7 +57,8 @@ $config = [
                 'required' => true,
                 'for' => 'objRefAddTarget',
             ]) ?>
-            <select id="objRefAddTarget" aria-label="<?= h(__('Target')) ?>"></select>
+            <select id="objRefAddTarget" aria-label="<?= h(__('Target')) ?>" aria-describedby="objRefAddHint"></select>
+            <div class="form-text" id="objRefAddHint"></div>
         </div>
         <div class="col-12">
             <?= $this->element('genericElementsBS5/Forms/section_label', [
@@ -87,7 +94,9 @@ $config = [
     var commentEl = document.getElementById('objRefAddComment');
     var submitBtn = document.getElementById('objRefAddSubmit');
     var uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    var hintEl = document.getElementById('objRefAddHint');
     var targetSelect;
+    hintEl.textContent = cfg.messages.hint;
 
     function withoutSelf(targets) {
         return (targets || []).filter(function (t) { return t.uuid !== cfg.selfUuid; });
@@ -117,7 +126,7 @@ $config = [
             sync();
             if (typeEl.value === 'custom') { customEl.focus(); }
         } });
-        targetSelect = new TomSelect(targetEl, {
+        targetSelect = new TomSelect(targetEl, Object.assign({
             valueField: 'uuid',
             labelField: 'label',
             searchField: ['label', 'context', 'uuid'],
@@ -129,11 +138,9 @@ $config = [
                     : false;
             },
             createFilter: function (input) { return uuidPattern.test(input.trim()); },
-            load: function (query, callback) {
-                fetchTargets(query)
-                    .then(function (r) { callback(withoutSelf(r.targets)); })
-                    .catch(function () { callback(); });
-            },
+        }, referenceTargetSearch(cfg.targetsUrl, withoutSelf, function (res) {
+            hintEl.textContent = res.windowed ? cfg.messages.windowed : cfg.messages.hint;
+        }), {
             render: {
                 option: function (item, escape) {
                     return '<div class="py-1">'
@@ -151,7 +158,7 @@ $config = [
                 }
             },
             onChange: sync
-        });
+        }));
         sync();
     }).catch(function () {
         showToast(cfg.messages.choices, 'danger');
