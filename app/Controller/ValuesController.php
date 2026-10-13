@@ -522,7 +522,8 @@ class ValuesController extends AppController
         $matches = $this->ValueIntelligence->forMatches(
             $this->Auth->user(),
             $this->__pasted(),
-            $page
+            $page,
+            !empty($this->request->data['Value']['anywhere'])
         );
         return $this->RestResponse->viewData($matches, 'json');
     }

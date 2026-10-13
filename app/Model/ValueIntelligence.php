@@ -1166,16 +1166,19 @@ class ValueIntelligence extends AppModel
      * @param array $user
      * @param string $raw What was typed
      * @param int $page
+     * @param bool $anywhere Match inside words too (reads every value)
      * @return array As `Value::matchesFor`, plus `changed`, what the parse
      *               did to the text
      */
-    public function forMatches(array $user, $raw, $page = 1)
+    public function forMatches(array $user, $raw, $page = 1, $anywhere = false)
     {
         $one = ValueInputTool::normalise($raw);
         $matches = $this->model('Value')->matchesFor(
             $user,
             $one['value'] === null ? '' : $one['value'],
-            $page
+            $page,
+            Value::MATCH_PAGE,
+            $anywhere
         );
         $matches['changed'] = $one['changed'];
         return $matches;

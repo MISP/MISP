@@ -3462,16 +3462,22 @@ class Value extends AppModel
      * ValueConditionRewriter::OVERFLOW stored values is refused whoever
      * asks; that count is the instance's, never the reader's.
      *
+     * `$anywhere` matches the text anywhere in a value, inside words too,
+     * the way look-alike domains are hunted; it reads the whole dictionary,
+     * so it is the reader's choice, never the default. A CIDR block is
+     * matched as a block either way.
+     *
      * @param array $user
      * @param string $text
      * @param int $page
      * @param int $limit
-     * @return array `text`, `mode` (words, prefix or block), `refused`
-     *               (null, short or many), `values` on this page, `page`
-     *               and `more`
+     * @param bool $anywhere
+     * @return array `text`, `mode` (words, prefix, anywhere or block),
+     *               `refused` (null, short or many), `values` on this page,
+     *               `page` and `more`
      */
     public function matchesFor(array $user, $text, $page = 1,
-        $limit = self::MATCH_PAGE
+        $limit = self::MATCH_PAGE, $anywhere = false
     ) {
         $text = trim((string)$text);
         $page = max(1, (int)$page);
@@ -3498,6 +3504,12 @@ class Value extends AppModel
                 ValueConditionRewriter::OVERFLOW
             );
             $found['overflow'] = $found['starts'] !== null;
+        } elseif ($anywhere) {
+            $out['mode'] = 'anywhere';
+            $found = $dictionary->resolveLike(
+                '%' . addcslashes($text, '\\%_') . '%',
+                ValueConditionRewriter::OVERFLOW
+            );
         } elseif (preg_match('/[\p{L}\p{N}_]{3,}/u', $text)) {
             $out['mode'] = 'words';
             $found = $dictionary->resolveSearch(

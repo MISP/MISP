@@ -60,8 +60,8 @@
  *                   `modules` null when no profile is in force
  */
 echo $this->element('genericElements/assetLoader', array(
-    'css' => array('value-palette', 'value-index'),
-    'js' => array('value-index'),
+    'css' => array('value-palette', 'value-index', 'value-index-search'),
+    'js' => array('value-index', 'value-index-search'),
 ));
 
 $this->set('headerTitle', __('Values'));
@@ -139,6 +139,7 @@ $this->set('headerDescription', __(
  */
 ?>
         <template data-vi-invite><?= $this->element('Values/Index/invite') ?></template>
+        <?= $this->element('Values/Index/search') ?>
         <?= $this->element('Values/Index/recent', array(
             'recent' => $recent,
         )) ?>
