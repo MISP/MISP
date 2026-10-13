@@ -69,13 +69,42 @@ class Collection extends AppModel
         'SharingGroup'
     ];
 
+    const VALID_TYPES = [
+        'campaign',
+        'intrusion_set',
+        'named_threat',
+        'research',
+        'other'
+    ];
+
     public $current_user = null;
 
     public $validate = [
         'uuid' => [
             'rule' => 'uuid',
             'message' => 'Please provide a valid RFC 4122 UUID',
-        ]
+        ],
+        'name' => [
+            'notBlank' => [
+                'rule' => 'notBlank',
+                'required' => 'create',
+                'message' => 'A collection needs a name.',
+            ],
+            'maxLength' => [
+                'rule' => ['maxLength', 191],
+                'message' => 'A collection name holds at most 191 characters.',
+            ],
+        ],
+        'type' => [
+            'rule' => ['inList', self::VALID_TYPES],
+            'required' => 'create',
+            'message' => 'Invalid collection type.',
+        ],
+        'distribution' => [
+            'rule' => ['inList', [0, 1, 2, 3, 4]],
+            'required' => 'create',
+            'message' => 'Invalid distribution level.',
+        ],
     ];
 
 

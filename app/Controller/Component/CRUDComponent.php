@@ -30,7 +30,8 @@ class CRUDComponent extends Component
         if (!empty($options['quickFilters']) && !in_array($quickFilterParameter, $options['filters'] ?? [], true)) {
             $options['filters'][] = $quickFilterParameter;
         }
-        $params = $this->Controller->IndexFilter->harvestParameters(empty($options['filters']) ? [] : $options['filters']);
+        // harvestParameters() answers false to an empty POST body: for an index that is no filter
+        $params = $this->Controller->IndexFilter->harvestParameters(empty($options['filters']) ? [] : $options['filters']) ?: [];
         $query = [];
         $query = $this->setFilters($params, $query, $quickFilterParameter);
         $query = $this->setQuickFilters($params, $query, empty($options['quickFilters']) ? [] : $options['quickFilters'], $quickFilterParameter);

@@ -25,14 +25,6 @@ class CollectionsController extends AppController
     public $uses = [
     ];
 
-    private $valid_types = [
-        'campaign',
-        'intrusion_set',
-        'named_threat',
-        'research',
-        'other'
-    ];
-
     public function add()
     {
         $this->Collection->current_user = $this->Auth->user();
@@ -91,7 +83,7 @@ class CollectionsController extends AppController
         }
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'add'));
         $dropdownData = [
-            'types' => array_combine($this->valid_types, $this->valid_types),
+            'types' => array_combine(Collection::VALID_TYPES, Collection::VALID_TYPES),
             'distributionLevels' => $this->Event->distributionLevels,
             'sgs' => $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1)  
         ];
@@ -341,7 +333,7 @@ class CollectionsController extends AppController
         }
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'edit'));
         $dropdownData = [
-            'types' => array_combine($this->valid_types, $this->valid_types),
+            'types' => array_combine(Collection::VALID_TYPES, Collection::VALID_TYPES),
             'distributionLevels' => $this->Event->distributionLevels,
             'sgs' => $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1)  
         ];
@@ -493,7 +485,7 @@ class CollectionsController extends AppController
         $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('dropdownData', [
-            'types' => array_combine($this->valid_types, $this->valid_types)
+            'types' => array_combine(Collection::VALID_TYPES, Collection::VALID_TYPES)
         ]);
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
