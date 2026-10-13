@@ -285,7 +285,12 @@ $foldChildren = empty($objects) ? [] : [
                  */
                 $objRefs = $object['ObjectReference'] ?? [];
                 ?>
-                <?php if (!empty($objRefs) || ($objCanEdit && !$isDeleted)): ?>
+                <?php $showRels = !empty($objRefs) || ($objCanEdit && !$isDeleted); ?>
+                <?= $this->element('Objects/object_map_button', [
+                    'object' => $object,
+                    'class' => $showRels ? 'pe-2' : 'pe-3',
+                ]) ?>
+                <?php if ($showRels): ?>
                     <?= $this->element('Objects/object_relationships', [
                         'references' => $objRefs,
                         'objId' => $objId,

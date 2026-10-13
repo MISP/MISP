@@ -53,7 +53,12 @@ $expanded = !empty($ctx['expand']);
                     'ctx' => $ctx,
                 ]) ?>
             </button>
-            <?php if (!empty($object['ObjectReference']) || ($objCanEdit && !$isDeleted)): ?>
+            <?php $showRels = !empty($object['ObjectReference']) || ($objCanEdit && !$isDeleted); ?>
+            <?= $this->element('Objects/object_map_button', [
+                'object' => $object,
+                'class' => $showRels ? 'pe-2' : '',
+            ]) ?>
+            <?php if ($showRels): ?>
                 <?= $this->element('Objects/object_relationships', [
                     'references' => $object['ObjectReference'] ?? [],
                     'objId' => $objId,
