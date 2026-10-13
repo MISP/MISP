@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('Collection', 'Model');
 
 class CollectionsController extends AppController
 {
