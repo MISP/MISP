@@ -159,23 +159,43 @@ class CollectionElement extends AppModel
             'recursive' => -1,
             'conditions' => ['CollectionElement.collection_id' => $data['Collection']['id']]
         ]);
+        // Rows match as the unique keys compare them: by row uuid, else by element
+        // within the collection, both case-insensitive (ascii_general_ci).
         $oldElements = [];
+        $oldByElement = [];
         foreach ($temp as $oldElement) {
-            $oldElements[$oldElement['CollectionElement']['uuid']] = $oldElement['CollectionElement'];
+            $row = $oldElement['CollectionElement'];
+            $oldElements[strtolower($row['uuid'])] = $row;
+            $oldByElement[$this->elementKey($row)] = strtolower($row['uuid']);
         }
         if (isset($data['Collection']['CollectionElement'])) {
             $elementsToSave = [];
+            $captured = [];
             foreach ($data['Collection']['CollectionElement'] as $k => $element) {
+                if (!is_array($element)) {
+                    continue;
+                }
                 if (empty($element['uuid'])) {
                     $element['uuid'] = CakeText::uuid();
                 }
-                if (isset($oldElements[$element['uuid']])) {
+                $key = $this->elementKey($element);
+                $rowUuid = is_string($element['uuid']) ? strtolower($element['uuid']) : '';
+                if (!isset($oldElements[$rowUuid]) && $key !== null && isset($oldByElement[$key])) {
+                    $rowUuid = $oldByElement[$key];
+                }
+                if (isset($oldElements[$rowUuid])) {
+                    $captured[$this->elementKey($oldElements[$rowUuid])] = true;
                     if (isset($element['description'])) {
-                        $oldElements[$element['uuid']]['description'] = $element['description'];
+                        $oldElements[$rowUuid]['description'] = $element['description'];
                     }
-                    $elementsToSave[$k] = $oldElements[$element['uuid']];
-                    unset($oldElements[$element['uuid']]);
+                    $elementsToSave[$k] = $oldElements[$rowUuid];
+                    unset($oldElements[$rowUuid]);
+                } elseif ($key !== null && isset($captured[$key])) {
+                    continue;
                 } else {
+                    if ($key !== null) {
+                        $captured[$key] = true;
+                    }
                     $elementsToSave[$k] = [
                         'CollectionElement' => [
                             'uuid' => $element['uuid'],
@@ -232,5 +252,15 @@ class CollectionElement extends AppModel
             $this->skipCollectionModifiedBump = false;
         }
         return $data;
+    }
+
+    /**
+     * @param array $element
+     * @return string|null The element's half of the (element_uuid, collection_id) key
+     */
+    private function elementKey(array $element)
+    {
+        $uuid = $element['element_uuid'] ?? null;
+        return is_string($uuid) && $uuid !== '' ? strtolower($uuid) : null;
     }
 }
