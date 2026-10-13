@@ -2448,7 +2448,7 @@ class ValueIntelligence extends AppModel
         $fresh = !empty($options['fresh']);
         unset($options['fresh']);
         $key = 'misp:value_intelligence:own_tags:v'
-            . self::CACHE_SHAPE . ':' . (int)$user['id']
+            . self::CACHE_SHAPE . ':' . self::cacheScope($user)
             . ':' . hash('sha256', $value . '|' . json_encode($options));
         return $this->cachedFold($key, $fresh,
             function () use ($user, $value, $options) {
@@ -4857,7 +4857,7 @@ class ValueIntelligence extends AppModel
                     ? (int)$profile['revision']
                     : 0);
         $key = 'misp:value_intelligence:relation_digest:v'
-            . self::CACHE_SHAPE . ':' . (int)$user['id']
+            . self::CACHE_SHAPE . ':' . self::cacheScope($user)
             . ':' . hash('sha256', $value . '|' . $profileKey . '|'
                 . json_encode($keyOptions));
 
@@ -4871,9 +4871,9 @@ class ValueIntelligence extends AppModel
      * The digest itself, once the cache has decided it must be read.
      *
      * Split out so `cachedFold` can hold the single-flight lock over
-     * it: three of the tab's nine panels read this, and the four
-     * sections it composes are the same four the near-match, external,
-     * reference and claim panels are asking for beside it.
+     * it: the threats card reads this, and the four sections it
+     * composes are the same four the near-match, external, reference and
+     * claim panels are asking for beside it.
      *
      * @param array $user
      * @param string $value
@@ -5731,7 +5731,7 @@ class ValueIntelligence extends AppModel
         $fresh = false
     ) {
         $key = 'misp:value_intelligence:relation_scan:v'
-            . self::CACHE_SHAPE . ':' . (int)$user['id']
+            . self::CACHE_SHAPE . ':' . self::cacheScope($user)
             . ':' . hash('sha256', $value . '|' . json_encode($options));
         return $this->cachedFold($key, $fresh,
             function () use ($user, $value, $options) {
@@ -5739,6 +5739,20 @@ class ValueIntelligence extends AppModel
                 $scan['read_at'] = time();
                 return $scan;
             });
+    }
+
+    /**
+     * Whom a cached fold is computed for. What a reader may see follows
+     * from their organisation and their role, so colleagues sharing both
+     * share the fold, and a reader moved to another organisation or role
+     * stops reading the old one at once.
+     *
+     * @param array $user
+     * @return string
+     */
+    private static function cacheScope(array $user)
+    {
+        return 'o' . (int)$user['org_id'] . 'r' . (int)$user['role_id'];
     }
 
     /**
@@ -6521,7 +6535,7 @@ class ValueIntelligence extends AppModel
         $keyOptions = $options;
         unset($keyOptions['fresh']);
         $key = 'misp:value_intelligence:relation_references:v'
-            . self::CACHE_SHAPE . ':' . (int)$user['id']
+            . self::CACHE_SHAPE . ':' . self::cacheScope($user)
             . ':' . hash('sha256', $value . '|' . json_encode($keyOptions));
         $redis = null;
         try {
