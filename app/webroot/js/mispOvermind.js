@@ -8892,3 +8892,206 @@ window.initCardActionOverflow = initCardActionOverflow;
 document.addEventListener('DOMContentLoaded', function () {
     initCardActionOverflow(document);
 });
+
+/**
+ * "Show on map" for geolocation / gpx / uav / geojson objects — the vanilla
+ * twin of the default theme's openMapPopover() in misp.js, which a BS5 page
+ * cannot load. A [data-geo-map] button (Elements/Objects/object_map_button)
+ * opens the shared modal; Leaflet (webroot/js/leaflet.js) is fetched on the
+ * first map only.
+ */
+var leafletLoading = null;
+function loadLeaflet() {
+    if (window.L && window.L.map) {
+        return Promise.resolve(window.L);
+    }
+    if (leafletLoading) {
+        return leafletLoading;
+    }
+    var root = (typeof baseurl !== 'undefined' ? baseurl : '');
+    /* Both, before the first map: Leaflet sizes its panes and finds its marker
+       images (css/images/) from the stylesheet. */
+    function inject(tag, attrs) {
+        return new Promise(function (resolve, reject) {
+            var el = document.createElement(tag);
+            Object.keys(attrs).forEach(function (key) { el[key] = attrs[key]; });
+            el.onload = resolve;
+            el.onerror = reject;
+            document.head.appendChild(el);
+        });
+    }
+    leafletLoading = Promise.all([
+        inject('link', { rel: 'stylesheet', href: root + '/css/leaflet.css' }),
+        inject('script', { src: root + '/js/leaflet.js' })
+    ]).then(function () {
+        return window.L;
+    }, function (error) {
+        leafletLoading = null;
+        throw error;
+    });
+    return leafletLoading;
+}
+
+function drawGpx(L, map, xmlString) {
+    var gpx = new DOMParser().parseFromString(xmlString, 'application/xml');
+    var bounds = L.latLngBounds();
+    var counts = { waypoints: 0, tracks: 0, routes: 0 };
+    function point(el) {
+        var lat = parseFloat(el.getAttribute('lat'));
+        var lon = parseFloat(el.getAttribute('lon'));
+        return (isNaN(lat) || isNaN(lon)) ? null : L.latLng(lat, lon);
+    }
+    gpx.querySelectorAll('wpt').forEach(function (wpt) {
+        var ll = point(wpt);
+        if (!ll) { return; }
+        var marker = L.marker(ll).addTo(map);
+        var name = wpt.querySelector('name');
+        if (name && name.textContent) { marker.bindPopup(escapeHtml(name.textContent)); }
+        bounds.extend(ll);
+        counts.waypoints++;
+    });
+    function line(points, colour) {
+        var latlngs = [];
+        points.forEach(function (pt) {
+            var ll = point(pt);
+            if (ll) { latlngs.push(ll); bounds.extend(ll); }
+        });
+        if (latlngs.length) { L.polyline(latlngs, { color: colour, weight: 3 }).addTo(map); }
+        return latlngs.length > 0;
+    }
+    gpx.querySelectorAll('trk').forEach(function (trk) {
+        var drawn = false;
+        trk.querySelectorAll('trkseg').forEach(function (seg) {
+            drawn = line(seg.querySelectorAll('trkpt'), '#3388ff') || drawn;
+        });
+        if (drawn) { counts.tracks++; }
+    });
+    gpx.querySelectorAll('rte').forEach(function (rte) {
+        if (line(rte.querySelectorAll('rtept'), '#ff3333')) { counts.routes++; }
+    });
+    if (bounds.isValid()) { map.fitBounds(bounds, { padding: [20, 20] }); }
+    return counts;
+}
+
+function openGeoMap(button) {
+    var modalEl = document.getElementById('mainModal');
+    var modalBody = document.getElementById('mainModalBody');
+    if (!modalEl || !modalBody) { return; }
+    var kind = button.dataset.geoMap;
+    var title = button.dataset.title || 'map';
+
+    modalBody.innerHTML =
+        '<div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom">'
+        + '<i class="fas fa-map-location-dot text-primary"></i>'
+        + '<span class="fw-semibold me-auto">' + escapeHtml(title) + '</span>'
+        + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+        + '</div>'
+        + '<div data-geo-canvas style="height:60vh;min-height:320px;"></div>'
+        + '<div class="small text-body-secondary px-3 py-2 border-top" data-geo-info>…</div>';
+    var canvas = modalBody.querySelector('[data-geo-canvas]');
+    var info = modalBody.querySelector('[data-geo-info]');
+    setModalSize('lg', modalEl.querySelector('.modal-dialog'));
+
+    var map = null;
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        if (map) { map.remove(); map = null; }
+    }, { once: true });
+    modalEl.addEventListener('shown.bs.modal', function () {
+        loadLeaflet().then(function (L) {
+            map = L.map(canvas);
+            L.tileLayer(button.dataset.tileUrl + '/hot/{z}/{x}/{y}.png', {
+                maxZoom: 21,
+                maxNativeZoom: 20,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            map.setView([0, 0], 2);
+
+            if (kind === 'point') {
+                var lat = parseFloat(button.dataset.lat);
+                var lon = parseFloat(button.dataset.lon);
+                var radiusKm = parseFloat(button.dataset.radius);
+                if (isNaN(lat) || isNaN(lon)) { info.textContent = 'Invalid coordinates'; return; }
+                map.setView([lat, lon], 14);
+                L.marker([lat, lon]).addTo(map);
+                var text = lat.toFixed(6) + ', ' + lon.toFixed(6);
+                if (!isNaN(radiusKm) && radiusKm > 0) {
+                    var circle = L.circle([lat, lon], {
+                        radius: radiusKm * 1000, color: '#3388ff', fillColor: '#3388ff', fillOpacity: 0.15, weight: 2
+                    }).addTo(map);
+                    map.fitBounds(L.latLng(lat, lon).toBounds(radiusKm * 2000), { padding: [20, 20] });
+                    text += ' · radius ' + radiusKm + ' km';
+                    var RadiusToggle = L.Control.extend({
+                        options: { position: 'topleft' },
+                        onAdd: function () {
+                            var box = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                            var link = L.DomUtil.create('a', '', box);
+                            link.href = '#';
+                            link.title = 'Toggle radius';
+                            link.innerHTML = '<i class="fas fa-circle-dot"></i>';
+                            L.DomEvent.disableClickPropagation(box);
+                            L.DomEvent.on(link, 'click', function (e) {
+                                L.DomEvent.preventDefault(e);
+                                if (map.hasLayer(circle)) { map.removeLayer(circle); link.style.opacity = '.5'; }
+                                else { map.addLayer(circle); link.style.opacity = '1'; }
+                            });
+                            return box;
+                        }
+                    });
+                    map.addControl(new RadiusToggle());
+                }
+                info.textContent = text;
+                return;
+            }
+
+            var root = (typeof baseurl !== 'undefined' ? baseurl : '');
+            info.textContent = 'Loading…';
+            fetch(root + '/attributes/download/' + encodeURIComponent(button.dataset.attachmentId), { credentials: 'same-origin' })
+                .then(function (response) {
+                    if (!response.ok) { throw new Error(response.status); }
+                    return response.text();
+                })
+                .then(function (body) {
+                    if (!map) { return; }
+                    if (kind === 'gpx') {
+                        var counts = drawGpx(L, map, body);
+                        var parts = [];
+                        if (counts.tracks) { parts.push(counts.tracks + ' track(s)'); }
+                        if (counts.routes) { parts.push(counts.routes + ' route(s)'); }
+                        if (counts.waypoints) { parts.push(counts.waypoints + ' waypoint(s)'); }
+                        info.textContent = parts.length ? parts.join(', ') : 'No geographic data found';
+                        return;
+                    }
+                    var geojson = JSON.parse(body);
+                    var features = 0;
+                    var layer = L.geoJSON(geojson, {
+                        onEachFeature: function (feature, featureLayer) {
+                            features++;
+                            var props = feature.properties || {};
+                            var lines = Object.keys(props).filter(function (key) { return props[key] !== null; })
+                                .map(function (key) { return '<strong>' + escapeHtml(key) + '</strong>: ' + escapeHtml(String(props[key])); });
+                            if (lines.length) { featureLayer.bindPopup(lines.join('<br>')); }
+                        }
+                    }).addTo(map);
+                    if (layer.getBounds().isValid()) { map.fitBounds(layer.getBounds(), { padding: [20, 20] }); }
+                    info.textContent = features + ' feature(s)';
+                })
+                .catch(function () {
+                    info.textContent = 'Could not load the attachment.';
+                });
+        }).catch(function () {
+            info.textContent = 'Could not load the map library.';
+        });
+    }, { once: true });
+
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+window.openGeoMap = openGeoMap;
+
+document.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-geo-map]');
+    if (button) {
+        event.preventDefault();
+        event.stopPropagation();
+        openGeoMap(button);
+    }
+});
