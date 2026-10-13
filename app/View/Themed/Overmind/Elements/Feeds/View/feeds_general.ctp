@@ -82,7 +82,7 @@ $flags = [
                             title="<?= h(__('Copy the URL')) ?>" aria-label="<?= h(__('Copy the URL')) ?>"
                             data-copy-value="<?= h($url) ?>" data-copy-msg="<?= h(__('URL copied to clipboard')) ?>"
                             onclick="copyValueToClipboard(this.dataset.copyValue, this.dataset.copyMsg)">
-                        <i class="fas fa-copy fa-xs"></i>
+                        <i class="fas fa-copy fa-xs opacity-100 text-body-emphasis"></i>
                     </button>
                 </div>
             <?php endif; ?>
