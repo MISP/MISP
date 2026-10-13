@@ -115,7 +115,8 @@ $factorName = isset($block['value_factor_path'])
     ? AnalystProfileFormTool::fieldName($block['value_factor_path'])
     : null;
 ?>
-<div class="ap-map"<?= $factors === null ? '' :
+<div class="ap-map<?= ($block['display'] ?? '') === 'chips'
+    ? ' is-chips' : '' ?>"<?= $factors === null ? '' :
     ' data-ap-factors="' . h($factors) . '"' ?><?= $factorName === null ? '' :
     ' data-ap-factor-name="' . h($factorName) . '"' ?>>
 <?php if ($datalist !== null): ?>
@@ -135,31 +136,7 @@ $factorName = isset($block['value_factor_path'])
         <?php endforeach; ?>
     </datalist>
 <?php endif; ?>
-<?php if (!empty($block['title'])): ?>
-    <p class="wb-h mt-3">
-        <?= h($block['title']) ?>
-        <?php if (!empty($block['axis'])): ?>
-            <span class="wb-ax"><?= h($block['axis']) ?></span>
-        <?php endif; ?>
-    </p>
-<?php endif; ?>
-<?php if (!empty($block['blurb'])): ?>
-    <?php
-    $blurb = trim($block['blurb']);
-    $rest = '';
-    if (preg_match('/^(.+?[.!?])\s+(.*)$/s', $blurb, $m)) {
-        $blurb = $m[1];
-        $rest = $m[2];
-    }
-    ?>
-    <p class="wb-blurb">
-        <?= h($blurb) ?>
-        <?php if ($rest !== ''): ?>
-            <a href="#" class="wb-i" onclick="return false;"
-               title="<?= h($rest) ?>">i</a>
-        <?php endif; ?>
-    </p>
-<?php endif; ?>
+<?= $this->element('AnalystProfiles/block_head', array('block' => $block)) ?>
 
 <?php
 /*
@@ -206,11 +183,13 @@ $canAdd = $editable && !empty($block['add']);
     $emptyLabel = !empty($block['empty_label'])
         ? $block['empty_label']
         : sprintf(__('No %s set'), strtolower($block['value_label']));
+    $emptyNote = !empty($block['empty_note'])
+        ? $block['empty_note']
+        : __('The shipped behaviour applies.');
     ?>
     <div class="wb-empty" data-ap-map-empty="1" <?= $hasRows ? 'hidden' : '' ?>>
-        <div class="fw-semibold"><?= h($emptyLabel) ?></div>
-        <p class="mb-0 mt-1"><?= h(__('This profile overrides nothing'
-            . ' here, so the shipped behaviour applies.')) ?></p>
+        <span class="wb-empty-h"><?= h($emptyLabel) ?></span>
+        <span><?= h($emptyNote) ?></span>
     </div>
 <?php endif; ?>
 <?php
@@ -402,9 +381,10 @@ $rowFilter = !empty($block['row_filter'])
 <?php endif; ?>
 
 <?php if ($editable && !empty($block['add'])): ?>
-    <div class="wb-inline mt-2">
-        <label class="wb-sub" for="<?= h(AnalystProfileFormTool::fieldId(
+    <div class="ap-map-add">
+        <label for="<?= h(AnalystProfileFormTool::fieldId(
             $block['path'], array('add'))) ?>">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
             <?= h($block['add']['label']) ?>
         </label>
         <?php if ($searchUrl !== null): ?>

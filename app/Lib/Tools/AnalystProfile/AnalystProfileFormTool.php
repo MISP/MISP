@@ -761,77 +761,57 @@ class AnalystProfileFormTool
             'id' => 'thresholds',
             'title' => __('Thresholds'),
             'blurb' => __(
-                'The cut-offs: which way the record leans, and which'
-                . ' signal-strength band a score falls in.'
+                'Where a score turns from low to medium to high, and how'
+                . ' one-sided the reporting has to be before a value'
+                . ' leans one way.'
+            ),
+            'guide' => array(
+                'title' => __('When to tune these'),
+                'intro' => __(
+                    'The shipped numbers suit most instances. Move them'
+                    . ' when the bands on your value pages stop matching'
+                    . ' your own read of them — try a value on the right'
+                    . ' and it is rescored as you type.'
+                ),
+                'items' => array(
+                    array(
+                        'symptom' => __('Nearly everything reads high'),
+                        'remedy' => __('Raise High from.'),
+                    ),
+                    array(
+                        'symptom' => __('Little ever gets past low'),
+                        'remedy' => __('Lower Medium from.'),
+                    ),
+                    array(
+                        'symptom' => __('Clear majorities still read'
+                            . ' contested'),
+                        'remedy' => __('Lower the supermajority share,'
+                            . ' or raise it when split reporting looks'
+                            . ' settled.'),
+                    ),
+                    array(
+                        'symptom' => __('A lone report looks as solid as'
+                            . ' a corroborated one'),
+                        'remedy' => __('Keep the single-source cap on,'
+                            . ' under Fine-tuning.'),
+                    ),
+                ),
+            ),
+            'fold' => array(
+                'label' => __('Fine-tuning'),
+                'summary' => $this->thresholdReadout($section, $clamp),
             ),
             'blocks' => array(
                 array(
-                    'kind' => 'fields',
-                    'id' => 'lean',
-                    'title' => __('The lean'),
-                    'axis' => __('lean'),
-                    'fields' => array(
-                        array(
-                            'key' => 'lean_supermajority',
-                            'label' => __('Supermajority share'),
-                            'type' => 'float',
-                            'value' => isset($section['lean_supermajority'])
-                                ? $section['lean_supermajority']
-                                : null,
-                            'default' => 0.66,
-                            'help' => __(
-                                'How one-sided the reporting has to be'
-                                . ' before the record counts as saying'
-                                . ' one thing: at 0.66, two thirds of'
-                                . ' the organisations must be on the'
-                                . ' same side, and anything short of'
-                                . ' that either way reads as contested.'
-                                . ' An organisation that only recorded'
-                                . ' it with to_ids unset is on neither'
-                                . ' side; a value nobody flagged reads'
-                                . ' as unflagged.'
-                            ),
-                            'path' => array('thresholds',
-                                'lean_supermajority'),
-                        ),
-                        array(
-                            'key' => 'dispute_stale_factor',
-                            'label' => __('Weight of an old dispute'),
-                            'type' => 'float',
-                            'value' => isset(
-                                $section['dispute_stale_factor']
-                            )
-                                ? $section['dispute_stale_factor']
-                                : null,
-                            'default' => 0.5,
-                            'help' => __(
-                                'A false positive counts as a voice'
-                                . ' against the organisations asserting'
-                                . ' the value. One filed before another'
-                                . ' organisation reasserted the value'
-                                . ' counts for this much: 1 in full, 0'
-                                . ' not at all.'
-                            ),
-                            'path' => array('thresholds',
-                                'dispute_stale_factor'),
-                        ),
-                    ),
-                ),
-                array(
                     'kind' => 'strip',
                     'id' => 'signal_strength_bands',
-                ) + $this->bandStrip($parameters),
-                array(
-                    'kind' => 'fields',
-                    'id' => 'signal_strength',
-                    'title' => __('The signal-strength bands'),
+                    'title' => __('Signal-strength bands'),
                     'axis' => __('signal strength'),
                     'blurb' => __(
-                        'The signal strength is a running total of points.'
-                        . ' These two numbers cut that total into three'
-                        . ' bands, in the order the strip above reads:'
-                        . ' below the first it is low, from the first it'
-                        . ' is medium, from the second it is high.'
+                        'These two numbers cut the points a value earns'
+                        . ' from its signals into low, medium and high —'
+                        . ' the strip shows how far the enabled signals'
+                        . ' can reach.'
                     ),
                     'fields' => array(
                         array(
@@ -858,39 +838,47 @@ class AnalystProfileFormTool
                             'path' => array('thresholds',
                                 'signal_strength_bands', 'high'),
                         ),
+                    ),
+                ) + $this->bandStrip($parameters),
+                array(
+                    'kind' => 'fields',
+                    'id' => 'lean',
+                    'title' => __('The lean'),
+                    'axis' => __('lean'),
+                    'fields' => array(
                         array(
-                            'key' => 'signal_strength_high_min_signals',
-                            'label' => __('Signals needed for high'),
-                            'type' => 'int',
-                            'unit' => __('signals'),
-                            'value' => isset(
-                                $section['signal_strength_high_min_signals'])
-                                ? $section['signal_strength_high_min_signals']
+                            'key' => 'lean_supermajority',
+                            'label' => __('Supermajority share'),
+                            'type' => 'float',
+                            'value' => isset($section['lean_supermajority'])
+                                ? $section['lean_supermajority']
                                 : null,
-                            'default' => 4,
+                            'default' => 0.66,
                             'help' => __(
-                                'How many signals must add points before'
-                                . ' high is allowed at all, so one'
-                                . ' generous signal cannot buy the band'
-                                . ' on its own.'
+                                'At 0.66, two thirds of the reporting'
+                                . ' organisations must agree before the'
+                                . ' value leans; anything less reads as'
+                                . ' contested. An organisation that only'
+                                . ' recorded it with to_ids unset is on'
+                                . ' neither side, and a value nobody'
+                                . ' flagged reads as unflagged.'
                             ),
                             'path' => array('thresholds',
-                                'signal_strength_high_min_signals'),
+                                'lean_supermajority'),
                         ),
                     ),
                 ),
                 array(
                     'kind' => 'fields',
                     'id' => 'thin_record_clamp',
-                    'title' => __('The thin-record clamp'),
+                    'advanced' => true,
+                    'title' => __('Single-source cap'),
+                    'axis' => __('signal strength'),
                     'blurb' => __(
-                        'Hold the band down when a value rests on a'
-                        . ' single reporter, however many points it'
-                        . ' scores. With the shipped numbers, a value'
-                        . ' one organisation reported and nobody sighted'
-                        . ' never reads above low. This lowers the'
-                        . ' signal-strength band only — the lean is'
-                        . ' untouched.'
+                        'Holds a value that rests on one reporter down,'
+                        . ' however many points it scores. Both'
+                        . ' conditions must hold before the cap applies,'
+                        . ' and the lean is untouched.'
                     ),
                     'fields' => array(
                         array(
@@ -905,13 +893,8 @@ class AnalystProfileFormTool
                                     : null),
                             'default' => 1,
                             'help' => __(
-                                'Each reporting organisation is one'
-                                . ' source, or less once you grade it:'
-                                . ' G counts for none and E for a'
-                                . ' quarter. Once the sources add up to'
-                                . ' more than this, the record is not'
-                                . ' thin and keeps the band its points'
-                                . ' earned.'
+                                'A graded organisation counts for less:'
+                                . ' G for none, E for a quarter.'
                             ),
                             'path' => array('thresholds',
                                 'thin_record_clamp', 'max_voices'),
@@ -926,13 +909,10 @@ class AnalystProfileFormTool
                                 : null,
                             'default' => 0,
                             'help' => __(
-                                'Sightings from organisations that did not'
-                                . ' report the value, and graded'
-                                . ' enrichment verdicts agreeing with'
-                                . ' the reporters. More than this and'
-                                . ' it is not thin either — both'
-                                . ' conditions have to hold before the'
-                                . ' cap bites.'
+                                'Sightings by organisations that did not'
+                                . ' report it, and graded enrichment'
+                                . ' verdicts that agree with the'
+                                . ' reporters.'
                             ),
                             'path' => array('thresholds',
                                 'thin_record_clamp', 'max_sightings'),
@@ -942,13 +922,9 @@ class AnalystProfileFormTool
                             'label' => __('Cap the band at'),
                             'type' => 'select',
                             /*
-                             * `ValueVerdictTool::clamped()` reads an
-                             * absent `max_band` as no clamp at all, so
-                             * the editor needs a way to post one away.
-                             * Without the blank option a profile that
-                             * has none shows `none` selected and the
-                             * next save writes it — a clamp to the
-                             * emptiest band, chosen by nobody.
+                             * An absent `max_band` is no clamp at all,
+                             * so the blank option is how one is posted
+                             * away rather than saved as `none`.
                              */
                             'options' => array_merge(
                                 array(array(
@@ -960,11 +936,6 @@ class AnalystProfileFormTool
                             'value' => isset($clamp['max_band'])
                                 ? $clamp['max_band']
                                 : null,
-                            'help' => __(
-                                'The highest band a thin record may'
-                                . ' reach, or no cap to switch the clamp'
-                                . ' off.'
-                            ),
                             'path' => array('thresholds',
                                 'thin_record_clamp', 'max_band'),
                         ),
@@ -973,19 +944,98 @@ class AnalystProfileFormTool
                 array(
                     'kind' => 'fields',
                     'id' => 'thin_record_clamp_by_grade',
-                    'title' => __('The cap, by the reporter\'s grade'),
+                    'advanced' => true,
+                    'layout' => 'dense',
+                    'title' => __('Cap by the reporter\'s grade'),
                     'blurb' => __(
-                        'A thin record whose source you graded can be'
-                        . ' capped at a band of its own: one source'
-                        . ' graded A, uncorroborated, may be allowed to'
-                        . ' reach medium and no further. A grade left'
-                        . ' on the general cap is held to the band'
-                        . ' chosen above.'
+                        'Lets a single source you graded go further — one'
+                        . ' A-graded reporter allowed up to medium, say.'
                     ),
                     'fields' => $this->clampGradeFields($clamp),
                 ),
+                array(
+                    'kind' => 'fields',
+                    'id' => 'guards',
+                    'advanced' => true,
+                    'title' => __('Other guards'),
+                    'fields' => array(
+                        array(
+                            'key' => 'signal_strength_high_min_signals',
+                            'label' => __('Signals needed for high'),
+                            'type' => 'int',
+                            'unit' => __('signals'),
+                            'value' => isset(
+                                $section['signal_strength_high_min_signals'])
+                                ? $section['signal_strength_high_min_signals']
+                                : null,
+                            'default' => 4,
+                            'help' => __(
+                                'So that one generous signal cannot buy'
+                                . ' the high band on its own.'
+                            ),
+                            'path' => array('thresholds',
+                                'signal_strength_high_min_signals'),
+                        ),
+                        array(
+                            'key' => 'dispute_stale_factor',
+                            'label' => __('Weight of an old dispute'),
+                            'type' => 'float',
+                            'value' => isset(
+                                $section['dispute_stale_factor']
+                            )
+                                ? $section['dispute_stale_factor']
+                                : null,
+                            'default' => 0.5,
+                            'help' => __(
+                                'A false positive filed before another'
+                                . ' organisation reasserted the value'
+                                . ' counts this much against it: 1 in'
+                                . ' full, 0 not at all.'
+                            ),
+                            'path' => array('thresholds',
+                                'dispute_stale_factor'),
+                        ),
+                    ),
+                ),
             ),
         );
+    }
+
+    /**
+     * What the folded settings currently say, for the fold's closed
+     * summary.
+     *
+     * @param array $section The stored `thresholds`
+     * @param array $clamp The stored `thin_record_clamp`
+     * @return string
+     */
+    private function thresholdReadout(array $section, array $clamp)
+    {
+        $parts = array();
+        $band = isset($clamp['max_band']) ? (string)$clamp['max_band'] : '';
+        $parts[] = $band === ''
+            ? __('no single-source cap')
+            : sprintf(__('single-source values capped at %s'), $band);
+        $byGrade = isset($clamp['max_band_by_grade'])
+            && is_array($clamp['max_band_by_grade'])
+            ? count(array_filter($clamp['max_band_by_grade'], 'strlen'))
+            : 0;
+        if ($byGrade > 0) {
+            $parts[] = sprintf(__n('%d grade capped apart',
+                '%d grades capped apart', $byGrade), $byGrade);
+        }
+        $signals = isset($section['signal_strength_high_min_signals'])
+            ? (int)$section['signal_strength_high_min_signals']
+            : 4;
+        $parts[] = sprintf(__n('high needs %d signal',
+            'high needs %d signals', $signals), $signals);
+        $stale = isset($section['dispute_stale_factor'])
+            && is_numeric($section['dispute_stale_factor'])
+            ? (float)$section['dispute_stale_factor']
+            : 0.5;
+        $parts[] = sprintf(__('old disputes count ×%s'),
+            rtrim(rtrim(number_format($stale, 2), '0'), '.'));
+        return implode(' · ', $parts);
     }
 
     /**
@@ -1004,13 +1054,12 @@ class AnalystProfileFormTool
         foreach (ValueTrustTool::GRADES as $grade) {
             $fields[] = array(
                 'key' => 'max_band_by_grade_' . $grade,
-                'label' => sprintf(__('Graded %1$s (%2$s)'), $grade,
-                    $this->gradeLabel($grade)),
+                'label' => $this->gradeLabel($grade),
                 'type' => 'select',
                 'options' => array_merge(
                     array(array(
                         'value' => '',
-                        'label' => __('the general cap'),
+                        'label' => __('same as above'),
                     )),
                     ValueVerdictTool::BANDS
                 ),
@@ -1849,7 +1898,13 @@ class AnalystProfileFormTool
             );
         }
         $scaleFields = array();
+        $scaleMoved = 0;
         foreach (ValueTrustTool::DEFAULT_SCALE as $grade => $factor) {
+            if (isset($scale[$grade]) && is_numeric($scale[$grade])
+                && (float)$scale[$grade] !== (float)$factor
+            ) {
+                $scaleMoved++;
+            }
             $scaleFields[] = array(
                 'key' => (string)$grade,
                 'label' => $this->gradeLabel((string)$grade),
@@ -1880,6 +1935,44 @@ class AnalystProfileFormTool
                 'What you believe about your sources, and what a'
                 . ' warninglist hit means.'
             ),
+            'guide' => array(
+                'title' => __('When to tune these'),
+                'intro' => __(
+                    'None of it is needed to start: every organisation'
+                    . ' counts at face value and module verdicts are'
+                    . ' shown without being counted. Grade the sources'
+                    . ' you have an opinion about.'
+                ),
+                'items' => array(
+                    array(
+                        'symptom' => __('A partner is reliably careful,'
+                            . ' or reliably not'),
+                        'remedy' => __('Grade the organisation, and its'
+                            . ' reports count for more or less.'),
+                    ),
+                    array(
+                        'symptom' => __('An enrichment service\'s'
+                            . ' verdicts should weigh in'),
+                        'remedy' => __('Grade the module. Until then its'
+                            . ' answers are shown, never counted.'),
+                    ),
+                    array(
+                        'symptom' => __('A list hit reads as a false'
+                            . ' positive, but the list is shared'
+                            . ' infrastructure'),
+                        'remedy' => __('Override that list as known'
+                            . ' infrastructure.'),
+                    ),
+                ),
+            ),
+            'fold' => array(
+                'label' => __('Fine-tuning'),
+                'summary' => $scaleMoved === 0
+                    ? __('grade multipliers as shipped')
+                    : sprintf(__n('%d grade multiplier changed',
+                        '%d grade multipliers changed', $scaleMoved),
+                        $scaleMoved),
+            ),
             'blocks' => array(
                 array(
                     'kind' => 'map',
@@ -1899,6 +1992,9 @@ class AnalystProfileFormTool
                     ),
                     'key_label' => __('Organisation'),
                     'value_label' => __('Grade'),
+                    'empty_label' => __('No organisation graded'),
+                    'empty_note' => __('Every organisation counts at'
+                        . ' face value, ×1.00.'),
                     'value_type' => 'select',
                     'value_options' => $this->gradeOptions(),
                     'value_factors' => $factors,
@@ -1934,10 +2030,13 @@ class AnalystProfileFormTool
                 array(
                     'kind' => 'fields',
                     'id' => 'org_trust_scale',
+                    'advanced' => true,
+                    'layout' => 'dense',
                     'title' => __('What a grade is worth'),
                     'blurb' => __(
-                        'The multiplier each grade contributes. A voice'
-                        . ' graded E counts as a quarter of one.'
+                        'The multiplier each grade applies to what a'
+                        . ' source contributes. A voice graded E counts as'
+                        . ' a quarter of one.'
                     ),
                     'fields' => $scaleFields,
                 ),
@@ -1955,6 +2054,8 @@ class AnalystProfileFormTool
                     'key_label' => __('Warninglist'),
                     'value_label' => __('Means'),
                     'empty_label' => __('No list overridden'),
+                    'empty_note' => __('Each list keeps the category'
+                        . ' this instance ships for it.'),
                     'value_type' => 'select',
                     'value_options' => $this->categoryLabelOptions(),
                     'value_legend' => $this->categoryLegend($parameters),
@@ -2418,6 +2519,8 @@ class AnalystProfileFormTool
                     'key_label' => __('Module'),
                     'value_label' => __('Attribute types'),
                     'empty_label' => __('No module declared'),
+                    'empty_note' => __('Every module arrives unticked on'
+                        . ' the Enrichment tab.'),
                     'value_legend' => $this->stateLegend(),
                     'value_type' => 'state_map',
                     /*
@@ -2595,8 +2698,9 @@ class AnalystProfileFormTool
             'value_options' => $this->gradeOptions(),
             'value_factors' => $factors,
             'value_factor_path' => array('reference', 'org_trust_scale'),
-            'empty_label' => __('No module graded — every verdict is'
-                . ' shown and none of them counts'),
+            'empty_label' => __('No module graded'),
+            'empty_note' => __('Module verdicts are shown, and none of'
+                . ' them counts.'),
             'path' => array('reference', 'module_trust'),
             'entries' => $entries,
             'add' => array(
@@ -2689,8 +2793,9 @@ class AnalystProfileFormTool
                 . ' attribute type. Rank nothing and that shipped order'
                 . ' is what applies.'
             ),
-            'empty_label' => __('Nothing ranked — each attribute type'
-                . ' uses the order this instance ships'),
+            'empty_label' => __('Nothing ranked'),
+            'empty_note' => __('Each attribute type uses the order this'
+                . ' instance ships.'),
             'cap' => ValueRendererTool::STRIP_MAX,
             'cap_note' => __('Past the fifth, a ranking only matters'
                 . ' when something above it is not drawn.'),
@@ -2829,7 +2934,7 @@ class AnalystProfileFormTool
              * choices — and setting them one at a time was the bulk of
              * the work the table asked for.
              */
-            'bulk_label' => __('set every type to…'),
+            'bulk_label' => __('All types'),
             /*
              * Past this many, the row is a wall. Most are nowhere near
              * it (median 3), and the handful that are — 21 for
@@ -3034,15 +3139,15 @@ class AnalystProfileFormTool
         return array(
             array(
                 'value' => '',
-                'label' => __('nothing'),
+                'label' => __('Nothing'),
             ),
             array(
                 'value' => ValueEnrichmentTool::STATE_TICKED,
-                'label' => __('pre-select it, ready to run'),
+                'label' => __('Pre-select, ready to run'),
             ),
             array(
                 'value' => ValueEnrichmentTool::STATE_NEVER,
-                'label' => __('block it — running is refused'),
+                'label' => __('Block, running is refused'),
             ),
             /*
              * Offered again since phase 11. D23 removed it because the
@@ -3053,7 +3158,7 @@ class AnalystProfileFormTool
              */
             array(
                 'value' => ValueEnrichmentTool::STATE_AUTO,
-                'label' => __('run it on its own, no press needed'),
+                'label' => __('Auto, run it on its own'),
             ),
         );
     }
@@ -3085,7 +3190,7 @@ class AnalystProfileFormTool
             'entries' => array(
                 array(
                     'value' => '',
-                    'label' => __('nothing'),
+                    'label' => __('Nothing'),
                     'meaning' => __(
                         'The profile has no opinion about this module'
                         . ' for this type. It still appears on the tab'
@@ -3096,7 +3201,7 @@ class AnalystProfileFormTool
                 ),
                 array(
                     'value' => ValueEnrichmentTool::STATE_TICKED,
-                    'label' => __('pre-select it, ready to run'),
+                    'label' => __('Pre-select, ready to run'),
                     'meaning' => __(
                         'The box arrives already ticked, so running it'
                         . ' is one press instead of two. Ticking is not'
@@ -3108,7 +3213,7 @@ class AnalystProfileFormTool
                 ),
                 array(
                     'value' => ValueEnrichmentTool::STATE_NEVER,
-                    'label' => __('block it — running is refused'),
+                    'label' => __('Block, running is refused'),
                     'meaning' => __(
                         'The only choice that takes something away. The'
                         . ' box is empty and ticking it by hand will'
@@ -3119,7 +3224,7 @@ class AnalystProfileFormTool
                 ),
                 array(
                     'value' => ValueEnrichmentTool::STATE_AUTO,
-                    'label' => __('run it on its own, no press needed'),
+                    'label' => __('Auto, run it on its own'),
                     'meaning' => __(
                         'The only choice that sends something without'
                         . ' you asking: opening a value of this type'
@@ -4991,8 +5096,9 @@ class AnalystProfileFormTool
                     ? __('Taxonomy')
                     : __('Galaxy'),
                 'value_label' => __('Tier'),
-                'empty_label' => __('No opinion — every label keeps the'
-                    . ' order it has today'),
+                'empty_label' => __('Nothing ranked'),
+                'empty_note' => __('Every label keeps the order it has'
+                    . ' today.'),
                 'value_type' => 'select',
                 'value_options' => $this->tierOptions(),
                 'path' => array('context', $scope . '_tier'),
@@ -5085,6 +5191,9 @@ class AnalystProfileFormTool
             'key_label' => __('Taxonomy'),
             'value_label' => __('Shown as'),
             'empty_label' => __('No marking block'),
+            'empty_note' => __('The event page draws no markings beside'
+                . ' the distribution.'),
+            'display' => 'chips',
             'value_type' => 'select',
             'value_options' => $this->markingOptions(),
             'path' => array('context', 'markings_map'),
@@ -5161,9 +5270,9 @@ class AnalystProfileFormTool
             'id' => 'galaxies',
             'title' => __('What counts as an attribution'),
             'blurb' => __(
-                'Which galaxies name a threat rather than classify one:'
-                . ' an actor, a campaign, a malware family, a tool. The'
-                . ' attribution signal only scores clusters from these'
+                'Which galaxies name a threat — an actor, a campaign, a'
+                . ' malware family, a tool — rather than classify one.'
+                . ' The attribution signal only scores clusters from these'
                 . ' galaxies, or every cluster when the list is empty.'
                 . ' ATT&CK techniques are scored by a signal of their'
                 . ' own.'
@@ -5172,17 +5281,19 @@ class AnalystProfileFormTool
                 array(
                     'kind' => 'map',
                     'id' => 'attribution_map',
-                    'title' => __('Attribution galaxies'),
+                    'title' => __('Galaxies that count'),
                     'blurb' => __(
-                        'Remove a row to stop counting it. A sector, a'
+                        'Remove one to stop counting it. A sector, a'
                         . ' country, a countermeasure or a typology is'
                         . ' not an attribution — state-sponsored is a'
                         . ' type, not a name.'
                     ),
+                    'display' => 'chips',
                     'key_label' => __('Galaxy'),
                     'value_label' => __('Counts as'),
-                    'empty_label' => __('No filter — every cluster that'
-                        . ' is not an attack pattern counts'),
+                    'empty_label' => __('No filter'),
+                    'empty_note' => __('Every cluster that is not an'
+                        . ' attack pattern counts.'),
                     'value_type' => 'select',
                     'value_options' => $this->attributionOptions(),
                     'path' => array('galaxies', 'attribution_map'),

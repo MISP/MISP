@@ -31,7 +31,7 @@ $count = function (array $section) {
     foreach ($section['blocks'] as $block) {
         if ($block['kind'] === 'items') {
             $n += count($block['items']);
-        } elseif ($block['kind'] === 'fields') {
+        } elseif (!empty($block['fields'])) {
             $n += count($block['fields']);
         } elseif ($block['kind'] === 'map') {
             foreach ($block['entries'] as $entry) {

@@ -114,6 +114,7 @@ function boot() {
 
     function mark() {
         var dirty = {};
+        var folds = [];
         var count = 0;
         Array.prototype.forEach.call(
             document.querySelectorAll('[data-ap-field]'),
@@ -154,6 +155,19 @@ function boot() {
                 if (section) {
                     dirty[section] = true;
                 }
+                var fold = field.closest
+                    ? field.closest('[data-ap-fold]')
+                    : null;
+                if (fold) {
+                    folds.push(fold);
+                }
+            }
+        );
+        Array.prototype.forEach.call(
+            document.querySelectorAll('[data-ap-fold]'),
+            function (fold) {
+                fold.classList.toggle('is-edited',
+                    folds.indexOf(fold) !== -1);
             }
         );
         if (rail) {
@@ -597,6 +611,12 @@ function boot() {
         window.setTimeout(function () {
             reported = false;
         }, 0);
+        var fold = event.target.closest
+            ? event.target.closest('[data-ap-fold]')
+            : null;
+        if (fold) {
+            fold.open = true;
+        }
         var pane = event.target.closest
             ? event.target.closest('.wb-sec')
             : null;
@@ -719,6 +739,12 @@ function boot() {
              */
             fill(control, options, '—');
             control.required = true;
+            // A one-word vocabulary is not a choice to leave open.
+            if (options.length === 1) {
+                control.value = typeof options[0] === 'object'
+                    ? options[0].value
+                    : options[0];
+            }
         } else {
             control = document.createElement('input');
             control.className = 'form-control form-control-sm num text-end';
