@@ -15271,10 +15271,7 @@ class ValueIntelligence extends AppModel
      *
      * Since phase 7 each row also carries whether **asking it leaves
      * the instance** (`ModuleLocality`), which is what lets the tray
-     * price a selection in the only currency that has a source. The
-     * profile's `enrichment.locality` overrides are consulted here
-     * because an operator who repointed their resolver knows something
-     * no shipped map can.
+     * price a selection in the only currency that has a source.
      *
      * @param array|string $enabled `getEnabledModules` output
      * @param array $types `typesFor` output
@@ -15307,9 +15304,6 @@ class ValueIntelligence extends AppModel
                 }
             }
         }
-        $overrides = isset($plan['locality']) && is_array($plan['locality'])
-            ? $plan['locality']
-            : array();
         $roles = isset($plan['roles']) && is_array($plan['roles'])
             ? $plan['roles']
             : array();
@@ -15319,7 +15313,7 @@ class ValueIntelligence extends AppModel
             if ($module === null || !ModuleRole::isEnrichment($name, $roles)) {
                 continue;
             }
-            $locality = ModuleLocality::resolve($name, $overrides);
+            $locality = ModuleLocality::resolve($name);
             $rows[] = array(
                 'name' => $name,
                 'kinds' => array_keys($meta['kinds']),

@@ -39,8 +39,8 @@ App::uses('WarninglistCategory', 'Tools');
  *   (`ttl_days`, `undated_assumed_days`) and the ones that do not are
  *   read in whatever unit the reader guesses.
  * - **`map`** — key→value pairs with an *add* affordance and a named
- *   source for the keys. `relevance.ttl_days`, `reference.org_trust`,
- *   `enrichment.locality`. Never a row per candidate key: the source is
+ *   source for the keys. `relevance.ttl_days`, `reference.org_trust`.
+ *   Never a row per candidate key: the source is
  *   what the picker searches, not what the table lists (§4). A row's
  *   value may itself be a map — `enrichment.auto_run` is a module→state
  *   one (D17), which is why it is no longer a multiselect: a checklist
@@ -2356,10 +2356,6 @@ class AnalystProfileFormTool
     private function sectionEnrichment(array $parameters, array $sources)
     {
         $section = $this->section($parameters, 'enrichment');
-        $locality = isset($section['locality'])
-            && is_array($section['locality'])
-            ? $section['locality']
-            : array();
         $source = isset($sources['modules']) && is_array($sources['modules'])
             ? $sources['modules']
             : array();
@@ -2390,20 +2386,7 @@ class AnalystProfileFormTool
                 $name,
                 $states,
                 $catalogue,
-                $reachable,
-                $locality
-            );
-        }
-        $localityEntries = array();
-        foreach ($locality as $name => $where) {
-            $localityEntries[] = array(
-                'key' => (string)$name,
-                'label' => (string)$name,
-                'value' => $where,
-                'type' => 'select',
-                'options' => $this->localityOptions(),
-                'shipped' => ModuleLocality::shippedFor((string)$name),
-                'path' => array('enrichment', 'locality', (string)$name),
+                $reachable
             );
         }
         return array(
@@ -2487,39 +2470,6 @@ class AnalystProfileFormTool
                             $this->usableModules($catalogue),
                             $byModule
                         ),
-                    ),
-                ),
-                array(
-                    'kind' => 'map',
-                    'id' => 'locality',
-                    'title' => __('Where a module answers from'),
-                    'blurb' => __(
-                        'Whether asking a module sends the value outside'
-                        . ' this instance. MISP cannot work this out on'
-                        . ' its own — dns, for one, defaults to 8.8.8.8'
-                        . ' — so correct the shipped answer here.'
-                    ),
-                    'key_label' => __('Module'),
-                    'value_label' => __('Answers from'),
-                    'empty_label' => __('No module overridden'),
-                    'value_type' => 'select',
-                    'value_options' => $this->localityOptions(),
-                    'path' => array('enrichment', 'locality'),
-                    'entries' => $localityEntries,
-                    'add' => array(
-                        'label' => __('Override a module'),
-                        'source' => 'modules',
-                        'search' => true,
-                        'placeholder' => __('filter modules…'),
-                        /*
-                         * Every module the build offers, not only the
-                         * ones enabled here: locality is knowledge
-                         * about a module, and an operator correcting
-                         * the shipped roster is right to do it before
-                         * they turn the module on rather than after.
-                         */
-                        'options' => $this->unusedKeys(
-                            array_keys($catalogue), $locality),
                     ),
                 ),
                 /*
@@ -2656,8 +2606,7 @@ class AnalystProfileFormTool
                 'placeholder' => __('filter modules…'),
                 /*
                  * Every module the build offers rather than only the
-                 * enabled ones, for the reason the locality map gives:
-                 * a grade is knowledge about a source, and an analyst
+                 * enabled ones: a grade is knowledge about a source, and an analyst
                  * recording what they think of a service is right to
                  * do it before it is turned on rather than after.
                  */
@@ -2849,7 +2798,7 @@ class AnalystProfileFormTool
      * @return array
      */
     private function moduleEntry($name, array $states, array $catalogue,
-        $reachable, array $locality = array()
+        $reachable
     ) {
         $declared = array_keys($states);
         $facts = isset($catalogue[$name]) ? $catalogue[$name] : null;
@@ -2896,7 +2845,7 @@ class AnalystProfileFormTool
         if ($facts !== null && !empty($facts['description'])) {
             $entry['sub_label'] = $facts['description'];
         }
-        $entry['tags'] = $this->moduleTags($name, $facts, $locality);
+        $entry['tags'] = $this->moduleTags($name, $facts);
         return $entry;
     }
 
@@ -2906,10 +2855,7 @@ class AnalystProfileFormTool
      *
      * **Where it answers from**, because *does asking this tell
      * somebody outside* is the question being answered at the moment
-     * of choosing, and it lived two blocks further down. The reader's
-     * own `enrichment.locality` override is applied here for the same
-     * reason the tab applies it: an operator who repointed their
-     * resolver knows something the shipped roster cannot.
+     * of choosing.
      *
      * **Whether it can answer at all**, for a module that is enabled
      * and missing the settings it cannot work without. That one is the
@@ -2919,13 +2865,12 @@ class AnalystProfileFormTool
      *
      * @param string $name
      * @param array|null $facts
-     * @param array $locality The profile's override map
      * @return array `label` and `tone` pairs
      */
-    private function moduleTags($name, $facts, array $locality)
+    private function moduleTags($name, $facts)
     {
         $tags = array();
-        $where = ModuleLocality::resolve($name, $locality);
+        $where = ModuleLocality::resolve($name);
         /*
          * **`unknown` gets no pill**, and that is the common case
          * rather than an edge: `ModuleLocality` names the local
@@ -2937,25 +2882,15 @@ class AnalystProfileFormTool
          *
          * So the presumption is stated once, in the block's blurb —
          * asking a module tells somebody outside unless it says
-         * otherwise — and the pill marks only the two cases somebody
-         * has actually established.
+         * otherwise — and the pill marks only the modules known to
+         * answer from inside.
          */
         if ($where['locality'] === ModuleLocality::LOCAL) {
             $tags[] = array(
                 'label' => __('stays local'),
                 'tone' => 'plain',
-                'title' => $where['source'] === ModuleLocality::SOURCE_PROFILE
-                    ? __('Your profile says this one answers from'
-                        . ' inside the instance.')
-                    : __('Nothing about the value leaves this instance'
-                        . ' when this module is asked.'),
-            );
-        } elseif ($where['locality'] === ModuleLocality::EXTERNAL) {
-            $tags[] = array(
-                'label' => __('leaves the instance'),
-                'tone' => 'over',
-                'title' => __('Asking this tells somebody outside this'
-                    . ' instance that the value is being looked at.'),
+                'title' => __('Nothing about the value leaves this instance'
+                    . ' when this module is asked.'),
             );
         }
         if ($facts !== null && !empty($facts['unset_required'])) {
@@ -3066,34 +3001,6 @@ class AnalystProfileFormTool
             }
         }
         return $out;
-    }
-
-    /**
-     * The two localities, each carrying the test that decides it.
-     *
-     * `ModuleLocality`'s membership question — *does anything about
-     * this value reach a party the instance operator does not
-     * control?* — is what an analyst overriding the shipped roster is
-     * actually answering, and `local`/`external` on their own invite
-     * the wrong test: that a module is local when it runs here, when
-     * `dns` runs here and asks `8.8.8.8`.
-     *
-     * @return array `value`/`label` pairs
-     */
-    private function localityOptions()
-    {
-        return array(
-            array(
-                'value' => ModuleLocality::LOCAL,
-                'label' => __('local — nothing about the value leaves'
-                    . ' this instance'),
-            ),
-            array(
-                'value' => ModuleLocality::EXTERNAL,
-                'label' => __('external — asking tells somebody you do'
-                    . ' not control'),
-            ),
-        );
     }
 
     /**
@@ -4097,20 +4004,6 @@ class AnalystProfileFormTool
                 . ' hours above zero.'
             );
         }
-        $locality = isset($section['locality'])
-            && is_array($section['locality'])
-            ? $section['locality']
-            : array();
-        foreach ($locality as $name => $where) {
-            if (!ModuleLocality::valid($where)) {
-                $errors[] = sprintf(
-                    __('`enrichment.locality.%1$s`: `%2$s` is not a'
-                        . ' locality.'),
-                    $name,
-                    is_scalar($where) ? $where : gettype($where)
-                );
-            }
-        }
         $autoRun = isset($section['auto_run'])
             && is_array($section['auto_run'])
             ? $section['auto_run']
@@ -4544,7 +4437,8 @@ class AnalystProfileFormTool
         ) {
             unset(
                 $merged['enrichment']['locality_posture'],
-                $merged['enrichment']['cost_posture']
+                $merged['enrichment']['cost_posture'],
+                $merged['enrichment']['locality']
             );
         }
         // `max_voices` replaced `max_orgs`; a save drops the old key.
