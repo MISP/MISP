@@ -53,6 +53,7 @@ $expanded = !empty($ctx['expand']);
                     'ctx' => $ctx,
                 ]) ?>
             </button>
+            <?= $this->element('Objects/object_map_button', ['object' => $object]) ?>
         </h2>
 
         <!-- ── The object's own actions, right under the header ────── -->

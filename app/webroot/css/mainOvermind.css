@@ -5423,6 +5423,47 @@ tr.evt-extension-row td:first-child { position: relative; }
     background: rgba(var(--bs-object-rgb), .28);
 }
 
+/* "Show on map" in the header of a geolocation, gpx, uav or geojson object. */
+.ov-obj-map-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .1rem .5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-pill);
+    background: rgba(var(--bs-success-rgb), .08);
+    color: var(--bs-body-color);
+    font-size: .72rem;
+    line-height: 1.4;
+}
+
+.ov-obj-map-btn:hover,
+.ov-obj-map-btn:focus-visible {
+    border-color: var(--bs-success);
+    background: rgba(var(--bs-success-rgb), .18);
+    color: var(--bs-body-color);
+}
+
+.ov-obj-map-btn > i {
+    font-size: .7rem;
+    color: var(--bs-success);
+}
+
+[data-misp-mode="dark"] .ov-obj-map-btn {
+    background: rgba(var(--bs-success-rgb), .22);
+}
+
+/* The map an object opens in the main modal (js/object-map.js). */
+.ov-object-map {
+    height: min(60vh, 520px);
+    width: 100%;
+}
+
+.ov-object-map-info {
+    min-height: 1.5rem;
+    font-size: .8rem;
+}
+
 /* ═══════════════════════════════════════════════════════════
    Icon tiles
    ═══════════════════════════════════════════════════════════ */

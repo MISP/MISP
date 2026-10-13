@@ -35,10 +35,16 @@
     $this->set('headerDescription', $headerDescription);
     $this->set('headerActions', $headerActions);
 
+    $viewJs = ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'Chart.min', 'event-overview', 'misp-matrix',
+        'misp-brush', 'misp-timeline', 'event-seen-timeline'];
+    $viewCss = ['event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline'];
+    if (Configure::read('Plugin.Geolocation_enabled')) {
+        $viewJs = array_merge($viewJs, ['leaflet', 'object-map']);
+        $viewCss[] = 'leaflet';
+    }
     echo $this->element('genericElements/assetLoader', [
-        'js'  => ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'Chart.min', 'event-overview', 'misp-matrix',
-            'misp-brush', 'misp-timeline', 'event-seen-timeline'],
-        'css' => ['event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline'],
+        'js'  => $viewJs,
+        'css' => $viewCss,
     ]);
 
     // Extended / extending view: say so, and carry the mode into every lazy

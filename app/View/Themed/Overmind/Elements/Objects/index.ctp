@@ -285,6 +285,10 @@ $foldChildren = empty($objects) ? [] : [
                  */
                 $objRefs = $object['ObjectReference'] ?? [];
                 ?>
+                <?= $this->element('Objects/object_map_button', [
+                    'object' => $object,
+                    'class' => empty($objRefs) ? 'pe-3' : 'pe-2',
+                ]) ?>
                 <?php if (!empty($objRefs)): ?>
                     <?= $this->element('Objects/object_relationships', [
                         'references' => $objRefs,
