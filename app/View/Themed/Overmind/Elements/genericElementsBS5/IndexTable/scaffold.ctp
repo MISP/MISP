@@ -39,6 +39,8 @@ echo '<div id="' . $containerId . '_content" data-ifp-scope="' . h($item_url) . 
     <!-- CARD 2 + 3 : DATA AND PAGINATION -->
     <div id="index-results" class="index-results" data-ifp-results>
 
+    <?= $scaffold_data['data']['before_results'] ?? '' ?>
+
     <div class="card shadow-sm mb-4">
         <div class="card-body p-0">
             <div id="tableView">

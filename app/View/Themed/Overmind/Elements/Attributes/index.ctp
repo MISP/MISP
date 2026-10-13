@@ -443,10 +443,29 @@ $children = [
 // attribute value is free text, and `https://host/path/` cannot survive as a
 // path segment (see the `transport` note in filter_bar.ctp). This is the same
 // reason the default theme's attributes/search POSTs its expression field.
+// The global index matches words starting with the term (value_search, through
+// the index); `value` still matches anywhere, and a page opened with it keeps
+// that mode until the reader switches back.
+$valueNotice = '';
 if (!$inEventView) {
+    $valueQuery = $this->request->query ?? [];
+    $containsTerm = $valueQuery['value'] ?? ($this->request->params['named']['value'] ?? null);
+    $wordTerm = $valueQuery['value_search'] ?? null;
+    $valueMode = $wordTerm === null && is_string($containsTerm) && $containsTerm !== '' ? 'contains' : 'words';
     $children[0]['mode'] = 'legacy';
-    $children[0]['name'] = 'value';
+    $children[0]['name'] = $valueMode === 'contains' ? 'value' : 'value_search';
     $children[0]['chip_label'] = __('Value');
+    $children[0]['placeholder'] = __('Filter by attribute value');
+    $valueTerm = $valueMode === 'contains' ? $containsTerm : $wordTerm;
+    if (is_string($valueTerm) && $valueTerm !== '' && strpos($valueTerm, '%') === false) {
+        $switchQuery = array_diff_key($valueQuery, array_flip(['value', 'value_search', 'page']));
+        $switchQuery[$valueMode === 'contains' ? 'value_search' : 'value'] = $valueTerm;
+        $valueNotice = $this->element('Attributes/value_match_notice', [
+            'mode' => $valueMode,
+            'term' => $valueTerm,
+            'switchUrl' => $baseurl . '/attributes/index?' . http_build_query($switchQuery),
+        ]);
+    }
 } else {
     // Inside an event the tab filters on `searchFor:`. Naming it here is what
     // lets the bar render the term back into the box.
@@ -692,6 +711,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 ]);
             },
             'filter_bar' => $filterBar + $massActions,
+            'before_results' => $valueNotice,
             'fields' => $fields,
         ]
     ],
