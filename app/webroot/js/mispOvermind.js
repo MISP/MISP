@@ -8805,3 +8805,90 @@ function initObjectAddForm(container, payloadEl) {
 document.addEventListener('DOMContentLoaded', function () {
     initObjectForm(document);
 });
+
+/**
+ * A card header whose action buttons no longer fit on its first line folds
+ * them into a "⋯" dropdown instead of letting them wrap under the title.
+ *
+ * Markup contract, inside the header's flex row:
+ *   <div data-card-actions> the buttons </div>
+ *   <div class="dropdown d-none" data-card-actions-menu>
+ *       <button data-bs-toggle="dropdown">…</button>
+ *       <ul class="dropdown-menu"></ul>
+ *   </div>
+ * Elements/genericElementsBS5/Cards/actions_overflow_menu draws the second part.
+ * The menu entries are built from the buttons each time it opens, so a button
+ * enabled later (Download All) or replaced is mirrored, and a click on an entry
+ * clicks the real button.
+ */
+function initCardActionOverflow(container) {
+    (container || document).querySelectorAll('[data-card-actions]:not([data-overflow-bound])').forEach(function (actions) {
+        actions.setAttribute('data-overflow-bound', '');
+        var row = actions.parentElement;
+        var menu = row.querySelector('[data-card-actions-menu]');
+        var list = menu ? menu.querySelector('.dropdown-menu') : null;
+        var anchor = row.firstElementChild;
+        if (!menu || !list || !anchor || !actions.children.length) {
+            return;
+        }
+
+        function wrapped() {
+            var line = anchor.getBoundingClientRect().bottom - 2;
+            return Array.prototype.some.call(row.children, function (child) {
+                if (child === anchor || child.classList.contains('d-none')) {
+                    return false;
+                }
+                return child.getBoundingClientRect().top >= line;
+            });
+        }
+
+        // Laid out inline first; folded only if that pushes something down.
+        function update() {
+            actions.classList.remove('d-none');
+            menu.classList.add('d-none');
+            if (wrapped()) {
+                actions.classList.add('d-none');
+                menu.classList.remove('d-none');
+            }
+        }
+
+        menu.addEventListener('show.bs.dropdown', function () {
+            list.replaceChildren();
+            Array.prototype.forEach.call(actions.querySelectorAll('button, a'), function (source) {
+                var li = document.createElement('li');
+                var item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'dropdown-item d-flex align-items-center gap-2';
+                item.innerHTML = source.innerHTML;
+                item.disabled = source.disabled || source.classList.contains('disabled');
+                if (source.title) {
+                    item.title = source.title;
+                }
+                item.addEventListener('click', function () {
+                    source.click();
+                });
+                li.appendChild(item);
+                list.appendChild(li);
+            });
+        });
+
+        var lastWidth = null;
+        if (typeof ResizeObserver === 'function') {
+            new ResizeObserver(function (entries) {
+                var width = Math.round(entries[0].contentRect.width);
+                if (width !== lastWidth) {
+                    lastWidth = width;
+                    update();
+                }
+            }).observe(row);
+        } else {
+            window.addEventListener('resize', update);
+        }
+        update();
+    });
+}
+window.initCardActionOverflow = initCardActionOverflow;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initCardActionOverflow(document);
+});

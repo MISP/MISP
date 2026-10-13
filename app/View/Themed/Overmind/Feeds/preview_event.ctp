@@ -66,9 +66,8 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'title' => __('General'),
             'icon' => 'fas fa-info-circle',
             'left' => [
+                ['row' => ['Servers/View/preview_tags', 'Servers/View/preview_galaxies']],
                 'Servers/View/preview_general',
-                'Servers/View/preview_tags',
-                'Servers/View/preview_galaxies',
             ],
             'right' => array_values(array_filter([
                 $canFetch ? 'Feeds/View/preview_actions' : null,

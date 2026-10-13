@@ -2142,6 +2142,7 @@ class EventsController extends AppController
         // through getAttributesRelatedToEvent() - count the same set or the tab
         // header promises rows the tab does not have.
         $this->set('correlation_count', $this->Event->getRelatedEventCount($user, $event['Event']['id'], $sgids, true));
+        $this->set('distributionOutliers', $this->Event->distributionOutliers($user, $event));
 
         $this->set('event', $event);
         $this->set('analysisLevels',
@@ -2427,10 +2428,10 @@ class EventsController extends AppController
             }
         }
 
-        // Favorite event report (for the moment, only the most recent one).
-        // A report carries its own distribution, so seeing the event does not
-        // mean seeing every report on it: apply the report ACL, as the
-        // reports tab does, and skip soft-deleted ones.
+        // The most recently modified report the user may see. A report carries
+        // its own distribution, so seeing the event does not mean seeing every
+        // report on it: apply the report ACL, as the reports tab does, and
+        // skip soft-deleted ones.
         $reportConditions =
             $this->Event->EventReport->buildACLConditions($user);
         $reportConditions['AND'][] = [
@@ -2443,6 +2444,7 @@ class EventsController extends AppController
                 'conditions' => $reportConditions,
                 'contain' => EventReport::DEFAULT_CONTAIN,
                 'recursive' => -1,
+                'order' => ['EventReport.timestamp' => 'DESC', 'EventReport.id' => 'DESC'],
             ]
         );
         $event['EventReport'] = $result['EventReport'] ?? null;
@@ -2550,7 +2552,7 @@ class EventsController extends AppController
             'deleted', 'category', 'type', 'toIDS',
             'searchFor', 'flatten', 'proposal',
             'warninglist', 'correlation', 'feed', 'warning', 'analystData',
-            'tags', 'galaxy', 'org',
+            'tags', 'galaxy', 'org', 'distribution',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -2716,7 +2718,7 @@ class EventsController extends AppController
             'page', 'limit', 'sort', 'direction',
             'deleted', 'name', 'meta-category', 'searchFor', 'proposal',
             'category', 'type', 'tags', 'galaxy', 'org', 'toIDS',
-            'correlation', 'feed', 'warning', 'analystData',
+            'correlation', 'feed', 'warning', 'analystData', 'distribution',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {

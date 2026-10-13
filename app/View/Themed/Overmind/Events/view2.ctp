@@ -86,12 +86,10 @@
 
                 // Content
                 'left' => [
+                    'EventReports/View/eventReport_preview',
+                    ['row' => ['Events/View/event_tags', 'Events/View/event_galaxies']],
+                    ['row' => ['Events/View/event_attachments', 'Events/View/event_analyst_data']],
                     'Events/View/event_general',
-                    //'EventReports/View/eventReport_preview',
-                    'Events/View/event_tags',
-                    'Events/View/event_galaxies',
-                    'Events/View/event_attachments',
-                    'Events/View/event_analyst_data',
                 ],
                 'right' => [
                     'Events/View/event_actions',

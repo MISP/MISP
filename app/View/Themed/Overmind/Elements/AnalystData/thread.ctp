@@ -173,7 +173,8 @@ $metaLine = function ($item) {
 // attached to it (analyst data on analyst data), indented under the parent.
 // $nested draws the left rule in the item's own accent
 $renderNode = function ($item, $type, $nested = false) use (&$renderNode, $baseurl, $opinionBadge, $itemActions, $metaLine, $distBadge, $accentOf) {
-    $cardAttrs = 'class="border rounded p-2 ov-ad-nested" style="--ov-ad-accent: ' . $accentOf($type)['colour'] . ';"';
+    $cardAttrs = 'class="border rounded p-2 ov-ad-nested" style="--ov-ad-accent: ' . $accentOf($type)['colour'] . ';"'
+        . ($nested ? '' : ' data-ad-entry');
     ob_start();
     ?>
     <div <?= $cardAttrs ?>>
@@ -238,7 +239,7 @@ $renderNode = function ($item, $type, $nested = false) use (&$renderNode, $baseu
 
         <!-- ── NOTES ───────────────────────────────────────────── -->
         <?php if (!empty($notes)): ?>
-            <div>
+            <div data-ad-section>
                 <div class="<?= h($accentOf('Note')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
                     <i class="misp-icon misp-icon-analyst-note misp-simple me-1"></i><?= __('Notes') ?> (<?= $counter('Note', count($notes)) ?>)
                 </div>
@@ -250,7 +251,7 @@ $renderNode = function ($item, $type, $nested = false) use (&$renderNode, $baseu
 
         <!-- ── OPINIONS ────────────────────────────────────────── -->
         <?php if (!empty($opinions)): ?>
-            <div>
+            <div data-ad-section>
                 <div class="<?= h($accentOf('Opinion')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
                     <i class="misp-icon misp-icon-analyst-opinion misp-simple me-1"></i><?= __('Opinions') ?> (<?= $counter('Opinion', count($opinions)) ?>)
                 </div>
@@ -262,13 +263,13 @@ $renderNode = function ($item, $type, $nested = false) use (&$renderNode, $baseu
 
         <!-- ── RELATIONSHIPS (outbound) ────────────────────────── -->
         <?php if (!empty($relationships)): ?>
-            <div>
+            <div data-ad-section>
                 <div class="<?= h($accentOf('Relationship')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
                     <i class="fas fa-diagram-project me-1"></i><?= __('Relationships') ?> (<?= count($relationships) ?>)
                 </div>
                 <div class="d-flex flex-column gap-2">
                     <?php foreach ($relationships as $rel): ?>
-                        <div class="border rounded p-2">
+                        <div class="border rounded p-2" data-ad-entry>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <?= $distBadge($rel) ?>
                                 <?php if (!empty($rel['relationship_type'])): ?>
@@ -297,13 +298,13 @@ $renderNode = function ($item, $type, $nested = false) use (&$renderNode, $baseu
 
         <!-- ── RELATIONSHIPS (inbound) ─────────────────────────── -->
         <?php if (!empty($inbound)): ?>
-            <div>
+            <div data-ad-section>
                 <div class="<?= h($accentOf('Relationship')['textClass']) ?> fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">
                     <i class="fas fa-diagram-project me-1"></i><?= __('Inbound relationships') ?> (<?= count($inbound) ?>)
                 </div>
                 <div class="d-flex flex-column gap-2">
                     <?php foreach ($inbound as $rel): ?>
-                        <div class="border rounded p-2 d-flex align-items-center gap-2 flex-wrap">
+                        <div class="border rounded p-2 d-flex align-items-center gap-2 flex-wrap" data-ad-entry>
                             <?= $distBadge($rel) ?>
                             <?= $objLink($rel['object_type'] ?? '', $rel['object_uuid'] ?? '') ?>
                             <i class="fas fa-arrow-right text-muted"></i>
