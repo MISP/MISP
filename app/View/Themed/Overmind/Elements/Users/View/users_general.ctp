@@ -29,19 +29,18 @@ $glyph = $this->RoleGlyph->get($role);
 $dash  = '<span class="text-muted">&mdash;</span>';
 
 /* Date line under the page title, as every other view page sets it. */
-$descParts = [
-    '<span><i class="fas fa-calendar-day me-1 opacity-50"></i>'
-        . (empty($u['date_created']) ? __('N/A') : h($u['date_created']))
-        . '</span>',
-];
+$descParts = [];
+if (!empty($u['date_created'])) {
+    $descParts[] = '<span title="' . h(__('Created')) . '"><i class="fas fa-calendar-plus me-1 opacity-50"></i>'
+        . $this->Time->time($u['date_created']) . '</span>';
+}
 if (!empty($u['date_modified'])) {
-    $descParts[] = '<span><i class="fas fa-edit me-1 opacity-50"></i>'
-        . $this->Time->time($u['date_modified'])
-        . '</span>';
+    $descParts[] = '<span title="' . h(__('Last modified')) . '"><i class="fas fa-edit me-1 opacity-50"></i>'
+        . $this->Time->time($u['date_modified']) . '</span>';
 }
 $this->set(
     'headerDescription',
-    '<span class="d-inline-flex gap-3 flex-wrap">' . implode('', $descParts) . '</span>'
+    '<span class="d-inline-flex align-items-center gap-3 flex-wrap">' . implode('', $descParts) . '</span>'
 );
 
 /*
@@ -82,134 +81,73 @@ if ($isSelf) {
     );
 }
 
-/* A value drawn by the field element that owns that kind of value. */
-$fieldCell = function ($element, array $field, array $extra = []) use ($data) {
-    return $this->element(
-        'genericElementsBS5/IndexTable/Fields/' . $element,
-        ['row' => $data, 'field' => $field] + $extra
-    );
+$labelClass = 'text-body-secondary text-uppercase fw-bold';
+$labelStyle = 'font-size:.7rem;';
+$tileStyle  = 'width:1.75rem;height:1.75rem;';
+
+/* One fact: a tile, the value, and what the value is. Same shape as the
+   organisation view's tiles. */
+$fact = function ($tileHtml, $valueHtml, $label, $muted = false) use ($tileStyle) {
+    return '<div class="col"><div class="d-flex align-items-center gap-2 min-w-0' . ($muted ? ' opacity-75' : '') . '">'
+        . '<span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3 border bg-body-tertiary text-body-secondary overflow-hidden" style="' . $tileStyle . '">'
+        . $tileHtml . '</span>'
+        . '<div class="min-w-0"><div class="fw-semibold lh-sm text-truncate">' . $valueHtml . '</div>'
+        . '<div class="small text-body-secondary text-truncate">' . h($label) . '</div></div></div></div>';
 };
+$notSet = '<span class="text-body-secondary fst-italic fw-normal">' . __('Not set') . '</span>';
 
-/* The org view's own shape for a date: glyph, then the time, right-aligned. */
-$timeCell = function ($value, $icon) use ($dash) {
-    if (empty($value)) {
-        return $dash;
-    }
-    return '<span class="d-inline-flex align-items-center gap-2 justify-content-end text-nowrap">'
-        . '<i class="fas fa-' . h($icon) . ' text-muted"></i>'
-        . $this->Time->time($value)
-        . '</span>';
-};
+$facts = [];
+$facts[] = $fact(
+    (!empty($org) ? $this->OrgImg->getOrgLogoV2($org, 20, false) : '') ?: '<i class="fas fa-building"></i>',
+    empty($org['id'])
+        ? $notSet
+        : '<a class="text-decoration-none" href="' . h($baseurl . '/organisations/view/' . $org['id']) . '">' . h($org['name'] ?? '') . '</a>',
+    __('Organisation')
+);
+$facts[] = '<div class="col"><div class="d-flex align-items-center gap-2 min-w-0">'
+    . '<span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3" style="' . $tileStyle
+    . 'background:' . h($glyph['tint']) . ';color:' . h($glyph['colour']) . ';"><i class="' . h($glyph['icon']) . '"></i></span>'
+    . '<div class="min-w-0"><div class="fw-semibold lh-sm text-truncate">'
+    . (empty($role['id'])
+        ? h($role['name'] ?? __('No role'))
+        : '<a class="text-decoration-none" href="' . h($baseurl . '/roles/view/' . $role['id']) . '">' . h($role['name'] ?? '') . '</a>')
+    . '</div><div class="small text-body-secondary">' . h(__('Role')) . '</div></div></div></div>';
+$facts[] = $fact(
+    '<i class="fas fa-terminal"></i>',
+    empty($u['last_api_access']) ? '<span class="text-body-secondary fw-normal">' . __('Never') . '</span>' : $this->Time->time($u['last_api_access']),
+    __('Last API access'),
+    empty($u['last_api_access'])
+);
 
-$rows = [];
-
-$emailCell = '<span class="d-inline-flex align-items-center gap-2 justify-content-end flex-wrap">'
-    . '<span class="text-break">' . h($u['email']) . '</span>'
-    . '<button type="button" class="text-muted border-0 bg-transparent p-0"'
-    . ' data-copy-value="' . h($u['email']) . '"'
-    . ' data-copy-msg="' . h(__('Email address copied to clipboard')) . '"'
-    . ' title="' . h(__('Copy email address')) . '"'
-    . ' aria-label="' . h(__('Copy email address')) . '"'
-    . ' onclick="copyValueToClipboard(this.dataset.copyValue, this.dataset.copyMsg)">'
-    . '<i class="fas fa-copy fa-xs"></i></button>';
-if ($adminView) {
-    $emailCell .= sprintf(
-        '<a class="text-muted" href="%s/admin/users/quickEmail/%s"'
-        . ' onclick="event.preventDefault(); openModal(\'%s/admin/users/quickEmail/%s\');"'
-        . ' title="%s" aria-label="%s"><i class="fas fa-paper-plane fa-xs"></i></a>',
-        h($baseurl),
-        h($u['id']),
-        h($baseurl),
-        h($u['id']),
-        h(__('Send email to user')),
-        h(__('Send email to user'))
-    );
-}
-$emailCell .= '</span>';
-$rows[] = ['label' => __('Email'), 'html' => $emailCell];
-
-$rows[] = [
-    'label' => __('Organisation'),
-    'html'  => empty($org)
-        ? $dash
-        : '<div class="d-flex justify-content-end">'
-            . $fieldCell('organisation', ['data_path' => 'Organisation'], ['data_path' => 'Organisation'])
-            . '</div>',
-];
-
-$rows[] = [
-    'label' => __('Role'),
-    'html'  => empty($role['name'])
-        ? $dash
-        : '<div class="d-flex justify-content-end">'
-            . $fieldCell('role', ['data_path' => 'Role'])
-            . '</div>',
-];
-
-if ($adminView) {
-    $rows[] = [
-        'label' => __('Status'),
-        'html'  => $fieldCell('user_status', ['data_path' => 'User.disabled']),
-    ];
-}
-
-$rows[] = [
-    'label' => __('ID'),
-    'html'  => (isset($u['id']) && $u['id'] !== '')
-        ? '<span class="bg-light border rounded px-2 py-1 fw-semibold small font-monospace">#'
-            . h($u['id']) . '</span>'
-        : $dash,
-];
-
-$rows[] = [
-    'label' => __('NIDS start SID'),
-    'html'  => (isset($u['nids_sid']) && $u['nids_sid'] !== '')
-        ? '<span class="font-monospace small">' . h($u['nids_sid']) . '</span>'
-        : $dash,
-];
-
+$more = [];
+$more[] = $fact(
+    '<i class="fas fa-hashtag"></i>',
+    (isset($u['nids_sid']) && $u['nids_sid'] !== '') ? '<span class="font-monospace">' . h($u['nids_sid']) . '</span>' : $notSet,
+    __('NIDS start SID')
+);
+$more[] = $fact(
+    '<i class="fas fa-user-plus"></i>',
+    !empty($invitedBy['User']['email'])
+        ? '<a class="text-decoration-none" href="' . h($baseurl . '/admin/users/view/' . $invitedBy['User']['id']) . '" title="' . h($invitedBy['User']['email']) . '">'
+            . h($invitedBy['User']['email']) . '</a>'
+        : '<span class="text-body-secondary fw-normal">' . __('Nobody') . '</span>',
+    __('Invited by'),
+    empty($invitedBy['User']['email'])
+);
 if (!empty($server['id'])) {
-    $rows[] = [
-        'label' => __('Bound server'),
-        'html'  => sprintf(
-            '<a class="text-decoration-none fw-semibold" href="%s/servers/previewIndex/%s">'
-            . '<i class="fas fa-server text-muted me-2"></i>%s</a>',
-            h($baseurl),
-            h($server['id']),
-            h($server['name'])
-        ),
-    ];
+    $more[] = $fact(
+        '<i class="fas fa-server"></i>',
+        '<a class="text-decoration-none" href="' . h($baseurl . '/servers/previewIndex/' . $server['id']) . '">' . h($server['name']) . '</a>',
+        __('Bound server')
+    );
+} elseif ($adminView) {
+    $more[] = $fact(
+        '<i class="fas fa-newspaper"></i>',
+        empty($u['newsread']) ? '<span class="text-body-secondary fw-normal">' . __('Never') . '</span>' : $this->Time->time($u['newsread']),
+        __('News read at'),
+        empty($u['newsread'])
+    );
 }
-
-$rows[] = [
-    'label' => __('Last password change'),
-    'html'  => $timeCell($u['last_pw_change'] ?? null, 'key'),
-];
-
-$rows[] = [
-    'label' => __('Last API access'),
-    'html'  => $timeCell($u['last_api_access'] ?? null, 'terminal'),
-];
-
-if ($adminView) {
-    $rows[] = [
-        'label' => __('News read at'),
-        'html'  => $timeCell($u['newsread'] ?? null, 'newspaper'),
-    ];
-}
-
-$rows[] = [
-    'label' => __('Invited by'),
-    'html'  => !empty($invitedBy['User']['email'])
-        ? sprintf(
-            '<a class="text-decoration-none fw-semibold" href="%s/admin/users/view/%s">'
-            . '<i class="fas fa-user-plus text-muted me-2"></i>%s</a>',
-            h($baseurl),
-            h($invitedBy['User']['id']),
-            h($invitedBy['User']['email'])
-        )
-        : $dash,
-];
 ?>
 
 <!-- ══ IDENTITY ════════════════════════════════════════════════════════ -->
@@ -234,22 +172,45 @@ $rows[] = [
             </div>
         </div>
 
-        <!-- FIELDS -->
         <div class="col">
-            <table class="table align-middle mb-0">
-                <tbody>
-                    <?php foreach ($rows as $row): ?>
-                        <tr>
-                            <th scope="row" class="text-dark fw-semibold p-3 text-nowrap w-25">
-                                <?= h($row['label']) ?>
-                            </th>
-                            <td class="text-end pe-3">
-                                <?= $row['html'] ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="p-3 d-flex flex-column gap-3 h-100">
+
+                <div>
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+                        <span class="<?= $labelClass ?>" style="<?= $labelStyle ?>">
+                            <i class="fas fa-user text-primary me-1"></i><?= __('User') ?>
+                        </span>
+                        <?php if ($adminView): ?>
+                            <span class="badge rounded-pill fw-normal <?= empty($u['disabled']) ? 'text-bg-success' : 'text-bg-danger' ?>">
+                                <i class="fas <?= empty($u['disabled']) ? 'fa-circle-check' : 'fa-user-slash' ?> me-1"></i>
+                                <?= empty($u['disabled']) ? __('Active') : __('Disabled') ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="fs-5 fw-semibold text-break"><?= h($u['email']) ?></span>
+                        <button type="button" class="btn btn-sm btn-link text-body-secondary p-0"
+                                data-copy-value="<?= h($u['email']) ?>"
+                                data-copy-msg="<?= h(__('Email address copied to clipboard')) ?>"
+                                title="<?= h(__('Copy email address')) ?>" aria-label="<?= h(__('Copy email address')) ?>"
+                                onclick="copyValueToClipboard(this.dataset.copyValue, this.dataset.copyMsg)">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <?php if ($adminView): ?>
+                            <a class="btn btn-sm btn-link text-body-secondary p-0"
+                               href="<?= h($baseurl . '/admin/users/quickEmail/' . $u['id']) ?>"
+                               onclick="event.preventDefault(); openModal('<?= h($baseurl . '/admin/users/quickEmail/' . $u['id']) ?>');"
+                               title="<?= h(__('Send email to user')) ?>" aria-label="<?= h(__('Send email to user')) ?>">
+                                <i class="fas fa-paper-plane"></i>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="row row-cols-1 row-cols-sm-3 g-2"><?= implode('', $facts) ?></div>
+                <div class="row row-cols-1 row-cols-sm-3 g-2"><?= implode('', $more) ?></div>
+
+            </div>
         </div>
 
     </div>
@@ -258,465 +219,238 @@ $rows[] = [
 <?php
 /* ══ SECURITY & ACCESS + EMAIL NOTIFICATIONS ═══════════════════════════════
  *
- * Both cards wear the event view's card chrome — a `p-3 border-bottom` strip
- * with a 36px tinted square, a title, a line of context and the action that
- * edits what the card shows — and state their contents in the read-only twin
- * of the switch tile admin_edit/admin_add are built from, so the screen that
- * reports these settings and the form that sets them read as one thing.
+ * Both cards state each setting as a tile: a glyph tinted by the state, what
+ * the state is, and one line on what it means for the account. Actions sit
+ * under the tile they act on.
  */
+$isTotp         = isset($u['totp']);
+$otpOn          = empty(Configure::read('Security.otp_disabled'));
+$advancedKeys   = !empty(Configure::read('Security.advanced_authkeys'));
+$showInlineKey  = !$advancedKeys && !empty($role['perm_auth']) && isset($u['authkey']);
+$canRequestApi  = !$adminView && empty($role['perm_auth']);
+$customAuthOn   = (bool)Configure::read('Plugin.CustomAuth_enable');
+$customAuthName = Configure::read('Plugin.CustomAuth_name') ?: __('External authentication');
+$smimeOn        = (bool)Configure::read('SMIME.enabled');
+$hasOrgAdmins   = $adminView && !empty($u['orgAdmins']);
+$pgpOk          = !empty($u['pgp_status']) && $u['pgp_status'] === 'OK';
 
-$accent  = $this->ModalAccent->get('primary');
-$editUrl = $adminView
-    ? $baseurl . '/admin/users/edit/' . h($u['id'])
-    : $baseurl . '/users/edit';
-
-$cardHead = function ($icon, $title, $subtitle) {
-    return sprintf(
-        '<div class="p-3 border-bottom">
-            <div class="d-flex align-items-center gap-2">
-                <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0 p-2 bg-primary-subtle text-primary">
-                    <i class="%s fa-fw"></i>
-                </div>
-                <div>
-                    <div class="fw-bold lh-1">%s</div>
-                    <div class="small text-muted mt-1">%s</div>
-                </div>
-            </div>
-        </div>',
-        h($icon),
-        h($title),
-        h($subtitle)
-    );
+/* A state tile. $tone colours the glyph; null greys the whole tile out. */
+$tile = function ($icon, $tone, $title, $sub, $actionsHtml = '') use ($tileStyle) {
+    $tileClass = $tone === null
+        ? 'bg-body-secondary text-body-secondary'
+        : 'bg-' . $tone . '-subtle text-' . $tone . '-emphasis';
+    return '<div class="col"><div class="d-flex align-items-start gap-2 min-w-0 h-100' . ($tone === null ? ' opacity-75' : '') . '">'
+        . '<span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3 ' . $tileClass . '" style="' . $tileStyle . '">'
+        . '<i class="' . h($icon) . '"></i></span>'
+        . '<div class="min-w-0 flex-grow-1"><div class="fw-semibold lh-sm">' . $title . '</div>'
+        . '<div class="small text-body-secondary">' . $sub . '</div>'
+        . ($actionsHtml !== '' ? '<div class="d-flex flex-wrap gap-1 mt-1">' . $actionsHtml . '</div>' : '')
+        . '</div></div></div>';
 };
-
-/* The read-only twin of $switchTile in admin_edit.ctp: same border, same
-   metrics, same glyph / label / note column — only the switch on the right
-   becomes a badge or a button, since nothing here is settable. The two are
-   deliberately identical so the view does not look like a different product
-   from the form; change one and change the other. */
-$stateTile = function ($icon, $label, $rightHtml, array $opts = []) {
-    $tileAccent = $this->ModalAccent->get($opts['accent'] ?? 'primary');
-    return sprintf(
-        '<div class="%s">
-            <div class="d-flex align-items-center justify-content-between gap-3 h-100 w-100 border rounded-3 px-3 py-2 bg-light">
-                <span class="d-flex align-items-center gap-2 overflow-hidden">
-                    <i class="%s %s flex-shrink-0 fa-fw fa-sm" style="%s"></i>
-                    <span class="small lh-sm overflow-hidden">
-                        <span class="fw-semibold d-block">%s</span>%s
-                    </span>
-                </span>
-                <span class="d-flex align-items-center gap-2 flex-shrink-0">%s</span>
-            </div>
-        </div>',
-        h($opts['col'] ?? 'col-md-6'),
-        h($icon),
-        h($tileAccent['textClass']),
-        $tileAccent['textStyle'],
-        h($label),
-        empty($opts['note'])
-            ? ''
-            : '<small class="text-muted d-block">' . h($opts['note']) . '</small>',
-        $rightHtml
-    );
+$actionButton = function ($label, $icon, $onclick, $variant = 'outline-secondary', $title = null) {
+    return '<button type="button" class="btn btn-sm btn-' . $variant . ' py-0 px-2" onclick="' . h($onclick) . '"'
+        . ($title ? ' title="' . h($title) . '" aria-label="' . h($title) . '"' : '') . '>'
+        . '<i class="' . h($icon) . ($label !== '' ? ' me-1' : '') . '"></i>' . h($label) . '</button>';
 };
-
-/* The badge that stands where the tile's switch would be. A span, not the
-   shared Badges/boolean element — that one wraps itself in a <div>, which
-   cannot sit inside the tile's inline right-hand slot. */
-$statePill = function ($on, $onLabel = null, $offLabel = null, $onColor = 'success') {
-    return sprintf(
-        '<span class="badge rounded-pill text-bg-%s"><i class="fas %s me-1"></i>%s</span>',
-        $on ? $onColor : 'secondary',
-        $on ? 'fa-check' : 'fa-xmark',
-        h($on ? ($onLabel ?? __('On')) : ($offLabel ?? __('Off')))
-    );
+$section = function ($label) use ($labelClass, $labelStyle) {
+    return '<div class="' . $labelClass . ' mb-2" style="' . $labelStyle . '">' . h($label) . '</div>';
 };
-
-/* A full-width bordered block for what is not a single state: a key, a list. */
-$panel = function ($bodyHtml, $class = '') {
-    return sprintf(
-        '<div class="border rounded-3 px-3 py-2 %s">%s</div>',
-        h($class),
-        $bodyHtml
-    );
+$keyBlock = function ($key, $copyMessage) {
+    return '<details class="mt-1"><summary class="small text-body-secondary">' . h(__('Show key')) . '</summary>'
+        . '<div class="position-relative mt-1">'
+        . '<button type="button" class="btn btn-sm btn-light border position-absolute top-0 end-0 m-1"'
+        . ' title="' . h(__('Copy to clipboard')) . '" aria-label="' . h(__('Copy to clipboard')) . '"'
+        . ' data-copy-msg="' . h($copyMessage) . '"'
+        . ' onclick="copyValueToClipboard(this.nextElementSibling.textContent, this.dataset.copyMsg)">'
+        . '<i class="fas fa-copy opacity-100 text-dark"></i></button>'
+        . '<pre class="border rounded-3 bg-body-tertiary small p-3 pe-5 mb-0 overflow-auto" style="max-height:14rem;">' . h($key) . '</pre>'
+        . '</div></details>';
 };
-
-/* A long key, folded away behind its own summary and copyable in one click.
-   The button reads the text out of the <pre> rather than carrying it in an
-   attribute — a PGP block has newlines, and no attribute survives those — and
-   its toast wording out of a data attribute rather than a JS string literal,
-   which an apostrophe in a translation would cut in half. */
-$keyBlock = function ($key) {
-    if (empty($key)) {
-        return '<span class="text-muted small">' . __('None') . '</span>';
-    }
-    return sprintf(
-        '<details class="ov-key mt-2">
-            <summary class="small text-body-secondary">%s</summary>
-            <div class="position-relative mt-2">
-                <button type="button"
-                        class="btn btn-sm btn-light border position-absolute top-0 end-0 m-1"
-                        title="%s"
-                        data-copy-msg="%s"
-                        onclick="copyValueToClipboard(this.nextElementSibling.textContent, this.dataset.copyMsg)">
-                    <i class="fas fa-copy"></i>
-                </button>
-                <pre class="border rounded-3 bg-body-tertiary small p-3 mb-0 ov-key-body">%s</pre>
-            </div>
-        </details>',
-        __('Show key'),
-        h(__('Copy to clipboard')),
-        h(__('Key copied to clipboard')),
-        h($key)
-    );
-};
-
-$isTotp          = isset($u['totp']);
-$otpOn           = empty(Configure::read('Security.otp_disabled'));
-$advancedKeys    = !empty(Configure::read('Security.advanced_authkeys'));
-$showInlineKey   = !$advancedKeys && !empty($role['perm_auth']) && isset($u['authkey']);
-$canRequestApi   = !$adminView && empty($role['perm_auth']);
-$customAuthOn    = (bool)Configure::read('Plugin.CustomAuth_enable');
-$customAuthName  = Configure::read('Plugin.CustomAuth_name') ?: __('External authentication');
-$smimeOn         = (bool)Configure::read('SMIME.enabled');
-$hasOrgAdmins    = $adminView && !empty($u['orgAdmins']);
-$pgpOk           = !empty($u['pgp_status']) && $u['pgp_status'] === 'OK';
 ?>
 
 <!-- ══ SECURITY & ACCESS ═══════════════════════════════════════════════ -->
 <div class="card shadow-sm mb-3">
-
-    <?= $cardHead(
-        'fas fa-shield-halved',
-        __('Security & access'),
-        __('How this account signs in and what it may reach')
-    ) ?>
-
-    <div class="card-body p-3">
-        <div class="d-flex flex-column gap-4">
-
-            <!-- ── AUTHENTICATION ──────────────────────────────── -->
-            <div>
-                <?= $this->element('genericElementsBS5/Forms/section_label', [
-                    'label' => __('Authentication'),
-                ]) ?>
-                <div class="row g-2">
-
-                    <?php if ($otpOn): ?>
-                        <?php
-                        $totpRight = $statePill($isTotp, __('Enrolled'), __('Not set'));
-                        if (!$isTotp && !$adminView) {
-                            $totpRight .= sprintf(
-                                '<button type="button" class="btn btn-sm btn-outline-primary"
-                                         onclick="openModal(\'%s/users/totp_new\', \'lg\')">%s</button>',
-                                h($baseurl),
-                                __('Generate')
-                            );
-                        }
-                        if ($isTotp && !$adminView) {
-                            $totpRight .= sprintf(
-                                '<a class="btn btn-sm btn-outline-secondary" href="%s/users/hotp/%s">%s</a>',
-                                h($baseurl),
-                                h($u['id']),
-                                __('Paper tokens')
-                            );
-                        }
-                        if (!empty($isAdmin) && $isTotp) {
-                            $totpRight .= sprintf(
-                                '<button type="button" class="btn btn-sm btn-outline-danger"
-                                         title="%s" aria-label="%s"
-                                         onclick="openModal(\'%s/users/totp_delete/%s\', \'md\')">
-                                    <i class="fas fa-trash"></i>
-                                 </button>',
-                                h(__('Remove token')),
-                                h(__('Remove token')),
-                                h($baseurl),
-                                h($u['id'])
-                            );
-                        }
-                        ?>
-                        <?= $stateTile('fas fa-mobile-screen', __('Two-factor authentication'), $totpRight, [
-                            'accent' => 'warning',
-                            'col' => 'col-12',
-                            'note' => $isTotp
-                                ? __('A TOTP token is enrolled on this account.')
-                                : __('No TOTP token enrolled — sign-in relies on the password alone.'),
-                        ]) ?>
-                    <?php endif; ?>
-
-                    <?= $stateTile('fas fa-key', __('Password'),
-                        '<span class="small text-muted">' . (
-                            empty($u['last_pw_change'])
-                                ? __('Never changed')
-                                : $this->Time->time($u['last_pw_change'])
-                        ) . '</span>',
-                        [
-                            'col' => 'col-md-6',
-                            'note' => __('Last changed'),
-                        ]) ?>
-
-                    <?php if ($adminView): ?>
-                        <?= $stateTile('fas fa-rotate', __('Must change password'),
-                            $statePill(!empty($u['change_pw']), __('Yes'), __('No'), 'warning'),
-                            [
-                                'col' => 'col-md-6',
-                                'note' => __('Asked for a new password on the next sign-in.'),
-                            ]) ?>
-                    <?php endif; ?>
-
-                    <?php if ($customAuthOn): ?>
-                        <?= $stateTile('fas fa-id-badge', __('%s user', $customAuthName),
-                            $statePill(!empty($u['external_auth_required']), __('Yes'), __('No')),
-                            [
-                                'col' => 'col-12',
-                                'note' => __('The account signs in through %s instead of a MISP password.', $customAuthName),
-                            ]) ?>
-                        <?php if (!empty($u['external_auth_key'])): ?>
-                            <div class="col-12">
-                                <?= $panel(sprintf(
-                                    '<div class="d-flex align-items-center gap-2 flex-wrap small">
-                                        <span class="text-muted text-uppercase fw-bold">%s</span>
-                                        <span class="font-monospace">%s</span>
-                                        <span class="font-monospace text-success fw-bold text-break">%s</span>
-                                     </div>',
-                                    h(__('Custom auth header')),
-                                    h(Configure::read('Plugin.CustomAuth_header') ?: 'AUTHORIZATION'),
-                                    h($u['external_auth_key'])
-                                )) ?>
-                            </div>
-                        <?php endif; ?>
-                    <?php endif; ?>
-
-                </div>
+    <div class="p-3 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <div class="rounded-2 d-flex align-items-center justify-content-center bg-primary-subtle text-primary flex-shrink-0" style="width:36px;height:36px;">
+                <i class="fas fa-shield-halved"></i>
             </div>
-
-            <!-- ── API ACCESS ──────────────────────────────────── -->
             <div>
-                <?= $this->element('genericElementsBS5/Forms/section_label', [
-                    'label' => __('API access'),
-                ]) ?>
-
-                <?php if ($showInlineKey): ?>
-                    <?= $panel(sprintf(
-                        '<div class="d-flex align-items-center justify-content-between gap-3 flex-wrap py-1">
-                            <span class="d-flex align-items-center gap-2 overflow-hidden">
-                                <i class="fas fa-key %s flex-shrink-0 fa-fw fa-sm"></i>
-                                <span class="small lh-sm overflow-hidden">
-                                    <span class="fw-semibold d-block">%s</span>
-                                    <small class="text-muted d-block">%s</small>
-                                </span>
-                            </span>
-                            <span class="d-flex align-items-center gap-2 flex-shrink-0">
-                                <span class="input-group input-group-sm" style="width:min(22rem, 100%%);">
-                                    <input type="text" readonly class="form-control font-monospace"
-                                           value="%s" data-mask="%s" data-secret="%s">
-                                    <button class="btn btn-outline-secondary" type="button"
-                                            title="%s" aria-label="%s"
-                                            onclick="var i=this.previousElementSibling;
-                                                     i.value = (i.value === i.dataset.secret) ? i.dataset.mask : i.dataset.secret;">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-outline-secondary" type="button"
-                                            title="%s" aria-label="%s" data-copy-msg="%s"
-                                            onclick="copyValueToClipboard(this.parentNode.querySelector(\'input\').dataset.secret, this.dataset.copyMsg)">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                </span>
-                                %s
-                            </span>
-                        </div>',
-                        h($accent['textClass']),
-                        h(__('Auth key')),
-                        h(__('A reset takes effect at once and invalidates the current key.')),
-                        str_repeat('*', 40),
-                        str_repeat('*', 40),
-                        h($u['authkey']),
-                        h(__('Reveal hidden value')),
-                        h(__('Reveal hidden value')),
-                        h(__('Copy to clipboard')),
-                        h(__('Copy to clipboard')),
-                        h(__('Auth key copied to clipboard')),
-                        $this->Form->postLink(
-                            '<i class="fas fa-rotate"></i>',
-                            ['action' => 'resetauthkey', $u['id']],
-                            [
-                                'class' => 'btn btn-sm btn-outline-warning',
-                                'escape' => false,
-                                'title' => __('Reset auth key'),
-                                'aria-label' => __('Reset auth key'),
-                            ]
-                        )
-                    )) ?>
-                <?php elseif ($canRequestApi): ?>
-                    <div class="row g-2">
-                        <?= $stateTile('fas fa-key', __('Auth key'), sprintf(
-                            '<button type="button" class="btn btn-sm btn-outline-primary"
-                                     onclick="if (typeof requestAPIAccess === \'function\') { requestAPIAccess(); }">
-                                <i class="fas fa-paper-plane me-1"></i>%s
-                             </button>',
-                            __('Request access')
-                        ), [
-                            'col' => 'col-12',
-                            'note' => __('This account has no API permission yet.'),
-                        ]) ?>
-                    </div>
-                <?php else: ?>
-                    <div class="row g-2">
-                        <?= $stateTile('fas fa-key', __('Auth keys'),
-                            $statePill(!empty($role['perm_auth']), __('Allowed'), __('Not allowed')),
-                            [
-                                'col' => 'col-12',
-                                'note' => $advancedKeys
-                                    ? __('Individual keys are listed under the Auth keys tab.')
-                                    : __('This account holds no inline auth key.'),
-                            ]) ?>
-                    </div>
-                <?php endif; ?>
+                <div class="fw-bold lh-1"><?= __('Security & access') ?></div>
+                <div class="small text-muted mt-1"><?= __('How this account signs in and reaches the API') ?></div>
             </div>
+        </div>
+    </div>
+    <div class="card-body py-3 d-flex flex-column gap-4">
 
-            <!-- ── ACCOUNT FLAGS ───────────────────────────────── -->
-            <div>
-                <?= $this->element('genericElementsBS5/Forms/section_label', [
-                    'label' => __('Account flags'),
-                ]) ?>
-                <div class="row g-2">
+        <!-- SIGN-IN -->
+        <div>
+            <?= $section(__('Sign-in')) ?>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xxl-3 g-3">
+                <?php
+                $passwordSub = empty($u['last_pw_change'])
+                    ? h(__('Never changed'))
+                    : h(__('Changed')) . ' ' . $this->Time->time($u['last_pw_change']);
+                $mustChange = $adminView && !empty($u['change_pw']);
+                if ($mustChange) {
+                    $passwordSub .= '<br><span class="text-warning-emphasis"><i class="fas fa-rotate me-1"></i>' . h(__('Must be changed at the next sign-in')) . '</span>';
+                }
+                echo $tile('fas fa-key', $mustChange ? 'warning' : 'primary', h(__('Password')), $passwordSub);
 
-                    <?= $stateTile('fas fa-comment-dots', __('Contact reporter requests'),
-                        $statePill(!empty($u['contactalert']), __('On'), __('Off')),
-                        ['note' => __('Receives the emails sent through "Contact reporter".')]) ?>
-
-                    <?php if ($adminView): ?>
-                        <?= $stateTile('fas fa-file-signature', __('Terms accepted'),
-                            $statePill(!empty($u['termsaccepted']), __('Yes'), __('No'))) ?>
-
-                        <?= $stateTile('fas fa-user-slash', __('Account disabled'),
-                            $statePill(!empty($u['disabled']), __('Yes'), __('No'), 'danger'),
-                            [
-                                'accent' => 'danger',
-                                'note' => __('Blocks sign-in and API access immediately.'),
-                            ]) ?>
-                    <?php endif; ?>
-
-                </div>
-            </div>
-
-            <!-- ── CRYPTO KEYS ─────────────────────────────────── -->
-            <div>
-                <?= $this->element('genericElementsBS5/Forms/section_label', [
-                    'label' => __('Crypto keys'),
-                ]) ?>
-                <div class="row g-2">
-
-                    <div class="col-12">
-                        <?php ob_start(); ?>
-                        <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
-                            <span class="d-flex align-items-center gap-2 overflow-hidden">
-                                <i class="fas fa-lock <?= h($accent['textClass']) ?> flex-shrink-0 fa-fw fa-sm"></i>
-                                <span class="small lh-sm overflow-hidden">
-                                    <span class="fw-semibold d-block">
-                                        <?= __('PGP key') ?>
-                                    </span>
-                                    <small class="text-muted d-block">
-                                        <?= empty($u['gpgkey'])
-                                            ? __('Encrypted notifications need one.')
-                                            : (!empty($u['fingerprint']) && $u['fingerprint'] !== 'N/A'
-                                                ? h(chunk_split($u['fingerprint'], 4, ' '))
-                                                : __('No fingerprint reported.')) ?>
-                                    </small>
-                                </span>
-                            </span>
-                            <span class="d-flex align-items-center gap-2 flex-shrink-0">
-                                <?php if (empty($u['gpgkey'])): ?>
-                                    <?= $statePill(false, __('Set'), __('Not set')) ?>
-                                <?php else: ?>
-                                    <span class="badge rounded-pill text-bg-<?= $pgpOk ? 'success' : 'danger' ?>">
-                                        <i class="fas <?= $pgpOk ? 'fa-check' : 'fa-triangle-exclamation' ?> me-1"></i>
-                                        <?= h($u['pgp_status'] ?? __('N/A')) ?>
-                                    </span>
-                                <?php endif; ?>
-                            </span>
-                        </div>
-                        <?php if (!empty($u['gpgkey'])): ?>
-                            <?= $keyBlock($u['gpgkey']) ?>
-                        <?php endif; ?>
-                        <?php $pgpBody = ob_get_clean(); ?>
-                        <?= $panel($pgpBody) ?>
-                    </div>
-
-                    <?php if ($smimeOn): ?>
-                        <div class="col-12">
-                            <?php ob_start(); ?>
-                            <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
-                                <span class="d-flex align-items-center gap-2 overflow-hidden">
-                                    <i class="fas fa-certificate <?= h($accent['textClass']) ?> flex-shrink-0 fa-fw fa-sm"></i>
-                                    <span class="small lh-sm overflow-hidden">
-                                        <span class="fw-semibold d-block">
-                                            <?= __('S/MIME public certificate') ?>
-                                        </span>
-                                        <small class="text-muted d-block">
-                                            <?= __('PEM format.') ?>
-                                        </small>
-                                    </span>
-                                </span>
-                                <span class="flex-shrink-0">
-                                    <?= $statePill(!empty($u['certif_public']), __('Set'), __('Not set')) ?>
-                                </span>
-                            </div>
-                            <?php if (!empty($u['certif_public'])): ?>
-                                <?= $keyBlock($u['certif_public']) ?>
-                            <?php endif; ?>
-                            <?php $smimeBody = ob_get_clean(); ?>
-                            <?= $panel($smimeBody) ?>
-                        </div>
-                    <?php endif; ?>
-
-                </div>
-            </div>
-
-            <!-- ── ORG ADMINS ──────────────────────────────────── -->
-            <?php if ($hasOrgAdmins): ?>
-                <div>
-                    <?= $this->element('genericElementsBS5/Forms/section_label', [
-                        'label' => __('Org admins'),
-                    ]) ?>
-                    <?php
-                    $adminChips = '<div class="d-flex flex-wrap gap-2">';
-                    foreach ($u['orgAdmins'] as $orgAdminId => $orgAdminEmail) {
-                        $adminChips .= sprintf(
-                            '<a class="badge text-bg-light border text-decoration-none fw-normal"
-                                href="%s/admin/users/view/%s">
-                                <i class="fas fa-user-shield me-1"></i>%s
-                             </a>',
-                            h($baseurl),
-                            h($orgAdminId),
-                            h($orgAdminEmail)
-                        );
+                if ($otpOn) {
+                    $totpActions = '';
+                    if (!$isTotp && !$adminView) {
+                        $totpActions .= $actionButton(__('Set up'), 'fas fa-qrcode', "openModal('" . $baseurl . "/users/totp_new', 'lg')", 'outline-primary');
                     }
-                    $adminChips .= '</div>';
+                    if ($isTotp && !$adminView) {
+                        $totpActions .= '<a class="btn btn-sm btn-outline-secondary py-0 px-2" href="' . h($baseurl . '/users/hotp/' . $u['id']) . '">'
+                            . '<i class="fas fa-list-ol me-1"></i>' . h(__('Paper tokens')) . '</a>';
+                    }
+                    if (!empty($isAdmin) && $isTotp) {
+                        $totpActions .= $actionButton(__('Remove'), 'fas fa-trash', "openModal('" . $baseurl . "/users/totp_delete/" . (int)$u['id'] . "', 'md')", 'outline-danger');
+                    }
+                    echo $tile(
+                        'fas fa-mobile-screen',
+                        $isTotp ? 'success' : 'warning',
+                        h($isTotp ? __('Two-factor enabled') : __('No two-factor')),
+                        h($isTotp ? __('A TOTP token is enrolled') : __('Signing in takes the password alone')),
+                        $totpActions
+                    );
+                }
+
+                if ($customAuthOn) {
+                    $external = !empty($u['external_auth_required']);
+                    $externalSub = $external
+                        ? h(__('No MISP password is used'))
+                        : h(__('Uses a MISP password'));
+                    if ($external && !empty($u['external_auth_key'])) {
+                        $externalSub .= '<br><span class="font-monospace text-body-emphasis text-break">'
+                            . h(Configure::read('Plugin.CustomAuth_header') ?: 'AUTHORIZATION') . ': ' . h($u['external_auth_key']) . '</span>';
+                    }
+                    echo $tile('fas fa-id-badge', $external ? 'info' : null,
+                        h($external ? __('Signs in through %s', $customAuthName) : __('Not through %s', $customAuthName)),
+                        $externalSub);
+                }
+                ?>
+            </div>
+        </div>
+
+        <!-- API ACCESS -->
+        <div>
+            <?= $section(__('API access')) ?>
+            <?php if ($showInlineKey): ?>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="d-flex align-items-stretch border rounded-pill bg-body-tertiary font-monospace overflow-hidden lh-base mw-100">
+                        <span class="d-inline-flex align-items-center px-2 small text-truncate"
+                              data-authkey-value data-mask="<?= h(str_repeat('•', 24)) ?>" data-secret="<?= h($u['authkey']) ?>"><?= h(str_repeat('•', 24)) ?></span>
+                        <span class="vr my-1"></span>
+                        <button type="button" class="btn btn-sm btn-link text-body-secondary px-2 py-0"
+                                title="<?= h(__('Reveal hidden value')) ?>" aria-label="<?= h(__('Reveal hidden value')) ?>"
+                                onclick="var v=this.parentNode.querySelector('[data-authkey-value]');v.textContent=(v.textContent===v.dataset.secret)?v.dataset.mask:v.dataset.secret;">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-link text-body-secondary px-2 py-0"
+                                title="<?= h(__('Copy to clipboard')) ?>" aria-label="<?= h(__('Copy to clipboard')) ?>"
+                                data-copy-msg="<?= h(__('Auth key copied to clipboard')) ?>"
+                                onclick="copyValueToClipboard(this.parentNode.querySelector('[data-authkey-value]').dataset.secret, this.dataset.copyMsg)">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <?= $this->Form->postLink(
+                        '<i class="fas fa-rotate me-1"></i>' . __('Reset'),
+                        ['action' => 'resetauthkey', $u['id']],
+                        ['class' => 'btn btn-sm btn-outline-warning py-0 px-2', 'escape' => false, 'title' => __('Reset auth key')]
+                    ) ?>
+                </div>
+                <div class="small text-body-secondary mt-1"><?= __('A reset takes effect at once and invalidates the current key.') ?></div>
+            <?php elseif ($canRequestApi): ?>
+                <div class="row row-cols-1 g-3">
+                    <?= $tile('fas fa-key', null, h(__('No API access')),
+                        h(__('This account has no API permission yet.')),
+                        '<button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" data-request-api>'
+                            . '<i class="fas fa-paper-plane me-1"></i>' . h(__('Ask an admin for access')) . '</button>') ?>
+                </div>
+            <?php else: ?>
+                <div class="row row-cols-1 g-3">
+                    <?php
+                    $apiAllowed = !empty($role['perm_auth']);
+                    $apiActions = ($apiAllowed && $advancedKeys)
+                        ? '<a href="#tab-authkeys" class="btn btn-sm btn-outline-primary py-0 px-2" data-user-tab="authkeys">'
+                            . '<i class="fas fa-key me-1"></i>' . h(__('Manage auth keys')) . '</a>'
+                        : '';
+                    echo $tile('fas fa-key', $apiAllowed ? 'success' : null,
+                        h($apiAllowed ? __('API access allowed') : __('No API access')),
+                        h($apiAllowed
+                            ? ($advancedKeys ? __('Through the auth keys of this account') : __('This account holds no inline auth key'))
+                            : __('Its role does not grant auth keys')),
+                        $apiActions);
                     ?>
-                    <?= $panel($adminChips) ?>
                 </div>
             <?php endif; ?>
-
         </div>
+
+        <!-- ENCRYPTION KEYS -->
+        <div>
+            <?= $section(__('Encryption keys')) ?>
+            <div class="row row-cols-1 row-cols-md-2 g-3">
+                <?php
+                if (empty($u['gpgkey'])) {
+                    echo $tile('fas fa-lock', null, h(__('No PGP key')), h(__('Encrypted notifications need one')));
+                } else {
+                    $fingerprint = (!empty($u['fingerprint']) && $u['fingerprint'] !== 'N/A')
+                        ? '<span class="font-monospace text-break">' . h(trim(chunk_split($u['fingerprint'], 4, ' '))) . '</span>'
+                        : h(__('No fingerprint reported'));
+                    echo $tile('fas fa-lock', $pgpOk ? 'success' : 'danger',
+                        h(__('PGP key')) . ' <span class="badge rounded-pill fw-normal ms-1 ' . ($pgpOk ? 'text-bg-success' : 'text-bg-danger') . '">' . h($u['pgp_status'] ?? __('N/A')) . '</span>',
+                        $fingerprint . $keyBlock($u['gpgkey'], __('Key copied to clipboard')));
+                }
+                if ($smimeOn) {
+                    echo empty($u['certif_public'])
+                        ? $tile('fas fa-certificate', null, h(__('No S/MIME certificate')), h(__('PEM format')))
+                        : $tile('fas fa-certificate', 'success', h(__('S/MIME certificate')), h(__('PEM format')) . $keyBlock($u['certif_public'], __('Certificate copied to clipboard')));
+                }
+                ?>
+            </div>
+        </div>
+
+        <!-- ACCOUNT -->
+        <div>
+            <?= $section(__('Account')) ?>
+            <div class="row row-cols-1 row-cols-md-2 g-3">
+                <?php
+                $contact = !empty($u['contactalert']);
+                echo $tile('fas fa-comment-dots', $contact ? 'primary' : null,
+                    h($contact ? __('Receives contact requests') : __('No contact requests')),
+                    h(__('Emails sent through "Contact reporter"')));
+                if ($adminView) {
+                    $terms = !empty($u['termsaccepted']);
+                    echo $tile('fas fa-file-signature', $terms ? 'success' : 'warning',
+                        h($terms ? __('Terms accepted') : __('Terms not accepted')),
+                        h(__('Instance terms of use')));
+                }
+                ?>
+            </div>
+            <?php if ($hasOrgAdmins): ?>
+                <div class="d-flex flex-wrap align-items-center gap-1 mt-3">
+                    <span class="small text-body-secondary me-1"><i class="fas fa-user-shield me-1 opacity-50"></i><?= __('Organisation admins') ?></span>
+                    <?php foreach ($u['orgAdmins'] as $orgAdminId => $orgAdminEmail): ?>
+                        <a class="badge rounded-pill border bg-body-tertiary text-body-emphasis fw-normal text-decoration-none"
+                           href="<?= h($baseurl . '/admin/users/view/' . $orgAdminId) ?>"><?= h($orgAdminEmail) ?></a>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
     </div>
 </div>
 
-
 <!-- ══ EMAIL NOTIFICATIONS ═════════════════════════════════════════════ -->
 <?php
-/* The periodic three come from the model's own constant so this card cannot
-   fall behind it; the publish alert is not periodic and is named here. Icons
-   and notes are admin_edit's, to the word. */
 $notificationMeta = [
-    'autoalert' => [
-        'fas fa-bullhorn',
-        __('Event published'),
-        __('One email per published event this account can see.'),
-    ],
-    'notification_daily'   => ['fas fa-calendar-day',  __('Daily digest'), ''],
-    'notification_weekly'  => ['fas fa-calendar-week', __('Weekly digest'), ''],
-    'notification_monthly' => ['fas fa-calendar-days', __('Monthly digest'), ''],
+    'autoalert' => ['fas fa-bullhorn', __('Event published'), __('One email per published event it can see')],
+    'notification_daily' => ['fas fa-calendar-day', __('Daily digest'), __('Once a day')],
+    'notification_weekly' => ['fas fa-calendar-week', __('Weekly digest'), __('Once a week')],
+    'notification_monthly' => ['fas fa-calendar-days', __('Monthly digest'), __('Once a month')],
 ];
 $notificationKeys = array_merge(
     ['autoalert'],
@@ -730,24 +464,74 @@ foreach ($notificationKeys as $notificationKey) {
 }
 ?>
 <div class="card shadow-sm mb-3">
-
-    <?= $cardHead(
-        'fas fa-bell',
-        __('Email notifications'),
-        __('%s of %s enabled', $notificationsOn, count($notificationKeys))
-    ) ?>
-
-    <div class="card-body p-3">
-        <div class="row g-2">
+    <div class="p-3 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <div class="rounded-2 d-flex align-items-center justify-content-center bg-primary-subtle text-primary flex-shrink-0" style="width:36px;height:36px;">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="me-auto">
+                <div class="fw-bold lh-1"><?= __('Email notifications') ?></div>
+                <div class="small text-muted mt-1">
+                    <?= $notificationsOn === 0
+                        ? __('No email is sent to this account')
+                        : h(__('%s of %s enabled', $notificationsOn, count($notificationKeys))) ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body py-3">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3">
             <?php foreach ($notificationKeys as $notificationKey): ?>
                 <?php
-                $meta = $notificationMeta[$notificationKey]
-                    ?? ['fas fa-envelope', Inflector::humanize($notificationKey), ''];
+                $meta = $notificationMeta[$notificationKey] ?? ['fas fa-envelope', Inflector::humanize($notificationKey), ''];
+                $on = !empty($u[$notificationKey]);
                 ?>
-                <?= $stateTile($meta[0], $meta[1],
-                    $statePill(!empty($u[$notificationKey])),
-                    ['note' => $meta[2]]) ?>
+                <?= $tile($meta[0], $on ? 'primary' : null,
+                    h($meta[1]) . ' <span class="badge rounded-pill fw-normal ms-1 ' . ($on ? 'text-bg-primary' : 'border bg-body text-body-secondary') . '">' . h($on ? __('On') : __('Off')) . '</span>',
+                    h($meta[2])) ?>
             <?php endforeach; ?>
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    document.querySelectorAll('[data-user-tab]:not([data-user-tab-bound])').forEach(function (link) {
+        link.setAttribute('data-user-tab-bound', '');
+        link.addEventListener('click', function (event) {
+            var tab = document.querySelector('.nav-link[href="#tab-' + link.dataset.userTab + '"]');
+            if (tab && window.bootstrap) {
+                event.preventDefault();
+                bootstrap.Tab.getOrCreateInstance(tab).show();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+    });
+    /* users/request_API answers JSON and takes the CSRF token as a header. */
+    document.querySelectorAll('[data-request-api]:not([data-request-api-bound])').forEach(function (button) {
+        button.setAttribute('data-request-api-bound', '');
+        button.addEventListener('click', function () {
+            button.disabled = true;
+            fetch(<?= json_encode($baseurl . '/users/request_API') ?>, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': window.csrfToken || ''}
+            })
+                .then(function (response) { return response.json(); })
+                .then(function (result) {
+                    var ok = result && result.saved;
+                    if (typeof showToast === 'function') {
+                        showToast(ok ? result.success : (result.errors || <?= json_encode(__('Could not request API access.')) ?>), ok ? 'success' : 'danger');
+                    }
+                    button.disabled = ok;
+                })
+                .catch(function () {
+                    if (typeof showToast === 'function') {
+                        showToast(<?= json_encode(__('Could not request API access.')) ?>, 'danger');
+                    }
+                    button.disabled = false;
+                });
+        });
+    });
+})();
+</script>
