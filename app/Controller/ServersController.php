@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
 App::uses('SecurityAudit', 'Tools');
 App::uses('SystemSetting', 'Model');
 
@@ -2498,7 +2499,7 @@ class ServersController extends AppController
                         }
                     }
                 }
-                if (!$mismatch && $version[1] == 4 && $version[2] < 111) {
+                if (!$mismatch && version_compare($result['info']['version'], '2.4.111', '<')) {
                     $mismatch = 'proposal';
                 }
                 if (!$perm_sync && !$perm_sighting) {
@@ -2515,6 +2516,9 @@ class ServersController extends AppController
                     if ($version[1] == 4 && $version[2] < 111) {
                             $mismatch = 'proposal';
                     }
+                }
+                if ($mismatch === 'major' && ServerSyncTool::isCrossMajorCompatible(implode('.', $local_version), $result['info']['version'])) {
+                    $mismatch = 'major_compatible';
                 }
                 return $this->RestResponse->viewData([
                     'status' => 1,

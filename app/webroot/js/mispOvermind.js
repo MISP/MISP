@@ -1108,7 +1108,7 @@ function testConnection(id, target) {
                     var colours = {local: 'green', remote: 'green', status: 'green'};
                     var issue_colour = "red";
 
-                    if (result.mismatch == "hotfix") issue_colour = "orange";
+                    if (result.mismatch == "hotfix" || result.mismatch == "major_compatible") issue_colour = "orange";
 
                     if (result.newer == "local") {
                         colours.remote = issue_colour;
@@ -1119,13 +1119,13 @@ function testConnection(id, target) {
                         } else if (result.mismatch == "major") {
                             compatibility = "Incompatible";
                             compatibility_colour = "red";
-                        } else if (result.mismatch == "minor_compatible") {
+                        } else if (result.mismatch == "minor_compatible" || result.mismatch == "major_compatible") {
                             compatibility_colour = "green";
                         }
                     } else if (result.newer == "remote") {
                         colours.local = issue_colour;
 
-                        if (result.mismatch != "hotfix") {
+                        if (result.mismatch != "hotfix" && result.mismatch != "major_compatible") {
                             compatibility = "Incompatible";
                             compatibility_colour = "red";
                         }
@@ -1136,10 +1136,16 @@ function testConnection(id, target) {
 
                     if (result.mismatch !== false && result.mismatch != "proposal") {
                         if (result.newer == "remote") {
-                            status_message = "Local instance outdated, update!";
+                            if (result.mismatch == "major_compatible") {
+                                status_message = "Local instance on 2.5, moving to 3.0 is recommended.";
+                            } else {
+                                status_message = "Local instance outdated, update!";
+                            }
                         } else if (result.newer == "local") {
                             if (result.mismatch == "minor_compatible") {
                                 status_message = "Remote on 2.4, moving to 2.5 is recommended.";
+                            } else if (result.mismatch == "major_compatible") {
+                                status_message = "Remote on 2.5, moving to 3.0 is recommended.";
                             } else {
                                 status_message = "Remote outdated, notify admin!";
                             }
