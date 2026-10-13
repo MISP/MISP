@@ -5,6 +5,7 @@ App::uses('GalaxyColour', 'Tools');
 App::uses('ExtensionEventColour', 'Tools');
 App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
 App::uses('EventOverviewTool', 'Tools/EventOverview');
+App::uses('EventObjectViewsTool', 'Tools/EventOverview');
 App::uses('EventContextTool', 'Tools/EventOverview');
 App::uses('EventMatrixTool', 'Tools/EventOverview');
 App::uses('EventSeenTimelineTool', 'Tools/EventOverview');
@@ -4231,6 +4232,26 @@ class EventsController extends AppController
         $this->set('inventory', $inventory);
         $this->set('event', $event);
         $this->layout = false;
+    }
+
+    /**
+     * The overview's object views: the Value Intelligence renderers drawn
+     * from the event's own objects (and its extensions', in extended view).
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewEventObjectViews($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->__overviewEvent($id);
+        $events = [$event['Event']];
+        foreach ($this->__extensionViewContext($user, $event)['ids'] as $memberId) {
+            if ((int)$memberId !== (int)$event['Event']['id']) {
+                $events[] = $this->__overviewEvent($memberId)['Event'];
+            }
+        }
+        $views = (new EventObjectViewsTool())->views($user, $events);
+        return $this->RestResponse->viewData($views, 'json');
     }
 
     /**
