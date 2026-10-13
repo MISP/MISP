@@ -908,14 +908,17 @@ class Server extends AppModel
      * @param array $pagination Optional ['page' => int, 'limit' => int]. When set,
      *                          a single ordered page is requested instead of the
      *                          whole index (see getEventIdsFromServer()).
+     * @param int|null $resultCount Set to the remote's X-Result-Count, or null
+     *                              when unknown (e.g. served from cache).
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws RedisException
      */
-    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [])
+    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [], &$resultCount = null)
     {
+        $resultCount = null;
         if (!$ignoreFilterRules) {
             $filterRules = $this->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
             if (!empty($filterRules['org']) && !$serverSync->isSupported(ServerSyncTool::FEATURE_ORG_RULE)) {
@@ -968,17 +971,23 @@ class Server extends AppModel
             }
         }
 
-        // Save to cache for 24 hours if ETag provided
+        $count = $response->getHeader('X-Result-Count');
+        if (is_numeric($count)) {
+            $resultCount = (int)$count;
+        }
+
+        $eventIndex = $response->json();
+
+        // Save to cache for 24 hours if ETag provided. Empty pages are not
+        // cached: a 304 has no X-Result-Count to tell a filtered page from the end.
         $etag = $response->getHeader('etag');
-        if ($etag) {
+        if ($etag && !empty($eventIndex)) {
             $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
             $data = RedisTool::compress($response->body);
             $redis->setex($etagCacheKey, 3600 * 24, $etag);
             $redis->setex($contentCacheKey, 3600 * 24, $data);
             unset($data);
         }
-
-        $eventIndex = $response->json();
 
         // correct $eventArray if just one event, probably this response returns old MISP
         if (isset($eventIndex['id'])) {
@@ -1140,10 +1149,18 @@ class Server extends AppModel
         $page = 1;
         $previousMaxId = null;
         while (true) {
-            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize]);
+            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize], $remoteCount);
             $fetched = count($eventArray);
+            // The remote drops protected events after paging, so a short or even
+            // empty page is not the end. X-Result-Count is counted before that
+            // filter; without it (cached page) only an empty page proves the end.
+            $lastPage = $remoteCount === null ? $fetched === 0 : $page * $pageSize >= $remoteCount;
             if ($fetched === 0) {
-                break;
+                if ($lastPage) {
+                    break;
+                }
+                $page++;
+                continue;
             }
             // A remote that does not honour the limit (older instance) returns the
             // whole index in one response. Detecting more rows than we asked for
@@ -1180,7 +1197,7 @@ class Server extends AppModel
             }
             unset($eventArray);
 
-            if ($remoteIgnoredPagination || $notAdvancing || $fetched < $pageSize) {
+            if ($remoteIgnoredPagination || $notAdvancing || $lastPage) {
                 break; // last page (or a remote that is not paginating)
             }
             $page++;
@@ -4099,7 +4116,7 @@ class Server extends AppModel
     {
         $expected = array(
             'stix' => '>=1.2.0.11', 'cybox' => '>=2.1.0.21', 'mixbox' => '>=1.0.5', 'maec' => '>=4.1.0.17',
-            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2026.9.16'
+            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2026.10.12'
         );
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';

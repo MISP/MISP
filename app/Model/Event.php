@@ -9620,12 +9620,6 @@ class Event extends AppModel
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
-            if ($distribution == 4) {
-                // The legacy STIX 1 script takes no sharing group;
-                // set it here so _add() and _edit() both see it.
-                // The STIX 2 script already carries the same value.
-                $data['Event']['sharing_group_id'] = $sharingGroupId;
-            }
             if (!$galaxiesAsTags) {
                 if (!isset($this->GalaxyCluster)) {
                     $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -9707,46 +9701,39 @@ class Event extends AppModel
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stixVersion === '2' || $stixVersion === '2.0' || $stixVersion === '2.1') {
             $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
-            $outputPath = $file . '.out';
-            $shellCommand = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                '-i', $file,
-                '--distribution', $distribution,
-                '--org-uuid', $orgUuid
-            ];
-            if ($distribution == 4) {
-                array_push($shellCommand, '--sharing-group-id', $sharingGroupId);
-            }
-            if ($forceContextualData) {
-                $shellCommand[] = '--force-contextual-data';
-            }
-            if ($galaxiesAsTags) {
-                $shellCommand[] = '--galaxies-as-tags';
-            } else {
-                array_push($shellCommand, '--cluster-distribution', $clusterDistribution);
-                if ($clusterDistribution == 4) {
-                    array_push($shellCommand, '--cluster-sharing-group-id', $clusterSharingGroupId);
-                }
-            }
-            if ($debug) {
-                $shellCommand[] = '--debug';
-            }
             $stixVersion = "STIX 2.1";
         } else if ($stixVersion === '1' || $stixVersion === '1.1' || $stixVersion === '1.2') {
             $scriptFile = $scriptDir . DS . 'stix2misp.py';
-            $outputPath = $file . '.json';
-            $shellCommand = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                $file,
-                $distribution,
-                Configure::read('MISP.default_attribute_distribution'),
-                $this->__getTagNamesFromSynonyms($scriptDir)
-            ];
             $stixVersion = "STIX 1.1";
         } else {
             throw new InvalidArgumentException('Invalid STIX version');
+        }
+        // Both importers are misp-stix wrappers taking the same arguments and
+        // writing the converted event next to their input
+        $outputPath = $file . '.out';
+        $shellCommand = [
+            ProcessTool::pythonBin(),
+            $scriptFile,
+            '-i', $file,
+            '--distribution', $distribution,
+            '--org-uuid', $orgUuid
+        ];
+        if ($distribution == 4) {
+            array_push($shellCommand, '--sharing-group-id', $sharingGroupId);
+        }
+        if ($forceContextualData) {
+            $shellCommand[] = '--force-contextual-data';
+        }
+        if ($galaxiesAsTags) {
+            $shellCommand[] = '--galaxies-as-tags';
+        } else {
+            array_push($shellCommand, '--cluster-distribution', $clusterDistribution);
+            if ($clusterDistribution == 4) {
+                array_push($shellCommand, '--cluster-sharing-group-id', $clusterSharingGroupId);
+            }
+        }
+        if ($debug) {
+            $shellCommand[] = '--debug';
         }
 
         try {

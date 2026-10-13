@@ -1,0 +1,169 @@
+<stix:STIX_Package
+	xmlns:MISP="https://github.com/MISP/MISP"
+	xmlns:cyboxCommon="http://cybox.mitre.org/common-2"
+	xmlns:cybox="http://cybox.mitre.org/cybox-2"
+	xmlns:cyboxVocabs="http://cybox.mitre.org/default_vocabularies-2"
+	xmlns:AccountObj="http://cybox.mitre.org/objects#AccountObject-2"
+	xmlns:ArtifactObj="http://cybox.mitre.org/objects#ArtifactObject-2"
+	xmlns:ASObj="http://cybox.mitre.org/objects#ASObject-1"
+	xmlns:AddressObj="http://cybox.mitre.org/objects#AddressObject-2"
+	xmlns:PortObj="http://cybox.mitre.org/objects#PortObject-2"
+	xmlns:DomainNameObj="http://cybox.mitre.org/objects#DomainNameObject-1"
+	xmlns:EmailMessageObj="http://cybox.mitre.org/objects#EmailMessageObject-2"
+	xmlns:FileObj="http://cybox.mitre.org/objects#FileObject-2"
+	xmlns:HTTPSessionObj="http://cybox.mitre.org/objects#HTTPSessionObject-2"
+	xmlns:HostnameObj="http://cybox.mitre.org/objects#HostnameObject-1"
+	xmlns:MutexObj="http://cybox.mitre.org/objects#MutexObject-2"
+	xmlns:PipeObj="http://cybox.mitre.org/objects#PipeObject-2"
+	xmlns:URIObj="http://cybox.mitre.org/objects#URIObject-2"
+	xmlns:WinRegistryKeyObj="http://cybox.mitre.org/objects#WinRegistryKeyObject-2"
+	xmlns:WinServiceObj="http://cybox.mitre.org/objects#WinServiceObject-2"
+	xmlns:NetworkConnectionObj="http://cybox.mitre.org/objects#NetworkConnectionObject-2"
+	xmlns:NetworkSocketObj="http://cybox.mitre.org/objects#NetworkSocketObject-2"
+	xmlns:SocketAddressObj="http://cybox.mitre.org/objects#SocketAddressObject-1"
+	xmlns:SystemObj="http://cybox.mitre.org/objects#SystemObject-2"
+	xmlns:ProcessObj="http://cybox.mitre.org/objects#ProcessObject-2"
+	xmlns:X509CertificateObj="http://cybox.mitre.org/objects#X509CertificateObject-2"
+	xmlns:WhoisObj="http://cybox.mitre.org/objects#WhoisObject-2"
+	xmlns:WinExecutableFileObj="http://cybox.mitre.org/objects#WinExecutableFileObject-2"
+	xmlns:UnixUserAccountObj="http://cybox.mitre.org/objects#UnixUserAccountObject-2"
+	xmlns:UserAccountObj="http://cybox.mitre.org/objects#UserAccountObject-2"
+	xmlns:WinUserAccountObj="http://cybox.mitre.org/objects#WinUserAccountObject-2"
+	xmlns:CustomObj="http://cybox.mitre.org/objects#CustomObject-1"
+	xmlns:marking="http://data-marking.mitre.org/Marking-1"
+	xmlns:simpleMarking="http://data-marking.mitre.org/extensions/MarkingStructure#Simple-1"
+	xmlns:tlpMarking="http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1"
+	xmlns:et="http://stix.mitre.org/ExploitTarget-1"
+	xmlns:incident="http://stix.mitre.org/Incident-1"
+	xmlns:indicator="http://stix.mitre.org/Indicator-2"
+	xmlns:coa="http://stix.mitre.org/CourseOfAction-1"
+	xmlns:ttp="http://stix.mitre.org/TTP-1"
+	xmlns:ta="http://stix.mitre.org/ThreatActor-1"
+	xmlns:stixCommon="http://stix.mitre.org/common-1"
+	xmlns:stixVocabs="http://stix.mitre.org/default_vocabularies-1"
+	xmlns:ciqIdentity="http://stix.mitre.org/extensions/Identity#CIQIdentity3.0-1"
+	xmlns:snortTM="http://stix.mitre.org/extensions/TestMechanism#Snort-1"
+	xmlns:yaraTM="http://stix.mitre.org/extensions/TestMechanism#YARA-1"
+	xmlns:stix="http://stix.mitre.org/stix-1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:xal="urn:oasis:names:tc:ciq:xal:3"
+	xmlns:xnl="urn:oasis:names:tc:ciq:xnl:3"
+	xmlns:xpil="urn:oasis:names:tc:ciq:xpil:3"
+	xmlns:xlink="http://www.w3.org/1999/xlink"
+	xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	 id="MISP:STIXPackage-63cdbac3-e5a1-4879-a9c0-24a219b3bffc" version="1.1.1">
+    <stix:STIX_Header>
+        <stix:Title>Export from MISP-Project's MISP</stix:Title>
+        <stix:Package_Intent xsi:type="stixVocabs:PackageIntentVocab-1.0">Threat Report</stix:Package_Intent>
+    </stix:STIX_Header>
+    <stix:Related_Packages>
+        <stix:Related_Package>
+            <stix:Package id="MISP:STIXPackage-e2e6a6ea-f69b-4d93-8564-f51d67cafe51" version="1.1.1" timestamp="2020-10-25T16:22:00Z">
+                <stix:STIX_Header>
+                    <stix:Title>Export from MISP-Project's MISP</stix:Title>
+                    <stix:Package_Intent xsi:type="stixVocabs:PackageIntentVocab-1.0">Threat Report</stix:Package_Intent>
+                </stix:STIX_Header>
+                <stix:Incidents>
+                    <stix:Incident id="MISP:Incident-e2e6a6ea-f69b-4d93-8564-f51d67cafe51" timestamp="2020-10-25T16:22:00Z" xsi:type='incident:IncidentType'>
+                        <incident:Title>MISP-STIX-Converter test event with AS attribute</incident:Title>
+                        <incident:Time>
+                            <incident:Incident_Discovery precision="second">2020-10-25T00:00:00Z</incident:Incident_Discovery>
+                        </incident:Time>
+                        <incident:Reporter>
+                            <stixCommon:Identity>
+                                <stixCommon:Name>MISP-Project</stixCommon:Name>
+                            </stixCommon:Identity>
+                        </incident:Reporter>
+                        <incident:Related_Observables>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Observable id="MISP:Observable-2972c3a2-dda3-4de7-aca1-e96cf7ce5544">
+                                    <cybox:Object id="MISP:AS-2972c3a2-dda3-4de7-aca1-e96cf7ce5544">
+                                        <cybox:Properties xsi:type="ASObj:ASObjectType">
+                                            <ASObj:Handle condition="Equals">AS174</ASObj:Handle>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                        </incident:Related_Observables>
+                        <incident:History>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">Event Threat Level: Medium</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp:tool="MISP-STIX-Converter"</incident:Journal_Entry>
+                            </incident:History_Item>
+                        </incident:History>
+                        <incident:Information_Source>
+                            <stixCommon:Identity>
+                                <stixCommon:Name>MISP-Project</stixCommon:Name>
+                            </stixCommon:Identity>
+                        </incident:Information_Source>
+                    </stix:Incident>
+                </stix:Incidents>
+            </stix:Package>
+        </stix:Related_Package>
+        <stix:Related_Package>
+            <stix:Package id="MISP:STIXPackage-d402185f-c129-4f65-8678-43edb2cee1cf" version="1.1.1" timestamp="2020-10-25T16:22:00Z">
+                <stix:STIX_Header>
+                    <stix:Title>Export from MISP-Project's MISP</stix:Title>
+                    <stix:Package_Intent xsi:type="stixVocabs:PackageIntentVocab-1.0">Threat Report</stix:Package_Intent>
+                </stix:STIX_Header>
+                <stix:Incidents>
+                    <stix:Incident id="MISP:Incident-d402185f-c129-4f65-8678-43edb2cee1cf" timestamp="2020-10-25T16:22:00Z" xsi:type='incident:IncidentType'>
+                        <incident:Title>MISP-STIX-Converter test event with domain attribute</incident:Title>
+                        <incident:Time>
+                            <incident:Incident_Discovery precision="second">2020-10-25T00:00:00Z</incident:Incident_Discovery>
+                        </incident:Time>
+                        <incident:Reporter>
+                            <stixCommon:Identity>
+                                <stixCommon:Name>MISP-Project</stixCommon:Name>
+                            </stixCommon:Identity>
+                        </incident:Reporter>
+                        <incident:Related_Indicators>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Indicator id="MISP:Indicator-4bb235a7-7d25-4aef-802f-2c6b45c5eceb" timestamp="2020-10-25T16:22:00Z" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Network activity: circl.lu (MISP Attribute)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Domain Watchlist</indicator:Type>
+                                    <indicator:Description>Domain test attribute</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="MISP:Observable-4bb235a7-7d25-4aef-802f-2c6b45c5eceb">
+                                        <cybox:Object id="MISP:DomainName-4bb235a7-7d25-4aef-802f-2c6b45c5eceb">
+                                            <cybox:Properties xsi:type="DomainNameObj:DomainNameObjectType">
+                                                <DomainNameObj:Value condition="Equals">circl.lu</DomainNameObj:Value>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Confidence timestamp="2020-10-25T16:22:00Z">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>MISP-Project</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                        </incident:Related_Indicators>
+                        <incident:History>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">Event Threat Level: Medium</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp:tool="MISP-STIX-Converter"</incident:Journal_Entry>
+                            </incident:History_Item>
+                        </incident:History>
+                        <incident:Information_Source>
+                            <stixCommon:Identity>
+                                <stixCommon:Name>MISP-Project</stixCommon:Name>
+                            </stixCommon:Identity>
+                        </incident:Information_Source>
+                    </stix:Incident>
+                </stix:Incidents>
+            </stix:Package>
+        </stix:Related_Package>
+    </stix:Related_Packages>
+</stix:STIX_Package>
