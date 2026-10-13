@@ -456,8 +456,7 @@ $foldChildren = empty($objects) ? [] : [
                             <?php $attrId = (int)$attr['id']; ?>
                                 <tr data-primary-id="<?= $attrId ?>"<?php if (
                                     !empty($attr['deleted'])
-                                ): ?> class="text-decoration-line-through
-                                             text-muted opacity-50"<?php
+                                ): ?> class="ov-attr-deleted"<?php
                                 endif; ?>>
 
                                     <!-- Checkbox -->

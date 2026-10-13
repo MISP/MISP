@@ -2891,7 +2891,7 @@ function initSharingGroupForm(container) {
         var toggle = e.target.closest('.om-value-hex-toggle');
         if (toggle) {
             e.preventDefault();
-            var span = toggle.previousElementSibling;
+            var span = toggle.parentElement.querySelector('.om-value-hex');
             var toBinary = !span.classList.contains('om-value-binary');
             span.textContent = toBinary ? hexToBinary(span.dataset.hex) : span.dataset.hex;
             span.classList.toggle('om-value-binary', toBinary);

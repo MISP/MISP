@@ -7,8 +7,18 @@ App::uses('CakeNumber', 'Utility');
 $value = (string)($attribute['value'] ?? '');
 $type = (string)($attribute['type'] ?? '');
 $isProposal = !empty($attribute['is_proposal']);
+$hoverValue = $hoverValue ?? null;
 
-$longText = function ($text) {
+// With $hoverValue, the value's own text becomes the value hover card trigger.
+$hover = function ($html) use ($hoverValue) {
+    if (empty($hoverValue)) {
+        return $html;
+    }
+    return '<span class="vp-hc-trigger" data-vp-hc-value="' . h($hoverValue) . '"'
+        . ' title="' . h(__('Hover for this value\'s assessment')) . '">' . $html . '</span>';
+};
+
+$longText = function ($text) use ($hover) {
     $text = str_replace("\r", '', $text);
     $short = $text;
     if (strlen($short) > 500) {
@@ -18,28 +28,28 @@ $longText = function ($text) {
         $short = implode("\n", array_slice(explode("\n", $short), 0, 10));
     }
     if ($short === $text) {
-        return '<span class="om-value-text">' . h($text) . '</span>';
+        return $hover('<span class="om-value-text">' . h($text) . '</span>');
     }
     return '<span class="om-value-long">'
-        . '<span class="om-value-text om-value-short">' . h(rtrim($short)) . '&hellip;</span>'
-        . '<span class="om-value-text om-value-full" hidden>' . h($text) . '</span>'
+        . $hover('<span class="om-value-text om-value-short">' . h(rtrim($short)) . '&hellip;</span>'
+            . '<span class="om-value-text om-value-full" hidden>' . h($text) . '</span>')
         . '<button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline om-value-more"'
         . ' data-label-more="' . h(__('Show all')) . '" data-label-less="' . h(__('Show less')) . '">'
         . h(__('Show all')) . '</button>'
         . '</span>';
 };
 
-$external = function ($text, $url, $title) {
-    return '<a href="' . h($url) . '" target="_blank" rel="noreferrer noopener" title="' . h($title) . '">'
-        . h($text) . '<i class="fas fa-arrow-up-right-from-square ms-1 om-value-ext"></i></a>';
+$external = function ($text, $url, $title) use ($hover) {
+    return $hover('<a href="' . h($url) . '" target="_blank" rel="noreferrer noopener" title="' . h($title) . '">'
+        . h($text) . '<i class="fas fa-arrow-up-right-from-square ms-1 om-value-ext"></i></a>');
 };
 
-$lines = function (array $pieces) {
+$lines = function (array $pieces) use ($hover) {
     $out = '';
     foreach ($pieces as $piece) {
         $out .= '<span class="d-block">' . h($piece) . '</span>';
     }
-    return $out;
+    return $hover($out);
 };
 
 switch ($type) {
@@ -59,12 +69,12 @@ switch ($type) {
         }
         if (!empty($downloadId)) {
             $url = sprintf('%s/%s/download/%s', $baseurl, $isProposal ? 'shadow_attributes' : 'attributes', (int)$downloadId);
-            echo '<a href="' . h($url) . '" class="om-value-download"'
+            echo $hover('<a href="' . h($url) . '" class="om-value-download"'
                 . ($confirm !== null ? ' data-om-confirm="' . h($confirm) . '"' : '')
                 . ' title="' . h(__('Download')) . '">'
-                . '<i class="fas fa-download me-1"></i>' . h($pieces[0]) . '</a>';
+                . '<i class="fas fa-download me-1"></i>' . h($pieces[0]) . '</a>');
         } else {
-            echo h($pieces[0]);
+            echo $hover(h($pieces[0]));
         }
         if ($type === 'malware-sample') {
             echo ' <span class="badge rounded-pill om-value-zip" title="'
@@ -93,24 +103,24 @@ switch ($type) {
 
     case 'link':
         if (preg_match('/^https?:\/\//i', $value)) {
-            echo '<a href="' . h($value) . '" rel="noreferrer noopener" target="_blank">' . h($value) . '</a>';
+            echo $hover('<a href="' . h($value) . '" rel="noreferrer noopener" target="_blank">' . h($value) . '</a>');
         } else {
-            echo h($value);
+            echo $hover(h($value));
         }
         break;
 
     case 'text':
         if (in_array($attribute['category'] ?? '', ['External analysis', 'Internal reference'], true)
             && Validation::uuid($value)) {
-            echo '<a href="' . h($baseurl . '/events/view2/' . $value) . '">' . h($value) . '</a>';
+            echo $hover('<a href="' . h($baseurl . '/events/view2/' . $value) . '">' . h($value) . '</a>');
         } else {
             echo $longText($value);
         }
         break;
 
     case 'hex':
-        echo '<span class="om-value-hex font-monospace" data-hex="' . h($value) . '" title="'
-            . h(__('Hexadecimal representation')) . '">' . h($value) . '</span>'
+        echo $hover('<span class="om-value-hex font-monospace" data-hex="' . h($value) . '" title="'
+            . h(__('Hexadecimal representation')) . '">' . h($value) . '</span>')
             . '<button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline om-value-hex-toggle"'
             . ' title="' . h(__('Switch to binary representation')) . '"'
             . ' aria-label="' . h(__('Switch to binary representation')) . '"'
@@ -120,7 +130,7 @@ switch ($type) {
         break;
 
     case 'size-in-bytes':
-        echo h($value);
+        echo $hover(h($value));
         if (ctype_digit($value) && (int)$value > 1024) {
             echo ' <span class="text-muted small fw-normal">(' . h(CakeNumber::toReadableSize((int)$value)) . ')</span>';
         }
@@ -131,12 +141,12 @@ switch ($type) {
     case 'hostname|port':
         $pieces = explode('|', $value, 2);
         $host = substr_count($pieces[0], ':') >= 2 ? '[' . $pieces[0] . ']' : $pieces[0];
-        echo h($host . (isset($pieces[1]) ? ':' . $pieces[1] : ''));
+        echo $hover(h($host . (isset($pieces[1]) ? ':' . $pieces[1] : '')));
         break;
 
     case 'domain':
     case 'hostname':
-        echo h($value);
+        echo $hover(h($value));
         if (stripos($value, 'xn--') !== false && function_exists('idn_to_utf8')) {
             $decoded = idn_to_utf8($value, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
             if ($decoded !== false && $decoded !== $value) {

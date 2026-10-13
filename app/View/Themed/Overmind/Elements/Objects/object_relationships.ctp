@@ -11,6 +11,7 @@
  *   objId       int
  *   eventId     int|null
  *   canEdit     bool   may add and delete relationships
+ *   menuPrefix  string id prefix, unique per rendering of the object list
  */
 $count = count($references);
 $canEdit = !empty($canEdit);
@@ -27,7 +28,7 @@ foreach ($references as $reference) {
     $type = $reference['relationship_type'] !== '' ? $reference['relationship_type'] : __('related to');
     $summary[] = $type . ' → ' . $targetLabel($reference);
 }
-$menuId = 'objRels' . h($objId);
+$menuId = ($menuPrefix ?? 'objRels') . (int)$objId;
 $addUrl = $baseurl . '/objectReferences/add/' . (int)$objId;
 ?>
 <div class="dropdown flex-shrink-0 pe-3">

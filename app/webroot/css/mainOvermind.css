@@ -5570,3 +5570,7 @@ body.ms-float-open { padding-bottom: calc(var(--ms-float-h, 56px) + 32px); }
     text-transform: uppercase; color: var(--bs-warning-text-emphasis);
 }
 .ev-warnings-text { color: var(--bs-body-color); }
+
+/* A deleted object attribute: faded, but its actions menu must not inherit the
+   opacity, which would also trap the menu under the content that follows. */
+.ov-attr-deleted > td:not(:last-child) { opacity: .5; text-decoration: line-through; color: var(--bs-secondary-color); }

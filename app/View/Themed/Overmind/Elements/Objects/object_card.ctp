@@ -59,6 +59,7 @@ $expanded = !empty($ctx['expand']);
                     'objId' => $objId,
                     'eventId' => $object['event_id'] ?? null,
                     'canEdit' => $objCanEdit && !$isDeleted,
+                    'menuPrefix' => 'objCardRels',
                 ]) ?>
             <?php endif; ?>
         </h2>

@@ -49,18 +49,12 @@ if ($vpHoverValue !== null && $hoverEnrichId && !$hoverClickOnly) {
     $hoverEnrichId = null;
 }
 
-/*
- * The value, wrapped only where there is something to wrap it for, so
- * an instance with the card off emits exactly the markup it did before.
- */
+// The hover card wraps only the value's text, never the controls beside it.
 $valueBody = $this->element('Attributes/value_display', ['attribute' => $attribute]);
-$vpValueHtml = $valueBody;
-if ($vpHoverValue !== null) {
-    $vpValueHtml = '<span class="vp-hc-trigger"'
-        . ' data-vp-hc-value="' . h($vpHoverValue) . '"'
-        . ' title="' . h(__('Hover for this value\'s assessment')) . '">'
-        . $vpValueHtml . '</span>';
-}
+$vpValueHtml = $vpHoverValue === null ? $valueBody : $this->element('Attributes/value_display', [
+    'attribute' => $attribute,
+    'hoverValue' => $vpHoverValue,
+]);
 
 // The thumbnails are the default-size ones getThumbnail() caches (webp twice as
 // large, for a sharp render); the CSS sizes them down.
