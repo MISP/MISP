@@ -28,8 +28,53 @@ class ReportingPublishedRatio extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'What share of the events carrying this value are'
-            . ' published.'
+            'Adds points for the share of events carrying this value that'
+            . ' are published; takes a few off when none is.'
+        );
+        $this->help = array(
+            'name' => __('Published events'),
+            'what' => __(
+                'Of the events carrying this value, how many are published.'
+                . ' An unpublished event is a draft its organisation has'
+                . ' not stood behind yet.'
+            ),
+            'how' => __(
+                'Every event published is worth {scale} points; a partial'
+                . ' share earns its fraction. None published is worth'
+                . ' {none}. Needs at least {min_events} event(s) to speak.'
+            ),
+            'settings' => array(
+                'scale' => __(
+                    'Points when every event is published. Raise it where'
+                    . ' publishing is a real quality gate.'
+                ),
+                'none' => __(
+                    'Points when no event is published. Lower it to push'
+                    . ' drafts down.'
+                ),
+                'min_events' => __(
+                    'How many events the value needs before this signal'
+                    . ' speaks. Changes no points.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Publishing means little in your'
+                        . ' community'),
+                    'do' => __('Set scale and none to 0, or untick the'
+                        . ' signal.'),
+                ),
+                array(
+                    'want' => __('Drafts should clearly count against a'
+                        . ' value'),
+                    'do' => __('Lower none, e.g. to -6.'),
+                ),
+                array(
+                    'want' => __('Judge publication only on values seen'
+                        . ' in several events'),
+                    'do' => __('Raise min_events, e.g. to 3.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'scale' => array(

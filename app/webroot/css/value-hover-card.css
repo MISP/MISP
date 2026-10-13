@@ -530,161 +530,201 @@
 /* ==================================================================
  * What the modules said
  * ------------------------------------------------------------------
- * External knowledge, and visibly separate from everything above it:
- * the rest of the card is what this instance records, and this is what
- * other services say. The rule between them does that work, because a
- * heading saying it would cost a line on a card with about eighty
- * pixels of headroom.
- *
- * The chip vocabulary is the Overview panel's own — a muted key, a
- * solid value, a dashed pill for what is not shown — so a reader who
- * learned it on the page reads it here without relearning it. What does
- * not come across is that panel's layout: it spends a nine-column width
- * on one row a module, and this has 336px and one line.
+ * External knowledge, kept apart from the instance's own evidence by
+ * the rule above it. One row a module: its name in a gutter sized to
+ * the longest one, linking to that module on the Enrichment tab, then
+ * the headline answer with its field label, and what the headline left
+ * out counted at the right edge — pressing the count opens it below.
  * ================================================================== */
 
-.vp-hc-enr-strip {
+.vp-hc-sec.vp-hc-enr { padding: 6px 11px 7px; }
+
+.vp-hc-enr-hd {
     display: flex;
-    flex-wrap: wrap;
     align-items: baseline;
-    align-content: flex-start;
-    column-gap: 5px;
-    row-gap: 3px;
-    overflow: hidden;
-    /*
-     * Two chip rows: 9.5px at 1.6 line-height plus 2px of border,
-     * twice, plus the row gap. The ceiling is the guard — the cap of
-     * four chips is what keeps the content inside it — and it is here
-     * rather than on the flow because the flow no longer has a box.
-     */
-    max-height: calc(2 * (9.5px * 1.6 + 2px) + 3px);
+    gap: 8px;
+    margin-bottom: 3px;
 }
 
-/*
- * The chips themselves, on two lines.
- *
- * One line was the rule until 2026-09-15; the height it was rationing
- * is doubled now and the cap that fed it doubled with it. Chips wrap
- * rather than overflowing, so the horizontal fade that used to say
- * *there is more to the right* has nothing left to say and is gone —
- * what is not shown is the `+N` outside this row, counted server side
- * where the module list is known, which is where the design always
- * preferred to carry it.
- *
- * `max-height` is two rows exactly, as the guard rather than the
- * mechanism: four chips of at most 148px in ~290px of flow is two
- * rows, and the ceiling only bites if a future cap outgrows it.
- */
-.vp-hc-enr-flow {
-    /*
-     * No box of its own: the chips wrap against the strip's full width
-     * rather than against whatever is left beside the label, which is
-     * what makes two rows hold four chips. The element stays in the
-     * DOM because the badge JS addresses the chips through it.
-     */
-    display: contents;
-}
-
-.vp-hc-enr-k {
-    flex: none;
-    /*
-     * Baseline, not centred: the flow is two rows tall now and a
-     * centred label would float between them instead of naming the
-     * strip from its first line. A wrapping flex container takes its
-     * baseline from its first row, which is exactly the row wanted.
-     */
-    margin-right: 1px;
-    font-size: 8.5px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--vp-hc-mute);
-}
-
-.vp-hc-echip {
-    /*
-     * Natural width. Sharing the loss out proportionally made `ipasn`
-     * — which fits — read as `ipa…` to make room for one that did not;
-     * the row above fades instead, and nothing that fits is cut.
-     */
-    flex: none;
-    display: inline-flex;
-    align-items: baseline;
-    gap: 4px;
-    max-width: 148px;
-    padding: 0 6px;
-    border: 1px solid var(--vp-hc-line);
-    border-radius: 999px;
+.vp-hc-enr-more {
+    margin-left: auto;
     font-size: 9.5px;
-    line-height: 1.6;
-    white-space: nowrap;
+    line-height: 1;
+    color: var(--vp-hc-mute);
+    text-decoration: none;
 }
 
-/* The module that said it, so it reads as a name and not as a field. */
-.vp-hc-echip-k {
-    flex: 0 1 auto;
+.vp-hc-enr-more:hover,
+.vp-hc-enr-more:focus-visible {
+    color: var(--vp-hc-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.vp-hc-enr-rows {
+    display: grid;
+    grid-template-columns: fit-content(104px) minmax(0, 1fr);
+    /* Fixed, so the baseline shift between the two fonts cannot grow a row. */
+    grid-auto-rows: 16px;
+    column-gap: 12px;
+    row-gap: 2px;
+    align-items: baseline;
+}
+
+/* Both exist for the script to address; the grid lays out their cells. */
+.vp-hc-enr-row,
+.vp-hc-enr-slot { display: contents; }
+
+.vp-hc-enr-mod {
+    grid-column: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-family: var(--vp-hc-mono);
+    white-space: nowrap;
+    font: 400 10px/13px var(--vp-hc-mono);
     color: var(--vp-hc-mute);
+    text-decoration: none;
 }
 
-.vp-hc-echip-slot {
+a.vp-hc-enr-mod {
+    text-decoration: underline dotted
+        color-mix(in srgb, currentColor 45%, transparent);
+    text-underline-offset: 2px;
+}
+
+a.vp-hc-enr-mod:hover,
+a.vp-hc-enr-mod:focus-visible {
+    color: var(--vp-hc-ink);
+    text-decoration: underline solid currentColor;
+}
+
+.vp-hc-enr-ans {
+    grid-column: 2;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    font-size: 11.5px;
+    line-height: 16px;
+}
+
+.vp-hce-v {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--vp-hc-ink);
+}
+
+.vp-hce-l { font-size: 10px; line-height: 1; color: var(--vp-hc-mute); }
+
+.vp-hce-x { font-weight: 600; }
+
+/*
+ * A module that was asked and holds nothing is a finding, not a
+ * failure, and one that could not answer is neither. Both are drawn as
+ * the absence the rest of the card uses rather than in a colour.
+ */
+.vp-hce-silent,
+.vp-hce-fail,
+.vp-hce-wait,
+.vp-hce-ask { color: var(--vp-hc-mute); }
+
+.vp-hce-silent .vp-hce-x,
+.vp-hce-fail .vp-hce-x { font-weight: 400; }
+
+.vp-hce-fail { font-style: italic; }
+
+.vp-hce-ask .fa-spin { margin-right: 3px; font-size: 9px; line-height: 1; opacity: 0.7; }
+
+/* Pinned to the edge, outside the clipped text, so it is never cut. */
+.vp-hce-more {
     flex: none;
     display: inline-flex;
     align-items: baseline;
     gap: 3px;
-    /*
-     * Held open while the module is being asked, so the chip that
-     * arrives is close to the width of the chip that was waiting and
-     * the strip barely moves under the cursor.
-     */
-    min-width: 2.6em;
-    justify-content: flex-end;
-}
-
-.vp-hc-echip-slot > .fa-spin { font-size: 8px; opacity: 0.55; }
-
-.vp-hce-v { color: var(--vp-hc-ink); font-weight: 600; }
-
-/*
- * A module that was asked and holds nothing is a finding, not a
- * failure, and one that could not answer is neither a finding nor a
- * measurement. Both are drawn as the absence the rest of the card uses
- * rather than in a colour of their own.
- */
-.vp-hce-silent,
-.vp-hce-fail,
-.vp-hce-wait { color: var(--vp-hc-mute); font-weight: 400; }
-
-.vp-hce-fail { font-style: italic; }
-
-/* What the headline left behind, counted. */
-.vp-hce-more {
-    margin-left: 3px;
-    font-weight: 400;
+    margin: -1px -4px -1px auto;
+    padding: 1px 4px;
+    border: 0;
+    border-radius: 3px;
+    background: none;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
     color: var(--vp-hc-mute);
+    cursor: pointer;
 }
 
-/* Not a reading the card took: what it is not showing. */
-.vp-hc-echip-q {
-    flex: none;
-    border-style: dashed;
+.vp-hce-more:hover,
+.vp-hce-more:focus-visible,
+.vp-hce-more[aria-expanded="true"] {
+    color: var(--vp-hc-ink);
+    background: color-mix(in srgb, var(--vp-hc-ink) 8%, transparent);
+}
+
+.vp-hce-more:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--vp-hc-ink) 45%, transparent);
+    outline-offset: 0;
+}
+
+.vp-hce-more .fa-angle-down { font-size: 9px; transition: transform 0.15s; }
+
+.vp-hce-more[aria-expanded="true"] .fa-angle-down { transform: rotate(180deg); }
+
+/* The rest of one answer, hung under its headline. */
+.vp-hc-enr-rest {
+    grid-column: 2;
+    display: none;
+    min-width: 0;
+    padding-left: 8px;
+    border-left: 1px solid var(--vp-hc-line);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--vp-hc-ink);
+}
+
+.vp-hc-enr-open .vp-hc-enr-rest { display: block; }
+
+.vp-hc-enr-rest .vp-hce-x { font-weight: 500; }
+
+.vp-hc-enr-rest-link {
+    font-size: 10px;
     color: var(--vp-hc-mute);
+    text-decoration: none;
 }
 
-/*
- * The placeholder the card paints before the strip is fetched. It
- * reserves the line rather than announcing itself, so the card does not
- * grow under the cursor when the answer lands.
- */
-.vp-hc-echip-skel {
-    border-color: transparent;
+.vp-hc-enr-rest-link:hover,
+.vp-hc-enr-rest-link:focus-visible {
+    color: var(--vp-hc-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.vp-hc-enr-rest-link .fa-arrow-right { margin-left: 4px; font-size: 8.5px; }
+
+.vp-hc-enr-bar {
+    display: block;
+    height: 8px;
+    margin: 4px 0;
+    border-radius: 2px;
     background: currentColor;
     opacity: 0.1;
+}
+
+/* No text to align on, so a baseline would sit them lower than a real row. */
+.vp-hc-enr-skel .vp-hc-enr-mod,
+.vp-hc-enr-skel .vp-hc-enr-ans {
+    align-self: center;
     animation: vp-hc-pulse 1.4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .vp-hc-echip-skel { animation: none; }
+    .vp-hc-enr-skel .vp-hc-enr-mod,
+    .vp-hc-enr-skel .vp-hc-enr-ans { animation: none; }
+    .vp-hce-more .fa-angle-down { transition: none; }
 }

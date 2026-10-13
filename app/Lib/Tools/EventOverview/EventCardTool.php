@@ -168,14 +168,13 @@ class EventCardTool
 
     /**
      * One slot per marking namespace of the profile, present or absent, then
-     * the profile's other pinned taxonomies when the event carries them, and
-     * the left rail drawn from the first marking namespace.
+     * the profile's other pinned taxonomies when the event carries them.
      *
      * @param array $context EventContextTool::rows() output
      * @param array $namespaces ValueLabelPriority::markings($profile)
      * @param array $pinned the plan's pinned taxonomies, in order
      * @param array $descriptions tag name => tagDescription()
-     * @return array slots, rail (class, colour)
+     * @return array slots
      */
     public static function markings(array $context, array $namespaces, array $pinned = [], array $descriptions = [])
     {
@@ -225,17 +224,7 @@ class EventCardTool
                 $slots[] = ['key' => $namespace, 'present' => false];
             }
         }
-
-        $lead = $namespaces[0] ?? null;
-        if ($lead === null || !isset($present[$lead])) {
-            $rail = ['class' => 'dk-m-none', 'colour' => null];
-        } else {
-            $colour = $present[$lead]['tag']['Tag']['colour'] ?? null;
-            $rail = self::isNeutral($colour)
-                ? ['class' => 'dk-m-clear', 'colour' => null]
-                : ['class' => '', 'colour' => $colour];
-        }
-        return ['slots' => $slots, 'rail' => $rail];
+        return ['slots' => $slots];
     }
 
     /**

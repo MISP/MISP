@@ -21,7 +21,7 @@ App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 
 echo $this->element('genericElements/assetLoader', array(
     'css' => array('value-palette', 'analyst-profile'),
-    'js' => array('analyst-profile'),
+    'js' => array('analyst-profile', 'analyst-profile-help'),
 ));
 
 $focus = $bench['focus'];

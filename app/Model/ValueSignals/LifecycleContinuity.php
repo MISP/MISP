@@ -35,8 +35,41 @@ class LifecycleContinuity extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'The longest run of consecutive months in which this value'
-            . ' was reported.'
+            'Adds points for the longest streak of consecutive months in'
+            . ' which the value was reported.'
+        );
+        $this->help = array(
+            'name' => __('Steady reporting'),
+            'what' => __(
+                'Infrastructure reported month after month is more likely'
+                . ' to be real and long-lived. This finds the longest'
+                . ' unbroken run of months with at least one report.'
+            ),
+            'how' => __(
+                'Each month of the streak is worth {per_month} points, up'
+                . ' to {cap}. A streak shorter than {min_months} months'
+                . ' scores nothing.'
+            ),
+            'settings' => array(
+                'per_month' => __('What one month of the streak is'
+                    . ' worth.'),
+                'cap' => __('The most a streak can add.'),
+                'min_months' => __(
+                    'The shortest streak that counts at all.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Long-running infrastructure should'
+                        . ' stand out'),
+                    'do' => __('Raise per_month to 2 and cap to 24.'),
+                ),
+                array(
+                    'want' => __('Two months in a row should already'
+                        . ' count'),
+                    'do' => __('Lower min_months to 2.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'per_month' => array(

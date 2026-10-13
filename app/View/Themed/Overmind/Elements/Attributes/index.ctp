@@ -454,30 +454,32 @@ if (!$inEventView) {
     $children[0]['name'] = 'searchFor';
 }
 
+App::uses('AttributeFilterPanel', 'Tools');
+App::uses('IndexPicker', 'Tools');
+
 if (!empty($show_filters)) {
-    $myOrg = !empty($me['Organisation']['name'])
-        ? $me['Organisation']['name']
-        : $me['org_id'];
-    $children = array_merge($children, [
-        [
-            'type' => 'button',
-            'label' => __('My attributes'),
-            'icon' => 'misp-icon misp-icon-user1 misp-simple',
-            'class' => 'btn btn-primary',
-            'url' => $baseurl . '/attributes/index?email=' . urlencode($me['email'])
-        ],
-        [
+    $children[] = [
+        'type' => 'button',
+        'label' => __('My attributes'),
+        'icon' => 'misp-icon misp-icon-user1 misp-simple',
+        'class' => 'btn btn-primary',
+        'url' => $baseurl . '/attributes/index?email=' . urlencode($me['email'])
+    ];
+    // With the creator org picker, the reader's own org heads its list instead.
+    if (!IndexPicker::canPickOrgs($me)) {
+        $myOrg = !empty($me['Organisation']['name'])
+            ? $me['Organisation']['name']
+            : $me['org_id'];
+        $children[] = [
             'type' => 'button',
             'label' => __('Org attributes'),
             'icon' => 'misp-icon misp-icon-organisation misp-simple',
             'class' => 'btn btn-primary',
             'url' => $baseurl . '/attributes/index?org=' . urlencode($myOrg)
-        ]
-    ]);
+        ];
+    }
 }
 
-App::uses('AttributeFilterPanel', 'Tools');
-App::uses('IndexPicker', 'Tools');
 $filterLabels = $filterLabels ?? ['org' => [], 'tag' => [], 'galaxy' => []];
 /*
  * The global index's filters go through restSearch, which takes several values
@@ -508,10 +510,37 @@ $remotePickers[] = [
     'icon' => 'fas fa-tag',
     'source' => $baseurl . '/tags/pickerSearch',
     'resolved' => $filterLabels['tag'],
-] + ($inEventView ? ['single' => true] : ['separator' => '||', 'exclude' => true]);
+] + ($inEventView ? ['single' => true] : [
+    'separator' => '||',
+    'exclude' => true,
+    'hint' => __('Attribute or event tags.'),
+    'browser' => [
+        'kind' => 'tag',
+        'scopes' => $baseurl . '/tags/pickerScopes',
+        'tree' => $baseurl . '/tags/pickerTree',
+    ],
+]);
+// The event tab filters on a whole galaxy; here on clusters, as on the events index.
+if (!$inEventView) {
+    $remotePickers[] = [
+        'type' => 'picker',
+        'name' => 'galaxy',
+        'label' => __('Galaxy'),
+        'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+        'source' => $baseurl . '/galaxy_clusters/pickerSearch',
+        'separator' => '||',
+        'exclude' => true,
+        'resolved' => $filterLabels['galaxy'],
+        'hint' => __('Clusters attached to the attribute or its event.'),
+        'browser' => [
+            'kind' => 'galaxy',
+            'scopes' => $baseurl . '/galaxies/pickerScopes',
+        ],
+    ];
+}
 foreach (AttributeFilterPanel::children(
     compact('categoryOptions', 'typeOptions', 'orgOptions')
-        + ['galaxyOptions' => $galaxyOptions ?? null],
+        + ['galaxyOptions' => $inEventView ? ($galaxyOptions ?? null) : null],
     $inEventView
 ) as $filter) {
     $children[] = $filter + ($pickerSettings[$filter['name']] ?? []);

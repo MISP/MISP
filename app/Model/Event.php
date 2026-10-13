@@ -3850,9 +3850,7 @@ class Event extends AppModel
                 'fields' => ['DISTINCT Attribute.object_id'],
                 'table' => 'attributes',
                 'alias' => 'Attribute',
-                'conditions' => [
-                    'Attribute.event_id' => $eventIds,
-                    'Attribute.object_id !=' => 0,
+                'conditions' => $attrScope + [
                     'OR' => [
                         'Attribute.value1 LIKE' => $needle,
                         'Attribute.uuid LIKE' => $needle,

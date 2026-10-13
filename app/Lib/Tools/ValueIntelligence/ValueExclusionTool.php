@@ -135,6 +135,9 @@ class ValueExclusionTool
      * simulator needs to know that two profiles differing here are two
      * different contexts rather than two scorings.
      *
+     * `help` feeds the editor's "How it works" popover, in the shape of
+     * `ValueSignalBase::$help` minus `name`, which is the `title`.
+     *
      * @return array id => declaration
      */
     public static function catalogue()
@@ -145,11 +148,9 @@ class ValueExclusionTool
                 'title' => __('Self-sightings'),
                 'layer' => 'row_filter',
                 'description' => __(
-                    'An organisation confirming its own fresh report is'
-                    . ' not corroboration. Sightings filed by the'
-                    . ' reporting organisation within the window below'
-                    . ' are left out; later ones are kept, because'
-                    . ' "we still see this" is real information.'
+                    'Leaves out the sightings an organisation files on its'
+                    . ' own report soon after it, so agreeing with itself'
+                    . ' does not count as corroboration.'
                 ),
                 'schema' => array(
                     'within_hours' => array(
@@ -159,17 +160,55 @@ class ValueExclusionTool
                         'label' => __('Hours after the occurrence'),
                     ),
                 ),
+                'help' => array(
+                    'what' => __(
+                        'Sightings filed by the organisation whose event'
+                        . ' holds the occurrence. Right after its report,'
+                        . ' that is the organisation agreeing with itself;'
+                        . ' weeks later, "we still see this" is news, and'
+                        . ' is kept.'
+                    ),
+                    'how' => __(
+                        'A sighting from the reporting organisation within'
+                        . ' {within_hours} hours of the occurrence is left'
+                        . ' out before any signal counts sightings.'
+                    ),
+                    'note' => __(
+                        'The occurrence\'s time is its last change, as MISP'
+                        . ' keeps no creation time on an attribute, so an'
+                        . ' edited one can let a self-sighting through. A'
+                        . ' sighting whose organisation is hidden from you'
+                        . ' cannot be checked, and is kept.'
+                    ),
+                    'settings' => array(
+                        'within_hours' => __(
+                            'How long after the occurrence its reporter\'s'
+                            . ' own sightings are left out. 168 is a week.'
+                        ),
+                    ),
+                    'recipes' => array(
+                        array(
+                            'want' => __('Count an organisation\'s'
+                                . ' sightings of its own report like any'
+                                . ' other'),
+                            'do' => __('Untick Self-sightings.'),
+                        ),
+                        array(
+                            'want' => __('Leave them out for the whole'
+                                . ' first week'),
+                            'do' => __('Set within_hours to 168.'),
+                        ),
+                    ),
+                ),
             ),
             self::FEEDS_MIRRORED => array(
                 'id' => self::FEEDS_MIRRORED,
                 'title' => __('Mirrored feeds'),
                 'layer' => 'list_fold',
                 'description' => __(
-                    'Feeds sharing another\'s source counted once'
-                    . ' rather than separately. MISP does not record'
-                    . ' what a feed mirrors, so this folds by the key'
-                    . ' below — which is wrong where one provider runs'
-                    . ' unrelated feeds.'
+                    'Counts feeds that share a provider once, so one'
+                    . ' source mirrored several times is not counted as'
+                    . ' several.'
                 ),
                 'schema' => array(
                     'dedupe_by' => array(
@@ -179,41 +218,180 @@ class ValueExclusionTool
                         'options' => array('provider', 'url'),
                     ),
                 ),
+                'help' => array(
+                    'what' => __(
+                        'The feeds that carry the value, which'
+                        . ' lifecycle.feeds counts. Several feeds often'
+                        . ' mirror one upstream source; counted'
+                        . ' separately, one source looks like independent'
+                        . ' corroboration.'
+                    ),
+                    'how' => __(
+                        'Feeds sharing the same {dedupe_by} are counted'
+                        . ' once. A feed without one stands alone, and'
+                        . ' other MISP servers are never folded.'
+                    ),
+                    'note' => __(
+                        'MISP does not record what a feed mirrors, so this'
+                        . ' folds by a field instead: by provider it is'
+                        . ' wrong where one provider runs unrelated feeds.'
+                    ),
+                    'settings' => array(
+                        'dedupe_by' => __(
+                            'provider folds every feed from one provider;'
+                            . ' url folds only feeds fetched from the same'
+                            . ' address.'
+                        ),
+                    ),
+                    'recipes' => array(
+                        array(
+                            'want' => __('Count every feed separately'),
+                            'do' => __('Untick Mirrored feeds.'),
+                        ),
+                        array(
+                            'want' => __('Fold only exact duplicates, not'
+                                . ' every feed of one provider'),
+                            'do' => __('Set dedupe_by to url.'),
+                        ),
+                    ),
+                ),
             ),
             self::FEEDS_REPORTERS => array(
                 'id' => self::FEEDS_REPORTERS,
                 'title' => __('Feeds from a reporter'),
                 'layer' => 'list_fold',
                 'description' => __(
-                    'A feed published by an organisation that already'
-                    . ' reports the value is that organisation\'s'
-                    . ' report again, so it is not counted as a feed.'
-                    . ' A feed is matched to its publisher by its'
-                    . ' creator organisation, its fixed event, or the'
-                    . ' local copies of the events it carries.'
+                    'Leaves out a feed published by an organisation that'
+                    . ' already reports the value, so that organisation is'
+                    . ' not counted twice.'
                 ),
                 'schema' => array(),
+                'help' => array(
+                    'what' => __(
+                        'A feed whose publisher also reports the value in'
+                        . ' an event here. The feed is that organisation\'s'
+                        . ' report again: counted, it would add to'
+                        . ' lifecycle.feeds as well as to the reporting'
+                        . ' organisations.'
+                    ),
+                    'how' => __(
+                        'A feed is matched to its publisher by its creator'
+                        . ' organisation, its fixed event, or the local'
+                        . ' copies of the events it carries. A matched feed'
+                        . ' leaves the feed count; the organisation still'
+                        . ' counts as a reporter.'
+                    ),
+                    'note' => __(
+                        'A feed whose publisher cannot be told is kept: a'
+                        . ' fold that guesses would remove evidence.'
+                    ),
+                    'recipes' => array(
+                        array(
+                            'want' => __('Count a reporter\'s own feed as'
+                                . ' outside corroboration too'),
+                            'do' => __('Untick Feeds from a reporter.'),
+                        ),
+                    ),
+                ),
             ),
             self::ORGS_OWN => array(
                 'id' => self::ORGS_OWN,
                 'title' => __('Your own organisation'),
                 'layer' => 'condition',
                 'description' => __(
-                    'Leave your own organisation out of every count, so'
+                    'Leaves your own organisation out of every count, so'
                     . ' the assessment says what everyone else reports.'
-                    . ' This moves every aggregate at once.'
                 ),
                 'schema' => array(),
+                'help' => array(
+                    'what' => __(
+                        'What your organisation contributed: the'
+                        . ' occurrences in events it created, and the'
+                        . ' sightings filed against them. Useful when you'
+                        . ' mostly report what you already detect, and want'
+                        . ' to know what the others add.'
+                    ),
+                    'how' => __(
+                        'Left out in the query itself, so every count on'
+                        . ' the value moves at once: occurrences, reporting'
+                        . ' organisations, the published share, activity'
+                        . ' over time.'
+                    ),
+                    'note' => __(
+                        '"Your organisation" is the reader\'s: a shared'
+                        . ' profile leaves out a different one for each'
+                        . ' person. A value only your organisation reports'
+                        . ' has nothing left, and reads as having no'
+                        . ' record.'
+                    ),
+                    'recipes' => array(
+                        array(
+                            'want' => __('See what everyone else says'
+                                . ' about a value you report'),
+                            'do' => __('Tick Your own organisation, and'
+                                . ' put the value on the bench.'),
+                        ),
+                    ),
+                ),
             ),
             self::EVIDENCE_WINDOW => array(
                 'id' => self::EVIDENCE_WINDOW,
                 'title' => __('Evidence window'),
                 'layer' => 'budget',
                 'description' => __(
-                    'On a value with more occurrences than the'
-                    . ' threshold, read row evidence from the last N'
-                    . ' days only. Whole-history aggregates are never'
-                    . ' windowed.'
+                    'On a very large value, reads row by row evidence from'
+                    . ' the last days only, to keep the page fast. Counts'
+                    . ' over the whole history are never cut.'
+                ),
+                'help' => array(
+                    'what' => __(
+                        'Values seen tens of thousands of times, such as'
+                        . ' popular domains and resolvers, would have every'
+                        . ' sighting and every event holding them read.'
+                        . ' This bounds that work. It is a'
+                        . ' performance budget, not a judgement about old'
+                        . ' evidence.'
+                    ),
+                    'how' => __(
+                        'On a value with at least {min_occurrences}'
+                        . ' occurrences, only the sightings and events of'
+                        . ' the last {days} days are read, so the sighting,'
+                        . ' tag and galaxy signals see that window.'
+                    ),
+                    'note' => __(
+                        'Occurrences, reporting organisations, feeds and'
+                        . ' how recent the value is are counted over its'
+                        . ' whole history, window or not.'
+                    ),
+                    'settings' => array(
+                        'days' => __(
+                            'How far back row evidence is read on a large'
+                            . ' value.'
+                        ),
+                        'min_occurrences' => __(
+                            'How many occurrences make a value large. 0'
+                            . ' windows every value.'
+                        ),
+                    ),
+                    'recipes' => array(
+                        array(
+                            'want' => __('Read the last year on large'
+                                . ' values'),
+                            'do' => __('Set days to 365.'),
+                        ),
+                        array(
+                            'want' => __('Window only the very largest'
+                                . ' values'),
+                            'do' => __('Raise min_occurrences, e.g. to'
+                                . ' 50000.'),
+                        ),
+                        array(
+                            'want' => __('Always read the whole history'),
+                            'do' => __('Untick Evidence window. On a large'
+                                . ' instance the value page can then be'
+                                . ' slow.'),
+                        ),
+                    ),
                 ),
                 'schema' => array(
                     'days' => array(

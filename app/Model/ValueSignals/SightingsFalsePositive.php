@@ -51,7 +51,57 @@ class SightingsFalsePositive extends ValueSignalBase
     {
         $this->description = __(
             'False-positive sightings, and how many organisations filed'
-            . ' them.'
+            . ' them. Argues the value is harmless.'
+        );
+        $this->help = array(
+            'name' => __('False-positive sightings'),
+            'what' => __(
+                'Somebody who looked at the value filed a sighting saying'
+                . ' it is a false positive. Many filings from one'
+                . ' organisation are one voice; each further organisation'
+                . ' is another.'
+            ),
+            'how' => __(
+                'Each false-positive sighting is drawn as {per} points,'
+                . ' each organisation beyond the first adds'
+                . ' {per_extra_org}, {cap} at most, in the value page\'s'
+                . ' lean evidence.'
+            ),
+            'note' => __(
+                'These points do not decide the reading. Every organisation'
+                . ' that filed a false positive is already a vote for'
+                . ' harmless; the points only size this row. Unticking the'
+                . ' signal hides the row, and the votes still count.'
+            ),
+            'settings' => array(
+                'per' => __(
+                    'How large each false-positive sighting is drawn.'
+                ),
+                'per_extra_org' => __(
+                    'How much each further organisation filing one adds.'
+                ),
+                'cap' => __('The most the row is drawn as.'),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('False positives should contest a value'
+                        . ' others flag sooner'),
+                    'do' => __('Raise Thresholds → The lean →'
+                        . ' Supermajority share, e.g. to 0.75.'),
+                ),
+                array(
+                    'want' => __('An old false positive should count less'
+                        . ' once reporters flag the value again'),
+                    'do' => __('Lower Thresholds → The lean → Weight of an'
+                        . ' old dispute, e.g. to 0.25.'),
+                ),
+                array(
+                    'want' => __('One organisation\'s false positives'
+                        . ' should count less'),
+                    'do' => __('Grade it under Sources & reputation →'
+                        . ' Organisation reputation.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'per' => array(

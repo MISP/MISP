@@ -45,6 +45,7 @@
     var inFlight = null;
     var cache = {};
     var lastHeight = 420;
+    var lastEnrichRows = 0;
 
     /*
      * The enrichment strip is cached apart from the card and only once
@@ -75,8 +76,47 @@
             window.clearTimeout(hideTimer);
         });
         host.addEventListener('mouseleave', hide);
+        host.addEventListener('click', function (event) {
+            var more = event.target.closest('[data-vp-hce-more]');
+            if (more) {
+                expand(more);
+            }
+        });
         document.body.appendChild(host);
         return host;
+    }
+
+    /**
+     * Open or close the rest of one module's answer.
+     *
+     * @param {Element} button
+     */
+    function expand(button) {
+        var row = button.closest('[data-vp-eb-row]');
+        if (!row) {
+            return;
+        }
+        var open = !row.classList.contains('vp-hc-enr-open');
+        row.classList.toggle('vp-hc-enr-open', open);
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        refit();
+    }
+
+    /*
+     * Grown by the reader, so it stays where it is rather than being
+     * re-placed — which, above the anchor, would move the button out
+     * from under the pointer — and only moves up as far as it has to
+     * to stay on screen.
+     */
+    function refit() {
+        var node = element();
+        var margin = 12;
+        var box = node.getBoundingClientRect();
+        var over = box.bottom - (window.innerHeight - margin);
+        if (over > 0) {
+            node.style.top = Math.round(Math.max(margin, box.top - over))
+                + 'px';
+        }
     }
 
     /*
@@ -165,6 +205,7 @@
         var node = element();
         node.innerHTML = html;
         node.classList.add('vp-hc-shown');
+        hold(node);
         place(anchor);
         if (value !== undefined) {
             lastHeight = node.getBoundingClientRect().height;
@@ -176,7 +217,7 @@
      * ------------------------------------------------------------------
      * Enrichment, which the card asks for itself.
      * ------------------------------------------------------------------
-     * The card carries a placeholder holding the strip's line open, and
+     * The card carries a placeholder holding the section open, and
      * the strip is a second request because knowing what a reader could
      * ask costs an outbound call to the modules service — the card's
      * whole cost argument is that a hover is worth one assessment and
@@ -188,6 +229,25 @@
      * an endpoint that decides the gate and the reuse window again when
      * it lands. What differs is `shape=chip`.
      */
+
+    /**
+     * Give the placeholder as many skeleton rows as the last section
+     * drew, so the card keeps its height when the answers land.
+     *
+     * @param {Element} node The card
+     */
+    function hold(node) {
+        var rows = node.querySelector('[data-vp-hc-enrich] .vp-hc-enr-rows');
+        if (!rows || !rows.firstElementChild || !lastEnrichRows) {
+            return;
+        }
+        while (rows.children.length > lastEnrichRows) {
+            rows.lastElementChild.remove();
+        }
+        while (rows.children.length < lastEnrichRows) {
+            rows.appendChild(rows.firstElementChild.cloneNode(true));
+        }
+    }
 
     /**
      * @param {Element} node The card
@@ -253,6 +313,7 @@
             return null;
         }
         slot.replaceWith(strip);
+        lastEnrichRows = strip.querySelectorAll('[data-vp-eb-row]').length;
         place(anchor);
         return strip;
     }
@@ -347,12 +408,9 @@
         var trimmed = (html || '').trim();
         slot.innerHTML = trimmed
             ? trimmed
-            : '<span class="vp-hce-v vp-hce-fail">no answer</span>';
-        /*
-         * A headline is wider than the spinner it replaces, and the
-         * card may be sitting above the cursor — where growing means
-         * moving. Re-placed rather than left to drift.
-         */
+            : '<span class="vp-hc-enr-ans">'
+                + '<span class="vp-hce-v vp-hce-fail">no answer</span>'
+                + '</span>';
         place(anchor);
     }
 
@@ -375,7 +433,14 @@
              */
             return;
         }
-        enrichCache[value] = strip.outerHTML;
+        var copy = strip.cloneNode(true);
+        copy.querySelectorAll('.vp-hc-enr-open').forEach(function (row) {
+            row.classList.remove('vp-hc-enr-open');
+        });
+        copy.querySelectorAll('[data-vp-hce-more]').forEach(function (b) {
+            b.setAttribute('aria-expanded', 'false');
+        });
+        enrichCache[value] = copy.outerHTML;
     }
 
     /**

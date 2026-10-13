@@ -5131,6 +5131,7 @@
             rebuildEnrichAll(panel);
             sizeEnrichPane(panel);
             enrichAutoFire(panel);
+            openLinkedEnrichModule(panel);
         });
         if (panels.length && !window.__vpEnrichSized) {
             window.__vpEnrichSized = true;
@@ -5138,6 +5139,60 @@
                 document.querySelectorAll('[data-vp-enrich]')
                     .forEach(sizeEnrichPane);
             });
+        }
+    }
+
+    /**
+     * Open the module a link named (`?module=`, from the hover card),
+     * with its answer drawn.
+     *
+     * A module the auto-fire is already fetching fills its own pane;
+     * any other is shown from the store, which asks nobody anything. A
+     * module with nothing stored is only selected — a link never runs
+     * one.
+     *
+     * @param {Element} panel
+     */
+    function openLinkedEnrichModule(panel) {
+        var name = new URLSearchParams(window.location.search).get('module');
+        if (!name || panel.dataset.vpELinked === '1') {
+            return;
+        }
+        var pane = null;
+        panel.querySelectorAll('[data-vp-e-pane]').forEach(function (p) {
+            if (p.dataset.vpEPane === name) {
+                pane = p;
+            }
+        });
+        if (!pane) {
+            return;
+        }
+        panel.dataset.vpELinked = '1';
+        pickEnrichModule(panel, name);
+        var row = panel.querySelector(
+            '[data-vp-e-row="' + cssEscape(name) + '"]'
+        );
+        if (row) {
+            row.scrollIntoView({block: 'nearest'});
+        }
+
+        var plan;
+        try {
+            plan = JSON.parse(panel.dataset.vpEAuto || '[]');
+        } catch (e) {
+            plan = [];
+        }
+        var fetching = Array.isArray(plan) && plan.some(function (one) {
+            return one.module === name;
+        });
+        if (fetching) {
+            return;
+        }
+        var show = pane.querySelector(
+            '[data-vp-e-run][data-vp-e-mode="stored"]'
+        );
+        if (show && !show.disabled) {
+            runEnrichModule(show);
         }
     }
 

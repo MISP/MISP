@@ -36,12 +36,6 @@ if ($state === 'pending') {
     $stateHtml = sprintf('<span class="dk-state is-unpub" title="%s">%s</span>', h(__('Never published')), __('Unpublished'));
 }
 
-$rail = $card['markings']['rail'];
-$railStyle = '';
-if (!empty($rail['colour']) && preg_match('/^#[0-9a-f]{3,8}$/i', $rail['colour'])) {
-    $railStyle = ' style="--dk-rail:' . h($rail['colour']) . '"';
-}
-
 $ext = $ei->extension($card);
 
 $line = function ($lane, $count, array $chips, $empty) use ($ei) {
@@ -94,7 +88,7 @@ if (isset($event['correlation_count'])) {
 $extras = $ei->extras($event, $card['graphs']);
 
 ?>
-<article class="dk-card <?= h($rail['class']) ?>" data-event-id="<?= $id ?>"<?= $railStyle ?>>
+<article class="dk-card" data-event-id="<?= $id ?>">
     <div class="dk-kick">
         <span class="dk-lead">
             <i class="misp-icon misp-icon-event misp-simple" aria-hidden="true"></i>

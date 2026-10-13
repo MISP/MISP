@@ -144,8 +144,8 @@ class AttributesController extends AppController
         }
         $excludeWarninglistHits = (int)($this->request->params['named']['warning']
             ?? ($this->request->query['warning'] ?? 0)) === 2;
-        // A galaxy is not a filter of its own, it stands for the tags its clusters carry.
-        $filters = $this->__massageGalaxyFilter($filters);
+        $galaxyFilter = $filters['galaxy'] ?? null;
+        unset($filters['galaxy']);
         // The index filter bar searches for a substring.
         // Only a value that came in through the URL gets the implicit wildcards - 
         // the search form (POST) and the API keep matching the value they were handed.
@@ -201,7 +201,11 @@ class AttributesController extends AppController
             $params['deleted'] = 1;
         }
         $this->set('params', $params);
+        $galaxyParams = empty($galaxyFilter) ? null : ['tags' => $galaxyFilter] + $filters;
         $conditions = $this->MispAttribute->buildFilterConditions($user, $filters, false);
+        if ($galaxyParams !== null) {
+            $conditions = $this->__addGalaxyConditions($conditions, $galaxyParams);
+        }
         if (!empty($filters['email'])) {
             $conditions = $this->__addCreatorConditions($conditions, $filters['email']);
         }
@@ -342,28 +346,24 @@ class AttributesController extends AppController
     }
 
     /**
-     * A galaxy has no filter of its own: narrowing down to one means asking for
-     * the tags its clusters carry (`misp-galaxy:<type>="<uuid>"`).
+     * Clusters, named by their tag, as a filter of their own: an attribute must
+     * match it and the tag filter both, as on the events index.
      *
-     * @param array $filters
+     * @param array $conditions
+     * @param array $params the filters, with the clusters as `tags`
      * @return array
      */
-    private function __massageGalaxyFilter(array $filters): array
+    private function __addGalaxyConditions(array $conditions, array $params): array
     {
-        if (empty($filters['galaxy'])) {
-            unset($filters['galaxy']);
-            return $filters;
+        foreach (['Attribute' => true, 'Event' => false] as $scope => $pop) {
+            $conditions = $this->MispAttribute->Event->set_filter_tags($params, $conditions, [
+                'filter' => 'tags',
+                'scope' => $scope,
+                'pop' => $pop,
+                'context' => 'Attribute',
+            ]);
         }
-        $tags = [];
-        foreach ((array)$filters['galaxy'] as $galaxyType) {
-            $tags[] = 'misp-galaxy:' . $galaxyType . '="%"';
-        }
-        if (!empty($filters['tags'])) {
-            $tags = array_merge((array)$filters['tags'], $tags);
-        }
-        $filters['tags'] = $tags;
-        unset($filters['galaxy']);
-        return $filters;
+        return $conditions;
     }
 
     /**
@@ -395,7 +395,8 @@ class AttributesController extends AppController
 
     /**
      * Option lists for the index filter bar, and the labels of the
-     * organisations and tags the URL asks for (they are searched as you type).
+     * organisations, tags and clusters the URL asks for (they are searched as
+     * you type).
      *
      * @return void
      */
@@ -404,7 +405,7 @@ class AttributesController extends AppController
         $this->set($this->MispAttribute->indexFilterOptions());
 
         $values = [];
-        foreach (['org' => 'org', 'tags' => 'tag'] as $param => $kind) {
+        foreach (['org' => 'org', 'tags' => 'tag', 'galaxy' => 'galaxy'] as $param => $kind) {
             $raw = $this->request->query[$param] ?? ($this->request->params['named'][$param] ?? null);
             foreach (is_string($raw) ? explode('||', $raw) : [] as $piece) {
                 $piece = ltrim(trim($piece), '!');

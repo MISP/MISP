@@ -68,17 +68,6 @@
 .te-index .te-table tbody tr.te-row.is-selected > td { background-color: var(--ix-sel); }
 .te-index .te-table tbody tr.te-row.is-selected:hover > td { background-color: var(--ix-sel-hover); }
 
-/* the TLP rail down the left edge, as on the card */
-.te-index .te-table tbody tr.te-row > td.te-c-sel {
-    background-image: linear-gradient(var(--te-rail, transparent), var(--te-rail, transparent));
-    background-size: 4px 100%; background-repeat: no-repeat;
-}
-.te-index .te-table tbody tr.dk-m-clear > td.te-c-sel { --te-rail: var(--dk-rail-clear); }
-.te-index .te-table tbody tr.dk-m-none > td.te-c-sel {
-    background-image: repeating-linear-gradient(to bottom, var(--dk-rail-clear) 0 2px, transparent 2px 5px);
-    background-size: 2px 100%; background-position: 1px 0;
-}
-
 /* publish state: one glyph per state */
 .te-index .te-table td.te-c-state { padding: 0; text-align: center; }
 .te-st { display: inline-grid; place-items: center; width: 20px; height: 20px; vertical-align: middle; cursor: default; font-size: .8rem; }

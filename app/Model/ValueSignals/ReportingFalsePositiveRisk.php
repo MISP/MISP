@@ -32,8 +32,51 @@ class ReportingFalsePositiveRisk extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'A reporter tagging its own report with a false-positive'
-            . ' risk, or confirming it is one.'
+            'Reporters who tagged their own report as a likely or'
+            . ' confirmed false positive. Argues the value is harmless.'
+        );
+        $this->help = array(
+            'name' => __('Reporters\' false-positive warnings'),
+            'what' => __(
+                'A reporter can tag its own report with the false-positive'
+                . ' taxonomy. A high risk or a confirmation turns that'
+                . ' reporter into a vote for harmless, a medium risk into'
+                . ' half a vote. A low risk counts for nothing.'
+            ),
+            'how' => __(
+                'Each warning is drawn as {per_voice} points (a medium risk'
+                . ' half), {cap} at most, in the value page\'s lean'
+                . ' evidence.'
+            ),
+            'note' => __(
+                'These points do not decide the reading. The lean counts'
+                . ' votes, and each warning is already one; the points only'
+                . ' size this row. Unticking the signal removes the votes'
+                . ' too.'
+            ),
+            'settings' => array(
+                'per_voice' => __(
+                    'How large one high-risk warning is drawn.'
+                ),
+                'cap' => __(
+                    'The most all warnings together are drawn as.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Ignore reporters\' own false-positive'
+                        . ' tags'),
+                    'do' => __('Untick the signal: the warnings stop'
+                        . ' counting as votes as well.'),
+                ),
+                array(
+                    'want' => __('One warning should contest a value'
+                        . ' others flag sooner'),
+                    'do' => __('Raise Thresholds → The lean →'
+                        . ' Supermajority share, e.g. to 0.75: the threat'
+                        . ' side then needs a bigger majority.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'per_voice' => array(

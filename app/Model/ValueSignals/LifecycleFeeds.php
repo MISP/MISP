@@ -33,8 +33,40 @@ class LifecycleFeeds extends ValueSignalBase
     public function __construct()
     {
         $this->description = __(
-            'Presence in the enabled feeds and servers this instance'
-            . ' caches.'
+            'Adds points for each enabled feed or server that also lists'
+            . ' this value; takes a little off when none does.'
+        );
+        $this->help = array(
+            'name' => __('Listed in feeds'),
+            'what' => __(
+                'Whether the value appears in the feeds and servers this'
+                . ' instance has enabled and cached: an outside list'
+                . ' agreeing with the record. Only cached sources are'
+                . ' checked.'
+            ),
+            'how' => __(
+                'Each feed listing it is worth {per_feed} points, up to'
+                . ' {cap}. Listed nowhere: {no_feed}.'
+            ),
+            'settings' => array(
+                'per_feed' => __('What one feed listing it is worth.'),
+                'cap' => __('The most feeds can add.'),
+                'no_feed' => __(
+                    'Points when no feed lists it. At 0 that is not held'
+                    . ' against the value.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Your feeds should weigh more'),
+                    'do' => __('Raise per_feed to 8 and cap to 16.'),
+                ),
+                array(
+                    'want' => __('A value no feed lists should not lose'
+                        . ' points'),
+                    'do' => __('Set no_feed to 0.'),
+                ),
+            ),
         );
         $this->points_schema = array(
             'per_feed' => array(

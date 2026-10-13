@@ -10,7 +10,8 @@
  * - options  : fixed list instead of a source, [{value, label, style}]
  * - exclude  : whether a value can be excluded (`!value`)
  * - resolved : value => {label, style} for the values a URL may carry
- * - all_of   : whether `a&b` in the URL means all of them
+ * - all_of   : whether `a&b` in the URL means all of them; the column
+ *              browser then offers to switch between any of and all of
  * - hint     : line under the list
  * - separator: between values in the URL, '|' unless the index splits on '||'
  * - single   : one value at a time, applied as soon as it is picked
@@ -28,9 +29,7 @@ $name = $child['name'];
 $selectedOf = function (array $child) use ($state) {
     $raw = (string)$state->get($child['name']);
     $allOf = !empty($child['all_of']) && strpos($raw, '&') !== false && strpos($raw, '|') === false;
-    $pieces = $allOf
-        ? array_map(function ($v) { return [$v, false]; }, array_values(array_filter(explode('&', $raw), 'strlen')))
-        : IndexFilterState::pieces($raw, $child['separator'] ?? '|');
+    $pieces = IndexFilterState::pieces($raw, $allOf ? '&' : ($child['separator'] ?? '|'));
 
     $known = [];
     foreach (($child['options'] ?? []) as $option) {
@@ -88,6 +87,7 @@ $config = [
     'exclude' => !empty($child['exclude']),
     'selected' => $selected,
     'allOf' => $allOf,
+    'allOfMode' => !empty($child['all_of']),
     'hint' => $child['hint'] ?? null,
     'sep' => $child['separator'] ?? '|',
     'single' => !empty($child['single']),

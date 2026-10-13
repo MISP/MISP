@@ -29,11 +29,11 @@ class AttributeFilterPanel
             ['name' => 'org', 'label' => __('Creator Org'), 'options' => $options['orgOptions'] ?? null],
             ['name' => 'tags', 'label' => __('Tags'), 'options' => $options['tagOptions'] ?? null],
             ['name' => 'galaxy', 'label' => __('Galaxy'), 'options' => $options['galaxyOptions'] ?? null],
-            ['name' => 'toIDS', 'label' => __('IDS'), 'options' => $yesNo],
+            ['name' => 'toIDS', 'label' => __('IDS'), 'options' => $yesNo, 'icon' => 'fas fa-shield-halved'],
             ['name' => 'correlation', 'label' => __('Related events'), 'options' => $inEvent ? $yesNo : null],
             ['name' => 'feed', 'label' => __('Feed hits'), 'options' => $inEvent ? $yesNo : null],
-            ['name' => 'analystData', 'label' => __('Analyst data'), 'options' => $yesNo],
-            ['name' => 'warning', 'label' => __('Matches a warninglist'), 'options' => $inEvent ? $yesNo : $any + ['2' => __('No')]],
+            ['name' => 'analystData', 'label' => __('Analyst data'), 'options' => $yesNo, 'icon' => 'misp-icon misp-icon-analyst-note misp-simple'],
+            ['name' => 'warning', 'label' => __('Matches a warninglist'), 'options' => $inEvent ? $yesNo : $any + ['2' => __('No')], 'icon' => 'fas fa-triangle-exclamation'],
             ['name' => 'narrower', 'label' => __('Shared more narrowly'), 'options' => $inEvent ? $yesNo : null],
             ['name' => 'seen', 'label' => __('First or last seen'), 'options' => $inEvent ? $yesNo : null],
         ]);
@@ -46,6 +46,7 @@ class AttributeFilterPanel
                 'type' => 'dropdown',
                 'label' => $filter['label'],
                 'name' => $filter['name'],
+                'icon' => $filter['icon'] ?? null,
                 // The empty option's label is the control's placeholder
                 'options' => $any + $filter['options'],
                 'col' => $filter['col'] ?? 2,

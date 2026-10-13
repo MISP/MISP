@@ -1,6 +1,6 @@
 <?php
 /**
- * The hover card's enrichment strip: what the modules said, one chip
+ * The hover card's enrichment section: what the modules said, one row
  * each.
  *
  * **Fetched by the card, never with it.** Knowing what a reader could
@@ -41,15 +41,9 @@ $token = isset($this->request->params['_Token']['key'])
     : '';
 
 /*
- * Four chips, and the rest counted. The strip held one line at 360px
- * until 2026-09-15, when the height allowed it was doubled; two rows
- * of two is what that buys, and `38-hover-card.md` §13 carries the
- * measurement.
- *
- * The cap is the firing set as well as the drawn set — see `$names`
- * below — so doubling it doubles the modules a hover may ask for. That
- * is the real price of the second line, and it is why the cap moved
- * with the height rather than the height alone.
+ * One row a module, four rows at most, the rest counted. The cap is the
+ * firing set as well as the drawn set, so raising it raises how many
+ * modules a single hover may ask.
  */
 $cap = 4;
 $shown = array_slice($panel['modules'], 0, $cap);
@@ -79,47 +73,69 @@ foreach ($panel['fire'] as $one) {
      data-vp-eb-max="5"
      data-vp-eb-url="<?= h($baseurl . '/values/viewEnrichmentBadge/'
         . $valueB64) ?>">
-    <div class="vp-hc-enr-strip">
-        <span class="vp-hc-enr-k"><?= h(__('Enrichment')) ?></span>
-        <span class="vp-hc-enr-flow">
-        <?php foreach ($shown as $entry): ?>
-            <span class="vp-hc-echip"
-                  data-vp-eb-row="<?= h($entry['module']) ?>"
-                  title="<?= h($entry['module']) ?>">
-                <span class="vp-hc-echip-k"><?= h($entry['module']) ?></span>
-                <span class="vp-hc-echip-slot" data-vp-eb-slot>
-                    <?php if ($entry['pending'] === 'fire'): ?>
-                        <i class="fas fa-circle-notch fa-spin"
-                           aria-hidden="true"></i>
-                        <span class="visually-hidden"><?=
-                            h(__('asking')) ?></span>
-                    <?php elseif ($entry['pending'] === 'in_flight'): ?>
-                        <?php
-                        /*
-                         * Somebody else's request is about to write
-                         * this answer, so nothing is sent: asking now
-                         * would start a second query rather than wait
-                         * for the first.
-                         */
-                        ?>
+    <div class="vp-hc-enr-hd">
+        <span class="vp-hc-k"><?= h(__('Enrichment')) ?></span>
+        <?php if ($more > 0): ?>
+            <a class="vp-hc-enr-more"
+               href="<?= h($this->Html->url(array(
+                   'controller' => 'values',
+                   'action' => 'view',
+                   $valueB64,
+                   '#' => 'tab-enrichment',
+               ))) ?>"
+               title="<?= h(__('Open the Enrichment tab')) ?>"><?=
+                h(__n(
+                    '+%s more module',
+                    '+%s more modules',
+                    $more,
+                    $more
+                )) ?></a>
+        <?php endif; ?>
+    </div>
+    <div class="vp-hc-enr-rows">
+    <?php foreach ($shown as $entry): ?>
+        <div class="vp-hc-enr-row" data-vp-eb-row="<?= h($entry['module']) ?>">
+            <a class="vp-hc-enr-mod"
+               href="<?= h($this->Html->url(array(
+                   'controller' => 'values',
+                   'action' => 'view',
+                   $valueB64,
+                   '?' => array('module' => $entry['module']),
+                   '#' => 'tab-enrichment',
+               ))) ?>"
+               title="<?= h(sprintf(
+                   __('Open %s on the Enrichment tab'),
+                   $entry['module']
+               )) ?>"><?= h($entry['module']) ?></a>
+            <span class="vp-hc-enr-slot" data-vp-eb-slot>
+                <?php if ($entry['pending'] === 'fire'): ?>
+                    <span class="vp-hc-enr-ans">
+                        <span class="vp-hce-v vp-hce-ask">
+                            <i class="fas fa-circle-notch fa-spin"
+                               aria-hidden="true"></i>
+                            <?= h(__('asking')) ?>
+                        </span>
+                    </span>
+                <?php elseif ($entry['pending'] === 'in_flight'): ?>
+                    <?php
+                    /*
+                     * Somebody else's request is about to write this
+                     * answer, so nothing is sent: asking now would start a
+                     * second query rather than wait for the first.
+                     */
+                    ?>
+                    <span class="vp-hc-enr-ans">
                         <span class="vp-hce-v vp-hce-wait"><?=
                             h(__('being asked')) ?></span>
-                    <?php else: ?>
-                        <?= $this->element(
-                            'Values/View/value_enrichment_chip',
-                            array('badge' => $entry)
-                        ) ?>
-                    <?php endif; ?>
-                </span>
+                    </span>
+                <?php else: ?>
+                    <?= $this->element(
+                        'Values/View/value_enrichment_chip',
+                        array('badge' => $entry)
+                    ) ?>
+                <?php endif; ?>
             </span>
-        <?php endforeach; ?>
-        </span>
-        <?php if ($more > 0): ?>
-            <span class="vp-hc-echip vp-hc-echip-q"
-                  title="<?= h(sprintf(
-                      __('%s more module on the Enrichment tab'),
-                      $more
-                  )) ?>">+<?= h($more) ?></span>
-        <?php endif; ?>
+        </div>
+    <?php endforeach; ?>
     </div>
 </div>

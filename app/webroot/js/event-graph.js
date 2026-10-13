@@ -825,7 +825,7 @@ class EventGraph {
                 from: rel.from,
                 to: rel.to,
                 label: rel.type,
-                title: escapeHtml(rel.comment),
+                title: escapeHtml(rel.comment || ''),
                 color: {
                     opacity: 1.0,
                 }
@@ -2565,8 +2565,9 @@ function global_processProperties(clusterOptions, childNodes) {
     that.cluster_index = that.cluster_index + 1;
     var childrenCount = 0;
     for (var i = 0; i < childNodes.length; i++) {
-        var childNodeID = childNodes[i].id
-        if ( childNodeID.includes("rootNode:")) {
+        var childNodeID = childNodes[i].id;
+        if (typeof childNodeID === 'string' &&
+            childNodeID.startsWith('rootNode:')) {
             concerned_root_node = childNodeID;
         }
         childrenCount += childNodes[i].childrenCount || 1;

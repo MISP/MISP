@@ -709,14 +709,27 @@ button.ifb-crumb:hover { background: var(--ifb-hover-bg); color: var(--ifb-hover
     cursor: pointer;
 }
 .ifb-tray-clear:hover { color: var(--ifb-exc); background: var(--ifb-exc-bg); }
-.ifb-tray-note {
+.ifb-mode {
     flex: none;
     display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: .75rem;
-    color: var(--ifb-muted);
+    border: 1px solid var(--ifb-border);
+    border-radius: var(--bs-border-radius-sm, .25rem);
+    overflow: hidden;
 }
+.ifb-mode-btn {
+    padding: 2px 8px;
+    font: inherit;
+    font-size: .75rem;
+    line-height: 1.4;
+    color: var(--ifb-muted);
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+.ifb-mode-btn + .ifb-mode-btn { border-left: 1px solid var(--ifb-border); }
+.ifb-mode-btn:hover { color: var(--ifb-hover-fg); background: var(--ifb-hover-bg); }
+.ifb-mode-btn:focus-visible { outline: 2px solid var(--ifb-ring); outline-offset: -2px; }
+.ifb-mode-btn[aria-pressed="true"] { color: var(--ifb-on-fg); background: var(--ifb-on-bg); font-weight: 600; }
 .ifb-keys {
     flex: none;
     margin-left: auto;

@@ -36,16 +36,38 @@ foreach ($state->filters() as $name => $value) {
         }
         $allOf = !empty($picker['all_of']) && strpos($value, '&') !== false && strpos($value, '|') === false;
         if ($allOf) {
-            $names = array_values(array_filter(explode('&', $value), 'strlen'));
+            $pieces = IndexFilterState::pieces($value, '&');
+            $excluded = array_values(array_filter($pieces, function ($piece) {
+                return $piece[1];
+            }));
             $items[] = [
                 'key' => $state->key($name),
                 'label' => sprintf(__('%s (all of)'), $picker['label']),
                 'op' => ':',
-                'value' => implode(', ', array_map(function ($v) use ($known) {
-                    return $known[$v] ?? $v;
-                }, $names)),
-                'href' => $state->url([$name => null]),
+                'value' => implode(', ', array_map(function ($piece) use ($known) {
+                    return $known[$piece[0]] ?? $piece[0];
+                }, array_filter($pieces, function ($piece) {
+                    return !$piece[1];
+                }))),
+                'href' => $state->url([$name => IndexFilterState::join($excluded)]),
             ];
+            foreach ($pieces as $i => [$v, $isExcluded]) {
+                if (!$isExcluded) {
+                    continue;
+                }
+                $rest = $pieces;
+                unset($rest[$i]);
+                $items[] = [
+                    'key' => $state->key($name),
+                    'label' => $picker['label'],
+                    'op' => ' ≠',
+                    'value' => $known[$v] ?? $v,
+                    'href' => $state->url([$name => IndexFilterState::join(
+                        array_values($rest),
+                        count($pieces) - count($excluded) > 1 ? '&' : '|'
+                    )]),
+                ];
+            }
             continue;
         }
         $sep = $picker['separator'] ?? '|';

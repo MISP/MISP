@@ -37,8 +37,63 @@ class ConflictKnownInfrastructure extends ValueEscalationBase
     public function __construct()
     {
         $this->description = __(
-            'A warninglist knows the value as shared infrastructure'
-            . ' while several organisations report it as a threat.'
+            'Marks the value contested when a warninglist knows it as'
+            . ' shared infrastructure and several organisations flag it'
+            . ' as a threat.'
+        );
+        $this->help = array(
+            'name' => __('Shared infrastructure that gets reported'),
+            'what' => __(
+                'A value MISP knows as shared infrastructure, such as a'
+                . ' CDN edge or a hosting range, that organisations report.'
+                . ' Shared does not mean harmless, and reported does not'
+                . ' make it one tenant\'s: blocking it may hit everyone'
+                . ' else on it, ignoring it may miss what peers flagged.'
+            ),
+            'how' => __(
+                'Fires when the value is on a {warninglist_category} list'
+                . ' and at least {min_independent_reports} organisations'
+                . ' flag it for detection. The reading is then contested,'
+                . ' however many others call it harmless.'
+            ),
+            'note' => __(
+                'An organisation counts when its grade under Sources &'
+                . ' reputation lets it vote. Unticked, the organisations'
+                . ' are counted as for any value, and only a known_hit'
+                . ' below zero (Signals → lifecycle.warninglist) can still'
+                . ' contest a threat reading.'
+            ),
+            'settings' => array(
+                'warninglist_category' => __(
+                    'Which kind of list must match. A list\'s category is'
+                    . ' set under Sources & reputation → Warninglist'
+                    . ' categories.'
+                ),
+                'min_independent_reports' => __(
+                    'The fewest organisations for the rule to fire. One'
+                    . ' organisation tagging a CDN address is a mistake in'
+                    . ' one event; several arriving at it separately is a'
+                    . ' pattern.'
+                ),
+            ),
+            'recipes' => array(
+                array(
+                    'want' => __('Let the organisations decide a value on'
+                        . ' a CDN or hosting list'),
+                    'do' => __('Untick this rule.'),
+                ),
+                array(
+                    'want' => __('Contest it only when many organisations'
+                        . ' report it'),
+                    'do' => __('Raise min_independent_reports, e.g. to'
+                        . ' 6.'),
+                ),
+                array(
+                    'want' => __('Contest it as soon as one organisation'
+                        . ' reports it'),
+                    'do' => __('Set min_independent_reports to 1.'),
+                ),
+            ),
         );
         $this->when_schema = array(
             'warninglist_category' => array(
@@ -50,7 +105,7 @@ class ConflictKnownInfrastructure extends ValueEscalationBase
             'min_independent_reports' => array(
                 'type' => 'int',
                 'default' => 3,
-                'label' => __('Organisations reporting it, at least'),
+                'label' => __('Organisations flagging it, at least'),
             ),
         );
     }
@@ -62,7 +117,7 @@ class ConflictKnownInfrastructure extends ValueEscalationBase
         if (empty($lists)) {
             return null;
         }
-        $orgs = $this->orgCount($context);
+        $orgs = $this->threatOrgCount($context);
         $minimum = (int)$this->when($config, 'min_independent_reports');
         if ($orgs < $minimum) {
             return null;
@@ -75,7 +130,7 @@ class ConflictKnownInfrastructure extends ValueEscalationBase
                 $orgs
             ),
             'evidence' => sprintf(
-                __('%1$s · %2$d reporting organisations'),
+                __('%1$s · %2$d organisations flag it'),
                 implode(', ', $lists),
                 $orgs
             ),
