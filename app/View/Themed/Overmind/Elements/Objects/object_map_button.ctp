@@ -31,10 +31,19 @@ if ($object['name'] === 'geolocation') {
 } else {
     $attachmentRelations = ['gpx' => 'attachment', 'uav' => 'flight-path', 'geojson' => 'attachment'];
     $relation = $attachmentRelations[$object['name']] ?? null;
-    if ($relation !== null && isset($byRelation[$relation])) {
+    // A uav carries any number of flight paths.
+    $files = [];
+    foreach ($object['Attribute'] ?? [] as $attribute) {
+        if ($relation !== null && empty($attribute['deleted'])
+            && $attribute['object_relation'] === $relation
+        ) {
+            $files[] = ['attachment' => $attribute['id'], 'name' => $attribute['value']];
+        }
+    }
+    if (!empty($files)) {
         $data = [
             'kind' => $object['name'] === 'geojson' ? 'geojson' : 'gpx',
-            'attachment' => $byRelation[$relation]['id'],
+            'files' => $files,
         ];
     }
 }

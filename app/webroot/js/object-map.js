@@ -223,24 +223,41 @@
             return;
         }
         info.textContent = 'Loading…';
-        var url = baseurl + '/attributes/download/' + encodeURIComponent(spec.attachment);
-        fetch(url, {credentials: 'same-origin'})
-            .then(function (response) {
-                if (!response.ok) {
-                    throw new Error(response.status);
-                }
-                return response.text();
-            })
-            .then(function (text) {
-                info.textContent = spec.kind === 'geojson'
-                    ? drawGeojson(map, JSON.parse(text))
-                    : drawGpx(map, text);
-            })
-            .catch(function () {
-                info.textContent = spec.kind === 'geojson'
-                    ? 'The attachment could not be loaded as GeoJSON.'
-                    : 'The attachment could not be loaded.';
-            });
+        var bounds = L.latLngBounds([]);
+        var loads = spec.files.map(function (file) {
+            return fetch(baseurl + '/attributes/download/' + encodeURIComponent(file.attachment),
+                {credentials: 'same-origin'})
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error(response.status);
+                    }
+                    return response.text();
+                })
+                .then(function (text) {
+                    return spec.kind === 'geojson'
+                        ? drawGeojson(map, JSON.parse(text), {bounds: bounds})
+                        : drawGpx(map, text, {bounds: bounds});
+                })
+                .catch(function () {
+                    return spec.kind === 'geojson'
+                        ? 'The attachment could not be loaded as GeoJSON.'
+                        : 'The attachment could not be loaded.';
+                });
+        });
+        Promise.all(loads).then(function (lines) {
+            if (bounds.isValid()) {
+                map.fitBounds(bounds, {padding: [20, 20]});
+            }
+            if (lines.length === 1) {
+                info.textContent = lines[0];
+                return;
+            }
+            info.replaceChildren.apply(info, lines.map(function (line, i) {
+                var row = el('div', null, ' — ' + line);
+                row.prepend(el('b', null, spec.files[i].name));
+                return row;
+            }));
+        });
     }
 
     /*
