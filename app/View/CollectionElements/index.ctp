@@ -1,4 +1,5 @@
 <?php
+    App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
     $fields = [
         [
             'name' => __('Id'),
@@ -12,9 +13,25 @@
         [
             'name' => __('Element'),
             'sort' => 'CollectionElement.element_type',
-            'element' => 'model',
-            'model_name' => 'CollectionElement.element_type',
-            'model_id' => 'CollectionElement.element_uuid'
+            'element' => 'custom',
+            'function' => function (array $row) use ($baseurl) {
+                $element = $row['CollectionElement'];
+                if ($element['element_type'] === 'Value') {
+                    return sprintf(
+                        '<a href="%s/values/view/%s">%s</a>',
+                        h($baseurl),
+                        h(ValueUrlTool::encode($element['value'])),
+                        h($element['value'])
+                    );
+                }
+                return $this->element('genericElements/IndexTable/Fields/model', [
+                    'row' => $row,
+                    'field' => [
+                        'model_name' => 'CollectionElement.element_type',
+                        'model_id' => 'CollectionElement.element_uuid'
+                    ]
+                ]);
+            }
         ],
         [
             'name' => __('Element type'),
