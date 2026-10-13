@@ -4888,12 +4888,21 @@ class EventsController extends AppController
             ->getRelatedAttributes($user, $eventId);
         $correlationCounts = [];
         if (!empty($relatedAttributes)) {
+            // A row carries the other attribute's own spelling: count each
+            // shared value group once, however many spellings show it
+            $spellings = [];
             foreach ($relatedAttributes as $attrCorrelations) {
                 foreach ($attrCorrelations as $corr) {
-                    $reId = $corr['id'];
-                    $correlationCounts[$reId][
-                        $corr['value']
-                    ] = true;
+                    $spellings[(string)$corr['value']] = true;
+                }
+            }
+            $groups = $this->Event->Attribute->loadAttributeValue()
+                ->resolveCi(array_map('strval', array_keys($spellings)));
+            foreach ($relatedAttributes as $attrCorrelations) {
+                foreach ($attrCorrelations as $corr) {
+                    $ids = $groups[(string)$corr['value']] ?? [];
+                    $group = empty($ids) ? 'text:' . $corr['value'] : min($ids);
+                    $correlationCounts[$corr['id']][$group] = true;
                 }
             }
         }
