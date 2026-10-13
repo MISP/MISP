@@ -267,8 +267,12 @@
      *
      * spec: {tileUrl, points: [{lat, lon, popup: [line, …]}],
      *        files: [{attachment, kind: 'area' | 'track'}]}
-     * opts: {colours: {point, area, track}, tileClass,
-     *        onStatus(attachment, text), onReady()}
+     * opts: {colours: {point, area, track, focus}, tileClass, focusClass,
+     *        fitAllLabel, onStatus(attachment, text, drawn), onReady()}
+     *
+     * focus(key) fits and centres the map on one thing and rings it; a key
+     * is 'point:<index>' or 'file:<attachment>'. With two things or more,
+     * a control on the map fits them all again.
      */
     function drawAll(holder, spec, opts) {
         opts = opts || {};
@@ -276,14 +280,17 @@
         var map = L.map(holder, {scrollWheelZoom: false});
         map.setView([20, 0], 2);
         var bounds = L.latLngBounds([]);
+        var items = {};
         var removed = false;
-        (spec.points || []).forEach(function (point) {
+        var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        (spec.points || []).forEach(function (point, i) {
             var at = L.latLng(point.lat, point.lon);
             var marker = dot(at, colours.point, 7).addTo(map);
             if (point.popup && point.popup.length) {
                 marker.bindPopup(popup(point.popup.map(function (line) { return [null, line]; })));
             }
             bounds.extend(at);
+            items['point:' + i] = {at: at};
         });
         var say = opts.onStatus || function () {};
         var loads = (spec.files || []).map(function (file) {
@@ -299,23 +306,100 @@
                     if (removed) {
                         return;
                     }
-                    say(file.attachment, file.kind === 'area'
-                        ? drawGeojson(map, JSON.parse(text), {bounds: bounds, colour: colours.area})
-                        : drawGpx(map, text, {bounds: bounds, colour: colours.track}));
+                    var own = L.latLngBounds([]);
+                    var group = L.featureGroup().addTo(map);
+                    var status = file.kind === 'area'
+                        ? drawGeojson(group, JSON.parse(text), {bounds: own, colour: colours.area})
+                        : drawGpx(group, text, {bounds: own, colour: colours.track});
+                    if (own.isValid()) {
+                        bounds.extend(own);
+                        items['file:' + file.attachment] = {bounds: own};
+                    }
+                    say(file.attachment, status, own.isValid());
                 })
                 .catch(function () {
                     say(file.attachment, file.kind === 'area'
                         ? 'The attachment could not be loaded as GeoJSON.'
-                        : 'The attachment could not be loaded.');
+                        : 'The attachment could not be loaded.', false);
                 });
         });
+
+        var halo = null;
+        var focusing = 0;
+        function unmark() {
+            if (halo) {
+                map.removeLayer(halo);
+                halo = null;
+            }
+        }
+        function mark(item) {
+            unmark();
+            var style = {color: colours.focus || '#000', fill: false, interactive: false, className: opts.focusClass || ''};
+            var shown = halo = item.at
+                ? L.circleMarker(item.at, L.extend({radius: 16, weight: 3}, style)).addTo(map)
+                : L.rectangle(item.bounds.pad(0.12), L.extend({weight: 2, dashArray: '6 5'}, style)).addTo(map);
+            setTimeout(function () {
+                if (halo === shown && !removed) {
+                    unmark();
+                }
+            }, 2400);
+        }
+        function fitAll(animate) {
+            if (bounds.isValid()) {
+                map.fitBounds(bounds, {padding: [28, 28], maxZoom: 15, animate: animate});
+            }
+        }
+        function focus(key) {
+            var item = items[key];
+            if (!item) {
+                return false;
+            }
+            var seq = ++focusing;
+            map.once('moveend', function () {
+                if (seq === focusing && !removed) {
+                    mark(item);
+                }
+            });
+            if (item.at) {
+                // A place gets its town and surroundings, unless already closer.
+                var zoom = Math.max(map.getZoom(), 11);
+                calm ? map.setView(item.at, zoom, {animate: false}) : map.flyTo(item.at, zoom, {duration: 0.8});
+            } else if (calm) {
+                map.fitBounds(item.bounds, {padding: [28, 28], maxZoom: 15, animate: false});
+            } else {
+                map.flyToBounds(item.bounds, {padding: [28, 28], maxZoom: 15, duration: 0.8});
+            }
+            return true;
+        }
+        var FitAll = L.Control.extend({
+            options: {position: 'topleft'},
+            onAdd: function () {
+                var bar = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                var link = L.DomUtil.create('a', '', bar);
+                link.href = '#';
+                link.title = opts.fitAllLabel || 'Show everything';
+                link.setAttribute('role', 'button');
+                link.setAttribute('aria-label', link.title);
+                link.innerHTML = '<i class="fas fa-expand" aria-hidden="true"></i>';
+                L.DomEvent.disableClickPropagation(bar);
+                L.DomEvent.on(link, 'click', function (e) {
+                    L.DomEvent.preventDefault(e);
+                    focusing++;
+                    unmark();
+                    fitAll(!calm);
+                });
+                return bar;
+            }
+        });
+
         Promise.all(loads).then(function () {
             if (removed) {
                 return;
             }
             map.invalidateSize();
-            if (bounds.isValid()) {
-                map.fitBounds(bounds, {padding: [28, 28], maxZoom: 15, animate: false});
+            fitAll(false);
+            if (Object.keys(items).length > 1) {
+                map.addControl(new FitAll());
             }
             var tiles = L.tileLayer(spec.tileUrl + '/hot/{z}/{x}/{y}.png', {
                 maxZoom: 21,
@@ -330,6 +414,7 @@
         });
         return {
             map: map,
+            focus: focus,
             remove: function () {
                 removed = true;
                 map.remove();

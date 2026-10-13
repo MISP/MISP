@@ -93,6 +93,7 @@ $strings = array(
     'allShown' => __('all %s shown'),
     'rows' => __('%1$s of %2$s rows'),
     'allRows' => __('All %s rows'),
+    'fitAll' => __('Show everything on the map'),
 );
 
 $index = 0;

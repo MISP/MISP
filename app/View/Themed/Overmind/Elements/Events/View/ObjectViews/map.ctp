@@ -25,9 +25,25 @@ $link = function ($origin, $text) use ($baseurl) {
 $kindOf = function ($template) {
     return $template === 'geojson' ? 'area' : 'track';
 };
+// With two things or more on the map, each legend line can fit and centre
+// the map on its own; a track or area's waits until its file is drawn.
+$locatable = count($data['points']) + count($map['files']) > 1;
+$locate = function ($key, $what, $ready) use ($locatable) {
+    if (!$locatable) {
+        return '';
+    }
+    return sprintf(
+        '<button type="button" class="eov-locate" data-eov-locate="%s" title="%s" aria-label="%s"%s>'
+            . '<i class="fas fa-location-crosshairs" aria-hidden="true"></i></button>',
+        h($key),
+        h(__('Fit and centre the map on this')),
+        h(sprintf(__('Fit and centre the map on %s'), $what)),
+        $ready ? '' : ' disabled'
+    );
+};
 
 $spec = array('tileUrl' => $map['tile_url'], 'points' => array(), 'files' => array());
-foreach ($data['points'] as $point) {
+foreach (array_values($data['points']) as $point) {
     $origin = $origins[$point['module']] ?? null;
     $spec['points'][] = array(
         'lat' => (float)$point['lat'],
@@ -47,8 +63,8 @@ foreach ($map['files'] as $file) {
 ?>
 <div class="eov-map" role="img" data-eov-map="<?= h(json_encode($spec)) ?>"
      aria-label="<?= h(__('Map of every place, area and track in this event')) ?>"></div>
-<ul class="eov-legend" aria-label="<?= h(__('On the map')) ?>">
-    <?php foreach ($data['points'] as $point): ?>
+<ul class="eov-legend<?= $locatable ? ' has-locate' : '' ?>" aria-label="<?= h(__('On the map')) ?>">
+    <?php foreach (array_values($data['points']) as $i => $point): ?>
         <?php $origin = $origins[$point['module']] ?? null; ?>
         <li>
             <span class="eov-key eov-key-point"></span>
@@ -58,6 +74,7 @@ foreach ($map['files'] as $file) {
                 $point['lat'] . ', ' . $point['lon'],
             )))) ?><?= $origin === null ? '' : ' · ' . $link($origin,
                 $origin['template'] . ' #' . $origin['object_id']) ?></span>
+            <?= $locate('point:' . $i, $name($origin), true) ?>
         </li>
     <?php endforeach; ?>
     <?php foreach ($map['files'] as $file): ?>
@@ -82,6 +99,7 @@ foreach ($map['files'] as $file) {
                 ?>" download="<?= h($file['name']) ?>"><?= h(__('download'))
                 ?></a> · <span data-eov-status="<?= (int)$file['attachment']
                 ?>"><?= h(__('loading…')) ?></span></span>
+            <?= $locate('file:' . (int)$file['attachment'], $file['name'], false) ?>
         </li>
     <?php endforeach; ?>
 </ul>

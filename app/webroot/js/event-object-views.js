@@ -42,6 +42,12 @@
         return h('i', { class: cls, 'aria-hidden': 'true' });
     }
 
+    // What the fixed top bar and the sticky tab strip cover.
+    function topInset() {
+        var nav = document.querySelector('nav.rc-nav');
+        return (nav ? nav.getBoundingClientRect().height : 0) + 52;
+    }
+
     var shelf = null;
 
     function Shelf(root) {
@@ -228,8 +234,7 @@
     // The open tile's line and the panel's head in view, without jumping when
     // they already are.
     Shelf.prototype.keepInView = function (rec) {
-        var nav = document.querySelector('nav.rc-nav');
-        var top = (nav ? nav.getBoundingClientRect().height : 0) + 52;
+        var top = topInset();
         var t = rec.el.getBoundingClientRect();
         var p = this.panel.getBoundingClientRect();
         var room = window.innerHeight - top;
@@ -311,17 +316,37 @@
             colours: {
                 point: colour('--eov-geo-point', '#6f5fb5'),
                 area: colour('--eov-geo-area', '#0b7f9c'),
-                track: colour('--eov-geo-track', '#d9480f')
+                track: colour('--eov-geo-track', '#d9480f'),
+                focus: colour('--eov-geo-focus', '#000')
             },
             tileClass: 'eov-map-tiles',
-            onStatus: function (attachment, text) {
+            focusClass: 'eov-geo-focus',
+            fitAllLabel: this.strings.fitAll,
+            onStatus: function (attachment, text, drawn) {
                 var status = panel.querySelector('[data-eov-status="' + attachment + '"]');
                 if (status) status.textContent = text;
+                var locate = panel.querySelector('[data-eov-locate="file:' + attachment + '"]');
+                if (locate) locate.disabled = !drawn;
             },
             onReady: function () {
                 holder.setAttribute('data-eov-map-ready', '');
             }
         });
+    };
+
+    // The legend sits under the map: bring the map back into view before
+    // moving it, or the reader sees nothing happen.
+    Shelf.prototype.locate = function (key) {
+        var holder = this.panel.querySelector('[data-eov-map]');
+        if (!this.mapState || !holder) return;
+        var top = topInset();
+        var r = holder.getBoundingClientRect();
+        if (r.top < top) {
+            window.scrollBy({ top: r.top - top - 8, behavior: 'instant' });
+        } else if (r.bottom > window.innerHeight) {
+            window.scrollBy({ top: Math.min(r.bottom - window.innerHeight + 16, r.top - top - 8), behavior: 'instant' });
+        }
+        this.mapState.focus(key);
     };
 
     Shelf.prototype.destroyMap = function () {
@@ -340,6 +365,11 @@
             && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
             e.preventDefault();
             window.MispEventOverview.openFiltered('objects', { object: object.getAttribute('data-eov-object') });
+            return;
+        }
+        var locate = e.target.closest('[data-eov-locate]');
+        if (locate) {
+            this.locate(locate.getAttribute('data-eov-locate'));
             return;
         }
         var objects = e.target.closest('[data-eov-objects]');

@@ -34,6 +34,7 @@
     --eov-geo-point: #6f5fb5;
     --eov-geo-area: #0b7f9c;
     --eov-geo-track: #d9480f;
+    --eov-geo-focus: #111;
 
     overflow: visible;
 }
@@ -50,6 +51,7 @@
     --eov-geo-point: #8f7ff0;
     --eov-geo-area: #22b8d8;
     --eov-geo-track: #ff8a4c;
+    --eov-geo-focus: #fff;
 }
 
 /* ── head ────────────────────────────────────────────────────── */
@@ -863,6 +865,62 @@ a.eov-src:hover {
 
 .eov-lg-meta a {
     white-space: nowrap;
+}
+
+.eov-legend.has-locate li {
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+}
+
+.eov-locate {
+    display: inline-flex;
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: center;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+    background: var(--bs-body-bg);
+    color: var(--eov-quiet);
+    font-size: .8rem;
+    cursor: pointer;
+}
+
+.eov-locate:hover:not(:disabled) {
+    border-color: var(--eov-accent-line);
+    background: var(--eov-accent-soft);
+    color: var(--eov-accent-ink);
+}
+
+.eov-locate:focus-visible {
+    outline: 2px solid var(--eov-ring);
+    outline-offset: 1px;
+}
+
+.eov-locate:disabled {
+    opacity: .4;
+    cursor: default;
+}
+
+/* The ring or box that marks what a legend line just centred the map on. */
+.eov-geo-focus {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: eov-geo-focus 2.4s ease-out both;
+}
+
+@keyframes eov-geo-focus {
+    0% { opacity: 0; transform: scale(1.8); }
+    18% { opacity: 1; transform: none; }
+    75% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .eov-geo-focus { animation: none; }
 }
 
 .eov-files {
