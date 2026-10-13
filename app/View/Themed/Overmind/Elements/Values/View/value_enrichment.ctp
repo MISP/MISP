@@ -74,9 +74,40 @@ $noRun = __(
  * a value is several, and a reader has to know which of them put a
  * module on the rail.
  */
+$typing = isset($enrichment['typing']) ? $enrichment['typing'] : null;
 $bits = array();
-if (empty($types)) {
+if ($typing !== null) {
     $bits[] = h(__('No occurrence you can see'));
+    $byBasis = array();
+    foreach ($types as $row) {
+        $byBasis[$row['basis']][] = '<span class="font-monospace">'
+            . h($row['type']) . '</span>';
+    }
+    $labels = array(
+        'read' => array(
+            __('type read from the value: %s'),
+            __('types read from the value: %s'),
+        ),
+        'picked' => array(
+            __('type you picked: %s'),
+            __('type you picked: %s'),
+        ),
+        'held' => array(
+            __('asked before as: %s'),
+            __('asked before as: %s'),
+        ),
+    );
+    foreach ($labels as $basis => $label) {
+        if (!empty($byBasis[$basis])) {
+            $bits[] = sprintf(
+                h($label[count($byBasis[$basis]) === 1 ? 0 : 1]),
+                implode(', ', $byBasis[$basis])
+            );
+        }
+    }
+    if ($typing['source'] === 'none') {
+        $bits[] = h(__('no type read from the value'));
+    }
 } else {
     $names = array();
     foreach ($types as $row) {
@@ -238,24 +269,18 @@ if ($service['reachable']) {
     <?php elseif (empty($types)): ?>
 
         <?php
-        /*
-         * No type, and the reason is this reader's rather than the
-         * value's: modules are matched on the type an occurrence
-         * carries, and a reader who may see none has nothing to match
-         * against. Deliberately not phrased as "MISP cannot classify
-         * this value" — that is a claim about the string, which is not
-         * what is missing.
-         */
+        // No occurrence to take a type from, and the value's shape gave none.
         ?>
         <div class="vp-empty p-4">
             <div class="fw-semibold mb-1">
-                <?= h(__('Nothing to enrich here.')) ?>
+                <?= h(__('No type to match modules on.')) ?>
             </div>
             <div class="small text-muted">
                 <?= h(__(
-                    'Enrichment modules accept attribute types, and'
-                    . ' you hold no occurrence of this value to take a'
-                    . ' type from. Nothing has been sent anywhere.'
+                    'Enrichment modules accept attribute types. You hold'
+                    . ' no occurrence of this value to take one from, and'
+                    . ' MISP could not read one from the value itself.'
+                    . ' Nothing has been sent anywhere.'
                 )) ?>
             </div>
         </div>

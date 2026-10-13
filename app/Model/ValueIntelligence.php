@@ -10,6 +10,7 @@ App::uses('ValueWarninglistTool', 'Tools/ValueIntelligence');
 App::uses('ValueTrustTool', 'Tools/ValueIntelligence');
 App::uses('ValueStatementTool', 'Tools/ValueIntelligence');
 App::uses('ValueEnrichmentTool', 'Tools/ValueIntelligence');
+App::uses('ValueTypeGuessTool', 'Tools/ValueIntelligence');
 App::uses('ValueRendererTool', 'Tools/ValueIntelligence');
 App::uses('ValueSignalLoader', 'Tools/ValueIntelligence');
 App::uses('ValueEnrichmentRun', 'Model');
@@ -14463,9 +14464,13 @@ class ValueIntelligence extends AppModel
      * so when it fails this asks `getModules()` directly to find out
      * which. A working instance never pays for that.
      *
+     * A reader who holds no occurrence gets a `typing` block and is
+     * matched on the types it names instead; null otherwise.
+     *
      * @param array $user
      * @param string $value
-     * @param array $options `profile`
+     * @param array $options `profile`, `roles`, `as` (a type to match on
+     *     when the reader holds no occurrence)
      * @return array
      */
     private function enrichmentCatalogue(array $user, $value,
@@ -14502,7 +14507,6 @@ class ValueIntelligence extends AppModel
         if (isset($options['roles'])) {
             $plan['roles'] = $options['roles'];
         }
-        $rows = $this->enrichmentEligible($enabled, $types, $plan);
         /*
          * Phase 11, D25. One indexed read over the store's leading
          * key columns, and the whole reason the tab gains a memory
@@ -14515,11 +14519,25 @@ class ValueIntelligence extends AppModel
             $user,
             $value
         );
+        $typing = null;
+        if (empty($types)) {
+            $typing = $this->enrichmentTyping(
+                $value,
+                $enabled,
+                $plan,
+                $stored,
+                isset($options['as']) ? $options['as'] : null
+            );
+            $types = $typing['types'];
+            unset($typing['types']);
+        }
+        $rows = $this->enrichmentEligible($enabled, $types, $plan);
         $rows = $this->enrichmentAttachStored($rows, $stored);
 
         return array(
             'service' => $service,
             'types' => $types,
+            'typing' => $typing,
             'enabled' => count($modules),
             /*
              * MISP gates `hoverEnrichment` and `queryEnrichment` on
@@ -14545,9 +14563,128 @@ class ValueIntelligence extends AppModel
                 $types,
                 $rows,
                 $service,
-                $stored
+                $stored,
+                $typing !== null
             ),
         );
+    }
+
+    /**
+     * The types to match modules on for a reader who holds no
+     * occurrence: their pick, else what the value reads as, then any
+     * type the organisation has already asked about it under.
+     *
+     * @param string $value
+     * @param array|string $enabled From `getEnabledModules`
+     * @param array $plan
+     * @param array $stored `module|type` => row
+     * @param mixed $as The reader's pick, untrusted
+     * @return array `source`, `read`, `chosen`, `choices`,
+     *     `workflow_blocks`, `types`
+     */
+    private function enrichmentTyping($value, $enabled, array $plan,
+        array $stored, $as
+    ) {
+        $offered = $this->enrichmentOfferedTypes($enabled, $plan);
+        $warninglist = $this->model('Warninglist');
+        $read = ValueTypeGuessTool::read(
+            $value,
+            array_keys($offered),
+            $warninglist->fetchTLDLists(),
+            $warninglist->fetchSecurityVendorDomains()
+        );
+        $picked = is_string($as) && isset($offered[$as]) ? $as : null;
+
+        $basis = array();
+        foreach ($picked === null ? $read : array($picked) as $type) {
+            $basis[$type] = $picked === null ? 'read' : 'picked';
+        }
+        foreach ($stored as $row) {
+            if (!isset($basis[$row['type']]) && isset($offered[$row['type']])) {
+                $basis[$row['type']] = 'held';
+            }
+        }
+        $types = array();
+        foreach ($basis as $type => $how) {
+            $types[] = array(
+                'type' => $type,
+                'count' => 0,
+                'stored' => array(),
+                'basis' => $how,
+            );
+        }
+
+        $choices = array();
+        $ranked = ValueTypeGuessTool::rank($value, array_keys($offered));
+        foreach ($ranked as $group => $names) {
+            $choices[$group] = array();
+            foreach ($names as $type) {
+                $choices[$group][] = array(
+                    'type' => $type,
+                    'modules' => $offered[$type],
+                );
+            }
+        }
+
+        if ($picked !== null) {
+            $source = 'picked';
+        } else {
+            $source = empty($read) ? 'none' : 'read';
+        }
+        return array(
+            'source' => $source,
+            'read' => $read,
+            'chosen' => $picked !== null
+                ? $picked
+                : (empty($read) ? null : $read[0]),
+            'choices' => $choices,
+            'workflow_blocks' => $this->isTriggerCallable(
+                'enrichment-before-query'
+            ),
+            'types' => $types,
+        );
+    }
+
+    /**
+     * Every attribute type an enrichment module offered to this reader
+     * accepts, with the modules that accept it.
+     *
+     * Composite types are left out — a value is one half of a pair —
+     * and so are input names MISP has no attribute type for.
+     *
+     * @param array|string $enabled From `getEnabledModules`
+     * @param array $plan
+     * @return array type => module names, sorted by type
+     */
+    private function enrichmentOfferedTypes($enabled, array $plan)
+    {
+        if (!is_array($enabled)) {
+            return array();
+        }
+        $all = array();
+        foreach (array('types', 'hover_type') as $map) {
+            if (empty($enabled[$map]) || !is_array($enabled[$map])) {
+                continue;
+            }
+            foreach (array_keys($enabled[$map]) as $type) {
+                $all[$type] = array('type' => (string)$type, 'count' => 0);
+            }
+        }
+        $attributes = $this->model('MispAttribute');
+        $composite = $attributes->getCompositeTypes();
+        $offered = array();
+        $rows = $this->enrichmentEligible($enabled, array_values($all), $plan);
+        foreach ($rows as $row) {
+            foreach (array_keys($row['types']) as $type) {
+                if (isset($attributes->typeDefinitions[$type])
+                    && !in_array($type, $composite, true)
+                ) {
+                    $offered[$type][] = $row['name'];
+                }
+            }
+        }
+        ksort($offered, SORT_STRING | SORT_FLAG_CASE);
+        return $offered;
     }
 
     /**
@@ -14976,7 +15113,7 @@ class ValueIntelligence extends AppModel
      */
     private function enrichmentDeclaration(array $user, $profile,
         array $plan, array $types, array $rows, array $service,
-        array $stored = array()
+        array $stored = array(), $typed = false
     ) {
         $facts = array(
             'service' => $service,
@@ -15032,6 +15169,15 @@ class ValueIntelligence extends AppModel
             $stored,
             $this->enrichmentTimeout()
         );
+        if ($typed) {
+            // Nothing runs unasked on a type the reader does not hold.
+            foreach ($resolved['auto'] as &$one) {
+                if ($one['disposition'] === 'fire') {
+                    $one['disposition'] = 'blocked';
+                }
+            }
+            unset($one);
+        }
         return $resolved;
     }
 
@@ -15270,8 +15416,10 @@ class ValueIntelligence extends AppModel
                 'roles' => ValueEnrichmentTool::planFor(
                     ClassRegistry::init('AnalystProfile')->resolveFor($user)
                 )['roles'],
+                'as' => $type,
             )
         );
+        $typed = $catalogue['typing'] !== null;
         $run = array(
             'module' => $name,
             'type' => $type,
@@ -15307,7 +15455,8 @@ class ValueIntelligence extends AppModel
          * The ACL band. A run may only ever name a module this reader
          * would have been offered, for a type this reader holds an
          * occurrence of — both taken from the catalogue rather than
-         * from the request.
+         * from the request. Without an occurrence the type is the
+         * reader's own choice, so the module must declare it.
          */
         $row = null;
         foreach ($catalogue['modules'] as $candidate) {
@@ -15317,6 +15466,9 @@ class ValueIntelligence extends AppModel
             }
         }
         if ($row === null) {
+            return $run;
+        }
+        if ($typed && $type !== null && !isset($row['types'][$type])) {
             return $run;
         }
         if ($type === null || !isset($row['types'][$type])) {
@@ -15369,6 +15521,10 @@ class ValueIntelligence extends AppModel
                 return $this->enrichmentFromStore($held, $user, $value,
                     $run);
             }
+            if ($typed) {
+                $run['state'] = 'auto_typed';
+                return $run;
+            }
         }
 
         if ($storedOnly) {
@@ -15400,20 +15556,29 @@ class ValueIntelligence extends AppModel
 
 
         /*
-         * D3: the run is backed by one of the reader's own
-         * occurrences. No module receives it (enrichmentPayload()
-         * sends the value alone), but every format passes it as
-         * trigger data, so that an instance's `enrichment-before-query`
-         * workflow can still refuse the query. Passing `$skipTrigger` instead would
-         * be quietly disabling a control somebody configured on
-         * purpose — and passing nothing is worse, because
-         * `Module::__prepareAndExecuteTrigger()` returns false on empty
-         * trigger data and the tab would report every module blocked.
+         * The run is backed by one of the reader's own occurrences. No
+         * module receives it (enrichmentPayload() sends the value
+         * alone), but every format passes it as trigger data, so that
+         * an instance's `enrichment-before-query` workflow can still
+         * refuse the query. Passing `$skipTrigger` instead would be
+         * quietly disabling a control somebody configured on purpose.
+         *
+         * A reader with no occurrence has no trigger data to offer, so
+         * where such a workflow is listening the run is refused here
+         * rather than handed to it empty.
          */
-        $occurrence = $this->enrichmentOccurrence($user, $value, $type);
-        if (empty($occurrence['Attribute'])) {
-            $run['state'] = 'ineligible';
-            return $run;
+        if ($typed) {
+            if ($catalogue['typing']['workflow_blocks']) {
+                $run['state'] = 'needs_occurrence';
+                return $run;
+            }
+            $occurrence = array();
+        } else {
+            $occurrence = $this->enrichmentOccurrence($user, $value, $type);
+            if (empty($occurrence['Attribute'])) {
+                $run['state'] = 'ineligible';
+                return $run;
+            }
         }
 
         /*
