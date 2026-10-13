@@ -19,6 +19,15 @@ class ACLComponent extends Component
             'queryACL' => array(),
             'restSearch' => array('*'),
         ),
+        # Multiple Sharing Group Distribution Plugin settings
+        # See more: https://github.com/tetrapi/mim-misp-sharing-group-plugin-boilerplate
+        'msgdApi' => array(
+            'processGroups'           => array('*'),
+            'getSharingGroups'        => array('*'),
+            'getBlueprintRulesGroups' => array('*'),
+            'checkBlueprint'          => array('*'),
+            'checkUserPermission'     => array('*'),
+        ),
         'analystData' => [
             'add' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'delete' => ['AND' => ['perm_add', 'perm_analyst_data']],

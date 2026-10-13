@@ -679,6 +679,14 @@ set_misp_setting "Plugin.ZeroMQ_organisation_notifications_enable" false
 set_misp_setting "Plugin.ZeroMQ_include_attachments" false
 set_misp_setting "Plugin.ZeroMQ_tag_notifications_enable" false
 
+# Multiple Sharing Group Distribution Plugin settings
+# See more: https://github.com/tetrapi/mim-misp-sharing-group-plugin-boilerplate
+set_misp_setting "Plugin.MsgdPlug_enabled" false
+set_misp_setting "Plugin.MsgdPlug_use_ids" false
+set_misp_setting "Plugin.MsgdPlug_debug" false
+set_misp_setting "Plugin.MsgdPlug_controller_whitelist" "*"
+set_misp_setting "Plugin.MsgdPlug_user_permissions_whitelist" "none"
+
 # Force defaults to make MISP Server Settings less RED
 set_misp_setting "MISP.language" "eng"
 set_misp_setting "MISP.proposals_block_attributes" false
