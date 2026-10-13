@@ -43,6 +43,7 @@
  *
  * @var array $valueIntelligence
  */
+App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 $analyst = $valueIntelligence['analyst'];
 $thread = $analyst['thread'];
 $counts = $analyst['counts'];
@@ -217,6 +218,26 @@ $attachChip = function ($target) use ($baseurl) {
             . '<i class="fas fa-arrow-up-right-from-square"
                   aria-hidden="true"></i></a>';
     };
+
+    // Written on the value itself; another spelling opens that spelling's page
+    if ($target['kind'] === 'value') {
+        if ($target['spelled'] === null) {
+            return $chip(
+                null,
+                __('Written on this value itself, not on one of its occurrences.'),
+                '<i class="fas fa-fingerprint" aria-hidden="true"></i>'
+                    . h(__('this value'))
+            );
+        }
+        return $chip(
+            $baseurl . '/values/view/' . ValueUrlTool::encode($target['spelled']),
+            __('Written on this value in another spelling. Opens that spelling.'),
+            '<i class="fas fa-fingerprint" aria-hidden="true"></i>'
+                . h(__('this value'))
+                . '<span class="vpa-chip-sep">' . h(__('spelled')) . '</span>'
+                . h($target['spelled'])
+        );
+    }
 
     if ($target['kind'] === 'event') {
         return $chip(

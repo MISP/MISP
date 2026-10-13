@@ -7385,6 +7385,7 @@ class ValueIntelligence extends AppModel
             'Attribute' => $occurrences,
             'Event' => array(),
             'Object' => array(),
+            'Value' => $this->valueAnchorUuids($user, $value),
         );
         foreach ($occurrences as $occurrence) {
             if (!empty($occurrence['event_uuid'])) {
@@ -7397,7 +7398,7 @@ class ValueIntelligence extends AppModel
 
         $claims = array();
         $orgs = array();
-        if (!empty($occurrences)) {
+        if (!empty($occurrences) || !empty($near['Value'])) {
             $relationships = $this->model('Relationship');
             $conditions = $relationships->buildConditions($user);
             /*
@@ -7439,6 +7440,16 @@ class ValueIntelligence extends AppModel
                 $claim = $this->claimFrom($user, $row, $near);
                 if ($claim === null) {
                     continue;
+                }
+                $claim['spelled'] = null;
+                if ($claim['anchor'] === 'Value') {
+                    $nearUuid = $claim['direction'] === 'outbound'
+                        ? $row['Relationship']['object_uuid']
+                        : $row['Relationship']['related_object_uuid'];
+                    $spelling = $near['Value'][$nearUuid] ?? null;
+                    if ($spelling !== null && $spelling !== (string)$value) {
+                        $claim['spelled'] = $spelling;
+                    }
                 }
                 $claims[$row['Relationship']['uuid']] = $claim;
                 $orgs[$claim['org']] = true;
@@ -10407,10 +10418,9 @@ class ValueIntelligence extends AppModel
      * Notes and opinions, over the value's occurrences **and its
      * events**, with every row naming its target.
      *
-     * There is a union at all because a value is not a valid
-     * analyst-data target: notes hang off an `object_uuid` and an
-     * `object_type`, so nothing addresses a value and this tab has to
-     * assemble what addresses the things the value is *in*.
+     * There is a union at all because notes hang off an `object_uuid`:
+     * the value's own, one per spelling, and those of the things the
+     * value is *in*.
      *
      * **Both halves, because either alone is wrong.** The instance holds
      * 75 notes and 43 opinions; 9 notes and 3 opinions are on attributes
@@ -10473,6 +10483,16 @@ class ValueIntelligence extends AppModel
                     __('attribute %s'),
                     $occurrence['id']
                 ),
+            );
+        }
+        foreach ($this->valueAnchorUuids($user, $value) as $uuid => $spelling) {
+            $targets[$uuid] = array(
+                'kind' => 'value',
+                'id' => null,
+                'event' => null,
+                'label' => $spelling === (string)$value
+                    ? __('this value')
+                    : sprintf(__('this value, spelled %s'), $spelling),
             );
         }
         if (empty($targets)) {
@@ -12372,12 +12392,11 @@ class ValueIntelligence extends AppModel
     /* ==================================================================
      * Analyst data
      * ==================================================================
-     * Notes and opinions hang off an `object_uuid` and an
-     * `object_type`, and no value has a uuid — so **a value is not a
-     * valid analyst-data target**. Both panels are therefore a union
-     * assembled here over the things the value is *in*, there is no
-     * single query behind either of them, and there is no pagination
-     * across them. `26-analyst.md` §5.
+     * Notes and opinions hang off an `object_uuid`. A value's is
+     * `Value::uuidFor()` of its text, one per spelling, so both panels
+     * are a union assembled here over the value's spellings and the
+     * things the value is *in*; there is no single query behind either
+     * of them, and there is no pagination across them.
      */
 
     /**
@@ -13112,6 +13131,13 @@ class ValueIntelligence extends AppModel
             ))
         );
         $targets = array();
+        foreach ($this->valueAnchorUuids($user, $value) as $uuid => $spelling) {
+            $targets[$uuid] = array(
+                'kind' => 'value',
+                'value' => $spelling,
+                'spelled' => $spelling === (string)$value ? null : $spelling,
+            );
+        }
         $attributeIds = array();
         $eventIds = array();
         foreach ($occurrences as $uuid => $occurrence) {
@@ -13165,6 +13191,42 @@ class ValueIntelligence extends AppModel
              */
             'capped' => count($occurrences) >= self::ANALYST_OCCURRENCE_CAP,
         );
+    }
+
+    /**
+     * The uuids analyst data names this value by: its own spelling's, and
+     * those of the other spellings of its group that an attribute the
+     * reader can see holds. Only visibly held spellings, so a note on a
+     * spelling nobody visibly holds cannot say the instance stores it.
+     *
+     * @param array $user
+     * @param string $value
+     * @return array uuid => spelling, the page's own spelling first
+     */
+    private function valueAnchorUuids(array $user, $value)
+    {
+        $value = (string)$value;
+        $spellings = array($value);
+        $dictionary = $this->model('AttributeValue');
+        $ids = $dictionary->resolveCi(array($value))[$value] ?? array();
+        if (!empty($ids)) {
+            $visible = $this->model('MispAttribute')->visibleValueIds(
+                $user,
+                $ids,
+                count($ids)
+            );
+            foreach (empty($visible) ? array() : $dictionary->fetchValues($visible) as $text) {
+                $spellings[] = (string)$text;
+            }
+        }
+        $uuids = array();
+        foreach ($spellings as $spelling) {
+            $uuid = Value::uuidFor($spelling);
+            if (!isset($uuids[$uuid])) {
+                $uuids[$uuid] = $spelling;
+            }
+        }
+        return $uuids;
     }
 
     /**

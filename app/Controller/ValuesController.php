@@ -5,6 +5,7 @@ App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 App::uses('ValueLean', 'Tools/ValueIntelligence');
 App::uses('ValueInputTool', 'Tools/ValueIntelligence');
 App::uses('ValueConditionRewriter', 'Tools');
+App::uses('Value', 'Model');
 
 /**
  * Value Intelligence controller, mounted at /values/* via CakePHP's default
@@ -2116,6 +2117,10 @@ class ValuesController extends AppController
                 if ($elements > 0) {
                     $holders[] = __n('%s collection element', '%s collection elements', $elements, $elements);
                 }
+                $analystData = $this->__analystDataOn($value['AttributeValue']['value']);
+                if ($analystData > 0) {
+                    $holders[] = __n('%s analyst note, opinion or relationship', '%s analyst notes, opinions or relationships', $analystData, $analystData);
+                }
                 if (!empty($holders)) {
                     throw new Exception(__('The value is still in use, remove these first: %s.', implode('; ', $holders)));
                 }
@@ -2136,6 +2141,37 @@ class ValuesController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+    }
+
+    /**
+     * How many notes, opinions and relationships name this exact text,
+     * whoever can see them.
+     *
+     * @param string $text
+     * @return int
+     */
+    private function __analystDataOn($text)
+    {
+        $uuid = Value::uuidFor((string)$text);
+        $count = 0;
+        foreach (['Note', 'Opinion', 'Relationship'] as $type) {
+            $conditions = ['OR' => [[
+                "$type.object_type" => 'Value',
+                "$type.object_uuid" => $uuid,
+            ]]];
+            if ($type === 'Relationship') {
+                $conditions['OR'][] = [
+                    'Relationship.related_object_type' => 'Value',
+                    'Relationship.related_object_uuid' => $uuid,
+                ];
+            }
+            $count += ClassRegistry::init($type)->find('count', [
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'callbacks' => false,
+            ]);
+        }
+        return $count;
     }
 
     /**

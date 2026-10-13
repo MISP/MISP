@@ -265,6 +265,13 @@ if (empty($claims)) {
                                             . ' relationship to this value'),
                                 )
                             ) ?>
+                            <?php if (!empty($claim['spelled'])): ?>
+                                <span class="small"
+                                      title="<?= h(__('Written on this value in another spelling. MISP shows it with the value you opened, but an accent can make a different domain.')) ?>">
+                                    <span class="text-warning-emphasis"><?= __('spelled') ?></span>
+                                    <span class="font-monospace"><?= h($claim['spelled']) ?></span>
+                                </span>
+                            <?php endif; ?>
                             <span class="vp-rel-target">
                                 <?php if (strpos($icon, 'misp-icon') === 0): ?>
                                     <span class="<?= h($icon) ?>"></span>
