@@ -69,7 +69,7 @@ var subjects = [];
 var standardTexts = [];
 var submitAllowed = false;
 $(document).ready(function() {
-    var org = "<?php echo $org;?>";
+    var org = <?php echo json_encode($org, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
     subjects = ["", "[" + org + " MISP] " + "<?php echo __('New user registration');?>" , "[" + org + " MISP] " + "<?php echo __('Password reset');?>"];
     standardTexts = ['', '<?php echo h($newUserText); ?>', '<?php echo h($passwordResetText); ?>'];
     setAll();

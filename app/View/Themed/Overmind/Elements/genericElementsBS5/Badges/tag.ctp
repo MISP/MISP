@@ -31,7 +31,7 @@ $style = sprintf('%s; color: %s; %s; %s; %s; cursor:pointer;', $bgColor, $textCo
 // }
 ?>
 
-<div class="d-inline-flex align-items-center me-1 mb-1">
+<div class="d-inline-flex align-items-center">
     <?php if ($showFavourite && !empty($tag['id'])): ?>
         <i
             class="<?= $isFavourite ? 'fas fa-star' : 'far fa-star' ?> text-warning me-1 tag-star"
@@ -46,14 +46,14 @@ $style = sprintf('%s; color: %s; %s; %s; %s; cursor:pointer;', $bgColor, $textCo
               title="<?= h(__('Tag relationship: %s', $relationship)) ?>">
             <?= h($relationship) ?>
         </span>
-        <span class="badge <?= h($hiddenClass) ?>" style="<?= $style ?> border-radius:0 var(--bs-border-radius) var(--bs-border-radius) 0; font-size:.75rem;">
+        <span class="badge <?= h($hiddenClass) ?> me-1 mb-1" style="<?= $style ?> border-radius:0 var(--bs-border-radius) var(--bs-border-radius) 0; font-size:.75rem;">
             <?php if ($local): ?>
                 <i class="fas fa-user me-1"></i>
             <?php endif; ?>
             <?= $name ?>
         </span>
     <?php else: ?>
-        <span class="badge <?= h($hiddenClass) ?>" style="<?= $style ?>">
+        <span class="badge <?= h($hiddenClass) ?> me-1 mb-1" style="<?= $style ?>">
             <?php if ($local): ?>
                 <i class="fas fa-user me-1"></i>
             <?php endif; ?>

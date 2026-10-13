@@ -83,6 +83,13 @@ $collection = $data['Collection'] ?? $data;
                         'full' => true
                     ]
                 ); ?>
+                <?php if ((int)$collection['distribution'] === 4): ?>
+                    <div class="py-1">
+                        <?= $this->element('genericElementsBS5/Badges/sharing_group', [
+                            'sharingGroup' => $collection['SharingGroup'] ?? [],
+                        ]); ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- CREATOR ORG -->

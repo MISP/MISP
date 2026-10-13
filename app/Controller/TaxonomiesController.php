@@ -360,15 +360,35 @@ class TaxonomiesController extends AppController
             if (empty($taxonomy_id) && !empty($this->request->params['named']['taxonomy_id'])) {
                 $taxonomy_id = $this->request->params['named']['taxonomy_id'];
             }
-            if (
-                empty($taxonomy_id) ||
-                empty($this->request->params['named']['name'])
-            ) {
+            if (empty($taxonomy_id)) {
                 throw new MethodNotAllowedException(__('Taxonomy ID or tag name must be provided.'));
-            } else {
-                $this->request->data['Taxonomy']['taxonomy_id'] = $taxonomy_id;
-                $this->request->data['Taxonomy']['name'] = $this->request->params['named']['name'];
             }
+            if (empty($this->request->params['named']['name'])) {
+                if ($this->theme !== 'Overmind') {
+                    throw new MethodNotAllowedException(__('Taxonomy ID or tag name must be provided.'));
+                }
+                $taxonomy = $this->Taxonomy->find('first', [
+                    'conditions' => ['Taxonomy.id' => $taxonomy_id],
+                    'contain' => [
+                        'TaxonomyPredicate' => [
+                            'fields' => ['TaxonomyPredicate.id', 'TaxonomyPredicate.value'],
+                            'TaxonomyEntry' => ['fields' => ['TaxonomyEntry.id', 'TaxonomyEntry.value']]
+                        ]
+                    ]
+                ]);
+                if (empty($taxonomy)) {
+                    throw new NotFoundException(__('Taxonomy not found.'));
+                }
+                // Same counter as the index cell, so the two never disagree.
+                $counted = $this->__tagCount([$taxonomy])[0];
+                $this->set('taxonomy', $counted['Taxonomy']);
+                $this->set('currentCount', $counted['current_count']);
+                $this->set('totalCount', $counted['total_count']);
+                $this->layout = false;
+                return $this->render('ajax/taxonomyEnableAllTagsConfirmationForm');
+            }
+            $this->request->data['Taxonomy']['taxonomy_id'] = $taxonomy_id;
+            $this->request->data['Taxonomy']['name'] = $this->request->params['named']['name'];
         } else {
             if ($taxonomy_id) {
                 $result = $this->Taxonomy->addTags($taxonomy_id);
@@ -471,15 +491,45 @@ class TaxonomiesController extends AppController
             if (empty($taxonomy_id) && !empty($this->request->params['named']['taxonomy_id'])) {
                 $taxonomy_id = $this->request->params['named']['taxonomy_id'];
             }
-            if (
-                empty($taxonomy_id) ||
-                empty($this->request->params['named']['name'])
-            ) {
+            if (empty($taxonomy_id)) {
                 throw new MethodNotAllowedException(__('Taxonomy ID or tag name must be provided.'));
-            } else {
-                $this->request->data['Taxonomy']['taxonomy_id'] = $taxonomy_id;
-                $this->request->data['Taxonomy']['name'] = $this->request->params['named']['name'];
             }
+            if (empty($this->request->params['named']['name'])) {
+                /*
+                 * No tag named: this is the index's "enable all" asking before
+                 * it creates every tag the taxonomy is still missing. The
+                 * question and the creation share this URL, so the confirmation
+                 * form carries a token the POST can spend.
+                 *
+                 * Only the BS5 index offers it — the legacy one still confirms
+                 * in the browser and has no view here — so any other theme
+                 * keeps the old complaint.
+                 */
+                if ($this->theme !== 'Overmind') {
+                    throw new MethodNotAllowedException(__('Taxonomy ID or tag name must be provided.'));
+                }
+                $taxonomy = $this->Taxonomy->find('first', [
+                    'conditions' => ['Taxonomy.id' => $taxonomy_id],
+                    'contain' => [
+                        'TaxonomyPredicate' => [
+                            'fields' => ['TaxonomyPredicate.id', 'TaxonomyPredicate.value'],
+                            'TaxonomyEntry' => ['fields' => ['TaxonomyEntry.id', 'TaxonomyEntry.value']]
+                        ]
+                    ]
+                ]);
+                if (empty($taxonomy)) {
+                    throw new NotFoundException(__('Taxonomy not found.'));
+                }
+                // Same counter as the index cell, so the two never disagree.
+                $counted = $this->__tagCount([$taxonomy])[0];
+                $this->set('taxonomy', $counted['Taxonomy']);
+                $this->set('currentCount', $counted['current_count']);
+                $this->set('totalCount', $counted['total_count']);
+                $this->layout = false;
+                return $this->render('ajax/taxonomyEnableAllTagsConfirmationForm');
+            }
+            $this->request->data['Taxonomy']['taxonomy_id'] = $taxonomy_id;
+            $this->request->data['Taxonomy']['name'] = $this->request->params['named']['name'];
         } else {
             if ($taxonomy_id) {
                 $result = $this->Taxonomy->disableTags($taxonomy_id);

@@ -32,9 +32,6 @@ class SightingdbController extends AppController
                         $this->request->data['Sightingdb']['org_id']
                     );
                 }
-                if($this->theme === "Overmind"){
-                    $this->render('/Sightingdb/index');
-                }
             }
         ];
         $this->CRUD->add($params);
@@ -46,7 +43,7 @@ class SightingdbController extends AppController
             'order' => ['LOWER(Organisation.name)'],
             'fields' => ['Organisation.id', 'Organisation.name']
         ]);
-        if($this->theme === "Overmind"){
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
         $this->set('orgs', $orgs);
@@ -79,7 +76,7 @@ class SightingdbController extends AppController
             'order' => ['LOWER(Organisation.name)'],
             'fields' => ['Organisation.id', 'Organisation.name']
         ]);
-        if($this->theme === "Overmind"){
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
         $this->set('id', $id);
@@ -120,6 +117,15 @@ class SightingdbController extends AppController
             'quickFilters' => ['name', 'owner', 'host'],
             'contain' => ['SightingdbOrg' => 'Organisation'],
             'afterFind' => function ($data) {
+                if ($this->theme === 'Overmind' && !$this->IndexFilter->isRest()) {
+                    foreach ($data as &$element) {
+                        $element['Sightingdb']['Organisation'] = Hash::extract(
+                            $element['SightingdbOrg'] ?? [],
+                            '{n}.Organisation'
+                        );
+                    }
+                    unset($element);
+                }
                 return $this->Sightingdb->extractOrgIdsFromList($data);
             }
         ];

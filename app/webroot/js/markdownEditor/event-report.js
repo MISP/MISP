@@ -937,6 +937,7 @@ function attachGalaxyMatrix($elem, eventid, elementID) {
     }
     var galaxyType = galaxy.type
     $.ajax({
+        headers: {'X-CSRF-Token': (window.csrfToken || '')},
         data: {
             "returnFormat": "attack",
             "eventid": eventid,

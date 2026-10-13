@@ -908,14 +908,17 @@ class Server extends AppModel
      * @param array $pagination Optional ['page' => int, 'limit' => int]. When set,
      *                          a single ordered page is requested instead of the
      *                          whole index (see getEventIdsFromServer()).
+     * @param int|null $resultCount Set to the remote's X-Result-Count, or null
+     *                              when unknown (e.g. served from cache).
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws RedisException
      */
-    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [])
+    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [], &$resultCount = null)
     {
+        $resultCount = null;
         if (!$ignoreFilterRules) {
             $filterRules = $this->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
             if (!empty($filterRules['org']) && !$serverSync->isSupported(ServerSyncTool::FEATURE_ORG_RULE)) {
@@ -968,17 +971,23 @@ class Server extends AppModel
             }
         }
 
-        // Save to cache for 24 hours if ETag provided
+        $count = $response->getHeader('X-Result-Count');
+        if (is_numeric($count)) {
+            $resultCount = (int)$count;
+        }
+
+        $eventIndex = $response->json();
+
+        // Save to cache for 24 hours if ETag provided. Empty pages are not
+        // cached: a 304 has no X-Result-Count to tell a filtered page from the end.
         $etag = $response->getHeader('etag');
-        if ($etag) {
+        if ($etag && !empty($eventIndex)) {
             $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
             $data = RedisTool::compress($response->body);
             $redis->setex($etagCacheKey, 3600 * 24, $etag);
             $redis->setex($contentCacheKey, 3600 * 24, $data);
             unset($data);
         }
-
-        $eventIndex = $response->json();
 
         // correct $eventArray if just one event, probably this response returns old MISP
         if (isset($eventIndex['id'])) {
@@ -1140,10 +1149,18 @@ class Server extends AppModel
         $page = 1;
         $previousMaxId = null;
         while (true) {
-            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize]);
+            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize], $remoteCount);
             $fetched = count($eventArray);
+            // The remote drops protected events after paging, so a short or even
+            // empty page is not the end. X-Result-Count is counted before that
+            // filter; without it (cached page) only an empty page proves the end.
+            $lastPage = $remoteCount === null ? $fetched === 0 : $page * $pageSize >= $remoteCount;
             if ($fetched === 0) {
-                break;
+                if ($lastPage) {
+                    break;
+                }
+                $page++;
+                continue;
             }
             // A remote that does not honour the limit (older instance) returns the
             // whole index in one response. Detecting more rows than we asked for
@@ -1180,7 +1197,7 @@ class Server extends AppModel
             }
             unset($eventArray);
 
-            if ($remoteIgnoredPagination || $notAdvancing || $fetched < $pageSize) {
+            if ($remoteIgnoredPagination || $notAdvancing || $lastPage) {
                 break; // last page (or a remote that is not paginating)
             }
             $page++;
@@ -1697,6 +1714,12 @@ class Server extends AppModel
                             $setting['description'] = isset($result['description']) ? $result['description'] : __('Set this required module specific setting.');
                             $setting['value'] = isset($result['value']) ? $result['value'] : '';
                         }
+                        // The module's own guard flags are part of its setting definition.
+                        foreach (['redacted', 'cli_only'] as $flag) {
+                            if (!empty($result[$flag])) {
+                                $setting[$flag] = true;
+                            }
+                        }
                         $serverSettings['Plugin'][$moduleType . '_' . $module . '_' .  $result['name']] = $setting;
                     }
                 }
@@ -1858,6 +1881,7 @@ class Server extends AppModel
                 $leafValue['errorMessage'] = __('Invalid setting `%s`, valid values are: %s', $setting, $validValues);
             }
 
+            $leafValue['modified'] = $setting !== '' && $setting != ($leafValue['value'] ?? null);
             if ($setting !== '') {
                 $leafValue['value'] = $setting;
             }
@@ -2870,11 +2894,15 @@ class Server extends AppModel
             }
         }
 
-        if (isset($setting['level'])) {
-            $setting['name'] = $settingName;
-            if ($withOptions && isset($setting['optionsSource'])) {
-                $setting['options'] = $setting['optionsSource']();
-            }
+        // Only an individual setting can be addressed, never a whole branch:
+        // every caller treats the result as a leaf, and a branch carries no redaction flag.
+        if (!is_array($setting) || !isset($setting['level'])) {
+            return false;
+        }
+
+        $setting['name'] = $settingName;
+        if ($withOptions && isset($setting['optionsSource'])) {
+            $setting['options'] = $setting['optionsSource']();
         }
 
         return $setting;
@@ -3059,7 +3087,7 @@ class Server extends AppModel
         return [
             'orgs' => [
                 'name' => __('Organisation logos'),
-                'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
+                'description' => __('The logo used by an organisation on the event index, event view, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
                 'expected' => [],
                 'valid_format' => __('48x48 pixel .png files or .svg file'),
                 'path' => APP . 'files' . DS . 'img' . DS . 'orgs',
@@ -6264,6 +6292,7 @@ class Server extends AppModel
                     'value' => true,
                     'test' => 'testBool',
                     'type' => 'boolean',
+                    'cli_only' => true,
                 ),
                 'osuser' => array(
                     'level' => 0,
@@ -6771,14 +6800,6 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ),
-                'discussion_disable' => [
-                    'level' => 1,
-                    'description' => __('Completely disable ability for user to add discussion to events.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true
-                ],
                 'showCorrelationsOnIndex' => array(
                     'level' => 1,
                     'description' => __('When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.'),
@@ -6798,14 +6819,6 @@ class Server extends AppModel
                 'showSightingsCountOnIndex' => array(
                     'level' => 1,
                     'description' => __('When enabled, the aggregate number of attribute sightings within the event becomes visible to the currently logged in user on the event index UI.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true
-                ),
-                'showDiscussionsCountOnIndex' => array(
-                    'level' => 1,
-                    'description' => __('When enabled, the aggregate number of discussion posts for the event becomes visible to the currently logged in user on the event index UI.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -7026,7 +7039,8 @@ class Server extends AppModel
                     'description' => __('The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.'),
                     'value' => '127.0.0.1',
                     'test' => 'testForEmpty',
-                    'type' => 'string'
+                    'type' => 'string',
+                    'cli_only' => true,
                 ),
                 'redis_port' => array(
                     'level' => 0,
@@ -8309,6 +8323,7 @@ class Server extends AppModel
                     'value' => 'localhost',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'cli_only' => true,
                     'afterHook' => 'zmqAfterHook',
                 ),
                 'ZeroMQ_redis_port' => array(
@@ -9037,7 +9052,8 @@ class Server extends AppModel
                     'description' => __('The host running the redis server to be used for background jobs.'),
                     'value' => '127.0.0.1',
                     'test' => 'testForEmpty',
-                    'type' => 'string'
+                    'type' => 'string',
+                    'cli_only' => true,
                 ],
                 'redis_port' => [
                     'level' => self::SETTING_CRITICAL,
@@ -9258,7 +9274,6 @@ class Server extends AppModel
                     'Recover event' => 'MISP/app/Console/cake Event recoverEvent [job_id] [event_id]',
                     'Alert email' => 'MISP/app/Console/cake Event alertemail [user_id] [job_id] [event_id] [old_publish]',
                     'Contact email' => 'MISP/app/Console/cake Event contactemail [event_id] [message] [all] [user_id] [process_id]',
-                    'Posts email' => 'MISP/app/Console/cake Event postsemail [user_id] [post_id] [event_id] [title] [message] [process_id]',
                     'Enqueue caching' => 'MISP/app/Console/cake Event enqueueCaching [timestamp]',
                     'Do publish' => 'MISP/app/Console/cake Event doPublish [event_id]',
                     'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',

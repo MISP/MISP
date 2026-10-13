@@ -66,7 +66,8 @@ class Sighting extends AppModel
     public $validFormats = array(
         'json' => array('json', 'JsonExport', 'json'),
         'xml' => array('xml', 'XmlExport', 'xml'),
-        'csv' => array('csv', 'CsvExport', 'csv')
+        'csv' => array('csv', 'CsvExport', 'csv'),
+        'xlsx' => array('xlsx', 'XlsxExport', 'xlsx')
     );
 
     public function beforeValidate($options = array())
@@ -193,7 +194,7 @@ class Sighting extends AppModel
             } else if (isset($user['org_id'])) {
                 $orgId = $user['org_id'];
             }
-            unset($sighting['id']);
+            unset($sighting['id'], $sighting[$this->alias]);
 
             $sighting['org_id'] = $orgId;
             $sighting['event_id'] = $eventId;
@@ -923,8 +924,13 @@ class Sighting extends AppModel
                 'fields' => ['Attribute.id', 'Attribute.event_id'],
             ]);
         } else {
-            $filters['value'] = $values;
+            if (!empty($values)) {
+                $filters['value'] = $values;
+            }
             $params = $this->Attribute->restSearch($user, 'json', $filters, true);
+            if (!empty($conditions)) {
+                $params['conditions'] = ['AND' => [$params['conditions'], $conditions]];
+            }
             $attributes = $this->Attribute->fetchAttributes($user, $params);
         }
         if (empty($attributes)) {
@@ -1320,7 +1326,11 @@ class Sighting extends AppModel
             }
         }
 
-        $tmpfile->write($exportTool->footer($exportToolParams));
+        $footer = $exportTool->footer($exportToolParams);
+        if ($footer instanceof TmpFileTool) {
+            return $footer; // export built the whole file itself
+        }
+        $tmpfile->write($footer);
         return $tmpfile;
     }
 

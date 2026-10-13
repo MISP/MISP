@@ -969,7 +969,8 @@ $partitionVisibleItems = function (array $items, $visibleLimit) {
 </div>
 
 <script>
-(function () {
+// The layout assigns csrfToken after rendering this view.
+$(function () {
     'use strict';
 
     var baseurl   = <?= json_encode($baseurl) ?>;
@@ -1865,5 +1866,5 @@ $partitionVisibleItems = function (array $items, $visibleLimit) {
         });
     }
 
-})();
+});
 </script>

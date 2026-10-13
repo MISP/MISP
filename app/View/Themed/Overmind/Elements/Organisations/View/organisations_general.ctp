@@ -1,11 +1,24 @@
 <?php
+/*
+ * The organisation's identity card, built like the user view's: an aside
+ * holding the logo (or a glyph when there is none) beside the field table.
+ * The aside is tinted by whether the organisation is local or remote.
+ */
 
 $isSiteAdmin = $this->viewVars['isSiteAdmin'] ?? false;
 $fullAccess = $this->viewVars['fullAccess'] ?? false;
 $org = $data['Organisation'] ?? [];
 $local = !empty($org['local']);
 
-$dash = '<span class="text-muted">-</span>';
+$dash = '<span class="text-muted">&mdash;</span>';
+$tone = $local ? 'success' : 'secondary';
+$logo = $this->OrgImg->getOrgLogoV2($org, 72, false);
+
+$scopePill = $local
+    ? '<span class="badge rounded-pill text-bg-success d-inline-flex align-items-center gap-1">'
+        . '<i class="fas fa-house"></i>' . __('Local') . '</span>'
+    : '<span class="badge rounded-pill text-bg-light border d-inline-flex align-items-center gap-1 fw-normal text-muted">'
+        . '<i class="fas fa-globe"></i>' . __('Remote') . '</span>';
 
 // ── ID —
 $idHtml = isset($org['id']) && $org['id'] !== ''
@@ -18,9 +31,11 @@ if ($uuid !== '') {
     $uuidHtml = '<span class="d-inline-flex align-items-center gap-1 bg-light border rounded px-2 py-1">'
         . '<span class="font-monospace small">' . h($uuid) . '</span>'
         . '<button type="button" class="text-muted border-0 bg-transparent p-0 ms-1" '
-        . 'onclick="copyToClipboard(this, \'' . h($uuid) . '\')" '
+        . 'data-copy-value="' . h($uuid) . '" '
+        . 'data-copy-msg="' . h(__('UUID copied to clipboard')) . '" '
+        . 'onclick="copyValueToClipboard(this.dataset.copyValue, this.dataset.copyMsg)" '
         . 'data-bs-toggle="tooltip" title="' . h(__('Copy UUID')) . '" aria-label="' . h(__('Copy UUID')) . '">'
-        . '<i class="fas fa-copy" style="font-size:.75rem;"></i></button>'
+        . '<i class="fas fa-copy fa-xs"></i></button>'
         . '</span>';
 } else {
     $uuidHtml = $dash;
@@ -70,9 +85,9 @@ $sector = trim($org['sector'] ?? '');
 $sectorHtml = $sector !== '' ? h($sector) : $dash;
 
 //Friendly time display
-$timeHtml = function ($value, $icon) {
+$timeHtml = function ($value, $icon) use ($dash) {
     if (empty($value)) {
-        return '<span class="text-muted">-</span>';
+        return $dash;
     }
     return '<span class="d-inline-flex align-items-center gap-2 justify-content-end text-nowrap">'
         . '<i class="fas fa-' . $icon . ' text-muted"></i>'
@@ -103,21 +118,44 @@ if ($isSiteAdmin || $fullAccess) {
     }
 }
 ?>
-<div class="card mb-3 shadow-sm overflow-hidden">
-    <div class="card-body p-0">
-        <table class="table align-middle mb-0">
-            <tbody>
-                <?php foreach ($meta as $row): ?>
-                    <tr>
-                        <th scope="row" class="text-dark fw-semibold p-3 text-nowrap" style="width:38%;">
-                            <?= h($row['label']) ?>
-                        </th>
-                        <td class="text-end pe-3">
-                            <?= $row['html'] ?? h($row['value'] ?? '') ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+<div class="card shadow-sm mb-3 overflow-hidden">
+    <div class="row g-0">
+
+        <!-- ASIDE — the logo -->
+        <div class="col-12 col-md-4 col-xl-3 ov-identity-aside p-3 d-flex flex-column gap-3 bg-<?= $tone ?>-subtle">
+
+            <div class="align-self-start"><?= $scopePill ?></div>
+
+            <div class="d-flex justify-content-center align-items-center flex-grow-1 pb-2">
+                <div class="rounded-circle d-flex align-items-center justify-content-center overflow-hidden bg-body border border-2 border-<?= $tone ?> text-<?= $tone ?>"
+                     style="width:110px; height:110px;"
+                     title="<?= h($org['name'] ?? '') ?>">
+                    <?php if ($logo !== ''): ?>
+                        <?= $logo ?>
+                    <?php else: ?>
+                        <i class="fas fa-building fa-3x"></i>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- FIELDS -->
+        <div class="col">
+            <table class="table align-middle mb-0">
+                <tbody>
+                    <?php foreach ($meta as $row): ?>
+                        <tr>
+                            <th scope="row" class="text-dark fw-semibold p-3 text-nowrap w-25">
+                                <?= h($row['label']) ?>
+                            </th>
+                            <td class="text-end pe-3">
+                                <?= $row['html'] ?? h($row['value'] ?? '') ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+
     </div>
 </div>

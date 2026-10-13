@@ -695,9 +695,12 @@ class OnDemandCorrelationBehavior extends ModelBehavior
      * @param array $user
      * @param int $eventId
      * @param array $sgids Not used
+     * @param bool $excludeNonCorrelating Not used - this engine already feeds
+     *      both this call and runGetAttributesRelatedToEvent() from the same
+     *      __collectCorrelations(), so the two never disagree.
      * @return array
      */
-    public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids)
+    public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids, bool $excludeNonCorrelating = false)
     {
         return $this->__filterRelatedEvents($Model, $user, $eventId, $sgids, false);
     }

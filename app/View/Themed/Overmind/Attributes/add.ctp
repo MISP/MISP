@@ -11,20 +11,6 @@ $submitId = $isEdit
     ? h($attrData['id'] ?? '')
     : h($event['Event']['id'] ?? '');
 
-/* YYYY-MM-DDTHH:MM:SS for datetime-local picker */
-$existingFirstSeen = '';
-$existingLastSeen  = '';
-if (!empty($attrData['first_seen'])) {
-    $existingFirstSeen = h(
-        substr(str_replace(' ', 'T', $attrData['first_seen']), 0, 19)
-    );
-}
-if (!empty($attrData['last_seen'])) {
-    $existingLastSeen = h(
-        substr(str_replace(' ', 'T', $attrData['last_seen']), 0, 19)
-    );
-}
-
 /* Initial card border colours */
 $toIdsChecked        = !empty($attrData['to_ids']);
 $disableCorrelChecked = !empty($attrData['disable_correlation']);
@@ -38,6 +24,13 @@ $idsIconStyle    = $toIdsChecked
 $correlIconStyle = $disableCorrelChecked
     ? 'color:#adb5bd;opacity:.7;'
     : 'color:#198754;opacity:1;';
+
+/*
+ * An attribute inside an object takes its category and type from the object's
+ * template, so neither can be changed here.
+ */
+$lockedByObject = $isEdit && !empty($objectAttribute);
+$lockedMessage  = __('Category and type come from the object template and cannot be changed on an attribute that belongs to an object.');
 
 echo $this->Form->create('Attribute', ['novalidate' => true]);
 ?>
@@ -66,12 +59,16 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                         <?= __('REQUIRED') ?>
                     </span>
                 </div>
-                <?= $this->Form->select('category', $categories, [
-                    'id'    => 'AttributeCategory',
-                    'class' => 'form-select',
-                    'value' => $currentCat,
-                    'empty' => __('(choose one)'),
-                ]) ?>
+                <span class="d-block"<?= $lockedByObject ? ' title="' . h($lockedMessage) . '"' : '' ?>>
+                    <?= $this->Form->select('category', $categories, array_filter([
+                        'id'    => 'AttributeCategory',
+                        'class' => 'form-select',
+                        'value' => $currentCat,
+                        'empty' => __('(choose one)'),
+                        'disabled' => $lockedByObject,
+                        'data-locked' => $lockedByObject ? '1' : null,
+                    ], function ($v) { return $v !== null && $v !== false; })) ?>
+                </span>
                 <div id="notice_category" class="mt-2"
                      style="display:none;overflow:hidden;"></div>
             </div>
@@ -85,13 +82,16 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                         <?= __('REQUIRED') ?>
                     </span>
                 </div>
-                <?= $this->Form->select('type', $types, [
-                    'id'       => 'AttributeType',
-                    'class'    => 'form-select',
-                    'value'    => $currentType,
-                    'empty'    => __('(choose category first)'),
-                    'disabled' => ($isEdit && !empty($attachment)),
-                ]) ?>
+                <span class="d-block"<?= $lockedByObject ? ' title="' . h($lockedMessage) . '"' : '' ?>>
+                    <?= $this->Form->select('type', $types, array_filter([
+                        'id'       => 'AttributeType',
+                        'class'    => 'form-select',
+                        'value'    => $currentType,
+                        'empty'    => __('(choose category first)'),
+                        'disabled' => ($isEdit && !empty($attachment)) || $lockedByObject,
+                        'data-locked' => $lockedByObject ? '1' : null,
+                    ], function ($v) { return $v !== null && $v !== false; })) ?>
+                </span>
                 <div id="notice_type" class="mt-2" style="display:none;"></div>
             </div>
 
@@ -142,7 +142,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
         <div class="w-100">
             <?= $this->element('genericElementsBS5/Forms/distribution_field', [
                 'accent' => 'attribute',
-                'value' => $currentDistribution,
+                'value' => $currentDistribution ?? 5,
                 'id' => 'AttributeDistribution',
                 'showSg' => true,
                 'sgId' => 'AttributeSharingGroupId',
@@ -265,57 +265,37 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
 
         <!-- ── FIRST / LAST SEEN ───────────────────────────────── -->
         <div class="row g-3">
-
             <div class="col-md-6">
                 <?= $this->element('genericElementsBS5/Forms/section_label', [
                     'accent' => 'attribute',
                     'label' => __('First Seen (UTC)'),
+                    'for' => 'AttributeFirstSeenDisplay',
                 ]) ?>
-                <div class="input-group">
-                    <span class="input-group-text bg-transparent border-end-0"
-                          style="border-color:#d8dde3;">
-                        <i class="fas fa-calendar-days text-muted"
-                           style="font-size:.82rem;"></i>
-                    </span>
-                    <input type="datetime-local"
-                           step="1"
-                           id="attr-first-seen-picker"
-                           class="form-control border-start-0"
-                           style="border-color:#d8dde3;"
-                           value="<?= $existingFirstSeen ?>">
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/date_field', [
+                    'field' => 'first_seen',
+                    'id' => 'AttributeFirstSeen',
+                    'mode' => 'datetime',
+                    'accent' => 'attribute',
+                    'value' => $attrData['first_seen'] ?? '',
+                ]) ?>
             </div>
-
             <div class="col-md-6">
                 <?= $this->element('genericElementsBS5/Forms/section_label', [
                     'accent' => 'attribute',
                     'label' => __('Last Seen (UTC)'),
+                    'for' => 'AttributeLastSeenDisplay',
                 ]) ?>
-                <div class="input-group">
-                    <span class="input-group-text bg-transparent border-end-0"
-                          style="border-color:#d8dde3;">
-                        <i class="fas fa-calendar-days text-muted"
-                           style="font-size:.82rem;"></i>
-                    </span>
-                    <input type="datetime-local"
-                           step="1"
-                           id="attr-last-seen-picker"
-                           class="form-control border-start-0"
-                           style="border-color:#d8dde3;"
-                           value="<?= $existingLastSeen ?>">
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/date_field', [
+                    'field' => 'last_seen',
+                    'id' => 'AttributeLastSeen',
+                    'mode' => 'datetime',
+                    'accent' => 'attribute',
+                    'value' => $attrData['last_seen'] ?? '',
+                    'after' => '#AttributeFirstSeen',
+                    'rangeMsg' => __('Last seen cannot be earlier than first seen.'),
+                ]) ?>
             </div>
-
         </div>
-
-        <?= $this->Form->hidden('first_seen', [
-            'id'    => 'AttributeFirstSeen',
-            'value' => str_replace('T', ' ', $existingFirstSeen),
-        ]) ?>
-        <?= $this->Form->hidden('last_seen', [
-            'id'    => 'AttributeLastSeen',
-            'value' => str_replace('T', ' ', $existingLastSeen),
-        ]) ?>
 
     </div>
 

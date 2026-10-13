@@ -188,22 +188,47 @@ class CollectionElementsController extends AppController
 
     public function addElementToCollection($element_type, $element_uuid)
     {
+        $isOvermind = $this->theme === 'Overmind';
+        if ($isOvermind && $this->request->is('ajax')) {
+            $this->layout = false;
+        }
         if ($this->request->is('get')) {
             $validCollections = $this->CollectionElement->Collection->find('list', [
                 'recursive' => -1,
                 'fields' => ['Collection.id', 'Collection.name'],
-                'conditions' => ['Collection.orgc_id' => $this->Auth->user('org_id')]
+                'conditions' => ['Collection.orgc_id' => $this->Auth->user('org_id')],
+                'order' => ['Collection.name' => 'ASC']
             ]);
-            if (empty($validCollections)) {
+            if (empty($validCollections) && !$isOvermind) {
                 if ($this->request->is('ajax')) {
                     return $this->redirect(['controller' => 'collections', 'action' => 'add']);
                 }
                 throw new NotFoundException(__('You don\'t have any collections yet. Make sure you create one first before you can start adding elements.'));
             }
+            /*
+             * Grey out collections that already contain this element instead of
+             * hiding them, since the modal lists collections by name and a missing
+             * entry would look like it was removed.
+             */
+            $alreadyIn = [];
+            if (!empty($validCollections)) {
+                $alreadyIn = array_values(array_unique($this->CollectionElement->find('list', [
+                    'recursive' => -1,
+                    'fields' => ['CollectionElement.id', 'CollectionElement.collection_id'],
+                    'conditions' => [
+                        'CollectionElement.element_type' => $element_type,
+                        'CollectionElement.element_uuid' => $element_uuid,
+                        'CollectionElement.collection_id' => array_keys($validCollections)
+                    ]
+                ])));
+            }
             $dropdownData = [
                 'collections' => $validCollections
             ];
             $this->set(compact('dropdownData'));
+            $this->set('alreadyInCollectionIds', $alreadyIn);
+            $this->set('elementType', $element_type);
+            $this->set('elementUuid', $element_uuid);
         } else if ($this->request->is('post')) {
             if (!isset($this->request->data['CollectionElement'])) {
                 $this->request->data = ['CollectionElement' => $this->request->data];
@@ -252,7 +277,7 @@ class CollectionElementsController extends AppController
             if ($duplicateCount > 0) {
                 $error = ' ' . __n('%s selected event was already in the Collection.', '%s selected events were already in the Collection.', $duplicateCount, $duplicateCount);
             }
-            
+
             if ($result) {
                 $message = count($elementUuids) > 1
                     ? __n('%s event added to the Collection.', '%s events added to the Collection.', count($elementUuids), count($elementUuids))

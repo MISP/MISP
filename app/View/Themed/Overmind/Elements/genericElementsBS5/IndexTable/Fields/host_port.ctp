@@ -28,7 +28,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
     <?php if (!empty($port)): ?>
         <div class="bg-primary text-white px-2 py-1 rounded-pill ms-1 d-flex align-items-center" style="font-size: 0.8rem;">
             <i class="fas fa-plug-circle-bolt me-1 small"></i>
-            <span class="fw-bold"><?= h($port) ?></span>
+            <span class="text-nowrap fw-bold"><?= h($port) ?></span>
         </div>
     <?php endif; ?>
 </div>

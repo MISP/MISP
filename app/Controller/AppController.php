@@ -42,7 +42,7 @@ class AppController extends Controller
      */
     const PRE_AUTH_FLOOD_WINDOW = 900;
 
-    private $__queryVersion = '222';
+    private $__queryVersion = '234';
     public $pyMispVersion = '2.5.34.2';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -245,6 +245,21 @@ class AppController extends Controller
         if (Configure::read('Plugin.CustomAuth_enable')) {
             $userLoggedIn = $this->__customAuthentication($_SERVER);
         }
+        // A request body is a document, never a locator. RequestHandlerComponent
+        // decodes an XML body on every write request, and Xml::build() treats a
+        // body that is a bare URL as something to go and fetch: its readFile
+        // guard reads `$options['readFile'] && http || https`, and && binds
+        // tighter than ||, so the https branch is never gated by it. That turns
+        // every endpoint accepting an XML content type - including cspReport,
+        // which is unauthenticated by design - into a blind SSRF. Decode only
+        // what actually looks like a document.
+        $this->RequestHandler->addInputType('xml', [function ($body) {
+            if (!is_string($body) || strpos($body, '<') === false) {
+                return [];
+            }
+            return $this->RequestHandler->convertXml($body);
+        }]);
+
         if ($this->_isRest()) {
             $jsonDecode = function ($dataToDecode) {
                 if (empty($dataToDecode)) {
@@ -849,6 +864,20 @@ class AppController extends Controller
         }
 
         $isUserRequest = !$this->_isRest() && !$this->request->is('ajax') && !$this->_isAutomation();
+        // An unenrolled user on an otp_required instance must not slip past the TOTP setup by
+        // asking for a machine-readable format; refuse the request, since neither an XHR nor a
+        // .json caller can follow the redirect the browser path takes. An identity that came
+        // from an API key is not a browser session and is left alone.
+        if (
+            !$isUserRequest &&
+            empty($user['logged_by_authkey']) &&
+            empty($user['totp']) &&
+            Configure::read('Security.otp_required') &&
+            empty($user['Role']['perm_skip_otp']) &&
+            !$this->_isControllerAction(['users' => ['terms', 'change_pw', 'logout', 'login', 'totp_new']])
+        ) {
+            throw new ForbiddenException(__('You must configure TOTP before continuing.'));
+        }
         // Next checks makes sense just for user direct HTTP request, so skip REST and AJAX calls
         if (!$isUserRequest) {
             return true;

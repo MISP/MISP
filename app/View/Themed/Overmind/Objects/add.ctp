@@ -1,11 +1,28 @@
 <?php
-// $templateList holds every available object template for the add-form picker.
+/*
+ * Add or edit an object — two screens in one file, told apart by $template.
+ *
+ * Without a template this renders the picker alone; with one it renders the
+ * form alone. The controller only sends $templateList for the first, because
+ * the 378-row list is a quarter of a megabyte the form never reads again.
+ */
 $templateList = $templateList ?? [];
-$hasTemplate = !empty($template);
-$eventId     = h($event['Event']['id']);
-$templateId  = $hasTemplate ? h($template['ObjectTemplate']['id']) : '';
+$hasTemplate  = !empty($template);
+$eventId      = h($event['Event']['id']);
+$action       = $action ?? 'add';
+$isEdit       = $action === 'edit';
 
-// Build meta-category list from templateList
+$pickerUrl = $baseurl . '/objects/add/' . $eventId;
+// Composed from the attribute index's "Object" mass action: the way back is the
+// list of templates the selection fits, not the whole picker.
+$groupSource = $groupSource ?? null;
+if (!empty($groupSource)) {
+    $pickerUrl = $baseurl . '/objects/proposeObjectsFromAttributes/' . $eventId
+        . '/' . json_encode($groupSource['ids']);
+}
+
+if (!$hasTemplate):
+
 $metaCategories = [];
 foreach ($templateList as $t) {
     $meta = $t['ObjectTemplate']['meta-category'];
@@ -14,135 +31,446 @@ foreach ($templateList as $t) {
     }
 }
 sort($metaCategories);
-
-// Pre-selected category (from template already chosen)
-$selectedMeta = $hasTemplate ? $template['ObjectTemplate']['meta-category'] : '';
-
-// In edit mode the form must POST to edit() (which deltaMerges into the existing object); posting to add() creates a duplicate. 
-if (!$hasTemplate) {
-    $formUrl = '#';
-} elseif (($action ?? 'add') === 'edit' && !empty($object['Object']['id'])) {
-    $formUrl = $baseurl . '/objects/edit/' . h($object['Object']['id']);
-    if (!empty($update_template_available)) {
-        $formUrl .= '/1';
-    }
-} else {
-    $formUrl = $baseurl . '/objects/add/' . $eventId . '/' . $templateId;
-}
-
-echo $this->Form->create('Object', [
-    'id'       => 'objectAddForm',
-    'url'      => $formUrl,
-    'enctype'  => 'multipart/form-data',
-    'novalidate' => true,
-]);
-
-// $k may be undefined when template has no elements — define safe fallback
-$k = -1;
 ?>
 
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
     'accent' => 'object',
     'eyebrow' => __('Objects'),
     'title' => __('Add Object'),
+    'description' => __('An object groups related attributes under a template that describes what they mean together.'),
     'icon' => 'misp-icon misp-icon-object misp-simple',
 ]) ?>
 
-<!-- ── ACCORDION WIZARD ─────────────────────────────────────── -->
+<div class="container-fluid px-4 py-4" id="objectTemplatePicker">
+    <div class="px-2">
+        <div class="mb-3">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'object',
+                'label' => __('Meta-category'),
+            ]) ?>
+            <div class="d-flex flex-wrap gap-2" id="metaCategoryList"
+                 role="group" aria-label="<?= __('Filter templates by meta-category') ?>">
+                <button type="button"
+                        class="btn btn-sm btn-outline-object meta-cat-btn active"
+                        data-meta="" aria-pressed="true">
+                    <?= __('All') ?>
+                    <span class="badge rounded-pill ov-obj-step-badge is-on ms-1"><?= count($templateList) ?></span>
+                </button>
+                <?php foreach ($metaCategories as $meta): ?>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-object meta-cat-btn"
+                            data-meta="<?= h($meta) ?>" aria-pressed="false">
+                        <?= h(Inflector::humanize($meta)) ?>
+                        <span class="badge rounded-pill ov-obj-step-badge ms-1"><?= count(array_filter(
+                            $templateList,
+                            function ($t) use ($meta) { return $t['ObjectTemplate']['meta-category'] === $meta; }
+                        )) ?></span>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <?= $this->element('genericElementsBS5/Forms/section_label', [
+            'accent' => 'object',
+            'label' => __('Template'),
+            'required' => true,
+            'for' => 'objectTemplateSelect',
+        ]) ?>
+        <select id="objectTemplateSelect" class="form-select"></select>
+        <?= $this->element('genericElementsBS5/Forms/field_hint', [
+            'text' => __('Searching matches the name and the description. A meta-category narrows the list without dropping what you already picked.'),
+        ]) ?>
+
+        <div id="templateDescPreview" class="alert alert-light border mt-3 d-none"></div>
+    </div>
+
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'object',
+        'submit' => [
+            'label' => __('Next'),
+            'icon' => 'fas fa-arrow-right',
+            'id' => 'objNextBtn',
+            'type' => 'button',
+            'disabled' => true,
+        ],
+    ]) ?>
+</div>
+
+<script type="application/json" id="objectPickerData"><?= json_encode([
+    'eventId' => $eventId,
+    'formUrl' => $baseurl . '/objects/add/' . $eventId,
+    'templates' => array_map(function ($t) {
+        return [
+            'id' => (string)$t['ObjectTemplate']['id'],
+            'name' => Inflector::humanize($t['ObjectTemplate']['name']),
+            'meta' => $t['ObjectTemplate']['meta-category'],
+            'desc' => $t['ObjectTemplate']['description'],
+            'version' => (string)$t['ObjectTemplate']['version'],
+        ];
+    }, array_values($templateList)),
+], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
+
+<?php
+    return;
+endif;
+
+/*
+ * In edit mode the form posts to edit(), which deltaMerges into the existing
+ * object; posting to add() would create a duplicate.
+ */
+if ($isEdit && !empty($object['Object']['id'])) {
+    $formUrl = $baseurl . '/objects/edit/' . h($object['Object']['id']);
+    if (!empty($update_template_available)) {
+        $formUrl .= '/1';
+    }
+} else {
+    $formUrl = $baseurl . '/objects/add/' . $eventId . '/' . h($template['ObjectTemplate']['id']);
+}
+
+echo $this->Form->create('Object', [
+    'id'         => 'objectAddForm',
+    'url'        => $formUrl,
+    'enctype'    => 'multipart/form-data',
+    'novalidate' => true,
+]);
+
+/*
+ * Rows are added client-side, so their fields cannot be in the token hash the
+ * server compares against. Unlocking the subtree here — before any row renders,
+ * which is what keeps FormHelper from listing them in the first place — is what
+ * the legacy flow bought by posting to the unlocked revise_object action.
+ */
+$this->Form->unlockField('Attribute');
+
+if (!empty($groupSource)) {
+    echo $this->Form->hidden('Object.group_attribute_ids', [
+        'value' => json_encode($groupSource['ids']),
+    ]);
+}
+
+?>
+
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'object',
+    'eyebrow' => __('Objects'),
+    'title' => $isEdit ? __('Edit Object') : __('Add Object'),
+    'description' => __('An object groups related attributes under a template that describes what they mean together.'),
+    'icon' => 'misp-icon misp-icon-object misp-simple',
+    'isEdit' => $isEdit,
+]) ?>
+
 <div class="container-fluid px-4 py-4">
 
-    <div class="accordion px-2" id="objectAccordion">
+    <!-- Chosen template, and the way back to the picker -->
+    <div class="ov-obj-template-bar d-flex align-items-center gap-3 flex-wrap px-3 py-2 mb-4 rounded">
+        <span class="badge bg-object"><?= $isEdit ? h(__('Template')) : '1' ?></span>
+        <span class="fw-semibold"><?= h(Inflector::humanize($template['ObjectTemplate']['name'])) ?></span>
+        <span class="badge rounded-pill text-bg-light border text-secondary fw-normal">
+            <?= h($template['ObjectTemplate']['meta-category']) ?>
+        </span>
+        <span class="badge bg-secondary fw-normal">v<?= h($template['ObjectTemplate']['version']) ?></span>
 
-        <!-- ===== STEP 1 : TEMPLATE SELECTION ===== -->
-        <div class="accordion-item border mb-2 rounded shadow-sm">
-            <h2 class="accordion-header" id="objHeading1">
-                <button class="accordion-button <?= $hasTemplate ? 'collapsed' : '' ?> rounded"
+        <?php if (!empty($template['ObjectTemplate']['description'])): ?>
+            <span class="ov-obj-template-desc text-muted small text-truncate"
+                  title="<?= h($template['ObjectTemplate']['description']) ?>">
+                <?= h($template['ObjectTemplate']['description']) ?>
+            </span>
+        <?php endif; ?>
+
+        <?php if (!$isEdit): ?>
+            <button type="button"
+                    class="btn btn-sm btn-outline-object ms-auto"
+                    id="objChangeTemplateBtn"
+                    data-picker-url="<?= h($pickerUrl) ?>">
+                <i class="fas fa-rotate-left me-1"></i><?= __('Change template') ?>
+            </button>
+        <?php endif; ?>
+    </div>
+
+    <?php if (!empty($groupSource)):
+        $placed = count($groupSource['ids']);
+    ?>
+        <div class="alert alert-info d-flex gap-2 small mb-4">
+            <i class="fas fa-object-group mt-1"></i>
+            <div>
+                <div>
+                    <?= __n(
+                        'The selected attribute is filled in below.',
+                        'The %s selected attributes are filled in below.',
+                        $placed, $placed
+                    ) ?>
+                    <?= $groupSource['hardDelete']
+                        ? __('Once the object is saved, each one kept as it is moves into it, tags and sightings included, and is deleted for good from the loose attributes (the event was never published).')
+                        : __('Once the object is saved, each one kept as it is moves into it, tags and sightings included, and is soft-deleted from the loose attributes.') ?>
+                    <?= __('One you remove or edit here stays where it is.') ?>
+                </div>
+                <?php if (!empty($groupSource['skipped'])): ?>
+                    <div class="mt-1">
+                        <?= __('Left out:') ?>
+                        <?php foreach ($groupSource['skipped'] as $skipped): ?>
+                            <span class="badge text-bg-light border font-monospace"
+                                  title="<?= h($skipped['reason'] === 'attachment'
+                                      ? __('An attachment cannot be carried into the form.')
+                                      : __('This template has no free relation of this type.')) ?>">
+                                <?= h($skipped['type']) ?>: <?= h(mb_strimwidth($skipped['value'], 0, 40, '…')) ?>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="accordion" id="objectAccordion">
+
+        <!-- ===== OBJECT ===== -->
+        <div class="accordion-item border mb-4 rounded shadow-sm">
+            <h2 class="accordion-header" id="objHeading2">
+                <button class="accordion-button ov-accordion-static rounded"
                         type="button"
-                        aria-expanded="<?= $hasTemplate ? 'false' : 'true' ?>"
-                        aria-controls="objCollapse1"
-                        style="cursor:default; pointer-events:none;">
-                    <span class="badge bg-object me-2">1</span>
-                    <?= __('Template') ?>
-                    <?php if ($hasTemplate): ?>
-                        <span class="ms-2 badge text-bg-success fw-normal">
-                            <?= h($template['ObjectTemplate']['meta-category']) ?>
-                            /
-                            <?= h(Inflector::humanize($template['ObjectTemplate']['name'])) ?>
-                        </span>
-                    <?php endif; ?>
+                        aria-expanded="true"
+                        aria-controls="objCollapse2">
+                    <span class="badge bg-object me-2"><?= $isEdit ? '1' : '2' ?></span>
+                    <?= __('Object') ?>
                 </button>
             </h2>
-            <div id="objCollapse1"
-                 class="accordion-collapse collapse <?= !$hasTemplate ? 'show' : '' ?>"
-                 aria-labelledby="objHeading1"
-                 data-bs-parent="#objectAccordion">
+            <div id="objCollapse2" class="accordion-collapse collapse show" aria-labelledby="objHeading2">
                 <div class="accordion-body">
 
-                    <!-- Meta-category badges -->
+                    <!-- Distribution + sharing group -->
                     <div class="mb-3">
-                        <?= $this->element('genericElementsBS5/Forms/section_label', [
+                        <?= $this->element('genericElementsBS5/Forms/distribution_field', [
                             'accent' => 'object',
-                            'label' => __('Meta-category'),
+                            'field' => 'Object.distribution',
+                            'id' => 'ObjectDistribution',
+                            'value' => $object['Object']['distribution'] ?? $distributionData['initial'],
+                            'selectAttrs' => ['class' => 'Object_distribution_select'],
+                            'sgId' => 'ObjectSharingGroup',
+                            'showSg' => true,
                         ]) ?>
-                        <div class="d-flex flex-wrap gap-2" id="metaCategoryList">
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-object meta-cat-btn <?= !$hasTemplate ? 'active' : '' ?>"
-                                    data-meta="">
-                                <?= __('All') ?>
-                            </button>
-                            <?php foreach ($metaCategories as $meta): ?>
-                                <button type="button"
-                                        class="btn btn-sm btn-outline-object meta-cat-btn <?= ($hasTemplate && $selectedMeta === $meta) ? 'active' : '' ?>"
-                                        data-meta="<?= h($meta) ?>">
-                                    <?= h(Inflector::humanize($meta)) ?>
-                                </button>
-                            <?php endforeach; ?>
+                    </div>
+
+                    <!-- First Seen / Last Seen -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                'accent' => 'object',
+                                'label' => __('First Seen (UTC)'),
+                                'for' => 'ObjectFirstSeenDisplay',
+                            ]) ?>
+                            <?= $this->element('genericElementsBS5/Forms/date_field', [
+                                'field' => 'first_seen',
+                                'id' => 'ObjectFirstSeen',
+                                'mode' => 'datetime',
+                                'accent' => 'object',
+                            ]) ?>
+                        </div>
+                        <div class="col-md-6">
+                            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                'accent' => 'object',
+                                'label' => __('Last Seen (UTC)'),
+                                'for' => 'ObjectLastSeenDisplay',
+                            ]) ?>
+                            <?= $this->element('genericElementsBS5/Forms/date_field', [
+                                'field' => 'last_seen',
+                                'id' => 'ObjectLastSeen',
+                                'mode' => 'datetime',
+                                'accent' => 'object',
+                                'after' => '#ObjectFirstSeen',
+                                'rangeMsg' => __('Last seen cannot be earlier than first seen.'),
+                            ]) ?>
                         </div>
                     </div>
 
-                    <!-- Template picker (TomSelect) -->
-                    <div class="mb-3">
+                    <!-- Comment -->
+                    <div class="mb-4">
                         <?= $this->element('genericElementsBS5/Forms/section_label', [
                             'accent' => 'object',
-                            'label' => __('Template'),
+                            'label' => __('Comment'),
+                            'for' => 'ObjectComment',
                         ]) ?>
-                        <select id="objectTemplateSelect" class="form-select">
-                            <?php foreach ($templateList as $t): ?>
-                                <option value="<?= h($t['ObjectTemplate']['id']) ?>"
-                                        data-meta="<?= h($t['ObjectTemplate']['meta-category']) ?>"
-                                        data-desc="<?= h($t['ObjectTemplate']['description']) ?>"
-                                        data-version="<?= h($t['ObjectTemplate']['version']) ?>"
-                                        <?= ($hasTemplate && $t['ObjectTemplate']['id'] == $template['ObjectTemplate']['id']) ? 'selected' : '' ?>>
-                                    <?= h(Inflector::humanize($t['ObjectTemplate']['name'])) ?>
-                                    (<?= h($t['ObjectTemplate']['meta-category']) ?>)
-                                </option>
+                        <?= $this->Form->textarea('Object.comment', [
+                            'class'       => 'form-control',
+                            'rows'        => 2,
+                            'required'    => false,
+                            'allowEmpty'  => true,
+                            'placeholder' => __('Optional comment…'),
+                            'label'       => false,
+                            'div'         => false,
+                        ]) ?>
+                    </div>
+
+                    <?php if (!empty($template['warnings'])): ?>
+                        <div class="alert alert-warning mb-4">
+                            <strong><?= __('Warning, issues found with the template') ?>:</strong>
+                            <?php foreach ($template['warnings'] as $warning): ?>
+                                <div><?= h($warning) ?></div>
                             <?php endforeach; ?>
-                        </select>
-                    </div>
+                        </div>
+                    <?php endif; ?>
 
-                    <!-- Description preview -->
-                    <div id="templateDescPreview"
-                         class="alert alert-light border mb-3 <?= !$hasTemplate ? 'd-none' : '' ?>">
-                        <?php if ($hasTemplate): ?>
-                            <strong>
-                                <?= h(Inflector::humanize($template['ObjectTemplate']['name'])) ?>
-                            </strong>
-                            <span class="badge bg-secondary ms-1">
-                                v<?= h($template['ObjectTemplate']['version']) ?>
-                            </span>
-                            <br>
-                            <small class="text-muted">
-                                <?= h($template['ObjectTemplate']['description']) ?>
-                            </small>
+                    <!-- Attributes -->
+                    <?php
+                    /*
+                     * Three groups, and only the first is laid out up front:
+                     *   required      - the template will not save without them
+                     *   requiredOneOf - at least one of them, picked from a palette
+                     *   the rest      - picked from a palette too
+                     * A relation nobody has asked for is a <template>, not a hidden
+                     * card: it is cloned on demand, so nothing it contains is ever
+                     * submitted or reachable by tabbing.
+                     */
+                    $requiredRelations = $template['ObjectTemplate']['requirements']['required'] ?? [];
+                    $oneOfRelations    = $template['ObjectTemplate']['requirements']['requiredOneOf'] ?? [];
+
+                    $groupOf = function ($relation) use ($requiredRelations, $oneOfRelations) {
+                        if (in_array($relation, $requiredRelations, true)) {
+                            return 'required';
+                        }
+                        return in_array($relation, $oneOfRelations, true) ? 'oneof' : 'other';
+                    };
+
+                    $upfront = ['required' => [], 'oneof' => [], 'other' => []];
+                    $palette = ['oneof' => [], 'other' => []];
+                    $sources = [];
+                    $lastRow = -1;
+
+                    foreach ($template['ObjectTemplateElement'] as $k => $element) {
+                        $lastRow = $k;
+                        $relation = $element['object_relation'];
+                        $group = $groupOf($relation);
+                        // A value means the row is already part of the object (edit mode,
+                        // or an add the server rejected), so it stays laid out.
+                        $hasValue = isset($element['value']) && $element['value'] !== '';
+
+                        if ($group === 'required' || $hasValue) {
+                            $upfront[$group][$k] = $element;
+                        }
+                        // Every relation gets a clone source, required ones included:
+                        // a repeatable required relation still has to be able to grow,
+                        // which is what splitting a pasted list relies on.
+                        if (!isset($sources[$relation])) {
+                            $sources[$relation] = ['k' => $k, 'element' => $element];
+                        }
+                        // Only the two open groups get a palette button.
+                        if ($group !== 'required' && !isset($palette[$group][$relation])) {
+                            $palette[$group][$relation] = $element;
+                        }
+                    }
+                    ?>
+
+                    <?= $this->element('genericElementsBS5/Forms/section_label', [
+                        'accent' => 'object',
+                        'label' => __('Attributes'),
+                    ]) ?>
+
+                    <div id="editTable" class="mb-4">
+
+                        <?php if (!empty($upfront['required'])): ?>
+                            <div class="ov-obj-group-label">
+                                <i class="fas fa-asterisk text-danger me-1"></i>
+                                <?= __('Required by this template') ?>
+                            </div>
+                            <div class="ov-obj-cards" data-group="required">
+                                <?php foreach ($upfront['required'] as $k => $element): ?>
+                                    <?= $this->element('Objects/object_add_attributes', [
+                                        'element' => $element,
+                                        'k' => $k,
+                                        'action' => $action,
+                                        'enabledRows' => $enabledRows,
+                                        'removable' => false,
+                                    ]) ?>
+                                <?php endforeach; ?>
+                            </div>
                         <?php endif; ?>
+
+                        <?php foreach (['oneof', 'other'] as $group): ?>
+                            <?php if (empty($palette[$group]) && empty($upfront[$group])) { continue; } ?>
+
+                            <?php if (!empty($palette[$group])): ?>
+                                <div class="card ov-obj-palette mb-3" data-palette="<?= h($group) ?>">
+                                    <div class="card-header ov-obj-palette-header">
+                                        <?php if ($group === 'oneof'): ?>
+                                            <i class="fas fa-circle-half-stroke text-warning me-1"></i>
+                                            <?= __('At least one of these is required') ?>
+                                        <?php else: ?>
+                                            <i class="fas fa-plus text-object me-1"></i>
+                                            <?= __('Other attributes') ?>
+                                        <?php endif; ?>
+                                        <span class="text-muted fw-normal ms-1">
+                                            <?= __('— click to add') ?>
+                                        </span>
+                                    </div>
+                                    <div class="card-body d-flex flex-wrap gap-2 py-2">
+                                        <?php foreach ($palette[$group] as $relation => $element): ?>
+                                            <?php
+                                            $multiple = !empty($element['multiple']);
+                                            // A single-occurrence relation already laid out has
+                                            // nothing left to add.
+                                            $used = !$multiple && isset($upfront[$group])
+                                                && !empty(array_filter(
+                                                    $upfront[$group],
+                                                    function ($e) use ($relation) {
+                                                        return $e['object_relation'] === $relation;
+                                                    }
+                                                ));
+                                            ?>
+                                            <button type="button"
+                                                    class="btn btn-sm ov-obj-pick"
+                                                    data-add-relation="<?= h($relation) ?>"
+                                                    data-multiple="<?= $multiple ? '1' : '0' ?>"
+                                                    data-target="<?= h($group) ?>"
+                                                    title="<?= h($element['description'] ?? $relation) ?>"
+                                                    <?= $used ? 'disabled' : '' ?>>
+                                                <i class="fas fa-plus"></i>
+                                                <span><?= h(Inflector::humanize($relation)) ?></span>
+                                                <span class="ov-obj-pick-type"><?= h($element['type']) ?></span>
+                                                <?php if ($multiple): ?>
+                                                    <i class="fas fa-layer-group ov-obj-pick-multi"
+                                                       title="<?= __('Can be added more than once') ?>"></i>
+                                                <?php endif; ?>
+                                            </button>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
+                            <div class="ov-obj-cards" data-group="<?= h($group) ?>">
+                                <?php foreach ($upfront[$group] as $k => $element): ?>
+                                    <?= $this->element('Objects/object_add_attributes', [
+                                        'element' => $element,
+                                        'k' => $k,
+                                        'action' => $action,
+                                        'enabledRows' => $enabledRows,
+                                        'removable' => true,
+                                    ]) ?>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endforeach; ?>
+
+                        <?php foreach ($sources as $relation => $source): ?>
+                            <template class="ov-obj-row-source" data-relation="<?= h($relation) ?>">
+                                <?= $this->element('Objects/object_add_attributes', [
+                                    'element' => $source['element'],
+                                    'k' => $source['k'],
+                                    'action' => $action,
+                                    'enabledRows' => [],
+                                    'removable' => true,
+                                    'blank' => true,
+                                ]) ?>
+                            </template>
+                        <?php endforeach; ?>
+
                     </div>
 
-                    <div class="d-flex justify-content-end mt-3">
-                        <button type="button"
-                                id="objNextBtn"
-                                class="btn btn-object"
-                                <?= !$hasTemplate ? 'disabled' : '' ?>>
-                            <?= __('Next') ?>
+                    <div id="last-row" class="d-none" data-last-row="<?= h($lastRow) ?>"></div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-object" id="objRelationshipBtn">
+                            <i class="fas fa-link me-1"></i><?= __('Edit relationships') ?>
+                        </button>
+                        <button type="button" class="btn btn-object ov-obj-review-btn" id="objReviewBtn">
+                            <i class="fas fa-eye me-1"></i><?= __('Review') ?>
                             <i class="fas fa-chevron-down ms-1"></i>
                         </button>
                     </div>
@@ -151,826 +479,155 @@ $k = -1;
             </div>
         </div>
 
-        <!-- ===== STEP 2 : OBJECT FORM ===== -->
+        <!-- ===== RELATIONSHIPS (optional) ===== -->
         <div class="accordion-item border mb-2 rounded shadow-sm">
-            <h2 class="accordion-header" id="objHeading2">
-                <button class="accordion-button <?= !$hasTemplate ? 'collapsed' : '' ?> rounded"
+            <h2 class="accordion-header" id="objHeadingRel">
+                <button class="accordion-button ov-accordion-static collapsed rounded"
                         type="button"
-                        aria-expanded="<?= $hasTemplate ? 'true' : 'false' ?>"
-                        aria-controls="objCollapse2"
-                        style="cursor:default; pointer-events:none;">
-                    <span class="badge bg-object me-2">2</span>
-                    <?= __('Object') ?>
+                        aria-expanded="false"
+                        aria-controls="objCollapseRel">
+                    <span class="badge bg-object me-2"><?= $isEdit ? '2' : '3' ?></span>
+                    <?= __('Relationships') ?>
+                    <span class="badge rounded-pill ov-obj-step-badge fw-normal ms-2">
+                        <?= __('optional') ?>
+                    </span>
                 </button>
             </h2>
-            <div id="objCollapse2"
-                 class="accordion-collapse collapse <?= $hasTemplate ? 'show' : '' ?>"
-                 aria-labelledby="objHeading2"
-                 data-bs-parent="#objectAccordion">
+            <div id="objCollapseRel" class="accordion-collapse collapse" aria-labelledby="objHeadingRel">
                 <div class="accordion-body">
 
-                    <?php if (!$hasTemplate): ?>
+                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                        'text' => __('A relationship points this object at another object or attribute of the event. They are created once the object itself is saved.'),
+                        'class' => 'mb-3',
+                    ]) ?>
 
-                        <!-- Placeholder when no template selected -->
-                        <div class="text-center text-muted py-5">
-                            <i class="fas fa-arrow-up fa-2x mb-3 d-block opacity-50"></i>
-                            <?= __('Please select a template in Step 1 first.') ?>
-                        </div>
-
-                    <?php else: ?>
-
-                        <!-- Template meta info -->
-                        <div class="row g-3 mb-4 pb-3"
-                             style="border-bottom:1px solid var(--bs-border-color);">
-                            <div class="col-md-6">
-                                <?= $this->element('genericElementsBS5/Forms/section_label', [
-                                    'accent' => 'object',
-                                    'label' => __('Template'),
-                                    'class' => 'mb-1',
-                                ]) ?>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <strong>
-                                        <?= h(Inflector::humanize($template['ObjectTemplate']['name'])) ?>
-                                    </strong>
-                                    <span class="badge bg-secondary">
-                                        v<?= h($template['ObjectTemplate']['version']) ?>
-                                    </span>
-                                    <span class="badge bg-object">
-                                        <?= h($template['ObjectTemplate']['meta-category']) ?>
-                                    </span>
-                                </div>
-                                <div class="text-muted small mt-1">
-                                    <?= h($template['ObjectTemplate']['description']) ?>
-                                </div>
-                            </div>
-
-                            <?php if (
-                                !empty($template['ObjectTemplate']['requirements']['required']) ||
-                                !empty($template['ObjectTemplate']['requirements']['requiredOneOf'])
-                            ): ?>
-                                <div class="col-md-6">
-                                    <?= $this->element('genericElementsBS5/Forms/section_label', [
-                                        'accent' => 'object',
-                                        'label' => __('Requirements'),
-                                        'class' => 'mb-1',
-                                    ]) ?>
-                                    <?php if (!empty($template['ObjectTemplate']['requirements']['required'])): ?>
-                                        <div class="small">
-                                            <strong><?= __('Required') ?>:</strong>
-                                            <?= h(implode(', ', $template['ObjectTemplate']['requirements']['required'])) ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    <?php if (!empty($template['ObjectTemplate']['requirements']['requiredOneOf'])): ?>
-                                        <div class="small">
-                                            <strong><?= __('Required one of') ?>:</strong>
-                                            <?= h(implode(', ', $template['ObjectTemplate']['requirements']['requiredOneOf'])) ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-
-                        <!-- Distribution + sharing group -->
-                        <div class="mb-3">
-                            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <?= $this->element('genericElementsBS5/Forms/section_label', [
                                 'accent' => 'object',
-                                'field' => 'Object.distribution',
-                                'id' => 'ObjectDistribution',
-                                'value' => $object['Object']['distribution']
-                                    ?? $distributionData['initial'],
-                                'selectAttrs' => [
-                                    'class' => 'Object_distribution_select',
-                                ],
-                                'sgId' => 'ObjectSharingGroup',
-                                'showSg' => true,
+                                'label' => __('Relationship type'),
+                                'for' => 'objRelType',
                             ]) ?>
+                            <select id="objRelType" class="form-select"></select>
+                            <input type="text" id="objRelTypeCustom"
+                                   class="form-control mt-2 d-none"
+                                   placeholder="<?= __('Custom relationship type') ?>">
                         </div>
-
-                        <!-- First Seen / Last Seen -->
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <?= $this->element('genericElementsBS5/Forms/section_label', [
-                                    'accent' => 'object',
-                                    'label' => __('First Seen (UTC)'),
-                                ]) ?>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-transparent border-end-0"
-                                          style="border-color:#d8dde3;">
-                                        <i class="fas fa-calendar-days text-muted"
-                                           style="font-size:.82rem;"></i>
-                                    </span>
-                                    <input type="datetime-local"
-                                           step="1"
-                                           id="obj-first-seen-picker"
-                                           class="form-control border-start-0"
-                                           style="border-color:#d8dde3;">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <?= $this->element('genericElementsBS5/Forms/section_label', [
-                                    'accent' => 'object',
-                                    'label' => __('Last Seen (UTC)'),
-                                ]) ?>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-transparent border-end-0"
-                                          style="border-color:#d8dde3;">
-                                        <i class="fas fa-calendar-days text-muted"
-                                           style="font-size:.82rem;"></i>
-                                    </span>
-                                    <input type="datetime-local"
-                                           step="1"
-                                           id="obj-last-seen-picker"
-                                           class="form-control border-start-0"
-                                           style="border-color:#d8dde3;">
-                                </div>
-                            </div>
+                        <div class="col-md-5">
+                            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                                'accent' => 'object',
+                                'label' => __('Target'),
+                                'for' => 'objRelTarget',
+                            ]) ?>
+                            <select id="objRelTarget" class="form-select"></select>
                         </div>
-                        <?= $this->Form->hidden('first_seen', [
-                            'id' => 'ObjectFirstSeen', 'value' => '',
-                        ]) ?>
-                        <?= $this->Form->hidden('last_seen', [
-                            'id' => 'ObjectLastSeen', 'value' => '',
-                        ]) ?>
-
-                        <!-- Comment -->
-                        <div class="mb-4">
+                        <div class="col-md-3">
                             <?= $this->element('genericElementsBS5/Forms/section_label', [
                                 'accent' => 'object',
                                 'label' => __('Comment'),
+                                'for' => 'objRelComment',
                             ]) ?>
-                            <?= $this->Form->textarea(
-                                'Object.comment',
-                                [
-                                    'class'      => 'form-control',
-                                    'rows'       => 2,
-                                    'required'   => false,
-                                    'allowEmpty' => true,
-                                    'placeholder' => __('Optional comment…'),
-                                    'label'      => false,
-                                    'div'        => false,
-                                ]
-                            ) ?>
+                            <input type="text" id="objRelComment" class="form-control">
                         </div>
+                    </div>
 
-                        <!-- Template warnings -->
-                        <?php if (!empty($template['warnings'])): ?>
-                            <div class="alert alert-warning mb-4">
-                                <strong>
-                                    <?= __('Warning, issues found with the template') ?>:
-                                </strong>
-                                <?php foreach ($template['warnings'] as $warning): ?>
-                                    <div><?= h($warning) ?></div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
+                    <div class="d-flex justify-content-end mt-3">
+                        <button type="button" class="btn btn-sm btn-object" id="objRelAddBtn" disabled>
+                            <i class="fas fa-plus me-1"></i><?= __('Add this relationship') ?>
+                        </button>
+                    </div>
 
-                        <!-- Attributes table -->
-                        <?= $this->element('genericElementsBS5/Forms/section_label', [
-                            'accent' => 'object',
-                            'label' => __('Attributes'),
-                        ]) ?>
+                    <div id="objRelList" class="mt-3"></div>
 
-                        <div id="editTable" class="mb-4">
-                            <?php
-                            $row_list = [];
-                            foreach ($template['ObjectTemplateElement'] as $k => $element):
-                                $row_list[] = $k;
-                                echo $this->element(
-                                    'Objects/object_add_attributes',
-                                    [
-                                        'element'     => $element,
-                                        'k'           => $k,
-                                        'action'      => $action,
-                                        'enabledRows' => $enabledRows,
-                                    ]
-                                );
-                                if ($element['multiple']):
-                                    $lastOfType = true;
-                                    $lookAhead  = array_slice(
-                                        $template['ObjectTemplateElement'],
-                                        $k,
-                                        count($template['ObjectTemplateElement']),
-                                        true
-                                    );
-                                    if (count($lookAhead) > 1) {
-                                        foreach ($lookAhead as $k2 => $temp) {
-                                            if ($k2 === $k) continue;
-                                            if ($temp['object_relation'] === $element['object_relation']) {
-                                                $lastOfType = false;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    if ($lastOfType):
-                            ?>
-                                <div id="row_<?= h($element['object_relation']) ?>_expand"
-                                     class="add_object_attribute_row text-center py-2 mb-2 rounded"
-                                     style="cursor:pointer;
-                                            border:1px dashed #d8dde3;
-                                            background:rgba(82,73,72,.02);
-                                            transition:background .15s;"
-                                     title="<?= __('Add another %s attribute', h($element['object_relation'])) ?>"
-                                     data-template-id="<?= intval($template['ObjectTemplate']['id']) ?>"
-                                     data-target-row="<?= intval($k) ?>"
-                                     data-object-relation="<?= h($element['object_relation']) ?>">
-                                    <i class="fas fa-plus text-object"
-                                       style="font-size:.7rem;"></i>
-                                    <span class="ms-1 text-object fw-bold text-uppercase"
-                                          style="font-size:.65rem; letter-spacing:.06em;">
-                                        <?= __('Add another %s', h(Inflector::humanize($element['object_relation']))) ?>
-                                    </span>
-                                </div>
-                            <?php
-                                    endif;
-                                endif;
-                            endforeach;
-                            ?>
-                        </div>
-
-                        <!-- Hidden counter for "add another row" -->
-                        <div id="last-row" class="d-none" data-last-row="<?= h($k) ?>"></div>
-
-                        <!-- Actions -->
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <button type="button"
-                                    class="btn btn-outline-secondary"
-                                    id="objPrevBtn">
-                                <i class="fas fa-chevron-up me-1"></i>
-                                <?= __('Previous') ?>
-                            </button>
-                            <div class="d-flex align-items-center gap-3">
-                                <p class="text-danger fw-bold d-none mb-0" id="warning-message">
-                                    <?= __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.') ?>
-                                </p>
-                                <button type="button"
-                                        class="btn btn-primary"
-                                        id="objReviewBtn">
-                                    <i class="fas fa-eye me-1"></i>
-                                    <?= __('Review') ?>
-                                    <i class="fas fa-chevron-down ms-1"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                    <?php endif; ?>
-
+                    <div class="d-flex justify-content-end mt-3">
+                        <button type="button" class="btn btn-object ov-obj-review-btn">
+                            <i class="fas fa-eye me-1"></i><?= __('Review') ?>
+                            <i class="fas fa-chevron-down ms-1"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ===== STEP 3 : REVIEW ===== -->
+        <!-- ===== REVIEW ===== -->
         <div class="accordion-item border mb-2 rounded shadow-sm">
             <h2 class="accordion-header" id="objHeading3">
-                <button class="accordion-button collapsed rounded"
+                <button class="accordion-button ov-accordion-static collapsed rounded"
                         type="button"
                         aria-expanded="false"
-                        aria-controls="objCollapse3"
-                        style="cursor:default; pointer-events:none;">
-                    <span class="badge bg-object me-2">3</span>
+                        aria-controls="objCollapse3">
+                    <span class="badge bg-object me-2"><?= $isEdit ? '3' : '4' ?></span>
                     <?= __('Review') ?>
                 </button>
             </h2>
-            <div id="objCollapse3"
-                 class="accordion-collapse collapse"
-                 aria-labelledby="objHeading3"
-                 data-bs-parent="#objectAccordion">
+            <div id="objCollapse3" class="accordion-collapse collapse" aria-labelledby="objHeading3">
                 <div class="accordion-body p-3">
-
-                    <!-- Preview area — populated by JS on "Review" click -->
-                    <div id="objReviewBody" class="mb-3">
+                    <div id="objSimilarObjects" class="mb-3"></div>
+                    <div id="objReviewBody">
                         <div class="text-center text-muted py-4 fst-italic">
-                            <i class="fas fa-eye d-block mb-2 opacity-25"
-                               style="font-size:2rem;"></i>
-                            <?= __('Click "Review" in Step 2 to preview the object before submitting.') ?>
+                            <i class="fas fa-eye d-block mb-2 opacity-25 fa-2x"></i>
+                            <?= __('Use "Review" above to check the object before submitting.') ?>
                         </div>
                     </div>
-
-                    <!-- Actions -->
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <button type="button"
-                                class="btn btn-outline-secondary"
-                                id="objPrevBtn3">
-                            <i class="fas fa-chevron-up me-1"></i>
-                            <?= __('Previous') ?>
+                    <div class="d-flex justify-content-start">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="objPrevBtn3">
+                            <i class="fas fa-chevron-up me-1"></i><?= __('Back to the object') ?>
                         </button>
-                        <div class="d-flex align-items-center gap-3">
-                            <p class="text-danger fw-bold d-none mb-0"
-                               id="warning-message">
-                                <?= __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.') ?>
-                            </p>
-                            <button type="submit"
-                                    class="btn btn-success"
-                                    id="submitButton">
-                                <i class="fas fa-check me-1"></i>
-                                <?= __('Submit') ?>
-                            </button>
-                        </div>
                     </div>
-
                 </div>
             </div>
         </div>
 
     </div><!-- /accordion -->
-</div><!-- /container-fluid -->
 
-<?php echo $this->Form->end(); ?>
+    <div id="objFormError" class="alert alert-danger mt-3 mb-0 d-none" role="alert"></div>
 
-<script>
-(function () {
-    'use strict';
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'object',
+        'isEdit' => $isEdit,
+        'metaHtml' => '<span id="objWarningMessage" class="text-danger fw-bold d-none">'
+            . '<i class="fas fa-triangle-exclamation me-1"></i>'
+            . h(__('You are about to share data of a classified nature. Make sure that you are authorised to.'))
+            . '</span>',
+        'submit' => [
+            'label' => $isEdit ? __('Save Changes') : __('Add Object'),
+            'icon' => 'fas fa-check',
+            'id' => 'submitButton',
+            'type' => 'submit',
+        ],
+    ]) ?>
 
-    var eventId = <?= json_encode($eventId) ?>;
+</div>
 
-    /* ── Vanilla-JS shim used by get_row.ctp ────────────────── */
-    window.overmindEnableObjectRow = function (k) {
-        var saveEl  = document.getElementById('Attribute' + k + 'Save');
-        var valEl   = document.getElementById('Attribute' + k + 'Value');
-        var selEl   = document.getElementById('Attribute' + k + 'ValueSelect');
-        var fileEl  = document.getElementById('Attribute' + k + 'Attachment');
-        var card    = saveEl ? saveEl.closest('.attribute_row') : null;
-
-        function syncCardOpacity() {
-            if (card) card.style.opacity = (saveEl && saveEl.checked) ? '1' : '.5';
-        }
-
-        function syncSave() {
-            if (!saveEl) return;
-            var hasVal = selEl  ? selEl.value  !== '' :
-                         fileEl ? fileEl.value !== '' :
-                         valEl  ? valEl.value.trim() !== '' : false;
-            saveEl.checked  = hasVal;
-            saveEl.disabled = !hasVal;
-            syncCardOpacity();
-        }
-
-        if (saveEl) saveEl.addEventListener('change', syncCardOpacity);
-
-        syncSave();
-        if (valEl)  valEl.addEventListener('input',  syncSave);
-        if (selEl)  selEl.addEventListener('change', syncSave);
-        if (fileEl) fileEl.addEventListener('change', syncSave);
-
-        /* Value-select → manual-entry textarea sync */
-        if (selEl) {
-            var wrap    = selEl.closest('.value_select_with_manual_entry');
-            var textVal = wrap ? wrap.querySelector('textarea') : null;
-            if (textVal) {
-                function syncTextarea() {
-                    var manual = selEl.value === 'Enter value manually';
-                    textVal.style.display = manual ? '' : 'none';
-                }
-                selEl.addEventListener('change', syncTextarea);
-                syncTextarea();
-            }
-        }
-    };
-
-    /* ── IDS / Correlate toggle card visual sync ─────────── */
-    document.addEventListener('change', function (e) {
-        if (e.target.type !== 'checkbox') return;
-
-        var idsCard = e.target.closest('[id^="card-ids-"]');
-        if (idsCard) {
-            var idsIcon = idsCard.querySelector('.fa-shield-halved');
-            var on      = e.target.checked;
-            idsCard.style.borderColor = on ? '#ffc107' : '#dee2e6';
-            idsCard.style.background  = on ? 'rgba(255,193,7,.08)' : 'transparent';
-            if (idsIcon) idsIcon.style.color = on ? '#ffc107' : '#adb5bd';
-            return;
-        }
-
-        var corrCard = e.target.closest('[id^="card-corr-"]');
-        if (corrCard) {
-            var corrIcon = corrCard.querySelector('i');
-            var corrOn   = !e.target.checked; /* disable_correlation=false → ON */
-            corrCard.style.borderColor = corrOn ? '#198754' : '#dee2e6';
-            corrCard.style.background  = corrOn ? 'rgba(25,135,84,.08)' : 'transparent';
-            if (corrIcon) {
-                corrIcon.style.color = corrOn ? '#198754' : '#adb5bd';
-                if (corrOn) {
-                    corrIcon.classList.remove('fa-link-slash');
-                    corrIcon.classList.add('fa-link');
-                } else {
-                    corrIcon.classList.remove('fa-link');
-                    corrIcon.classList.add('fa-link-slash');
-                }
-            }
-            return;
-        }
-    });
-
-    <?php if ($hasTemplate): ?>
-    /* ── Row enable/disable for initial rows ─────────────────── */
-    var rows = <?= json_encode($row_list) ?>;
-    rows.forEach(function (k) { window.overmindEnableObjectRow(k); });
-
-    /* ── First / Last Seen picker → hidden input sync ─────────── */
-    var firstPicker = document.getElementById('obj-first-seen-picker');
-    var lastPicker  = document.getElementById('obj-last-seen-picker');
-    var firstHidden = document.getElementById('ObjectFirstSeen');
-    var lastHidden  = document.getElementById('ObjectLastSeen');
-    if (firstPicker && firstHidden) {
-        firstPicker.addEventListener('change', function () {
-            firstHidden.value = firstPicker.value.replace('T', ' ');
-        });
-    }
-    if (lastPicker && lastHidden) {
-        lastPicker.addEventListener('change', function () {
-            lastHidden.value = lastPicker.value.replace('T', ' ');
-        });
-    }
-
-    /* ── Per-attribute distribution → SG select ─────────────── */
-    document.querySelectorAll('.Attribute_distribution_select').forEach(function (sel) {
-        var sgSel = sel.parentNode
-            ? sel.parentNode.querySelector('.Attribute_sharing_group_id_select')
-            : null;
-        if (sgSel) {
-            sel.addEventListener('change', function () {
-                sgSel.style.display = sel.value == 4 ? '' : 'none';
-            });
-        }
-    });
-
-    /* ── "Add another attribute" row expand ─────────────────── */
-    document.addEventListener('click', function (e) {
-        var btn = e.target.closest('.add_object_attribute_row');
-        if (!btn) return;
-        var templateId     = btn.dataset.templateId;
-        var objectRelation = btn.dataset.objectRelation;
-        var lastRow        = document.getElementById('last-row');
-        var k = lastRow ? (parseInt(lastRow.dataset.lastRow, 10) + 1) : 0;
-        if (lastRow) lastRow.dataset.lastRow = k;
-
-        fetch(baseurl + '/objects/get_row/' + templateId + '/' + objectRelation + '/' + k, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(function (r) { return r.text(); })
-        .then(function (html) {
-            var expandRow = document.getElementById('row_' + objectRelation + '_expand');
-            if (!expandRow) return;
-            /* Cards are divs — parse as plain HTML, no table wrapper needed */
-            var doc = new DOMParser().parseFromString(html, 'text/html');
-            Array.from(doc.body.childNodes).forEach(function (node) {
-                if (node.nodeType !== 1) return;
-                if (node.tagName === 'DIV') {
-                    expandRow.parentNode.insertBefore(
-                        node.cloneNode(true), expandRow
-                    );
-                } else if (node.tagName === 'SCRIPT') {
-                    var s = document.createElement('script');
-                    s.textContent = node.textContent;
-                    document.head.appendChild(s);
-                    document.head.removeChild(s);
-                }
-            });
-        });
-    });
-
-    /* ── Previous button (step 2 → step 1) ──────────────────── */
-    var prevBtn = document.getElementById('objPrevBtn');
-    if (prevBtn) {
-        prevBtn.addEventListener('click', function () {
-            var el = document.getElementById('objCollapse1');
-            if (el) bootstrap.Collapse.getOrCreateInstance(el).show();
-        });
-    }
-
-    /* ── Review ──────────────────────────────────────────────── */
-
-    var distLevels           = <?= json_encode($distributionData['levels']) ?>;
-    var templateNameDisp     = <?= json_encode(Inflector::humanize($template['ObjectTemplate']['name'])) ?>;
-    var templateMetaDisp     = <?= json_encode($template['ObjectTemplate']['meta-category']) ?>;
-    var templateVersionDisp  = <?= json_encode($template['ObjectTemplate']['version'] ?? '') ?>;
-
-    function buildReview() {
-        /* ── Collect object-level data ── */
-        var distEl    = document.getElementById('ObjectDistribution');
-        var dist      = distEl ? parseInt(distEl.value, 10) : 0;
-        var cmtEl     = document.getElementById('ObjectComment');
-        var comment   = cmtEl  ? cmtEl.value.trim()  : '';
-        var fsHidden  = document.getElementById('ObjectFirstSeen');
-        var lsHidden  = document.getElementById('ObjectLastSeen');
-        var firstSeen = fsHidden ? fsHidden.value : '';
-        var lastSeen  = lsHidden ? lsHidden.value  : '';
-
-        /* ── Collect saved attribute rows ── */
-        var attrs = [];
-        document.querySelectorAll('.attribute_row').forEach(function (card) {
-            var k      = card.id.replace('row_', '');
-            var saveEl = document.getElementById('Attribute' + k + 'Save');
-            if (!saveEl || !saveEl.checked) return;
-
-            var valEl = document.getElementById('Attribute' + k + 'Value');
-            var selEl = document.getElementById('Attribute' + k + 'ValueSelect');
-            var value = '';
-            if (selEl && selEl.value && selEl.value !== 'Enter value manually') {
-                value = selEl.value;
-            } else if (valEl) {
-                value = valEl.value.trim();
-            }
-
-            var typeEl   = document.getElementById('Attribute' + k + 'Type');
-            var catEl    = document.getElementById('Attribute' + k + 'Category');
-            var idsEl    = document.getElementById('Attribute' + k + 'ToIds');
-            var corrEl   = document.getElementById('Attribute' + k + 'DisableCorrelation');
-            var distAtEl = document.getElementById('Attribute' + k + 'Distribution');
-            var relEl    = document.getElementById('Attribute' + k + 'ObjectRelation');
-            var atCmtEl  = document.getElementById('Attribute' + k + 'Comment');
-
-            attrs.push({
-                relation:  relEl    ? relEl.value : '',
-                value:     value,
-                type:      typeEl   ? typeEl.value : '',
-                category:  catEl
-                    ? (catEl.options[catEl.selectedIndex]
-                        ? catEl.options[catEl.selectedIndex].text
-                        : catEl.value)
-                    : '',
-                to_ids:    idsEl    ? idsEl.checked   : false,
-                correlate: corrEl   ? !corrEl.checked : true,
-                dist:      distAtEl ? parseInt(distAtEl.value, 10) : 0,
-                comment:   atCmtEl  ? atCmtEl.value.trim() : '',
-            });
-        });
-
-        /* ── Distribution warning ── */
-        var warnEl = document.getElementById('warning-message');
-        if (warnEl) warnEl.classList.toggle('d-none', dist < 3);
-
-        /* ── Render: matches index.ctp accordion-item structure ── */
-        var html = '<div class="accordion">'
-            + '<div class="accordion-item shadow-sm rounded border">';
-
-        /* Object header: non-interactive accordion-button (expanded state) */
-        html += '<h2 class="accordion-header">'
-            + '<div class="accordion-button py-2 px-3"'
-            + ' style="pointer-events:none; cursor:default;">'
-            + '<span class="d-flex align-items-center flex-wrap gap-2 w-100 me-2">';
-        html += distBadgeHtml(dist, false);
-        html += '<span class="fw-semibold">'
-            + '<span class="misp-icon misp-icon-object misp-hexagone me-1 text-secondary"></span>'
-            + escapeHtml(templateNameDisp) + '</span>';
-        html += '<span class="badge rounded-pill text-bg-light border text-secondary fw-normal">'
-            + escapeHtml(templateMetaDisp) + '</span>';
-        if (comment) {
-            html += '<span class="text-muted fst-italic small text-truncate"'
-                + ' style="max-width:400px;">'
-                + '<i class="fas fa-comment fa-xs me-1"></i>'
-                + escapeHtml(comment) + '</span>';
-        }
-        html += '<span class="badge rounded-pill bg-secondary-subtle text-secondary ms-auto">'
-            + attrs.length + (attrs.length !== 1 ? ' attributes' : ' attribute')
-            + '</span>';
-        var today = new Date().toISOString().slice(0, 10);
-        html += '<span class="text-muted small text-nowrap">'
-            + '<i class="fas fa-clock fa-xs me-1"></i>' + today + '</span>';
-        html += '</span>'   /* w-100 me-2 */
-            + '</div>'      /* accordion-button */
-            + '</h2>';      /* accordion-header */
-
-        /* Body */
-        html += '<div class="accordion-collapse collapse show">'
-            + '<div class="accordion-body p-0">';
-
-        /* Meta row: first_seen / last_seen / template version */
-        html += '<div class="px-3 py-2 bg-light border-bottom'
-            + ' d-flex flex-wrap align-items-center gap-3 small text-muted">';
-        if (firstSeen) {
-            html += '<span><i class="fas fa-calendar-plus me-1"></i>'
-                + escapeHtml(firstSeen) + '</span>';
-        }
-        if (lastSeen) {
-            html += '<span><i class="fas fa-calendar-check me-1"></i>'
-                + escapeHtml(lastSeen) + '</span>';
-        }
-        html += '<span>'
-            + '<span class="misp-icon misp-icon-tag misp-hexagone me-1"></span>'
-            + 'Template v' + escapeHtml(String(templateVersionDisp))
-            + '</span>';
-        html += '</div>';
-
-        /* Attribute table — columns match index.ctp:
-           spacer | Value | Type (=Category+Relation) | Category (=Type) | IDS | Correlate */
-        if (attrs.length > 0) {
-            html += '<div class="table-responsive">'
-                + '<table class="table table-sm table-hover align-middle mb-0">'
-                + '<thead class="table-light"><tr>'
-                + '<th class="ps-3" style="width:1%"></th>'
-                + '<th style="width:35%">Value</th>'
-                + '<th style="width:15%">Type</th>'
-                + '<th style="width:15%">Category</th>'
-                + '<th class="text-center" style="width:5%">IDS</th>'
-                + '<th class="text-center pe-3" style="width:5%">Correlate</th>'
-                + '</tr></thead><tbody>';
-
-            attrs.forEach(function (a) {
-                /* Value: dist badge + value text + optional comment card
-                   (mirrors attribute_value.ctp) */
-                var valueHtml = '<div class="d-flex flex-column gap-1">'
-                    + '<div class="d-flex align-items-baseline gap-2 mb-0">'
-                    + distBadgeHtml(a.dist, false)
-                    + '<p class="mb-0">' + escapeHtml(a.value || '—') + '</p>'
-                    + '</div>';
-                if (a.comment) {
-                    valueHtml += '<div class="card card-link-item bg-light">'
-                        + '<div class="card-body p-1">'
-                        + '<i class="fa fa-comment"></i> '
-                        + '<span>' + escapeHtml(a.comment) + '</span>'
-                        + '</div></div>';
-                }
-                valueHtml += '</div>';
-
-                /* "Type" col: category.ctp (italic + chevron) + type.ctp (dark pill) */
-                var typeColHtml = '<div class="d-flex align-items-center gap-1">'
-                    + '<div class="d-flex align-items-center text-nowrap">'
-                    + '<p class="fst-italic mb-0">' + escapeHtml(a.category) + '</p>'
-                    + (a.relation
-                        ? '<i class="fa-solid fa-chevron-right ms-1"></i>'
-                        : '')
-                    + '</div>';
-                if (a.relation) {
-                    typeColHtml += '<div class="d-flex align-items-center">'
-                        + '<p class="border border-dark rounded p-1 mb-0 bg-dark text-white"'
-                        + ' style="font-size:inherit;">'
-                        + escapeHtml(a.relation) + '</p>'
-                        + '</div>';
-                }
-                typeColHtml += '</div>';
-
-                /* "Category" col: type.ctp (border border-dark rounded p-1) */
-                var catColHtml = '<div class="d-flex align-items-center">'
-                    + '<p class="border border-dark rounded p-1 mb-0">'
-                    + escapeHtml(a.type) + '</p>'
-                    + '</div>';
-
-                /* IDS: ids.ctp table mode */
-                var idsHtml = a.to_ids
-                    ? '<i class="fas fa-shield-halved text-warning"'
-                    +   ' style="font-size:1.2em;"></i>'
-                    : '<i class="fas fa-shield-halved text-secondary"'
-                    +   ' style="font-size:1.2em;"></i>';
-
-                /* Correlate: correlate.ctp table mode */
-                var corrHtml = a.correlate
-                    ? '<i class="fas fa-link text-success"'
-                    +   ' style="font-size:1.2em;"></i>'
-                    : '<i class="fas fa-link-slash text-secondary"'
-                    +   ' style="font-size:1.2em;"></i>';
-
-                html += '<tr>'
-                    + '<td class="ps-3"></td>'
-                    + '<td class="text-break">' + valueHtml + '</td>'
-                    + '<td>' + typeColHtml + '</td>'
-                    + '<td>' + catColHtml + '</td>'
-                    + '<td class="text-center">' + idsHtml + '</td>'
-                    + '<td class="text-center pe-3">' + corrHtml + '</td>'
-                    + '</tr>';
-            });
-
-            html += '</tbody></table></div>';
-        } else {
-            html += '<p class="text-muted small fst-italic px-3 py-2 mb-0">'
-                + '<i class="fas fa-info-circle me-1"></i>'
-                + 'No attributes will be saved.</p>';
-        }
-
-        html += '</div>'    /* accordion-body */
-            + '</div>'      /* accordion-collapse */
-            + '</div>'      /* accordion-item */
-            + '</div>';     /* accordion */
-
-        var container = document.getElementById('objReviewBody');
-        if (container) container.innerHTML = html;
-    }
-
-    /* Review button → build preview + open step 3 */
-    var reviewBtn = document.getElementById('objReviewBtn');
-    if (reviewBtn) {
-        reviewBtn.addEventListener('click', function () {
-            buildReview();
-            var el = document.getElementById('objCollapse3');
-            if (el) bootstrap.Collapse.getOrCreateInstance(el).show();
-        });
-    }
-
-    /* Previous button (step 3 → step 2) */
-    var prevBtn3 = document.getElementById('objPrevBtn3');
-    if (prevBtn3) {
-        prevBtn3.addEventListener('click', function () {
-            var el = document.getElementById('objCollapse2');
-            if (el) bootstrap.Collapse.getOrCreateInstance(el).show();
-        });
-    }
-    <?php endif; ?>
-
-    /* ── Step 1: template picker ─────────────────────────────── */
-    var allTemplates = <?= json_encode(array_map(function ($t) {
+<script type="application/json" id="objectFormData"><?= json_encode([
+    'eventId' => $eventId,
+    'isEdit' => $isEdit,
+    'pickerUrl' => $pickerUrl,
+    'similarUrl' => $baseurl . '/objects/similar_objects/' . $eventId
+        . '/' . $template['ObjectTemplate']['id'],
+    'relationshipTargetsUrl' => $baseurl . '/objectReferences/targets/' . $eventId,
+    'relationshipAddUrl' => $baseurl . '/objectReferences/add/',
+    'relationshipDeleteUrl' => $baseurl . '/objectReferences/delete/',
+    'existingRelationships' => array_map(function ($row) {
+        $reference = $row['ObjectReference'];
         return [
-            'id'      => (string)$t['ObjectTemplate']['id'],
-            'name'    => Inflector::humanize($t['ObjectTemplate']['name']),
-            'meta'    => $t['ObjectTemplate']['meta-category'],
-            'desc'    => $t['ObjectTemplate']['description'],
-            'version' => $t['ObjectTemplate']['version'],
+            'id' => $reference['id'],
+            'type' => $reference['relationship_type'],
+            'uuid' => $reference['referenced_uuid'],
+            'kind' => (int)$reference['referenced_type'] === 1 ? __('object') : __('attribute'),
+            'label' => substr((string)$reference['referenced_uuid'], 0, 8),
+            'comment' => $reference['comment'],
         ];
-    }, $templateList)) ?>;
+    }, array_values($existingReferences ?? [])),
+    'distributionLevels' => (object)$distributionData['levels'],
+    'template' => [
+        'id' => (string)$template['ObjectTemplate']['id'],
+        'name' => Inflector::humanize($template['ObjectTemplate']['name']),
+        'meta' => $template['ObjectTemplate']['meta-category'],
+        'version' => (string)$template['ObjectTemplate']['version'],
+        'required' => array_values($template['ObjectTemplate']['requirements']['required'] ?? []),
+        'requiredOneOf' => array_values($template['ObjectTemplate']['requirements']['requiredOneOf'] ?? []),
+    ],
+], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 
-    var tsInstance   = null;
-    var nextBtn      = document.getElementById('objNextBtn');
-    var descPreview  = document.getElementById('templateDescPreview');
-    var nativeSel    = document.getElementById('objectTemplateSelect');
-    var metaBtns     = document.querySelectorAll('.meta-cat-btn');
-    var activeMeta   = '';
-
-    function onTemplateChange(value) {
-        if (value) {
-            if (nextBtn) nextBtn.removeAttribute('disabled');
-            var opt = allTemplates.find(function (t) { return t.id === value; });
-            if (opt && descPreview) {
-                descPreview.classList.remove('d-none');
-                descPreview.innerHTML =
-                    '<strong>' + escapeHtml(opt.name) + '</strong>' +
-                    ' <span class="badge bg-secondary ms-1">v' + escapeHtml(opt.version) + '</span>' +
-                    '<br><small class="text-muted">' + escapeHtml(opt.desc) + '</small>';
-            }
-        } else {
-            if (nextBtn) nextBtn.setAttribute('disabled', '');
-            if (descPreview) descPreview.classList.add('d-none');
-        }
-    }
-
-    /* TomSelect init */
-    if (typeof TomSelect !== 'undefined' && nativeSel) {
-        tsInstance = new TomSelect(nativeSel, {
-            allowEmptyOption: true,
-            create:           false,
-            placeholder:      <?= json_encode(__('-- Select a template --')) ?>,
-            onChange:         onTemplateChange,
-        });
-        tsInstance.clear(true);
-        /* Restore pre-selected template when page reloads with templateId */
-        <?php if ($hasTemplate): ?>
-        tsInstance.setValue(<?= json_encode($templateId) ?>, true);
-        <?php endif; ?>
-    } else if (nativeSel) {
-        nativeSel.addEventListener('change', function () {
-            onTemplateChange(nativeSel.value);
-        });
-    }
-
-    /* Meta-category badge filter */
-    function filterByMeta(meta) {
-        activeMeta = meta;
-        if (tsInstance) {
-            tsInstance.clearOptions();
-            /* Re-add the empty placeholder after clearOptions */
-            tsInstance.addOption({ value: '', text: '' });
-            var filtered = meta
-                ? allTemplates.filter(function (t) { return t.meta === meta; })
-                : allTemplates;
-            filtered.forEach(function (t) {
-                tsInstance.addOption({
-                    value: t.id,
-                    text:  t.name + ' (' + t.meta + ')',
-                    id:    t.id, name: t.name, meta: t.meta,
-                    desc:  t.desc, version: t.version,
-                });
-            });
-            tsInstance.clear();
-            tsInstance.refreshOptions(false);
-            if (nextBtn) nextBtn.setAttribute('disabled', '');
-            if (descPreview) descPreview.classList.add('d-none');
-        } else if (nativeSel) {
-            Array.from(nativeSel.options).forEach(function (opt) {
-                if (!opt.value) return;
-                opt.hidden = meta !== '' && opt.dataset.meta !== meta;
-            });
-            nativeSel.value = '';
-            if (nextBtn) nextBtn.setAttribute('disabled', '');
-            if (descPreview) descPreview.classList.add('d-none');
-        }
-    }
-
-    metaBtns.forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            metaBtns.forEach(function (b) { b.classList.remove('active'); });
-            btn.classList.add('active');
-            filterByMeta(btn.dataset.meta);
-        });
-    });
-
-    /* Next button → reload modal with the selected template */
-    if (nextBtn) {
-        nextBtn.addEventListener('click', function () {
-            var val = tsInstance ? tsInstance.getValue() : (nativeSel ? nativeSel.value : '');
-            if (val && typeof openModal === 'function') {
-                openModal(baseurl + '/objects/add/' + eventId + '/' + val);
-            } else if (val) {
-                window.location.href = baseurl + '/objects/add/' + eventId + '/' + val;
-            }
-        });
-    }
-
-}());
-</script>
+<?= $this->Form->end() ?>

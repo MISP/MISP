@@ -1,5 +1,5 @@
 <?php
-    $fieldValue = Hash::extract($row, $field['data_path'])[0];
+    $fieldValue = h(Hash::extract($row, $field['data_path'])[0]);
     if (!empty($field['url'])) {
         if (!empty($field['url_params_data_path'])) {
             $data_path_params = [];

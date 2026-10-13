@@ -30,6 +30,8 @@
  *                    $submitClass names, then 'primary'
  *   $eyebrow      => small uppercase label above the title (default Confirmation)
  *   $description  => muted one-liner under the title
+ *   $descriptionClass => extra classes on it, e.g. 'font-monospace' for a
+ *                    namespace or a uuid
  *   $titleIcon    => full class attribute of the glyph left of the title
  *   $icon         => full class attribute of the right-hand watermark glyph
  *   $warning      => a cautionary line, or an array of them, rendered as a
@@ -111,6 +113,7 @@ $text = function ($value) use ($escape) {
         'eyebrow' => $eyebrow,
         'title' => $title,
         'description' => $description ?? '',
+        'descriptionClass' => $descriptionClass ?? '',
         'titleIcon' => $titleIcon,
         'icon' => $icon,
     ]) ?>

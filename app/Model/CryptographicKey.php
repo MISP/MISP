@@ -129,20 +129,13 @@ class CryptographicKey extends AppModel
     }
 
     /**
-     * Check if given events are protected by instance key, returns array of Event IDs
-     * @param array $events
-     * @return array Event ID that is protected in key
+     * IDs of the protected events that the instance key is allowed to sign
+     * @return array
      */
-    public function protectedEventsByInstanceKey(array $events)
+    public function eventIdsSignableByInstanceKey()
     {
-        $eventIds = [];
-        foreach ($events as $event) {
-            if ($event['Event']['protected']) {
-                $eventIds[] = $event['Event']['id'];
-            }
-        }
-
-        if (empty($eventIds)) {
+        // Skips GPG entirely on instances without protected events
+        if (!$this->hasAny(['CryptographicKey.parent_type' => 'Event'])) {
             return [];
         }
 
@@ -152,11 +145,13 @@ class CryptographicKey extends AppModel
             // could not fetch instance key
             return [];
         }
+        if (!$instanceKey) {
+            return [];
+        }
 
         return $this->find('column', [
             'conditions' => [
                 'CryptographicKey.parent_type' => 'Event',
-                'CryptographicKey.parent_id' => $eventIds,
                 'CryptographicKey.fingerprint' => $instanceKey,
             ],
             'fields' => ['CryptographicKey.parent_id'],

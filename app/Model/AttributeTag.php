@@ -263,65 +263,52 @@ class AttributeTag extends AppModel
     }
 
 
-     /**
+    /**
+     * Attributes the user can see that carry the tag, directly or through
+     * their event.
+     *
      * @param int $tagId
      * @param array $user
      * @return int
      */
     public function countForTag($tagId, array $user)
     {
-        $count = $this->countForAllTags([$tagId], $user);
-        return isset($count[$tagId]) ? (int)$count[$tagId] : 0;
-    }
-
-
-
-    /**
-     * @param array $tagIds
-     * @param array $user - Currently ignored for performance reasons
-     * @return array
-     */
-    public function countForAllTags(array $tagIds, array $user)
-    {
-        if (empty($tagIds)) {
-            return [];
+        $conditions = ['Attribute.deleted' => 0];
+        $contain = [];
+        $aclConditions = $this->Attribute->buildConditions($user);
+        if (!empty($aclConditions)) {
+            $conditions['AND'][] = $aclConditions;
+            $contain = ['Event', 'Object'];
         }
-
-        $countAllTags = [];
-        foreach ($tagIds as $tagId) {
-            // First get attribute IDs directly tagged
-            $directAttributeIds = $this->Attribute->AttributeTag->find('list', [
-                'fields' => ['AttributeTag.attribute_id'],
-                'conditions' => ['AttributeTag.tag_id' => $tagIds],
-                'recursive' => -1
+        $direct = [
+            'table' => 'attribute_tags',
+            'alias' => 'DirectTag',
+            'type' => 'INNER',
+            'conditions' => [
+                'DirectTag.attribute_id = Attribute.id',
+                'DirectTag.tag_id' => $tagId,
+            ],
+        ];
+        $viaEvent = [
+            'table' => 'event_tags',
+            'alias' => 'ViaEventTag',
+            'type' => 'INNER',
+            'conditions' => [
+                'ViaEventTag.event_id = Attribute.event_id',
+                'ViaEventTag.tag_id' => $tagId,
+            ],
+        ];
+        $count = function (array $joins) use ($conditions, $contain) {
+            return (int)$this->Attribute->find('count', [
+                'recursive' => -1,
+                'fields' => ['DISTINCT Attribute.id'],
+                'conditions' => $conditions,
+                'contain' => $contain,
+                'joins' => $joins,
             ]);
-
-            // Then get attribute IDs from tagged events in one query with join
-            $eventAttributeIds = $this->Attribute->find('list', [
-                'fields' => ['Attribute.id'],
-                'joins' => [
-                    [
-                        'table' => 'event_tags',
-                        'alias' => 'EventTag',
-                        'type' => 'INNER',
-                        'conditions' => [
-                            'EventTag.event_id = Attribute.event_id',
-                            'EventTag.tag_id' => $tagIds
-                        ]
-                    ]
-                ],
-                'recursive' => -1
-            ]);
-
-            // Merge and count unique attributes
-            $allAttributeIds = array_unique(array_merge(
-                array_values($directAttributeIds),
-                array_values($eventAttributeIds)
-            ));
-
-            $countAllTags[$tagId] = count($allAttributeIds);
-        }
-        return $countAllTags;
+        };
+        return $count([$direct]) + $count([$viaEvent])
+            - $count([$direct, $viaEvent]);
     }
 
 

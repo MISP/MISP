@@ -83,6 +83,24 @@ class BackgroundJobsTool
         self::CMD_WORKFLOW,
     ];
 
+    /**
+     * Console switches that must never appear in a job's arguments.
+     *
+     * A job's arguments are handed to the `cake` console as argv, and
+     * ShellDispatcher::_parsePaths() scans the *whole* argv for these four keys
+     * - wherever they sit - taking the element after each one as a path. Any
+     * caller that lets user input reach an argument could therefore relocate the
+     * console's application root, including into an archive addressed through
+     * the phar:// stream wrapper, whose Config/core.php the Cake bootstrap then
+     * includes. Job arguments are data; they are never switches.
+     */
+    const RESERVED_ARGUMENTS = [
+        '-app', '--app',
+        '-working', '--working',
+        '-root', '--root',
+        '-webroot', '--webroot',
+    ];
+
     const CMD_TO_SHELL_DICT = [
         self::CMD_EVENT => 'EventShell',
         self::CMD_SERVER => 'ServerShell',
@@ -222,6 +240,8 @@ class BackgroundJobsTool
         int $jobId = null,
         array $metadata = []
     ): string {
+
+        $this->validateArgs($args);
 
         if (!$this->settings['enabled']) {
             return $this->resqueEnqueue($queue, self::CMD_TO_SHELL_DICT[$command], $args, $trackStatus, $jobId);
@@ -667,6 +687,30 @@ class BackgroundJobsTool
                     implode(', ', self::ALLOWED_COMMANDS)
                 )
             );
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate job arguments
+     *
+     * Refuses the console's own path switches, which would otherwise let an
+     * argument carrying user input move the application root of the process
+     * that runs the job. See RESERVED_ARGUMENTS.
+     *
+     * @param array $args
+     * @return boolean
+     * @throws InvalidArgumentException
+     */
+    private function validateArgs(array $args): bool
+    {
+        foreach ($args as $arg) {
+            if (is_string($arg) && in_array($arg, self::RESERVED_ARGUMENTS, true)) {
+                throw new InvalidArgumentException(
+                    sprintf('Job argument "%s" is reserved by the console dispatcher.', $arg)
+                );
+            }
         }
 
         return true;

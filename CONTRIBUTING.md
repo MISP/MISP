@@ -50,7 +50,7 @@ View our [Security Policy](https://github.com/MISP/MISP/security/policy).
 
 ## Contributing to MISP core
 
-Before you get started, read our [coding guidelines](/CODINGSTYLE.md).
+Before you get started, read our [coding guidelines](/CODINGSTYLE.md). To run MISP from your own working copy while you develop, see the [Docker development environment](/docs/dev/docker-dev-environment.md) guide.
 
 If you want to contribute to the [MISP core](https://github.com/MISP/MISP) project:
 

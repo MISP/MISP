@@ -604,7 +604,7 @@ $this->set('headerDescription', $headerDescription);
                         + ' style="width:10px;height:10px;background:'
                         + colors[i] + ';display:inline-block;"></span>'
                         + '<span class="text-truncate flex-fill"'
-                        + ' title="' + lbl + '">' + lbl + '</span>'
+                        + ' title="' + escapeHtml(lbl) + '">' + escapeHtml(lbl) + '</span>'
                         + '<span class="text-muted ms-1 flex-shrink-0">'
                         + values[i] + ' <span class="opacity-50">(' + pct + '%)</span>'
                         + '</span>'

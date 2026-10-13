@@ -8,8 +8,12 @@
  * no chrome elements — and it carries no script of its own: injected HTML never
  * runs its own <script>, so the form delegates the row clicks instead. Each row
  * only has to hand back a fingerprint through `data-pgp-fingerprint`.
+ * A popular address can answer with dozens of keys, so the list itself is
+ * marked `data-pgp-list`: initPgpKeyLookup() caps it at four rows and lets the
+ * rest scroll, rather than growing the modal past the screen.
  *
- * $keys  array  each ['fingerprint' =>, 'key_id' =>, 'date' =>, 'address' =>]
+ * $keys  array  each ['fingerprint' =>, 'key_id' =>, 'date' =>, 'address' =>],
+ *                'address' being every identity the key carries, one per line.
  */
 ?>
 <div class="border rounded-3 overflow-hidden">
@@ -25,14 +29,15 @@
         <button type="button" class="btn-close flex-shrink-0" style="font-size:.6rem;"
                 data-pgp-dismiss aria-label="<?= __('Close') ?>"></button>
     </div>
-    <div class="list-group list-group-flush">
+    <div class="list-group list-group-flush" data-pgp-list>
         <?php foreach ($keys as $key): ?>
             <?php
             $meta = array_filter([
                 $key['key_id'] ?? '',
                 $key['date'] ?? '',
-                empty($key['address']) ? '' : str_replace("\n", ', ', trim($key['address'])),
             ]);
+            // A key usually answers to several addresses, so list them all
+            $addresses = empty($key['address']) ? [] : explode("\n", trim($key['address']));
             ?>
             <button type="button"
                     class="list-group-item list-group-item-action d-flex align-items-center gap-3 text-start"
@@ -42,6 +47,9 @@
                 <span class="flex-grow-1" style="min-width:0;">
                     <code class="text-body d-block" style="font-size:.75rem;"><?= h(chunk_split($key['fingerprint'], 4, ' ')) ?></code>
                     <span class="text-muted d-block text-truncate" style="font-size:.7rem;"><?= h(implode(' · ', $meta)) ?></span>
+                    <?php foreach ($addresses as $address): ?>
+                        <span class="text-muted d-block text-break" style="font-size:.7rem;"><?= h($address) ?></span>
+                    <?php endforeach; ?>
                 </span>
                 <i class="fas fa-arrow-right text-muted flex-shrink-0" style="font-size:.7rem;"></i>
             </button>

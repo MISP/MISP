@@ -246,6 +246,17 @@ class EventReport extends AppModel
                 return $errors;
             }
         } else {
+            // A report UUID is globally unique to one event, so an existing row
+            // found by UUID must already belong to the event being edited. If it
+            // does not, refuse rather than adopt it: otherwise a nested event
+            // edit (or populate) could reparent - and thereby read and overwrite -
+            // any report by UUID under an event the caller controls. Genuine sync
+            // re-captures a report under the same event, so this only rejects a
+            // true cross-event collision.
+            if ((string)$existingReport['EventReport']['event_id'] !== (string)$eventId) {
+                $errors[] = __('Event Report %s already belongs to a different event.', $report['EventReport']['uuid']);
+                return $errors;
+            }
             $report['EventReport']['id'] = $existingReport['EventReport']['id'];
         }
 
@@ -1866,6 +1877,14 @@ class EventReport extends AppModel
 
 
         if ($picture['size'] > 0 && $picture['error'] == 0) {
+            // The submitted tmp_name must be a genuine PHP upload. Reject any
+            // forged path before it reaches file_exists()/mime_content_type()/
+            // exif_imagetype(), which would otherwise leak filesystem state
+            // through the distinct validation error messages below.
+            if (empty($picture['tmp_name']) || !is_uploaded_file($picture['tmp_name'])) {
+                $saveResult['errors'][] = __('File was not uploaded correctly');
+                return $saveResult;
+            }
             $extension = pathinfo($picture['name'], PATHINFO_EXTENSION);
             $pictureUUID = CakeText::uuid();
             $filename = sprintf('%s.%s', $pictureUUID, $extension);

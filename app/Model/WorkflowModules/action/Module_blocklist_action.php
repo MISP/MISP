@@ -123,6 +123,11 @@ class Module_blocklist_action extends WorkflowBaseActionModule
 
         // Strip path component, keep the resolved file in export dir.
         $blocklistFilename = basename((string)($params['blocklist']['value'] ?? ''));
+        $allowedExtensions = ['txt', 'list', 'blocklist', 'csv'];
+        $extension = pathinfo($blocklistFilename, PATHINFO_EXTENSION);
+        if (!in_array($extension, $allowedExtensions, true)) {
+            return $this->__fail(__('Blocklist filename has an invalid extension.'), $errors, $roamingData);
+        }
         if ($blocklistFilename === '' || $blocklistFilename === '.' || $blocklistFilename === '..') {
             return $this->__fail(__('Blocklist filename is empty or invalid.'), $errors, $roamingData);
         }

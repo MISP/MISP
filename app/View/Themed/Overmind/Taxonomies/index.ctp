@@ -25,6 +25,9 @@ $fields = [
     [
         'element' => 'checkbox',
         'data_path' => 'Taxonomy.id',
+        'enable_path' => 'Taxonomy.enabled',
+        'require_path' => 'Taxonomy.required',
+        'highlight_path' => 'Taxonomy.highlighted',
         'card_section' => 'selector',
     ],
     [
@@ -77,16 +80,9 @@ $fields = [
     ],
     [
         'name' => __('Active Tags'),
-        'element' => 'custom',
-        'class' => 'shortish',
+        'element' => 'taxonomy_active_tags',
         'card_section' => 'top',
-        'function' => function (array $item) use ($isSiteAdmin) {
-            $content = '<strong>' . h($item['current_count']) . '</strong> / ' . h($item['total_count']);
-            if ($item['current_count'] != $item['total_count'] && $isSiteAdmin && $item['Taxonomy']['enabled']) {
-                $content .= ' (' . $this->Form->postLink(__('enable all'), array('action' => 'addTag', h($item['Taxonomy']['id'])), array('title' => __('Enable all tags')), __('Are you sure you want to enable every tag associated to this taxonomy?')) . ')';
-            }
-            return $content;
-        }
+        'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Actions'),

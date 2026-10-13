@@ -22,6 +22,11 @@ foreach ($types as $value => $label) {
 }
 
 
+/* Embedded in the collection picker's modal: that modal already carries the
+ * header strip and the attach-target banner, so this view drops both and
+ * contributes only its fields and its own footer. */
+$embedded = !empty($embedded);
+
 $attachElementUuids = !empty($attachElementUuids)
     ? array_values(array_filter((array)$attachElementUuids))
     : (!empty($attachElementUuid) ? [$attachElementUuid] : []);
@@ -33,6 +38,7 @@ echo $this->Form->create('Collection', [
 ]);
 ?>
 
+<?php if (!$embedded): ?>
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
     'eyebrow' => __('Collections'),
     'title' => $isEdit ? __('Edit Collection') : __('Add Collection'),
@@ -40,38 +46,13 @@ echo $this->Form->create('Collection', [
     'icon' => 'fas fa-folder-open',
     'isEdit' => $isEdit,
 ]) ?>
+<?php endif; ?>
 
 
 <div class="container-fluid px-4 py-4">
 
     <div class="d-flex flex-column gap-4 px-2">
 
-        <?php if ($hasAttachTarget): ?>
-            <!-- ── ATTACH TARGET ───────────────────────────────── -->
-            <div class="alert alert-light border d-flex align-items-center gap-3 mb-0"
-                 role="alert" style="border-color:var(--primary) !important;">
-                <i class="fas fa-link text-primary"></i>
-                <div class="flex-grow-1">
-                    <div class="fw-semibold" style="font-size:.85rem;">
-                        <?= __('%s element(s) will be attached', count($attachElementUuids)) ?>
-                    </div>
-                    <div class="text-muted" style="font-size:.75rem; margin-top:.15rem;">
-                        <?= h($attachElementType) ?> ·
-                        <code><?= h(implode(', ', $attachElementUuids)) ?></code>
-                    </div>
-                </div>
-            </div>
-            <?php
-            echo $this->Form->hidden('_attach_element_type', [
-                'value' => $attachElementType,
-            ]);
-            foreach ($attachElementUuids as $i => $attachElementUuidValue) {
-                echo $this->Form->hidden('Collection._attach_element_uuid.' . $i, [
-                    'value' => $attachElementUuidValue,
-                ]);
-            }
-            ?>
-        <?php endif; ?>
 
         <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 ">
@@ -146,6 +127,51 @@ echo $this->Form->create('Collection', [
             ]) ?>
         </div>
 
+        <?php if ($hasAttachTarget): ?>
+            <!-- ── ATTACH TARGET ───────────────────────────────── -->
+            <div class="alert alert-light border d-flex align-items-center gap-3 mb-0"
+                 role="alert" style="border-color:var(--primary) !important;">
+                <i class="fas fa-link text-primary"></i>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold" style="font-size:.85rem;">
+                        <?= __('%s element(s) will be attached', count($attachElementUuids)) ?>
+                    </div>
+                    <div class="text-muted" style="font-size:.75rem; margin-top:.15rem;">
+                        <?= h($attachElementType) ?> ·
+                        <code><?= h(implode(', ', $attachElementUuids)) ?></code>
+                    </div>
+                </div>
+            </div>
+            <?php
+            echo $this->Form->hidden('_attach_element_type', [
+                'value' => $attachElementType,
+            ]);
+            foreach ($attachElementUuids as $i => $attachElementUuidValue) {
+                echo $this->Form->text('Collection._attach_element_uuid.' . $i, [
+                    'value' => $attachElementUuidValue,
+                    'style' => 'display:none;',
+                    'tabindex' => -1,
+                    'aria-hidden' => 'true',
+                ]);
+            }
+            ?>
+
+            <div class="w-100">
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => __('Element description'),
+                ]) ?>
+                <?= $this->Form->textarea('Collection._attach_element_description', [
+                    'class' => 'form-control',
+                    'rows' => 2,
+                    'value' => $attachElementDescription ?? '',
+                    'placeholder' => __('Why this element belongs in the collection — optional.'),
+                ]) ?>
+                <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                    'text' => __('Describes the link, not the collection — shown next to the element inside it.'),
+                ]) ?>
+            </div>
+        <?php endif; ?>
     </div>
 
     <?php

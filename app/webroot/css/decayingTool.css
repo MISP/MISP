@@ -8,6 +8,7 @@
     height: calc(100vh - 175px - 25px);
     overflow-y: scroll;
     resize: vertical;
+    --sticky-table-header-top: 0px;
 }
 
 .decayingGraphLine {
@@ -72,6 +73,7 @@
     overflow: auto;
     padding: 15px;
     max-height: 90vh;
+    --sticky-table-header-top: 0px;
 }
 
 #basescore_configurator > div.taxonomyTableContainer {
