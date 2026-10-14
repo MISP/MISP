@@ -25,10 +25,10 @@ class ObjectsController extends AppController
         if (!$this->_isRest()) {
             $this->Security->unlockedActions = array('revise_object', 'get_row', 'similar_objects');
         }
-        // The delete confirmation posts an empty body through fetch(), so there is
-        // no field hash for _validatePost() to compare and it can only blackhole.
-        // CSRF is still enforced, through the X-CSRF-Token header.
-        $this->_csrfTokenHeaderOnly(['delete']);
+        // The delete confirmations post a hand-built body through fetch(), so
+        // there is no field hash for _validatePost() to compare and it can only
+        // blackhole. CSRF is still enforced, through the X-CSRF-Token header.
+        $this->_csrfTokenHeaderOnly(['delete', 'deleteSelection']);
     }
 
     public function revise_object($action, $event_id, $template_id, $object_id = false, $update_template_available = false, $similar_objects_display_threshold=15)
@@ -1337,9 +1337,19 @@ class ObjectsController extends AppController
             if (empty($idList) || !is_array($idList)) {
                 throw new NotFoundException(__('Invalid object ID.'));
             }
+            $idList = array_map('intval', $idList);
+            // A selection that is already soft-deleted can only go for good.
+            $deletedFlags = $this->MispObject->find('list', [
+                'conditions' => ['Object.id' => $idList],
+                'fields' => ['Object.id', 'Object.deleted'],
+                'recursive' => -1,
+            ]);
+            $alreadyDeleted = !empty($deletedFlags) && !in_array(
+                false, array_map('boolval', $deletedFlags), true
+            );
             $this->layout = false;
-            $this->set('idArray', array_map('intval', $idList));
-            $this->set('hard', (bool)$hard);
+            $this->set('idArray', $idList);
+            $this->set('hard', (bool)$hard || $alreadyDeleted);
             $this->render('ajax/objectDeleteSelectionForm');
             return;
         }

@@ -162,6 +162,7 @@ function openModal(url, size = 'xl') {
             initServerForm(container);
             initSharingGroupForm(container);
             initObjectForm(container);
+            initDeleteConfirmations(container);
 
             // Reuse the single instance for #mainModal — calling openModal again
             // while a modal is already open must not spawn a second Bootstrap.Modal instance
@@ -287,6 +288,110 @@ function reloadEventViewIndexTab() {
         }
     }
     return false;
+}
+
+/**
+ * Bind the delete confirmations (Modals/confirmation_form + Forms/delete_mode)
+ * rendered in `container`: the form posts through fetch() instead of
+ * navigating, since the delete endpoints answer JSON, and the index behind the
+ * modal is refreshed rather than patched row by row — a row also lives in the
+ * card view, and the counts and the Deleted toggle move with it.
+ *
+ * @param {Element} container
+ */
+function initDeleteConfirmations(container) {
+    (container || document).querySelectorAll('script[data-delete-mode]').forEach(function (payloadEl) {
+        const form = payloadEl.closest('form');
+        const cfg = readJsonPayload(payloadEl);
+        if (!form || !cfg || form._deleteModeBound) { return; }
+        form._deleteModeBound = true;
+
+        const box = form.querySelector('[data-delete-permanent]');
+        const permanent = function () { return cfg.hard || (box !== null && box.checked); };
+        const syncNotes = function () {
+            const mode = permanent() ? 'hard' : 'soft';
+            form.querySelectorAll('[data-delete-note]').forEach(function (note) {
+                note.classList.toggle('d-none', note.dataset.deleteNote !== mode);
+            });
+        };
+        if (box) { box.addEventListener('change', syncNotes); }
+        syncNotes();
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const submit = form.querySelector('[type="submit"]');
+            if (submit) { submit.disabled = true; }
+
+            const ids = (cfg.ids || []).map(String);
+            const parts = [];
+            if (!cfg.inUrl) {
+                parts.push('data[' + cfg.model + '][ids]=' + encodeURIComponent(JSON.stringify(cfg.ids)));
+            }
+            if (permanent()) { parts.push('data[hard]=1'); }
+
+            let ok = false;
+            let data = {};
+            try {
+                const r = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': getCsrfToken(),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: parts.join('&'),
+                });
+                data = await r.json().catch(function () { return {}; });
+                ok = r.ok;
+            } catch (_e) {
+                data = {};
+            }
+
+            // Only what the server says it deleted counts: a refused request
+            // carries no ids and must not read as a success. The single-row
+            // endpoints answer `saved` alone.
+            let deleted = [];
+            if (ok && Array.isArray(data.ids)) {
+                deleted = data.ids.map(String);
+            } else if (ok && data.saved === true && cfg.inUrl) {
+                deleted = ids;
+            }
+            const msg = cfg.messages || {};
+            if (deleted.length === 0) {
+                showToast(data.errors || data.message || msg.fail, 'danger');
+                if (submit) { submit.disabled = false; }
+                return;
+            }
+
+            if (cfg.model === 'Attribute') {
+                // The attributes tab counts live standalone rows, and reloading
+                // it does not recount — so tell it how many of those left.
+                const pane = document.querySelector('.ajax-tab-content[data-url*="viewAttributes"]');
+                const live = pane ? deleted.filter(function (id) {
+                    const row = pane.querySelector('tr[data-primary-id="' + id + '"]');
+                    return row !== null && !row.classList.contains('attr-deleted');
+                }).length : 0;
+                const n = getTabCount('attributes');
+                if (live > 0 && n !== null) { setTabCount('attributes', Math.max(0, n - live)); }
+                if (typeof selectedItems !== 'undefined') {
+                    deleted.forEach(function (id) { selectedItems.delete(id); });
+                    updateMultiSelectToolbar();
+                }
+            } else if (cfg.model === 'Object' && window.objIndexSelection) {
+                window.objIndexSelection.clear(deleted);
+            }
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('mainModal'));
+            if (modal) { modal.hide(); }
+            showToast(data.success || msg.done, 'success');
+            if (data.saved === false && data.errors) { showToast(data.errors, 'warning'); }
+
+            if (!reloadEventViewIndexTab()) {
+                window.location.reload();
+            }
+        });
+    });
 }
 
 /**
@@ -516,6 +621,7 @@ function renderMainModalContent(html) {
     if (typeof initPgpKeyLookup === 'function') {
         initPgpKeyLookup(container);
     }
+    initDeleteConfirmations(container);
 }
 
 // POST `body` to `url` and render the HTML response into #mainModal, chaining
