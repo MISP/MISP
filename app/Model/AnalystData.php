@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('Validation', 'Utility');
 
 class AnalystData extends AppModel
 {
@@ -23,7 +24,17 @@ class AnalystData extends AppModel
         'Opinion',
         'Relationship',
         'Organisation',
-        'SharingGroup'
+        'SharingGroup',
+        'AttributeValue',
+    ];
+
+    // Addressed by the SHA-256 of their text instead of a uuid
+    const SHA256_TARGETS = [
+        'AttributeValue',
+    ];
+
+    const ADDRESS_ENDS = [
+        'object',
     ];
 
     const NOTE = 0,
@@ -86,10 +97,13 @@ class AnalystData extends AppModel
             ],
         ],
         'object_uuid' => [
-            'uuid' => [
-                'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID',
-                'required' => 'create',
+            'address' => [
+                'rule' => 'validAddress',
+            ],
+        ],
+        'object_sha256' => [
+            'address' => [
+                'rule' => 'validAddress',
             ],
         ],
         'org_uuid' => [
@@ -198,6 +212,9 @@ class AnalystData extends AppModel
                 $this->data[$this->current_type]['authors'] = $this->current_user['email'];
             }
         }
+        foreach (static::ADDRESS_ENDS as $end) {
+            $this->data[$this->current_type] = self::normaliseAddress($this->data[$this->current_type] ?? [], $end, empty($this->id));
+        }
         if (isset($this->data[$this->current_type]['distribution'])) {
             if (
                 $this->data[$this->current_type]['distribution'] != 4 &&
@@ -210,6 +227,74 @@ class AnalystData extends AppModel
             }
         }
         return true;
+    }
+
+    /**
+     * @param string|null $type
+     * @param string $end 'object', 'related_object' or 'element'
+     * @return string The column that addresses a target of this type.
+     */
+    public static function addressColumn($type, $end)
+    {
+        return $end . (in_array($type, self::SHA256_TARGETS, true) ? '_sha256' : '_uuid');
+    }
+
+    /**
+     * A SHA-256 is lowercased: PostgreSQL compares case-sensitively, so the
+     * unique keys over these columns depend on it. On create, a column left
+     * out is added as NULL so that its validation rule runs.
+     *
+     * @param array $row
+     * @param string $end
+     * @param bool $creating
+     * @return array
+     */
+    public static function normaliseAddress(array $row, $end, $creating)
+    {
+        foreach (['_uuid', '_sha256'] as $suffix) {
+            $column = $end . $suffix;
+            if (!array_key_exists($column, $row)) {
+                if ($creating) {
+                    $row[$column] = null;
+                }
+                continue;
+            }
+            if ($suffix === '_sha256' && is_string($row[$column])) {
+                $row[$column] = strtolower(trim($row[$column]));
+            }
+            if ($row[$column] === '') {
+                $row[$column] = null;
+            }
+        }
+        return $row;
+    }
+
+    /**
+     * @param array $row
+     * @param string $column An address column, such as 'object_uuid'.
+     * @return string|null Why the column does not fit the row's target type.
+     */
+    public static function addressError(array $row, $column)
+    {
+        $end = preg_replace('/_(uuid|sha256)$/', '', $column);
+        $expected = self::addressColumn($row[$end . '_type'] ?? null, $end);
+        $value = $row[$column] ?? null;
+        if ($column !== $expected) {
+            return $value === null ? null : __('Must be empty: this target type is addressed by %s.', $expected);
+        }
+        if ($column === $end . '_sha256') {
+            return is_string($value) && preg_match('/^[0-9a-f]{64}$/', $value) ? null : __('Please provide a SHA-256 as 64 hexadecimal characters');
+        }
+        return Validation::uuid($value) ? null : __('Please provide a valid RFC 4122 UUID');
+    }
+
+    /**
+     * @param array $check
+     * @return bool|string
+     */
+    public function validAddress($check)
+    {
+        return self::addressError($this->data[$this->current_type], key($check)) ?? true;
     }
 
     public function beforeSave($options = [])

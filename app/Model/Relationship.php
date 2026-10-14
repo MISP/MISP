@@ -23,16 +23,24 @@ class Relationship extends AnalystData
         'relationship_type',
     ];
 
+    const ADDRESS_ENDS = [
+        'object',
+        'related_object',
+    ];
+
     public $childValidate = [
         'related_object_uuid' => [
-            'uuid' => [
-                'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID',
-                'required' => 'create',
+            'address' => [
+                'rule' => 'validAddress',
             ],
             'notSelf' => [
                 'rule' => 'notSelfReference',
                 'message' => 'A relationship cannot point at itself.',
+            ],
+        ],
+        'related_object_sha256' => [
+            'address' => [
+                'rule' => 'validAddress',
             ],
         ],
         'related_object_type' => [
@@ -82,13 +90,18 @@ class Relationship extends AnalystData
 
     /**
      * @param array $relationship
-     * @return bool True when both ends name the same uuid.
+     * @return bool True when both ends name the same uuid or the same SHA-256.
      */
     public static function isSelfReference(array $relationship)
     {
-        $from = trim((string)($relationship['object_uuid'] ?? ''));
-        $to = trim((string)($relationship['related_object_uuid'] ?? ''));
-        return $from !== '' && strcasecmp($from, $to) === 0;
+        foreach (['_uuid', '_sha256'] as $suffix) {
+            $from = trim((string)($relationship['object' . $suffix] ?? ''));
+            $to = trim((string)($relationship['related_object' . $suffix] ?? ''));
+            if ($from !== '' && strcasecmp($from, $to) === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function afterFind($results, $primary = false)

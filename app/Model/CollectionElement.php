@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('AnalystData', 'Model');
 
 class CollectionElement extends AppModel
 {
@@ -36,9 +37,13 @@ class CollectionElement extends AppModel
             ]
         ],
         'element_uuid' => [
-            'element_uuid' => [
-                'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+            'address' => [
+                'rule' => 'validAddress',
+            ]
+        ],
+        'element_sha256' => [
+            'address' => [
+                'rule' => 'validAddress',
             ]
         ],
         'element_type' => [
@@ -72,6 +77,7 @@ class CollectionElement extends AppModel
         if (empty($this->id) && empty($this->data['CollectionElement']['uuid'])) {
             $this->data['CollectionElement']['uuid'] = CakeText::uuid();
         }
+        $this->data['CollectionElement'] = AnalystData::normaliseAddress($this->data['CollectionElement'], 'element', empty($this->id));
         if (
             empty($this->id) &&
             empty($this->data['CollectionElement']['element_type']) &&
@@ -128,6 +134,15 @@ class CollectionElement extends AppModel
             ['Collection.modified' => "'" . date('Y-m-d H:i:s') . "'"],
             ['Collection.id' => $collectionId]
         );
+    }
+
+    /**
+     * @param array $check
+     * @return bool|string
+     */
+    public function validAddress($check)
+    {
+        return AnalystData::addressError($this->data['CollectionElement'], key($check)) ?? true;
     }
 
     public function deduceType(string $uuid)
