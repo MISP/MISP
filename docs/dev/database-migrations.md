@@ -329,6 +329,11 @@ public function up(SchemaBuilder $schema)
 }
 ```
 
+`column()` is the driver's description, which reads `mediumtext` as `text`
+and drops auto-increment. When a guard needs the exact type, a column's charset
+and collation, the row format or an index's prefix lengths, ask
+`tableDefinition()`, which reads them from the catalog on both engines.
+
 And a `rawSql()` runs as written, so write it to run twice (`IF NOT EXISTS`, or
 a guard in `up()`). Nothing declared after one is left out either, since what it
 changed cannot be known. `beforeUp()` and `afterUp()` are yours to make safe to

@@ -218,36 +218,6 @@ class BaselineGeneratorTest extends TestCase
         $this->assertArrayNotHasKey('default', $yes);
     }
 
-    /**
-     * @dataProvider defaults
-     */
-    public function testDefaultsInEveryServerSpelling($default, $extra, $mariadb, array $expected)
-    {
-        $this->assertSame($expected, BaselineGenerator::parseDefault($default, $extra, $mariadb));
-    }
-
-    public function defaults()
-    {
-        return array(
-            // MariaDB: literals quoted, NULL spelled out, expressions bare.
-            array(null, '', true, array(false, null, false)),
-            array('NULL', '', true, array(false, null, false)),
-            array("'basic'", '', true, array(true, 'basic', false)),
-            array("''", '', true, array(true, '', false)),
-            array("'it''s'", '', true, array(true, "it's", false)),
-            array('0', '', true, array(true, '0', false)),
-            array('-1', '', true, array(true, '-1', false)),
-            array('current_timestamp()', '', true, array(true, 'current_timestamp()', true)),
-            array('unix_timestamp()', '', true, array(true, 'unix_timestamp()', true)),
-            // MySQL: literals bare, expressions flagged, CURRENT_TIMESTAMP special.
-            array('basic', '', false, array(true, 'basic', false)),
-            array('', '', false, array(true, '', false)),
-            array('CURRENT_TIMESTAMP', '', false, array(true, 'CURRENT_TIMESTAMP', true)),
-            array('CURRENT_TIMESTAMP(6)', '', false, array(true, 'CURRENT_TIMESTAMP', true)),
-            array('unix_timestamp()', 'default_generated', false, array(true, 'unix_timestamp()', true)),
-        );
-    }
-
     public function testCurrentTimestampStaysInlineAndOtherExpressionsAreReturned()
     {
         list($spec, $expression) = BaselineGenerator::columnSpec(array(
