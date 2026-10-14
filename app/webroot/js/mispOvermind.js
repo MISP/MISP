@@ -364,22 +364,19 @@ function initDeleteConfirmations(container) {
                 return;
             }
 
-            if (cfg.model === 'Attribute') {
-                // The attributes tab counts live standalone rows, and reloading
-                // it does not recount — so tell it how many of those left.
-                const pane = document.querySelector('.ajax-tab-content[data-url*="viewAttributes"]');
-                const live = pane ? deleted.filter(function (id) {
-                    const row = pane.querySelector('tr[data-primary-id="' + id + '"]');
-                    return row !== null && !row.classList.contains('attr-deleted');
-                }).length : 0;
-                const n = getTabCount('attributes');
-                if (live > 0 && n !== null) { setTabCount('attributes', Math.max(0, n - live)); }
-                if (typeof selectedItems !== 'undefined') {
-                    deleted.forEach(function (id) { selectedItems.delete(id); });
-                    updateMultiSelectToolbar();
-                }
-            } else if (cfg.model === 'Object' && window.objIndexSelection) {
-                window.objIndexSelection.clear(deleted);
+            // Reloading an index does not recount its tab, so the server said
+            // up front which of these rows that count is made of.
+            if (cfg.countTab) {
+                const counted = (cfg.counted || []).map(String);
+                const left = deleted.filter(function (id) { return counted.indexOf(id) !== -1; }).length;
+                const n = getTabCount(cfg.countTab);
+                if (left > 0 && n !== null) { setTabCount(cfg.countTab, Math.max(0, n - left)); }
+            }
+            if (cfg.model === 'Object') {
+                if (window.objIndexSelection) { window.objIndexSelection.clear(deleted); }
+            } else if (typeof selectedItems !== 'undefined') {
+                deleted.forEach(function (id) { selectedItems.delete(id); });
+                updateMultiSelectToolbar();
             }
 
             const modal = bootstrap.Modal.getInstance(document.getElementById('mainModal'));
@@ -387,11 +384,53 @@ function initDeleteConfirmations(container) {
             showToast(data.success || msg.done, 'success');
             if (data.saved === false && data.errors) { showToast(data.errors, 'warning'); }
 
-            if (!reloadEventViewIndexTab()) {
-                window.location.reload();
-            }
+            refreshAfterRowChange(cfg, deleted, permanent());
         });
     });
+}
+
+/**
+ * Bring the page behind a delete or restore confirmation up to date.
+ *
+ * The record's own page is reloaded, or left for its parent once the record is
+ * gone for good. Otherwise the index the rows came from is reloaded in place:
+ * an event-view tab through its own API, any other lazy tab through its filter
+ * override (which rebuilds the URL from the filters on screen) — only a visible
+ * one, since a hidden tab can hold an unrelated row under the same id.
+ *
+ * @param {Object} cfg        the Forms/delete_mode payload, or { ownPage }
+ * @param {string[]} ids      ids of the rows that changed
+ * @param {boolean} permanent the records are gone for good
+ */
+function refreshAfterRowChange(cfg, ids, permanent) {
+    if (cfg.ownPage) {
+        if (permanent && cfg.parentUrl) {
+            window.location.href = cfg.parentUrl;
+        } else {
+            window.location.reload();
+        }
+        return;
+    }
+    if (reloadEventViewIndexTab()) {
+        return;
+    }
+    const holder = Array.from(document.querySelectorAll('.ajax-tab-content')).find(function (c) {
+        return c.offsetParent !== null && ids.some(function (id) {
+            return c.querySelector('tr[data-primary-id="' + id + '"]') !== null;
+        });
+    });
+    if (holder) {
+        const over = holder.__indexFilterOverride;
+        if (over && typeof over.buildUrl === 'function' && typeof over.reload === 'function') {
+            over.reload(over.buildUrl());
+            return;
+        }
+        if (holder.dataset.url) {
+            window.reloadAjaxTabIndex(holder, holder.dataset.url);
+            return;
+        }
+    }
+    window.location.reload();
 }
 
 /**
