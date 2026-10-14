@@ -88,7 +88,8 @@ class AnalystData extends AppModel
         'object_uuid' => [
             'uuid' => [
                 'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+                'message' => 'Please provide a valid RFC 4122 UUID',
+                'required' => 'create',
             ],
         ],
         'org_uuid' => [
