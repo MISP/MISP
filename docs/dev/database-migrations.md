@@ -144,6 +144,26 @@ $schema->createTable('collection_shares', [
 Order is declaration order across the whole builder, so a migration that adds a
 column, creates a table and then indexes the column gets exactly that sequence.
 
+**Consecutive changes to one table become one statement.** Every `ALTER TABLE`
+may rebuild the table on MySQL, so a run of operations on the same table renders
+as a single `ALTER TABLE` with one clause each, and the table is copied once
+rather than once per operation. PostgreSQL gets one `ALTER TABLE` for the column
+changes; its `CREATE INDEX`, `DROP INDEX` and `RENAME COLUMN` statements keep
+their place around it. Declare a table's changes together — drops, then column
+changes, then new indexes — and `--dry-run` shows one statement.
+
+A new statement starts where sharing one would cost more or mean something
+else:
+
+- **Column additions and drops share a statement only with each other.** Alone
+  they are instant; beside an index change the server rebuilds the table for
+  them instead.
+- **An operation that depends on an earlier one in the statement.** MySQL reads
+  the column clauses of one `ALTER TABLE` against the table as it was, so naming
+  a column twice, renaming or dropping a column an index added in the same
+  statement covers, or dropping an index added in the same statement would fail
+  as one statement.
+
 **`changeColumn` is stricter than the rest.** MySQL's `MODIFY` restates the whole
 definition, so anything you leave out is silently dropped — a `MODIFY` that omits
 `NOT NULL` makes the column nullable. Both `null` and `default` are therefore
@@ -277,6 +297,11 @@ public function up(SchemaBuilder $schema)
 
 A one-statement migration needs none of that. `beforeUp()` and `afterUp()` are
 yours to guard the same way, through the models they write with.
+
+**No error is stepped over.** The legacy corpus let a duplicate column or index,
+or a drop of one that was not there, pass. A migration does not: one statement
+can carry several changes to a table, and when one of its clauses fails, none of
+them was made. The inspector guard above is how a migration stays re-runnable.
 
 `migrationApply --id` on a migration already recorded as applied does nothing and
 exits 0 — `apply` means "make sure this is applied". To genuinely re-run one,

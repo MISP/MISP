@@ -26,6 +26,29 @@ App::uses('SchemaTableBuilder', 'Migration');
  * sequence, because SchemaTableBuilder pushes its operations back into this
  * object as they are called rather than batching them per table.
  *
+ * ## One statement per table
+ *
+ * Consecutive operations on the same table are rendered together, as one
+ * ALTER TABLE, because on MySQL every ALTER TABLE may rebuild the table: ten
+ * separate changes to `attributes` would copy it ten times. PostgreSQL gets
+ * one ALTER TABLE for the column changes, with its index statements in their
+ * place around it.
+ *
+ * Two things start a new statement instead:
+ *
+ * - **A column addition or drop next to anything else.** On its own it is
+ *   instant on both MySQL and MariaDB. Beside an operation that cannot be
+ *   instant, such as an index change, the server falls back to rebuilding the
+ *   whole table for it. So additions and drops share a statement only with
+ *   each other.
+ * - **An operation that depends on an earlier one in the statement.** Inside
+ *   one statement MySQL resolves column clauses against the table as it was,
+ *   so a few sequences that work as separate statements fail as one: naming a
+ *   column an earlier operation already named, dropping or renaming a column
+ *   an index added in the statement covers, dropping an index added in the
+ *   statement. Splitting costs at most a second rebuild, so the rule splits
+ *   whenever it is in doubt.
+ *
  * ## The escape hatch
  *
  * rawSql() exists because the alternative is worse. The first irreducible case -
@@ -189,11 +212,11 @@ class SchemaBuilder
     {
         $grammar = $grammar === null ? $this->grammar : $grammar;
         $statements = array();
-        foreach ($this->operations as $index => $operation) {
-            $statements = array_merge(
-                $statements,
-                $this->render($grammar, $operation, $index)
-            );
+        foreach ($this->batches($grammar) as $index => $batch) {
+            $rendered = $this->isAlter($batch[0])
+                ? $grammar->alterTable($batch[0]['arguments'][0], $batch)
+                : $this->render($grammar, $batch[0], $index);
+            $statements = array_merge($statements, $rendered);
         }
         return $statements;
     }
@@ -233,6 +256,125 @@ class SchemaBuilder
         }
         $this->operations[] = array('operation' => $operation, 'arguments' => $arguments);
         return $this;
+    }
+
+    /**
+     * The declared operations, grouped into what renders as one statement.
+     *
+     * @param AbstractGrammar $grammar For the index names, which differ by engine.
+     * @return array Lists of operations, keyed by the position of the first.
+     */
+    private function batches(AbstractGrammar $grammar)
+    {
+        $batches = array();
+        $start = null;
+        $table = null;
+        // Of the open ALTER TABLE; null while none is open.
+        $footprint = null;
+        foreach ($this->operations as $index => $operation) {
+            if (!$this->isAlter($operation)) {
+                $batches[$index] = array($operation);
+                $footprint = null;
+                continue;
+            }
+            $next = $this->footprint($grammar, $operation);
+            if (
+                $footprint !== null &&
+                $operation['arguments'][0] === $table &&
+                $this->canJoin($footprint, $next)
+            ) {
+                $batches[$start][] = $operation;
+                foreach ($next['names'] as $key => $names) {
+                    $footprint['names'][$key] = array_merge($footprint['names'][$key], $names);
+                }
+                continue;
+            }
+            $batches[$index] = array($operation);
+            $start = $index;
+            $table = $operation['arguments'][0];
+            $footprint = $next;
+        }
+        return $batches;
+    }
+
+    /**
+     * @param array $operation
+     * @return bool
+     */
+    private function isAlter(array $operation)
+    {
+        return in_array($operation['operation'], AbstractGrammar::ALTER_OPERATIONS, true);
+    }
+
+    /**
+     * What an operation on an existing table touches: whether it adds or drops
+     * a column, and the names it involves - the columns it names, the columns
+     * it removes, the indexes it adds or drops, and the columns the added ones
+     * cover.
+     *
+     * @param AbstractGrammar $grammar
+     * @param array $operation
+     * @return array
+     */
+    private function footprint(AbstractGrammar $grammar, array $operation)
+    {
+        $arguments = $operation['arguments'];
+        $table = $arguments[0];
+        $names = array(
+            'columns' => array(),
+            'removes' => array(),
+            'indexedColumns' => array(),
+            'addsIndexes' => array(),
+            'dropsIndexes' => array(),
+        );
+        $options = array();
+        switch ($operation['operation']) {
+            case 'addColumn':
+            case 'changeColumn':
+                $names['columns'][] = $arguments[1];
+                $options = $arguments[3];
+                break;
+            case 'renameColumn':
+                $names['columns'] = array($arguments[1], $arguments[2]);
+                $names['removes'][] = $arguments[1];
+                $options = $arguments[4];
+                break;
+            case 'dropColumn':
+                $names['columns'][] = $arguments[1];
+                $names['removes'][] = $arguments[1];
+                break;
+            case 'addIndex':
+                $names['indexedColumns'] = array_values((array)$arguments[1]);
+                $names['addsIndexes'][] = $grammar->indexName($table, $arguments[1], $arguments[2]);
+                break;
+            case 'dropIndex':
+                $names['dropsIndexes'][] = $grammar->indexName($table, $arguments[1]);
+                break;
+        }
+        if (!empty($options['after'])) {
+            $names['columns'][] = $options['after'];
+        }
+        $addsOrDrops = in_array($operation['operation'], array('addColumn', 'dropColumn'), true);
+        return array('addsOrDropsColumn' => $addsOrDrops, 'names' => $names);
+    }
+
+    /**
+     * Whether an operation can join the statement the earlier ones form
+     * without costing a rebuild the separate statements would not, or giving
+     * a result they would not.
+     *
+     * @param array $batch The footprint of the statement so far.
+     * @param array $next The operation's own footprint.
+     * @return bool
+     */
+    private function canJoin(array $batch, array $next)
+    {
+        $joined = $batch['names'];
+        $names = $next['names'];
+        return $batch['addsOrDropsColumn'] === $next['addsOrDropsColumn']
+            && !array_intersect($names['columns'], $joined['columns'])
+            && !array_intersect($names['removes'], $joined['indexedColumns'])
+            && !array_intersect($names['dropsIndexes'], $joined['addsIndexes']);
     }
 
     /**

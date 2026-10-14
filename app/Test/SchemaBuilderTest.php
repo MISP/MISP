@@ -113,15 +113,17 @@ class SchemaBuilderTest extends TestCase
     {
         $schema = $this->pgsql();
         $schema->dropTable('before');
-        $schema->table('galaxies')->changeColumn('distribution', 'tinyinteger', array('null' => false, 'default' => 0));
+        $schema->table('galaxies')->renameColumn('kind', 'type', 'tinyinteger', array('null' => false, 'default' => 0));
         $schema->dropTable('after');
 
         $this->assertSame(
             array(
                 'DROP TABLE "before";',
-                'ALTER TABLE "galaxies" ALTER COLUMN "distribution" TYPE smallint USING "distribution"::smallint;',
-                'ALTER TABLE "galaxies" ALTER COLUMN "distribution" SET NOT NULL;',
-                'ALTER TABLE "galaxies" ALTER COLUMN "distribution" SET DEFAULT 0;',
+                'ALTER TABLE "galaxies" RENAME COLUMN "kind" TO "type";',
+                "ALTER TABLE \"galaxies\"\n" .
+                "    ALTER COLUMN \"type\" TYPE smallint USING \"type\"::smallint,\n" .
+                "    ALTER COLUMN \"type\" SET NOT NULL,\n" .
+                "    ALTER COLUMN \"type\" SET DEFAULT 0;",
                 'DROP TABLE "after";',
             ),
             $schema->toSql()
@@ -167,6 +169,169 @@ class SchemaBuilderTest extends TestCase
         $this->assertSame(
             array(array('operation' => 'dropColumn', 'arguments' => array('t', 'c'))),
             $schema->operations()
+        );
+    }
+
+    // ------------------------------------------------- one statement per table
+
+    /**
+     * Every ALTER TABLE may rebuild the table on MySQL, so a run of changes to
+     * one table is one statement. PostgreSQL gets one ALTER TABLE for the
+     * column changes, with the index statements in their place around it.
+     */
+    public function testConsecutiveChangesToOneTableShareOneStatement()
+    {
+        $schema = $this->mysql();
+        $schema->table('events')
+            ->dropIndex('sharing_group_id')
+            ->changeColumn('org_id', 'biginteger', array('null' => false, 'default' => null))
+            ->changeColumn('timestamp', 'biginteger', array('null' => false, 'default' => 0))
+            ->addIndex(array('distribution', 'sharing_group_id'), array('name' => 'idx_evt_acl'));
+
+        $this->assertSame(
+            array(
+                "ALTER TABLE `events`\n" .
+                "    DROP INDEX `sharing_group_id`,\n" .
+                "    MODIFY `org_id` bigint(20) NOT NULL,\n" .
+                "    MODIFY `timestamp` bigint(20) DEFAULT 0 NOT NULL,\n" .
+                "    ADD INDEX `idx_evt_acl` (`distribution`, `sharing_group_id`);",
+            ),
+            $schema->toSql()
+        );
+        $this->assertSame(
+            array(
+                'DROP INDEX "idx_events_sharing_group_id";',
+                "ALTER TABLE \"events\"\n" .
+                "    ALTER COLUMN \"org_id\" TYPE bigint USING \"org_id\"::bigint,\n" .
+                "    ALTER COLUMN \"org_id\" SET NOT NULL,\n" .
+                "    ALTER COLUMN \"org_id\" DROP DEFAULT,\n" .
+                "    ALTER COLUMN \"timestamp\" TYPE bigint USING \"timestamp\"::bigint,\n" .
+                "    ALTER COLUMN \"timestamp\" SET NOT NULL,\n" .
+                "    ALTER COLUMN \"timestamp\" SET DEFAULT 0;",
+                'CREATE INDEX "idx_evt_acl" ON "events" ("distribution", "sharing_group_id");',
+            ),
+            $schema->toSql($this->pgsqlGrammar)
+        );
+    }
+
+    public function testAnotherTableOrOperationInBetweenEndsTheStatement()
+    {
+        $schema = $this->mysql();
+        $schema->table('a')->addIndex('x');
+        $schema->table('b')->addIndex('x');
+        $schema->table('a')->addIndex('y');
+        $schema->rawSql(array('mysql' => 'OPTIMIZE TABLE `a`;', 'pgsql' => 'VACUUM ANALYZE a;'));
+        $schema->table('a')->addIndex('z');
+
+        $this->assertSame(
+            array(
+                'ALTER TABLE `a` ADD INDEX `x` (`x`);',
+                'ALTER TABLE `b` ADD INDEX `x` (`x`);',
+                'ALTER TABLE `a` ADD INDEX `y` (`y`);',
+                'OPTIMIZE TABLE `a`;',
+                'ALTER TABLE `a` ADD INDEX `z` (`z`);',
+            ),
+            $schema->toSql()
+        );
+    }
+
+    /**
+     * Adding or dropping a column is instant on its own, but beside an index
+     * change the server rebuilds the table for it instead.
+     */
+    public function testColumnAdditionsAndDropsOnlyShareAStatementWithEachOther()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')
+            ->addColumn('x', 'integer', array('null' => true))
+            ->dropColumn('c')
+            ->addIndex('b')
+            ->changeColumn('a', 'biginteger', array('null' => true, 'default' => null))
+            ->dropColumn('d');
+
+        $this->assertSame(
+            array(
+                "ALTER TABLE `t`\n    ADD `x` int(11) DEFAULT NULL,\n    DROP COLUMN `c`;",
+                "ALTER TABLE `t`\n    ADD INDEX `b` (`b`),\n    MODIFY `a` bigint(20) DEFAULT NULL;",
+                'ALTER TABLE `t` DROP COLUMN `d`;',
+            ),
+            $schema->toSql()
+        );
+    }
+
+    /**
+     * Sequences that work as separate statements but not reliably as one,
+     * because MySQL resolves the column clauses of one ALTER TABLE against the
+     * table as it was before the statement. Most fail outright as one statement
+     * on MariaDB 10.11 or PostgreSQL 16; MariaDB happens to take a column
+     * dropped and added back, and one placed after a column added beside it,
+     * but they are split all the same.
+     *
+     * @dataProvider dependentSequences
+     */
+    public function testAnOperationThatDependsOnAnEarlierOneStartsANewStatement($declare)
+    {
+        $schema = $this->mysql();
+        $declare($schema->table('t'));
+        $this->assertCount(2, $schema->toSql());
+    }
+
+    public function dependentSequences()
+    {
+        $null = array('null' => true, 'default' => null);
+        return array(
+            'a column changed twice' => array(function ($t) use ($null) {
+                $t->changeColumn('a', 'biginteger', $null)->changeColumn('a', 'integer', $null);
+            }),
+            'a column changed after it was renamed' => array(function ($t) use ($null) {
+                $t->renameColumn('a', 'a2', 'integer', $null)->changeColumn('a2', 'biginteger', $null);
+            }),
+            'a column renamed after it was changed' => array(function ($t) use ($null) {
+                $t->changeColumn('a', 'biginteger', $null)->renameColumn('a', 'a2', 'integer', $null);
+            }),
+            'a column dropped and added back' => array(function ($t) use ($null) {
+                $t->dropColumn('b')->addColumn('b', 'biginteger', $null);
+            }),
+            'a column placed after one added in the statement' => array(function ($t) use ($null) {
+                $t->addColumn('x', 'integer', $null)->addColumn('y', 'integer', $null + array('after' => 'x'));
+            }),
+            'an index dropped after it was added' => array(function ($t) {
+                $t->addIndex('b', array('name' => 'ib'))->dropIndex('ib');
+            }),
+            'a column renamed under an index added in the statement' => array(function ($t) use ($null) {
+                $t->addIndex('b')->renameColumn('b', 'b2', 'integer', $null);
+            }),
+        );
+    }
+
+    /**
+     * The counterparts that one statement handles: they stay together.
+     *
+     * @dataProvider independentSequences
+     */
+    public function testIndependentOperationsStayInOneStatement($declare)
+    {
+        $schema = $this->mysql();
+        $declare($schema->table('t'));
+        $this->assertCount(1, $schema->toSql());
+    }
+
+    public function independentSequences()
+    {
+        $null = array('null' => true, 'default' => null);
+        return array(
+            'an index dropped and added back under its name' => array(function ($t) {
+                $t->dropIndex('ia')->addIndex(array('a', 'b'), array('name' => 'ia'));
+            }),
+            'an index over a column renamed in the statement' => array(function ($t) use ($null) {
+                $t->renameColumn('a', 'a2', 'integer', $null)->addIndex('a2');
+            }),
+            'a column changed under an index added in the statement' => array(function ($t) use ($null) {
+                $t->addIndex('b')->changeColumn('b', 'biginteger', $null);
+            }),
+            'a primary key replaced' => array(function ($t) use ($null) {
+                $t->addIndex('n', array('unique' => true))->dropPrimaryKey();
+            }),
         );
     }
 

@@ -585,8 +585,10 @@ class MigrationManager
         if (!empty($statements)) {
             // exitOnError, unlike the legacy path: the statements of one
             // migration are a unit, and continuing past a broken one produces a
-            // half-applied schema recorded as applied.
-            if (!$this->runner()->run($id, $statements, array(), false, true, true)) {
+            // half-applied schema recorded as applied. No error is tolerated
+            // either: a statement can carry several changes to one table, and
+            // when one of them fails, none of them was made.
+            if (!$this->runner()->run($id, $statements, array(), false, true, true, false)) {
                 $errors = $this->runner()->lastErrors();
                 $this->lastError = empty($errors)
                     ? __('The migration stopped on an error.')

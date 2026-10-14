@@ -4,10 +4,10 @@
  * Turns one flavour-agnostic schema operation into the SQL a given engine wants.
  *
  * A grammar renders; it never executes. SchemaBuilder collects operations and
- * hands them here one at a time, and every method returns an array of complete
- * statements - an array rather than a string because the same operation can be
- * one statement on MySQL and three on PostgreSQL (see PostgresGrammar's
- * changeColumn).
+ * hands them here - consecutive changes to one table together, through
+ * alterTable() - and every method returns an array of complete statements: an
+ * array rather than a string because the same operation can be one statement
+ * on MySQL and two on PostgreSQL (see PostgresGrammar's renameColumn).
  *
  * ## What is borrowed and what is ours
  *
@@ -183,13 +183,83 @@ abstract class AbstractGrammar
     // ----------------------------------------------------------------- table
 
     /**
+     * The operations that change an existing table, and so can share one
+     * ALTER TABLE - see alterTable().
+     */
+    const ALTER_OPERATIONS = array(
+        'addColumn',
+        'changeColumn',
+        'renameColumn',
+        'dropColumn',
+        'addIndex',
+        'dropIndex',
+        'dropPrimaryKey',
+    );
+
+    /**
+     * Render several operations on one table in as few statements as the
+     * engine allows, so that a table is rebuilt once rather than once per
+     * operation.
+     *
+     * On MySQL that is a single ALTER TABLE. PostgreSQL folds the column
+     * changes into one ALTER TABLE as well, but a rename or an index is a
+     * statement of its own there: those keep their place in the sequence, and
+     * the ALTER is split around them.
+     *
+     * Which operations may share a statement is the caller's call;
+     * SchemaBuilder::toSql() decides it.
+     *
+     * @param string $table
+     * @param array $operations Each array('operation' => ..., 'arguments' => ...),
+     *   as SchemaBuilder records them, the table being the first argument.
+     * @return array Statements.
+     * @throws InvalidArgumentException On an operation that is not one of
+     *   ALTER_OPERATIONS, or one on another table.
+     */
+    public function alterTable($table, array $operations)
+    {
+        $parts = array();
+        foreach ($operations as $operation) {
+            $name = $operation['operation'];
+            $arguments = $operation['arguments'];
+            if (!in_array($name, self::ALTER_OPERATIONS, true)) {
+                throw new InvalidArgumentException(sprintf(
+                    '%s does not alter an existing table, so it cannot be part of an ALTER TABLE.',
+                    $name
+                ));
+            }
+            if ($arguments[0] !== $table) {
+                throw new InvalidArgumentException(sprintf(
+                    '%s on %s cannot be part of an ALTER TABLE on %s.',
+                    $name,
+                    $arguments[0],
+                    $table
+                ));
+            }
+            if ($name === 'changeColumn') {
+                $this->assertCompleteRedefinition($name, $table, $arguments[1], $arguments[3]);
+            } elseif ($name === 'renameColumn') {
+                $this->assertCompleteRedefinition($name, $table, $arguments[2], $arguments[4]);
+            }
+            $parts = array_merge(
+                $parts,
+                call_user_func_array(array($this, $name . 'Parts'), $arguments)
+            );
+        }
+        return $this->renderParts($table, $parts);
+    }
+
+    /**
      * @param string $table
      * @param string $column
      * @param string $type
      * @param array $options
      * @return array Statements.
      */
-    abstract public function addColumn($table, $column, $type, array $options = array());
+    public function addColumn($table, $column, $type, array $options = array())
+    {
+        return $this->alterOne('addColumn', array($table, $column, $type, $options));
+    }
 
     /**
      * @param string $table
@@ -200,8 +270,7 @@ abstract class AbstractGrammar
      */
     public function changeColumn($table, $column, $type, array $options = array())
     {
-        $this->assertCompleteRedefinition('changeColumn', $table, $column, $options);
-        return $this->renderChangeColumn($table, $column, $type, $options);
+        return $this->alterOne('changeColumn', array($table, $column, $type, $options));
     }
 
     /**
@@ -214,19 +283,8 @@ abstract class AbstractGrammar
      */
     public function renameColumn($table, $from, $to, $type, array $options = array())
     {
-        $this->assertCompleteRedefinition('renameColumn', $table, $to, $options);
-        return $this->renderRenameColumn($table, $from, $to, $type, $options);
+        return $this->alterOne('renameColumn', array($table, $from, $to, $type, $options));
     }
-
-    /**
-     * @return array Statements.
-     */
-    abstract protected function renderChangeColumn($table, $column, $type, array $options);
-
-    /**
-     * @return array Statements.
-     */
-    abstract protected function renderRenameColumn($table, $from, $to, $type, array $options);
 
     /**
      * @param string $table
@@ -235,11 +293,7 @@ abstract class AbstractGrammar
      */
     public function dropColumn($table, $column)
     {
-        return array(sprintf(
-            'ALTER TABLE %s DROP COLUMN %s;',
-            $this->name($table),
-            $this->name($column)
-        ));
+        return $this->alterOne('dropColumn', array($table, $column));
     }
 
     /**
@@ -250,7 +304,10 @@ abstract class AbstractGrammar
      * @param string $table
      * @return array Statements.
      */
-    abstract public function dropPrimaryKey($table);
+    public function dropPrimaryKey($table)
+    {
+        return $this->alterOne('dropPrimaryKey', array($table));
+    }
 
     /**
      * @param string $table
@@ -258,14 +315,20 @@ abstract class AbstractGrammar
      * @param array $options 'unique', 'name', 'length', 'fulltext'.
      * @return array Statements.
      */
-    abstract public function addIndex($table, $columns, array $options = array());
+    public function addIndex($table, $columns, array $options = array())
+    {
+        return $this->alterOne('addIndex', array($table, $columns, $options));
+    }
 
     /**
      * @param string $table
      * @param string|array $columnsOrName The column set, or the index's own name.
      * @return array Statements.
      */
-    abstract public function dropIndex($table, $columnsOrName);
+    public function dropIndex($table, $columnsOrName)
+    {
+        return $this->alterOne('dropIndex', array($table, $columnsOrName));
+    }
 
     /**
      * The physical name this grammar gives an index.
@@ -276,6 +339,127 @@ abstract class AbstractGrammar
      * @return string
      */
     abstract public function indexName($table, $columns, array $options = array());
+
+    // -------------------------------------------------- table, as ALTER parts
+    //
+    // What each operation contributes to an ALTER TABLE: a clause() to join the
+    // statement, or a statement() of its own that the ALTER is split around.
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function addColumnParts($table, $column, $type, array $options);
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function changeColumnParts($table, $column, $type, array $options);
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function renameColumnParts($table, $from, $to, $type, array $options);
+
+    /**
+     * @return array Parts.
+     */
+    protected function dropColumnParts($table, $column)
+    {
+        return array($this->clause('DROP COLUMN ' . $this->name($column)));
+    }
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function dropPrimaryKeyParts($table);
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function addIndexParts($table, $columns, array $options);
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function dropIndexParts($table, $columnsOrName);
+
+    /**
+     * @param string $sql One ALTER TABLE clause, without the ALTER TABLE.
+     * @return array
+     */
+    protected function clause($sql)
+    {
+        return array('clause' => $sql);
+    }
+
+    /**
+     * @param string $sql A complete statement.
+     * @return array
+     */
+    protected function statement($sql)
+    {
+        return array('statement' => $sql);
+    }
+
+    /**
+     * @param string $operation
+     * @param array $arguments
+     * @return array Statements.
+     */
+    private function alterOne($operation, array $arguments)
+    {
+        return $this->alterTable(
+            $arguments[0],
+            array(array('operation' => $operation, 'arguments' => $arguments))
+        );
+    }
+
+    /**
+     * Join consecutive clauses into one ALTER TABLE, splitting it around any
+     * statement of its own.
+     *
+     * @param string $table
+     * @param array $parts
+     * @return array Statements.
+     */
+    private function renderParts($table, array $parts)
+    {
+        $statements = array();
+        $clauses = array();
+        foreach ($parts as $part) {
+            if (isset($part['clause'])) {
+                $clauses[] = $part['clause'];
+                continue;
+            }
+            $statements = array_merge($statements, $this->alterStatement($table, $clauses));
+            $clauses = array();
+            $statements[] = $part['statement'];
+        }
+        return array_merge($statements, $this->alterStatement($table, $clauses));
+    }
+
+    /**
+     * One clause stays on one line; several get one line each, which is what
+     * keeps a long ALTER readable in a dry run.
+     *
+     * @param string $table
+     * @param array $clauses
+     * @return array Statements: none, or one.
+     */
+    private function alterStatement($table, array $clauses)
+    {
+        if (empty($clauses)) {
+            return array();
+        }
+        if (count($clauses) === 1) {
+            return array(sprintf('ALTER TABLE %s %s;', $this->name($table), $clauses[0]));
+        }
+        return array(sprintf(
+            "ALTER TABLE %s\n    %s;",
+            $this->name($table),
+            implode(",\n    ", $clauses)
+        ));
+    }
 
     // --------------------------------------------------------------- helpers
 

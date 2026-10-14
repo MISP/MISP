@@ -115,16 +115,15 @@ class PostgresGrammar extends AbstractGrammar
 
     // ----------------------------------------------------------------- table
 
-    public function addColumn($table, $column, $type, array $options = array())
+    protected function addColumnParts($table, $column, $type, array $options)
     {
         $this->notePositionDropped($column, $options);
         $spec = array_merge($options, array('name' => $column, 'type' => $type));
-        return array(sprintf(
-            'ALTER TABLE %s ADD %s%s;',
-            $this->name($table),
+        return array($this->clause(sprintf(
+            'ADD %s%s',
             $this->buildColumn($spec),
             $this->primaryKeyClause($spec)
-        ));
+        )));
     }
 
     /**
@@ -135,25 +134,25 @@ class PostgresGrammar extends AbstractGrammar
      * found, and the migration fails there with that name in the error
      * rather than guessing.
      */
-    public function dropPrimaryKey($table)
+    protected function dropPrimaryKeyParts($table)
     {
-        return array(sprintf(
-            'ALTER TABLE %s DROP CONSTRAINT %s;',
-            $this->name($table),
-            $this->name($table . '_pkey')
-        ));
+        return array($this->clause('DROP CONSTRAINT ' . $this->name($table . '_pkey')));
     }
 
-    protected function renderChangeColumn($table, $column, $type, array $options)
+    protected function changeColumnParts($table, $column, $type, array $options)
     {
         $this->notePositionDropped($column, $options);
-        return $this->alterColumn($table, $column, $type, $options);
+        return $this->alterColumn($column, $type, $options);
     }
 
-    protected function renderRenameColumn($table, $from, $to, $type, array $options)
+    /**
+     * RENAME COLUMN cannot share an ALTER TABLE with anything else, so it is a
+     * statement of its own.
+     */
+    protected function renameColumnParts($table, $from, $to, $type, array $options)
     {
         $this->notePositionDropped($to, $options);
-        $statements = array(sprintf(
+        $rename = $this->statement(sprintf(
             'ALTER TABLE %s RENAME COLUMN %s TO %s;',
             $this->name($table),
             $this->name($from),
@@ -162,10 +161,10 @@ class PostgresGrammar extends AbstractGrammar
         // MySQL's CHANGE renames *and* redefines in one statement. Restating the
         // definition here keeps the two engines' end states identical, even when
         // the caller only meant to rename.
-        return array_merge($statements, $this->alterColumn($table, $to, $type, $options));
+        return array_merge(array($rename), $this->alterColumn($to, $type, $options));
     }
 
-    public function addIndex($table, $columns, array $options = array())
+    protected function addIndexParts($table, $columns, array $options)
     {
         if (!empty($options['fulltext'])) {
             throw new InvalidArgumentException(sprintf(
@@ -188,21 +187,21 @@ class PostgresGrammar extends AbstractGrammar
             $parts[] = $this->name($column);
         }
 
-        return array(sprintf(
+        return array($this->statement(sprintf(
             'CREATE %sINDEX %s ON %s (%s);',
             empty($options['unique']) ? '' : 'UNIQUE ',
             $this->name($this->indexName($table, $columns, $options)),
             $this->name($table),
             implode(', ', $parts)
-        ));
+        )));
     }
 
-    public function dropIndex($table, $columnsOrName)
+    protected function dropIndexParts($table, $columnsOrName)
     {
-        return array(sprintf(
+        return array($this->statement(sprintf(
             'DROP INDEX %s;',
             $this->name($this->indexName($table, $columnsOrName))
-        ));
+        )));
     }
 
     /**
@@ -275,53 +274,48 @@ class PostgresGrammar extends AbstractGrammar
     }
 
     /**
-     * The SET/DROP triplet MySQL expresses as one MODIFY.
+     * The TYPE, NOT NULL and DEFAULT clauses MySQL expresses as one MODIFY.
      *
      * Nullability and default are only touched when the caller actually said
      * something about them - restating a type should not silently drop a default
      * the column already had.
      *
-     * @param string $table
      * @param string $column
      * @param string $type
      * @param array $options
-     * @return array
+     * @return array Parts.
      */
-    private function alterColumn($table, $column, $type, array $options)
+    private function alterColumn($column, $type, array $options)
     {
         $spec = array_merge($options, array('name' => $column, 'type' => $type));
         $renderedType = $this->renderType($spec);
         $quotedColumn = $this->name($column);
-        $quotedTable = $this->name($table);
 
-        $statements = array(sprintf(
-            'ALTER TABLE %s ALTER COLUMN %s TYPE %s USING %s::%s;',
-            $quotedTable,
+        $parts = array($this->clause(sprintf(
+            'ALTER COLUMN %s TYPE %s USING %s::%s',
             $quotedColumn,
             $renderedType,
             $quotedColumn,
             $renderedType
-        ));
+        )));
 
         if (array_key_exists('null', $options)) {
-            $statements[] = sprintf(
-                'ALTER TABLE %s ALTER COLUMN %s %s NOT NULL;',
-                $quotedTable,
+            $parts[] = $this->clause(sprintf(
+                'ALTER COLUMN %s %s NOT NULL',
                 $quotedColumn,
                 $options['null'] ? 'DROP' : 'SET'
-            );
+            ));
         }
         if (array_key_exists('default', $options)) {
-            $statements[] = $options['default'] === null
-                ? sprintf('ALTER TABLE %s ALTER COLUMN %s DROP DEFAULT;', $quotedTable, $quotedColumn)
+            $parts[] = $this->clause($options['default'] === null
+                ? sprintf('ALTER COLUMN %s DROP DEFAULT', $quotedColumn)
                 : sprintf(
-                    'ALTER TABLE %s ALTER COLUMN %s SET DEFAULT %s;',
-                    $quotedTable,
+                    'ALTER COLUMN %s SET DEFAULT %s',
                     $quotedColumn,
                     $this->value($options['default'], $type)
-                );
+                ));
         }
-        return $statements;
+        return $parts;
     }
 
     /**

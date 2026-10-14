@@ -339,7 +339,11 @@ class MigrationGrammarTest extends TestCase
      * MySQL carries type, nullability and default in one MODIFY. PostgreSQL has
      * to split them, which is why every grammar method returns an array.
      */
-    public function testChangeColumnIsOneStatementOnMysqlAndThreeOnPostgres()
+    /**
+     * MySQL's MODIFY is one clause; PostgreSQL needs three - type, nullability
+     * and default - but they share one ALTER TABLE.
+     */
+    public function testChangeColumnIsOneStatementOnBothEngines()
     {
         $options = array('null' => false, 'default' => 0);
 
@@ -349,9 +353,10 @@ class MigrationGrammarTest extends TestCase
         );
         $this->assertSame(
             array(
-                'ALTER TABLE "galaxies" ALTER COLUMN "distribution" TYPE smallint USING "distribution"::smallint;',
-                'ALTER TABLE "galaxies" ALTER COLUMN "distribution" SET NOT NULL;',
-                'ALTER TABLE "galaxies" ALTER COLUMN "distribution" SET DEFAULT 0;',
+                "ALTER TABLE \"galaxies\"\n" .
+                "    ALTER COLUMN \"distribution\" TYPE smallint USING \"distribution\"::smallint,\n" .
+                "    ALTER COLUMN \"distribution\" SET NOT NULL,\n" .
+                "    ALTER COLUMN \"distribution\" SET DEFAULT 0;",
             ),
             $this->pgsql->changeColumn('galaxies', 'distribution', 'tinyinteger', $options)
         );
@@ -362,9 +367,10 @@ class MigrationGrammarTest extends TestCase
         $options = array('null' => true, 'default' => null);
         $this->assertSame(
             array(
-                'ALTER TABLE "galaxies" ALTER COLUMN "x" TYPE varchar(255) USING "x"::varchar(255);',
-                'ALTER TABLE "galaxies" ALTER COLUMN "x" DROP NOT NULL;',
-                'ALTER TABLE "galaxies" ALTER COLUMN "x" DROP DEFAULT;',
+                "ALTER TABLE \"galaxies\"\n" .
+                "    ALTER COLUMN \"x\" TYPE varchar(255) USING \"x\"::varchar(255),\n" .
+                "    ALTER COLUMN \"x\" DROP NOT NULL,\n" .
+                "    ALTER COLUMN \"x\" DROP DEFAULT;",
             ),
             $this->pgsql->changeColumn('galaxies', 'x', 'string', $options)
         );
@@ -426,9 +432,10 @@ class MigrationGrammarTest extends TestCase
         $this->assertSame(
             array(
                 'ALTER TABLE "servers" RENAME COLUMN "old_name" TO "new_name";',
-                'ALTER TABLE "servers" ALTER COLUMN "new_name" TYPE varchar(255) USING "new_name"::varchar(255);',
-                'ALTER TABLE "servers" ALTER COLUMN "new_name" SET NOT NULL;',
-                'ALTER TABLE "servers" ALTER COLUMN "new_name" DROP DEFAULT;',
+                "ALTER TABLE \"servers\"\n" .
+                "    ALTER COLUMN \"new_name\" TYPE varchar(255) USING \"new_name\"::varchar(255),\n" .
+                "    ALTER COLUMN \"new_name\" SET NOT NULL,\n" .
+                "    ALTER COLUMN \"new_name\" DROP DEFAULT;",
             ),
             $this->pgsql->renameColumn('servers', 'old_name', 'new_name', 'string', $options)
         );
@@ -570,6 +577,80 @@ class MigrationGrammarTest extends TestCase
         $this->expectException('InvalidArgumentException');
         $this->expectExceptionMessage('rawSql()');
         $this->pgsql->addIndex('attributes', array('value1', 'value2'), $options);
+    }
+
+    // ----------------------------------------------------------- alterTable
+
+    /**
+     * RENAME COLUMN cannot share an ALTER TABLE on PostgreSQL, so the column
+     * clauses on either side of it become two statements, in order.
+     */
+    public function testAlterTableSplitsAroundAStatementOfItsOwn()
+    {
+        $null = array('null' => true, 'default' => null);
+        $operations = array(
+            array('operation' => 'changeColumn', 'arguments' => array('t', 'a', 'biginteger', $null)),
+            array('operation' => 'renameColumn', 'arguments' => array('t', 'b', 'b2', 'integer', $null)),
+            array('operation' => 'dropPrimaryKey', 'arguments' => array('t')),
+        );
+
+        $this->assertSame(
+            array(
+                "ALTER TABLE `t`\n" .
+                "    MODIFY `a` bigint(20) DEFAULT NULL,\n" .
+                "    CHANGE `b` `b2` int(11) DEFAULT NULL,\n" .
+                "    DROP PRIMARY KEY;",
+            ),
+            $this->mysql->alterTable('t', $operations)
+        );
+        $this->assertSame(
+            array(
+                "ALTER TABLE \"t\"\n" .
+                "    ALTER COLUMN \"a\" TYPE bigint USING \"a\"::bigint,\n" .
+                "    ALTER COLUMN \"a\" DROP NOT NULL,\n" .
+                "    ALTER COLUMN \"a\" DROP DEFAULT;",
+                'ALTER TABLE "t" RENAME COLUMN "b" TO "b2";',
+                "ALTER TABLE \"t\"\n" .
+                "    ALTER COLUMN \"b2\" TYPE integer USING \"b2\"::integer,\n" .
+                "    ALTER COLUMN \"b2\" DROP NOT NULL,\n" .
+                "    ALTER COLUMN \"b2\" DROP DEFAULT,\n" .
+                "    DROP CONSTRAINT \"t_pkey\";",
+            ),
+            $this->pgsql->alterTable('t', $operations)
+        );
+    }
+
+    public function testAlterTableRefusesWhatItCannotPutInOneStatement()
+    {
+        foreach (array($this->mysql, $this->pgsql) as $grammar) {
+            try {
+                $grammar->alterTable('t', array(
+                    array('operation' => 'addIndex', 'arguments' => array('t', 'a', array())),
+                    array('operation' => 'addIndex', 'arguments' => array('u', 'a', array())),
+                ));
+                $this->fail('an operation on another table should not render on ' . $grammar->flavour());
+            } catch (InvalidArgumentException $e) {
+                $this->assertStringContainsString('addIndex on u', $e->getMessage());
+            }
+
+            try {
+                $grammar->alterTable('t', array(
+                    array('operation' => 'dropTable', 'arguments' => array('t')),
+                ));
+                $this->fail('dropTable is not part of an ALTER TABLE on ' . $grammar->flavour());
+            } catch (InvalidArgumentException $e) {
+                $this->assertStringContainsString('dropTable', $e->getMessage());
+            }
+
+            try {
+                $grammar->alterTable('t', array(
+                    array('operation' => 'changeColumn', 'arguments' => array('t', 'a', 'integer', array('null' => true))),
+                ));
+                $this->fail('a batched redefinition still has to be complete on ' . $grammar->flavour());
+            } catch (InvalidArgumentException $e) {
+                $this->assertStringContainsString('default', $e->getMessage());
+            }
+        }
     }
 
     // ---------------------------------------------------------------- tables

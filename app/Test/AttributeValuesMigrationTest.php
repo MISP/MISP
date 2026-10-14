@@ -275,12 +275,11 @@ class AttributeValuesMigrationTest extends TestCase
             'ALTER TABLE `attributes` ADD `value2_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value1_id`;',
             'ALTER TABLE `shadow_attributes` ADD `value1_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value2`;',
             'ALTER TABLE `shadow_attributes` ADD `value2_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value1_id`;',
-            'ALTER TABLE `shadow_attributes` ADD INDEX `value1_id` (`value1_id`);',
-            'ALTER TABLE `shadow_attributes` ADD INDEX `value2_id` (`value2_id`);',
+            "ALTER TABLE `shadow_attributes`\n" .
+            "    ADD INDEX `value1_id` (`value1_id`),\n" .
+            "    ADD INDEX `value2_id` (`value2_id`);",
+            "ALTER TABLE `attributes`\n    ADD INDEX " . implode(",\n    ADD INDEX ", $indexes) . ';',
         );
-        foreach ($indexes as $index) {
-            $expected[] = 'ALTER TABLE `attributes` ADD INDEX ' . $index . ';';
-        }
         $this->assertSame($expected, $this->render(new MigrationTestMysqlExtended(), '', array(), self::VALUE_IDS));
 
         $pgsql = $this->render(new MigrationTestPostgres(), '', array(), self::VALUE_IDS);
@@ -325,9 +324,9 @@ class AttributeValuesMigrationTest extends TestCase
         ));
         $columns = array('attributes' => array('value1_id', 'value2_id'), 'shadow_attributes' => array('value1_id', 'value2_id'));
         $sql = $this->render(new MigrationTestMysqlExtended(), '', $existing, self::VALUE_IDS, $columns);
-        $this->assertContains(
-            'ALTER TABLE `attributes` ADD INDEX `idx_vid1_source` (`event_id`, `value1_id`, `deleted`, `disable_correlation`, `type`, `id`);',
-            $sql
+        $this->assertStringContainsString(
+            'ADD INDEX `idx_vid1_source` (`event_id`, `value1_id`, `deleted`, `disable_correlation`, `type`, `id`)',
+            implode("\n", $sql)
         );
     }
 }

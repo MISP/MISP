@@ -77,63 +77,54 @@ class MysqlGrammar extends AbstractGrammar
 
     // ----------------------------------------------------------------- table
 
-    public function addColumn($table, $column, $type, array $options = array())
+    protected function addColumnParts($table, $column, $type, array $options)
     {
         $spec = array_merge($options, array('name' => $column, 'type' => $type));
-        return array(sprintf(
-            'ALTER TABLE %s ADD %s%s%s;',
-            $this->name($table),
+        return array($this->clause(sprintf(
+            'ADD %s%s%s',
             $this->buildColumn($spec),
             $this->primaryKeyClause($spec),
             $this->positionClause($options)
-        ));
+        )));
     }
 
-    public function dropPrimaryKey($table)
-    {
-        return array(sprintf('ALTER TABLE %s DROP PRIMARY KEY;', $this->name($table)));
-    }
-
-    protected function renderChangeColumn($table, $column, $type, array $options)
+    protected function changeColumnParts($table, $column, $type, array $options)
     {
         $spec = array_merge($options, array('name' => $column, 'type' => $type));
-        return array(sprintf(
-            'ALTER TABLE %s MODIFY %s%s;',
-            $this->name($table),
+        return array($this->clause(sprintf(
+            'MODIFY %s%s',
             $this->buildColumn($spec),
             $this->positionClause($options)
-        ));
+        )));
     }
 
-    protected function renderRenameColumn($table, $from, $to, $type, array $options)
+    protected function renameColumnParts($table, $from, $to, $type, array $options)
     {
         // CHANGE restates the whole definition, which is why the DSL asks for the
         // type on a rename even though a rename alone does not obviously need one.
         $spec = array_merge($options, array('name' => $to, 'type' => $type));
-        return array(sprintf(
-            'ALTER TABLE %s CHANGE %s %s%s;',
-            $this->name($table),
+        return array($this->clause(sprintf(
+            'CHANGE %s %s%s',
             $this->name($from),
             $this->buildColumn($spec),
             $this->positionClause($options)
-        ));
+        )));
     }
 
-    public function addIndex($table, $columns, array $options = array())
+    protected function dropPrimaryKeyParts($table)
     {
-        return array(sprintf(
-            'ALTER TABLE %s ADD %s;',
-            $this->name($table),
-            $this->indexClause($table, $columns, $options)
-        ));
+        return array($this->clause('DROP PRIMARY KEY'));
     }
 
-    public function dropIndex($table, $columnsOrName)
+    protected function addIndexParts($table, $columns, array $options)
     {
-        return array(sprintf(
-            'ALTER TABLE %s DROP INDEX %s;',
-            $this->name($table),
-            $this->name($this->indexName($table, $columnsOrName))
+        return array($this->clause('ADD ' . $this->indexClause($table, $columns, $options)));
+    }
+
+    protected function dropIndexParts($table, $columnsOrName)
+    {
+        return array($this->clause(
+            'DROP INDEX ' . $this->name($this->indexName($table, $columnsOrName))
         ));
     }
 
