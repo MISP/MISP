@@ -17,6 +17,45 @@
 
     var shelf = null;
 
+    // A drawn table's heading cycles ascending, descending, then the order
+    // the server sent, on the row tokens the value page's list engine
+    // sorts by. An empty token sorts last both ways.
+    function sortTable(button) {
+        var table = button.closest('table');
+        var body = table && table.tBodies[0];
+        if (!body) return;
+        var column = button.getAttribute('data-vp-sort-col');
+        var dir = table.getAttribute('data-vp-sorted-col') !== column ? 'asc'
+            : table.getAttribute('data-vp-sorted-dir') === 'asc' ? 'desc' : null;
+        if (dir) {
+            table.setAttribute('data-vp-sorted-col', column);
+            table.setAttribute('data-vp-sorted-dir', dir);
+        } else {
+            table.removeAttribute('data-vp-sorted-col');
+            table.removeAttribute('data-vp-sorted-dir');
+        }
+        table.querySelectorAll('[data-vp-sort-col]').forEach(function (b) {
+            var th = b.closest('th');
+            if (b === button && dir) {
+                th.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending');
+            } else {
+                th.removeAttribute('aria-sort');
+            }
+        });
+        var attr = 'data-vp-sort-' + (dir ? column : 'default');
+        var sign = dir === 'desc' ? -1 : 1;
+        Array.prototype.slice.call(body.rows).sort(function (a, b) {
+            var x = a.getAttribute(attr) || '';
+            var y = b.getAttribute(attr) || '';
+            if (x === y) return 0;
+            if (x === '') return 1;
+            if (y === '') return -1;
+            return x < y ? -sign : sign;
+        }).forEach(function (row) {
+            body.appendChild(row);
+        });
+    }
+
     function Shelf(root) {
         var self = this;
         this.root = root;
@@ -174,6 +213,11 @@
         var locate = e.target.closest('[data-eov-locate]');
         if (locate) {
             this.locate(locate.getAttribute('data-eov-locate'));
+            return true;
+        }
+        var sort = e.target.closest('[data-vp-sort-col]');
+        if (sort) {
+            sortTable(sort);
             return true;
         }
         var objects = e.target.closest('[data-eov-objects]');

@@ -237,7 +237,8 @@
     };
 
     // Folds count the rows on screen: the value page's list engine hides
-    // the rows a brush or a filter leaves out, and the fold follows it.
+    // the rows a brush or a filter leaves out, and the fold follows it,
+    // as it follows a sorted heading's new order.
     TileDrawer.prototype.foldTables = function () {
         var S = this.strings;
         this.panel.querySelectorAll('.td-draw table.vp-rf-table').forEach(function (table) {
@@ -270,7 +271,8 @@
             });
             table.after(line);
             refold();
-            if (table.closest('[data-vp-list]') && window.MutationObserver) {
+            if ((table.closest('[data-vp-list]') || table.querySelector('[data-vp-sort-col]'))
+                && window.MutationObserver) {
                 new MutationObserver(refold).observe(body, {
                     attributes: true, attributeFilter: ['class'], subtree: true, childList: true
                 });

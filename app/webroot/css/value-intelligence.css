@@ -4221,45 +4221,9 @@ tr.vp-occ-deleted .vp-occ-orgdot {
 }
 
 /*
- * A sortable column heading. A real button, so it is reachable and
- * operable from the keyboard, but carrying none of a button's chrome —
- * the heading has to keep looking like a heading.
- */
-.vp-th-sort {
-    display: inline-flex;
-    align-items: center;
-    padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    color: inherit;
-    text-align: inherit;
-    /*
-     * Reboot resets `text-transform` on every button, and it is not part
-     * of the `font` shorthand, so `font: inherit` does not bring it
-     * back. Without this the sortable headings in a table whose headings
-     * are uppercased — `.vp-table` — render in mixed case beside the
-     * ones that are not sortable.
-     */
-    text-transform: inherit;
-    cursor: pointer;
-}
-
-.vp-th-sort:focus-visible {
-    outline: 2px solid var(--bs-focus-ring-color, #0d6efd);
-    outline-offset: 2px;
-    border-radius: 2px;
-}
-
-/*
- * `mainOvermind.css` reveals `.sort-icon` on hover and draws it as
- * `fa-sort`, which is the right resting state. The sorted column keeps
- * its caret without a pointer and points it the way the rows are
- * ordered. Keyed off `aria-sort` rather than a class of its own: that
- * attribute is what a screen reader announces, so hanging the visual on
- * it means the two cannot disagree.
- */
-/*
+ * `.vp-th-sort` and the sorted `th[aria-sort]` caret are in
+ * value-widgets.css, which the event page's drawn tables load too.
+ *
  * `mainOvermind.css` gives the caret its glyph, its font and its hover
  * reveal through `th .sort-icon` — three rules the ledger's headings
  * never matched, being grid cells. Without the font-family the
@@ -4278,25 +4242,21 @@ tr.vp-occ-deleted .vp-occ-orgdot {
     opacity: 1;
 }
 
-th[aria-sort] .sort-icon,
 .vpa-h[aria-sort] .sort-icon,
 .vpa-ruler[aria-sort] .sort-icon {
     opacity: 1;
 }
 
-th[aria-sort] .sortable-header,
 .vpa-h[aria-sort] .sortable-header,
 .vpa-ruler[aria-sort] .sortable-header {
     font-weight: 700;
 }
 
-th[aria-sort="ascending"] .sort-icon::before,
 .vpa-h[aria-sort="ascending"] .sort-icon::before,
 .vpa-ruler[aria-sort="ascending"] .sort-icon::before {
     content: "\f0de"; /* fa-sort-up */
 }
 
-th[aria-sort="descending"] .sort-icon::before,
 .vpa-h[aria-sort="descending"] .sort-icon::before,
 .vpa-ruler[aria-sort="descending"] .sort-icon::before {
     content: "\f0dd"; /* fa-sort-down */

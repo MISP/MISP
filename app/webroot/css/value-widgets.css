@@ -546,6 +546,54 @@
     white-space: nowrap;
 }
 
+/* A sortable column heading. A real button, so it is reachable and
+   operable from the keyboard, but carrying none of a button's chrome:
+   the heading has to keep looking like a heading. */
+.vp-th-sort {
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    /* Reboot resets `text-transform` on every button and `font: inherit`
+       does not bring it back, so uppercased headings would lose it. */
+    text-transform: inherit;
+    cursor: pointer;
+}
+
+.vp-rf-table .vp-th-sort {
+    letter-spacing: inherit;
+}
+
+.vp-th-sort:focus-visible {
+    outline: 2px solid var(--bs-focus-ring-color, #0d6efd);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* `mainOvermind.css` reveals `.sort-icon` on hover as `fa-sort`. The
+   sorted column keeps its caret and points it the way the rows are
+   ordered, keyed off `aria-sort` so the visual and what a screen reader
+   announces cannot disagree. */
+th[aria-sort] .sort-icon {
+    opacity: 1;
+}
+
+th[aria-sort] .sortable-header {
+    font-weight: 700;
+}
+
+th[aria-sort="ascending"] .sort-icon::before {
+    content: "\f0de"; /* fa-sort-up */
+}
+
+th[aria-sort="descending"] .sort-icon::before {
+    content: "\f0dd"; /* fa-sort-down */
+}
+
 /* The resolution table's period strip. Sticky, because in a capped
    enrichment cell the table scrolls under it and the filter has to stay
    in reach of the rows it narrows; the background is the cell's own. */

@@ -13,6 +13,10 @@
  * It is the Occurrences rail's brush, fed through the same list
  * engine, and a row matches when its window overlaps the period.
  *
+ * Every column sorts from its heading: ascending, descending, then back
+ * to the most recent first. On the value page the list engine does it;
+ * on the event page, event-object-views.js.
+ *
  * @var array $data
  */
 $periods = $data['periods'] ?? array();
@@ -20,7 +24,59 @@ $peak = empty($periods) ? 0 : max(array_column($periods, 'count'));
 $drawn = $data['dated'] && $peak > 0 && count($periods) > 1;
 // The brush runs on the value page's list engine; elsewhere the strip is
 // only read.
-$brushed = $drawn && empty($this->viewVars['vpEventScope']);
+$listed = empty($this->viewVars['vpEventScope']);
+$brushed = $drawn && $listed;
+$columns = array(
+    'name' => array(__('Name'), ''),
+    'type' => array(__('Type'), ''),
+    'to' => array(__('Resolves to'), ''),
+    'first' => array(__('First'), ''),
+    'last' => array(__('Last'), ''),
+    'seen' => array(__('Seen'), 'text-end'),
+    'source' => array(__('Source'), ''),
+);
+// Addresses by their bytes, so 9.x comes before 10.x, then names.
+$addressKey = function ($text) {
+    if ($text === '') {
+        return '';
+    }
+    if (filter_var($text, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        return '04' . bin2hex(inet_pton($text));
+    }
+    if (filter_var($text, FILTER_VALIDATE_IP)) {
+        return '06' . bin2hex(inet_pton($text));
+    }
+    return '1' . strtolower($text);
+};
+$dateKey = function ($time) {
+    return $time === null ? '' : date('YmdHis', $time);
+};
+// Tokens compare as strings and an empty one sorts last both ways; the
+// source sorts by what its cell prints, `#9` before `#10`.
+$rowSort = function ($row, $index, $source) use ($addressKey, $dateKey) {
+    $source = strtolower(trim(html_entity_decode(
+        strip_tags($source),
+        ENT_QUOTES | ENT_HTML5
+    )));
+    $source = preg_replace_callback('/\d+/', function ($digits) {
+        return str_pad($digits[0], 12, '0', STR_PAD_LEFT);
+    }, $source);
+    $keys = array(
+        'name' => $addressKey($row['from']),
+        'type' => strtolower($row['type']),
+        'to' => $addressKey($row['to']),
+        'first' => $dateKey($row['first']),
+        'last' => $dateKey($row['last']),
+        'seen' => str_pad((string)(int)$row['count'], 12, '0', STR_PAD_LEFT),
+        'source' => $source,
+        'default' => str_pad((string)$index, 6, '0', STR_PAD_LEFT),
+    );
+    $out = '';
+    foreach ($keys as $key => $token) {
+        $out .= ' data-vp-sort-' . $key . '="' . h($token) . '"';
+    }
+    return $out;
+};
 $stamp = function ($row) {
     $first = $row['first'] ?? $row['last'];
     $last = $row['last'] ?? $row['first'];
@@ -57,7 +113,7 @@ if ($drawn) {
     );
 }
 ?>
-<div class="vp-rf vp-rf-res"<?= $brushed ? ' data-vp-list' : '' ?>>
+<div class="vp-rf vp-rf-res"<?= $listed ? ' data-vp-list' : '' ?>>
     <?php if (!$data['dated']): ?>
         <p class="vp-rf-note"><?= h(
             __('These are current resolutions. The source that'
@@ -155,25 +211,34 @@ if ($drawn) {
         ) ?></div>
     <?php endif; ?>
 
-    <table class="table table-sm vp-rf-table"<?= $brushed
+    <table class="table table-sm vp-rf-table"<?= $listed
         ? ' data-vp-list-rows' : '' ?>>
         <thead>
             <tr>
-                <th scope="col"><?= h(__('Name')) ?></th>
-                <th scope="col"><?= h(__('Type')) ?></th>
-                <th scope="col"><?= h(__('Resolves to')) ?></th>
-                <th scope="col"><?= h(__('First')) ?></th>
-                <th scope="col"><?= h(__('Last')) ?></th>
-                <th scope="col" class="text-end"><?=
-                    h(__('Seen')) ?></th>
-                <th scope="col"><?= h(__('Source')) ?></th>
+                <?php foreach ($columns as $key => $column): ?>
+                    <th scope="col"<?= $column[1] === ''
+                        ? '' : ' class="' . $column[1] . '"' ?>>
+                        <button type="button" class="vp-th-sort"
+                                data-vp-sort-col="<?= h($key) ?>">
+                            <span class="sortable-header"><?=
+                                h($column[0])
+                            ?><i class="sort-icon"></i></span>
+                        </button>
+                    </th>
+                <?php endforeach; ?>
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($data['resolutions'] as $row): ?>
-                <?php $times = $brushed ? $stamp($row) : null; ?>
+            <?php foreach ($data['resolutions'] as $index => $row): ?>
+                <?php
+                $times = $brushed ? $stamp($row) : null;
+                $source = $this->element('Values/Renderers/source_cell',
+                    array('sources' => $row['sources'])
+                );
+                ?>
                 <tr<?= $times === null ? '' : ' data-vp-times="'
-                    . h($times) . '"' ?>>
+                    . h($times) . '"' ?><?=
+                    $rowSort($row, $index, $source) ?>>
                     <td class="font-monospace"><?= h($row['from'] === ''
                         ? '—' : $row['from']) ?></td>
                     <td><?= h($row['type'] === ''
@@ -186,9 +251,7 @@ if ($drawn) {
                     <td class="text-end"><?= h($row['count'] > 1
                         ? number_format($row['count']) : '') ?></td>
                     <td class="font-monospace vp-rf-dim"><?=
-                        $this->element('Values/Renderers/source_cell',
-                            array('sources' => $row['sources'])
-                        ) ?></td>
+                        $source ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
