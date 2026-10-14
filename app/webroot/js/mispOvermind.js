@@ -161,6 +161,7 @@ function openModal(url, size = 'xl') {
             initServerForm(container);
             initSharingGroupForm(container);
             initObjectForm(container);
+            initDeleteConfirmations(container);
 
             // Reuse the single instance for #mainModal — calling openModal again
             // while a modal is already open must not spawn a second Bootstrap.Modal instance
@@ -286,6 +287,149 @@ function reloadEventViewIndexTab() {
         }
     }
     return false;
+}
+
+/**
+ * Bind the delete confirmations (Modals/confirmation_form + Forms/delete_mode)
+ * rendered in `container`: the form posts through fetch() instead of
+ * navigating, since the delete endpoints answer JSON, and the index behind the
+ * modal is refreshed rather than patched row by row — a row also lives in the
+ * card view, and the counts and the Deleted toggle move with it.
+ *
+ * @param {Element} container
+ */
+function initDeleteConfirmations(container) {
+    (container || document).querySelectorAll('script[data-delete-mode]').forEach(function (payloadEl) {
+        const form = payloadEl.closest('form');
+        const cfg = readJsonPayload(payloadEl);
+        if (!form || !cfg || form._deleteModeBound) { return; }
+        form._deleteModeBound = true;
+
+        const box = form.querySelector('[data-delete-permanent]');
+        const permanent = function () { return cfg.hard || (box !== null && box.checked); };
+        const syncNotes = function () {
+            const mode = permanent() ? 'hard' : 'soft';
+            form.querySelectorAll('[data-delete-note]').forEach(function (note) {
+                note.classList.toggle('d-none', note.dataset.deleteNote !== mode);
+            });
+        };
+        if (box) { box.addEventListener('change', syncNotes); }
+        syncNotes();
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const submit = form.querySelector('[type="submit"]');
+            if (submit) { submit.disabled = true; }
+
+            const ids = (cfg.ids || []).map(String);
+            const parts = [];
+            if (!cfg.inUrl) {
+                parts.push('data[' + cfg.model + '][ids]=' + encodeURIComponent(JSON.stringify(cfg.ids)));
+            }
+            if (permanent()) { parts.push('data[hard]=1'); }
+
+            let ok = false;
+            let data = {};
+            try {
+                const r = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': getCsrfToken(),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: parts.join('&'),
+                });
+                data = await r.json().catch(function () { return {}; });
+                ok = r.ok;
+            } catch (_e) {
+                data = {};
+            }
+
+            // Only what the server says it deleted counts: a refused request
+            // carries no ids and must not read as a success. The single-row
+            // endpoints answer `saved` alone.
+            let deleted = [];
+            if (ok && Array.isArray(data.ids)) {
+                deleted = data.ids.map(String);
+            } else if (ok && data.saved === true && cfg.inUrl) {
+                deleted = ids;
+            }
+            const msg = cfg.messages || {};
+            if (deleted.length === 0) {
+                showToast(data.errors || data.message || msg.fail, 'danger');
+                if (submit) { submit.disabled = false; }
+                return;
+            }
+
+            // Reloading an index does not recount its tab, so the server said
+            // up front which of these rows that count is made of.
+            if (cfg.countTab) {
+                const counted = (cfg.counted || []).map(String);
+                const left = deleted.filter(function (id) { return counted.indexOf(id) !== -1; }).length;
+                const n = getTabCount(cfg.countTab);
+                if (left > 0 && n !== null) { setTabCount(cfg.countTab, Math.max(0, n - left)); }
+            }
+            if (cfg.model === 'Object') {
+                if (window.objIndexSelection) { window.objIndexSelection.clear(deleted); }
+            } else if (typeof selectedItems !== 'undefined') {
+                deleted.forEach(function (id) { selectedItems.delete(id); });
+                updateMultiSelectToolbar();
+            }
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('mainModal'));
+            if (modal) { modal.hide(); }
+            showToast(data.success || msg.done, 'success');
+            if (data.saved === false && data.errors) { showToast(data.errors, 'warning'); }
+
+            refreshAfterRowChange(cfg, deleted, permanent());
+        });
+    });
+}
+
+/**
+ * Bring the page behind a delete or restore confirmation up to date.
+ *
+ * The record's own page is reloaded, or left for its parent once the record is
+ * gone for good. Otherwise the index the rows came from is reloaded in place:
+ * an event-view tab through its own API, any other lazy tab through its filter
+ * override (which rebuilds the URL from the filters on screen) — only a visible
+ * one, since a hidden tab can hold an unrelated row under the same id.
+ *
+ * @param {Object} cfg        the Forms/delete_mode payload, or { ownPage }
+ * @param {string[]} ids      ids of the rows that changed
+ * @param {boolean} permanent the records are gone for good
+ */
+function refreshAfterRowChange(cfg, ids, permanent) {
+    if (cfg.ownPage) {
+        if (permanent && cfg.parentUrl) {
+            window.location.href = cfg.parentUrl;
+        } else {
+            window.location.reload();
+        }
+        return;
+    }
+    if (reloadEventViewIndexTab()) {
+        return;
+    }
+    const holder = Array.from(document.querySelectorAll('.ajax-tab-content')).find(function (c) {
+        return c.offsetParent !== null && ids.some(function (id) {
+            return c.querySelector('tr[data-primary-id="' + id + '"]') !== null;
+        });
+    });
+    if (holder) {
+        const over = holder.__indexFilterOverride;
+        if (over && typeof over.buildUrl === 'function' && typeof over.reload === 'function') {
+            over.reload(over.buildUrl());
+            return;
+        }
+        if (holder.dataset.url) {
+            window.reloadAjaxTabIndex(holder, holder.dataset.url);
+            return;
+        }
+    }
+    window.location.reload();
 }
 
 /**
@@ -515,6 +659,7 @@ function renderMainModalContent(html) {
     if (typeof initPgpKeyLookup === 'function') {
         initPgpKeyLookup(container);
     }
+    initDeleteConfirmations(container);
 }
 
 // POST `body` to `url` and render the HTML response into #mainModal, chaining
@@ -594,6 +739,9 @@ function animateIndexView(el) {
     el.classList.remove('idx-view-anim');
     void el.offsetWidth;
     el.classList.add('idx-view-anim');
+    el.addEventListener('animationend', function () {
+        el.classList.remove('idx-view-anim');
+    }, { once: true });
 }
 
 /**
@@ -3781,6 +3929,63 @@ function installRequiredFieldGuard() {
 installRequiredFieldGuard();
 
 /*******************************
+ * installLengthGuards
+ * A form field carries its column's length as `maxlength` (MispFormHelper), and
+ * the browser cuts a paste at that length without a word — so say it did. A
+ * free-text box outside a POST form is a search or a filter: its text ends up
+ * in the URL, where nginx answers 414 long before any column is reached, so it
+ * gets a cap of its own the first time it is focused.
+ *******************************/
+var SEARCH_MAX_LENGTH = 512;
+var lengthGuardsInstalled = false;
+function installLengthGuards() {
+    if (lengthGuardsInstalled) { return; }
+    lengthGuardsInstalled = true;
+
+    function isTextField(el) {
+        if (el instanceof HTMLTextAreaElement) { return true; }
+        return el instanceof HTMLInputElement
+            && ['text', 'search', 'email', 'url', 'tel', ''].indexOf(el.type) !== -1;
+    }
+
+    document.addEventListener('focusin', function (e) {
+        var el = e.target;
+        if (!(el instanceof HTMLInputElement) || !isTextField(el)) { return; }
+        if (el.hasAttribute('maxlength')) { return; }
+        var form = el.form || el.closest('form');
+        if (form && String(form.getAttribute('method') || '').toLowerCase() === 'post') { return; }
+        el.maxLength = SEARCH_MAX_LENGTH;
+    }, true);
+
+    document.addEventListener('paste', function (e) {
+        var el = e.target;
+        if (!isTextField(el) || !(el.maxLength > 0) || !e.clipboardData) { return; }
+        var pasted = e.clipboardData.getData('text').length;
+        var kept = el.value.length - ((el.selectionEnd || 0) - (el.selectionStart || 0));
+        if (kept + pasted <= el.maxLength) { return; }
+
+        var anchor = el.closest('.input-group') || el;
+        var next = anchor.nextElementSibling;
+        if (next && next.classList.contains('ov-length-notice')) { next.remove(); }
+        var msg = document.createElement('div');
+        msg.className = 'ov-field-error ov-length-notice';
+        var icon = document.createElement('i');
+        icon.className = 'fas fa-scissors';
+        var text = document.createElement('span');
+        text.textContent = 'The pasted text was cut to ' + el.maxLength + ' characters, the most this field can hold.';
+        msg.appendChild(icon);
+        msg.appendChild(text);
+        anchor.parentNode.insertBefore(msg, anchor.nextSibling);
+
+        // The paste fires an input event of its own; only a later edit clears.
+        setTimeout(function () {
+            el.addEventListener('input', function () { msg.remove(); }, { once: true });
+        }, 0);
+    }, true);
+}
+installLengthGuards();
+
+/*******************************
  * installOnDemandActions
  * One delegated listener for every IndexTable/Fields/on_demand cell: GET the
  * cell's url, or POST its text box as `value`, and list the JSON answer's
@@ -5417,20 +5622,37 @@ function initEventForm(container) {
         if (!info) { return; }
         var message = info.dataset.requiredMsg
             || 'Please provide a name for the event.';
+        var maxBytes = parseInt(info.dataset.maxBytes, 10) || 0;
+        var tooLongMessage = info.dataset.maxBytesMsg || 'Event info is too long.';
 
-        function validate(quiet) {
-            if (info.value.trim()) {
-                markValid(info);
-                return null;
-            }
-            if (!quiet) { markInvalid(info, message); }
-            return info;
+        /* The column limit is in bytes, so count what UTF-8 will store. */
+        function tooLong() {
+            return maxBytes > 0
+                && new TextEncoder().encode(info.value).length > maxBytes;
         }
 
-        /* Only ever clears while typing: nagging about an empty field the user
-         * has not finished with is what the submit check is for. */
+        function validate(quiet) {
+            if (!info.value.trim()) {
+                if (!quiet) { markInvalid(info, message); }
+                return info;
+            }
+            if (tooLong()) {
+                if (!quiet) { markInvalid(info, tooLongMessage); }
+                return info;
+            }
+            markValid(info);
+            return null;
+        }
+
+        /* An empty field only clears while typing (the submit check nags about
+         * it); an oversized one is said at once, since it usually comes from a
+         * paste the user cannot see the end of. */
         info.addEventListener('input', function () {
-            if (info.value.trim()) { markValid(info); }
+            if (tooLong()) {
+                markInvalid(info, tooLongMessage);
+            } else if (info.value.trim()) {
+                markValid(info);
+            }
         });
         validators.push(validate);
     }
@@ -7442,7 +7664,19 @@ function initObjectTemplatePicker(container, payloadEl) {
         searchField: ['name', 'desc'],
         /* Insertion order stops mattering, so re-adding options on the way back
          * to "All" cannot scramble the list. */
-        sortField: [{ field: '$score' }, { field: 'name', direction: 'asc' }],
+        sortField: [{ field: '$score', direction: 'desc' }, { field: 'name', direction: 'asc' }],
+        score: function (query) {
+            var anyField = this.getScoreFunction(query);
+            var nameOnly = this.sifter.getScoreFunction(
+                query, Object.assign(this.getSearchOptions(), { fields: ['name'] })
+            );
+            this.settings.optgroupField = query.trim() ? '' : 'meta';
+            return function (t) {
+                if (anyField(t) <= 0) { return 0; }
+                var byName = nameOnly(t);
+                return byName > 0 ? 10 + byName : 1;
+            };
+        },
         maxOptions: null,
         create: false,
         placeholder: select.dataset.placeholder || '-- Select a template --',
@@ -8328,7 +8562,7 @@ function initObjectAddForm(container, payloadEl) {
             searchField: ['label', 'context', 'uuid'],
             options: initial,
             create: false,
-            placeholder: 'Search the event for an object or attribute',
+            placeholder: 'Search the event by name, value or uuid',
             load: function (query, callback) {
                 fetch(data.relationshipTargetsUrl + '?searchTerm=' + encodeURIComponent(query), {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -8338,14 +8572,21 @@ function initObjectAddForm(container, payloadEl) {
                     .catch(function () { callback(); });
             },
             render: {
+                /* Objects often share a name: the uuid is what tells them apart. */
                 option: function (item, escape) {
                     return '<div class="py-1">'
                         + '<span class="badge bg-secondary me-1">' + escape(item.kind) + '</span>'
                         + escape(item.label)
                         + '<div class="text-muted small">' + escape(item.context) + '</div>'
+                        + '<div class="text-muted small font-monospace text-truncate">' + escape(item.uuid) + '</div>'
                         + '</div>';
                 },
-                item: function (item, escape) { return '<div>' + escape(item.label) + '</div>'; }
+                item: function (item, escape) {
+                    return '<div class="d-flex align-items-center gap-2 text-truncate">'
+                        + '<span>' + escape(item.label) + '</span>'
+                        + '<span class="text-muted small font-monospace">' + escape(item.uuid) + '</span>'
+                        + '</div>';
+                }
             },
             onChange: syncRelAddBtn
         });
@@ -8604,4 +8845,294 @@ function initObjectAddForm(container, payloadEl) {
  * plain navigation, or a bookmarked URL - gets the same wiring as the modal. */
 document.addEventListener('DOMContentLoaded', function () {
     initObjectForm(document);
+});
+
+/**
+ * A card header whose action buttons no longer fit on its first line folds
+ * them into a "⋯" dropdown instead of letting them wrap under the title.
+ *
+ * Markup contract, inside the header's flex row:
+ *   <div data-card-actions> the buttons </div>
+ *   <div class="dropdown d-none" data-card-actions-menu>
+ *       <button data-bs-toggle="dropdown">…</button>
+ *       <ul class="dropdown-menu"></ul>
+ *   </div>
+ * Elements/genericElementsBS5/Cards/actions_overflow_menu draws the second part.
+ * The menu entries are built from the buttons each time it opens, so a button
+ * enabled later (Download All) or replaced is mirrored, and a click on an entry
+ * clicks the real button.
+ */
+function initCardActionOverflow(container) {
+    (container || document).querySelectorAll('[data-card-actions]:not([data-overflow-bound])').forEach(function (actions) {
+        actions.setAttribute('data-overflow-bound', '');
+        var row = actions.parentElement;
+        var menu = row.querySelector('[data-card-actions-menu]');
+        var list = menu ? menu.querySelector('.dropdown-menu') : null;
+        var anchor = row.firstElementChild;
+        if (!menu || !list || !anchor || !actions.children.length) {
+            return;
+        }
+
+        function wrapped() {
+            var line = anchor.getBoundingClientRect().bottom - 2;
+            return Array.prototype.some.call(row.children, function (child) {
+                if (child === anchor || child.classList.contains('d-none')) {
+                    return false;
+                }
+                return child.getBoundingClientRect().top >= line;
+            });
+        }
+
+        // Laid out inline first; folded only if that pushes something down.
+        function update() {
+            actions.classList.remove('d-none');
+            menu.classList.add('d-none');
+            if (wrapped()) {
+                actions.classList.add('d-none');
+                menu.classList.remove('d-none');
+            }
+        }
+
+        menu.addEventListener('show.bs.dropdown', function () {
+            list.replaceChildren();
+            Array.prototype.forEach.call(actions.querySelectorAll('button, a'), function (source) {
+                var li = document.createElement('li');
+                var item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'dropdown-item d-flex align-items-center gap-2';
+                item.innerHTML = source.innerHTML;
+                item.disabled = source.disabled || source.classList.contains('disabled');
+                if (source.title) {
+                    item.title = source.title;
+                }
+                item.addEventListener('click', function () {
+                    source.click();
+                });
+                li.appendChild(item);
+                list.appendChild(li);
+            });
+        });
+
+        var lastWidth = null;
+        if (typeof ResizeObserver === 'function') {
+            new ResizeObserver(function (entries) {
+                var width = Math.round(entries[0].contentRect.width);
+                if (width !== lastWidth) {
+                    lastWidth = width;
+                    update();
+                }
+            }).observe(row);
+        } else {
+            window.addEventListener('resize', update);
+        }
+        update();
+    });
+}
+window.initCardActionOverflow = initCardActionOverflow;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initCardActionOverflow(document);
+});
+
+/**
+ * "Show on map" for geolocation / gpx / uav / geojson objects — the vanilla
+ * twin of the default theme's openMapPopover() in misp.js, which a BS5 page
+ * cannot load. A [data-geo-map] button (Elements/Objects/object_map_button)
+ * opens the shared modal; Leaflet (webroot/js/leaflet.js) is fetched on the
+ * first map only.
+ */
+var leafletLoading = null;
+function loadLeaflet() {
+    if (window.L && window.L.map) {
+        return Promise.resolve(window.L);
+    }
+    if (leafletLoading) {
+        return leafletLoading;
+    }
+    var root = (typeof baseurl !== 'undefined' ? baseurl : '');
+    /* Both, before the first map: Leaflet sizes its panes and finds its marker
+       images (css/images/) from the stylesheet. */
+    function inject(tag, attrs) {
+        return new Promise(function (resolve, reject) {
+            var el = document.createElement(tag);
+            Object.keys(attrs).forEach(function (key) { el[key] = attrs[key]; });
+            el.onload = resolve;
+            el.onerror = reject;
+            document.head.appendChild(el);
+        });
+    }
+    leafletLoading = Promise.all([
+        inject('link', { rel: 'stylesheet', href: root + '/css/leaflet.css' }),
+        inject('script', { src: root + '/js/leaflet.js' })
+    ]).then(function () {
+        return window.L;
+    }, function (error) {
+        leafletLoading = null;
+        throw error;
+    });
+    return leafletLoading;
+}
+
+function drawGpx(L, map, xmlString) {
+    var gpx = new DOMParser().parseFromString(xmlString, 'application/xml');
+    var bounds = L.latLngBounds();
+    var counts = { waypoints: 0, tracks: 0, routes: 0 };
+    function point(el) {
+        var lat = parseFloat(el.getAttribute('lat'));
+        var lon = parseFloat(el.getAttribute('lon'));
+        return (isNaN(lat) || isNaN(lon)) ? null : L.latLng(lat, lon);
+    }
+    gpx.querySelectorAll('wpt').forEach(function (wpt) {
+        var ll = point(wpt);
+        if (!ll) { return; }
+        var marker = L.marker(ll).addTo(map);
+        var name = wpt.querySelector('name');
+        if (name && name.textContent) { marker.bindPopup(escapeHtml(name.textContent)); }
+        bounds.extend(ll);
+        counts.waypoints++;
+    });
+    function line(points, colour) {
+        var latlngs = [];
+        points.forEach(function (pt) {
+            var ll = point(pt);
+            if (ll) { latlngs.push(ll); bounds.extend(ll); }
+        });
+        if (latlngs.length) { L.polyline(latlngs, { color: colour, weight: 3 }).addTo(map); }
+        return latlngs.length > 0;
+    }
+    gpx.querySelectorAll('trk').forEach(function (trk) {
+        var drawn = false;
+        trk.querySelectorAll('trkseg').forEach(function (seg) {
+            drawn = line(seg.querySelectorAll('trkpt'), '#3388ff') || drawn;
+        });
+        if (drawn) { counts.tracks++; }
+    });
+    gpx.querySelectorAll('rte').forEach(function (rte) {
+        if (line(rte.querySelectorAll('rtept'), '#ff3333')) { counts.routes++; }
+    });
+    if (bounds.isValid()) { map.fitBounds(bounds, { padding: [20, 20] }); }
+    return counts;
+}
+
+function openGeoMap(button) {
+    var modalEl = document.getElementById('mainModal');
+    var modalBody = document.getElementById('mainModalBody');
+    if (!modalEl || !modalBody) { return; }
+    var kind = button.dataset.geoMap;
+    var title = button.dataset.title || 'map';
+
+    modalBody.innerHTML =
+        '<div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom">'
+        + '<i class="fas fa-map-location-dot text-primary"></i>'
+        + '<span class="fw-semibold me-auto">' + escapeHtml(title) + '</span>'
+        + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>'
+        + '</div>'
+        + '<div data-geo-canvas style="height:60vh;min-height:320px;"></div>'
+        + '<div class="small text-body-secondary px-3 py-2 border-top" data-geo-info>…</div>';
+    var canvas = modalBody.querySelector('[data-geo-canvas]');
+    var info = modalBody.querySelector('[data-geo-info]');
+    setModalSize('lg', modalEl.querySelector('.modal-dialog'));
+
+    var map = null;
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        if (map) { map.remove(); map = null; }
+    }, { once: true });
+    modalEl.addEventListener('shown.bs.modal', function () {
+        loadLeaflet().then(function (L) {
+            map = L.map(canvas);
+            L.tileLayer(button.dataset.tileUrl + '/hot/{z}/{x}/{y}.png', {
+                maxZoom: 21,
+                maxNativeZoom: 20,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            map.setView([0, 0], 2);
+
+            if (kind === 'point') {
+                var lat = parseFloat(button.dataset.lat);
+                var lon = parseFloat(button.dataset.lon);
+                var radiusKm = parseFloat(button.dataset.radius);
+                if (isNaN(lat) || isNaN(lon)) { info.textContent = 'Invalid coordinates'; return; }
+                map.setView([lat, lon], 14);
+                L.marker([lat, lon]).addTo(map);
+                var text = lat.toFixed(6) + ', ' + lon.toFixed(6);
+                if (!isNaN(radiusKm) && radiusKm > 0) {
+                    var circle = L.circle([lat, lon], {
+                        radius: radiusKm * 1000, color: '#3388ff', fillColor: '#3388ff', fillOpacity: 0.15, weight: 2
+                    }).addTo(map);
+                    map.fitBounds(L.latLng(lat, lon).toBounds(radiusKm * 2000), { padding: [20, 20] });
+                    text += ' · radius ' + radiusKm + ' km';
+                    var RadiusToggle = L.Control.extend({
+                        options: { position: 'topleft' },
+                        onAdd: function () {
+                            var box = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                            var link = L.DomUtil.create('a', '', box);
+                            link.href = '#';
+                            link.title = 'Toggle radius';
+                            link.innerHTML = '<i class="fas fa-circle-dot"></i>';
+                            L.DomEvent.disableClickPropagation(box);
+                            L.DomEvent.on(link, 'click', function (e) {
+                                L.DomEvent.preventDefault(e);
+                                if (map.hasLayer(circle)) { map.removeLayer(circle); link.style.opacity = '.5'; }
+                                else { map.addLayer(circle); link.style.opacity = '1'; }
+                            });
+                            return box;
+                        }
+                    });
+                    map.addControl(new RadiusToggle());
+                }
+                info.textContent = text;
+                return;
+            }
+
+            var root = (typeof baseurl !== 'undefined' ? baseurl : '');
+            info.textContent = 'Loading…';
+            fetch(root + '/attributes/download/' + encodeURIComponent(button.dataset.attachmentId), { credentials: 'same-origin' })
+                .then(function (response) {
+                    if (!response.ok) { throw new Error(response.status); }
+                    return response.text();
+                })
+                .then(function (body) {
+                    if (!map) { return; }
+                    if (kind === 'gpx') {
+                        var counts = drawGpx(L, map, body);
+                        var parts = [];
+                        if (counts.tracks) { parts.push(counts.tracks + ' track(s)'); }
+                        if (counts.routes) { parts.push(counts.routes + ' route(s)'); }
+                        if (counts.waypoints) { parts.push(counts.waypoints + ' waypoint(s)'); }
+                        info.textContent = parts.length ? parts.join(', ') : 'No geographic data found';
+                        return;
+                    }
+                    var geojson = JSON.parse(body);
+                    var features = 0;
+                    var layer = L.geoJSON(geojson, {
+                        onEachFeature: function (feature, featureLayer) {
+                            features++;
+                            var props = feature.properties || {};
+                            var lines = Object.keys(props).filter(function (key) { return props[key] !== null; })
+                                .map(function (key) { return '<strong>' + escapeHtml(key) + '</strong>: ' + escapeHtml(String(props[key])); });
+                            if (lines.length) { featureLayer.bindPopup(lines.join('<br>')); }
+                        }
+                    }).addTo(map);
+                    if (layer.getBounds().isValid()) { map.fitBounds(layer.getBounds(), { padding: [20, 20] }); }
+                    info.textContent = features + ' feature(s)';
+                })
+                .catch(function () {
+                    info.textContent = 'Could not load the attachment.';
+                });
+        }).catch(function () {
+            info.textContent = 'Could not load the map library.';
+        });
+    }, { once: true });
+
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+window.openGeoMap = openGeoMap;
+
+document.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-geo-map]');
+    if (button) {
+        event.preventDefault();
+        event.stopPropagation();
+        openGeoMap(button);
+    }
 });

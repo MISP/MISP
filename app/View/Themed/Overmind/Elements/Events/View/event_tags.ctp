@@ -18,7 +18,7 @@ if (Configure::read('Plugin.AI_services_enable')
 }
 ?>
 
-<div class="card shadow-sm mb-3" id="tags-card">
+<div class="card shadow-sm mb-3 flex-grow-1" id="tags-card">
 
     <!-- HEADER -->
     <div class="p-3 border-bottom">
@@ -49,39 +49,42 @@ if (Configure::read('Plugin.AI_services_enable')
                        aria-label="<?= __('Filter tags') ?>">
             </div>
 
-            <?php if ($aiUrl !== null): ?>
-            <!-- AI recommendations -->
-            <button type="button"
-                    class="btn btn-sm btn-outline-secondary flex-shrink-0"
-                    data-tour="event-tags-ai"
-                    onclick="openModal('<?= $aiUrl ?>', 'lg')"
-                    title="<?= __('Recommend tags with AI') ?>">
-                <i class="fas fa-robot me-1"></i>
-                <?= __('AI') ?>
-            </button>
-            <?php endif; ?>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0" data-card-actions>
+                <?php if ($aiUrl !== null): ?>
+                <!-- AI recommendations -->
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                        data-tour="event-tags-ai"
+                        onclick="openModal('<?= $aiUrl ?>', 'lg')"
+                        title="<?= __('Recommend tags with AI') ?>">
+                    <i class="fas fa-robot me-1"></i>
+                    <?= __('AI') ?>
+                </button>
+                <?php endif; ?>
 
-            <?php if ($mayModify): ?>
-            <!-- Relationship button -->
-            <button type="button"
-                    class="btn btn-sm btn-outline-tag flex-shrink-0"
-                    data-tour="event-tags-relationships"
-                    onclick="openModal('<?= $relUrl ?>', 'xl')"
-                    title="<?= __('Set how this event relates to its tags') ?>">
-                <i class="fas fa-diagram-project me-1"></i>
-                <?= __('Relationships') ?>
-            </button>
+                <?php if ($mayModify): ?>
+                <!-- Relationship button -->
+                <button type="button"
+                        class="btn btn-sm btn-outline-tag flex-shrink-0"
+                        data-tour="event-tags-relationships"
+                        onclick="openModal('<?= $relUrl ?>', 'xl')"
+                        title="<?= __('Set how this event relates to its tags') ?>">
+                    <i class="fas fa-diagram-project me-1"></i>
+                    <?= __('Relationships') ?>
+                </button>
 
-            <!-- Edit button -->
-            <button type="button"
-                    class="btn btn-sm btn-tag flex-shrink-0"
-                    data-tour="event-tags-edit"
-                    onclick="openModal('<?= $editUrl ?>', 'xl')"
-                    title="<?= __('Edit Tags') ?>">
-                <i class="fas fa-pen-to-square me-1"></i>
-                <?= __('Edit Tags') ?>
-            </button>
-            <?php endif; ?>
+                <!-- Edit button -->
+                <button type="button"
+                        class="btn btn-sm btn-tag flex-shrink-0"
+                        data-tour="event-tags-edit"
+                        onclick="openModal('<?= $editUrl ?>', 'xl')"
+                        title="<?= __('Edit Tags') ?>">
+                    <i class="fas fa-pen-to-square me-1"></i>
+                    <?= __('Edit Tags') ?>
+                </button>
+                <?php endif; ?>
+            </div>
+            <?= $this->element('genericElementsBS5/Cards/actions_overflow_menu') ?>
 
         </div>
     </div>

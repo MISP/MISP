@@ -1421,7 +1421,7 @@ class AttributesController extends AppController
         $attribute = $this->MispAttribute->find('first', array(
                 'conditions' => $conditions,
                 'recursive' => -1,
-                'fields' => array('id', 'event_id'),
+                'fields' => array('id', 'event_id', 'deleted', 'object_id'),
         ));
         if (empty($attribute)) {
             throw new NotFoundException('Invalid attribute');
@@ -1438,6 +1438,10 @@ class AttributesController extends AppController
             } else {
                 $this->set('hard', $hard);
                 $this->set('event_id', $attribute['Attribute']['event_id']);
+                // The event view's Attributes tab counts live standalone rows.
+                $counted = empty($attribute['Attribute']['deleted'])
+                    && empty($attribute['Attribute']['object_id']);
+                $this->set('countedIds', $counted ? [(int)$attribute['Attribute']['id']] : []);
                 if ($this->theme === 'Overmind') {
                     $this->layout = false;
                     $this->render('ajax/attributeDeleteConfirmationForm');
@@ -1496,9 +1500,16 @@ class AttributesController extends AppController
             $successes = [];
             $fails     = [];
             foreach ($idList as $attrId) {
-                if ($this->MispAttribute->deleteAttribute(
-                    (int)$attrId, $user, (bool)$hard
-                )) {
+                // deleteAttribute() throws on a missing row: count it as a
+                // failure rather than abandon the rest of the selection.
+                try {
+                    $deleted = $this->MispAttribute->deleteAttribute(
+                        (int)$attrId, $user, (bool)$hard
+                    );
+                } catch (Exception $e) {
+                    $deleted = false;
+                }
+                if ($deleted) {
                     $successes[] = (int)$attrId;
                 } else {
                     $fails[] = (int)$attrId;
@@ -1539,9 +1550,27 @@ class AttributesController extends AppController
             if (empty($idList) || !is_array($idList)) {
                 throw new NotFoundException(__('Invalid attribute ID.'));
             }
+            $idList = array_map('intval', $idList);
+            $rows = $this->MispAttribute->find('all', [
+                'conditions' => ['Attribute.id' => $idList],
+                'fields' => ['Attribute.id', 'Attribute.deleted', 'Attribute.object_id'],
+                'recursive' => -1,
+            ]);
+            // The event view's Attributes tab counts live standalone rows.
+            $live = $counted = [];
+            foreach ($rows as $row) {
+                if (empty($row['Attribute']['deleted'])) {
+                    $live[] = (int)$row['Attribute']['id'];
+                    if (empty($row['Attribute']['object_id'])) {
+                        $counted[] = (int)$row['Attribute']['id'];
+                    }
+                }
+            }
             $this->layout = false;
             $this->set('idArray', $idList);
-            $this->set('hard', (bool)$hard);
+            // A selection that is already soft-deleted can only go for good.
+            $this->set('hard', (bool)$hard || (!empty($rows) && empty($live)));
+            $this->set('countedIds', $counted);
             $this->render('ajax/attributeDeleteConfirmationForm');
         }
     }

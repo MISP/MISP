@@ -3,47 +3,12 @@
 $feed = $data['Feed'] ?? [];
 $feedId = (int)($feed['id'] ?? 0);
 
+$this->set('headerIdentity', $feed);
 $this->set('headerTitle', $feed['name'] ?? '');
 $this->set('headerDescription', empty($feed['provider'])
-    ? __('Feed source')
-    : __('Provided by %s', $feed['provider']));
-
-// Coverage is only meaningful once the feed has been cached into Redis.
-$cachedElements = (int)($feed['cached_elements'] ?? 0);
-$coverage = $feed['coverage_by_other_feeds'] ?? '0%';
-
-$this->set('headerStats', [
-    [
-        'label' => __('Cached values'),
-        'value' => number_format($cachedElements),
-        'icon' => 'database',
-        'color' => $cachedElements > 0 ? 'primary' : 'secondary',
-        'subtitle' => $cachedElements > 0
-            ? __('In the correlation cache')
-            : __('Not cached yet'),
-    ],
-    [
-        'label' => __('Covered by other feeds'),
-        'value' => $coverage,
-        'icon' => 'layer-group',
-        'color' => 'info',
-        'subtitle' => __('Share of the cached values seen elsewhere'),
-    ],
-    [
-        'label' => __('Pulling'),
-        'value' => !empty($feed['enabled']) ? __('Enabled') : __('Disabled'),
-        'icon' => !empty($feed['enabled']) ? 'circle-play' : 'circle-stop',
-        'color' => !empty($feed['enabled']) ? 'success' : 'secondary',
-        'subtitle' => __('Events/attributes pulled into this instance'),
-    ],
-    [
-        'label' => __('Caching'),
-        'value' => !empty($feed['caching_enabled']) ? __('Enabled') : __('Disabled'),
-        'icon' => 'bolt',
-        'color' => !empty($feed['caching_enabled']) ? 'success' : 'secondary',
-        'subtitle' => __('Feed values correlated without importing'),
-    ],
-]);
+    ? ''
+    : '<span title="' . h(__('Provider')) . '"><i class="fas fa-building me-1 opacity-50"></i>'
+        . h(__('Provided by %s', $feed['provider'])) . '</span>');
 
 $tabs = [
     [
@@ -75,5 +40,11 @@ if (!empty($feed['caching_enabled'])) {
 
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,
+    'ownership' => [
+        'orgc' => $data['Orgc'] ?? [],
+        'noOrgText' => __('Pulled events keep their own creator organisation'),
+        'distribution' => $feed['distribution'] ?? null,
+        'sharingGroup' => $data['SharingGroup'] ?? [],
+    ],
     'tabs' => $tabs,
 ]);

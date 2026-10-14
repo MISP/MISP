@@ -898,6 +898,101 @@ class MispObject extends AppModel
     }
 
     /**
+     * Reorder each object's attributes the way its template means them to be
+     * read, in place.
+     *
+     * Module, import and merge results arrive in whatever order the producer
+     * built them in, which is usually alphabetical: an
+     * `original-imported-file` then leads with `imported-sample` although the
+     * template puts `format` first. The object card in the event view already
+     * reads fieldOrderByTemplate(); this gives the same order to the screens
+     * that review an object before it exists.
+     *
+     * An object the producer did not tag with a template_uuid is matched on
+     * its name, and one matching no installed template keeps the order it
+     * arrived in.
+     *
+     * @param array $objects Objects in the misp_standard shape, by reference
+     * @return void
+     */
+    public function sortAttributesByTemplate(array &$objects)
+    {
+        if (empty($objects)) {
+            return;
+        }
+
+        $namesToResolve = array();
+        foreach ($objects as $object) {
+            if (empty($object['template_uuid']) && !empty($object['name'])) {
+                $namesToResolve[$object['name']] = true;
+            }
+        }
+        $uuidByName = array();
+        if (!empty($namesToResolve)) {
+            $rows = $this->ObjectTemplate->find('all', array(
+                'conditions' => array(
+                    'ObjectTemplate.name' => array_keys($namesToResolve),
+                ),
+                'fields' => array(
+                    'ObjectTemplate.name',
+                    'ObjectTemplate.uuid',
+                    'ObjectTemplate.version',
+                ),
+                'recursive' => -1,
+                // Ascending, so the last row written into the map is the newest.
+                'order' => array('ObjectTemplate.version' => 'ASC'),
+            ));
+            foreach ($rows as $row) {
+                $uuidByName[$row['ObjectTemplate']['name']] =
+                    $row['ObjectTemplate']['uuid'];
+            }
+        }
+
+        $templateUuid = function ($object) use ($uuidByName) {
+            if (!empty($object['template_uuid'])) {
+                return $object['template_uuid'];
+            }
+            if (!empty($object['name']) && isset($uuidByName[$object['name']])) {
+                return $uuidByName[$object['name']];
+            }
+            return null;
+        };
+
+        $uuids = array();
+        foreach ($objects as $object) {
+            $uuid = $templateUuid($object);
+            if ($uuid !== null) {
+                $uuids[] = $uuid;
+            }
+        }
+        $order = $this->fieldOrderByTemplate($uuids);
+        if (empty($order)) {
+            return;
+        }
+
+        foreach ($objects as &$object) {
+            if (empty($object['Attribute']) || count($object['Attribute']) < 2) {
+                continue;
+            }
+            $uuid = $templateUuid($object);
+            if ($uuid === null || empty($order[$uuid])) {
+                continue;
+            }
+            $rank = $order[$uuid];
+            // usort is stable as of PHP 8, so a repeated relation and anything
+            // the template does not list keep the order they arrived in.
+            usort($object['Attribute'], function ($a, $b) use ($rank) {
+                $left = isset($a['object_relation'], $rank[$a['object_relation']])
+                    ? $rank[$a['object_relation']] : PHP_INT_MAX;
+                $right = isset($b['object_relation'], $rank[$b['object_relation']])
+                    ? $rank[$b['object_relation']] : PHP_INT_MAX;
+                return $left <=> $right;
+            });
+        }
+        unset($object);
+    }
+
+    /**
      * Prepare the template form view's data, setting defaults, sorting elements
      * @param array $template
      * @param array $request

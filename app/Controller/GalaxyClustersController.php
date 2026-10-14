@@ -35,6 +35,15 @@ class GalaxyClustersController extends AppController
         )
     );
 
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        // The delete and restore confirmations post a hand-built body through
+        // fetch(), so there is no field hash for _validatePost() to compare.
+        // CSRF is still enforced, through the X-CSRF-Token header.
+        $this->_csrfTokenHeaderOnly(['delete', 'deleteSelection', 'restore']);
+    }
+
     public function index($galaxyId)
     {
         $galaxyId = $this->Toolbox->findIdByUuid($this->GalaxyCluster->Galaxy, $galaxyId);
@@ -113,6 +122,18 @@ class GalaxyClustersController extends AppController
             );
             return $this->RestResponse->viewData($clusters, $this->response->type());
         }
+
+        // For the Deleted toggle: the whole galaxy, whatever the search says.
+        $this->set('deletedCount', $this->GalaxyCluster->find('count', [
+            'recursive' => -1,
+            'conditions' => [
+                'AND' => [
+                    $aclConditions,
+                    'GalaxyCluster.galaxy_id' => $galaxyId,
+                    'GalaxyCluster.deleted' => true,
+                ],
+            ],
+        ]));
 
         $this->paginate['conditions']['AND'][] = $contextConditions;
         $this->paginate['conditions']['AND'][] = $searchConditions;
@@ -682,7 +703,24 @@ class GalaxyClustersController extends AppController
             }
             $this->redirect($this->referer(array('controller' => 'galaxies', 'action' => 'index')));
         } else {
+            $ids = array_map('intval', $ids);
+            $deletedFlags = empty($ids) ? [] : $this->GalaxyCluster->find('list', [
+                'conditions' => ['GalaxyCluster.id' => $ids],
+                'fields' => ['GalaxyCluster.id', 'GalaxyCluster.deleted'],
+                'recursive' => -1,
+            ]);
+            $liveIds = [];
+            foreach ($deletedFlags as $clusterId => $deleted) {
+                if (!$deleted) {
+                    $liveIds[] = (int)$clusterId;
+                }
+            }
             $this->set('idArray', $ids);
+            // A selection that is already soft-deleted can only go for good.
+            // The `/true` the index toolbar appends is not a choice: the modal
+            // offers soft or permanent.
+            $this->set('hard', !empty($deletedFlags) && empty($liveIds));
+            $this->set('countedIds', $liveIds);
             if ($this->theme === 'Overmind') {
                 $this->layout = false;
             }
@@ -733,8 +771,14 @@ class GalaxyClustersController extends AppController
             }
         } else {
             if ($this->request->is('ajax')) {
+                $isDeleted = !empty($cluster['GalaxyCluster']['deleted']);
                 $this->set('id', $cluster['GalaxyCluster']['id']);
                 $this->set('cluster', $cluster['GalaxyCluster']);
+                $this->set('hard', (bool)$hard || $isDeleted);
+                $this->set('countedIds', $isDeleted ? [] : [(int)$cluster['GalaxyCluster']['id']]);
+                // Opened from the cluster's own page, which a permanent
+                // deletion leaves with nothing to show.
+                $this->set('ownPage', ($this->request->params['named']['origin'] ?? '') === 'view');
                 if ($this->theme === 'Overmind') {
                     $this->layout = false;
                 }
@@ -778,6 +822,7 @@ class GalaxyClustersController extends AppController
             if ($this->request->is('ajax') || $this->theme === 'Overmind') {
                 $this->set('id', $cluster['GalaxyCluster']['id']);
                 $this->set('cluster', $cluster['GalaxyCluster']);
+                $this->set('ownPage', ($this->request->params['named']['origin'] ?? '') === 'view');
                 if ($this->theme === 'Overmind') {
                     $this->layout = false;
                 }

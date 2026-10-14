@@ -45,6 +45,35 @@ $distPicker = function ($scope, $selected) use ($distributions, $sgs) {
     return ob_get_clean();
 };
 
+/*
+ * The object's own distribution is a plain select rather than the badge-with-an
+ * invisible-select the rows use: it is the one the user actually reads before
+ * importing, so it says the level in words. initDistributionSelect() dresses it
+ * with the same badges as the event and object forms.
+ */
+$distSelect = function ($scope, $selected, $uid) use ($distributions, $sgs) {
+    $selected = ($selected === null || $selected === '') ? array_key_first($distributions) : (int)$selected;
+    if (!isset($distributions[$selected])) {
+        $selected = (int)array_key_first($distributions);
+    }
+    ob_start(); ?>
+    <select class="<?= h($scope) ?>-dist om-dist-select form-select form-select-sm"
+            id="<?= h($uid) ?>" aria-label="<?= __('Distribution') ?>">
+        <?php foreach ($distributions as $dKey => $dVal): ?>
+            <option value="<?= h($dKey) ?>"<?= $dKey == $selected ? ' selected' : '' ?>><?= h($dVal) ?></option>
+        <?php endforeach; ?>
+    </select>
+    <span class="<?= h($scope) ?>-sg-wrap<?= $selected == 4 ? '' : ' d-none' ?>">
+        <select class="<?= h($scope) ?>-sg form-select form-select-sm mt-1">
+            <?php foreach ($sgs as $sgKey => $sgVal): ?>
+                <option value="<?= h($sgKey) ?>"><?= h($sgVal) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </span>
+    <?php
+    return ob_get_clean();
+};
+
 // Client-only IDS shield
 $idsToggle = function ($on) {
     ob_start(); ?>
@@ -249,43 +278,81 @@ $accent = $isAi ? 'primary' : 'enrichment';
                 <button class="accordion-button collapsed py-2 px-3 rounded shadow-none" type="button"
                         data-bs-toggle="collapse" data-bs-target="#<?= $bodyId ?>"
                         aria-expanded="false" aria-controls="<?= $bodyId ?>">
-                    <span class="d-flex align-items-center flex-wrap gap-2 w-100 me-2">
-                        <span class="fw-semibold">
-                            <span class="misp-icon misp-icon-object misp-hexagone me-1 text-secondary"></span>
-                            <?= h($object['name']) ?>
-                        </span>
-                        <?php if (!empty($object['meta-category'])): ?>
-                            <span class="badge rounded-pill text-bg-light border text-secondary fw-normal"><?= h($object['meta-category']) ?></span>
-                        <?php endif; ?>
-                        <?php if (!empty($references)): ?>
-                            <span class="text-muted small"><i class="fas fa-diagram-project me-1"></i><?= count($references) ?></span>
-                        <?php endif; ?>
-                        <span class="text-muted small fst-italic mt-1"><?= h($object['uuid']) ?></span>
-                        <span class="badge rounded-pill bg-secondary-subtle text-secondary ms-auto">
-                            <?= __n('%s attribute', '%s attributes', $oaCount, $oaCount) ?>
-                        </span>
-                        <span class="om-remove text-danger d-inline-flex align-items-center px-1" title="<?= __('Remove this object from import') ?>" style="cursor:pointer;">
-                            <i class="fas fa-trash"></i>
-                        </span>
-                    </span>
+                    <?php
+                    /*
+                     * The same header the object index draws, so an object being
+                     * reviewed here looks like the card it will become. Only what
+                     * is specific to this screen is passed as the aside.
+                     */
+                    $firstAttr = empty($object['Attribute']) ? null : reset($object['Attribute']);
+                    $aside = '';
+                    if (!empty($references)) {
+                        $aside .= '<span class="ov-obj-date" title="'
+                            . h(__('%s relationship(s)', count($references))) . '">'
+                            . '<i class="fas fa-diagram-project"></i>'
+                            . count($references) . '</span>';
+                    }
+                    $aside .= '<span class="om-remove text-danger d-inline-flex align-items-center px-1"'
+                        . ' title="' . h(__('Remove this object from import')) . '"'
+                        . ' style="cursor:pointer;"><i class="fas fa-trash"></i></span>';
+                    ?>
+                    <?= $this->element('Objects/object_header', [
+                        'object' => $object,
+                        'ctx' => [
+                            'count' => $oaCount,
+                            'deleted' => false,
+                            'firstValue' => $firstAttr === null ? '' : (string)($firstAttr['value'] ?? ''),
+                            'firstRelation' => $firstAttr === null
+                                ? '' : (string)($firstAttr['object_relation'] ?? ''),
+                        ],
+                        'asideHtml' => $aside,
+                    ]) ?>
                 </button>
             </h2>
             <div id="<?= $bodyId ?>" class="accordion-collapse collapse">
                 <div class="accordion-body pt-2">
-                    <div class="row g-2 mb-2 align-items-start">
+                    <div class="row g-2 mb-4 align-items-start">
                         <div class="col-md-6">
                             <label class="form-label small text-muted mb-1"><?= __('Comment') ?></label>
                             <textarea class="form-control form-control-sm om-object-comment" rows="1"
                                       placeholder="<?= h($importComment) ?>"><?= !empty($object['comment']) ? h($object['comment']) : '' ?></textarea>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <label class="form-label small text-muted mb-1 d-block"><?= __('Distribution') ?></label>
-                            <?= $distPicker('om-object', $object['distribution'] ?? null) ?>
+                            <?= $distSelect('om-object', $object['distribution'] ?? null, 'omObjDist_' . $o) ?>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-12">
                             <label class="form-label small text-muted mb-1 d-block"><?= __('Seen (first / last)') ?></label>
-                            <input type="text" class="form-control form-control-sm om-object-fs mb-1" placeholder="<?= __('First seen') ?>" value="<?= h($object['first_seen'] ?? '') ?>">
-                            <input type="text" class="form-control form-control-sm om-object-ls" placeholder="<?= __('Last seen') ?>" value="<?= h($object['last_seen'] ?? '') ?>">
+                            <?php
+                            $fsId = 'omObjFs_' . $o;
+                            $lsId = 'omObjLs_' . $o;
+                            ?>
+                            <div class="row g-2">
+                                <div class="col-6">
+                            <?= $this->element('genericElementsBS5/Forms/date_field', [
+                                'field' => 'omObjectFirstSeen' . $o,
+                                'id' => $fsId,
+                                'mode' => 'datetime',
+                                'value' => $object['first_seen'] ?? '',
+                                'accent' => 'object',
+                                'placeholder' => __('First seen'),
+                                'before' => '#' . $lsId,
+                                'inputAttrs' => ['class' => 'd-none om-object-fs'],
+                            ]) ?>
+                                </div>
+                                <div class="col-6">
+                            <?= $this->element('genericElementsBS5/Forms/date_field', [
+                                'field' => 'omObjectLastSeen' . $o,
+                                'id' => $lsId,
+                                'mode' => 'datetime',
+                                'value' => $object['last_seen'] ?? '',
+                                'accent' => 'object',
+                                'placeholder' => __('Last seen'),
+                                'after' => '#' . $fsId,
+                                'inputAttrs' => ['class' => 'd-none om-object-ls'],
+                            ]) ?>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -499,6 +566,23 @@ $accent = $isAi ? 'primary' : 'enrichment';
         }
     });
 
+    /* The object's distribution is a real select: give it the shared badges and
+     * let it reveal its sharing group. The reveal toggles the wrapper span, not
+     * the select, which TomSelect hides anyway. */
+    root.querySelectorAll('select.om-dist-select').forEach(function (sel) {
+        var wrap = sel.parentElement
+            ? sel.parentElement.querySelector('.om-object-sg-wrap')
+            : null;
+        function reveal() {
+            if (wrap) { wrap.classList.toggle('d-none', sel.value !== '4'); }
+        }
+        if (typeof initDistributionSelect === 'function') {
+            initDistributionSelect(sel, reveal, { controlInput: null });
+        }
+        if (!sel.tomselect) { sel.addEventListener('change', reveal); }
+        reveal();
+    });
+
     // ── Distribution: repaint the face badge + reveal sharing group on lvl 4 ──
     root.addEventListener('change', function (e) {
         var sel = e.target.closest('.om-dist-native');
@@ -533,8 +617,10 @@ $accent = $isAi ? 'primary' : 'enrichment';
         catch (e) { return []; }
     }
     function dist(scope, el) {
-        var d = el.querySelector('.' + scope + '-dist');
-        var s = el.querySelector('.' + scope + '-sg');
+        /* `select.`: TomSelect copies a select's classes onto the wrapper div it
+         * builds, so an unqualified class matches two nodes and the div first. */
+        var d = el.querySelector('select.' + scope + '-dist');
+        var s = el.querySelector('select.' + scope + '-sg');
         var v = d ? d.value : '0';
         return { distribution: v, sharing_group_id: (v === '4' && s) ? s.value : '0' };
     }
