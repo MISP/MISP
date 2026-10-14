@@ -56,6 +56,98 @@
         });
     }
 
+    // A drawn table's month strip: a drag keeps the rows whose window
+    // touches the period, a click or "Show all" clears it. The value page
+    // runs the same markup through its list engine.
+    function initBrushes(root) {
+        if (!window.MispBrush) return;
+        root.querySelectorAll('[data-vp-timebrush]').forEach(function (strip) {
+            var host = strip.closest('.vp-rf');
+            var bars = Array.prototype.slice.call(strip.querySelectorAll('[data-vp-bucket-from]'));
+            var rows = Array.prototype.slice.call(host.querySelectorAll('tbody tr'));
+            var caption = host.querySelector('[data-vp-timebrush-caption]');
+            var rest = caption ? caption.getAttribute('data-vp-caption-default') : '';
+            var shown = host.querySelector('[data-vp-list-shown]');
+            var summary = host.querySelector('[data-vp-facet-summary]');
+            var all = host.querySelector('[data-vp-facet-clear]');
+            var empty = host.querySelector('[data-vp-list-empty]');
+            var times = new RegExp('(?:^|\\s)' + strip.getAttribute('data-vp-timebrush') + ':(\\d{12})(?:-(\\d{12}))?');
+            var dragged = null;
+            var period = null;
+
+            // `YmdHi` bounds of a run of bars, and the rows inside them.
+            var within = function (first, last) {
+                var from = bars[first].getAttribute('data-vp-bucket-from').replace(/\D/g, '') + '0000';
+                var to = bars[last].getAttribute('data-vp-bucket-to').replace(/\D/g, '') + '2359';
+                return rows.filter(function (row) {
+                    var at = (row.getAttribute('data-vp-times') || '').match(times);
+                    return !!at && (at[2] || at[1]) >= from && at[1] <= to;
+                });
+            };
+            var span = function (range) {
+                var first = bars[range.from].getAttribute('data-vp-bucket-label');
+                return range.from === range.to ? first
+                    : first + ' – ' + bars[range.to].getAttribute('data-vp-bucket-label');
+            };
+            var say = function (text) {
+                if (caption) caption.textContent = text;
+            };
+            var light = function (bar) {
+                bars.forEach(function (b) { b.classList.toggle('vp-spark-bar-lit', b === bar); });
+            };
+            var apply = function (range) {
+                period = range;
+                var kept = range ? within(range.from, range.to) : rows;
+                rows.forEach(function (row) {
+                    row.classList.toggle('d-none', kept.indexOf(row) === -1);
+                });
+                if (shown) shown.textContent = n(kept.length);
+                if (summary) summary.classList.toggle('vp-facet-summary-on', !!range);
+                if (all) all.disabled = !range;
+                if (empty) empty.classList.toggle('d-none', !range || kept.length > 0);
+                if (range) {
+                    window.MispBrush.paint(strip, range, bars.length);
+                } else {
+                    window.MispBrush.clear(strip);
+                }
+                say(range ? span(range) : rest);
+            };
+
+            window.MispBrush.attach(strip.querySelector('[data-misp-brush]'), {
+                count: function () { return bars.length; },
+                range: function (from, to) {
+                    dragged = {from: from, to: to};
+                    light(null);
+                    window.MispBrush.paint(strip, dragged, bars.length);
+                    say(span(dragged) + ' · ' + n(within(from, to).length));
+                },
+                settle: function () {
+                    if (dragged) apply(dragged);
+                    dragged = null;
+                },
+                clear: function () {
+                    dragged = null;
+                    apply(null);
+                }
+            });
+            // The brush layer covers the bars, so their names go in the caption.
+            strip.addEventListener('pointermove', function (e) {
+                if (dragged || !bars.length) return;
+                var box = strip.getBoundingClientRect();
+                var at = Math.floor(((e.clientX - box.left) / box.width) * bars.length);
+                var bar = bars[Math.max(0, Math.min(bars.length - 1, at))];
+                light(bar);
+                say(bar.getAttribute('data-vp-tip'));
+            });
+            strip.addEventListener('pointerleave', function () {
+                light(null);
+                if (!dragged) say(period ? span(period) : rest);
+            });
+            if (all) all.addEventListener('click', function () { apply(null); });
+            window.MispBrush.clear(strip);
+        });
+    }
+
     function Shelf(root) {
         var self = this;
         this.root = root;
@@ -93,6 +185,7 @@
             },
             keepArrows: '.eov-map',
             onClick: function (e) { return self.onClick(e); },
+            onFill: function (panel) { initBrushes(panel); },
             onOpen: function () { self.drawMap(); },
             onPlace: function () {
                 if (self.mapState) self.mapState.map.invalidateSize();

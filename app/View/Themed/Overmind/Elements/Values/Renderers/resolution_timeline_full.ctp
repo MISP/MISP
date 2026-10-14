@@ -10,22 +10,21 @@
  *
  * A dated answer gets a month strip over the table that filters it:
  * drag to keep the resolutions current in a period, click to clear.
- * It is the Occurrences rail's brush, fed through the same list
- * engine, and a row matches when its window overlaps the period.
+ * It is the Occurrences rail's brush, and a row matches when its window
+ * overlaps the period.
  *
  * Every column sorts from its heading: ascending, descending, then back
- * to the most recent first. On the value page the list engine does it;
- * on the event page, event-object-views.js.
+ * to the most recent first.
+ *
+ * On the value page the list engine runs both; on the event page,
+ * event-object-views.js, over the same markup.
  *
  * @var array $data
  */
 $periods = $data['periods'] ?? array();
 $peak = empty($periods) ? 0 : max(array_column($periods, 'count'));
-$drawn = $data['dated'] && $peak > 0 && count($periods) > 1;
-// The brush runs on the value page's list engine; elsewhere the strip is
-// only read.
+$brushed = $data['dated'] && $peak > 0 && count($periods) > 1;
 $listed = empty($this->viewVars['vpEventScope']);
-$brushed = $drawn && $listed;
 $columns = array(
     'name' => array(__('Name'), ''),
     'type' => array(__('Type'), ''),
@@ -99,7 +98,7 @@ $tip = function ($period) use ($monthName) {
 // Too many bars for a gap between each.
 $dense = count($periods) > 48;
 $key = '';
-if ($drawn) {
+if ($brushed) {
     $peakAt = $periods[0];
     foreach ($periods as $period) {
         if ($period['count'] > $peakAt['count']) {
@@ -188,27 +187,6 @@ if ($drawn) {
         <p class="vp-rf-note d-none" data-vp-list-empty><?= h(__(
             'No resolution was current in that period.'
         )) ?></p>
-    <?php elseif ($drawn): ?>
-        <div class="vp-rf-res-key"><?= $key ?></div>
-        <div class="vp-rw-months<?= $dense ? ' is-dense' : '' ?>"
-             role="img" aria-label="<?= h(__(
-            'Resolutions current per month, oldest first.'
-        )) ?>">
-            <?php foreach ($periods as $period): ?>
-                <span class="vp-rw-month<?= $period['count'] === 0
-                    ? ' vp-rw-month-empty' : '' ?>"
-                      style="--vp-rw-month-h: <?= h(round(
-                          100 * $period['count'] / $peak
-                      )) ?>%"
-                      title="<?= h($tip($period)) ?>"></span>
-            <?php endforeach; ?>
-        </div>
-        <?= $this->element('Values/Renderers/month_axis', array(
-            'months' => array_column($periods, 'label'),
-        )) ?>
-        <div class="vp-rf-sub vp-rf-res-foot"><?= h(
-            reset($periods)['label'] . ' – ' . end($periods)['label']
-        ) ?></div>
     <?php endif; ?>
 
     <table class="table table-sm vp-rf-table"<?= $listed

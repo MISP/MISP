@@ -606,20 +606,37 @@ th[aria-sort="descending"] .sort-icon::before {
         var(--bs-body-bg));
 }
 
+/* The strip and its bars are whole here: the event page draws them
+   without value-intelligence.css, where `.vp-timebrush` and `.vp-spark`
+   are defined. `position: relative` pins `.misp-brush` to the box. */
 .vp-rf-res-brush .vp-timebrush {
+    position: relative;
     height: 44px;
     margin-bottom: 0;
+    --misp-brush-dim: 80%;
 }
 
 .vp-spark.vp-rf-res-spark {
+    display: flex;
+    align-items: flex-end;
     justify-content: space-around;
     gap: 2px;
+    height: 100%;
     border-bottom: 1px solid var(--bs-border-color);
 }
 
 .vp-rf-res-spark .vp-spark-bar {
+    flex: 1 1 0;
+    min-width: 1px;
     max-width: 24px;
+    min-height: 2px;
+    height: var(--vp-spark-h, 0%);
     border-radius: 3px 3px 0 0;
+}
+
+.vp-rf-res-spark .vp-spark-bar-empty {
+    height: 2px;
+    background: var(--bs-border-color);
 }
 
 .vp-rf-res-spark .vp-spark-bar:not(.vp-spark-bar-empty) {
