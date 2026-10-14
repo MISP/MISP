@@ -7635,7 +7635,19 @@ function initObjectTemplatePicker(container, payloadEl) {
         searchField: ['name', 'desc'],
         /* Insertion order stops mattering, so re-adding options on the way back
          * to "All" cannot scramble the list. */
-        sortField: [{ field: '$score' }, { field: 'name', direction: 'asc' }],
+        sortField: [{ field: '$score', direction: 'desc' }, { field: 'name', direction: 'asc' }],
+        score: function (query) {
+            var anyField = this.getScoreFunction(query);
+            var nameOnly = this.sifter.getScoreFunction(
+                query, Object.assign(this.getSearchOptions(), { fields: ['name'] })
+            );
+            this.settings.optgroupField = query.trim() ? '' : 'meta';
+            return function (t) {
+                if (anyField(t) <= 0) { return 0; }
+                var byName = nameOnly(t);
+                return byName > 0 ? 10 + byName : 1;
+            };
+        },
         maxOptions: null,
         create: false,
         placeholder: select.dataset.placeholder || '-- Select a template --',

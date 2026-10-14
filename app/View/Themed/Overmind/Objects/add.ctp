@@ -78,7 +78,7 @@ sort($metaCategories);
         ]) ?>
         <select id="objectTemplateSelect" class="form-select"></select>
         <?= $this->element('genericElementsBS5/Forms/field_hint', [
-            'text' => __('Searching matches the name and the description. A meta-category narrows the list without dropping what you already picked.'),
+            'text' => __('Searching matches the name first, then the description. A meta-category narrows the list without dropping what you already picked.'),
         ]) ?>
 
         <div id="templateDescPreview" class="alert alert-light border mt-3 d-none"></div>
