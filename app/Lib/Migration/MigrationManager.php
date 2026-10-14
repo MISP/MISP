@@ -97,7 +97,8 @@ class MigrationManager
      * @var array
      */
     private static $ledgerColumns = array(
-        'id' => array('type' => 'primary_key'),
+        // 32-bit, as the install baselines carry it; `primary_key` is 64-bit.
+        'id' => array('type' => 'integer', 'null' => false, 'key' => 'primary'),
         self::LEDGER_KEY => array('type' => 'string', 'length' => 191, 'null' => false),
         'applied_at' => array('type' => 'datetime', 'null' => false),
         'duration_ms' => array('type' => 'integer', 'null' => false, 'default' => 0),
@@ -299,7 +300,7 @@ class MigrationManager
         ));
         $table->addIndex(self::LEDGER_KEY, array('unique' => true));
         $table->dropPrimaryKey();
-        $table->addColumn('id', 'primary_key', array('first' => true));
+        $table->addColumn('id', 'integer', array('null' => false, 'key' => 'primary', 'first' => true));
         return $schema;
     }
 

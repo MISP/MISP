@@ -237,9 +237,9 @@ abstract class AbstractGrammar
                 ));
             }
             if ($name === 'changeColumn') {
-                $this->assertCompleteRedefinition($name, $table, $arguments[1], $arguments[3]);
+                $this->assertCompleteRedefinition($name, $table, $arguments[1], $arguments[2], $arguments[3]);
             } elseif ($name === 'renameColumn') {
-                $this->assertCompleteRedefinition($name, $table, $arguments[2], $arguments[4]);
+                $this->assertCompleteRedefinition($name, $table, $arguments[2], $arguments[3], $arguments[4]);
             }
             $parts = array_merge(
                 $parts,
@@ -343,7 +343,8 @@ abstract class AbstractGrammar
     // -------------------------------------------------- table, as ALTER parts
     //
     // What each operation contributes to an ALTER TABLE: a clause() to join the
-    // statement, or a statement() of its own that the ALTER is split around.
+    // statement, a statement() of its own that the ALTER is split around, or
+    // one that comes after() it.
 
     /**
      * @return array Parts.
@@ -402,6 +403,19 @@ abstract class AbstractGrammar
     }
 
     /**
+     * A statement that has to follow the table's ALTER TABLE, wherever the
+     * operation sits among the others: placed in sequence, it would split the
+     * ALTER and cost the table a second rewrite.
+     *
+     * @param string $sql A complete statement.
+     * @return array
+     */
+    protected function after($sql)
+    {
+        return array('after' => $sql);
+    }
+
+    /**
      * @param string $operation
      * @param array $arguments
      * @return array Statements.
@@ -416,7 +430,7 @@ abstract class AbstractGrammar
 
     /**
      * Join consecutive clauses into one ALTER TABLE, splitting it around any
-     * statement of its own.
+     * statement of its own, and end with the statements that follow it.
      *
      * @param string $table
      * @param array $parts
@@ -426,16 +440,21 @@ abstract class AbstractGrammar
     {
         $statements = array();
         $clauses = array();
+        $after = array();
         foreach ($parts as $part) {
             if (isset($part['clause'])) {
                 $clauses[] = $part['clause'];
+                continue;
+            }
+            if (isset($part['after'])) {
+                $after[] = $part['after'];
                 continue;
             }
             $statements = array_merge($statements, $this->alterStatement($table, $clauses));
             $clauses = array();
             $statements[] = $part['statement'];
         }
-        return array_merge($statements, $this->alterStatement($table, $clauses));
+        return array_merge($statements, $this->alterStatement($table, $clauses), $after);
     }
 
     /**
@@ -590,8 +609,8 @@ abstract class AbstractGrammar
      * modifier alone ("NOT NULL AUTO_INCREMENT" / "serial NOT NULL"), never a
      * type - passing it through verbatim would emit `id` NOT NULL AUTO_INCREMENT
      * with no type at all. The driver expects an integer column flagged
-     * primary instead, which renders as int(11) NOT NULL AUTO_INCREMENT on MySQL
-     * and serial NOT NULL on PostgreSQL.
+     * primary instead. A key is 64-bit, so that is a biginteger: bigint NOT
+     * NULL AUTO_INCREMENT on MySQL, an identity column on PostgreSQL.
      *
      * @param array $spec
      * @return array
@@ -599,7 +618,7 @@ abstract class AbstractGrammar
     protected function normaliseColumn(array $spec)
     {
         if (isset($spec['type']) && $spec['type'] === 'primary_key') {
-            $spec['type'] = 'integer';
+            $spec['type'] = 'biginteger';
             $spec['key'] = 'primary';
         }
         return $spec;
@@ -624,15 +643,31 @@ abstract class AbstractGrammar
      * This is a deliberate tightening of the PRD's section 6.3 signature, where
      * both options were optional.
      *
+     * The `primary_key` type is the exception: it is NOT NULL with a generated
+     * value by definition, so it needs neither, and refuses either saying
+     * otherwise.
+     *
      * @param string $operation
      * @param string $table
      * @param string $column
+     * @param string $type
      * @param array $options
      * @return void
      * @throws InvalidArgumentException
      */
-    protected function assertCompleteRedefinition($operation, $table, $column, array $options)
+    protected function assertCompleteRedefinition($operation, $table, $column, $type, array $options)
     {
+        if ($type === 'primary_key') {
+            if (!empty($options['null']) || (isset($options['default']) && $options['default'] !== null)) {
+                throw new InvalidArgumentException(sprintf(
+                    '%s(%s.%s) makes the column an auto-increment key, which is NOT NULL and generates its own values: it cannot be nullable or carry a default.',
+                    $operation,
+                    $table,
+                    $column
+                ));
+            }
+            return;
+        }
         $missing = array();
         foreach (array('null', 'default') as $option) {
             if (!array_key_exists($option, $options)) {

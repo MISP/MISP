@@ -1202,9 +1202,9 @@ class BaselineGenerator
     {
         $actualIsSet = $actual !== null && $actual !== '';
         if ($isKey) {
-            // Dropped by the rendering, so nothing is expected back - but a
-            // serial's nextval() is reported by neither driver, so only an
-            // unexpected literal is worth a line.
+            // Dropped by the rendering, so nothing is expected back - and a
+            // key's generated value, serial or identity, is reported by
+            // neither driver as a default.
             return null;
         }
         if ($isExpression) {
