@@ -29,6 +29,33 @@ $stamp = function ($row) {
     }
     return 'seen:' . date('YmdHi', $first) . '-' . date('YmdHi', $last);
 };
+$monthName = function ($month) {
+    return date('M Y', strtotime($month . '-01'));
+};
+// What one bar says, on hover.
+$tip = function ($period) use ($monthName) {
+    return sprintf(__n(
+        '%2$s · %1$s resolution current',
+        '%2$s · %1$s resolutions current',
+        $period['count']
+    ), number_format($period['count']), $monthName($period['label']));
+};
+// Too many bars for a gap between each.
+$dense = count($periods) > 48;
+$key = '';
+if ($drawn) {
+    $peakAt = $periods[0];
+    foreach ($periods as $period) {
+        if ($period['count'] > $peakAt['count']) {
+            $peakAt = $period;
+        }
+    }
+    $key = h(__('Resolutions current each month')) . ' · ' . sprintf(
+        h(__('peak %1$s in %2$s')),
+        '<b>' . h(number_format($peakAt['count'])) . '</b>',
+        h($monthName($peakAt['label']))
+    );
+}
 ?>
 <div class="vp-rf vp-rf-res"<?= $brushed ? ' data-vp-list' : '' ?>>
     <?php if (!$data['dated']): ?>
@@ -51,9 +78,13 @@ $stamp = function ($row) {
         <?php $span = reset($periods)['label'] . ' – '
             . end($periods)['label']; ?>
         <div class="vp-rf-res-brush">
+            <div class="vp-rf-res-key"><?= $key ?> · <?= h(__(
+                'drag across the bars to filter the table'
+            )) ?></div>
             <div class="vp-timebrush" data-vp-timebrush="seen"
                  data-vp-timebrush-count="rows">
-                <div class="vp-spark vp-spark-flush vp-rf-res-spark"
+                <div class="vp-spark vp-spark-flush vp-rf-res-spark<?=
+                    $dense ? ' is-dense' : '' ?>"
                      role="img" aria-label="<?= h(__(
                          'Resolutions current per month, oldest first.'
                          . ' Drag to pick a period.'
@@ -70,11 +101,15 @@ $stamp = function ($row) {
                               data-vp-bucket-label="<?=
                                   h($period['label']) ?>"
                               data-vp-bucket-count="<?=
-                                  h($period['count']) ?>"></span>
+                                  h($period['count']) ?>"
+                              data-vp-tip="<?= h($tip($period)) ?>"></span>
                     <?php endforeach; ?>
                 </div>
                 <?= $this->element('genericElementsBS5/brush') ?>
             </div>
+            <?= $this->element('Values/Renderers/month_axis', array(
+                'months' => array_column($periods, 'label'),
+            )) ?>
             <div class="vp-rf-sub vp-rf-res-foot"
                  data-vp-facet-summary>
                 <span data-vp-timebrush-caption="seen"
@@ -98,7 +133,9 @@ $stamp = function ($row) {
             'No resolution was current in that period.'
         )) ?></p>
     <?php elseif ($drawn): ?>
-        <div class="vp-rw-months" role="img" aria-label="<?= h(__(
+        <div class="vp-rf-res-key"><?= $key ?></div>
+        <div class="vp-rw-months<?= $dense ? ' is-dense' : '' ?>"
+             role="img" aria-label="<?= h(__(
             'Resolutions current per month, oldest first.'
         )) ?>">
             <?php foreach ($periods as $period): ?>
@@ -107,10 +144,12 @@ $stamp = function ($row) {
                       style="--vp-rw-month-h: <?= h(round(
                           100 * $period['count'] / $peak
                       )) ?>%"
-                      title="<?= h($period['label'] . ' · '
-                          . $period['count']) ?>"></span>
+                      title="<?= h($tip($period)) ?>"></span>
             <?php endforeach; ?>
         </div>
+        <?= $this->element('Values/Renderers/month_axis', array(
+            'months' => array_column($periods, 'label'),
+        )) ?>
         <div class="vp-rf-sub vp-rf-res-foot"><?= h(
             reset($periods)['label'] . ' – ' . end($periods)['label']
         ) ?></div>

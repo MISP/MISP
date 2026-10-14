@@ -1234,6 +1234,7 @@
          */
         strip.addEventListener('pointermove', function (event) {
             if (timeBrushDrag.has(strip)) {
+                lightBar(strip, null);
                 return;
             }
             var bars = timeBrushBars(strip);
@@ -1245,14 +1246,38 @@
                 ((event.clientX - box.left) / box.width) * bars.length
             );
             at = Math.max(0, Math.min(bars.length - 1, at));
-            captionBucket(strip, at, at);
+            lightBar(strip, bars[at]);
+            var caption = timeBrushCaption(strip);
+            if (caption && bars[at].dataset.vpTip) {
+                caption.textContent = bars[at].dataset.vpTip;
+            } else {
+                captionBucket(strip, at, at);
+            }
         });
 
         strip.addEventListener('pointerleave', function () {
+            lightBar(strip, null);
             if (!timeBrushDrag.has(strip)) {
                 captionDefault(strip);
             }
         });
+    }
+
+    /**
+     * Mark the bar the caption is naming, so the two can be matched.
+     *
+     * @param {Element} strip
+     * @param {Element|null} bar
+     */
+    function lightBar(strip, bar) {
+        strip.querySelectorAll('.vp-spark-bar-lit').forEach(function (lit) {
+            if (lit !== bar) {
+                lit.classList.remove('vp-spark-bar-lit');
+            }
+        });
+        if (bar) {
+            bar.classList.add('vp-spark-bar-lit');
+        }
     }
 
     /**

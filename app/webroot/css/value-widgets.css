@@ -379,21 +379,43 @@
  * as text underneath instead.
  * ------------------------------------------------------------------ */
 
+/* Each month has an equal slot and a bar of at most 24px centred in it,
+   so a label at the slot's centre sits under its bar. */
 .vp-rw-months {
     display: flex;
     align-items: flex-end;
-    gap: 1px;
+    justify-content: space-around;
+    gap: 2px;
     height: 44px;
     margin-top: 2px;
+    border-bottom: 1px solid var(--bs-border-color, #dee2e6);
 }
 
 .vp-rw-month {
     flex: 1 1 0;
     min-width: 1px;
+    max-width: 24px;
     min-height: 2px;
     height: var(--vp-rw-month-h, 0%);
-    border-radius: 1px;
+    border-radius: 3px 3px 0 0;
     background: var(--vp-e-accent, #6f5fb5);
+}
+
+.vp-rw-months.is-dense,
+.vp-spark.vp-rf-res-spark.is-dense {
+    gap: 0;
+}
+
+.vp-rw-months.is-dense .vp-rw-month,
+.vp-rf-res-spark.is-dense .vp-spark-bar {
+    border-radius: 0;
+}
+
+/* The two ends of the strip, under the two ends of it. */
+.vp-rw-ends {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
 }
 
 /* A month nothing was current in is drawn, not skipped: a gap in the
@@ -537,11 +559,82 @@
 }
 
 .vp-rf-res-brush .vp-timebrush {
-    margin-bottom: 2px;
+    height: 44px;
+    margin-bottom: 0;
+}
+
+.vp-spark.vp-rf-res-spark {
+    justify-content: space-around;
+    gap: 2px;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.vp-rf-res-spark .vp-spark-bar {
+    max-width: 24px;
+    border-radius: 3px 3px 0 0;
 }
 
 .vp-rf-res-spark .vp-spark-bar:not(.vp-spark-bar-empty) {
     background: var(--vp-e-accent, #6f5fb5);
+}
+
+.vp-rf-res-spark .vp-spark-bar.vp-spark-bar-lit {
+    background: color-mix(in srgb, var(--vp-e-accent, #6f5fb5) 60%,
+        var(--bs-emphasis-color));
+}
+
+/* What a bar counts and how high they go, over the strip. */
+.vp-rf-res-key {
+    margin-bottom: 4px;
+    color: var(--bs-secondary-color);
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
+.vp-rf-res-key b {
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+
+/* Under a month strip (Renderers/month_axis): months, then years, and a
+   tick where a year begins. */
+.vp-rf-axis {
+    position: relative;
+    height: 16px;
+    margin: 3px 0 2px;
+    color: var(--bs-secondary-color);
+    font-size: 0.66rem;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+}
+
+.vp-rf-axis-named {
+    height: 30px;
+}
+
+.vp-rf-axis-m,
+.vp-rf-axis-y {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+.vp-rf-axis-y {
+    color: var(--bs-body-color);
+    font-weight: 600;
+}
+
+.vp-rf-axis-named .vp-rf-axis-y {
+    top: 14px;
+}
+
+.vp-rf-axis-tick {
+    position: absolute;
+    top: -3px;
+    bottom: 0;
+    width: 1px;
+    background: var(--bs-border-color);
 }
 
 .vp-rf-res-foot {
