@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('GalaxyColour', 'Tools');
 App::uses('ExtensionEventColour', 'Tools');
+App::uses('SyncTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -938,10 +939,8 @@ class EventsController extends AppController
     private function __indexRestResponse(array $passedArgs)
     {
         // We do not want to allow instances to pull our data that can't make sense of protected mode events
-        $skipProtected = (
-            !empty($this->request->header('misp-version')) &&
-            version_compare($this->request->header('misp-version'), '2.4.156') < 0
-        );
+        $requesterVersion = SyncTool::requesterMispVersion($this->request);
+        $skipProtected = $requesterVersion !== null && version_compare($requesterVersion, '2.4.156') < 0;
 
         $fieldNames = $this->Event->schema();
         $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);

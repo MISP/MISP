@@ -1664,7 +1664,6 @@ class Event extends AppModel
                     'object_template_version' => array('function' => 'set_filter_object_template_version')
                 ),
                 'Attribute' => array(
-                    'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_type'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
@@ -1706,9 +1705,18 @@ class Event extends AppModel
                     }
                 }
             }
-            if (!empty($params['value_cidr'])) {
-                // It reads the attributes in a subquery of its own, which a
+            if (isset($params['value']) && $params['value'] !== false) {
+                // Each reads the attributes in a subquery of its own, which a
                 // second one around it would run per event
+                $options = array(
+                    'filter' => 'value',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Event'
+                );
+                $conditions = $this->set_filter_value($params, $conditions, $options);
+            }
+            if (!empty($params['value_cidr'])) {
                 $options = array(
                     'filter' => 'value_cidr',
                     'scope' => 'Attribute',
@@ -12050,7 +12058,7 @@ class Event extends AppModel
                     if (empty($analystData['object_type'])) {
                         $analystData['object_type'] = $parentObjectType;
                     }
-                    if (empty($analystData['object_uuid'])) {
+                    if (empty($analystData['object_uuid']) && $analystData['object_type'] === $parentObjectType) {
                         $analystData['object_uuid'] = $parentObjectUUID;
                     }
                     $this->{$type}->captureAnalystData($user, $analystData);
