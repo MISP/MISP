@@ -73,7 +73,7 @@ class EventObjectViewsTool
             $parts[] = (int)$event['id'] . '-' . (int)$event['timestamp']
                 . '-' . $this->overview->scope($user, $event)['key'];
         }
-        $kind = 'object-views-v3:' . md5(implode(',', $parts));
+        $kind = 'object-views-v4:' . md5(implode(',', $parts));
         $views = $this->overview->cached(
             $kind,
             $viewed,
