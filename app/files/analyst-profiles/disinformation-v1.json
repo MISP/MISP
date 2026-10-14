@@ -57,7 +57,7 @@
                 "mitre-ics-groups",
                 "groups",
                 "microsoft-activity-group",
-                "360net",
+                "360net", "360net-threat-actor",
                 "surveillance-vendor",
                 "canada-listed-terrorist-entities",
                 "campaigns",
