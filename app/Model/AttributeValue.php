@@ -30,8 +30,8 @@ class AttributeValue extends AppModel
 
     const DEADLOCK_ATTEMPTS = 5;
 
-    // The hash column holds this many leading bytes of SHA-256
-    const HASH_BYTES = 16;
+    // The hash column holds the whole SHA-256
+    const HASH_BYTES = 32;
 
     const TEXT_OF_ID = ['value1_id' => 'value1', 'value2_id' => 'value2'];
 
@@ -79,11 +79,11 @@ class AttributeValue extends AppModel
 
     /**
      * @param string $value
-     * @return string 16 raw bytes
+     * @return string 32 raw bytes
      */
     public function hashOf($value)
     {
-        return substr(hash('sha256', $value, true), 0, self::HASH_BYTES);
+        return hash('sha256', $value, true);
     }
 
     /**
@@ -507,9 +507,8 @@ class AttributeValue extends AppModel
             if (!preg_match('/^[0-9a-f]{64}$/', $hex)) {
                 return null;
             }
-            $prefix = hex2bin(substr($hex, 0, 2 * self::HASH_BYTES));
             $found = [];
-            foreach ($this->fetchRows($this->selectByHash('= ' . $this->getSqlDialect()->binaryLiteral($prefix))) as $row) {
+            foreach ($this->fetchRows($this->selectByHash('= ' . $this->getSqlDialect()->binaryLiteral(hex2bin($hex)))) as $row) {
                 if (hash('sha256', (string)$row['value']) === $hex) {
                     $found[(int)$row['id']] = (string)$row['value'];
                 }

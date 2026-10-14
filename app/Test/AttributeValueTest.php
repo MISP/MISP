@@ -33,14 +33,14 @@ class AttributeValueTest extends TestCase
 
     private static function hex($value)
     {
-        return bin2hex(substr(hash('sha256', $value, true), 0, 16));
+        return hash('sha256', $value);
     }
 
-    public function testHashOfIsTheFirstSixteenBytesOfSha256()
+    public function testHashOfIsTheWholeSha256()
     {
         $hash = $this->model($this->mysql)->hashOf('a');
-        $this->assertSame(16, strlen($hash));
-        $this->assertSame('ca978112ca1bbdcafac231b39a23dc4d', bin2hex($hash));
+        $this->assertSame(32, strlen($hash));
+        $this->assertSame('ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb', bin2hex($hash));
     }
 
     public function testInternManyInsertsOnlyWhatIsMissingOnMysql()
@@ -1400,7 +1400,7 @@ class AttributeValueTest extends TestCase
     public function testFindAddressedBySha256ChecksTheWholeHash()
     {
         $this->mysql->store('evil.com', 9);
-        // Stored under the hash prefix of another text
+        // Stored under the hash of another text
         $this->mysql->store('other', 10, 'collide.example');
         $model = $this->model($this->mysql);
 

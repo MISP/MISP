@@ -27,7 +27,7 @@ The short version:
 attribute_values (
   id    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   value TEXT    -- utf8mb4, in a case- and accent-insensitive collation
-  hash  VARBINARY(16) UNIQUE,  -- first 16 bytes of SHA-256 over the exact bytes
+  hash  VARBINARY(32) UNIQUE,  -- SHA-256 over the exact bytes
   KEY value (value(128)),
   FULLTEXT KEY value_search (value)
 )

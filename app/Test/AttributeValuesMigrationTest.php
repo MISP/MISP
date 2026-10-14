@@ -117,7 +117,7 @@ class AttributeValuesMigrationTest extends TestCase
             "CREATE TABLE `attribute_values` (\n" .
             "    `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,\n" .
             "    `value` text CHARACTER SET utf8mb4 COLLATE $collation NOT NULL,\n" .
-            "    `hash` varbinary(16) NOT NULL,\n" .
+            "    `hash` varbinary(32) NOT NULL,\n" .
             "    PRIMARY KEY (`id`),\n" .
             "    UNIQUE INDEX `hash` (`hash`)\n" .
             ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=$collation;",

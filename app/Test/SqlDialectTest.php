@@ -230,6 +230,7 @@ class SqlDialectTest extends TestCase
             $this->pgsql->sha256Prefix('a.value1', 16)
         );
         $this->assertSame('UNHEX(LEFT(SHA2(x, 256), 64))', $this->mysql->sha256Prefix('x', 32));
+        $this->assertSame("substring(sha256(convert_to(x, 'UTF8')) from 1 for 32)", $this->pgsql->sha256Prefix('x', 32));
         $this->assertSame("substring(sha256(convert_to(x, 'UTF8')) from 1 for 1)", $this->pgsql->sha256Prefix('x', 1));
     }
 
