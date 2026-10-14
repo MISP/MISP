@@ -6,6 +6,7 @@ App::uses('SystemSetting', 'Model');
 App::uses('EncryptedValue', 'Tools');
 App::uses('GitTool', 'Tools');
 App::uses('ProcessTool', 'Tools');
+App::uses('EventIndexSyncTool', 'Tools');
 
 /**
  * @property-read array $serverSettings
@@ -908,8 +909,7 @@ class Server extends AppModel
      * @param array $pagination Optional ['page' => int, 'limit' => int]. When set,
      *                          a single ordered page is requested instead of the
      *                          whole index (see getEventIdsFromServer()).
-     * @param int|null $resultCount Set to the remote's X-Result-Count, or null
-     *                              when unknown (e.g. served from cache).
+     * @param int|null $resultCount Remote count, including revalidated cache data.
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
@@ -918,7 +918,20 @@ class Server extends AppModel
      */
     public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [], &$resultCount = null)
     {
-        $resultCount = null;
+        return $this->getEventIndexPageFromServer(
+            $serverSync, $ignoreFilterRules, $pagination, $resultCount
+        );
+    }
+
+    /** Fetch an index page with optional fresh legacy count metadata. */
+    protected function getEventIndexPageFromServer(
+        ServerSyncTool $serverSync,
+        $ignoreFilterRules = false,
+        array $pagination = [],
+        &$remoteTotal = null,
+        $fresh = false
+    )
+    {
         if (!$ignoreFilterRules) {
             $filterRules = $this->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
             if (!empty($filterRules['org']) && !$serverSync->isSupported(ServerSyncTool::FEATURE_ORG_RULE)) {
@@ -941,52 +954,26 @@ class Server extends AppModel
         // exactly the same set the non-paginated request would have returned.
         $paginated = !empty($pagination);
         if ($paginated) {
-            $filterRules['page'] = $pagination['page'];
             $filterRules['limit'] = $pagination['limit'];
             $filterRules['sort'] = 'id';
             $filterRules['direction'] = 'asc';
-        }
-
-        // Fetch event index from cache if exists and is not modified on server.
-        // Paginated requests are cached per page so each page can be revalidated
-        // independently by its own ETag.
-        $cacheSuffix = $paginated ? ":page:{$pagination['page']}:{$pagination['limit']}" : '';
-        $etagCacheKey = "misp:event_index_cache:etag:{$serverSync->serverId()}{$cacheSuffix}";
-        $contentCacheKey = "misp:event_index_cache:content:{$serverSync->serverId()}{$cacheSuffix}";
-        $redis = RedisTool::init();
-        $cacheEtag = $redis->get($etagCacheKey);
-        if ($cacheEtag) {
-            $serverSync->debug("Event index loaded from Redis cache with etag $cacheEtag");
-        } else {
-            $cacheEtag = '""';  // Provide empty ETag, so MISP will compute ETag for returned data
-        }
-
-        $response = $serverSync->eventIndex($filterRules, $cacheEtag);
-
-        if ($response->isNotModified() && $cacheEtag !== '""') {
-            $eventIndexFromCache = $redis->get($contentCacheKey);
-            if ($eventIndexFromCache) {
-                $eventIndexFromCache = RedisTool::decompress($eventIndexFromCache);
-                return JsonTool::decode($eventIndexFromCache);
+            if (!empty($pagination['sync_cursor'])) {
+                $filterRules['sync_cursor'] = 1;
+                if ($pagination['cursor'] !== null) {
+                    $filterRules['cursor'] = $pagination['cursor'];
+                }
+            } else {
+                $filterRules['page'] = $pagination['page'];
             }
         }
 
-        $count = $response->getHeader('X-Result-Count');
-        if (is_numeric($count)) {
-            $resultCount = (int)$count;
-        }
-
-        $eventIndex = $response->json();
-
-        // Save to cache for 24 hours if ETag provided. Empty pages are not
-        // cached: a 304 has no X-Result-Count to tell a filtered page from the end.
-        $etag = $response->getHeader('etag');
-        if ($etag && !empty($eventIndex)) {
-            $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
-            $data = RedisTool::compress($response->body);
-            $redis->setex($etagCacheKey, 3600 * 24, $etag);
-            $redis->setex($contentCacheKey, 3600 * 24, $data);
-            unset($data);
+        $record = $this->fetchEventIndexResponse(
+            $serverSync, $filterRules, $fresh, $pagination['cache_after'] ?? null
+        );
+        $remoteTotal = EventIndexSyncTool::resultCount($record['result_count']);
+        $eventIndex = $record['decoded'];
+        if (!empty($pagination['sync_cursor'])) {
+            return $eventIndex;
         }
 
         // correct $eventArray if just one event, probably this response returns old MISP
@@ -995,6 +982,76 @@ class Server extends AppModel
         }
 
         return $eventIndex;
+    }
+
+    /** Revalidate one atomic body/validator record, including empty pages. */
+    protected function fetchEventIndexResponse(
+        ServerSyncTool $serverSync,
+        array $filterRules,
+        $fresh = false,
+        $cacheAfter = null
+    )
+    {
+        $server = $serverSync->server()['Server'];
+        $cacheScope = [
+            'url' => $server['url'],
+            'auth' => hash('sha256', (string)$server['authkey']),
+            'request' => $filterRules,
+        ];
+        if ($cacheAfter !== null && !empty($filterRules['sync_cursor'])) {
+            // Reuse one cache slot per scan position across high-water bounds.
+            // The bound remains in the body/ETag and is always revalidated.
+            unset($cacheScope['request']['cursor']);
+            $cacheScope['after'] = $cacheAfter;
+        }
+        $cacheKey = 'misp:event_index_cache:v2:' . $serverSync->serverId() .
+            ':' . EventIndexSyncTool::requestHash($cacheScope);
+        $redis = RedisTool::init();
+        $cached = false;
+        $data = $fresh ? false : $redis->get($cacheKey);
+        if ($data !== false) {
+            try {
+                $cached = JsonTool::decodeArray(RedisTool::decompress($data));
+                if (!isset($cached['etag'], $cached['body']) ||
+                    !is_string($cached['etag']) || $cached['etag'] === '' ||
+                    !is_string($cached['body']) ||
+                    !array_key_exists('result_count', $cached)) {
+                    $cached = false;
+                } else {
+                    $decoded = JsonTool::decodeArray($cached['body']);
+                }
+            } catch (Exception $e) {
+                $cached = false;
+            }
+        }
+        unset($data);
+        $response = $serverSync->eventIndex(
+            $filterRules, $cached === false ? '""' : $cached['etag']
+        );
+        if ($response->isNotModified()) {
+            if ($cached !== false) {
+                return $cached + ['decoded' => $decoded];
+            }
+            // A cache miss/eviction must never become an empty terminal page.
+            $response = $serverSync->eventIndex($filterRules, '""');
+            if ($response->isNotModified()) {
+                throw new UnexpectedValueException(
+                    'Remote returned 304 without a cached event index.'
+                );
+            }
+        }
+        $record = [
+            'etag' => $response->getHeader('etag'),
+            'body' => $response->body,
+            'result_count' => $response->getHeader('X-Result-Count'),
+        ];
+        // Validate before caching an error or malformed JSON response.
+        $decoded = JsonTool::decodeArray($record['body']);
+        if ($record['etag']) {
+            $redis->setex($cacheKey, 86400,
+                RedisTool::compress(JsonTool::encode($record)));
+        }
+        return $record + ['decoded' => $decoded];
     }
 
     /**
@@ -1124,10 +1181,8 @@ class Server extends AppModel
      */
     private function getEventIdsFromServer(ServerSyncTool $serverSync, $all = false, $ignoreFilterRules = false, $force = false)
     {
-        // The remote index is fetched one page at a time and each page is run
-        // through the exact same filter pipeline as before, so the accumulated set
-        // of UUIDs is identical to the previous whole-index implementation - only
-        // the peak memory changes, from "the entire index at once" to "one page".
+        // Apply the existing local filter pipeline to each remote index page.
+        // Continuation depends on remote scan state, never the surviving count.
         // Keeping the page at/below 10000 also lets removeOlderEvents() use its
         // cheap `Event.uuid IN (...)` branch instead of scanning the whole local
         // events table (#10881).
@@ -1135,6 +1190,9 @@ class Server extends AppModel
         if ($pageSize <= 0) {
             $pageSize = 10000;
         }
+        $pageSize = min($pageSize, EventIndexSyncTool::MAX_PAGE_SIZE);
+        $cursorMode = Configure::read('MISP.event_index_cursor_pagination') &&
+            $serverSync->isSupported(ServerSyncTool::FEATURE_EVENT_INDEX_CURSOR);
 
         if (!$all) {
             if (Configure::read('MISP.enableEventBlocklisting') !== false) {
@@ -1148,33 +1206,84 @@ class Server extends AppModel
         $eventUuids = []; // keyed by uuid for O(1) dedup, insertion order preserved
         $page = 1;
         $previousMaxId = null;
+        $lastPage = null;
+        $cursor = null;
+        $after = 0;
+        $upperBound = null;
         while (true) {
-            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize], $remoteCount);
-            $fetched = count($eventArray);
-            // The remote drops protected events after paging, so a short or even
-            // empty page is not the end. X-Result-Count is counted before that
-            // filter; without it (cached page) only an empty page proves the end.
-            $lastPage = $remoteCount === null ? $fetched === 0 : $page * $pageSize >= $remoteCount;
-            if ($fetched === 0) {
-                if ($lastPage) {
-                    break;
+            $remoteTotal = null;
+            $request = $cursorMode ? [
+                'sync_cursor' => 1, 'cursor' => $cursor, 'limit' => $pageSize,
+                'cache_after' => $after,
+            ] : ['page' => $page, 'limit' => $pageSize];
+            $eventArray = $this->getEventIndexPageFromServer(
+                $serverSync, $ignoreFilterRules, $request, $remoteTotal,
+                !$cursorMode && $page === 1
+            );
+            $completeIndex = false;
+            if ($cursorMode) {
+                $meta = EventIndexSyncTool::validatePage(
+                    $eventArray, $after, $upperBound
+                );
+                $eventArray = $eventArray['events'];
+                $after = $meta['after'];
+                $upperBound = $meta['upper_bound'];
+                $cursor = $meta['next_cursor'];
+                $completeIndex = !$meta['has_more'];
+            } elseif ($page === 1) {
+                if ($remoteTotal === null) {
+                    // Old peers without reliable metadata require the historic
+                    // whole-index request: an empty filtered page proves nothing.
+                    $serverSync->debug('Remote index lacks a result count; ' .
+                        'using the legacy unpaginated index request.');
+                    $eventArray = $this->getEventIndexFromServer(
+                        $serverSync, $ignoreFilterRules
+                    );
+                    $completeIndex = true;
+                } else {
+                    // Pin only this enumeration's fresh count. Later 304s need
+                    // their cached body, never a stale count from a prior pull.
+                    $lastPage = intdiv($remoteTotal, $pageSize) +
+                        ($remoteTotal % $pageSize === 0 ? 0 : 1);
                 }
-                $page++;
-                continue;
             }
+            $fetched = count($eventArray);
             // A remote that does not honour the limit (older instance) returns the
             // whole index in one response. Detecting more rows than we asked for
             // tells us this page already is the complete set: process it and stop,
             // which reproduces the previous non-paginated behaviour exactly.
-            $remoteIgnoredPagination = $fetched > $pageSize;
+            $remoteIgnoredPagination = !$cursorMode && $fetched > $pageSize;
             // Safety net against a remote that honours `limit` but ignores `page`
             // (would otherwise loop forever): the minimal index is sorted by
             // Event.id asc, so the max id must strictly advance between pages.
-            $maxId = (int)max(array_column($eventArray, 'id'));
-            $notAdvancing = ($previousMaxId !== null && $maxId <= $previousMaxId);
-            $previousMaxId = $maxId;
+            if (!$cursorMode && !$completeIndex && $fetched > 0) {
+                $maxId = (int)max(array_column($eventArray, 'id'));
+                if ($previousMaxId !== null && $maxId <= $previousMaxId) {
+                    // Some peers honour limit but ignore page. Recover via the
+                    // legacy whole-index API rather than silently truncate.
+                    $serverSync->debug('Remote index page did not advance; ' .
+                        'using the legacy unpaginated index request.');
+                    $eventArray = $this->getEventIndexFromServer(
+                        $serverSync, $ignoreFilterRules
+                    );
+                    $completeIndex = true;
+                }
+                $previousMaxId = $maxId;
+            } elseif (!$cursorMode && !$completeIndex && $previousMaxId === null &&
+                $lastPage > 1 && $page >= $lastPage) {
+                // A peer ignoring page can repeatedly return a fully filtered
+                // first page. Empty bodies cannot establish ID advancement.
+                // Check the whole index once, only after exhausting the range
+                // without any remote events. Valid empty prefixes keep paging.
+                $serverSync->debug('Remote index pages were all empty; ' .
+                    'checking the legacy unpaginated index request.');
+                $eventArray = $this->getEventIndexFromServer(
+                    $serverSync, $ignoreFilterRules
+                );
+                $completeIndex = true;
+            }
 
-            if (!$all) {
+            if (!$all && !empty($eventArray)) {
                 if (!empty($this->EventBlocklist)) {
                     $this->EventBlocklist->removeBlockedEvents($eventArray);
                 }
@@ -1197,8 +1306,9 @@ class Server extends AppModel
             }
             unset($eventArray);
 
-            if ($remoteIgnoredPagination || $notAdvancing || $lastPage) {
-                break; // last page (or a remote that is not paginating)
+            if ($completeIndex || $remoteIgnoredPagination ||
+                (!$cursorMode && $page >= $lastPage)) {
+                break;
             }
             $page++;
         }
@@ -5926,11 +6036,19 @@ class Server extends AppModel
                 ],
                 'event_index_pull_chunk_size' => [
                     'level' => self::SETTING_RECOMMENDED,
-                    'description' => __('When pulling from a remote server, the list of remote events is fetched and filtered down to the actual pull targets in pages of this many events rather than all at once. This bounds the memory used during the negotiation phase of a pull. Lower it to reduce memory usage on low-spec instances. Raising it reduces the number of requests, but increases the peak memory burden on BOTH this instance and the remote server being pulled from (which has to build a larger page in one shot) - be considerate when pulling from a shared or central hub instance and avoid setting this higher than needed. Defaults to 10000.'),
+                    'description' => __('When pulling from a remote server, the list of remote events is fetched and filtered down to the actual pull targets in pages of this many events rather than all at once. This bounds the memory used during the negotiation phase of a pull. Lower it to reduce memory usage on low-spec instances. Raising it reduces the number of requests, but increases the peak memory burden on BOTH this instance and the remote server being pulled from (which has to build a larger page in one shot) - be considerate when pulling from a shared or central hub instance and avoid setting this higher than needed. Defaults to 10000. Pull requests are capped at 10000.'),
                     'value' => 10000,
                     'test' => 'testForNumeric',
                     'type' => 'numeric',
                     'null' => true
+                ],
+                'event_index_cursor_pagination' => [
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Use cursor pagination for event index pulls when the remote instance advertises support. This avoids deep offsets and repeated total counts. Older peers use the compatible numbered-page or whole-index path. Disabled by default.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false
                 ],
                 'curl_request_timeout' => [
                     'level' => 1,
