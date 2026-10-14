@@ -289,8 +289,8 @@ class AppModel extends Model
         return strlen((string)reset($value)) <= $limit;
     }
 
-    /** @var bool */
-    private $columnLimitRulesAdded = false;
+    /** @var array|null the $validate the column limit rules were added for */
+    private $columnLimitRulesFor = null;
 
     /**
      * Every save validates through here, so this is where each text column
@@ -299,30 +299,27 @@ class AppModel extends Model
      */
     public function validates($options = array())
     {
-        if (!$this->columnLimitRulesAdded) {
-            $this->columnLimitRulesAdded = true;
+        if ($this->columnLimitRulesFor !== $this->validate) {
             $this->addColumnLimitRules();
+            $this->columnLimitRulesFor = $this->validate;
         }
         return parent::validates($options);
     }
 
     private function addColumnLimitRules()
     {
+        $validator = $this->validator();
         foreach (ColumnLimits::of($this) as $field => $limit) {
             $rules = $this->validate[$field] ?? [];
-            if (!is_array($rules) || isset($rules['rule'])) {
-                $rules = $rules === [] ? [] : ['custom' => $rules];
-            }
             if (isset($rules['maxLength']) || isset($rules['maxBytes'])) {
                 continue;
             }
-            $rules['columnLimit'] = [
+            $validator->add($field, 'columnLimit', [
                 'rule' => ['fitsColumn', $limit],
                 'message' => ColumnLimits::message($field, $limit),
                 'allowEmpty' => true,
                 'required' => false,
-            ];
-            $this->validate[$field] = $rules;
+            ]);
         }
     }
 
