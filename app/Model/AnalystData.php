@@ -834,7 +834,6 @@ class AnalystData extends AppModel
             unset($analystData[$type]['id']);
             $analystModel->create();
             $saveSuccess = $analystModel->save($analystData);
-            $saveSuccess = true;
         } else {
             // DPT-4: a regular (non-sync, non-site-admin) caller - the web
             // add/edit afterSave, or analyst data nested in an object/
