@@ -167,6 +167,7 @@ class ValueRendererTool
         $byTemplate = self::byTemplate();
         $grouped = array();
         $loose = array();
+        $cuts = array();
         foreach ($runs as $run) {
             if (!is_array($run)
                 || ($run['state'] ?? null) !== 'ok'
@@ -175,6 +176,11 @@ class ValueRendererTool
             }
             $module = $run['module'] ?? null;
             $ranAt = self::ranAt($run);
+            $cuts[$module] = array(
+                'capped' => !empty($run['capped']),
+                'total' => (int)($run['total'] ?? 0),
+                'shown' => (int)($run['shown'] ?? 0),
+            );
             foreach (self::listOf($run, 'objects') as $object) {
                 $name = $object['name'] ?? null;
                 if ($name === null || !isset($byTemplate[$name])) {
@@ -211,6 +217,7 @@ class ValueRendererTool
                 'full' => $renderer->full,
                 'data' => $renderer->prepare($objects, $attributes),
                 'modules' => self::modulesOf($objects),
+                'sources' => self::sourcesOf($objects, $cuts),
                 'ran_at' => self::newestOf($objects),
                 'objects' => count($objects),
             );
@@ -515,6 +522,46 @@ class ValueRendererTool
             }
         }
         return $out;
+    }
+
+    /**
+     * What each module put into one drawing: its objects by template,
+     * when it was asked, and how much of its answer is drawn.
+     *
+     * @param array $objects
+     * @param array $cuts module => `capped`, `total`, `shown` of its run
+     * @return array
+     */
+    private static function sourcesOf(array $objects, array $cuts)
+    {
+        $out = array();
+        foreach ($objects as $object) {
+            $module = $object['module'] ?? null;
+            if ($module === null) {
+                continue;
+            }
+            if (!isset($out[$module])) {
+                $out[$module] = array(
+                    'module' => $module,
+                    'templates' => array(),
+                    'ran_at' => null,
+                ) + ($cuts[$module] ?? array(
+                    'capped' => false,
+                    'total' => 0,
+                    'shown' => 0,
+                ));
+            }
+            $name = (string)($object['name'] ?? '');
+            $out[$module]['templates'][$name]
+                = ($out[$module]['templates'][$name] ?? 0) + 1;
+            $ranAt = $object['ran_at'] ?? null;
+            if ($ranAt !== null && ($out[$module]['ran_at'] === null
+                || $ranAt > $out[$module]['ran_at'])
+            ) {
+                $out[$module]['ran_at'] = $ranAt;
+            }
+        }
+        return array_values($out);
     }
 
     /**

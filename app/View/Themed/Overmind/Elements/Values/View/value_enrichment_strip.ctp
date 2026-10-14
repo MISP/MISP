@@ -63,14 +63,38 @@ if (empty($strip['slots']) && $pending < 1) {
 $label = function ($shape) {
     return ucfirst(str_replace('-', ' ', $shape));
 };
+
+// A drawn cell with a full drawing is a tile: it opens that drawing under
+// the row (js/tile-drawer.js).
+$positions = array();
+foreach ($strip['slots'] as $slot) {
+    if ($slot['widget'] !== null && $slot['widget']['full'] !== null) {
+        $positions[$slot['shape']] = count($positions);
+    }
+}
+$tileCount = count($positions);
 ?>
 <div class="vp-eb-strip" data-vp-eb-strip
      data-vp-eb-drawn="<?= h(implode(',', $drawn)) ?>">
     <?php foreach ($strip['slots'] as $slot): ?>
-        <?php $widget = $slot['widget']; ?>
+        <?php
+        $widget = $slot['widget'];
+        $at = $positions[$slot['shape']] ?? null;
+        ?>
         <div class="vp-eb-cell<?= $widget === null
              ? ' vp-eb-cell-empty' : '' ?>"
-             data-vp-eb-shape="<?= h($slot['shape']) ?>">
+             data-vp-eb-shape="<?= h($slot['shape']) ?>"
+             <?php if ($at !== null): ?>
+                 role="button" tabindex="0" aria-expanded="false"
+                 aria-controls="vp-eb-drawer"
+                 aria-label="<?= h(sprintf(__('%1$s, from %2$s'),
+                    $label($slot['shape']),
+                    implode(', ', $widget['modules']))) ?>"
+                 data-td-tile
+                 data-td-name="<?= h($label($slot['shape'])) ?>"
+                 data-td-pos="<?= h(sprintf(__('%1$s of %2$s'), $at + 1,
+                    $tileCount)) ?>"
+             <?php endif; ?>>
             <div class="vp-eb-cell-head">
                 <span class="vp-eb-cell-name"><?=
                     h($label($slot['shape'])) ?></span>
@@ -100,6 +124,17 @@ $label = function ($shape) {
                         array('askedAge' => max(0, time()
                             - (int)$widget['ran_at']))
                     ) ?></div>
+                <?php endif; ?>
+                <?php if ($at !== null): ?>
+                    <?= $this->element(
+                        'Values/View/value_enrichment_strip_panel',
+                        array(
+                            'widget' => $widget,
+                            'name' => $label($slot['shape']),
+                            'valueB64' => $valueB64,
+                            'baseurl' => $baseurl,
+                        )
+                    ) ?>
                 <?php endif; ?>
             <?php endif; ?>
         </div>

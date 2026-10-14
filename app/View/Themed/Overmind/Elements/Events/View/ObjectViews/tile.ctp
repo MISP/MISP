@@ -9,7 +9,6 @@
  * @var array $drawing
  * @var array $subject kind (shape|named|own|neighbour|none), text, tag,
  *            ref, mono, title
- * @var int $index position on the shelf
  * @var string $position where the tile sits among its own ("3 of 8 hosts")
  * @var int $eventId the event being viewed
  * @var int[] $eventIds the events the shelf drew from
@@ -56,9 +55,9 @@ $scope = array(
 ?>
 <div class="eov-tile<?= $none ? ' is-none' : '' ?>" role="button"
      tabindex="0" aria-expanded="false" aria-controls="eov-panel"
-     aria-label="<?= h($aria) ?>" data-eov-tile="<?= (int)$index ?>"
-     data-eov-name="<?= h($name) ?>"
-     data-eov-pos="<?= h($position) ?>">
+     aria-label="<?= h($aria) ?>" data-td-tile
+     data-td-name="<?= h($name) ?>"
+     data-td-pos="<?= h($position) ?>">
     <?php if ($each): ?>
         <?php
         $tag = $sharedTag === null ? $subject['tag'] : null;
@@ -125,22 +124,22 @@ $scope = array(
             )) ?>
         <?php endforeach; ?>
     <?php endif; ?>
-    <template data-eov-panel>
-        <div class="eov-panel-head">
-            <div class="eov-panel-titles">
-                <div class="eov-kicker"><b><?= h($each
+    <template data-td-panel>
+        <div class="td-head">
+            <div class="td-titles">
+                <div class="td-kicker"><b><?= h($each
                     ? $label($shape['shape'])
                     : __('Across the event')) ?></b> — <?=
                     h($shape['description']) ?></div>
                 <?php
-                $titleClass = 'eov-ptitle'
+                $titleClass = 'td-title'
                     . ($subject['mono'] ? ' eov-mono' : '')
                     . ($none ? ' is-none' : '');
                 ?>
                 <h3 class="<?= $titleClass ?>" tabindex="-1">
                     <?php if ($subject['kind'] === 'neighbour'
                         || $subject['kind'] === 'own'): ?>
-                        <span class="eov-ptitle-kind"><?= h(
+                        <span class="td-title-kind"><?= h(
                             $subject['kind'] === 'neighbour'
                                 ? sprintf(__('%1$s on %2$s'),
                                     ucfirst($shape['words']['one']),
@@ -157,15 +156,15 @@ $scope = array(
                     <?php endforeach; ?>
                 </h3>
             </div>
-            <div data-eov-stepper></div>
-            <button type="button" class="eov-close" data-eov-close
+            <div data-td-stepper></div>
+            <button type="button" class="td-close" data-td-close
                     aria-label="<?= h(__('Close (Esc)')) ?>"
                     title="<?= h(__('Close (Esc)')) ?>">
                 <i class="fas fa-xmark" aria-hidden="true"></i>
             </button>
         </div>
-        <div class="eov-panel-body">
-            <div class="eov-pdraw">
+        <div class="td-body">
+            <div class="td-draw">
                 <?php
                 $scope['link'] = true;
                 $this->set('vpEventScope', $scope);

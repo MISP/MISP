@@ -14,19 +14,13 @@
        value page */
     --vp-e-accent: var(--enrichment, #6f5fb5);
 
-    --eov-accent: #6f5fb5;
-    --eov-accent-ink: #4f3f99;
-    --eov-accent-soft: color-mix(in srgb, var(--eov-accent) 9%, var(--bs-body-bg));
-    --eov-accent-line: color-mix(in srgb, var(--eov-accent) 55%, var(--bs-border-color));
+    --eov-accent-line: color-mix(in srgb, var(--td-accent) 55%, var(--bs-border-color));
     --eov-tray: color-mix(in srgb, var(--bs-body-color) 3%, var(--bs-body-bg));
     --eov-tile: var(--bs-body-bg);
     --eov-tile-line: var(--bs-border-color);
-    --eov-tile-hover: color-mix(in srgb, var(--eov-accent) 40%, var(--bs-border-color));
-    --eov-quiet: var(--bs-secondary-color);
+    --eov-tile-hover: color-mix(in srgb, var(--td-accent) 40%, var(--bs-border-color));
     --eov-warn: var(--misp-tone-orange-fg, #9a4a0a);
     --eov-warn-bg: color-mix(in srgb, var(--misp-tone-orange-solid, #e8590c) 10%, var(--bs-body-bg));
-    --eov-ring: var(--bs-primary);
-    --eov-head-bg: var(--eov-accent-soft);
     --eov-gap: 8px;
     --eov-module: 128px;
 
@@ -41,9 +35,6 @@
 
 [data-misp-mode="dark"] .eov-shelf {
     --vp-e-accent: #a79dd4;
-    --eov-accent: #a698e8;
-    --eov-accent-ink: #c9c0f5;
-    --eov-accent-soft: color-mix(in srgb, var(--eov-accent) 12%, var(--bs-body-bg));
     --eov-tray: color-mix(in srgb, #000 22%, var(--bs-body-bg));
     --eov-tile: var(--bs-body-bg);
     --eov-warn: var(--misp-tone-orange-fg, #ffb072);
@@ -88,7 +79,7 @@
 }
 
 .eov-sub {
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-size: .78rem;
     line-height: 1.3;
 }
@@ -160,7 +151,7 @@
 }
 
 .eov-gcount {
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-variant-numeric: tabular-nums;
 }
 
@@ -222,14 +213,14 @@
 }
 
 .eov-tile:focus-visible {
-    outline: 2px solid var(--eov-ring);
+    outline: 2px solid var(--td-ring);
     outline-offset: 2px;
 }
 
 .eov-tile[aria-expanded="true"] {
-    border-color: var(--eov-accent);
-    background: var(--eov-accent-soft);
-    box-shadow: 0 0 0 1px var(--eov-accent);
+    border-color: var(--td-accent);
+    background: var(--td-accent-soft);
+    box-shadow: 0 0 0 1px var(--td-accent);
 }
 
 .eov-tl {
@@ -261,7 +252,7 @@
     padding: 0 4px;
     border: 1px solid var(--bs-border-color);
     border-radius: 3px;
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-family: var(--bs-body-font-family);
     font-size: .6rem;
     font-weight: 600;
@@ -276,7 +267,7 @@
 }
 
 .eov-tile.is-none .eov-tl {
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-style: italic;
     font-weight: 500;
 }
@@ -292,7 +283,7 @@
     gap: 2px 8px;
     margin-top: auto;
     padding-top: 2px;
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-size: .66rem;
     line-height: 1.35;
 }
@@ -351,7 +342,7 @@
     border: 1px dashed var(--eov-accent-line);
     border-radius: 8px;
     background: transparent;
-    color: var(--eov-accent-ink);
+    color: var(--td-accent-ink);
     font-size: .78rem;
     font-weight: 700;
     line-height: 1.25;
@@ -361,16 +352,16 @@
 
 .eov-more:hover {
     border-style: solid;
-    background: var(--eov-accent-soft);
+    background: var(--td-accent-soft);
 }
 
 .eov-more:focus-visible {
-    outline: 2px solid var(--eov-ring);
+    outline: 2px solid var(--td-ring);
     outline-offset: 2px;
 }
 
 .eov-more small {
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-size: .68rem;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
@@ -405,13 +396,13 @@
 }
 
 .eov-objbtn:focus-visible {
-    outline: 2px solid var(--eov-ring);
+    outline: 2px solid var(--td-ring);
     outline-offset: 1px;
 }
 
 .eov-objbtn .misp-icon {
     flex-shrink: 0;
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-size: .72rem;
 }
 
@@ -427,245 +418,31 @@
 
 .eov-objbtn-n {
     flex-shrink: 0;
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-variant-numeric: tabular-nums;
 }
 
 .eov-objbtn .fa-arrow-right {
     flex-shrink: 0;
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-size: .62rem;
 }
 
-/* ── the open panel ──────────────────────────────────────────── */
+/* ── in the open panel ───────────────────────────────────────── */
 
-.eov-panel {
-    position: relative;
-    grid-column: 1 / -1;
-    min-width: 0;
-    margin: 2px 0 4px;
-    border: 1px solid var(--eov-accent);
-    border-radius: 10px;
-    background: var(--bs-body-bg);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 10px 24px -14px rgba(0, 0, 0, .3);
-    animation: eov-open .16s ease-out;
-    container-type: inline-size;
-}
-
-/* The notch points back up at the tile that opened, wherever it sits on
-   the line above (design.js sets --eov-notch). */
-.eov-panel::before,
-.eov-panel::after {
-    content: "";
-    position: absolute;
-    left: var(--eov-notch, 48px);
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-color: transparent;
-    border-top-width: 0;
-}
-
-.eov-panel::before {
-    top: -9px;
-    margin-left: -9px;
-    border-width: 0 9px 9px;
-    border-bottom-color: var(--eov-accent);
-}
-
-.eov-panel::after {
-    top: -7px;
-    margin-left: -8px;
-    border-width: 0 8px 8px;
-    border-bottom-color: var(--eov-head-bg);
-}
-
-@keyframes eov-open {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .eov-panel { animation: none; }
-}
-
-.eov-panel-head {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 10px 12px 10px 16px;
-    border-bottom: 1px solid var(--bs-border-color);
-    border-radius: 10px 10px 0 0;
-    background: var(--eov-accent-soft);
-}
-
-.eov-panel-titles {
-    flex: 1 1 auto;
-    min-width: 0;
-}
-
-.eov-kicker {
-    color: var(--eov-quiet);
-    font-size: .72rem;
-    line-height: 1.35;
-}
-
-.eov-kicker b {
-    color: var(--eov-accent-ink);
-    font-size: .68rem;
-    font-weight: 700;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-}
-
-.eov-ptitle {
-    margin: 1px 0 0;
-    color: var(--bs-emphasis-color);
-    font-size: 1rem;
-    font-weight: 700;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
-}
-
-.eov-ptitle:focus {
-    outline: none;
-}
-
-.eov-ptitle:focus-visible {
-    outline: 2px solid var(--eov-ring);
-    outline-offset: 2px;
-    border-radius: 2px;
-}
-
-.eov-ptitle.eov-mono {
+.td-title.eov-mono {
     font-size: .9rem;
 }
 
-.eov-ptitle.is-none {
+.td-title.is-none {
     font-style: italic;
 }
 
-.eov-ptitle .eov-ev {
+.td-title .eov-ev {
     margin-left: 8px;
     font-family: var(--bs-body-font-family);
     font-style: normal;
     vertical-align: 2px;
-}
-
-.eov-ptitle-kind {
-    margin-right: 6px;
-    white-space: nowrap;
-    color: var(--eov-quiet);
-    font-family: var(--bs-body-font-family);
-    font-size: .78rem;
-    font-style: normal;
-    font-weight: 600;
-}
-
-.eov-step {
-    display: inline-flex;
-    flex-shrink: 0;
-    align-items: center;
-    gap: 2px;
-    padding: 2px;
-    border: 1px solid var(--bs-border-color);
-    border-radius: 8px;
-    background: var(--bs-body-bg);
-}
-
-.eov-step-btn,
-.eov-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--eov-quiet);
-    font-size: .74rem;
-    transition: background-color .1s, color .1s;
-}
-
-.eov-step-btn:hover:not(:disabled),
-.eov-close:hover {
-    background: color-mix(in srgb, var(--eov-accent) 12%, transparent);
-    color: var(--bs-emphasis-color);
-}
-
-.eov-step-btn:focus-visible,
-.eov-close:focus-visible {
-    outline: 2px solid var(--eov-ring);
-    outline-offset: -2px;
-}
-
-.eov-step-btn:disabled {
-    opacity: .35;
-}
-
-.eov-step-pos {
-    min-width: 6.5rem;
-    padding: 0 6px;
-    color: var(--bs-body-color);
-    font-size: .74rem;
-    font-variant-numeric: tabular-nums;
-    text-align: center;
-    white-space: nowrap;
-}
-
-.eov-close {
-    flex-shrink: 0;
-    margin-top: 2px;
-    font-size: .9rem;
-}
-
-.eov-panel-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 17rem;
-}
-
-.eov-pdraw {
-    min-width: 0;
-    padding: 12px 16px 6px;
-}
-
-.eov-pdraw .vp-rf {
-    margin-bottom: 8px;
-}
-
-.eov-aside {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    min-width: 0;
-    padding: 12px 14px 14px;
-    border-left: 1px solid var(--bs-border-color);
-    border-radius: 0 0 10px 0;
-    background: color-mix(in srgb, var(--bs-body-color) 2%, var(--bs-body-bg));
-    font-size: .78rem;
-}
-
-.eov-aside h4 {
-    margin: 0 0 5px;
-    color: var(--eov-quiet);
-    font-size: .66rem;
-    font-weight: 700;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-}
-
-.eov-aside p {
-    margin: 0;
-    color: var(--eov-quiet);
-    font-size: .74rem;
-    line-height: 1.45;
-}
-
-.eov-aside p b {
-    color: var(--bs-emphasis-color);
-    font-weight: 600;
 }
 
 .eov-olist {
@@ -687,7 +464,7 @@
 
 .eov-olist .misp-icon {
     flex-shrink: 0;
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-size: .68rem;
 }
 
@@ -709,7 +486,7 @@
 
 .eov-ot {
     flex-shrink: 0;
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-family: var(--bs-font-monospace);
     font-size: .64rem;
 }
@@ -739,11 +516,11 @@
 
 .eov-objs-note {
     margin: -1px 0 2px 2px;
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-size: .68rem;
 }
 
-.eov-aside .eov-more-note {
+.td-aside .eov-more-note {
     margin-top: 5px;
 }
 
@@ -762,26 +539,6 @@ a.eov-src:hover {
 .eov-src + .eov-ev {
     margin-left: 4px;
     vertical-align: 1px;
-}
-
-/* a long table shown in part, with the way to the rest under it */
-.eov-clamp tbody tr:nth-child(n + 13) {
-    display: none;
-}
-
-.eov-rows {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: -4px 0 10px;
-    color: var(--eov-quiet);
-    font-size: .74rem;
-}
-
-.eov-rows .btn-link {
-    padding: 0;
-    font-size: .74rem;
-    text-decoration: none;
 }
 
 /* ── the map ─────────────────────────────────────────────────── */
@@ -858,7 +615,7 @@ a.eov-src:hover {
 
 .eov-lg-meta {
     min-width: 0;
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-size: .7rem;
     line-height: 1.4;
 }
@@ -884,19 +641,19 @@ a.eov-src:hover {
     border: 1px solid var(--bs-border-color);
     border-radius: 6px;
     background: var(--bs-body-bg);
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-size: .8rem;
     cursor: pointer;
 }
 
 .eov-locate:hover:not(:disabled) {
     border-color: var(--eov-accent-line);
-    background: var(--eov-accent-soft);
-    color: var(--eov-accent-ink);
+    background: var(--td-accent-soft);
+    color: var(--td-accent-ink);
 }
 
 .eov-locate:focus-visible {
-    outline: 2px solid var(--eov-ring);
+    outline: 2px solid var(--td-ring);
     outline-offset: 1px;
 }
 
@@ -955,49 +712,12 @@ a.eov-src:hover {
     border-left: 3px solid var(--bs-border-color);
     border-radius: 0 4px 4px 0;
     background: var(--eov-tray);
-    color: var(--eov-quiet);
+    color: var(--td-quiet);
     font-size: .76rem;
 }
 
-.eov-panel-body.is-wide {
-    grid-template-columns: minmax(0, 1fr);
-}
-
-.eov-panel-body.is-wide .eov-aside {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 12px 32px;
-    border-top: 1px solid var(--bs-border-color);
-    border-left: 0;
-    border-radius: 0 0 10px 10px;
-}
-
-.eov-panel-body.is-wide .eov-aside > section {
-    flex: 0 1 auto;
-    min-width: 14rem;
-    max-width: 100%;
-}
-
-.eov-panel-body.is-wide .eov-olist {
+.td-body.is-wide .eov-olist {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
     gap: 3px 18px;
-}
-
-@container (max-width: 760px) {
-    .eov-panel-body {
-        grid-template-columns: minmax(0, 1fr) 15rem;
-    }
-}
-
-@container (max-width: 560px) {
-    .eov-panel-body {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .eov-aside {
-        border-top: 1px solid var(--bs-border-color);
-        border-left: 0;
-        border-radius: 0 0 10px 10px;
-    }
 }

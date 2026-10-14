@@ -81,30 +81,19 @@ ksort($eventIds);
 $eventIds = array_keys($eventIds);
 $objectCount = count($origins);
 
-$strings = array(
-    'previous' => __('Previous: %s'),
-    'next' => __('Next: %s'),
-    'noPrevious' => __('No previous tile'),
-    'noNext' => __('No next tile'),
-    'neighbours' => __('Neighbouring tiles'),
-    'showAll' => __('Show all %s'),
+$strings = $this->element('TileDrawer/strings', array('extra' => array(
     'shown' => __('%1$s of %2$s shown'),
-    'showFewer' => __('Show fewer'),
     'allShown' => __('all %s shown'),
-    'rows' => __('%1$s of %2$s rows'),
-    'allRows' => __('All %s rows'),
     'fitAll' => __('Show everything on the map'),
-);
-
-$index = 0;
+)));
 ?>
 <?= $this->element('Values/Renderers/world_outline') ?>
-<section class="card shadow-sm mb-3 eov-shelf" data-eov-shelf
-         data-eov-strings="<?= h(json_encode($strings)) ?>"
+<section class="card shadow-sm mb-3 eov-shelf td-host" data-eov-shelf
+         data-td-strings="<?= h($strings) ?>"
          aria-labelledby="eov-title">
     <div class="eov-head">
         <div class="misp-icon-tile eov-head-tile"
-             style="--tile:var(--eov-accent);--tile-bg:var(--eov-accent-soft);">
+             style="--tile:var(--td-accent);--tile-bg:var(--td-accent-soft);">
             <i class="fas fa-shapes" aria-hidden="true"></i>
         </div>
         <div class="eov-head-text">
@@ -147,7 +136,6 @@ $index = 0;
                     'shape' => $shape,
                     'drawing' => $shape['drawings'][0],
                     'subject' => $subjectOf($shape, $shape['drawings'][0]),
-                    'index' => $index++,
                     'position' => sprintf(
                         __('%1$s of %2$s across the event'),
                         $s + 1,
@@ -243,8 +231,7 @@ $index = 0;
                         'shape' => $shape,
                         'drawing' => $drawing,
                         'subject' => $subjects[$i],
-                        'index' => $index++,
-                        'position' => $subjects[$i]['kind'] === 'none'
+                            'position' => $subjects[$i]['kind'] === 'none'
                             && $drawn === 1
                             ? sprintf(__('%1$s of %2$s'), 1, 1)
                             : sprintf(

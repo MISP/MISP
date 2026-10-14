@@ -17,10 +17,11 @@ App::uses('ValueLean', 'Tools/ValueIntelligence');
 echo $this->element('genericElements/assetLoader', array(
     'css' => array(
         'value-palette', 'value-widgets', 'misp-brush', 'misp-matrix',
-        'org-tile', 'value-intelligence',
+        'org-tile', 'tile-drawer', 'value-intelligence',
     ),
     'js' => array(
-        'Chart.min', 'misp-brush', 'misp-matrix', 'value-intelligence',
+        'Chart.min', 'misp-brush', 'misp-matrix', 'tile-drawer',
+        'value-intelligence',
     ),
 ));
 

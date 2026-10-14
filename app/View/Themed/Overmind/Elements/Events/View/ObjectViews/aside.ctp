@@ -27,7 +27,7 @@ foreach ($shape['drawings'] as $one) {
     }
 }
 ?>
-<aside class="eov-aside" aria-label="<?= h(__('Where this comes from')) ?>">
+<aside class="td-aside" aria-label="<?= h(__('Where this comes from')) ?>">
     <?php if ($subject['ref'] !== null): ?>
         <?php $ref = $subject['ref']; ?>
         <section>
