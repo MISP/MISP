@@ -221,18 +221,19 @@ class EventContextTool
             'level' => $level,
             'count' => $count,
         ];
-        $category = GalaxyCategory::of($type)['category'] ?? null;
+        $classified = GalaxyCategory::of($type);
         if (isset($attribution[$type])) {
             $rows['attribution'][] = $item;
-        } elseif ($category === null
+        } elseif ($classified === null
             ? strpos($type, 'attack-pattern') !== false
-            : $category === GalaxyCategory::TECHNIQUE
+            : GalaxyCategory::isAttackPattern($type)
         ) {
             $item['technique'] = self::techniqueId($cluster);
             $rows['behaviour'][] = $item;
-        } elseif ($category === null
+        } elseif ($classified === null
             ? strpos($type, 'course-of-action') !== false
-            : $category === GalaxyCategory::DEFENSIVE
+            : $classified['category'] === GalaxyCategory::DEFENSIVE
+                && $classified['sub_category'] === GalaxyCategory::COURSE_OF_ACTION
         ) {
             $item['technique'] = self::techniqueId($cluster);
             $rows['mitigation'][] = $item;

@@ -105,6 +105,9 @@ class GalaxyCategory
      */
     const ATTACK_PATTERN = 'attack-pattern';
 
+    /** The `DEFENSIVE` sub-category of ATT&CK-style mitigations. */
+    const COURSE_OF_ACTION = 'course-of-action';
+
     /**
      * @var array|null category => array('description' => string,
      *     'sub_categories' => array)

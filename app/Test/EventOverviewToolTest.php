@@ -25,6 +25,8 @@ class EventOverviewToolTest extends TestCase
             'threat-actor' => ['named-threat', 'actor'],
             'mitre-attack-pattern' => ['technique', 'attack-pattern'],
             'mitre-course-of-action' => ['defensive', 'course-of-action'],
+            'disarm-techniques' => ['technique', 'technique'],
+            'cyfun-control-catalogue-2023' => ['defensive', 'control'],
         ]);
     }
 
@@ -97,6 +99,28 @@ class EventOverviewToolTest extends TestCase
         $this->assertSame('T1204.002', $rows['behaviour'][0]['technique']);
         $this->assertSame(['tag:event:circl:incident-classification="phishing"'], $this->keys($rows['classification']));
         $this->assertSame(['cluster:event:Finance'], $this->keys($rows['clusters']));
+    }
+
+    public function testOnlyAttackPatternsAndCoursesOfActionGetTheirOwnRows(): void
+    {
+        $clusters = [
+            $this->cluster(1, 'Malicious File - T1204.002', 'mitre-attack-pattern'),
+            $this->cluster(2, 'Create Clickbait', 'disarm-techniques'),
+            $this->cluster(3, 'User Training - M1017', 'mitre-course-of-action'),
+            $this->cluster(4, 'ID.AM-1', 'cyfun-control-catalogue-2023'),
+            $this->cluster(5, 'Legacy - T1566', 'stix-2.1-attack-pattern'),
+        ];
+        $rows = EventContextTool::rows([], $clusters, null, [], [], $this->profile());
+
+        $this->assertSame(
+            ['cluster:event:Malicious File - T1204.002', 'cluster:event:Legacy - T1566'],
+            $this->keys($rows['behaviour'])
+        );
+        $this->assertSame(['cluster:event:User Training - M1017'], $this->keys($rows['mitigation']));
+        $this->assertSame(
+            ['cluster:event:Create Clickbait', 'cluster:event:ID.AM-1'],
+            $this->keys($rows['clusters'])
+        );
     }
 
     public function testIndicatorOnlyLabelsJoinTheirRowAfterEventOnes(): void
