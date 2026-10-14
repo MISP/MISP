@@ -11,6 +11,7 @@ require_once __DIR__ . '/../Lib/Tools/ValueIntelligence/ValueLabelPriority.php';
 require_once __DIR__
     . '/../Lib/Tools/ValueIntelligence/ValueIntelligenceBuckets.php';
 require_once __DIR__ . '/../Lib/Tools/ValueIntelligence/ValueStatsTool.php';
+require_once __DIR__ . '/../Lib/Tools/GalaxyCategory.php';
 require_once __DIR__ . '/../Lib/Tools/EventOverview/EventContextTool.php';
 require_once __DIR__ . '/../Lib/Tools/EventOverview/EventOverviewTool.php';
 
@@ -18,6 +19,20 @@ use PHPUnit\Framework\TestCase;
 
 class EventOverviewToolTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        GalaxyCategory::prime([
+            'threat-actor' => ['named-threat', 'actor'],
+            'mitre-attack-pattern' => ['technique', 'attack-pattern'],
+            'mitre-course-of-action' => ['defensive', 'course-of-action'],
+        ]);
+    }
+
+    protected function tearDown(): void
+    {
+        GalaxyCategory::forget();
+    }
+
     private function eventTag($id, $name, array $extra = [])
     {
         return ['id' => 1000 + $id, 'local' => 0, 'Tag' => $extra + [

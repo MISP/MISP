@@ -2,7 +2,7 @@
     "uuid": "6e2679bc-ebb0-417f-90d8-16cb1d0144ba",
     "name": "default-v1",
     "description": "The Analyst Profile MISP ships with, and the one every value page is scored by until somebody enables another. Take a copy rather than editing it - the profile nearest the reader wins.",
-    "version": 21,
+    "version": 22,
     "parameters": {
         "format": 1,
         "signals": [
@@ -277,7 +277,7 @@
                 "mitre-mobile-attack-intrusion-set",
                 "mitre-pre-attack-intrusion-set", "mitre-ics-groups",
                 "groups", "microsoft-activity-group",
-                "360net-threat-actor", "surveillance-vendor",
+                "360net", "surveillance-vendor",
                 "canada-listed-terrorist-entities", "campaigns",
                 "mitre-campaign",
                 "malpedia", "ransomware", "backdoor", "banker", "stealer",

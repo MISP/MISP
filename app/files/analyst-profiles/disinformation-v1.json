@@ -2,7 +2,7 @@
     "uuid": "578259b3-1511-4ed9-ab0c-cd82cb29845f",
     "name": "Disinformation & Influence",
     "description": "For a researcher tracking narratives and campaigns rather than infrastructure, whose output is published. It keeps the shipped default's numbers and changes what the page shows first, with the longest shelf life of the five.",
-    "version": 9,
+    "version": 10,
     "extends": "default-v1",
     "parameters": {
         "relevance": {
@@ -57,7 +57,7 @@
                 "mitre-ics-groups",
                 "groups",
                 "microsoft-activity-group",
-                "360net-threat-actor",
+                "360net",
                 "surveillance-vendor",
                 "canada-listed-terrorist-entities",
                 "campaigns",

@@ -1,5 +1,6 @@
 <?php
 App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
+App::uses('GalaxyCategory', 'Tools');
 
 /**
  * Sorts an event's labels into the rows the overview draws — markings,
@@ -7,21 +8,11 @@ App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
  * reader's analyst profile asks for. Labels found only on the event's
  * indicators join their row marked as such, with how many carry them.
  *
- * Pure: the caller fetches, applies the ACL and passes everything in.
+ * The caller fetches, applies the ACL and passes everything in; only
+ * galaxy categories are read here, through GalaxyCategory.
  */
 class EventContextTool
 {
-    /** Who or what is behind it, when the profile names no attribution list. */
-    const DEFAULT_ATTRIBUTION = array(
-        'threat-actor', 'mitre-intrusion-set', 'mitre-enterprise-attack-intrusion-set',
-        'mitre-mobile-attack-intrusion-set', 'mitre-pre-attack-intrusion-set', 'mitre-ics-groups',
-        'groups', 'microsoft-activity-group', '360net-threat-actor', 'campaigns', 'mitre-campaign',
-        'malpedia', 'ransomware', 'backdoor', 'banker', 'stealer', 'wiper', 'rat', 'botnet',
-        'mitre-malware', 'mitre-enterprise-attack-malware', 'mitre-mobile-attack-malware',
-        'mitre-ics-software', 'tool', 'mitre-tool', 'mitre-enterprise-attack-tool',
-        'mitre-mobile-attack-tool', 'exploit-kit', 'android', 'stalkerware', 'cryptominers',
-    );
-
     /**
      * @param array $eventTags EventTag rows, each carrying Tag
      * @param array $eventClusters GalaxyCluster rows on the event, each carrying Galaxy
@@ -43,7 +34,9 @@ class EventContextTool
     ) {
         $plan = ValueLabelPriority::planFor($profile);
         $markingNamespaces = ValueLabelPriority::markings($profile);
-        $attribution = array_flip(ValueLabelPriority::attribution($profile) ?: self::DEFAULT_ATTRIBUTION);
+        $attribution = array_flip(
+            ValueLabelPriority::attribution($profile) ?: GalaxyCategory::typesIn(GalaxyCategory::NAMED_THREAT)
+        );
         $rollup = is_array($rollup) ? $rollup : [];
 
         $rows = [
@@ -228,12 +221,19 @@ class EventContextTool
             'level' => $level,
             'count' => $count,
         ];
+        $category = GalaxyCategory::of($type)['category'] ?? null;
         if (isset($attribution[$type])) {
             $rows['attribution'][] = $item;
-        } elseif (strpos($type, 'attack-pattern') !== false) {
+        } elseif ($category === null
+            ? strpos($type, 'attack-pattern') !== false
+            : $category === GalaxyCategory::TECHNIQUE
+        ) {
             $item['technique'] = self::techniqueId($cluster);
             $rows['behaviour'][] = $item;
-        } elseif (strpos($type, 'course-of-action') !== false) {
+        } elseif ($category === null
+            ? strpos($type, 'course-of-action') !== false
+            : $category === GalaxyCategory::DEFENSIVE
+        ) {
             $item['technique'] = self::techniqueId($cluster);
             $rows['mitigation'][] = $item;
         } else {

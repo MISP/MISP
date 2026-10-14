@@ -2,7 +2,7 @@
     "uuid": "201b6b4a-b8cd-4ca1-9fe2-827a424665ec",
     "name": "Fraud & Abuse",
     "description": "For an analyst who blocks quickly and pays visibly for blocking the wrong thing. It keeps the shipped default's numbers and changes what the page shows first, with the shortest shelf life of the five.",
-    "version": 9,
+    "version": 10,
     "extends": "default-v1",
     "parameters": {
         "relevance": {
@@ -54,7 +54,7 @@
                 "mitre-ics-groups",
                 "groups",
                 "microsoft-activity-group",
-                "360net-threat-actor",
+                "360net",
                 "surveillance-vendor",
                 "canada-listed-terrorist-entities",
                 "campaigns",
