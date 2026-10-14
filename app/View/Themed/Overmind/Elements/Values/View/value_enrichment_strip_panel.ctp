@@ -57,7 +57,8 @@ $close = __('Close (Esc)');
                             . '?module=' . rawurlencode($module)
                             . '#tab-enrichment';
                         $total = number_format($source['total']);
-                        $kept = number_format($source['shown']);
+                        $drawn = number_format($source['shown']);
+                        $kept = number_format($source['kept']);
                         ?>
                         <li>
                             <a class="vp-eb-src font-monospace"
@@ -73,13 +74,15 @@ $close = __('Close (Esc)');
                                 <span class="vp-eb-src-cut"
                                       title="<?= h(sprintf(__(
                                         'The module returned %1$s results'
-                                        . ' and %2$s were kept: the drawing'
-                                        . ' shows what was kept.'
-                                      ), $total, $kept)) ?>"><?= h(sprintf(
-                                    __('%1$s of %2$s kept'),
-                                    $kept,
-                                    $total
-                                )) ?></span>
+                                        . ' and this draws the first %2$s.'
+                                        . ' Its pane on the Enrichment tab'
+                                        . ' can show %3$s of them.'
+                                      ), $total, $drawn, $kept)) ?>"><?=
+                                    h(sprintf(
+                                        __('%1$s of %2$s drawn'),
+                                        $drawn,
+                                        $total
+                                    )) ?></span>
                             <?php endif; ?>
                         </li>
                     <?php endforeach; ?>

@@ -8975,6 +8975,25 @@ th.vp-rel-num {
     color: var(--bs-warning-text-emphasis);
 }
 
+.vp-e-known-note {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--bs-secondary-color);
+    font-size: 0.76rem;
+}
+
+.vp-e-showall {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.55;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
 .vp-e-num {
     font-variant-numeric: tabular-nums;
 }

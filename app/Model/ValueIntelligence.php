@@ -14155,6 +14155,14 @@ class ValueIntelligence extends AppModel
     const ENRICHMENT_ELEMENT_CAP = 200;
 
     /**
+     * How many elements of one answer are kept, for the Enrichment tab's
+     * *Show all*. Everything else reads the first `ENRICHMENT_ELEMENT_CAP`
+     * of them (`enrichmentView`). Measured on passive-dns objects: each
+     * renders ~9.5 KB and ~83 DOM nodes, so 2,000 is ~19 MB of pane.
+     */
+    const ENRICHMENT_KEEP_CAP = 2000;
+
+    /**
      * The Enrichment tab: which modules this value could be sent to,
      * and nothing that has been sent.
      *
@@ -14274,7 +14282,8 @@ class ValueIntelligence extends AppModel
                 $value,
                 isset($options['module']) ? $options['module'] : null,
                 isset($options['type']) ? $options['type'] : null,
-                isset($options['mode']) ? $options['mode'] : null
+                isset($options['mode']) ? $options['mode'] : null,
+                !empty($options['all'])
             ),
         );
     }
@@ -14971,6 +14980,7 @@ class ValueIntelligence extends AppModel
                 ? null
                 : ValueEnrichmentRun::unpack($held);
             if ($shaped !== null) {
+                $shaped = $this->enrichmentView($shaped);
                 /*
                  * `pack()` drops the two fields that are about *now*
                  * rather than about then, so the stamp is put back
@@ -15354,7 +15364,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private function enrichmentRun(array $user, $value, $name, $type,
-        $mode = null
+        $mode = null, $all = false
     ) {
         /*
          * Two callers, and the difference between them is the whole
@@ -15429,6 +15439,7 @@ class ValueIntelligence extends AppModel
             'objects' => array(),
             'elements' => array(),
             'total' => 0,
+            'kept' => 0,
             'shown' => 0,
             'capped' => false,
             'cap' => self::ENRICHMENT_ELEMENT_CAP,
@@ -15516,7 +15527,7 @@ class ValueIntelligence extends AppModel
                 )
             ) {
                 return $this->enrichmentFromStore($held, $user, $value,
-                    $run);
+                    $run, $all);
             }
             if ($typed) {
                 $run['state'] = 'auto_typed';
@@ -15548,7 +15559,8 @@ class ValueIntelligence extends AppModel
                 $run['state'] = 'expired';
                 return $run;
             }
-            return $this->enrichmentFromStore($held, $user, $value, $run);
+            return $this->enrichmentFromStore($held, $user, $value, $run,
+                $all);
         }
 
 
@@ -15649,7 +15661,11 @@ class ValueIntelligence extends AppModel
         );
         $store->record($user, $value, $shaped);
 
-        return $this->enrichmentKnown($shaped, $user, $value);
+        return $this->enrichmentKnown(
+            $this->enrichmentView($shaped, $all),
+            $user,
+            $value
+        );
     }
 
     /**
@@ -15672,7 +15688,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private function enrichmentFromStore(array $held, array $user, $value,
-        array $run
+        array $run, $all = false
     ) {
         $stored = ValueEnrichmentRun::unpack($held);
         $age = max(0, time() - (int)$held['last_run']);
@@ -15685,7 +15701,29 @@ class ValueIntelligence extends AppModel
         $stored['timeout'] = $run['timeout'];
         $stored['from_store'] = true;
         $stored['age'] = $age;
-        return $this->enrichmentKnown($stored, $user, $value);
+        return $this->enrichmentKnown(
+            $this->enrichmentView($stored, $all),
+            $user,
+            $value
+        );
+    }
+
+    /**
+     * An answer as one surface reads it: its first
+     * `ENRICHMENT_ELEMENT_CAP` elements, or all of them for the
+     * Enrichment tab's *Show all*.
+     *
+     * @param array $run A shaped or unpacked run
+     * @param bool $all
+     * @return array
+     */
+    private function enrichmentView(array $run, $all = false)
+    {
+        return ValueEnrichmentTool::view(
+            $run,
+            $all,
+            self::ENRICHMENT_ELEMENT_CAP
+        );
     }
 
     /**
@@ -15837,7 +15875,7 @@ class ValueIntelligence extends AppModel
 
         $results = $result['results'];
         $run['state'] = 'ok';
-        $budget = self::ENRICHMENT_ELEMENT_CAP;
+        $budget = self::ENRICHMENT_KEEP_CAP;
 
         if (isset($results['Attribute']) || isset($results['Object'])) {
             $attributes = isset($results['Attribute'])
@@ -15888,9 +15926,10 @@ class ValueIntelligence extends AppModel
             }
         }
 
-        $run['shown'] = count($run['attributes'])
+        $run['kept'] = count($run['attributes'])
             + count($run['objects'])
             + count($run['elements']);
+        $run['shown'] = min($run['kept'], self::ENRICHMENT_ELEMENT_CAP);
         $run['capped'] = $run['total'] > $run['shown'];
         if ($run['total'] === 0) {
             $run['state'] = 'silent';
@@ -16001,61 +16040,69 @@ class ValueIntelligence extends AppModel
 
     private function enrichmentKnown(array $run, array $user, $subject)
     {
-        $wanted = array();
-        foreach ($run['attributes'] as $attribute) {
-            if ($attribute['value'] !== null
-                && $attribute['correlates']
-            ) {
-                $wanted[] = (string)$attribute['value'];
-            }
+        // Each element's values worth asking about, in the order shown.
+        $asks = array();
+        foreach ($run['attributes'] as $i => $attribute) {
+            $asks[] = array('attributes', $i,
+                $attribute['value'] !== null && $attribute['correlates']
+                    ? array((string)$attribute['value']) : array());
         }
-        foreach ($run['elements'] as $element) {
-            if ($this->enrichmentElementCorrelates($element)) {
-                $wanted[] = $element['value'];
-            }
-        }
-        foreach ($run['objects'] as $object) {
+        foreach ($run['objects'] as $i => $object) {
+            $values = array();
             foreach ($object['attributes'] as $attribute) {
                 if ($attribute['value'] !== null
                     && $attribute['correlates']
                 ) {
-                    $wanted[] = (string)$attribute['value'];
+                    $values[] = (string)$attribute['value'];
                 }
             }
+            $asks[] = array('objects', $i, $values);
         }
-        $wanted = array_values(array_unique(array_filter(
-            $wanted,
-            function ($one) use ($subject) {
-                return $one !== '' && $one !== (string)$subject;
-            }
-        )));
-        if (empty($wanted)) {
-            return $run;
+        foreach ($run['elements'] as $i => $element) {
+            $asks[] = array('elements', $i,
+                $this->enrichmentElementCorrelates($element)
+                    ? array((string)$element['value']) : array());
         }
 
-        $prevalence = $this->model('Value')
-            ->prevalenceFor($user, $wanted);
-        $counts = $prevalence['counts'];
-        $capped = $prevalence['capped'];
+        $budget = ValueEnrichmentTool::knownBudget(
+            array_column($asks, 2),
+            $subject,
+            Value::PREVALENCE_PROBE_CAP
+        );
+        $run['known_checked'] = $budget['checked'];
+        $counts = array();
+        $capped = array();
+        if (!empty($budget['values'])) {
+            $prevalence = $this->model('Value')
+                ->prevalenceFor($user, $budget['values']);
+            $counts = $prevalence['counts'];
+            $capped = $prevalence['capped'];
+        }
         $known = function ($value) use ($counts, $capped) {
             $value = (string)$value;
             return isset($counts[$value]) || isset($capped[$value]);
         };
 
-        foreach ($run['attributes'] as $i => $attribute) {
-            $run['attributes'][$i]['known'] = $attribute['correlates']
-                && $known($attribute['value']);
-        }
-        foreach ($run['elements'] as $i => $element) {
-            $run['elements'][$i]['known'] =
-                $this->enrichmentElementCorrelates($element)
-                && $known($element['value']);
-        }
-        foreach ($run['objects'] as $i => $object) {
-            foreach ($object['attributes'] as $j => $attribute) {
-                $run['objects'][$i]['attributes'][$j]['known'] =
-                    $attribute['correlates']
+        foreach ($asks as $n => $ask) {
+            list($list, $i) = $ask;
+            $asked = $n < $budget['checked'];
+            if ($list === 'objects') {
+                $rows = $run['objects'][$i]['attributes'];
+                foreach ($rows as $j => $attribute) {
+                    $run['objects'][$i]['attributes'][$j]['known'] = $asked
+                        && $attribute['correlates']
+                        && $known($attribute['value']);
+                }
+            } elseif ($list === 'attributes') {
+                $attribute = $run['attributes'][$i];
+                $run['attributes'][$i]['known'] = $asked
+                    && $attribute['correlates']
                     && $known($attribute['value']);
+            } else {
+                $element = $run['elements'][$i];
+                $run['elements'][$i]['known'] = $asked
+                    && $this->enrichmentElementCorrelates($element)
+                    && $known($element['value']);
             }
         }
         return $run;
@@ -16693,6 +16740,7 @@ class ValueIntelligence extends AppModel
             if ($shaped === null) {
                 continue;
             }
+            $shaped = $this->enrichmentView($shaped);
             $shaped['ran_at'] = (int)$row['last_run'];
             $runs[] = $shaped;
             $factors[$row['module']] = ValueTrustTool::moduleFactor(

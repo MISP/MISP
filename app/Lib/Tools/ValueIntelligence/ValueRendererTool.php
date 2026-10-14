@@ -180,6 +180,7 @@ class ValueRendererTool
                 'capped' => !empty($run['capped']),
                 'total' => (int)($run['total'] ?? 0),
                 'shown' => (int)($run['shown'] ?? 0),
+                'kept' => (int)($run['kept'] ?? ($run['shown'] ?? 0)),
             );
             foreach (self::listOf($run, 'objects') as $object) {
                 $name = $object['name'] ?? null;
@@ -529,7 +530,8 @@ class ValueRendererTool
      * when it was asked, and how much of its answer is drawn.
      *
      * @param array $objects
-     * @param array $cuts module => `capped`, `total`, `shown` of its run
+     * @param array $cuts module => `capped`, `total`, `shown`, `kept` of
+     *                    its run
      * @return array
      */
     private static function sourcesOf(array $objects, array $cuts)
@@ -549,6 +551,7 @@ class ValueRendererTool
                     'capped' => false,
                     'total' => 0,
                     'shown' => 0,
+                    'kept' => 0,
                 ));
             }
             $name = (string)($object['name'] ?? '');

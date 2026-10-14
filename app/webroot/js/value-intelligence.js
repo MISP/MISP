@@ -4515,7 +4515,7 @@
      * @param {string} [mode] `auto` to accept a stored answer
      * @return {Promise} Resolves when the pane holds the answer
      */
-    function enrichAsk(panel, name, type, mode) {
+    function enrichAsk(panel, name, type, mode, all) {
         var slot = panel.querySelector(
             '[data-vp-e-pane="' + cssEscape(name) + '"] [data-vp-e-slot]'
         );
@@ -4530,6 +4530,9 @@
         body.set('data[type]', type || '');
         if (mode) {
             body.set('data[mode]', mode);
+        }
+        if (all) {
+            body.set('data[all]', '1');
         }
 
         return fetch(panel.dataset.vpEUrl, {
@@ -4550,6 +4553,7 @@
             .then(function (markup) {
                 slot.innerHTML = markup;
                 initTimeBrushes(slot);
+                refreshAllLists(slot);
                 var result = slot.querySelector('[data-vp-e-result]');
                 setEnrichState(
                     panel,
@@ -4619,10 +4623,11 @@
              * *Show what came back* is not running anything unless the
              * kept answer has gone stale, so it must not claim to be.
              */
-            label.textContent = mode === 'auto' ? 'Fetching…' : 'Running…';
+            label.textContent = button.dataset.vpEAll === '1' ? 'Loading…'
+                : mode === 'auto' ? 'Fetching…' : 'Running…';
         }
         enrichAsk(panel, button.dataset.vpERun, button.dataset.vpEType,
-            mode)
+            mode, button.dataset.vpEAll === '1')
             .then(function (ok) {
                 // A filled pane replaced this button along with the
                 // brief around it; only a failure has one to restore.
@@ -4735,6 +4740,9 @@
             all.indeterminate = picked > 0 && picked < boxes.length;
         }
     }
+
+    // Rows of one module the merged pane copies, as many as a pane opens on.
+    var ENRICH_MERGED_ROWS = 200;
 
     /**
      * @param {Element} root
@@ -4932,10 +4940,23 @@
                         }
                     });
             }
-            items.forEach(function (item) {
+            // A pane showing everything kept is not copied whole: the
+            // merge would hold its thousands of rows a second time.
+            var merged = Array.prototype.slice.call(items, 0, ENRICH_MERGED_ROWS);
+            merged.forEach(function (item) {
                 elements++;
                 body.appendChild(item.cloneNode(true));
             });
+            if (items.length > merged.length) {
+                var rest = document.createElement('div');
+                rest.className = 'vp-e-cold-prose vp-e-allnote';
+                rest.textContent = (panel.dataset.vpEAMore
+                    || '%s more in this module\'s own pane.').replace(
+                    '%s',
+                    (items.length - merged.length).toLocaleString('en-US')
+                );
+                body.appendChild(rest);
+            }
         });
 
         var sub = panel.querySelector('[data-vp-e-allsub]');

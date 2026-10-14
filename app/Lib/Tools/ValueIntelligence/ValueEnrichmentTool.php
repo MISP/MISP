@@ -1492,4 +1492,73 @@ class ValueEnrichmentTool
         }
         return $n;
     }
+
+    /**
+     * An answer as one surface reads it: its first `$cap` elements in
+     * the order they were kept (attributes, objects, elements), or every
+     * kept element when `$all`.
+     *
+     * @param array $run A shaped or stored run
+     * @param bool $all
+     * @param int $cap
+     * @return array The run, with `kept`, `shown` and `capped` restated
+     */
+    public static function view(array $run, $all, $cap)
+    {
+        $lists = array('attributes', 'objects', 'elements');
+        $kept = 0;
+        foreach ($lists as $list) {
+            $run[$list] = isset($run[$list]) ? $run[$list] : array();
+            $kept += count($run[$list]);
+        }
+        $run['kept'] = $kept;
+        if (!$all) {
+            $budget = $cap;
+            foreach ($lists as $list) {
+                $run[$list] = array_slice($run[$list], 0, $budget);
+                $budget -= count($run[$list]);
+            }
+        }
+        $run['shown'] = $all ? $kept : min($kept, $cap);
+        $run['capped'] = (int)($run['total'] ?? 0) > $run['shown'];
+        return $run;
+    }
+
+    /**
+     * Which values to ask *already in MISP?* about: whole elements, in
+     * the order shown, while their distinct values fit in one probe.
+     * Past the probe's cap a value would go unprobed and read as not in
+     * MISP, so the elements after the last one that fits are not asked
+     * about at all.
+     *
+     * @param array $asks One list of value strings per element, in order
+     * @param string $subject The value the page is about, never asked
+     * @param int $cap Distinct values one probe takes
+     * @return array `values` to probe, `checked` elements covered
+     */
+    public static function knownBudget(array $asks, $subject, $cap)
+    {
+        $wanted = array();
+        $checked = 0;
+        foreach ($asks as $values) {
+            $add = array();
+            foreach ($values as $value) {
+                $value = (string)$value;
+                if ($value !== '' && $value !== (string)$subject
+                    && !isset($wanted[$value])
+                ) {
+                    $add[$value] = true;
+                }
+            }
+            if (count($wanted) + count($add) > $cap) {
+                break;
+            }
+            $wanted += $add;
+            $checked++;
+        }
+        return array(
+            'values' => array_map('strval', array_keys($wanted)),
+            'checked' => $checked,
+        );
+    }
 }
