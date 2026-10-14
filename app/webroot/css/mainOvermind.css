@@ -1800,8 +1800,6 @@ tr.evt-extension-row td:first-child {
    Categories & Types
    ═══════════════════════════════════════════════════════════ */
 
-.ct-page .ct-toolbar { position: sticky; top: 56px; z-index: 6; }
-
 .ct-page .ct-chip {
     display: inline-flex; align-items: center; gap: .3rem;
     padding: .1rem .55rem; border-radius: 999px; line-height: 1.5;
@@ -1825,9 +1823,13 @@ tr.evt-extension-row td:first-child {
 }
 .ct-page .ct-cat-count { color: #fff; background: hsl(var(--h) 55% 45%); }
 
-.ct-page .ct-type-scroll { max-height: 70vh; }
+/* clip, not hidden: the header stays sticky against the page, under the navbar */
+.ct-page .ct-type-wrap { overflow: clip; }
+@media (max-width: 767.98px) {
+    .ct-page .ct-type-wrap { overflow-x: auto; }
+}
 .ct-page .ct-type-table { border-collapse: separate; border-spacing: 0; }
-.ct-page .ct-type-table thead th { position: sticky; top: 0; z-index: 3; }
+.ct-page .ct-type-table thead th { position: sticky; top: 56px; z-index: 3; }
 
 .ct-page .ct-matrix-scroll { max-height: 85vh; }
 .ct-page .ct-matrix {
@@ -1844,14 +1846,14 @@ tr.evt-extension-row td:first-child {
     border-right: 1px solid var(--bs-border-color);
 }
 .ct-page .ct-matrix tbody th.ct-row-head {
-    position: sticky; left: 0; z-index: 2; cursor: pointer;
+    position: sticky; left: 0; z-index: 2;
     background: var(--bs-body-bg); border-right: 1px solid var(--bs-border-color);
 }
 .ct-page .ct-matrix tbody tr:hover th.ct-row-head,
 .ct-page .ct-matrix tbody tr:hover td { background: var(--bs-secondary-bg); }
 .ct-page .ct-vhead {
     writing-mode: vertical-rl; transform: rotate(180deg);
-    cursor: pointer; color: hsl(var(--h) 55% 40%);
+    color: hsl(var(--h) 55% 40%);
 }
 [data-bs-theme="dark"] .ct-page .ct-vhead { color: hsl(var(--h) 70% 72%); }
 .ct-page .ct-dot {
@@ -1860,7 +1862,9 @@ tr.evt-extension-row td:first-child {
 }
 [data-bs-theme="dark"] .ct-page .ct-dot { background: hsl(var(--h) 68% 60%); }
 
-.ct-page .ct-flash { animation: ctFlash 1.6s ease; }
+/* table cells paint their own background over the row's */
+.ct-page .ct-flash,
+.ct-page tr.ct-flash > * { animation: ctFlash 1.6s ease; }
 @keyframes ctFlash {
     0%, 20% { background: rgba(var(--bs-warning-rgb), .35); }
     100%    { background: transparent; }
