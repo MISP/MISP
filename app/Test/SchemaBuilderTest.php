@@ -476,16 +476,17 @@ class SchemaBuilderTest extends TestCase
 
     /**
      * Never left out: a column change, which would need the full definition
-     * compared; tables, which a migration guards itself; anything on a table
-     * that is not there; and anything after hand-written SQL.
+     * compared; anything on a table the migration creates, which is written
+     * against the declaration; anything on a table that is not there; and
+     * anything after hand-written SQL.
      */
     public function testWhatCannotBeKnownIsKept()
     {
         $schema = $this->mysql();
         $null = array('null' => true, 'default' => null);
         $schema->table('t')->changeColumn('a', 'biginteger', $null);
-        $schema->createTable('t', array('a' => 'integer'));
-        $schema->table('t')->addColumn('a', 'integer', $null);
+        $schema->createTable('n', array('a' => 'integer'));
+        $schema->table('n')->addIndex('a');
         $schema->table('missing')->dropColumn('a');
         $schema->rawSql(array('mysql' => 'SELECT 1;', 'pgsql' => 'SELECT 1;'));
         $schema->table('u')->addColumn('a', 'integer', $null);
@@ -497,6 +498,106 @@ class SchemaBuilderTest extends TestCase
 
         $this->assertSame(array(), $skipped);
         $this->assertCount(6, $schema->operations());
+    }
+
+    /**
+     * On PostgreSQL a table's indexes are statements of their own, so a run
+     * that stopped after the CREATE TABLE leaves the table without some of
+     * them: the table is left out, the missing indexes are not.
+     */
+    public function testATableThatIsAlreadyThereStillGetsItsMissingIndexes()
+    {
+        $schema = $this->pgsql();
+        $schema->createTable('t', array(
+            'id' => array('type' => 'primary_key'),
+            'a' => array('type' => 'integer', 'null' => true),
+            'b' => array('type' => 'integer', 'null' => true),
+        ), array('indexes' => array('a' => array(), 'b_lookup' => array('column' => array('b', 'a')))));
+        $schema->table('t')->addIndex('id', array('name' => 'id_copy'));
+
+        $skipped = $schema->skipSatisfied($this->live('pgsql', array(
+            't' => array(
+                'columns' => array('id', 'a', 'b'),
+                'indexes' => array('PRIMARY' => array('id'), 'idx_t_a' => array('a')),
+            ),
+        )));
+
+        $this->assertSame(array('t: the table is already there'), $skipped);
+        $this->assertSame(
+            array(
+                'CREATE INDEX "idx_t_b_lookup" ON "t" ("b", "a");',
+                'CREATE INDEX "idx_t_id_copy" ON "t" ("id");',
+            ),
+            $schema->toSql()
+        );
+    }
+
+    public function testATableThatIsAlreadyCompleteRendersNothing()
+    {
+        $schema = $this->mysql();
+        $schema->createTable(
+            't',
+            array('id' => array('type' => 'primary_key'), 'a' => 'integer'),
+            array('indexes' => array('a' => array('unique' => true)))
+        );
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('id', 'a'), 'indexes' => array('PRIMARY' => array('id'), 'a' => array('a'))),
+        )));
+
+        $this->assertSame(array('t: the table is already there'), $skipped);
+        $this->assertSame(array(), $schema->toSql());
+    }
+
+    public function testTableDropsAndRenamesThatHaveLandedAreLeftOut()
+    {
+        $schema = $this->mysql();
+        $schema->dropTable('gone');
+        $schema->renameTable('old', 'new');
+        $schema->table('new')->addIndex('a');
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            'new' => array('columns' => array('a'), 'indexes' => array('a' => array('a'))),
+        )));
+
+        $this->assertSame(
+            array(
+                'gone: the table is already gone',
+                'old: the table is already renamed to new',
+                'new: index a is already there',
+            ),
+            $skipped
+        );
+        $this->assertSame(array(), $schema->toSql());
+    }
+
+    /**
+     * A table dropped and created again - emptied, in effect - is both, every
+     * time: the migration asked for a fresh table, not for one to exist.
+     */
+    public function testATableDroppedAndCreatedAgainKeepsBoth()
+    {
+        $schema = $this->mysql();
+        $schema->dropTable('t');
+        $schema->createTable('t', array('a' => 'integer'), array('indexes' => array('a' => array())));
+        $schema->table('t')->addIndex('a', array('name' => 'a_again'));
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('a'), 'indexes' => array('a' => array('a'), 'a_again' => array('a'))),
+        )));
+
+        $this->assertSame(array(), $skipped);
+        $this->assertCount(3, $schema->operations());
+
+        $retry = $this->mysql();
+        $retry->dropTable('t');
+        $retry->createTable('t', array('a' => 'integer'));
+        $this->assertSame(
+            array('t: the table is already gone'),
+            $retry->skipSatisfied($this->live('mysql', array())),
+            'after the drop landed and the create did not'
+        );
+        $this->assertCount(1, $retry->operations());
     }
 
     public function testMysqlNamesAreComparedWithoutCase()

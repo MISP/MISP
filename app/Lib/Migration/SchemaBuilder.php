@@ -235,10 +235,14 @@ class SchemaBuilder
      *
      * Each operation is checked against the schema as the ones kept before it
      * would leave it, so dropping an index and adding it back under the same
-     * name keeps both. Indexes are matched by name, the way the server refuses
-     * a duplicate. A column changed or a table created, dropped or renamed is
-     * never left out, and nothing after a rawSql() is, since what hand-written
-     * SQL changes cannot be known.
+     * name keeps both. Tables and indexes are matched by name, the way the
+     * server refuses a duplicate. A column change is never left out, and
+     * nothing after a rawSql() is, since what hand-written SQL changes cannot
+     * be known.
+     *
+     * A table that is already there still gets whichever of its declared
+     * indexes it lacks: on PostgreSQL those are statements of their own, so a
+     * run that stopped after the CREATE TABLE leaves the table without them.
      *
      * @param SchemaInspector $inspector The live schema. It must read the engine
      *   this builder's grammar names indexes for.
@@ -263,8 +267,15 @@ class SchemaBuilder
             $note = $opaque ? null : $this->satisfied($inspector, $tables, $operation);
             if ($note === null) {
                 $kept[$index] = $operation;
-            } else {
-                $skipped[] = $note;
+                continue;
+            }
+            $skipped[] = $note;
+            if ($operation['operation'] === 'createTable') {
+                foreach ($this->declaredIndexes($operation) as $n => $addIndex) {
+                    if ($this->satisfied($inspector, $tables, $addIndex) === null) {
+                        $kept[$index . '.' . $n] = $addIndex;
+                    }
+                }
             }
         }
         $this->operations = $kept;
@@ -432,7 +443,7 @@ class SchemaBuilder
      * the table as it will be once the operation has run.
      *
      * @param SchemaInspector $inspector
-     * @param array $tables Table => tableState(), or null where it is not known.
+     * @param array $tables Table => tableState().
      * @param array $operation
      * @return string|null Why the operation can be left out; null to keep it.
      */
@@ -440,17 +451,32 @@ class SchemaBuilder
     {
         $arguments = $operation['arguments'];
         $table = $arguments[0];
+        $state = $this->tableState($inspector, $tables, $table);
         switch ($operation['operation']) {
             case 'createTable':
-            case 'dropTable':
+                if (is_array($state)) {
+                    return sprintf('%s: the table is already there', $table);
+                }
+                // Its shape is the declaration's, which later operations on it
+                // were written against.
                 $tables[$table] = null;
                 return null;
+            case 'dropTable':
+                if ($state === false) {
+                    return sprintf('%s: the table is already gone', $table);
+                }
+                $tables[$table] = false;
+                return null;
             case 'renameTable':
-                $tables[$table] = $tables[$arguments[1]] = null;
+                $to = $arguments[1];
+                if ($state === false && is_array($this->tableState($inspector, $tables, $to))) {
+                    return sprintf('%s: the table is already renamed to %s', $table, $to);
+                }
+                $tables[$to] = $state;
+                $tables[$table] = false;
                 return null;
         }
-        $state = $this->tableState($inspector, $tables, $table);
-        if ($state === null) {
+        if (!is_array($state)) {
             return null;
         }
         switch ($operation['operation']) {
@@ -525,16 +551,17 @@ class SchemaBuilder
      * @param SchemaInspector $inspector
      * @param array $tables
      * @param string $table
-     * @return array|null Null when the table is not there.
+     * @return array|false|null False when the table is not there; null when an
+     *   earlier operation created it or moved it in, so its shape is not known.
      */
     private function tableState(SchemaInspector $inspector, array &$tables, $table)
     {
         if (array_key_exists($table, $tables)) {
             return $tables[$table];
         }
-        $tables[$table] = null;
+        $tables[$table] = false;
         if (!$inspector->hasTable($table)) {
-            return null;
+            return false;
         }
         $state = array('columns' => array(), 'indexes' => array(), 'primary' => array());
         foreach (array_keys($inspector->columns($table)) as $column) {
@@ -550,6 +577,27 @@ class SchemaBuilder
             }
         }
         return $tables[$table] = $state;
+    }
+
+    /**
+     * A createTable()'s indexes, each as the addIndex() that adds it alone.
+     *
+     * @param array $operation
+     * @return array
+     */
+    private function declaredIndexes(array $operation)
+    {
+        list($table, , $options) = $operation['arguments'];
+        $indexes = isset($options['indexes']) ? $options['indexes'] : array();
+        $operations = array();
+        foreach ($indexes as $key => $indexOptions) {
+            list($columns, $indexOptions) = $this->grammar->normaliseIndexDeclaration($key, $indexOptions);
+            $operations[] = array(
+                'operation' => 'addIndex',
+                'arguments' => array($table, $columns, $indexOptions),
+            );
+        }
+        return $operations;
     }
 
     /**

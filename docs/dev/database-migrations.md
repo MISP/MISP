@@ -285,32 +285,41 @@ row marked failed, and the retry runs `up()` again. So before anything is
 rendered, the declaration is checked against the live schema and what the
 database already has is left out:
 
-- a column or index that is already there is not added again;
+- a table, column or index that is already there is not created or added again;
 - one that is already gone is not dropped again, nor is a primary key;
-- a column rename whose old name is gone and new name is there is left out.
+- a table or column rename that has landed is left out;
+- a table that is already there still gets whichever of its declared indexes it
+  lacks: on PostgreSQL those are statements of their own, so a run can stop
+  between the `CREATE TABLE` and them.
 
-Each operation is checked against the table as the ones before it leave it, so
-dropping an index and adding it back under the same name keeps both. Indexes are
-matched by name, the way the server matches a duplicate, so an index of that
-name over other columns counts as there.
+Each operation is checked against the schema as the ones before it leave it, so
+dropping an index and adding it back under the same name keeps both, and so
+does dropping a table and creating it again. Tables and indexes are matched by
+name, the way the server matches a duplicate, so an index of that name over
+other columns counts as there.
 
-The rest is yours to guard, by asking the live schema through
-`$this->inspector()` — `hasTable()`, `hasColumn()`, `hasIndex()`,
-`primaryKey()` — and declaring only what is still missing: tables created,
-dropped or renamed, column changes, anything after a `rawSql()`, and indexes
-over a column the migration drops or renames before them.
+Two things run again on a retry. A column change is harmless to repeat, but on a
+large table it costs another rebuild, so guard it where that matters by asking
+the live schema through `$this->inspector()` — `column()`, `hasTable()`,
+`hasColumn()`, `hasIndex()`, `primaryKey()`:
 
 ```php
 public function up(SchemaBuilder $schema)
 {
-    if (!$this->inspector()->hasTable('collection_shares')) {
-        $schema->createTable('collection_shares', [/* ... */]);
+    $column = $this->inspector()->column('taxii_servers', 'auth_type');
+    if ($column !== null && $column['length'] >= 64) {
+        return;
     }
+    $schema->table('taxii_servers')->changeColumn('auth_type', 'string', [
+        'length' => 64, 'null' => false, 'default' => 'basic',
+    ]);
 }
 ```
 
-`beforeUp()` and `afterUp()` are yours to guard the same way, through the
-models they write with.
+And a `rawSql()` runs as written, so write it to run twice (`IF NOT EXISTS`, or
+a guard in `up()`). Nothing declared after one is left out either, since what it
+changed cannot be known. `beforeUp()` and `afterUp()` are yours to make safe to
+repeat the same way, through the models they write with.
 
 **No error is stepped over.** The legacy corpus let a duplicate column or index,
 or a drop of one that was not there, pass. A migration has no need to: those

@@ -755,7 +755,7 @@ abstract class AbstractGrammar
      * @param array|null $options
      * @return array array($columns, $options)
      */
-    protected function normaliseIndexDeclaration($key, $options)
+    public function normaliseIndexDeclaration($key, $options)
     {
         $options = is_array($options) ? $options : array();
         $columns = isset($options['column']) ? $options['column'] : $key;
