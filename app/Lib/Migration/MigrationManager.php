@@ -24,8 +24,8 @@ App::uses('Folder', 'Utility');
  * It does not decide when to run. runUpdates() owns the lock, the worker
  * dispatch and the ordering of legacy updates against migrations; this class
  * answers pending() and applies one id at a time. It does not execute SQL
- * either - MigrationRunner does, so a migration is logged, progress-reported
- * and error-tolerated exactly the way a legacy update is.
+ * either - MigrationRunner does, so a migration is logged and
+ * progress-reported exactly the way a legacy update is.
  *
  * ## Ordering and halting
  *
@@ -156,6 +156,9 @@ class MigrationManager
 
     /** @var string|null The status the most recent apply() recorded. */
     private $lastStatus;
+
+    /** @var array What the most recent toSql() left out as already there. */
+    private $lastSkipped = array();
 
     /**
      * @param Model $model Supplies the datasource and carries the statements.
@@ -466,13 +469,24 @@ class MigrationManager
      */
     public function toSql($id, AbstractGrammar $grammar = null)
     {
+        $this->lastSkipped = array();
         $schema = SchemaBuilder::forDataSource($this->dataSource());
         $migration = $this->migration($id);
         // The same live schema an apply would consult, so a guarded
         // declaration renders what would actually run now.
         $migration->setSchemaInspector($this->inspector());
         $migration->up($schema);
+        $this->lastSkipped = $schema->skipSatisfied($this->inspector());
         return $schema->toSql($grammar);
+    }
+
+    /**
+     * @return array One line per operation the most recent toSql() left out
+     *   because the database already has it.
+     */
+    public function lastSkipped()
+    {
+        return $this->lastSkipped;
     }
 
     /**
@@ -579,6 +593,7 @@ class MigrationManager
             return false;
         }
         $migration->up($schema);
+        $schema->skipSatisfied($this->inspector());
         $statements = $schema->toSql();
         $this->reportDroppedHints($id, $schema->getGrammar()->takeDroppedHints());
 
@@ -587,7 +602,8 @@ class MigrationManager
             // migration are a unit, and continuing past a broken one produces a
             // half-applied schema recorded as applied. No error is tolerated
             // either: a statement can carry several changes to one table, and
-            // when one of them fails, none of them was made.
+            // when one of them fails, none of them was made. What is already
+            // there was left out above, so a re-run does not hit one.
             if (!$this->runner()->run($id, $statements, array(), false, true, true, false)) {
                 $errors = $this->runner()->lastErrors();
                 $this->lastError = empty($errors)

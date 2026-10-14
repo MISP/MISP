@@ -49,6 +49,15 @@ App::uses('SchemaTableBuilder', 'Migration');
  *   statement. Splitting costs at most a second rebuild, so the rule splits
  *   whenever it is in doubt.
  *
+ * ## What is already there is left out
+ *
+ * skipSatisfied() checks the declaration against the live schema before it is
+ * rendered: a column or index that is already there is not added again, one
+ * that is already gone is not dropped again. A migration that stopped halfway
+ * then re-runs as just the part that did not land, and no statement carries a
+ * clause the server would refuse - which matters, because when one clause of
+ * an ALTER TABLE fails, none of them is made.
+ *
  * ## The escape hatch
  *
  * rawSql() exists because the alternative is worse. The first irreducible case -
@@ -222,6 +231,47 @@ class SchemaBuilder
     }
 
     /**
+     * Drop the operations whose result the database already has.
+     *
+     * Each operation is checked against the schema as the ones kept before it
+     * would leave it, so dropping an index and adding it back under the same
+     * name keeps both. Indexes are matched by name, the way the server refuses
+     * a duplicate. A column changed or a table created, dropped or renamed is
+     * never left out, and nothing after a rawSql() is, since what hand-written
+     * SQL changes cannot be known.
+     *
+     * @param SchemaInspector $inspector The live schema. It must read the engine
+     *   this builder's grammar names indexes for.
+     * @return array One line per operation left out.
+     * @throws LogicException When the inspector reads another engine.
+     */
+    public function skipSatisfied(SchemaInspector $inspector)
+    {
+        if ($inspector->flavour() !== $this->grammar->flavour()) {
+            throw new LogicException(sprintf(
+                'A %s schema cannot tell what a %s declaration still needs.',
+                $inspector->flavour(),
+                $this->grammar->flavour()
+            ));
+        }
+        $tables = array();
+        $kept = array();
+        $skipped = array();
+        $opaque = false;
+        foreach ($this->operations as $index => $operation) {
+            $opaque = $opaque || $operation['operation'] === 'rawSql';
+            $note = $opaque ? null : $this->satisfied($inspector, $tables, $operation);
+            if ($note === null) {
+                $kept[$index] = $operation;
+            } else {
+                $skipped[] = $note;
+            }
+        }
+        $this->operations = $kept;
+        return $skipped;
+    }
+
+    /**
      * @return array The declared operations, unrendered.
      */
     public function operations()
@@ -375,6 +425,164 @@ class SchemaBuilder
             && !array_intersect($names['columns'], $joined['columns'])
             && !array_intersect($names['removes'], $joined['indexedColumns'])
             && !array_intersect($names['dropsIndexes'], $joined['addsIndexes']);
+    }
+
+    /**
+     * Whether the database already has what an operation would do, and if not,
+     * the table as it will be once the operation has run.
+     *
+     * @param SchemaInspector $inspector
+     * @param array $tables Table => tableState(), or null where it is not known.
+     * @param array $operation
+     * @return string|null Why the operation can be left out; null to keep it.
+     */
+    private function satisfied(SchemaInspector $inspector, array &$tables, array $operation)
+    {
+        $arguments = $operation['arguments'];
+        $table = $arguments[0];
+        switch ($operation['operation']) {
+            case 'createTable':
+            case 'dropTable':
+                $tables[$table] = null;
+                return null;
+            case 'renameTable':
+                $tables[$table] = $tables[$arguments[1]] = null;
+                return null;
+        }
+        $state = $this->tableState($inspector, $tables, $table);
+        if ($state === null) {
+            return null;
+        }
+        switch ($operation['operation']) {
+            case 'addColumn':
+                $column = $this->fold($arguments[1]);
+                if (isset($state['columns'][$column])) {
+                    return sprintf('%s: column %s is already there', $table, $arguments[1]);
+                }
+                $state['columns'][$column] = true;
+                $options = $arguments[3];
+                if (
+                    $arguments[2] === 'primary_key' ||
+                    (isset($options['key']) && $options['key'] === 'primary')
+                ) {
+                    $state['primary'] = array($column);
+                }
+                break;
+            case 'dropColumn':
+                $column = $this->fold($arguments[1]);
+                if (!isset($state['columns'][$column])) {
+                    return sprintf('%s: column %s is already gone', $table, $arguments[1]);
+                }
+                unset($state['columns'][$column]);
+                $state = $this->forgetIndexesOver($state, $column);
+                break;
+            case 'renameColumn':
+                $from = $this->fold($arguments[1]);
+                $to = $this->fold($arguments[2]);
+                if (!isset($state['columns'][$from]) && isset($state['columns'][$to])) {
+                    return sprintf(
+                        '%s: column %s is already renamed to %s',
+                        $table,
+                        $arguments[1],
+                        $arguments[2]
+                    );
+                }
+                unset($state['columns'][$from]);
+                $state['columns'][$to] = true;
+                $state = $this->forgetIndexesOver($state, $from);
+                break;
+            case 'addIndex':
+                $name = $this->grammar->indexName($table, $arguments[1], $arguments[2]);
+                if (isset($state['indexes'][$this->fold($name)])) {
+                    return sprintf('%s: index %s is already there', $table, $name);
+                }
+                $columns = array_map(array($this, 'fold'), (array)$arguments[1]);
+                $state['indexes'][$this->fold($name)] = $columns;
+                break;
+            case 'dropIndex':
+                $name = $this->grammar->indexName($table, $arguments[1]);
+                if (!array_key_exists($this->fold($name), $state['indexes'])) {
+                    return sprintf('%s: index %s is already gone', $table, $name);
+                }
+                unset($state['indexes'][$this->fold($name)]);
+                break;
+            case 'dropPrimaryKey':
+                if ($state['primary'] === array()) {
+                    return sprintf('%s: the primary key is already gone', $table);
+                }
+                $state['primary'] = array();
+                break;
+        }
+        $tables[$table] = $state;
+        return null;
+    }
+
+    /**
+     * A table as the live schema has it: its columns, its indexes by name with
+     * the columns they cover, and its primary key's columns. Names are folded
+     * the way the engine compares them.
+     *
+     * @param SchemaInspector $inspector
+     * @param array $tables
+     * @param string $table
+     * @return array|null Null when the table is not there.
+     */
+    private function tableState(SchemaInspector $inspector, array &$tables, $table)
+    {
+        if (array_key_exists($table, $tables)) {
+            return $tables[$table];
+        }
+        $tables[$table] = null;
+        if (!$inspector->hasTable($table)) {
+            return null;
+        }
+        $state = array('columns' => array(), 'indexes' => array(), 'primary' => array());
+        foreach (array_keys($inspector->columns($table)) as $column) {
+            $state['columns'][$this->fold($column)] = true;
+        }
+        foreach ($inspector->indexes($table) as $name => $index) {
+            $columns = isset($index['column']) ? (array)$index['column'] : array();
+            $columns = array_map(array($this, 'fold'), $columns);
+            if ($name === 'PRIMARY') {
+                $state['primary'] = $columns;
+            } else {
+                $state['indexes'][$this->fold($name)] = $columns;
+            }
+        }
+        return $tables[$table] = $state;
+    }
+
+    /**
+     * Dropping or renaming a column changes the indexes over it differently on
+     * each engine, so from then on they count as unknown: an operation on one
+     * is kept rather than guessed about.
+     *
+     * @param array $state
+     * @param string $column Folded.
+     * @return array
+     */
+    private function forgetIndexesOver(array $state, $column)
+    {
+        foreach ($state['indexes'] as $name => $columns) {
+            if ($columns === null || in_array($column, $columns, true)) {
+                $state['indexes'][$name] = null;
+            }
+        }
+        if ($state['primary'] === null || in_array($column, $state['primary'], true)) {
+            $state['primary'] = null;
+        }
+        return $state;
+    }
+
+    /**
+     * MySQL compares column and index names without regard to case.
+     *
+     * @param string $name
+     * @return string
+     */
+    private function fold($name)
+    {
+        return $this->grammar->flavour() === AbstractGrammar::FLAVOUR_MYSQL ? strtolower($name) : $name;
     }
 
     /**

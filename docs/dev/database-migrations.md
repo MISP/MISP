@@ -205,6 +205,7 @@ Read the PostgreSQL half. It is the half nothing else will exercise for you. The
 dry run also prints:
 
 - dropped hints, as SQL comments under the flavour that dropped them;
+- the operations left out because this database already has them (§7);
 - `No schema changes.` for a data-only migration;
 - a note when the migration carries a `beforeUp()` or an `afterUp()`, because
   otherwise "no schema changes" reads as "does nothing";
@@ -280,28 +281,42 @@ defer: from `up()` or `afterUp()` it is a failure, since work has run by then.
 
 **A migration is not transactional.** MySQL DDL commits implicitly, so a
 migration whose third statement fails leaves the first two applied and the ledger
-row marked failed. Write migrations that can be re-run. For DDL, `up()` can ask
-the live schema through `$this->inspector()` — `hasTable()`, `hasColumn()`,
-`hasIndex()`, `primaryKey()` — and declare only what is still missing, so the
-retry skips what already landed:
+row marked failed, and the retry runs `up()` again. So before anything is
+rendered, the declaration is checked against the live schema and what the
+database already has is left out:
+
+- a column or index that is already there is not added again;
+- one that is already gone is not dropped again, nor is a primary key;
+- a column rename whose old name is gone and new name is there is left out.
+
+Each operation is checked against the table as the ones before it leave it, so
+dropping an index and adding it back under the same name keeps both. Indexes are
+matched by name, the way the server matches a duplicate, so an index of that
+name over other columns counts as there.
+
+The rest is yours to guard, by asking the live schema through
+`$this->inspector()` — `hasTable()`, `hasColumn()`, `hasIndex()`,
+`primaryKey()` — and declaring only what is still missing: tables created,
+dropped or renamed, column changes, anything after a `rawSql()`, and indexes
+over a column the migration drops or renames before them.
 
 ```php
 public function up(SchemaBuilder $schema)
 {
-    if ($this->inspector()->hasColumn('bruteforces', 'id')) {
-        return;
+    if (!$this->inspector()->hasTable('collection_shares')) {
+        $schema->createTable('collection_shares', [/* ... */]);
     }
-    $schema->table('bruteforces')->addColumn('id', 'primary_key', ['first' => true]);
 }
 ```
 
-A one-statement migration needs none of that. `beforeUp()` and `afterUp()` are
-yours to guard the same way, through the models they write with.
+`beforeUp()` and `afterUp()` are yours to guard the same way, through the
+models they write with.
 
 **No error is stepped over.** The legacy corpus let a duplicate column or index,
-or a drop of one that was not there, pass. A migration does not: one statement
-can carry several changes to a table, and when one of its clauses fails, none of
-them was made. The inspector guard above is how a migration stays re-runnable.
+or a drop of one that was not there, pass. A migration has no need to: those
+are left out before the statement is built. Any error that does arrive halts
+the run, because one statement can carry several changes to a table, and when
+one of its clauses fails, none of them was made.
 
 `migrationApply --id` on a migration already recorded as applied does nothing and
 exits 0 — `apply` means "make sure this is applied". To genuinely re-run one,

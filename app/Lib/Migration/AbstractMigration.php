@@ -114,10 +114,11 @@ abstract class AbstractMigration
      *
      * A migration's statements are not a transaction on MySQL, so one that
      * stops halfway leaves the first statements applied and the ledger row
-     * failed - and the retry runs the whole declaration again. Ask
-     * hasColumn(), hasIndex() or primaryKey() and declare only what is still
-     * missing, and the retry is a no-op for the part that already landed.
-     * A single-statement migration needs none of this.
+     * failed - and the retry runs the whole declaration again. Adding and
+     * dropping columns and indexes is checked for you
+     * (SchemaBuilder::skipSatisfied()); for tables, column changes and
+     * anything after a rawSql(), ask hasTable(), hasColumn(), hasIndex() or
+     * primaryKey() and declare only what is still missing.
      *
      * The manager sets it before up() runs, for an apply and for a dry run
      * alike; called with nothing set - a unit test driving up() directly -

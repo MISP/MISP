@@ -335,6 +335,224 @@ class SchemaBuilderTest extends TestCase
         );
     }
 
+    // ------------------------------------------------ what is already there
+
+    /**
+     * @param string $flavour
+     * @param array $schema
+     * @return MigrationTestInspector
+     */
+    private function live($flavour, array $schema)
+    {
+        return new MigrationTestInspector($flavour, $schema);
+    }
+
+    /**
+     * A re-run after a partial apply: only what did not land is rendered, still
+     * as one statement, and nothing in it is a clause the server would refuse.
+     */
+    public function testWhatIsAlreadyThereIsLeftOutOfTheStatement()
+    {
+        $schema = $this->mysql();
+        $schema->table('events')
+            ->dropIndex('sharing_group_id')
+            ->dropIndex('org_id')
+            ->addIndex(array('distribution', 'sharing_group_id'), array('name' => 'idx_evt_acl'))
+            ->addIndex(array('timestamp', 'published'), array('name' => 'idx_evt_ts_pub'));
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            'events' => array(
+                'columns' => array('id', 'org_id', 'distribution', 'sharing_group_id', 'timestamp', 'published'),
+                'indexes' => array(
+                    'PRIMARY' => array('id'),
+                    'sharing_group_id' => array('sharing_group_id'),
+                    'idx_evt_acl' => array('distribution', 'sharing_group_id'),
+                ),
+            ),
+        )));
+
+        $this->assertSame(
+            array(
+                "ALTER TABLE `events`\n" .
+                "    DROP INDEX `sharing_group_id`,\n" .
+                "    ADD INDEX `idx_evt_ts_pub` (`timestamp`, `published`);",
+            ),
+            $schema->toSql()
+        );
+        $this->assertSame(
+            array(
+                'events: index org_id is already gone',
+                'events: index idx_evt_acl is already there',
+            ),
+            $skipped
+        );
+    }
+
+    public function testADeclarationThatHasFullyLandedRendersNothing()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')
+            ->addColumn('x', 'integer', array('null' => true))
+            ->dropColumn('gone')
+            ->addIndex('x')
+            ->dropPrimaryKey();
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('x'), 'indexes' => array('x' => array('x'))),
+        )));
+
+        $this->assertSame(array(), $schema->toSql());
+        $this->assertSame(
+            array(
+                't: column x is already there',
+                't: column gone is already gone',
+                't: index x is already there',
+                't: the primary key is already gone',
+            ),
+            $skipped
+        );
+    }
+
+    /**
+     * Each operation is checked against the table as the ones kept before it
+     * leave it, not as it was when the migration started.
+     */
+    public function testAnOperationIsCheckedAfterTheOnesBeforeIt()
+    {
+        $schema = $this->mysql();
+        $null = array('null' => true, 'default' => null);
+        $schema->table('t')
+            ->dropIndex('ia')
+            ->addIndex(array('a', 'b'), array('name' => 'ia'))
+            ->dropColumn('c')
+            ->addColumn('c', 'biginteger', $null)
+            ->addColumn('x', 'integer', $null)
+            ->dropColumn('x');
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('a', 'b', 'c'), 'indexes' => array('ia' => array('a'))),
+        )));
+
+        $this->assertSame(array(), $skipped);
+        $this->assertCount(6, $schema->operations());
+    }
+
+    /**
+     * Dropping or renaming a column changes the indexes over it differently on
+     * each engine, so an operation on one of them is kept, not guessed about.
+     */
+    public function testIndexesOverADroppedOrRenamedColumnAreNotGuessedAbout()
+    {
+        $schema = $this->mysql();
+        $null = array('null' => true, 'default' => null);
+        $schema->table('t')
+            ->dropColumn('b')
+            ->dropIndex('ib')
+            ->addIndex('ab', array('name' => 'iab'))
+            ->renameColumn('a', 'a2', 'integer', $null)
+            ->dropPrimaryKey();
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array(
+                'columns' => array('a', 'b'),
+                'indexes' => array('PRIMARY' => array('a'), 'ib' => array('b'), 'iab' => array('a', 'b')),
+            ),
+        )));
+
+        $this->assertSame(array(), $skipped);
+        $this->assertCount(5, $schema->operations());
+    }
+
+    public function testARenameThatHasLandedIsLeftOut()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')->renameColumn('a', 'a2', 'integer', array('null' => true, 'default' => null));
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array('t' => array('columns' => array('a2')))));
+
+        $this->assertSame(array('t: column a is already renamed to a2'), $skipped);
+        $this->assertSame(array(), $schema->toSql());
+    }
+
+    /**
+     * Never left out: a column change, which would need the full definition
+     * compared; tables, which a migration guards itself; anything on a table
+     * that is not there; and anything after hand-written SQL.
+     */
+    public function testWhatCannotBeKnownIsKept()
+    {
+        $schema = $this->mysql();
+        $null = array('null' => true, 'default' => null);
+        $schema->table('t')->changeColumn('a', 'biginteger', $null);
+        $schema->createTable('t', array('a' => 'integer'));
+        $schema->table('t')->addColumn('a', 'integer', $null);
+        $schema->table('missing')->dropColumn('a');
+        $schema->rawSql(array('mysql' => 'SELECT 1;', 'pgsql' => 'SELECT 1;'));
+        $schema->table('u')->addColumn('a', 'integer', $null);
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('a')),
+            'u' => array('columns' => array('a')),
+        )));
+
+        $this->assertSame(array(), $skipped);
+        $this->assertCount(6, $schema->operations());
+    }
+
+    public function testMysqlNamesAreComparedWithoutCase()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')
+            ->addColumn('Value1', 'integer', array('null' => true))
+            ->addIndex('a', array('name' => 'IDX_A'));
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('value1', 'a'), 'indexes' => array('idx_a' => array('a'))),
+        )));
+
+        $this->assertCount(2, $skipped);
+    }
+
+    /**
+     * PostgreSQL index names are the grammar's own, prefixed with the table, and
+     * a quoted name is matched with its case.
+     */
+    public function testPostgresMatchesItsOwnIndexNames()
+    {
+        $schema = $this->pgsql();
+        $schema->table('t')
+            ->addIndex('a')
+            ->dropIndex('b')
+            ->addColumn('A', 'integer', array('null' => true));
+
+        $skipped = $schema->skipSatisfied($this->live('pgsql', array(
+            't' => array('columns' => array('a', 'b'), 'indexes' => array('idx_t_a' => array('a'), 'idx_t_b' => array('b'))),
+        )));
+
+        $this->assertSame(array('t: index idx_t_a is already there'), $skipped);
+        $this->assertSame(
+            array('DROP INDEX "idx_t_b";', 'ALTER TABLE "t" ADD "A" integer DEFAULT NULL;'),
+            $schema->toSql()
+        );
+    }
+
+    public function testASchemaReadFromAnotherEngineIsRefused()
+    {
+        $this->expectException('LogicException');
+        $this->mysql()->skipSatisfied($this->live('pgsql', array()));
+    }
+
+    public function testRawSqlPositionsStillCountTheOperationsLeftOut()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')->addColumn('a', 'integer', array('null' => true));
+        $schema->rawSql(array('pgsql' => 'SELECT 1;'));
+        $schema->skipSatisfied($this->live('mysql', array('t' => array('columns' => array('a')))));
+
+        $this->expectExceptionMessage('position 1');
+        $schema->toSql();
+    }
+
     // ---------------------------------------------------------------- rawSql
 
     public function testRawSqlIsPassedThroughVerbatimForTheRenderedFlavour()

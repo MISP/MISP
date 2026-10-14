@@ -335,6 +335,19 @@ class MigrationManagerTest extends TestCase
         $this->assertSame(array(), $manager->executed);
     }
 
+    public function testWhatTheDatabaseAlreadyHasIsNotRendered()
+    {
+        $manager = new SchemaRenderingMigrationManager(self::$allFiles);
+        $manager->liveSchema->schema = array('events' => array('columns' => array('id', 'replacement')));
+
+        $this->assertSame(array(), $manager->toSql('20260101_000000_add_column'));
+        $this->assertSame(array('events: column replacement is already there'), $manager->lastSkipped());
+
+        $manager->liveSchema->schema = array('events' => array('columns' => array('id')));
+        $this->assertCount(1, $manager->toSql('20260101_000000_add_column'));
+        $this->assertSame(array(), $manager->lastSkipped());
+    }
+
     public function testAMigrationWithNoUpRendersNothing()
     {
         $manager = new SchemaRenderingMigrationManager(self::$allFiles);
