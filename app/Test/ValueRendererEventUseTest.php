@@ -165,6 +165,21 @@ class ValueRendererEventUseTest extends TestCase
         $this->assertSame(2400, $data['extents'][0]['end'] - $data['extents'][0]['start']);
     }
 
+    public function testAPointCarriesItsAccuracyRadius(): void
+    {
+        $renderer = new GeolocationRenderer();
+        $data = $renderer->prepare([
+            $this->object('geolocation', [
+                'country' => 'US', 'latitude' => '37.751', 'longitude' => '-97.822', 'accuracy-radius' => '1000',
+            ], 'a'),
+            $this->object('geolocation', [
+                'city' => 'Luxembourg', 'latitude' => '49.61', 'longitude' => '6.13', 'accuracy-radius' => '0',
+            ], 'b'),
+            $this->object('geolocation', ['city' => 'Paris', 'latitude' => '48.85', 'longitude' => '2.35'], 'c'),
+        ], []);
+        $this->assertSame([1000.0, null, null], array_column($data['points'], 'radius'));
+    }
+
     public function testAnInvertedOrOutOfRangeBoxIsNotDrawn(): void
     {
         $renderer = new GeolocationRenderer();

@@ -350,6 +350,19 @@
     vector-effect: non-scaling-stroke;
 }
 
+/* How far from its dot a point may be (`accuracy-radius`), drawn in
+   place of the halo when wider. Dashed and faint, so it reads as doubt
+   rather than as an area an object names. */
+.vp-rw-plot-reach {
+    fill: var(--vp-e-accent, #6f5fb5);
+    fill-opacity: 0.08;
+    stroke: var(--vp-e-accent, #6f5fb5);
+    stroke-opacity: 0.75;
+    stroke-width: 1;
+    stroke-dasharray: 3 2;
+    vector-effect: non-scaling-stroke;
+}
+
 /* A ring around the point, which is what makes it findable rather
    than merely present: a 3px dot on a map of the world is a speck
    until something on the map is pointing at it. `non-scaling-stroke`

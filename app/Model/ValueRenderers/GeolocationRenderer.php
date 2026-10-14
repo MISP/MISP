@@ -106,6 +106,8 @@ class GeolocationRenderer extends ValueRendererBase
             if ($point !== null) {
                 $entry['lat'] = $point[0];
                 $entry['lon'] = $point[1];
+                $entry['radius'] = $this->radiusOf($object);
+                $entry['reach'] = $this->reachOf($point, $entry['radius']);
                 $points[] = $entry;
             }
             /*
@@ -227,5 +229,38 @@ class GeolocationRenderer extends ValueRendererBase
             return null;
         }
         return array($lat, $lon);
+    }
+
+    /**
+     * How far from its coordinates the place may be, in kilometres. A
+     * country-level answer is placed at the country's centre and says so
+     * here, often as 1000.
+     *
+     * @param array $object
+     * @return float|null
+     */
+    private function radiusOf(array $object)
+    {
+        $radius = $this->number($this->value($object, 'accuracy-radius'));
+        return $radius !== null && $radius > 0 ? $radius : null;
+    }
+
+    /**
+     * The radius in degrees, `[longitude, latitude]`, which is what the
+     * world outline's units are. A degree of longitude shrinks towards
+     * the poles, so the same distance spans more of them there.
+     *
+     * @param array $point `[lat, lon]`
+     * @param float|null $radius Kilometres
+     * @return array|null
+     */
+    private function reachOf(array $point, $radius)
+    {
+        if ($radius === null) {
+            return null;
+        }
+        $lat = min(90, $radius / 111.32);
+        $lon = min(180, $lat / max(0.1, cos(deg2rad($point[0]))));
+        return array(round($lon, 3), round($lat, 3));
     }
 }

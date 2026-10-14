@@ -134,8 +134,14 @@ if ($eventScope) {
         $xs = array();
         $ys = array();
         foreach ($points as $point) {
-            $xs[] = $point['lon'] + 180;
-            $ys[] = 90 - $point['lat'];
+            // A ring wider than the halo is kept whole in the window.
+            $reach = $point['reach'] ?? null;
+            $rx = $reach !== null && $reach[1] > 8 ? $reach[0] : 0;
+            $ry = $reach !== null && $reach[1] > 8 ? $reach[1] : 0;
+            array_push($xs, $point['lon'] + 180 - $rx,
+                $point['lon'] + 180 + $rx);
+            array_push($ys, 90 - $point['lat'] - $ry,
+                90 - $point['lat'] + $ry);
         }
         foreach ($boxes as $box) {
             array_push($xs, $box[1] + 180, $box[3] + 180);
@@ -172,16 +178,8 @@ if ($eventScope) {
                      height="180"/>
                 <?= $this->element('Values/Renderers/geolocation_boxes',
                     array('boxes' => $boxes, 'min' => 4)) ?>
-                <?php foreach ($points as $point): ?>
-                    <?php
-                    $cx = round($point['lon'] + 180, 2);
-                    $cy = round(90 - $point['lat'], 2);
-                    ?>
-                    <circle cx="<?= h($cx) ?>" cy="<?= h($cy) ?>"
-                            r="8" class="vp-rw-plot-halo"/>
-                    <circle cx="<?= h($cx) ?>" cy="<?= h($cy) ?>"
-                            r="3.5" class="vp-rw-plot-dot"/>
-                <?php endforeach; ?>
+                <?= $this->element('Values/Renderers/geolocation_points',
+                    array('points' => $points, 'halo' => 8, 'dot' => 3.5)) ?>
             </svg>
             <?php if ($headline !== null): ?>
                 <?php

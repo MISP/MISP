@@ -285,6 +285,13 @@
         var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         (spec.points || []).forEach(function (point, i) {
             var at = L.latLng(point.lat, point.lon);
+            // How far from the dot the place may be; fitting still reads the dots.
+            if (point.radius > 0) {
+                L.circle(at, {
+                    radius: point.radius * 1000, color: colours.point, weight: 2, opacity: 0.9,
+                    dashArray: '4 3', fillOpacity: 0.12, interactive: false
+                }).addTo(map);
+            }
             var marker = dot(at, colours.point, 7).addTo(map);
             if (point.popup && point.popup.length) {
                 marker.bindPopup(popup(point.popup.map(function (line) { return [null, line]; })));

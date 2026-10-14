@@ -42,15 +42,25 @@ $locate = function ($key, $what, $ready) use ($locatable) {
     );
 };
 
+$within = function ($point) {
+    if (empty($point['radius'])) {
+        return null;
+    }
+    $km = number_format($point['radius'], $point['radius'] < 10 ? 1 : 0);
+    return '±' . sprintf(__('%s km'), preg_replace('/\.0$/', '', $km));
+};
+
 $spec = array('tileUrl' => $map['tile_url'], 'points' => array(), 'files' => array());
 foreach (array_values($data['points']) as $point) {
     $origin = $origins[$point['module']] ?? null;
     $spec['points'][] = array(
         'lat' => (float)$point['lat'],
         'lon' => (float)$point['lon'],
+        'radius' => $point['radius'] ?? null,
         'popup' => array_values(array_filter(array(
             $name($origin),
             implode(', ', array_filter(array($point['city'], $point['country']))),
+            $within($point),
         ))),
     );
 }
@@ -72,6 +82,7 @@ foreach ($map['files'] as $file) {
             <span class="eov-lg-meta"><?= h(implode(' · ', array_filter(array(
                 implode(', ', array_filter(array($point['city'], $point['country']))),
                 $point['lat'] . ', ' . $point['lon'],
+                $within($point),
             )))) ?><?= $origin === null ? '' : ' · ' . $link($origin,
                 $origin['template'] . ' #' . $origin['object_id']) ?></span>
             <?= $locate('point:' . $i, $name($origin), true) ?>

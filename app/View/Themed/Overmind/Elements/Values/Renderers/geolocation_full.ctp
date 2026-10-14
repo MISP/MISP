@@ -35,16 +35,8 @@ $boxes = $eventScope ? array_values(array_filter(
             <use href="#vp-world" x="0" y="0" width="360" height="180"/>
             <?= $this->element('Values/Renderers/geolocation_boxes',
                 array('boxes' => $boxes, 'min' => 3)) ?>
-            <?php foreach ($points as $point): ?>
-                <?php
-                $cx = round($point['lon'] + 180, 2);
-                $cy = round(90 - $point['lat'], 2);
-                ?>
-                <circle cx="<?= h($cx) ?>" cy="<?= h($cy) ?>"
-                        r="7" class="vp-rw-plot-halo"/>
-                <circle cx="<?= h($cx) ?>" cy="<?= h($cy) ?>"
-                        r="3" class="vp-rw-plot-dot"/>
-            <?php endforeach; ?>
+            <?= $this->element('Values/Renderers/geolocation_points',
+                array('points' => $points, 'halo' => 7, 'dot' => 3)) ?>
         </svg>
     <?php endif; ?>
 
@@ -95,7 +87,18 @@ $boxes = $eventScope ? array_values(array_filter(
                     <td class="font-monospace"><?= isset($row['lat'])
                         ? h(sprintf('%.4f, %.4f', $row['lat'],
                             $row['lon']))
-                        : '—' ?></td>
+                        : '—' ?><?php if (!empty($row['radius'])): ?>
+                        <span class="vp-rf-dim" title="<?= h(__(
+                            'Accuracy radius: the place may be anywhere'
+                                . ' this far from these coordinates.'
+                        )) ?>">±<?= h(sprintf(
+                            __('%s km'),
+                            preg_replace('/\.0$/', '', number_format(
+                                $row['radius'],
+                                $row['radius'] < 10 ? 1 : 0
+                            ))
+                        )) ?></span>
+                    <?php endif; ?></td>
                     <td class="font-monospace vp-rf-dim"><?=
                         $this->element('Values/Renderers/source_cell',
                             array('sources' => $row['module'])
