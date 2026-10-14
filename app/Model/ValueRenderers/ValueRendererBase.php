@@ -42,10 +42,8 @@
  * the ecosystem answers the same question with different templates:
  * a reputation verdict arrives as `greynoise-ip`, `abuseipdb` or
  * `crowdsec-ip-context`, and a file verdict as `virustotal-report` or
- * `google-threat-intelligence-report`. Verdict vendors do not share a
- * template — each ships its own — so for those two shapes the set is a
- * per-vendor list until a generic one exists upstream. The key is
- * still the template and never the module.
+ * `google-threat-intelligence-report`, alongside the generic
+ * `reputation`. The key is still the template and never the module.
  *
  * ## Discovery, and the five rules that come with it
  *
@@ -153,14 +151,6 @@ abstract class ValueRendererBase
     const PRODUCER_TODAY = 'today';
 
     /**
-     * A module holds this answer and flattens it to prose before
-     * sending it. The data is already fetched and already structured
-     * inside the module, so what is missing is a conversion rather
-     * than a new module.
-     */
-    const PRODUCER_CONVERSION = 'conversion';
-
-    /**
      * Nothing anywhere emits it. The renderer is written anyway: a
      * renderer keyed on a shape nothing emits never matches, so it
      * costs the reader nothing, and whoever writes the module emits
@@ -193,7 +183,7 @@ abstract class ValueRendererBase
 
     /**
      * Whether anything produces this shape today, and if not, what is
-     * missing. One of the three `PRODUCER_*` words.
+     * missing. One of the `PRODUCER_*` words.
      *
      * This is a fact about the modules ecosystem rather than about
      * this instance, and it is deliberately not a list of module

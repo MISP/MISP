@@ -10,11 +10,10 @@
  * nameservers — every relation this renderer reads. Three keyed
  * modules emit the template as a side result besides.
  *
- * The older `whois` module still queries a whois server over a socket
- * and sends back the raw text it got, which is why one of the two
+ * The older `whois` module sends back the raw text a whois server
+ * gave it and stays freetext by design, which is why one of the two
  * answers to *when was this registered* is a widget and the other is a
- * paragraph. That is a conversion upstream, and it no longer gates
- * this shape.
+ * paragraph.
  *
  * **A `whois` object carrying only `text` is declined.** It would draw
  * a widget whose one fact is *a registration record exists*, and the

@@ -194,6 +194,32 @@ class ValueRendererEventUseTest extends TestCase
         $this->assertSame([null, null], array_column($data['extents'], 'box'));
     }
 
+    public function testAVulnerabilityScoreKeepsTheVectorItCameFrom(): void
+    {
+        $prepared = (new VulnerabilityRenderer())->prepare([
+            $this->object('vulnerability', [
+                'id' => 'CVE-2026-0001',
+                'cvss-score' => ['7.5', '8.7'],
+                'cvss-string' => ['CVSS:3.1/AV:N/AC:L', 'CVSS:4.0/AV:N/AC:L'],
+            ]),
+        ], []);
+        $this->assertSame(8.7, $prepared['headline']['score']);
+        $this->assertSame('CVSS:4.0/AV:N/AC:L', $prepared['headline']['vector']);
+    }
+
+    public function testAVulnerabilityVectorThatCannotBePairedIsNotShown(): void
+    {
+        $prepared = (new VulnerabilityRenderer())->prepare([
+            $this->object('vulnerability', [
+                'id' => 'CVE-2026-0002',
+                'cvss-score' => ['7.5', '8.7'],
+                'cvss-string' => 'CVSS:3.1/AV:N/AC:L',
+            ]),
+        ], []);
+        $this->assertSame(7.5, $prepared['headline']['score']);
+        $this->assertNull($prepared['headline']['vector']);
+    }
+
     public function testAStoredObjectIsShapedTheWayAModuleAnswerIs(): void
     {
         $shaped = ValueRendererTool::shapeObject([
