@@ -178,6 +178,17 @@ if ($canEdit) {
 
 $actions[] = ['divider' => true, 'label' => __('Share')];
 
+if ($this->Acl->canAccess('collectionElements', 'addElementToCollection')) {
+    $actions[] = [
+        'url' => "$baseurl/collectionElements/addElementToCollection/Event/$eventUuid",
+        'onclick' => $modal("$baseurl/collectionElements/addElementToCollection/Event/$eventUuid", 'xl'),
+        'icon' => 'fas fa-folder-plus',
+        'label' => __('Add to collection'),
+        'short' => __('Collection'),
+        'entity' => 'collection',
+    ];
+}
+
 if ($this->Acl->canAccess('analystGraphs', 'addNodes')) {
     $actions[] = [
         'url' => '#',

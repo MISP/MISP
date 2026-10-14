@@ -132,16 +132,56 @@
     -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 6rem), transparent);
     mask-image: linear-gradient(to bottom, #000 calc(100% - 6rem), transparent);
 }
-.eo-other-reports { list-style: none; margin: 0; padding: .35rem 1rem; border-top: 1px solid var(--bs-border-color); font-size: .82rem; }
-.eo-other-reports li { display: flex; align-items: center; gap: .75rem; justify-content: space-between; padding: .15rem 0; }
-.eo-other-reports a { text-decoration: none; display: inline-flex; align-items: center; gap: .35rem; min-width: 0; }
 .eo-report-clamp h1 { font-size: 1.12rem; }
 .eo-report-clamp h2 { font-size: 1.02rem; }
 .eo-report-clamp h3, .eo-report-clamp h4 { font-size: .92rem; }
-.eo-other-reports .eo-muted { white-space: nowrap; flex-shrink: 0; }
 .eo-mermaid { margin: .75rem 0; overflow-x: auto; }
 .eo-mermaid svg { max-width: 100%; height: auto; }
 .eo-report-full { font-size: .95rem; }
+
+/* report picker: the card's count opens it */
+.eo-report-toggle {
+    margin: -.3rem -.55rem -.3rem 0; padding: .3rem .55rem;
+    border: 0; border-radius: .5rem; background: transparent; transition: background-color .15s;
+}
+.eo-report-toggle:hover, .eo-report-toggle[aria-expanded="true"] { background: color-mix(in srgb, var(--bs-body-color) 6%, transparent); }
+.eo-report-toggle:focus-visible { outline: 2px solid var(--bs-report); outline-offset: 1px; }
+.eo-report-caret { margin-left: .4rem; font-size: .62rem; vertical-align: .08rem; transition: transform .15s; }
+.eo-report-toggle[aria-expanded="true"] .eo-report-caret { transform: rotate(180deg); }
+.eo-report-pick { width: max-content; min-width: 18rem; max-width: min(30rem, calc(100vw - 2rem)); padding: .35rem 0; font-size: .875rem; }
+.eo-report-pick .dropdown-item { display: flex; align-items: center; gap: .55rem; padding: .45rem .9rem; white-space: normal; }
+.eo-report-pick .dropdown-item[aria-current="true"]:not(:hover):not(:focus):not(:active) {
+    background: color-mix(in srgb, var(--bs-report) 16%, var(--bs-dropdown-bg)); color: var(--bs-emphasis-color);
+}
+.eo-report-pick-mark { flex: 0 0 1rem; width: 1rem; text-align: center; }
+.eo-report-pick [data-eo-report-pick]:not([aria-current="true"]) .eo-report-pick-mark { visibility: hidden; }
+.eo-report-pick-name {
+    flex: 1 1 auto; min-width: 0; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.eo-report-pick-date { flex-shrink: 0; font-size: .76rem; color: var(--bs-secondary-color); font-variant-numeric: tabular-nums; }
+.eo-report-pick .dropdown-item:hover .eo-report-pick-date, .eo-report-pick .dropdown-item:focus .eo-report-pick-date { color: inherit; }
+.eo-report-pick-all { color: var(--bs-secondary-color); font-size: .82rem; }
+.eo-report-link:hover { color: var(--bs-report) !important; text-decoration: underline !important; text-underline-offset: .15em; }
+.eo-report-link:focus-visible { outline: 2px solid var(--bs-report); outline-offset: 2px; border-radius: .2rem; }
+
+/* report openings in the Reports tab's cards */
+/* contain: an unbreakable line in the report must not widen the card's column */
+.eo-report-snippet { contain: inline-size; margin-top: .4rem; padding-top: .6rem; border-top: 1px solid var(--bs-border-color); }
+.eo-report-snippet .eo-report-clamp { max-height: 15rem; padding: 0; }
+.eo-report-snippet-read { align-self: flex-start; padding: .1rem 0; font-size: .8rem; font-weight: 600; color: var(--bs-report); text-decoration: none; }
+.eo-report-snippet-read:hover, .eo-report-snippet-read:focus-visible { color: var(--bs-report); text-decoration: underline; text-underline-offset: .15em; }
+.eo-report-snippet-empty { margin: .35rem 0 0; font-size: .82rem; font-style: italic; color: var(--bs-secondary-color); }
+
+/* report reader */
+.eo-reader-head { gap: .65rem; }
+.eo-reader-title {
+    margin: 0; font-size: 1.05rem; font-weight: 700; line-height: 1.25; color: var(--bs-emphasis-color);
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
+}
+.eo-reader-head .eo-card-sub { margin-top: .15rem; }
+.eo-reader-body { position: relative; min-height: 12rem; }
+.eo-reader-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 
 /* graph */
 .eo-switch {

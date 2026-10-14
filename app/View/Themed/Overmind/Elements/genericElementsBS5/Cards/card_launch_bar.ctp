@@ -157,17 +157,32 @@ $menuItem = function (array $action, $class = '') use ($link, $well, $tiles, $pr
 
 $published = !empty($status['published']);
 $pending = !empty($status['pending']) && !empty($status['lastPublished']);
+$publishedAt = $published && !$pending ? (int)($status['lastPublished'] ?? 0) : 0;
 $statusClass = $pending ? 'is-pending' : ($published ? 'is-pub' : 'is-draft');
+$statusTitle = '';
+if ($pending) {
+    $statusTitle = __('Published %s; changes made since then are not published yet', date('Y-m-d H:i:s', (int)$status['lastPublished']));
+} elseif ($publishedAt > 0) {
+    $statusTitle = __('Published %s', date('Y-m-d H:i:s', $publishedAt));
+}
+$ago = function ($stamp) {
+    return CakeTime::timeAgoInWords($stamp, ['end' => '+100 years', 'accuracy' => ['year' => 'year', 'month' => 'month', 'week' => 'week', 'day' => 'day']]);
+};
 ?>
 <div class="card shadow-sm mb-3 lb-card" data-tour="quick-actions" data-launch-bar>
     <?php if (!empty($status) || $primary !== null): ?>
         <div class="lb-seg<?= $primary === null ? ' is-solo' : '' ?>" role="group" aria-label="<?= __('Publication') ?>">
-            <span class="lb-status <?= $statusClass ?>"<?= $pending ? ' title="' . h(__('Published %s; changes made since then are not published yet', date('Y-m-d H:i:s', (int)$status['lastPublished']))) . '"' : '' ?>>
+            <span class="lb-status <?= $statusClass ?>"<?= $statusTitle !== '' ? ' title="' . h($statusTitle) . '"' : '' ?>>
                 <span class="lb-dot" aria-hidden="true"></span>
                 <?php if ($pending): ?>
                     <span class="lb-status-txt lb-status-stack">
                         <span><?= __('Changes pending') ?></span>
-                        <span class="lb-status-sub"><?= h(__('Published %s', CakeTime::timeAgoInWords($status['lastPublished'], ['end' => '+100 years', 'accuracy' => ['year' => 'year', 'month' => 'month', 'week' => 'week', 'day' => 'day']]))) ?></span>
+                        <span class="lb-status-sub"><?= h(__('Published %s', $ago($status['lastPublished']))) ?></span>
+                    </span>
+                <?php elseif ($publishedAt > 0): ?>
+                    <span class="lb-status-txt lb-status-stack">
+                        <span><?= __('Published') ?></span>
+                        <span class="lb-status-sub"><?= h($ago($publishedAt)) ?></span>
                     </span>
                 <?php else: ?>
                     <span class="lb-status-txt"><?= $published ? __('Published') : __('Unpublished') ?></span>

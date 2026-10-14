@@ -38,7 +38,10 @@ $missingTitle = __(
             <?= h($type) ?>
         </span>
     <?php endif; ?>
-    <?php if ($resolves): ?>
+    <?php if ($type === 'Value'): ?>
+        <?php /* A value's uuid is a hash of the value: nothing to open or look up. */ ?>
+        <span class="font-monospace small text-break"><?= h($uuid) ?></span>
+    <?php elseif ($resolves): ?>
         <a class="text-decoration-none font-monospace small text-body-primary text-break"
            href="<?= h($url) ?>" title="<?= h($uuid) ?>">
             <?= h($uuid) ?>

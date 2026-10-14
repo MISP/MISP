@@ -2456,9 +2456,14 @@ class EventsController extends AppController
 
         $this->loadModel('EventReport');
         $withReportCount = $this->EventReport->attachReportCountsToEvents($user, $countShells);
-        $this->set('report_count', array_sum(array_column(
+        $reportCount = array_sum(array_column(
             array_column($withReportCount, 'Event'), 'report_count'
-        )));
+        ));
+        $this->set('report_count', $reportCount);
+        if ($reportCount > 0) {
+            $this->loadModel('EventReportTemplateVariable');
+            $this->set('reportTemplateVariables', $this->EventReportTemplateVariable->getAll());
+        }
 
         $sgids = $this->Event->SharingGroup->authorizedIds($user);
         // The tab is filled by correlations/eventCorrelations, which goes
@@ -2823,7 +2828,7 @@ class EventsController extends AppController
 
     /**
      * The overview's lead report, the most recently modified one, and up to
-     * five others listed by name, across the given events. A report carries
+     * nine others its picker offers, across the given events. A report carries
      * its own distribution, so seeing the event does not mean seeing every
      * report on it: apply the report ACL, as the reports tab does, and skip
      * soft-deleted ones.
@@ -2860,7 +2865,7 @@ class EventsController extends AppController
                 ],
                 'contain' => ['Event' => ['fields' => ['Event.id', 'Event.org_id']]],
                 'order' => ['EventReport.timestamp' => 'DESC', 'EventReport.id' => 'DESC'],
-                'limit' => 5,
+                'limit' => 9,
                 'recursive' => -1,
             ]);
             $event['OtherEventReports'] = array_column($others, 'EventReport');

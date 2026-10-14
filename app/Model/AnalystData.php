@@ -455,7 +455,8 @@ class AnalystData extends AppModel
         foreach ($targets as $target) {
             $type = $target['type'] ?? '';
             $uuid = $target['uuid'] ?? '';
-            if ($uuid === '' || !in_array($type, self::valid_targets, true)) {
+            // A value's uuid is a hash of the value, with no record behind it.
+            if ($uuid === '' || $type === 'Value' || !in_array($type, self::valid_targets, true)) {
                 continue;
             }
             $byType[$type][$uuid] = $uuid;

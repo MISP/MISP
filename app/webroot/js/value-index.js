@@ -367,7 +367,7 @@
              * place a profile cannot be opened in a new tab. The mark
              * is made beside the navigation rather than instead of it.
              */
-            self.act(button.getAttribute('data-vi-act'), row);
+            self.act(button.getAttribute('data-vi-act'), row, button);
         });
         this.list.addEventListener('keydown', function (event) {
             self.key(event);
@@ -764,7 +764,13 @@
      * Working the batch
      * --------------------------------------------------------------- */
 
-    Work.prototype.act = function (what, row) {
+    Work.prototype.act = function (what, row, button) {
+        if (what === 'collect') {
+            if (typeof window.openModal === 'function') {
+                window.openModal(button.getAttribute('data-vi-collect'), 'xl');
+            }
+            return;
+        }
         if (what === 'toggle') {
             row.toggled = !row.toggled;
         } else if (what === 'open' || what === 'clear') {
@@ -848,7 +854,8 @@
         } else if (key === 'k' || key === 'ArrowUp') {
             event.preventDefault();
             this.move(-1);
-        } else if (key === 'o' || key === 'Enter') {
+        } else if (key === 'o'
+            || (key === 'Enter' && event.target === this.list)) {
             event.preventDefault();
             this.opener();
         } else if (key === 'x') {

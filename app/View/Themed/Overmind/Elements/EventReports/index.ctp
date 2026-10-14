@@ -43,8 +43,16 @@ $fields = [
         'sort' => 'EventReport.name',
         'data_path' => 'EventReport.name',
         'element' => 'report_value',
+        'reader' => !empty($eventView),
         'card_section' => 'title',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Preview'),
+        'element' => 'report_preview',
+        'card_section' => 'body',
+        'display_in' => ['card'],
+        'requirement' => !empty($eventView),
     ],
     [
         'name' => __('Event'),
@@ -90,9 +98,16 @@ $fields = [
         'display_in' => ['table', 'card'],
         'actions' => [
             [
+                'type' => 'js',
+                'label' => __('Read'),
+                'icon' => 'book-open',
+                'onclick' => 'MispReportReader.open(%id%)',
+                'requirement' => !empty($eventView),
+            ],
+            [
                 'type' => 'navigate',
-                'label' => __('View'),
-                'icon' => 'eye',
+                'label' => empty($eventView) ? __('View') : __('Open report page'),
+                'icon' => empty($eventView) ? 'eye' : 'arrow-up-right-from-square',
                 'url' => $baseurl . '/event_reports/view/%id%',
             ],
             [

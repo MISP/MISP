@@ -30,13 +30,30 @@
         ];
     }
 
+    if ($this->Acl->canAccess('collectionElements', 'addElementToCollection')) {
+        $headerActions[] = [
+            'type' => 'modal',
+            'tab' => 'general',
+            'label' => __('Add to collection'),
+            'icon' => 'folder-plus',
+            'class' => 'btn btn-outline-dark',
+            'url' => sprintf(
+                '%s/collectionElements/addElementToCollection/Event/%s',
+                $baseurl,
+                h($event['Event']['uuid'])
+            ),
+            'size' => 'xl',
+        ];
+    }
+
     $this->set('headerTitle', $headerTitle);
     $this->set('headerBreadcrumbSuffix', '#' . $event['Event']['id']);
     $this->set('headerDescription', $headerDescription);
     $this->set('headerActions', $headerActions);
 
-    $viewJs = ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'Chart.min', 'event-overview', 'misp-matrix',
-        'misp-brush', 'misp-timeline', 'event-seen-timeline', 'tile-drawer', 'event-object-views'];
+    $viewJs = ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'event-report-reader', 'Chart.min',
+        'event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline', 'event-seen-timeline', 'tile-drawer',
+        'event-object-views'];
     $viewCss = ['event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline', 'value-widgets', 'tile-drawer',
         'event-object-views'];
     if (Configure::read('Plugin.Geolocation_enabled')) {
@@ -171,5 +188,7 @@
             ]
         ]
     ]);
+
+    echo $this->element('Events/View/report_reader');
 ?>
 
