@@ -148,30 +148,22 @@ $overlayHtml = '
         checkOverflow();
     }
 
-    function show(content) {
-        renderer.prepare(content).then(function () {
-            /* A later save has already taken over. */
-            if (content === raw) { render(content); }
-        });
-    }
-
     document.addEventListener('DOMContentLoaded', function () {
         if (!window.MispReportMarkdown) { return; }
         renderer = window.MispReportMarkdown.create({
             reportId: reportId,
             eventId: eventId,
             templateVariables: templateVars,
-            invalidMessage: <?= json_encode(__('invalid scope or id')) ?>,
-            proxy: 'referenced'
+            invalidMessage: <?= json_encode(__('invalid scope or id')) ?>
         });
-        show(raw);
+        renderer.ready.then(function () { render(raw); });
 
         document.addEventListener('misp:report-saved', function (event) {
             if (!event.detail || Number(event.detail.reportId) !== Number(reportId)) {
                 return;
             }
             raw = event.detail.content;
-            show(raw);
+            render(raw);
         });
     });
 

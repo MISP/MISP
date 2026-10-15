@@ -947,256 +947,19 @@ class EventReport extends AppModel
             'sgReferenceOnly' => true,
             'noEventReports' => true,
             'noShadowAttributes' => true,
-            'includeEventCorrelations' => false,
-            'fetchFullClusters' => false,
         ];
-        $allEvents = $this->__proxyEvents($user, $eventid, $options);
 
-        $allTagNames = [];
-        $attributes = [];
-        $objects = [];
-        $templateConditions = [];
-
-        foreach ($allEvents as $event) {
-            foreach ($event['EventTag'] as $eventTag) {
-                // include just tags that belongs to requested event or its parent, not to other child
-                if ($eventTag['event_id'] == $eventid || $eventTag['event_id'] == $event['Event']['id']) {
-                    $allTagNames[$eventTag['Tag']['name']] = $eventTag['Tag'];
-                }
-            }
-
-            foreach ($event['Attribute'] as $attribute) {
-                unset($attribute['ShadowAttribute']);
-                foreach ($attribute['AttributeTag'] as $at) {
-                    $allTagNames[$at['Tag']['name']] = $at['Tag'];
-                }
-                $this->Event->Attribute->removeGalaxyClusterTags($attribute);
-                $attributes[$attribute['uuid']] = $attribute;
-            }
-
-            foreach ($event['Object'] as $k => $object) {
-                if (isset($object['Attribute'])) {
-                    foreach ($object['Attribute'] as &$objectAttribute) {
-                        unset($objectAttribute['ShadowAttribute']);
-                        $objectAttribute['object_uuid'] = $object['uuid'];
-                        $attributes[$objectAttribute['uuid']] = $objectAttribute;
-
-                        foreach ($objectAttribute['AttributeTag'] as $at) {
-                            $allTagNames[$at['Tag']['name']] = $at['Tag'];
-                        }
-                        $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
-                    }
-                }
-                $objects[$object['uuid']] = $object;
-
-                $uniqueCondition = "{$object['template_uuid']}.{$object['template_version']}";
-                if (!isset($templateConditions[$uniqueCondition])) {
-                    $templateConditions[$uniqueCondition]['AND'] = [
-                        'ObjectTemplate.uuid' => $object['template_uuid'],
-                        'ObjectTemplate.version' => $object['template_version']
-                    ];
-                }
-            }
-            $objectTemplates = $this->__fetchObjectTemplates($templateConditions);
-        }
-        $this->Galaxy = ClassRegistry::init('Galaxy');
-        $allowedGalaxies = $this->Galaxy->getAllowedMatrixGalaxies($user);
-        $allowedGalaxies = Hash::combine($allowedGalaxies, '{n}.Galaxy.uuid', '{n}.Galaxy');
-        $pictureAliases = $this->getAllAliases();
-        return [
-            'attribute' => $attributes,
-            'object' => $objects,
-            'objectTemplates' => $objectTemplates,
-            'galaxymatrix' => $allowedGalaxies,
-            'tagname' => $allTagNames,
-            'picture_aliases' => $pictureAliases,
-        ];
-    }
-
-    /**
-     * The proxy cut down to what a report cites: the attributes, objects and
-     * galaxy matrices its content references, with only the fields a rendered
-     * pill reads. Visibility follows fetchEvent(), as for the full proxy, and
-     * the cost follows the number of references, not the size of the event.
-     *
-     * Tags are left out: the renderer resolves every cited tag through
-     * /tags/search anyway.
-     *
-     * @param array $user
-     * @param array $report
-     * @return array
-     * @throws Exception
-     */
-    public function getReferencedProxyMISPElements(array $user, array $report)
-    {
-        $proxy = [
-            'attribute' => [],
-            'object' => [],
-            'objectTemplates' => [],
-            'galaxymatrix' => [],
-            'tagname' => [],
-            'picture_aliases' => [],
-        ];
-        $events = $this->__proxyEvents($user, $report['EventReport']['event_id'], [
-            'metadata' => true,
-            'sgReferenceOnly' => true,
-            'includeEventCorrelations' => false,
-            'excludeGalaxy' => true,
-        ]);
-        $references = self::referencedElements(
-            $this->replaceWithTemplateVars($report['EventReport']['content'], $user)
-        );
-
-        $eventIds = [];
-        $ownedEventIds = [];
-        foreach ($events as $event) {
-            $eventIds[] = (int)$event['Event']['id'];
-            if ($event['Event']['org_id'] == $user['org_id']) {
-                $ownedEventIds[] = (int)$event['Event']['id'];
-            }
-        }
-
-        $attributes = [];
-        if (!empty($references['attribute'])) {
-            $attributes = $this->Event->Attribute->find('all', [
-                'recursive' => -1,
-                'fields' => [
-                    'Attribute.id', 'Attribute.uuid', 'Attribute.event_id',
-                    'Attribute.object_id', 'Attribute.object_relation',
-                    'Attribute.type', 'Attribute.category', 'Attribute.value',
-                    'Attribute.comment',
-                ],
-                'conditions' => $this->__visibleElementConditions($user, 'Attribute', $ownedEventIds, [
-                    'Attribute.uuid' => $references['attribute'],
-                    'Attribute.event_id' => $eventIds,
-                ]),
-                'order' => [],
-            ]);
-        }
-
-        $objectFilter = [];
-        if (!empty($references['object'])) {
-            $objectFilter['Object.uuid'] = $references['object'];
-        }
-        $ownerIds = array_filter(array_unique(Hash::extract($attributes, '{n}.Attribute.object_id')));
-        if (!empty($ownerIds)) {
-            $objectFilter['Object.id'] = array_values($ownerIds);
-        }
-        $objects = [];
-        if (!empty($objectFilter)) {
-            $objects = $this->Event->Object->find('all', [
-                'recursive' => -1,
-                'fields' => [
-                    'Object.id', 'Object.uuid', 'Object.event_id', 'Object.name',
-                    'Object.comment', 'Object.template_uuid', 'Object.template_version',
-                ],
-                'conditions' => $this->__visibleElementConditions($user, 'Object', $ownedEventIds, [
-                    'OR' => $objectFilter,
-                    'Object.event_id' => $eventIds,
-                ]),
-                'order' => [],
-            ]);
-        }
-
-        $objectsById = [];
-        $templateConditions = [];
-        foreach ($objects as $object) {
-            $object = $object['Object'];
-            $object['Attribute'] = [];
-            $objectsById[$object['id']] = $object;
-            $templateConditions["{$object['template_uuid']}.{$object['template_version']}"]['AND'] = [
-                'ObjectTemplate.uuid' => $object['template_uuid'],
-                'ObjectTemplate.version' => $object['template_version'],
-            ];
-        }
-        if (!empty($objectsById)) {
-            $objectAttributes = $this->Event->Attribute->find('all', [
-                'recursive' => -1,
-                'fields' => ['Attribute.object_id', 'Attribute.object_relation', 'Attribute.value'],
-                'conditions' => $this->__visibleElementConditions($user, 'Attribute', $ownedEventIds, [
-                    'Attribute.object_id' => array_keys($objectsById),
-                ]),
-                'order' => ['Attribute.id' => 'ASC'],
-            ]);
-            foreach ($objectAttributes as $objectAttribute) {
-                $objectAttribute = $objectAttribute['Attribute'];
-                $objectsById[$objectAttribute['object_id']]['Attribute'][] = [
-                    'object_relation' => $objectAttribute['object_relation'],
-                    'value' => $objectAttribute['value'],
-                ];
-            }
-        }
-
-        foreach ($attributes as $attribute) {
-            $attribute = $attribute['Attribute'];
-            if (!empty($attribute['object_id'])) {
-                // fetchEvent() only lists an object's attributes through the object
-                if (!isset($objectsById[$attribute['object_id']])) {
-                    continue;
-                }
-                $attribute['object_uuid'] = $objectsById[$attribute['object_id']]['uuid'];
-            }
-            $proxy['attribute'][$attribute['uuid']] = $attribute;
-        }
-        foreach ($objectsById as $object) {
-            $proxy['object'][$object['uuid']] = $object;
-        }
-        $proxy['objectTemplates'] = $this->__fetchObjectTemplates($templateConditions);
-
-        if (!empty($references['galaxymatrix'])) {
-            $this->Galaxy = ClassRegistry::init('Galaxy');
-            $allowedGalaxies = Hash::combine(
-                $this->Galaxy->getAllowedMatrixGalaxies($user),
-                '{n}.Galaxy.uuid',
-                '{n}.Galaxy'
-            );
-            $proxy['galaxymatrix'] = array_intersect_key(
-                $allowedGalaxies,
-                array_flip($references['galaxymatrix'])
-            );
-        }
-        return $proxy;
-    }
-
-    /**
-     * The attribute, object and galaxy matrix UUIDs a report's content cites,
-     * by scope — the `@[scope](uuid)` and `@![attribute](uuid)` syntax.
-     *
-     * @param string|null $content
-     * @return array
-     */
-    public static function referencedElements($content)
-    {
-        $references = ['attribute' => [], 'object' => [], 'galaxymatrix' => []];
-        $pattern = '/@!?\[(attribute|object|galaxymatrix)\]\(([0-9a-f]{8}-[0-9a-f]{4}-'
-            . '[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\)/i';
-        if (preg_match_all($pattern, (string)$content, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $match) {
-                $references[$match[1]][$match[2]] = true;
-            }
-        }
-        return array_map('array_keys', $references);
-    }
-
-    /**
-     * The event a proxy is built for, followed by the events whose elements a
-     * report on it may also cite: the event it extends, that event's other
-     * extensions, and its own extensions.
-     *
-     * @param array $user
-     * @param int|string $eventid
-     * @param array $options fetchEvent() options
-     * @return array
-     * @throws NotFoundException
-     */
-    private function __proxyEvents(array $user, $eventid, array $options)
-    {
         $event = $this->Event->fetchEvent($user, array_merge(['eventid' => $eventid], $options));
         if (empty($event)) {
             throw new NotFoundException(__('Invalid Event'));
         }
         $baseEvent = $event[0];
         $allEvents = [$baseEvent];
+
+        $allTagNames = [];
+        $attributes = [];
+        $objects = [];
+        $templateConditions = [];
 
         if (!empty($baseEvent['Event']['extends_uuid'])) {
             $extendedParentEvent = $this->Event->fetchEvent($user, array_merge([
@@ -1246,63 +1009,79 @@ class EventReport extends AppModel
             }
         }
 
-        return $allEvents;
-    }
+        foreach ($allEvents as $event) {
+            foreach ($event['EventTag'] as $eventTag) {
+                // include just tags that belongs to requested event or its parent, not to other child
+                if ($eventTag['event_id'] == $eventid || $eventTag['event_id'] == $event['Event']['id']) {
+                    $allTagNames[$eventTag['Tag']['name']] = $eventTag['Tag'];
+                }
+            }
 
-    /**
-     * @param array $templateConditions "uuid.version" => ['AND' => [uuid, version]]
-     * @return array the templates keyed "uuid.version", elements by ui-priority
-     */
-    private function __fetchObjectTemplates(array $templateConditions)
-    {
-        if (empty($templateConditions)) {
-            return [];
-        }
-        $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
-        $templates = $this->ObjectTemplate->find('all', array(
-            'conditions' => ['OR' => array_values($templateConditions)],
-            'recursive' => -1,
-            'contain' => array(
-                'ObjectTemplateElement' => [
-                    'order' => ['ui-priority' => 'DESC'],
-                    'fields' => ['object_relation', 'type', 'ui-priority']
-                ]
-            )
-        ));
-        $objectTemplates = [];
-        foreach ($templates as $template) {
-            $objectTemplates["{$template['ObjectTemplate']['uuid']}.{$template['ObjectTemplate']['version']}"] = $template;
-        }
-        return $objectTemplates;
-    }
+            foreach ($event['Attribute'] as $attribute) {
+                unset($attribute['ShadowAttribute']);
+                foreach ($attribute['AttributeTag'] as $at) {
+                    $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                }
+                $this->Event->Attribute->removeGalaxyClusterTags($attribute);
+                $attributes[$attribute['uuid']] = $attribute;
+            }
 
-    /**
-     * fetchEvent()'s rule for the attributes or objects of events the user can
-     * already see: not soft-deleted, and either shared beyond the owner org or
-     * in an event that org owns.
-     *
-     * @param array $user
-     * @param string $alias 'Attribute' or 'Object'
-     * @param array $ownedEventIds the events of $user's org among those queried
-     * @param array $conditions
-     * @return array
-     */
-    private function __visibleElementConditions(array $user, $alias, array $ownedEventIds, array $conditions)
-    {
-        $conditions["$alias.deleted"] = 0;
-        if (!empty($user['Role']['perm_site_admin'])) {
-            return $conditions;
+            foreach ($event['Object'] as $k => $object) {
+                if (isset($object['Attribute'])) {
+                    foreach ($object['Attribute'] as &$objectAttribute) {
+                        unset($objectAttribute['ShadowAttribute']);
+                        $objectAttribute['object_uuid'] = $object['uuid'];
+                        $attributes[$objectAttribute['uuid']] = $objectAttribute;
+
+                        foreach ($objectAttribute['AttributeTag'] as $at) {
+                            $allTagNames[$at['Tag']['name']] = $at['Tag'];
+                        }
+                        $this->Event->Attribute->removeGalaxyClusterTags($objectAttribute);
+                    }
+                }
+                $objects[$object['uuid']] = $object;
+
+                $uniqueCondition = "{$object['template_uuid']}.{$object['template_version']}";
+                if (!isset($templateConditions[$uniqueCondition])) {
+                    $templateConditions[$uniqueCondition]['AND'] = [
+                        'ObjectTemplate.uuid' => $object['template_uuid'],
+                        'ObjectTemplate.version' => $object['template_version']
+                    ];
+                }
+            }
+            if (!empty($templateConditions)) {
+                // Fetch object templates for event objects
+                $this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+                $templates = $this->ObjectTemplate->find('all', array(
+                    'conditions' => ['OR' => array_values($templateConditions)],
+                    'recursive' => -1,
+                    'contain' => array(
+                        'ObjectTemplateElement' => [
+                            'order' => ['ui-priority' => 'DESC'],
+                            'fields' => ['object_relation', 'type', 'ui-priority']
+                        ]
+                    )
+                ));
+                $objectTemplates = [];
+                foreach ($templates as $template) {
+                    $objectTemplates["{$template['ObjectTemplate']['uuid']}.{$template['ObjectTemplate']['version']}"] = $template;
+                }
+            } else {
+                $objectTemplates = [];
+            }
         }
-        $sgids = $this->Event->SharingGroup->authorizedIds($user);
-        $visible = [
-            ['AND' => ["$alias.distribution >" => 0, "$alias.distribution !=" => 4]],
-            ['AND' => ["$alias.distribution" => 4, "$alias.sharing_group_id" => $sgids]],
+        $this->Galaxy = ClassRegistry::init('Galaxy');
+        $allowedGalaxies = $this->Galaxy->getAllowedMatrixGalaxies($user);
+        $allowedGalaxies = Hash::combine($allowedGalaxies, '{n}.Galaxy.uuid', '{n}.Galaxy');
+        $pictureAliases = $this->getAllAliases();
+        return [
+            'attribute' => $attributes,
+            'object' => $objects,
+            'objectTemplates' => $objectTemplates,
+            'galaxymatrix' => $allowedGalaxies,
+            'tagname' => $allTagNames,
+            'picture_aliases' => $pictureAliases,
         ];
-        if (!empty($ownedEventIds)) {
-            $visible[] = ["$alias.event_id" => $ownedEventIds];
-        }
-        $conditions['AND'][] = ['OR' => $visible];
-        return $conditions;
     }
 
     public function replaceWithTemplateVars($content, $user)

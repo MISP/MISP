@@ -16,15 +16,13 @@
  *   @[galaxymatrix](uuid)    a galaxy, as a card linking to it
  *   {{ variable }}           an event report template variable
  *
- * The pills read /eventReports/getProxyMISPElements/<id>, the tags
- * /tags/search; both are shared by every renderer of the page. A renderer
- * created with `proxy: 'referenced'` asks only for what the saved report
- * cites (nothing at all when it cites no attribute, object or galaxy); the
- * whole event, `proxy: 'full'`, is for the editor, whose suggestions list it.
+ * Everything the pills need comes from one request —
+ * /eventReports/getProxyMISPElements/<id> — except a tag that is not attached
+ * to the event, which /tags/search resolves in one batched call per render.
  *
  * Usage:
- *   var r = MispReportMarkdown.create({reportId: 12, eventId: 34, proxy: 'referenced'});
- *   r.prepare(raw).then(function () { r.render(raw, document.getElementById('x')); });
+ *   var r = MispReportMarkdown.create({reportId: 12, eventId: 34});
+ *   r.ready.then(function () { r.render(raw, document.getElementById('x')); });
  *
  * The styling lives in mainOvermind.css (.markdown-preview-body, .ov-md-*), so
  * CSS stays authoritative the way it does everywhere else in the theme.
@@ -51,98 +49,6 @@
 
     function base() {
         return typeof window.baseurl === 'string' ? window.baseurl : '';
-    }
-
-    /* Page-wide, not per renderer: the General preview and the Edit Content
-       split screen render the same report. */
-    var proxyRequests = {};   /* "<report id>:<scope>" → Promise of {data, full} */
-    var tagData = {};         /* tag name → resolved /tags/search row */
-    var tagsMissing = {};     /* tag name → true once looked up in vain */
-    var tagRequests = {};     /* tag name → Promise of its lookup in flight */
-
-    function requestProxy(reportId, scope) {
-        var url = base() + '/eventReports/getProxyMISPElements/' + reportId
-            + (scope === 'referenced' ? '?scope=referenced' : '');
-        return fetch(url, {headers: {'Accept': 'application/json'}}).then(function (response) {
-            if (!response.ok) { throw new Error('HTTP ' + response.status); }
-            return response.json();
-        }).then(function (data) {
-            return {data: data, full: scope !== 'referenced'};
-        });
-    }
-
-    /**
-     * The whole proxy is kept for the page and, once there, answers the
-     * referenced scope too. A referenced one is shared only while in flight:
-     * it is cut to the report as saved, which a save changes.
-     */
-    function fetchProxy(reportId, scope) {
-        var fullKey = reportId + ':full';
-        var key = scope === 'referenced' && !proxyRequests[fullKey]
-            ? reportId + ':referenced'
-            : fullKey;
-        if (!proxyRequests[key]) {
-            var forget = function () { delete proxyRequests[key]; };
-            proxyRequests[key] = requestProxy(reportId, key === fullKey ? 'full' : 'referenced');
-            if (key === fullKey) {
-                /* A failure is not cached, so a later call may retry. */
-                proxyRequests[key].catch(forget);
-            } else {
-                proxyRequests[key].then(forget, forget);
-            }
-        }
-        return proxyRequests[key];
-    }
-
-    function lookupTags(names) {
-        var body = new URLSearchParams();
-        names.forEach(function (name) { body.append('tag[]', name); });
-
-        var request = fetch(base() + '/tags/search/0/1/0', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-            },
-            body: body.toString()
-        }).then(function (response) {
-            if (!response.ok) { throw new Error('HTTP ' + response.status); }
-            return response.json();
-        }).then(function (tags) {
-            (tags || []).forEach(function (tag) {
-                if (tag && tag.Tag && tag.Tag.name) {
-                    tag.resolved = true;
-                    tagData[tag.Tag.name] = tag;
-                }
-            });
-        }).catch(function () {
-            /* Leave the name showing: a tag that cannot be looked up is still
-               readable, and the colour stays neutral. */
-        }).then(function () {
-            names.forEach(function (name) {
-                if (!tagData[name]) { tagsMissing[name] = true; }
-                delete tagRequests[name];
-            });
-        });
-        names.forEach(function (name) { tagRequests[name] = request; });
-        return request;
-    }
-
-    /* Resolves once every name is either known or known to be missing. */
-    function ensureTags(names) {
-        var waits = [];
-        var unknown = [];
-        names.forEach(function (name) {
-            if (tagData[name] || tagsMissing[name]) { return; }
-            if (!tagRequests[name]) {
-                unknown.push(name);
-            } else if (waits.indexOf(tagRequests[name]) === -1) {
-                waits.push(tagRequests[name]);
-            }
-        });
-        if (unknown.length) { waits.push(lookupTags(unknown)); }
-        return Promise.all(waits);
     }
 
     function esc(value) {
@@ -306,11 +212,10 @@
         this.templateVariables = normaliseTemplateVariables(options.templateVariables);
         this.onProxyError = options.onProxyError || null;
         this.invalidMessage = options.invalidMessage || 'invalid scope or id';
-        this.proxyScope = options.proxy === 'referenced' ? 'referenced' : 'full';
 
         this.proxy = null;
-        this.proxyIsFull = false;
-        this.covered = {};        /* "scope:uuid" → true once the proxy answers for it */
+        this.tagData = {};        /* tag name → resolved tag payload */
+        this.tagsMissing = {};    /* tag name → true once looked up in vain */
         this.popovers = [];
         this.openPopover = null;
         this.dismissBound = false;
@@ -323,6 +228,7 @@
 
         this.md = window.markdownit({html: false, linkify: true, typographer: true});
         this._installRules();
+        this.ready = this._loadProxy();
     }
 
     Renderer.prototype._installRules = function () {
@@ -337,60 +243,22 @@
         };
     };
 
-    /**
-     * Resolves once the renderer holds what `raw` cites, its tags included, so
-     * the render that follows paints its final pills at once. `scope` defaults
-     * to the `proxy` option the renderer was created with.
-     */
-    Renderer.prototype.prepare = function (raw, scope) {
+    Renderer.prototype._loadProxy = function () {
         var self = this;
-        var cited = this._cited(raw);
-        return Promise.all([
-            this._prepareProxy(cited.elements, scope || this.proxyScope),
-            ensureTags(cited.tags)
-        ]).then(function () { return self.proxy; });
-    };
-
-    Renderer.prototype._prepareProxy = function (elements, scope) {
-        var self = this;
-        if (!this.reportId || this.proxyIsFull) { return Promise.resolve(this.proxy); }
-        if (scope === 'referenced' && elements.every(function (key) { return self.covered[key]; })) {
-            return Promise.resolve(this.proxy);
-        }
-        return fetchProxy(this.reportId, scope).then(function (answer) {
-            self.proxy = answer.data || null;
-            self.proxyIsFull = answer.full;
-            self.hintCache = null;
-            /* A referenced proxy replaces the last one rather than adding to it. */
-            self.covered = {};
-            elements.forEach(function (key) { self.covered[key] = true; });
+        if (!this.reportId) { return Promise.resolve(null); }
+        return fetch(base() + '/eventReports/getProxyMISPElements/' + this.reportId, {
+            headers: {'Accept': 'application/json'}
+        }).then(function (response) {
+            if (!response.ok) { throw new Error('HTTP ' + response.status); }
+            return response.json();
+        }).then(function (data) {
+            self.proxy = data || null;
             return self.proxy;
         }).catch(function (err) {
+            self.proxy = null;
             if (self.onProxyError) { self.onProxyError(err); }
-            return self.proxy;
+            return null;
         });
-    };
-
-    /* What `raw` cites, read by this renderer's own parser: "scope:uuid" for
-       what the proxy answers, names for what /tags/search does. */
-    Renderer.prototype._cited = function (raw) {
-        var cited = {elements: [], tags: []};
-        var walk = function (tokens) {
-            tokens.forEach(function (token) {
-                if ((token.type === 'misp_element' || token.type === 'misp_picture') && token.meta) {
-                    if (token.meta.scope === 'tag') {
-                        if (cited.tags.indexOf(token.meta.elementId) === -1) {
-                            cited.tags.push(token.meta.elementId);
-                        }
-                    } else if (SCOPES.indexOf(token.meta.scope) !== -1) {
-                        cited.elements.push(token.meta.scope + ':' + token.meta.elementId);
-                    }
-                }
-                if (token.children) { walk(token.children); }
-            });
-        };
-        walk(this.md.parse(this.injectTemplateVariables(raw || ''), {}));
-        return cited;
     };
 
     Renderer.prototype.hasProxy = function () {
@@ -619,7 +487,7 @@
         if (!this.renderingRules.tag) {
             return this._plain('tag', name, name);
         }
-        var known = tagData[name]
+        var known = this.tagData[name]
             || (this.proxy && this.proxy.tagname ? {Tag: this.proxy.tagname[name]} : null);
         var body = this._tagBody(name, known && known.Tag ? known : null);
         return '<span class="ov-md-tag" data-scope="tag" data-md-pop="1" tabindex="0"'
@@ -660,7 +528,7 @@
         };
     };
 
-    /* Whatever prepare() did not already look up, e.g. a tag just typed. */
+    /* One batched /tags/search per render for everything still unresolved. */
     Renderer.prototype._resolveTags = function (container) {
         var self = this;
         var pending = container.querySelectorAll('.ov-md-tag[data-md-tag-pending]');
@@ -670,16 +538,43 @@
         var nodes = [];
         for (var i = 0; i < pending.length; i++) {
             var name = pending[i].getAttribute('data-tagname');
-            if (tagData[name] || tagsMissing[name]) {
-                this._paintTag(pending[i], name);
-                continue;
-            }
             nodes.push(pending[i]);
-            if (names.indexOf(name) === -1) { names.push(name); }
+            if (this.tagData[name] || this.tagsMissing[name]) {
+                this._paintTag(pending[i], name);
+            } else if (names.indexOf(name) === -1) {
+                names.push(name);
+            }
         }
-        if (!nodes.length) { return; }
+        if (!names.length) { return; }
 
-        ensureTags(names).then(function () {
+        var body = new URLSearchParams();
+        names.forEach(function (name) { body.append('tag[]', name); });
+
+        fetch(base() + '/tags/search/0/1/0', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            body: body.toString()
+        }).then(function (response) {
+            if (!response.ok) { throw new Error('HTTP ' + response.status); }
+            return response.json();
+        }).then(function (tags) {
+            (tags || []).forEach(function (tag) {
+                if (tag && tag.Tag && tag.Tag.name) {
+                    tag.resolved = true;
+                    self.tagData[tag.Tag.name] = tag;
+                }
+            });
+        }).catch(function () {
+            /* Leave the name showing: a tag that cannot be looked up is still
+               readable, and the colour stays neutral. */
+        }).then(function () {
+            names.forEach(function (name) {
+                if (!self.tagData[name]) { self.tagsMissing[name] = true; }
+            });
             nodes.forEach(function (node) {
                 self._paintTag(node, node.getAttribute('data-tagname'));
             });
@@ -687,7 +582,7 @@
     };
 
     Renderer.prototype._paintTag = function (node, name) {
-        var data = tagData[name]
+        var data = this.tagData[name]
             || (this.proxy && this.proxy.tagname ? {Tag: this.proxy.tagname[name]} : null);
         var body = this._tagBody(name, data && data.Tag ? data : null);
         node.innerHTML = body.html;
@@ -767,7 +662,7 @@
         var scope = node.getAttribute('data-scope');
         if (scope === 'tag') {
             var name = node.getAttribute('data-tagname');
-            var tag = tagData[name];
+            var tag = this.tagData[name];
             var rows = [['Tag', name]];
             if (tag && tag.GalaxyCluster) {
                 rows.push(['Galaxy', tag.GalaxyCluster.type]);
