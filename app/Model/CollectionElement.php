@@ -236,12 +236,24 @@ class CollectionElement extends AppModel
             'conditions' => ['CollectionElement.collection_id' => $data['Collection']['id']]
         ]);
         $oldElements = [];
+        $oldByTarget = [];
         foreach ($temp as $oldElement) {
             $oldElements[$oldElement['CollectionElement']['uuid']] = $oldElement['CollectionElement'];
+            $oldByTarget[$this->targetKey($oldElement['CollectionElement'])] = $oldElement['CollectionElement']['uuid'];
         }
         if (isset($data['Collection']['CollectionElement'])) {
             $elementsToSave = [];
             foreach ($data['Collection']['CollectionElement'] as $k => $element) {
+                // Without a known uuid, a stored element with the same target is
+                // this one: a new row would hit the unique key, and the stored one
+                // would then be culled as absent
+                $key = $this->targetKey($element);
+                if (
+                    (empty($element['uuid']) || !isset($oldElements[$element['uuid']])) &&
+                    $key !== '' && isset($oldByTarget[$key]) && isset($oldElements[$oldByTarget[$key]])
+                ) {
+                    $element['uuid'] = $oldByTarget[$key];
+                }
                 if (empty($element['uuid'])) {
                     $element['uuid'] = CakeText::uuid();
                 }
@@ -309,5 +321,21 @@ class CollectionElement extends AppModel
             $this->skipCollectionModifiedBump = false;
         }
         return $data;
+    }
+
+    /**
+     * @param array $element
+     * @return string What a unique key on the target holds, with its column,
+     *      lowercased; '' when the element names no target.
+     */
+    private function targetKey(array $element)
+    {
+        foreach (['element_sha256', 'element_uuid'] as $column) {
+            $address = $element[$column] ?? null;
+            if (is_string($address) && trim($address) !== '') {
+                return $column . ':' . strtolower(trim($address));
+            }
+        }
+        return '';
     }
 }
