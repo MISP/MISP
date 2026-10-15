@@ -1416,6 +1416,47 @@ class AttributeValueTest extends TestCase
         $this->assertCount(4, $this->mysql->statements);
     }
 
+    public function testFindBySha256AnswersOnlyForHeldValues()
+    {
+        foreach ([$this->mysql, $this->pgsql] as $db) {
+            $db->store('evil.com', 9);
+            $db->store('good.example', 11);
+            $db->store('other', 10, 'collide.example');
+            $model = $this->model($db);
+
+            $evil = self::hex('evil.com');
+            $found = $model->findBySha256([
+                strtoupper($evil),
+                $evil,
+                self::hex('good.example'),
+                self::hex('collide.example'),
+                self::hex('absent.example'),
+                substr($evil, 0, 32),
+                [$evil],
+                null,
+            ]);
+            $this->assertSame([$evil => 9, self::hex('good.example') => 11], $found, get_class($db));
+            $this->assertCount(1, $db->statements);
+
+            $this->assertSame([], $model->findBySha256(['', 'g' . substr($evil, 1)]));
+            $this->assertSame([], $model->findBySha256([]));
+            $this->assertCount(1, $db->statements);
+        }
+    }
+
+    public function testFindBySha256AsksInChunks()
+    {
+        $hexes = [];
+        for ($i = 0; $i <= AttributeValue::CHUNK; $i++) {
+            $hexes[] = self::hex("v$i.example");
+        }
+        $this->mysql->store('v1000.example', 7);
+        $model = $this->model($this->mysql);
+
+        $this->assertSame([self::hex('v1000.example') => 7], $model->findBySha256($hexes));
+        $this->assertCount(2, $this->mysql->statementsLike('/WHERE `hash` IN \(/'));
+    }
+
     public function testFindAddressedByTextMatchesTheExactBytes()
     {
         $this->mysql->store('evil.com', 9);

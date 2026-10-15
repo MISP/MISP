@@ -491,26 +491,34 @@ class AnalystData extends AppModel
      * One lookup per distinct type, so a page of rows costs a handful of
      * queries rather than one per row.
      *
+     * A value is missing whether the dictionary lacks it or no attribute
+     * the user can see holds it.
+     *
      * @param array $user
-     * @param array $targets list of ['type' => string, 'uuid' => string]
-     * @return array uuid => true for every target that resolves
+     * @param array $targets list of ['type' => string, 'address' => string],
+     *                       a SHA-256 for the SHA256_TARGETS, else a uuid
+     * @return array address => true for every target that resolves; a
+     *               SHA-256 in lower case
      */
     public function existingTargets(array $user, array $targets): array
     {
         $byType = [];
         foreach ($targets as $target) {
             $type = $target['type'] ?? '';
-            $uuid = $target['uuid'] ?? '';
-            if ($uuid === '' || !in_array($type, self::valid_targets, true)) {
+            $address = (string)($target['address'] ?? '');
+            if ($address === '' || !in_array($type, self::valid_targets, true)) {
                 continue;
             }
-            $byType[$type][$uuid] = $uuid;
+            if (in_array($type, self::SHA256_TARGETS, true)) {
+                $address = strtolower($address);
+            }
+            $byType[$type][$address] = $address;
         }
 
         $found = [];
-        foreach ($byType as $type => $uuids) {
-            foreach ($this->__resolveTargetsOfType($user, $type, array_values($uuids)) as $uuid) {
-                $found[$uuid] = true;
+        foreach ($byType as $type => $addresses) {
+            foreach ($this->__resolveTargetsOfType($user, $type, array_values($addresses)) as $address) {
+                $found[$address] = true;
             }
         }
         return $found;
@@ -518,12 +526,35 @@ class AnalystData extends AppModel
 
     /**
      * @param array $user
-     * @param string $type one of self::valid_targets
-     * @param array $uuids
-     * @return array the subset of $uuids that exists and is visible to $user
+     * @param array $hexes
+     * @return array [lowercase hex => value id] for the values an attribute
+     *               the user can see holds; any attribute for a site admin
      */
-    private function __resolveTargetsOfType(array $user, string $type, array $uuids): array
+    protected function visibleValuesBySha256(array $user, array $hexes): array
     {
+        $attribute = ClassRegistry::init('MispAttribute');
+        $ids = $attribute->loadAttributeValue()->findBySha256($hexes);
+        if (empty($ids)) {
+            return [];
+        }
+        $visible = array_flip($attribute->visibleValueIds($user, $ids, count($ids)));
+        return array_filter($ids, function ($id) use ($visible) {
+            return isset($visible[$id]);
+        });
+    }
+
+    /**
+     * @param array $user
+     * @param string $type one of self::valid_targets
+     * @param array $addresses
+     * @return array the subset of $addresses that exists and is visible to $user
+     */
+    private function __resolveTargetsOfType(array $user, string $type, array $addresses): array
+    {
+        if ($type === 'AttributeValue') {
+            return array_keys($this->visibleValuesBySha256($user, $addresses));
+        }
+        $uuids = $addresses;
         if ($type === 'Attribute') {
             $model = ClassRegistry::init('MispAttribute');
             $rows = $model->fetchAttributesSimple($user, [
@@ -777,16 +808,21 @@ class AnalystData extends AppModel
      * Total analyst data attached to an object, counted RECURSIVELY: the object's 
      * (direct notes/opinions/relationships, plus analyst data at any depth
      */
-    public function countForObjectRecursive(array $user, string $objectUuid): int
+    public function countForObjectRecursive(array $user, string $address, $objectType = null): int
     {
         $models = [
             'Note' => ClassRegistry::init('Note'),
             'Opinion' => ClassRegistry::init('Opinion'),
             'Relationship' => ClassRegistry::init('Relationship'),
         ];
+        if (in_array($objectType, self::SHA256_TARGETS, true)) {
+            $address = strtolower($address);
+        }
         $total = 0;
-        $frontier = [$objectUuid];
-        $seen = [$objectUuid => true];
+        $frontier = [$address];
+        $seen = [$address => true];
+        // Only the object itself may be SHA-256-addressed, its analyst data never is
+        $column = self::addressColumn($objectType, 'object');
         // Walk the tree level by level
         while (!empty($frontier)) {
             $next = [];
@@ -794,7 +830,7 @@ class AnalystData extends AppModel
                 $rows = $model->find('all', [
                     'recursive' => -1,
                     'fields' => [$alias . '.uuid'],
-                    'conditions' => array_merge(['object_uuid' => $frontier], $model->buildConditions($user)),
+                    'conditions' => array_merge([$column => $frontier], $model->buildConditions($user)),
                     'callbacks' => false,
                 ]);
                 foreach ($rows as $row) {
@@ -807,11 +843,12 @@ class AnalystData extends AppModel
                 }
             }
             $frontier = $next;
+            $column = 'object_uuid';
         }
         // Inbound relationships (they point to this object; shown flat in the card).
         $total += (int)$models['Relationship']->find('count', [
             'recursive' => -1,
-            'conditions' => array_merge(['related_object_uuid' => $objectUuid], $models['Relationship']->buildConditions($user)),
+            'conditions' => array_merge([self::addressColumn($objectType, 'related_object') => $address], $models['Relationship']->buildConditions($user)),
             'callbacks' => false,
         ]);
 

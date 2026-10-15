@@ -503,16 +503,8 @@ class AttributeValue extends AppModel
             $id = filter_var($address['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
             $found = $id === false ? [] : $this->fetchValues([$id]);
         } elseif (isset($address['sha256'])) {
-            $hex = is_string($address['sha256']) ? strtolower($address['sha256']) : '';
-            if (!preg_match('/^[0-9a-f]{64}$/', $hex)) {
-                return null;
-            }
-            $found = [];
-            foreach ($this->fetchRows($this->selectByHash('= ' . $this->getSqlDialect()->binaryLiteral(hex2bin($hex)))) as $row) {
-                if (hash('sha256', (string)$row['value']) === $hex) {
-                    $found[(int)$row['id']] = (string)$row['value'];
-                }
-            }
+            $row = current($this->valuesBySha256([$address['sha256']]));
+            $found = $row === false ? [] : [$row['id'] => $row['value']];
         } elseif (isset($address['value']) && is_scalar($address['value'])) {
             $found = array_flip($this->idsOf([$address['value']]));
         } else {
@@ -522,6 +514,49 @@ class AttributeValue extends AppModel
             return null;
         }
         return ['id' => (int)key($found), 'value' => (string)current($found)];
+    }
+
+    /**
+     * @param array $hexes SHA-256s as hex, in any case; anything else is skipped.
+     * @return array [lowercase hex => id] for the values the dictionary holds
+     */
+    public function findBySha256(array $hexes)
+    {
+        return array_map(function (array $row) {
+            return $row['id'];
+        }, $this->valuesBySha256($hexes));
+    }
+
+    /**
+     * A row counts only if its text hashes to the address it was found by.
+     *
+     * @param array $hexes
+     * @return array [lowercase hex => ['id' => int, 'value' => string]]
+     */
+    private function valuesBySha256(array $hexes)
+    {
+        $wanted = [];
+        foreach ($hexes as $hex) {
+            $hex = is_string($hex) ? strtolower($hex) : '';
+            if (preg_match('/^[0-9a-f]{64}$/', $hex)) {
+                $wanted[$hex] = true;
+            }
+        }
+        $dialect = $this->getSqlDialect();
+        $found = [];
+        foreach (array_chunk(array_keys($wanted), self::CHUNK) as $chunk) {
+            $literals = [];
+            foreach ($chunk as $hex) {
+                $literals[] = $dialect->binaryLiteral(hex2bin($hex));
+            }
+            foreach ($this->fetchRows($this->selectByHash('IN (' . implode(', ', $literals) . ')')) as $row) {
+                $hex = hash('sha256', (string)$row['value']);
+                if (isset($wanted[$hex])) {
+                    $found[$hex] = ['id' => (int)$row['id'], 'value' => (string)$row['value']];
+                }
+            }
+        }
+        return $found;
     }
 
     /**

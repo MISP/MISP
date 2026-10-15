@@ -115,30 +115,45 @@ class Relationship extends AnalystData
             }
         }
         foreach ($results as $i => $v) {
-            if (!empty($v[$this->alias]['related_object_type']) && !empty($v[$this->alias]['related_object_uuid']) && empty($results[$i][$this->alias]['related_object'])) {
-                $results[$i][$this->alias]['related_object'] = $this->getRelatedElement($this->__currentUser, $v[$this->alias]['related_object_type'], $v[$this->alias]['related_object_uuid']);
+            $type = $v[$this->alias]['related_object_type'] ?? null;
+            $address = $v[$this->alias][self::addressColumn($type, 'related_object')] ?? null;
+            if (!empty($type) && !empty($address) && empty($results[$i][$this->alias]['related_object'])) {
+                $results[$i][$this->alias]['related_object'] = $this->getRelatedElement($this->__currentUser, $type, $address);
             }
         }
         return $results;
     }
 
-    public function getRelatedElement(array $user, $type, $uuid): array
+    /**
+     * @param array $user
+     * @param string $type
+     * @param string $address A uuid, or a SHA-256 for the SHA256_TARGETS.
+     * @return array Empty when the target is missing or not visible to $user.
+     */
+    public function getRelatedElement(array $user, $type, $address): array
     {
         $data = [];
-        if ($type == 'Event') {
+        if ($type == 'AttributeValue') {
+            $ids = $this->visibleValuesBySha256($user, [$address]);
+            $values = empty($ids) ? [] : ClassRegistry::init('MispAttribute')->loadAttributeValue()->fetchValues($ids);
+            // No id: value ids never leave the instance, and this rides in REST payloads
+            if (!empty($values)) {
+                $data = ['AttributeValue' => ['value' => current($values), 'sha256' => key($ids)]];
+            }
+        } else if ($type == 'Event') {
             $this->Event = ClassRegistry::init('Event');
             $params = [
             ];
             $backup = $this->Event->includeAnalystData;
             $this->Event->includeAnalystData = false;
-            $data = $this->Event->fetchSimpleEvent($user, $uuid, $params);
+            $data = $this->Event->fetchSimpleEvent($user, $address, $params);
             $data = $data ?? [];
             $this->Event->includeAnalystData = $backup;
         } else if ($type == 'Attribute') {
             $this->Attribute = ClassRegistry::init('MispAttribute');
             $params = [
                 'conditions' => [
-                    ['Attribute.uuid' => $uuid],
+                    ['Attribute.uuid' => $address],
                 ],
                 'contain' => ['Event' => 'Orgc', 'Object',]
             ];
@@ -151,7 +166,7 @@ class Relationship extends AnalystData
             $this->Object = ClassRegistry::init('MispObject');
             $params = [
                 'conditions' => [
-                    ['Object.uuid' => $uuid],
+                    ['Object.uuid' => $address],
                 ],
                 'contain' => ['Event' => 'Orgc',]
             ];
@@ -214,28 +229,24 @@ class Relationship extends AnalystData
         return $data;
     }
 
-    public function getInboundRelationships(array $user, $object_type, $object_uuid): array
+    /**
+     * @param array $user
+     * @param string $object_type
+     * @param string $address A uuid, or a SHA-256 for the SHA256_TARGETS.
+     * @return array
+     */
+    public function getInboundRelationships(array $user, $object_type, $address): array
     {
+        if (in_array($object_type, self::SHA256_TARGETS, true)) {
+            $address = strtolower((string)$address);
+        }
         $conditions = [
             'related_object_type' => $object_type,
-            'related_object_uuid' => $object_uuid,
+            self::addressColumn($object_type, 'related_object') => $address,
         ];
-        $type = 'Relationship';
-        if (empty($user['Role']['perm_site_admin'])) {
-            if ($this->__valid_sharing_groups === null) {
-                $this->__valid_sharing_groups = $this->SharingGroup->authorizedIds($user, true);
-            }
-            $conditions['AND'][] = [
-                'OR' => [
-                    $type . '.orgc_uuid' => $user['Organisation']['uuid'],
-                    $type . '.org_uuid' => $user['Organisation']['uuid'],
-                    $type . '.distribution IN' => [1, 2, 3],
-                    'AND' => [
-                        $type . '.distribution' => 4,
-                        $type . '.sharing_group_id IN' => $this->__valid_sharing_groups
-                    ]
-                ]
-            ];
+        $acl = $this->analystDataConditions($user);
+        if (!empty($acl)) {
+            $conditions['AND'][] = $acl;
         }
         $inboundRelations = $this->find('all', [
             'recursive' => -1,
@@ -245,7 +256,8 @@ class Relationship extends AnalystData
 
         foreach ($inboundRelations as $i => $relationship) {
             $relationship = $relationship['Relationship'];
-            $inboundRelations[$i]['Relationship']['related_object'] = $this->getRelatedElement($this->__currentUser, $relationship['object_type'], $relationship['object_uuid']);
+            $from = $relationship[self::addressColumn($relationship['object_type'], 'object')] ?? null;
+            $inboundRelations[$i]['Relationship']['related_object'] = $this->getRelatedElement($user, $relationship['object_type'], $from);
         }
 
         return $inboundRelations;

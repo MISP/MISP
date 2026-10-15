@@ -391,17 +391,15 @@ class AnalystDataController extends AppController
     private function __setTargetExistence(array $rows)
     {
         $model = $this->modelSelection;
-        $pairs = [
-            ['object_type', 'object_uuid'],
-            ['related_object_type', 'related_object_uuid'],
-        ];
         $targets = [];
         foreach ($rows as $row) {
-            foreach ($pairs as list($typeKey, $uuidKey)) {
-                if (!empty($row[$model][$uuidKey])) {
+            foreach (['object', 'related_object'] as $end) {
+                $type = $row[$model][$end . '_type'] ?? '';
+                $address = $row[$model][AnalystData::addressColumn($type, $end)] ?? '';
+                if (!empty($address)) {
                     $targets[] = [
-                        'type' => $row[$model][$typeKey] ?? '',
-                        'uuid' => $row[$model][$uuidKey],
+                        'type' => $type,
+                        'address' => $address,
                     ];
                 }
             }
