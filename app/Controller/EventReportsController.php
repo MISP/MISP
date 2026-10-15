@@ -92,6 +92,14 @@ class EventReportsController extends AppController
         $this->set('ajax', $ajax);
         $this->set('id', $reportId);
         $this->set('report', $report);
+        $this->set('parentEvent', $this->EventReport->Event->fetchSimpleEvent(
+            $this->Auth->user(),
+            $report['EventReport']['event_id'],
+            [
+                'fields' => ['Event.id', 'Event.distribution', 'Event.sharing_group_id', 'Event.published', 'Event.threat_level_id'],
+                'contain' => ['SharingGroup' => ['fields' => ['id', 'name', 'uuid']]],
+            ]
+        ));
         $this->set('title_for_layout', __('Event report %s', $report['EventReport']['name']));
         $this->__injectTemplateVariables($this->Auth->user());
         $this->__injectDistributionLevelToViewContext();

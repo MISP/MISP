@@ -53,7 +53,7 @@ class TaxonomiesController extends AppController
 
     public function view($id)
     {
-        $taxonomy = $this->Taxonomy->getTaxonomy($id, $this->_isRest());
+        $taxonomy = $this->Taxonomy->getTaxonomy($id);
         if (empty($taxonomy)) {
             throw new NotFoundException(__('Taxonomy not found.'));
         }
@@ -62,8 +62,8 @@ class TaxonomiesController extends AppController
             return $this->RestResponse->viewData($taxonomy, $this->response->type());
         }
 
-        $tagIds = array_column(array_column(array_column($taxonomy['entries'], 'existing_tag'), 'Tag'), 'id');
         $this->set('tag_count', count($taxonomy['entries']));
+        $this->set('entries', $taxonomy['entries']);
 
         $this->set('taxonomy', $taxonomy['Taxonomy']);
         $this->set('id', $taxonomy['Taxonomy']['id']);

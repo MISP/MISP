@@ -1037,6 +1037,7 @@ class ACLComponent extends Component
             'toggleEnable' => ['AND'=> ['perm_warninglist', 'theming_enabled']],
             'update' => array(),
             'view' => array('*'),
+            'viewEntries' => ['AND'=> ['perm_warninglist', 'theming_enabled']],
             'edit' => ['perm_warninglist'],
             'add' => ['perm_warninglist'],
             'export' => ['*'],

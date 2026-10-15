@@ -46,10 +46,16 @@ class ObjectRelationshipsController extends AppController
         foreach ($allCounts['analyst_relationship'] as $type => $count) {
             $countsForTypes[$type]['analyst_relationship'] = intval($count);
         }
-        $filters = $this->IndexFilter->harvestParameters(['quickFilter']);
+
+        // Build conditions for highlighted filter
+        $conditions = [];
+        $filters = $this->IndexFilter->harvestParameters(['highlighted','quickFilter']);
         $conditions = [];
         if (!empty($filters['quickFilter'])) {
             $conditions['name LIKE'] = '%' . $filters['quickFilter'] . '%';
+        }
+        if (isset($filters['highlighted'])) {
+            $conditions['highlighted'] = $filters['highlighted'];
         }
         $relationships = $this->ObjectRelationship->find('all', [
             'recursive' => -1,

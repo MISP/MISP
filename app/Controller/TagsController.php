@@ -45,12 +45,19 @@ class TagsController extends AppController
         $conditions = [];
         $passedArgsArray = $this->IndexFilter->harvestParameters(['favouritesOnly', 'filter', 'searchall', 'name', 'search', 'exclude_statistics']);
 
-        if (!empty($passedArgsArray['favouritesOnly'])) {
+        // Truthy keeps the user's favourites, 0 drops them, '' or absent is no filter.
+        $favourites = $passedArgsArray['favouritesOnly'] ?? null;
+        $notFavourites = $favourites === '0' || $favourites === 0;
+        if ($notFavourites || !empty($favourites)) {
             $tagIdList = $this->Tag->FavouriteTag->find('list', [
                 'conditions' => ['FavouriteTag.user_id' => $this->Auth->user('id')],
                 'fields' => ['FavouriteTag.tag_id']
             ]);
-            $conditions['Tag.id'] = empty($tagIdList) ? -1 : $tagIdList;
+            if (!$notFavourites) {
+                $conditions['Tag.id'] = empty($tagIdList) ? -1 : $tagIdList;
+            } elseif (!empty($tagIdList)) {
+                $conditions['NOT'] = ['Tag.id' => array_values($tagIdList)];
+            }
         }
 
         $params = [

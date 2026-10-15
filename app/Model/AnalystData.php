@@ -88,7 +88,8 @@ class AnalystData extends AppModel
         'object_uuid' => [
             'uuid' => [
                 'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+                'message' => 'Please provide a valid RFC 4122 UUID',
+                'required' => 'create',
             ],
         ],
         'org_uuid' => [
@@ -475,6 +476,77 @@ class AnalystData extends AppModel
         ]);
     }
 
+    /**
+     * A readable line for each target $user can open, so a view can name what
+     * a note is about instead of printing its UUID. Visibility is decided by
+     * existingTargets(); the label is then read without callbacks.
+     *
+     * @param array $user
+     * @param array $targets list of ['type' => string, 'uuid' => string]
+     * @return array uuid => ['label' => string, 'meta' => string[]]
+     */
+    public function describeTargets(array $user, array $targets): array
+    {
+        $models = [
+            'Event' => ['Event', ['id', 'info', 'date'], 'info'],
+            'Attribute' => ['MispAttribute', ['type', 'value', 'event_id'], 'value'],
+            'Object' => ['MispObject', ['name', 'meta-category', 'event_id'], 'name'],
+            'EventReport' => ['EventReport', ['name', 'event_id'], 'name'],
+            'GalaxyCluster' => ['GalaxyCluster', ['value', 'type'], 'value'],
+            'Galaxy' => ['Galaxy', ['name', 'type'], 'name'],
+            'Note' => ['Note', ['note', 'language'], 'note'],
+            'Opinion' => ['Opinion', ['opinion', 'comment'], 'comment'],
+            'Relationship' => ['Relationship', ['relationship_type', 'related_object_type'], 'relationship_type'],
+            'Organisation' => ['Organisation', ['name', 'type'], 'name'],
+            'SharingGroup' => ['SharingGroup', ['name'], 'name'],
+        ];
+        $visible = $this->existingTargets($user, $targets);
+        $described = [];
+        foreach ($targets as $target) {
+            $type = $target['type'] ?? '';
+            $uuid = $target['uuid'] ?? '';
+            if (empty($visible[$uuid]) || !isset($models[$type])) {
+                continue;
+            }
+            list($modelName, $fields, $labelField) = $models[$type];
+            $model = ClassRegistry::init($modelName);
+            $alias = $model->alias;
+            $row = $model->find('first', [
+                'conditions' => ["{$alias}.uuid" => $uuid],
+                'fields' => array_map(function ($field) use ($alias) {
+                    return "{$alias}.{$field}";
+                }, $fields),
+                'recursive' => -1,
+                'callbacks' => false,
+            ]);
+            if (empty($row[$alias])) {
+                continue;
+            }
+            $row = $row[$alias];
+            $label = (string)($row[$labelField] ?? '');
+            $meta = [];
+            foreach ($fields as $field) {
+                if ($field === $labelField || !isset($row[$field]) || $row[$field] === '') {
+                    continue;
+                }
+                if ($field === 'id') {
+                    $meta[] = '#' . $row[$field];
+                } elseif ($field === 'event_id') {
+                    $meta[] = __('Event #%s', $row[$field]);
+                } elseif ($field === 'opinion') {
+                    $meta[] = __('%s/100', $row[$field]);
+                } else {
+                    $meta[] = (string)$row[$field];
+                }
+            }
+            $described[$uuid] = [
+                'label' => mb_strimwidth($label, 0, 160, '…'),
+                'meta' => $meta,
+            ];
+        }
+        return $described;
+    }
+
     public function getAnalystDataTypeFromUUID($uuid)
     {
         foreach (self::ANALYST_DATA_TYPES as $type) {
@@ -833,7 +905,6 @@ class AnalystData extends AppModel
             unset($analystData[$type]['id']);
             $analystModel->create();
             $saveSuccess = $analystModel->save($analystData);
-            $saveSuccess = true;
         } else {
             // DPT-4: a regular (non-sync, non-site-admin) caller - the web
             // add/edit afterSave, or analyst data nested in an object/

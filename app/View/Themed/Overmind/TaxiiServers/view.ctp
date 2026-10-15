@@ -1,57 +1,42 @@
 <?php
-    $headerTitle = __('') . ($data['TaxiiServer']['name'] ?? '');
-    $headerDescription = '';
-    $headerActions = [];
+$server = $data['TaxiiServer'] ?? [];
+$serverId = (int)($server['id'] ?? 0);
 
+$this->set('headerIdentity', $server);
+$this->set('headerTitle', $server['name'] ?? '');
+$this->set('headerDescription', '');
 
-    $this->set('headerTitle', $headerTitle);
-    $this->set('headerDescription', $headerDescription);
-    $this->set('headerActions', $headerActions);
-
-    echo $this->element('genericElementsBS5/Layout/view_layout',
-    [
-        'data' => $data,
-        'tabs' => [
-            [
-                'id' => 'general',
-                'title' => __('General'),
-                'icon' => 'fas fa-info-circle',
-
-                // Content
-                'left' => [
-                    'TaxiiServers/View/taxiiServers_general',
-                ],
-                'right' => [
-                    'TaxiiServers/View/taxiiServers_actions',
-                ]
+echo $this->element('genericElementsBS5/Layout/view_layout', [
+    'data' => $data,
+    'tabs' => [
+        [
+            'id' => 'general',
+            'title' => __('General'),
+            'icon' => 'fas fa-info-circle',
+            'left' => [
+                'TaxiiServers/View/taxiiServers_general',
             ],
-            [
-                'id' => 'collections',
-                'title' => __('Collections'),
-                'icon' => 'fas fa-folder',
-                'description' => __('The collections advertised by the remote TAXII server.'),
-
-                // Content
-                'left' => [
-                    [
-                        'ajax' => sprintf('%s/taxii_servers/collectionsIndex/%s', $baseurl, h($data['TaxiiServer']['id']))
-                    ]
-                ],
+            'right' => [
+                'TaxiiServers/View/taxiiServers_actions',
             ],
-            [
-                'id' => 'objects',
-                'title' => __('Objects in selected Collection'),
-                'icon' => 'fas fa-cube',
-                'description' => __('STIX objects retrieved from the remote TAXII collection.'),
-
-                // Content
-                'left' => [
-                    [
-                        'ajax' => rtrim(sprintf('/taxii_servers/objectsIndex/%s/%s', h($data['TaxiiServer']['id']), h($data['TaxiiServer']['collection'] ?? '')), '/')
-                    ]
-                ],
-            ]
-        ]
-    ]);
-?>
-
+        ],
+        [
+            'id' => 'collections',
+            'title' => __('Collections'),
+            'icon' => 'fas fa-folder',
+            'description' => __('The collections advertised by the remote TAXII server.'),
+            'left' => [
+                ['ajax' => sprintf('%s/taxii_servers/collectionsIndex/%s', $baseurl, $serverId)],
+            ],
+        ],
+        [
+            'id' => 'objects',
+            'title' => __('Objects in selected Collection'),
+            'icon' => 'fas fa-cube',
+            'description' => __('STIX objects retrieved from the remote TAXII collection.'),
+            'left' => [
+                ['ajax' => rtrim(sprintf('%s/taxii_servers/objectsIndex/%s/%s', $baseurl, $serverId, rawurlencode((string)($server['collection'] ?? ''))), '/')],
+            ],
+        ],
+    ],
+]);
