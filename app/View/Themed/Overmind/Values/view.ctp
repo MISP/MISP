@@ -114,7 +114,7 @@ $headerActions = array(
             'label' => __('Add to collection'),
             'icon' => 'folder-plus',
             'class' => 'btn btn-outline-dark',
-            'url' => $baseurl . '/collectionElements/addElementToCollection/Value/' . $valueB64,
+            'url' => $baseurl . '/collectionElements/addElementToCollection/AttributeValue/' . hash('sha256', $profile['value']),
             'size' => 'xl',
         )
         : array(

@@ -58,6 +58,12 @@ class CollectionElementsController extends AppController
                 // is about to save, on both the form and the REST path.
                 $type = $collectionElement['CollectionElement']['element_type'] ?? null;
                 $column = AnalystData::addressColumn($type, 'element');
+                // The form names a value by its text
+                $text = $collectionElement['CollectionElement']['value'] ?? null;
+                if ($column === 'element_sha256' && empty($collectionElement['CollectionElement'][$column]) && is_string($text) && trim($text) !== '') {
+                    $collectionElement['CollectionElement'][$column] = hash('sha256', trim($text));
+                }
+                unset($collectionElement['CollectionElement']['value']);
                 $this->CollectionElement->assertTargetsUsable(
                     $this->Auth->user(),
                     $type,

@@ -2153,13 +2153,15 @@ class ValuesController extends AppController
         $this->CRUD->delete($id, [
             'validate' => function (array $value) {
                 $holders = $this->AttributeValue->holders($value['AttributeValue']['id']);
+                $hex = hash('sha256', (string)$value['AttributeValue']['value']);
                 $elements = ClassRegistry::init('CollectionElement')->find('count', [
-                    'conditions' => ['CollectionElement.value_id' => $value['AttributeValue']['id']],
+                    'conditions' => ['CollectionElement.element_sha256' => $hex],
+                    'recursive' => -1,
                 ]);
                 if ($elements > 0) {
                     $holders[] = __n('%s collection element', '%s collection elements', $elements, $elements);
                 }
-                $analystData = $this->__analystDataOn($value['AttributeValue']['value']);
+                $analystData = $this->__analystDataOn($hex);
                 if ($analystData > 0) {
                     $holders[] = __n('%s analyst note, opinion or relationship', '%s analyst notes, opinions or relationships', $analystData, $analystData);
                 }
@@ -2186,32 +2188,23 @@ class ValuesController extends AppController
     }
 
     /**
-     * How many notes, opinions and relationships name this exact text,
-     * whoever can see them.
+     * How many notes, opinions and relationships name this value by its
+     * SHA-256, whoever can see them.
      *
-     * @param string $text
+     * @param string $hex lowercase SHA-256 of the value's text
      * @return int
      */
-    private function __analystDataOn($text)
+    private function __analystDataOn($hex)
     {
-        $uuid = Value::uuidFor((string)$text);
         $count = 0;
-        foreach (['Note', 'Opinion', 'Relationship'] as $type) {
-            $conditions = ['OR' => [[
-                "$type.object_type" => 'Value',
-                "$type.object_uuid" => $uuid,
-            ]]];
-            if ($type === 'Relationship') {
-                $conditions['OR'][] = [
-                    'Relationship.related_object_type' => 'Value',
-                    'Relationship.related_object_uuid' => $uuid,
-                ];
+        foreach (['Note' => ['object'], 'Opinion' => ['object'], 'Relationship' => ['object', 'related_object']] as $type => $ends) {
+            foreach ($ends as $end) {
+                $count += ClassRegistry::init($type)->find('count', [
+                    'conditions' => ["$type.{$end}_sha256" => $hex],
+                    'recursive' => -1,
+                    'callbacks' => false,
+                ]);
             }
-            $count += ClassRegistry::init($type)->find('count', [
-                'conditions' => $conditions,
-                'recursive' => -1,
-                'callbacks' => false,
-            ]);
         }
         return $count;
     }

@@ -1,5 +1,4 @@
 <?php
-    App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
     $fields = [
         [
             'name' => __('Id'),
@@ -16,13 +15,8 @@
             'element' => 'custom',
             'function' => function (array $row) use ($baseurl) {
                 $element = $row['CollectionElement'];
-                if ($element['element_type'] === 'Value') {
-                    return sprintf(
-                        '<a href="%s/values/view/%s">%s</a>',
-                        h($baseurl),
-                        h(ValueUrlTool::encode($element['value'])),
-                        h($element['value'])
-                    );
+                if ($element['element_type'] === 'AttributeValue') {
+                    return sprintf('<code>%s</code>', h($element['element_sha256']));
                 }
                 return $this->element('genericElements/IndexTable/Fields/model', [
                     'row' => $row,

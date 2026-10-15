@@ -83,14 +83,18 @@ $isCard = isset($viewMode) && $viewMode === 'card';
                     printf('<span class="fst-italic text-muted">%s</span>', h($element['element_uuid']));
                 }
             }
-            else if ($element['element_type'] === 'Value') {
-                printf(
-                    '<a class="text-decoration-none text-break" href="%s">'
-                        . '<span class="text-body font-monospace">%s</span>'
-                    . '</a>',
-                    h($baseurl . '/values/view/' . ValueUrlTool::encode($element['value'])),
-                    h($element['value'])
-                );
+            else if ($element['element_type'] === 'AttributeValue') {
+                if (isset($element['AttributeValue']['value'])) {
+                    printf(
+                        '<a class="text-decoration-none text-break" href="%s">'
+                            . '<span class="text-body font-monospace">%s</span>'
+                        . '</a>',
+                        h($baseurl . '/values/view/' . ValueUrlTool::encode($element['AttributeValue']['value'])),
+                        h($element['AttributeValue']['value'])
+                    );
+                } else {
+                    printf('<span class="fst-italic text-muted text-break">%s</span>', h($element['element_sha256']));
+                }
             }
         ?>
     </div>

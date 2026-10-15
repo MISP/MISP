@@ -64,11 +64,10 @@ echo $this->Form->create('CollectionElement', [
             <?= $this->Form->text('value', [
                 'id' => 'CollectionElementValue',
                 'class' => 'form-control font-monospace',
-                'maxlength' => CollectionElement::VALUE_MAX_BYTES,
                 'autocomplete' => 'off',
             ]) ?>
             <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                'text' => __('An IP address, a domain, a hash — any value, whether or not an attribute carries it yet.'),
+                'text' => __('An IP address, a domain, a hash — exactly as an attribute you can see carries it.'),
             ]) ?>
         </div>
 
@@ -157,7 +156,7 @@ echo $this->Form->create('CollectionElement', [
     var uuidEl = document.getElementById('CollectionElementElementUuid');
     var valueEl = document.getElementById('CollectionElementValue');
     var form = document.getElementById('collectionElementForm');
-    var isValue = function () { return typeEl && typeEl.value === 'Value'; };
+    var isValue = function () { return typeEl && typeEl.value === 'AttributeValue'; };
     /* Hidden, never disabled: a disabled input is not posted, which breaks
        the form's field hash. The model ignores whichever does not apply. */
     var applyType = function () {

@@ -24,7 +24,7 @@ class ElementTypeHelper extends AppHelper
             'icon' => 'misp-icon misp-icon-object misp-simple',
             'color' => 'var(--bs-object)',
         ],
-        'Value' => [
+        'AttributeValue' => [
             'icon' => 'misp-icon misp-icon-value-intelligence misp-simple',
             'color' => 'var(--bs-valueIntelligence)',
         ],
@@ -69,7 +69,7 @@ class ElementTypeHelper extends AppHelper
             'GalaxyCluster' => __('Galaxy cluster'),
             'Attribute' => __('Attribute'),
             'Object' => __('Object'),
-            'Value' => __('Value'),
+            'AttributeValue' => __('Value'),
         ];
         return $labels[$type] ?? (string)$type;
     }

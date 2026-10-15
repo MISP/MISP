@@ -43,7 +43,7 @@ class CollectionRailCards
                 $groups[$type]['facets'][$facet] = ($groups[$type]['facets'][$facet] ?? 0) + 1;
             }
         }
-        $order = array_flip(['Event', 'Attribute', 'Object', 'GalaxyCluster', 'Value']);
+        $order = array_flip(['Event', 'Attribute', 'Object', 'GalaxyCluster', 'AttributeValue']);
         uksort($groups, function ($a, $b) use ($order) {
             return ($order[$a] ?? 99) <=> ($order[$b] ?? 99);
         });
@@ -133,8 +133,8 @@ class CollectionRailCards
     {
         $type = $element['element_type'] ?? null;
         switch ($type) {
-            case 'Value':
-                return null;
+            case 'AttributeValue':
+                return empty($element['AttributeValue']) ? false : null;
             case 'Event':
                 return empty($element['Event']) ? false : null;
             case 'Attribute':
@@ -162,7 +162,7 @@ class CollectionRailCards
                 return [__('Objects'), 'misp-icon misp-icon-object misp-simple', 'object'];
             case 'GalaxyCluster':
                 return [__('Galaxy clusters'), 'misp-icon misp-icon-galaxy misp-simple', 'galaxy'];
-            case 'Value':
+            case 'AttributeValue':
                 return [__('Values'), 'misp-icon misp-icon-value-intelligence misp-simple', 'valueIntelligence'];
         }
         return [$type, null, null];

@@ -14,10 +14,9 @@
  * Set by CollectionElementsController::addElementToCollection():
  *   $dropdownData['collections']  id => name, the collections of the user's org
  *   $alreadyInCollectionIds       ids among those that already hold the element
- *   $elementType, $elementUuid    what is being attached
- *   $elementValue                 the literal, for a Value element
+ *   $elementType, $elementUuid    what is being attached; a SHA-256 for a value
+ *   $elementValue                 the value's text, when the user can see it
  */
-App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 $elementValue = $elementValue ?? null;
 
 $collections = $dropdownData['collections'] ?? [];
@@ -27,8 +26,7 @@ $alreadyIn = array_map('strval', $alreadyInCollectionIds ?? []);
 $newValue = '__new__';
 
 $newCollectionUrl = $baseurl . '/collections/add?embedded=1&attach_element_type='
-    . rawurlencode($elementType) . '&attach_element_uuid='
-    . rawurlencode($elementValue !== null ? ValueUrlTool::encode($elementValue) : $elementUuid);
+    . rawurlencode($elementType) . '&attach_element_uuid=' . rawurlencode($elementUuid);
 
 /* A collection that already holds the element stays in the list, suffixed and
  * disabled: the user recognises it, and cannot pick a no-op. */
@@ -93,7 +91,7 @@ echo $this->Form->create('CollectionElement', [
             <i class="fas fa-link text-accent"></i>
             <div class="flex-grow-1">
                 <div class="fw-semibold" style="font-size:.85rem;">
-                    <?= __('This %s will be attached', h($elementType)) ?>
+                    <?= __('This %s will be attached', h($this->ElementType->label($elementType))) ?>
                 </div>
                 <div class="text-muted" style="font-size:.75rem; margin-top:.15rem;">
                     <code class="text-break"><?= h($elementValue ?? $elementUuid) ?></code>
