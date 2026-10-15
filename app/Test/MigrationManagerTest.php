@@ -322,7 +322,53 @@ class MigrationManagerTest extends TestCase
         $this->assertFalse($this->manager()->waiting($id, $at));
     }
 
+    /**
+     * A collation token refuses a server older than the floor while the
+     * migration is rendered, before any statement is sent: a deferral, like
+     * any other precondition only the administrator can meet.
+     */
+    public function testAServerBelowTheFloorDefersAtRendering()
+    {
+        $id = '20260108_000000_collated_table';
+        $manager = new ExecutingMigrationManager(
+            array('Migration_20260108_000000_collated_table.php'),
+            array(),
+            '10.6.18-MariaDB'
+        );
+
+        $this->assertFalse($manager->apply($id));
+        $this->assertSame(MigrationManager::STATUS_DEFERRED, $manager->lastStatus());
+        $this->assertStringContainsString('This database server is MariaDB 10.6.', $manager->lastError());
+        $this->assertStringContainsString('MISP 3.0 needs MariaDB 10.11 or later, or MySQL 8.4 or later.', $manager->lastError());
+        $this->assertSame(array($id), $manager->deferred());
+        $this->assertSame(array(), $manager->failed());
+    }
+
     // ------------------------------------------------------------- rendering
+
+    public function testATokenRendersForTheServer()
+    {
+        $id = '20260108_000000_collated_table';
+        $files = array('Migration_20260108_000000_collated_table.php');
+        $expected = function ($collation) {
+            return array(
+                "CREATE TABLE `collated` (\n"
+                . "    `id` bigint(20) NOT NULL AUTO_INCREMENT,\n"
+                . "    `name` varchar(255) CHARACTER SET utf8mb4 COLLATE $collation NOT NULL,\n"
+                . "    PRIMARY KEY (`id`)\n"
+                . ");",
+            );
+        };
+
+        $manager = new SchemaRenderingMigrationManager($files);
+        $this->assertSame($expected('utf8mb4_uca1400_ai_ci'), $manager->toSql($id));
+        $manager = new SchemaRenderingMigrationManager($files, array(), '8.4.6');
+        $this->assertSame($expected('utf8mb4_unicode_520_ci'), $manager->toSql($id));
+
+        $manager = new SchemaRenderingMigrationManager($files, array(), '8.0.43');
+        $this->expectException('MigrationDeferredException');
+        $manager->toSql($id);
+    }
 
     public function testUpIsRenderedThroughTheGrammarWithoutExecutingAnything()
     {

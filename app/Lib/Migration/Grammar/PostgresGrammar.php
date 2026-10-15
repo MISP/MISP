@@ -91,7 +91,9 @@ class PostgresGrammar extends AbstractGrammar
 
         // ENGINE and the table charset are MySQL storage parameters with no
         // PostgreSQL counterpart; the driver's empty $tableParameters drops them
-        // for us, so no branch here is needed.
+        // for us. A collation token is still checked, so a misspelt one fails
+        // on both engines.
+        $this->resolveCollation($options);
         $statements = array(sprintf(
             "CREATE TABLE %s (\n%s\n);",
             $this->name($table),
@@ -231,6 +233,16 @@ class PostgresGrammar extends AbstractGrammar
     }
 
     // --------------------------------------------------------------- helpers
+
+    /**
+     * Columns compare under the database's collation, so a token has nothing
+     * to render here.
+     */
+    protected function collationFor($token, array $options)
+    {
+        unset($options['charset'], $options['collate']);
+        return $options;
+    }
 
     /**
      * Cake's Postgres map carries length modifiers PostgreSQL does not accept -

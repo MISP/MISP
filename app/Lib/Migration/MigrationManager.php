@@ -595,7 +595,14 @@ class MigrationManager
         }
         $migration->up($schema);
         $schema->skipSatisfied($this->inspector());
-        $statements = $schema->toSql();
+        // Rendering defers too, before anything is sent: a collation token
+        // refuses a server older than the oldest one it resolves for.
+        try {
+            $statements = $schema->toSql();
+        } catch (MigrationDeferredException $e) {
+            $this->deferredReason = $e->getMessage();
+            return false;
+        }
         $this->reportDroppedHints($id, $schema->getGrammar()->takeDroppedHints());
 
         if (!empty($statements)) {

@@ -190,6 +190,31 @@ free — CakePHP's Postgres driver simply declares no such parameters. An index
 **prefix length** is different in kind: dropping it changes what the index
 indexes, so it is logged rather than vanishing. `--dry-run` prints all of these.
 
+**Collations are named by class, not by name.** Put `Collation::CI`,
+`Collation::BIN` or `Collation::ASCII` in `collate`, on a column or in
+`createTable()`'s options, and the grammar resolves it for the server it renders
+for:
+
+| Token | MariaDB ≥ 10.11 | MySQL ≥ 8.4 |
+|---|---|---|
+| `Collation::CI` | `utf8mb4_uca1400_ai_ci` | `utf8mb4_unicode_520_ci` |
+| `Collation::BIN` | `utf8mb4_bin` | `utf8mb4_bin` |
+| `Collation::ASCII` | `ascii_bin` | `ascii_bin` |
+
+```php
+'uuid' => ['type' => 'string', 'length' => 40, 'null' => false, 'collate' => Collation::ASCII],
+```
+
+The token brings its charset, so `charset` can be left out; a charset that
+contradicts it, or a misspelt token, is an error on both engines. PostgreSQL
+drops it, as it drops every collation. On an older server, or one whose version
+cannot be read, rendering defers the migration (§7). `--dry-run` on a host with
+no MySQL-family server renders the MySQL half for MariaDB 10.11 and says what
+MySQL would get. A literal collation name is right on one family at most:
+MariaDB's UCA 14 collations do not exist on MySQL, and MySQL's `0900` ones do
+not ignore trailing spaces, so a lookup for `Quasar RAT` stops finding a stored
+`Quasar RAT `.
+
 **Data changes go through models, in `beforeUp()` and `afterUp()`, never as
 DML.** A
 `save()`/`updateAll()` is portable by construction where a hand-written `INSERT`
@@ -291,6 +316,8 @@ may be costly, so automatic runs leave a deferred migration alone for an hour
 by hand and `migrationApply` try it again at once, which is what the reason
 should tell the administrator to do once they have met it. Only `beforeUp()` may
 defer: from `up()` or `afterUp()` it is a failure, since work has run by then.
+Rendering defers too, before any statement is sent: a collation token (§4) on a
+server below MariaDB 10.11 or MySQL 8.4.
 
 **A migration is not transactional.** MySQL DDL commits implicitly, so a
 migration whose third statement fails leaves the first two applied and the ledger

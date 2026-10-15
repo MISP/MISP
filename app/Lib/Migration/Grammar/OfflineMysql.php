@@ -20,12 +20,20 @@ App::uses('OfflineConnection', 'Migration/Grammar');
 class OfflineMysql extends MysqlExtended
 {
     /**
+     * The server a rendering assumes when none is connected: the oldest one
+     * 3.0 supports, and the one CI runs.
+     */
+    const SERVER_VERSION = '10.11.0-MariaDB';
+
+    /**
      * Deliberately does not call parent::__construct(): that calls enabled(),
      * which needs pdo_mysql present, and then connect().
+     *
+     * @param string $serverVersion
      */
-    public function __construct()
+    public function __construct($serverVersion = self::SERVER_VERSION)
     {
-        $this->_connection = new OfflineConnection();
+        $this->_connection = new OfflineConnection($serverVersion);
         // name() would otherwise reach the Cache facade for its method cache.
         $this->cacheMethods = false;
         $this->config = array('prefix' => '', 'database' => 'misp');

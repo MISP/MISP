@@ -1,6 +1,7 @@
 <?php
 
 App::uses('AbstractMigration', 'Migration');
+App::uses('Collation', 'Migration');
 
 /**
  * Create the attribute_values dictionary
@@ -63,24 +64,16 @@ class Migration_20261003_092429_create_attribute_values extends AbstractMigratio
     {
         $inspector = $this->inspector();
         $pgsql = $inspector->flavour() === SchemaInspector::FLAVOUR_PGSQL;
-        $variables = $inspector->serverVariables();
-        $collation = self::mysqlCollation(isset($variables['version']) ? $variables['version'] : '');
 
         if (!$inspector->hasTable(self::TABLE)) {
             $schema->createTable(self::TABLE, array(
                 'id' => array('type' => 'biginteger', 'key' => 'primary', 'unsigned' => true, 'null' => false),
-                'value' => array(
-                    'type' => 'text',
-                    'null' => false,
-                    'charset' => 'utf8mb4',
-                    'collate' => $collation,
-                ),
+                'value' => array('type' => 'text', 'null' => false, 'collate' => Collation::CI),
                 'hash' => array('type' => 'varbinary', 'length' => 32, 'null' => false),
             ), array(
                 'indexes' => array('hash' => array('unique' => true)),
                 'engine' => 'InnoDB',
-                'charset' => 'utf8mb4',
-                'collate' => $collation,
+                'collate' => Collation::CI,
             ));
         }
         if (!$inspector->hasNamedIndex(self::TABLE, $pgsql ? self::PGSQL_VALUE_INDEX : 'value')) {
@@ -111,29 +104,6 @@ class Migration_20261003_092429_create_attribute_values extends AbstractMigratio
                 ),
             ));
         }
-    }
-
-    /**
-     * The case- and accent-insensitive collation of attribute_values.value
-     * for a MySQL-family server, by its version string. Never
-     * utf8mb4_unicode_ci: it weighs every 4-byte character the same.
-     *
-     * @param string $serverVersion As SELECT VERSION() reports it.
-     * @return string
-     */
-    public static function mysqlCollation($serverVersion)
-    {
-        if (preg_match('/^(\d+)\.(\d+)/', (string)$serverVersion, $parts)) {
-            $version = (int)$parts[1] * 100 + (int)$parts[2];
-            if (stripos($serverVersion, 'mariadb') !== false) {
-                if ($version >= 1010) {
-                    return 'utf8mb4_uca1400_ai_ci';
-                }
-            } elseif ($version >= 800) {
-                return 'utf8mb4_0900_ai_ci';
-            }
-        }
-        return 'utf8mb4_unicode_520_ci';
     }
 
     /**

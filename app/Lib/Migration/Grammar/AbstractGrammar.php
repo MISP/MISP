@@ -1,5 +1,7 @@
 <?php
 
+App::uses('Collation', 'Migration');
+
 /**
  * Turns one flavour-agnostic schema operation into the SQL a given engine wants.
  *
@@ -605,12 +607,14 @@ abstract class AbstractGrammar
     /**
      * Fold the DSL's own spellings into what buildColumn() expects.
      *
-     * Only one so far: `primary_key`. Cake's map entry for it holds the trailing
-     * modifier alone ("NOT NULL AUTO_INCREMENT" / "serial NOT NULL"), never a
-     * type - passing it through verbatim would emit `id` NOT NULL AUTO_INCREMENT
-     * with no type at all. The driver expects an integer column flagged
-     * primary instead. A key is 64-bit, so that is a biginteger: bigint NOT
-     * NULL AUTO_INCREMENT on MySQL, an identity column on PostgreSQL.
+     * `primary_key`: Cake's map entry for it holds the trailing modifier alone
+     * ("NOT NULL AUTO_INCREMENT" / "serial NOT NULL"), never a type - passing it
+     * through verbatim would emit `id` NOT NULL AUTO_INCREMENT with no type at
+     * all. The driver expects an integer column flagged primary instead. A key
+     * is 64-bit, so that is a biginteger: bigint NOT NULL AUTO_INCREMENT on
+     * MySQL, an identity column on PostgreSQL.
+     *
+     * A collation token, resolved by resolveCollation().
      *
      * @param array $spec
      * @return array
@@ -621,8 +625,40 @@ abstract class AbstractGrammar
             $spec['type'] = 'biginteger';
             $spec['key'] = 'primary';
         }
-        return $spec;
+        return $this->resolveCollation($spec);
     }
+
+    /**
+     * A collation token (Collation::CI, ...) in a column spec or a table's
+     * options, made into what this engine renders. Anything else passes through.
+     *
+     * @param array $options
+     * @return array
+     * @throws InvalidArgumentException On an unknown token, or a charset the token contradicts.
+     */
+    protected function resolveCollation(array $options)
+    {
+        if (!isset($options['collate']) || !Collation::isToken($options['collate'])) {
+            return $options;
+        }
+        $charset = Collation::charset($options['collate']);
+        if (isset($options['charset']) && strtolower($options['charset']) !== $charset) {
+            throw new InvalidArgumentException(sprintf(
+                'The collation %s belongs to the charset %s, so it cannot be declared with the charset %s.',
+                $options['collate'],
+                $charset,
+                $options['charset']
+            ));
+        }
+        return $this->collationFor($options['collate'], $options);
+    }
+
+    /**
+     * @param string $token A known collation token.
+     * @param array $options The column spec or table options that carry it.
+     * @return array The same, with charset and collate as this engine has them.
+     */
+    abstract protected function collationFor($token, array $options);
 
     /**
      * Redefining a column means redefining all of it.

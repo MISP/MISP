@@ -153,6 +153,24 @@ if (!class_exists('Migration_20260107_000000_data_on_both_sides', false)) {
     }
 }
 
+if (!class_exists('Migration_20260108_000000_collated_table', false)) {
+    /**
+     * Declares a collation token, so rendering asks which server it is on.
+     */
+    class Migration_20260108_000000_collated_table extends AbstractMigration
+    {
+        public $description = 'A table whose collation follows the server';
+
+        public function up(SchemaBuilder $schema)
+        {
+            $schema->createTable('collated', array(
+                'id' => array('type' => 'primary_key'),
+                'name' => array('type' => 'string', 'length' => 255, 'null' => false, 'collate' => Collation::CI),
+            ));
+        }
+    }
+}
+
 // -------- the manager, with its I/O in memory --------
 
 if (!class_exists('TestMigrationManager', false)) {
@@ -278,10 +296,10 @@ if (!class_exists('SchemaRenderingMigrationManager', false)) {
         /** @var MigrationTestMysqlExtended */
         private $db;
 
-        public function __construct(array $files = array(), array $rows = array())
+        public function __construct(array $files = array(), array $rows = array(), $serverVersion = OfflineMysql::SERVER_VERSION)
         {
             parent::__construct($files, $rows);
-            $this->db = new MigrationTestMysqlExtended();
+            $this->db = new MigrationTestMysqlExtended($serverVersion);
             $this->liveSchema = new MigrationTestInspector();
         }
 

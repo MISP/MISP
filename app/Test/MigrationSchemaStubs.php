@@ -120,6 +120,8 @@ require_once __DIR__ . '/../Model/Datasource/Database/MysqlExtended.php';
 
 // -------- the classes under test --------
 
+require_once APPLIBS . 'Migration/MigrationDeferredException.php';
+require_once APPLIBS . 'Migration/Collation.php';
 require_once APPLIBS . 'Migration/Grammar/AbstractGrammar.php';
 require_once APPLIBS . 'Migration/Grammar/MysqlGrammar.php';
 require_once APPLIBS . 'Migration/Grammar/PostgresGrammar.php';

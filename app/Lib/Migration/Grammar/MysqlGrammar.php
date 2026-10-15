@@ -1,18 +1,21 @@
 <?php
 
 App::uses('AbstractGrammar', 'Migration/Grammar');
+App::uses('OfflineConnection', 'Migration/Grammar');
 
 /**
  * MySQL/MariaDB rendering.
  *
  * The easy engine, because it is the one the historic corpus was written
  * against - every hint the DSL offers has a native spelling here, so nothing is
- * ever dropped and takeDroppedHints() stays empty.
+ * ever dropped. takeDroppedHints() only says which server an offline rendering
+ * resolved a collation token for.
  *
  * Charset, collate, comment, unsigned, ENGINE and the table charset all arrive
  * from Cake's own $fieldParameters/$tableParameters. This class adds what Cake
- * has no notion of: positional `after`, prefix-length index parts, FULLTEXT, and
- * the mediumtext/longtext/varbinary types the MISP schema uses.
+ * has no notion of: positional `after`, prefix-length index parts, FULLTEXT,
+ * the mediumtext/longtext/varbinary types the MISP schema uses, and collation
+ * tokens, resolved for the server the datasource reports.
  *
  * Statement shapes follow the ones the legacy corpus and AppModel::__addIndex()
  * already emit (ADD INDEX / DROP INDEX rather than Cake's ADD KEY), so a reader
@@ -55,7 +58,7 @@ class MysqlGrammar extends AbstractGrammar
             $lines[] = '    ' . $this->indexClause($table, $indexColumns, $indexOptions);
         }
 
-        $tableParameters = $this->db->buildTableParameters($options);
+        $tableParameters = $this->db->buildTableParameters($this->resolveCollation($options));
         $suffix = empty($tableParameters) ? '' : ' ' . implode(' ', $tableParameters);
 
         return array(sprintf(
@@ -141,6 +144,54 @@ class MysqlGrammar extends AbstractGrammar
     }
 
     // --------------------------------------------------------------- helpers
+
+    /**
+     * Charset before collate, the order buildTableParameters() renders them in.
+     */
+    protected function collationFor($token, array $options)
+    {
+        $version = $this->db->getVersion();
+        $resolved = Collation::forServer($token, $version);
+        unset($options['charset'], $options['collate']);
+        if ($this->db->getConnection() instanceof OfflineConnection) {
+            $this->noteAssumedServer($token, $version);
+        }
+        return $options + $resolved;
+    }
+
+    /**
+     * With no server to ask, say what a token was resolved for whenever the
+     * other family names it differently.
+     *
+     * @param string $token
+     * @param string $version
+     * @return void
+     */
+    private function noteAssumedServer($token, $version)
+    {
+        $byFamily = Collation::byFamily($token);
+        if (count(array_unique($byFamily)) === 1) {
+            return;
+        }
+        list($family, $release) = Collation::server($version);
+        $others = array();
+        foreach ($byFamily as $other => $collation) {
+            if ($other !== $family) {
+                $others[] = sprintf('%s takes %s', $other, $collation);
+            }
+        }
+        $note = sprintf(
+            'No MySQL-family server is connected, so %s is rendered for %s %s as %s; %s.',
+            $token,
+            $family,
+            $release,
+            $byFamily[$family],
+            implode(', ', $others)
+        );
+        if (!in_array($note, $this->droppedHints, true)) {
+            $this->noteDroppedHint($note);
+        }
+    }
 
     /**
      * The shared part of ADD INDEX and the create-table index clause.
