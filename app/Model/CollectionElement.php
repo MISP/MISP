@@ -18,10 +18,10 @@ class CollectionElement extends AppModel
         )
     );
 
-    // Make sure you also update the validation for element_type to include anything you add here.
     public $valid_types = [
         'Event',
-        'GalaxyCluster'
+        'GalaxyCluster',
+        'AttributeValue',
     ];
 
     public $validate = [
@@ -48,7 +48,7 @@ class CollectionElement extends AppModel
         ],
         'element_type' => [
             'element_type' => [
-                'rule' => ['inList', ['Event', 'GalaxyCluster']],
+                'rule' => ['inList', []], // filled from $valid_types
                 'message' => 'Invalid object type.'
             ]
         ]
@@ -65,6 +65,12 @@ class CollectionElement extends AppModel
     /** @var int|null parent collection_id stashed in beforeDelete for afterDelete */
     private $deletedElementCollectionId = null;
 
+
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct($id, $table, $ds);
+        $this->validate['element_type']['element_type']['rule'] = ['inList', $this->valid_types];
+    }
 
     public function beforeValidate($options = array())
     {
@@ -147,7 +153,7 @@ class CollectionElement extends AppModel
 
     public function deduceType(string $uuid)
     {
-        foreach ($this->valid_types as $valid_type) {
+        foreach (array_diff($this->valid_types, AnalystData::SHA256_TARGETS) as $valid_type) {
             $this->{$valid_type} = ClassRegistry::init($valid_type);
             $result = $this->$valid_type->find('first', [
                 'conditions' => [$valid_type.'.uuid' => $uuid],
@@ -158,6 +164,61 @@ class CollectionElement extends AppModel
             }
         }
         throw new NotFoundException(__('Invalid UUID'));
+    }
+
+    /**
+     * Refuse any target $user cannot read. The read side resolves elements back
+     * into objects, so every write path that stores one must check it first. A
+     * missing target and an invisible one get the same answer.
+     *
+     * @param array $user
+     * @param string|null $elementType When empty, deduced per address as
+     *      beforeValidate() does on save, so leaving it out skips nothing
+     * @param array $addresses uuids, or SHA-256s for AnalystData::SHA256_TARGETS
+     * @throws NotFoundException
+     */
+    public function assertTargetsUsable(array $user, $elementType, array $addresses)
+    {
+        foreach ($addresses as $address) {
+            $type = empty($elementType) ? $this->deduceType($address) : $elementType;
+            if ($type === 'Event') {
+                $event = ClassRegistry::init('Event')->fetchSimpleEvent($user, $address, [
+                    'fields' => ['Event.id']
+                ]);
+                if (empty($event)) {
+                    throw new NotFoundException(__('Invalid event or not authorized.'));
+                }
+            } elseif ($type === 'GalaxyCluster') {
+                $clusterCount = ClassRegistry::init('GalaxyCluster')->fetchGalaxyClusters($user, [
+                    'conditions' => ['GalaxyCluster.uuid' => $address],
+                    'count' => true
+                ]);
+                if (empty($clusterCount)) {
+                    throw new NotFoundException(__('Invalid galaxy cluster or not authorized.'));
+                }
+            } elseif ($type === 'AttributeValue') {
+                $found = ClassRegistry::init('AnalystData')->existingTargets($user, [
+                    ['type' => $type, 'address' => $address],
+                ]);
+                if (empty($found)) {
+                    throw new NotFoundException(__('Invalid value or not authorized.'));
+                }
+            } else {
+                throw new NotFoundException(__('Invalid element type.'));
+            }
+        }
+    }
+
+    /**
+     * SQLSTATE class 23, integrity constraint violation: MySQL reports a
+     * duplicate key as 23000, PostgreSQL as 23505.
+     *
+     * @param PDOException $e
+     * @return bool
+     */
+    public static function isDuplicate(PDOException $e)
+    {
+        return isset($e->errorInfo[0]) && strpos((string)$e->errorInfo[0], '23') === 0;
     }
 
     /*
@@ -195,6 +256,7 @@ class CollectionElement extends AppModel
                         'CollectionElement' => [
                             'uuid' => $element['uuid'],
                             'element_uuid' => $element['element_uuid'] ?? null,
+                            'element_sha256' => $element['element_sha256'] ?? null,
                             'element_type' => $element['element_type'] ?? null,
                             'description' => $element['description'] ?? null,
                             'collection_id' => $data['Collection']['id']

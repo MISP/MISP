@@ -1,9 +1,10 @@
 <?php
 /**
- * Analyst data on attribute values: which value targets resolve, for whom,
- * and the analyst data read by value. A value no attribute the user can see
- * holds resolves exactly like a value the dictionary lacks; the analyst data
- * on a value follows only its own ACL, as on a uuid.
+ * Analyst data and collection elements on attribute values: which value
+ * targets resolve, for whom, and the analyst data read by value. A value no
+ * attribute the user can see holds resolves exactly like a value the
+ * dictionary lacks; the analyst data on a value follows only its own ACL, as
+ * on a uuid.
  *
  * The values are interned before the test's transaction and deleted by id
  * after it; everything else is saved inside the transaction, which is rolled
@@ -449,5 +450,67 @@ class AnalystDataValueTargetDbTest extends TestCase
         $this->assertCount(1, $this->note->fetchForSha256s([$hex], $outsider)[$hex]['Note']);
         $this->assertCount(2, $this->relationship->getInboundRelationships($this->lesser, 'AttributeValue', $hex));
         $this->assertCount(1, $this->relationship->getInboundRelationships($outsider, 'AttributeValue', $hex));
+    }
+
+    public function testOnlyAValueTheUserCanSeeGoesIntoACollection()
+    {
+        $elements = ClassRegistry::init('CollectionElement');
+        $refusal = function ($user, $type, $address) use ($elements) {
+            try {
+                $elements->assertTargetsUsable($user, $type, [$address]);
+            } catch (NotFoundException $e) {
+                return $e->getMessage();
+            }
+            return null;
+        };
+        foreach ($this->users() as $name => $user) {
+            foreach (self::KINDS as $kind) {
+                $expected = in_array($kind, $this->resolving($name), true) ? null : 'Invalid value or not authorized.';
+                $this->assertSame($expected, $refusal($user, 'AttributeValue', strtoupper($this->hex[$kind])), "$name $kind");
+            }
+        }
+        // A hash is never deduced to be a value, and an unknown type is refused
+        $this->assertNotNull($refusal($this->admin, null, $this->hex['visible']));
+        $this->assertSame('Invalid element type.', $refusal($this->admin, 'Unknown', $this->hex['visible']));
+    }
+
+    public function testACapturedValueElementKeepsItsAddressOnce()
+    {
+        $this->exec(sprintf(
+            "INSERT INTO collections (uuid, org_id, orgc_id, user_id, distribution, name, type) VALUES ('%s', %d, %d, %d, 0, '%s', 'other')",
+            CakeText::uuid(),
+            (int)$this->admin['org_id'],
+            (int)$this->admin['org_id'],
+            (int)$this->admin['id'],
+            $this->t
+        ));
+        $collectionId = (int)$this->exec("SELECT id FROM collections WHERE name = '{$this->t}'")[0]['id'];
+        $elements = ClassRegistry::init('CollectionElement');
+        // Sync capture keeps a value this instance cannot resolve
+        $elements->captureElements(['Collection' => ['id' => $collectionId, 'CollectionElement' => [
+            ['element_type' => 'AttributeValue', 'element_sha256' => strtoupper($this->hex['missing'])],
+        ]]]);
+        $this->assertSame(
+            [['element_type' => 'AttributeValue', 'element_uuid' => null, 'element_sha256' => $this->hex['missing']]],
+            $this->exec("SELECT element_type, element_uuid, element_sha256 FROM collection_elements WHERE collection_id = $collectionId")
+        );
+
+        $elements->create();
+        try {
+            $elements->save(['CollectionElement' => [
+                'collection_id' => $collectionId,
+                'element_type' => 'AttributeValue',
+                'element_sha256' => $this->hex['missing'],
+            ]]);
+            $this->fail('A second copy of the value element was saved.');
+        } catch (PDOException $e) {
+            $this->assertTrue(CollectionElement::isDuplicate($e), json_encode($e->errorInfo));
+        }
+        $postgres = new PDOException('duplicate key value violates unique constraint');
+        $postgres->errorInfo = ['23505', 7, ''];
+        $this->assertTrue(CollectionElement::isDuplicate($postgres));
+        $other = new PDOException('relation does not exist');
+        $other->errorInfo = ['42P01', 7, ''];
+        $this->assertFalse(CollectionElement::isDuplicate($other));
     }
 }
