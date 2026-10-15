@@ -179,8 +179,9 @@ if (!class_exists('MigrationTestPostgres', false)) {
 if (!class_exists('MigrationTestInspector', false)) {
     /**
      * A live schema with scripted contents and no connection behind it:
-     * table => array('columns' => names, 'indexes' => name => columns), the
-     * primary key being the index named PRIMARY, as both drivers report it.
+     * table => array('columns' => names, 'indexes' => name => columns,
+     * 'options' => tableOptions()), the primary key being the index named
+     * PRIMARY, as both drivers report it.
      */
     class MigrationTestInspector extends SchemaInspector
     {
@@ -223,6 +224,15 @@ if (!class_exists('MigrationTestInspector', false)) {
                 }
             }
             return $indexes;
+        }
+
+        public function tableOptions($table)
+        {
+            if (!isset($this->schema[$table])) {
+                return null;
+            }
+            $options = isset($this->schema[$table]['options']) ? $this->schema[$table]['options'] : array();
+            return $options + array('engine' => null, 'row_format' => null, 'collation' => null, 'charset' => null);
         }
     }
 }

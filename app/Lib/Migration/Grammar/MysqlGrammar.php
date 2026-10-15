@@ -58,7 +58,11 @@ class MysqlGrammar extends AbstractGrammar
             $lines[] = '    ' . $this->indexClause($table, $indexColumns, $indexOptions);
         }
 
-        $tableParameters = $this->db->buildTableParameters($this->resolveCollation($options));
+        $options = $this->resolveRowFormat($this->resolveCollation($options));
+        $tableParameters = $this->db->buildTableParameters($options);
+        if (isset($options['row_format'])) {
+            $tableParameters[] = 'ROW_FORMAT=' . $options['row_format'];
+        }
         $suffix = empty($tableParameters) ? '' : ' ' . implode(' ', $tableParameters);
 
         return array(sprintf(
@@ -129,6 +133,32 @@ class MysqlGrammar extends AbstractGrammar
         return array($this->clause(
             'DROP INDEX ' . $this->name($this->indexName($table, $columnsOrName))
         ));
+    }
+
+    /**
+     * One clause per option, the default charset and collation together.
+     */
+    protected function changeOptionsParts($table, array $options)
+    {
+        $options = $this->tableOptions($options);
+        $parts = array();
+        if (isset($options['engine'])) {
+            $parts[] = $this->clause('ENGINE=' . $options['engine']);
+        }
+        if (isset($options['row_format'])) {
+            $parts[] = $this->clause('ROW_FORMAT=' . $options['row_format']);
+        }
+        $default = array();
+        if (isset($options['charset'])) {
+            $default[] = 'DEFAULT CHARSET=' . $options['charset'];
+        }
+        if (isset($options['collate'])) {
+            $default[] = 'COLLATE=' . $options['collate'];
+        }
+        if (!empty($default)) {
+            $parts[] = $this->clause(implode(' ', $default));
+        }
+        return $parts;
     }
 
     /**

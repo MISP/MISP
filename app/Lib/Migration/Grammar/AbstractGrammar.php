@@ -24,8 +24,8 @@ App::uses('Collation', 'Migration');
  *
  * What CakePHP has no answer for, and this class therefore owns: RENAME COLUMN,
  * RENAME TABLE, index DDL beyond the create-table clause, positional `after`,
- * prefix-length indexes, FULLTEXT, and the three column types MISP uses that
- * Cake's map is missing.
+ * prefix-length indexes, FULLTEXT, ROW_FORMAT and table options in an ALTER
+ * TABLE, and the three column types MISP uses that Cake's map is missing.
  *
  * ## The type-map extension
  *
@@ -196,7 +196,19 @@ abstract class AbstractGrammar
         'addIndex',
         'dropIndex',
         'dropPrimaryKey',
+        'changeOptions',
     );
+
+    /**
+     * What changeOptions() can set. MySQL storage options, all of them, so
+     * PostgreSQL renders none.
+     */
+    const TABLE_OPTIONS = array('engine', 'row_format', 'charset', 'collate');
+
+    /**
+     * InnoDB's row formats.
+     */
+    const ROW_FORMATS = array('DYNAMIC', 'COMPACT', 'REDUNDANT', 'COMPRESSED');
 
     /**
      * Render several operations on one table in as few statements as the
@@ -333,6 +345,44 @@ abstract class AbstractGrammar
     }
 
     /**
+     * Change a table's own options: its engine, row format, and the default
+     * charset and collation its new columns take. Existing columns keep theirs.
+     *
+     * @param string $table
+     * @param array $options Any of TABLE_OPTIONS.
+     * @return array Statements.
+     */
+    public function changeOptions($table, array $options)
+    {
+        return $this->alterOne('changeOptions', array($table, $options));
+    }
+
+    /**
+     * A changeOptions() declaration as this engine reads it: the row format in
+     * upper case, a collation token resolved.
+     *
+     * @param array $options
+     * @return array
+     * @throws InvalidArgumentException On no option, an unknown one, or an
+     *   unknown row format.
+     */
+    public function tableOptions(array $options)
+    {
+        if (empty($options)) {
+            throw new InvalidArgumentException('changeOptions() needs at least one option.');
+        }
+        $unknown = array_diff(array_keys($options), self::TABLE_OPTIONS);
+        if (!empty($unknown)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unknown table option "%s". Known options are: %s.',
+                implode('", "', $unknown),
+                implode(', ', self::TABLE_OPTIONS)
+            ));
+        }
+        return $this->resolveCollation($this->resolveRowFormat($options));
+    }
+
+    /**
      * The physical name this grammar gives an index.
      *
      * @param string $table
@@ -385,6 +435,11 @@ abstract class AbstractGrammar
      * @return array Parts.
      */
     abstract protected function dropIndexParts($table, $columnsOrName);
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function changeOptionsParts($table, array $options);
 
     /**
      * @param string $sql One ALTER TABLE clause, without the ALTER TABLE.
@@ -659,6 +714,28 @@ abstract class AbstractGrammar
      * @return array The same, with charset and collate as this engine has them.
      */
     abstract protected function collationFor($token, array $options);
+
+    /**
+     * @param array $options A table's options.
+     * @return array The same, with any row format in upper case.
+     * @throws InvalidArgumentException On a row format InnoDB does not have.
+     */
+    protected function resolveRowFormat(array $options)
+    {
+        if (!isset($options['row_format'])) {
+            return $options;
+        }
+        $format = strtoupper($options['row_format']);
+        if (!in_array($format, self::ROW_FORMATS, true)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unknown row format "%s". InnoDB has: %s.',
+                $options['row_format'],
+                implode(', ', self::ROW_FORMATS)
+            ));
+        }
+        $options['row_format'] = $format;
+        return $options;
+    }
 
     /**
      * Redefining a column means redefining all of it.

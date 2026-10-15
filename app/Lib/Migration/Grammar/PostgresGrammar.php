@@ -89,11 +89,11 @@ class PostgresGrammar extends AbstractGrammar
             $lines[] = '    PRIMARY KEY (' . $this->name($primaryKey) . ')';
         }
 
-        // ENGINE and the table charset are MySQL storage parameters with no
-        // PostgreSQL counterpart; the driver's empty $tableParameters drops them
-        // for us. A collation token is still checked, so a misspelt one fails
-        // on both engines.
-        $this->resolveCollation($options);
+        // ENGINE, ROW_FORMAT and the table charset are MySQL storage parameters
+        // with no PostgreSQL counterpart; the driver's empty $tableParameters
+        // drops them for us. A collation token and a row format are still
+        // checked, so a misspelt one fails on both engines.
+        $this->resolveRowFormat($this->resolveCollation($options));
         $statements = array(sprintf(
             "CREATE TABLE %s (\n%s\n);",
             $this->name($table),
@@ -210,6 +210,16 @@ class PostgresGrammar extends AbstractGrammar
             'DROP INDEX %s;',
             $this->name($this->indexName($table, $columnsOrName))
         )));
+    }
+
+    /**
+     * Every table option is a MySQL storage option, so nothing renders. They
+     * are still checked, so a misspelt one fails on both engines.
+     */
+    protected function changeOptionsParts($table, array $options)
+    {
+        $this->tableOptions($options);
+        return array();
     }
 
     /**

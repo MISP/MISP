@@ -67,6 +67,13 @@ class SchemaInspector
     const FLAVOUR_PGSQL = 'pgsql';
 
     /**
+     * A table's options on PostgreSQL, which has none of them.
+     *
+     * @var array
+     */
+    private static $noOptions = array('engine' => null, 'row_format' => null, 'collation' => null, 'charset' => null);
+
+    /**
      * @var DboSource
      */
     private $db;
@@ -330,6 +337,30 @@ class SchemaInspector
     }
 
     /**
+     * tableDefinition()'s `options` alone, for one catalog query.
+     *
+     * @param string $table
+     * @return array|null Null when there is no such table.
+     */
+    public function tableOptions($table)
+    {
+        if (!$this->isMysql()) {
+            return $this->hasTable($table) ? self::$noOptions : null;
+        }
+        $tables = $this->fetchRows(self::mysqlTablesSql($this->db, $this->databaseName(), $table));
+        if (empty($tables)) {
+            return null;
+        }
+        $collation = empty($tables[0]['TABLE_COLLATION']) ? null : $tables[0]['TABLE_COLLATION'];
+        return array(
+            'engine' => empty($tables[0]['ENGINE']) ? null : $tables[0]['ENGINE'],
+            'row_format' => empty($tables[0]['ROW_FORMAT']) ? null : strtoupper($tables[0]['ROW_FORMAT']),
+            'collation' => $collation,
+            'charset' => $collation === null ? null : self::charsetOfCollation($collation),
+        );
+    }
+
+    /**
      * @return bool Whether the server is MariaDB; false on PostgreSQL.
      */
     public function isMariaDb()
@@ -526,18 +557,11 @@ class SchemaInspector
      */
     private function mysqlDefinition($table)
     {
-        $database = $this->databaseName();
-        $tables = $this->fetchRows(self::mysqlTablesSql($this->db, $database, $table));
-        if (empty($tables)) {
+        $options = $this->tableOptions($table);
+        if ($options === null) {
             return null;
         }
-        $collation = empty($tables[0]['TABLE_COLLATION']) ? null : $tables[0]['TABLE_COLLATION'];
-        $options = array(
-            'engine' => empty($tables[0]['ENGINE']) ? null : $tables[0]['ENGINE'],
-            'row_format' => empty($tables[0]['ROW_FORMAT']) ? null : strtoupper($tables[0]['ROW_FORMAT']),
-            'collation' => $collation,
-            'charset' => $collation === null ? null : self::charsetOfCollation($collation),
-        );
+        $database = $this->databaseName();
 
         $quoted = $this->isMariaDb();
         $columns = array();
@@ -669,7 +693,7 @@ class SchemaInspector
         }
         ksort($indexes, SORT_STRING);
         return array(
-            'options' => array('engine' => null, 'row_format' => null, 'collation' => null, 'charset' => null),
+            'options' => self::$noOptions,
             'columns' => $columns,
             'indexes' => $indexes,
         );

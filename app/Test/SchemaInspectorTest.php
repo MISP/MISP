@@ -640,6 +640,18 @@ class SchemaInspectorTest extends TestCase
         );
     }
 
+    public function testMysqlTableOptionsAloneTakeOneQuery()
+    {
+        $reader = $this->mysqlDefinitionReader(array());
+        $this->assertSame(
+            array('engine' => 'InnoDB', 'row_format' => 'DYNAMIC', 'collation' => 'latin1_swedish_ci', 'charset' => 'latin1'),
+            $reader->tableOptions('tags')
+        );
+        $this->assertCount(1, $reader->queries);
+
+        $this->assertNull($this->mysqlReader(array(array()))->tableOptions('nothing'));
+    }
+
     /**
      * What describe() folds away: mediumtext reads as text there, and the
      * auto-increment flag is gone.

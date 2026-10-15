@@ -301,6 +301,13 @@ class SchemaBuilderTest extends TestCase
             'a column renamed under an index added in the statement' => array(function ($t) use ($null) {
                 $t->addIndex('b')->renameColumn('b', 'b2', 'integer', $null);
             }),
+            'a table option set twice' => array(function ($t) {
+                $t->changeOptions(array('row_format' => 'COMPACT'))->changeOptions(array('row_format' => 'DYNAMIC'));
+            }),
+            // In one statement the column would take the new default.
+            'a new table default after a column that takes it' => array(function ($t) use ($null) {
+                $t->changeColumn('a', 'text', $null)->changeOptions(array('charset' => 'utf8mb4'));
+            }),
         );
     }
 
@@ -332,6 +339,78 @@ class SchemaBuilderTest extends TestCase
             'a primary key replaced' => array(function ($t) use ($null) {
                 $t->addIndex('n', array('unique' => true))->dropPrimaryKey();
             }),
+            'different table options' => array(function ($t) {
+                $t->changeOptions(array('row_format' => 'DYNAMIC'))->changeOptions(array('engine' => 'InnoDB'));
+            }),
+            'a new table default before a column that takes it' => array(function ($t) use ($null) {
+                $t->changeOptions(array('charset' => 'utf8mb4'))->changeColumn('a', 'text', $null);
+            }),
+            'a new table default after a column with a charset of its own' => array(function ($t) use ($null) {
+                $t->changeColumn('a', 'text', $null + array('collate' => 'utf8mb4_bin'))
+                    ->changeOptions(array('charset' => 'utf8mb4'));
+            }),
+            'a new row format after a column that takes the default' => array(function ($t) use ($null) {
+                $t->changeColumn('a', 'text', $null)->changeOptions(array('row_format' => 'DYNAMIC'));
+            }),
+        );
+    }
+
+    /**
+     * A table option change rebuilds the table, so it joins the statement
+     * that rebuilds it anyway. PostgreSQL has no table options.
+     */
+    public function testTableOptionsJoinTheStatementThatRebuildsTheTable()
+    {
+        $schema = new SchemaBuilder(new MysqlGrammar(new MigrationTestMysqlExtended('10.11.14-MariaDB')));
+        $schema->table('events')
+            ->changeColumn('info', 'text', array('null' => false, 'default' => null, 'collate' => Collation::CI))
+            ->dropIndex('org_id')
+            ->addIndex(array('distribution', 'sharing_group_id'), array('name' => 'idx_evt_acl'))
+            ->changeOptions(array('row_format' => 'DYNAMIC', 'collate' => Collation::CI));
+
+        $this->assertSame(
+            array(
+                "ALTER TABLE `events`\n" .
+                "    MODIFY `info` text CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci NOT NULL,\n" .
+                "    DROP INDEX `org_id`,\n" .
+                "    ADD INDEX `idx_evt_acl` (`distribution`, `sharing_group_id`),\n" .
+                "    ROW_FORMAT=DYNAMIC,\n" .
+                "    DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;",
+            ),
+            $schema->toSql()
+        );
+        $this->assertSame(
+            array(
+                "ALTER TABLE \"events\"\n" .
+                "    ALTER COLUMN \"info\" TYPE text USING \"info\"::text,\n" .
+                "    ALTER COLUMN \"info\" SET NOT NULL,\n" .
+                "    ALTER COLUMN \"info\" DROP DEFAULT;",
+                'DROP INDEX "idx_events_org_id";',
+                'CREATE INDEX "idx_evt_acl" ON "events" ("distribution", "sharing_group_id");',
+            ),
+            $schema->toSql($this->pgsqlGrammar)
+        );
+    }
+
+    /**
+     * Column additions and drops stay instant on their own; a table option
+     * change beside them could make the server rebuild the table for them.
+     */
+    public function testTableOptionsDoNotJoinColumnAdditionsOrDrops()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')
+            ->addColumn('x', 'integer', array('null' => true))
+            ->changeOptions(array('row_format' => 'DYNAMIC'))
+            ->dropColumn('c');
+
+        $this->assertSame(
+            array(
+                'ALTER TABLE `t` ADD `x` int(11) DEFAULT NULL;',
+                'ALTER TABLE `t` ROW_FORMAT=DYNAMIC;',
+                'ALTER TABLE `t` DROP COLUMN `c`;',
+            ),
+            $schema->toSql()
         );
     }
 
@@ -598,6 +677,60 @@ class SchemaBuilderTest extends TestCase
             'after the drop landed and the create did not'
         );
         $this->assertCount(1, $retry->operations());
+    }
+
+    /**
+     * Setting ROW_FORMAT or ENGINE to what the table has still rebuilds it,
+     * so each option the table already has is left out on its own.
+     */
+    public function testTableOptionsTheTableHasAreLeftOutOneByOne()
+    {
+        $schema = new SchemaBuilder(new MysqlGrammar(new MigrationTestMysqlExtended('10.11.14-MariaDB')));
+        $schema->table('t')
+            ->changeOptions(array('engine' => 'innodb', 'row_format' => 'dynamic', 'collate' => Collation::CI))
+            ->changeOptions(array('collate' => Collation::CI));
+        $schema->table('u')->changeOptions(array('charset' => 'utf8mb4'));
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('id'), 'options' => array(
+                'engine' => 'InnoDB', 'row_format' => 'DYNAMIC', 'collation' => 'utf8mb3_general_ci', 'charset' => 'utf8mb3',
+            )),
+            'u' => array('columns' => array('id'), 'options' => array(
+                'collation' => 'utf8mb4_bin', 'charset' => 'utf8mb4',
+            )),
+        )));
+
+        $this->assertSame(
+            array('ALTER TABLE `t` DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;'),
+            $schema->toSql()
+        );
+        $this->assertSame(
+            array(
+                't: the table already has ENGINE=InnoDB, ROW_FORMAT=DYNAMIC',
+                't: the table already has DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci',
+                'u: the table already has DEFAULT CHARSET=utf8mb4',
+            ),
+            $skipped
+        );
+    }
+
+    /**
+     * Nothing to compare against: a table created in the same migration, and
+     * PostgreSQL, which reports no options and renders none.
+     */
+    public function testTableOptionsAreKeptWhereTheyCannotBeCompared()
+    {
+        $schema = $this->mysql();
+        $schema->createTable('n', array('id' => array('type' => 'primary_key')));
+        $schema->table('n')->changeOptions(array('row_format' => 'DYNAMIC'));
+        $this->assertSame(array(), $schema->skipSatisfied($this->live('mysql', array())));
+        $this->assertCount(2, $schema->operations());
+
+        $schema = $this->pgsql();
+        $schema->table('t')->changeOptions(array('row_format' => 'DYNAMIC'));
+        $this->assertSame(array(), $schema->skipSatisfied($this->live('pgsql', array('t' => array('columns' => array('id'))))));
+        $this->assertCount(1, $schema->operations());
+        $this->assertSame(array(), $schema->toSql());
     }
 
     public function testMysqlNamesAreComparedWithoutCase()

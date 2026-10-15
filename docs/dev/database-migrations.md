@@ -126,6 +126,7 @@ $schema->table('event_templates')
 | `addIndex($columns, $options)` | `unique`, `name`, `length`, `fulltext` |
 | `dropIndex($columnsOrName)` | The column set, or the index's own name |
 | `dropPrimaryKey()` | Drops the constraint, keeps the columns. Add a unique index over the old key column first |
+| `changeOptions($options)` | MySQL table options: `engine`, `row_format`, `charset`, `collate` (a token works). A new default charset applies to columns added later; existing ones keep theirs. PostgreSQL renders nothing |
 
 Schema-scoped: `createTable()`, `dropTable()`, `renameTable()`, `rawSql()`.
 
@@ -140,6 +141,9 @@ $schema->createTable('collection_shares', [
     'charset' => 'utf8mb4',
 ]);
 ```
+
+`createTable()` takes `row_format` as well; PostgreSQL drops it with the
+other storage options.
 
 Order is declaration order across the whole builder, so a migration that adds a
 column, creates a table and then indexes the column gets exactly that sequence.
@@ -175,7 +179,10 @@ else:
   the column clauses of one `ALTER TABLE` against the table as it was, so naming
   a column twice, renaming or dropping a column an index added in the same
   statement covers, or dropping an index added in the same statement would fail
-  as one statement.
+  as one statement. Setting a table option twice splits the same way, and so
+  does a new default charset after a column redefined without a charset of its
+  own: in one statement that column would take the new default, not the old
+  one.
 
 **`changeColumn` is stricter than the rest.** MySQL's `MODIFY` restates the whole
 definition, so anything you leave out is silently dropped — a `MODIFY` that omits
@@ -270,8 +277,8 @@ to end.
 
 An explicit empty list is not a missing flavour. `'pgsql' => []` says, in so many
 words, that PostgreSQL has nothing to run at this point — the spelling for a MySQL
-storage option (`ROW_FORMAT`, an `ENGINE` change) that the other engine has no
-counterpart to, or the mirror image — and it renders as no statement at all.
+statement (`OPTIMIZE TABLE`, say) that the other engine has no counterpart to,
+or the mirror image — and it renders as no statement at all.
 
 Reach for it when the DSL genuinely cannot express the change — not when
 expressing it is inconvenient. Every `rawSql()` is a place a future engine has to
@@ -328,6 +335,8 @@ database already has is left out:
 - a table, column or index that is already there is not created or added again;
 - one that is already gone is not dropped again, nor is a primary key;
 - a table or column rename that has landed is left out;
+- a table option the table already has is left out, each one on its own: setting
+  `ROW_FORMAT` or `ENGINE` to the value the table has still rebuilds it;
 - a table that is already there still gets whichever of its declared indexes it
   lacks: on PostgreSQL those are statements of their own, so a run can stop
   between the `CREATE TABLE` and them.

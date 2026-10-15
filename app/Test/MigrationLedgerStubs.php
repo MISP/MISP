@@ -171,6 +171,24 @@ if (!class_exists('Migration_20260108_000000_collated_table', false)) {
     }
 }
 
+if (!class_exists('Migration_20260109_000000_table_options', false)) {
+    /**
+     * Changes an existing table's options, a collation token among them.
+     */
+    class Migration_20260109_000000_table_options extends AbstractMigration
+    {
+        public $description = 'Row format and default collation of an existing table';
+
+        public function up(SchemaBuilder $schema)
+        {
+            $schema->table('collated')->changeOptions(array(
+                'row_format' => 'DYNAMIC',
+                'collate' => Collation::CI,
+            ));
+        }
+    }
+}
+
 // -------- the manager, with its I/O in memory --------
 
 if (!class_exists('TestMigrationManager', false)) {

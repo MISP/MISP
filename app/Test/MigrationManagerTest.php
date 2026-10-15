@@ -344,7 +344,58 @@ class MigrationManagerTest extends TestCase
         $this->assertSame(array(), $manager->failed());
     }
 
+    /**
+     * Checking what an existing table already has resolves the token too, and
+     * defers the same way.
+     */
+    public function testAServerBelowTheFloorDefersWhileCheckingTableOptions()
+    {
+        $id = '20260109_000000_table_options';
+        $manager = new ExecutingMigrationManager(
+            array('Migration_20260109_000000_table_options.php'),
+            array(),
+            '10.6.18-MariaDB'
+        );
+        $manager->liveSchema = new MigrationTestInspector('mysql', array(
+            'collated' => array('columns' => array('id'), 'options' => array('row_format' => 'COMPACT')),
+        ));
+
+        $this->assertFalse($manager->apply($id));
+        $this->assertSame(MigrationManager::STATUS_DEFERRED, $manager->lastStatus());
+        $this->assertStringContainsString('This database server is MariaDB 10.6.', $manager->lastError());
+        $this->assertSame(array($id), $manager->deferred());
+    }
+
     // ------------------------------------------------------------- rendering
+
+    /**
+     * A re-run renders only the options the table does not have yet, and the
+     * dry run says which ones it left out.
+     */
+    public function testTableOptionsTheTableHasAreLeftOut()
+    {
+        $id = '20260109_000000_table_options';
+        $manager = new SchemaRenderingMigrationManager(array('Migration_20260109_000000_table_options.php'));
+        $manager->liveSchema = new MigrationTestInspector('mysql', array(
+            'collated' => array('columns' => array('id'), 'options' => array(
+                'row_format' => 'DYNAMIC', 'collation' => 'utf8mb3_general_ci', 'charset' => 'utf8mb3',
+            )),
+        ));
+
+        $this->assertSame(
+            array('ALTER TABLE `collated` DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;'),
+            $manager->toSql($id)
+        );
+        $this->assertSame(array('collated: the table already has ROW_FORMAT=DYNAMIC'), $manager->lastSkipped());
+
+        $manager->liveSchema->schema['collated']['options']['collation'] = 'utf8mb4_uca1400_ai_ci';
+        $manager->liveSchema->schema['collated']['options']['charset'] = 'utf8mb4';
+        $this->assertSame(array(), $manager->toSql($id));
+        $this->assertSame(
+            array('collated: the table already has ROW_FORMAT=DYNAMIC, DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci'),
+            $manager->lastSkipped()
+        );
+    }
 
     public function testATokenRendersForTheServer()
     {
