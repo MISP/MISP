@@ -1217,6 +1217,15 @@ class AdminShell extends AppShell
                     $this->out('  <warning>-- ' . $hint . '</warning>');
                 }
             }
+            // Read against this instance's schema, so the same for every engine.
+            $skipped = $manager->lastSkipped();
+            if (!empty($skipped)) {
+                $this->out();
+                $this->out('  <comment>' . __('Left out, because this database already has it:') . '</comment>');
+                foreach ($skipped as $note) {
+                    $this->out('  <comment>- ' . $note . '</comment>');
+                }
+            }
             if ($this->__hasDataStep($migration, 'beforeUp')) {
                 $this->out();
                 $this->out('  <comment>' . __('This migration also has a beforeUp() data step, run before any of the SQL above and described by none of it.') . '</comment>');

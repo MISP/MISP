@@ -2330,7 +2330,7 @@ class Event extends AppModel
                 }
             }
             if (isset($params['value']) && $params['value'] !== false) {
-                // It reads the attributes in a subquery of its own, which a
+                // Each reads the attributes in a subquery of its own, which a
                 // second one around it would run per event
                 $options = array(
                     'filter' => 'value',

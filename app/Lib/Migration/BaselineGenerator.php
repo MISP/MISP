@@ -36,6 +36,9 @@ App::uses('SqlDialect', 'Migration');
  * filters on a database name the caller chooses rather than on the
  * connection's own.
  *
+ * The queries, and the reading of defaults and index rows, are
+ * SchemaInspector's: its tableDefinition() reads a live table the same way.
+ *
  * db_schema.json is deliberately not the source: it records one boolean per
  * indexed column and cannot express a composite index, an index name or a
  * prefix length.
@@ -325,14 +328,14 @@ class BaselineGenerator
     public function readSchema()
     {
         $tables = array();
-        foreach ($this->fetchRows($this->tablesSql()) as $row) {
+        foreach ($this->fetchRows(SchemaInspector::mysqlTablesSql($this->db, $this->database)) as $row) {
             $collation = isset($row['TABLE_COLLATION']) ? (string)$row['TABLE_COLLATION'] : '';
             $options = array();
             if (!empty($row['ENGINE'])) {
                 $options['engine'] = $row['ENGINE'];
             }
             if ($collation !== '') {
-                $options['charset'] = self::charsetOf($collation);
+                $options['charset'] = SchemaInspector::charsetOfCollation($collation);
                 $options['collate'] = $collation;
             }
             $tables[$row['TABLE_NAME']] = array(
@@ -346,7 +349,7 @@ class BaselineGenerator
         }
 
         $quoted = $this->quotesLiteralDefaults();
-        foreach ($this->fetchRows($this->columnsSql()) as $row) {
+        foreach ($this->fetchRows(SchemaInspector::mysqlColumnsSql($this->db, $this->database)) as $row) {
             $table = $row['TABLE_NAME'];
             if (!isset($tables[$table])) {
                 continue;
@@ -359,7 +362,7 @@ class BaselineGenerator
         }
 
         $statistics = array();
-        foreach ($this->fetchRows($this->statisticsSql()) as $row) {
+        foreach ($this->fetchRows(SchemaInspector::mysqlStatisticsSql($this->db, $this->database)) as $row) {
             $statistics[$row['TABLE_NAME']][] = $row;
         }
         foreach ($tables as $table => $definition) {
@@ -436,17 +439,15 @@ class BaselineGenerator
     public static function columnSpec(array $row, $quotedDefaults = true, $tableCollation = '')
     {
         $columnType = isset($row['COLUMN_TYPE']) ? strtolower(trim($row['COLUMN_TYPE'])) : '';
-        if (!preg_match('/^([a-z]+)(?:\((\d+)(?:,\s*(\d+))?\))?(\s+unsigned)?/', $columnType, $m)) {
+        $parts = SchemaInspector::splitMysqlType($columnType);
+        if ($parts === null) {
             throw new InvalidArgumentException(sprintf(
                 'Column %s: cannot read the type "%s".',
                 isset($row['COLUMN_NAME']) ? $row['COLUMN_NAME'] : '?',
                 $columnType
             ));
         }
-        $base = $m[1];
-        $width = isset($m[2]) && $m[2] !== '' ? (int)$m[2] : null;
-        $scale = isset($m[3]) && $m[3] !== '' ? (int)$m[3] : null;
-        $unsigned = !empty($m[4]);
+        list($base, $width, $scale, $unsigned) = $parts;
 
         if ($base === 'enum' || $base === 'set') {
             throw new InvalidArgumentException(sprintf(
@@ -487,7 +488,7 @@ class BaselineGenerator
 
         $extra = isset($row['EXTRA']) ? strtolower($row['EXTRA']) : '';
         $expression = null;
-        list($hasDefault, $default, $isExpression) = self::parseDefault(
+        list($hasDefault, $default, $isExpression) = SchemaInspector::parseMysqlDefault(
             array_key_exists('COLUMN_DEFAULT', $row) ? $row['COLUMN_DEFAULT'] : null,
             $extra,
             $quotedDefaults
@@ -511,57 +512,12 @@ class BaselineGenerator
             $spec['collate'] = $row['COLLATION_NAME'];
             $spec['charset'] = !empty($row['CHARACTER_SET_NAME'])
                 ? $row['CHARACTER_SET_NAME']
-                : self::charsetOf($row['COLLATION_NAME']);
+                : SchemaInspector::charsetOfCollation($row['COLLATION_NAME']);
         }
         if (!empty($row['COLUMN_COMMENT'])) {
             $spec['comment'] = $row['COLUMN_COMMENT'];
         }
         return array($spec, $expression);
-    }
-
-    /**
-     * What a COLUMN_DEFAULT cell means.
-     *
-     * Three servers, three spellings. MariaDB (10.2.7+) quotes literals,
-     * spells an explicit NULL as the word, and shows expressions bare. MySQL
-     * shows literals bare and flags expression defaults with
-     * DEFAULT_GENERATED in EXTRA, except CURRENT_TIMESTAMP on a datetime,
-     * which is bare and unflagged. A SQL NULL means the column has no
-     * default on both.
-     *
-     * @param string|null $default
-     * @param string $extra Lower-cased.
-     * @param bool $quotedDefaults
-     * @return array array(bool $hasDefault, mixed $value, bool $isExpression).
-     *   An explicit NULL default comes back as (false, null, false): the
-     *   grammar emits DEFAULT NULL for a nullable column on its own, and a
-     *   NOT NULL column cannot have one.
-     */
-    public static function parseDefault($default, $extra, $quotedDefaults)
-    {
-        if ($default === null) {
-            return array(false, null, false);
-        }
-        $default = (string)$default;
-        if (strpos($extra, 'default_generated') !== false) {
-            return array(true, $default, true);
-        }
-        if ($quotedDefaults) {
-            if (strtoupper($default) === 'NULL') {
-                return array(false, null, false);
-            }
-            if (preg_match("/^'(.*)'$/s", $default, $m)) {
-                return array(true, str_replace("''", "'", $m[1]), false);
-            }
-            if (is_numeric($default)) {
-                return array(true, $default, false);
-            }
-            return array(true, $default, true);
-        }
-        if (preg_match('/^current_timestamp(\(\d*\))?$/i', $default)) {
-            return array(true, 'CURRENT_TIMESTAMP', true);
-        }
-        return array(true, $default, false);
     }
 
     /**
@@ -578,40 +534,21 @@ class BaselineGenerator
      */
     public static function indexDeclarations(array $rows)
     {
-        usort($rows, function ($a, $b) {
-            $byName = strcmp($a['INDEX_NAME'], $b['INDEX_NAME']);
-            if ($byName !== 0) {
-                return $byName;
-            }
-            return (int)$a['SEQ_IN_INDEX'] - (int)$b['SEQ_IN_INDEX'];
-        });
-
         $primary = array();
         $indexes = array();
-        foreach ($rows as $row) {
-            $name = $row['INDEX_NAME'];
-            if ($name === 'PRIMARY') {
-                $primary[] = $row['COLUMN_NAME'];
+        foreach (SchemaInspector::mysqlIndexes($rows) as $name => $index) {
+            if ($index['primary']) {
+                $primary = $index['column'];
                 continue;
             }
-            if (!isset($indexes[$name])) {
-                $indexes[$name] = array(
-                    'name' => $name,
-                    'column' => array(),
-                    'unique' => isset($row['NON_UNIQUE']) && (int)$row['NON_UNIQUE'] === 0,
-                );
-                if (isset($row['INDEX_TYPE']) && strtoupper($row['INDEX_TYPE']) === 'FULLTEXT') {
-                    $indexes[$name]['fulltext'] = true;
-                    $indexes[$name]['unique'] = false;
-                }
+            $declaration = array('name' => $name, 'column' => $index['column'], 'unique' => $index['unique']);
+            if ($index['type'] === 'fulltext') {
+                $declaration['fulltext'] = true;
             }
-            $indexes[$name]['column'][] = $row['COLUMN_NAME'];
-            if (isset($row['SUB_PART']) && $row['SUB_PART'] !== null && $row['SUB_PART'] !== '') {
-                if (!isset($indexes[$name]['length'])) {
-                    $indexes[$name]['length'] = array();
-                }
-                $indexes[$name]['length'][$row['COLUMN_NAME']] = (int)$row['SUB_PART'];
+            if (!empty($index['length'])) {
+                $declaration['length'] = $index['length'];
             }
+            $indexes[$name] = $declaration;
         }
         if (count($primary) > 1) {
             throw new InvalidArgumentException(sprintf(
@@ -1202,9 +1139,9 @@ class BaselineGenerator
     {
         $actualIsSet = $actual !== null && $actual !== '';
         if ($isKey) {
-            // Dropped by the rendering, so nothing is expected back - but a
-            // serial's nextval() is reported by neither driver, so only an
-            // unexpected literal is worth a line.
+            // Dropped by the rendering, so nothing is expected back - and a
+            // key's generated value, serial or identity, is reported by
+            // neither driver as a default.
             return null;
         }
         if ($isExpression) {
@@ -1348,45 +1285,6 @@ class BaselineGenerator
     }
 
     /**
-     * @return string
-     */
-    private function tablesSql()
-    {
-        return sprintf(
-            'SELECT TABLE_NAME, ENGINE, TABLE_COLLATION FROM information_schema.TABLES'
-                . " WHERE TABLE_SCHEMA = %s AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;",
-            $this->db->value($this->database, 'string')
-        );
-    }
-
-    /**
-     * @return string
-     */
-    private function columnsSql()
-    {
-        return sprintf(
-            'SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_DEFAULT, IS_NULLABLE,'
-                . ' COLUMN_TYPE, CHARACTER_SET_NAME, COLLATION_NAME, EXTRA, COLUMN_COMMENT'
-                . ' FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s'
-                . ' ORDER BY TABLE_NAME, ORDINAL_POSITION;',
-            $this->db->value($this->database, 'string')
-        );
-    }
-
-    /**
-     * @return string
-     */
-    private function statisticsSql()
-    {
-        return sprintf(
-            'SELECT TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX, COLUMN_NAME, NON_UNIQUE, SUB_PART, INDEX_TYPE'
-                . ' FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = %s'
-                . ' ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;',
-            $this->db->value($this->database, 'string')
-        );
-    }
-
-    /**
      * MariaDB quotes literal defaults in information_schema; MySQL does not.
      *
      * @return bool
@@ -1394,22 +1292,10 @@ class BaselineGenerator
     protected function quotesLiteralDefaults()
     {
         if ($this->quotedDefaults === null) {
-            $rows = $this->fetchRows('SELECT VERSION() AS version;');
-            $version = isset($rows[0]['version']) ? $rows[0]['version'] : '';
-            $this->quotedDefaults = stripos($version, 'mariadb') !== false;
+            $inspector = new SchemaInspector($this->db);
+            $this->quotedDefaults = $inspector->isMariaDb();
         }
         return $this->quotedDefaults;
-    }
-
-    /**
-     * @param string $collation
-     * @return string The charset a collation belongs to - the part before
-     *   the first underscore, which is how MySQL names them.
-     */
-    private static function charsetOf($collation)
-    {
-        $parts = explode('_', $collation, 2);
-        return $parts[0];
     }
 
     /**

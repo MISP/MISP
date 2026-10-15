@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('AnalystData', 'Model');
 
 class CollectionElement extends AppModel
 {
@@ -22,16 +23,8 @@ class CollectionElement extends AppModel
         'GalaxyCluster',
         'Attribute',
         'Object',
-        'Value'
+        'AttributeValue',
     ];
-
-    /**
-     * A Value element points at its value dictionary row (value_id), and its
-     * element_uuid is derived from the literal (Value::uuidFor), so the
-     * (element_uuid, collection_id) unique key keeps a value in a collection
-     * once. Reads and sync carry the literal as `value`, never the id.
-     */
-    const VALUE_MAX_BYTES = 1024;
 
     /**
      * Model behind each pointer type, for those whose class name differs.
@@ -54,9 +47,13 @@ class CollectionElement extends AppModel
             ]
         ],
         'element_uuid' => [
-            'element_uuid' => [
-                'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+            'address' => [
+                'rule' => 'validAddress',
+            ]
+        ],
+        'element_sha256' => [
+            'address' => [
+                'rule' => 'validAddress',
             ]
         ],
         'element_type' => [
@@ -95,6 +92,7 @@ class CollectionElement extends AppModel
         if (empty($this->id) && empty($this->data['CollectionElement']['uuid'])) {
             $this->data['CollectionElement']['uuid'] = CakeText::uuid();
         }
+        $this->data['CollectionElement'] = AnalystData::normaliseAddress($this->data['CollectionElement'], 'element', empty($this->id));
         if (
             empty($this->id) &&
             empty($this->data['CollectionElement']['element_type']) &&
@@ -102,106 +100,26 @@ class CollectionElement extends AppModel
         ) {
             $this->data['CollectionElement']['element_type'] = $this->deduceType($this->data['CollectionElement']['element_uuid']);
         }
-        $element = &$this->data['CollectionElement'];
-        if (($element['element_type'] ?? null) === 'Value') {
-            $value = isset($element['value']) && is_scalar($element['value'])
-                ? trim((string)$element['value'])
-                : '';
-            if ($value === '') {
-                $this->invalidate('value', __('A value element needs a value.'));
-            } elseif (strlen($value) > self::VALUE_MAX_BYTES) {
-                $this->invalidate('value', __('A value element holds at most %s bytes.', self::VALUE_MAX_BYTES));
-            } else {
-                App::uses('Value', 'Model');
-                $element['value'] = $value;
-                $element['element_uuid'] = Value::uuidFor($value);
-            }
-        } elseif (isset($element['element_type'])) {
-            $element['value'] = null;
-        }
         return true;
     }
 
-    public function beforeSave($options = array())
-    {
-        $element = &$this->data['CollectionElement'];
-        if (array_key_exists('value', $element)) {
-            $element['value_id'] = ($element['element_type'] ?? null) === 'Value' && $element['value'] !== null
-                ? ClassRegistry::init('AttributeValue')->intern((string)$element['value'])
-                : null;
-            unset($element['value']);
-        }
-        return true;
-    }
-
-    public function afterFind($results, $primary = false)
-    {
-        if (!is_array($results)) {
-            return $results;
-        }
-        $ids = [];
-        $this->valueIdsIn($results, $ids);
-        $texts = empty($ids) ? [] : ClassRegistry::init('AttributeValue')->fetchValues(array_keys($ids));
-        $this->fillValues($results, $texts);
-        return $results;
-    }
-
     /**
-     * @param array $node A find result, or any part of one
-     * @param array $ids value_id => true, added to
-     * @return void
-     */
-    private function valueIdsIn(array $node, array &$ids)
-    {
-        if (!empty($node['value_id'])) {
-            $ids[(int)$node['value_id']] = true;
-        }
-        foreach ($node as $child) {
-            if (is_array($child)) {
-                $this->valueIdsIn($child, $ids);
-            }
-        }
-    }
-
-    /**
-     * The literal in place of the id, wherever an element row sits in a
-     * result: primary rows and the ones a Collection find contains alike.
-     *
-     * @param array $node
-     * @param array $texts value_id => value
-     * @return void
-     */
-    private function fillValues(array &$node, array $texts)
-    {
-        if (array_key_exists('value_id', $node)) {
-            $node['value'] = empty($node['value_id']) ? null : ($texts[(int)$node['value_id']] ?? null);
-            unset($node['value_id']);
-        }
-        foreach ($node as &$child) {
-            if (is_array($child)) {
-                $this->fillValues($child, $texts);
-            }
-        }
-        unset($child);
-    }
-
-    /**
-     * The element UUIDs of one type that $user may read. A Value element is
-     * authored content of the collection, so every one is readable to whoever
-     * sees the collection.
+     * The element addresses of one type that $user may read.
      *
      * @param array $user
      * @param string $type
-     * @param array $uuids
-     * @return array
+     * @param array $uuids uuids, or SHA-256s for AnalystData::SHA256_TARGETS
+     * @return array SHA-256s in lower case
      */
     public function readableUuids(array $user, $type, array $uuids)
     {
         $uuids = array_values(array_unique($uuids));
-        if (empty($uuids) || $type === 'Value') {
-            return $uuids;
+        if (empty($uuids)) {
+            return [];
         }
         switch ($type) {
+            case 'AttributeValue':
+                return array_keys(ClassRegistry::init('AnalystData')->visibleValuesBySha256($user, $uuids));
             case 'Event':
                 $rows = ClassRegistry::init('Event')->fetchSimpleEvents($user, [
                     'conditions' => ['Event.uuid' => $uuids]
@@ -242,8 +160,10 @@ class CollectionElement extends AppModel
     {
         $uuidsByType = [];
         foreach ($elements as $element) {
-            if (!empty($element['element_uuid'])) {
-                $uuidsByType[$element['element_type'] ?? ''][] = $element['element_uuid'];
+            $type = $element['element_type'] ?? '';
+            $address = $element[AnalystData::addressColumn($type, 'element')] ?? '';
+            if (!empty($address)) {
+                $uuidsByType[$type][] = $address;
             }
         }
         $targets = [];
@@ -252,7 +172,7 @@ class CollectionElement extends AppModel
         }
         foreach ($elements as $k => $element) {
             $type = $element['element_type'] ?? '';
-            $uuid = $element['element_uuid'] ?? '';
+            $uuid = $element[AnalystData::addressColumn($type, 'element')] ?? '';
             if (isset($targets[$type][$uuid])) {
                 $elements[$k][$type] = $targets[$type][$uuid];
             }
@@ -263,13 +183,22 @@ class CollectionElement extends AppModel
     /**
      * @param array $user
      * @param string $type
-     * @param array $uuids
+     * @param array $uuids uuids, or SHA-256s for AnalystData::SHA256_TARGETS
      * @return array uuid => what the view shows of the record
      */
     private function fetchTargets(array $user, $type, array $uuids)
     {
         $byUuid = [];
         switch ($type) {
+            case 'AttributeValue':
+                $ids = ClassRegistry::init('AnalystData')->visibleValuesBySha256($user, $uuids);
+                $texts = empty($ids) ? [] : ClassRegistry::init('MispAttribute')->loadAttributeValue()->fetchValues(array_values($ids));
+                foreach ($ids as $hex => $id) {
+                    if (isset($texts[$id])) {
+                        $byUuid[$hex] = ['sha256' => $hex, 'value' => $texts[$id]];
+                    }
+                }
+                break;
             case 'Event':
                 $rows = ClassRegistry::init('Event')->fetchSimpleEvents($user, [
                     'conditions' => ['Event.uuid' => $uuids]
@@ -373,12 +302,18 @@ class CollectionElement extends AppModel
         );
     }
 
+    /**
+     * @param array $check
+     * @return bool|string
+     */
+    public function validAddress($check)
+    {
+        return AnalystData::addressError($this->data['CollectionElement'], key($check)) ?? true;
+    }
+
     public function deduceType(string $uuid)
     {
-        foreach ($this->valid_types as $valid_type) {
-            if ($valid_type === 'Value') {
-                continue;
-            }
+        foreach (array_diff($this->valid_types, AnalystData::SHA256_TARGETS) as $valid_type) {
             $model = ClassRegistry::init($this->typeModels[$valid_type] ?? $valid_type);
             $result = $model->find('first', [
                 'conditions' => [$model->alias . '.uuid' => $uuid],
@@ -390,6 +325,65 @@ class CollectionElement extends AppModel
             }
         }
         throw new NotFoundException(__('Invalid UUID'));
+    }
+
+    /**
+     * Refuse any target $user cannot read. The read side resolves elements back
+     * into objects, so every write path that stores one must check it first. A
+     * missing target and an invisible one get the same answer.
+     *
+     * @param array $user
+     * @param string|null $elementType When empty, deduced per address as
+     *      beforeValidate() does on save, so leaving it out skips nothing
+     * @param array $addresses uuids, or SHA-256s for AnalystData::SHA256_TARGETS
+     * @throws NotFoundException
+     */
+    public function assertTargetsUsable(array $user, $elementType, array $addresses)
+    {
+        foreach ($addresses as $address) {
+            $type = empty($elementType) ? $this->deduceType($address) : $elementType;
+            if ($type === 'Event') {
+                $event = ClassRegistry::init('Event')->fetchSimpleEvent($user, $address, [
+                    'fields' => ['Event.id']
+                ]);
+                if (empty($event)) {
+                    throw new NotFoundException(__('Invalid event or not authorized.'));
+                }
+            } elseif ($type === 'GalaxyCluster') {
+                $clusterCount = ClassRegistry::init('GalaxyCluster')->fetchGalaxyClusters($user, [
+                    'conditions' => ['GalaxyCluster.uuid' => $address],
+                    'count' => true
+                ]);
+                if (empty($clusterCount)) {
+                    throw new NotFoundException(__('Invalid galaxy cluster or not authorized.'));
+                }
+            } elseif ($type === 'AttributeValue') {
+                $found = ClassRegistry::init('AnalystData')->existingTargets($user, [
+                    ['type' => $type, 'address' => $address],
+                ]);
+                if (empty($found)) {
+                    throw new NotFoundException(__('Invalid value or not authorized.'));
+                }
+            } elseif ($type === 'Attribute' || $type === 'Object') {
+                if (empty($this->readableUuids($user, $type, [$address]))) {
+                    throw new NotFoundException(__('Invalid element or not authorized.'));
+                }
+            } else {
+                throw new NotFoundException(__('Invalid element type.'));
+            }
+        }
+    }
+
+    /**
+     * SQLSTATE class 23, integrity constraint violation: MySQL reports a
+     * duplicate key as 23000, PostgreSQL as 23505.
+     *
+     * @param PDOException $e
+     * @return bool
+     */
+    public static function isDuplicate(PDOException $e)
+    {
+        return isset($e->errorInfo[0]) && strpos((string)$e->errorInfo[0], '23') === 0;
     }
 
     /*
@@ -409,11 +403,11 @@ class CollectionElement extends AppModel
         // Rows match as the unique keys compare them: by row uuid, else by element
         // within the collection, both case-insensitive (ascii_general_ci).
         $oldElements = [];
-        $oldByElement = [];
+        $oldByTarget = [];
         foreach ($temp as $oldElement) {
             $row = $oldElement['CollectionElement'];
             $oldElements[strtolower($row['uuid'])] = $row;
-            $oldByElement[$this->elementKey($row)] = strtolower($row['uuid']);
+            $oldByTarget[$this->targetKey($row)] = strtolower($row['uuid']);
         }
         if (isset($data['Collection']['CollectionElement'])) {
             $elementsToSave = [];
@@ -425,30 +419,30 @@ class CollectionElement extends AppModel
                 if (empty($element['uuid'])) {
                     $element['uuid'] = CakeText::uuid();
                 }
-                $key = $this->elementKey($element);
+                $key = $this->targetKey($element);
                 $rowUuid = is_string($element['uuid']) ? strtolower($element['uuid']) : '';
-                if (!isset($oldElements[$rowUuid]) && $key !== null && isset($oldByElement[$key])) {
-                    $rowUuid = $oldByElement[$key];
+                if (!isset($oldElements[$rowUuid]) && $key !== '' && isset($oldByTarget[$key])) {
+                    $rowUuid = $oldByTarget[$key];
                 }
                 if (isset($oldElements[$rowUuid])) {
-                    $captured[$this->elementKey($oldElements[$rowUuid])] = true;
+                    $captured[$this->targetKey($oldElements[$rowUuid])] = true;
                     if (isset($element['description'])) {
                         $oldElements[$rowUuid]['description'] = $element['description'];
                     }
                     $elementsToSave[$k] = $oldElements[$rowUuid];
                     unset($oldElements[$rowUuid]);
-                } elseif ($key !== null && isset($captured[$key])) {
+                } elseif ($key !== '' && isset($captured[$key])) {
                     continue;
                 } else {
-                    if ($key !== null) {
+                    if ($key !== '') {
                         $captured[$key] = true;
                     }
                     $elementsToSave[$k] = [
                         'CollectionElement' => [
                             'uuid' => $element['uuid'],
                             'element_uuid' => $element['element_uuid'] ?? null,
+                            'element_sha256' => $element['element_sha256'] ?? null,
                             'element_type' => $element['element_type'] ?? null,
-                            'value' => $element['value'] ?? null,
                             'description' => $element['description'] ?? null,
                             'collection_id' => $data['Collection']['id']
                         ]
@@ -504,19 +498,17 @@ class CollectionElement extends AppModel
 
     /**
      * @param array $element
-     * @return string|null The element's half of the (element_uuid, collection_id) key
+     * @return string What a unique key on the target holds, with its column,
+     *      lowercased; '' when the element names no target.
      */
-    private function elementKey(array $element)
+    private function targetKey(array $element)
     {
-        $uuid = $element['element_uuid'] ?? null;
-        $value = ($element['element_type'] ?? null) === 'Value' && isset($element['value']) && is_scalar($element['value'])
-            ? trim((string)$element['value'])
-            : '';
-        if ($value !== '') {
-            // beforeValidate() derives a Value element's uuid from its text and ignores a payload one
-            App::uses('Value', 'Model');
-            $uuid = Value::uuidFor($value);
+        foreach (['element_sha256', 'element_uuid'] as $column) {
+            $address = $element[$column] ?? null;
+            if (is_string($address) && trim($address) !== '') {
+                return $column . ':' . strtolower(trim($address));
+            }
         }
-        return is_string($uuid) && $uuid !== '' ? strtolower($uuid) : null;
+        return '';
     }
 }

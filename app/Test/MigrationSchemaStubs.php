@@ -173,3 +173,54 @@ if (!class_exists('MigrationTestPostgres', false)) {
     {
     }
 }
+
+if (!class_exists('MigrationTestInspector', false)) {
+    /**
+     * A live schema with scripted contents and no connection behind it:
+     * table => array('columns' => names, 'indexes' => name => columns), the
+     * primary key being the index named PRIMARY, as both drivers report it.
+     */
+    class MigrationTestInspector extends SchemaInspector
+    {
+        /** @var array */
+        public $schema;
+
+        /** @var string */
+        private $readsFlavour;
+
+        public function __construct($flavour = self::FLAVOUR_MYSQL, array $schema = array())
+        {
+            $this->readsFlavour = $flavour;
+            $this->schema = $schema;
+        }
+
+        public function flavour()
+        {
+            return $this->readsFlavour;
+        }
+
+        public function tables()
+        {
+            return array_keys($this->schema);
+        }
+
+        public function columns($table)
+        {
+            if (!isset($this->schema[$table]['columns'])) {
+                return array();
+            }
+            return array_fill_keys($this->schema[$table]['columns'], array('type' => 'integer'));
+        }
+
+        public function indexes($table)
+        {
+            $indexes = array();
+            if (isset($this->schema[$table]['indexes'])) {
+                foreach ($this->schema[$table]['indexes'] as $name => $columns) {
+                    $indexes[$name] = array('column' => $columns, 'unique' => (int)($name === 'PRIMARY'));
+                }
+            }
+            return $indexes;
+        }
+    }
+}

@@ -1,6 +1,6 @@
 <?php
 /**
- * CollectionElement: element types, Value elements and readability.
+ * CollectionElement: element types, value addresses and readability.
  *
  * Pure PHPUnit, no CakePHP bootstrap and no database, as the other tests
  * under app/Test/. The framework classes the model touches are stubbed below,
@@ -96,6 +96,7 @@ if (!class_exists('AppModel', false)) {
 }
 
 require_once __DIR__ . '/../Model/Value.php';
+require_once __DIR__ . '/../Model/AnalystData.php';
 require_once __DIR__ . '/../Model/CollectionElement.php';
 
 use PHPUnit\Framework\TestCase;
@@ -147,6 +148,24 @@ class RecordingFetcher
     }
 }
 
+/** Answers visibleValuesBySha256() from a fixed map, recording each question. */
+class RecordingValueAcl
+{
+    public $asked = array();
+    private $visible;
+
+    public function __construct(array $visible)
+    {
+        $this->visible = $visible;
+    }
+
+    public function visibleValuesBySha256(array $user, array $hexes)
+    {
+        $this->asked[] = $hexes;
+        return array_intersect_key($this->visible, array_flip($hexes));
+    }
+}
+
 class CollectionElementTest extends TestCase
 {
     /** @var TestableCollectionElement */
@@ -180,66 +199,50 @@ class CollectionElementTest extends TestCase
         $this->assertNotSame(Value::uuidFor('Example.com'), Value::uuidFor('example.com'));
     }
 
-    public function testValueElementDerivesItsUuidAndIgnoresAPayloadOne()
+    public function testAValueElementIsAddressedByItsLowercasedSha256()
     {
+        $hex = hash('sha256', '8.8.8.8');
         $saved = $this->element->validateData(array(
-            'element_type' => 'Value',
-            'value' => ' 8.8.8.8 ',
-            'element_uuid' => '11111111-1111-4111-8111-111111111111',
+            'element_type' => 'AttributeValue',
+            'element_sha256' => ' ' . strtoupper($hex) . ' ',
         ));
-        $this->assertSame('8.8.8.8', $saved['value']);
-        $this->assertSame(Value::uuidFor('8.8.8.8'), $saved['element_uuid']);
-        $this->assertEmpty($this->element->validationErrors);
+        $this->assertSame($hex, $saved['element_sha256']);
+        $this->assertNull($saved['element_uuid']);
     }
 
-    public function testEmptyValueIsRefused()
-    {
-        foreach (array('', '   ', null, array('x')) as $value) {
-            $this->element->validateData(array('element_type' => 'Value', 'value' => $value));
-            $this->assertArrayHasKey('value', $this->element->validationErrors);
-        }
-    }
-
-    public function testOversizedValueIsRefused()
-    {
-        $this->element->validateData(array(
-            'element_type' => 'Value',
-            'value' => str_repeat('a', CollectionElement::VALUE_MAX_BYTES),
-        ));
-        $this->assertEmpty($this->element->validationErrors);
-        $this->element->validateData(array(
-            'element_type' => 'Value',
-            'value' => str_repeat('a', CollectionElement::VALUE_MAX_BYTES + 1),
-        ));
-        $this->assertArrayHasKey('value', $this->element->validationErrors);
-    }
-
-    public function testPointerElementsCarryNoValue()
+    public function testPointerElementsCarryNoSha256()
     {
         $uuid = '5d34e7f4-bc50-4907-b4e3-245ea1501b3a';
         $saved = $this->element->validateData(array(
             'element_type' => 'Attribute',
             'element_uuid' => $uuid,
-            'value' => 'smuggled',
+            'element_sha256' => '',
         ));
-        $this->assertNull($saved['value']);
+        $this->assertNull($saved['element_sha256']);
         $this->assertSame($uuid, $saved['element_uuid']);
     }
 
     public function testElementTypes()
     {
-        foreach (array('Event', 'GalaxyCluster', 'Attribute', 'Object', 'Value') as $type) {
+        foreach (array('Event', 'GalaxyCluster', 'Attribute', 'Object', 'AttributeValue') as $type) {
             $this->assertTrue($this->element->validElementType(array('element_type' => $type)), $type);
         }
-        foreach (array('Tag', 'attribute', 'MispAttribute', '') as $type) {
+        foreach (array('Tag', 'attribute', 'MispAttribute', 'Value', '') as $type) {
             $this->assertFalse($this->element->validElementType(array('element_type' => $type)), $type);
         }
     }
 
-    public function testValuesAreReadableToWhoeverSeesTheCollection()
+    public function testValueReadabilityGoesThroughTheValueAcl()
     {
-        $uuids = array(Value::uuidFor('8.8.8.8'), Value::uuidFor('1.1.1.1'));
-        $this->assertSame($uuids, $this->element->readableUuids(array(), 'Value', $uuids));
+        $visible = hash('sha256', '8.8.8.8');
+        $hidden = hash('sha256', '1.1.1.1');
+        $acl = new RecordingValueAcl(array($visible => 7));
+        ClassRegistry::$instances['AnalystData'] = $acl;
+
+        $readable = $this->element->readableUuids(array('id' => 2), 'AttributeValue', array($visible, $hidden, $visible));
+
+        $this->assertSame(array($visible), $readable);
+        $this->assertSame(array(array($visible, $hidden)), $acl->asked);
     }
 
     public function testAttributeReadabilityGoesThroughTheAclFetch()

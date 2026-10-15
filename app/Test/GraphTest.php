@@ -628,7 +628,7 @@ class GraphTest extends TestCase
         $this->assertContains('Graph', AnalystData::TYPES);
         $this->assertNotContains('Graph', AnalystData::ANALYST_DATA_TYPES);
         $this->assertContains('Graph', AnalystData::valid_targets);
-        $this->assertContains('Value', AnalystData::valid_targets);
+        $this->assertContains('AttributeValue', AnalystData::valid_targets);
         $this->assertSame(AnalystData::GRAPH, (new GraphTestGraph())->current_type_id);
     }
 

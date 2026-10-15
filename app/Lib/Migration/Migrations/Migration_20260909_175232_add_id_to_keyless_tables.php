@@ -61,7 +61,9 @@ class Migration_20260909_175232_add_id_to_keyless_tables extends AbstractMigrati
                     $t->dropPrimaryKey();
                 }
             }
-            $t->addColumn('id', 'primary_key', array('first' => true));
+            // 32-bit, as the install baselines carry it: `primary_key` has
+            // since become 64-bit, and this migration must not change with it.
+            $t->addColumn('id', 'integer', array('null' => false, 'key' => 'primary', 'first' => true));
         }
     }
 }

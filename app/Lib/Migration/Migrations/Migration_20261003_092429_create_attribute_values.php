@@ -75,7 +75,7 @@ class Migration_20261003_092429_create_attribute_values extends AbstractMigratio
                     'charset' => 'utf8mb4',
                     'collate' => $collation,
                 ),
-                'hash' => array('type' => 'varbinary', 'length' => 16, 'null' => false),
+                'hash' => array('type' => 'varbinary', 'length' => 32, 'null' => false),
             ), array(
                 'indexes' => array('hash' => array('unique' => true)),
                 'engine' => 'InnoDB',

@@ -268,10 +268,13 @@ if (!class_exists('TestMigrationManager', false)) {
 if (!class_exists('SchemaRenderingMigrationManager', false)) {
     /**
      * The same, but with a connectionless MySQL datasource behind it, so that
-     * toSql() can be driven without a database.
+     * toSql() can be driven without a database, and a scripted live schema.
      */
     class SchemaRenderingMigrationManager extends TestMigrationManager
     {
+        /** @var MigrationTestInspector Empty unless a test scripts it. */
+        public $liveSchema;
+
         /** @var MigrationTestMysqlExtended */
         private $db;
 
@@ -279,6 +282,12 @@ if (!class_exists('SchemaRenderingMigrationManager', false)) {
         {
             parent::__construct($files, $rows);
             $this->db = new MigrationTestMysqlExtended();
+            $this->liveSchema = new MigrationTestInspector();
+        }
+
+        public function inspector()
+        {
+            return $this->liveSchema;
         }
 
         protected function dataSource()

@@ -1,12 +1,12 @@
 <?php
 /**
- * CollectionElement::captureElements() against an in-memory table.
+ * CollectionElement::captureElements(): a collection received over REST or
+ * sync is authoritative for its elements. An element resent without its own
+ * uuid, or under a uuid this instance does not know, must keep the stored
+ * row for the same target instead of colliding with it and culling it.
  *
- * Pure PHPUnit, no CakePHP bootstrap and no database, as the other tests
- * under app/Test/. The table enforces collection_elements' two unique keys,
- * `uuid` and (`element_uuid`, `collection_id`), comparing case-insensitively
- * as their ascii_general_ci columns do, and throws the PDOException MySQL
- * would on a duplicate.
+ * Pure PHPUnit: the probe keeps the table in memory and enforces its unique
+ * keys, so a duplicate insert fails as it would on MySQL.
  */
 
 require_once __DIR__ . '/../Vendor/autoload.php';
@@ -19,24 +19,9 @@ if (!class_exists('App', false)) {
         }
     }
 }
-
-if (!class_exists('CakeText', false)) {
-    class CakeText
-    {
-        private static $counter = 0;
-
-        public static function uuid()
-        {
-            self::$counter++;
-            return sprintf('00000000-0000-4000-8000-%012d', self::$counter);
-        }
-    }
-}
-
 if (!class_exists('AppModel', false)) {
     class AppModel
     {
-        public $alias = 'Collection';
         public $id = false;
         public $data = array();
         public $validationErrors = array();
@@ -57,90 +42,83 @@ if (!class_exists('AppModel', false)) {
         }
     }
 }
-
-if (!function_exists('__')) {
-    function __($string)
+if (!class_exists('CakeText', false)) {
+    class CakeText
     {
-        $args = func_get_args();
-        $format = array_shift($args);
-        return empty($args) ? $format : vsprintf($format, $args);
+        private static $counter = 0;
+
+        public static function uuid()
+        {
+            self::$counter++;
+            return sprintf('00000000-0000-4000-8000-%012d', self::$counter);
+        }
     }
 }
 
-require_once __DIR__ . '/../Model/Value.php';
 require_once __DIR__ . '/../Model/CollectionElement.php';
 
 use PHPUnit\Framework\TestCase;
 
-class CaptureTestCollectionElement extends CollectionElement
+class CollectionElementCaptureProbe extends CollectionElement
 {
-    /** @var array<int, array> rows by id */
-    public $rows = array();
-    public $logged = array();
+    /** @var array id => row */
+    public $rows = [];
+
+    /** @var string[] */
+    public $logged = [];
+
+    public $deleted = [];
+
     private $nextId = 1;
 
-    public function seed(array $row)
-    {
-        $row['id'] = $this->nextId++;
-        $this->rows[$row['id']] = $row + array('description' => null);
-        return $row['id'];
-    }
-
-    public function find($type, $options = array())
+    public function find($type = 'first', $options = array())
     {
         $collectionId = $options['conditions']['CollectionElement.collection_id'];
-        $out = array();
+        $out = [];
         foreach ($this->rows as $row) {
             if ($row['collection_id'] == $collectionId) {
-                $out[] = array('CollectionElement' => $row);
+                $out[] = ['CollectionElement' => $row];
             }
         }
         return $out;
     }
 
-    public function create($data = array())
+    public function create($data = array(), $filterKey = false)
     {
         $this->id = false;
     }
 
-    public function invalidate($field, $value = true)
-    {
-        $this->validationErrors[$field][] = $value;
-    }
-
     public function save($data = null, $validate = true, $fieldList = array())
     {
-        $this->data = isset($data['CollectionElement']) ? $data : array('CollectionElement' => $data);
-        $this->id = isset($this->data['CollectionElement']['id']) ? $this->data['CollectionElement']['id'] : false;
-        $this->validationErrors = array();
-        $this->beforeValidate();
-        if (!empty($this->validationErrors)) {
-            return false;
-        }
-        $row = $this->data['CollectionElement'];
-        $id = isset($row['id']) ? $row['id'] : null;
-        foreach ($this->rows as $other) {
-            if ($other['id'] === $id) {
+        $row = $data['CollectionElement'] ?? $data;
+        $id = $row['id'] ?? null;
+        $stored = $id ? $this->rows[$id] : [];
+        $row = array_merge($stored, $row);
+        foreach ($this->rows as $otherId => $other) {
+            if ($otherId == $id) {
                 continue;
             }
-            if (strcasecmp($other['uuid'], $row['uuid']) === 0
-                || (strcasecmp($other['element_uuid'], (string)$row['element_uuid']) === 0
-                    && $other['collection_id'] == $row['collection_id'])
-            ) {
-                throw new PDOException('SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry');
+            $sameTarget = false;
+            foreach (['element_uuid', 'element_sha256'] as $column) {
+                $sameTarget = $sameTarget || (!empty($row[$column]) && $other['collection_id'] == $row['collection_id']
+                    && strtolower($other[$column] ?? '') === strtolower($row[$column]));
+            }
+            if ($other['uuid'] === $row['uuid'] || $sameTarget) {
+                $e = new PDOException('SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry');
+                $e->errorInfo = ['23000', 1062, 'Duplicate entry'];
+                throw $e;
             }
         }
-        if ($id === null) {
-            $id = $this->nextId++;
-            $row['id'] = $id;
+        if (!$id) {
+            $row['id'] = $id = $this->nextId++;
         }
-        $this->rows[$id] = $row + array('description' => null);
-        $this->id = $id;
-        return true;
+        $this->rows[$id] = $row;
+        return ['CollectionElement' => $row];
     }
 
     public function delete($id = null, $cascade = true)
     {
+        $this->deleted[] = $id;
         unset($this->rows[$id]);
         return true;
     }
@@ -154,153 +132,124 @@ class CaptureTestCollectionElement extends CollectionElement
 
 class CollectionElementCaptureTest extends TestCase
 {
-    const COLLECTION = 5;
-    const EVENT_A = '4f74bdee-3c2e-4211-b400-b6dcd6ef1400';
-    const EVENT_B = '9c2ec5f6-afa1-4753-891b-d130b4539648';
-    const CLUSTER = '1c4e5d32-1fe9-4116-9d9d-59e3925bd6a2';
-    const ROW_A = '280f9534-6006-48ca-b172-7f8361cdc76d';
-    const ROW_B = '2bec48f9-bcac-42f0-b9b5-a9adc2259267';
-    const ROW_V = '3a6175d7-4e30-4c40-a3c1-f4830a44dddb';
+    const COLLECTION = 7;
 
-    /** @var CaptureTestCollectionElement */
-    private $model;
-    private $idA;
-    private $idB;
+    const EVENT = '5f0c1b3e-9a52-4c1e-8d43-0a8f1e2b7c11';
+
+    const CLUSTER = '0b7a2c9d-3e4f-4a51-9b6c-7d8e9f0a1b22';
+
+    const OTHER_EVENT = 'c3d4e5f6-0718-4293-a4b5-c6d7e8f90a33';
+
+    const VALUE = '3cbad7bc936718f07fa8665bc64ce46986142bea60f86fd0c05cd2a4a8ea2bc4';
+
+    /** @var CollectionElementCaptureProbe */
+    private $elements;
 
     protected function setUp(): void
     {
-        $this->model = new CaptureTestCollectionElement();
-        $this->idA = $this->model->seed(array(
-            'uuid' => self::ROW_A, 'element_uuid' => self::EVENT_A,
-            'element_type' => 'Event', 'collection_id' => self::COLLECTION,
-            'description' => 'first',
-        ));
-        $this->idB = $this->model->seed(array(
-            'uuid' => self::ROW_B, 'element_uuid' => self::EVENT_B,
-            'element_type' => 'Event', 'collection_id' => self::COLLECTION,
-        ));
+        // The model constructor needs CakePHP; captureElements() needs none of it
+        $this->elements = (new ReflectionClass('CollectionElementCaptureProbe'))->newInstanceWithoutConstructor();
+        foreach ([['stored-event', 'Event', self::EVENT], ['stored-cluster', 'GalaxyCluster', self::CLUSTER]] as $i => $row) {
+            $this->elements->rows[$i + 100] = [
+                'id' => $i + 100,
+                'uuid' => $row[0],
+                'element_type' => $row[1],
+                'element_uuid' => $row[2],
+                'element_sha256' => null,
+                'collection_id' => self::COLLECTION,
+                'description' => 'stored',
+            ];
+        }
+        $this->elements->rows[102] = [
+            'id' => 102,
+            'uuid' => 'stored-value',
+            'element_type' => 'AttributeValue',
+            'element_uuid' => null,
+            'element_sha256' => self::VALUE,
+            'collection_id' => self::COLLECTION,
+            'description' => 'stored',
+        ];
     }
 
     private function capture(array $elements)
     {
-        return $this->model->captureElements(array('Collection' => array(
-            'id' => self::COLLECTION, 'CollectionElement' => $elements,
-        )));
-    }
-
-    private function rowsByElement()
-    {
-        $out = array();
-        foreach ($this->model->rows as $row) {
-            $out[$row['element_uuid']] = $row;
+        $this->elements->captureElements(['Collection' => ['id' => self::COLLECTION, 'CollectionElement' => $elements]]);
+        $byUuid = [];
+        foreach ($this->elements->rows as $row) {
+            $byUuid[$row['uuid']] = [$row['id'], $row['element_uuid'] ?? $row['element_sha256'], $row['description']];
         }
-        ksort($out);
-        return $out;
+        ksort($byUuid);
+        return $byUuid;
     }
 
-    public function testElementsResentWithoutRowUuidsAreKept()
+    public function testElementsResentWithoutTheirUuidsAreKept()
     {
-        $this->capture(array(
-            array('element_uuid' => self::EVENT_A, 'element_type' => 'Event', 'description' => 'edited'),
-            array('element_uuid' => self::EVENT_B, 'element_type' => 'Event'),
-        ));
-        $rows = $this->rowsByElement();
-        $this->assertSame(array(self::EVENT_A, self::EVENT_B), array_keys($rows));
-        $this->assertSame($this->idA, $rows[self::EVENT_A]['id']);
-        $this->assertSame(self::ROW_A, $rows[self::EVENT_A]['uuid']);
-        $this->assertSame('edited', $rows[self::EVENT_A]['description']);
-        $this->assertSame($this->idB, $rows[self::EVENT_B]['id']);
-        $this->assertSame(array(), $this->model->logged);
+        $rows = $this->capture([
+            ['element_type' => 'Event', 'element_uuid' => strtoupper(self::EVENT), 'description' => 'edited'],
+            ['element_type' => 'GalaxyCluster', 'element_uuid' => self::CLUSTER],
+            ['element_type' => 'AttributeValue', 'element_sha256' => strtoupper(self::VALUE)],
+        ]);
+        $this->assertSame([
+            'stored-cluster' => [101, self::CLUSTER, 'stored'],
+            'stored-event' => [100, self::EVENT, 'edited'],
+            'stored-value' => [102, self::VALUE, 'stored'],
+        ], $rows);
+        $this->assertSame([], $this->elements->deleted);
+        $this->assertSame([], $this->elements->logged);
     }
 
-    public function testAnElementUnderAnotherRowUuidIsTheRowAlreadyHeld()
+    public function testAnUnknownUuidOnAStoredTargetKeepsTheStoredRow()
     {
-        $this->capture(array(
-            array('uuid' => '6d1f3c2e-8a4b-4c7d-9e0f-1a2b3c4d5e6f', 'element_uuid' => self::EVENT_A,
-                'element_type' => 'Event', 'description' => 're-added'),
-            array('uuid' => self::ROW_B, 'element_uuid' => self::EVENT_B, 'element_type' => 'Event'),
-        ));
-        $rows = $this->rowsByElement();
-        $this->assertCount(2, $rows);
-        $this->assertSame(self::ROW_A, $rows[self::EVENT_A]['uuid']);
-        $this->assertSame('re-added', $rows[self::EVENT_A]['description']);
-        $this->assertSame(array(), $this->model->logged);
+        $rows = $this->capture([
+            ['uuid' => 'remote-event', 'element_type' => 'Event', 'element_uuid' => self::EVENT],
+            ['uuid' => 'stored-cluster', 'element_type' => 'GalaxyCluster', 'element_uuid' => self::CLUSTER],
+            ['uuid' => 'remote-value', 'element_type' => 'AttributeValue', 'element_sha256' => self::VALUE],
+        ]);
+        $this->assertSame(['stored-cluster', 'stored-event', 'stored-value'], array_keys($rows));
+        $this->assertSame([], $this->elements->logged);
     }
 
-    public function testElementUuidsCompareAsTheColumnDoes()
+    public function testAbsentElementsAreCulledAndNewOnesAdded()
     {
-        $this->capture(array(
-            array('element_uuid' => strtoupper(self::EVENT_A), 'element_type' => 'Event'),
-            array('uuid' => strtoupper(self::ROW_B), 'element_uuid' => self::EVENT_B, 'element_type' => 'Event'),
-        ));
-        $rows = $this->rowsByElement();
-        $this->assertSame(array($this->idA, $this->idB), array($rows[self::EVENT_A]['id'], $rows[self::EVENT_B]['id']));
-        $this->assertSame(array(), $this->model->logged);
+        $rows = $this->capture([
+            ['element_type' => 'Event', 'element_uuid' => self::EVENT],
+            ['element_type' => 'Event', 'element_uuid' => self::OTHER_EVENT, 'description' => 'new'],
+        ]);
+        $this->assertSame([100, self::EVENT, 'stored'], $rows['stored-event']);
+        $this->assertArrayNotHasKey('stored-cluster', $rows);
+        $this->assertArrayNotHasKey('stored-value', $rows);
+        $this->assertSame([101, 102], $this->elements->deleted);
+        $added = array_values(array_diff_key($rows, ['stored-event' => true]));
+        $this->assertCount(1, $added);
+        $this->assertSame([self::OTHER_EVENT, 'new'], array_slice($added[0], 1));
     }
 
-    public function testElementsNoLongerSentAreRemovedAndNewOnesAdded()
+    public function testOneStoredRowServesOneResentElement()
     {
-        $this->capture(array(
-            array('element_uuid' => self::EVENT_A, 'element_type' => 'Event'),
-            array('element_uuid' => self::CLUSTER, 'element_type' => 'GalaxyCluster'),
-        ));
-        $rows = $this->rowsByElement();
-        $this->assertSame(array(self::CLUSTER, self::EVENT_A), array_keys($rows));
-        $this->assertSame($this->idA, $rows[self::EVENT_A]['id']);
-        $this->assertSame(self::COLLECTION, $rows[self::CLUSTER]['collection_id']);
+        $this->capture([
+            ['element_type' => 'Event', 'element_uuid' => self::EVENT],
+            ['element_type' => 'Event', 'element_uuid' => self::EVENT],
+            ['element_type' => 'GalaxyCluster', 'element_uuid' => self::CLUSTER],
+            ['element_type' => 'AttributeValue', 'element_sha256' => self::VALUE],
+        ]);
+        $this->assertCount(3, $this->elements->rows);
+        $this->assertSame([], $this->elements->logged, 'The second copy is dropped before it can collide.');
     }
 
-    public function testTheSameElementTwiceKeepsOneRow()
+    public function testRowUuidsCompareAsTheColumnDoes()
     {
-        $this->capture(array(
-            array('uuid' => self::ROW_A, 'element_uuid' => self::EVENT_A, 'element_type' => 'Event'),
-            array('element_uuid' => self::EVENT_A, 'element_type' => 'Event'),
-        ));
-        $rows = $this->rowsByElement();
-        $this->assertSame(array(self::EVENT_A), array_keys($rows));
-        $this->assertSame($this->idA, $rows[self::EVENT_A]['id']);
-        $this->assertSame(array(), $this->model->logged);
+        $rows = $this->capture([
+            ['uuid' => 'STORED-EVENT', 'element_type' => 'Event', 'element_uuid' => self::EVENT],
+        ]);
+        $this->assertSame([100, self::EVENT, 'stored'], $rows['stored-event']);
+        $this->assertSame([], $this->elements->logged);
     }
 
     public function testCapturedCorpusIsReturned()
     {
-        $data = $this->capture(array(
-            array('element_uuid' => self::EVENT_B, 'element_type' => 'Event'),
-        ));
-        $this->assertSame(array(self::ROW_B), array_column($data['Collection']['CollectionElement'], 'uuid'));
-    }
-
-    private function seedValue()
-    {
-        return $this->model->seed(array(
-            'uuid' => self::ROW_V, 'element_uuid' => Value::uuidFor('8.8.8.8'),
-            'element_type' => 'Value', 'value' => '8.8.8.8', 'collection_id' => self::COLLECTION,
-        ));
-    }
-
-    public function testAValueElementResentAsItsTextKeepsItsRow()
-    {
-        $id = $this->seedValue();
-        $this->capture(array(
-            array('element_type' => 'Value', 'value' => " 8.8.8.8\n", 'description' => 'resolver'),
-        ));
-        $rows = $this->rowsByElement();
-        $this->assertSame(array(Value::uuidFor('8.8.8.8')), array_keys($rows));
-        $row = $rows[Value::uuidFor('8.8.8.8')];
-        $this->assertSame(array($id, self::ROW_V, 'resolver'), array($row['id'], $row['uuid'], $row['description']));
-        $this->assertSame(array(), $this->model->logged);
-    }
-
-    public function testAValueElementIsKeyedByItsTextNotAPayloadUuid()
-    {
-        $id = $this->seedValue();
-        $this->capture(array(
-            array('uuid' => '6d1f3c2e-8a4b-4c7d-9e0f-1a2b3c4d5e6f', 'element_type' => 'Value',
-                'value' => '8.8.8.8', 'element_uuid' => self::EVENT_B),
-        ));
-        $rows = $this->rowsByElement();
-        $this->assertSame(array(Value::uuidFor('8.8.8.8')), array_keys($rows));
-        $this->assertSame($id, $rows[Value::uuidFor('8.8.8.8')]['id']);
-        $this->assertSame(array(), $this->model->logged);
+        $data = $this->elements->captureElements(['Collection' => ['id' => self::COLLECTION, 'CollectionElement' => [
+            ['element_type' => 'GalaxyCluster', 'element_uuid' => self::CLUSTER],
+        ]]]);
+        $this->assertSame(['stored-cluster'], array_column($data['Collection']['CollectionElement'], 'uuid'));
     }
 }

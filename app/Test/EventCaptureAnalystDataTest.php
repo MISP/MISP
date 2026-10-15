@@ -148,6 +148,15 @@ class EventCaptureAnalystDataTest extends TestCase
         $this->assertArrayNotHasKey('object_uuid', $row);
     }
 
+    public function testValueTargetKeepsItsHashAndTakesNoUuid()
+    {
+        $hash = hash('sha256', 'evil.example');
+        $row = $this->capture(['note' => 'x', 'object_type' => 'AttributeValue', 'object_sha256' => $hash]);
+        $this->assertSame('AttributeValue', $row['object_type']);
+        $this->assertSame($hash, $row['object_sha256']);
+        $this->assertArrayNotHasKey('object_uuid', $row);
+    }
+
     public function testGivenTargetIsKept()
     {
         $row = $this->capture(['note' => 'x', 'object_type' => 'Event', 'object_uuid' => self::OTHER_UUID]);

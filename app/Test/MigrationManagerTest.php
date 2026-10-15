@@ -335,6 +335,19 @@ class MigrationManagerTest extends TestCase
         $this->assertSame(array(), $manager->executed);
     }
 
+    public function testWhatTheDatabaseAlreadyHasIsNotRendered()
+    {
+        $manager = new SchemaRenderingMigrationManager(self::$allFiles);
+        $manager->liveSchema->schema = array('events' => array('columns' => array('id', 'replacement')));
+
+        $this->assertSame(array(), $manager->toSql('20260101_000000_add_column'));
+        $this->assertSame(array('events: column replacement is already there'), $manager->lastSkipped());
+
+        $manager->liveSchema->schema = array('events' => array('columns' => array('id')));
+        $this->assertCount(1, $manager->toSql('20260101_000000_add_column'));
+        $this->assertSame(array(), $manager->lastSkipped());
+    }
+
     public function testAMigrationWithNoUpRendersNothing()
     {
         $manager = new SchemaRenderingMigrationManager(self::$allFiles);
@@ -366,9 +379,10 @@ class MigrationManagerTest extends TestCase
         $manager->inspector->tables = array('schema_migrations' => array('id', 'applied_at', 'duration_ms', 'status', 'error'));
         $this->assertSame(
             array(
-                'ALTER TABLE `schema_migrations` CHANGE `id` `migration_id` varchar(191) NOT NULL;',
-                'ALTER TABLE `schema_migrations` ADD UNIQUE INDEX `migration_id` (`migration_id`);',
-                'ALTER TABLE `schema_migrations` DROP PRIMARY KEY;',
+                "ALTER TABLE `schema_migrations`\n" .
+                "    CHANGE `id` `migration_id` varchar(191) NOT NULL,\n" .
+                "    ADD UNIQUE INDEX `migration_id` (`migration_id`),\n" .
+                "    DROP PRIMARY KEY;",
                 'ALTER TABLE `schema_migrations` ADD `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;',
             ),
             $manager->ledgerSchema()->toSql(),
