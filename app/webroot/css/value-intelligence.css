@@ -891,112 +891,369 @@ tr.vp-occ-deleted td {
  * Verdict card
  * ================================================================== */
 
-.vp-disposition {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 12px;
-    border: 1px solid var(--vp-disposition-color);
-    border-radius: 999px;
-    background: var(--bs-body-bg);
-    background: color-mix(in srgb, var(--vp-disposition-color) 10%,
-        var(--bs-body-bg));
-    font-weight: 700;
-    letter-spacing: 0.04em;
-}
-
-[data-misp-mode="dark"] .vp-disposition {
-    background: color-mix(in srgb, var(--vp-disposition-color) 22%,
-        var(--bs-body-bg));
-}
-
-.vp-disposition-lg {
-    padding: 6px 16px;
-    font-size: 1.05rem;
-}
-
 /*
- * A disposition that names no state: CONFLICTED and UNKNOWN.
+ * The assessment's three axes, at the top of the Overview's Assessment
+ * card: the lean as a headline, then the stance, the signal strength and
+ * the shelf life as three cells.
  *
- * Same colour, less voice — no tinted ground, a hairline border and the
- * word in the body ink rather than the disposition's own. It has to stay
- * recognisably the same component, because a reader scanning a list of
- * values is comparing these pills to each other; what changes is that it
- * stops competing for attention with the two that are answers.
+ * One grid, three columns, four shared rows (name, figure, glyph,
+ * reading); each cell is a subgrid of it, so the figures share a
+ * baseline and the glyphs a line whatever wraps, and only the reading
+ * row varies in height. The stance cell is `value_verdict_stance`, which
+ * the Assessment tab's lean band draws too, as `vp-ax-stance-wide`.
  */
-.vp-disposition-quiet {
-    border-color: color-mix(in srgb, var(--vp-disposition-color) 45%,
-        transparent);
-    background: transparent;
-    color: var(--bs-secondary-color);
-    font-weight: 600;
+.vp-ax {
+    --vp-ax-ink: var(--bs-body-color);
+    --vp-ax-quiet: var(--bs-secondary-color);
+    --vp-ax-ground: color-mix(in srgb, var(--bs-body-color) 13%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    color: var(--vp-ax-ink);
 }
 
-[data-misp-mode="dark"] .vp-disposition-quiet {
-    background: transparent;
-}
-
-.vp-disposition-quiet .vp-disposition-dot {
-    background: transparent;
-    box-shadow: inset 0 0 0 2px var(--vp-disposition-color);
-}
-
-.vp-disposition-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--vp-disposition-color);
-}
-
-.vp-disposition-score {
-    padding: 0 8px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--vp-disposition-color) 22%,
-        transparent);
-    font-variant-numeric: tabular-nums;
-}
-
-/*
- * Confidence is ordinal, not continuous, so it gets three segments
- * rather than a percentage bar that would imply a precision the
- * weighting profile does not have.
- */
-.vp-confidence {
+.vp-ax-lean {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 10px;
+    gap: 7px;
+    min-width: 0;
+    font-size: 15px;
+    line-height: 20px;
+    font-weight: 700;
+    color: var(--vp-ax-lean-ink);
 }
 
-.vp-confidence-label {
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--bs-secondary-color);
+.vp-ax-lean-icon {
+    flex: none;
+    font-size: 13px;
+    color: var(--vp-ax-lean);
 }
 
-.vp-confidence-track {
-    display: flex;
+.vp-ax-lean-label {
+    flex: none;
+    white-space: nowrap;
+}
+
+.vp-ax-lean-rule {
     flex: 1 1 auto;
-    gap: 3px;
+    min-width: 16px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--vp-ax-lean);
 }
 
-.vp-confidence-seg {
-    flex: 1 1 0;
-    height: 6px;
-    border-radius: 2px;
-    background: var(--bs-secondary-bg);
+/* A lean that names no state: a lighter voice, a dashed line. */
+.vp-ax-lean-quiet {
+    font-weight: 600;
 }
 
-.vp-confidence-seg-on {
+.vp-ax-lean-quiet .vp-ax-lean-rule {
+    height: 0;
+    border-top: 1px dashed
+        color-mix(in srgb, var(--vp-ax-lean) 70%, transparent);
+    background: none;
+}
+
+.vp-ax-void {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-cells {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(4, auto);
+    column-gap: 13px;
+}
+
+.vp-ax-cell {
+    position: relative;
+    display: grid;
+    grid-row: 1 / span 4;
+    grid-template-rows: subgrid;
+    min-width: 0;
+}
+
+.vp-ax-cells > .vp-ax-cell + .vp-ax-cell::before {
+    content: "";
+    position: absolute;
+    top: 1px;
+    bottom: 1px;
+    left: -7px;
+    border-left: 1px solid var(--bs-border-color);
+}
+
+.vp-ax-name {
+    grid-row: 1;
+    align-self: end;
+    font-size: 10px;
+    line-height: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-fig {
+    grid-row: 2;
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
+    margin-top: 2px;
+    font-size: 19px;
+    line-height: 23px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+
+.vp-ax-colon {
+    margin: 0 0.2em;
+    font-weight: 500;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-unit {
+    margin-left: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-dash {
+    font-weight: 500;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-glyph {
+    grid-row: 3;
+    position: relative;
+    height: 11px;
+    margin-top: 3px;
+}
+
+.vp-ax-track {
+    position: absolute;
+    top: 3px;
+    left: 0;
+    right: 0;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--vp-ax-ground);
+    overflow: hidden;
+}
+
+.vp-ax-fill {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--vp-ax-ink);
+}
+
+.vp-ax-mark {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 11px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: var(--vp-ax-ink);
+    opacity: 0.6;
+}
+
+.vp-ax-read {
+    grid-row: 4;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin-top: 3px;
+    font-size: 10px;
+    line-height: 13px;
+}
+
+.vp-ax-legend {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    font-weight: 600;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-top: 5px;
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-note[title] {
+    cursor: help;
+}
+
+/* Nothing to draw: the words take the glyph's row, under the dash. */
+.vp-ax-absent > .vp-ax-glyph {
+    display: none;
+}
+
+.vp-ax-absent > .vp-ax-read {
+    grid-row: 3 / span 2;
+}
+
+.vp-ax-stance .vp-ax-legend {
+    font-weight: 400;
+}
+
+.vp-ax-stance .vp-ax-t {
+    color: var(--vp-mal-ink);
+}
+
+.vp-ax-stance .vp-ax-b {
+    color: var(--vp-ben-ink);
+}
+
+.vp-ax-stance .vp-ax-n.vp-ax-zero {
+    color: var(--vp-ax-quiet);
+    font-weight: 600;
+}
+
+.vp-ax-tug {
+    background: color-mix(in srgb, var(--vp-ben) 55%, var(--vp-ax-ground));
+}
+
+.vp-ax-tug .vp-ax-fill {
+    background: var(--vp-mal);
+    border-radius: 3px 0 0 3px;
+    box-shadow: 1.5px 0 0 var(--bs-body-bg);
+}
+
+/* The stance did not decide: it steps back, and a note says what did. */
+.vp-ax-overruled .vp-ax-fig .vp-ax-n,
+.vp-ax-overruled .vp-ax-colon {
+    color: var(--vp-ax-quiet);
+}
+
+.vp-ax-overruled .vp-ax-glyph {
+    opacity: 0.6;
+    filter: saturate(0.35);
+}
+
+.vp-ax-note-decided {
+    font-weight: 700;
+    color: var(--vp-ax-ink);
+}
+
+.vp-ax-note-weight {
+    font-weight: 600;
+    color: var(--vp-ax-ink);
+}
+
+.vp-ax-strength .vp-ax-fill {
     background: var(--primary);
 }
 
-.vp-confidence-reading {
-    font-size: 0.72rem;
+.vp-ax-strength .vp-ax-word {
+    color: var(--vp-ax-ink);
+}
+
+/* Shelf life carries its state in ink weight: the lean owns the hue. */
+.vp-ax-shelf .vp-ax-fill {
+    opacity: 0.7;
+}
+
+.vp-ax-state-aging,
+.vp-ax-state-expired {
+    color: var(--vp-ax-ink);
+    font-weight: 700;
+}
+
+.vp-ax-state-expired {
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 2px;
+}
+
+.vp-ax-shelf-uncertain .vp-ax-fill {
+    opacity: 0.4;
+}
+
+.vp-ax-note-unsure {
     font-weight: 600;
-    text-transform: capitalize;
+}
+
+/* The same stance in the tab's lean band: the figure beside the bar. */
+.vp-ax-solo {
+    gap: 0;
+}
+
+.vp-ax-stance-wide {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: 18px;
+    align-items: center;
+}
+
+.vp-ax-stance-wide > .vp-ax-fig {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 0;
+    font-size: 22px;
+    line-height: 26px;
+}
+
+.vp-ax-stance-wide > .vp-ax-glyph {
+    grid-column: 2;
+    grid-row: 1;
+    height: 12px;
+    margin-top: 0;
+}
+
+.vp-ax-stance-wide .vp-ax-track {
+    height: 6px;
+}
+
+.vp-ax-stance-wide .vp-ax-mark {
+    height: 12px;
+}
+
+.vp-ax-stance-wide > .vp-ax-name {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+    margin-top: 1px;
+}
+
+.vp-ax-stance-wide > .vp-ax-read {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    margin-top: 0;
+}
+
+.vp-ax-stance-wide .vp-ax-notes {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 2px 16px;
+    margin-top: 3px;
+}
+
+.vp-ax-stance-wide.vp-ax-absent > .vp-ax-read {
+    grid-row: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 16px;
+    align-self: center;
+}
+
+.vp-ax-stance-wide.vp-ax-absent .vp-ax-notes {
+    margin-top: 0;
 }
 
 .vp-verdict-summary {
@@ -2627,58 +2884,6 @@ tr.vp-occ-deleted td {
     gap: 8px;
     padding: 12px 16px;
     font-size: 0.78rem;
-}
-
-.vp-vc-lean-counts {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 0.72rem;
-    font-weight: 700;
-}
-
-.vp-vc-lean-threat {
-    color: var(--vp-mal);
-}
-
-.vp-vc-lean-benign {
-    color: var(--vp-ben);
-}
-
-/* Context-only reporters: no vote, so no hue and lighter ink. */
-.vp-vc-lean-context {
-    color: var(--vp-context-ink);
-    font-weight: 500;
-}
-
-/*
- * One track, filled from the threat side, with the benign side as the
- * ground it is filled against — `vp-shelf-track`'s geometry so the two
- * bands read as the same instrument.
- */
-.vp-vc-lean-track {
-    position: relative;
-    height: 8px;
-    border-radius: 4px;
-    background: color-mix(in srgb, var(--vp-ben) 45%,
-        var(--bs-secondary-bg));
-}
-
-.vp-vc-lean-fill {
-    display: block;
-    height: 100%;
-    border-radius: 4px;
-    background: var(--vp-mal);
-}
-
-.vp-vc-lean-bar {
-    position: absolute;
-    top: -2px;
-    width: 2px;
-    height: 12px;
-    background: var(--bs-body-color);
-    opacity: 0.55;
 }
 
 .vp-vc-lean-note {

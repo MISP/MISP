@@ -7,11 +7,18 @@
 $m = $modelSelection ?? 'Note';
 $record = $data[$m] ?? [];
 $railCards = $railCards ?? [];
+$this->set('headerIdentity', $record);
 
 $this->set('headerTitle', h($m) . ' #' . h($record['id'] ?? ''));
 
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,
+    'ownership' => [
+        'orgc' => $record['Orgc'] ?? [],
+        'org' => $record['Org'] ?? [],
+        'distribution' => $record['distribution'] ?? null,
+        'sharingGroup' => $record['SharingGroup'] ?? [],
+    ],
     'tabs' => [
         [
             'id'    => 'general',

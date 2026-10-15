@@ -3469,19 +3469,20 @@ class Server extends AppModel
         }
         $localVersion = $this->checkMISPVersion();
         $protectedMode = version_compare($remoteVersionString, '2.4.156') >= 0;
+        $crossMajor = ServerSyncTool::isCrossMajorCompatible(implode('.', $localVersion), $remoteVersionString);
         $response = false;
         $success = false;
         $issueLevel = "warning";
-        if ($localVersion['major'] > $remoteVersion[0]) {
+        if (!$crossMajor && $localVersion['major'] > $remoteVersion[0]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance's MISP version is behind by a major version.";
         }
-        if ($response === false && $localVersion['major'] < $remoteVersion[0]) {
+        if ($response === false && !$crossMajor && $localVersion['major'] < $remoteVersion[0]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
         }
-        if ($response === false && $localVersion['minor'] > $remoteVersion[1]) {
+        if ($response === false && !$crossMajor && $localVersion['minor'] > $remoteVersion[1]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance's MISP version is behind by a minor version.";
         }
-        if ($response === false && $localVersion['minor'] < $remoteVersion[1]) {
+        if ($response === false && !$crossMajor && $localVersion['minor'] < $remoteVersion[1]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
         }
 
@@ -3491,13 +3492,13 @@ class Server extends AppModel
         } else {
             $issueLevel = "error";
         }
-        if ($response === false && $localVersion['hotfix'] > $remoteVersion[2]) {
+        if ($response === false && !$crossMajor && $localVersion['hotfix'] > $remoteVersion[2]) {
             $response = "Sync to Server ('{$server['Server']['id']}') initiated, but the remote instance is a few hotfixes behind.";
         }
-        if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) {
+        if ($response === false && !$crossMajor && $localVersion['hotfix'] < $remoteVersion[2]) {
             $response = "Sync to Server ('{$server['Server']['id']}') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
         }
-        if (empty($response) && $remoteVersion[1] <= 4 && $remoteVersion[2] < 111) {
+        if (empty($response) && version_compare($remoteVersionString, '2.4.111', '<')) {
             $response = "Sync to Server ('{$server['Server']['id']}') initiated, but version 2.4.111 is required in order to be able to pull proposals from the remote side.";
         }
 

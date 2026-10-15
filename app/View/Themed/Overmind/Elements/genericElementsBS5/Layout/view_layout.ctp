@@ -88,36 +88,40 @@ $renderCard = function ($card, $containerClass) use ($ajaxPlaceholder, $data) {
  * default is one card per row at full width. Absent for every existing
  * caller, so nothing that does not ask for it changes.
  *
- * **It is a `col-lg-*` split, so the row is a large-screen arrangement
+ * **It is an `xl` split, so the row is a large-screen arrangement
  * only.** Below the breakpoint the columns stack and the panels are
  * exactly what they were — which is the point: two panels side by side
  * is a claim about horizontal room, and a narrow window does not have
  * any. Bootstrap's own `.row` does the stacking; nothing here is
  * conditional.
  *
- * Cards divide the twelve columns evenly unless one names its own
- * `col`. Two panels of unequal height leave space under the shorter,
- * which is the arrangement's cost and always less than stacking them:
- * a row is as tall as its tallest card rather than as tall as the sum.
+ * Cards share the width evenly unless one names its own `col`, and a
+ * card that renders nothing leaves no empty column. Each cell is a flex
+ * column, so a card that grows fills the row's height.
  *
  * @param array $group The `row` value
  * @param string $containerClass As $renderCard
  * @return void
  */
 $renderRow = function (array $group, $containerClass) use ($renderCard) {
-    $cards = array_values(array_filter($group));
-    if (empty($cards)) {
+    $cells = array();
+    foreach (array_filter($group) as $card) {
+        ob_start();
+        $renderCard($card, $containerClass);
+        $html = ob_get_clean();
+        if (trim($html) !== '') {
+            $cells[] = array($card, $html);
+        }
+    }
+    if (empty($cells)) {
         return;
     }
-    $span = max(1, (int)floor(12 / count($cards)));
-    echo '<div class="row">';
-    foreach ($cards as $card) {
+    echo '<div class="row gx-3">';
+    foreach ($cells as list($card, $html)) {
         $col = is_array($card) && !empty($card['col'])
             ? $card['col']
-            : 'col-lg-' . $span;
-        echo '<div class="' . h($col) . '">';
-        $renderCard($card, $containerClass);
-        echo '</div>';
+            : 'col-12 col-xl';
+        echo '<div class="' . h($col) . ' d-flex flex-column">' . $html . '</div>';
     }
     echo '</div>';
 };
@@ -157,8 +161,13 @@ $renderColumn = function ($cards, $containerClass) use (
  *                          open; a tab without one shows the page's own
  *                          `headerDescription`
  *     heading      string  sets the page's headerTitle
- *     left, right  array   element paths, ['element' => path] or
- *                          ['ajax' => url] for a lazy fragment
+ *     left, right  array   element paths, ['element' => path],
+ *                          ['ajax' => url] for a lazy fragment, or
+ *                          ['row' => [path, path]] for cards side by side
+ *                          (stacked below xl, stretched to one height)
+ *   $ownership  array  for a record with a creator org and a distribution:
+ *                      Cards/ownership_card's parameters; the card opens the
+ *                      first tab's left column
  *
  * Like an action declared with 'tab', the per-tab descriptions are all
  * rendered in the header and toggled by syncHeaderActions() below.
@@ -275,6 +284,9 @@ $tabIconColour = function (array $tab) use ($entityIconColours) {
                     <!-- LEFT COLUMN -->
                     <div class="<?= !empty($tab['right']) ? 'col-lg-9' : 'col-12' ?>">
                         <?php
+                            if ($i === 0 && !empty($ownership)) {
+                                echo $this->element('genericElementsBS5/Cards/ownership_card', $ownership);
+                            }
                             if (!empty($tab['left'])) {
                                 $renderColumn($tab['left'], 'ajax-tab-content');
                             }

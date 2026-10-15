@@ -30,22 +30,6 @@
         ];
     }
 
-    if ($this->Acl->canAccess('collectionElements', 'addElementToCollection')) {
-        $headerActions[] = [
-            'type' => 'modal',
-            'tab' => 'general',
-            'label' => __('Add to collection'),
-            'icon' => 'folder-plus',
-            'class' => 'btn btn-outline-dark',
-            'url' => sprintf(
-                '%s/collectionElements/addElementToCollection/Event/%s',
-                $baseurl,
-                h($event['Event']['uuid'])
-            ),
-            'size' => 'xl',
-        ];
-    }
-
     $this->set('headerTitle', $headerTitle);
     $this->set('headerBreadcrumbSuffix', '#' . $event['Event']['id']);
     $this->set('headerDescription', $headerDescription);
@@ -71,8 +55,10 @@
     $extensionSuffix = $extensionSuffix ?? '';
 
     $searchFor = $this->request->params['named']['searchFor'] ?? '';
+    $distributionFilter = $this->request->params['named']['distribution'] ?? '';
     $listSuffix = $extensionSuffix
-        . ($searchFor !== '' ? '/searchFor:' . rawurlencode($searchFor) : '');
+        . ($searchFor !== '' ? '/searchFor:' . rawurlencode($searchFor) : '')
+        . ($distributionFilter !== '' ? '/distribution:' . (int)$distributionFilter : '');
     $objectFilter = (int)($this->request->params['named']['object'] ?? 0);
     $objectsSuffix = $listSuffix . ($objectFilter > 0 ? '/object:' . $objectFilter : '');
 

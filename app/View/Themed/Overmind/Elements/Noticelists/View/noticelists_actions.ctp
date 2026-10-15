@@ -1,6 +1,6 @@
 <?php
-$noticelistId = h($data['Noticelist']['id']);
-$enabled = $data['Noticelist']['enabled'];
+$noticelistId = (int)$data['Noticelist']['id'];
+$enabled = !empty($data['Noticelist']['enabled']);
 
 $actions = [
     [
@@ -11,16 +11,20 @@ $actions = [
     ],
 ];
 
-if ($isSiteAdmin) {
+if ($this->Acl->canAccess('noticelists', $enabled ? 'massDisable' : 'massEnable')) {
+    $toggleUrl = $baseurl . '/noticelists/' . ($enabled ? 'massDisable' : 'massEnable') . '/' . $noticelistId;
     $actions[] = [
-        'type' => 'post',
-        'url' => "$baseurl/noticelists/enableNoticelist/$noticelistId" . ($enabled ? '' : '/1'),
-        'id' => $noticelistId,
-        'icon' => $enabled ? 'fas fa-toggle-off' : 'fas fa-toggle-on',
+        'url' => $toggleUrl,
+        'onclick' => "event.preventDefault(); openModal('" . h($toggleUrl) . "', 'md');",
+        'icon' => $enabled ? 'fas fa-stop' : 'fas fa-play',
         'label' => $enabled ? __('Disable Noticelist') : __('Enable Noticelist'),
         'short' => $enabled ? __('Disable') : __('Enable'),
-        'class' => $enabled ? 'text-warning' : 'text-success',
+        'warning' => $enabled,
+        'success' => !$enabled,
     ];
+}
+
+if ($isSiteAdmin) {
     $actions[] = [
         'url' => "$baseurl/noticelists/delete/$noticelistId",
         'onclick' => "event.preventDefault(); openModal('$baseurl/noticelists/delete/$noticelistId', 'md');",
