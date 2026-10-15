@@ -190,4 +190,86 @@ class RegistrationReadingTest extends TestCase
         ));
         $this->assertNull($this->read(6, 'other.org'));
     }
+
+    private function whois($domain, $created)
+    {
+        return array(
+            'name' => 'whois',
+            'module' => 'rdap',
+            'ran_at' => self::REPORT,
+            'attributes' => array(
+                array('relation' => 'domain', 'value' => $domain),
+                array(
+                    'relation' => 'creation-date',
+                    'value' => gmdate('Y-m-d\\TH:i:s+00:00', $created),
+                ),
+            ),
+        );
+    }
+
+    public function testPrepareReadsEachRecordAgainstTheFirstReport()
+    {
+        $renderer = new RegistrationRenderer();
+        $data = $renderer->prepare(
+            array($this->whois('evil.com', self::REPORT - 6 * self::DAY)),
+            array(),
+            array(
+                'value' => 'login.evil.com',
+                'first_report' => self::REPORT,
+                'now' => self::REPORT + 100 * self::DAY,
+                'thresholds' => array('registration' => array(
+                    'fresh_days' => 30, 'young_days' => 180,
+                )),
+            )
+        );
+        $record = $data['headline'];
+        $this->assertSame(106, $record['age_days']);
+        $this->assertSame(6, $record['reading']['age_days']);
+        $this->assertSame('parent', $record['reading']['match']);
+        $this->assertSame(RegistrationRenderer::FRESH,
+            $record['reading']['tier']);
+        $this->assertSame(array('fresh_days' => 30, 'young_days' => 180),
+            $data['thresholds']);
+    }
+
+    public function testWithoutFactsPrepareDrawsAsBefore()
+    {
+        $renderer = new RegistrationRenderer();
+        $data = $renderer->prepare(
+            array($this->whois('evil.com', self::REPORT)),
+            array()
+        );
+        $this->assertNull($data['headline']['reading']);
+        $this->assertNull($data['thresholds']);
+        $this->assertIsInt($data['headline']['age_days']);
+    }
+
+    public function testThresholdsComeFromTheProfilesEntry()
+    {
+        $entry = array(
+            'id' => 'enrichment.registration_age',
+            'enabled' => true,
+            'config' => array('fresh_days' => 7),
+        );
+        $this->assertSame(
+            array('fresh_days' => 7, 'young_days' => 180),
+            RegistrationRenderer::thresholdsFrom(
+                array('parameters' => array('signals' => array($entry)))
+            )
+        );
+        $this->assertSame(
+            array('fresh_days' => 7, 'young_days' => 180),
+            RegistrationRenderer::thresholdsFrom(
+                array('signals' => array($entry))
+            )
+        );
+        $entry['enabled'] = false;
+        $this->assertNull(RegistrationRenderer::thresholdsFrom(
+            array('parameters' => array('signals' => array($entry)))
+        ));
+        $this->assertNull(RegistrationRenderer::thresholdsFrom(
+            array('parameters' => array('signals' => array()))
+        ));
+        $this->assertNull(RegistrationRenderer::thresholdsFrom(null));
+    }
 }

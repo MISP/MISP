@@ -159,9 +159,13 @@ class ValueRendererTool
      * answer.
      *
      * @param array $runs Shaped runs, each with `module` and `objects`
+     * @param array $facts What the page knows about the value, handed to
+     *     every `prepare()`: `value`, `first_report`, `now` and
+     *     `thresholds` (renderer id => that renderer's). Empty where the
+     *     caller has none, and a renderer must draw without it.
      * @return array shape id => the drawing
      */
-    public static function drawFor(array $runs)
+    public static function drawFor(array $runs, array $facts = array())
     {
         $renderers = self::renderers();
         $byTemplate = self::byTemplate();
@@ -216,7 +220,8 @@ class ValueRendererTool
                 'description' => $renderer->description,
                 'compact' => $renderer->compact,
                 'full' => $renderer->full,
-                'data' => $renderer->prepare($objects, $attributes),
+                'data' => $renderer->prepare($objects, $attributes,
+                    $facts),
                 'modules' => self::modulesOf($objects),
                 'sources' => self::sourcesOf($objects, $cuts),
                 'ran_at' => self::newestOf($objects),

@@ -351,7 +351,9 @@ abstract class ValueRendererBase
     /**
      * Everything the two templates need, computed once.
      *
-     * Only called where `matches()` said yes.
+     * Only called where `matches()` said yes. A third argument, the
+     * value's facts (`ValueRendererTool::drawFor()`), is passed to every
+     * renderer; one that needs it declares it as an optional array.
      *
      * @param array $objects Tagged objects claiming this shape
      * @param array $attributes The run's top-level attributes

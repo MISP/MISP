@@ -77,14 +77,47 @@ class RegistrationRenderer extends ValueRendererBase
         return false;
     }
 
-    public function prepare(array $objects, array $attributes)
-    {
+    /**
+     * The records, newest answer first, each with its reading where the
+     * page handed over the value and its first report.
+     *
+     * `thresholds` is the active profile's, or null where the profile
+     * does not score registration age: the widget then states both ages
+     * and draws no tier, because a tier the ledger does not score would
+     * be the widget and the row disagreeing.
+     *
+     * @param array $objects
+     * @param array $attributes
+     * @param array $facts From `ValueRendererTool::drawFor()`
+     * @return array
+     */
+    public function prepare(array $objects, array $attributes,
+        array $facts = array()
+    ) {
+        $now = isset($facts['now']) ? (int)$facts['now'] : time();
+        $thresholds = isset($facts['thresholds'][$this->id])
+            && is_array($facts['thresholds'][$this->id])
+                ? $facts['thresholds'][$this->id]
+                : null;
+        $value = isset($facts['value']) ? (string)$facts['value'] : '';
+        $firstReport = isset($facts['first_report'])
+            ? (int)$facts['first_report']
+            : null;
         $records = array();
         foreach ($objects as $object) {
-            $record = $this->recordOf($object);
-            if ($record !== null) {
-                $records[] = $record;
+            $record = $this->recordOf($object, $now);
+            if ($record === null) {
+                continue;
             }
+            $record['reading'] = $value === '' || empty($firstReport)
+                ? null
+                : self::readingOf(
+                    $record,
+                    $value,
+                    $firstReport,
+                    $thresholds === null ? self::THRESHOLDS : $thresholds
+                );
+            $records[] = $record;
         }
         usort($records, function ($a, $b) {
             return ($b['ran_at'] ?? 0) - ($a['ran_at'] ?? 0);
@@ -93,6 +126,7 @@ class RegistrationRenderer extends ValueRendererBase
             'records' => $records,
             'headline' => empty($records) ? null : $records[0],
             'sources' => $this->sources($objects),
+            'thresholds' => $thresholds,
         );
     }
 
@@ -166,6 +200,45 @@ class RegistrationRenderer extends ValueRendererBase
     }
 
     /**
+     * The thresholds a profile scores registration age with, or null
+     * where it does not score it at all.
+     *
+     * @param array|null $profile A resolved profile, or its parameters
+     * @return array|null `fresh_days`, `young_days`
+     */
+    public static function thresholdsFrom($profile)
+    {
+        if (!is_array($profile)) {
+            return null;
+        }
+        $signals = isset($profile['parameters']['signals'])
+            ? $profile['parameters']['signals']
+            : ($profile['signals'] ?? array());
+        foreach ((array)$signals as $entry) {
+            if (!is_array($entry)
+                || ($entry['id'] ?? null) !== 'enrichment.registration_age'
+            ) {
+                continue;
+            }
+            if (array_key_exists('enabled', $entry)
+                && empty($entry['enabled'])
+            ) {
+                return null;
+            }
+            $thresholds = self::THRESHOLDS;
+            foreach (array_keys($thresholds) as $key) {
+                if (isset($entry['config'][$key])
+                    && is_numeric($entry['config'][$key])
+                ) {
+                    $thresholds[$key] = (int)$entry['config'][$key];
+                }
+            }
+            return $thresholds;
+        }
+        return null;
+    }
+
+    /**
      * Whether a registration record is about the value, or about the
      * domain the value sits under.
      *
@@ -226,10 +299,14 @@ class RegistrationRenderer extends ValueRendererBase
 
     /**
      * @param array $object
+     * @param int|null $now The assessment's clock; the server's if null
      * @return array|null
      */
-    private function recordOf(array $object)
+    private function recordOf(array $object, $now = null)
     {
+        if ($now === null) {
+            $now = time();
+        }
         $created = $this->stamp($this->value($object, 'creation-date'));
         $registrar = $this->value($object, 'registrar');
         $nameservers = $this->values($object, 'nameserver');
@@ -252,19 +329,17 @@ class RegistrationRenderer extends ValueRendererBase
             'domain' => $this->value($object, 'domain'),
             'created' => $created,
             /*
-             * The age in days, computed here so the compact widget and
-             * the full rendering cannot round it differently — and
-             * because the full rendering states it against the
-             * profile's own threshold, which needs a number rather
-             * than a date.
+             * The age today, computed here so the compact widget and the
+             * full rendering cannot round it differently. The age that
+             * scores is the reading's, at the first report.
              */
             'age_days' => $created === null
                 ? null
-                : (int)floor((time() - $created) / 86400),
+                : (int)floor(($now - $created) / 86400),
             'expires' => $expires,
             'expires_in_days' => $expires === null
                 ? null
-                : (int)floor(($expires - time()) / 86400),
+                : (int)floor(($expires - $now) / 86400),
             'modified' => $this->stamp(
                 $this->value($object, 'modification-date')
             ),

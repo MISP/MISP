@@ -269,4 +269,29 @@ class EnrichmentRegistrationAgeTest extends TestCase
             )
         );
     }
+
+    public function testTheWidgetReadsTheSameAgeThroughDrawFor()
+    {
+        $drawn = ValueRendererTool::drawFor(
+            array($this->answer('rdap', 6)),
+            array(
+                'value' => 'login.evil.com',
+                'first_report' => self::REPORT,
+                'now' => self::NOW,
+                'thresholds' => array('registration' => array(
+                    'fresh_days' => 30, 'young_days' => 180,
+                )),
+            )
+        );
+        $data = $drawn['registration']['data'];
+        $this->assertSame(6, $data['headline']['reading']['age_days']);
+        $this->assertSame(RegistrationRenderer::FRESH,
+            $data['headline']['reading']['tier']);
+        $this->assertSame(20, $data['headline']['age_days']);
+
+        $plain = ValueRendererTool::drawFor(array($this->answer('rdap', 6)));
+        $this->assertNull(
+            $plain['registration']['data']['headline']['reading']
+        );
+    }
 }
