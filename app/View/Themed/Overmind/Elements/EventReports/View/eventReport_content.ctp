@@ -407,6 +407,8 @@ if ($aiExtractUrl !== null) {
     var erTemplateVars    = <?= json_encode($templateVariables ?? []) ?>;
     var erRenderer        = null;
     var erRenderTimer     = null;
+    var erLoading         = null;
+    var erReady           = false;
 
     /* ── Bootstrap ───────────────────────────────────────────── */
     document.addEventListener('DOMContentLoaded', function () {
@@ -451,12 +453,32 @@ if ($aiExtractUrl !== null) {
             );
         }
 
-        erRenderer.ready.then(function () {
-            erRenderLivePreview();
-            erUpdateRuleUI();
-        });
         erUpdateRuleUI();
+
+        var pane = editor.closest('.tab-pane');
+        if (!pane || pane.classList.contains('active')) {
+            erLoad();
+        } else {
+            document.addEventListener('shown.bs.tab', function (e) {
+                if (e.target.getAttribute('href') === '#' + pane.id) { erLoad(); }
+            });
+        }
     });
+
+    /* The whole event is fetched only once this tab opens: the live preview
+       renders what is being typed, and Ctrl+Space lists every element. */
+    function erLoad() {
+        var editor = document.getElementById('er-editor');
+        if (!erRenderer || !editor) { return Promise.resolve(); }
+        if (!erLoading) {
+            erLoading = erRenderer.prepare(editor.value).then(function () {
+                erReady = true;
+                erRenderLivePreview();
+                erUpdateRuleUI();
+            });
+        }
+        return erLoading;
+    }
 
     /* ── Unsaved badge ───────────────────────────────────────── */
     function erUpdateUnsavedBadge() {
@@ -475,7 +497,7 @@ if ($aiExtractUrl !== null) {
     function erRenderLivePreview() {
         var editor  = document.getElementById('er-editor');
         var preview = document.getElementById('er-live-preview');
-        if (!editor || !preview || !erRenderer) { return; }
+        if (!editor || !preview || !erRenderer || !erReady) { return; }
         erRenderer.render(editor.value, preview);
     }
 
@@ -538,10 +560,16 @@ if ($aiExtractUrl !== null) {
         }
 
         /* text / text-gfm — Blob download */
-        var fileContent = raw;
         if (type === 'text-gfm' && erRenderer) {
-            fileContent = erRenderer.toGfm(raw);
+            erLoad().then(function () {
+                erSaveFile(erRenderer.toGfm(raw), filename);
+            });
+            return;
         }
+        erSaveFile(raw, filename);
+    };
+
+    function erSaveFile(fileContent, filename) {
         var blob = new Blob([fileContent], { type: 'text/markdown;charset=utf-8' });
         var url  = URL.createObjectURL(blob);
         var a    = document.createElement('a');
@@ -551,7 +579,7 @@ if ($aiExtractUrl !== null) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-    };
+    }
 
     /**
      * Print window. The report's own stylesheets are linked rather 
@@ -584,21 +612,32 @@ if ($aiExtractUrl !== null) {
             win.focus();
             win.print();
         }
-        /* Listen before writing: document.close() can fire load right away,
-           and a stylesheet that never answers must not leave the window
-           sitting there unprinted either. */
-        win.addEventListener('load', printOnce);
-        win.document.write(
-            '<!DOCTYPE html><html><head><meta charset="utf-8">'
-            + '<title>' + <?= json_encode(__('Event Report')) ?> + ' ' + erReportId + '</title>'
-            + links
-            + '<style>body{padding:2rem;max-width:900px;margin:auto;}</style>'
-            + '</head><body><div class="markdown-preview-body">'
-            + preview.innerHTML
-            + '</div></body></html>'
-        );
-        win.document.close();
-        setTimeout(printOnce, 1500);
+        /* The window has to open inside the click or it is blocked as a popup,
+           so it is filled once the report is rendered. Printing from the
+           General tab needs only what the report cites. */
+        var editor = document.getElementById('er-editor');
+        var ready = erLoading || !erRenderer || !editor
+            ? erLoad()
+            : erRenderer.prepare(editor.value, 'referenced');
+        ready.then(function () {
+            if (win.closed) { return; }
+            if (erRenderer && editor) { erRenderer.render(editor.value, preview); }
+            /* Listen before writing: document.close() can fire load right away,
+               and a stylesheet that never answers must not leave the window
+               sitting there unprinted either. */
+            win.addEventListener('load', printOnce);
+            win.document.write(
+                '<!DOCTYPE html><html><head><meta charset="utf-8">'
+                + '<title>' + <?= json_encode(__('Event Report')) ?> + ' ' + erReportId + '</title>'
+                + links
+                + '<style>body{padding:2rem;max-width:900px;margin:auto;}</style>'
+                + '</head><body><div class="markdown-preview-body">'
+                + preview.innerHTML
+                + '</div></body></html>'
+            );
+            win.document.close();
+            setTimeout(printOnce, 1500);
+        });
     }
 
     /* ── Save ────────────────────────────────────────────────── */

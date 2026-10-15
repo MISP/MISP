@@ -113,7 +113,11 @@ class EventReportsController extends AppController
         }
         $user = $this->_closeSession();
         $report = $this->EventReport->simpleFetchById($user, $reportId);
-        $proxyMISPElements = $this->EventReport->getProxyMISPElements($user, $report['EventReport']['event_id']);
+        if ($this->request->query('scope') === 'referenced') {
+            $proxyMISPElements = $this->EventReport->getReferencedProxyMISPElements($user, $report);
+        } else {
+            $proxyMISPElements = $this->EventReport->getProxyMISPElements($user, $report['EventReport']['event_id']);
+        }
         return $this->RestResponse->viewData($proxyMISPElements, $this->response->type());
     }
 
