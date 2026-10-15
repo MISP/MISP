@@ -110,10 +110,11 @@ class EnrichmentRegistrationAge extends ValueSignalBase
                     'do' => __('Raise young to 8.'),
                 ),
                 array(
-                    'want' => __('A registration answer should count at'
-                        . ' all'),
-                    'do' => __('Grade the module that gave it, e.g. rdap,'
-                        . ' under Sources & reputation.'),
+                    'want' => __('A keyed source\'s registration date'
+                        . ' (VirusTotal, SecurityTrails) should count too'),
+                    'do' => __('Grade that module under Sources &'
+                        . ' reputation. The shipped profile grades rdap'
+                        . ' C.'),
                 ),
             ),
         );
