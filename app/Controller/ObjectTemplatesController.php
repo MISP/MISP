@@ -144,6 +144,16 @@ class ObjectTemplatesController extends AppController
                 $railCards->versions($template),
                 $railCards->requiredBy($this->Auth->user(), $template),
             ]));
+            $this->set('templateElements', $this->ObjectTemplate->ObjectTemplateElement->find('all', [
+                'recursive' => -1,
+                'conditions' => ['ObjectTemplateElement.object_template_id' => $id],
+                'fields' => [
+                    'ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type',
+                    'ObjectTemplateElement.multiple', 'ObjectTemplateElement.disable_correlation',
+                    'ObjectTemplateElement.description', 'ObjectTemplateElement.ui-priority',
+                ],
+                'order' => ['ObjectTemplateElement.ui-priority DESC', 'ObjectTemplateElement.object_relation'],
+            ]));
         }
     }
 
@@ -225,6 +235,12 @@ class ObjectTemplatesController extends AppController
         if (!empty($this->params['named']['force'])) {
             $force = $this->params['named']['force'];
         }
+        if ($this->theme === 'Overmind' && $this->request->is('ajax') && $this->request->is('get')) {
+            $this->set('templateName', $type);
+            $this->set('force', !empty($force));
+            $this->layout = false;
+            return $this->render('ajax/update_confirmation');
+        }
         $result = $this->ObjectTemplate->update($this->Auth->user(), $type, $force);
         $this->loadModel('ObjectRelationship');
         $result2 = $this->ObjectRelationship->update();
@@ -292,6 +308,17 @@ class ObjectTemplatesController extends AppController
                 $message .= ' However, could not update ' . $fails . ' object templates.';
             }
             $this->Flash->success($message);
+        }
+        if ($this->theme === 'Overmind' && $type) {
+            $latest = $this->ObjectTemplate->find('first', [
+                'recursive' => -1,
+                'conditions' => ['ObjectTemplate.name' => $type],
+                'fields' => ['ObjectTemplate.id'],
+                'order' => ['ObjectTemplate.version DESC', 'ObjectTemplate.id DESC'],
+            ]);
+            if (!empty($latest)) {
+                return $this->redirect(['controller' => 'objectTemplates', 'action' => 'view', $latest['ObjectTemplate']['id']]);
+            }
         }
         $this->redirect(array('controller' => 'objectTemplates', 'action' => 'index'));
     }

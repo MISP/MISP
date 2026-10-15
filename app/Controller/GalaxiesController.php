@@ -129,6 +129,23 @@ class GalaxiesController extends AppController
                     $railCards->slot('galaxy-usage', $id),
                 ]));
                 $this->set('isMatrixGalaxy', EventMatrixTool::isMatrixGalaxy($galaxy['Galaxy']));
+                $this->set('clusterPreview', $this->Galaxy->GalaxyCluster->find('all', [
+                    'recursive' => -1,
+                    'fields' => [
+                        'GalaxyCluster.id', 'GalaxyCluster.value', 'GalaxyCluster.default',
+                        'GalaxyCluster.distribution',
+                        'LEFT(GalaxyCluster.description, 120) AS short_description',
+                    ],
+                    'conditions' => [
+                        'AND' => [
+                            $this->Galaxy->GalaxyCluster->buildConditions($this->Auth->user()),
+                            'GalaxyCluster.galaxy_id' => $id,
+                            'GalaxyCluster.deleted' => false,
+                        ],
+                    ],
+                    'order' => ['GalaxyCluster.value'],
+                    'callbacks' => false,
+                ]));
             }
         }
     }

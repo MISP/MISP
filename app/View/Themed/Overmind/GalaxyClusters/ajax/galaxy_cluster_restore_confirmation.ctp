@@ -1,81 +1,73 @@
 <?php
+/*
+ * Restore confirmation for a soft-deleted galaxy cluster, from the Clusters
+ * tab (Deleted context) or the cluster's own page. Posts through fetch(), like
+ * the delete confirmation, and refreshes whichever of the two it came from.
+ *
+ * Expected: $cluster (the cluster row); $ownPage (bool)
+ */
 $cid = (int)$cluster['id'];
-$url = h($baseurl . '/galaxy_clusters/restore/' . $cid);
+
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
+    'model' => 'GalaxyCluster',
+    'url' => $baseurl . '/galaxy_clusters/restore/' . $cid,
+    'hiddenField' => false,
+    'eyebrow' => __('Galaxy clusters'),
+    'accent' => 'success',
+    'title' => __('Restore galaxy cluster'),
+    'message' => sprintf(
+        __('Restore the galaxy cluster %s?'),
+        '<strong>' . h($cluster['value']) . '</strong>'
+    ),
+    'escape' => false,
+    'bodyHtml' => $this->element('genericElementsBS5/Forms/field_hint', [
+        'text' => __('Restoring makes the cluster active again and available for tagging.'),
+    ]),
+    'submitLabel' => __('Restore'),
+    'submitIcon' => 'trash-arrow-up',
+    'meta' => [['label' => __('Cluster'), 'id' => $cid]],
+]);
 ?>
-
-<div class="p-4">
-
-    <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
-        <i class="fas fa-trash-arrow-up text-success"></i>
-        <?= __('Restore Galaxy Cluster') ?>
-    </h6>
-
-    <p class="mb-2">
-        <?= sprintf(
-            __('Are you sure you want to restore Galaxy Cluster %s (%s)?'),
-            '<strong>' . h($cluster['value']) . '</strong>',
-            h($cluster['id'])
-        ) ?>
-    </p>
-
-    <p class="small text-muted mb-3">
-        <?= __('Restoring makes the cluster active again and available for tagging.') ?>
-    </p>
-
-    <div class="d-flex justify-content-end gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm"
-                onclick="bootstrap.Modal.getInstance(document.getElementById('mainModal')).hide()">
-            <?= __('Cancel') ?>
-        </button>
-        <button type="button"
-                id="cluster-restore-btn"
-                class="btn btn-success btn-sm"
-                data-url="<?= $url ?>"
-                data-id="<?= $cid ?>">
-            <i class="fas fa-trash-arrow-up me-1"></i>
-            <?= __('Restore') ?>
-        </button>
-    </div>
-
-</div>
-
 <script>
 (function () {
-    var btn = document.getElementById('cluster-restore-btn');
-    if (!btn) return;
-
+    var form = document.querySelector('#mainModalBody #PromptForm');
+    if (!form) return;
+    var clusterId = <?= json_encode((string)$cid) ?>;
+    var ownPage = <?= !empty($ownPage) ? 'true' : 'false' ?>;
     var msgFail = <?= json_encode(__('Galaxy cluster could not be restored.')) ?>;
-    var msgErr  = <?= json_encode(__('Request failed — please try again.')) ?>;
 
-    btn.addEventListener('click', async function () {
-        btn.disabled = true;
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var submit = form.querySelector('[type="submit"]');
+        if (submit) { submit.disabled = true; }
+        var data = {};
+        var ok = false;
         try {
-            var r = await fetch(btn.dataset.url, {
+            var r = await fetch(form.action, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json',
                     'X-CSRF-Token': getCsrfToken(),
-                }
+                },
             });
-            var data = await r.json();
-            if (data.saved) {
-                var row = document.querySelector('[data-primary-id="' + btn.dataset.id + '"]');
-                if (row) { row.remove(); }
-                var modalEl = document.getElementById('mainModal');
-                if (modalEl) {
-                    var m = bootstrap.Modal.getInstance(modalEl);
-                    if (m) { m.hide(); }
-                }
-                showToast(data.success || 'Restored.', 'success');
-            } else {
-                showToast(data.errors || msgFail, 'danger');
-                btn.disabled = false;
-            }
+            data = await r.json().catch(function () { return {}; });
+            ok = r.ok;
         } catch (_e) {
-            showToast(msgErr, 'danger');
-            btn.disabled = false;
+            data = {};
         }
+        if (!ok || data.saved !== true) {
+            showToast(data.errors || data.message || msgFail, 'danger');
+            if (submit) { submit.disabled = false; }
+            return;
+        }
+
+        var n = getTabCount('clusters');
+        if (n !== null) { setTabCount('clusters', n + 1); }
+        var modal = bootstrap.Modal.getInstance(document.getElementById('mainModal'));
+        if (modal) { modal.hide(); }
+        showToast(data.success, 'success');
+        refreshAfterRowChange({ ownPage: ownPage }, [clusterId], false);
     });
 })();
 </script>

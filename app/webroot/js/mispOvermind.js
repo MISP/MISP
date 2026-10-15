@@ -216,6 +216,7 @@ function openModal(url, size = 'xl') {
             initServerForm(container);
             initSharingGroupForm(container);
             initObjectForm(container);
+            initDeleteConfirmations(container);
 
             // Reuse the single instance for #mainModal — calling openModal again
             // while a modal is already open must not spawn a second Bootstrap.Modal instance
@@ -341,6 +342,149 @@ function reloadEventViewIndexTab() {
         }
     }
     return false;
+}
+
+/**
+ * Bind the delete confirmations (Modals/confirmation_form + Forms/delete_mode)
+ * rendered in `container`: the form posts through fetch() instead of
+ * navigating, since the delete endpoints answer JSON, and the index behind the
+ * modal is refreshed rather than patched row by row — a row also lives in the
+ * card view, and the counts and the Deleted toggle move with it.
+ *
+ * @param {Element} container
+ */
+function initDeleteConfirmations(container) {
+    (container || document).querySelectorAll('script[data-delete-mode]').forEach(function (payloadEl) {
+        const form = payloadEl.closest('form');
+        const cfg = readJsonPayload(payloadEl);
+        if (!form || !cfg || form._deleteModeBound) { return; }
+        form._deleteModeBound = true;
+
+        const box = form.querySelector('[data-delete-permanent]');
+        const permanent = function () { return cfg.hard || (box !== null && box.checked); };
+        const syncNotes = function () {
+            const mode = permanent() ? 'hard' : 'soft';
+            form.querySelectorAll('[data-delete-note]').forEach(function (note) {
+                note.classList.toggle('d-none', note.dataset.deleteNote !== mode);
+            });
+        };
+        if (box) { box.addEventListener('change', syncNotes); }
+        syncNotes();
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const submit = form.querySelector('[type="submit"]');
+            if (submit) { submit.disabled = true; }
+
+            const ids = (cfg.ids || []).map(String);
+            const parts = [];
+            if (!cfg.inUrl) {
+                parts.push('data[' + cfg.model + '][ids]=' + encodeURIComponent(JSON.stringify(cfg.ids)));
+            }
+            if (permanent()) { parts.push('data[hard]=1'); }
+
+            let ok = false;
+            let data = {};
+            try {
+                const r = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': getCsrfToken(),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: parts.join('&'),
+                });
+                data = await r.json().catch(function () { return {}; });
+                ok = r.ok;
+            } catch (_e) {
+                data = {};
+            }
+
+            // Only what the server says it deleted counts: a refused request
+            // carries no ids and must not read as a success. The single-row
+            // endpoints answer `saved` alone.
+            let deleted = [];
+            if (ok && Array.isArray(data.ids)) {
+                deleted = data.ids.map(String);
+            } else if (ok && data.saved === true && cfg.inUrl) {
+                deleted = ids;
+            }
+            const msg = cfg.messages || {};
+            if (deleted.length === 0) {
+                showToast(data.errors || data.message || msg.fail, 'danger');
+                if (submit) { submit.disabled = false; }
+                return;
+            }
+
+            // Reloading an index does not recount its tab, so the server said
+            // up front which of these rows that count is made of.
+            if (cfg.countTab) {
+                const counted = (cfg.counted || []).map(String);
+                const left = deleted.filter(function (id) { return counted.indexOf(id) !== -1; }).length;
+                const n = getTabCount(cfg.countTab);
+                if (left > 0 && n !== null) { setTabCount(cfg.countTab, Math.max(0, n - left)); }
+            }
+            if (cfg.model === 'Object') {
+                if (window.objIndexSelection) { window.objIndexSelection.clear(deleted); }
+            } else if (typeof selectedItems !== 'undefined') {
+                deleted.forEach(function (id) { selectedItems.delete(id); });
+                updateMultiSelectToolbar();
+            }
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('mainModal'));
+            if (modal) { modal.hide(); }
+            showToast(data.success || msg.done, 'success');
+            if (data.saved === false && data.errors) { showToast(data.errors, 'warning'); }
+
+            refreshAfterRowChange(cfg, deleted, permanent());
+        });
+    });
+}
+
+/**
+ * Bring the page behind a delete or restore confirmation up to date.
+ *
+ * The record's own page is reloaded, or left for its parent once the record is
+ * gone for good. Otherwise the index the rows came from is reloaded in place:
+ * an event-view tab through its own API, any other lazy tab through its filter
+ * override (which rebuilds the URL from the filters on screen) — only a visible
+ * one, since a hidden tab can hold an unrelated row under the same id.
+ *
+ * @param {Object} cfg        the Forms/delete_mode payload, or { ownPage }
+ * @param {string[]} ids      ids of the rows that changed
+ * @param {boolean} permanent the records are gone for good
+ */
+function refreshAfterRowChange(cfg, ids, permanent) {
+    if (cfg.ownPage) {
+        if (permanent && cfg.parentUrl) {
+            window.location.href = cfg.parentUrl;
+        } else {
+            window.location.reload();
+        }
+        return;
+    }
+    if (reloadEventViewIndexTab()) {
+        return;
+    }
+    const holder = Array.from(document.querySelectorAll('.ajax-tab-content')).find(function (c) {
+        return c.offsetParent !== null && ids.some(function (id) {
+            return c.querySelector('tr[data-primary-id="' + id + '"]') !== null;
+        });
+    });
+    if (holder) {
+        const over = holder.__indexFilterOverride;
+        if (over && typeof over.buildUrl === 'function' && typeof over.reload === 'function') {
+            over.reload(over.buildUrl());
+            return;
+        }
+        if (holder.dataset.url) {
+            window.reloadAjaxTabIndex(holder, holder.dataset.url);
+            return;
+        }
+    }
+    window.location.reload();
 }
 
 /**
@@ -570,6 +714,7 @@ function renderMainModalContent(html) {
     if (typeof initPgpKeyLookup === 'function') {
         initPgpKeyLookup(container);
     }
+    initDeleteConfirmations(container);
 }
 
 // POST `body` to `url` and render the HTML response into #mainModal, chaining
@@ -660,6 +805,9 @@ function animateIndexView(el) {
     el.classList.remove('idx-view-anim');
     void el.offsetWidth;
     el.classList.add('idx-view-anim');
+    el.addEventListener('animationend', function () {
+        el.classList.remove('idx-view-anim');
+    }, { once: true });
 }
 
 /**
@@ -1184,7 +1332,7 @@ function testConnection(id, target) {
                     var colours = {local: 'green', remote: 'green', status: 'green'};
                     var issue_colour = "red";
 
-                    if (result.mismatch == "hotfix") issue_colour = "orange";
+                    if (result.mismatch == "hotfix" || result.mismatch == "major_compatible") issue_colour = "orange";
 
                     if (result.newer == "local") {
                         colours.remote = issue_colour;
@@ -1195,13 +1343,13 @@ function testConnection(id, target) {
                         } else if (result.mismatch == "major") {
                             compatibility = "Incompatible";
                             compatibility_colour = "red";
-                        } else if (result.mismatch == "minor_compatible") {
+                        } else if (result.mismatch == "minor_compatible" || result.mismatch == "major_compatible") {
                             compatibility_colour = "green";
                         }
                     } else if (result.newer == "remote") {
                         colours.local = issue_colour;
 
-                        if (result.mismatch != "hotfix") {
+                        if (result.mismatch != "hotfix" && result.mismatch != "major_compatible") {
                             compatibility = "Incompatible";
                             compatibility_colour = "red";
                         }
@@ -1212,10 +1360,16 @@ function testConnection(id, target) {
 
                     if (result.mismatch !== false && result.mismatch != "proposal") {
                         if (result.newer == "remote") {
-                            status_message = "Local instance outdated, update!";
+                            if (result.mismatch == "major_compatible") {
+                                status_message = "Local instance on 2.5, moving to 3.0 is recommended.";
+                            } else {
+                                status_message = "Local instance outdated, update!";
+                            }
                         } else if (result.newer == "local") {
                             if (result.mismatch == "minor_compatible") {
                                 status_message = "Remote on 2.4, moving to 2.5 is recommended.";
+                            } else if (result.mismatch == "major_compatible") {
+                                status_message = "Remote on 2.5, moving to 3.0 is recommended.";
                             } else {
                                 status_message = "Remote outdated, notify admin!";
                             }
@@ -3922,6 +4076,63 @@ function installRequiredFieldGuard() {
 installRequiredFieldGuard();
 
 /*******************************
+ * installLengthGuards
+ * A form field carries its column's length as `maxlength` (MispFormHelper), and
+ * the browser cuts a paste at that length without a word — so say it did. A
+ * free-text box outside a POST form is a search or a filter: its text ends up
+ * in the URL, where nginx answers 414 long before any column is reached, so it
+ * gets a cap of its own the first time it is focused.
+ *******************************/
+var SEARCH_MAX_LENGTH = 512;
+var lengthGuardsInstalled = false;
+function installLengthGuards() {
+    if (lengthGuardsInstalled) { return; }
+    lengthGuardsInstalled = true;
+
+    function isTextField(el) {
+        if (el instanceof HTMLTextAreaElement) { return true; }
+        return el instanceof HTMLInputElement
+            && ['text', 'search', 'email', 'url', 'tel', ''].indexOf(el.type) !== -1;
+    }
+
+    document.addEventListener('focusin', function (e) {
+        var el = e.target;
+        if (!(el instanceof HTMLInputElement) || !isTextField(el)) { return; }
+        if (el.hasAttribute('maxlength')) { return; }
+        var form = el.form || el.closest('form');
+        if (form && String(form.getAttribute('method') || '').toLowerCase() === 'post') { return; }
+        el.maxLength = SEARCH_MAX_LENGTH;
+    }, true);
+
+    document.addEventListener('paste', function (e) {
+        var el = e.target;
+        if (!isTextField(el) || !(el.maxLength > 0) || !e.clipboardData) { return; }
+        var pasted = e.clipboardData.getData('text').length;
+        var kept = el.value.length - ((el.selectionEnd || 0) - (el.selectionStart || 0));
+        if (kept + pasted <= el.maxLength) { return; }
+
+        var anchor = el.closest('.input-group') || el;
+        var next = anchor.nextElementSibling;
+        if (next && next.classList.contains('ov-length-notice')) { next.remove(); }
+        var msg = document.createElement('div');
+        msg.className = 'ov-field-error ov-length-notice';
+        var icon = document.createElement('i');
+        icon.className = 'fas fa-scissors';
+        var text = document.createElement('span');
+        text.textContent = 'The pasted text was cut to ' + el.maxLength + ' characters, the most this field can hold.';
+        msg.appendChild(icon);
+        msg.appendChild(text);
+        anchor.parentNode.insertBefore(msg, anchor.nextSibling);
+
+        // The paste fires an input event of its own; only a later edit clears.
+        setTimeout(function () {
+            el.addEventListener('input', function () { msg.remove(); }, { once: true });
+        }, 0);
+    }, true);
+}
+installLengthGuards();
+
+/*******************************
  * installOnDemandActions
  * One delegated listener for every IndexTable/Fields/on_demand cell: GET the
  * cell's url, or POST its text box as `value`, and list the JSON answer's
@@ -5569,20 +5780,37 @@ function initEventForm(container) {
         if (!info) { return; }
         var message = info.dataset.requiredMsg
             || 'Please provide a name for the event.';
+        var maxBytes = parseInt(info.dataset.maxBytes, 10) || 0;
+        var tooLongMessage = info.dataset.maxBytesMsg || 'Event info is too long.';
 
-        function validate(quiet) {
-            if (info.value.trim()) {
-                markValid(info);
-                return null;
-            }
-            if (!quiet) { markInvalid(info, message); }
-            return info;
+        /* The column limit is in bytes, so count what UTF-8 will store. */
+        function tooLong() {
+            return maxBytes > 0
+                && new TextEncoder().encode(info.value).length > maxBytes;
         }
 
-        /* Only ever clears while typing: nagging about an empty field the user
-         * has not finished with is what the submit check is for. */
+        function validate(quiet) {
+            if (!info.value.trim()) {
+                if (!quiet) { markInvalid(info, message); }
+                return info;
+            }
+            if (tooLong()) {
+                if (!quiet) { markInvalid(info, tooLongMessage); }
+                return info;
+            }
+            markValid(info);
+            return null;
+        }
+
+        /* An empty field only clears while typing (the submit check nags about
+         * it); an oversized one is said at once, since it usually comes from a
+         * paste the user cannot see the end of. */
         info.addEventListener('input', function () {
-            if (info.value.trim()) { markValid(info); }
+            if (tooLong()) {
+                markInvalid(info, tooLongMessage);
+            } else if (info.value.trim()) {
+                markValid(info);
+            }
         });
         validators.push(validate);
     }
@@ -7700,7 +7928,19 @@ function initObjectTemplatePicker(container, payloadEl) {
         searchField: ['name', 'desc'],
         /* Insertion order stops mattering, so re-adding options on the way back
          * to "All" cannot scramble the list. */
-        sortField: [{ field: '$score' }, { field: 'name', direction: 'asc' }],
+        sortField: [{ field: '$score', direction: 'desc' }, { field: 'name', direction: 'asc' }],
+        score: function (query) {
+            var anyField = this.getScoreFunction(query);
+            var nameOnly = this.sifter.getScoreFunction(
+                query, Object.assign(this.getSearchOptions(), { fields: ['name'] })
+            );
+            this.settings.optgroupField = query.trim() ? '' : 'meta';
+            return function (t) {
+                if (anyField(t) <= 0) { return 0; }
+                var byName = nameOnly(t);
+                return byName > 0 ? 10 + byName : 1;
+            };
+        },
         maxOptions: null,
         create: false,
         placeholder: select.dataset.placeholder || '-- Select a template --',
@@ -8586,17 +8826,24 @@ function initObjectAddForm(container, payloadEl) {
             searchField: ['label', 'context', 'uuid'],
             options: initial,
             create: false,
-            placeholder: 'Search the event for an object or attribute',
+            placeholder: 'Search the event by name, value or uuid',
         }, referenceTargetSearch(data.relationshipTargetsUrl), {
             render: {
+                /* Objects often share a name: the uuid is what tells them apart. */
                 option: function (item, escape) {
                     return '<div class="py-1">'
                         + '<span class="badge bg-secondary me-1">' + escape(item.kind) + '</span>'
                         + escape(item.label)
                         + '<div class="text-muted small">' + escape(item.context) + '</div>'
+                        + '<div class="text-muted small font-monospace text-truncate">' + escape(item.uuid) + '</div>'
                         + '</div>';
                 },
-                item: function (item, escape) { return '<div>' + escape(item.label) + '</div>'; }
+                item: function (item, escape) {
+                    return '<div class="d-flex align-items-center gap-2 text-truncate">'
+                        + '<span>' + escape(item.label) + '</span>'
+                        + '<span class="text-muted small font-monospace">' + escape(item.uuid) + '</span>'
+                        + '</div>';
+                }
             },
             onChange: syncRelAddBtn
         }));
@@ -8855,4 +9102,91 @@ function initObjectAddForm(container, payloadEl) {
  * plain navigation, or a bookmarked URL - gets the same wiring as the modal. */
 document.addEventListener('DOMContentLoaded', function () {
     initObjectForm(document);
+});
+
+/**
+ * A card header whose action buttons no longer fit on its first line folds
+ * them into a "⋯" dropdown instead of letting them wrap under the title.
+ *
+ * Markup contract, inside the header's flex row:
+ *   <div data-card-actions> the buttons </div>
+ *   <div class="dropdown d-none" data-card-actions-menu>
+ *       <button data-bs-toggle="dropdown">…</button>
+ *       <ul class="dropdown-menu"></ul>
+ *   </div>
+ * Elements/genericElementsBS5/Cards/actions_overflow_menu draws the second part.
+ * The menu entries are built from the buttons each time it opens, so a button
+ * enabled later (Download All) or replaced is mirrored, and a click on an entry
+ * clicks the real button.
+ */
+function initCardActionOverflow(container) {
+    (container || document).querySelectorAll('[data-card-actions]:not([data-overflow-bound])').forEach(function (actions) {
+        actions.setAttribute('data-overflow-bound', '');
+        var row = actions.parentElement;
+        var menu = row.querySelector('[data-card-actions-menu]');
+        var list = menu ? menu.querySelector('.dropdown-menu') : null;
+        var anchor = row.firstElementChild;
+        if (!menu || !list || !anchor || !actions.children.length) {
+            return;
+        }
+
+        function wrapped() {
+            var line = anchor.getBoundingClientRect().bottom - 2;
+            return Array.prototype.some.call(row.children, function (child) {
+                if (child === anchor || child.classList.contains('d-none')) {
+                    return false;
+                }
+                return child.getBoundingClientRect().top >= line;
+            });
+        }
+
+        // Laid out inline first; folded only if that pushes something down.
+        function update() {
+            actions.classList.remove('d-none');
+            menu.classList.add('d-none');
+            if (wrapped()) {
+                actions.classList.add('d-none');
+                menu.classList.remove('d-none');
+            }
+        }
+
+        menu.addEventListener('show.bs.dropdown', function () {
+            list.replaceChildren();
+            Array.prototype.forEach.call(actions.querySelectorAll('button, a'), function (source) {
+                var li = document.createElement('li');
+                var item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'dropdown-item d-flex align-items-center gap-2';
+                item.innerHTML = source.innerHTML;
+                item.disabled = source.disabled || source.classList.contains('disabled');
+                if (source.title) {
+                    item.title = source.title;
+                }
+                item.addEventListener('click', function () {
+                    source.click();
+                });
+                li.appendChild(item);
+                list.appendChild(li);
+            });
+        });
+
+        var lastWidth = null;
+        if (typeof ResizeObserver === 'function') {
+            new ResizeObserver(function (entries) {
+                var width = Math.round(entries[0].contentRect.width);
+                if (width !== lastWidth) {
+                    lastWidth = width;
+                    update();
+                }
+            }).observe(row);
+        } else {
+            window.addEventListener('resize', update);
+        }
+        update();
+    });
+}
+window.initCardActionOverflow = initCardActionOverflow;
+
+document.addEventListener('DOMContentLoaded', function () {
+    initCardActionOverflow(document);
 });

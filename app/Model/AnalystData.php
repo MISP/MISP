@@ -108,7 +108,8 @@ class AnalystData extends AppModel
         'object_uuid' => [
             'uuid' => [
                 'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+                'message' => 'Please provide a valid RFC 4122 UUID',
+                'required' => 'create',
             ],
         ],
         'org_uuid' => [
@@ -516,6 +517,77 @@ class AnalystData extends AppModel
         ]);
     }
 
+    /**
+     * A readable line for each target $user can open, so a view can name what
+     * a note is about instead of printing its UUID. Visibility is decided by
+     * existingTargets(); the label is then read without callbacks.
+     *
+     * @param array $user
+     * @param array $targets list of ['type' => string, 'uuid' => string]
+     * @return array uuid => ['label' => string, 'meta' => string[]]
+     */
+    public function describeTargets(array $user, array $targets): array
+    {
+        $models = [
+            'Event' => ['Event', ['id', 'info', 'date'], 'info'],
+            'Attribute' => ['MispAttribute', ['type', 'value', 'event_id'], 'value'],
+            'Object' => ['MispObject', ['name', 'meta-category', 'event_id'], 'name'],
+            'EventReport' => ['EventReport', ['name', 'event_id'], 'name'],
+            'GalaxyCluster' => ['GalaxyCluster', ['value', 'type'], 'value'],
+            'Galaxy' => ['Galaxy', ['name', 'type'], 'name'],
+            'Note' => ['Note', ['note', 'language'], 'note'],
+            'Opinion' => ['Opinion', ['opinion', 'comment'], 'comment'],
+            'Relationship' => ['Relationship', ['relationship_type', 'related_object_type'], 'relationship_type'],
+            'Organisation' => ['Organisation', ['name', 'type'], 'name'],
+            'SharingGroup' => ['SharingGroup', ['name'], 'name'],
+        ];
+        $visible = $this->existingTargets($user, $targets);
+        $described = [];
+        foreach ($targets as $target) {
+            $type = $target['type'] ?? '';
+            $uuid = $target['uuid'] ?? '';
+            if (empty($visible[$uuid]) || !isset($models[$type])) {
+                continue;
+            }
+            list($modelName, $fields, $labelField) = $models[$type];
+            $model = ClassRegistry::init($modelName);
+            $alias = $model->alias;
+            $row = $model->find('first', [
+                'conditions' => ["{$alias}.uuid" => $uuid],
+                'fields' => array_map(function ($field) use ($alias) {
+                    return "{$alias}.{$field}";
+                }, $fields),
+                'recursive' => -1,
+                'callbacks' => false,
+            ]);
+            if (empty($row[$alias])) {
+                continue;
+            }
+            $row = $row[$alias];
+            $label = (string)($row[$labelField] ?? '');
+            $meta = [];
+            foreach ($fields as $field) {
+                if ($field === $labelField || !isset($row[$field]) || $row[$field] === '') {
+                    continue;
+                }
+                if ($field === 'id') {
+                    $meta[] = '#' . $row[$field];
+                } elseif ($field === 'event_id') {
+                    $meta[] = __('Event #%s', $row[$field]);
+                } elseif ($field === 'opinion') {
+                    $meta[] = __('%s/100', $row[$field]);
+                } else {
+                    $meta[] = (string)$row[$field];
+                }
+            }
+            $described[$uuid] = [
+                'label' => mb_strimwidth($label, 0, 160, '…'),
+                'meta' => $meta,
+            ];
+        }
+        return $described;
+    }
+
     public function deduceAnalystDataType(array $analystData)
     {
         if (!empty($analystData['note_type_name']) && in_array($analystData['note_type_name'], self::TYPES)) {
@@ -727,15 +799,22 @@ class AnalystData extends AppModel
     public function fetchThreadForObject(array $user, $objectType, $objectUuid): array
     {
         $thread = ['Note' => [], 'Opinion' => [], 'Relationship' => [], 'RelationshipInbound' => []];
+        $models = [];
         foreach (['Note', 'Opinion', 'Relationship'] as $type) {
-            $model = ClassRegistry::init($type);
-            $model->current_user = $user;
-            $model->fetchRecursive = true;
+            $models[$type] = ClassRegistry::init($type);
+            $models[$type]->current_user = $user;
+            $models[$type]->fetchRecursive = false;
             // The cycle guard outlives a walk; a thread already touched
             // earlier in the request would otherwise come back childless.
-            $model->fetchedUUIDFromRecursion = [];
+            $models[$type]->fetchedUUIDFromRecursion = [];
+        }
+        // afterFind's own recursion stops two levels down; walk the thread
+        // explicitly so replies to replies are shown too.
+        foreach ($models as $type => $model) {
             $fetched = $model->fetchForUuids([$objectUuid], $user);
-            $thread[$type] = $fetched[$objectUuid][$type] ?? [];
+            foreach ($fetched[$objectUuid][$type] ?? [] as $item) {
+                $thread[$type][] = $model->fetchChildNotesAndOpinions($user, $item, false, 4);
+            }
         }
         $Relationship = ClassRegistry::init('Relationship');
         $thread['RelationshipInbound'] = Hash::extract(

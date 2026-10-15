@@ -1,5 +1,8 @@
 <?php
     $railCards = $railCards ?? [];
+    $this->set('headerTitle', $taxonomy['namespace'] ?? '');
+    $this->set('headerIdentity', $taxonomy);
+
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
         'data' => $taxonomy,
@@ -12,6 +15,7 @@
                 // Content
                 'left' => [
                     'Taxonomies/View/taxonomies_general',
+                    'Taxonomies/View/taxonomies_tags_card',
                 ],
                 'right' => array_merge([
                     'Taxonomies/View/taxonomies_actions',

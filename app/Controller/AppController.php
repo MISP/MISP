@@ -34,7 +34,10 @@ class AppController extends Controller
      */
     public $defaultModel = '';
 
-    public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
+    public $helpers = array(
+        'OrgImg', 'FontAwesome', 'UserName', 'Navbar',
+        'Form' => array('className' => 'MispForm'),
+    );
 
     /**
      * Width of the window Security.pre_auth_flood_filter_threshold is counted
@@ -42,7 +45,7 @@ class AppController extends Controller
      */
     const PRE_AUTH_FLOOD_WINDOW = 900;
 
-    private $__queryVersion = '234';
+    private $__queryVersion = '238';
     public $pyMispVersion = '2.5.34.2';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -1384,6 +1387,9 @@ class AppController extends Controller
         }
         if (is_string($raw)) {
             $raw = ctype_digit($raw) ? [$raw] : json_decode($raw, true);
+        }
+        if (is_int($raw)) {
+            $raw = [$raw];
         }
         if (!is_array($raw)) {
             return [];

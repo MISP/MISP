@@ -81,7 +81,7 @@ if ($canPublish) {
 if ($canRestore) {
     $actions[] = [
         'url' => "$baseurl/galaxy_clusters/restore/$id",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/restore/$id', 'md');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/restore/$id/origin:view', 'md');",
         'icon' => 'fas fa-trash-arrow-up',
         'entity' => 'galaxy',
         'label' => __('Restore Cluster'),
@@ -92,7 +92,7 @@ if ($canRestore) {
 if ($canDelete) {
     $actions[] = [
         'url' => "$baseurl/galaxy_clusters/delete/$id",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/delete/$id', 'lg');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/delete/$id/origin:view', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete Cluster'),
         'danger' => true,

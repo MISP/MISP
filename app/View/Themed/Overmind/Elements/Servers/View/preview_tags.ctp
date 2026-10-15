@@ -22,7 +22,7 @@ $tagFilterKey = $ctx['tagFilterKey'] ?? 'id';
 $uid = 'preview-tags-' . h($data['Event']['id'] ?? $data['Event']['uuid'] ?? '0');
 ?>
 
-<div class="card shadow-sm mb-3" id="preview-tags-card">
+<div class="card shadow-sm mb-3 flex-grow-1" id="preview-tags-card">
 
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-3 flex-wrap">
