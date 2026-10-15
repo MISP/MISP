@@ -183,7 +183,7 @@ $fields = [
                 'icon' => 'trash',
                 'class' => 'text-danger',
                 'url' => $baseurl . '/galaxy_clusters/delete/%id%',
-                'size' => 'lg',
+                'size' => 'md',
                 'requirement' => function ($row) use ($me) {
                     return !empty($me['Role']['perm_site_admin'])
                         || ($me['org_id'] == $row['GalaxyCluster']['org_id'] && !empty($me['Role']['perm_galaxy_editor']));
@@ -218,6 +218,13 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'icon' => 'fas fa-user',
                         'class' => 'btn ' . ($context === 'orgc' ? 'btn-primary' : 'btn-outline-primary'),
                         'url' => $baseurl . '/galaxy_clusters/index/' . $galaxy_id . '/context:' . ($context === 'orgc' ? 'all' : 'orgc'),
+                    ],
+                    [
+                        'type' => 'button',
+                        'label' => __('Deleted') . (!empty($deletedCount) ? ' (' . (int)$deletedCount . ')' : ''),
+                        'icon' => 'fas fa-trash',
+                        'class' => 'btn ' . ($context === 'deleted' ? 'btn-danger' : 'btn-outline-danger'),
+                        'url' => $baseurl . '/galaxy_clusters/index/' . $galaxy_id . '/context:' . ($context === 'deleted' ? 'all' : 'deleted'),
                     ],
                     [
                         'type' => 'more_filters',

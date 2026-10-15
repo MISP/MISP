@@ -2,8 +2,6 @@
 
 $report = $data['EventReport'] ?? [];
 $event = $data['Event'] ?? [];
-$sharingGroup = $data['SharingGroup'] ?? [];
-
 
 $descParts = [];
 if (!empty($report['date'])) {
@@ -23,95 +21,56 @@ $headerDescription = '<span class="d-inline-flex gap-3 flex-wrap">'
     . '</span>';
 $this->set('headerDescription', $headerDescription);
 
+$eventId = $report['event_id'] ?? ($event['id'] ?? null);
+$eventUrl = $baseurl . '/events/view2/' . $eventId;
+$published = !empty($parentEvent['Event']['published']);
+$labelStyle = 'font-size:.7rem;';
 ?>
 
 <div class="card mb-3 shadow-sm">
-    <div class="card-body">
-
-        <!-- META GRID -->
-        <div class="row g-3">
-
-            <!-- ID -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    ID
-                </div>
-                <div class="bg-light rounded px-2 py-1 d-inline-block">
-                    <?= h($report['id'] ?? '') ?>
-                </div>
-            </div>
-
-            <!-- UUID -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    UUID
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="bg-light rounded px-2 py-1 font-monospace small">
-                        <?= h($report['uuid'] ?? '') ?>
-                    </div>
-                    <button
-                        class="text-muted border-0 bg-white"
-                        onclick="copyToClipboard(this, '<?= h($report['uuid'] ?? '') ?>')"
-                        data-bs-toggle="tooltip"
-                        title="<?= __('Copy UUID') ?>"
-                        aria-label="<?= __('Copy UUID') ?>">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- DISTRIBUTION -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Distribution') ?>
-                </div>
-                <?= $this->element('genericElementsBS5/Badges/distribution', [
-                    'distribution' => (int)($report['distribution'] ?? 0),
-                    'full' => true
-                ]); ?>
-            </div>
-
-            <!-- EVENT -->
-            <div class="col-md-6">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Event') ?>
-                </div>
-                <?= $this->element('genericElementsBS5/Badges/event', [
-                    'id' => $report['event_id'] ?? null,
-                    'name' => $event['info'] ?? null,
-                    'url' => $baseurl . '/events/view2/' . ($report['event_id'] ?? ''),
-                    'org' => $event['Org'] ?? []
-                ]); ?>
-            </div>
-
+    <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+            <span class="text-body-secondary text-uppercase fw-bold" style="<?= $labelStyle ?>">
+                <?= __('Part of event') ?>
+            </span>
             <?php if (!empty($report['deleted'])): ?>
-            <!-- DELETED -->
-            <div class="col-md-3">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Status') ?>
-                </div>
-                <span class="badge bg-danger">
-                    <i class="fas fa-trash-alt me-1"></i>
-                    <?= __('Deleted') ?>
+                <span class="badge rounded-pill text-bg-danger d-inline-flex align-items-center gap-1">
+                    <i class="fas fa-trash-alt"></i><?= __('Deleted report') ?>
                 </span>
-            </div>
             <?php endif; ?>
-
-            <?php if ((int)($report['distribution'] ?? -1) === 4 && !empty($sharingGroup)): ?>
-            <!-- SHARING GROUP -->
-            <div class="col-md-6">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Sharing Group') ?>
-                </div>
-                <a href="<?= h($baseurl . '/sharing_groups/view/' . ($sharingGroup['id'] ?? '')) ?>">
-                    <span class="misp-icon misp-icon-sharing-group misp-simple me-1"></span>
-                    <?= h($sharingGroup['name'] ?? '') ?>
-                </a>
-            </div>
-            <?php endif; ?>
-
         </div>
 
+        <?php if (empty($eventId)): ?>
+            <span class="text-body-secondary fst-italic small"><?= __('Event not visible to you') ?></span>
+        <?php else: ?>
+            <a href="<?= h($eventUrl) ?>"
+               class="d-flex align-items-center gap-3 p-2 rounded-3 border bg-body-tertiary text-decoration-none link-body-emphasis ov-mini-card">
+                <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3 bg-primary-subtle text-primary"
+                      style="width:2.5rem;height:2.5rem;">
+                    <i class="misp-icon misp-icon-event misp-simple fs-5"></i>
+                </span>
+                <div class="min-w-0 flex-grow-1">
+                    <div class="fw-semibold lh-sm text-break"><?= h($event['info'] ?? __('Event #%s', $eventId)) ?></div>
+                    <div class="d-flex flex-wrap align-items-center column-gap-3 row-gap-1 small text-body-secondary mt-1">
+                        <span class="font-monospace">#<?= h($eventId) ?></span>
+                        <?php if (!empty($event['date'])): ?>
+                            <span><i class="fas fa-calendar-day me-1 opacity-50"></i><?= h($event['date']) ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($parentEvent)): ?>
+                            <?php if ($published): ?>
+                                <span class="badge rounded-pill text-bg-success fw-normal">
+                                    <i class="fas fa-check me-1"></i><?= __('Published') ?>
+                                </span>
+                            <?php else: ?>
+                                <span class="badge rounded-pill border bg-body text-body-secondary fw-normal">
+                                    <i class="fas fa-pen me-1"></i><?= __('Unpublished') ?>
+                                </span>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <i class="fas fa-arrow-right flex-shrink-0 text-body-secondary"></i>
+            </a>
+        <?php endif; ?>
     </div>
 </div>

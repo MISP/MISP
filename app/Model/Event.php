@@ -234,6 +234,10 @@ class Event extends AppModel
                 'rule' => array('valueNotEmpty'),
                 'required' => true
             ),
+            'maxBytes' => array(
+                'rule' => array('maxBytes', 65535),
+                'message' => 'Event info cannot be longer than 65535 bytes.',
+            ),
         ),
         'user_id' => array(
             'numeric' => array(
@@ -1928,6 +1932,64 @@ class Event extends AppModel
     }
 
     /**
+     * What in an event is shared more narrowly than the event itself: the
+     * standalone attributes and the objects whose distribution is one of
+     * DistributionLevel::narrowerThan() the event's, per level, among the rows
+     * $user can see.
+     *
+     * @param array $user
+     * @param array $event ['Event' => id, distribution]
+     * @return array ['Attribute' => [level => count], 'Object' => [...]]
+     */
+    public function distributionOutliers(array $user, array $event)
+    {
+        App::uses('DistributionLevel', 'Tools');
+        $narrower = DistributionLevel::narrowerThan($event['Event']['distribution']);
+        if (empty($narrower)) {
+            return ['Attribute' => [], 'Object' => []];
+        }
+        $eventId = (int)$event['Event']['id'];
+        $isSiteAdmin = !empty($user['Role']['perm_site_admin']);
+        $sgids = $isSiteAdmin ? [] : $this->SharingGroup->authorizedIds($user);
+        $result = [];
+        foreach (['Attribute' => $this->Attribute, 'Object' => $this->Object] as $alias => $model) {
+            $conditions = [
+                $alias . '.event_id' => $eventId,
+                $alias . '.deleted' => 0,
+                $alias . '.distribution' => $narrower,
+            ];
+            if ($alias === 'Attribute') {
+                $conditions['Attribute.object_id'] = 0;
+            }
+            if (!$isSiteAdmin) {
+                $conditions['AND'][0]['OR'] = [
+                    ['AND' => [
+                        $alias . '.distribution >' => 0,
+                        $alias . '.distribution !=' => 4,
+                    ]],
+                    ['AND' => [
+                        $alias . '.distribution' => 4,
+                        $alias . '.sharing_group_id' => $sgids,
+                    ]],
+                    $this->eventOwnerSubquery($alias) . ' = ' . (int)$user['org_id'],
+                ];
+            }
+            $rows = $model->find('all', [
+                'conditions' => $conditions,
+                'fields' => [$alias . '.distribution', 'COUNT(*) AS count'],
+                'group' => [$alias . '.distribution'],
+                'recursive' => -1,
+            ]);
+            $result[$alias] = [];
+            foreach ($rows as $row) {
+                $result[$alias][(int)$row[$alias]['distribution']] = (int)$row[0]['count'];
+            }
+            ksort($result[$alias]);
+        }
+        return $result;
+    }
+
+    /**
      * Fetch paginated standalone attributes (object_id=0)
      * for a given event, with distribution-based ACL.
      *
@@ -2029,6 +2091,9 @@ class Event extends AppModel
         if (isset($options['toIDS']) && $options['toIDS'] != 0) {
             $conditions['Attribute.to_ids'] =
                 $options['toIDS'] == 2 ? 0 : 1;
+        }
+        if (isset($options['distribution']) && $options['distribution'] !== '') {
+            $conditions['Attribute.distribution'] = (int)$options['distribution'];
         }
         if (!empty($options['searchFor'])) {
             // Same reach as the classic event view's filter: a value, a UUID
@@ -3025,6 +3090,9 @@ class Event extends AppModel
         if (!empty($options['meta-category'])) {
             $conditions['Object.meta-category'] =
                 $options['meta-category'];
+        }
+        if (isset($options['distribution']) && $options['distribution'] !== '') {
+            $conditions['Object.distribution'] = (int)$options['distribution'];
         }
 
         $sgids = $this->SharingGroup->authorizedIds($user);
@@ -9370,6 +9438,8 @@ class Event extends AppModel
                 }
                 $objects[] = $tmp_object;
             }
+            // Read in template order
+            $this->Object->sortAttributesByTemplate($objects);
             $event['Object'] = $objects;
         }
         if (!empty($result['results']['EventReport'])) {

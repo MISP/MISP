@@ -341,6 +341,13 @@ class CollectionsController extends AppController
             return $this->restResponsePayload;
         }
         $data = $this->viewVars['data'];
+        $sharingGroupId = $data['Collection']['SharingGroup']['id'] ?? null;
+        if (!empty($sharingGroupId)) {
+            $data['Collection']['SharingGroup']['org_count'] = $this->Collection->SharingGroup->SharingGroupOrg->find('count', [
+                'conditions' => ['SharingGroupOrg.sharing_group_id' => $sharingGroupId],
+            ]);
+            $this->set('data', $data);
+        }
         $elements = $data['Collection']['CollectionElement'] ?? [];
 
         // Enrich elements with a human-readable reference so the elements

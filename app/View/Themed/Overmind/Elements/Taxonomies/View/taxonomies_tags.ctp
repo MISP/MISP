@@ -128,6 +128,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
         'data' => [
             'data' => $entries,
             'filter_bar' => [
+                'action' => 'taxonomy_tags',
                 'pull' => 'right',
                 'children' => [
                     [
@@ -143,7 +144,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'fields' => $fields,
         ]
     ],
-    'item_url' => '/taxonomies/view/' . $id
+    'item_url' => '/taxonomies'
 ]);
 
 ?>

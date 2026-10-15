@@ -1,58 +1,31 @@
 <?php
+/*
+ * Create, update or re-enable one tag of a taxonomy. Server-rendered so the
+ * POST spends a token minted for this URL; addTag() reads the two fields.
+ */
 $enable = !empty($this->request->params['named']['enable']);
 $update = !empty($this->request->params['named']['update']);
 $tagName = $this->request->data['Taxonomy']['name'];
 
-$actionLabel = $enable ? __('Enabled') : ($update ? __('Updated') : __('Created'));
-$actionIcon  = $enable ? 'fa-toggle-on' : ($update ? 'fa-pen' : 'fa-plus');
+if ($enable) {
+    $mode = [__('Enable tag'), 'play', __('It becomes available for tagging again.')];
+} elseif ($update) {
+    $mode = [__('Update tag'), 'sync', __('Its colour and numerical value are refreshed from the taxonomy.')];
+} else {
+    $mode = [__('Create tag'), 'plus', __('It becomes available for tagging.')];
+}
 
-echo $this->Form->create('Taxonomy', [
-    'class' => 'needs-validation',
-    'novalidate' => true,
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
+    'title' => $mode[0],
+    'model' => 'Taxonomy',
+    'url' => $this->request->here(false),
+    'hiddenField' => ['taxonomy_id', 'name'],
+    'eyebrow' => __('Taxonomy tags'),
+    'accent' => 'tag',
+    'message' => $mode[2],
+    'bodyHtml' => '<div class="d-flex align-items-center gap-2 p-2 rounded-2 border bg-body-tertiary min-w-0">'
+        . '<i class="fas fa-tag text-body-secondary"></i>'
+        . '<span class="font-monospace small text-break">' . h($tagName) . '</span></div>',
+    'submitLabel' => $mode[0],
+    'submitIcon' => $mode[1],
 ]);
-?>
-
-<div class="container me-5">
-    <div class="row justify-content-center">
-        <div class="card shadow-sm">
-            <div class="card-body">
-
-                <h3 class="mb-2">
-                    <?= $enable ? __('Confirm enabling Taxonomy Tag') : __('Confirm creation of Taxonomy Tag') ?>
-                </h3>
-
-                <!-- DESCRIPTION -->
-                <p class="text-muted mb-4">
-                    <?= __('Tag') ?> <strong><?= h($tagName) ?></strong>
-                    <?= __('will be') ?> <span><?= strtolower($actionLabel) ?></span>.
-                </p>
-
-                <!-- HIDDEN FIELDS -->
-                <?= $this->Form->hidden('taxonomy_id') ?>
-                <?= $this->Form->hidden('name') ?>
-
-                <!-- ACTIONS -->
-                <div class="d-flex justify-content-end gap-3">
-                    <button type="button"
-                            class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal">
-                        <?= __('Cancel') ?>
-                    </button>
-
-                    <?= $this->Form->button(
-                        '<i class="fas ' . $actionIcon . ' me-1"></i> ' . $actionLabel . ' ' . __('Tag'),
-                        [
-                            'class' => 'btn btn-primary',
-                            'escapeTitle' => false,
-                            'title' => $actionLabel . ' ' . __('Tag'),
-                            'aria-label' => $actionLabel . ' ' . __('Tag'),
-                        ]
-                    ) ?>
-                </div>
-
-            </div>
-        </div>
-    </div>
-</div>
-
-<?= $this->Form->end() ?>

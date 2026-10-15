@@ -8,8 +8,14 @@
  * change.
  *
  * Parameters:
- *   object  array  one entry of $objects
- *   ctx     array  see $objContext in Elements/Objects/index.ctp
+ *   object     array  one entry of $objects
+ *   ctx        array  see $objContext in Elements/Objects/index.ctp. Only
+ *                     count / deleted / firstValue / firstRelation are read, so a
+ *                     caller outside the index can build a small one.
+ *   asideHtml  string optional raw HTML appended to the right-hand slot, for a
+ *                     surface with something of its own to put there (the
+ *                     enrichment review's reference count and remove button).
+ *                     Escape it yourself.
  */
 $dist = $this->DistributionLevel->get((int)($object['distribution'] ?? 0));
 $count = (int)$ctx['count'];
@@ -68,6 +74,9 @@ $firstTitle = ($ctx['firstRelation'] !== '' ? $ctx['firstRelation'] . ': ' : '')
                 <i class="far fa-calendar"></i>
                 <?= date('Y-m-d', $timestamp) ?>
             </span>
+        <?php endif; ?>
+        <?php if (!empty($asideHtml)): ?>
+            <?= $asideHtml ?>
         <?php endif; ?>
     </span>
 
