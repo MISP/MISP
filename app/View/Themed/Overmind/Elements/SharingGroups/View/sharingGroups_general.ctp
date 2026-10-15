@@ -1,209 +1,103 @@
 <?php
-    $sharingGroup = $sg['SharingGroup'];
-    $organisation = $sg['Organisation'];
+$sharingGroup = $sg['SharingGroup'] ?? [];
+$creator = $sg['Organisation'] ?? [];
+$syncOrg = is_array($sharingGroup['sync_org'] ?? null) ? $sharingGroup['sync_org'] : [];
+
+$labelClass = 'text-body-secondary text-uppercase fw-bold';
+$labelStyle = 'font-size:.7rem;';
+$tileStyle = 'width:1.75rem;height:1.75rem;';
+
+$flags = [
+    [
+        'on' => !empty($sharingGroup['active']),
+        'colour' => 'success',
+        'icon' => 'fas fa-hand-pointer',
+        'label' => [__('Selectable'), __('Not selectable')],
+        'sub' => [__('Offered as a distribution'), __('Hidden from the distribution pickers')],
+    ],
+    [
+        'on' => !empty($sharingGroup['roaming']),
+        'colour' => 'info',
+        'icon' => 'fas fa-street-view',
+        'label' => [__('Roaming'), __('Bound to instances')],
+        'sub' => [__('Follows its members to any instance'), __('Only reaches the listed instances')],
+    ],
+    [
+        'on' => !empty($sharingGroup['local']),
+        'colour' => 'primary',
+        'icon' => 'fas fa-house',
+        'label' => [__('Local'), __('Synchronised')],
+        'sub' => [__('Created here, sync cannot change it'), __('Received from another instance')],
+    ],
+];
+
+$orgRow = function (array $organisation, $role) use ($baseurl, $tileStyle) {
+    if (empty($organisation['name'])) {
+        return '';
+    }
+    return sprintf(
+        '<div class="d-flex align-items-center gap-2 min-w-0" style="flex:1 1 13rem;">'
+        . '<span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3 border bg-body-tertiary overflow-hidden" style="%s">%s</span>'
+        . '<div class="min-w-0"><a class="d-block fw-semibold lh-sm text-truncate text-decoration-none" href="%s">%s</a>'
+        . '<div class="small text-body-secondary text-truncate">%s</div></div></div>',
+        $tileStyle,
+        $this->OrgImg->getOrgLogoV2($organisation, 20, false) ?: '<i class="fas fa-building text-body-secondary"></i>',
+        h($baseurl . '/organisations/view/' . $organisation['id']),
+        h($organisation['name']),
+        h($role)
+    );
+};
 ?>
-
-
 <div class="card mb-3 shadow-sm">
+    <div class="card-body py-2 d-flex flex-column gap-3">
 
-    <div class="card-body">
-
-        <!-- NAME -->
-        <div class="mb-4">
-            <div class="text-muted small bold text-uppercase fw-bold mb-1">
-                <?= __('Name') ?>
+        <div>
+            <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>">
+                <i class="misp-icon misp-icon-sharing-group misp-simple text-accent me-1"></i><?= __('Sharing group') ?>
             </div>
-
-            <div class="fw-semibold fs-5">
-                <?= h($sharingGroup['name'] ?? '') ?>
-            </div>
-        </div>
-
-        <!-- DESCRIPTION -->
-        <div class="mb-4">
-            <div class="text-muted small text-uppercase fw-bold mb-1">
-                <?= __('Description') ?>
-            </div>
-
-            <div class="bg-light border rounded p-3">
-                <?= nl2br(h($sharingGroup['description'] ?? '')) ?>
-            </div>
-        </div>
-
-        <!-- META GRID -->
-        <div class="row g-3">
-
-            <!-- ID -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    ID
+            <?php if (trim($sharingGroup['description'] ?? '') !== ''): ?>
+                <div class="border-start border-3 border-primary bg-primary-subtle bg-opacity-25 rounded-end px-3 py-2 text-break">
+                    <?= nl2br(h($sharingGroup['description'])) ?>
                 </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <div class="bg-light rounded px-2 py-1">
-                        <?= h($sharingGroup['id'] ?? '') ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- UUID -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    UUID
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-
-                    <div class="bg-light rounded px-2 py-1" id="uuid-value">
-                        <?= h($sharingGroup['uuid'] ?? '') ?>
-                    </div>
-
-                    <!-- COPY BUTTON -->
-                    <button
-                        class="text-muted border-0 bg-white"
-                        onclick="copyToClipboard(this, '<?= h(h($sharingGroup['uuid'] ?? '')) ?>')"
-                        data-bs-toggle="tooltip"
-                        title="<?= __('Copy UUID') ?>"
-                        aria-label="<?= __('Copy UUID') ?>">
-                        <i class="fas fa-copy"></i>
-                    </button>
-
-                </div>
-            </div>
-
-            <!-- SELECTABLE -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Selectable') ?>
-                </div>
-
-                <?= $this->element('genericElementsBS5/Badges/boolean',
-                    [
-                        'boolean' => $sharingGroup['active'],
-                        'full' => false
-                    ]
-                ); ?>
-            </div>
-
-            <!-- CREATOR ORG -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Creator Org') ?>
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <?= $this->OrgImg->getOrgLogoV2($organisation, 24, false); ?>
-                    <?= h($organisation['name'] ?? '') ?>
-                </div>
-            </div>
-
-            <!-- SYNC ORG -->
-            <?php if (!empty($sharingGroup['sync_org'])): ?>
-                <div class="col-md-4">
-                    <div class="text-muted small text-uppercase fw-bold mb-1">
-                        <?= __('Synced by') ?>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-2">
-                        <?= $this->OrgImg->getOrgLogoV2($sharingGroup['sync_org'], 24, false); ?>
-                        <?= h($sharingGroup['sync_org'] ?? '') ?>
-                    </div>
+            <?php else: ?>
+                <span class="text-body-secondary fst-italic small"><?= __('No description') ?></span>
+            <?php endif; ?>
+            <?php if (trim($sharingGroup['releasability'] ?? '') !== ''): ?>
+                <div class="d-flex gap-2 small mt-2">
+                    <span class="text-body-secondary flex-shrink-0"><i class="fas fa-scale-balanced me-1 opacity-50"></i><?= __('Releasability') ?></span>
+                    <span class="text-break"><?= nl2br(h($sharingGroup['releasability'])) ?></span>
                 </div>
             <?php endif; ?>
         </div>
-    </div>
-</div>
 
-
-<?php if (!isset($sg['SharingGroupOrg'])): ?>
-<div class="card mb-4 shadow-sm border-0 rounded-4">
-    <div class="card-body">
-        <span class="misp-icon misp-icon-organisation misp-simple me-2 text-primary"></span>
-        <?= __n(
-            '%s member organisation',
-            '%s member organisations',
-            (int)($sharingGroup['org_count'] ?? 0),
-            (int)($sharingGroup['org_count'] ?? 0)
-        ) ?>
-    </div>
-</div>
-<?php else: ?>
-<div class="row">
-    <div class="col-lg-6 mb-4">
-        <div class="card h-100 shadow-sm border-0 rounded-4">
-            <div class="card-header bg-white py-3 border-bottom-0">
-                <h6 class="fw-bold mb-0"><span class="misp-icon misp-icon-organisation misp-simple me-2 text-accent"></span><?= __('Member Organisations') ?></h6>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr class="small text-uppercase text-muted">
-                                <th class="ps-4"><?= __('Organisation') ?></th>
-                                <th class="text-center"><?= __('Local') ?></th>
-                                <th class="text-center pe-4"><?= __('Extend') ?></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($sg['SharingGroupOrg'] as $sgo): ?>
-                                <tr>
-                                    <td class="ps-4 fw-medium">
-                                        <?= $this->OrgImg->getNameWithImg($sgo) ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <i class="<?= $sgo['Organisation']['local'] ? 'fas fa-check-circle text-success' : 'fas fa-times-circle text-muted' ?>"></i>
-                                    </td>
-                                    <td class="text-center pe-4">
-                                        <i class="<?= $sgo['extend'] ? 'fas fa-check-circle text-accent' : 'fas fa-times-circle text-muted' ?>"></i>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-6 mb-4">
-        <div class="card h-100 shadow-sm border-0 rounded-4">
-            <div class="card-header bg-white py-3 border-bottom-0">
-                <h6 class="fw-bold mb-0"><i class="fas fa-server me-2 text-accent"></i><?= __('Target Instances') ?></h6>
-            </div>
-            <div class="card-body p-0">
-                <?php if (!empty($sg['SharingGroup']['roaming'])): ?>
-                    <div class="p-4 text-center">
-                        <div class="alert alert-info border-0 rounded-3 mb-0 py-3">
-                            <i class="fas fa-street-view fa-2x mb-2 text-info"></i>
-                            <p class="mb-0 fw-medium"><?= __('Roaming mode is enabled for this sharing group.') ?></p>
+        <div>
+            <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Settings') ?></div>
+            <div class="d-flex flex-wrap row-gap-2 column-gap-3">
+                <?php foreach ($flags as $flag): ?>
+                    <?php $state = $flag['on'] ? 0 : 1; ?>
+                    <div class="d-flex align-items-center gap-2 min-w-0<?= $flag['on'] ? '' : ' opacity-75' ?>" style="flex:1 1 13rem;">
+                        <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3 <?= $flag['on']
+                            ? 'bg-' . $flag['colour'] . '-subtle text-' . $flag['colour'] . '-emphasis'
+                            : 'bg-body-secondary text-body-secondary' ?>"
+                              style="<?= $tileStyle ?>">
+                            <i class="<?= h($flag['icon']) ?>"></i>
+                        </span>
+                        <div class="min-w-0">
+                            <div class="fw-semibold lh-sm<?= $flag['on'] ? '' : ' text-body-secondary' ?>"><?= h($flag['label'][$state]) ?></div>
+                            <div class="small text-body-secondary text-truncate" title="<?= h($flag['sub'][$state]) ?>"><?= h($flag['sub'][$state]) ?></div>
                         </div>
                     </div>
-                <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr class="small text-uppercase text-muted">
-                                    <th class="ps-4"><?= __('Server') ?></th>
-                                    <th><?= __('URL') ?></th>
-                                    <th class="text-center pe-4"><?= __('All Orgs') ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($sg['SharingGroupServer'] as $sgs): ?>
-                                    <tr>
-                                        <td class="ps-4 fw-medium"><?= h($sgs['Server']['name']) ?></td>
-                                        <td class="small text-muted"><?= h($sgs['Server']['url']) ?></td>
-                                        <td class="text-center pe-4">
-                                            <i class="<?= $sgs['all_orgs'] ? 'fas fa-check-circle text-success' : 'fas fa-times-circle text-muted' ?>"></i>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </div>
         </div>
+
+        <div>
+            <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Provenance') ?></div>
+            <div class="d-flex flex-wrap row-gap-2 column-gap-3">
+                <?= $orgRow($creator, __('Creator')) ?>
+                <?= $orgRow($syncOrg, __('Synchronised by')) ?>
+            </div>
+        </div>
+
     </div>
 </div>
-<?php endif; ?>

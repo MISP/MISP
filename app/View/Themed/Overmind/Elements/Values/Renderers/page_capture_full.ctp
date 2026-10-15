@@ -34,7 +34,9 @@
                         $capture['captured'])) ?></span>
                 <?php endif; ?>
                 <span class="vp-rf-dim font-monospace"><?=
-                    h((string)$capture['module']) ?></span>
+                    $this->element('Values/Renderers/source_cell',
+                        array('sources' => $capture['module'])
+                    ) ?></span>
             </div>
             <?php if ($capture['attachment'] !== null
                 || $capture['archive'] !== null): ?>

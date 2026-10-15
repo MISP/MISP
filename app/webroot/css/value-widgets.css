@@ -341,6 +341,28 @@
     vector-effect: non-scaling-stroke;
 }
 
+/* An area an event's object draws (a GeoJSON box), under its points. */
+.vp-rw-plot-area {
+    fill: var(--vp-e-accent, #6f5fb5);
+    fill-opacity: 0.18;
+    stroke: var(--vp-e-accent, #6f5fb5);
+    stroke-width: 1.25;
+    vector-effect: non-scaling-stroke;
+}
+
+/* How far from its dot a point may be (`accuracy-radius`), drawn in
+   place of the halo when wider. Dashed and faint, so it reads as doubt
+   rather than as an area an object names. */
+.vp-rw-plot-reach {
+    fill: var(--vp-e-accent, #6f5fb5);
+    fill-opacity: 0.08;
+    stroke: var(--vp-e-accent, #6f5fb5);
+    stroke-opacity: 0.75;
+    stroke-width: 1;
+    stroke-dasharray: 3 2;
+    vector-effect: non-scaling-stroke;
+}
+
 /* A ring around the point, which is what makes it findable rather
    than merely present: a 3px dot on a map of the world is a speck
    until something on the map is pointing at it. `non-scaling-stroke`
@@ -370,21 +392,43 @@
  * as text underneath instead.
  * ------------------------------------------------------------------ */
 
+/* Each month has an equal slot and a bar of at most 24px centred in it,
+   so a label at the slot's centre sits under its bar. */
 .vp-rw-months {
     display: flex;
     align-items: flex-end;
-    gap: 1px;
+    justify-content: space-around;
+    gap: 2px;
     height: 44px;
     margin-top: 2px;
+    border-bottom: 1px solid var(--bs-border-color, #dee2e6);
 }
 
 .vp-rw-month {
     flex: 1 1 0;
     min-width: 1px;
+    max-width: 24px;
     min-height: 2px;
     height: var(--vp-rw-month-h, 0%);
-    border-radius: 1px;
+    border-radius: 3px 3px 0 0;
     background: var(--vp-e-accent, #6f5fb5);
+}
+
+.vp-rw-months.is-dense,
+.vp-spark.vp-rf-res-spark.is-dense {
+    gap: 0;
+}
+
+.vp-rw-months.is-dense .vp-rw-month,
+.vp-rf-res-spark.is-dense .vp-spark-bar {
+    border-radius: 0;
+}
+
+/* The two ends of the strip, under the two ends of it. */
+.vp-rw-ends {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
 }
 
 /* A month nothing was current in is drawn, not skipped: a gap in the
@@ -515,6 +559,54 @@
     white-space: nowrap;
 }
 
+/* A sortable column heading. A real button, so it is reachable and
+   operable from the keyboard, but carrying none of a button's chrome:
+   the heading has to keep looking like a heading. */
+.vp-th-sort {
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    /* Reboot resets `text-transform` on every button and `font: inherit`
+       does not bring it back, so uppercased headings would lose it. */
+    text-transform: inherit;
+    cursor: pointer;
+}
+
+.vp-rf-table .vp-th-sort {
+    letter-spacing: inherit;
+}
+
+.vp-th-sort:focus-visible {
+    outline: 2px solid var(--bs-focus-ring-color, #0d6efd);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* `mainOvermind.css` reveals `.sort-icon` on hover as `fa-sort`. The
+   sorted column keeps its caret and points it the way the rows are
+   ordered, keyed off `aria-sort` so the visual and what a screen reader
+   announces cannot disagree. */
+th[aria-sort] .sort-icon {
+    opacity: 1;
+}
+
+th[aria-sort] .sortable-header {
+    font-weight: 700;
+}
+
+th[aria-sort="ascending"] .sort-icon::before {
+    content: "\f0de"; /* fa-sort-up */
+}
+
+th[aria-sort="descending"] .sort-icon::before {
+    content: "\f0dd"; /* fa-sort-down */
+}
+
 /* The resolution table's period strip. Sticky, because in a capped
    enrichment cell the table scrolls under it and the filter has to stay
    in reach of the rows it narrows; the background is the cell's own. */
@@ -527,12 +619,100 @@
         var(--bs-body-bg));
 }
 
+/* The strip and its bars are whole here: the event page draws them
+   without value-intelligence.css, where `.vp-timebrush` and `.vp-spark`
+   are defined. `position: relative` pins `.misp-brush` to the box. */
 .vp-rf-res-brush .vp-timebrush {
-    margin-bottom: 2px;
+    position: relative;
+    height: 44px;
+    margin-bottom: 0;
+    --misp-brush-dim: 80%;
+}
+
+.vp-spark.vp-rf-res-spark {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    gap: 2px;
+    height: 100%;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.vp-rf-res-spark .vp-spark-bar {
+    flex: 1 1 0;
+    min-width: 1px;
+    max-width: 24px;
+    min-height: 2px;
+    height: var(--vp-spark-h, 0%);
+    border-radius: 3px 3px 0 0;
+}
+
+.vp-rf-res-spark .vp-spark-bar-empty {
+    height: 2px;
+    background: var(--bs-border-color);
 }
 
 .vp-rf-res-spark .vp-spark-bar:not(.vp-spark-bar-empty) {
     background: var(--vp-e-accent, #6f5fb5);
+}
+
+.vp-rf-res-spark .vp-spark-bar.vp-spark-bar-lit {
+    background: color-mix(in srgb, var(--vp-e-accent, #6f5fb5) 60%,
+        var(--bs-emphasis-color));
+}
+
+/* What a bar counts and how high they go, over the strip. */
+.vp-rf-res-key {
+    margin-bottom: 4px;
+    color: var(--bs-secondary-color);
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
+.vp-rf-res-key b {
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+
+/* Under a month strip (Renderers/month_axis): months, then years, and a
+   tick where a year begins. */
+.vp-rf-axis {
+    position: relative;
+    height: 16px;
+    margin: 3px 0 2px;
+    color: var(--bs-secondary-color);
+    font-size: 0.66rem;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+}
+
+.vp-rf-axis-named {
+    height: 30px;
+}
+
+.vp-rf-axis-m,
+.vp-rf-axis-y {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+.vp-rf-axis-y {
+    color: var(--bs-body-color);
+    font-weight: 600;
+}
+
+.vp-rf-axis-named .vp-rf-axis-y {
+    top: 14px;
+}
+
+.vp-rf-axis-tick {
+    position: absolute;
+    top: -3px;
+    bottom: 0;
+    width: 1px;
+    background: var(--bs-border-color);
 }
 
 .vp-rf-res-foot {

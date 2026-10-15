@@ -45,6 +45,12 @@ class CommunitiesController extends AppController
             return $this->RestResponse->viewData($community, $this->response->type());
         } else {
             $this->set('community', $community);
+            $this->loadModel('Organisation');
+            $this->set('hostOrg', empty($community['org_uuid']) ? null : $this->Organisation->find('first', [
+                'recursive' => -1,
+                'fields' => ['Organisation.id', 'Organisation.uuid', 'Organisation.name'],
+                'conditions' => ['Organisation.uuid' => $community['org_uuid']],
+            ]));
         }
     }
 

@@ -23,7 +23,9 @@
                         h($number['country']) ?></span>
                 <?php endif; ?>
                 <span class="vp-rf-dim font-monospace"><?=
-                    h((string)$number['module']) ?></span>
+                    $this->element('Values/Renderers/source_cell',
+                        array('sources' => $number['module'])
+                    ) ?></span>
             </div>
             <dl class="vp-rf-pairs">
                 <?php

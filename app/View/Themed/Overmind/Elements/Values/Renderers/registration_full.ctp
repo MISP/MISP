@@ -29,7 +29,9 @@
                     )) ?></span>
                 <?php endif; ?>
                 <span class="vp-rf-dim font-monospace"><?=
-                    h((string)$record['module']) ?></span>
+                    $this->element('Values/Renderers/source_cell',
+                        array('sources' => $record['module'])
+                    ) ?></span>
             </div>
             <dl class="vp-rf-pairs">
                 <?php if ($record['created'] !== null): ?>

@@ -1500,6 +1500,7 @@
 .vi-row.is-done .vi-l3,
 .vi-row.is-done .vi-l4,
 .vi-row.is-done .vi-disc,
+.vi-row.is-done .vi-btn--icon,
 .vi-row.is-done .vi-acts > a,
 .vi-row.is-done [data-vi-act="clear"] {
     display: none;
@@ -1575,6 +1576,31 @@
     color: #fff;
 }
 
+/*
+ * Collection and graph send the value elsewhere rather than work the
+ * batch, so they stay borderless beside Open and Dismiss.
+ */
+.vi-acts .vi-btn--icon {
+    width: 22px;
+    padding-left: 0;
+    padding-right: 0;
+    text-align: center;
+}
+
+.vi-btn--icon .misp-icon {
+    vertical-align: -0.15em;
+}
+
+.vi-row:hover .vi-acts .vi-btn--icon,
+.vi-row.is-cursor .vi-acts .vi-btn--icon {
+    border-color: transparent;
+}
+
+.vi-row .vi-acts .vi-btn--icon:hover {
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    color: var(--primary);
+}
+
 .vi-disc {
     padding: 2px 4px;
     border: 1px solid transparent;
@@ -1646,7 +1672,7 @@
 
 .vi-thead,
 .vi-listwrap.is-table .vi-row {
-    --vi-cols: 22px minmax(90px, 1fr) 104px 106px 84px 124px 46px 64px 74px;
+    --vi-cols: 22px minmax(90px, 1fr) 104px 106px 84px 124px 46px 64px 148px;
 }
 
 .vi-listwrap.is-table .vi-row {
@@ -1827,7 +1853,7 @@
 }
 
 /*
- * *Open profile* in the card, *Open* in a 74px column. One label with
+ * *Open profile* in the card, *Open* in the table. One label with
  * a half that leaves rather than two labels to keep in step.
  */
 .vi-listwrap.is-table .vi-cardonly {
@@ -1893,7 +1919,7 @@
 @container (max-width: 1000px) {
     .vi-thead,
     .vi-listwrap.is-table .vi-row {
-        --vi-cols: 22px minmax(90px, 1fr) 106px 84px 124px 46px 64px 74px;
+        --vi-cols: 22px minmax(90px, 1fr) 106px 84px 124px 46px 64px 148px;
     }
 
     .vi-listwrap.is-table .vi-c-types,
@@ -1905,7 +1931,7 @@
 @container (max-width: 820px) {
     .vi-thead,
     .vi-listwrap.is-table .vi-row {
-        --vi-cols: 22px minmax(90px, 1fr) 106px 84px 124px 74px;
+        --vi-cols: 22px minmax(90px, 1fr) 106px 84px 124px 148px;
     }
 
     .vi-listwrap.is-table .vi-c-orgs,
@@ -1919,7 +1945,7 @@
 @container (max-width: 640px) {
     .vi-thead,
     .vi-listwrap.is-table .vi-row {
-        --vi-cols: 22px minmax(80px, 1fr) 106px 74px;
+        --vi-cols: 22px minmax(80px, 1fr) 106px 148px;
     }
 
     .vi-listwrap.is-table .vi-c-strength,

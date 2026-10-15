@@ -1234,6 +1234,7 @@
          */
         strip.addEventListener('pointermove', function (event) {
             if (timeBrushDrag.has(strip)) {
+                lightBar(strip, null);
                 return;
             }
             var bars = timeBrushBars(strip);
@@ -1245,14 +1246,38 @@
                 ((event.clientX - box.left) / box.width) * bars.length
             );
             at = Math.max(0, Math.min(bars.length - 1, at));
-            captionBucket(strip, at, at);
+            lightBar(strip, bars[at]);
+            var caption = timeBrushCaption(strip);
+            if (caption && bars[at].dataset.vpTip) {
+                caption.textContent = bars[at].dataset.vpTip;
+            } else {
+                captionBucket(strip, at, at);
+            }
         });
 
         strip.addEventListener('pointerleave', function () {
+            lightBar(strip, null);
             if (!timeBrushDrag.has(strip)) {
                 captionDefault(strip);
             }
         });
+    }
+
+    /**
+     * Mark the bar the caption is naming, so the two can be matched.
+     *
+     * @param {Element} strip
+     * @param {Element|null} bar
+     */
+    function lightBar(strip, bar) {
+        strip.querySelectorAll('.vp-spark-bar-lit').forEach(function (lit) {
+            if (lit !== bar) {
+                lit.classList.remove('vp-spark-bar-lit');
+            }
+        });
+        if (bar) {
+            bar.classList.add('vp-spark-bar-lit');
+        }
     }
 
     /**
@@ -4490,7 +4515,7 @@
      * @param {string} [mode] `auto` to accept a stored answer
      * @return {Promise} Resolves when the pane holds the answer
      */
-    function enrichAsk(panel, name, type, mode) {
+    function enrichAsk(panel, name, type, mode, all) {
         var slot = panel.querySelector(
             '[data-vp-e-pane="' + cssEscape(name) + '"] [data-vp-e-slot]'
         );
@@ -4505,6 +4530,9 @@
         body.set('data[type]', type || '');
         if (mode) {
             body.set('data[mode]', mode);
+        }
+        if (all) {
+            body.set('data[all]', '1');
         }
 
         return fetch(panel.dataset.vpEUrl, {
@@ -4525,6 +4553,7 @@
             .then(function (markup) {
                 slot.innerHTML = markup;
                 initTimeBrushes(slot);
+                refreshAllLists(slot);
                 var result = slot.querySelector('[data-vp-e-result]');
                 setEnrichState(
                     panel,
@@ -4594,10 +4623,11 @@
              * *Show what came back* is not running anything unless the
              * kept answer has gone stale, so it must not claim to be.
              */
-            label.textContent = mode === 'auto' ? 'Fetching…' : 'Running…';
+            label.textContent = button.dataset.vpEAll === '1' ? 'Loading…'
+                : mode === 'auto' ? 'Fetching…' : 'Running…';
         }
         enrichAsk(panel, button.dataset.vpERun, button.dataset.vpEType,
-            mode)
+            mode, button.dataset.vpEAll === '1')
             .then(function (ok) {
                 // A filled pane replaced this button along with the
                 // brief around it; only a failure has one to restore.
@@ -4710,6 +4740,9 @@
             all.indeterminate = picked > 0 && picked < boxes.length;
         }
     }
+
+    // Rows of one module the merged pane copies, as many as a pane opens on.
+    var ENRICH_MERGED_ROWS = 200;
 
     /**
      * @param {Element} root
@@ -4907,10 +4940,23 @@
                         }
                     });
             }
-            items.forEach(function (item) {
+            // A pane showing everything kept is not copied whole: the
+            // merge would hold its thousands of rows a second time.
+            var merged = Array.prototype.slice.call(items, 0, ENRICH_MERGED_ROWS);
+            merged.forEach(function (item) {
                 elements++;
                 body.appendChild(item.cloneNode(true));
             });
+            if (items.length > merged.length) {
+                var rest = document.createElement('div');
+                rest.className = 'vp-e-cold-prose vp-e-allnote';
+                rest.textContent = (panel.dataset.vpEAMore
+                    || '%s more in this module\'s own pane.').replace(
+                    '%s',
+                    (items.length - merged.length).toLocaleString('en-US')
+                );
+                body.appendChild(rest);
+            }
         });
 
         var sub = panel.querySelector('[data-vp-e-allsub]');
@@ -5107,6 +5153,681 @@
         }
     }
 
+    /*
+     * The type a value nobody holds is matched on. The tab's header names
+     * it in a chip that opens a menu of types; when nothing was read, the
+     * same list sits in the page instead. Picking reloads the tab with
+     * `?as=` and sends nothing to any module.
+     *
+     * The menu never scrolls: it widens into columns, then scrolls the
+     * page to make room, then opens upwards, and only then drops rows
+     * with a "+N more" line.
+     */
+    var etOpen = null;
+    var etRefocus = false;
+    var etBound = false;
+    var ET_GAP = 6;
+    var ET_EDGE = 12;
+
+    function etMono(text) {
+        return '<span class="vp-et-mono">' + tlEscape(text) + '</span>';
+    }
+
+    function etMark(text, query) {
+        var at = query ? text.toLowerCase().indexOf(query) : -1;
+        if (at === -1) {
+            return tlEscape(text);
+        }
+        return tlEscape(text.slice(0, at)) + '<mark class="vp-et-hl">'
+            + tlEscape(text.slice(at, at + query.length)) + '</mark>'
+            + tlEscape(text.slice(at + query.length));
+    }
+
+    function etModules(button) {
+        try {
+            return JSON.parse(button.dataset.vpEtModules || '[]');
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function etJson(value) {
+        try {
+            return JSON.parse(value || '[]');
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function etVisible(grid) {
+        return Array.prototype.filter.call(grid.children, function (b) {
+            return !b.hidden && !b.hasAttribute('data-vp-et-cut');
+        });
+    }
+
+    function etLayout(ctx, cols) {
+        ctx.pop.classList.toggle('is-cols', cols > 1);
+        ctx.pop.querySelectorAll('.vp-et-grid').forEach(function (grid) {
+            grid.style.setProperty('--vp-et-cols', cols);
+            grid.style.setProperty('--vp-et-rows',
+                Math.max(1, Math.ceil(etVisible(grid).length / cols)));
+        });
+    }
+
+    function etSetMore(ctx, grid) {
+        var more = grid.parentNode.querySelector('[data-vp-et-more]');
+        if (!more) {
+            return;
+        }
+        var cut = grid.querySelectorAll('[data-vp-et-cut]').length;
+        more.hidden = !cut || grid.hidden;
+        more.textContent = !cut ? '' : (etVisible(grid).length
+            ? ctx.pop.dataset.vpEtMore
+            : ctx.pop.dataset.vpEtMoreAll).replace('%d', cut);
+    }
+
+    function etUncut(ctx) {
+        ctx.pop.querySelectorAll('[data-vp-et-cut]').forEach(function (b) {
+            b.removeAttribute('data-vp-et-cut');
+        });
+        ctx.pop.querySelectorAll('.vp-et-grid').forEach(function (grid) {
+            etSetMore(ctx, grid);
+        });
+    }
+
+    // Last resort: drop whole rows, the least telling group first.
+    function etCutToFit(ctx, room, cols) {
+        var order = ['.vp-et-sec-fails', '.vp-et-sec-any', '.vp-et-sec-fits'];
+        function cutRow(grid, floor) {
+            var shown = etVisible(grid);
+            var rows = Math.ceil(shown.length / cols);
+            if (rows <= floor) {
+                return false;
+            }
+            shown.slice((rows - 1) * cols).forEach(function (b) {
+                b.setAttribute('data-vp-et-cut', '');
+            });
+            etSetMore(ctx, grid);
+            etLayout(ctx, cols);
+            return true;
+        }
+        [1, 0].forEach(function (floor) {
+            order.forEach(function (sel) {
+                var grid = ctx.pop.querySelector(
+                    sel + ':not([hidden]) .vp-et-grid:not([hidden])'
+                );
+                while (grid && ctx.pop.offsetHeight > room
+                    && cutRow(grid, floor)) {
+                    // keep cutting
+                }
+            });
+        });
+    }
+
+    // How far down the viewport the navbar and any pinned bar reach.
+    function etTopCover(x) {
+        var y = 0;
+        etPointer(true);
+        for (var i = 0; i < 4; i++) {
+            var el = document.elementFromPoint(x, y + 1);
+            while (el && el !== document.body) {
+                var pos = getComputedStyle(el).position;
+                if (pos === 'fixed' || pos === 'sticky') {
+                    break;
+                }
+                el = el.parentElement;
+            }
+            if (!el || el === document.body) {
+                break;
+            }
+            var bottom = el.getBoundingClientRect().bottom;
+            if (bottom <= y + 1) {
+                break;
+            }
+            y = bottom;
+        }
+        etPointer(false);
+        return y;
+    }
+
+    function etPointer(off) {
+        document.querySelectorAll('.vp-et-pop').forEach(function (p) {
+            p.style.pointerEvents = off ? 'none' : '';
+        });
+    }
+
+    // Scroll the chip up under the pinned bars to make room below it.
+    function etMakeRoom(ctx, need, cover) {
+        var a = ctx.chip.getBoundingClientRect();
+        var doc = document.documentElement;
+        var by = Math.min(need, a.top - cover - ET_EDGE,
+            doc.scrollHeight - window.innerHeight - window.scrollY);
+        if (by <= 8) {
+            return false;
+        }
+        window.scrollBy({top: Math.ceil(by), behavior: 'instant'});
+        // A bar that pins once scrolled past now covers more.
+        a = ctx.chip.getBoundingClientRect();
+        var over = etTopCover(a.left + a.width / 2) + ET_EDGE - a.top;
+        if (over > 0) {
+            window.scrollBy({top: -Math.ceil(over), behavior: 'instant'});
+        }
+        return true;
+    }
+
+    function etFit(ctx, mayScroll) {
+        var pop = ctx.pop;
+        var rem = parseFloat(
+            getComputedStyle(document.documentElement).fontSize
+        ) || 16;
+        etUncut(ctx);
+        if (ctx.inline) {
+            // Sized on the whole list, so the box keeps its width while typing.
+            var widest = 0;
+            pop.querySelectorAll('.vp-et-grid').forEach(function (grid) {
+                widest = Math.max(widest, grid.children.length);
+            });
+            var fitCols = Math.max(1, Math.floor(
+                (pop.parentNode.clientWidth - 58) / (17 * rem + 4)
+            ));
+            etLayout(ctx,
+                Math.max(1, Math.min(fitCols, Math.ceil(widest / 3))));
+            return;
+        }
+        if (!pop.classList.contains('show')) {
+            return;
+        }
+        var colW = 16 * rem;
+        pop.style.top = '0px';
+        var frame = pop.offsetParent || ctx.root;
+        var box = frame.getBoundingClientRect();
+        var card = ctx.root.getBoundingClientRect();
+        var a = ctx.chip.getBoundingClientRect();
+        var cover = etTopCover(a.left + a.width / 2);
+        var vh = window.innerHeight;
+        var maxW = card.width - 2 * ET_EDGE;
+        var baseW = Math.min(maxW, 27 * rem);
+        var maxCols = Math.max(1, Math.floor((maxW - 10) / colW));
+        var below = vh - a.bottom - ET_GAP - ET_EDGE;
+        var above = a.top - cover - ET_GAP - ET_EDGE;
+
+        function tryCols(room) {
+            var cols = 1;
+            for (;;) {
+                pop.style.width = (cols === 1
+                    ? baseW
+                    : Math.min(maxW, cols * colW + 10)) + 'px';
+                etLayout(ctx, cols);
+                if (pop.offsetHeight <= room || cols >= maxCols) {
+                    return cols;
+                }
+                cols++;
+            }
+        }
+        var side = 'below';
+        var room = below;
+        var cols = tryCols(below);
+        if (pop.offsetHeight > below && mayScroll
+            && etMakeRoom(ctx, pop.offsetHeight - below, cover)
+        ) {
+            box = frame.getBoundingClientRect();
+            card = ctx.root.getBoundingClientRect();
+            a = ctx.chip.getBoundingClientRect();
+            cover = etTopCover(a.left + a.width / 2);
+            below = vh - a.bottom - ET_GAP - ET_EDGE;
+            above = a.top - cover - ET_GAP - ET_EDGE;
+            room = below;
+            cols = tryCols(below);
+        }
+        if (pop.offsetHeight > below && above > below) {
+            side = 'above';
+            room = above;
+            cols = tryCols(above);
+        }
+        if (pop.offsetHeight > room) {
+            etCutToFit(ctx, room, cols);
+        }
+        var width = pop.offsetWidth;
+        var left = Math.max(card.left + ET_EDGE,
+            Math.min(a.left - 6, card.right - ET_EDGE - width));
+        var top = side === 'below'
+            ? a.bottom + ET_GAP
+            : a.top - ET_GAP - pop.offsetHeight;
+        pop.style.left = Math.round(left - box.left) + 'px';
+        pop.style.top = Math.round(top - box.top) + 'px';
+        pop.classList.toggle('is-above', side === 'above');
+        if (ctx.active && (ctx.active.hidden
+            || ctx.active.hasAttribute('data-vp-et-cut'))
+        ) {
+            etSetActive(ctx, null);
+        }
+    }
+
+    function etItems(ctx) {
+        return Array.prototype.filter.call(
+            ctx.pop.querySelectorAll('.vp-et-opt, .vp-et-fold'),
+            function (b) {
+                if (b.hidden || b.hasAttribute('data-vp-et-cut')
+                    || (b.classList.contains('vp-et-fold') && ctx.query)
+                ) {
+                    return false;
+                }
+                var sec = b.closest('.vp-et-sec');
+                var grid = b.closest('.vp-et-grid');
+                return !(sec && sec.hidden) && !(grid && grid.hidden);
+            }
+        );
+    }
+
+    // The footer names the modules a row stands for, on two lines at most.
+    function etFillPeek(ctx, lead, names) {
+        var peek = ctx.peek;
+        var line = parseFloat(getComputedStyle(peek).lineHeight) || 18;
+        for (var k = names.length; k >= 0; k--) {
+            peek.innerHTML = lead + ' '
+                + names.slice(0, k).map(etMono).join(', ')
+                + (k < names.length ? ' <span class="vp-et-peek-more">+'
+                    + (names.length - k) + '</span>' : '');
+            if (peek.scrollHeight <= 2 * line + 2 || k === 0) {
+                return;
+            }
+        }
+    }
+
+    function etPeek(ctx) {
+        var b = ctx.active;
+        var data = ctx.pop.dataset;
+        if (!b) {
+            ctx.peek.textContent = data.vpEtPeekIdle;
+        } else if (b.classList.contains('vp-et-fold')) {
+            ctx.peek.textContent = data.vpEtPeekFold;
+        } else if (b.hasAttribute('data-vp-et-reset')) {
+            var read = ctx.read.map(etMono).join(', ');
+            etFillPeek(ctx, (ctx.source === 'read'
+                ? tlEscape(data.vpEtPeekType)
+                : tlEscape(data.vpEtPeekBack)).replace('%s', read),
+                etModules(b));
+        } else {
+            etFillPeek(ctx, tlEscape(data.vpEtPeekType)
+                .replace('%s', etMono(b.dataset.vpEtType)), etModules(b));
+        }
+    }
+
+    function etSetActive(ctx, b) {
+        if (ctx.active) {
+            ctx.active.classList.remove('is-active');
+        }
+        ctx.active = b;
+        if (b) {
+            b.classList.add('is-active');
+            ctx.input.setAttribute('aria-activedescendant', b.id);
+        } else {
+            ctx.input.removeAttribute('aria-activedescendant');
+        }
+        etPeek(ctx);
+    }
+
+    function etSetFold(ctx) {
+        var fold = ctx.pop.querySelector('[data-vp-et-fold]');
+        var grid = ctx.pop.querySelector('[data-vp-et-failgrid]');
+        if (!fold || !grid) {
+            return;
+        }
+        var open = !!ctx.query || ctx.failsOpen;
+        fold.setAttribute('aria-expanded', open ? 'true' : 'false');
+        fold.classList.toggle('is-forced', !!ctx.query);
+        grid.hidden = !open;
+    }
+
+    function etSearch(ctx, mayScroll) {
+        var raw = ctx.input.value.trim();
+        var q = raw.toLowerCase();
+        ctx.query = q;
+        var shown = 0;
+        ctx.pop.querySelectorAll('.vp-et-opt[data-vp-et-type]')
+            .forEach(function (b) {
+                var type = b.dataset.vpEtType;
+                var nameHit = !!q && type.toLowerCase().indexOf(q) !== -1;
+                var mods = q ? etModules(b).filter(function (name) {
+                    return name.toLowerCase().indexOf(q) !== -1;
+                }) : [];
+                var show = !q || nameHit || mods.length > 0;
+                b.hidden = !show;
+                b.querySelector('[data-vp-et-name]').innerHTML =
+                    etMark(type, nameHit ? q : '');
+                var hits = b.querySelector('[data-vp-et-hits]');
+                hits.hidden = !mods.length;
+                hits.innerHTML = mods.length
+                    ? '<i class="fas fa-plug" aria-hidden="true"></i>'
+                        + mods.map(function (name) {
+                            return '<span class="vp-et-hit">'
+                                + etMark(name, q) + '</span>';
+                        }).join('<span class="vp-et-hits-sep"'
+                            + ' aria-hidden="true">·</span>')
+                    : '';
+                if (show) {
+                    shown++;
+                }
+            });
+        ctx.pop.querySelectorAll('.vp-et-sec').forEach(function (sec) {
+            if (sec.classList.contains('vp-et-sec-read')) {
+                sec.hidden = !!q;
+                return;
+            }
+            var visible = Array.prototype.filter.call(
+                sec.querySelectorAll('.vp-et-opt'),
+                function (b) { return !b.hidden; }
+            ).length;
+            sec.hidden = !visible;
+            var n = sec.querySelector('[data-vp-et-n]');
+            if (n) {
+                n.textContent = visible;
+            }
+        });
+        var nothing = ctx.pop.querySelector('[data-vp-et-nothing]');
+        nothing.hidden = !q || shown > 0;
+        nothing.textContent = q && !shown
+            ? ctx.pop.dataset.vpEtNothing.replace('%s', raw)
+            : '';
+        etSetFold(ctx);
+        etSetActive(ctx, null);
+        etFit(ctx, mayScroll);
+        if (q && shown) {
+            etSetActive(ctx, etItems(ctx)[0] || null);
+        }
+    }
+
+    function etToggleFold(ctx) {
+        if (ctx.query) {
+            return;
+        }
+        ctx.failsOpen = !ctx.failsOpen;
+        etSetFold(ctx);
+        etFit(ctx, true);
+        etSetActive(ctx, ctx.pop.querySelector('[data-vp-et-fold]'));
+    }
+
+    function etMove(ctx, step) {
+        var items = etItems(ctx);
+        if (!items.length) {
+            return;
+        }
+        var i = items.indexOf(ctx.active);
+        i = i === -1
+            ? (step > 0 ? 0 : items.length - 1)
+            : Math.max(0, Math.min(items.length - 1, i + step));
+        etSetActive(ctx, items[i]);
+    }
+
+    function etKey(ctx, e) {
+        var steps = {ArrowDown: 1, ArrowUp: -1, PageDown: 8, PageUp: -8};
+        if (steps[e.key]) {
+            e.preventDefault();
+            etMove(ctx, steps[e.key]);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (ctx.active) {
+                etActivate(ctx, ctx.active, true);
+            }
+        } else if (e.key === 'Escape') {
+            if (!ctx.inline) {
+                e.preventDefault();
+                e.stopPropagation();
+                etClose(ctx, true);
+            } else if (ctx.input.value) {
+                e.preventDefault();
+                ctx.input.value = '';
+                etSearch(ctx);
+            }
+        }
+    }
+
+    function etOpenMenu(ctx) {
+        if (etOpen && etOpen !== ctx) {
+            etClose(etOpen, false);
+        }
+        etOpen = ctx;
+        ctx.pop.classList.add('show');
+        ctx.chip.setAttribute('aria-expanded', 'true');
+        ctx.input.value = '';
+        // A failing pick is opened to view, or the reader cannot see it.
+        ctx.failsOpen = ctx.source === 'picked' && ctx.failing;
+        etSearch(ctx, true);
+        ctx.input.focus({preventScroll: true});
+    }
+
+    function etClose(ctx, focusChip) {
+        if (!ctx || ctx.inline) {
+            return;
+        }
+        ctx.pop.classList.remove('show');
+        ctx.chip.setAttribute('aria-expanded', 'false');
+        if (etOpen === ctx) {
+            etOpen = null;
+        }
+        if (focusChip) {
+            ctx.chip.focus({preventScroll: true});
+        }
+    }
+
+    function etReload(ctx, as) {
+        var container = ctx.root.closest('[data-url]');
+        if (!container || typeof window.reloadAjaxTabIndex !== 'function') {
+            return;
+        }
+        var parts = container.dataset.url.split('?');
+        var query = new URLSearchParams(parts[1] || '');
+        if (as) {
+            query.set('as', as);
+        } else {
+            query.delete('as');
+        }
+        var rest = query.toString();
+        window.reloadAjaxTabIndex(container,
+            parts[0] + (rest ? '?' + rest : ''));
+    }
+
+    // Focus follows a keyboard pick across the reload; a click leaves it be.
+    function etSwitching(ctx, label, byKey) {
+        etRefocus = !!byKey;
+        if (ctx.chip) {
+            ctx.chip.classList.add('is-switching');
+            ctx.chip.innerHTML = '<i class="fas fa-circle-notch fa-spin'
+                + ' vp-et-chip-spin" aria-hidden="true"></i>'
+                + '<span class="vp-et-chip-seg"><span class="vp-et-chip-type">'
+                + tlEscape(label) + '</span><span class="vp-et-chip-basis">'
+                + tlEscape(ctx.chip.dataset.vpEtSwitching) + '</span></span>';
+        }
+        if (ctx.inline) {
+            ctx.pop.classList.add('is-switching');
+        }
+    }
+
+    function etActivate(ctx, b, byKey) {
+        if (b.classList.contains('vp-et-fold')) {
+            etToggleFold(ctx);
+            return;
+        }
+        if (b.hasAttribute('data-vp-et-reset')) {
+            etClose(ctx, ctx.source === 'read' && !!byKey);
+            if (ctx.source !== 'read') {
+                etSwitching(ctx, ctx.read.join(', '), byKey);
+                etReload(ctx, null);
+            }
+            return;
+        }
+        var type = b.dataset.vpEtType;
+        var soleRead = ctx.read.length === 1 && ctx.read[0] === type;
+        var already = (ctx.source === 'picked' && ctx.lead.length === 1
+                && ctx.lead[0] === type)
+            || (ctx.source === 'read' && soleRead);
+        etClose(ctx, already && !!byKey);
+        if (already) {
+            return;
+        }
+        etSwitching(ctx, type, byKey);
+        // The parser's own single type is not a pick: going there is back.
+        etReload(ctx, soleRead ? null : type);
+    }
+
+    function etWire(ctx) {
+        var pop = ctx.pop;
+        pop.vpEtCtx = ctx;
+        ctx.input = pop.querySelector('.vp-et-input');
+        ctx.peek = pop.querySelector('[data-vp-et-peek]');
+        ctx.input.addEventListener('input', function () { etSearch(ctx); });
+        ctx.input.addEventListener('keydown', function (e) { etKey(ctx, e); });
+        pop.addEventListener('click', function (e) {
+            var b = e.target.closest('.vp-et-opt, .vp-et-fold');
+            if (b && pop.contains(b)) {
+                etActivate(ctx, b, false);
+            }
+        });
+        pop.addEventListener('mousemove', function (e) {
+            var b = e.target.closest('.vp-et-opt, .vp-et-fold');
+            if (b && b !== ctx.active && etItems(ctx).indexOf(b) !== -1) {
+                etSetActive(ctx, b);
+            }
+        });
+        pop.addEventListener('mouseleave', function () {
+            if (!ctx.query) {
+                etSetActive(ctx, null);
+            }
+        });
+        // A click on a row keeps the focus in the search field.
+        pop.addEventListener('mousedown', function (e) {
+            if (e.target.closest('.vp-et-opt, .vp-et-fold')) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    function etBindDocument() {
+        if (etBound) {
+            return;
+        }
+        etBound = true;
+        /*
+         * Bootstrap's dropdown handler takes every Escape inside a
+         * .dropdown-menu in the capture phase on `document` and throws
+         * looking for a toggle this menu does not have. Window capture
+         * runs first, so Escape is handled here and goes no further.
+         */
+        window.addEventListener('keydown', function (e) {
+            var pop = e.key === 'Escape' && e.target.closest
+                ? e.target.closest('.vp-et-pop')
+                : null;
+            if (pop && pop.vpEtCtx) {
+                e.stopPropagation();
+                etKey(pop.vpEtCtx, e);
+            }
+        }, true);
+        document.addEventListener('mousedown', function (e) {
+            if (etOpen && !etOpen.pop.contains(e.target)
+                && !etOpen.chip.contains(e.target)
+            ) {
+                etClose(etOpen, false);
+            }
+        });
+        document.addEventListener('focusin', function (e) {
+            if (etOpen && !etOpen.pop.contains(e.target)
+                && !etOpen.chip.contains(e.target)
+            ) {
+                etClose(etOpen, false);
+            }
+        });
+        window.addEventListener('resize', function () {
+            if (etOpen) {
+                etFit(etOpen);
+            }
+            document.querySelectorAll('[data-vp-et-inline]')
+                .forEach(function (pop) {
+                    if (pop.vpEtCtx) {
+                        etFit(pop.vpEtCtx);
+                    }
+                });
+        });
+    }
+
+    /**
+     * @param {Element|Document} root
+     */
+    function initEnrichmentTyping(root) {
+        var panels = root.querySelectorAll
+            ? root.querySelectorAll('[data-vp-enrich][data-vp-et]')
+            : [];
+        panels.forEach(function (panel) {
+            if (panel.dataset.vpEtBound) {
+                return;
+            }
+            panel.dataset.vpEtBound = '1';
+            etBindDocument();
+            if (etOpen && !etOpen.root.isConnected) {
+                etOpen = null;
+            }
+            var base = {
+                root: panel,
+                source: panel.dataset.vpEtSource,
+                read: etJson(panel.dataset.vpEtRead),
+                lead: etJson(panel.dataset.vpEtLead),
+                failing: panel.dataset.vpEtFailing === '1'
+            };
+            var focus = null;
+            var chip = panel.querySelector('[data-vp-et-chip]');
+            if (chip) {
+                var ctx = Object.assign({}, base, {
+                    chip: chip,
+                    pop: chip.nextElementSibling,
+                    inline: false,
+                    failsOpen: false
+                });
+                etWire(ctx);
+                chip.addEventListener('click', function () {
+                    if (ctx.pop.classList.contains('show')) {
+                        etClose(ctx, false);
+                    } else {
+                        etOpenMenu(ctx);
+                    }
+                });
+                chip.addEventListener('keydown', function (e) {
+                    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp')
+                        && !ctx.pop.classList.contains('show')
+                    ) {
+                        e.preventDefault();
+                        etOpenMenu(ctx);
+                    }
+                });
+                var back = panel.querySelector('[data-vp-et-back]');
+                if (back) {
+                    back.addEventListener('click', function (e) {
+                        etSwitching(ctx, ctx.read.join(', '), e.detail === 0);
+                        etReload(ctx, null);
+                    });
+                }
+                focus = chip;
+            }
+            var inline = panel.querySelector('[data-vp-et-inline]');
+            if (inline) {
+                var ictx = Object.assign({}, base, {
+                    chip: null,
+                    pop: inline,
+                    inline: true,
+                    failsOpen: !inline.querySelector(
+                        '.vp-et-sec-fits:not([hidden]),'
+                        + ' .vp-et-sec-any:not([hidden])'
+                    )
+                });
+                etWire(ictx);
+                etSearch(ictx);
+                focus = focus || ictx.input;
+            }
+            if (etRefocus && focus) {
+                etRefocus = false;
+                focus.focus({preventScroll: true});
+            }
+        });
+    }
+
     /**
      * The tab arrives at rest: every pane rendered, every row *Not
      * asked*, and — since phase 7 — whatever the reader's Analyst
@@ -5143,8 +5864,56 @@
     }
 
     /**
-     * Open the module a link named (`?module=`, from the hover card),
-     * with its answer drawn.
+     * The module a link on this page asked for before the Enrichment tab
+     * had loaded (`showEnrichModule`).
+     */
+    var enrichModuleWanted = null;
+
+    /**
+     * Open the module a link named (`?module=` from the hover card, or a
+     * module in the Overview strip's panel), with its answer drawn.
+     *
+     * @param {Element} panel
+     */
+    function openLinkedEnrichModule(panel) {
+        if (enrichModuleWanted !== null) {
+            var wanted = enrichModuleWanted;
+            enrichModuleWanted = null;
+            openEnrichModule(panel, wanted);
+            return;
+        }
+        var name = new URLSearchParams(window.location.search).get('module');
+        if (!name || panel.dataset.vpELinked === '1') {
+            return;
+        }
+        if (openEnrichModule(panel, name)) {
+            panel.dataset.vpELinked = '1';
+        }
+    }
+
+    /**
+     * Switch to the Enrichment tab and open one module there, without
+     * leaving the page.
+     *
+     * @param {string} name
+     */
+    function showEnrichModule(name) {
+        var panel = document.querySelector('[data-vp-enrich]');
+        var tab = document.querySelector('.nav-link[href="#tab-enrichment"]');
+        if (!panel) {
+            enrichModuleWanted = name;
+        } else if (tab && !tab.classList.contains('active')) {
+            tab.addEventListener('shown.bs.tab', function () {
+                openEnrichModule(panel, name);
+            }, {once: true});
+        } else {
+            openEnrichModule(panel, name);
+        }
+        window.location.hash = '#tab-enrichment';
+    }
+
+    /**
+     * Pick a module on the Enrichment tab with its answer drawn.
      *
      * A module the auto-fire is already fetching fills its own pane;
      * any other is shown from the store, which asks nobody anything. A
@@ -5152,12 +5921,10 @@
      * one.
      *
      * @param {Element} panel
+     * @param {string} name
+     * @return {boolean} Whether the tab has a pane for it
      */
-    function openLinkedEnrichModule(panel) {
-        var name = new URLSearchParams(window.location.search).get('module');
-        if (!name || panel.dataset.vpELinked === '1') {
-            return;
-        }
+    function openEnrichModule(panel, name) {
         var pane = null;
         panel.querySelectorAll('[data-vp-e-pane]').forEach(function (p) {
             if (p.dataset.vpEPane === name) {
@@ -5165,9 +5932,8 @@
             }
         });
         if (!pane) {
-            return;
+            return false;
         }
-        panel.dataset.vpELinked = '1';
         pickEnrichModule(panel, name);
         var row = panel.querySelector(
             '[data-vp-e-row="' + cssEscape(name) + '"]'
@@ -5186,7 +5952,7 @@
             return one.module === name;
         });
         if (fetching) {
-            return;
+            return true;
         }
         var show = pane.querySelector(
             '[data-vp-e-run][data-vp-e-mode="stored"]'
@@ -5194,6 +5960,7 @@
         if (show && !show.disabled) {
             runEnrichModule(show);
         }
+        return true;
     }
 
     /**
@@ -5318,8 +6085,58 @@
             ? root.querySelectorAll('[data-vp-ebadge]')
             : [];
         panels.forEach(function (panel) {
+            initEnrichDrawer(panel);
             enrichPanelFire(panel);
         });
+    }
+
+    /**
+     * A drawn cell of the strip opens its full drawing under the row
+     * (tile-drawer.js), the way a tile of the event page's object views
+     * does.
+     *
+     * @param {Element} panel
+     */
+    function initEnrichDrawer(panel) {
+        if (!window.TileDrawer || panel.vpEbDrawer) {
+            return;
+        }
+        panel.vpEbDrawer = new window.TileDrawer(panel, {
+            panelId: 'vp-eb-drawer',
+            anchor: function (tile) {
+                return tile.closest('[data-vp-eb-strip]');
+            },
+            onClick: function (event) {
+                var link = event.target.closest('a[data-vp-eb-open]');
+                if (!link || event.button !== 0 || event.ctrlKey
+                    || event.metaKey || event.shiftKey || event.altKey
+                ) {
+                    return false;
+                }
+                event.preventDefault();
+                showEnrichModule(link.dataset.vpEbOpen);
+                return true;
+            },
+            onOpen: function (drawer) {
+                initTimeBrushes(drawer);
+                refreshAllLists(drawer);
+            }
+        });
+        followEnrichStrip(panel);
+    }
+
+    /**
+     * The notch follows its cell while the row scrolls sideways.
+     *
+     * @param {Element} panel
+     */
+    function followEnrichStrip(panel) {
+        var strip = panel.querySelector('[data-vp-eb-strip]');
+        if (strip) {
+            strip.addEventListener('scroll', function () {
+                panel.vpEbDrawer.notch();
+            }, {passive: true});
+        }
     }
 
     /**
@@ -5424,8 +6241,25 @@
             var frame = document.createElement('div');
             frame.innerHTML = html;
             var fresh = frame.querySelector('[data-vp-eb-strip]');
+            var drawer = panel.vpEbDrawer;
+            var opened = drawer && drawer.isOpen()
+                ? drawer.opened.dataset.vpEbShape
+                : null;
             if (fresh) {
                 strip.replaceWith(fresh);
+                if (drawer) {
+                    followEnrichStrip(panel);
+                    // The panel stays open on the same shape's new cell.
+                    var again = opened === null ? null : fresh.querySelector(
+                        '[data-td-tile][data-vp-eb-shape="'
+                        + cssEscape(opened) + '"]'
+                    );
+                    if (again) {
+                        drawer.open(again, {force: true, stay: true});
+                    } else if (opened !== null) {
+                        drawer.close(false);
+                    }
+                }
                 /*
                  * The rows the widgets have just taken over. A module
                  * that fired kept a chip row while it was answering,
@@ -5450,6 +6284,9 @@
                  * spinning over it.
                  */
                 strip.remove();
+                if (drawer) {
+                    drawer.close(false);
+                }
             }
         }).catch(function () {
         });
@@ -9390,6 +10227,7 @@
             refreshAllLists(event.target);
             initSightings(event.target);
             initEnrichment(event.target);
+            initEnrichmentTyping(event.target);
             initEnrichPanel(event.target);
             initAnalyst(event.target);
             initTimeline(event.target);
@@ -9403,6 +10241,7 @@
         refreshAllLists(document);
         initSightings(document);
         initEnrichment(document);
+        initEnrichmentTyping(document);
         initEnrichPanel(document);
         initAnalyst(document);
         initTimeline(document);

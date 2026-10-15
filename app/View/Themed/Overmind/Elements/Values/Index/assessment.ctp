@@ -336,6 +336,31 @@ if (!$caveats && !$counts['occurrences'] && $card['lean'] === 'none'
             aria-label="<?= h(__('Show all signals')) ?>">
         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 8l3-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
+<?php if ($this->Acl->canAccess('collectionElements', 'addElementToCollection')): ?>
+    <button type="button" class="vi-btn vi-btn--icon" data-vi-act="collect"
+            data-vi-collect="<?= h($this->Html->url(array(
+                'controller' => 'collectionElements',
+                'action' => 'addElementToCollection',
+                'Value',
+                ValueUrlTool::encode($assessment['value']),
+            ))) ?>"
+            title="<?= h(__('Add to collection')) ?>"
+            aria-label="<?= h(__('Add to collection')) ?>"><i
+            class="fas fa-folder-plus" aria-hidden="true"></i></button>
+<?php endif; ?>
+<?php if ($this->Acl->canAccess('analystGraphs', 'addNodes')): ?>
+    <?php // Sent to the active graph by intel-graph-actions.js ?>
+    <button type="button" class="vi-btn vi-btn--icon"
+            data-intel-graph-add="<?= h(json_encode(array(array(
+                'type' => 'Value',
+                'value' => $assessment['value'],
+                'label' => $assessment['value'],
+            )))) ?>"
+            title="<?= h(__('Add to current graph')) ?>"
+            aria-label="<?= h(__('Add to current graph')) ?>"><i
+            class="misp-icon misp-icon-analyst-graph misp-simple"
+            aria-hidden="true"></i></button>
+<?php endif; ?>
     <?php
     /*
      * A new tab, as phase 4 opened it: the list is the work and a

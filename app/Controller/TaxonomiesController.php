@@ -63,8 +63,8 @@ class TaxonomiesController extends AppController
             return $this->RestResponse->viewData($taxonomy, $this->response->type());
         }
 
-        $tagIds = array_column(array_column(array_column($taxonomy['entries'], 'existing_tag'), 'Tag'), 'id');
         $this->set('tag_count', count($taxonomy['entries']));
+        $this->set('entries', $taxonomy['entries']);
 
         if ($this->theme === 'Overmind') {
             $railCards = new TaxonomyRailCards();

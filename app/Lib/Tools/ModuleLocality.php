@@ -45,10 +45,7 @@
  * - **Yes → external**, and *configurable* is not the same as
  *   *local*: `mmdb_lookup` defaults to CIRCL's `ip.circl.lu` and
  *   `dns` to Google's `8.8.8.8`, so both leave the building on a
- *   deployment nobody has configured. An operator who has repointed
- *   one records that in their profile's `enrichment.locality` map,
- *   which is the one thing a shipped map can never know
- *   (`08-enrichment.md` §3.2).
+ *   deployment nobody has configured.
  *
  * ## An omission is the safe direction, and it is a real one
  *
@@ -86,7 +83,6 @@ class ModuleLocality
      * category, and for the same reason: a shipped map that has fallen
      * behind should be visible rather than silent.
      */
-    const SOURCE_PROFILE = 'profile';
     const SOURCE_SHIPPED = 'shipped';
     const SOURCE_UNKNOWN = 'unknown';
 
@@ -164,36 +160,15 @@ class ModuleLocality
     }
 
     /**
-     * The three-step resolution, in one place so that the tab, phase
-     * 8's editor and anything later cannot disagree about it.
-     *
-     * ```
-     * 1. the profile's `enrichment.locality` map, by module name
-     * 2. the shipped map — this file
-     * 3. 'unknown'
-     * ```
-     *
-     * The profile sits **above** the shipped map, which is the
-     * opposite of nothing and the same as `reference.org_trust`: the
-     * operator knows where they pointed their resolver and this file
-     * cannot. It is also why the override may say `external` as well
-     * as `local` — an operator whose `clamd` is somebody else's
-     * service can say so.
+     * The shipped map's answer, or `unknown`, in one place so that the
+     * tab and the editor cannot disagree about it.
      *
      * @param string|null $name
-     * @param array $overrides The profile's `enrichment.locality` map
      * @return array `locality` and `source`
      */
-    public static function resolve($name, array $overrides = array())
+    public static function resolve($name)
     {
-        $key = (string)$name;
-        if (isset($overrides[$key]) && self::valid($overrides[$key])) {
-            return array(
-                'locality' => (string)$overrides[$key],
-                'source' => self::SOURCE_PROFILE,
-            );
-        }
-        $shipped = self::shippedFor($key);
+        $shipped = self::shippedFor((string)$name);
         if ($shipped !== null) {
             return array(
                 'locality' => $shipped,
@@ -215,21 +190,17 @@ class ModuleLocality
      * everywhere else.
      *
      * @param string|null $name
-     * @param array $overrides
      * @return bool
      */
-    public static function leavesInstance($name,
-        array $overrides = array()
-    ) {
-        $resolved = self::resolve($name, $overrides);
+    public static function leavesInstance($name)
+    {
+        $resolved = self::resolve($name);
         return $resolved['locality'] !== self::LOCAL;
     }
 
     /**
      * Whether a locality is one this class admits. `unknown` is not
-     * one of them: it is what the absence of an answer resolves to, so
-     * a profile override saying `unknown` is saying nothing and falls
-     * through to the map rather than shadowing it.
+     * one of them: it is what the absence of an answer resolves to.
      *
      * @param mixed $locality
      * @return bool

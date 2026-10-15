@@ -9,16 +9,11 @@ $currentDistribution = isset($data['distribution'])
     : (int)($initialDistribution ?? 0);
 
 $types = $dropdownData['types'] ?? [];
-$typeIcons = [
-    'campaign'      => 'fas fa-bullseye',
-    'intrusion_set' => 'fas fa-user-secret',
-    'named_threat'  => 'fas fa-skull-crossbones',
-    'research'      => 'fas fa-flask',
-    'other'         => 'fas fa-shapes',
-];
+App::uses('CollectionType', 'Tools');
+$typeIcons = CollectionType::icons();
 $typeOptions = [];
 foreach ($types as $value => $label) {
-    $typeOptions[$value] = ucfirst(str_replace('_', ' ', (string)$label));
+    $typeOptions[$value] = CollectionType::label($label);
 }
 
 

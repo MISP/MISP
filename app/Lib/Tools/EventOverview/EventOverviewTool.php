@@ -349,7 +349,7 @@ class EventOverviewTool
         return $dist === 4 || $dist < $eventDist;
     }
 
-    private function objectCounts(array $user, $eventId)
+    public function objectCounts(array $user, $eventId)
     {
         $rows = $this->Object->query(
             'SELECT Object.name, COUNT(*) AS n' . $this->objectsFrom($user) . ' GROUP BY Object.name',

@@ -37,7 +37,9 @@ $mark = $reading === 'threat'
             }
         ?></div>
         <div class="vp-rw-sub font-monospace"><?=
-            h((string)$headline['module']) ?></div>
+            $this->element('Values/Renderers/source_cell',
+                array('sources' => $headline['module'])
+            ) ?></div>
         <?php if ($headline['score'] !== null
             && $headline['classification'] !== null): ?>
             <div class="vp-rw-note"><?= h(sprintf(

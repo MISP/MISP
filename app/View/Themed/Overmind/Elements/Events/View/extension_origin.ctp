@@ -13,6 +13,7 @@
  *                         the inline lists where a marker per item would drown
  *                         the ones that matter (default false)
  *   class         string  extra classes on the badge
+ *   static        bool    a plain badge, no link — inside another control
  *
  * Read from the view: $extensionEvents (see EventsController::__extensionViewContext)
  */
@@ -57,8 +58,9 @@ if ($origin === null) {
 
 $title = trim($role['title'] . ($info === '' ? '' : ' — ' . $info));
 $orgName = $origin['Orgc']['name'] ?? '';
+$tag = empty($static) ? 'a' : 'span';
 ?>
-<a href="<?= h($baseurl . '/events/view2/' . $originId) ?>"
+<<?= $tag ?><?= $tag === 'a' ? ' href="' . h($baseurl . '/events/view2/' . $originId) . '"' : '' ?>
    class="badge d-inline-flex align-items-center gap-1 text-decoration-none <?= h($class ?? '') ?>"
    style="background:<?= h($palette['badgeBg']) ?>;
           color:<?= h($palette['badgeText']) ?>;
@@ -73,4 +75,4 @@ $orgName = $origin['Orgc']['name'] ?? '';
     <?php if (!$compact && $orgName !== ''): ?>
         <span class="opacity-75 fw-normal"><?= h($orgName) ?></span>
     <?php endif; ?>
-</a>
+</<?= $tag ?>>

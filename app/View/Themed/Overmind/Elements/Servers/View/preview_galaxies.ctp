@@ -8,7 +8,7 @@ foreach ($galaxies as $galaxy) {
 }
 ?>
 
-<div class="card shadow-sm mb-3" id="preview-galaxy-card">
+<div class="card shadow-sm mb-3 flex-grow-1" id="preview-galaxy-card">
     <div class="p-3 border-bottom d-flex align-items-center gap-2">
         <div class="misp-icon-tile rounded-2 d-flex align-items-center justify-content-center"
              style="width:36px;height:36px;--tile:#7C3AED;--tile-bg:#e9d8fc;">

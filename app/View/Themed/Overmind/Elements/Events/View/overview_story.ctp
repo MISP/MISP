@@ -34,12 +34,15 @@ $graphHintAction = function () use ($hasObjects, $addObjectUrl) {
     );
 };
 $reportEventId = (int)($report['event_id'] ?? $eventId);
-$reportOrg = $extensionEvents[$reportEventId]['Orgc']['name'] ?? ($data['Orgc']['name'] ?? '');
-$reportOrigin = function ($originId) {
-    return $this->element('Events/View/extension_origin', [
-        'event_id' => (int)$originId,
-        'compact' => true,
-        'only_foreign' => true,
+$pickable = empty($report) ? [] : array_merge([$report], $others);
+$unlisted = max(0, $reportCount - count($pickable));
+$extensionEvents = $extensionEvents ?? [];
+$reportSub = function (array $row) use ($extensionEvents, $data, $eventId) {
+    $originId = (int)($row['event_id'] ?? $eventId);
+    return $this->element('Events/View/report_meta', [
+        'event_id' => $originId,
+        'org' => $extensionEvents[$originId]['Orgc']['name'] ?? ($data['Orgc']['name'] ?? ''),
+        'timestamp' => $row['timestamp'] ?? 0,
     ]);
 };
 ?>
@@ -58,16 +61,53 @@ $reportOrigin = function ($originId) {
                 </div>
                 <div class="min-w-0 me-auto">
                     <?php if (!empty($report)): ?>
-                        <div class="eo-card-title text-truncate"><?= h($report['name']) ?></div>
-                        <div class="eo-card-sub text-truncate">
-                            <?= $reportOrigin($reportEventId) ?>
-                            <?= h($reportOrg) ?> · <?= __('modified %s', $this->Time->time($report['timestamp'])) ?>
-                        </div>
+                        <div class="eo-card-title text-truncate" data-eo-report-name title="<?= h($report['name']) ?>"><?= h($report['name']) ?></div>
+                        <div class="eo-card-sub text-truncate" data-eo-report-sub><?= $reportSub($report) ?></div>
                     <?php else: ?>
                         <div class="eo-card-title"><?= __('Report') ?></div>
                     <?php endif; ?>
                 </div>
-                <div class="eo-figure"><b><?= $reportCount ?></b> <?= h(__n('report', 'reports', $reportCount)) ?></div>
+                <?php if (count($pickable) > 1): ?>
+                    <div class="dropdown flex-shrink-0">
+                        <button type="button" class="eo-figure eo-report-toggle" data-bs-toggle="dropdown" aria-expanded="false"
+                                title="<?= h(__('Choose the report to read')) ?>">
+                            <b><?= $reportCount ?></b> <?= h(__n('report', 'reports', $reportCount)) ?><i class="fas fa-chevron-down eo-report-caret"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end eo-report-pick">
+                            <?php foreach ($pickable as $i => $row): ?>
+                                <li>
+                                    <button type="button" class="dropdown-item" aria-current="<?= $i === 0 ? 'true' : 'false' ?>"
+                                            title="<?= h($row['name']) ?>"
+                                            data-eo-report-pick="<?= (int)$row['id'] ?>"
+                                            data-report-name="<?= h($row['name']) ?>"
+                                            data-report-sub="<?= h($reportSub($row)) ?>">
+                                        <span class="eo-report-pick-mark"><i class="fas fa-check"></i></span>
+                                        <span class="eo-report-pick-name"><?= h($row['name']) ?></span>
+                                        <?= $this->element('Events/View/extension_origin', [
+                                            'event_id' => (int)($row['event_id'] ?? $eventId),
+                                            'compact' => true,
+                                            'only_foreign' => true,
+                                            'static' => true,
+                                            'class' => 'flex-shrink-0',
+                                        ]) ?>
+                                        <span class="eo-report-pick-date"><?= $this->Time->date($row['timestamp']) ?></span>
+                                    </button>
+                                </li>
+                            <?php endforeach; ?>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <button type="button" class="dropdown-item eo-report-pick-all" data-eo-tab="reports">
+                                    <span class="eo-report-pick-mark"><i class="fas fa-table-list"></i></span>
+                                    <?= $unlisted > 0
+                                        ? h(__('%s more in the Reports tab', $unlisted))
+                                        : h(__('Open the Reports tab')) ?>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                <?php else: ?>
+                    <div class="eo-figure"><b><?= $reportCount ?></b> <?= h(__n('report', 'reports', $reportCount)) ?></div>
+                <?php endif; ?>
             </div>
 
             <?php if (!empty($report)): ?>
@@ -78,23 +118,11 @@ $reportOrigin = function ($originId) {
                         </div>
                     </div>
                 </div>
-                <?php if (!empty($others)): ?>
-                    <ul class="eo-other-reports">
-                        <?php foreach ($others as $other): ?>
-                            <li>
-                                <a href="<?= h($baseurl . '/eventReports/view/' . (int)$other['id']) ?>" class="text-truncate">
-                                    <i class="misp-icon misp-icon-report misp-simple"></i><?= h($other['name']) ?>
-                                </a>
-                                <span class="d-inline-flex align-items-center gap-2 flex-shrink-0">
-                                    <?= $reportOrigin($other['event_id'] ?? $eventId) ?>
-                                    <span class="eo-muted"><?= $this->Time->time($other['timestamp']) ?></span>
-                                </span>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                <?php endif; ?>
                 <div class="eo-card-foot">
-                    <button type="button" class="btn btn-sm btn-report" data-eo-report-open>
+                    <button type="button" class="btn btn-sm btn-report"
+                            data-report-read="<?= (int)$report['id'] ?>"
+                            data-report-name="<?= h($report['name']) ?>"
+                            data-report-sub="<?= h($reportSub($report)) ?>">
                         <i class="fas fa-book-open me-1"></i><?= __('Read in full') ?>
                     </button>
                 </div>
@@ -197,23 +225,3 @@ $reportOrigin = function ($originId) {
         </div>
     </div>
 </div>
-
-<?php if (!empty($report)): ?>
-<div class="modal fade" id="eo-report-modal" tabindex="-1" aria-labelledby="eo-report-modal-title" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="min-w-0">
-                    <h5 class="modal-title text-truncate" id="eo-report-modal-title"><?= h($report['name']) ?></h5>
-                    <div class="eo-card-sub"><?= h($data['Orgc']['name'] ?? '') ?> · <?= __('modified %s', $this->Time->time($report['timestamp'])) ?></div>
-                </div>
-                <a class="btn btn-sm btn-outline-secondary ms-auto me-2" href="<?= h($baseurl . '/eventReports/view/' . (int)$report['id']) ?>"><?= __('Open report page') ?></a>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= h(__('Close')) ?>"></button>
-            </div>
-            <div class="modal-body">
-                <div class="markdown-preview-body eo-report-full" data-eo-report-full></div>
-            </div>
-        </div>
-    </div>
-</div>
-<?php endif; ?>

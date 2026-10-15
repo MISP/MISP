@@ -53,6 +53,20 @@ $expanded = !empty($ctx['expand']);
                     'ctx' => $ctx,
                 ]) ?>
             </button>
+            <?php $showRels = !empty($object['ObjectReference']) || ($objCanEdit && !$isDeleted); ?>
+            <?= $this->element('Objects/object_map_button', [
+                'object' => $object,
+                'class' => $showRels ? 'pe-2' : '',
+            ]) ?>
+            <?php if ($showRels): ?>
+                <?= $this->element('Objects/object_relationships', [
+                    'references' => $object['ObjectReference'] ?? [],
+                    'objId' => $objId,
+                    'eventId' => $object['event_id'] ?? null,
+                    'canEdit' => $objCanEdit && !$isDeleted,
+                    'menuPrefix' => 'objCardRels',
+                ]) ?>
+            <?php endif; ?>
         </h2>
 
         <!-- ── The object's own actions, right under the header ────── -->
@@ -164,12 +178,9 @@ $expanded = !empty($ctx['expand']);
                                                 'genericElementsBS5/IndexTable/Fields/correlate',
                                                 ['row' => $attr, 'field' => ['data_path' => 'disable_correlation']]
                                             ) ?>
-                                            <?php if (!empty($attr['warnings'])): ?>
-                                                <i class="fas fa-exclamation-triangle text-warning" style="font-size:.7rem;"
-                                                   title="<?= h(implode(', ', array_column(
-                                                       $attr['warnings'], 'warninglist_name'
-                                                   ))) ?>"></i>
-                                            <?php endif; ?>
+                                            <?= $this->element('Attributes/value_flags', [
+                                                'attribute' => $attr, 'small' => true,
+                                            ]) ?>
                                         </span>
                                     </div>
 
@@ -180,6 +191,7 @@ $expanded = !empty($ctx['expand']);
                                                 'row'      => ['Attribute' => $attr],
                                                 'field'    => ['data_path' => 'Attribute'],
                                                 'viewMode' => 'card',
+                                                'showFlags' => false,
                                             ]
                                         ) ?>
                                     </div>

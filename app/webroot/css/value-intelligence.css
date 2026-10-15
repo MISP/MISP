@@ -4221,45 +4221,9 @@ tr.vp-occ-deleted .vp-occ-orgdot {
 }
 
 /*
- * A sortable column heading. A real button, so it is reachable and
- * operable from the keyboard, but carrying none of a button's chrome —
- * the heading has to keep looking like a heading.
- */
-.vp-th-sort {
-    display: inline-flex;
-    align-items: center;
-    padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    color: inherit;
-    text-align: inherit;
-    /*
-     * Reboot resets `text-transform` on every button, and it is not part
-     * of the `font` shorthand, so `font: inherit` does not bring it
-     * back. Without this the sortable headings in a table whose headings
-     * are uppercased — `.vp-table` — render in mixed case beside the
-     * ones that are not sortable.
-     */
-    text-transform: inherit;
-    cursor: pointer;
-}
-
-.vp-th-sort:focus-visible {
-    outline: 2px solid var(--bs-focus-ring-color, #0d6efd);
-    outline-offset: 2px;
-    border-radius: 2px;
-}
-
-/*
- * `mainOvermind.css` reveals `.sort-icon` on hover and draws it as
- * `fa-sort`, which is the right resting state. The sorted column keeps
- * its caret without a pointer and points it the way the rows are
- * ordered. Keyed off `aria-sort` rather than a class of its own: that
- * attribute is what a screen reader announces, so hanging the visual on
- * it means the two cannot disagree.
- */
-/*
+ * `.vp-th-sort` and the sorted `th[aria-sort]` caret are in
+ * value-widgets.css, which the event page's drawn tables load too.
+ *
  * `mainOvermind.css` gives the caret its glyph, its font and its hover
  * reveal through `th .sort-icon` — three rules the ledger's headings
  * never matched, being grid cells. Without the font-family the
@@ -4278,25 +4242,21 @@ tr.vp-occ-deleted .vp-occ-orgdot {
     opacity: 1;
 }
 
-th[aria-sort] .sort-icon,
 .vpa-h[aria-sort] .sort-icon,
 .vpa-ruler[aria-sort] .sort-icon {
     opacity: 1;
 }
 
-th[aria-sort] .sortable-header,
 .vpa-h[aria-sort] .sortable-header,
 .vpa-ruler[aria-sort] .sortable-header {
     font-weight: 700;
 }
 
-th[aria-sort="ascending"] .sort-icon::before,
 .vpa-h[aria-sort="ascending"] .sort-icon::before,
 .vpa-ruler[aria-sort="ascending"] .sort-icon::before {
     content: "\f0de"; /* fa-sort-up */
 }
 
-th[aria-sort="descending"] .sort-icon::before,
 .vpa-h[aria-sort="descending"] .sort-icon::before,
 .vpa-ruler[aria-sort="descending"] .sort-icon::before {
     content: "\f0dd"; /* fa-sort-down */
@@ -7091,6 +7051,687 @@ th.vp-rel-num {
 }
 
 /* ------------------------------------------------------------------
+ * The type an empty value is matched on
+ * ------------------------------------------------------------------
+ * The sub-line's type is a chip opening a menu of types. The menu is a
+ * `.dropdown-menu`, so it wears the navbar panel's look from the theme;
+ * what is added here is its layout: columns instead of a scrollbar.
+ * ------------------------------------------------------------------ */
+
+.vp-e[data-vp-et] {
+    --vp-et-muted: var(--bs-secondary-color);
+    --vp-et-icon: var(--misp-dropdown-icon, var(--bs-secondary-color));
+    --vp-et-hover-icon: var(--misp-dropdown-hover-icon, var(--bs-primary));
+    --vp-et-warn: var(--bs-warning);
+    --vp-et-warn-ink: var(--bs-warning-text-emphasis);
+}
+
+.vp-et-mono {
+    font-family: var(--bs-font-monospace);
+    font-size: .92em;
+}
+
+.vp-e[data-vp-et] .vp-panel-head-title > .small {
+    line-height: 1.75;
+}
+
+.vp-et-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 100%;
+    height: 24px;
+    margin: -2px 0;
+    padding: 0 9px 0 10px;
+    border: 1px solid
+        color-mix(in srgb, var(--vp-e-accent) 38%, var(--bs-border-color));
+    border-radius: var(--bs-border-radius-pill);
+    background: color-mix(in srgb, var(--vp-e-accent) 6%, var(--bs-body-bg));
+    color: var(--bs-body-color);
+    font: inherit;
+    line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    transition: background-color .12s, border-color .12s, box-shadow .12s;
+}
+
+.vp-et-chip:hover,
+.vp-et-chip[aria-expanded="true"] {
+    border-color:
+        color-mix(in srgb, var(--vp-e-accent) 70%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--vp-e-accent) 12%, var(--bs-body-bg));
+}
+
+.vp-et-chip[aria-expanded="true"] {
+    box-shadow: 0 0 0 3px
+        color-mix(in srgb, var(--vp-e-accent) 16%, transparent);
+}
+
+[data-misp-mode="dark"] .vp-et-chip {
+    border-color:
+        color-mix(in srgb, var(--vp-e-accent) 45%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--vp-e-accent) 12%, var(--bs-body-bg));
+}
+
+[data-misp-mode="dark"] .vp-et-chip:hover,
+[data-misp-mode="dark"] .vp-et-chip[aria-expanded="true"] {
+    border-color: var(--vp-e-accent);
+    background: color-mix(in srgb, var(--vp-e-accent) 22%, var(--bs-body-bg));
+}
+
+.vp-et-chip:focus-visible,
+.vp-et-back:focus-visible {
+    outline: 2px solid var(--vp-e-accent);
+    outline-offset: 2px;
+}
+
+.vp-et-chip-seg {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+}
+
+.vp-et-chip-types {
+    display: inline-flex;
+    align-items: baseline;
+}
+
+.vp-et-chip-type {
+    font-family: var(--bs-font-monospace);
+    font-size: .8125rem;
+    font-weight: 600;
+}
+
+.vp-et-chip-comma {
+    margin-right: .45em;
+    color: var(--bs-secondary-color);
+}
+
+.vp-et-chip-basis {
+    color: var(--bs-secondary-color);
+    font-size: .8125rem;
+}
+
+.vp-et-chip-sep {
+    flex: none;
+    width: 1px;
+    height: 12px;
+    background:
+        color-mix(in srgb, var(--vp-e-accent) 35%, var(--bs-border-color));
+}
+
+.vp-et-chip-chev {
+    flex: none;
+    margin-left: 1px;
+    color: var(--bs-secondary-color);
+    font-size: .5625rem;
+    transition: transform .16s ease;
+}
+
+.vp-et-chip[aria-expanded="true"] .vp-et-chip-chev {
+    transform: rotate(180deg);
+}
+
+.vp-et-chip.vp-et-chip-warn {
+    border-color:
+        color-mix(in srgb, var(--vp-et-warn) 75%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--vp-et-warn) 10%, var(--bs-body-bg));
+}
+
+.vp-et-chip.vp-et-chip-warn:hover,
+.vp-et-chip.vp-et-chip-warn[aria-expanded="true"] {
+    border-color: var(--vp-et-warn);
+    background: color-mix(in srgb, var(--vp-et-warn) 18%, var(--bs-body-bg));
+}
+
+.vp-et-chip-warnico {
+    flex: none;
+    color: var(--vp-et-warn-ink);
+    font-size: .75rem;
+}
+
+.vp-et-chip.is-switching {
+    cursor: progress;
+}
+
+.vp-et-chip-spin {
+    flex: none;
+    color: var(--vp-e-accent);
+    font-size: .75rem;
+}
+
+.vp-et-back {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: none;
+    color: var(--bs-body-color);
+    font: inherit;
+    cursor: pointer;
+}
+
+.vp-et-back > i {
+    color: var(--bs-secondary-color);
+    font-size: .72rem;
+}
+
+.vp-et-back-text {
+    text-decoration: underline;
+    text-decoration-color:
+        color-mix(in srgb, var(--bs-body-color) 28%, transparent);
+    text-underline-offset: 3px;
+}
+
+.vp-et-back:hover .vp-et-back-text {
+    text-decoration-color: currentColor;
+}
+
+.vp-et-back:hover > i {
+    color: var(--bs-body-color);
+}
+
+/* Said before any press: a failing pick, a workflow that refuses. */
+.vp-panel-head-notes {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.vp-et-note {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    max-width: 100%;
+    padding: 6px 12px 6px 10px;
+    border: 1px solid
+        color-mix(in srgb, var(--vp-et-warn) 35%, var(--bs-border-color));
+    border-left: 3px solid var(--vp-et-warn);
+    border-radius: var(--bs-border-radius);
+    background: color-mix(in srgb, var(--vp-et-warn) 8%, var(--bs-body-bg));
+    color: var(--bs-body-color);
+    font-size: .8125rem;
+    line-height: 1.45;
+}
+
+[data-misp-mode="dark"] .vp-et-note {
+    background: color-mix(in srgb, var(--vp-et-warn) 12%, var(--bs-body-bg));
+}
+
+.vp-et-note > i {
+    flex: none;
+    color: var(--vp-et-warn-ink);
+}
+
+.vp-et-note strong {
+    font-weight: 600;
+}
+
+/* The menu: a .dropdown-menu, positioned and sized by the script. */
+.vp-et-pop.dropdown-menu {
+    top: 0;
+    left: 0;
+    width: 27rem;
+    max-width: calc(100% - 24px);
+    line-height: 1.25rem;
+    white-space: normal;
+}
+
+.vp-et-pop.dropdown-menu.show {
+    display: block;
+    animation: vp-et-pop .14s ease-out;
+}
+
+.vp-et-pop.is-above {
+    animation-name: vp-et-pop-up;
+}
+
+@keyframes vp-et-pop {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes vp-et-pop-up {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+}
+
+.vp-et-search {
+    position: relative;
+    margin: 4px 4px 2px;
+}
+
+.vp-et-search > i {
+    position: absolute;
+    top: 50%;
+    left: 11px;
+    color: var(--vp-et-icon);
+    font-size: .75rem;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.vp-et-input {
+    display: block;
+    width: 100%;
+    height: 32px;
+    padding: 0 10px 0 31px;
+    border: 1px solid
+        color-mix(in srgb, var(--bs-dropdown-color) 16%, transparent);
+    border-radius: var(--bs-border-radius);
+    background: color-mix(in srgb, var(--bs-primary) 4%, transparent);
+    color: var(--bs-dropdown-color);
+    font: inherit;
+}
+
+.vp-et-input::placeholder {
+    color: var(--vp-et-muted);
+    opacity: 1;
+}
+
+.vp-et-input:focus {
+    outline: 2px solid var(--vp-et-hover-icon);
+    outline-offset: -1px;
+    border-color: transparent;
+    background: var(--bs-dropdown-bg);
+}
+
+.vp-et-sec[hidden],
+.vp-et-grid[hidden],
+.vp-et-more[hidden],
+.vp-et-nothing[hidden],
+.vp-et-opt[hidden],
+.vp-et-opt[data-vp-et-cut],
+.vp-et-opt-hits[hidden] {
+    display: none;
+}
+
+.vp-et-sec-h {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 10px 8px 3px;
+    color: var(--vp-et-muted);
+    font-size: .65rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    line-height: 1rem;
+    text-transform: uppercase;
+}
+
+.vp-et-sec-n {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    opacity: .8;
+}
+
+.vp-et-sec-hint {
+    margin-left: auto;
+    font-size: .72rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* Every section shares one column count, so the columns line up. */
+.vp-et-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: repeat(var(--vp-et-cols, 1), minmax(0, 1fr));
+    grid-template-rows: repeat(var(--vp-et-rows, 1), auto);
+    column-gap: 4px;
+}
+
+.vp-et-opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    min-height: 32px;
+    padding: 6px 12px 6px 8px;
+    border: 0;
+    border-radius: var(--bs-border-radius);
+    background: transparent;
+    color: var(--bs-dropdown-link-color);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color .1s, color .1s;
+}
+
+.vp-et-opt:hover,
+.vp-et-opt.is-active,
+.vp-et-fold:hover,
+.vp-et-fold.is-active {
+    background: var(--bs-dropdown-link-hover-bg);
+    color: var(--bs-dropdown-link-hover-color);
+}
+
+.vp-et-opt:focus-visible {
+    outline: 2px solid var(--vp-et-hover-icon);
+    outline-offset: -2px;
+}
+
+.vp-et-opt-mark {
+    flex: 0 0 14px;
+    color: var(--bs-primary-text-emphasis);
+    font-size: .6875rem;
+    line-height: 1.25rem;
+    text-align: center;
+}
+
+.vp-et-opt-reset:not(.is-current) .vp-et-opt-mark {
+    color: var(--vp-et-icon);
+}
+
+.vp-et-opt:hover .vp-et-opt-mark,
+.vp-et-opt.is-active .vp-et-opt-mark {
+    color: var(--vp-et-hover-icon);
+}
+
+.vp-et-opt-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.vp-et-opt-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 1.25rem;
+}
+
+.vp-et-opt-name {
+    overflow: hidden;
+    min-width: 0;
+    font-family: var(--bs-font-monospace);
+    font-size: .8125rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vp-et-opt.is-current .vp-et-opt-name {
+    font-weight: 600;
+}
+
+.vp-et-opt-fail .vp-et-opt-name {
+    color: var(--vp-et-muted);
+}
+
+.vp-et-opt-fail:hover .vp-et-opt-name,
+.vp-et-opt-fail.is-active .vp-et-opt-name {
+    color: inherit;
+}
+
+.vp-et-tag {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    height: 16px;
+    padding: 0 6px;
+    border-radius: 4px;
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    color: var(--vp-et-muted);
+    font-family: var(--bs-body-font-family);
+    font-size: .6rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.vp-et-tag > i {
+    font-size: .55rem;
+}
+
+.vp-et-tag-pick {
+    background: color-mix(in srgb, var(--bs-primary) 14%, transparent);
+    color: var(--bs-primary-text-emphasis);
+}
+
+.vp-et-opt-n {
+    flex: none;
+    margin-left: auto;
+    padding-left: 8px;
+    color: var(--vp-et-muted);
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.vp-et-opt:hover .vp-et-opt-n,
+.vp-et-opt.is-active .vp-et-opt-n {
+    color: inherit;
+}
+
+/* In columns the word goes and the number stays; its title keeps it. */
+.vp-et-pop.is-cols:not(.vp-et-pop-inline) .vp-et-n-word {
+    display: none;
+}
+
+.vp-et-opt-hits {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 6px;
+    color: var(--vp-et-muted);
+    font-family: var(--bs-font-monospace);
+    font-size: .72rem;
+    line-height: 1.1rem;
+}
+
+.vp-et-opt-hits > i {
+    margin-right: 1px;
+    font-size: .6rem;
+}
+
+.vp-et-hit {
+    white-space: nowrap;
+}
+
+.vp-et-hits-sep {
+    opacity: .6;
+}
+
+.vp-et-hl {
+    padding: 0 1px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--bs-primary) 22%, transparent);
+    color: inherit;
+    font-weight: 600;
+}
+
+.vp-et-sec-fails {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--bs-dropdown-divider-bg);
+}
+
+.vp-et-fold {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 32px;
+    padding: 4px 12px 4px 8px;
+    border: 0;
+    border-radius: var(--bs-border-radius);
+    background: transparent;
+    color: var(--bs-dropdown-link-color);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color .1s, color .1s;
+}
+
+.vp-et-fold.is-forced,
+.vp-et-fold.is-forced:hover {
+    background: transparent;
+    color: var(--bs-dropdown-link-color);
+    cursor: default;
+}
+
+.vp-et-fold-chev {
+    flex: 0 0 14px;
+    color: var(--vp-et-icon);
+    font-size: .5625rem;
+    text-align: center;
+    transition: transform .16s ease;
+}
+
+.vp-et-fold[aria-expanded="true"] .vp-et-fold-chev {
+    transform: rotate(90deg);
+}
+
+.vp-et-fold.is-forced .vp-et-fold-chev {
+    opacity: .4;
+}
+
+.vp-et-fold-label {
+    font-weight: 600;
+}
+
+.vp-et-fold-n {
+    flex: none;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: var(--bs-border-radius-pill);
+    background:
+        color-mix(in srgb, var(--vp-et-warn) 22%, var(--bs-dropdown-bg));
+    color: var(--vp-et-warn-ink);
+    font-size: .6875rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 18px;
+    text-align: center;
+}
+
+.vp-et-fold-hint {
+    overflow: hidden;
+    min-width: 0;
+    margin-left: auto;
+    padding-left: 8px;
+    color: var(--vp-et-muted);
+    font-size: .75rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vp-et-more,
+.vp-et-nothing {
+    padding: 4px 8px 4px 30px;
+    color: var(--vp-et-muted);
+    font-size: .75rem;
+}
+
+.vp-et-nothing {
+    padding: 10px 8px 8px;
+}
+
+.vp-et-divider {
+    margin: 4px 8px;
+}
+
+.vp-et-foot {
+    padding: 3px 8px 5px;
+    color: var(--vp-et-muted);
+    font-size: .75rem;
+    line-height: 1.1rem;
+}
+
+.vp-et-peek {
+    min-height: 2.2rem;
+}
+
+.vp-et-peek .vp-et-mono {
+    color: var(--bs-dropdown-color);
+}
+
+.vp-et-peek-more {
+    white-space: nowrap;
+}
+
+.vp-et-foot-note {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 5px 8px;
+    border-radius: var(--bs-border-radius);
+    background: color-mix(in srgb, var(--bs-primary) 5%, transparent);
+    color: var(--bs-dropdown-color);
+}
+
+.vp-et-foot-note > i {
+    flex: none;
+    color: var(--vp-et-icon);
+    font-size: .6875rem;
+}
+
+.vp-et-foot-wf > i {
+    color: var(--vp-et-warn-ink);
+}
+
+/* Nothing read: the same list, in the page where the empty state was. */
+.vp-et-inline {
+    padding: 22px 24px 24px;
+}
+
+.vp-et-inline-title {
+    margin: 0 0 4px;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.vp-et-inline-prose {
+    max-width: 62ch;
+    color: var(--bs-secondary-color);
+    font-size: .85rem;
+    line-height: 1.6;
+}
+
+.vp-et-pop.vp-et-pop-inline {
+    position: static;
+    z-index: auto;
+    width: fit-content;
+    min-width: min(100%, 30rem);
+    max-width: 100%;
+    margin-top: 16px;
+    box-shadow: none;
+    animation: none;
+}
+
+.vp-et-pop-inline .vp-et-grid {
+    grid-template-columns: repeat(var(--vp-et-cols, 1), 17rem);
+}
+
+.vp-et-pop-inline .vp-et-sec-fails.is-only {
+    margin-top: 2px;
+    border-top: 0;
+}
+
+.vp-et-pop-inline .vp-et-input {
+    max-width: 30rem;
+}
+
+.vp-et-pop-inline.is-switching {
+    opacity: .6;
+    pointer-events: none;
+}
+
+/* ------------------------------------------------------------------
  * The split
  * ------------------------------------------------------------------
  * Not a Bootstrap row. The rail scrolls on its own once there are
@@ -8292,6 +8933,25 @@ th.vp-rel-num {
 .vp-e-partial > i {
     margin-top: 3px;
     color: var(--bs-warning-text-emphasis);
+}
+
+.vp-e-known-note {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--bs-secondary-color);
+    font-size: 0.76rem;
+}
+
+.vp-e-showall {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.55;
+    text-decoration: none;
+    white-space: nowrap;
 }
 
 .vp-e-num {
@@ -11304,6 +11964,101 @@ a.vp-lane-tag:focus-visible {
 
 .vp-eb-cell-wait .vp-eb-cell-none-w {
     font-style: normal;
+}
+
+/* ------------------------------------------------------------------
+ * A drawn cell opens its full drawing under the row, in the panel the
+ * event page's object views use (tile-drawer.css).
+ * ------------------------------------------------------------------ */
+
+.vp-eb-cell[data-td-tile] {
+    cursor: pointer;
+    transition: border-color 0.12s, background-color 0.12s,
+        box-shadow 0.12s;
+}
+
+.vp-eb-cell[data-td-tile]:hover {
+    border-color: color-mix(in srgb, var(--td-accent) 40%,
+        var(--bs-border-color));
+}
+
+/* Inside the cell: the row clips anything drawn outside one. */
+.vp-eb-cell[data-td-tile]:focus-visible {
+    outline: 2px solid var(--td-ring);
+    outline-offset: -2px;
+}
+
+.vp-eb-cell[aria-expanded="true"] {
+    border-color: var(--td-accent);
+    background: var(--td-accent-soft);
+    box-shadow: inset 0 0 0 1px var(--td-accent);
+}
+
+.vp-eb-strip:has(+ .td-panel) {
+    border-bottom: 0;
+}
+
+.vp-eb > .td-panel {
+    margin: 2px 20px 14px;
+}
+
+.vp-eb > .td-panel + .vp-eb-body {
+    padding-top: 8px;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.vp-eb-srcs {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.vp-eb-srcs li {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-width: 0;
+}
+
+.vp-eb-src {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vp-eb-src-made {
+    color: var(--td-quiet);
+    font-size: 0.7rem;
+    line-height: 1.45;
+}
+
+.vp-eb-src-made .font-monospace {
+    font-size: 0.68rem;
+}
+
+/* The answer was cut when it was kept: the drawing is of what was kept. */
+.vp-eb-src-cut {
+    margin-top: 2px;
+    padding: 0 6px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--misp-tone-orange-solid, #e8590c)
+        10%, var(--bs-body-bg));
+    color: var(--misp-tone-orange-fg, #9a4a0a);
+    font-size: 0.66rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+[data-misp-mode="dark"] .vp-eb-src-cut {
+    background: color-mix(in srgb, #ff8c3a 13%, var(--bs-body-bg));
+    color: var(--misp-tone-orange-fg, #ffb072);
 }
 
 /* The galaxy matrix's weaker state is "only on its events" here, not

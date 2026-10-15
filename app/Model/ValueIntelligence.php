@@ -13,6 +13,7 @@ App::uses('ValueWarninglistTool', 'Tools/ValueIntelligence');
 App::uses('ValueTrustTool', 'Tools/ValueIntelligence');
 App::uses('ValueStatementTool', 'Tools/ValueIntelligence');
 App::uses('ValueEnrichmentTool', 'Tools/ValueIntelligence');
+App::uses('ValueTypeGuessTool', 'Tools/ValueIntelligence');
 App::uses('ValueRendererTool', 'Tools/ValueIntelligence');
 App::uses('ValueSignalLoader', 'Tools/ValueIntelligence');
 App::uses('ValueEnrichmentRun', 'Model');
@@ -14186,6 +14187,14 @@ class ValueIntelligence extends AppModel
     const ENRICHMENT_ELEMENT_CAP = 200;
 
     /**
+     * How many elements of one answer are kept, for the Enrichment tab's
+     * *Show all*. Everything else reads the first `ENRICHMENT_ELEMENT_CAP`
+     * of them (`enrichmentView`). Measured on passive-dns objects: each
+     * renders ~9.5 KB and ~83 DOM nodes, so 2,000 is ~19 MB of pane.
+     */
+    const ENRICHMENT_KEEP_CAP = 2000;
+
+    /**
      * The Enrichment tab: which modules this value could be sent to,
      * and nothing that has been sent.
      *
@@ -14305,7 +14314,8 @@ class ValueIntelligence extends AppModel
                 $value,
                 isset($options['module']) ? $options['module'] : null,
                 isset($options['type']) ? $options['type'] : null,
-                isset($options['mode']) ? $options['mode'] : null
+                isset($options['mode']) ? $options['mode'] : null,
+                !empty($options['all'])
             ),
         );
     }
@@ -14495,9 +14505,13 @@ class ValueIntelligence extends AppModel
      * so when it fails this asks `getModules()` directly to find out
      * which. A working instance never pays for that.
      *
+     * A reader who holds no occurrence gets a `typing` block and is
+     * matched on the types it names instead; null otherwise.
+     *
      * @param array $user
      * @param string $value
-     * @param array $options `profile`
+     * @param array $options `profile`, `roles`, `as` (a type to match on
+     *     when the reader holds no occurrence)
      * @return array
      */
     private function enrichmentCatalogue(array $user, $value,
@@ -14534,7 +14548,6 @@ class ValueIntelligence extends AppModel
         if (isset($options['roles'])) {
             $plan['roles'] = $options['roles'];
         }
-        $rows = $this->enrichmentEligible($enabled, $types, $plan);
         /*
          * Phase 11, D25. One indexed read over the store's leading
          * key columns, and the whole reason the tab gains a memory
@@ -14547,11 +14560,25 @@ class ValueIntelligence extends AppModel
             $user,
             $value
         );
+        $typing = null;
+        if (empty($types)) {
+            $typing = $this->enrichmentTyping(
+                $value,
+                $enabled,
+                $plan,
+                $stored,
+                isset($options['as']) ? $options['as'] : null
+            );
+            $types = $typing['types'];
+            unset($typing['types']);
+        }
+        $rows = $this->enrichmentEligible($enabled, $types, $plan);
         $rows = $this->enrichmentAttachStored($rows, $stored);
 
         return array(
             'service' => $service,
             'types' => $types,
+            'typing' => $typing,
             'enabled' => count($modules),
             /*
              * MISP gates `hoverEnrichment` and `queryEnrichment` on
@@ -14577,9 +14604,131 @@ class ValueIntelligence extends AppModel
                 $types,
                 $rows,
                 $service,
-                $stored
+                $stored,
+                $typing !== null
             ),
         );
+    }
+
+    /**
+     * The types to match modules on for a reader who holds no
+     * occurrence: their pick, else what the value reads as, then any
+     * type the organisation has already asked about it under.
+     *
+     * @param string $value
+     * @param array|string $enabled From `getEnabledModules`
+     * @param array $plan
+     * @param array $stored `module|type` => row
+     * @param mixed $as The reader's pick, untrusted
+     * @return array `source`, `read`, `chosen`, `choices`,
+     *     `workflow_blocks`, `types`
+     */
+    private function enrichmentTyping($value, $enabled, array $plan,
+        array $stored, $as
+    ) {
+        $offered = $this->enrichmentOfferedTypes($enabled, $plan);
+        $warninglist = $this->model('Warninglist');
+        $read = ValueTypeGuessTool::read(
+            $value,
+            array_keys($offered),
+            $warninglist->fetchTLDLists(),
+            $warninglist->fetchSecurityVendorDomains()
+        );
+        $picked = is_string($as) && isset($offered[$as]) ? $as : null;
+
+        $basis = array();
+        foreach ($picked === null ? $read : array($picked) as $type) {
+            $basis[$type] = $picked === null ? 'read' : 'picked';
+        }
+        $kept = array();
+        foreach ($stored as $row) {
+            $kept[$row['type']] = true;
+            if (!isset($basis[$row['type']]) && isset($offered[$row['type']])) {
+                $basis[$row['type']] = 'held';
+            }
+        }
+        $types = array();
+        foreach ($basis as $type => $how) {
+            $types[] = array(
+                'type' => $type,
+                'count' => 0,
+                'stored' => array(),
+                'basis' => $how,
+                'kept' => isset($kept[$type]),
+            );
+        }
+
+        $choices = array();
+        $ranked = ValueTypeGuessTool::rank($value, array_keys($offered));
+        foreach ($ranked as $group => $names) {
+            $choices[$group] = array();
+            foreach ($names as $type) {
+                $choices[$group][] = array(
+                    'type' => $type,
+                    'modules' => $offered[$type],
+                );
+            }
+        }
+
+        if ($picked !== null) {
+            $source = 'picked';
+        } else {
+            $source = empty($read) ? 'none' : 'read';
+        }
+        return array(
+            'source' => $source,
+            'read' => $read,
+            'chosen' => $picked !== null
+                ? $picked
+                : (empty($read) ? null : $read[0]),
+            'choices' => $choices,
+            'workflow_blocks' => $this->isTriggerCallable(
+                'enrichment-before-query'
+            ),
+            'types' => $types,
+        );
+    }
+
+    /**
+     * Every attribute type an enrichment module offered to this reader
+     * accepts, with the modules that accept it.
+     *
+     * Composite types are left out — a value is one half of a pair —
+     * and so are input names MISP has no attribute type for.
+     *
+     * @param array|string $enabled From `getEnabledModules`
+     * @param array $plan
+     * @return array type => module names, sorted by type
+     */
+    private function enrichmentOfferedTypes($enabled, array $plan)
+    {
+        if (!is_array($enabled)) {
+            return array();
+        }
+        $all = array();
+        foreach (array('types', 'hover_type') as $map) {
+            if (empty($enabled[$map]) || !is_array($enabled[$map])) {
+                continue;
+            }
+            foreach (array_keys($enabled[$map]) as $type) {
+                $all[$type] = array('type' => (string)$type, 'count' => 0);
+            }
+        }
+        $attributes = $this->model('MispAttribute');
+        $composite = $attributes->getCompositeTypes();
+        $offered = array();
+        $rows = $this->enrichmentEligible($enabled, array_values($all), $plan);
+        foreach ($rows as $row) {
+            foreach (array_keys($row['types']) as $type) {
+                if (isset($attributes->typeDefinitions[$type])
+                    && !in_array($type, $composite, true)
+                ) {
+                    $offered[$type][] = $row['name'];
+                }
+            }
+        }
+        ksort($offered, SORT_STRING | SORT_FLAG_CASE);
+        return $offered;
     }
 
     /**
@@ -14863,6 +15012,7 @@ class ValueIntelligence extends AppModel
                 ? null
                 : ValueEnrichmentRun::unpack($held);
             if ($shaped !== null) {
+                $shaped = $this->enrichmentView($shaped);
                 /*
                  * `pack()` drops the two fields that are about *now*
                  * rather than about then, so the stamp is put back
@@ -15008,7 +15158,7 @@ class ValueIntelligence extends AppModel
      */
     private function enrichmentDeclaration(array $user, $profile,
         array $plan, array $types, array $rows, array $service,
-        array $stored = array()
+        array $stored = array(), $typed = false
     ) {
         $facts = array(
             'service' => $service,
@@ -15064,6 +15214,15 @@ class ValueIntelligence extends AppModel
             $stored,
             $this->enrichmentTimeout()
         );
+        if ($typed) {
+            // Nothing runs unasked on a type the reader does not hold.
+            foreach ($resolved['auto'] as &$one) {
+                if ($one['disposition'] === 'fire') {
+                    $one['disposition'] = 'blocked';
+                }
+            }
+            unset($one);
+        }
         return $resolved;
     }
 
@@ -15154,10 +15313,7 @@ class ValueIntelligence extends AppModel
      *
      * Since phase 7 each row also carries whether **asking it leaves
      * the instance** (`ModuleLocality`), which is what lets the tray
-     * price a selection in the only currency that has a source. The
-     * profile's `enrichment.locality` overrides are consulted here
-     * because an operator who repointed their resolver knows something
-     * no shipped map can.
+     * price a selection in the only currency that has a source.
      *
      * @param array|string $enabled `getEnabledModules` output
      * @param array $types `typesFor` output
@@ -15190,9 +15346,6 @@ class ValueIntelligence extends AppModel
                 }
             }
         }
-        $overrides = isset($plan['locality']) && is_array($plan['locality'])
-            ? $plan['locality']
-            : array();
         $roles = isset($plan['roles']) && is_array($plan['roles'])
             ? $plan['roles']
             : array();
@@ -15202,7 +15355,7 @@ class ValueIntelligence extends AppModel
             if ($module === null || !ModuleRole::isEnrichment($name, $roles)) {
                 continue;
             }
-            $locality = ModuleLocality::resolve($name, $overrides);
+            $locality = ModuleLocality::resolve($name);
             $rows[] = array(
                 'name' => $name,
                 'kinds' => array_keys($meta['kinds']),
@@ -15243,7 +15396,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private function enrichmentRun(array $user, $value, $name, $type,
-        $mode = null
+        $mode = null, $all = false
     ) {
         /*
          * Two callers, and the difference between them is the whole
@@ -15302,8 +15455,10 @@ class ValueIntelligence extends AppModel
                 'roles' => ValueEnrichmentTool::planFor(
                     ClassRegistry::init('AnalystProfile')->resolveFor($user)
                 )['roles'],
+                'as' => $type,
             )
         );
+        $typed = $catalogue['typing'] !== null;
         $run = array(
             'module' => $name,
             'type' => $type,
@@ -15316,6 +15471,7 @@ class ValueIntelligence extends AppModel
             'objects' => array(),
             'elements' => array(),
             'total' => 0,
+            'kept' => 0,
             'shown' => 0,
             'capped' => false,
             'cap' => self::ENRICHMENT_ELEMENT_CAP,
@@ -15339,7 +15495,8 @@ class ValueIntelligence extends AppModel
          * The ACL band. A run may only ever name a module this reader
          * would have been offered, for a type this reader holds an
          * occurrence of — both taken from the catalogue rather than
-         * from the request.
+         * from the request. Without an occurrence the type is the
+         * reader's own choice, so the module must declare it.
          */
         $row = null;
         foreach ($catalogue['modules'] as $candidate) {
@@ -15349,6 +15506,9 @@ class ValueIntelligence extends AppModel
             }
         }
         if ($row === null) {
+            return $run;
+        }
+        if ($typed && $type !== null && !isset($row['types'][$type])) {
             return $run;
         }
         if ($type === null || !isset($row['types'][$type])) {
@@ -15399,7 +15559,11 @@ class ValueIntelligence extends AppModel
                 )
             ) {
                 return $this->enrichmentFromStore($held, $user, $value,
-                    $run);
+                    $run, $all);
+            }
+            if ($typed) {
+                $run['state'] = 'auto_typed';
+                return $run;
             }
         }
 
@@ -15427,25 +15591,35 @@ class ValueIntelligence extends AppModel
                 $run['state'] = 'expired';
                 return $run;
             }
-            return $this->enrichmentFromStore($held, $user, $value, $run);
+            return $this->enrichmentFromStore($held, $user, $value, $run,
+                $all);
         }
 
 
         /*
-         * D3: the run is backed by one of the reader's own
-         * occurrences. No module receives it (enrichmentPayload()
-         * sends the value alone), but every format passes it as
-         * trigger data, so that an instance's `enrichment-before-query`
-         * workflow can still refuse the query. Passing `$skipTrigger` instead would
-         * be quietly disabling a control somebody configured on
-         * purpose — and passing nothing is worse, because
-         * `Module::__prepareAndExecuteTrigger()` returns false on empty
-         * trigger data and the tab would report every module blocked.
+         * The run is backed by one of the reader's own occurrences. No
+         * module receives it (enrichmentPayload() sends the value
+         * alone), but every format passes it as trigger data, so that
+         * an instance's `enrichment-before-query` workflow can still
+         * refuse the query. Passing `$skipTrigger` instead would be
+         * quietly disabling a control somebody configured on purpose.
+         *
+         * A reader with no occurrence has no trigger data to offer, so
+         * where such a workflow is listening the run is refused here
+         * rather than handed to it empty.
          */
-        $occurrence = $this->enrichmentOccurrence($user, $value, $type);
-        if (empty($occurrence['Attribute'])) {
-            $run['state'] = 'ineligible';
-            return $run;
+        if ($typed) {
+            if ($catalogue['typing']['workflow_blocks']) {
+                $run['state'] = 'needs_occurrence';
+                return $run;
+            }
+            $occurrence = array();
+        } else {
+            $occurrence = $this->enrichmentOccurrence($user, $value, $type);
+            if (empty($occurrence['Attribute'])) {
+                $run['state'] = 'ineligible';
+                return $run;
+            }
         }
 
         /*
@@ -15519,7 +15693,11 @@ class ValueIntelligence extends AppModel
         );
         $store->record($user, $value, $shaped);
 
-        return $this->enrichmentKnown($shaped, $user, $value);
+        return $this->enrichmentKnown(
+            $this->enrichmentView($shaped, $all),
+            $user,
+            $value
+        );
     }
 
     /**
@@ -15542,7 +15720,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private function enrichmentFromStore(array $held, array $user, $value,
-        array $run
+        array $run, $all = false
     ) {
         $stored = ValueEnrichmentRun::unpack($held);
         $age = max(0, time() - (int)$held['last_run']);
@@ -15555,7 +15733,29 @@ class ValueIntelligence extends AppModel
         $stored['timeout'] = $run['timeout'];
         $stored['from_store'] = true;
         $stored['age'] = $age;
-        return $this->enrichmentKnown($stored, $user, $value);
+        return $this->enrichmentKnown(
+            $this->enrichmentView($stored, $all),
+            $user,
+            $value
+        );
+    }
+
+    /**
+     * An answer as one surface reads it: its first
+     * `ENRICHMENT_ELEMENT_CAP` elements, or all of them for the
+     * Enrichment tab's *Show all*.
+     *
+     * @param array $run A shaped or unpacked run
+     * @param bool $all
+     * @return array
+     */
+    private function enrichmentView(array $run, $all = false)
+    {
+        return ValueEnrichmentTool::view(
+            $run,
+            $all,
+            self::ENRICHMENT_ELEMENT_CAP
+        );
     }
 
     /**
@@ -15707,7 +15907,7 @@ class ValueIntelligence extends AppModel
 
         $results = $result['results'];
         $run['state'] = 'ok';
-        $budget = self::ENRICHMENT_ELEMENT_CAP;
+        $budget = self::ENRICHMENT_KEEP_CAP;
 
         if (isset($results['Attribute']) || isset($results['Object'])) {
             $attributes = isset($results['Attribute'])
@@ -15729,7 +15929,7 @@ class ValueIntelligence extends AppModel
                     break;
                 }
                 $budget--;
-                $run['objects'][] = $this->enrichmentObject($object);
+                $run['objects'][] = ValueRendererTool::shapeObject($object);
             }
         } else {
             foreach ($results as $entry) {
@@ -15758,9 +15958,10 @@ class ValueIntelligence extends AppModel
             }
         }
 
-        $run['shown'] = count($run['attributes'])
+        $run['kept'] = count($run['attributes'])
             + count($run['objects'])
             + count($run['elements']);
+        $run['shown'] = min($run['kept'], self::ENRICHMENT_ELEMENT_CAP);
         $run['capped'] = $run['total'] > $run['shown'];
         if ($run['total'] === 0) {
             $run['state'] = 'silent';
@@ -15793,7 +15994,7 @@ class ValueIntelligence extends AppModel
      * may make.
      *
      * **Only values MISP would correlate on are asked about**, per
-     * `enrichmentCorrelates`. A row the probe is not asked about is
+     * `ValueRendererTool::correlates()`. A row the probe is not asked about is
      * `known => false` and wears no chip, which is the honest state:
      * the page did not look, because there was nothing worth looking
      * for. This is what stops `count: 1` and `rrtype: A` from wearing
@@ -15841,7 +16042,7 @@ class ValueIntelligence extends AppModel
         foreach ($contents as $content) {
             switch ($content['kind'] ?? null) {
                 case 'attribute':
-                    if ($this->enrichmentCorrelates(array('type' => $content['type']))) {
+                    if (ValueRendererTool::correlates(array('type' => $content['type']))) {
                         $wanted[] = (string)$content['value'];
                     }
                     break;
@@ -15852,7 +16053,7 @@ class ValueIntelligence extends AppModel
                     break;
                 case 'object':
                     foreach ($content['attributes'] as $attribute) {
-                        if ($this->enrichmentCorrelates(array('type' => $attribute['type']))) {
+                        if (ValueRendererTool::correlates(array('type' => $attribute['type']))) {
                             $wanted[] = (string)$attribute['value'];
                         }
                     }
@@ -15871,61 +16072,69 @@ class ValueIntelligence extends AppModel
 
     private function enrichmentKnown(array $run, array $user, $subject)
     {
-        $wanted = array();
-        foreach ($run['attributes'] as $attribute) {
-            if ($attribute['value'] !== null
-                && $attribute['correlates']
-            ) {
-                $wanted[] = (string)$attribute['value'];
-            }
+        // Each element's values worth asking about, in the order shown.
+        $asks = array();
+        foreach ($run['attributes'] as $i => $attribute) {
+            $asks[] = array('attributes', $i,
+                $attribute['value'] !== null && $attribute['correlates']
+                    ? array((string)$attribute['value']) : array());
         }
-        foreach ($run['elements'] as $element) {
-            if ($this->enrichmentElementCorrelates($element)) {
-                $wanted[] = $element['value'];
-            }
-        }
-        foreach ($run['objects'] as $object) {
+        foreach ($run['objects'] as $i => $object) {
+            $values = array();
             foreach ($object['attributes'] as $attribute) {
                 if ($attribute['value'] !== null
                     && $attribute['correlates']
                 ) {
-                    $wanted[] = (string)$attribute['value'];
+                    $values[] = (string)$attribute['value'];
                 }
             }
+            $asks[] = array('objects', $i, $values);
         }
-        $wanted = array_values(array_unique(array_filter(
-            $wanted,
-            function ($one) use ($subject) {
-                return $one !== '' && $one !== (string)$subject;
-            }
-        )));
-        if (empty($wanted)) {
-            return $run;
+        foreach ($run['elements'] as $i => $element) {
+            $asks[] = array('elements', $i,
+                $this->enrichmentElementCorrelates($element)
+                    ? array((string)$element['value']) : array());
         }
 
-        $prevalence = $this->model('Value')
-            ->prevalenceFor($user, $wanted);
-        $counts = $prevalence['counts'];
-        $capped = $prevalence['capped'];
+        $budget = ValueEnrichmentTool::knownBudget(
+            array_column($asks, 2),
+            $subject,
+            Value::PREVALENCE_PROBE_CAP
+        );
+        $run['known_checked'] = $budget['checked'];
+        $counts = array();
+        $capped = array();
+        if (!empty($budget['values'])) {
+            $prevalence = $this->model('Value')
+                ->prevalenceFor($user, $budget['values']);
+            $counts = $prevalence['counts'];
+            $capped = $prevalence['capped'];
+        }
         $known = function ($value) use ($counts, $capped) {
             $value = (string)$value;
             return isset($counts[$value]) || isset($capped[$value]);
         };
 
-        foreach ($run['attributes'] as $i => $attribute) {
-            $run['attributes'][$i]['known'] = $attribute['correlates']
-                && $known($attribute['value']);
-        }
-        foreach ($run['elements'] as $i => $element) {
-            $run['elements'][$i]['known'] =
-                $this->enrichmentElementCorrelates($element)
-                && $known($element['value']);
-        }
-        foreach ($run['objects'] as $i => $object) {
-            foreach ($object['attributes'] as $j => $attribute) {
-                $run['objects'][$i]['attributes'][$j]['known'] =
-                    $attribute['correlates']
+        foreach ($asks as $n => $ask) {
+            list($list, $i) = $ask;
+            $asked = $n < $budget['checked'];
+            if ($list === 'objects') {
+                $rows = $run['objects'][$i]['attributes'];
+                foreach ($rows as $j => $attribute) {
+                    $run['objects'][$i]['attributes'][$j]['known'] = $asked
+                        && $attribute['correlates']
+                        && $known($attribute['value']);
+                }
+            } elseif ($list === 'attributes') {
+                $attribute = $run['attributes'][$i];
+                $run['attributes'][$i]['known'] = $asked
+                    && $attribute['correlates']
                     && $known($attribute['value']);
+            } else {
+                $element = $run['elements'][$i];
+                $run['elements'][$i]['known'] = $asked
+                    && $this->enrichmentElementCorrelates($element)
+                    && $known($element['value']);
             }
         }
         return $run;
@@ -15974,97 +16183,9 @@ class ValueIntelligence extends AppModel
             'comment' => isset($attribute['comment'])
                 ? $attribute['comment'] : null,
             'to_ids' => !empty($attribute['to_ids']),
-            'correlates' => $this->enrichmentCorrelates($attribute),
+            'correlates' => ValueRendererTool::correlates($attribute),
             // Filled by enrichmentKnown; false where it never asked.
             'known' => false,
-        );
-    }
-
-    /**
-     * Whether this value is an identity, by MISP's own reckoning.
-     *
-     * **`Already in MISP` is a claim about a duplicate**, and a
-     * duplicate is only a thing for a value that identifies something.
-     * MISP answers that question twice over and both answers are on
-     * the wire: the module sends `disable_correlation` per attribute —
-     * set from the object template — and `NON_CORRELATING_TYPES` names
-     * the types whose values are never identities whatever a template
-     * says. The flag alone does the work in practice; the type list is
-     * here because a hand-built module may omit the flag, and a
-     * `counter` must not carry the chip on anybody's say-so.
-     *
-     * Measured on the instance rather than reasoned about: this drops
-     * every chip the maintainer objected to — `count: 1`, `rrtype: A`,
-     * `origin`, `FileSize: 4`, `latitude: 38` — and keeps every one
-     * that was doing the job: the MD5, the SHA-1, the SHA-256, the
-     * SSDEEP, `country` and `countrycode`.
-     *
-     * @param array $attribute As the module sent it
-     * @return bool
-     */
-    private function enrichmentCorrelates(array $attribute)
-    {
-        if (!empty($attribute['disable_correlation'])) {
-            return false;
-        }
-        if (empty($attribute['type'])) {
-            return true;
-        }
-        return !in_array(
-            $attribute['type'],
-            MispAttribute::NON_CORRELATING_TYPES,
-            true
-        );
-    }
-
-    /**
-     * A returned object, carrying what MISP's own object render shows.
-     *
-     * The pane draws these the way `Objects/index.ctp` draws a stored
-     * object, so it needs the same fields: the template's
-     * meta-category and description name what kind of thing this is,
-     * and the attribute rows carry the category and the IDS flag that
-     * every other object table in MISP has a column for. A module is
-     * free to omit any of them — `mmdb_lookup` sends no comment,
-     * `hashlookup` no description — so each is null rather than
-     * assumed, and the view draws only what arrived.
-     *
-     * @param array $object
-     * @return array
-     */
-    private function enrichmentObject(array $object)
-    {
-        $attributes = array();
-        if (!empty($object['Attribute'])) {
-            foreach ($object['Attribute'] as $attribute) {
-                $attributes[] = array(
-                    'relation' => isset($attribute['object_relation'])
-                        ? $attribute['object_relation'] : null,
-                    'type' => isset($attribute['type'])
-                        ? $attribute['type'] : null,
-                    'value' => isset($attribute['value'])
-                        ? $attribute['value'] : null,
-                    'category' => isset($attribute['category'])
-                        ? $attribute['category'] : null,
-                    'comment' => isset($attribute['comment'])
-                        ? $attribute['comment'] : null,
-                    'to_ids' => !empty($attribute['to_ids']),
-                    'correlates' => $this->enrichmentCorrelates(
-                        $attribute
-                    ),
-                    'known' => false,
-                );
-            }
-        }
-        return array(
-            'name' => isset($object['name']) ? $object['name'] : null,
-            'meta_category' => isset($object['meta-category'])
-                ? $object['meta-category'] : null,
-            'description' => isset($object['description'])
-                ? $object['description'] : null,
-            'comment' => isset($object['comment'])
-                ? $object['comment'] : null,
-            'attributes' => $attributes,
         );
     }
 
@@ -16651,6 +16772,7 @@ class ValueIntelligence extends AppModel
             if ($shaped === null) {
                 continue;
             }
+            $shaped = $this->enrichmentView($shaped);
             $shaped['ran_at'] = (int)$row['last_run'];
             $runs[] = $shaped;
             $factors[$row['module']] = ValueTrustTool::moduleFactor(

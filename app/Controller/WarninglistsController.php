@@ -510,7 +510,7 @@ class WarninglistsController extends AppController
         $conditions = ['WarninglistEntry.warninglist_id' => $id];
         $filter = trim((string)($this->passedArgs['filter'] ?? ''));
         if ($filter !== '') {
-            $conditions['WarninglistEntry.value LIKE'] = '%' . $filter . '%';
+            $conditions['WarninglistEntry.value LIKE'] = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $filter) . '%';
         }
         $this->paginate = [
             'WarninglistEntry' => [

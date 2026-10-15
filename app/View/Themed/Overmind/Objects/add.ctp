@@ -78,7 +78,7 @@ sort($metaCategories);
         ]) ?>
         <select id="objectTemplateSelect" class="form-select"></select>
         <?= $this->element('genericElementsBS5/Forms/field_hint', [
-            'text' => __('Searching matches the name and the description. A meta-category narrows the list without dropping what you already picked.'),
+            'text' => __('Searching matches the name first, then the description. A meta-category narrows the list without dropping what you already picked.'),
         ]) ?>
 
         <div id="templateDescPreview" class="alert alert-light border mt-3 d-none"></div>
@@ -263,6 +263,8 @@ if (!empty($groupSource)) {
                                 'id' => 'ObjectFirstSeen',
                                 'mode' => 'datetime',
                                 'accent' => 'object',
+                                'before' => '#ObjectLastSeen',
+                                'rangeMsg' => __('First seen cannot be later than last seen.'),
                             ]) ?>
                         </div>
                         <div class="col-md-6">
@@ -599,6 +601,7 @@ if (!empty($groupSource)) {
 
 </div>
 
+<?php $referenceTargets = $referenceTargets ?? []; ?>
 <script type="application/json" id="objectFormData"><?= json_encode([
     'eventId' => $eventId,
     'isEdit' => $isEdit,
@@ -608,14 +611,15 @@ if (!empty($groupSource)) {
     'relationshipTargetsUrl' => $baseurl . '/objectReferences/targets/' . $eventId,
     'relationshipAddUrl' => $baseurl . '/objectReferences/add/',
     'relationshipDeleteUrl' => $baseurl . '/objectReferences/delete/',
-    'existingRelationships' => array_map(function ($row) {
+    'existingRelationships' => array_map(function ($row) use ($referenceTargets) {
         $reference = $row['ObjectReference'];
         return [
             'id' => $reference['id'],
             'type' => $reference['relationship_type'],
             'uuid' => $reference['referenced_uuid'],
             'kind' => (int)$reference['referenced_type'] === 1 ? __('object') : __('attribute'),
-            'label' => substr((string)$reference['referenced_uuid'], 0, 8),
+            'label' => $referenceTargets[$reference['referenced_uuid']]['label']
+                ?? substr((string)$reference['referenced_uuid'], 0, 8),
             'comment' => $reference['comment'],
         ];
     }, array_values($existingReferences ?? [])),

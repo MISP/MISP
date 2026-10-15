@@ -66,6 +66,8 @@ $headings = array(
      * answer and no longer holding it.
      */
     'auto_not_allowed' => __('%s was not run on its own.'),
+    'auto_typed' => __('%s was not run on its own.'),
+    'needs_occurrence' => __('MISP did not send the query.'),
     'expired' => __('%s was asked, and the answer is no longer kept.'),
 );
 $heading = isset($headings[$state])
@@ -91,6 +93,8 @@ $marks = array(
     'unreachable' => array('fa-plug-circle-xmark', 'vp-e-mark-bad'),
     'ineligible' => array('fa-circle-question', 'vp-e-mark-quiet'),
     'auto_not_allowed' => array('fa-hand', 'vp-e-mark-quiet'),
+    'auto_typed' => array('fa-hand', 'vp-e-mark-quiet'),
+    'needs_occurrence' => array('fa-ban', 'vp-e-mark-quiet'),
     'expired' => array('fa-clock-rotate-left', 'vp-e-mark-quiet'),
 );
 $mark = isset($marks[$state]) ? $marks[$state] : $marks['ok'];
@@ -127,13 +131,24 @@ $prose = array(
         . ' to any module.'
     ),
     'ineligible' => __(
-        'A run may only name a module offered for a type you hold an'
-        . ' occurrence of. Nothing was sent anywhere.'
+        'A run may only name a module offered for this value, under a'
+        . ' type that module accepts. Nothing was sent anywhere.'
     ),
     'auto_not_allowed' => __(
         'Your profile asks for this module to run on its own, and this'
         . ' instance does not allow that. Nothing was sent anywhere,'
         . ' and pressing Run still works.'
+    ),
+    'auto_typed' => __(
+        'Modules only run on their own for a type you hold an'
+        . ' occurrence of. Nothing was sent anywhere, and pressing Run'
+        . ' still works.'
+    ),
+    'needs_occurrence' => __(
+        'This instance checks every enrichment query against an'
+        . ' `enrichment-before-query` workflow, and that check needs an'
+        . ' attribute. You hold no occurrence of this value, so nothing'
+        . ' was sent anywhere.'
     ),
     'expired' => __(
         'The module was asked and what it said is no longer held —'
@@ -412,17 +427,54 @@ $manyObjects = count($run['objects']) > 1;
          * honest thing on the line.
          */
         ?>
+        <?php
+        $kept = isset($run['kept']) ? (int)$run['kept'] : (int)$run['shown'];
+        $more = $kept > $run['shown'];
+        ?>
         <div class="vp-e-res-prose">
             <div class="vp-e-partial">
                 <i class="fas fa-scissors"></i>
+                <span><?= h(sprintf(
+                    __('Showing %1$s of %2$s elements.'),
+                    number_format($run['shown']),
+                    number_format($run['total'])
+                )) ?>
+                <?php if ($kept < $run['total']): ?>
+                    <?= h(sprintf(
+                        __('MISP kept the first %1$s of the %2$s.'),
+                        number_format($kept),
+                        number_format($run['total'])
+                    )) ?>
+                <?php endif; ?></span>
+                <?php if ($more): ?>
+                    <button type="button" class="btn btn-link vp-e-showall"
+                            data-vp-e-run="<?= h($run['module']) ?>"
+                            data-vp-e-mode="stored" data-vp-e-all="1"
+                            data-vp-e-type="<?= h($run['type']) ?>">
+                        <i class="fas fa-chevron-down" data-vp-e-icon></i>
+                        <span data-vp-e-label><?= h(sprintf(
+                            $kept < $run['total']
+                                ? __('Show the %s kept')
+                                : __('Show all %s'),
+                            number_format($kept)
+                        )) ?></span>
+                    </button>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($run['known_checked'])
+        && $run['known_checked'] < $run['shown']
+    ): ?>
+        <div class="vp-e-res-prose">
+            <div class="vp-e-known-note">
+                <i class="fas fa-circle-info" aria-hidden="true"></i>
                 <?= h(sprintf(
-                    __(
-                        'Showing %1$s of %2$s elements. The rest are'
-                        . ' not hidden from you — they are more than'
-                        . ' this panel renders.'
-                    ),
-                    $run['shown'],
-                    $run['total']
+                    __('“Already in MISP” is checked on the first %1$s'
+                        . ' of these %2$s elements only.'),
+                    number_format($run['known_checked']),
+                    number_format($run['shown'])
                 )) ?>
             </div>
         </div>

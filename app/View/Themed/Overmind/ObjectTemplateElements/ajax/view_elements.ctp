@@ -43,8 +43,8 @@ $fields = [
     ],
     [
         'name' => __('Categories'),
-        'data_path' => 'ObjectTemplateElement.category',
-        'element' => 'category',
+        'data_path' => 'ObjectTemplateElement.categories',
+        'element' => 'object_template_element_values_list',
         'card_section' => 'attribute',
         'display_in' => ['table', 'card']
     ],

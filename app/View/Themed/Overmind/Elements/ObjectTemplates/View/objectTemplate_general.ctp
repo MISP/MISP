@@ -1,154 +1,73 @@
 <?php
+$objectTemplate = $data['ObjectTemplate'] ?? [];
+$organisation = $data['Organisation'] ?? [];
+$creator = $data['User'] ?? [];
+$requirements = is_array($objectTemplate['requirements'] ?? null) ? $objectTemplate['requirements'] : [];
 
-$objectTemplate = $data['ObjectTemplate'] ?? $data;
-$organisation = $data['Organisation'] ?? $data;
+$labelClass = 'text-body-secondary text-uppercase fw-bold';
+$labelStyle = 'font-size:.7rem;';
+$tileStyle = 'width:1.75rem;height:1.75rem;';
+
+$requirementGroups = [
+    'required' => [__('Required'), __('Every one of these must be filled'), 'danger'],
+    'requiredOneOf' => [__('At least one of'), __('One of these is enough'), 'warning'],
+];
+
+$flags = [
+    [
+        'on' => !empty($objectTemplate['active']),
+        'colour' => 'success',
+        'icon' => 'fas fa-power-off',
+        'label' => [__('Active'), __('Inactive')],
+        'sub' => [__('Offered when adding an object'), __('Not offered when adding an object')],
+    ],
+    [
+        'on' => !empty($objectTemplate['fixed']),
+        'colour' => 'primary',
+        'icon' => 'fas fa-box',
+        'label' => [__('Library'), __('Custom')],
+        'sub' => [__('Installed from the misp-objects library'), __('Created on this instance')],
+    ],
+];
 ?>
-
 <div class="card mb-3 shadow-sm">
+    <div class="card-body py-2 d-flex flex-column gap-3">
 
-    <div class="card-body">
-
-        <!-- NAME -->
-        <div class="mb-4">
-            <div class="text-muted small bold text-uppercase fw-bold mb-1">
-                <?= __('Name') ?>
+        <div>
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+                <span class="<?= $labelClass ?>" style="<?= $labelStyle ?>">
+                    <i class="misp-icon misp-icon-object misp-simple me-1" style="color:rgb(var(--bs-object-rgb));"></i><?= __('Object template') ?>
+                </span>
+                <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis border border-primary-subtle">
+                    v<?= h((int)($objectTemplate['version'] ?? 0)) ?>
+                </span>
             </div>
-
-            <div class="fw-semibold fs-5">
-                <?= h($objectTemplate['name'] ?? '') ?>
-            </div>
+            <?php if (trim($objectTemplate['description'] ?? '') !== ''): ?>
+                <div class="border-start border-3 rounded-end px-3 py-2 text-break"
+                     style="border-color:rgb(var(--bs-object-rgb)) !important;background:rgba(var(--bs-object-rgb),.06);">
+                    <?= nl2br(h($objectTemplate['description'])) ?>
+                </div>
+            <?php else: ?>
+                <span class="text-body-secondary fst-italic small"><?= __('No description') ?></span>
+            <?php endif; ?>
         </div>
 
-        <!-- DESCRIPTION -->
-        <div class="mb-4">
-            <div class="text-muted small text-uppercase fw-bold mb-1">
-                <?= __('Description') ?>
-            </div>
-
-            <div class="bg-light border rounded p-3">
-                <?= nl2br(h($objectTemplate['description'] ?? '')) ?>
-            </div>
-        </div>
-
-        <!-- META GRID -->
-        <div class="row g-3">
-
-            <!-- ID -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    ID
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <div class="bg-light rounded px-2 py-1">
-                        <?= h($objectTemplate['id'] ?? '') ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- UUID -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    UUID
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-
-                    <div class="bg-light rounded px-2 py-1" id="uuid-value">
-                        <?= h($objectTemplate['uuid'] ?? '') ?>
-                    </div>
-
-                    <!-- COPY BUTTON -->
-                    <button
-                        class="text-muted border-0 bg-white"
-                        onclick="copyToClipboard(this, '<?= h($objectTemplate['uuid'] ?? '') ?>')"
-                        data-bs-toggle="tooltip"
-                        title="<?= __('Copy UUID') ?>"
-                        aria-label="<?= __('Copy UUID') ?>">
-                        <i class="fas fa-copy"></i>
-                    </button>
-
-                </div>
-            </div>
-
-            <!-- CATEGORY -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Meta-category') ?>
-                </div>
-
-                <?= $this->element('genericElementsBS5/Badges/category',
-                    [
-                        'category' => $objectTemplate['meta-category'],
-                        'full' => false
-                    ]
-                ); ?>
-            </div>
-
-            <!-- VERSION -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Version') ?>
-                </div>
-
-                <?= $this->element('genericElementsBS5/Badges/version',
-                    [
-                        'version' => $objectTemplate['version'],
-                    ]
-                ); ?>
-            </div>
-
-            <!-- ACTIVATED -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Activated') ?>
-                </div>
-
-                <?= $this->element('genericElementsBS5/Badges/boolean',
-                    [
-                        'boolean' => $objectTemplate['active'],
-                        'full' => false
-                    ]
-                ); ?>
-            </div>
-
-            <!-- OWNER ORG -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Owner Org') ?>
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <?= $this->OrgImg->getOrgLogoV2($organisation, 24, false); ?>
-                    <?= h($organisation['name'] ?? '') ?>
-                </div>
-            </div>
-
-        </div>
-
-        <?php if (!empty($objectTemplate['requirements'])): ?>
-            <hr class="my-4 opacity-25">
-            <div class="mb-2">
-                <div class="text-muted small text-uppercase fw-bold mb-3">
-                    <?= __('Requirements') ?>
-                </div>
-                <div class="requirements-wrapper d-flex flex-wrap gap-5">
-                    <?php foreach ($objectTemplate['requirements'] as $group => $requirements): ?>
-                        <div class="requirement-group mb-3">
-                            <div class="d-flex align-items-center mb-1">
-                                <span class="badge bg-secondary-subtle text-primary-emphasis border border-secondary-subtle fw-bold text-uppercase" style="font-size: 0.75rem;">
-                                    <?= h($group) ?>
-                                </span>
+        <?php if (!empty(array_intersect_key($requirements, $requirementGroups))): ?>
+            <div>
+                <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Requirements') ?></div>
+                <div class="d-flex flex-column gap-2">
+                    <?php foreach ($requirementGroups as $group => list($label, $gloss, $colour)): ?>
+                        <?php if (empty($requirements[$group])): continue; endif; ?>
+                        <div class="d-flex flex-column flex-md-row gap-1 gap-md-3">
+                            <div class="flex-shrink-0" style="width:9rem;">
+                                <div class="small fw-semibold text-<?= $colour ?>-emphasis"><?= h($label) ?></div>
+                                <div class="text-body-secondary" style="font-size:.75rem;"><?= h($gloss) ?></div>
                             </div>
-
-                            <div class="requirement-list ps-2 border-start border-2 border-light-subtle">
-                                <?php foreach ($requirements as $requirement): ?>
-                                    <div class="d-flex align-items-baseline gap-2 mb-1">
-                                        <i class="fas fa-check-circle text-accent" style="font-size: 0.8rem;"></i>
-                                        <span class="text-muted small">
-                                            <?= h($requirement) ?>
-                                        </span>
-                                    </div>
+                            <div class="d-flex flex-wrap align-items-center gap-1 min-w-0">
+                                <?php foreach ((array)$requirements[$group] as $relation): ?>
+                                    <span class="badge rounded-pill fw-normal font-monospace bg-<?= $colour ?>-subtle text-<?= $colour ?>-emphasis border border-<?= $colour ?>-subtle">
+                                        <?= h($relation) ?>
+                                    </span>
                                 <?php endforeach; ?>
                             </div>
                         </div>
@@ -157,6 +76,42 @@ $organisation = $data['Organisation'] ?? $data;
             </div>
         <?php endif; ?>
 
-    </div>
+        <div>
+            <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Settings') ?></div>
+            <div class="d-flex flex-wrap row-gap-2 column-gap-3">
+                <?php foreach ($flags as $flag): ?>
+                    <?php $state = $flag['on'] ? 0 : 1; ?>
+                    <div class="d-flex align-items-center gap-2 min-w-0<?= $flag['on'] ? '' : ' opacity-75' ?>" style="flex:1 1 13rem;">
+                        <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3 <?= $flag['on']
+                            ? 'bg-' . $flag['colour'] . '-subtle text-' . $flag['colour'] . '-emphasis'
+                            : 'bg-body-secondary text-body-secondary' ?>"
+                              style="<?= $tileStyle ?>">
+                            <i class="<?= h($flag['icon']) ?>"></i>
+                        </span>
+                        <div class="min-w-0">
+                            <div class="fw-semibold lh-sm<?= $flag['on'] ? '' : ' text-body-secondary' ?>"><?= h($flag['label'][$state]) ?></div>
+                            <div class="small text-body-secondary text-truncate" title="<?= h($flag['sub'][$state]) ?>"><?= h($flag['sub'][$state]) ?></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                <?php if (!empty($organisation['name'])): ?>
+                    <div class="d-flex align-items-center gap-2 min-w-0" style="flex:1 1 13rem;">
+                        <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3 border bg-body-tertiary overflow-hidden"
+                              style="<?= $tileStyle ?>">
+                            <?= $this->OrgImg->getOrgLogoV2($organisation, 20, false)
+                                ?: '<i class="fas fa-building text-body-secondary"></i>' ?>
+                        </span>
+                        <div class="min-w-0">
+                            <a class="d-block fw-semibold lh-sm text-truncate text-decoration-none"
+                               href="<?= h($baseurl . '/organisations/view/' . $organisation['id']) ?>"><?= h($organisation['name']) ?></a>
+                            <div class="small text-body-secondary text-truncate">
+                                <?= !empty($objectTemplate['fixed']) ? __('Installed by') : __('Created by') ?><?php if (!empty($creator['email'])): ?> &middot; <?= h($creator['email']) ?><?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
 
+    </div>
 </div>

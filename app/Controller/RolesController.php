@@ -30,6 +30,13 @@ class RolesController extends AppController
         $this->set('permissionLevelName', $this->Role->permissionLevelName);
         $this->set('permFlags', $this->Role->permFlags);
         $this->set('menuData', ['menuList' => 'globalActions', 'menuItem' => 'roles']);
+        // An instance-wide head count, so only site admins get it.
+        $this->set('roleUserCount', $this->_isSiteAdmin()
+            ? $this->Role->User->find('count', [
+                'recursive' => -1,
+                'conditions' => ['User.role_id' => $this->viewVars['data']['Role']['id']],
+            ])
+            : null);
     }
 
     public function admin_add()

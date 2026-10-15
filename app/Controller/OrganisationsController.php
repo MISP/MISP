@@ -381,6 +381,15 @@ class OrganisationsController extends AppController
         }
 
         $org['Organisation']['country_code'] = $this->Organisation->getCountryCode($org['Organisation']['nationality']);
+        $orgId = (int)$org['Organisation']['id'];
+        // Same gate as the Users tab: site admins, and admins of this organisation.
+        $canViewUsers = $this->_isSiteAdmin()
+            || (!empty($this->userRole['perm_admin']) && (int)$this->Auth->user('org_id') === $orgId);
+        $this->set('orgUserSummary', $canViewUsers ? $this->__orgUserSummary($orgId) : null);
+        // Same gate as sharing_groups/index's searchorg filter.
+        $showSgOrgs = !empty($this->userRole['perm_sharing_group'])
+            || !Configure::read('Security.hide_organisations_in_sharing_groups');
+        $this->set('orgSharingGroups', $showSgOrgs ? $this->__orgSharingGroups($orgId) : null);
         $this->set('local', $org['Organisation']['local']);
         $this->set('fullAccess', $fullAccess);
         $this->set('org', $org);
@@ -427,6 +436,100 @@ class OrganisationsController extends AppController
                 || !Configure::read('Security.hide_organisations_in_sharing_groups'),
         ];
         $this->_renderRailCard((new OrganisationRailCards())->lazy($cardId, $user, $id, $may));
+    }
+
+    /**
+     * Head count by role and state, plus the few accounts used most recently,
+     * for the organisation view's Users card. Two grouped counts and one
+     * limited query, whatever the size of the organisation.
+     *
+     * @param int $orgId
+     * @return array
+     */
+    private function __orgUserSummary($orgId)
+    {
+        $this->loadModel('User');
+        $byRole = $this->User->find('all', [
+            'recursive' => -1,
+            'fields' => ['User.role_id', 'User.disabled', 'COUNT(*) AS count'],
+            'conditions' => ['User.org_id' => $orgId],
+            'group' => ['User.role_id', 'User.disabled'],
+        ]);
+        $roleNames = $this->User->Role->find('list', ['fields' => ['Role.id', 'Role.name']]);
+        $summary = ['total' => 0, 'disabled' => 0, 'roles' => [], 'recent' => []];
+        foreach ($byRole as $row) {
+            $count = (int)$row[0]['count'];
+            $roleId = (int)$row['User']['role_id'];
+            $summary['total'] += $count;
+            if (!empty($row['User']['disabled'])) {
+                $summary['disabled'] += $count;
+            }
+            if (!isset($summary['roles'][$roleId])) {
+                $summary['roles'][$roleId] = ['name' => $roleNames[$roleId] ?? __('Unknown role'), 'count' => 0];
+            }
+            $summary['roles'][$roleId]['count'] += $count;
+        }
+        uasort($summary['roles'], function ($a, $b) {
+            return $b['count'] <=> $a['count'];
+        });
+        $recent = $this->User->find('all', [
+            'recursive' => -1,
+            'fields' => ['User.id', 'User.email', 'User.role_id', 'User.disabled', 'User.last_login'],
+            'conditions' => ['User.org_id' => $orgId],
+            'order' => ['User.last_login DESC', 'User.id DESC'],
+            'limit' => 6,
+        ]);
+        foreach ($recent as $user) {
+            $user['User']['role_name'] = $roleNames[$user['User']['role_id']] ?? '';
+            $summary['recent'][] = $user['User'];
+        }
+        return $summary;
+    }
+
+    /**
+     * The sharing groups this organisation creates or belongs to, among those
+     * the current user may see.
+     *
+     * @param int $orgId
+     * @return array
+     */
+    private function __orgSharingGroups($orgId)
+    {
+        $this->loadModel('SharingGroup');
+        $authorized = $this->SharingGroup->authorizedIds($this->Auth->user());
+        if (empty($authorized)) {
+            return [];
+        }
+        $memberships = $this->SharingGroup->SharingGroupOrg->find('list', [
+            'fields' => ['SharingGroupOrg.sharing_group_id', 'SharingGroupOrg.extend'],
+            'conditions' => [
+                'SharingGroupOrg.org_id' => $orgId,
+                'SharingGroupOrg.sharing_group_id' => $authorized,
+            ],
+        ]);
+        $owned = $this->SharingGroup->find('column', [
+            'fields' => ['SharingGroup.id'],
+            'conditions' => ['SharingGroup.org_id' => $orgId, 'SharingGroup.id' => $authorized],
+        ]);
+        $ids = array_unique(array_merge(array_keys($memberships), $owned));
+        if (empty($ids)) {
+            return [];
+        }
+        $this->SharingGroup->addCountField('org_count', $this->SharingGroup->SharingGroupOrg, ['SharingGroupOrg.sharing_group_id = SharingGroup.id']);
+        $groups = $this->SharingGroup->find('all', [
+            'recursive' => -1,
+            'fields' => ['SharingGroup.id', 'SharingGroup.name', 'SharingGroup.active', 'SharingGroup.roaming', 'SharingGroup.org_id', 'SharingGroup.org_count'],
+            'conditions' => ['SharingGroup.id' => $ids],
+            'order' => ['SharingGroup.name'],
+        ]);
+        $result = [];
+        foreach ($groups as $group) {
+            $sg = $group['SharingGroup'];
+            $sg['owner'] = (int)$sg['org_id'] === $orgId;
+            $sg['extend'] = !empty($memberships[$sg['id']]);
+            $result[] = $sg;
+        }
+        return $result;
     }
 
     public function fetchOrgsForSG($idList = '{}', $type)

@@ -49,7 +49,8 @@ $max = empty($months) ? 0 : max($months);
          */
         $keys = array_keys($months);
         ?>
-        <div class="vp-rw-months" role="img" aria-label="<?= h(__(
+        <div class="vp-rw-months<?= count($months) > 48
+            ? ' is-dense' : '' ?>" role="img" aria-label="<?= h(__(
             'Distinct resolutions current per month, oldest first'
         )) ?>">
             <?php foreach ($months as $month => $count): ?>
@@ -68,11 +69,10 @@ $max = empty($months) ? 0 : max($months);
                       )) ?>"></span>
             <?php endforeach; ?>
         </div>
-        <div class="vp-rw-sub"><?= h(sprintf(
-            '%s — %s',
-            reset($keys),
-            end($keys)
-        )) ?></div>
+        <div class="vp-rw-sub vp-rw-ends"><?php
+            foreach (array(reset($keys), end($keys)) as $end): ?>
+            <span><?= h(date('M Y', strtotime($end . '-01'))) ?></span><?php
+            endforeach; ?></div>
     <?php else: ?>
         <?php
         /*

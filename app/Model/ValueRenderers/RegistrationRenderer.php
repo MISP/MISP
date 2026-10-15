@@ -30,6 +30,8 @@ class RegistrationRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/registration_full';
 
+    public $eventUse = self::EVENT_SET;
+
     const REGISTRANT = array(
         'registrant-name' => 'name',
         'registrant-org' => 'organisation',

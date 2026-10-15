@@ -51,7 +51,7 @@ foreach ($section['blocks'] as $block) {
          data-sec="<?= h($section['id']) ?>">
     <div class="wb-sec-head">
         <div>
-            <p class="wb-h">
+            <p class="wb-h wb-sec-title">
                 <?= h($section['title']) ?>
                 <?php if (!empty($section['axis'])): ?>
                     <span class="wb-ax"><?= h($section['axis']) ?></span>
@@ -97,48 +97,117 @@ foreach ($section['blocks'] as $block) {
         <?php endif; ?>
     </div>
 
-    <?php foreach ($section['blocks'] as $block): ?>
-        <?php if ($block['kind'] === 'items'): ?>
-            <?= $this->element('AnalystProfiles/block_items', array(
+    <?php if (!empty($section['guide'])): ?>
+        <?php $guide = $section['guide']; ?>
+        <div class="wb-guide">
+            <p class="wb-guide-h">
+                <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                <?= h($guide['title']) ?>
+            </p>
+            <?php if (!empty($guide['intro'])): ?>
+                <p class="wb-guide-intro"><?= h($guide['intro']) ?></p>
+            <?php endif; ?>
+            <dl class="wb-guide-list">
+                <?php foreach ($guide['items'] as $item): ?>
+                    <div>
+                        <dt><?= h($item['symptom']) ?></dt>
+                        <dd><?= h($item['remedy']) ?></dd>
+                    </div>
+                <?php endforeach; ?>
+            </dl>
+        </div>
+    <?php endif; ?>
+
+    <?php
+    $renderBlock = function (array $block) use (
+        $section, $editable, $ledger, $benchValue, $lean, $marks, $runway
+    ) {
+        if ($block['kind'] === 'items') {
+            return $this->element('AnalystProfiles/block_items', array(
                 'block' => $block,
                 'editable' => $editable,
                 'sectionId' => $section['id'],
                 'ledger' => $ledger,
                 'benchValue' => $benchValue,
                 'lean' => $lean,
-            )) ?>
-        <?php elseif ($block['kind'] === 'fields'): ?>
-            <?= $this->element('AnalystProfiles/block_fields', array(
+            ));
+        }
+        if ($block['kind'] === 'fields') {
+            return $this->element('AnalystProfiles/block_fields', array(
                 'block' => $block,
                 'editable' => $editable,
-            )) ?>
-        <?php elseif ($block['kind'] === 'map'): ?>
-            <?php $curve = $section['id'] === 'relevance'
-                && $block['id'] === 'ttl_buckets'; ?>
-            <?php if ($curve): ?><div class="ttl-grid"><div class="ttl-buckets"><?php endif; ?>
-            <?= $this->element('AnalystProfiles/block_map', array(
+            ));
+        }
+        if ($block['kind'] === 'map') {
+            $map = $this->element('AnalystProfiles/block_map', array(
                 'block' => $block,
                 'editable' => $editable,
-            )) ?>
-            <?php if ($curve): ?>
-                </div>
-                <?= $this->element('AnalystProfiles/ttl_curve', array(
+            ));
+            if ($section['id'] !== 'relevance'
+                || $block['id'] !== 'ttl_buckets'
+            ) {
+                return $map;
+            }
+            return '<div class="ttl-grid"><div class="ttl-buckets">' . $map
+                . '</div>' . $this->element('AnalystProfiles/ttl_curve', array(
                     'block' => $block,
                     'section' => $section,
                     'runway' => $runway,
-                )) ?>
-                </div>
-            <?php endif; ?>
-        <?php elseif ($block['kind'] === 'order'): ?>
-            <?= $this->element('AnalystProfiles/block_order', array(
+                )) . '</div>';
+        }
+        if ($block['kind'] === 'order') {
+            return $this->element('AnalystProfiles/block_order', array(
                 'block' => $block,
                 'editable' => $editable,
-            )) ?>
-        <?php elseif ($block['kind'] === 'strip'): ?>
-            <?= $this->element('AnalystProfiles/block_strip', array(
+            ));
+        }
+        if ($block['kind'] === 'strip') {
+            return $this->element('AnalystProfiles/block_strip', array(
                 'strip' => $block,
                 'marks' => $marks,
-            )) ?>
-        <?php endif; ?>
+                'editable' => $editable,
+            ));
+        }
+        return '';
+    };
+    $main = array();
+    $folded = array();
+    foreach ($section['blocks'] as $block) {
+        if (!empty($block['advanced']) && !empty($section['fold'])) {
+            $folded[] = $block;
+        } else {
+            $main[] = $block;
+        }
+    }
+    ?>
+    <?php foreach ($main as $block): ?>
+        <div class="wb-block" data-ap-block="<?= h($block['id']) ?>">
+            <?= $renderBlock($block) ?>
+        </div>
     <?php endforeach; ?>
+
+    <?php if (!empty($folded)): ?>
+        <details class="wb-fold" data-ap-fold>
+            <summary>
+                <i class="fa-solid fa-chevron-right wb-fold-caret"
+                   aria-hidden="true"></i>
+                <span class="wb-fold-label"><?=
+                    h($section['fold']['label']) ?></span>
+                <?php if (!empty($section['fold']['summary'])): ?>
+                    <span class="wb-fold-sum"><?=
+                        h($section['fold']['summary']) ?></span>
+                <?php endif; ?>
+                <span class="wb-fold-edited"><?=
+                    h(__('unsaved changes')) ?></span>
+            </summary>
+            <div class="wb-fold-body">
+                <?php foreach ($folded as $block): ?>
+                    <div class="wb-block"
+                         data-ap-block="<?= h($block['id']) ?>">
+                        <?= $renderBlock($block) ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </details>
+    <?php endif; ?>
 </section>

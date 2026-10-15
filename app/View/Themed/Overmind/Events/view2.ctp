@@ -35,10 +35,18 @@
     $this->set('headerDescription', $headerDescription);
     $this->set('headerActions', $headerActions);
 
+    $viewJs = ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'event-report-reader', 'Chart.min',
+        'event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline', 'event-seen-timeline', 'tile-drawer',
+        'event-object-views'];
+    $viewCss = ['event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline', 'value-widgets', 'tile-drawer',
+        'event-object-views'];
+    if (Configure::read('Plugin.Geolocation_enabled')) {
+        $viewJs = array_merge($viewJs, ['leaflet', 'object-map']);
+        $viewCss[] = 'leaflet';
+    }
     echo $this->element('genericElements/assetLoader', [
-        'js'  => ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'Chart.min', 'event-overview', 'misp-matrix',
-            'misp-brush', 'misp-timeline', 'event-seen-timeline'],
-        'css' => ['event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline'],
+        'js'  => $viewJs,
+        'css' => $viewCss,
     ]);
 
     // Extended / extending view: say so, and carry the mode into every lazy
@@ -47,8 +55,12 @@
     $extensionSuffix = $extensionSuffix ?? '';
 
     $searchFor = $this->request->params['named']['searchFor'] ?? '';
+    $distributionFilter = $this->request->params['named']['distribution'] ?? '';
     $listSuffix = $extensionSuffix
-        . ($searchFor !== '' ? '/searchFor:' . rawurlencode($searchFor) : '');
+        . ($searchFor !== '' ? '/searchFor:' . rawurlencode($searchFor) : '')
+        . ($distributionFilter !== '' ? '/distribution:' . (int)$distributionFilter : '');
+    $objectFilter = (int)($this->request->params['named']['object'] ?? 0);
+    $objectsSuffix = $listSuffix . ($objectFilter > 0 ? '/object:' . $objectFilter : '');
 
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
@@ -69,6 +81,7 @@
                     'Events/View/overview_details',
                 ],
                 'right' => [
+                    'Events/View/event_warnings',
                     'Events/View/event_actions',
                     'Events/View/event_matrix',
                     'Events/View/event_warninglists',
@@ -87,7 +100,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']), $listSuffix)
+                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']), $objectsSuffix)
                     ]
                 ],
             ],
@@ -161,5 +174,7 @@
             ]
         ]
     ]);
+
+    echo $this->element('Events/View/report_reader');
 ?>
 

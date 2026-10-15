@@ -50,10 +50,10 @@ $now = time();
                     <?php endif; ?></td>
                     <td><?= h(empty($cert['names'])
                         ? '—' : implode(', ', $cert['names'])) ?></td>
-                    <td class="font-monospace vp-rf-dim"><?= h(implode(
-                        ', ',
-                        array_filter($cert['sources'])
-                    )) ?></td>
+                    <td class="font-monospace vp-rf-dim"><?=
+                        $this->element('Values/Renderers/source_cell',
+                            array('sources' => $cert['sources'])
+                        ) ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>

@@ -1352,6 +1352,7 @@ class ValuesController extends AppController
                     'mode' => isset($data['mode']) && is_scalar($data['mode'])
                         ? (string)$data['mode']
                         : null,
+                    'all' => !empty($data['all']),
                 )
             ),
             'json'
@@ -1460,15 +1461,20 @@ class ValuesController extends AppController
      * module never holds up a fast one, and every one of them is the
      * same request a press makes.
      *
+     * `?as=<type>` names the type to match modules on when the reader
+     * holds no occurrence of the value.
+     *
      * @param string $b64value
      * @return void
      */
     public function viewEnrichment($b64value = null)
     {
+        $as = $this->request->query('as');
         $this->__renderLivePanel(
             $b64value,
             'forEnrichment',
-            'value_enrichment'
+            'value_enrichment',
+            is_string($as) && $as !== '' ? array('as' => $as) : array()
         );
     }
 
@@ -1546,6 +1552,8 @@ class ValuesController extends AppController
                  * the reuse window are both re-decided in the model.
                  */
                 'mode' => $this->__runParam('mode'),
+                // Every element kept rather than the first 200.
+                'all' => $this->__runParam('all') === '1',
             )
         );
     }

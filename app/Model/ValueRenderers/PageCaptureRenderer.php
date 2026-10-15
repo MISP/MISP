@@ -37,6 +37,8 @@ class PageCaptureRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/page_capture_full';
 
+    public $eventUse = self::EVENT_SET;
+
     public function __construct()
     {
         $this->description = __('A captured copy of a page, with what'

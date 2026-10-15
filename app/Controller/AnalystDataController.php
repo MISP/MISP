@@ -385,6 +385,14 @@ class AnalystDataController extends AppController
                 && $this->AnalystData->canEditAnalystData($user, $this->viewVars['data'], $this->modelSelection));
         }
         $this->set('id', $id);
+        $record = $this->viewVars['data'][$this->modelSelection] ?? [];
+        $targets = [];
+        foreach ([['object_type', 'object_uuid'], ['related_object_type', 'related_object_uuid']] as list($typeKey, $uuidKey)) {
+            if (!empty($record[$uuidKey])) {
+                $targets[] = ['type' => $record[$typeKey] ?? '', 'uuid' => $record[$uuidKey]];
+            }
+        }
+        $this->set('analystTargets', $this->AnalystData->describeTargets($this->Auth->user(), $targets));
         $this->loadModel('Event');
         $this->_setViewElements();
         $this->set('distributionLevels', $this->Event->distributionLevels);

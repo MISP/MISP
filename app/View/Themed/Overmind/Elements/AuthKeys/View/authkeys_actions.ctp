@@ -24,13 +24,6 @@ if ($canEdit) {
     ];
 }
 
-$actions[] = [
-    'url'   => "$baseurl/auth_keys/index" . ($ownerId ? '/' . h($ownerId) : ''),
-    'icon'  => 'fas fa-list',
-    'label' => __('Back to auth keys'),
-    'short' => __('Back'),
-];
-
 echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions,
 ]);

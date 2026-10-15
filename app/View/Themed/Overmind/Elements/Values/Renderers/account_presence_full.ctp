@@ -66,9 +66,9 @@ $hidden = count($breaches) - count($shown);
                             : date('Y-m-d',
                                 $account['last_login'])) ?></td>
                         <td class="font-monospace vp-rf-dim"><?=
-                            h(implode(', ', array_filter(
-                                $account['sources']
-                            ))) ?></td>
+                            $this->element('Values/Renderers/source_cell',
+                                array('sources' => $account['sources'])
+                            ) ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -155,9 +155,9 @@ $hidden = count($breaches) - count($shown);
                                     $breach['accounts']
                                 )) ?></td>
                         <td class="font-monospace vp-rf-dim"><?=
-                            h(implode(', ', array_filter(
-                                $breach['sources']
-                            ))) ?></td>
+                            $this->element('Values/Renderers/source_cell',
+                                array('sources' => $breach['sources'])
+                            ) ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

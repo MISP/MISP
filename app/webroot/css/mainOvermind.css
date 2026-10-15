@@ -660,7 +660,7 @@ html.ig-so-docked #flashOverlay {
 }
 
 .idx-view-anim {
-    animation: idxViewFade .82s ease-out both;
+    animation: idxViewFade .82s ease-out backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -715,65 +715,87 @@ th .sort-icon::before {
 
 
 /* =======================================================
-   REST Custom CSS
+   REST client (api/rest)
 ======================================================= */
 
-
-.custom-code-text {
-    color: var(--misp-tone-purple-fg, #38005e) !important;
-    font-size: 13px; 
+/* Only what no utility covers: the row hover and its hidden tools, a fixed
+   width for the method badge, the code panes' height and wrap, and the
+   library staying in view beside a long form. */
+.rest-row {
+    cursor: pointer;
+}
+.rest-row:hover,
+.rest-row:focus-visible,
+.rest-row.active {
+    background-color: var(--bs-primary-bg-subtle);
+}
+.rest-row .rest-row-tool {
+    opacity: 0;
+}
+.rest-row:hover .rest-row-tool,
+.rest-row:focus-within .rest-row-tool {
+    opacity: 1;
+}
+.rest-method {
+    min-width: 3.75rem;
+}
+.rest-group-toggle:hover {
+    background-color: var(--bs-tertiary-bg);
+}
+.rest-request-line {
+    flex-basis: 24rem;
+    min-width: 0;
+}
+.rest-library-body {
+    max-height: 28rem;
+}
+@media (min-width: 992px) {
+    .rest-library {
+        position: sticky;
+        top: 1rem;
+    }
+    .rest-library-body {
+        max-height: calc(100vh - 14rem);
+    }
 }
 
-[data-misp-mode="dark"] .custom-code-text  {
-    color: var(--misp-tone-green-fg, #6cff9a) !important;
+.rest-code {
+    max-height: 32rem;
 }
-
+.rest-code pre {
+    font-size: .8rem;
+    line-height: 1.6;
+}
+.rest-code-text {
+    color: var(--misp-tone-purple-fg, #38005e);
+}
+[data-misp-mode="dark"] .rest-code-text {
+    color: var(--misp-tone-green-fg, #6cff9a);
+}
+.rest-code.is-wrapped .rest-code-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
 
 .api-tooltip {
     position: absolute;
-    z-index: 9999;
+    z-index: 1080;
+    display: none;
     width: 350px;
+    max-width: calc(100vw - 1rem);
     max-height: 400px;
     overflow-y: auto;
-
-    background: var(--misp-surface, white);
-    border: 1px solid var(--misp-line, #ddd);
-    border-radius: 8px;
-
-    padding: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-
-    display: none;
+    padding: .75rem;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    box-shadow: var(--bs-box-shadow-lg);
 }
 
-
-/* =======================================================
-   Category & Query Card Custom CSS
-======================================================= */
-
-/* Left border color */
-.query-container,
-.category-container {
-    --misp-border-color: var(--bs-secondary-rgb);
-    border-inline-start-color: rgba(var(--misp-border-color), 1) !important;
-    transition: border-color 0.2s ease;
+.nav-pills .nav-link.active {
+    background-color: var(--bs-primary);
+    color: var(--bs-light);
 }
-
-/* Left border color hovered */
-.query-container:has(.card-body:hover),
-.category-container:has(.card-header:hover),
-.category-container:has(.card-header:not(.collapsed)) {
-    border-inline-start-color: var(--bs-primary) !important;
-}
-
-/* Header color hovered */
-.query-card .card-body:hover,
-.category-card .card-header:hover,
-.category-card .card-header:not(.collapsed) {
-    background-color: rgba(135, 198, 214, 0.2);
-    border-radius: 0;
-}
-
 
 /* =======================================================
    Drag and Drop CSS
@@ -2144,8 +2166,6 @@ tr.evt-extension-row td:first-child { position: relative; }
    Categories & Types
    ═══════════════════════════════════════════════════════════ */
 
-.ct-page .ct-toolbar { position: sticky; top: 56px; z-index: 6; }
-
 .ct-page .ct-chip {
     display: inline-flex; align-items: center; gap: .3rem;
     padding: .1rem .55rem; border-radius: 999px; line-height: 1.5;
@@ -2169,9 +2189,13 @@ tr.evt-extension-row td:first-child { position: relative; }
 }
 .ct-page .ct-cat-count { color: #fff; background: hsl(var(--h) 55% 45%); }
 
-.ct-page .ct-type-scroll { max-height: 70vh; }
+/* clip, not hidden: the header stays sticky against the page, under the navbar */
+.ct-page .ct-type-wrap { overflow: clip; }
+@media (max-width: 767.98px) {
+    .ct-page .ct-type-wrap { overflow-x: auto; }
+}
 .ct-page .ct-type-table { border-collapse: separate; border-spacing: 0; }
-.ct-page .ct-type-table thead th { position: sticky; top: 0; z-index: 3; }
+.ct-page .ct-type-table thead th { position: sticky; top: 56px; z-index: 3; }
 
 .ct-page .ct-matrix-scroll { max-height: 85vh; }
 .ct-page .ct-matrix {
@@ -2188,14 +2212,14 @@ tr.evt-extension-row td:first-child { position: relative; }
     border-right: 1px solid var(--bs-border-color);
 }
 .ct-page .ct-matrix tbody th.ct-row-head {
-    position: sticky; left: 0; z-index: 2; cursor: pointer;
+    position: sticky; left: 0; z-index: 2;
     background: var(--bs-body-bg); border-right: 1px solid var(--bs-border-color);
 }
 .ct-page .ct-matrix tbody tr:hover th.ct-row-head,
 .ct-page .ct-matrix tbody tr:hover td { background: var(--bs-secondary-bg); }
 .ct-page .ct-vhead {
     writing-mode: vertical-rl; transform: rotate(180deg);
-    cursor: pointer; color: hsl(var(--h) 55% 40%);
+    color: hsl(var(--h) 55% 40%);
 }
 [data-misp-mode="dark"] .ct-page .ct-vhead { color: hsl(var(--h) 70% 72%); }
 .ct-page .ct-dot {
@@ -2204,7 +2228,9 @@ tr.evt-extension-row td:first-child { position: relative; }
 }
 [data-misp-mode="dark"] .ct-page .ct-dot { background: hsl(var(--h) 68% 60%); }
 
-.ct-page .ct-flash { animation: ctFlash 1.6s ease; }
+/* table cells paint their own background over the row's */
+.ct-page .ct-flash,
+.ct-page tr.ct-flash > * { animation: ctFlash 1.6s ease; }
 @keyframes ctFlash {
     0%, 20% { background: rgba(var(--bs-warning-rgb), .35); }
     100%    { background: transparent; }
@@ -5423,6 +5449,47 @@ tr.evt-extension-row td:first-child { position: relative; }
     background: rgba(var(--bs-object-rgb), .28);
 }
 
+/* "Show on map" in the header of a geolocation, gpx, uav or geojson object. */
+.ov-obj-map-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .1rem .5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-pill);
+    background: rgba(var(--bs-success-rgb), .08);
+    color: var(--bs-body-color);
+    font-size: .72rem;
+    line-height: 1.4;
+}
+
+.ov-obj-map-btn:hover,
+.ov-obj-map-btn:focus-visible {
+    border-color: var(--bs-success);
+    background: rgba(var(--bs-success-rgb), .18);
+    color: var(--bs-body-color);
+}
+
+.ov-obj-map-btn > i {
+    font-size: .7rem;
+    color: var(--bs-success);
+}
+
+[data-misp-mode="dark"] .ov-obj-map-btn {
+    background: rgba(var(--bs-success-rgb), .22);
+}
+
+/* The map an object opens in the main modal (js/object-map.js). */
+.ov-object-map {
+    height: min(60vh, 520px);
+    width: 100%;
+}
+
+.ov-object-map-info {
+    min-height: 1.5rem;
+    font-size: .8rem;
+}
+
 /* ═══════════════════════════════════════════════════════════
    Icon tiles
    ═══════════════════════════════════════════════════════════ */
@@ -5534,3 +5601,49 @@ tr.evt-extension-row td:first-child { position: relative; }
 #multiSelectToolbar .ms-clear { padding-left: 4px; padding-right: 4px; text-decoration: none; }
 #multiSelectToolbar .ms-clear:hover { text-decoration: underline; }
 body.ms-float-open { padding-bottom: calc(var(--ms-float-h, 56px) + 32px); }
+
+/* Attribute values (Attributes/value_display.ctp, value_flags.ctp) */
+.om-value-text { white-space: pre-wrap; }
+.om-value-more { font-size: .8em; font-weight: 400; text-decoration: none; vertical-align: baseline; }
+.om-value-ext { font-size: .7em; opacity: .6; }
+.om-value-hex-toggle { font-size: .75em; line-height: 1; color: var(--bs-secondary-color); }
+.om-value-hex-toggle:hover { color: var(--bs-link-hover-color); }
+.om-value-binary { word-spacing: .15em; }
+.om-value-zip {
+    font-size: .65rem; font-weight: 500; font-family: var(--bs-font-monospace);
+    color: var(--bs-warning-text-emphasis); background: var(--bs-warning-bg-subtle);
+    border: 1px solid var(--bs-warning-border-subtle); vertical-align: .1em; cursor: help;
+}
+.om-wl-popover { --bs-popover-max-width: 22rem; }
+.om-wl-popover .om-wl-hit + .om-wl-hit {
+    margin-top: .4rem; padding-top: .4rem; border-top: 1px solid var(--bs-border-color-translucent);
+}
+.om-corr-popover { --bs-popover-max-width: 22rem; }
+
+.ov-obj-rel-empty { opacity: .6; }
+.ov-obj-rel-empty:hover, .ov-obj-rel-empty[aria-expanded="true"] { opacity: 1; }
+.ov-obj-rel-menu { min-width: 18rem; max-width: min(30rem, 90vw); }
+.ov-obj-rel-target { min-width: 0; line-height: 1.25; }
+.ov-obj-rel-delete { color: var(--bs-secondary-color); padding: .15rem .4rem; }
+.ov-obj-rel-delete:hover, .ov-obj-rel-delete:focus-visible { color: var(--bs-danger); }
+
+/* Event warnings card (Events/View/event_warnings.ctp) */
+.ev-warnings-card { border-color: var(--bs-warning-border-subtle); }
+.ev-warnings-tile { width: 36px; height: 36px; background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); }
+.ev-warnings-list li { padding: .6rem 1rem; font-size: .8rem; line-height: 1.4; }
+.ev-warnings-list li + li { border-top: 1px solid var(--bs-border-color-translucent); }
+.ev-warnings-category {
+    display: block; margin-bottom: .15rem; font-size: .66rem; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--bs-warning-text-emphasis);
+}
+.ev-warnings-text { color: var(--bs-body-color); }
+
+/* A deleted object attribute: faded, but its actions menu must not inherit the
+   opacity, which would also trap the menu under the content that follows. */
+.ov-attr-deleted > td:not(:last-child) { opacity: .5; text-decoration: line-through; color: var(--bs-secondary-color); }
+/* Freetext import review: the editor opens as a row under the one it edits,
+   so it needs the accent to read as attached rather than as another entry. */
+.ft-editor > td {
+    border-left: 3px solid var(--event);
+    background: var(--bs-tertiary-bg);
+}

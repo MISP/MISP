@@ -20,6 +20,8 @@ class PaymentCardRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/payment_card_full';
 
+    public $eventUse = self::EVENT_SET;
+
     public $producer = self::PRODUCER_NONE;
 
     public function __construct()

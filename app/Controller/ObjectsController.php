@@ -25,11 +25,11 @@ class ObjectsController extends AppController
         if (!$this->_isRest()) {
             $this->Security->unlockedActions = array('revise_object', 'get_row', 'similar_objects');
         }
-        // The delete confirmation posts an empty body through fetch(), and the
+        // The delete confirmations post a hand-built body through fetch(), and the
         // event Timeline posts editField as JSON, so there is no field hash for
         // _validatePost() to compare and it can only blackhole.
         // CSRF is still enforced, through the X-CSRF-Token header.
-        $this->_csrfTokenHeaderOnly(['delete', 'editField']);
+        $this->_csrfTokenHeaderOnly(['delete', 'deleteSelection', 'editField']);
     }
 
     public function revise_object($action, $event_id, $template_id, $object_id = false, $update_template_available = false, $similar_objects_display_threshold=15)
@@ -893,7 +893,7 @@ class ObjectsController extends AppController
         $this->set('templateList', []);
         // The relationship step lists what the object already points at, so that
         // an edit can drop one.
-        $this->set('existingReferences', $this->MispObject->ObjectReference->find('all', [
+        $existingReferences = $this->MispObject->ObjectReference->find('all', [
             'recursive' => -1,
             'conditions' => [
                 'ObjectReference.object_id' => $object['Object']['id'],
@@ -905,7 +905,11 @@ class ObjectsController extends AppController
                 'ObjectReference.relationship_type', 'ObjectReference.comment',
             ],
             'order' => ['ObjectReference.id' => 'ASC'],
-        ]));
+        ]);
+        $this->set('existingReferences', $existingReferences);
+        $this->set('referenceTargets', $this->MispObject->ObjectReference->describeTargets(
+            $this->Auth->user(), array_column($existingReferences, 'ObjectReference')
+        ));
         $this->render('add');
     }
 
@@ -1338,9 +1342,19 @@ class ObjectsController extends AppController
             if (empty($idList) || !is_array($idList)) {
                 throw new NotFoundException(__('Invalid object ID.'));
             }
+            $idList = array_map('intval', $idList);
+            // A selection that is already soft-deleted can only go for good.
+            $deletedFlags = $this->MispObject->find('list', [
+                'conditions' => ['Object.id' => $idList],
+                'fields' => ['Object.id', 'Object.deleted'],
+                'recursive' => -1,
+            ]);
+            $alreadyDeleted = !empty($deletedFlags) && !in_array(
+                false, array_map('boolval', $deletedFlags), true
+            );
             $this->layout = false;
-            $this->set('idArray', array_map('intval', $idList));
-            $this->set('hard', (bool)$hard);
+            $this->set('idArray', $idList);
+            $this->set('hard', (bool)$hard || $alreadyDeleted);
             $this->render('ajax/objectDeleteSelectionForm');
             return;
         }
@@ -1462,17 +1476,14 @@ class ObjectsController extends AppController
             }
             return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
         } else if (($this->theme ?? null) === 'Overmind') {
-            $this->redirect('/events/view2/' . $object['Object']['event_id'] . '#tab-objects');
+            $this->redirect([
+                'controller' => 'events',
+                'action' => 'view2',
+                $object['Object']['event_id'],
+                'object' => $object['Object']['id'],
+                '#' => 'tab-objects',
+            ]);
         } else {
-            if ($this->theme === 'Overmind') {
-                $this->redirect([
-                    'controller' => 'events',
-                    'action' => 'view2',
-                    $object['Object']['event_id'],
-                    'searchFor' => $object['Object']['uuid'],
-                    '#' => 'tab-objects',
-                ]);
-            }
             $this->redirect('/events/view/' . $object['Object']['event_id']);
         }
     }
