@@ -30,22 +30,6 @@
         ];
     }
 
-    if ($this->Acl->canAccess('collectionElements', 'addElementToCollection')) {
-        $headerActions[] = [
-            'type' => 'modal',
-            'tab' => 'general',
-            'label' => __('Add to collection'),
-            'icon' => 'folder-plus',
-            'class' => 'btn btn-outline-dark',
-            'url' => sprintf(
-                '%s/collectionElements/addElementToCollection/Event/%s',
-                $baseurl,
-                h($event['Event']['uuid'])
-            ),
-            'size' => 'xl',
-        ];
-    }
-
     $this->set('headerTitle', $headerTitle);
     $this->set('headerBreadcrumbSuffix', '#' . $event['Event']['id']);
     $this->set('headerDescription', $headerDescription);
