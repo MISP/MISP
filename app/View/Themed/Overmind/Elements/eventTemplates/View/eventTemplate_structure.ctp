@@ -172,7 +172,7 @@ $renderElement = function (array $element) use ($typeMeta, $baseurl) {
         . '</div>';
 };
 ?>
-<div class="card mb-3 shadow-sm">
+<div class="card mb-3 shadow-sm" data-tour="event-template-structure">
     <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
         <span>
             <i class="fas fa-list-check me-2"></i><?= __('What the reporter is asked for') ?>

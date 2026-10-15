@@ -22,6 +22,7 @@ if ($this->Acl->canAccess('eventTemplates', 'instantiate') && $isActive) {
         'onclick' => "event.preventDefault(); openModal('"
             . "$baseurl/event_templates/instantiate/$templateId', 'xl');",
         'icon' => 'fas fa-play',
+        'tour' => 'action-template-instantiate',
         'label' => __('Create event from template'),
         'success' => true,
     ];

@@ -26,7 +26,7 @@ $emptyState = function ($icon, $text) {
 };
 ?>
 <?php if (!$listed): ?>
-    <div class="card mb-3 shadow-sm">
+    <div class="card mb-3 shadow-sm" data-tour="sharing-group-members">
         <?= $cardHeader(
             'misp-icon misp-icon-organisation misp-simple',
             __('Member organisations'),
@@ -35,7 +35,7 @@ $emptyState = function ($icon, $text) {
         <?= $emptyState('fas fa-eye-slash', __('The members of a sharing group are not shown on this instance.')) ?>
     </div>
 <?php else: ?>
-<div class="row g-3 mb-3">
+<div class="row g-3 mb-3" data-tour="sharing-group-members">
     <div class="col-lg-6">
         <div class="card h-100 shadow-sm">
             <?= $cardHeader(

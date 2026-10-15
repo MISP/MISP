@@ -31,7 +31,9 @@
  *   $secondary array        buttons between cancel and submit — a second action
  *                           on the same footing as the primary one ("Validate")
  *   $submit    array|false  the primary button; false drops it. Defaults to
- *                           "Save Changes" / "Add" in the accent colour
+ *                           "Save Changes" / "Add" in the accent colour, and
+ *                           always carries data-tour="modal-submit" for the
+ *                           onboarding tour
  *
  *   -- layout --
  *   $align     string  'between' (default) or 'end' — 'end' when there is no
@@ -124,6 +126,7 @@ foreach ($secondary ?? [] as $spec) {
 }
 
 if (($submit = $submit ?? []) !== false) {
+    $submit['attrs'] = ($submit['attrs'] ?? []) + ['data-tour' => 'modal-submit'];
     $bar[] = $submit + [
         'label' => $isEdit ? __('Save Changes') : __('Add'),
         'icon' => 'fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus'),
