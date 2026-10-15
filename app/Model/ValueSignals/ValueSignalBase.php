@@ -270,6 +270,10 @@ abstract class ValueSignalBase
      * Its lean rows are still drawn, but they do not decide the
      * lean-disputed check: a voice weighed against the reporters once
      * must not get a second, unweighted say as a sum of points.
+     *
+     * A row carrying its own `voice` key overrides this for that row:
+     * `enrichment.registration_age` keeps its weak tier out of the
+     * check that way.
      */
     public $voice = false;
 

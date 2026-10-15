@@ -1116,7 +1116,10 @@ class ValueVerdictTool
             'tab' => isset($row['tab']) ? $row['tab'] : $signal->tab,
             'as_of' => isset($row['as_of']) ? $row['as_of'] : '',
             'id' => $signal->id,
-            'voice' => !empty($signal->voice),
+            // A row may keep itself out of the dispute check on its own.
+            'voice' => array_key_exists('voice', $row)
+                ? !empty($row['voice'])
+                : !empty($signal->voice),
         );
         // A row outside the signal's declared `$unit` (an event row).
         if (isset($row['unit']) && $row['unit'] === false) {
