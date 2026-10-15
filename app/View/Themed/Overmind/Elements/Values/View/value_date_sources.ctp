@@ -40,9 +40,9 @@ $held = $clockKind;
 /*
  * Which row the clock actually read — and the two
  * directions matter here, because they disagree.
- * `org_joined` resolves through `Value::OBSERVED_FROM`,
+ * `org_joined` resolves through `Value::observedFrom()`,
  * which asks `first_seen` first; `occurrence` and the
- * fallback resolve through `OBSERVED_AT`, which asks
+ * fallback resolve through `observedAt()`, which asks
  * `last_seen` first. Marking `first_seen` for both put
  * the badge on 2026-03-03 beside a card reading *added
  * 2026-03-25*, which is the table contradicting the
@@ -59,7 +59,7 @@ $declared = array(
     'first_seen' => $facts['with_first_seen'] > 0,
     'last_seen' => $facts['with_last_seen'] > 0,
 );
-$usedRow = 'written';
+$usedRow = empty($facts['created_at']) ? 'written' : 'created';
 if (in_array($held, array('sighting', 'foreign_sighting'),
     true)
 ) {
@@ -119,8 +119,8 @@ $rows = array(
     array(
         'key' => 'created',
         'what' => __('Recorded'),
-        'from' => array('Attribute', 'created_at'),
-        'value' => null,
+        'from' => array('Attribute', 'creation_datetime'),
+        'value' => $day($facts['created_at'] ?? null),
         'absent' => __('MISP stores no creation date for'
             . ' an attribute yet'),
     ),
