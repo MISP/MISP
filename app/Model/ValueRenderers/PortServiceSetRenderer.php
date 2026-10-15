@@ -29,6 +29,11 @@ class PortServiceSetRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/port_service_set_full';
 
+    public $eventUse = self::EVENT_EACH;
+
+    /** The relations naming the host an `ip-port` object is about. */
+    const HOST = array('hostname', 'domain', 'ip', 'ip-dst', 'ip-src');
+
     /** Port => what it being open tells a reader. */
     const NOTABLE = array(
         21 => 'FTP',
@@ -52,6 +57,22 @@ class PortServiceSetRenderer extends ValueRendererBase
     {
         $this->description = __('The ports and services an address'
             . ' exposes.');
+    }
+
+    public function subjectWords()
+    {
+        return array_merge(parent::subjectWords(), array(
+            'one' => __('host'),
+            'many' => __('hosts'),
+        ));
+    }
+
+    public function subjectsOf(array $object)
+    {
+        $host = ($object['name'] ?? null) === 'http-request'
+            ? $this->value($object, 'host')
+            : $this->firstValue($object, self::HOST);
+        return $host === null ? array() : array($host);
     }
 
     public function matches(array $objects, array $attributes)
@@ -139,9 +160,7 @@ class PortServiceSetRenderer extends ValueRendererBase
                     ?? 'tcp',
                 'service' => self::NOTABLE[(int)$port] ?? null,
                 'banner' => $this->value($object, 'text'),
-                'host' => $this->firstValue($object, array(
-                    'hostname', 'domain', 'ip',
-                )),
+                'host' => $this->firstValue($object, self::HOST),
                 'first' => $this->stamp(
                     $this->value($object, 'first-seen')
                 ),

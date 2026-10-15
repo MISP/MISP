@@ -49,17 +49,12 @@ if ($vpHoverValue !== null && $hoverEnrichId && !$hoverClickOnly) {
     $hoverEnrichId = null;
 }
 
-/*
- * The value, wrapped only where there is something to wrap it for, so
- * an instance with the card off emits exactly the markup it did before.
- */
-$vpValueHtml = h($attribute['value']);
-if ($vpHoverValue !== null) {
-    $vpValueHtml = '<span class="vp-hc-trigger"'
-        . ' data-vp-hc-value="' . h($vpHoverValue) . '"'
-        . ' title="' . h(__('Hover for this value\'s assessment')) . '">'
-        . $vpValueHtml . '</span>';
-}
+// The hover card wraps only the value's text, never the controls beside it.
+$valueBody = $this->element('Attributes/value_display', ['attribute' => $attribute]);
+$vpValueHtml = $vpHoverValue === null ? $valueBody : $this->element('Attributes/value_display', [
+    'attribute' => $attribute,
+    'hoverValue' => $vpHoverValue,
+]);
 
 // The thumbnails are the default-size ones getThumbnail() caches (webp twice as
 // large, for a sharp render); the CSS sizes them down.
@@ -130,14 +125,9 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
             </p>
         <?php endif; ?>
 
-        <?php if (!empty($attribute['warnings'])): ?>
-            <i class="fas fa-exclamation-triangle
-                        text-warning"
-                title="<?= h(implode(', ', array_column(
-                    $attribute['warnings'],
-                    'warninglist_name'
-                ))) ?>"></i>
-        <?php endif; ?>
+        <?php if (!isset($showFlags) || $showFlags) {
+            echo $this->element('Attributes/value_flags', ['attribute' => $attribute]);
+        } ?>
 
         <?php if ($isProposalRow): ?>
             <?php if (!empty($attribute['proposal_org_name'])): ?>

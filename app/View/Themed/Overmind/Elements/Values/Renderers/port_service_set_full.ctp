@@ -39,10 +39,10 @@
                         ? '—' : date('Y-m-d', $service['first'])) ?></td>
                     <td><?= h($service['last'] === null
                         ? '—' : date('Y-m-d', $service['last'])) ?></td>
-                    <td class="font-monospace vp-rf-dim"><?= h(implode(
-                        ', ',
-                        array_filter($service['sources'])
-                    )) ?></td>
+                    <td class="font-monospace vp-rf-dim"><?=
+                        $this->element('Values/Renderers/source_cell',
+                            array('sources' => $service['sources'])
+                        ) ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>

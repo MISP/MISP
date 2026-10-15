@@ -38,10 +38,84 @@ class CryptoFlowRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/crypto_flow_full';
 
+    public $eventUse = self::EVENT_EACH;
+
     public function __construct()
     {
         $this->description = __('A wallet\'s balance and the'
             . ' transactions through it.');
+    }
+
+    public function subjectsOf(array $object)
+    {
+        $wallet = $this->walletAddressOf($object);
+        if ($wallet !== null) {
+            return array($wallet);
+        }
+        return array_merge(
+            $this->values($object, 'btc-address'),
+            $this->values($object, 'address')
+        );
+    }
+
+    /**
+     * One group per wallet, holding the transactions that name it.
+     * Transactions naming no wallet of the set share one group.
+     */
+    public function groupsOf(array $objects)
+    {
+        $groups = array();
+        foreach ($objects as $object) {
+            $address = $this->walletAddressOf($object);
+            if ($address === null) {
+                continue;
+            }
+            if (!isset($groups[$address])) {
+                $groups[$address] = array(
+                    'subject' => $address,
+                    'kind' => self::SUBJECT_NAMED,
+                    'objects' => array(),
+                );
+            }
+            $groups[$address]['objects'][] = $object;
+        }
+        $loose = array();
+        foreach ($objects as $object) {
+            if ($this->walletAddressOf($object) !== null) {
+                continue;
+            }
+            $joined = false;
+            foreach (array_unique($this->subjectsOf($object)) as $address) {
+                if (isset($groups[$address])) {
+                    $groups[$address]['objects'][] = $object;
+                    $joined = true;
+                }
+            }
+            if (!$joined) {
+                $loose[] = $object;
+            }
+        }
+        $out = array_values($groups);
+        if (!empty($loose)) {
+            $out[] = array(
+                'subject' => null,
+                'kind' => self::SUBJECT_NONE,
+                'objects' => $loose,
+            );
+        }
+        return $out;
+    }
+
+    public function subjectWords()
+    {
+        return array(
+            'one' => __('wallet'),
+            'many' => __('wallets'),
+            'none' => __('No wallet named'),
+            'none_title' => __('Transactions naming no wallet of this event'),
+            'none_group' => __('of transactions naming no wallet of this'
+                . ' event'),
+        );
     }
 
     public function matches(array $objects, array $attributes)
@@ -104,6 +178,24 @@ class CryptoFlowRenderer extends ValueRendererBase
                 : $transactions[0]['at'],
             'sources' => $this->sources($objects),
         );
+    }
+
+    /**
+     * @param array $object
+     * @return string|null
+     */
+    private function walletAddressOf(array $object)
+    {
+        $name = $object['name'] ?? null;
+        if ($name === 'btc-wallet') {
+            return $this->value($object, 'wallet-address');
+        }
+        if ($name === 'coin-address') {
+            return $this->firstValue($object, array(
+                'address', 'address-crypto', 'address-xmr',
+            ));
+        }
+        return null;
     }
 
     /**

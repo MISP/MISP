@@ -893,7 +893,7 @@ class ObjectsController extends AppController
         $this->set('templateList', []);
         // The relationship step lists what the object already points at, so that
         // an edit can drop one.
-        $this->set('existingReferences', $this->MispObject->ObjectReference->find('all', [
+        $existingReferences = $this->MispObject->ObjectReference->find('all', [
             'recursive' => -1,
             'conditions' => [
                 'ObjectReference.object_id' => $object['Object']['id'],
@@ -905,7 +905,11 @@ class ObjectsController extends AppController
                 'ObjectReference.relationship_type', 'ObjectReference.comment',
             ],
             'order' => ['ObjectReference.id' => 'ASC'],
-        ]));
+        ]);
+        $this->set('existingReferences', $existingReferences);
+        $this->set('referenceTargets', $this->MispObject->ObjectReference->describeTargets(
+            $this->Auth->user(), array_column($existingReferences, 'ObjectReference')
+        ));
         $this->render('add');
     }
 
@@ -1462,17 +1466,14 @@ class ObjectsController extends AppController
             }
             return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
         } else if (($this->theme ?? null) === 'Overmind') {
-            $this->redirect('/events/view2/' . $object['Object']['event_id'] . '#tab-objects');
+            $this->redirect([
+                'controller' => 'events',
+                'action' => 'view2',
+                $object['Object']['event_id'],
+                'object' => $object['Object']['id'],
+                '#' => 'tab-objects',
+            ]);
         } else {
-            if ($this->theme === 'Overmind') {
-                $this->redirect([
-                    'controller' => 'events',
-                    'action' => 'view2',
-                    $object['Object']['event_id'],
-                    'searchFor' => $object['Object']['uuid'],
-                    '#' => 'tab-objects',
-                ]);
-            }
             $this->redirect('/events/view/' . $object['Object']['event_id']);
         }
     }

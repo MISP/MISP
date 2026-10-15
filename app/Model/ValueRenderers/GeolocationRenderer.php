@@ -22,11 +22,14 @@ class GeolocationRenderer extends ValueRendererBase
 {
     public $id = 'geolocation';
 
-    public $templates = array('geolocation', 'ip-api-address');
+    public $templates = array('geolocation', 'ip-api-address', 'gpx',
+        'geojson', 'uav');
 
     public $compact = 'Values/Renderers/geolocation_compact';
 
     public $full = 'Values/Renderers/geolocation_full';
+
+    public $eventUse = self::EVENT_SET;
 
     /** The two spellings of each field, in preference order. */
     const COUNTRY = array('country', 'countrycode', 'country-code');
@@ -36,6 +39,20 @@ class GeolocationRenderer extends ValueRendererBase
     const CITY = array('city', 'neighborhood');
 
     const REGION = array('region', 'state', 'region-code');
+
+    /**
+     * Objects describing an area or a path, drawn by their bounding box. A
+     * uav carries no box: its path is in its flight-path files.
+     */
+    const EXTENT = array('gpx', 'geojson', 'uav');
+
+    /** An extent's name and times, across the three templates' relations. */
+    const EXTENT_NAME = array('name', 'filename', 'craftname',
+        'registration-id', 'model');
+
+    const EXTENT_START = array('start-time', 'first-seen');
+
+    const EXTENT_END = array('end-time', 'last-seen');
 
     public function __construct()
     {
@@ -51,7 +68,8 @@ class GeolocationRenderer extends ValueRendererBase
     public function matches(array $objects, array $attributes)
     {
         foreach ($objects as $object) {
-            if ($this->placeOf($object) !== null
+            if ($this->isExtent($object)
+                || $this->placeOf($object) !== null
                 || $this->pointOf($object) !== null
             ) {
                 return true;
@@ -64,7 +82,14 @@ class GeolocationRenderer extends ValueRendererBase
     {
         $points = array();
         $places = array();
+        $extents = array();
+        $located = array();
         foreach ($objects as $object) {
+            if ($this->isExtent($object)) {
+                $extents[] = $this->extentOf($object);
+                continue;
+            }
+            $located[] = $object;
             $place = $this->placeOf($object);
             $point = $this->pointOf($object);
             if ($place === null && $point === null) {
@@ -81,6 +106,8 @@ class GeolocationRenderer extends ValueRendererBase
             if ($point !== null) {
                 $entry['lat'] = $point[0];
                 $entry['lon'] = $point[1];
+                $entry['radius'] = $this->radiusOf($object);
+                $entry['reach'] = $this->reachOf($point, $entry['radius']);
                 $points[] = $entry;
             }
             /*
@@ -95,10 +122,11 @@ class GeolocationRenderer extends ValueRendererBase
                 $places[$place] = $entry;
             }
         }
-        $newest = $this->newest($objects);
+        $newest = $this->newest($located);
         return array(
             'points' => $points,
             'places' => array_values($places),
+            'extents' => $extents,
             'place' => $newest === null ? null : array(
                 'country' => $this->firstValue($newest, self::COUNTRY),
                 'code' => $this->firstValue($newest, self::CODE),
@@ -107,6 +135,54 @@ class GeolocationRenderer extends ValueRendererBase
             ),
             'sources' => $this->sources($objects),
             'agreed' => count($places) < 2,
+        );
+    }
+
+    /**
+     * @param array $object
+     * @return bool
+     */
+    private function isExtent(array $object)
+    {
+        return in_array($object['name'] ?? null, self::EXTENT, true);
+    }
+
+    /**
+     * A gpx, geojson or uav object as its bounding box. The box is optional
+     * in the first two and absent from uav, so `box` is null where any edge
+     * is missing.
+     *
+     * @param array $object
+     * @return array
+     */
+    private function extentOf(array $object)
+    {
+        $edges = array();
+        foreach (array('min-latitude', 'min-longitude', 'max-latitude',
+            'max-longitude') as $relation
+        ) {
+            $edges[] = $this->number($this->value($object, $relation));
+        }
+        list($minLat, $minLon, $maxLat, $maxLon) = $edges;
+        $box = null;
+        if (!in_array(null, $edges, true)
+            && $minLat >= -90 && $maxLat <= 90 && $minLat <= $maxLat
+            && $minLon >= -180 && $maxLon <= 180 && $minLon <= $maxLon
+        ) {
+            $box = $edges;
+        }
+        return array(
+            'template' => $object['name'],
+            'name' => $this->firstValue($object, self::EXTENT_NAME),
+            'box' => $box,
+            'start' => $this->stamp(
+                $this->firstValue($object, self::EXTENT_START)
+            ),
+            'end' => $this->stamp(
+                $this->firstValue($object, self::EXTENT_END)
+            ),
+            'module' => $object['module'] ?? null,
+            'ran_at' => $object['ran_at'] ?? null,
         );
     }
 
@@ -153,5 +229,38 @@ class GeolocationRenderer extends ValueRendererBase
             return null;
         }
         return array($lat, $lon);
+    }
+
+    /**
+     * How far from its coordinates the place may be, in kilometres. A
+     * country-level answer is placed at the country's centre and says so
+     * here, often as 1000.
+     *
+     * @param array $object
+     * @return float|null
+     */
+    private function radiusOf(array $object)
+    {
+        $radius = $this->number($this->value($object, 'accuracy-radius'));
+        return $radius !== null && $radius > 0 ? $radius : null;
+    }
+
+    /**
+     * The radius in degrees, `[longitude, latitude]`, which is what the
+     * world outline's units are. A degree of longitude shrinks towards
+     * the poles, so the same distance spans more of them there.
+     *
+     * @param array $point `[lat, lon]`
+     * @param float|null $radius Kilometres
+     * @return array|null
+     */
+    private function reachOf(array $point, $radius)
+    {
+        if ($radius === null) {
+            return null;
+        }
+        $lat = min(90, $radius / 111.32);
+        $lon = min(180, $lat / max(0.1, cos(deg2rad($point[0]))));
+        return array(round($lon, 3), round($lat, 3));
     }
 }

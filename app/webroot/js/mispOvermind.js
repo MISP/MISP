@@ -2839,7 +2839,7 @@ function initSharingGroupForm(container) {
  * overflow container (.table-responsive.table-scroll), which would clip them.
  *******************************/
 (function () {
-    var LAZY_POPOVERS = '.sighting-counts, .role-perm-counter';
+    var LAZY_POPOVERS = '.sighting-counts, .role-perm-counter, .om-lazy-popover';
 
     function lazyPopover(e) {
         /*
@@ -2865,6 +2865,124 @@ function initSharingGroupForm(container) {
     document.addEventListener('mouseenter', lazyPopover, true);
     document.addEventListener('focusin', lazyPopover);
 })();
+
+/*******************************
+ * Attribute values (Attributes/value_display.ctp)
+ *******************************/
+(function () {
+    function hexToBinary(hex) {
+        return hex.replace(/[^0-9a-f]/gi, '').split('').map(function (digit) {
+            return parseInt(digit, 16).toString(2).padStart(4, '0');
+        }).join(' ');
+    }
+
+    document.addEventListener('click', function (e) {
+        var more = e.target.closest('.om-value-more');
+        if (more) {
+            e.preventDefault();
+            var wrap = more.closest('.om-value-long');
+            var expanded = wrap.classList.toggle('om-value-expanded');
+            wrap.querySelector('.om-value-short').hidden = expanded;
+            wrap.querySelector('.om-value-full').hidden = !expanded;
+            more.textContent = expanded ? more.dataset.labelLess : more.dataset.labelMore;
+            return;
+        }
+
+        var toggle = e.target.closest('.om-value-hex-toggle');
+        if (toggle) {
+            e.preventDefault();
+            var span = toggle.parentElement.querySelector('.om-value-hex');
+            var toBinary = !span.classList.contains('om-value-binary');
+            span.textContent = toBinary ? hexToBinary(span.dataset.hex) : span.dataset.hex;
+            span.classList.toggle('om-value-binary', toBinary);
+            var label = toBinary ? toggle.dataset.labelHex : toggle.dataset.labelBin;
+            toggle.title = label;
+            toggle.setAttribute('aria-label', label);
+            return;
+        }
+
+        var download = e.target.closest('a.om-value-download[data-om-confirm]');
+        if (download) {
+            e.preventDefault();
+            showConfirmModal({
+                title: download.textContent.trim(),
+                body: '<p class="mb-0">' + escapeHtml(download.dataset.omConfirm) + '</p>',
+                confirmLabel: download.title,
+                confirmClass: 'btn-danger',
+                onConfirm: function () { window.location.href = download.href; },
+            });
+        }
+    });
+})();
+
+/*******************************
+ * Object relationships (Objects/object_relationships.ctp)
+ *******************************/
+
+/**
+ * TomSelect remote-search options over /objectReferences/targets/<eventId>.
+ * Every query reads the event server-side, so it waits for three characters
+ * and a pause, and a query typed over cancels the one still running.
+ *
+ * @param {string} targetsUrl
+ * @param {function} [filter]      narrows the returned targets
+ * @param {function} [onResponse]  receives the whole answer (windowed, window)
+ * @return {object} options to merge into the TomSelect config
+ */
+function referenceTargetSearch(targetsUrl, filter, onResponse) {
+    var pending = null;
+    return {
+        loadThrottle: 500,
+        shouldLoad: function (query) { return query.trim().length >= 3; },
+        load: function (query, callback) {
+            if (pending) { pending.abort(); }
+            pending = new AbortController();
+            fetch(targetsUrl + '?searchTerm=' + encodeURIComponent(query.trim()), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                signal: pending.signal
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (onResponse) { onResponse(res); }
+                    var targets = res.targets || [];
+                    callback(filter ? filter(targets) : targets);
+                })
+                .catch(function () { callback(); });
+        }
+    };
+}
+
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ov-obj-rel-delete');
+    if (!btn) { return; }
+    e.preventDefault();
+    showConfirmModal({
+        title: 'Delete this relationship?',
+        body: '<p class="mb-0">' + escapeHtml(btn.dataset.referenceLabel) + '</p>',
+        confirmLabel: 'Delete',
+        confirmClass: 'btn-danger',
+        onConfirm: function () {
+            fetch(btn.dataset.deleteUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': getCsrfToken()
+                }
+            })
+                .then(function (r) { return r.ok ? r.json() : { saved: false }; })
+                .then(function (res) {
+                    if (!res || !res.saved) {
+                        showToast('The relationship could not be deleted.', 'danger');
+                        return;
+                    }
+                    showToast('Relationship deleted.', 'success');
+                    reloadEventViewIndexTab();
+                })
+                .catch(function () { showToast('The relationship could not be deleted.', 'danger'); });
+        }
+    });
+});
 
 /*******************************
  * Sightings
@@ -8462,21 +8580,14 @@ function initObjectAddForm(container, payloadEl) {
     /* Typing searches the event server-side — the list is capped, so a big event
      * is found by searching rather than by scrolling. */
     function initRelationshipTargetSelect(initial) {
-        var ts = new TomSelect(relTargetEl, {
+        var ts = new TomSelect(relTargetEl, Object.assign({
             valueField: 'uuid',
             labelField: 'label',
             searchField: ['label', 'context', 'uuid'],
             options: initial,
             create: false,
             placeholder: 'Search the event for an object or attribute',
-            load: function (query, callback) {
-                fetch(data.relationshipTargetsUrl + '?searchTerm=' + encodeURIComponent(query), {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(function (r) { return r.json(); })
-                    .then(function (res) { callback(res.targets || []); })
-                    .catch(function () { callback(); });
-            },
+        }, referenceTargetSearch(data.relationshipTargetsUrl), {
             render: {
                 option: function (item, escape) {
                     return '<div class="py-1">'
@@ -8488,7 +8599,7 @@ function initObjectAddForm(container, payloadEl) {
                 item: function (item, escape) { return '<div>' + escape(item.label) + '</div>'; }
             },
             onChange: syncRelAddBtn
-        });
+        }));
         relTargetEl.tomselect = ts;
     }
 

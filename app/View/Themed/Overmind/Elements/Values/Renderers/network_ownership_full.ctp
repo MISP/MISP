@@ -26,7 +26,9 @@
                         h($as['country']) ?></span>
                 <?php endif; ?>
                 <span class="vp-rf-dim font-monospace"><?=
-                    h(implode(', ', $as['sources'])) ?></span>
+                    $this->element('Values/Renderers/source_cell',
+                        array('sources' => $as['sources'])
+                    ) ?></span>
             </div>
             <?php if ($as['first'] !== null || $as['last'] !== null): ?>
                 <?php

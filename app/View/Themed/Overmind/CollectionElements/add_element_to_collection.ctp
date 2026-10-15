@@ -148,6 +148,7 @@ echo $this->Form->create('CollectionElement', [
     'loading' => __('Loading the collection form…'),
     'failed' => __('Could not load the collection form.'),
     'saved' => __('Element added to the Collection.'),
+    'created' => __('Collection created, with the element in it.'),
     'saveFailed' => __('Element could not be added to the Collection.'),
     'elementType' => $elementType,
     'elementUuid' => $elementUuid,
@@ -222,6 +223,12 @@ function initCollectionPicker() {
                 if (typeof initTomSelect === 'function') { initTomSelect(box); }
                 if (typeof initChoiceFields === 'function') { initChoiceFields(box); }
                 if (typeof initCollectionForm === 'function') { initCollectionForm(box); }
+                var created = box.querySelector('form');
+                if (created) {
+                    saveInPlace(created, cfg.created, function (body) {
+                        return body.Collection ? body.Collection.id : null;
+                    });
+                }
             })
             .catch(function () {
                 loaded = false;
@@ -242,9 +249,6 @@ function initCollectionPicker() {
     select.addEventListener('change', apply);
     apply();
 
-    /* Saved in place: a reload would put an event page back on its first tab.
-       The picker's submit is hidden in New collection mode, so that branch only
-       guards against something else submitting the form. */
     /* openModal runs this before it shows the modal, and Bootstrap ignores a
        hide() while the modal is still fading in. */
     var modalEl = form ? form.closest('.modal') : null;
@@ -259,19 +263,25 @@ function initCollectionPicker() {
         modalEl.addEventListener('shown.bs.modal', function () { modal.hide(); }, { once: true });
     }
 
-    if (form) {
-        form.addEventListener('submit', function (e) {
+    /* Both forms save in place: a full post would redirect, which puts an
+       event page back on its first tab and empties the /values/index
+       worklist. The token goes in the header, where it is checked but not
+       spent, so a refused save can be sent again. */
+    function saveInPlace(target, savedMessage, collectionIdOf) {
+        target.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) { return; }
             e.preventDefault();
-            if (select.value === cfg.newValue) { return; }
-            var submit = form.querySelector('[type="submit"]')
-                || (form.closest('.modal-content') || document).querySelector('[type="submit"]');
+            var submit = target.querySelector('[type="submit"]')
+                || (target.closest('.modal-content') || document).querySelector('[type="submit"]');
             if (submit) { submit.disabled = true; }
-            var collectionId = select.value;
-            fetch(form.action, {
+            var headers = { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+            var token = target.querySelector('[name="data[_Token][key]"]');
+            if (token) { headers['X-CSRF-Token'] = token.value; }
+            fetch(target.action, {
                 method: 'POST',
                 credentials: 'same-origin',
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                body: new FormData(form)
+                headers: headers,
+                body: new FormData(target)
             })
                 .then(function (r) {
                     return r.json().catch(function () { return {}; }).then(function (body) {
@@ -279,13 +289,15 @@ function initCollectionPicker() {
                     });
                 })
                 .then(function (res) {
-                    var message = res.body.message || res.body.errors || (res.ok ? cfg.saved : cfg.saveFailed);
-                    if (typeof message !== 'string') { message = res.ok ? cfg.saved : cfg.saveFailed; }
+                    var message = res.ok
+                        ? res.body.message || savedMessage
+                        : res.body.message || res.body.errors || cfg.saveFailed;
+                    if (typeof message !== 'string') { message = res.ok ? savedMessage : cfg.saveFailed; }
                     if (!res.ok) { throw new Error(message); }
                     closeModal();
                     if (typeof showToast === 'function') { showToast(message, 'success'); }
                     document.dispatchEvent(new CustomEvent('misp:collection-element-added', {
-                        detail: { type: cfg.elementType, uuid: cfg.elementUuid, collectionId: collectionId }
+                        detail: { type: cfg.elementType, uuid: cfg.elementUuid, collectionId: collectionIdOf(res.body) }
                     }));
                 })
                 .catch(function (err) {
@@ -293,6 +305,14 @@ function initCollectionPicker() {
                     if (typeof showToast === 'function') { showToast(err.message || cfg.saveFailed, 'danger'); }
                 });
         });
+    }
+
+    if (form) {
+        // The picker's submit is hidden in New collection mode.
+        form.addEventListener('submit', function (e) {
+            if (select.value === cfg.newValue) { e.preventDefault(); }
+        });
+        saveInPlace(form, cfg.saved, function () { return select.value; });
     }
 }
 

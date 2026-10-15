@@ -1,0 +1,723 @@
+/* The event overview's object views: every subject is a tile, and a tile
+ * opens in place (Events/view_event_object_views.ctp,
+ * js/event-object-views.js).
+ *
+ * One card under the Context/Inventory row. Inside it a "tray": a grid of
+ * module columns that every tile snaps to. A `set` shape is one wide tile
+ * (two modules) under its own heading; an `each` shape is a full-width bay of
+ * one-module tiles — small multiples — that shares the same columns through
+ * `subgrid`, so the host tiles line up under the event-wide tiles above them.
+ * Opening a tile inserts one full-width panel after the tile's line. */
+
+.eov-shelf {
+    /* the renderers' own accent, which value-intelligence.css sets on the
+       value page */
+    --vp-e-accent: var(--enrichment, #6f5fb5);
+
+    --eov-accent-line: color-mix(in srgb, var(--td-accent) 55%, var(--bs-border-color));
+    --eov-tray: color-mix(in srgb, var(--bs-body-color) 3%, var(--bs-body-bg));
+    --eov-tile: var(--bs-body-bg);
+    --eov-tile-line: var(--bs-border-color);
+    --eov-tile-hover: color-mix(in srgb, var(--td-accent) 40%, var(--bs-border-color));
+    --eov-warn: var(--misp-tone-orange-fg, #9a4a0a);
+    --eov-warn-bg: color-mix(in srgb, var(--misp-tone-orange-solid, #e8590c) 10%, var(--bs-body-bg));
+    --eov-gap: 8px;
+    --eov-module: 128px;
+
+    /* the map's three kinds of thing; read by the script for Leaflet */
+    --eov-geo-point: #6f5fb5;
+    --eov-geo-area: #0b7f9c;
+    --eov-geo-track: #d9480f;
+    --eov-geo-focus: #111;
+
+    overflow: visible;
+}
+
+[data-misp-mode="dark"] .eov-shelf {
+    --vp-e-accent: #a79dd4;
+    --eov-tray: color-mix(in srgb, #000 22%, var(--bs-body-bg));
+    --eov-tile: var(--bs-body-bg);
+    --eov-warn: var(--misp-tone-orange-fg, #ffb072);
+    --eov-warn-bg: color-mix(in srgb, #ff8c3a 13%, var(--bs-body-bg));
+    --eov-geo-point: #8f7ff0;
+    --eov-geo-area: #22b8d8;
+    --eov-geo-track: #ff8a4c;
+    --eov-geo-focus: #fff;
+}
+
+/* ── head ────────────────────────────────────────────────────── */
+
+.eov-head {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    padding: .6rem 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.eov-head-tile {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: .5rem;
+    font-size: .95rem;
+}
+
+.eov-head-text {
+    min-width: 0;
+}
+
+.eov-title {
+    margin: 0;
+    color: var(--bs-emphasis-color);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.eov-sub {
+    color: var(--td-quiet);
+    font-size: .78rem;
+    line-height: 1.3;
+}
+
+.eov-sub b {
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+
+/* ── the tray ────────────────────────────────────────────────── */
+
+.eov-tray {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--eov-module), 1fr));
+    column-gap: var(--eov-gap);
+    row-gap: 14px;
+    align-items: stretch;
+    padding: 12px 1rem 14px;
+    border-radius: 0 0 var(--bs-card-inner-border-radius, .375rem) var(--bs-card-inner-border-radius, .375rem);
+    background: var(--eov-tray);
+}
+
+.eov-group {
+    min-width: 0;
+}
+
+.eov-group-set {
+    display: flex;
+    flex-direction: column;
+    grid-column: span 2;
+}
+
+.eov-group-each {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    row-gap: var(--eov-gap);
+}
+
+.eov-group-each > .eov-ghead {
+    grid-column: 1 / -1;
+}
+
+/* A group's heading is a label with a rule running the width of its tiles:
+   the bracket that says which tiles belong to it, so a group of one reads
+   with the same grammar as a group of eight. */
+.eov-ghead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 10px;
+    min-width: 0;
+    margin-bottom: 6px;
+    font-size: .76rem;
+    line-height: 1.35;
+}
+
+.eov-group-each > .eov-ghead {
+    margin-bottom: -2px;
+}
+
+.eov-gname {
+    flex-shrink: 0;
+    color: var(--bs-emphasis-color);
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.eov-gcount {
+    color: var(--td-quiet);
+    font-variant-numeric: tabular-nums;
+}
+
+.eov-gcount b {
+    color: var(--bs-emphasis-color);
+    font-weight: 700;
+}
+
+.eov-gread {
+    padding: 0 6px;
+    border-radius: 4px;
+    background: var(--eov-warn-bg);
+    color: var(--eov-warn);
+    font-size: .72rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.eov-grule {
+    flex: 1 1 24px;
+    align-self: center;
+    min-width: 24px;
+    height: 1px;
+    background: var(--bs-border-color);
+}
+
+.eov-glinks {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+}
+
+/* ── tiles ───────────────────────────────────────────────────── */
+
+.eov-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    padding: 8px 10px 9px;
+    border: 1px solid var(--eov-tile-line);
+    border-radius: 8px;
+    background: var(--eov-tile);
+    color: var(--bs-body-color);
+    cursor: pointer;
+    transition: border-color .12s, box-shadow .12s, background-color .12s;
+    --vp-eb-cell-pad: 10px;
+}
+
+.eov-group-set > .eov-tile {
+    flex: 1 1 auto;
+    padding-top: 10px;
+}
+
+.eov-tile:hover {
+    border-color: var(--eov-tile-hover);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 4px 10px -4px rgba(0, 0, 0, .12);
+}
+
+.eov-tile:focus-visible {
+    outline: 2px solid var(--td-ring);
+    outline-offset: 2px;
+}
+
+.eov-tile[aria-expanded="true"] {
+    border-color: var(--td-accent);
+    background: var(--td-accent-soft);
+    box-shadow: 0 0 0 1px var(--td-accent);
+}
+
+.eov-tl {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    color: var(--bs-emphasis-color);
+    font-size: .74rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.eov-tl-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.eov-mono {
+    font-family: var(--bs-font-monospace);
+    font-size: .72rem;
+    font-weight: 600;
+}
+
+.eov-tl-kind {
+    flex-shrink: 0;
+    padding: 0 4px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 3px;
+    color: var(--td-quiet);
+    font-family: var(--bs-body-font-family);
+    font-size: .6rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    line-height: 1.35;
+}
+
+/* A group that names nothing is drawn as a group, not as a blank label:
+   dashed edge, italic words, a ring with a gap in it. */
+.eov-tile.is-none {
+    border-style: dashed;
+}
+
+.eov-tile.is-none .eov-tl {
+    color: var(--td-quiet);
+    font-style: italic;
+    font-weight: 500;
+}
+
+.eov-draw {
+    min-width: 0;
+}
+
+.eov-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    margin-top: auto;
+    padding-top: 2px;
+    color: var(--td-quiet);
+    font-size: .66rem;
+    line-height: 1.35;
+}
+
+.eov-foot-t {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.eov-foot-t .eov-mono {
+    font-size: .64rem;
+    font-weight: 500;
+}
+
+.eov-foot .eov-gread {
+    font-size: .64rem;
+}
+
+.eov-ev {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 3px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
+    color: var(--bs-primary-text-emphasis);
+    font-size: .64rem;
+    font-weight: 600;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.eov-ev.is-corner {
+    position: absolute;
+    top: -8px;
+    right: 8px;
+    border: 1px solid var(--bs-body-bg);
+    background: color-mix(in srgb, var(--bs-primary) 16%, var(--bs-body-bg));
+}
+
+/* ── "show all" tile ─────────────────────────────────────────── */
+
+.eov-more {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 64px;
+    padding: 8px;
+    border: 1px dashed var(--eov-accent-line);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--td-accent-ink);
+    font-size: .78rem;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    transition: background-color .12s, border-color .12s;
+}
+
+.eov-more:hover {
+    border-style: solid;
+    background: var(--td-accent-soft);
+}
+
+.eov-more:focus-visible {
+    outline: 2px solid var(--td-ring);
+    outline-offset: 2px;
+}
+
+.eov-more small {
+    color: var(--td-quiet);
+    font-size: .68rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.eov-more i {
+    font-size: .7rem;
+}
+
+/* ── the way to the Objects tab ──────────────────────────────── */
+
+.eov-objbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 2px 8px 2px 6px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-size: .74rem;
+    line-height: 1.5;
+    text-align: left;
+    transition: background-color .1s, border-color .1s, color .1s;
+}
+
+.eov-objbtn:hover {
+    border-color: color-mix(in srgb, var(--bs-primary) 45%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-primary) 8%, var(--bs-body-bg));
+    color: var(--bs-emphasis-color);
+}
+
+.eov-objbtn:focus-visible {
+    outline: 2px solid var(--td-ring);
+    outline-offset: 1px;
+}
+
+.eov-objbtn .misp-icon {
+    flex-shrink: 0;
+    color: var(--td-quiet);
+    font-size: .72rem;
+}
+
+.eov-objbtn-t {
+    min-width: 0;
+    overflow: hidden;
+    font-family: var(--bs-font-monospace);
+    font-size: .7rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.eov-objbtn-n {
+    flex-shrink: 0;
+    color: var(--td-quiet);
+    font-variant-numeric: tabular-nums;
+}
+
+.eov-objbtn .fa-arrow-right {
+    flex-shrink: 0;
+    color: var(--td-quiet);
+    font-size: .62rem;
+}
+
+/* ── in the open panel ───────────────────────────────────────── */
+
+.td-title.eov-mono {
+    font-size: .9rem;
+}
+
+.td-title.is-none {
+    font-style: italic;
+}
+
+.td-title .eov-ev {
+    margin-left: 8px;
+    font-family: var(--bs-body-font-family);
+    font-style: normal;
+    vertical-align: 2px;
+}
+
+.eov-olist {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.eov-olist li {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    line-height: 1.4;
+}
+
+.eov-olist .misp-icon {
+    flex-shrink: 0;
+    color: var(--td-quiet);
+    font-size: .68rem;
+}
+
+.eov-olink {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.eov-olink.eov-mono {
+    font-size: .7rem;
+}
+
+.eov-olink:not(.eov-mono) {
+    overflow: visible;
+    white-space: normal;
+}
+
+.eov-ot {
+    flex-shrink: 0;
+    color: var(--td-quiet);
+    font-family: var(--bs-font-monospace);
+    font-size: .64rem;
+}
+
+.eov-about {
+    padding: 7px 9px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+    background: var(--bs-body-bg);
+}
+
+.eov-about-v {
+    display: block;
+    margin-top: 2px;
+    font-family: var(--bs-font-monospace);
+    font-size: .7rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.eov-objs {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+.eov-objs-note {
+    margin: -1px 0 2px 2px;
+    color: var(--td-quiet);
+    font-size: .68rem;
+}
+
+.td-aside .eov-more-note {
+    margin-top: 5px;
+}
+
+/* source cells inside a drawing: the objects it was drawn from
+   (Values/Renderers/source_cell) */
+.eov-src {
+    font-family: var(--bs-font-monospace);
+    font-size: min(1em, .78rem);
+    text-decoration: none;
+}
+
+a.eov-src:hover {
+    text-decoration: underline;
+}
+
+.eov-src + .eov-ev {
+    margin-left: 4px;
+    vertical-align: 1px;
+}
+
+/* ── the map ─────────────────────────────────────────────────── */
+
+.eov-map {
+    position: relative;
+    height: 340px;
+    margin-bottom: 10px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--eov-tray);
+}
+
+[data-misp-mode="dark"] .eov-map-tiles {
+    filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.86) saturate(.6);
+}
+
+.eov-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+    font-size: .8rem;
+}
+
+.eov-legend li {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 1px 8px;
+    align-items: baseline;
+}
+
+.eov-key {
+    grid-row: span 2;
+    align-self: center;
+    justify-self: center;
+}
+
+.eov-key-point {
+    width: 11px;
+    height: 11px;
+    border: 2px solid var(--bs-body-bg);
+    border-radius: 50%;
+    background: var(--eov-geo-point);
+    box-shadow: 0 0 0 1px var(--eov-geo-point);
+}
+
+.eov-key-area {
+    width: 14px;
+    height: 11px;
+    border: 2px solid var(--eov-geo-area);
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--eov-geo-area) 20%, transparent);
+}
+
+.eov-key-track {
+    width: 16px;
+    height: 0;
+    border-top: 3px solid var(--eov-geo-track);
+    border-radius: 2px;
+}
+
+.eov-lg-name {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.eov-lg-meta {
+    min-width: 0;
+    color: var(--td-quiet);
+    font-size: .7rem;
+    line-height: 1.4;
+}
+
+.eov-lg-meta a {
+    white-space: nowrap;
+}
+
+.eov-legend.has-locate li {
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+}
+
+.eov-locate {
+    display: inline-flex;
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: center;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+    background: var(--bs-body-bg);
+    color: var(--td-quiet);
+    font-size: .8rem;
+    cursor: pointer;
+}
+
+.eov-locate:hover:not(:disabled) {
+    border-color: var(--eov-accent-line);
+    background: var(--td-accent-soft);
+    color: var(--td-accent-ink);
+}
+
+.eov-locate:focus-visible {
+    outline: 2px solid var(--td-ring);
+    outline-offset: 1px;
+}
+
+.eov-locate:disabled {
+    opacity: .4;
+    cursor: default;
+}
+
+/* The ring or box that marks what a legend line just centred the map on. */
+.eov-geo-focus {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: eov-geo-focus 2.4s ease-out both;
+}
+
+@keyframes eov-geo-focus {
+    0% { opacity: 0; transform: scale(1.8); }
+    18% { opacity: 1; transform: none; }
+    75% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .eov-geo-focus { animation: none; }
+}
+
+.eov-files {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+    font-size: .78rem;
+}
+
+.eov-files li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+}
+
+.eov-files .eov-lg-name {
+    flex: 1 1 auto;
+}
+
+.eov-notice {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 10px;
+    padding: 6px 10px;
+    border-left: 3px solid var(--bs-border-color);
+    border-radius: 0 4px 4px 0;
+    background: var(--eov-tray);
+    color: var(--td-quiet);
+    font-size: .76rem;
+}
+
+.td-body.is-wide .eov-olist {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: 3px 18px;
+}

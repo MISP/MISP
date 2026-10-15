@@ -36,6 +36,8 @@ class ResolutionTimelineRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/resolution_timeline_full';
 
+    public $eventUse = self::EVENT_SET;
+
     /**
      * The `dns-record` relations that are a resolution, each with the
      * record type it is one of. `text` and `queried-domain` are not

@@ -233,6 +233,7 @@ if ($service['reachable']) {
      data-vp-e-a-rows="<?= h(__('Answered in rows — open this module'
         . ' to read them.')) ?>"
      data-vp-e-a-open="<?= h(__('Open')) ?>"
+     data-vp-e-a-more="<?= h(__('%s more in this module\'s own pane.')) ?>"
      <?php
      /*
       * **The plan travels with the panel that acts on it** (phase 11

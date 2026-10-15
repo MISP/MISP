@@ -140,9 +140,10 @@ foreach ($rows as $entry) {
  */
 $onPanel = count($rows) + count($failures) + count($drawn);
 ?>
-<div class="card shadow-sm mb-3 vp-panel vp-eb"
+<div class="card shadow-sm mb-3 vp-panel vp-eb td-host"
      style="--vp-panel-color: var(--vp-e-accent);"
      data-vp-ebadge
+     data-td-strings="<?= h($this->element('TileDrawer/strings')) ?>"
      data-vp-eb-token="<?= h($token) ?>"
      <?php
      /*

@@ -1295,6 +1295,7 @@ class ValuesController extends AppController
                     'mode' => isset($data['mode']) && is_scalar($data['mode'])
                         ? (string)$data['mode']
                         : null,
+                    'all' => !empty($data['all']),
                 )
             ),
             'json'
@@ -1494,6 +1495,8 @@ class ValuesController extends AppController
                  * the reuse window are both re-decided in the model.
                  */
                 'mode' => $this->__runParam('mode'),
+                // Every element kept rather than the first 200.
+                'all' => $this->__runParam('all') === '1',
             )
         );
     }

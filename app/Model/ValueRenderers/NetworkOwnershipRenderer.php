@@ -23,6 +23,8 @@ class NetworkOwnershipRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/network_ownership_full';
 
+    public $eventUse = self::EVENT_SET;
+
     /** Who holds it, in the order the templates prefer to say it. */
     const HOLDER = array('description', 'organization', 'name');
 

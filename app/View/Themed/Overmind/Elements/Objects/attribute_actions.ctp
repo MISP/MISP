@@ -68,6 +68,16 @@ $attrDeleted = !empty($attr['deleted']);
         <?php endif; ?>
         <?php if ($canEdit): ?>
         <li><hr class="dropdown-divider"></li>
+        <?php if ($attrDeleted): ?>
+        <li>
+            <a class="dropdown-item text-success justify-content-start"
+               href="<?= $baseurl ?>/attributes/restore/<?= $attrId ?>"
+               onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/restore/<?= $attrId ?>', 'md');">
+                <i class="fas fa-rotate-left me-2"></i>
+                <?= __('Restore') ?>
+            </a>
+        </li>
+        <?php else: ?>
         <li>
             <a class="dropdown-item justify-content-start"
                href="<?= $baseurl ?>/attributes/edit/<?= $attrId ?>"
@@ -76,6 +86,7 @@ $attrDeleted = !empty($attr['deleted']);
                 <?= __('Edit') ?>
             </a>
         </li>
+        <?php endif; ?>
         <li>
             <a class="dropdown-item text-danger justify-content-start"
                href="<?= $baseurl ?>/attributes/delete/<?= $attrId ?>"

@@ -377,4 +377,56 @@ class ObjectReference extends AppModel
         unset($this->virtualFields['reference_count']);
         return $counts;
     }
+
+    /**
+     * Name what each reference points at, as far as the user may see it.
+     *
+     * @param array $user
+     * @param array $references ObjectReference rows (referenced_uuid, referenced_type)
+     * @return array referenced_uuid => [kind, id, event_id, label, context]
+     */
+    public function describeTargets(array $user, array $references)
+    {
+        $uuids = ['object' => [], 'attribute' => []];
+        foreach ($references as $reference) {
+            $kind = (int)$reference['referenced_type'] === 1 ? 'object' : 'attribute';
+            $uuids[$kind][$reference['referenced_uuid']] = true;
+        }
+        $targets = [];
+        if (!empty($uuids['object'])) {
+            $objects = $this->Object->fetchObjectSimple($user, [
+                'conditions' => ['Object.uuid' => array_keys($uuids['object'])],
+                'fields' => ['Object.id', 'Object.uuid', 'Object.event_id', 'Object.name', 'Object.meta-category'],
+            ]);
+            foreach ($objects as $row) {
+                $object = $row['Object'];
+                $targets[$object['uuid']] = [
+                    'kind' => 'object',
+                    'id' => (int)$object['id'],
+                    'event_id' => (int)$object['event_id'],
+                    'label' => $object['name'],
+                    'context' => $object['meta-category'],
+                ];
+            }
+        }
+        if (!empty($uuids['attribute'])) {
+            $attributes = $this->Object->Attribute->fetchAttributesSimple($user, [
+                'conditions' => ['Attribute.uuid' => array_keys($uuids['attribute'])],
+                'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.value',
+                    'Attribute.type', 'Attribute.category'],
+                'contain' => ['Event' => ['fields' => ['Event.id']], 'Object' => ['fields' => ['Object.id']]],
+            ]);
+            foreach ($attributes as $row) {
+                $attribute = $row['Attribute'];
+                $targets[$attribute['uuid']] = [
+                    'kind' => 'attribute',
+                    'id' => (int)$attribute['id'],
+                    'event_id' => (int)$attribute['event_id'],
+                    'label' => $attribute['value'],
+                    'context' => $attribute['category'] . '/' . $attribute['type'],
+                ];
+            }
+        }
+        return $targets;
+    }
 }

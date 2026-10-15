@@ -1234,6 +1234,7 @@
          */
         strip.addEventListener('pointermove', function (event) {
             if (timeBrushDrag.has(strip)) {
+                lightBar(strip, null);
                 return;
             }
             var bars = timeBrushBars(strip);
@@ -1245,14 +1246,38 @@
                 ((event.clientX - box.left) / box.width) * bars.length
             );
             at = Math.max(0, Math.min(bars.length - 1, at));
-            captionBucket(strip, at, at);
+            lightBar(strip, bars[at]);
+            var caption = timeBrushCaption(strip);
+            if (caption && bars[at].dataset.vpTip) {
+                caption.textContent = bars[at].dataset.vpTip;
+            } else {
+                captionBucket(strip, at, at);
+            }
         });
 
         strip.addEventListener('pointerleave', function () {
+            lightBar(strip, null);
             if (!timeBrushDrag.has(strip)) {
                 captionDefault(strip);
             }
         });
+    }
+
+    /**
+     * Mark the bar the caption is naming, so the two can be matched.
+     *
+     * @param {Element} strip
+     * @param {Element|null} bar
+     */
+    function lightBar(strip, bar) {
+        strip.querySelectorAll('.vp-spark-bar-lit').forEach(function (lit) {
+            if (lit !== bar) {
+                lit.classList.remove('vp-spark-bar-lit');
+            }
+        });
+        if (bar) {
+            bar.classList.add('vp-spark-bar-lit');
+        }
     }
 
     /**
@@ -4490,7 +4515,7 @@
      * @param {string} [mode] `auto` to accept a stored answer
      * @return {Promise} Resolves when the pane holds the answer
      */
-    function enrichAsk(panel, name, type, mode) {
+    function enrichAsk(panel, name, type, mode, all) {
         var slot = panel.querySelector(
             '[data-vp-e-pane="' + cssEscape(name) + '"] [data-vp-e-slot]'
         );
@@ -4505,6 +4530,9 @@
         body.set('data[type]', type || '');
         if (mode) {
             body.set('data[mode]', mode);
+        }
+        if (all) {
+            body.set('data[all]', '1');
         }
 
         return fetch(panel.dataset.vpEUrl, {
@@ -4525,6 +4553,7 @@
             .then(function (markup) {
                 slot.innerHTML = markup;
                 initTimeBrushes(slot);
+                refreshAllLists(slot);
                 var result = slot.querySelector('[data-vp-e-result]');
                 setEnrichState(
                     panel,
@@ -4594,10 +4623,11 @@
              * *Show what came back* is not running anything unless the
              * kept answer has gone stale, so it must not claim to be.
              */
-            label.textContent = mode === 'auto' ? 'Fetching…' : 'Running…';
+            label.textContent = button.dataset.vpEAll === '1' ? 'Loading…'
+                : mode === 'auto' ? 'Fetching…' : 'Running…';
         }
         enrichAsk(panel, button.dataset.vpERun, button.dataset.vpEType,
-            mode)
+            mode, button.dataset.vpEAll === '1')
             .then(function (ok) {
                 // A filled pane replaced this button along with the
                 // brief around it; only a failure has one to restore.
@@ -4710,6 +4740,9 @@
             all.indeterminate = picked > 0 && picked < boxes.length;
         }
     }
+
+    // Rows of one module the merged pane copies, as many as a pane opens on.
+    var ENRICH_MERGED_ROWS = 200;
 
     /**
      * @param {Element} root
@@ -4907,10 +4940,23 @@
                         }
                     });
             }
-            items.forEach(function (item) {
+            // A pane showing everything kept is not copied whole: the
+            // merge would hold its thousands of rows a second time.
+            var merged = Array.prototype.slice.call(items, 0, ENRICH_MERGED_ROWS);
+            merged.forEach(function (item) {
                 elements++;
                 body.appendChild(item.cloneNode(true));
             });
+            if (items.length > merged.length) {
+                var rest = document.createElement('div');
+                rest.className = 'vp-e-cold-prose vp-e-allnote';
+                rest.textContent = (panel.dataset.vpEAMore
+                    || '%s more in this module\'s own pane.').replace(
+                    '%s',
+                    (items.length - merged.length).toLocaleString('en-US')
+                );
+                body.appendChild(rest);
+            }
         });
 
         var sub = panel.querySelector('[data-vp-e-allsub]');
@@ -5818,8 +5864,56 @@
     }
 
     /**
-     * Open the module a link named (`?module=`, from the hover card),
-     * with its answer drawn.
+     * The module a link on this page asked for before the Enrichment tab
+     * had loaded (`showEnrichModule`).
+     */
+    var enrichModuleWanted = null;
+
+    /**
+     * Open the module a link named (`?module=` from the hover card, or a
+     * module in the Overview strip's panel), with its answer drawn.
+     *
+     * @param {Element} panel
+     */
+    function openLinkedEnrichModule(panel) {
+        if (enrichModuleWanted !== null) {
+            var wanted = enrichModuleWanted;
+            enrichModuleWanted = null;
+            openEnrichModule(panel, wanted);
+            return;
+        }
+        var name = new URLSearchParams(window.location.search).get('module');
+        if (!name || panel.dataset.vpELinked === '1') {
+            return;
+        }
+        if (openEnrichModule(panel, name)) {
+            panel.dataset.vpELinked = '1';
+        }
+    }
+
+    /**
+     * Switch to the Enrichment tab and open one module there, without
+     * leaving the page.
+     *
+     * @param {string} name
+     */
+    function showEnrichModule(name) {
+        var panel = document.querySelector('[data-vp-enrich]');
+        var tab = document.querySelector('.nav-link[href="#tab-enrichment"]');
+        if (!panel) {
+            enrichModuleWanted = name;
+        } else if (tab && !tab.classList.contains('active')) {
+            tab.addEventListener('shown.bs.tab', function () {
+                openEnrichModule(panel, name);
+            }, {once: true});
+        } else {
+            openEnrichModule(panel, name);
+        }
+        window.location.hash = '#tab-enrichment';
+    }
+
+    /**
+     * Pick a module on the Enrichment tab with its answer drawn.
      *
      * A module the auto-fire is already fetching fills its own pane;
      * any other is shown from the store, which asks nobody anything. A
@@ -5827,12 +5921,10 @@
      * one.
      *
      * @param {Element} panel
+     * @param {string} name
+     * @return {boolean} Whether the tab has a pane for it
      */
-    function openLinkedEnrichModule(panel) {
-        var name = new URLSearchParams(window.location.search).get('module');
-        if (!name || panel.dataset.vpELinked === '1') {
-            return;
-        }
+    function openEnrichModule(panel, name) {
         var pane = null;
         panel.querySelectorAll('[data-vp-e-pane]').forEach(function (p) {
             if (p.dataset.vpEPane === name) {
@@ -5840,9 +5932,8 @@
             }
         });
         if (!pane) {
-            return;
+            return false;
         }
-        panel.dataset.vpELinked = '1';
         pickEnrichModule(panel, name);
         var row = panel.querySelector(
             '[data-vp-e-row="' + cssEscape(name) + '"]'
@@ -5861,7 +5952,7 @@
             return one.module === name;
         });
         if (fetching) {
-            return;
+            return true;
         }
         var show = pane.querySelector(
             '[data-vp-e-run][data-vp-e-mode="stored"]'
@@ -5869,6 +5960,7 @@
         if (show && !show.disabled) {
             runEnrichModule(show);
         }
+        return true;
     }
 
     /**
@@ -5993,8 +6085,58 @@
             ? root.querySelectorAll('[data-vp-ebadge]')
             : [];
         panels.forEach(function (panel) {
+            initEnrichDrawer(panel);
             enrichPanelFire(panel);
         });
+    }
+
+    /**
+     * A drawn cell of the strip opens its full drawing under the row
+     * (tile-drawer.js), the way a tile of the event page's object views
+     * does.
+     *
+     * @param {Element} panel
+     */
+    function initEnrichDrawer(panel) {
+        if (!window.TileDrawer || panel.vpEbDrawer) {
+            return;
+        }
+        panel.vpEbDrawer = new window.TileDrawer(panel, {
+            panelId: 'vp-eb-drawer',
+            anchor: function (tile) {
+                return tile.closest('[data-vp-eb-strip]');
+            },
+            onClick: function (event) {
+                var link = event.target.closest('a[data-vp-eb-open]');
+                if (!link || event.button !== 0 || event.ctrlKey
+                    || event.metaKey || event.shiftKey || event.altKey
+                ) {
+                    return false;
+                }
+                event.preventDefault();
+                showEnrichModule(link.dataset.vpEbOpen);
+                return true;
+            },
+            onOpen: function (drawer) {
+                initTimeBrushes(drawer);
+                refreshAllLists(drawer);
+            }
+        });
+        followEnrichStrip(panel);
+    }
+
+    /**
+     * The notch follows its cell while the row scrolls sideways.
+     *
+     * @param {Element} panel
+     */
+    function followEnrichStrip(panel) {
+        var strip = panel.querySelector('[data-vp-eb-strip]');
+        if (strip) {
+            strip.addEventListener('scroll', function () {
+                panel.vpEbDrawer.notch();
+            }, {passive: true});
+        }
     }
 
     /**
@@ -6099,8 +6241,25 @@
             var frame = document.createElement('div');
             frame.innerHTML = html;
             var fresh = frame.querySelector('[data-vp-eb-strip]');
+            var drawer = panel.vpEbDrawer;
+            var opened = drawer && drawer.isOpen()
+                ? drawer.opened.dataset.vpEbShape
+                : null;
             if (fresh) {
                 strip.replaceWith(fresh);
+                if (drawer) {
+                    followEnrichStrip(panel);
+                    // The panel stays open on the same shape's new cell.
+                    var again = opened === null ? null : fresh.querySelector(
+                        '[data-td-tile][data-vp-eb-shape="'
+                        + cssEscape(opened) + '"]'
+                    );
+                    if (again) {
+                        drawer.open(again, {force: true, stay: true});
+                    } else if (opened !== null) {
+                        drawer.close(false);
+                    }
+                }
                 /*
                  * The rows the widgets have just taken over. A module
                  * that fired kept a chip row while it was answering,
@@ -6125,6 +6284,9 @@
                  * spinning over it.
                  */
                 strip.remove();
+                if (drawer) {
+                    drawer.close(false);
+                }
             }
         }).catch(function () {
         });

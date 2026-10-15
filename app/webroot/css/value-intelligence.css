@@ -4221,45 +4221,9 @@ tr.vp-occ-deleted .vp-occ-orgdot {
 }
 
 /*
- * A sortable column heading. A real button, so it is reachable and
- * operable from the keyboard, but carrying none of a button's chrome —
- * the heading has to keep looking like a heading.
- */
-.vp-th-sort {
-    display: inline-flex;
-    align-items: center;
-    padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    color: inherit;
-    text-align: inherit;
-    /*
-     * Reboot resets `text-transform` on every button, and it is not part
-     * of the `font` shorthand, so `font: inherit` does not bring it
-     * back. Without this the sortable headings in a table whose headings
-     * are uppercased — `.vp-table` — render in mixed case beside the
-     * ones that are not sortable.
-     */
-    text-transform: inherit;
-    cursor: pointer;
-}
-
-.vp-th-sort:focus-visible {
-    outline: 2px solid var(--bs-focus-ring-color, #0d6efd);
-    outline-offset: 2px;
-    border-radius: 2px;
-}
-
-/*
- * `mainOvermind.css` reveals `.sort-icon` on hover and draws it as
- * `fa-sort`, which is the right resting state. The sorted column keeps
- * its caret without a pointer and points it the way the rows are
- * ordered. Keyed off `aria-sort` rather than a class of its own: that
- * attribute is what a screen reader announces, so hanging the visual on
- * it means the two cannot disagree.
- */
-/*
+ * `.vp-th-sort` and the sorted `th[aria-sort]` caret are in
+ * value-widgets.css, which the event page's drawn tables load too.
+ *
  * `mainOvermind.css` gives the caret its glyph, its font and its hover
  * reveal through `th .sort-icon` — three rules the ledger's headings
  * never matched, being grid cells. Without the font-family the
@@ -4278,25 +4242,21 @@ tr.vp-occ-deleted .vp-occ-orgdot {
     opacity: 1;
 }
 
-th[aria-sort] .sort-icon,
 .vpa-h[aria-sort] .sort-icon,
 .vpa-ruler[aria-sort] .sort-icon {
     opacity: 1;
 }
 
-th[aria-sort] .sortable-header,
 .vpa-h[aria-sort] .sortable-header,
 .vpa-ruler[aria-sort] .sortable-header {
     font-weight: 700;
 }
 
-th[aria-sort="ascending"] .sort-icon::before,
 .vpa-h[aria-sort="ascending"] .sort-icon::before,
 .vpa-ruler[aria-sort="ascending"] .sort-icon::before {
     content: "\f0de"; /* fa-sort-up */
 }
 
-th[aria-sort="descending"] .sort-icon::before,
 .vpa-h[aria-sort="descending"] .sort-icon::before,
 .vpa-ruler[aria-sort="descending"] .sort-icon::before {
     content: "\f0dd"; /* fa-sort-down */
@@ -8975,6 +8935,25 @@ th.vp-rel-num {
     color: var(--bs-warning-text-emphasis);
 }
 
+.vp-e-known-note {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--bs-secondary-color);
+    font-size: 0.76rem;
+}
+
+.vp-e-showall {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.55;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
 .vp-e-num {
     font-variant-numeric: tabular-nums;
 }
@@ -11985,6 +11964,101 @@ a.vp-lane-tag:focus-visible {
 
 .vp-eb-cell-wait .vp-eb-cell-none-w {
     font-style: normal;
+}
+
+/* ------------------------------------------------------------------
+ * A drawn cell opens its full drawing under the row, in the panel the
+ * event page's object views use (tile-drawer.css).
+ * ------------------------------------------------------------------ */
+
+.vp-eb-cell[data-td-tile] {
+    cursor: pointer;
+    transition: border-color 0.12s, background-color 0.12s,
+        box-shadow 0.12s;
+}
+
+.vp-eb-cell[data-td-tile]:hover {
+    border-color: color-mix(in srgb, var(--td-accent) 40%,
+        var(--bs-border-color));
+}
+
+/* Inside the cell: the row clips anything drawn outside one. */
+.vp-eb-cell[data-td-tile]:focus-visible {
+    outline: 2px solid var(--td-ring);
+    outline-offset: -2px;
+}
+
+.vp-eb-cell[aria-expanded="true"] {
+    border-color: var(--td-accent);
+    background: var(--td-accent-soft);
+    box-shadow: inset 0 0 0 1px var(--td-accent);
+}
+
+.vp-eb-strip:has(+ .td-panel) {
+    border-bottom: 0;
+}
+
+.vp-eb > .td-panel {
+    margin: 2px 20px 14px;
+}
+
+.vp-eb > .td-panel + .vp-eb-body {
+    padding-top: 8px;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.vp-eb-srcs {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.vp-eb-srcs li {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-width: 0;
+}
+
+.vp-eb-src {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vp-eb-src-made {
+    color: var(--td-quiet);
+    font-size: 0.7rem;
+    line-height: 1.45;
+}
+
+.vp-eb-src-made .font-monospace {
+    font-size: 0.68rem;
+}
+
+/* The answer was cut when it was kept: the drawing is of what was kept. */
+.vp-eb-src-cut {
+    margin-top: 2px;
+    padding: 0 6px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--misp-tone-orange-solid, #e8590c)
+        10%, var(--bs-body-bg));
+    color: var(--misp-tone-orange-fg, #9a4a0a);
+    font-size: 0.66rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+[data-misp-mode="dark"] .vp-eb-src-cut {
+    background: color-mix(in srgb, #ff8c3a 13%, var(--bs-body-bg));
+    color: var(--misp-tone-orange-fg, #ffb072);
 }
 
 /* The galaxy matrix's weaker state is "only on its events" here, not

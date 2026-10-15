@@ -23,6 +23,8 @@ class KnownGoodRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/known_good_full';
 
+    public $eventUse = self::EVENT_EACH;
+
     /** What the file is called, in the order the service says it. */
     const NAMES = array('FileName', 'PackageName');
 
@@ -38,6 +40,20 @@ class KnownGoodRenderer extends ValueRendererBase
     {
         $this->description = __('Whether a file hash belongs to'
             . ' something a vendor shipped.');
+    }
+
+    public function subjectWords()
+    {
+        return array_merge(parent::subjectWords(), array(
+            'one' => __('hash'),
+            'many' => __('hashes'),
+        ));
+    }
+
+    public function subjectsOf(array $object)
+    {
+        $hash = $this->firstValue($object, array('SHA-256', 'SHA-1', 'MD5'));
+        return $hash === null ? array() : array($hash);
     }
 
     public function matches(array $objects, array $attributes)

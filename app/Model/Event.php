@@ -3682,6 +3682,7 @@ class Event extends AppModel
      *   - direction (string, default 'desc')
      *   - deleted (int, 0/1/2)
      *   - name (string|null) object template name filter
+     *   - object (int|null) one object, by id
      *   - meta-category (string|null)
      *   - searchFor (string|null) substring search over the object's own
      *     uuid / name / comment and its attributes' values and uuids
@@ -3772,6 +3773,9 @@ class Event extends AppModel
         // Optional filters
         if (!empty($options['name'])) {
             $conditions['Object.name'] = $options['name'];
+        }
+        if (!empty($options['object'])) {
+            $conditions[] = ['Object.id' => (int)$options['object']];
         }
         if (!empty($options['meta-category'])) {
             $conditions['Object.meta-category'] =
@@ -4081,6 +4085,8 @@ class Event extends AppModel
                 'ObjectReference.deleted' => 0,
             ],
             'fields' => [
+                'ObjectReference.id',
+                'ObjectReference.uuid',
                 'ObjectReference.object_id',
                 'ObjectReference.referenced_id',
                 'ObjectReference.referenced_uuid',
@@ -4090,9 +4096,13 @@ class Event extends AppModel
             ],
             'order' => ['ObjectReference.id' => 'ASC'],
         ]);
+        $referenceTargets = $this->Object->ObjectReference->describeTargets(
+            $user, array_column($references, 'ObjectReference')
+        );
         $referencesByObject = [];
         foreach ($references as $reference) {
             $row = $reference['ObjectReference'];
+            $row['Target'] = $referenceTargets[$row['referenced_uuid']] ?? null;
             $referencesByObject[$row['object_id']][] = $row;
         }
         foreach ($flat as $objId => &$obj) {
@@ -4304,6 +4314,19 @@ class Event extends AppModel
             $attributes
         );
 
+        $scanAttachments = $this->loadAttachmentScan()->isEnabled();
+        foreach ($attributes as &$attribute) {
+            if (($attribute['category'] ?? '') === 'Financial fraud') {
+                $attribute = $this->Attribute->attachValidationWarnings($attribute);
+            }
+            if ($scanAttachments && ($attribute['type'] ?? '') === 'attachment') {
+                $attribute['infected'] = $this->loadAttachmentScan()->isInfected(
+                    AttachmentScan::TYPE_ATTRIBUTE, $attribute['id']
+                );
+            }
+        }
+        unset($attribute);
+
         $attributes = $this->__attachFeedAndServerHits(
             $attributes, $user, $eventId
         );
@@ -4315,9 +4338,26 @@ class Event extends AppModel
             ->getAttributeCorrelations(
                 $user, $eventId, $sgids, $attributeIds
             );
+        $correlatedOrgIds = [];
+        foreach ($correlations as $related) {
+            foreach ($related as $entry) {
+                if (!empty($entry['org_id'])) {
+                    $correlatedOrgIds[$entry['org_id']] = true;
+                }
+            }
+        }
+        $orgNames = empty($correlatedOrgIds) ? [] : $this->Orgc->find('list', [
+            'conditions' => ['Orgc.id' => array_keys($correlatedOrgIds)],
+            'fields' => ['Orgc.id', 'Orgc.name'],
+            'recursive' => -1,
+        ]);
         foreach ($attributes as &$attribute) {
-            $attribute['RelatedAttribute'] =
-                $correlations[$attribute['id']] ?? [];
+            $related = $correlations[$attribute['id']] ?? [];
+            foreach ($related as &$entry) {
+                $entry['org_name'] = $orgNames[$entry['org_id'] ?? 0] ?? null;
+            }
+            unset($entry);
+            $attribute['RelatedAttribute'] = $related;
         }
         unset($attribute);
 
@@ -10385,12 +10425,6 @@ class Event extends AppModel
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
-            if ($distribution == 4) {
-                // The legacy STIX 1 script takes no sharing group;
-                // set it here so _add() and _edit() both see it.
-                // The STIX 2 script already carries the same value.
-                $data['Event']['sharing_group_id'] = $sharingGroupId;
-            }
             if (!$galaxiesAsTags) {
                 if (!isset($this->GalaxyCluster)) {
                     $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -10472,46 +10506,39 @@ class Event extends AppModel
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stixVersion === '2' || $stixVersion === '2.0' || $stixVersion === '2.1') {
             $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
-            $outputPath = $file . '.out';
-            $shellCommand = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                '-i', $file,
-                '--distribution', $distribution,
-                '--org-uuid', $orgUuid
-            ];
-            if ($distribution == 4) {
-                array_push($shellCommand, '--sharing-group-id', $sharingGroupId);
-            }
-            if ($forceContextualData) {
-                $shellCommand[] = '--force-contextual-data';
-            }
-            if ($galaxiesAsTags) {
-                $shellCommand[] = '--galaxies-as-tags';
-            } else {
-                array_push($shellCommand, '--cluster-distribution', $clusterDistribution);
-                if ($clusterDistribution == 4) {
-                    array_push($shellCommand, '--cluster-sharing-group-id', $clusterSharingGroupId);
-                }
-            }
-            if ($debug) {
-                $shellCommand[] = '--debug';
-            }
             $stixVersion = "STIX 2.1";
         } else if ($stixVersion === '1' || $stixVersion === '1.1' || $stixVersion === '1.2') {
             $scriptFile = $scriptDir . DS . 'stix2misp.py';
-            $outputPath = $file . '.json';
-            $shellCommand = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                $file,
-                $distribution,
-                Configure::read('MISP.default_attribute_distribution'),
-                $this->__getTagNamesFromSynonyms($scriptDir)
-            ];
             $stixVersion = "STIX 1.1";
         } else {
             throw new InvalidArgumentException('Invalid STIX version');
+        }
+        // Both importers are misp-stix wrappers taking the same arguments and
+        // writing the converted event next to their input
+        $outputPath = $file . '.out';
+        $shellCommand = [
+            ProcessTool::pythonBin(),
+            $scriptFile,
+            '-i', $file,
+            '--distribution', $distribution,
+            '--org-uuid', $orgUuid
+        ];
+        if ($distribution == 4) {
+            array_push($shellCommand, '--sharing-group-id', $sharingGroupId);
+        }
+        if ($forceContextualData) {
+            $shellCommand[] = '--force-contextual-data';
+        }
+        if ($galaxiesAsTags) {
+            $shellCommand[] = '--galaxies-as-tags';
+        } else {
+            array_push($shellCommand, '--cluster-distribution', $clusterDistribution);
+            if ($clusterDistribution == 4) {
+                array_push($shellCommand, '--cluster-sharing-group-id', $clusterSharingGroupId);
+            }
+        }
+        if ($debug) {
+            $shellCommand[] = '--debug';
         }
 
         try {

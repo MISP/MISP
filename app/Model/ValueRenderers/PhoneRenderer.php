@@ -23,6 +23,8 @@ class PhoneRenderer extends ValueRendererBase
 
     public $full = 'Values/Renderers/phone_full';
 
+    public $eventUse = self::EVENT_SET;
+
     public $producer = self::PRODUCER_NONE;
 
     public function __construct()

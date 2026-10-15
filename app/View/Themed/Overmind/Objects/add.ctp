@@ -599,6 +599,7 @@ if (!empty($groupSource)) {
 
 </div>
 
+<?php $referenceTargets = $referenceTargets ?? []; ?>
 <script type="application/json" id="objectFormData"><?= json_encode([
     'eventId' => $eventId,
     'isEdit' => $isEdit,
@@ -608,14 +609,15 @@ if (!empty($groupSource)) {
     'relationshipTargetsUrl' => $baseurl . '/objectReferences/targets/' . $eventId,
     'relationshipAddUrl' => $baseurl . '/objectReferences/add/',
     'relationshipDeleteUrl' => $baseurl . '/objectReferences/delete/',
-    'existingRelationships' => array_map(function ($row) {
+    'existingRelationships' => array_map(function ($row) use ($referenceTargets) {
         $reference = $row['ObjectReference'];
         return [
             'id' => $reference['id'],
             'type' => $reference['relationship_type'],
             'uuid' => $reference['referenced_uuid'],
             'kind' => (int)$reference['referenced_type'] === 1 ? __('object') : __('attribute'),
-            'label' => substr((string)$reference['referenced_uuid'], 0, 8),
+            'label' => $referenceTargets[$reference['referenced_uuid']]['label']
+                ?? substr((string)$reference['referenced_uuid'], 0, 8),
             'comment' => $reference['comment'],
         ];
     }, array_values($existingReferences ?? [])),

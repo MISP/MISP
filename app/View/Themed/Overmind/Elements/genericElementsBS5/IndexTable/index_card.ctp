@@ -11,6 +11,8 @@
  *
  * `meta` section pinned bottom: card-body.d-flex.flex-column > .row.flex-grow-1 > .col
  * gives full height; mt-auto on meta eats leftover space. All classes load-bearing.
+ *
+ * `body` sits under the title, full width, for content rather than fields.
  */
 $data = $scaffold_data['data'];
 
@@ -65,6 +67,7 @@ $sections = [
     'selector' => [],
     'meta' => [],
     'title' => [],
+    'body' => [],
     'links' => [],
     'extra' => []
 ];
@@ -199,6 +202,12 @@ if (!empty($data['row_marker_callable']) && is_callable($data['row_marker_callab
                             <?php foreach ($sections['title'] as $item): ?>
                                 <?= $item ?>
                             <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($sections['body'])): ?>
+                        <div class="idx-card-body">
+                            <?= implode('', $sections['body']) ?>
                         </div>
                     <?php endif; ?>
 

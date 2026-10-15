@@ -5,6 +5,7 @@ App::uses('GalaxyColour', 'Tools');
 App::uses('ExtensionEventColour', 'Tools');
 App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
 App::uses('EventOverviewTool', 'Tools/EventOverview');
+App::uses('EventObjectViewsTool', 'Tools/EventOverview');
 App::uses('EventContextTool', 'Tools/EventOverview');
 App::uses('EventMatrixTool', 'Tools/EventOverview');
 App::uses('EventSeenTimelineTool', 'Tools/EventOverview');
@@ -2455,9 +2456,14 @@ class EventsController extends AppController
 
         $this->loadModel('EventReport');
         $withReportCount = $this->EventReport->attachReportCountsToEvents($user, $countShells);
-        $this->set('report_count', array_sum(array_column(
+        $reportCount = array_sum(array_column(
             array_column($withReportCount, 'Event'), 'report_count'
-        )));
+        ));
+        $this->set('report_count', $reportCount);
+        if ($reportCount > 0) {
+            $this->loadModel('EventReportTemplateVariable');
+            $this->set('reportTemplateVariables', $this->EventReportTemplateVariable->getAll());
+        }
 
         $sgids = $this->Event->SharingGroup->authorizedIds($user);
         // The tab is filled by correlations/eventCorrelations, which goes
@@ -2466,6 +2472,17 @@ class EventsController extends AppController
         $this->set('correlation_count', $this->Event->getRelatedEventCount($user, $event['Event']['id'], $sgids, true));
 
         $this->set('event', $event);
+        $this->set('contributors', $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']));
+
+        // The checks only ask whether the event has content, so counts stand in for the rows.
+        $eventWarnings = [];
+        if ($this->__canModifyEvent($event, $user)) {
+            $warningEvent = $event;
+            $warningEvent['Attribute'] = $this->viewVars['attribute_count'] ? [[]] : [];
+            $warningEvent['objects'] = $objectCount ? [[]] : [];
+            $eventWarnings = $this->Event->generateWarnings($warningEvent);
+        }
+        $this->set('eventWarnings', $eventWarnings);
 
         $this->loadModel('AnalystProfile');
         $profile = $this->AnalystProfile->resolveFor($user);
@@ -2811,7 +2828,7 @@ class EventsController extends AppController
 
     /**
      * The overview's lead report, the most recently modified one, and up to
-     * five others listed by name, across the given events. A report carries
+     * nine others its picker offers, across the given events. A report carries
      * its own distribution, so seeing the event does not mean seeing every
      * report on it: apply the report ACL, as the reports tab does, and skip
      * soft-deleted ones.
@@ -2848,7 +2865,7 @@ class EventsController extends AppController
                 ],
                 'contain' => ['Event' => ['fields' => ['Event.id', 'Event.org_id']]],
                 'order' => ['EventReport.timestamp' => 'DESC', 'EventReport.id' => 'DESC'],
-                'limit' => 5,
+                'limit' => 9,
                 'recursive' => -1,
             ]);
             $event['OtherEventReports'] = array_column($others, 'EventReport');
@@ -3132,7 +3149,7 @@ class EventsController extends AppController
         $options = [];
         $paramKeys = [
             'page', 'limit', 'sort', 'direction',
-            'deleted', 'name', 'meta-category', 'searchFor', 'proposal',
+            'deleted', 'name', 'object', 'meta-category', 'searchFor', 'proposal',
             'category', 'type', 'tags', 'galaxy', 'org', 'toIDS',
             'correlation', 'feed', 'warning', 'analystData', 'narrower', 'seen',
         ];
@@ -4223,6 +4240,31 @@ class EventsController extends AppController
     }
 
     /**
+     * The overview's object views: the Value Intelligence renderers drawn
+     * from the event's own objects (and its extensions', in extended view).
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function viewEventObjectViews($id = null)
+    {
+        $user = $this->Auth->user();
+        $event = $this->__overviewEvent($id);
+        $events = [$event['Event']];
+        foreach ($this->__extensionViewContext($user, $event)['ids'] as $memberId) {
+            if ((int)$memberId !== (int)$event['Event']['id']) {
+                $events[] = $this->__overviewEvent($memberId)['Event'];
+            }
+        }
+        $views = (new EventObjectViewsTool())->views($user, $events);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($views, 'json');
+        }
+        $this->set('views', $views);
+        $this->set('event', $event);
+        $this->layout = false;
+    }
+
+    /**
      * The overview's context rows, including the labels found only on the
      * event's indicators. Past EventOverviewTool::ROLLUP_LIMIT attributes
      * that roll-up waits for `rollup:1`, unless a cached one exists.
@@ -4270,6 +4312,10 @@ class EventsController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($rows, 'json');
         }
+        $ownTags = $setIds ? $this->__ownEventTags($event) : $event['EventTag'];
+        $this->loadModel('Taxonomy');
+        $this->set('tagConflicts', $this->Taxonomy->checkIfTagInconsistencies($ownTags));
+        $this->set('missingTaxonomies', $this->Event->missingTaxonomies(['EventTag' => $ownTags]));
         $this->set('rows', $rows);
         $this->set('rolledUp', $rollup !== null);
         $this->set('profileName', $profile['name'] ?? null);

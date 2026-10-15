@@ -22,7 +22,9 @@
                             h($hijack['prefix']) ?></span>
                     <?php endif; ?>
                     <span class="vp-rf-dim font-monospace"><?=
-                        h((string)$hijack['module']) ?></span>
+                        $this->element('Values/Renderers/source_cell',
+                            array('sources' => $hijack['module'])
+                        ) ?></span>
                 </div>
                 <dl class="vp-rf-pairs">
                     <?php if ($hijack['expected_asn'] !== null): ?>
@@ -80,7 +82,9 @@
                         <td><?= h($rank['family'] === null
                             ? '—' : $rank['family']) ?></td>
                         <td class="font-monospace vp-rf-dim"><?=
-                            h((string)$rank['module']) ?></td>
+                            $this->element('Values/Renderers/source_cell',
+                                array('sources' => $rank['module'])
+                            ) ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
