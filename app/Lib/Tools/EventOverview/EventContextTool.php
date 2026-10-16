@@ -13,6 +13,9 @@ App::uses('GalaxyCategory', 'Tools');
  */
 class EventContextTool
 {
+    /** Cluster meta keys holding a technique's id, first match wins; ATT&CK for ICS uses its own. */
+    const TECHNIQUE_ID_KEYS = ['external_id', 'Technique ID'];
+
     /**
      * @param array $eventTags EventTag rows, each carrying Tag
      * @param array $eventClusters GalaxyCluster rows on the event, each carrying Galaxy
@@ -281,8 +284,7 @@ class EventContextTool
      */
     public static function techniqueId(array $cluster)
     {
-        // ATT&CK for ICS keeps its id under its own key.
-        foreach (['external_id', 'Technique ID'] as $key) {
+        foreach (self::TECHNIQUE_ID_KEYS as $key) {
             $external = $cluster['meta'][$key] ?? null;
             if (is_array($external)) {
                 $external = reset($external);
