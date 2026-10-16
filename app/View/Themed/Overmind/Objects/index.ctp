@@ -22,6 +22,7 @@ $fields = [
         'name' => __('Object'),
         'sort' => 'name',
         'class' => 'oi-col-object',
+        'display_in' => ['table'],
         'element' => 'custom',
         'function' => function ($row) {
             $object = $row['Object'];
@@ -54,6 +55,7 @@ $fields = [
     [
         'name' => __('References'),
         'class' => 'oi-col-refs',
+        'display_in' => ['table'],
         'element' => 'custom',
         'function' => function ($row) {
             $out = (int)($row['Object']['references_out'] ?? 0);
@@ -71,6 +73,7 @@ $fields = [
     [
         'name' => __('Event'),
         'class' => 'oi-col-event',
+        'display_in' => ['table'],
         'element' => 'custom',
         'function' => function ($row) use ($baseurl) {
             return sprintf(
@@ -87,6 +90,7 @@ $fields = [
     [
         'name' => __('Creator org'),
         'class' => 'oi-col-org',
+        'display_in' => ['table'],
         'data_path' => 'Orgc',
         'element' => 'organisation',
         'requirement' => (bool)Configure::read('MISP.showorg'),
@@ -95,6 +99,7 @@ $fields = [
         'name' => __('Seen'),
         'sort' => 'first_seen',
         'class' => 'oi-col-seen',
+        'display_in' => ['table'],
         'element' => 'custom',
         'function' => function ($row) {
             $day = function ($value) {
@@ -118,6 +123,7 @@ $fields = [
         'name' => __('Modified'),
         'sort' => 'timestamp',
         'class' => 'oi-col-modified',
+        'display_in' => ['table'],
         'element' => 'custom',
         'function' => function ($row) {
             $ts = (int)$row['Object']['timestamp'];
@@ -140,6 +146,7 @@ $fields = [
             h(__('Analyst data'))
         ),
         'class' => 'oi-col-analyst',
+        'card_section' => 'analyst',
         'element' => 'analyst_data_badges',
         'note_path' => 'Object.Note',
         'opinion_path' => 'Object.Opinion',
@@ -152,6 +159,7 @@ $fields = [
         'element' => 'row_actions',
         'data_path' => 'Object.id',
         'class' => 'oi-col-actions',
+        'card_section' => 'actions',
         'actions' => [
             [
                 'type' => 'navigate',
@@ -303,6 +311,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'data' => $objects,
             'primary_id_path' => 'Object.id',
             'table_class' => 'oi-table',
+            'card_element' => 'Objects/index_card_tile',
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxl' => 3],
             'empty_message' => empty($filterState->filters())
                 ? __('No objects in any event you can see.')
                 : __('No object matches these filters.'),
@@ -311,7 +321,6 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'pull' => 'right',
                 'children' => $children,
                 'transport' => 'query',
-                'hide_view_toggle' => true,
                 'chips' => [
                     'labels' => [
                         'template_uuid' => __('Template uuid'),

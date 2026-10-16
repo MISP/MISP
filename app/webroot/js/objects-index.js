@@ -1,6 +1,7 @@
 /*
- * Objects index: a row opens in place into the object's attributes, fetched
- * once from objects/indexCard/<id> and kept for the next toggle.
+ * Objects index: a table row, or a card, opens in place into the object's
+ * attributes, fetched once from objects/indexCard/<id> and kept for the next
+ * toggle.
  *
  * Delegated on the document: the filter bar swaps the results block without a
  * page load, and this script runs before the table exists.
@@ -8,40 +9,60 @@
 (function () {
     'use strict';
 
-    function detailOf(tr) {
-        var next = tr.nextElementSibling;
-        return next && next.classList.contains('oi-detail') ? next : null;
+    function loaderBox(url) {
+        var box = document.createElement('div');
+        box.className = 'oi-detail-box';
+        box.dataset.url = url;
+        box.innerHTML = '<div class="misp-loader misp-loader-sm" role="status"></div>';
+        return box;
     }
 
-    function toggle(button) {
-        var tr = button.closest('tr');
-        var index = button.closest('.oi-index');
-        if (!tr || !index) {
-            return;
+    // The detail row under a table row, created on first open.
+    function rowTarget(tr, url) {
+        var next = tr.nextElementSibling;
+        if (next && next.classList.contains('oi-detail')) {
+            return { node: next, box: null };
         }
-        var open = button.getAttribute('aria-expanded') === 'true';
-        var detail = detailOf(tr);
-        button.setAttribute('aria-expanded', open ? 'false' : 'true');
-        tr.classList.toggle('oi-open', !open);
-        if (detail) {
-            detail.hidden = open;
-            return;
-        }
-        if (open) {
-            return;
-        }
-        detail = document.createElement('tr');
+        var detail = document.createElement('tr');
         detail.className = 'oi-detail';
         var cell = document.createElement('td');
         cell.colSpan = tr.children.length;
-        var box = document.createElement('div');
-        box.className = 'oi-detail-box';
-        box.dataset.url = index.dataset.oiCardUrl + button.dataset.oiExpand;
-        box.innerHTML = '<div class="misp-loader misp-loader-sm" role="status"></div>';
+        var box = loaderBox(url);
         cell.appendChild(box);
         detail.appendChild(cell);
         tr.insertAdjacentElement('afterend', detail);
-        loadAjaxContainer(box);
+        return { node: detail, box: box };
+    }
+
+    // The attribute slot at the bottom of a card, filled on first open.
+    function tileTarget(tile, url) {
+        var slot = tile.querySelector('.oi-tile-attrs');
+        if (slot.firstElementChild) {
+            return { node: slot, box: null };
+        }
+        var box = loaderBox(url);
+        slot.appendChild(box);
+        return { node: slot, box: box };
+    }
+
+    function toggle(button) {
+        var index = button.closest('.oi-index');
+        var tr = button.closest('tr');
+        var tile = tr ? null : button.closest('.oi-tile');
+        if (!index || (!tr && !tile)) {
+            return;
+        }
+        var open = button.getAttribute('aria-expanded') === 'true';
+        button.setAttribute('aria-expanded', open ? 'false' : 'true');
+        if (tr) {
+            tr.classList.toggle('oi-open', !open);
+        }
+        var url = index.dataset.oiCardUrl + button.dataset.oiExpand;
+        var target = tr ? rowTarget(tr, url) : tileTarget(tile, url);
+        target.node.hidden = open;
+        if (target.box) {
+            loadAjaxContainer(target.box);
+        }
     }
 
     document.addEventListener('click', function (e) {
