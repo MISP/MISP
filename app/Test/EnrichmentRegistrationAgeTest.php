@@ -165,6 +165,25 @@ class EnrichmentRegistrationAgeTest extends TestCase
         );
     }
 
+    public function testASameDayRegistrationIsSaidInWords()
+    {
+        $exact = $this->evaluate($this->context(
+            array($this->answer('rdap', 0.2)),
+            array('rdap' => 'C')
+        ));
+        $this->assertSame('Registered the day it was first reported',
+            $exact['signal']);
+        $parent = $this->evaluate($this->context(
+            array($this->answer('rdap', 0.2)),
+            array('rdap' => 'C'),
+            'optin.evil.com'
+        ));
+        $this->assertSame(
+            'evil.com was registered the day this was first reported',
+            $parent['signal']
+        );
+    }
+
     public function testTheModulesGradeScalesThePoints()
     {
         $row = $this->evaluate($this->context(

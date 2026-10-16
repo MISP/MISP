@@ -252,6 +252,13 @@ class EnrichmentRegistrationAge extends ValueSignalBase
     {
         $age = $this->duration($reading['age_days']);
         if ($reading['match'] === 'parent') {
+            if ($reading['age_days'] === 0) {
+                return sprintf(
+                    __('%s was registered the day this was first'
+                        . ' reported'),
+                    $reading['domain']
+                );
+            }
             return sprintf(
                 __('%1$s was registered %2$s before this was first'
                     . ' reported'),
