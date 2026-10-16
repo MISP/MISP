@@ -4383,10 +4383,6 @@ components:
           $ref: "#/components/schemas/PageSearchFilter"
         limit:
           $ref: "#/components/schemas/LimitSearchFilter"
-        quickFilter:
-          $ref: "#/components/schemas/SearchAllRestSearchFilter"
-        searchall:
-          $ref: "#/components/schemas/SearchAllRestSearchFilter"
         timestamp:
           $ref: "#/components/schemas/Timestamp"
         object_name:
@@ -4397,17 +4393,9 @@ components:
           $ref: "#/components/schemas/ObjectTemplateVersion"
         eventid:
           $ref: "#/components/schemas/EventId"
-        eventinfo:
-          $ref: "#/components/schemas/EventInfo"
-        ignore:
-          description: "If true matches both true and false values for `to_ids` and `published`"
-          type: boolean
-          default: false
         from:
           $ref: "#/components/schemas/DateRestSearchFilter"
         to:
-          $ref: "#/components/schemas/DateRestSearchFilter"
-        date:
           $ref: "#/components/schemas/DateRestSearchFilter"
         tags:
           $ref: "#/components/schemas/TagsRestSearchFilter"
@@ -4435,14 +4423,10 @@ components:
           $ref: "#/components/schemas/AttributeCategory"
         object_relation:
           $ref: "#/components/schemas/ObjectRelationRestSearchFilter"
-        attribute_timestamp:
-          $ref: "#/components/schemas/Timestamp"
         first_seen:
           $ref: "#/components/schemas/NullableMicroTimestamp"
         last_seen:
           $ref: "#/components/schemas/NullableMicroTimestamp"
-        comment:
-          $ref: "#/components/schemas/AttributeComment"
         to_ids:
           $ref: "#/components/schemas/ToIDSRestSearchFlag"
         published:
@@ -4457,8 +4441,6 @@ components:
           $ref: "#/components/schemas/IncludeAllTagsRestSearchFilter"
         includeEventUuid:
           $ref: "#/components/schemas/IncludeEventUUIDRestSearchFlag"
-        include_event_uuid:
-          $ref: "#/components/schemas/IncludeEventUUIDRestSearchFlag"
         includeEventTags:
           $ref: "#/components/schemas/IncludeEventTagsRestSearchFlag"
         includeProposals:
@@ -4467,30 +4449,12 @@ components:
           $ref: "#/components/schemas/IncludeWarninglistHitsRestSearchFlag"
         includeContext:
           $ref: "#/components/schemas/IncludeContextRestSearchFlag"
-        includeSightings:
-          $ref: "#/components/schemas/IncludeContextRestSearchFlag"
         includeSightingdb:
           $ref: "#/components/schemas/IncludeSightingDbRestSearchFlag"
-        includeCorrelations:
-          $ref: "#/components/schemas/IncludeCorrelationsRestSearchFlag"
-        includeDecayScore:
-          $ref: "#/components/schemas/IncludeDecayScoreRestSearchFlag"
-        includeFullModel:
-          $ref: "#/components/schemas/IncludeFullModelRestSearchFlag"
-        allow_proposal_blocking:
-          $ref: "#/components/schemas/AllowProposalBlockingRestSearchFlag"
         metadata:
           $ref: "#/components/schemas/MetadataRestSearchFilter"
         attackGalaxy:
           $ref: "#/components/schemas/AttackGalaxyRestSearchFilter"
-        excludeDecayed:
-          $ref: "#/components/schemas/ExcludeDecayedRestSearchFlag"
-        decayingModel:
-          $ref: "#/components/schemas/DecayingModelRestSearchFilter"
-        modelOverrides:
-          $ref: "#/components/schemas/ModelOverridesRestSearchFilter"
-        score:
-          $ref: "#/components/schemas/DecayingModelScoreRestSearchFilter"
         returnFormat:
           $ref: "#/components/schemas/ObjectsRestSearchReturnFormat"
 
@@ -7029,11 +6993,6 @@ components:
 
     IncludeFullModelRestSearchFlag:
       description: "Include all model information of matching events in the response"
-      type: boolean
-      default: false
-
-    AllowProposalBlockingRestSearchFlag:
-      description: "Allow blocking attributes from to_ids sensitive exports if a proposal has been made to it to remove the IDS flag"
       type: boolean
       default: false
 
