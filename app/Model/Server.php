@@ -5695,7 +5695,7 @@ class Server extends AppModel
                 ),
                 'attachments_dir' => array(
                     'level' => 2,
-                    'description' => __('Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.'),
+                    'description' => __('Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application. A value starting with s3 (such as s3://) stores attachments in the bucket set by the Plugin.S3_* settings instead.'),
                     'value' => APP . '/files', # GUI display purpose only.
                     'null' => false,
                     'test' => 'testForWritableDir',
@@ -7839,13 +7839,6 @@ class Server extends AppModel
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string'
-                ),
-                'S3_enable' => array(
-                    'level' => 2,
-                    'description' => __('Enables or disables uploading of malware samples to S3 rather than to disk (WARNING: Get permission from amazon first!)'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
                 ),
                 'S3_aws_compatible' => array(
                     'level' => 2,
