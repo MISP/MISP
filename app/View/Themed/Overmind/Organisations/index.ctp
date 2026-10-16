@@ -147,7 +147,7 @@ $fields = [
         'display_in' => ['table', 'card'],
     ],
     [
-        'name' => __('Restrictions'),
+        'name' => __('Email restrictions'),
         'sort' => 'Organisation.restricted_to_domain',
         'data_path' => 'Organisation.restricted_to_domain',
         'element' => 'domain_restrictions',
@@ -201,9 +201,9 @@ $scaffoldFilterBar = [
                     'name' => 'scope',
                     'label' => __('Local'),
                     'options' => [
-                        '' => __('All organisations'),
                         'local'    => __('Local organisations'),
                         'external' => __('Known remote organisations'),
+                        'all'      => __('All organisations'),
                     ],
                 ],
             ]
