@@ -104,6 +104,18 @@ class EventOverviewTool
         return $Model->getDataSource()->conditions($Model->buildConditions($user), true, false, $Model);
     }
 
+    /**
+     * The aliases `Attribute`, `Object` and `Event`, quoted as aclSql()
+     * quotes them: PostgreSQL folds an unquoted alias to lower case.
+     *
+     * @return string[]
+     */
+    public function aliases()
+    {
+        $db = $this->Attribute->getDataSource();
+        return [$db->name('Attribute'), $db->name('Object'), $db->name('Event')];
+    }
+
     public function cached($kind, array $event, array $scope, callable $compute, $allowCompute = true)
     {
         $key = self::CACHE_PREFIX . $kind . ':' . (int)$event['id'] . ':' . (int)$event['timestamp'] . ':' . $scope['key'];
@@ -216,41 +228,47 @@ class EventOverviewTool
      */
     private function attributesFrom(array $user)
     {
-        return ' FROM attributes Attribute JOIN events Event ON Event.id = Attribute.event_id'
-            . ' LEFT JOIN objects Object ON Object.id = Attribute.object_id'
-            . ' WHERE Attribute.event_id = ? AND Attribute.deleted = 0'
-            . ' AND (Attribute.object_id = 0 OR Object.deleted = 0)'
+        list($a, $o, $e) = $this->aliases();
+        return " FROM attributes $a JOIN events $e ON $e.id = $a.event_id"
+            . " LEFT JOIN objects $o ON $o.id = $a.object_id"
+            . " WHERE $a.event_id = ? AND $a.deleted = FALSE"
+            . " AND ($a.object_id = 0 OR $o.deleted = FALSE)"
             . ' AND ' . $this->aclSql($user, 'Attribute');
     }
 
     /**
      * FROM … WHERE over one event's live objects the user may read. Binds
-     * the event id. Pinned to event_id, which the optimiser otherwise trades
-     * for a scan of every object once an event holds a large share of them.
+     * the event id. Pinned to MispObject::liveObjectIndex(), which the
+     * optimiser otherwise trades for a scan of every object once an event
+     * holds a large share of them.
      */
     private function objectsFrom(array $user)
     {
-        return ' FROM objects Object FORCE INDEX (event_id) JOIN events Event ON Event.id = Object.event_id'
-            . ' WHERE Object.event_id = ? AND Object.deleted = 0'
+        list(, $o, $e) = $this->aliases();
+        $index = $this->Object->liveObjectIndex();
+        return " FROM objects $o" . ($index === null ? '' : ' FORCE INDEX (' . $index . ')')
+            . " JOIN events $e ON $e.id = $o.event_id"
+            . " WHERE $o.event_id = ? AND $o.deleted = FALSE"
             . ' AND ' . $this->aclSql($user, 'Object');
     }
 
     private function computeInventory(array $user, array $event, array $reference)
     {
+        list($a, $o) = $this->aliases();
         $rows = $this->Attribute->query(
-            'SELECT Attribute.type, Attribute.to_ids,'
-            . ' CASE WHEN Attribute.object_id = 0 THEN 1 ELSE 0 END AS loose,'
-            . ' Attribute.distribution AS ad,'
-            . ' CASE WHEN Attribute.distribution = 4 THEN Attribute.sharing_group_id ELSE 0 END AS asg,'
-            . ' COALESCE(Object.distribution, 5) AS od,'
-            . ' CASE WHEN Object.distribution = 4 THEN Object.sharing_group_id ELSE 0 END AS osg,'
+            "SELECT $a.type, $a.to_ids,"
+            . " CASE WHEN $a.object_id = 0 THEN 1 ELSE 0 END AS loose,"
+            . " $a.distribution AS ad,"
+            . " CASE WHEN $a.distribution = 4 THEN $a.sharing_group_id ELSE 0 END AS asg,"
+            . " COALESCE($o.distribution, 5) AS od,"
+            . " CASE WHEN $o.distribution = 4 THEN $o.sharing_group_id ELSE 0 END AS osg,"
             . ' COUNT(*) AS n'
             . $this->attributesFrom($user)
-            . ' GROUP BY Attribute.type, Attribute.to_ids, CASE WHEN Attribute.object_id = 0 THEN 1 ELSE 0 END,'
-            . ' Attribute.distribution,'
-            . ' CASE WHEN Attribute.distribution = 4 THEN Attribute.sharing_group_id ELSE 0 END,'
-            . ' COALESCE(Object.distribution, 5),'
-            . ' CASE WHEN Object.distribution = 4 THEN Object.sharing_group_id ELSE 0 END',
+            . " GROUP BY $a.type, $a.to_ids, CASE WHEN $a.object_id = 0 THEN 1 ELSE 0 END,"
+            . " $a.distribution,"
+            . " CASE WHEN $a.distribution = 4 THEN $a.sharing_group_id ELSE 0 END,"
+            . " COALESCE($o.distribution, 5),"
+            . " CASE WHEN $o.distribution = 4 THEN $o.sharing_group_id ELSE 0 END",
             [(int)$event['id']],
             false
         );
@@ -352,8 +370,9 @@ class EventOverviewTool
 
     public function objectCounts(array $user, $eventId)
     {
+        list(, $o) = $this->aliases();
         $rows = $this->Object->query(
-            'SELECT Object.name, COUNT(*) AS n' . $this->objectsFrom($user) . ' GROUP BY Object.name',
+            "SELECT $o.name, COUNT(*) AS n" . $this->objectsFrom($user) . " GROUP BY $o.name",
             [$eventId],
             false
         );
@@ -371,12 +390,13 @@ class EventOverviewTool
      */
     private function detectionRules(array $user, $eventId)
     {
+        list($a, $o) = $this->aliases();
         $rows = $this->Attribute->query(
-            'SELECT Attribute.type, Attribute.value1_id, Attribute.comment,'
-            . ' CASE WHEN Attribute.object_id = 0 THEN 1 ELSE 0 END AS loose, Object.name AS object_name'
+            "SELECT $a.type, $a.value1_id, $a.comment,"
+            . " CASE WHEN $a.object_id = 0 THEN 1 ELSE 0 END AS loose, $o.name AS object_name"
             . $this->attributesFrom($user)
-            . " AND Attribute.type IN ('snort', 'yara', 'sigma', 'suricata', 'zeek', 'bro', 'kusto-query')"
-            . ' ORDER BY Attribute.id LIMIT 5',
+            . " AND $a.type IN ('snort', 'yara', 'sigma', 'suricata', 'zeek', 'bro', 'kusto-query')"
+            . " ORDER BY $a.id LIMIT 5",
             [$eventId],
             false
         );
@@ -457,16 +477,17 @@ class EventOverviewTool
 
     private function computeRollup(array $user, $eventId)
     {
+        list($a, $o, $e) = $this->aliases();
         $rows = $this->Attribute->query(
-            'SELECT atg.tag_id, CASE WHEN Attribute.object_id = 0 THEN 1 ELSE 0 END AS loose, COUNT(*) AS n'
+            "SELECT atg.tag_id, CASE WHEN $a.object_id = 0 THEN 1 ELSE 0 END AS loose, COUNT(*) AS n"
             . ' FROM attribute_tags atg'
-            . ' JOIN attributes Attribute ON Attribute.id = atg.attribute_id'
-            . ' JOIN events Event ON Event.id = Attribute.event_id'
-            . ' LEFT JOIN objects Object ON Object.id = Attribute.object_id'
-            . ' WHERE atg.event_id = ? AND Attribute.deleted = 0'
-            . ' AND (Attribute.object_id = 0 OR Object.deleted = 0)'
+            . " JOIN attributes $a ON $a.id = atg.attribute_id"
+            . " JOIN events $e ON $e.id = $a.event_id"
+            . " LEFT JOIN objects $o ON $o.id = $a.object_id"
+            . " WHERE atg.event_id = ? AND $a.deleted = FALSE"
+            . " AND ($a.object_id = 0 OR $o.deleted = FALSE)"
             . ' AND ' . $this->aclSql($user, 'Attribute')
-            . ' GROUP BY atg.tag_id, CASE WHEN Attribute.object_id = 0 THEN 1 ELSE 0 END',
+            . " GROUP BY atg.tag_id, CASE WHEN $a.object_id = 0 THEN 1 ELSE 0 END",
             [$eventId],
             false
         );
@@ -500,18 +521,19 @@ class EventOverviewTool
 
     private function computeActivity(array $user, $eventId)
     {
+        list($a, $o) = $this->aliases();
         // Hour buckets keep the rows bounded and let PHP's own timezone name the day.
         $attributes = $this->Attribute->query(
-            'SELECT FLOOR(Attribute.timestamp / 3600) AS h, MIN(' . Value::recordedAt() . ') AS first, COUNT(*) AS n'
+            "SELECT FLOOR($a.timestamp / 3600) AS h, MIN(" . Value::recordedAt($a) . ') AS first, COUNT(*) AS n'
             . $this->attributesFrom($user)
-            . ' GROUP BY FLOOR(Attribute.timestamp / 3600)',
+            . " GROUP BY FLOOR($a.timestamp / 3600)",
             [$eventId],
             false
         );
         $objects = $this->Object->query(
-            'SELECT FLOOR(Object.timestamp / 3600) AS h, MIN(Object.timestamp) AS first, COUNT(*) AS n'
+            "SELECT FLOOR($o.timestamp / 3600) AS h, MIN($o.timestamp) AS first, COUNT(*) AS n"
             . $this->objectsFrom($user)
-            . ' GROUP BY FLOOR(Object.timestamp / 3600)',
+            . " GROUP BY FLOOR($o.timestamp / 3600)",
             [$eventId],
             false
         );
@@ -702,18 +724,19 @@ class EventOverviewTool
     {
         $readable = [];
         $eventIds = implode(', ', array_map('intval', $eventIds));
+        list($a, $o, $e) = $this->aliases();
         foreach (array_chunk(array_map('intval', $ids), 5000) as $chunk) {
             $in = implode(', ', $chunk);
             if ($model === 'Object') {
-                $sql = 'SELECT Object.id FROM objects Object JOIN events Event ON Event.id = Object.event_id'
-                    . " WHERE Object.id IN ($in) AND Object.event_id IN ($eventIds) AND Object.deleted = 0"
+                $sql = "SELECT $o.id FROM objects $o JOIN events $e ON $e.id = $o.event_id"
+                    . " WHERE $o.id IN ($in) AND $o.event_id IN ($eventIds) AND $o.deleted = FALSE"
                     . ' AND ' . $this->aclSql($user, 'Object');
             } else {
-                $sql = 'SELECT Attribute.id, Attribute.object_id FROM attributes Attribute'
-                    . ' JOIN events Event ON Event.id = Attribute.event_id'
-                    . ' LEFT JOIN objects Object ON Object.id = Attribute.object_id'
-                    . " WHERE Attribute.id IN ($in) AND Attribute.event_id IN ($eventIds) AND Attribute.deleted = 0"
-                    . ' AND (Attribute.object_id = 0 OR Object.deleted = 0)'
+                $sql = "SELECT $a.id, $a.object_id FROM attributes $a"
+                    . " JOIN events $e ON $e.id = $a.event_id"
+                    . " LEFT JOIN objects $o ON $o.id = $a.object_id"
+                    . " WHERE $a.id IN ($in) AND $a.event_id IN ($eventIds) AND $a.deleted = FALSE"
+                    . " AND ($a.object_id = 0 OR $o.deleted = FALSE)"
                     . ' AND ' . $this->aclSql($user, 'Attribute');
             }
             foreach ($this->Attribute->query($sql, [], false) as $row) {

@@ -394,7 +394,11 @@ class AppModel extends Model
         }
     }
 
-    public function runUpdates($verbose = false, $useWorker = true, $processId = false, $avoidSilentFail = false, $retryDeferred = false)
+    /**
+     * @param string|null $stopBefore An update to stop in front of, leaving it
+     *   and everything after it pending; Admin runUpgrade runs steps in between.
+     */
+    public function runUpdates($verbose = false, $useWorker = true, $processId = false, $avoidSilentFail = false, $retryDeferred = false, $stopBefore = null)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->Job = ClassRegistry::init('Job');
@@ -532,6 +536,9 @@ class AppModel extends Model
                 $deferred = false;
                 $migrationManager = $this->getMigrationManager();
                 foreach ($updates as $update => $temp) {
+                    if ($stopBefore !== null && $update === $stopBefore) {
+                        break;
+                    }
                     if ($verbose) {
                         echo str_pad('Executing ' . $update, 30, '.');
                     }
@@ -856,6 +863,15 @@ class AppModel extends Model
             $this->cleanCacheFiles();
             $this->AdminSetting->changeSetting('clean_db', 0);
         }
+    }
+
+    /**
+     * @return array What runUpdates() would apply now, in its order.
+     */
+    public function pendingUpdates()
+    {
+        $version = ClassRegistry::init('AdminSetting')->getSetting('db_version');
+        return $this->findUpgrades($version === false ? '0' : $version);
     }
 
     /**

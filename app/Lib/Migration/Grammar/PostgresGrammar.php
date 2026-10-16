@@ -121,6 +121,16 @@ class PostgresGrammar extends AbstractGrammar
         ));
     }
 
+    /**
+     * Nothing: a database's encoding is fixed when it is created, and
+     * collations are set per column.
+     */
+    public function alterDatabase(array $options)
+    {
+        $this->databaseOptions($options);
+        return array();
+    }
+
     // ----------------------------------------------------------------- table
 
     protected function addColumnParts($table, $column, $type, array $options)

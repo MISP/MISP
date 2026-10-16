@@ -141,10 +141,32 @@ class MispObject extends AppModel
 
     private $__objectDuplicationCheckCache = [];
 
+    /** @var bool|null Cached result of checking if 'idx_event_deleted_name' exists on objects table */
+    private static $hasLiveObjectIndex = null;
+
     public function __construct($id = false, $table = null, $ds = null) {
         parent::__construct();
         $this->schema();
         $this->_schema['distribution']['default'] = Configure::read('MISP.default_object_distribution') ?? 5;
+    }
+
+    /**
+     * The index to pin a read of some events' live objects to: (event_id,
+     * deleted, name) once its migration has run; null before, so no hint
+     * names an index the table may not have (the 3.0 schema has none called
+     * event_id), and null on a driver without index hints.
+     *
+     * @return string|null
+     */
+    public function liveObjectIndex()
+    {
+        if (!$this->checkDbSupport('indexHints')) {
+            return null;
+        }
+        if (self::$hasLiveObjectIndex === null) {
+            self::$hasLiveObjectIndex = $this->getSchemaInspector()->hasNamedIndex('objects', 'idx_event_deleted_name');
+        }
+        return self::$hasLiveObjectIndex ? 'idx_event_deleted_name' : null;
     }
 
     public function buildFilterConditions(&$params)

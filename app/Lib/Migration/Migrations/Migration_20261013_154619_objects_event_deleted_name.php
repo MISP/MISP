@@ -12,14 +12,13 @@ class Migration_20261013_154619_objects_event_deleted_name extends AbstractMigra
     public $requiresLogout = false;
 
     /**
+     * The index is part of the objects 3.0 target, built in that table's
+     * schema v3 rebuild rather than in a pass of its own.
+     *
      * @param SchemaBuilder $schema
      * @return void
      */
     public function up(SchemaBuilder $schema)
     {
-        $columns = array('event_id', 'deleted', 'name');
-        if (!$this->inspector()->hasIndex('objects', $columns)) {
-            $schema->table('objects')->addIndex($columns, array('name' => 'idx_event_deleted_name'));
-        }
     }
 }

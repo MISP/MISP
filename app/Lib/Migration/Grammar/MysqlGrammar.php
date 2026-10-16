@@ -91,6 +91,22 @@ class MysqlGrammar extends AbstractGrammar
         ));
     }
 
+    /**
+     * Without a name, ALTER DATABASE applies to the connected database.
+     */
+    public function alterDatabase(array $options)
+    {
+        $options = $this->databaseOptions($options);
+        $parts = array();
+        if (isset($options['charset'])) {
+            $parts[] = 'CHARACTER SET ' . $options['charset'];
+        }
+        if (isset($options['collate'])) {
+            $parts[] = 'COLLATE ' . $options['collate'];
+        }
+        return array('ALTER DATABASE ' . implode(' ', $parts) . ';');
+    }
+
     // ----------------------------------------------------------------- table
 
     protected function addColumnParts($table, $column, $type, array $options)

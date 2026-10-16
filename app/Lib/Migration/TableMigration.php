@@ -70,7 +70,7 @@ abstract class TableMigration extends AbstractMigration
         $this->expected = null;
         $this->busy = array();
         if (PHP_SAPI !== 'cli') {
-            $this->defer('Schema modernisation runs offline: Console/cake Admin live 0; Console/cake Admin migrationApply');
+            $this->defer('Schema modernisation runs offline: Console/cake Admin runUpgrade');
         }
         $checked = TableConverger::preflight($this->inspector(), static::TABLE, static::TARGET, static::RECREATE);
         if (!empty($checked['defer'])) {
