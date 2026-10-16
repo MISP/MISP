@@ -408,11 +408,9 @@ $openCard('database', '#0dcaf0', __('Schema & migrations'),
             <div class="d-flex align-items-center gap-2">
                 <span class="dg-version"><?= h($dbSchemaDiagnostics['actual_db_version']) ?></span>
                 <?php
-                $expected = $dbSchemaDiagnostics['expected_db_version'];
-                $actual = $dbSchemaDiagnostics['actual_db_version'];
-                echo $actual == $expected
-                    ? $pill(2, __('expected'))
-                    : $pill(1, __('expected %s', $expected));
+                echo (int)$dbSchemaDiagnostics['actual_db_version'] < (int)$dbSchemaDiagnostics['expected_db_version']
+                    ? $pill(1, __('legacy updates pending'))
+                    : $pill(2, __('current'));
                 ?>
             </div>
             <div class="dg-figures text-muted">

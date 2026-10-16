@@ -262,6 +262,11 @@ class ServerHealthProbes
         if ($pending > 0) {
             return self::make(1, __('%s migration(s) pending', $pending), $summary);
         }
+        if (isset($schema['actual_db_version'], $schema['expected_db_version'])
+            && (int)$schema['actual_db_version'] < (int)$schema['expected_db_version']
+        ) {
+            return self::make(1, __('Legacy updates pending'), $summary);
+        }
         return self::make(2, __('Migrations up to date'), $summary);
     }
 

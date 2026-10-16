@@ -1908,8 +1908,16 @@ class AdminShell extends AppShell
     {
         $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
 
-        // db_version is frozen, so the version pair no longer says whether
-        // schema work is outstanding - the ledger does.
+        $line = ' db_version: ' . $dbSchemaDiagnostics['actual_db_version'];
+        if ((int)$dbSchemaDiagnostics['actual_db_version'] < (int)$dbSchemaDiagnostics['expected_db_version']) {
+            $line .= ' <warning>' . __('(legacy updates pending, up to %s)', $dbSchemaDiagnostics['expected_db_version']) . '</warning>';
+        }
+        $this->out('# Database');
+        $this->out($line);
+        $this->out();
+
+        // db_version is frozen, so it no longer says whether schema work is
+        // outstanding - the ledger does.
         $this->out('# Migrations');
         $this->out(' Applied: ' . $dbSchemaDiagnostics['migrations_applied']);
         $this->out(' Failed:  ' . $dbSchemaDiagnostics['migrations_failed']);

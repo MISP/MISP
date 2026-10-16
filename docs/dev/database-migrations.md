@@ -608,6 +608,7 @@ curl -s -H "Authorization: $AUTHKEY" -H "Accept: application/json" \
 | `migrations_deferred_reasons` | object | Deferred id => the reason, which names what to run. Each deferred id is also pending. |
 | `migrations_applied` | int | Drift between peers on the same release: two instances on the same code should agree. |
 | `update_locked`, `remaining_lock_time`, `update_fail_number_reached` | as before | Unchanged, still meaningful. |
+| `actual_db_version`, `expected_db_version` | string | `actual < expected` only: the legacy updates have not all run (an instance coming from before the freeze). `expected_db_version` is the constant `"159"`, no longer read from `db_schema.json`. |
 
 The fields are present on every engine, and they are present whether or not the
 `schema_migrations` table exists yet — an instance that has never applied a

@@ -3529,7 +3529,8 @@ class Server extends AppModel
             'checked_table_column' => array(),
             'diagnostic' => array(),
             'diagnostic_index' => array(),
-            'expected_db_version' => '?',
+            // The legacy corpus is frozen, so this is a constant; API callers still compare against it
+            'expected_db_version' => (string)AppModel::DB_CHANGES_FREEZE,
             'error' => '',
             'update_locked' => $this->isUpdateLocked(),
             'remaining_lock_time' => $this->getLockRemainingTime(),
@@ -3554,12 +3555,8 @@ class Server extends AppModel
         // an instance is behind on rather than just how far. A failed migration
         // is still pending - it is retried first on the next run - so its id is
         // in both lists.
-        // Only db_version is read from db_schema.json. The column and index
-        // comparison was dropped for its false positives; its keys stay, empty, for API callers.
-        $dbExpectedSchema = $this->getExpectedDBSchema();
-        if ($dbExpectedSchema !== false && isset($dbExpectedSchema['db_version'])) {
-            $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
-        }
+        // Nothing is read from db_schema.json. The column and index comparison
+        // was dropped for its false positives; its keys stay, empty, for API callers.
         $migrationManager = $this->getMigrationManager();
         $pendingMigrations = array_keys($migrationManager->pending());
         $failedMigrations = $migrationManager->failed();
@@ -3609,15 +3606,6 @@ class Server extends AppModel
             ];
         }
         return $configuration;
-    }
-
-    public function getExpectedDBSchema()
-    {
-        try {
-            return FileAccessTool::readJsonFromFile(ROOT . DS . 'db_schema.json');
-        } catch (Exception $e) {
-            return false;
-        }
     }
 
     // TODO: Use CakePHP 3.X's Schema System

@@ -471,6 +471,8 @@ if ($migrationsFailed > 0) {
     $databaseBadge = array('level' => 0, 'label' => __('%s migration(s) failed', $migrationsFailed));
 } elseif ($migrationsPending > 0) {
     $databaseBadge = array('level' => 1, 'label' => __('%s migration(s) pending', $migrationsPending));
+} elseif ((int)$dbSchemaDiagnostics['actual_db_version'] < (int)$dbSchemaDiagnostics['expected_db_version']) {
+    $databaseBadge = array('level' => 1, 'label' => __('Legacy updates pending'));
 } else {
     $databaseBadge = array('level' => 2, 'label' => __('Migrations up to date'));
 }
@@ -513,11 +515,9 @@ $openCard('database', '#0dcaf0', __('Database status'),
             <div class="d-flex align-items-center gap-2">
                 <span class="dg-version"><?= h($dbSchemaDiagnostics['actual_db_version']) ?></span>
                 <?php
-                $expected = $dbSchemaDiagnostics['expected_db_version'];
-                $actual = $dbSchemaDiagnostics['actual_db_version'];
-                echo $actual == $expected
-                    ? $pill(2, __('expected'))
-                    : $pill(1, __('expected %s', $expected));
+                echo (int)$dbSchemaDiagnostics['actual_db_version'] < (int)$dbSchemaDiagnostics['expected_db_version']
+                    ? $pill(1, __('legacy updates pending'))
+                    : $pill(2, __('current'));
                 ?>
             </div>
             <div class="dg-figures text-muted">

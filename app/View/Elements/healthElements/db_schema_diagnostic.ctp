@@ -21,19 +21,15 @@
     foreach ((isset($warnings) ? $warnings : array()) as $warning) {
         echo sprintf('<span class="label label-warning" style="margin-left: 5px;">%s</span>', h($warning));
     }
-    echo sprintf('<span class="label label-%s" style="margin-left: 5px;">%s</span>',
-        is_numeric($expectedDbVersion) ? 'success' : 'important',
-        __('Expected DB_version: ') . h($expectedDbVersion)
-    );
-    if ($expectedDbVersion == $actualDbVersion) {
+    if ((int)$actualDbVersion >= (int)$expectedDbVersion) {
         echo sprintf('<span class="label label-success" style="margin-left: 5px;" title="%s">%s <i class="fas fa-check"></i></span>',
-            __('The current database version matches the expected one. This number no longer changes; outstanding schema work is reported by the migration counters below.'),
-            __('Actual DB_version: ') . h($actualDbVersion)
+            __('Every legacy update has been applied. This number no longer changes; outstanding schema work is reported by the migration counters below.'),
+            __('DB_version: ') . h($actualDbVersion)
         );
     } else {
         echo sprintf('<span class="label label-important" style="margin-left: 5px;" title="%s">%s <i class="fas fa-times"></i></span>',
-            __('The current database version does not match the expected one'),
-            __('Actual DB_version: ') . h($actualDbVersion)
+            __('Legacy updates up to db_version %s have not all been applied. Run the updates.', h($expectedDbVersion)),
+            __('DB_version: ') . h($actualDbVersion) . ' - ' . __('legacy updates pending')
         );
     }
     echo '<br/>';
