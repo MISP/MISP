@@ -2479,7 +2479,7 @@ class MispObject extends AppModel
         $continue = true;
         while ($continue) {
             $temp = '';
-            $results = $this->fetchObjects($user, $params, $continue);
+            $results = $this->fetchObjects($user, $params);
             if (empty($results)) {
                 $loop = false;
                 return true;
@@ -2505,7 +2505,7 @@ class MispObject extends AppModel
                 }
                 $i++;
             }
-            if (!$loop) {
+            if (!$loop || count($results) < $params['limit']) {
                 $continue = false;
             }
             $tmpfile->write($temp);
