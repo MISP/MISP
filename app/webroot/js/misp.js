@@ -4264,29 +4264,6 @@ function toggleContextFields() {
     $('#show_attribute_context').toggleClass("btn-inverse").toggleClass("btn-primary")
 }
 
-function checkOrphanedAttributes() {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            var color = 'red';
-            var text = ' (Removal recommended)';
-            if (data == '0') {
-                color = 'green';
-                text = ' (OK)';
-            }
-            $("#orphanedAttributeCount").html('<span class="' + color + '">' + data + text + '</span>');
-        },
-        complete:function() {
-            $(".loading").hide();
-        },
-        type:"get",
-        cache: false,
-        url: baseurl + "/attributes/checkOrphanedAttributes/",
-    });
-}
-
 function checkAttachments() {
     xhr({
         success:function (data, textStatus) {

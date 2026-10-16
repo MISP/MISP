@@ -20,11 +20,6 @@ $confirmations[$uid . '-authkeys'] = array(
     'body' => '<p class="mb-0 text-muted small">' . h(__('Every existing plaintext API key is converted into a hashed advanced authkey so users do not lose access when the advanced format is enabled.')) . '</p>',
     'label' => __('Upgrade authkeys'), 'cls' => 'btn-primary',
 );
-$confirmations[$uid . '-orphan-attr'] = array(
-    'title' => __('Remove orphaned attributes'),
-    'body' => '<p class="mb-0 text-muted small">' . h(__('Attributes that no longer belong to any event are deleted. Run the check first to see how many there are.')) . '</p>',
-    'label' => __('Remove them'), 'cls' => 'btn-danger',
-);
 $confirmations[$uid . '-orphan-corr'] = array(
     'title' => __('Remove orphaned correlations'),
     'body' => '<p class="mb-0 text-muted small">' . h(__('Correlations pointing at attributes that no longer exist are deleted.')) . '</p>',
@@ -47,15 +42,6 @@ $confirmations[$uid . '-cull'] = array(
     </div>
     <div class="card-body">
     <div class="dg-block-title"><?= __('Consistency checks') ?></div>
-
-    <div class="dg-row">
-        <span class="dg-row-label"><?= __('Orphaned attributes') ?></span>
-        <span class="ms-auto d-flex align-items-center gap-2">
-            <span class="dg-figures text-muted" data-dg-out="orphan-attr"><?= __('not checked') ?></span>
-            <button type="button" class="btn btn-sm btn-outline-secondary"
-                    data-dg-check="orphan-attr"><?= __('Check') ?></button>
-        </span>
-    </div>
 
     <div class="dg-row">
         <span class="dg-row-label"><?= __('Attachments referenced but missing on disk') ?></span>
@@ -83,9 +69,6 @@ $confirmations[$uid . '-cull'] = array(
         <button type="button" class="btn btn-sm btn-outline-primary" onclick="dgConfirm('<?= h($uid) ?>-authkeys')">
             <i class="fas fa-key me-1"></i><?= __('Upgrade authkeys') ?>
         </button>
-        <button type="button" class="btn btn-sm btn-outline-danger" onclick="dgConfirm('<?= h($uid) ?>-orphan-attr')">
-            <i class="fas fa-trash me-1"></i><?= __('Remove orphaned attributes') ?>
-        </button>
         <button type="button" class="btn btn-sm btn-outline-danger" onclick="dgConfirm('<?= h($uid) ?>-orphan-corr')">
             <i class="fas fa-trash me-1"></i><?= __('Remove orphaned correlations') ?>
         </button>
@@ -98,8 +81,6 @@ $confirmations[$uid . '-cull'] = array(
         array('id' => $uid . '-cache', 'class' => 'd-none', 'escape' => false)) ?>
     <?= $this->Form->postLink('', $baseurl . '/users/updateToAdvancedAuthKeys',
         array('id' => $uid . '-authkeys', 'class' => 'd-none', 'escape' => false)) ?>
-    <?= $this->Form->postLink('', $baseurl . '/attributes/pruneOrphanedAttributes',
-        array('id' => $uid . '-orphan-attr', 'class' => 'd-none', 'escape' => false)) ?>
     <?= $this->Form->postLink('', $baseurl . '/servers/removeOrphanedCorrelations',
         array('id' => $uid . '-orphan-corr', 'class' => 'd-none', 'escape' => false)) ?>
     <?= $this->Form->postLink('', $baseurl . '/events/cullEmptyEvents',

@@ -596,13 +596,8 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
             )
         );
     ?>
-    <h3><?php echo __('Orphaned attributes');?></h3>
-    <p><?php echo __('In some rare cases attributes can remain in the database after an event is deleted becoming orphaned attributes. This means that they do not belong to any event, which can cause issues with the correlation engine (known cases include event deletion directly in the database without cleaning up the attributes and situations involving a race condition with an event deletion happening before all attributes are synchronised over).');?></p>
-    <div class="diagnostics-box">
-        <?php echo __('Orphaned attributes');?>…<span id="orphanedAttributeCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
-    </div><br />
-    <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
-    <?php echo $this->Form->postButton(__('Remove orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+    <h3><?php echo __('Clean-up');?></h3>
+    <p><?php echo __('Remove the correlations pointing at attributes that no longer exist, or the published events holding no attribute, object or report.');?></p>
     <?php echo $this->Form->postButton(__('Remove orphaned correlations'), $baseurl . '/servers/removeOrphanedCorrelations', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
     <?php echo $this->Form->postButton(__('Remove published empty events'), $baseurl . '/events/cullEmptyEvents', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
     <h3><?php echo __('Administrator On-demand Action');?></h3>

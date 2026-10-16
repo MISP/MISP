@@ -2667,31 +2667,6 @@ class AttributesController extends AppController
         }
     }
 
-    public function pruneOrphanedAttributes()
-    {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
-        $events = array_keys($this->MispAttribute->Event->find('list'));
-        $orphans = $this->MispAttribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
-        if (count($orphans) > 0) {
-            $this->MispAttribute->deleteAll(array('Attribute.event_id !=' => $events), false, true);
-        }
-        $this->Flash->success('Removed ' . count($orphans) . ' attribute(s).');
-        $this->redirect(Router::url($this->referer(), true));
-    }
-
-    public function checkOrphanedAttributes()
-    {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
-        $this->loadModel('MispAttribute');
-        $events = array_keys($this->MispAttribute->Event->find('list'));
-        $orphans = $this->MispAttribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
-        return new CakeResponse(array('body'=> count($orphans), 'status'=>200, 'type' => 'json'));
-    }
-
     public function hoverEnrichment($id, $persistent = false)
     {
         $attribute = $this->MispAttribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1, 'includeEventTags' => 1));
