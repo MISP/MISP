@@ -228,22 +228,9 @@ class Relationship extends AnalystData
             'related_object_type' => $object_type,
             'related_object_uuid' => $object_uuid,
         ];
-        $type = 'Relationship';
-        if (empty($user['Role']['perm_site_admin'])) {
-            if ($this->__valid_sharing_groups === null) {
-                $this->__valid_sharing_groups = $this->SharingGroup->authorizedIds($user, true);
-            }
-            $conditions['AND'][] = [
-                'OR' => [
-                    $type . '.orgc_uuid' => $user['Organisation']['uuid'],
-                    $type . '.org_uuid' => $user['Organisation']['uuid'],
-                    $type . '.distribution IN' => [1, 2, 3],
-                    'AND' => [
-                        $type . '.distribution' => 4,
-                        $type . '.sharing_group_id IN' => $this->__valid_sharing_groups
-                    ]
-                ]
-            ];
+        $acl = $this->analystDataConditions($user);
+        if (!empty($acl)) {
+            $conditions['AND'][] = $acl;
         }
         $inboundRelations = $this->find('all', [
             'recursive' => -1,
@@ -253,7 +240,7 @@ class Relationship extends AnalystData
 
         foreach ($inboundRelations as $i => $relationship) {
             $relationship = $relationship['Relationship'];
-            $inboundRelations[$i]['Relationship']['related_object'] = $this->getRelatedElement($this->__currentUser, $relationship['object_type'], $relationship['object_uuid']);
+            $inboundRelations[$i]['Relationship']['related_object'] = $this->getRelatedElement($user, $relationship['object_type'], $relationship['object_uuid']);
         }
 
         return $inboundRelations;

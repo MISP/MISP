@@ -67,7 +67,7 @@ def _process_misp_files(
             parser.parse_json_file(name)
             with open(f'{name}.out', 'wt', encoding='utf-8') as f:
                 f.write(
-                    json.dumps(parser.stix_objects, cls=STIXJSONEncoder)
+                    json.dumps(parser.fetch_stix_objects, cls=STIXJSONEncoder)
                 )
         if parser.errors:
             _handle_messages('Errors', parser.errors)

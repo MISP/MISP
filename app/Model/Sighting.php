@@ -971,33 +971,6 @@ class Sighting extends AppModel
         return $sightingsAdded;
     }
 
-    public function handleStixSighting($data)
-    {
-        $randomFileName = $this->generateRandomFileName();
-        $tempFile = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
-
-        // save the json_encoded event(s) to the temporary file
-        if (!$tempFile->write($data)) {
-            return array('success' => 0, 'message' => 'Could not write the Sightings file to disk.');
-        }
-        $tempFile->close();
-        $scriptFile = APP . "files" . DS . "scripts" . DS . "stixsighting2misp.py";
-        // Execute the python script and point it to the temporary filename
-        $result = ProcessTool::execute([ProcessTool::pythonBin(), $scriptFile, $randomFileName]);
-        // The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
-        // If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
-        $result = json_decode($result, true);
-
-        if ($result['success'] == 1) {
-            $file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-            $result['data'] = $file->read();
-            $file->close();
-            $file->delete();
-        }
-        $tempFile->delete();
-        return $result;
-    }
-
     /**
      * @return bool
      * @deprecated
