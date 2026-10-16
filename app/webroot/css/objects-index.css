@@ -1,5 +1,9 @@
 /* Objects index (Overmind) */
 
+.oi-table thead th {
+    white-space: nowrap;
+}
+
 /* Takes the width the other columns leave, and truncates inside it. */
 .oi-table td.oi-col-object {
     width: 100%;

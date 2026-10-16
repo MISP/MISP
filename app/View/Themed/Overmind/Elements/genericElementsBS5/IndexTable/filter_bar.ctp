@@ -628,7 +628,8 @@ $activeTotal = count(array_diff_key(
     <?php endif; ?>
     <?php endforeach; ?>
 
-    <div class="btn-group<?= $pickerMode ? ' btn-group-sm' : '' ?>" role="group" data-tour="index-view">
+    <?php // `hide_view_toggle`: an index with no card layout keeps to its table. ?>
+    <div class="btn-group<?= $pickerMode ? ' btn-group-sm' : '' ?>" role="group" data-tour="index-view"<?= empty($filter_bar['hide_view_toggle']) ? '' : ' hidden' ?>>
 
         <?php if (!empty($filter_bar['view_switch'])): ?>
             <!-- Custom view switch (e.g. table / JSON) — each is a link/reload, not the default client-side table/card toggle. -->

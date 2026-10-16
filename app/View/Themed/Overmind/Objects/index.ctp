@@ -303,12 +303,16 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'data' => $objects,
             'primary_id_path' => 'Object.id',
             'table_class' => 'oi-table',
+            'empty_message' => empty($filterState->filters())
+                ? __('No objects in any event you can see.')
+                : __('No object matches these filters.'),
             'fields' => $fields,
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => $children,
                 'apply' => 'draft',
                 'transport' => 'query',
+                'hide_view_toggle' => true,
                 'chips' => [
                     'labels' => [
                         'template_uuid' => __('Template uuid'),

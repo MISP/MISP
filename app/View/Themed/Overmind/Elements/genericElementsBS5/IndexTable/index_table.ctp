@@ -96,7 +96,7 @@ foreach ($data['data'] as $k => $data_row) {
 
 <div class="d-flex flex-column align-items-center text-secondary py-5">
     <i class="fas fa-inbox fa-2x d-block mb-2"></i>
-    <?= __('No items to display') ?>
+    <?= h($data['empty_message'] ?? __('No items to display')) ?>
 </div>
 
 <?php else: ?>
