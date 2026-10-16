@@ -1146,7 +1146,7 @@ class AppController extends Controller
     {
         $isSiteAdmin = !empty($user['Role']['perm_site_admin']);
         if ($isSiteAdmin) {
-            $message = __('This MISP instance runs MISP 3, but its database has not been upgraded yet. Run the upgrade from the command line, after backing up the database: it is one-way.');
+            $message = __('The database of this MISP instance needs an upgrade that only runs from the command line. Back up the database first: the upgrade is one-way.');
         } else {
             $message = __('This MISP instance is being upgraded and is unavailable until the upgrade is done. Please try again later.');
         }

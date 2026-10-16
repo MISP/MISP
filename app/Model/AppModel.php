@@ -395,15 +395,17 @@ class AppModel extends Model
     }
 
     /**
-     * Whether the database still has the MISP 2.x layout, which only the
-     * command line upgrade converts. MISP 3 moves attribute values into their
-     * own table.
+     * Whether the database waits on an upgrade only the command line runs:
+     * the MISP 2.x layout (no attribute_values table yet), or a pending
+     * migration that is too long to start from a web request.
      *
      * @return bool
      */
     public function awaitsV3Upgrade()
     {
-        $cacheKey = 'misp:v3_schema';
+        $manager = $this->getMigrationManager();
+        $files = glob($manager->directory() . DS . 'Migration_*.php') ?: [];
+        $cacheKey = 'misp:v3_schema:' . md5(implode(',', array_map('basename', $files)));
         try {
             $redis = RedisTool::init();
             if ($redis->get($cacheKey) === '1') {
@@ -416,11 +418,16 @@ class AppModel extends Model
         if (!$inspector->hasTable('attribute_values')) {
             return true;
         }
+        foreach (array_keys($manager->pending()) as $id) {
+            if ($manager->migration($id)->offline) {
+                return true;
+            }
+        }
         if ($redis) {
             try {
                 $redis->setex($cacheKey, 3600, '1');
             } catch (Exception $e) {
-                // Uncached, the column is read again on the next request.
+                // Uncached, the schema is read again on the next request.
             }
         }
         return false;

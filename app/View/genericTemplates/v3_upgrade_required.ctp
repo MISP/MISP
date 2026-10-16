@@ -4,9 +4,9 @@ $steps = [
     [
         'title' => __('Back up the database'),
         'commands' => [
-            'mysqldump --single-transaction --routines --triggers --databases misp > misp-2.5-backup.sql',
+            'mysqldump --single-transaction --routines --triggers --databases misp > misp-backup.sql',
         ],
-        'note' => __('On PostgreSQL: %s. Replace %s with the name of your MISP database, and check that the backup restores before you go on.', '<code>pg_dump -Fc misp &gt; misp-2.5-backup.dump</code>', '<code>misp</code>'),
+        'note' => __('On PostgreSQL: %s. Replace %s with the name of your MISP database, and check that the backup restores before you go on.', '<code>pg_dump -Fc misp &gt; misp-backup.dump</code>', '<code>misp</code>'),
     ],
     [
         'title' => __('Take MISP offline'),
@@ -143,11 +143,11 @@ $steps = [
         <p class="lead"><?= h($message) ?></p>
         <p class="footer"><a href="<?= $baseurl ?>/users/logout"><?= __('Log out') ?></a></p>
         <?php else: ?>
-        <p class="lead"><?= __('This instance runs MISP 3, but its database still has the MISP 2.5 layout. MISP stays unavailable until an administrator upgrades the database from the command line: the web interface never starts the upgrade itself.') ?></p>
+        <p class="lead"><?= __('The MISP code on this instance is newer than its database. The rest of the upgrade can take hours, so it only runs from the command line, never from the web interface. MISP stays unavailable until it is done.') ?></p>
 
         <div class="warning" role="alert">
             <strong><?= __('This is a one-way process. Make a database backup first.') ?></strong>
-            <p><?= __('Once upgraded, the database can no longer be used by MISP 2.5, and it cannot be downgraded. The only way back is to restore a backup taken before the upgrade.') ?></p>
+            <p><?= __('Once upgraded, the database can no longer be used by the previous MISP version, and it cannot be downgraded. The only way back is to restore a backup taken before the upgrade.') ?></p>
         </div>
 
         <h2><?= __('Upgrade steps') ?></h2>
