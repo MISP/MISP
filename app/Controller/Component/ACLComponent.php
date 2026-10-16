@@ -51,7 +51,6 @@ class ACLComponent extends Component
         'attributes' => array(
             'add' => array('perm_add'),
             'add_attachment' => array('perm_add'),
-            'add_threatconnect' => array('perm_add'),
             'addTag' => array('perm_tagger'),
             'attributeReplace' => array('perm_add'),
             'attributeStatistics' => array('*'),

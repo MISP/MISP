@@ -7254,11 +7254,6 @@ class EventsController extends AppController
                     'text' => __('OpenIOC Import'),
                     'ajax' => false,
                 ),
-                'ThreatConnect' => array(
-                    'url' => $this->baseurl . '/attributes/add_threatconnect/' . $id,
-                    'text' => __('ThreatConnect Import'),
-                    'ajax' => false
-                ),
                 'Forensic analysis' => array(
                     'url' => $this->baseurl . '/events/upload_analysis_file/'.$id,
                     'text' => __('(Experimental) Forensic analysis - Mactime'),
