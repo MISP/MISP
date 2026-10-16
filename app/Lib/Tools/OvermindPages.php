@@ -21,7 +21,7 @@ class OvermindPages
         'values' => array('index', 'resolve', 'view'),
         'shadow_attributes' => array('index'),
         'event_delegations' => array('index'),
-        'objects' => array('add', 'edit', 'delete'),
+        'objects' => array('index', 'add', 'edit', 'delete'),
         'sightings' => array('advanced'),
         'event_reports' => array('index', 'view', 'add', 'edit'),
         'EventReportTemplateVariables' => array('index', 'add', 'edit'),

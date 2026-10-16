@@ -2570,6 +2570,44 @@ class Value extends AppModel
     }
 
     /**
+     * The objects holding this value, read as a capped number of
+     * attribute rows rather than grouped: a `GROUP BY object_id` reads
+     * every occurrence of a popular value before any `LIMIT` applies.
+     *
+     * @param array $user
+     * @param string $value
+     * @param array $options `relation` narrows to one object_relation,
+     *                       `limit` caps the attribute rows read
+     * @return array ['ids' => int[], 'truncated' => bool]
+     */
+    public function objectIdsHolding(array $user, $value,
+        array $options = array()
+    ) {
+        $limit = isset($options['limit']) ? (int)$options['limit'] : 10000;
+        $conditions = array(
+            $this->conditionsFor($value),
+            'Attribute.object_id >' => 0,
+            'Attribute.deleted' => 0,
+        );
+        if (isset($options['relation']) && $options['relation'] !== '') {
+            $conditions['Attribute.object_relation'] = $options['relation'];
+        }
+        $rows = $this->attributes()->fetchAttributesSimple($user, array(
+            'conditions' => $conditions,
+            'fields' => array('Attribute.object_id'),
+            'limit' => $limit,
+        ));
+        $ids = array();
+        foreach ($rows as $row) {
+            $ids[(int)$row['Attribute']['object_id']] = true;
+        }
+        return array(
+            'ids' => array_keys($ids),
+            'truncated' => count($rows) >= $limit,
+        );
+    }
+
+    /**
      * The `datetime` attributes of the objects this value sits in —
      * the dates an object template records in its own fields, as
      * opposed to the `first_seen`/`last_seen` columns MISP keeps beside
