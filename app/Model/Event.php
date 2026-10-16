@@ -9150,7 +9150,7 @@ class Event extends AppModel
                     }
                 }
                 if (isset($this->data['ShadowAttribute'])) {
-                    $this->Server->syncProposals(null, $server, null, $id, $this);
+                    $this->Server->syncProposals(null, $server, $id, $this);
                 }
                 if (!$thisUploaded) {
                     $uploaded = !$uploaded ? $uploaded : $thisUploaded;

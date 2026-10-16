@@ -405,7 +405,6 @@ class ACLComponent extends Component
             'cardElements' => array('*'),
             'checkLocks' => array('perm_add'),
             'checkPublishedStatus' => array('*'),
-            'checkuuid' => array('perm_sync'),
             'contact' => array('*'),
             'correlatedAttributes' => array('*'),
             'correlationCounts' => array('*'),

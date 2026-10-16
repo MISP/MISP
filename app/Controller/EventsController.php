@@ -7659,19 +7659,6 @@ class EventsController extends AppController
         return $this->RestResponse->viewData(array_keys($incomingEvents), $this->response->type());
     }
 
-    public function checkuuid($uuid)
-    {
-        if (!$this->userRole['perm_sync']) {
-            throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
-        }
-        $events = $this->Event->find('first', array(
-                'conditions' => array('Event.uuid' => $uuid),
-                'recursive' => -1,
-                'fields' => array('Event.uuid'),
-        ));
-        $this->set('result', array('result' => empty($events)));
-    }
-
     public function pushProposals($uuid)
     {
         $message= "";

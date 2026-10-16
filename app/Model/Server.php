@@ -1447,7 +1447,7 @@ class Server extends AppModel
                 $server['Server']['lastpushedid'] = $lastpushedid;
                 $this->save($server);
             }
-            $this->syncProposals($HttpSocket, $server, null, null, $this->Event);
+            $this->syncProposals($HttpSocket, $server, null, $this->Event);
         }
 
         if ($push['canPush'] || $push['canSight']) {
@@ -1609,72 +1609,62 @@ class Server extends AppModel
         return $successes;
     }
 
-    public function syncProposals($HttpSocket, array $server, $sa_id = null, $event_id = null, $eventModel)
+    public function syncProposals($HttpSocket, array $server, $event_id, $eventModel)
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        if ($sa_id == null) {
-            if ($event_id == null) {
-                // event_id is null when we are doing a push
-                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-                try {
-                    $ids = $this->getEventIdsFromServer($serverSync, true, true);
-                } catch (Exception $e) {
-                    $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
-                    return false;
-                }
-                $conditions = array('uuid' => $ids);
-            } else {
-                $conditions = array('id' => $event_id);
-                // event_id is not null when we are doing a publish
+        if ($event_id == null) {
+            // event_id is null when we are doing a push
+            $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+            try {
+                $ids = $this->getEventIdsFromServer($serverSync, true, true);
+            } catch (Exception $e) {
+                $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+                return false;
             }
-            $events = $eventModel->find('all', array(
-                    'conditions' => $conditions,
-                    'recursive' => 1,
-                    'contain' => ['ShadowAttribute' => 'Org'],
-                    'fields' => array('Event.uuid')
-            ));
+            $conditions = array('uuid' => $ids);
+        } else {
+            $conditions = array('id' => $event_id);
+            // event_id is not null when we are doing a publish
+        }
+        $events = $eventModel->find('all', array(
+                'conditions' => $conditions,
+                'recursive' => 1,
+                'contain' => ['ShadowAttribute' => 'Org'],
+                'fields' => array('Event.uuid')
+        ));
 
-            $fails = 0;
-            $success = 0;
-            $error_message = "";
-            foreach ($events as $k => &$event) {
-                if (!empty($event['ShadowAttribute'])) {
-                    foreach ($event['ShadowAttribute'] as &$sa) {
-                        $sa['data'] = $saModel->base64EncodeAttachment($sa);
-                        unset($sa['id']);
-                        unset($sa['value1']);
-                        unset($sa['value2']);
-                    }
+        $fails = 0;
+        $success = 0;
+        $error_message = "";
+        foreach ($events as $k => &$event) {
+            if (!empty($event['ShadowAttribute'])) {
+                foreach ($event['ShadowAttribute'] as &$sa) {
+                    $sa['data'] = $saModel->base64EncodeAttachment($sa);
+                    unset($sa['id']);
+                    unset($sa['value1']);
+                    unset($sa['value2']);
+                }
 
-                    $data = json_encode($event['ShadowAttribute']);
-                    $request = $this->setupSyncRequest($server);
-                    $uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
-                    $response = $HttpSocket->post($uri, $data, $request);
-                    if ($response->code == '200') {
-                        $result = json_decode($response->body(), true);
-                        if ($result['success']) {
-                            $success += intval($result['counter']);
-                        } else {
-                            $fails++;
-                            if ($error_message == "") {
-                                $result['message'];
-                            } else {
-                                $error_message .= " --- " . $result['message'];
-                            }
-                        }
+                $data = json_encode($event['ShadowAttribute']);
+                $request = $this->setupSyncRequest($server);
+                $uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
+                $response = $HttpSocket->post($uri, $data, $request);
+                if ($response->code == '200') {
+                    $result = json_decode($response->body(), true);
+                    if ($result['success']) {
+                        $success += intval($result['counter']);
                     } else {
                         $fails++;
+                        if ($error_message == "") {
+                            $result['message'];
+                        } else {
+                            $error_message .= " --- " . $result['message'];
+                        }
                     }
+                } else {
+                    $fails++;
                 }
-            }
-        } else {
-            // connect to checkuuid($uuid)
-            $request = $this->setupSyncRequest($server);
-            $uri = $server['Server']['url'] . '/events/checkuuid/' . $sa_id;
-            $response = $HttpSocket->get($uri, '', $request);
-            if ($response->code != '200') {
-                return false;
             }
         }
         return true;
