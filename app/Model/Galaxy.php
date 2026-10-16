@@ -148,11 +148,8 @@ class Galaxy extends AppModel
             $this->data['Galaxy']['description'] = '';
         }
         /*
-         * Absent means nobody has classified this galaxy, which is why
-         * migration 164 made both columns nullable. A form clearing the
-         * select posts an empty string, so it is restored to the null
-         * ingestion writes rather than becoming a second spelling of
-         * unclassified that an `IS NULL` would miss.
+         * A form clearing the select posts an empty string; store null so
+         * unclassified has one spelling.
          */
         foreach (['category', 'sub_category'] as $classification) {
             if (isset($this->data['Galaxy'][$classification])

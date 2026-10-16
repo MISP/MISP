@@ -2600,8 +2600,8 @@ class ValueIntelligence extends AppModel
      *
      * **The warninglist line reads the Assessment tab's own resolver.**
      * `verdictWarninglist` resolves each hit's category through the
-     * analyst's override map, the shipped name map, the column and then
-     * the default — a four-step order `WarninglistCategory` owns — and
+     * analyst's override map, the list's own category and then the
+     * default — an order `WarninglistCategory` owns — and
      * the Assessment tab's warninglist band prints the answer. Two
      * surfaces on one page resolving one hit's category independently
      * is how they come to disagree, and this page has been bitten by
@@ -17472,16 +17472,10 @@ class ValueIntelligence extends AppModel
      * type the value is stored under, because a `sha1` seen once as an
      * `md5` would otherwise escape the list it is on.
      *
-     * **The category is resolved, not read.** `07-reference.md` §3.1
-     * verified that no shipped list sets one and that
-     * `Warninglist::__updateList()` drops the field on import, so the
-     * order is: the profile's override map by exact list name, then
-     * the shipped name map, then the database column, then
-     * `false_positive` — the column's own default and what MISP's
-     * warning banner has always meant by a hit. `WarninglistCategory`
-     * owns the whole order, including why the shipped map sits *above*
-     * the column, and every hit carries the `source` that answered it
-     * so the panel can name it (§3.2, §5 item 12).
+     * **The category is resolved, not read.** The profile's override map
+     * by exact list name comes first, then the list's own category, then
+     * `false_positive`. `WarninglistCategory` owns the order, and every
+     * hit carries the `source` that answered it.
      *
      * **A refuting hit outranks a contextualising one.** Where a value
      * hits both a `false_positive` list and a `known` one, the

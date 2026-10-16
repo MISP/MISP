@@ -31,8 +31,8 @@
  *   passive DNS account with username & password"*.
  *
  * Same shape, opposite answers. So membership is editorial and ships
- * as code, following `ModuleLocality` and `WarninglistCategory` before
- * it, and for the same stated reason.
+ * as code, following `ModuleLocality` before it, and for the same stated
+ * reason.
  *
  * ## Silence is the safe direction here
  *

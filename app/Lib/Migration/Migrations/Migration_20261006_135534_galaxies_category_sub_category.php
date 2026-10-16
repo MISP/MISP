@@ -18,8 +18,8 @@ class Migration_20261006_135534_galaxies_category_sub_category extends AbstractM
     public $requiresLogout = false;
 
     /**
-     * What a galaxy's clusters represent, ingested from the galaxy definition
-     * (prd/personas/02-context-priority.md §8, piece 1). `namespace` groups by
+     * What a galaxy's clusters represent, ingested from the galaxy
+     * definition. `namespace` groups by
      * publisher and `type` is an identifier, so a consumer asking "do these
      * name a threat?" had to hardcode galaxy names. Both nullable: absent
      * means nobody has classified this galaxy. `__load_galaxies` saves what

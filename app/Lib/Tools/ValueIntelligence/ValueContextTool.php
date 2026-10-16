@@ -358,11 +358,9 @@ class ValueContextTool
                      */
                     'key' => $cluster['type'],
                     /*
-                     * `subCategoryOf` answers null for a galaxy it does
-                     * not classify — a custom one, or a new upstream
-                     * galaxy this instance has and the map does not. The
-                     * raw galaxy type is then better than a blank
-                     * heading.
+                     * `subCategoryOf` answers null for an unclassified
+                     * galaxy; the raw galaxy type is then better than a
+                     * blank heading.
                      */
                     'sub_category' => GalaxyCategory::subCategoryOf(
                         $cluster['type']

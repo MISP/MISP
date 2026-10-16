@@ -39,12 +39,12 @@
                     ) ?></span>
             </div>
             <?php if ($capture['attachment'] !== null
-                || $capture['archive'] !== null): ?>
+                || !empty($capture['archive'])): ?>
                 <div class="vp-rf-sub"><?= h(sprintf(
                     __('Archived as %s'),
                     $capture['attachment'] !== null
                         ? $capture['attachment']
-                        : $capture['archive']
+                        : implode(', ', $capture['archive'])
                 )) ?></div>
             <?php endif; ?>
             <?php if ($capture['text'] !== null): ?>

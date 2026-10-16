@@ -22,6 +22,7 @@ if (!function_exists('__n')) {
     }
 }
 require_once __DIR__ . '/../Lib/Tools/ValueIntelligence/ValueLabelPriority.php';
+require_once __DIR__ . '/../Lib/Tools/GalaxyCategory.php';
 require_once __DIR__ . '/../Lib/Tools/EventOverview/EventContextTool.php';
 require_once __DIR__ . '/../Lib/Tools/DistributionLevel.php';
 require_once __DIR__ . '/../Lib/Tools/EventOverview/EventCardTool.php';
@@ -30,6 +31,22 @@ use PHPUnit\Framework\TestCase;
 
 class EventCardToolTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        GalaxyCategory::prime([
+            'threat-actor' => ['named-threat', 'actor'],
+            'malpedia' => ['named-threat', 'malware'],
+            'stealer' => ['named-threat', 'malware'],
+            'mitre-attack-pattern' => ['technique', 'attack-pattern'],
+            'mitre-course-of-action' => ['defensive', 'course-of-action'],
+        ]);
+    }
+
+    protected function tearDown(): void
+    {
+        GalaxyCategory::forget();
+    }
+
     private function eventTag($id, $name, array $extra = [])
     {
         return ['id' => 1000 + $id, 'local' => 0, 'Tag' => $extra + [
