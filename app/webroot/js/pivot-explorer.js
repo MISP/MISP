@@ -858,7 +858,7 @@
             });
             return Object.keys(seen).map(function (e) {
                 return {
-                    id: e, label: ELEMENT_LABELS[e] || e, color: elementColour(e) || '#888',
+                    id: e, label: ELEMENT_LABELS[e] || e, color: elementColour(e) || window.MispPivotNodes.palette().ink3,
                     predicate: function (node) { return elementOf(node) === e; }
                 };
             });
@@ -905,7 +905,7 @@
             return [
                 { id: 'self', label: 'This event', color: window.MispPivotNodes.palette().event.core,
                   predicate: function (node) { return provenanceOf(node) === 'self'; } },
-                { id: 'elsewhere', label: 'Elsewhere', color: '#888',
+                { id: 'elsewhere', label: 'Elsewhere', color: window.MispPivotNodes.palette().provInk,
                   predicate: function (node) { return provenanceOf(node) === 'elsewhere'; } },
                 enrichmentLegendEntry()
             ].filter(function (e) { return seen[e.id]; });
@@ -1228,7 +1228,10 @@
             return { analyst_count: all.length, analyst_mood: opinionMood(own) };
         }
 
-        var MOOD_COLOR = { disputed: '#b94a48', endorsed: '#6fbe80', neutral: '#999', none: '#999' };
+        function moodColour(mood) {
+            var O = window.MispPivotNodes.palette().opinion;
+            return { disputed: O.neg, endorsed: O.pos }[mood] || O.neutral;
+        }
 
         function nodeBadges(node) {
             return analystBadges(node).concat(feedHitBadges(node), tagBadges(node), enrichmentBadges(node), originBadges(node));
@@ -1260,7 +1263,7 @@
             return [{
                 position:  'se',
                 iconClass: 'fas fa-tag',
-                color:     tags.length ? (tags[0].colour || '#888') : ((P && P.galaxy.core) || '#888'),
+                color:     tags.length ? (tags[0].colour || P.tag.core) : P.galaxy.core,
                 title:     tags.map(function (t) { return t.name; }).concat(clusters.map(clusterName)).join('\n'),
                 onClick:   function (e, clicked) { showInSidebar(clicked); }
             }];
@@ -1287,7 +1290,7 @@
             return [{
                 position:  'nw',
                 iconClass: n === 1 ? 'fas fa-comment' : 'fas fa-comments',
-                color:     MOOD_COLOR[d.analyst_mood] || MOOD_COLOR.none,
+                color:     moodColour(d.analyst_mood),
                 title:     n + (n === 1 ? ' note or opinion' : ' notes and opinions')
                            + (d.analyst_mood !== 'none' ? ' — ' + d.analyst_mood : ''),
                 onClick:   function (e, clicked) { showInSidebar(clicked); }
@@ -5167,14 +5170,14 @@
                     // opts in with animateDash: true.
                     defaultEdgeStyle: { animateDash: false },
                     edgeStyleMap: {
-                        'object-reference':     { strokeColor: '#428bca' },
-                        'in-event':             { strokeColor: '#6c737d', strokeWidth: 1, markerEnd: 'none' },
-                        'analyst-relationship': { strokeColor: '#f39a1f', dashed: true },
-                        'correlation':          { strokeColor: '#888', dashed: true },
+                        'object-reference':     { strokeColor: window.MispPivotNodes.palette().edge.reference },
+                        'in-event':             { strokeColor: window.MispPivotNodes.palette().edge.linkStrong, strokeWidth: 1, markerEnd: 'none' },
+                        'analyst-relationship': { strokeColor: window.MispPivotNodes.palette().edge.analyst, dashed: true },
+                        'correlation':          { strokeColor: window.MispPivotNodes.palette().edge.link, dashed: true },
                         'feed-correlation':     { strokeColor: window.MispPivotNodes.palette().feed.core, dashed: true },
                         'feed-event':           { strokeColor: window.MispPivotNodes.palette().feed.core },
                         'server-correlation':   { strokeColor: window.MispPivotNodes.palette().server.core, dashed: true },
-                        'tag':                  { strokeColor: '#8a8f98', dashed: true },
+                        'tag':                  { strokeColor: window.MispPivotNodes.palette().edge.link, dashed: true },
                         'cluster-relation':     { strokeColor: window.MispPivotNodes.palette().galaxy.core },
                         // Solid: a dash already means a derived link.
                         'enrichment':           { strokeColor: ENRICH_INK[mispTheme()], strokeWidth: 1.25 }

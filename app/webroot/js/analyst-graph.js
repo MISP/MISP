@@ -429,7 +429,7 @@
 
         function options(opts, kit, seed) {
             Object.assign(opts.render.edgeStyleMap, {
-                value: { strokeColor: '#8a8f98', dashed: true, markerEnd: 'none' }
+                value: { strokeColor: window.MispPivotNodes.palette().edge.link, dashed: true, markerEnd: 'none' }
             });
             if (state.built.positioned) {
                 opts.simulation.warmupTicks = 0;
