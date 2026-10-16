@@ -82,18 +82,16 @@ if (!empty($relationships)) {
     <?php endif; ?>
 
     <?php
-    $thread = $eventUuid === '' ? '' : $this->element('AnalystData/rail_card', [
+    $thread = $this->element('AnalystData/thread', [
         'objectType' => 'Event',
         'objectUuid' => $eventUuid,
-        'embedded' => true,
+        'peek' => true,
+        'showEmpty' => false,
     ]);
     ?>
     <?php if (trim($thread) !== ''): ?>
         <div class="eo-assessment-thread" data-collapse-tall="350" data-collapse-peek="[data-collapse-peek-label]"><?= $thread ?></div>
     <?php else: ?>
-        <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center text-muted py-4">
-            <i class="fas fa-comment-dots fa-2x mb-2 opacity-50"></i>
-            <p class="mb-0 small fw-semibold"><?= __('No notes, opinions or relationships on this event yet.') ?></p>
-        </div>
+        <?= $this->element('AnalystData/empty', ['class' => 'flex-grow-1']) ?>
     <?php endif; ?>
 </div>

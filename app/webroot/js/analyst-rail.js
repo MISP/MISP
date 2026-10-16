@@ -37,7 +37,8 @@
         var card = target.closest('.adr-card');
         if (target.hasAttribute('data-adr-open')) {
             e.preventDefault();
-            openModal(target.dataset.adrOpen, target.dataset.adrSize);
+            var open = target.closest('.modal') ? openModalChained : openModal;
+            open(target.dataset.adrOpen, target.dataset.adrSize);
         } else if (target.hasAttribute('data-adr-expand')) {
             var open = target.getAttribute('aria-expanded') !== 'true';
             card.querySelectorAll('.adr-more').forEach(function (li) { li.hidden = !open; });
@@ -57,6 +58,7 @@
     });
 
     document.addEventListener('shown.bs.tab', function () { markClamps(document); });
+    document.addEventListener('shown.bs.modal', function () { markClamps(document); });
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () { markClamps(document); });
