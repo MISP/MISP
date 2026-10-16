@@ -25,6 +25,7 @@ if ($this->Acl->canAccess('eventTemplates', 'instantiate') && $isActive) {
         'icon' => 'misp-icon misp-icon-event misp-simple',
         'entity' => 'event',
         'add' => true,
+        'tour' => 'action-template-instantiate',
         'label' => __('Create event from template'),
         'short' => __('Create event'),
     ];

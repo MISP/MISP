@@ -124,7 +124,7 @@ $overflow   = $total - $maxVisible;
     <?= $marker ?>
 
     <?php if ($attribute && !empty($attribute['value'])): ?>
-        <a href="<?= $baseurl ?>/attributes/search/value:<?= urlencode($attribute['value']) ?>"
+        <a href="<?= $baseurl ?>/attributes/index?value=<?= rawurlencode('"' . $attribute['value'] . '"') ?>"
            class="text-secondary ms-1"
            title="<?= __('Search for this value') ?>"
            aria-label="<?= __('Search for this value') ?>">

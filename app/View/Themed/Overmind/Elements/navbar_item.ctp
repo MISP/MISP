@@ -73,7 +73,7 @@ $type = $item['type'] ?? null;
             }
         }
     ?>
-    <li class="rc-sub">
+    <li class="rc-sub"<?= empty($item['id']) ? '' : ' data-tour="nav-' . h($item['id']) . '"' ?>>
         <button type="button" class="rc-item rc-subtrigger" aria-expanded="false" aria-controls="<?= $subId ?>">
             <?= $this->element('navbar_glyph', ['item' => $item]) ?>
             <span class="rc-text"><?= h($item['label']) ?></span>

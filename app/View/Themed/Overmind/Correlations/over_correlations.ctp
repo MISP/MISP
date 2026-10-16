@@ -37,9 +37,9 @@ $fields = [
                 return '<span class="text-muted">&mdash;</span>';
             }
             return sprintf(
-                '<a href="%s/attributes/search/value:%s" class="text-decoration-none font-monospace" title="%s">%s</a>',
+                '<a href="%s/attributes/index?value=%s" class="text-decoration-none font-monospace" title="%s">%s</a>',
                 $baseurl,
-                urlencode($value),
+                rawurlencode('"' . $value . '"'),
                 h(__('Search for attributes with this value')),
                 h($value)
             );

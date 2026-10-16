@@ -48,7 +48,7 @@ $orgRow = function (array $organisation, $role) use ($baseurl, $tileStyle) {
     );
 };
 ?>
-<div class="card mb-3 shadow-sm">
+<div class="card mb-3 shadow-sm" data-tour="sharing-group-general">
     <div class="card-body py-2 d-flex flex-column gap-3">
 
         <div>

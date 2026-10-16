@@ -1509,128 +1509,20 @@ tr.evt-extension-row td:first-child { position: relative; }
     overflow: visible;
 }
 
-/* Toggle switches */
-.sankey-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--misp-ink-muted, #61707e);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
+/* the graph's date column zooms on the wheel and pans on a drag */
+#sankey.is-pannable {
+    cursor: grab;
+}
+
+#sankey.is-panning,
+#sankey.is-panning * {
+    cursor: grabbing;
     user-select: none;
 }
 
-.sankey-toggle input {
-    position: absolute;
-    opacity: 0;
-    width: 1px;
-    height: 1px;
-    pointer-events: none;
-}
-
-.sankey-toggle-label {
-    white-space: nowrap;
-}
-
-.sankey-toggle-switch {
-    position: relative;
-    width: 42px;
-    height: 24px;
-    border-radius: 999px;
-    background: var(--misp-line-strong, #c7d0d9);
-    box-shadow: inset 0 0 0 1px rgba(56, 73, 91, 0.08);
-    transition: background 160ms ease, box-shadow 160ms ease;
-    flex-shrink: 0;
-}
-
-.sankey-toggle-switch::after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--misp-surface, #fff);
-    box-shadow: 0 1px 3px rgba(22, 32, 43, 0.28);
-    transition: transform 160ms ease;
-}
-
-.sankey-toggle input:checked + .sankey-toggle-switch {
-    background: var(--misp-tone-green-solid, #4cd964);
-}
-
-.sankey-toggle input:checked + .sankey-toggle-switch::after {
-    transform: translateX(18px);
-}
-
-.sankey-toggle input:focus + .sankey-toggle-switch {
-    box-shadow: inset 0 0 0 1px rgba(56, 73, 91, 0.08),
-                0 0 0 3px color-mix(in srgb, var(--misp-tone-green-solid, #4cd964) 18%, transparent);
-}
-
-/* Display options are grouped on one rail rather than floating loose */
-.sankey-toggle-group {
-    display: inline-flex;
-    align-items: center;
-    flex-wrap: wrap;
-    padding: 3px 4px;
-    border: 1px solid var(--misp-line, #e2e9f1);
-    border-radius: 12px;
-    background: var(--misp-surface-sunken, #f8fafc);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--misp-surface, #fff) 60%, transparent);
-}
-
-.sankey-toggle-group-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    color: var(--misp-ink-muted, #9aa8b6);
-    font-size: 11px;
-}
-
-.sankey-toggle-group .sankey-toggle {
-    position: relative;
-    gap: 6px;
-    padding: 3px 10px;
-}
-
-/* slightly tighter switches, so four of them still fit on one row */
-.sankey-toggle-group .sankey-toggle-switch {
-    width: 34px;
-    height: 20px;
-}
-
-.sankey-toggle-group .sankey-toggle-switch::after {
-    width: 16px;
-    height: 16px;
-}
-
-.sankey-toggle-group .sankey-toggle input:checked + .sankey-toggle-switch::after {
-    transform: translateX(14px);
-}
-
-.sankey-toggle-group .sankey-toggle + .sankey-toggle::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    width: 1px;
-    height: 18px;
-    background: var(--misp-line, #dfe7ef);
-    transform: translateY(-50%);
-}
-
-.sankey-toggle.sankey-toggle-disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-}
-
-.sankey-toggle-disabled .sankey-toggle-switch {
-    background: var(--misp-line, #d8dfe6);
+/* left the period mid-gesture - gone at the redraw that follows */
+#sankey .is-out-of-range {
+    opacity: .2;
 }
 
 /* Graph marks: --misp-graph-* tokens, Overmind's light palette as fallback */
@@ -1802,216 +1694,24 @@ tr.evt-extension-row td:first-child { position: relative; }
     --misp-dist-unknown-border: var(--bs-secondary-border-subtle);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   Correlation — Correlated-event timeline strip
-   ═══════════════════════════════════════════════════════════ */
-
-.event-timeline {
-    background: var(--misp-surface-sunken, #f8fafc);
-    border: 1px solid var(--misp-line, #e6ecf2);
-    border-radius: 10px;
-    padding: 12px 14px;
-    margin-bottom: 12px;
-}
-
-.event-timeline-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 12px;
-    color: var(--misp-ink-muted, #667);
-    margin-bottom: 8px;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.event-timeline-title {
-    font-weight: 600;
-    color: var(--misp-ink, #334);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-}
-
-.event-timeline-range {
-    font-size: 11px;
-    color: var(--misp-ink-muted, #7a8699);
-}
-
-.event-timeline-track {
-    position: relative;
-    padding: 28px 0 0;
-}
-
-.event-timeline-ticks {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    height: 28px;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.event-timeline-tick {
-    position: absolute;
-    top: 0;
-    width: 1px;
-    bottom: 0;
-    background: transparent;
-    transform: translateX(-50%);
-    pointer-events: none;
-}
-
-.event-timeline-tick-label {
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 10px;
-    line-height: 1;
-    color: var(--misp-ink-muted, #7a8699);
-    white-space: nowrap;
-}
-
-.event-timeline-tick-label-start {
-    left: 0;
-    transform: none;
-}
-
-.event-timeline-tick-label-end {
-    left: auto;
-    right: 0;
-    transform: none;
-}
-
-.event-timeline-markers {
-    position: relative;
-    height: 20px;
-}
-
-.event-timeline-marker {
-    position: absolute;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 2px;
-    height: 13px;
-    border-radius: 1px;
-    background: var(--misp-graph-marker, #94a9bd);
-    pointer-events: auto;
-}
-
-.event-timeline-marker:hover {
-    background: var(--misp-graph-marker-hover, #52708c);
+/* a label's opacity is inline (hover state), its fill-opacity is not */
+#sankey text.is-out-of-range {
     opacity: 1;
+    fill-opacity: .25;
 }
 
-/* period the graph draws - its edges map to the graph's lane edges */
-.event-timeline-selection {
-    position: absolute;
-    top: 20px;
-    bottom: 0;
-    background: color-mix(in srgb, var(--misp-graph-accent, #428bca) 12%, transparent);
-    border-left: 1px solid color-mix(in srgb, var(--misp-graph-accent, #428bca) 45%, transparent);
-    border-right: 1px solid color-mix(in srgb, var(--misp-graph-accent, #428bca) 45%, transparent);
-    border-radius: 3px;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.event-timeline-handle {
-    position: absolute;
-    bottom: 0;
-    height: 20px;
-    width: 14px;
-    padding: 0;
-    transform: translateX(-50%);
-    border: none;
-    background: transparent;
-    cursor: ew-resize;
-    touch-action: none;
+/* the × a hovered IOC or event offers - placed by the graph's script */
+.sankey-exclude-btn {
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: .65rem;
+    line-height: 1;
     z-index: 3;
 }
 
-/* stem climbs through the ticks so the exact date is readable */
-.event-timeline-handle::before {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 10px;
-    width: 2px;
-    height: 34px;
-    margin-left: -1px;
-    background: color-mix(in srgb, var(--misp-graph-accent, #428bca) 55%, transparent);
-}
-
-.event-timeline-handle::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 4px;
-    width: 13px;
-    height: 13px;
-    margin-left: -6.5px;
-    border-radius: 50%;
-    background: var(--misp-graph-accent, #428bca);
-    border: 2px solid var(--misp-surface, #fff);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--misp-graph-accent, #428bca) 45%, transparent);
-    transition: transform 120ms ease;
-}
-
-.event-timeline-handle:hover::after,
-.event-timeline-handle:focus-visible::after,
-.event-timeline-handle.is-dragging::after {
-    transform: scale(1.25);
-}
-
-.event-timeline-handle:focus-visible {
-    outline: none;
-}
-
-.event-timeline-handle:focus-visible::after {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--misp-graph-accent, #428bca) 35%, transparent);
-}
-
-.event-timeline-reset {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 1px 8px;
-    border: 1px solid color-mix(in srgb, var(--misp-graph-accent, #428bca) 35%, transparent);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--misp-graph-accent, #428bca) 10%, transparent);
-    color: var(--misp-graph-accent-ink, #2f6c9e);
-    font-size: 10px;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.event-timeline-reset:hover {
-    background: color-mix(in srgb, var(--misp-graph-accent, #428bca) 20%, transparent);
-}
-
-.event-timeline-current-marker {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 0;
-    border-left: 2px dashed color-mix(in srgb, var(--misp-graph-current, #6fbe80) 95%, transparent);
-    pointer-events: none;
-    z-index: 2;
-}
-
-.event-timeline-current-marker::before {
-    content: '';
-    position: absolute;
-    top: -5px;
-    left: -4px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--misp-graph-current, #6fbe80);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--misp-surface, #fff) 95%, transparent);
+/* the filters drawer's IOC and event lists scroll on their own */
+.sankey-filter-list {
+    max-height: 16rem;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2090,25 +1790,6 @@ tr.evt-extension-row td:first-child { position: relative; }
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.event-timeline-current-label {
-    position: absolute;
-    top: -38px;
-    transform: translateX(-50%);
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--misp-graph-current, #6fbe80) 96%, transparent);
-    color: var(--misp-graph-current-ink, #1d4b29);
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 1.2;
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 2;
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--misp-graph-current-ink, #1d4b29) 18%, transparent);
-    rotate: -22deg;
-    transform-origin: center bottom;
 }
 
 
