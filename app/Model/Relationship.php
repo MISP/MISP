@@ -121,7 +121,7 @@ class Relationship extends AnalystData
         foreach ($results as $i => $v) {
             $type = $v[$this->alias]['related_object_type'] ?? null;
             $address = $v[$this->alias][self::addressColumn($type, 'related_object')] ?? null;
-            if (!self::$resolvingTarget && !empty($type) && !empty($address) && empty($results[$i][$this->alias]['related_object'])) {
+            if (!self::$resolvingTarget && !empty($this->__currentUser) && !empty($type) && !empty($address) && empty($results[$i][$this->alias]['related_object'])) {
                 $results[$i][$this->alias]['related_object'] = $this->getRelatedElement($this->__currentUser, $type, $address);
             }
         }
