@@ -115,6 +115,28 @@ $techniques = function (array $items) use ($baseurl, $origin, $tagOf, $onIndicat
     echo '</ul>';
     return ob_get_clean();
 };
+$byGalaxy = function (array $items) use ($baseurl, $techniques) {
+    ob_start();
+    foreach (EventContextTool::byGalaxy($items) as $group) {
+        $galaxy = $group['galaxy'];
+        $icon = empty($galaxy['icon']) ? '' : sprintf(
+            '<i class="%s fa-%s" aria-hidden="true"></i>',
+            h(FontAwesomeHelper::findNamespace($galaxy['icon'])),
+            h($galaxy['icon'])
+        );
+        $name = empty($galaxy['id'])
+            ? '<span>' . h($galaxy['name']) . '</span>'
+            : sprintf('<a href="%s">%s</a>', h($baseurl . '/galaxies/view/' . (int)$galaxy['id']), h($galaxy['name']));
+        printf(
+            '<section class="eo-tech-group"><h6 class="eo-tech-galaxy">%s%s<small>%s</small></h6>%s</section>',
+            $icon,
+            $name,
+            count($group['items']),
+            $techniques($group['items'])
+        );
+    }
+    return ob_get_clean();
+};
 
 $labelCount = 0;
 foreach (['attribution', 'behaviour', 'classification', 'clusters', 'mitigation'] as $row) {
@@ -229,25 +251,7 @@ foreach ($rows as $items) {
 
         <?php if (!empty($rows['behaviour'])): ?>
             <dt><?= __('Behaviour') ?><small><?= h(__n('%s technique', '%s techniques', count($rows['behaviour']), count($rows['behaviour']))) ?></small></dt>
-            <dd>
-                <?php foreach (EventContextTool::byGalaxy($rows['behaviour']) as $group): ?>
-                    <?php $galaxy = $group['galaxy']; ?>
-                    <section class="eo-tech-group">
-                        <h6 class="eo-tech-galaxy">
-                            <?php if (!empty($galaxy['icon'])): ?>
-                                <i class="<?= h(FontAwesomeHelper::findNamespace($galaxy['icon'])) ?> fa-<?= h($galaxy['icon']) ?>" aria-hidden="true"></i>
-                            <?php endif; ?>
-                            <?php if (!empty($galaxy['id'])): ?>
-                                <a href="<?= h($baseurl . '/galaxies/view/' . (int)$galaxy['id']) ?>"><?= h($galaxy['name']) ?></a>
-                            <?php else: ?>
-                                <span><?= h($galaxy['name']) ?></span>
-                            <?php endif; ?>
-                            <small><?= h(count($group['items'])) ?></small>
-                        </h6>
-                        <?= $techniques($group['items']) ?>
-                    </section>
-                <?php endforeach; ?>
-            </dd>
+            <dd><?= $byGalaxy($rows['behaviour']) ?></dd>
         <?php endif; ?>
 
         <?php if (!empty($rows['classification']) || !empty($rows['clusters'])): ?>
@@ -271,7 +275,7 @@ foreach ($rows as $items) {
 
         <?php if (!empty($rows['mitigation'])): ?>
             <dt><?= __('Mitigation') ?></dt>
-            <dd><?= $techniques($rows['mitigation']) ?></dd>
+            <dd><?= $byGalaxy($rows['mitigation']) ?></dd>
         <?php endif; ?>
     </dl>
 
