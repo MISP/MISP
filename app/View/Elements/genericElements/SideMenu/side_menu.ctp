@@ -797,7 +797,7 @@ $divider = '<li class="divider"></li>';
                             'text' => __('Import Server Settings')
                         ));
                     }
-                    if ($menuItem === 'previewEvent' && ($isSiteAdmin || $hostOrg)) {
+                    if ($menuItem === 'previewEvent' && ($isSiteAdmin || $hostOrgUser)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => sprintf(
                                 '%s/servers/previewIndex/%s',
@@ -829,7 +829,7 @@ $divider = '<li class="divider"></li>';
                             'message' => __('Are you sure you want to fetch and save this event on your instance?')
                         ));
                     }
-                    if ($menuItem === 'previewIndex' && ($isSiteAdmin || $hostOrg)) {
+                    if ($menuItem === 'previewIndex' && ($isSiteAdmin || $hostOrgUser)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'previewIndex',
                             'url' => sprintf(
