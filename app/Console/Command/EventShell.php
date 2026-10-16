@@ -520,26 +520,6 @@ class EventShell extends AppShell
         return true;
     }
 
-    public function recoverEvent()
-    {
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Recover event']);
-        }
-
-        $jobId = $this->args[0];
-        $id = $this->args[1];
-        $job = $this->Job->read(null, $jobId);
-        $job['Job']['progress'] = 1;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Recovering event %s', $id);
-        $this->Job->save($job);
-        $result = $this->Event->recoverEvent($id);
-        $job['Job']['progress'] = 100;
-        $job['Job']['date_modified'] = date("Y-m-d H:i:s");
-        $job['Job']['message'] = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
-        $this->Job->save($job);
-    }
-
     public function testEventNotificationEmail()
     {
         list($eventId, $userId) = $this->args;

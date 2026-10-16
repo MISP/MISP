@@ -8866,7 +8866,6 @@ class Server extends AppModel
                     'Publish event' => 'MISP/app/Console/cake Event publish [event_id] [pass_along] [job_id] [user_id]',
                     'Publish sightings' => 'MISP/app/Console/cake Event publish_sightings [event_id] [pass_along] [job_id] [user_id]',
                     'Publish Galaxy clusters' => 'MISP/app/Console/cake Event publish_galaxy_clusters [cluster_id] [job_id] [user_id] [pass_along]',
-                    'Recover event' => 'MISP/app/Console/cake Event recoverEvent [job_id] [event_id]',
                     'Alert email' => 'MISP/app/Console/cake Event alertemail [user_id] [job_id] [event_id] [old_publish]',
                     'Contact email' => 'MISP/app/Console/cake Event contactemail [event_id] [message] [all] [user_id] [process_id]',
                     'Do publish' => 'MISP/app/Console/cake Event doPublish [event_id]',

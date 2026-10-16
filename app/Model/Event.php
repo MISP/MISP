@@ -12999,13 +12999,6 @@ class Event extends AppModel
         return $tags;
     }
 
-    public function recoverEvent($id)
-    {
-        $this->Log = ClassRegistry::init('Log');
-        $result = $this->Log->recoverDeletedEvent($id);
-        return $result;
-    }
-
     /**
      * @param array $event Event with assigned `EventTag`
      * @return string
