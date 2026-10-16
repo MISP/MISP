@@ -989,6 +989,7 @@ class ACLComponent extends Component
             'view' => array('*'),
             'viewPeriodicSummary' => ['*'],
             'getGpgPublicKey' => array('*'),
+            'getSmimeCertificate' => ['*'],
             'unsubscribe' => ['*'],
             'view_login_history' => ['*']
         ),

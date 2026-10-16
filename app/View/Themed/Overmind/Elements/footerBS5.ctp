@@ -23,10 +23,10 @@
             <?php } else { ?>
                 <span><?= __('Could not locate the PGP public key.'); ?></span>
             <?php }
-            if (Configure::read('SMIME.enabled')):
-                $smimepath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'public_certificate.pem';
-                if (file_exists($smimepath) && (is_file($smimepath) || is_link($gpgpath))) { ?>
-                    <span>Download: <?= $this->Html->link(__('Server S/MIME certificate'), $this->webroot.'public_certificate.pem'); ?></span>
+            if (Configure::read('SMIME.enabled') && isset($me['id'])):
+                $smimepath = Configure::read('SMIME.cert_public_sign');
+                if (!empty($smimepath) && is_file($smimepath) && is_readable($smimepath)) { ?>
+                    <span>Download: <?= $this->Html->link(__('Server S/MIME certificate'), ['controller' => 'users', 'action' => 'getSmimeCertificate']) ?></span>
                 <?php } else { ?>
                     <span><?= __('Could not locate S/MIME certificate.'); ?></span>
                 <?php }
