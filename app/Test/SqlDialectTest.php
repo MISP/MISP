@@ -191,7 +191,7 @@ class SqlDialectTest extends TestCase
     public function testRegexpMatchQuotesAPatternContainingAQuote()
     {
         $this->assertSame(
-            "col REGEXP 'it''s'",
+            "col REGEXP 'it\\'s'",
             $this->mysql->regexpMatch('col', "it's")
         );
         $this->assertSame(

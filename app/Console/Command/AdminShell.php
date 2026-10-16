@@ -225,8 +225,8 @@ class AdminShell extends AppShell
             'parser' => [
                 'options' => [
                     'engine' => [
-                        'help' => __('Which engine to render for: mysql or pgsql.'),
-                        'choices' => ['mysql', 'pgsql'],
+                        'help' => __('Which engine to render for: mariadb (MariaDB 10.11 or later), mysql (MySQL 8.4 or later) or pgsql.'),
+                        'choices' => ['mariadb', 'mysql', 'pgsql'],
                         'required' => true,
                     ],
                     'database' => [
@@ -1610,21 +1610,19 @@ class AdminShell extends AppShell
      * corpus produced - what CI builds from INSTALL/MYSQL.sql and runUpdates -
      * and it may sit beside the working database on the same server. The
      * connected datasource is only the reader; the engine rendered for is
-     * whatever --engine asks, through the offline grammar when the host
-     * cannot connect to it.
+     * whatever --engine asks, always through an offline grammar.
      *
      * @return void
      */
     public function dumpInstallBaseline()
     {
         App::uses('BaselineGenerator', 'Migration');
-        App::uses('AbstractGrammar', 'Migration/Grammar');
 
         $engine = isset($this->params['engine']) ? (string)$this->params['engine'] : '';
-        if (!in_array($engine, AbstractGrammar::flavours(), true)) {
+        if (!in_array($engine, BaselineGenerator::engines(), true)) {
             $this->error(
                 __('"%s" is not an engine this can render for.', $engine),
-                __('Use --engine %s.', implode(' or --engine ', AbstractGrammar::flavours()))
+                __('Use --engine %s.', implode(' or --engine ', BaselineGenerator::engines()))
             );
         }
 
@@ -1652,10 +1650,8 @@ class AdminShell extends AppShell
             );
         }
 
-        $live = AbstractGrammar::forDataSource($db);
-        $grammar = $live->flavour() === $engine ? $live : AbstractGrammar::offline($engine);
-
         try {
+            $grammar = BaselineGenerator::grammar($engine);
             $schema = $generator->readSchema();
             $seeds = $generator->readSeedRows($schema);
             $rendered = $generator->render($grammar, $schema, $seeds, $version);

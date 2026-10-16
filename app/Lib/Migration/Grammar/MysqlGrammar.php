@@ -34,6 +34,13 @@ class MysqlGrammar extends AbstractGrammar
         'varbinary' => array('name' => 'varbinary'),
     );
 
+    /**
+     * The types whose display width MySQL no longer renders.
+     *
+     * @var array
+     */
+    private static $integerTypes = array('integer', 'biginteger', 'smallinteger', 'tinyinteger');
+
     public function flavour()
     {
         return self::FLAVOUR_MYSQL;
@@ -174,6 +181,44 @@ class MysqlGrammar extends AbstractGrammar
     }
 
     // --------------------------------------------------------------- helpers
+
+    /**
+     * MySQL 8.0.17 deprecated integer display widths and has dropped them
+     * from what it reports since 8.0.19, except tinyint(1), which connectors
+     * (Cake among them) read as a boolean. MariaDB still renders them.
+     */
+    protected function mergedColumns()
+    {
+        $columns = parent::mergedColumns();
+        if ($this->rendersForMysql()) {
+            foreach (self::$integerTypes as $type) {
+                unset($columns[$type]['limit']);
+            }
+        }
+        return $columns;
+    }
+
+    protected function normaliseColumn(array $spec)
+    {
+        $spec = parent::normaliseColumn($spec);
+        if (isset($spec['type']) && in_array($spec['type'], self::$integerTypes, true)
+            && $this->rendersForMysql()
+        ) {
+            $width = isset($spec['length']) ? $spec['length'] : (isset($spec['limit']) ? $spec['limit'] : null);
+            if (!($spec['type'] === 'tinyinteger' && (int)$width === 1)) {
+                unset($spec['length'], $spec['limit']);
+            }
+        }
+        return $spec;
+    }
+
+    /**
+     * @return bool Whether the server rendered for is MySQL rather than MariaDB.
+     */
+    private function rendersForMysql()
+    {
+        return Collation::family($this->db->getVersion()) === Collation::MYSQL;
+    }
 
     /**
      * Charset before collate, the order buildTableParameters() renders them in.

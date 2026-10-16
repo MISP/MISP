@@ -34,6 +34,20 @@ class CollationTest extends TestCase
         $this->assertSame(array($family, $release), Collation::server($version));
     }
 
+    /**
+     * Unlike server(), family() answers below the floor too: what a rendering
+     * looks like there is not this check's business.
+     */
+    public function testTheFamilyIsReadAtAnyRelease()
+    {
+        $this->assertSame(Collation::MARIADB, Collation::family(self::MARIADB));
+        $this->assertSame(Collation::MARIADB, Collation::family('5.5.5-10.6.18-MariaDB-log'));
+        $this->assertSame(Collation::MYSQL, Collation::family(self::MYSQL));
+        $this->assertSame(Collation::MYSQL, Collation::family('5.7.44-log'));
+        $this->assertNull(Collation::family(null));
+        $this->assertNull(Collation::family('unknown'));
+    }
+
     public function testEachTokenResolvesPerFamily()
     {
         $expected = array(

@@ -843,6 +843,69 @@ class MigrationGrammarTest extends TestCase
         $grammar->addColumn('t', 'c', 'string', array('length' => 40, 'null' => false, 'collate' => Collation::BIN));
     }
 
+    // ------------------------------------------------------- display widths
+
+    /**
+     * MySQL renders an integer without its display width, except tinyint(1),
+     * which is a flag; MariaDB, and a connection that says neither, keep it.
+     */
+    public function testMysqlRendersIntegersWithoutTheirDisplayWidth()
+    {
+        $columns = array(
+            'id' => array('type' => 'primary_key'),
+            'a' => array('type' => 'integer', 'null' => false),
+            'b' => array('type' => 'integer', 'length' => 10, 'unsigned' => true, 'null' => false),
+            'c' => array('type' => 'biginteger', 'null' => true),
+            'd' => array('type' => 'smallinteger', 'null' => false),
+            'e' => array('type' => 'tinyinteger', 'null' => false, 'default' => 0),
+            'f' => array('type' => 'tinyinteger', 'length' => 1, 'null' => false),
+            'g' => array('type' => 'boolean', 'null' => false),
+        );
+        $widths = "CREATE TABLE `t` (\n"
+            . "    `id` bigint(20) NOT NULL AUTO_INCREMENT,\n"
+            . "    `a` int(11) NOT NULL,\n"
+            . "    `b` int(10) UNSIGNED NOT NULL,\n"
+            . "    `c` bigint(20) DEFAULT NULL,\n"
+            . "    `d` smallint(6) NOT NULL,\n"
+            . "    `e` tinyint(4) DEFAULT 0 NOT NULL,\n"
+            . "    `f` tinyint(1) NOT NULL,\n"
+            . "    `g` tinyint(1) NOT NULL,\n"
+            . "    PRIMARY KEY (`id`)\n"
+            . ");";
+
+        $this->assertSame(array($widths), (new MysqlGrammar(new CollationTestMysql('10.11.14-MariaDB')))->createTable('t', $columns));
+        $this->assertSame(array($widths), (new MysqlGrammar(new MigrationTestMysql()))->createTable('t', $columns));
+        $this->assertSame(
+            array(str_replace(
+                array('bigint(20)', 'int(11)', 'int(10)', 'smallint(6)', 'tinyint(4)'),
+                array('bigint', 'int', 'int', 'smallint', 'tinyint'),
+                $widths
+            )),
+            (new MysqlGrammar(new CollationTestMysql('8.4.6')))->createTable('t', $columns)
+        );
+
+        $mysql = new MysqlGrammar(new CollationTestMysql('8.4.6'));
+        $this->assertSame(
+            array('ALTER TABLE `t` MODIFY `a` int DEFAULT NULL;'),
+            $mysql->changeColumn('t', 'a', 'integer', array('length' => 11, 'null' => true, 'default' => null))
+        );
+        $this->assertSame(
+            array('ALTER TABLE `t` ADD `id` bigint NOT NULL AUTO_INCREMENT PRIMARY KEY;'),
+            $mysql->addColumn('t', 'id', 'primary_key')
+        );
+    }
+
+    /**
+     * Offline rendering quotes as each driver would: MySQL's escapes
+     * backslashes, PostgreSQL (standard_conforming_strings) does not.
+     */
+    public function testOfflineLiteralsAreQuotedAsTheirDriverQuotesThem()
+    {
+        $value = "C:\\it's \"x\"\n";
+        $this->assertSame("'C:\\\\it\\'s \\\"x\\\"\\n'", (new MigrationTestMysqlExtended())->value($value));
+        $this->assertSame("'C:\\it''s \"x\"\n'", (new MigrationTestPostgres())->value($value));
+    }
+
     // --------------------------------------------------------- table options
 
     public function testChangeOptionsRendersOneClausePerOption()

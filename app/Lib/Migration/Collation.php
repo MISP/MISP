@@ -118,17 +118,14 @@ class Collation
      */
     public static function server($serverVersion)
     {
-        // MariaDB before 11 prefixes its handshake version for old clients.
-        $version = preg_replace('/^5\.5\.5-/', '', (string)$serverVersion);
-        if (!preg_match('/^(\d+)\.(\d+)/', $version, $parts)) {
+        list($family, $release) = self::release($serverVersion);
+        if ($family === null) {
             throw new MigrationDeferredException(sprintf(
                 'The database server reports its version as "%s", which does not say which MySQL-family server it is. %s',
                 $serverVersion,
                 self::requirement()
             ));
         }
-        $family = stripos($version, 'mariadb') !== false ? self::MARIADB : self::MYSQL;
-        $release = (int)$parts[1] . '.' . (int)$parts[2];
         if (version_compare($release, self::$floors[$family], '<')) {
             throw new MigrationDeferredException(sprintf(
                 'This database server is %s %s. %s Upgrade the database server, then run the update again.',
@@ -138,6 +135,33 @@ class Collation
             ));
         }
         return array($family, $release);
+    }
+
+    /**
+     * Which MySQL-family server a version string names, at any release.
+     *
+     * @param string|null $serverVersion
+     * @return string|null MARIADB or MYSQL, or null when the version cannot be read.
+     */
+    public static function family($serverVersion)
+    {
+        list($family) = self::release($serverVersion);
+        return $family;
+    }
+
+    /**
+     * @param string|null $serverVersion
+     * @return array array(family, 'major.minor'), both null when unreadable.
+     */
+    private static function release($serverVersion)
+    {
+        // MariaDB before 11 prefixes its handshake version for old clients.
+        $version = preg_replace('/^5\.5\.5-/', '', (string)$serverVersion);
+        if (!preg_match('/^(\d+)\.(\d+)/', $version, $parts)) {
+            return array(null, null);
+        }
+        $family = stripos($version, 'mariadb') !== false ? self::MARIADB : self::MYSQL;
+        return array($family, (int)$parts[1] . '.' . (int)$parts[2]);
     }
 
     /**

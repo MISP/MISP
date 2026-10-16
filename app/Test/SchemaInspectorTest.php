@@ -414,8 +414,8 @@ class SchemaInspectorTest extends TestCase
         $reader = $this->mysqlReader();
         $reader->getDataSource()->config['database'] = "mi'sp";
         $reader->tableRowEstimate("att'ributes");
-        $this->assertStringContainsString("TABLE_SCHEMA = 'mi''sp'", $reader->queries[0]);
-        $this->assertStringContainsString("TABLE_NAME = 'att''ributes'", $reader->queries[0]);
+        $this->assertStringContainsString("TABLE_SCHEMA = 'mi\\'sp'", $reader->queries[0]);
+        $this->assertStringContainsString("TABLE_NAME = 'att\\'ributes'", $reader->queries[0]);
     }
 
     /**
@@ -756,7 +756,7 @@ class SchemaInspectorTest extends TestCase
         $this->assertCount(3, $catalog);
         foreach ($catalog as $sql) {
             $this->assertStringContainsString("TABLE_SCHEMA = 'misp' AND", $sql);
-            $this->assertStringContainsString("TABLE_NAME = 'ta''gs'", $sql);
+            $this->assertStringContainsString("TABLE_NAME = 'ta\\'gs'", $sql);
         }
     }
 

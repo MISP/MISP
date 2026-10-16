@@ -196,6 +196,8 @@ cosmetic ordering PostgreSQL has no equivalent for, so it goes quietly. `charset
 free — CakePHP's Postgres driver simply declares no such parameters. An index
 **prefix length** is different in kind: dropping it changes what the index
 indexes, so it is logged rather than vanishing. `--dry-run` prints all of these.
+Rendered for MySQL (not MariaDB), an integer loses its display width, as MySQL
+8.0.19 and later report it; `tinyint(1)` keeps it, being how a flag is read.
 
 **Collations are named by class, not by name.** Put `Collation::CI`,
 `Collation::BIN` or `Collation::ASCII` in `collate`, on a column or in
@@ -454,10 +456,11 @@ table it does not know about yields no diff.
 
 ## 10. Checklist: regenerating the install baselines
 
-Two baselines, one generator, one reference. `INSTALL/MYSQL.sql` and
-`INSTALL/POSTGRESQL.sql` are both rendered by `dumpInstallBaseline` from a
-MySQL/MariaDB database that has applied everything — the frozen legacy corpus
-to 159 and every migration on disk — so a fresh install on either engine
+Three baselines, one generator, one reference. `INSTALL/MARIADB.sql`,
+`INSTALL/MYSQL.sql` and `INSTALL/POSTGRESQL.sql` are all rendered by
+`dumpInstallBaseline` from a MySQL/MariaDB database that has applied
+everything — the frozen legacy corpus to 159 and every migration on disk — so
+a fresh install on any of the three
 starts at the current schema, with `db_version` 159 and every migration
 recorded in `schema_migrations`, and runs no legacy update and no migration.
 Existing instances are untouched by this: they climb the legacy corpus to 159
@@ -496,6 +499,7 @@ PostgreSQL has to restore that backup afterwards.
 ### 2. Render
 
 ```bash
+Console/cake Admin dumpInstallBaseline --engine mariadb --database misp_ref --output INSTALL/MARIADB.sql
 Console/cake Admin dumpInstallBaseline --engine mysql --database misp_ref --output INSTALL/MYSQL.sql
 Console/cake Admin dumpInstallBaseline --engine pgsql --database misp_ref --output INSTALL/POSTGRESQL.sql
 Console/cake Admin dumpCurrentDatabaseSchema          # db_schema.json, from the same reference
@@ -523,10 +527,14 @@ not the reference's shape and are the review list, not noise:
 
 On MySQL, `attribute_values` is created with `innodb_ft_enable_stopword` off,
 as the migration that rebuilt its FULLTEXT index did: InnoDB takes the session's
-stopword setting when it builds the index. Its collation is rendered as
-`utf8mb4_unicode_520_ci` whatever the reference server used (noted when it
-differs): the migration picks the collation by server version, which a static
-baseline cannot, and every supported MySQL and MariaDB server has this one.
+stopword setting when it builds the index.
+
+MariaDB and MySQL get a baseline each because their target collations have
+different names (§4): a reference column in its server's spelling of a
+collation token is read as that token and rendered for each server, so
+`MARIADB.sql` carries `utf8mb4_uca1400_ai_ci` where `MYSQL.sql` carries
+`utf8mb4_unicode_520_ci`. Any other collation is copied as the reference names
+it. Each MySQL-family baseline is rendered for the oldest supported release.
 
 The ledger is seeded automatically: `schema_migrations` is a seed table, so
 whatever the reference recorded as applied is carried across. So are the

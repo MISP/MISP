@@ -10,7 +10,9 @@
  * rendering honest: every driver quirk above the quoting layer is still the
  * real driver's, so what --dry-run prints is what the engine would be sent.
  *
- * Both drivers quote the same way: single quotes, doubled to escape.
+ * PostgreSQL (standard_conforming_strings on) only doubles a single quote.
+ * MySQL's driver also escapes backslashes and control characters, as
+ * mysql_real_escape_string() does.
  *
  * The MySQL grammar also asks it for the server version, which picks the
  * collation a token renders as (see Collation).
@@ -21,16 +23,36 @@
 class OfflineConnection
 {
     /**
+     * What mysql_real_escape_string() escapes, and how.
+     */
+    const MYSQL_ESCAPES = array(
+        "\\" => "\\\\",
+        "'" => "\\'",
+        '"' => '\\"',
+        "\0" => '\\0',
+        "\n" => '\\n',
+        "\r" => '\\r',
+        "\x1a" => '\\Z',
+    );
+
+    /**
      * @var string|null
      */
     private $serverVersion;
 
     /**
-     * @param string|null $serverVersion What the server this stands in for would report.
+     * @var bool
      */
-    public function __construct($serverVersion = null)
+    private $backslashEscapes;
+
+    /**
+     * @param string|null $serverVersion What the server this stands in for would report.
+     * @param bool $backslashEscapes Quote as MySQL's driver does, rather than PostgreSQL's.
+     */
+    public function __construct($serverVersion = null, $backslashEscapes = false)
     {
         $this->serverVersion = $serverVersion;
+        $this->backslashEscapes = $backslashEscapes;
     }
 
     /**
@@ -49,6 +71,9 @@ class OfflineConnection
      */
     public function quote($value, $type = null)
     {
+        if ($this->backslashEscapes) {
+            return "'" . strtr((string)$value, self::MYSQL_ESCAPES) . "'";
+        }
         return "'" . str_replace("'", "''", (string)$value) . "'";
     }
 }

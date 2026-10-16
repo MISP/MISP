@@ -73,21 +73,21 @@ class AttributeValuesMigrationTest extends TestCase
     public static function supportedServers()
     {
         return array(
-            'MariaDB 10.11 (Ubuntu 24.04)' => array('10.11.14-MariaDB-0ubuntu0.24.04.1', 'utf8mb4_uca1400_ai_ci'),
-            'MariaDB 11.4' => array('11.4.3-MariaDB-log', 'utf8mb4_uca1400_ai_ci'),
-            'MySQL 8.4' => array('8.4.6', 'utf8mb4_unicode_520_ci'),
-            'MySQL 9.1' => array('9.1.0', 'utf8mb4_unicode_520_ci'),
+            'MariaDB 10.11 (Ubuntu 24.04)' => array('10.11.14-MariaDB-0ubuntu0.24.04.1', 'utf8mb4_uca1400_ai_ci', 'bigint(20)'),
+            'MariaDB 11.4' => array('11.4.3-MariaDB-log', 'utf8mb4_uca1400_ai_ci', 'bigint(20)'),
+            'MySQL 8.4' => array('8.4.6', 'utf8mb4_unicode_520_ci', 'bigint'),
+            'MySQL 9.1' => array('9.1.0', 'utf8mb4_unicode_520_ci', 'bigint'),
         );
     }
 
     /**
      * @dataProvider supportedServers
      */
-    public function testTheMysqlRenderingCarriesTheServersCollation($version, $collation)
+    public function testTheMysqlRenderingCarriesTheServersCollation($version, $collation, $key)
     {
         $this->assertSame(array(
             "CREATE TABLE `attribute_values` (\n" .
-            "    `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,\n" .
+            "    `id` $key UNSIGNED NOT NULL AUTO_INCREMENT,\n" .
             "    `value` text CHARACTER SET utf8mb4 COLLATE $collation NOT NULL,\n" .
             "    `hash` varbinary(32) NOT NULL,\n" .
             "    PRIMARY KEY (`id`),\n" .

@@ -1,6 +1,8 @@
 <?php
 
 App::uses('AbstractGrammar', 'Migration/Grammar');
+App::uses('Collation', 'Migration');
+App::uses('OfflineMysql', 'Migration/Grammar');
 App::uses('SchemaBuilder', 'Migration');
 App::uses('SchemaInspector', 'Migration');
 App::uses('SqlDialect', 'Migration');
@@ -20,8 +22,10 @@ App::uses('SqlDialect', 'Migration');
  * for that is not realistic and would drift the first time somebody forgot to
  * mirror a change, so the baseline is generated: read a MySQL database that a
  * fresh install plus the frozen corpus produced, map it onto the schema DSL,
- * render through the grammar for the engine wanted. The MySQL baseline is the
- * same tool with the other grammar.
+ * render through the grammar for the engine wanted. MariaDB and MySQL get a
+ * baseline each, because their target collations have different names (see
+ * Collation): a reference column in its server's target collation is read as
+ * the collation token and rendered for each server.
  *
  * ## Why information_schema rather than the driver
  *
@@ -131,12 +135,14 @@ class BaselineGenerator
     const MYSQL_FULLTEXT_WITHOUT_STOPWORDS = array('attribute_values');
 
     /**
-     * Tables whose collation their migration picks by server version
-     * (20261003_092429_create_attribute_values). A static baseline cannot,
-     * so the MySQL rendering uses the one every supported server has rather
-     * than the reference server's.
+     * The engines a baseline is rendered for, and the server version each
+     * MySQL-family rendering assumes: the oldest supported release.
      */
-    const MYSQL_PORTABLE_COLLATIONS = array('attribute_values' => 'utf8mb4_unicode_520_ci');
+    const ENGINES = array(
+        'mariadb' => OfflineMysql::SERVER_VERSION,
+        'mysql' => '8.4.0',
+        'pgsql' => null,
+    );
 
     /**
      * The tables a fresh install starts with rows in: the ones MYSQL.sql seeds,
@@ -291,6 +297,38 @@ class BaselineGenerator
         return $this->database;
     }
 
+    /**
+     * @return string[] The engines a baseline can be rendered for.
+     */
+    public static function engines()
+    {
+        return array_keys(self::ENGINES);
+    }
+
+    /**
+     * The grammar a baseline for an engine is rendered through. Always
+     * offline: the reference is read over a MySQL-family connection, and the
+     * server it runs on says nothing about the server a baseline is for.
+     *
+     * @param string $engine One of engines().
+     * @return AbstractGrammar
+     * @throws InvalidArgumentException On an unknown engine.
+     */
+    public static function grammar($engine)
+    {
+        if (!is_string($engine) || !array_key_exists($engine, self::ENGINES)) {
+            throw new InvalidArgumentException(sprintf(
+                'No baseline for the engine %s. Known engines are: %s.',
+                var_export($engine, true),
+                implode(', ', self::engines())
+            ));
+        }
+        if (self::ENGINES[$engine] === null) {
+            return AbstractGrammar::offline(AbstractGrammar::FLAVOUR_PGSQL);
+        }
+        return AbstractGrammar::forDataSource(new OfflineMysql(self::ENGINES[$engine]));
+    }
+
     // --------------------------------------------------------------- reading
 
     /**
@@ -315,7 +353,8 @@ class BaselineGenerator
 
     /**
      * Every base table in the reference, with its columns, indexes and table
-     * parameters mapped onto the DSL.
+     * parameters mapped onto the DSL. A collation the reference server names
+     * a token by (see Collation) is read as that token.
      *
      * @return array table => array(
      *   'columns' => name => DSL spec,
@@ -327,6 +366,7 @@ class BaselineGenerator
      */
     public function readSchema()
     {
+        $tokens = $this->collationTokens();
         $tables = array();
         foreach ($this->fetchRows(SchemaInspector::mysqlTablesSql($this->db, $this->database)) as $row) {
             $collation = isset($row['TABLE_COLLATION']) ? (string)$row['TABLE_COLLATION'] : '';
@@ -337,6 +377,7 @@ class BaselineGenerator
             if ($collation !== '') {
                 $options['charset'] = SchemaInspector::charsetOfCollation($collation);
                 $options['collate'] = $collation;
+                $options = self::tokenise($options, $tokens);
             }
             $tables[$row['TABLE_NAME']] = array(
                 'columns' => array(),
@@ -355,7 +396,7 @@ class BaselineGenerator
                 continue;
             }
             list($spec, $expression) = self::columnSpec($row, $quoted, $tables[$table]['collation']);
-            $tables[$table]['columns'][$row['COLUMN_NAME']] = $spec;
+            $tables[$table]['columns'][$row['COLUMN_NAME']] = self::tokenise($spec, $tokens);
             if ($expression !== null) {
                 $tables[$table]['expressionDefaults'][$row['COLUMN_NAME']] = $expression;
             }
@@ -383,6 +424,30 @@ class BaselineGenerator
             unset($tables[$table]['collation']);
         }
         return $tables;
+    }
+
+    /**
+     * The reference server's own name for each collation token.
+     *
+     * @return array collation => token
+     * @throws RuntimeException When the version does not say which server the reference is on.
+     */
+    private function collationTokens()
+    {
+        $version = $this->db->getVersion();
+        $family = Collation::family($version);
+        if ($family === null) {
+            throw new RuntimeException(sprintf(
+                'The reference server reports its version as "%s", which does not say whether it is MariaDB or MySQL.',
+                $version
+            ));
+        }
+        $tokens = array();
+        foreach (array(Collation::CI, Collation::BIN, Collation::ASCII) as $token) {
+            $byFamily = Collation::byFamily($token);
+            $tokens[$byFamily[$family]] = $token;
+        }
+        return $tokens;
     }
 
     /**
@@ -521,6 +586,23 @@ class BaselineGenerator
     }
 
     /**
+     * A target collation as its token, which implies the charset. Any other
+     * collation is kept as the reference names it.
+     *
+     * @param array $options A column spec or a table's options.
+     * @param array $tokens collation => token.
+     * @return array
+     */
+    public static function tokenise(array $options, array $tokens)
+    {
+        if (isset($options['collate'], $tokens[$options['collate']])) {
+            $options['collate'] = $tokens[$options['collate']];
+            unset($options['charset']);
+        }
+        return $options;
+    }
+
+    /**
      * One table's information_schema.STATISTICS rows as DSL index
      * declarations, plus its primary key.
      *
@@ -578,7 +660,7 @@ class BaselineGenerator
         $notes = array();
         $out = array();
 
-        $out[] = $this->header($flavour, $dbVersion);
+        $out[] = $this->header($grammar, $dbVersion);
         $out[] = '';
         foreach ($this->preamble($flavour) as $statement) {
             $out[] = $statement;
@@ -669,28 +751,6 @@ class BaselineGenerator
         $schema = new SchemaBuilder($grammar);
         $options = $definition['options'];
         $options['indexes'] = $indexes;
-        if ($flavour === AbstractGrammar::FLAVOUR_MYSQL && isset(self::MYSQL_PORTABLE_COLLATIONS[$table])) {
-            $portable = self::MYSQL_PORTABLE_COLLATIONS[$table];
-            $collations = array();
-            if (isset($options['collate']) && $options['collate'] !== $portable) {
-                $collations[$options['collate']] = true;
-                $options['collate'] = $portable;
-            }
-            foreach ($columns as $name => $spec) {
-                if (isset($spec['collate']) && $spec['collate'] !== $portable) {
-                    $collations[$spec['collate']] = true;
-                    $columns[$name]['collate'] = $portable;
-                }
-            }
-            if (!empty($collations)) {
-                $notes[] = sprintf(
-                    'Collation of %s rendered as %s instead of the reference\'s %s: its migration picks the collation by server version, and every supported server has this one.',
-                    $table,
-                    $portable,
-                    implode(', ', array_keys($collations))
-                );
-            }
-        }
         $schema->createTable($table, $columns, $options);
         $statements = $schema->toSql();
 
@@ -1227,13 +1287,17 @@ class BaselineGenerator
     }
 
     /**
-     * @param string $flavour
+     * @param AbstractGrammar $grammar
      * @param int $dbVersion
      * @return string
      */
-    private function header($flavour, $dbVersion)
+    private function header(AbstractGrammar $grammar, $dbVersion)
     {
-        $engine = $flavour === AbstractGrammar::FLAVOUR_MYSQL ? 'MySQL / MariaDB' : 'PostgreSQL';
+        $engine = 'PostgreSQL';
+        if ($grammar->flavour() === AbstractGrammar::FLAVOUR_MYSQL) {
+            $family = Collation::family($grammar->getDataSource()->getVersion());
+            $engine = $family === null ? 'MySQL / MariaDB' : $family;
+        }
         return implode(PHP_EOL, array(
             '-- MISP ' . $engine . ' install baseline, equivalent to db_version ' . $dbVersion . '.',
             '--',

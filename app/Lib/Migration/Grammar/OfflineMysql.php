@@ -33,7 +33,7 @@ class OfflineMysql extends MysqlExtended
      */
     public function __construct($serverVersion = self::SERVER_VERSION)
     {
-        $this->_connection = new OfflineConnection($serverVersion);
+        $this->_connection = new OfflineConnection($serverVersion, true);
         // name() would otherwise reach the Cache facade for its method cache.
         $this->cacheMethods = false;
         $this->config = array('prefix' => '', 'database' => 'misp');

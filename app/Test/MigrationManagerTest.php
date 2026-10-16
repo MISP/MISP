@@ -401,10 +401,10 @@ class MigrationManagerTest extends TestCase
     {
         $id = '20260108_000000_collated_table';
         $files = array('Migration_20260108_000000_collated_table.php');
-        $expected = function ($collation) {
+        $expected = function ($collation, $key) {
             return array(
                 "CREATE TABLE `collated` (\n"
-                . "    `id` bigint(20) NOT NULL AUTO_INCREMENT,\n"
+                . "    `id` $key NOT NULL AUTO_INCREMENT,\n"
                 . "    `name` varchar(255) CHARACTER SET utf8mb4 COLLATE $collation NOT NULL,\n"
                 . "    PRIMARY KEY (`id`)\n"
                 . ");",
@@ -412,9 +412,9 @@ class MigrationManagerTest extends TestCase
         };
 
         $manager = new SchemaRenderingMigrationManager($files);
-        $this->assertSame($expected('utf8mb4_uca1400_ai_ci'), $manager->toSql($id));
+        $this->assertSame($expected('utf8mb4_uca1400_ai_ci', 'bigint(20)'), $manager->toSql($id));
         $manager = new SchemaRenderingMigrationManager($files, array(), '8.4.6');
-        $this->assertSame($expected('utf8mb4_unicode_520_ci'), $manager->toSql($id));
+        $this->assertSame($expected('utf8mb4_unicode_520_ci', 'bigint'), $manager->toSql($id));
 
         $manager = new SchemaRenderingMigrationManager($files, array(), '8.0.43');
         $this->expectException('MigrationDeferredException');
