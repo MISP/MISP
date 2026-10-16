@@ -55,14 +55,15 @@ Run the commands from `app/` as the web server user
 (`sudo -u www-data Console/cake …`).
 
 1. **Update the code**, then run the upgrade from the command line before
-   anyone logs in: `Console/cake Admin runUpgrade`. It takes the instance offline, applies every pending update and converts the
-   attribute values: it fills the value table
+   anyone logs in: `Console/cake Admin runUpgrade`. It takes the instance
+   offline, stops the background workers, applies every pending update and
+   converts the attribute values: it fills the value table
    (`Console/cake AttributeValue backfill`), builds the IP index used by CIDR
    correlation and the `value_cidr` filter (`rebuildFacets`), re-keys the
    existing correlations (`remapCorrelations`), and checks that every attribute
    and proposal gives back its exact text from the value table before the last
-   migration drops the old text columns. Then it restarts the background
-   workers and brings the instance back. It shows its progress as it goes.
+   migration drops the old text columns. Then it starts the background workers
+   again and brings the instance back. It shows its progress as it goes.
    If anything fails, it stops and leaves the instance offline; fix what it
    names and run it again, and it carries on where it stopped.
    `Console/cake AttributeValue verify` runs the same check on its own and

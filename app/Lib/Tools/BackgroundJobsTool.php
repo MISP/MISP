@@ -579,6 +579,18 @@ class BackgroundJobsTool
     }
 
     /**
+     * Stops workers
+     *
+     * @param boolean $waitForStop
+     * @return void
+     * @throws Exception
+     */
+    public function stopWorkers(bool $waitForStop = false)
+    {
+        $this->getSupervisor()->stopProcessGroup(self::MISP_WORKERS_PROCESS_GROUP, $waitForStop);
+    }
+
+    /**
      * Restarts workers
      *
      * @param boolean $waitForRestart

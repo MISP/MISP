@@ -211,7 +211,7 @@ class AdminShell extends AppShell
             ],
         ]);
         $parser->addSubcommand('runUpgrade', [
-            'help' => __('Upgrade the database to this version in one offline run: take the instance offline, apply every pending update (the numeric ones first, then the migrations, with the attribute value conversion where it is due), then bring the instance back. A run that stops leaves the instance offline; running it again carries on.'),
+            'help' => __('Upgrade the database to this version in one offline run: take the instance offline and stop the background workers, apply every pending update (the numeric ones first, then the migrations, with the attribute value conversion where it is due), then restart the workers and bring the instance back. A run that stops leaves the instance offline; running it again carries on.'),
         ]);
         $parser->addSubcommand('migrationCreate', [
             'help' => __('Scaffold a new migration class from the stub.'),
@@ -888,6 +888,15 @@ class AdminShell extends AppShell
         if (!$this->__setLive(false)) {
             $this->error(__('Could not take the instance offline: MISP.live could not be saved in Redis or in the PHP config file.'));
         }
+        // A job left running can hold the locks a rebuild waits for.
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            $this->out(__('Stopping the background workers.'));
+            try {
+                $this->getBackgroundJobsTool()->stopWorkers(true);
+            } catch (Throwable $e) {
+                $this->out('<warning>' . __('Could not stop the workers (%s); a job still running can hold up a rebuild.', $e->getMessage()) . '</warning>');
+            }
+        }
         if (count($migrations) < count($pending)) {
             $this->out(__('Numeric updates:'));
             $this->__upgradeUntil(empty($migrations) ? null : $migrations[0], true);
@@ -968,7 +977,9 @@ class AdminShell extends AppShell
         if (!empty($left)) {
             $lines[] = __n('%s update is still pending.', '%s updates are still pending.', count($left), count($left));
         }
-        $lines[] = __('The instance stays offline. Fix the cause and run Console/cake Admin runUpgrade again: it carries on from there.');
+        $lines[] = Configure::read('SimpleBackgroundJobs.enabled')
+            ? __('The instance stays offline and its background workers stopped. Fix the cause and run Console/cake Admin runUpgrade again: it carries on from there.')
+            : __('The instance stays offline. Fix the cause and run Console/cake Admin runUpgrade again: it carries on from there.');
         $this->error(__('The upgrade stopped.'), implode(PHP_EOL, $lines));
     }
 

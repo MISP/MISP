@@ -376,13 +376,15 @@ Applying is also what `runUpdates()` does, so an ordinary login or
 legacy first in numeric order, then migrations in id order.
 
 A release with an offline migration is applied with `Console/cake Admin
-runUpgrade`, as one run: it takes the instance offline (`MISP.live`), applies
-the numeric updates, then every migration in id order, runs the attribute value
-conversion (`AttributeValue backfill`, `rebuildFacets`, `remapCorrelations`) in
-front of `drop_attribute_value_text`, runs `runUpdates` once more, restarts the
-workers and brings the instance back. When anything fails or defers it stops
-there and leaves the instance offline, the schema possibly half converted; a
-second run carries on. `migrationApply` stays for applying by hand.
+runUpgrade`, as one run: it takes the instance offline (`MISP.live`), stops the
+background workers (a running job can hold the locks a rebuild waits for),
+applies the numeric updates, then every migration in id order, runs the
+attribute value conversion (`AttributeValue backfill`, `rebuildFacets`,
+`remapCorrelations`) in front of `drop_attribute_value_text`, runs `runUpdates`
+once more, restarts the workers and brings the instance back. When anything
+fails or defers it stops there and leaves the instance offline, the schema
+possibly half converted; a second run carries on. `migrationApply` stays for
+applying by hand.
 
 `migrationApply` must run as the web server's user (`www-data`, `httpd`,
 `apache`, `wwwrun`, `www`, or whoever `MISP.osuser` names). Applying writes cache
