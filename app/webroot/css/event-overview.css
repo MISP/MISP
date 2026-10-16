@@ -174,12 +174,9 @@
 .eo-report-snippet-empty { margin: .35rem 0 0; font-size: .82rem; font-style: italic; color: var(--bs-secondary-color); }
 
 /* report reader */
-.eo-reader-head { gap: .65rem; }
 .eo-reader-title {
-    margin: 0; font-size: 1.05rem; font-weight: 700; line-height: 1.25; color: var(--bs-emphasis-color);
-    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
+    min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
 }
-.eo-reader-head .eo-card-sub { margin-top: .15rem; }
 .eo-reader-body { position: relative; min-height: 12rem; }
 .eo-reader-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 
