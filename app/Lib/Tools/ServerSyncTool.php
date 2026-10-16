@@ -17,7 +17,8 @@ class ServerSyncTool
         PERM_ANALYST_DATA = 'perm_analyst_data',
         FEATURE_SIGHTING_REST_SEARCH = 'sighting_rest',
         FEATURE_FAST_CACHING = 'fast_caching',
-        FEATURE_COLLECTION_SYNC = 'collection_sync';
+        FEATURE_COLLECTION_SYNC = 'collection_sync',
+        FEATURE_VALUE_TARGETS = 'value_targets';
 
     /** @var array */
     private $server;
@@ -628,6 +629,8 @@ class ServerSyncTool
                 return $version[0] > 2 || ($version[0] == 2 && $version[1] == 5 && $version[2] >= 33);
             case self::FEATURE_COLLECTION_SYNC:
                 return isset($info['collection_sync']) && $info['collection_sync'];
+            case self::FEATURE_VALUE_TARGETS:
+                return version_compare($info['version'], '3.0.0', '>=');
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }

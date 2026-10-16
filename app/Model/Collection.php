@@ -596,6 +596,9 @@ class Collection extends AppModel
         $this->Server = ClassRegistry::init('Server');
 
         $collections = $this->collectDataForPush($server);
+        if (!$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS)) {
+            $collections = self::withoutValueElements($collections);
+        }
         if (empty($collections)) {
             return 0;
         }
@@ -699,6 +702,29 @@ class Collection extends AppModel
             $dataForPush[] = $collection;
         }
         return $dataForPush;
+    }
+
+    /**
+     * A MISP older than 3.0 cannot hold elements addressed by a value's SHA-256;
+     * the collections themselves still go.
+     *
+     * @param array $collections As collectDataForPush returns them
+     * @return array
+     */
+    public static function withoutValueElements(array $collections): array
+    {
+        foreach ($collections as $i => $collection) {
+            if (empty($collection['Collection']['CollectionElement'])) {
+                continue;
+            }
+            $collections[$i]['Collection']['CollectionElement'] = array_values(array_filter(
+                $collection['Collection']['CollectionElement'],
+                function ($element) {
+                    return empty($element['element_sha256']);
+                }
+            ));
+        }
+        return $collections;
     }
 
     /**

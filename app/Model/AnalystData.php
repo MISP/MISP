@@ -1112,6 +1112,9 @@ class AnalystData extends AppModel
         $serverSync->debug("Starting Analyst Data sync");
 
         $analystData = $this->collectDataForPush($serverSync->server());
+        if (!$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS)) {
+            $analystData = self::withoutValueTargets($analystData);
+        }
         $keyedAnalystData = [];
         foreach ($analystData as $type => $entries) {
             foreach ($entries as $entry) {
@@ -1229,6 +1232,22 @@ class AnalystData extends AppModel
                 }
             }
             $dataForPush[$type] = array_values($dataForPush[$type]);
+        }
+        return $dataForPush;
+    }
+
+    /**
+     * A MISP older than 3.0 cannot hold rows addressed by a value's SHA-256.
+     *
+     * @param array $dataForPush [type => [[type => row], ...]], as collectDataForPush returns it
+     * @return array The same, without the rows addressing a value at either end
+     */
+    public static function withoutValueTargets(array $dataForPush): array
+    {
+        foreach ($dataForPush as $type => $entries) {
+            $dataForPush[$type] = array_values(array_filter($entries, function ($entry) use ($type) {
+                return empty($entry[$type]['object_sha256']) && empty($entry[$type]['related_object_sha256']);
+            }));
         }
         return $dataForPush;
     }
