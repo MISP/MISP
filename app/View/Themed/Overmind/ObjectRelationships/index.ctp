@@ -110,7 +110,9 @@ $fields = [
                 'icon_off' => 'fas fa-highlighter text-primary',
                 'url' => '/object_relationships/%action%/%name%',
                 'url_params_data_paths' => ['name' => 'name'],
-                'highlight_path' => 'highlighted',
+                'state_path' => 'highlighted',
+                'action_on' => 'toggleHighlighted',
+                'action_off' => 'toggleHighlighted',
                 'requirement' => $isSiteAdmin
             ]
         ]

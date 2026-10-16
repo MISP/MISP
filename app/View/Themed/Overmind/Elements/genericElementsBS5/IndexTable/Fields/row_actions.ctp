@@ -106,32 +106,8 @@ if ($field['data_path'] === 'Event.id') {
                         <?php endif; ?>
                     <?php elseif ($action['type'] === 'toggle'): ?>
                         <?php
-                            /*
-                             * Resolve which boolean the action flips and which
-                             * endpoint to hit. Preferred form: the caller passes
-                             * state_path plus action_on/action_off. The label
-                             * matching below is the legacy form, kept for the
-                             * indexes that still rely on it.
-                             */
-                            if (!empty($action['state_path'])) {
-                                $statePath = $action['state_path'];
-                                $toggleAction = null;
-                            } elseif ($action['label_on'] === "Unpublish") {
-                                $statePath = $action['publish_path'];
-                                $toggleAction = null;
-                            } elseif ($action['label_on'] === "Disable") {
-                                $statePath = $action['enable_path'];
-                                $toggleAction = 'toggleEnable';
-                            } elseif ($action['label_on'] === "Optional") {
-                                $statePath = $action['require_path'];
-                                $toggleAction = 'toggleRequired';
-                            } elseif ($action['label_on'] === "Remove Highlight") {
-                                $statePath = $action['highlight_path'];
-                                $toggleAction = 'toggleHighlighted';
-                            } elseif ($action['label_on'] === "Deactivate") {
-                                $statePath = $action['active_path'];
-                                $toggleAction = 'toggleActive';
-                            }
+                            $statePath = $action['state_path'];
+                            $toggleAction = null;
 
                             $state = Hash::get($row, $statePath);
                             $label = $state ? $action['label_on'] : $action['label_off'];

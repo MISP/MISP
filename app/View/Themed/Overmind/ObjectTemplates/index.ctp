@@ -131,7 +131,9 @@ $fields = [
                 'icon_on' => 'fas fa-stop text-danger',
                 'icon_off' => 'fas fa-play text-success',
                 'url' => '/objectTemplates/%action%/%id%',
-                'active_path' => 'ObjectTemplate.active',
+                'state_path' => 'ObjectTemplate.active',
+                'action_on' => 'toggleActive',
+                'action_off' => 'toggleActive',
                 'requirement' => $isSiteAdmin
             ]
         ]

@@ -172,7 +172,9 @@ $fields = [
                 'icon_on' => 'stop',
                 'icon_off' => 'play',
                 'url' => $baseurl . '/warninglists/toggleEnable/%id%', 
-                'enable_path' => 'Warninglist.enabled',
+                'state_path' => 'Warninglist.enabled',
+                'action_on' => 'toggleEnable',
+                'action_off' => 'toggleEnable',
                 'requirement' => $me['Role']['perm_warninglist']
             ]
         ]

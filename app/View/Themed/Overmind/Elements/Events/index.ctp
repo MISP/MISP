@@ -26,7 +26,7 @@
  * - url            : URL (supports %id% and %action%)
  * - class          : CSS class
  * - requirement    : Permission check function
- * - publish_path     : Path to the published value (toggle)
+ * - state_path       : Path to the boolean a toggle flips
  */
 
 $fields = [
@@ -161,7 +161,7 @@ $fields = [
                 'icon_on' => 'eye-slash',
                 'icon_off' => 'upload',
                 'url' => $baseurl . '/events/%action%/%id%',
-                'publish_path' => 'Event.published',
+                'state_path' => 'Event.published',
                 'requirement' => 'check_publish_rights'
             ]
         ]
