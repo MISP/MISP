@@ -22,15 +22,9 @@
  *   the contradiction with wide reporting is named by an escalation
  *   rather than netted off in arithmetic.
  *
- * **A category nothing sets, today.** Upstream lists carry no
- * `category` and `Warninglist::__updateList()` drops the field on
- * import, so the resolution comes from the profile's
- * `reference.warninglist_category` override map, then from
- * `WarninglistCategory`'s name map, and only then from the table's own
- * column. Where nothing resolves, an unresolved hit reads as
- * `false_positive` — which is what MISP's own warning banner has always
- * meant by a hit, and the honest default until upstream lists carry
- * the field.
+ * The category comes from the profile's
+ * `reference.warninglist_category` override map, then from the list's
+ * own column, and otherwise reads as `false_positive`.
  *
  * Absence fires as `no_hit`: *"no warninglist hit, 84 lists checked"*
  * — and the lists checked is half of it: a hit against nothing is only

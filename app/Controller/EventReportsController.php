@@ -59,11 +59,7 @@ class EventReportsController extends AppController
             }
             $report = $this->request->data;
             $errors = $this->EventReport->addReport($this->Auth->user(), $report, $eventId);
-            if ($this->theme === "Overmind"){
-                $redirectTarget = array('controller' => 'events', 'action' => 'view2', $eventId);
-            } else {
-                $redirectTarget = array('controller' => 'events', 'action' => 'view', $eventId);
-            }
+            $redirectTarget = array('controller' => 'events', 'action' => 'view', $eventId);
             if (!empty($errors)) {
                 return $this->__getFailResponseBasedOnContext($errors, null, 'add', $this->EventReport->id, $redirectTarget);
             } else {

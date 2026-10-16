@@ -21,6 +21,8 @@
  *              including any of its values narrows the picker to that option
  * - browser  : open as a column browser (index-filter-browser.js) instead of
  *              a list: {kind: 'tag'|'galaxy', scopes: URL, tree: URL (tags)}
+ * - disabled : why the picker cannot be used yet; drawn but not openable, so
+ *              the swap after another filter applies can bring it to life
  *
  * @var array $child
  * @var IndexFilterState $state
@@ -96,8 +98,8 @@ $config = [
     'browser' => $child['browser'] ?? null,
 ];
 ?>
-<div class="ifp-picker flex-shrink-0" data-ifp-swap="picker-<?= h($name) ?>" data-ifp-picker="<?= h(json_encode($config, JSON_UNESCAPED_UNICODE)) ?>">
-    <button type="button" class="btn btn-sm btn-outline-secondary ifp-btn<?= $count ? ' is-set' : '' ?>" aria-expanded="false" aria-haspopup="dialog" data-tour="index-picker-<?= h($name) ?>">
+<div class="ifp-picker flex-shrink-0" data-ifp-swap="picker-<?= h($name) ?>" data-ifp-picker="<?= h(json_encode($config, JSON_UNESCAPED_UNICODE)) ?>"<?= empty($child['disabled']) ? '' : ' title="' . h($child['disabled']) . '"' ?>>
+    <button type="button" class="btn btn-sm btn-outline-secondary ifp-btn<?= $count ? ' is-set' : '' ?>" aria-expanded="false" aria-haspopup="dialog" data-tour="index-picker-<?= h($name) ?>"<?= empty($child['disabled']) ? '' : ' disabled' ?>>
         <?php if (!empty($child['icon'])): ?>
             <i class="<?= h($child['icon']) ?>" aria-hidden="true"></i>
         <?php endif; ?>

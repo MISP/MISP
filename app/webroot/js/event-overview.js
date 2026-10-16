@@ -1,4 +1,4 @@
-// The Overmind event overview (General tab of /events/view2): lazy cards,
+// The Overmind event overview (General tab of /events/view): lazy cards,
 // the report card and its picker, the object graph, and the inventory's
 // filters into the Objects and Attributes tabs.
 (function () {
@@ -108,6 +108,9 @@
         card.querySelectorAll('.eo-rows .hg-group').forEach(function (group) {
             group.classList.toggle('d-none', q !== '' && !group.querySelector('.hg-unit:not(.d-none)'));
         });
+        card.querySelectorAll('.eo-rows .eo-tech-group').forEach(function (group) {
+            group.classList.toggle('d-none', q !== '' && !group.querySelector('li:not(.d-none)'));
+        });
     }
 
     function reloadCards() {
@@ -160,6 +163,12 @@
             // A #tab-<id> hash would make the browser scroll to that pane on load.
             var tabId = (window.location.hash.match(/^#tab-(.+)$/) || [])[1];
             keepTab.href = keepTab.href.split('#')[0] + (tabId ? '#open-tab-' + tabId : '');
+            return;
+        }
+        var tagFilter = e.target.closest('[data-eo-filter-tags]');
+        if (tagFilter) {
+            e.preventDefault();
+            openFiltered(tagFilter.getAttribute('data-eo-filter-tab') || 'attributes', { tags: tagFilter.getAttribute('data-eo-filter-tags') });
             return;
         }
         var filter = e.target.closest('[data-eo-filter-types]');

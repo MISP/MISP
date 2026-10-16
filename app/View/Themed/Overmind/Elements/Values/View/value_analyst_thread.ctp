@@ -196,7 +196,7 @@ $attachChip = function ($target) use ($baseurl) {
         : __('an event');
     $eventUrl = empty($target['event'])
         ? null
-        : $baseurl . '/events/view2/' . (int)$target['event'];
+        : $baseurl . '/events/view/' . (int)$target['event'];
 
     /*
      * One emitter for every branch, so a chip cannot become a link in
@@ -617,11 +617,11 @@ $renderItem = function ($item, $depth) use (
         // not carry: which attribute, not only which event.
         $on = $p['target'] === null
             ? array(
-                $baseurl . '/events/view2/' . (int)$p['event'],
+                $baseurl . '/events/view/' . (int)$p['event'],
                 sprintf(__('a new attribute on #%s'), $p['event']),
             )
             : array(
-                $baseurl . '/events/view2/' . (int)$p['event']
+                $baseurl . '/events/view/' . (int)$p['event']
                     . '#tab-attributes',
                 sprintf(
                     __('attribute %1$s in #%2$s'),

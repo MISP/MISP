@@ -19,7 +19,7 @@ if (isset($link) && !$link) {
 printf(
     '<a class="%s" href="%s" title="%s">%s</a>',
     $class,
-    h($this->viewVars['baseurl'] . '/events/view2/' . $eventId),
+    h($this->viewVars['baseurl'] . '/events/view/' . $eventId),
     h($title),
     $inner
 );

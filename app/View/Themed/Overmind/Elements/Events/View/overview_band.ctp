@@ -7,16 +7,6 @@ $distribution = (int)($event['distribution'] ?? 0);
 $markings = $overviewMarkings ?? ['declared' => [], 'present' => [], 'absent' => []];
 
 $meta = [];
-$meta[] = sprintf(
-    '<span class="eo-uuid font-monospace" title="%s">%s'
-    . '<button type="button" class="eo-copy" onclick="copyToClipboard(this, \'%s\')" title="%s" aria-label="%s">'
-    . '<i class="fas fa-copy"></i></button></span>',
-    h($event['uuid'] ?? ''),
-    h(substr($event['uuid'] ?? '', 0, 8)),
-    h($event['uuid'] ?? ''),
-    __('Copy UUID'),
-    __('Copy UUID')
-);
 if (!empty($event['date'])) {
     $meta[] = '<span title="' . __('Event date') . '"><i class="fas fa-calendar-day me-1 opacity-50"></i>' . h($event['date']) . '</span>';
 }
@@ -35,7 +25,7 @@ if (!empty($event['disable_correlation'])) {
 $isExtended = !empty($extended);
 $isExtending = !empty($extending);
 $modeUrl = function ($extendedOn, $extendingOn) use ($baseurl, $event) {
-    return $baseurl . '/events/view2/' . (int)($event['id'] ?? 0)
+    return $baseurl . '/events/view/' . (int)($event['id'] ?? 0)
         . ($extendedOn ? '/extended:1' : '')
         . ($extendingOn ? '/extending:1' : '');
 };
@@ -53,7 +43,7 @@ $extSwitch = function ($on, $url, $label, $title) {
 $extEventLink = function (array $related, $class, $prefix, $suffix = '') use ($baseurl) {
     $orgName = $related['Orgc']['name'] ?? '';
     return sprintf(
-        '<a class="%s" href="%s/events/view2/%d" title="%s">%s'
+        '<a class="%s" href="%s/events/view/%d" title="%s">%s'
         . '<span class="eo-ext-id">#%d</span><span class="eo-ext-info">%s</span>%s</a>',
         $class,
         h($baseurl),

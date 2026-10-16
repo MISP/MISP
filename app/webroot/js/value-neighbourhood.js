@@ -619,7 +619,7 @@
         });
         var p = kit.pivots;
         return [more, where, p.feedEvents(), p.tags(), p.taggedEvents(), p.relatedClusters(),
-                p.surroundings(), p.cardElements('ids'), p.cardElements('network'), p.cardElements('all'),
+                p.relatingClusters(), p.surroundings(), p.cardElements('ids'), p.cardElements('network'), p.cardElements('all'),
                 p.enrich()].filter(Boolean);
     }
 
@@ -630,10 +630,11 @@
 
     function valueOptions(config) {
         return function (opts, kit, seed) {
+            var E = window.MispPivotNodes.palette().edge;
             Object.assign(opts.render.edgeStyleMap, {
-                occurrence:        { strokeColor: '#8a8f98', strokeWidth: 1.5, markerEnd: 'none' },
-                'occurrence-lead': { strokeColor: '#6c737d', strokeWidth: 2.25, markerEnd: 'none' },
-                near:              { strokeColor: '#8a8f98', dashed: true, markerEnd: 'none' }
+                occurrence:        { strokeColor: E.link, strokeWidth: 1.5, markerEnd: 'none' },
+                'occurrence-lead': { strokeColor: E.linkStrong, strokeWidth: 2.25, markerEnd: 'none' },
+                near:              { strokeColor: E.link, dashed: true, markerEnd: 'none' }
             });
             var edgeType = opts.render.edgeTypeAccessor;
             opts.render.edgeTypeAccessor = function (edge) {

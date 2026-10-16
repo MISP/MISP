@@ -103,7 +103,7 @@ $extras = $ei->extras($event, $card['graphs']);
         <?php endif; ?>
     </div>
     <h3 class="dk-title">
-        <a href="<?= h($baseurl . '/events/view2/' . $id) ?>" title="<?= h($event['info']) ?>"><?= h($event['info']) ?></a>
+        <a href="<?= h($baseurl . '/events/view/' . $id) ?>" title="<?= h($event['info']) ?>"><?= h($event['info']) ?></a>
     </h3>
     <div class="dk-org">
         <?= $ei->orgTile($orgc) ?>

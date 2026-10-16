@@ -192,7 +192,7 @@ $subtitle = empty($rows)
                                 <?php else: ?>
                                     <a class="vpa-chip vpa-chip-link"
                                        href="<?= h($baseurl)
-                                           ?>/events/view2/<?=
+                                           ?>/events/view/<?=
                                            (int)$row['event']['id'] ?>"
                                        title="<?= h(sprintf(
                                            __('The event holding the most'

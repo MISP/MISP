@@ -10,7 +10,8 @@ class OvermindPages
     private static $pages = array(
         // Events and their content
         'events' => array(
-            'index', 'add', 'edit', 'delete', 'view', 'view2',
+            'index', 'add', 'edit', 'delete', 'view', 'view1', 'view2',
+            'viewLegacy',
             'importChoice', 'automation', 'export', 'downloadExport', 'getEventInfoById',
             'freeTextImport', 'proposalEventIndex',
             'merge'
@@ -21,7 +22,7 @@ class OvermindPages
         'values' => array('index', 'resolve', 'view'),
         'shadow_attributes' => array('index'),
         'event_delegations' => array('index'),
-        'objects' => array('add', 'edit', 'delete'),
+        'objects' => array('index', 'add', 'edit', 'delete'),
         'sightings' => array('advanced'),
         'event_reports' => array('index', 'view', 'add', 'edit'),
         'EventReportTemplateVariables' => array('index', 'add', 'edit'),

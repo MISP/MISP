@@ -70,7 +70,8 @@ echo '<div id="' . $containerId . '_content" data-ifp-scope="' . h($item_url) . 
         ?>
         <div class="ifp-bottom" data-tour="index-pagination">
             <span class="ifp-count"><?php
-                $openEnded = !empty($paging['nextPage'])
+                // An index paged by "is there a next one" has no total, last page included.
+                $openEnded = (!empty($paging['nextPage']) || !isset($paging['count']))
                     && (int)($paging['pageCount'] ?? 0) <= (int)($paging['page'] ?? 1);
                 if (!empty($paging['current']) && (int)$paging['current'] === $shownRows && $openEnded) {
                     echo sprintf(

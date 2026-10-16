@@ -314,7 +314,7 @@ $row = function (array $threat, $folded) use (
                                     <span class="vp-threat-tipevent">
                                         <a class="vp-claim-link"
                                            href="<?= $baseurl
-                                               ?>/events/view2/<?=
+                                               ?>/events/view/<?=
                                                h($event['id']) ?>">#<?=
                                                h($event['id']) ?></a>
                                         <?= h($event['info'] === ''

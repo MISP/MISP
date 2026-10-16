@@ -255,7 +255,7 @@ $entryUrl = function (array $entry) use ($baseurl) {
         'report' => '#tab-reports',
     );
     $kind = isset($ref['kind']) ? $ref['kind'] : 'event';
-    return $baseurl . '/events/view2/' . (int)$ref['event']
+    return $baseurl . '/events/view/' . (int)$ref['event']
         . (isset($anchors[$kind]) ? $anchors[$kind] : '');
 };
 

@@ -146,6 +146,8 @@
         var page = modal.querySelector('[data-reader-page]');
         var body = modal.querySelector('[data-reader-body]');
         var loader = modal.querySelector('[data-reader-loader]');
+        var idChip = modal.querySelector('[data-reader-id]');
+        var eventChip = modal.querySelector('[data-reader-event]');
         var from = trigger(id);
         var token = ++openToken;
 
@@ -153,12 +155,15 @@
         name.title = name.textContent;
         sub.innerHTML = from ? (from.getAttribute('data-report-sub') || '') : '';
         page.href = base() + '/eventReports/view/' + encodeURIComponent(id);
+        idChip.textContent = '#' + id;
+        eventChip.textContent = '';
         body.textContent = '';
         loader.classList.remove('d-none');
         window.bootstrap.Modal.getOrCreateInstance(modal).show();
 
         load(id).then(function (report) {
             if (token !== openToken) return null;
+            eventChip.textContent = '#' + report.eventId;
             if (!from) {
                 name.textContent = report.name;
                 name.title = report.name;

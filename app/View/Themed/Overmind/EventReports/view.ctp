@@ -25,7 +25,7 @@
                 'distribution' => $parentEvent['Event']['distribution'],
                 'sharingGroup' => $parentEvent['SharingGroup'] ?? [],
                 'label' => __('Inherited from event #%s', $parentEvent['Event']['id']),
-                'url' => $baseurl . '/events/view2/' . $parentEvent['Event']['id'],
+                'url' => $baseurl . '/events/view/' . $parentEvent['Event']['id'],
             ],
         ],
         'tabs' => [

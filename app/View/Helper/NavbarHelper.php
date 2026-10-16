@@ -13,6 +13,7 @@ class NavbarHelper extends AppHelper {
         // Data points
         'events'            => ['default' => 'datapoints', 'automation' => 'api', 'export' => 'api'],
         'attributes'        => 'datapoints',
+        'objects'           => 'datapoints',
         'values'            => 'datapoints',
         'shadow_attributes' => 'datapoints',
         'event_delegations' => 'datapoints',
@@ -136,28 +137,14 @@ class NavbarHelper extends AppHelper {
                 'action' => 'index',
                 'icon' => 'misp-icon misp-icon-event misp-simple',
             ],
-            // To implement later, when the object view will be ready
-            /* [
+            [
                 'type' => 'group',
                 'label' => __('Objects'),
+                'url' => $baseurl . '/objects/index',
+                'controller' => 'objects',
+                'action' => 'index',
                 'icon' => 'fas fa-cubes',
-                'children' => [
-                    [
-                        'label' => __('Search'),
-                        'url' => $baseurl . '/objects/search',
-                        'controller' => 'objects',
-                        'action' => 'seatch',
-                        'icon' => 'fas fa-search'
-                    ],
-                    [
-                        'label' => __('Index'),
-                        'url' => $baseurl . '/objects/index',
-                        'controller' => 'objects',
-                        'action' => 'index',
-                        'icon' => 'fas fa-list'
-                    ]
-                ]
-            ], */
+            ],
             [
                 'type' => 'group',
                 'label' => __('Attributes'),

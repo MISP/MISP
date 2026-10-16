@@ -3,20 +3,10 @@
 /**
  * What a URL looked like when somebody fetched it.
  *
- * **One module draws this today, and it is a keyed one.**
- * `rst_screenshot` emits an `image` object with the PNG attached, so
- * a reader whose instance has that key sees the widget. The free
- * answers are still prose: `sourcecache` holds the page bytes as an
- * attachment and emits no object, and `urlscan` holds a screenshot
- * URL, a title and a server banner and emits none of it.
- *
- * **`page-capture` is claimed here in advance**, the way `reputation`
- * is. `image` carries a picture and no date and `domain-crawled`
- * carries the URLs a crawl found rather than what they returned, so
- * neither can say *when* a page looked like this — which is the one
- * fact a capture is read for. The day a template for the capture
- * itself lands, the two conversions have somewhere to emit that
- * already has a widget.
+ * `page-capture` is the template a capture is read for, because it
+ * says *when* a page looked like this. `image` carries a picture and no
+ * date, and `domain-crawled` the URLs a crawl found rather than what
+ * they returned; both are still drawn.
  *
  * **A capture with no image is still a capture.** An archived copy and
  * its extracted text are what a disinformation reader came for as much
@@ -84,9 +74,9 @@ class PageCaptureRenderer extends ValueRendererBase
     {
         $url = $this->firstValue($object, array('url', 'link'));
         $attachment = $this->value($object, 'attachment');
-        $archive = $this->value($object, 'archive');
+        $archive = $this->values($object, 'archive');
         $text = $this->firstValue($object, array('image-text', 'text'));
-        if ($url === null && $attachment === null && $archive === null
+        if ($url === null && $attachment === null && empty($archive)
             && $text === null
         ) {
             return null;

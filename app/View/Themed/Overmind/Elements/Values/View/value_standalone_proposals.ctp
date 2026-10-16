@@ -152,7 +152,7 @@ $subtitle = implode(' &nbsp;·&nbsp; ', array_filter(array(
                     <?php endif; ?>
                     &nbsp;·&nbsp;
                     <i class="fas fa-calendar-days me-1"></i>
-                    <a href="<?= h($baseurl) ?>/events/view2/<?=
+                    <a href="<?= h($baseurl) ?>/events/view/<?=
                            (int)$row['event']['id'] ?>"><?= h(
                         $row['event']['info'] === null
                             ? sprintf(__('Event %s'), $row['event']['id'])

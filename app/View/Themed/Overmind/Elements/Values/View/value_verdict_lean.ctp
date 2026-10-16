@@ -17,19 +17,8 @@
  * `$verdict['relevance']` was in before §17: already built, discarded
  * at render.
  *
- * **The bar is the ledger's grammar, not a new one.** The clock band
- * draws a runway against a mark where the profile stops calling a
- * value current; this draws the threat share against the mark where
- * the profile starts calling the record decided. Two marks rather than
- * one, because a supermajority is a bar on *either* side — phase 3
- * §11.1's fix, where stating the rule as one comparison and its mirror
- * made a value of 34 in 100 miss by a floating-point hair.
- *
- * **Written, not extracted**, which is the difference from §17. The
- * relevance axis had a second surface already drawing its working, so
- * sharing one element made two panels unable to disagree; the lean has
- * no such surface — the editor's bench draws it as a bare word too. If
- * the bench ever wants the split, this is the element to take.
+ * The counts and the bar are `value_verdict_stance`, which the
+ * Overview's Assessment card draws too.
  *
  * @var array $verdict The assessment, carrying `stances`, `decided_by`
  *                     and `rule_errors`
@@ -91,19 +80,7 @@ if ($reason === null) {
 }
 
 $total = (int)(isset($stances['orgs']) ? $stances['orgs'] : 0);
-$threat = (int)(isset($stances['threat_orgs'])
-    ? $stances['threat_orgs'] : 0);
-$benign = (int)(isset($stances['benign_orgs'])
-    ? $stances['benign_orgs'] : 0);
-$share = $total === 0
-    ? 0.0
-    : (float)(isset($stances['threat_share'])
-        ? $stances['threat_share'] : 0.0);
 $context = (int)($stances['unflagged_orgs'] ?? 0);
-$supermajority = isset($stances['supermajority'])
-    && is_numeric($stances['supermajority'])
-    ? (float)$stances['supermajority']
-    : null;
 ?>
 <div class="vp-vc-lean">
     <div class="vp-vc-lean-head"
@@ -128,94 +105,10 @@ $supermajority = isset($stances['supermajority'])
 
         <div class="vp-vc-band-bar">
         <?php if ($total > 0 || $context > 0): ?>
-            <div class="vp-vc-lean-counts">
-                <?php if ($total > 0): ?>
-                <span class="vp-vc-lean-count vp-vc-lean-threat"
-                      title="<?= h(__('Organisations with at least one'
-                          . ' occurrence carrying to_ids.')) ?>">
-                    <?= h(sprintf(
-                        __n(
-                            '%s organisation asserts a threat',
-                            '%s organisations assert a threat',
-                            $threat
-                        ),
-                        $threat
-                    )) ?>
-                </span>
-                <span class="vp-vc-lean-count vp-vc-lean-benign"
-                      title="<?= h(__('Organisations that filed a false'
-                          . ' positive, or warned of one on their own'
-                          . ' report, and do not assert it.'))
-                      ?>">
-                    <?= h(sprintf(
-                        __n(
-                            '%s reports it as harmless',
-                            '%s report it as harmless',
-                            $benign
-                        ),
-                        $benign
-                    )) ?>
-                </span>
-                <?php endif; ?>
-                <?php if ($context > 0): ?>
-                <span class="vp-vc-lean-count vp-vc-lean-context"
-                      title="<?= h(__('Organisations whose occurrences'
-                          . ' all have to_ids unset: recorded as'
-                          . ' context, not for detection. No vote'
-                          . ' either way.')) ?>">
-                    <?= h(sprintf(
-                        __n(
-                            '%s recorded it as context',
-                            '%s recorded it as context',
-                            $context
-                        ),
-                        $context
-                    )) ?>
-                </span>
-                <?php endif; ?>
-            </div>
-        <?php endif; ?>
-        <?php if ($total > 0): ?>
-
-            <?php
-            /*
-             * Filled from the threat side, with the rest of the track
-             * standing for the benign one — one bar rather than two,
-             * because the quantity is a *share* and two bars invite a
-             * reader to compare their lengths against nothing.
-             */
-            ?>
-            <div class="vp-vc-lean-track"
-                 title="<?= h(sprintf(
-                     __('%s%% of the voices assert a threat'),
-                     (int)round($share * 100)
-                 )) ?>">
-                <span class="vp-vc-lean-fill"
-                      style="width: <?= (int)round($share * 100) ?>%;"
-                ></span>
-                <?php if ($supermajority !== null): ?>
-                    <?php
-                    /*
-                     * Both marks, always. The bar a threat reading has
-                     * to clear and the one a benign reading has to
-                     * clear are the same bar seen from two ends, and
-                     * drawing only the near one would make a value
-                     * sitting between them look as though it had
-                     * missed a single threshold rather than both.
-                     */
-                    ?>
-                    <span class="vp-vc-lean-bar"
-                          title="<?= h(__('the threat supermajority')) ?>"
-                          style="left: <?=
-                              (int)round($supermajority * 100) ?>%;"
-                    ></span>
-                    <span class="vp-vc-lean-bar"
-                          title="<?= h(__('the benign supermajority')) ?>"
-                          style="left: <?=
-                              (int)round((1 - $supermajority) * 100)
-                          ?>%;"></span>
-                <?php endif; ?>
-            </div>
+            <?= $this->element('Values/View/value_verdict_stance', array(
+                'verdict' => $verdict,
+                'stanceWide' => true,
+            )) ?>
         <?php endif; ?>
 
         <p class="vp-vc-lean-note"><?= h($reason) ?></p>

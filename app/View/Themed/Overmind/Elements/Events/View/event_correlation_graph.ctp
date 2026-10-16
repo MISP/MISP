@@ -788,7 +788,7 @@ echo $this->element('genericElements/assetLoader', [
                 'd-flex align-items-start gap-3 px-3 py-2 corr-event-row';
 
             var link = document.createElement('a');
-            link.href = baseurl + '/events/view2/' + eid;
+            link.href = baseurl + '/events/view/' + eid;
             link.className =
                 'd-flex align-items-start gap-3 flex-fill overflow-hidden'
                 + ' text-decoration-none text-body';
@@ -1317,7 +1317,7 @@ echo $this->element('genericElements/assetLoader', [
         }
         function handleSankeyNodeClick(node) {
             if (node.type === 'target' && node.id) {
-                window.location.href = baseurl + '/events/view2/' + node.id;
+                window.location.href = baseurl + '/events/view/' + node.id;
             } else if (node.type === 'attribute' && node.id) {
                 omFilterCorrelations(node.id, 'attribute');
             }

@@ -144,7 +144,7 @@ class ValueFactsTool
     /**
      * One of the two date cells, and whether its date is a date at all.
      *
-     * `OBSERVED_FROM`/`OBSERVED_AT` end in `Attribute.timestamp`, so
+     * `Value::observedFrom()`/`observedAt()` end in `Attribute.timestamp`, so
      * the aggregate always returns *something* — and on the many
      * attributes that declare no observation date that something is a
      * row write. A row write is when somebody last touched the record,

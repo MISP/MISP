@@ -11,44 +11,14 @@
  * are, to any consumer, one undifferentiated set in which Threat Actor
  * sits beside UKHSA Culture Collections, Firearms and Cancer.
  *
- * **The answer lives on the galaxy.** `galaxies.category` and
- * `galaxies.sub_category` were added by a migration and are ingested
- * straight from the definition files, because `__load_galaxies` saves
- * whatever a definition carries. This class reads that column and holds the
- * vocabulary the column is written against.
+ * **The answer lives on the galaxy.** misp-galaxy declares `category`
+ * and `sub_category` on each definition, `__load_galaxies` ingests them
+ * into `galaxies`, and this class reads that column. The vocabulary is
+ * misp-galaxy's own, read from its `vocabularies/common` files.
  *
- * **It used to carry an interim table of 94 galaxy types, and that
- * table is gone.** It was the answer before the field existed and the
- * fallback while instances took the release carrying it; it was deleted
- * once the column answered for every type it did. The condition was a
- * comparison rather than a count — *no type the table answers for is
- * one the column leaves unanswered* — because the count version, *no
- * galaxy carrying clusters is left without a category*, can never be
- * met: measured on the development instance, 14 of the 21 unclassified
- * types in use have no galaxy row at all, being legacy and STIX tag
- * strings whose galaxy no longer exists, so there is nothing to carry
- * a field for them. `prd/personas/07-category-live-probe.php`'s
- * `coverage` is what reports the comparison.
- *
- * **So an unclassified galaxy now reads as unclassified everywhere**,
- * including on an instance whose misp-galaxy copy predates the field
- * and inside a harness with no CakePHP, where the read cannot happen at
- * all. Both used to fall back to the table and now answer nothing. A
- * galaxy this class does not answer for is *unrecognised*, not judged
- * harmless, and every caller skips it — which is the same behaviour an
- * unlisted galaxy always had, reached by a different route.
- *
- * That is also the answer for a locally created galaxy, whose `type` is
- * a bare UUID no shipped classification can predict, until an
+ * An unclassified galaxy is *unrecognised*, not judged harmless, and
+ * every caller skips it. That includes a locally created galaxy until an
  * administrator classifies it on `galaxies/add` or `galaxies/edit`.
- * Those offer the vocabulary below and reach locally created galaxies
- * only: `edit()` refuses a default galaxy and `add()` forces
- * `default = false`, so a re-ingest cannot overwrite the answer.
- *
- * **Proposed upstream 2026-09-18**, with the deleted table as its
- * starting content: misp-galaxy `prd/2026-09-18-galaxy-category.md`,
- * which asks for `category` and `sub_category` on the galaxy definition, and
- * classifies 99 of the 135 shipped galaxies.
  *
  * **Why a named threat is a galaxy cluster and nothing else.** Measured
  * on the development instance, 2026-09-03:
@@ -78,15 +48,10 @@
  * galaxy on most values (21 of `8.8.8.8`'s 26 event clusters), so
  * folding it in would bury the names it sits beside.
  *
- * **It takes no `$user`, and it stopped being pure when the column
- * landed**: prd/value-intelligence-live/00-contract.md §14.5 allows both
- * shapes and this is now the second, a tool that issues its own read
- * and holds the result. No `$user` is needed and none would help — a
- * galaxy's category is a property of the definition, the same for
- * every viewer, and a caller only ever asks about a type it is already
- * holding from a label it is already allowed to see. What is read here
- * could not be used to widen what a reader sees.
- * prd/value-intelligence-live/24b-relationships.md §10.
+ * **It takes no `$user`.** A galaxy's category is a property of the
+ * definition, the same for every viewer, and a caller only ever asks
+ * about a type it is already holding from a label it is already allowed
+ * to see.
  */
 class GalaxyCategory
 {
@@ -123,15 +88,8 @@ class GalaxyCategory
     const CONTEXT = 'context';
 
     /**
-     * The one category the deleted table never needed and the field
-     * does. A table answers *is this a threat* by omission, so Firearms
-     * and Cancer could simply be left out of it; a field on the galaxy
-     * cannot work that way, because absent there has to mean
-     * *undecided*. So the non-security galaxies say what they are.
-     *
-     * Nothing here asks for it. It is declared so the vocabulary in
-     * code is the vocabulary upstream validates against, and so a
-     * reader meeting `reference` in the column can find it.
+     * A reference list from another domain, carried for sharing rather
+     * than to describe an intrusion.
      */
     const REFERENCE = 'reference';
 
@@ -147,74 +105,61 @@ class GalaxyCategory
      */
     const ATTACK_PATTERN = 'attack-pattern';
 
+    /** The `DEFENSIVE` sub-category of ATT&CK-style mitigations. */
+    const COURSE_OF_ACTION = 'course-of-action';
+
     /**
-     * The vocabulary itself: category => definition and the
-     * sub-categories in use under it.
-     *
-     * This is what `galaxies/add` and `galaxies/edit` offer, and it is
-     * the same eight values as misp-galaxy's proposed
-     * `vocabularies/common/galaxy-category.json` — the definitions are
-     * that file's, shortened to a line a form can carry. A galaxy
-     * classified here has to mean the same thing as one classified
-     * upstream, so the two lists cannot be allowed to drift.
-     *
-     * The sub-categories are *the ones in use*, not a closed set:
-     * upstream's schema does not constrain `sub_category` to its
-     * category, and `reference`
-     * has none at all because the non-security galaxies are one
-     * undifferentiated group. The form narrows to this map because
-     * offering `actor` under `detection` would be offering nonsense,
-     * not because a stored value outside it is invalid.
-     *
-     * @var array category => array('description' => string,
+     * @var array|null category => array('description' => string,
      *     'sub_categories' => array)
      */
-    private static $vocabulary = array(
-        self::NAMED_THREAT => array(
-            'description' => 'The clusters name something conducting or constituting an intrusion. The dividing line is curation rather than menace: a curated list of firms selling intrusion capability belongs here, a directory of every agency that exists does not.',
-            'sub_categories' => array(self::ACTOR, self::CAMPAIGN, self::MALWARE,
-                self::TOOL),
-        ),
-        self::TECHNIQUE => array(
-            'description' => 'The clusters describe adversary behaviour - where in an intrusion, and how. Attack patterns, techniques and tactics.',
-            'sub_categories' => array(self::ATTACK_PATTERN, 'technique', 'tactic'),
-        ),
-        self::VICTIM => array(
-            'description' => 'The clusters describe who was hit: a sector, a place, a target description.',
-            'sub_categories' => array('sector', 'location', 'target'),
-        ),
-        self::DEFENSIVE => array(
-            'description' => 'The clusters describe what to do about it: courses of action, mitigations, countermeasures, controls.',
-            'sub_categories' => array('course-of-action', 'control'),
-        ),
-        self::DETECTION => array(
-            'description' => 'The clusters describe how something would be caught: detection rules, analytics, detection strategies, data sources.',
-            'sub_categories' => array('rule', 'strategy', 'data-source'),
-        ),
-        self::TARGETING => array(
-            'description' => 'The clusters describe what is exposed: assets, platforms, services.',
-            'sub_categories' => array('asset', 'platform', 'service'),
-        ),
-        self::CONTEXT => array(
-            'description' => 'The clusters name entities that appear alongside threat intelligence without being a threat themselves - who published a report, a vendor, a branded vulnerability, a reference list of sources.',
-            'sub_categories' => array('producer', 'organisation', 'vulnerability',
-                'reference'),
-        ),
-        self::REFERENCE => array(
-            'description' => 'The clusters are a reference list from another domain, carried in MISP for sharing rather than to describe an intrusion - an industry classification, a species list, an equipment catalogue.',
-            'sub_categories' => array(),
-        ),
-    );
+    private static $vocabulary = null;
+
+    /**
+     * misp-galaxy's category and sub-category vocabularies, joined on
+     * each sub-category's `parent`. Empty outside CakePHP.
+     *
+     * @return array
+     */
+    private static function vocabulary()
+    {
+        if (self::$vocabulary !== null) {
+            return self::$vocabulary;
+        }
+        self::$vocabulary = array();
+        if (!defined('APP')) {
+            return self::$vocabulary;
+        }
+        $dir = APP . 'files' . DS . 'misp-galaxy' . DS . 'vocabularies'
+            . DS . 'common' . DS;
+        $read = function ($file) {
+            $raw = @file_get_contents($file);
+            $decoded = $raw === false ? null : json_decode($raw, true);
+            return is_array($decoded) ? $decoded : array();
+        };
+        $categories = $read($dir . 'galaxy-category.json');
+        $subCategories = $read($dir . 'galaxy-sub-category.json');
+        foreach ($categories['values'] ?? array() as $entry) {
+            self::$vocabulary[$entry['value']] = array(
+                'description' => $entry['description'] ?? '',
+                'sub_categories' => array(),
+            );
+        }
+        foreach ($subCategories['values'] ?? array() as $entry) {
+            $parent = $entry['parent'] ?? null;
+            if (isset(self::$vocabulary[$parent])) {
+                self::$vocabulary[$parent]['sub_categories'][]
+                    = $entry['value'];
+            }
+        }
+        return self::$vocabulary;
+    }
 
     /**
      * The categories ingested from the galaxy definitions.
      *
      * **Null until something asks**, and empty whenever the answer
-     * cannot be had: outside CakePHP, where this class is a plain
-     * `require` in a harness, and before migration 164, where the
-     * columns do not exist. Both used to fall back to the interim
-     * table; with it deleted they answer nothing, so every galaxy reads
-     * as unclassified rather than as some other category.
+     * cannot be had: outside CakePHP, or before the migration adding
+     * the columns has run.
      *
      * @var array|null type => array(category, sub_category)
      */
@@ -277,6 +222,17 @@ class GalaxyCategory
     }
 
     /**
+     * Stand in for the database read, for a caller with no database.
+     *
+     * @param array $classified type => array(category, sub_category)
+     * @return void
+     */
+    public static function prime(array $classified)
+    {
+        self::$ingested = $classified;
+    }
+
+    /**
      * @param string $galaxyType `galaxies.type`
      * @return array|null category and sub-category, or null if
      *     unrecognised
@@ -296,9 +252,7 @@ class GalaxyCategory
 
     /**
      * @param string $galaxyType
-     * @return bool False for an unrecognised galaxy, which is the
-     *     answer for every locally created one until the category
-     *     lives on the galaxy itself.
+     * @return bool False for an unrecognised galaxy
      */
     public static function isNamedThreat($galaxyType)
     {
@@ -378,13 +332,13 @@ class GalaxyCategory
     }
 
     /**
-     * The eight categories, in the order the vocabulary states them.
+     * The categories, in the order the vocabulary states them.
      *
      * @return array
      */
     public static function categories()
     {
-        return array_keys(self::$vocabulary);
+        return array_keys(self::vocabulary());
     }
 
     /**
@@ -396,10 +350,11 @@ class GalaxyCategory
      */
     public static function subCategoriesIn($category)
     {
-        if (!isset(self::$vocabulary[$category])) {
+        $vocabulary = self::vocabulary();
+        if (!isset($vocabulary[$category])) {
             return array();
         }
-        return self::$vocabulary[$category]['sub_categories'];
+        return $vocabulary[$category]['sub_categories'];
     }
 
     /**
@@ -410,9 +365,10 @@ class GalaxyCategory
      */
     public static function describe($category)
     {
-        if (!isset(self::$vocabulary[$category])) {
+        $vocabulary = self::vocabulary();
+        if (!isset($vocabulary[$category])) {
             return null;
         }
-        return self::$vocabulary[$category]['description'];
+        return $vocabulary[$category]['description'];
     }
 }

@@ -60,7 +60,7 @@ $title = trim($role['title'] . ($info === '' ? '' : ' — ' . $info));
 $orgName = $origin['Orgc']['name'] ?? '';
 $tag = empty($static) ? 'a' : 'span';
 ?>
-<<?= $tag ?><?= $tag === 'a' ? ' href="' . h($baseurl . '/events/view2/' . $originId) . '"' : '' ?>
+<<?= $tag ?><?= $tag === 'a' ? ' href="' . h($baseurl . '/events/view/' . $originId) . '"' : '' ?>
    class="badge d-inline-flex align-items-center gap-1 text-decoration-none <?= h($class ?? '') ?>"
    style="background:<?= h($palette['badgeBg']) ?>;
           color:<?= h($palette['badgeText']) ?>;

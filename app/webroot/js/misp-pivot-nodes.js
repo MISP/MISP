@@ -78,7 +78,10 @@ window.MispPivotNodes = (function () {
             /* MISP's own opinion colours (Analyst_data/opinion_scale.ctp:12 —
                >50 #468847, <50 #b94a48, ==50 #333), lifted the same way. The
                neutral is ink2 rather than #333, which would vanish here. */
-            opinion: { pos: '#6FBE80', neg: '#EE7A80', neutral: '#B5B5B5' }
+            opinion: { pos: '#6FBE80', neg: '#EE7A80', neutral: '#B5B5B5' },
+            /* Links that are no entity's own. */
+            edge:    { reference: '#428BCA', analyst: '#F39A1F',
+                       link: '#8A8F98', linkStrong: '#6C737D' }
         },
         light: {
             canvas: '#FFFFFF', surface: '#FFFFFF', surfaceInset: '#F0F0F0',
@@ -105,7 +108,9 @@ window.MispPivotNodes = (function () {
                that has to move most: MISP's literal `orange` is 1.9:1 on this
                ground, so `known` is darkened until it clears. */
             warn:    { fp: '#C42B31', known: '#8A5200' },
-            opinion: { pos: '#2F6B3A', neg: '#A63C3A', neutral: '#59595A' }
+            opinion: { pos: '#2F6B3A', neg: '#A63C3A', neutral: '#59595A' },
+            edge:    { reference: '#428BCA', analyst: '#F39A1F',
+                       link: '#8A8F98', linkStrong: '#6C737D' }
         }
     };
 

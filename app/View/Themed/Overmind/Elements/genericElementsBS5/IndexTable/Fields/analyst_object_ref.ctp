@@ -30,7 +30,7 @@ if ($isValue) {
 } elseif (in_array($type, ['Note', 'Opinion', 'Relationship'], true)) {
     $url = $baseurl . '/analystData/view/' . $type . '/' . $uuid;
 } elseif ($type === 'Event') {
-    $url = $baseurl . '/events/view2/' . $uuid;
+    $url = $baseurl . '/events/view/' . $uuid;
 } else {
     $url = $baseurl . '/' . Inflector::tableize($type) . '/view/' . $uuid;
 }

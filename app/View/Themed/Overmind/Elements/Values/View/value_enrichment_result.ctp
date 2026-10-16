@@ -499,7 +499,10 @@ $manyObjects = count($run['objects']) > 1;
      * rail did not ask.
      */
     $drawn = $state === 'ok'
-        ? ValueRendererTool::drawFor(array($run))
+        ? ValueRendererTool::drawFor(
+            array($run),
+            $valueIntelligence['facts'] ?? array()
+        )
         : array();
     ?>
     <?php foreach ($drawn as $shape): ?>

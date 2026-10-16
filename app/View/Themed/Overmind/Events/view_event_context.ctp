@@ -1,10 +1,35 @@
 <?php
 $eventId = (int)$event['Event']['id'];
-$mark = function (array $item) {
+$tagOf = function (array $item) {
+    return $item['kind'] === 'cluster'
+        ? [(int)($item['cluster']['tag_id'] ?? 0), $item['cluster']['tag_name'] ?? null]
+        : [(int)($item['tag']['Tag']['id'] ?? 0), $item['tag']['Tag']['name'] ?? null];
+};
+$mark = function (array $item) use ($tagOf) {
     $source = $item['kind'] === 'cluster' ? $item['cluster'] : $item['tag'];
     $source['_eo_level'] = $item['level'];
     $source['_eo_count'] = (int)$item['count'];
+    list($source['_eo_tag_id'], $source['_eo_tag_name']) = $tagOf($item);
     return $source;
+};
+$inObjects = $inObjects ?? [];
+// Opens the tab most of the carriers sit in, filtered to the label.
+$onIndicators = function ($count, $only, $tagId, $tagName) use ($inObjects) {
+    $label = $only
+        ? __n('Only on %s indicator', 'Only on %s indicators', $count, $count)
+        : __n('Also on %s indicator', 'Also on %s indicators', $count, $count);
+    $inner = '<i class="misp-icon misp-icon-attribute misp-simple"></i>' . h(__('on %s', $count));
+    if (empty($tagName)) {
+        return sprintf('<span class="eo-on%s" title="%s">%s</span>', $only ? ' is-only' : '', h($label), $inner);
+    }
+    return sprintf(
+        '<button type="button" class="eo-on%s" data-eo-filter-tags="%s" data-eo-filter-tab="%s" title="%s">%s</button>',
+        $only ? ' is-only' : '',
+        h($tagName),
+        ($inObjects[$tagId] ?? 0) * 2 >= $count ? 'objects' : 'attributes',
+        h($label . ' · ' . __('show them')),
+        $inner
+    );
 };
 $origin = function (array $source) {
     if (empty($source['event_id'])) {
@@ -22,19 +47,16 @@ $chipOptions = [
     'unitClass' => function ($source) {
         return ($source['_eo_level'] ?? '') === 'indicators' ? 'eo-ind' : '';
     },
-    'suffix' => function ($source) use ($origin) {
+    'suffix' => function ($source) use ($origin, $onIndicators) {
         $count = (int)($source['_eo_count'] ?? 0);
         if ($count === 0) {
             return $origin($source);
         }
-        $only = ($source['_eo_level'] ?? '') === 'indicators';
-        return $origin($source) . sprintf(
-            '<span class="eo-on%s" title="%s"><i class="misp-icon misp-icon-attribute misp-simple"></i>%s</span>',
-            $only ? ' is-only' : '',
-            h($only
-                ? __n('Only on %s indicator', 'Only on %s indicators', $count, $count)
-                : __n('Also on %s indicator', 'Also on %s indicators', $count, $count)),
-            h(__('on %s', $count))
+        return $origin($source) . $onIndicators(
+            $count,
+            ($source['_eo_level'] ?? '') === 'indicators',
+            $source['_eo_tag_id'] ?? 0,
+            $source['_eo_tag_name'] ?? null
         );
     },
 ];
@@ -62,12 +84,14 @@ $clusters = function (array $items) use ($mark) {
                 'description' => __('Cluster not available here'),
                 '_eo_level' => $item['level'],
                 '_eo_count' => (int)$item['count'],
+                '_eo_tag_id' => (int)($item['tag']['Tag']['id'] ?? 0),
+                '_eo_tag_name' => $item['tag']['Tag']['name'] ?? null,
             ];
         }
     }
     return $out;
 };
-$techniques = function (array $items) use ($baseurl, $origin) {
+$techniques = function (array $items) use ($baseurl, $origin, $tagOf, $onIndicators) {
     ob_start();
     echo '<ul class="eo-techniques">';
     foreach ($items as $item) {
@@ -84,18 +108,33 @@ $techniques = function (array $items) use ($baseurl, $origin) {
             $href ? '</a>' : '</span>',
             $origin($cluster),
             $item['count'] > 0
-                ? sprintf(
-                    '<span class="eo-on%s" title="%s"><i class="misp-icon misp-icon-attribute misp-simple"></i>%s</span>',
-                    $only ? ' is-only' : '',
-                    h($only
-                        ? __n('Only on %s indicator', 'Only on %s indicators', $item['count'], $item['count'])
-                        : __n('Also on %s indicator', 'Also on %s indicators', $item['count'], $item['count'])),
-                    h(__('on %s', $item['count']))
-                )
+                ? $onIndicators((int)$item['count'], $only, ...$tagOf($item))
                 : ''
         );
     }
     echo '</ul>';
+    return ob_get_clean();
+};
+$byGalaxy = function (array $items) use ($baseurl, $techniques) {
+    ob_start();
+    foreach (EventContextTool::byGalaxy($items) as $group) {
+        $galaxy = $group['galaxy'];
+        $icon = empty($galaxy['icon']) ? '' : sprintf(
+            '<i class="%s fa-%s" aria-hidden="true"></i>',
+            h(FontAwesomeHelper::findNamespace($galaxy['icon'])),
+            h($galaxy['icon'])
+        );
+        $name = empty($galaxy['id'])
+            ? '<span>' . h($galaxy['name']) . '</span>'
+            : sprintf('<a href="%s">%s</a>', h($baseurl . '/galaxies/view/' . (int)$galaxy['id']), h($galaxy['name']));
+        printf(
+            '<section class="eo-tech-group"><h6 class="eo-tech-galaxy">%s%s<small>%s</small></h6>%s</section>',
+            $icon,
+            $name,
+            count($group['items']),
+            $techniques($group['items'])
+        );
+    }
     return ob_get_clean();
 };
 
@@ -212,7 +251,7 @@ foreach ($rows as $items) {
 
         <?php if (!empty($rows['behaviour'])): ?>
             <dt><?= __('Behaviour') ?><small><?= h(__n('%s technique', '%s techniques', count($rows['behaviour']), count($rows['behaviour']))) ?></small></dt>
-            <dd><?= $techniques($rows['behaviour']) ?></dd>
+            <dd><?= $byGalaxy($rows['behaviour']) ?></dd>
         <?php endif; ?>
 
         <?php if (!empty($rows['classification']) || !empty($rows['clusters'])): ?>
@@ -236,7 +275,7 @@ foreach ($rows as $items) {
 
         <?php if (!empty($rows['mitigation'])): ?>
             <dt><?= __('Mitigation') ?></dt>
-            <dd><?= $techniques($rows['mitigation']) ?></dd>
+            <dd><?= $byGalaxy($rows['mitigation']) ?></dd>
         <?php endif; ?>
     </dl>
 

@@ -51,7 +51,7 @@ if (empty($event)):
                 <?= __('Matched Event') ?>
             </span>
         </div>
-        <a href="<?= h($baseurl) ?>/events/view2/<?= h($eId) ?>"
+        <a href="<?= h($baseurl) ?>/events/view/<?= h($eId) ?>"
            class="d-flex align-items-center gap-1 text-decoration-none"
            style="font-size:.7rem; color:var(--primary);"
            target="_blank"

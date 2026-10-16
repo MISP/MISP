@@ -879,7 +879,7 @@ class ValueRelevanceTool
      * When each organisation other than the first one joined.
      *
      * **`at` is a declared observation where one exists.**
-     * `org['oldest']` is `MIN(Value::OBSERVED_FROM)` — `first_seen`,
+     * `org['oldest']` is `MIN(Value::observedFrom())` — `first_seen`,
      * then `last_seen`, then the row write — so an organisation's join
      * date is when it says it saw the value rather than when it last
      * touched the row. On `MIN(Attribute.timestamp)` an edit would move
@@ -887,9 +887,9 @@ class ValueRelevanceTool
      * corroborated.
      *
      * The fallback is still a row write, because most attributes
-     * declare no seen date at all. `Attribute.created_at` slots in
-     * above it when MISP has one, in `Value::OBSERVED_FROM` and nowhere
-     * else.
+     * declare no seen date at all. `Attribute.creation_datetime` slots
+     * in above it when the table has one, in `Value::observedFrom()` and
+     * nowhere else.
      *
      * @param array $context
      * @return array

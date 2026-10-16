@@ -434,7 +434,7 @@
 
         function options(opts, kit, seed) {
             Object.assign(opts.render.edgeStyleMap, {
-                value: { strokeColor: '#8a8f98', dashed: true, markerEnd: 'none' }
+                value: { strokeColor: window.MispPivotNodes.palette().edge.link, dashed: true, markerEnd: 'none' }
             });
             if (state.built.positioned) {
                 opts.simulation.warmupTicks = 0;
@@ -616,7 +616,8 @@
             } : null,
             pivots: function (kit) {
                 var p = kit.pivots;
-                return [p.tags(), p.taggedEvents(), p.relatedClusters(), p.surroundings(),
+                return [p.tags(), p.taggedEvents(), p.relatedClusters(), p.relatingClusters(),
+                        p.surroundings(),
                         p.cardElements('ids'), p.cardElements('network'), p.cardElements('all'),
                         p.enrich()].filter(Boolean);
             },

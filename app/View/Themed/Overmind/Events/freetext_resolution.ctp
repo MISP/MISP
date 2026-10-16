@@ -505,7 +505,7 @@ $distFallback = $this->DistributionLevel->fallback();
             var list = q('.ft-f-related-list');
             JSON.parse(related.dataset.related).forEach(function (id) {
                 var a = document.createElement('a');
-                a.href = '<?= $baseurl ?>/events/view2/' + id;
+                a.href = '<?= $baseurl ?>/events/view/' + id;
                 a.target = '_blank';
                 a.className = 'badge bg-light text-dark border text-decoration-none';
                 a.textContent = '#' + id;

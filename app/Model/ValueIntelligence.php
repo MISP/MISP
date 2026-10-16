@@ -2531,8 +2531,8 @@ class ValueIntelligence extends AppModel
      *
      * **The warninglist line reads the Assessment tab's own resolver.**
      * `verdictWarninglist` resolves each hit's category through the
-     * analyst's override map, the shipped name map, the column and then
-     * the default — a four-step order `WarninglistCategory` owns — and
+     * analyst's override map, the list's own category and then the
+     * default — an order `WarninglistCategory` owns — and
      * the Assessment tab's warninglist band prints the answer. Two
      * surfaces on one page resolving one hit's category independently
      * is how they come to disagree, and this page has been bitten by
@@ -14284,11 +14284,20 @@ class ValueIntelligence extends AppModel
         array $options = array()
     ) {
         $catalogue = $this->enrichmentCatalogue($user, $value, $options);
+        $stored = $this->enrichmentStored($user, $value, $catalogue);
         return array(
             'value' => $value,
             'enrichment' => $catalogue,
             'held' => $this->enrichmentHeldShapes(
-                $this->enrichmentStored($user, $value, $catalogue)
+                $stored,
+                $this->rendererFacts(
+                    $user,
+                    $value,
+                    array_values(array_filter($stored)),
+                    array_key_exists('profile', $options)
+                        ? $options['profile']
+                        : false
+                )
             ),
         );
     }
@@ -14312,16 +14321,18 @@ class ValueIntelligence extends AppModel
      * line saying its answer is rows, which are a press away.
      *
      * @param array $stored From `enrichmentStored`
+     * @param array $facts From `rendererFacts()`
      * @return array module => `shapes`, `ran_at`, `total`, `shown`
      */
-    private function enrichmentHeldShapes(array $stored)
-    {
+    private function enrichmentHeldShapes(array $stored,
+        array $facts = array()
+    ) {
         $out = array();
         foreach ($stored as $module => $run) {
             if ($run === null || ($run['state'] ?? null) !== 'ok') {
                 continue;
             }
-            $drawn = ValueRendererTool::drawFor(array($run));
+            $drawn = ValueRendererTool::drawFor(array($run), $facts);
             $out[$module] = array(
                 'shapes' => array_values($drawn),
                 'ran_at' => isset($run['ran_at'])
@@ -14332,6 +14343,65 @@ class ValueIntelligence extends AppModel
             );
         }
         return $out;
+    }
+
+    /**
+     * What a renderer may read about the value beside the answers, so
+     * the registration widget reads an age the way the ledger row does:
+     * against the same first report, through the same exclusions, with
+     * the same profile's thresholds.
+     *
+     * Read only when an answer holds a `whois` object; every other value
+     * pays nothing.
+     *
+     * @param array $user
+     * @param string $value
+     * @param array $runs Unpacked runs
+     * @param array|null|false $profile false resolves the viewer's
+     * @return array For `ValueRendererTool::drawFor()`
+     */
+    private function rendererFacts(array $user, $value, array $runs,
+        $profile = false
+    ) {
+        $held = false;
+        foreach ($runs as $run) {
+            foreach ((array)($run['objects'] ?? array()) as $object) {
+                if (($object['name'] ?? null) === 'whois') {
+                    $held = true;
+                    break 2;
+                }
+            }
+        }
+        if (!$held) {
+            return array();
+        }
+        if ($profile === false) {
+            $profile = ClassRegistry::init('AnalystProfile')
+                ->resolveFor($user);
+        }
+        $exclusions = new ValueExclusionTool();
+        $record = $this->model('Value')->recordSummaryFor(
+            $user,
+            $value,
+            $exclusions->conditionOptions(
+                $exclusions->planFor($profile, $user)
+            )
+        );
+        // Renderer classes load with the loader's scan, which drawFor()
+        // runs anyway.
+        ValueRendererTool::renderers();
+        return array(
+            'value' => (string)$value,
+            'first_report' => empty($record['occurrences'])
+                ? null
+                : (int)$record['oldest'],
+            'now' => time(),
+            'thresholds' => array(
+                'registration' => RegistrationRenderer::thresholdsFrom(
+                    $profile
+                ),
+            ),
+        );
     }
 
     /**
@@ -14354,16 +14424,20 @@ class ValueIntelligence extends AppModel
     public function forEnrichmentRun(array $user, $value,
         array $options = array()
     ) {
+        $run = $this->enrichmentRun(
+            $user,
+            $value,
+            isset($options['module']) ? $options['module'] : null,
+            isset($options['type']) ? $options['type'] : null,
+            isset($options['mode']) ? $options['mode'] : null,
+            !empty($options['all'])
+        );
         return array(
             'value' => $value,
-            'run' => $this->enrichmentRun(
-                $user,
-                $value,
-                isset($options['module']) ? $options['module'] : null,
-                isset($options['type']) ? $options['type'] : null,
-                isset($options['mode']) ? $options['mode'] : null,
-                !empty($options['all'])
-            ),
+            'run' => $run,
+            'facts' => ($run['state'] ?? null) === 'ok'
+                ? $this->rendererFacts($user, $value, array($run))
+                : array(),
         );
     }
 
@@ -14971,7 +15045,15 @@ class ValueIntelligence extends AppModel
             $runs,
             $catalogue['profile'],
             $catalogue['types'],
-            $value
+            $value,
+            $this->rendererFacts(
+                $user,
+                $value,
+                $runs,
+                array_key_exists('profile', $options)
+                    ? $options['profile']
+                    : false
+            )
         );
         foreach ($modules as &$entry) {
             $entry['drawn'] = in_array(
@@ -15141,10 +15223,11 @@ class ValueIntelligence extends AppModel
      * @param array $profile The resolved declaration
      * @param array $types `typesFor` output
      * @param string $value The value being enriched
+     * @param array $facts From `rendererFacts()`
      * @return array
      */
     private function enrichmentStrip(array $runs, array $profile,
-        array $types, $value
+        array $types, $value, array $facts = array()
     ) {
         $ranked = isset($profile['shapes']) ? $profile['shapes'] : array();
         /*
@@ -15156,7 +15239,7 @@ class ValueIntelligence extends AppModel
         if (empty($runs) && empty($ranked)) {
             return array('slots' => array(), 'drawn' => array());
         }
-        $drawn = ValueRendererTool::drawFor($runs);
+        $drawn = ValueRendererTool::drawFor($runs, $facts);
         $promoted = ValueRendererTool::promote($drawn, $ranked, $types);
         $slots = array();
         foreach ($promoted as $shape) {
@@ -17467,16 +17550,10 @@ class ValueIntelligence extends AppModel
      * type the value is stored under, because a `sha1` seen once as an
      * `md5` would otherwise escape the list it is on.
      *
-     * **The category is resolved, not read.** `07-reference.md` §3.1
-     * verified that no shipped list sets one and that
-     * `Warninglist::__updateList()` drops the field on import, so the
-     * order is: the profile's override map by exact list name, then
-     * the shipped name map, then the database column, then
-     * `false_positive` — the column's own default and what MISP's
-     * warning banner has always meant by a hit. `WarninglistCategory`
-     * owns the whole order, including why the shipped map sits *above*
-     * the column, and every hit carries the `source` that answered it
-     * so the panel can name it (§3.2, §5 item 12).
+     * **The category is resolved, not read.** The profile's override map
+     * by exact list name comes first, then the list's own category, then
+     * `false_positive`. `WarninglistCategory` owns the order, and every
+     * hit carries the `source` that answered it.
      *
      * **A refuting hit outranks a contextualising one.** Where a value
      * hits both a `false_positive` list and a `known` one, the

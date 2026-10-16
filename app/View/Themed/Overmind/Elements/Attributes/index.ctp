@@ -113,7 +113,7 @@ if (!empty($show_event_id)) {
         'sort' => $path('event_id'),
         'data_path' => 'Event.id',
         'element' => 'id',
-        'url' => $baseurl . '/events/view2/%id%',
+        'url' => $baseurl . '/events/view/%id%',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ];

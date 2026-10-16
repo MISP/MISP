@@ -134,10 +134,8 @@ class Value extends AppModel
      * *When was this occurrence observed*, in seconds, as SQL.
      *
      * The one definition every *when* aggregate on this model reads, so
-     * that the clock, the recency signal and the continuity months
-     * cannot disagree about what a date means — and so that
-     * `Attribute.created_at` lands in two strings rather than in eight
-     * queries once MISP has one.
+     * that the clock, the recency signal, the continuity months and the
+     * registration age cannot disagree about what a date means.
      *
      * `Attribute.timestamp` is **last-modified**: an edit, a tag, a
      * sync update or a delete bumps it, and it is what sync compares to
@@ -152,10 +150,11 @@ class Value extends AppModel
      * report it* wants `first_seen` — so the two orders are the same
      * chain read from opposite ends.
      *
-     * **When `Attribute.created_at` lands** it goes immediately before
-     * `Attribute.timestamp` in both: a real creation date beats a row
-     * write, and a declared observation still beats a creation date.
-     * Nothing else in this file needs to change.
+     * **`Attribute.creation_datetime` goes immediately before
+     * `Attribute.timestamp` in both, once the table has it**: a real
+     * creation date beats a row write, and a declared observation still
+     * beats a creation date. The chain asks the schema for it rather
+     * than naming it unconditionally, and converts it by its type.
      *
      * Measured on 2.92M live attributes: `last_seen` is set on 16.2%
      * against `first_seen`'s 6.2%, and 295,924 `last_seen` values carry
@@ -163,17 +162,67 @@ class Value extends AppModel
      * them precede the row write, by 4 days on average and 226 at most,
      * and none is in the future, so reading the observation moves every
      * date **earlier**: values read staler, never fresher.
+     *
+     * @return string
      */
-    const OBSERVED_AT = 'COALESCE('
-        . 'FLOOR(Attribute.last_seen / 1000000),'
-        . ' FLOOR(Attribute.first_seen / 1000000),'
-        . ' Attribute.timestamp)';
+    public function observedAt()
+    {
+        return 'COALESCE('
+            . 'FLOOR(Attribute.last_seen / 1000000),'
+            . ' FLOOR(Attribute.first_seen / 1000000),'
+            . $this->createdIn()
+            . ' Attribute.timestamp)';
+    }
 
-    /** The same chain from the other end — see `OBSERVED_AT`. */
-    const OBSERVED_FROM = 'COALESCE('
-        . 'FLOOR(Attribute.first_seen / 1000000),'
-        . ' FLOOR(Attribute.last_seen / 1000000),'
-        . ' Attribute.timestamp)';
+    /**
+     * The same chain from the other end — see `observedAt()`.
+     *
+     * @return string
+     */
+    public function observedFrom()
+    {
+        return 'COALESCE('
+            . 'FLOOR(Attribute.first_seen / 1000000),'
+            . ' FLOOR(Attribute.last_seen / 1000000),'
+            . $this->createdIn()
+            . ' Attribute.timestamp)';
+    }
+
+    /**
+     * `Attribute.creation_datetime` as a link of the chain, in seconds,
+     * or an empty string while the table has no such column.
+     *
+     * A `datetime` column is converted, in the connection's time zone;
+     * an integer one is read the way its neighbours are — `biginteger`
+     * as microseconds like `first_seen`, `integer` as seconds like
+     * `timestamp`.
+     *
+     * @return string
+     */
+    private function createdIn()
+    {
+        if ($this->createdLink !== null) {
+            return $this->createdLink;
+        }
+        $field = $this->attributes()->schema('creation_datetime');
+        $type = is_array($field) && isset($field['type'])
+            ? $field['type']
+            : null;
+        switch ($type) {
+            case null:
+                $link = '';
+                break;
+            case 'biginteger':
+                $link = ' FLOOR(Attribute.creation_datetime / 1000000),';
+                break;
+            case 'integer':
+                $link = ' Attribute.creation_datetime,';
+                break;
+            default:
+                $link = ' UNIX_TIMESTAMP(Attribute.creation_datetime),';
+        }
+        return $this->createdLink = $link;
+    }
 
     const DATE_TYPE = 'datetime';
 
@@ -204,6 +253,9 @@ class Value extends AppModel
      * @var MispAttribute
      */
     private $attributeModel = null;
+
+    /** @var string|null `createdIn()`'s answer, once asked */
+    private $createdLink = null;
 
     /**
      * @return MispAttribute
@@ -408,7 +460,7 @@ class Value extends AppModel
      * **`dated_from` and `dated_at` say whether the two dates were
      * declared or inferred**, and they are here rather than in a second
      * aggregate because a date without them cannot be read honestly.
-     * `OBSERVED_FROM`/`OBSERVED_AT` end in `Attribute.timestamp`, which
+     * `observedFrom()`/`observedAt()` end in `Attribute.timestamp`, which
      * every row has and none of which is an observation, so `oldest`
      * and `newest` are never null and a caller printing them bare
      * states a row write as a sighting. Each counts the occurrences
@@ -445,8 +497,8 @@ class Value extends AppModel
                 'COUNT(DISTINCT Attribute.id) AS occurrences',
                 'COUNT(DISTINCT Event.id) AS events',
                 'COUNT(DISTINCT Event.orgc_id) AS orgs',
-                'MIN(' . self::OBSERVED_FROM . ') AS oldest',
-                'MAX(' . self::OBSERVED_AT . ') AS newest',
+                'MIN(' . $this->observedFrom() . ') AS oldest',
+                'MAX(' . $this->observedAt() . ') AS newest',
                 'SUM(CASE WHEN Attribute.first_seen IS NOT NULL'
                     . ' THEN 1 ELSE 0 END) AS dated_from',
                 'SUM(CASE WHEN Attribute.last_seen IS NOT NULL'
@@ -1005,10 +1057,10 @@ class Value extends AppModel
      * its string, because a day is all it holds and rendering it as a
      * timestamp would invent an hour.
      *
-     * **`created_at` is absent, deliberately reported as absent.** MISP
-     * stores no attribute creation date; the card draws the row anyway
-     * so the gap is visible rather than merely unmentioned, and so that
-     * the day it exists there is one obvious place to fill in.
+     * **`created_at` is the earliest `Attribute.creation_datetime`**,
+     * and null while the table has no such column. The card draws the
+     * row either way, so the gap is visible rather than merely
+     * unmentioned.
      *
      * @param array $user
      * @param string $value
@@ -1022,7 +1074,7 @@ class Value extends AppModel
         $conditions = $attributes->buildConditions($user);
         $conditions['AND'][] = $this->conditionsFor($value, $options);
         $conditions['AND'][] = array('Attribute.deleted' => 0);
-        $row = $attributes->find('first', array(
+        $params = array(
             'fields' => array(
                 'COUNT(DISTINCT Attribute.id) AS occurrences',
                 'MIN(FLOOR(Attribute.first_seen / 1000000)) AS first_seen',
@@ -1041,7 +1093,12 @@ class Value extends AppModel
             'conditions' => $conditions,
             'recursive' => -1,
             'contain' => array('Event', 'Object'),
-        ));
+        );
+        $created = rtrim(trim($this->createdIn()), ',');
+        if ($created !== '') {
+            $params['fields'][] = 'MIN(' . $created . ') AS created_first';
+        }
+        $row = $attributes->find('first', $params);
         $found = empty($row[0]) ? array() : $row[0];
         $stamp = function ($key) use ($found) {
             return isset($found[$key]) && $found[$key] !== null
@@ -1066,11 +1123,7 @@ class Value extends AppModel
                 : (string)$found['event_date_last'],
             'published_last' => $stamp('published_last'),
             'published_events' => (int)($found['published_events'] ?? 0),
-            /*
-             * The column MISP does not have. Reported rather than
-             * omitted — see the docblock.
-             */
-            'created_at' => null,
+            'created_at' => $stamp('created_first'),
         );
     }
 
@@ -1106,12 +1159,12 @@ class Value extends AppModel
      * recency   ← Sighting.date_sighting        (already its own clock event)
      *           ← Attribute.last_seen
      *           ← Attribute.first_seen
-     *           ← Attribute.created_at          (when it lands)
+     *           ← Attribute.creation_datetime   (when it lands)
      *           ← Attribute.timestamp           (last resort)
      *
      * earliest  ← Attribute.first_seen
      *           ← Attribute.last_seen
-     *           ← Attribute.created_at          (when it lands)
+     *           ← Attribute.creation_datetime   (when it lands)
      *           ← Attribute.timestamp           (last resort)
      * ```
      *
@@ -1120,14 +1173,14 @@ class Value extends AppModel
      * it* wants the start, and *how recently was it recorded* wants the
      * end.
      *
-     * **`created_at` slots in above `timestamp` and below the seen
-     * dates** — it is a real creation date, so it beats a row write,
-     * and it is still a recording date, so a declared observation beats
-     * it. When it lands, the fallbacks in this file and in
-     * `ValueRelevanceTool::joinEvents()` are the sites to change, and
-     * §3.6's uncertainty rule gains a fourth answer: a value with a
-     * `created_at` and no seen dates is datable to its record, which is
-     * not the same as datable to its observation.
+     * **`creation_datetime` slots in above `timestamp` and below the
+     * seen dates** — it is a real creation date, so it beats a row
+     * write, and it is still a recording date, so a declared observation
+     * beats it. `observedAt()`/`observedFrom()` include it as soon as
+     * the table has the column. §3.6's uncertainty rule then gains a
+     * fourth answer: a value with a creation date and no seen dates is
+     * datable to its record, which is not the same as datable to its
+     * observation.
      *
      * **Units differ and the comparison must convert.** `first_seen`
      * and `last_seen` are `bigint` **microseconds**; `timestamp` and
@@ -1165,8 +1218,8 @@ class Value extends AppModel
                 'COUNT(DISTINCT Attribute.id) AS occurrences',
                 'COUNT(DISTINCT Event.id) AS events',
                 'COUNT(DISTINCT Event.orgc_id) AS orgs',
-                'MIN(' . self::OBSERVED_FROM . ') AS oldest',
-                'MAX(' . self::OBSERVED_AT . ') AS newest',
+                'MIN(' . $this->observedFrom() . ') AS oldest',
+                'MAX(' . $this->observedAt() . ') AS newest',
                 'COUNT(DISTINCT CASE WHEN Event.published = 1'
                     . ' THEN Event.id END) AS published',
                 /*
@@ -1257,7 +1310,7 @@ class Value extends AppModel
                     . ' AS to_ids_yes',
                 'SUM(CASE WHEN Attribute.to_ids = 0 THEN 1 ELSE 0 END)'
                     . ' AS to_ids_no',
-                'MAX(' . self::OBSERVED_AT . ') AS newest',
+                'MAX(' . $this->observedAt() . ') AS newest',
                 /*
                  * When this organisation last wrote a `to_ids = 1` row,
                  * which is when it last made the assertion — the row
@@ -1277,10 +1330,10 @@ class Value extends AppModel
                  * query that is already grouped by organisation, so it
                  * costs nothing the stances did not already cost.
                  */
-                'MIN(' . self::OBSERVED_FROM . ') AS oldest',
+                'MIN(' . $this->observedFrom() . ') AS oldest',
             ),
             /*
-             * `OBSERVED_FROM`, not `Attribute.timestamp`: this is the
+             * `observedFrom()`, not `Attribute.timestamp`: this is the
              * relevance clock's occurrence half, and on a row-write
              * date **editing one old occurrence moved an
              * organisation's join date forward** and the value read as
@@ -1330,7 +1383,7 @@ class Value extends AppModel
                  * for a tag — and `lifecycle.continuity` scores this,
                  * so it reached the verdict.
                  */
-                'DATE_FORMAT(FROM_UNIXTIME(' . self::OBSERVED_AT . "),"
+                'DATE_FORMAT(FROM_UNIXTIME(' . $this->observedAt() . "),"
                     . " '%Y-%m') AS month",
                 'COUNT(DISTINCT Attribute.id) AS occurrences',
             ),
@@ -1927,7 +1980,7 @@ class Value extends AppModel
                 'COUNT(DISTINCT Event.id) AS events',
                 /*
                  * `Attribute.timestamp` and deliberately not
-                 * `OBSERVED_AT`. That chain reads `last_seen` first
+                 * `observedAt()`. That chain reads `last_seen` first
                  * because it answers *when was this value observed*,
                  * and a comment is not an observation — it is text in a
                  * column, and the only date the column has is the row
@@ -2526,6 +2579,44 @@ class Value extends AppModel
             );
         }
         return $objects;
+    }
+
+    /**
+     * The objects holding this value, read as a capped number of
+     * attribute rows rather than grouped: a `GROUP BY object_id` reads
+     * every occurrence of a popular value before any `LIMIT` applies.
+     *
+     * @param array $user
+     * @param string $value
+     * @param array $options `relation` narrows to one object_relation,
+     *                       `limit` caps the attribute rows read
+     * @return array ['ids' => int[], 'truncated' => bool]
+     */
+    public function objectIdsHolding(array $user, $value,
+        array $options = array()
+    ) {
+        $limit = isset($options['limit']) ? (int)$options['limit'] : 10000;
+        $conditions = array(
+            $this->conditionsFor($value),
+            'Attribute.object_id >' => 0,
+            'Attribute.deleted' => 0,
+        );
+        if (isset($options['relation']) && $options['relation'] !== '') {
+            $conditions['Attribute.object_relation'] = $options['relation'];
+        }
+        $rows = $this->attributes()->fetchAttributesSimple($user, array(
+            'conditions' => $conditions,
+            'fields' => array('Attribute.object_id'),
+            'limit' => $limit,
+        ));
+        $ids = array();
+        foreach ($rows as $row) {
+            $ids[(int)$row['Attribute']['object_id']] = true;
+        }
+        return array(
+            'ids' => array_keys($ids),
+            'truncated' => count($rows) >= $limit,
+        );
     }
 
     /**

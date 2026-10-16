@@ -2047,15 +2047,14 @@ class AnalystProfileFormTool
                     'blurb' => __(
                         'What a hit on each list means: known'
                         . ' infrastructure is not a false positive.'
-                        . ' Warninglists do not say which kind they are'
-                        . ' yet, so this instance ships its own map and'
+                        . ' Each warninglist declares which kind it is;'
                         . ' this is where you override it.'
                     ),
                     'key_label' => __('Warninglist'),
                     'value_label' => __('Means'),
                     'empty_label' => __('No list overridden'),
                     'empty_note' => __('Each list keeps the category'
-                        . ' this instance ships for it.'),
+                        . ' it declares.'),
                     'value_type' => 'select',
                     'value_options' => $this->categoryLabelOptions(),
                     'value_legend' => $this->categoryLegend($parameters),
@@ -2248,18 +2247,10 @@ class AnalystProfileFormTool
         return array(
             'title' => __('What a category means, and what it does here'),
             'entries' => $entries,
-            /*
-             * Why the map exists at all, said where the map is. §3.1
-             * verified that no shipped warninglist sets the column and
-             * that core drops the field on import, so every list on
-             * this instance is a false positive until somebody
-             * disagrees — and the row that disagrees is this one.
-             */
             'note' => __(
-                'A list this map does not name reads as a false'
-                . ' positive. No shipped warninglist declares its'
-                . ' category, so this instance ships a map of the lists'
-                . ' it knows to be infrastructure.'
+                'A list this map does not name keeps the category it'
+                . ' declares; a list that declares none reads as a false'
+                . ' positive.'
             ),
         );
     }

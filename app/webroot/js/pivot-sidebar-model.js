@@ -719,7 +719,7 @@
                 });
         }
         var id = (rec && rec.id) || d.event_id || d.id;
-        if (id && String(id) !== String(env.eventId)) vm.links.push({ kind: 'event', label: 'Open event', path: '/events/view2/' + id });
+        if (id && String(id) !== String(env.eventId)) vm.links.push({ kind: 'event', label: 'Open event', path: '/events/view/' + id });
         if (d.feed_id && d.uuid) vm.links.push({ kind: 'feed', label: 'Preview in feed', path: '/feeds/previewEvent/' + d.feed_id + '/' + d.uuid });
         return vm;
     }
@@ -802,7 +802,7 @@
         }
         vm.value_card = !!env.valueCard;
         var foreign = d.event_id && String(d.event_id) !== String(env.eventId);
-        if (foreign) vm.links.push({ kind: 'event', label: 'Open its event', path: '/events/view2/' + d.event_id });
+        if (foreign) vm.links.push({ kind: 'event', label: 'Open its event', path: '/events/view/' + d.event_id });
         return vm;
     }
 
@@ -896,7 +896,7 @@
         vm.value_card = !!env.valueCard;
         vm.profile = vm.card.value === '' || !profiled(d) ? null : { value: vm.card.value, b64: valueKey(vm.card.value) };
         if (d.event_id && String(d.event_id) !== String(env.eventId)) {
-            vm.links.push({ kind: 'event', label: 'Open its event', path: '/events/view2/' + d.event_id });
+            vm.links.push({ kind: 'event', label: 'Open its event', path: '/events/view/' + d.event_id });
         }
         return vm;
     }

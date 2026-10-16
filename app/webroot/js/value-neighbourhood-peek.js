@@ -23,10 +23,11 @@
     var GRAPH_HEIGHT_WIDE = 120;
 
     var KIND = {
-        reference: { color: '#428bca', dash: 'solid' },
-        claim:     { color: '#f39a1f', dash: 'dashed' },
-        near:      { color: '#8a8f98', dash: 'dashed' }
+        reference: { edge: 'reference', dash: 'solid' },
+        claim:     { edge: 'analyst',   dash: 'dashed' },
+        near:      { edge: 'link',      dash: 'dashed' }
     };
+    function kindColour(kind) { return P().edge[kind.edge]; }
 
     function N() { return window.MispPivotNodes; }
     function P() { return N().palette(); }
@@ -37,6 +38,13 @@
         if (cls) e.className = cls;
         if (text != null) e.textContent = text;
         return e;
+    }
+
+    // MISP's zh-s is no BCP 47 tag; fall back to its language.
+    function pivotickLocale() {
+        var lang = document.documentElement.lang || 'en';
+        try { return Intl.getCanonicalLocales(lang)[0]; }
+        catch (e) { return lang.split('-')[0]; }
     }
 
     function fmt(n) { return Number(n || 0).toLocaleString('en'); }
@@ -76,6 +84,7 @@
         try {
             var graph = new window.Pivotick(canvas, data, {
                 isDirected: true,
+                i18n: { locale: pivotickLocale() },
                 render: {
                     type: 'svg',
                     nodeTypeAccessor: function (n) { return (n.getData() || {}).type; },
@@ -84,13 +93,13 @@
                     defaultEdgeStyle: { animateDash: false, markerEnd: 'none' },
                     edgeTypeAccessor: function (e) { var d = e.getData ? e.getData() : null; return d ? d.kind : undefined; },
                     edgeStyleMap: {
-                        'object-reference':     { strokeColor: KIND.reference.color },
-                        'analyst-relationship': { strokeColor: KIND.claim.color, dashed: true },
+                        'object-reference':     { strokeColor: kindColour(KIND.reference) },
+                        'analyst-relationship': { strokeColor: kindColour(KIND.claim), dashed: true },
                         'feed-correlation':     { strokeColor: P().feed.core, dashed: true },
                         'server-correlation':   { strokeColor: P().server.core, dashed: true },
-                        near:                   { strokeColor: KIND.near.color, dashed: true },
-                        'in-event':             { strokeColor: '#8a8f98', strokeWidth: 1 },
-                        occurrence:             { strokeColor: '#8a8f98', strokeWidth: 1 }
+                        near:                   { strokeColor: kindColour(KIND.near), dashed: true },
+                        'in-event':             { strokeColor: P().edge.link, strokeWidth: 1 },
+                        occurrence:             { strokeColor: P().edge.link, strokeWidth: 1 }
                     },
                     defaultLabelStyle: { labelAccessor: function () { return ''; } },
                     enableNodeExpansion: false,
@@ -167,7 +176,7 @@
         var r = el('div', 'vn-row' + (cls ? ' ' + cls : ''));
         var br = el('span', 'vn-branch');
         if (kind) {
-            br.style.borderTopColor = kind.color;
+            br.style.borderTopColor = kindColour(kind);
             br.style.borderTopStyle = kind.dash;
         }
         r.appendChild(br);
@@ -205,7 +214,7 @@
         list.sort(function (a, b) { return a.kind === b.kind ? 0 : (a.kind === 'reference' ? -1 : 1); });
         var v = list[0];
         var parts = [{ text: v.dir === 'in' ? '← ' + short(v.rel, 18) : short(v.rel, 18) + ' →',
-                       cls: 'vn-rel', color: KIND[v.kind].color }];
+                       cls: 'vn-rel', color: kindColour(KIND[v.kind]) }];
         if (list.length > 1) parts.push({ text: '+' + (list.length - 1), cls: 'vn-plus' });
         return parts;
     }

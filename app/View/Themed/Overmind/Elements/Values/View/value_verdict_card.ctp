@@ -37,14 +37,6 @@ $top = array_slice($signals, 0, 3);
 $rest = count($signals) - count($top);
 
 /*
- * The band as a three-segment meter. `none` lights nothing, which is
- * the reading it deserves: a band of `none` is not a low signal strength, it is
- * an assessment that never got one.
- */
-$bandLevels = array('none' => 0, 'low' => 1, 'medium' => 2, 'high' => 3);
-$bandLevel = $bandLevels[$verdict['band']] ?? 0;
-
-/*
  * The profile that weighted this value, as a link to the page that
  * says what is in it — `view` for one the reader cannot change,
  * because the editor itself refuses an edit that is not theirs and
@@ -84,32 +76,9 @@ if (!empty($verdict['profile_id'])) {
 
     <div class="p-3 d-flex flex-column gap-3">
 
-        <div>
-            <?= $this->element('Values/View/value_lean', array(
-                'lean' => $verdict['lean'],
-                'signalStrength' => $verdict['signal_strength'],
-                'size' => 'lg',
-            )) ?>
-            <div class="vp-confidence" title="<?= h(sprintf(
-                __('Signal-strength band: %s'),
-                $verdict['band']
-            )) ?>">
-                <span class="vp-confidence-label">
-                    <?= h(__('Signal strength')) ?>
-                </span>
-                <span class="vp-confidence-track">
-                    <?php for ($i = 1; $i <= 3; $i++): ?>
-                        <span class="vp-confidence-seg<?=
-                            $i <= $bandLevel
-                                ? ' vp-confidence-seg-on'
-                                : '' ?>"></span>
-                    <?php endfor; ?>
-                </span>
-                <span class="vp-confidence-reading">
-                    <?= h($verdict['band']) ?>
-                </span>
-            </div>
-        </div>
+        <?= $this->element('Values/View/value_verdict_axes', array(
+            'verdict' => $verdict,
+        )) ?>
 
         <?php if (empty($top)): ?>
             <?php /*

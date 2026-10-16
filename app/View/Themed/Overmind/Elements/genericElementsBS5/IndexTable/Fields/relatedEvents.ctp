@@ -24,22 +24,25 @@ if ($isEventView) {
 }
 
 
+$marker = '';
+if (!empty($attribute['correlation_exclusion'])) {
+    $marker = sprintf(
+        '<span class="badge text-bg-warning text-dark d-inline-flex align-items-center gap-1"'
+        . ' title="%s"><i class="fas fa-ban"></i> %s</span>',
+        __('The attribute value matches a correlation exclusion rule.'),
+        __('Excluded')
+    );
+} elseif (!empty($attribute['over_correlation'])) {
+    $marker = sprintf(
+        '<span class="badge text-bg-danger d-inline-flex align-items-center gap-1"'
+        . ' title="%s"><i class="fas fa-exclamation-triangle"></i> %s</span>',
+        __('The correlation threshold has been exceeded for this value.'),
+        __('Overcorrelated')
+    );
+}
+
 if (empty($relatedList)) {
-    if (!empty($attribute['correlation_exclusion'])) {
-        echo sprintf(
-            '<span class="badge text-bg-warning text-dark d-inline-flex align-items-center gap-1"'
-            . ' title="%s"><i class="fas fa-ban"></i> %s</span>',
-            __('The attribute value matches a correlation exclusion rule.'),
-            __('Excluded')
-        );
-    } elseif (!empty($attribute['over_correlation'])) {
-        echo sprintf(
-            '<span class="badge text-bg-danger d-inline-flex align-items-center gap-1"'
-            . ' title="%s"><i class="fas fa-exclamation-triangle"></i> %s</span>',
-            __('The correlation threshold has been exceeded for this value.'),
-            __('Overcorrelated')
-        );
-    }
+    echo $marker;
     return;
 }
 
@@ -60,7 +63,10 @@ foreach ($relatedList as $ra) {
     ];
 }
 
-if (empty($events)) return;
+if (empty($events)) {
+    echo $marker;
+    return;
+}
 
 $maxVisible = 4;
 $total      = count($events);
@@ -88,7 +94,7 @@ $overflow   = $total - $maxVisible;
                     . h(__('Your organisation')) . '</div>';
             }
         ?>
-        <a href="<?= $baseurl ?>/events/view2/<?= h($ev['id']) ?>"
+        <a href="<?= $baseurl ?>/events/view/<?= h($ev['id']) ?>"
            class="badge text-decoration-none bg-primary om-lazy-popover<?= $hidden ? ' d-none related-event-extra' : '' ?>"
            aria-label="<?= h(__('Event #%s', $ev['id'])) ?>"
            data-bs-title="<?= h(__('Event #%s', $ev['id'])) ?>"
@@ -114,6 +120,8 @@ $overflow   = $total - $maxVisible;
             +<?= $overflow ?>
         </span>
     <?php endif; ?>
+
+    <?= $marker ?>
 
     <?php if ($attribute && !empty($attribute['value'])): ?>
         <a href="<?= $baseurl ?>/attributes/search/value:<?= urlencode($attribute['value']) ?>"

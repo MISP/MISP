@@ -511,7 +511,7 @@
         Value:         { label: 'Value', icon: 'misp-icon misp-icon-value-intelligence misp-simple', color: 'var(--bs-valueIntelligence)' }
     };
     function typeOf(t) { return TYPE[t] || { label: t || 'Record', icon: 'fas fa-circle' }; }
-    var TARGET_PAGE = { Event: '/events/view2/', Collection: '/collections/view/', GalaxyCluster: '/galaxy_clusters/view/' };
+    var TARGET_PAGE = { Event: '/events/view/', Collection: '/collections/view/', GalaxyCluster: '/galaxy_clusters/view/' };
 
     // A target as type and label; a target the reader cannot read is its
     // type alone. A summary with no target at all is not labelled yet.
@@ -1253,7 +1253,7 @@
     }
     // A record's own page; an attribute's and an object's redirect to their
     // event's tab.
-    var PAGE = { Event: '/events/view2/', Attribute: '/attributes/view/', Object: '/objects/view/', GalaxyCluster: '/galaxy_clusters/view/' };
+    var PAGE = { Event: '/events/view/', Attribute: '/attributes/view/', Object: '/objects/view/', GalaxyCluster: '/galaxy_clusters/view/' };
     function b64url(s) {
         var bin = '';
         new TextEncoder().encode(s).forEach(function (b) { bin += String.fromCharCode(b); });

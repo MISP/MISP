@@ -3,15 +3,11 @@
 /**
  * What an outside source thinks of an address, in a word.
  *
- * **This is the one shape where the set of templates is a roster, and
- * it is named as one.** Verdict vendors do not share a template: each
- * ships its own, with its own vocabulary — `classification` on one,
- * `reputation` on another, a confidence score on a third. The key is
- * still the object template and never the module, but until a generic
- * `reputation` template exists upstream the set has to be written out
- * vendor by vendor. `reputation` is claimed here in advance, so that
- * the day it lands the free list services have somewhere to emit and
- * the roster collapses to one name.
+ * **The set of templates is a roster.** Most sources emit the generic
+ * `reputation` template, but some verdict vendors still ship their own,
+ * each with its own vocabulary — `classification` on one, a confidence
+ * score on another. The key is still the object template and never the
+ * module.
  *
  * ## The reading is here, and it is used twice
  *

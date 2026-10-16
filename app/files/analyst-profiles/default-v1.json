@@ -2,7 +2,7 @@
     "uuid": "6e2679bc-ebb0-417f-90d8-16cb1d0144ba",
     "name": "default-v1",
     "description": "The Analyst Profile MISP ships with, and the one every value page is scored by until somebody enables another. Take a copy rather than editing it - the profile nearest the reader wins.",
-    "version": 21,
+    "version": 26,
     "parameters": {
         "format": 1,
         "signals": [
@@ -129,6 +129,13 @@
                     "malicious_ratio": 5,
                     "benign_engines": 40
                 }
+            },
+            {
+                "id": "enrichment.registration_age",
+                "group": "Enrichment",
+                "enabled": true,
+                "points": { "fresh": 12, "young": 4 },
+                "config": { "fresh_days": 30, "young_days": 180 }
             }
         ],
         "thresholds": {
@@ -203,7 +210,7 @@
         },
         "reference": {
             "org_trust": {},
-            "module_trust": {},
+            "module_trust": { "rdap": "C", "hashlookup": "C" },
             "org_trust_scale": {
                 "A": 1.25, "B": 1.1, "C": 1.0, "D": 0.75, "E": 0.25,
                 "F": 1.0, "G": 0.0,
@@ -239,11 +246,13 @@
                 },
                 "hostname": {
                     "circl_passivedns": "ticked",
-                    "dns": "ticked"
+                    "dns": "ticked",
+                    "rdap": "auto"
                 },
                 "domain": {
                     "circl_passivedns": "ticked",
                     "dns": "ticked",
+                    "rdap": "auto",
                     "whois": "ticked"
                 },
                 "domain|ip": {
@@ -277,7 +286,8 @@
                 "mitre-mobile-attack-intrusion-set",
                 "mitre-pre-attack-intrusion-set", "mitre-ics-groups",
                 "groups", "microsoft-activity-group",
-                "360net-threat-actor", "surveillance-vendor",
+                "360net", "360net-threat-actor",
+                "surveillance-vendor",
                 "canada-listed-terrorist-entities", "campaigns",
                 "mitre-campaign",
                 "malpedia", "ransomware", "backdoor", "banker", "stealer",

@@ -440,7 +440,7 @@ $renderRow = function ($row, $home) use ($baseurl, $fmt, $orgBody,
                         $recordUrl = $baseurl . '/eventReports/view/'
                             . (int)$row['model_id'];
                     } elseif ($row['event_id'] !== null) {
-                        $recordUrl = $baseurl . '/events/view2/'
+                        $recordUrl = $baseurl . '/events/view/'
                             . (int)$row['event_id'];
                     }
                     $recordLine = h($row['model'])
@@ -1344,7 +1344,7 @@ $chartPayload = array(
                                 <?php endif; ?>
                             </div>
 
-                            <a href="<?= $baseurl ?>/events/view2/<?=
+                            <a href="<?= $baseurl ?>/events/view/<?=
                                 h($group['event_id']) ?>"
                                class="flex-shrink-0 small"
                                title="<?= h(__(

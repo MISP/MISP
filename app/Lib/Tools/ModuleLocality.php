@@ -30,7 +30,7 @@
  * So the same shape says both things, exactly as phase 6's fixture put
  * `7` in two weight bands and thereby foreclosed a derived band
  * (**D14**). The knowledge is editorial and ships as code, following
- * `WarninglistCategory`'s V1 and `GalaxyColour` before it.
+ * `GalaxyColour` before it.
  *
  * ## The test that decides membership
  *
@@ -79,9 +79,8 @@ class ModuleLocality
 
     /**
      * Where an answer came from, carried per module so the tab can
-     * name it — the same treatment `WarninglistCategory` gives a
-     * category, and for the same reason: a shipped map that has fallen
-     * behind should be visible rather than silent.
+     * name it: a shipped map that has fallen behind should be visible
+     * rather than silent.
      */
     const SOURCE_SHIPPED = 'shipped';
     const SOURCE_UNKNOWN = 'unknown';
@@ -217,8 +216,7 @@ class ModuleLocality
      *
      * The mechanical criterion, in code so that *"can this file
      * go?"* is answered by an instance rather than by reading a
-     * roadmap — `WarninglistCategory::retirable()`'s shape, with a
-     * different upstream. It is satisfied when **every module the
+     * roadmap. It is satisfied when **every module the
      * instance offers** declares its own locality, not merely the ones
      * this map happens to name: a field that exists for 22 modules and
      * not the other 124 leaves `unknown` meaning two different things,

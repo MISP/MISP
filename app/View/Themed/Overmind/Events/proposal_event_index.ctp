@@ -91,7 +91,7 @@ $fields = [
         'name' => __('Proposals'),
         'data_path' => 'Event.proposal_count',
         'element' => 'count',
-        'url' => $baseurl . '/events/view2/%id%#tab-attributes',
+        'url' => $baseurl . '/events/view/%id%#tab-attributes',
         'url_params_data_paths' => ['id' => 'Event.id'],
         'class' => 'short',
         'card_section' => 'top',
@@ -124,7 +124,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             ],
             'fields' => $fields,
             'primary_id_path' => 'Event.id',
-            'row_dblclick_url' => $baseurl . '/events/view2/%id%',
+            'row_dblclick_url' => $baseurl . '/events/view/%id%',
         ]
     ],
     'item_url' => '/events'

@@ -415,7 +415,7 @@ if (!$offerSimilarity) {
                                     <?php if (!empty($row['object'])): ?>
                                         <a class="vp-rel-tag"
                                            href="<?= $baseurl
-                                               ?>/events/view2/<?=
+                                               ?>/events/view/<?=
                                                h($row['event'])
                                                ?>#tab-objects"
                                            title="<?= h(sprintf(
@@ -431,7 +431,7 @@ if (!$offerSimilarity) {
                                     <?php elseif (!empty($row['attribute'])): ?>
                                         <a class="vp-rel-tag"
                                            href="<?= $baseurl
-                                               ?>/events/view2/<?=
+                                               ?>/events/view/<?=
                                                h($row['event'])
                                                ?>#tab-attributes"
                                            title="<?= h(sprintf(
@@ -446,7 +446,7 @@ if (!$offerSimilarity) {
                                     <?php endif; ?>
                                     <div class="vp-fact-line-sub">
                                         <a href="<?= $baseurl
-                                            ?>/events/view2/<?=
+                                            ?>/events/view/<?=
                                             h($row['event']) ?>"
                                            class="font-monospace small">
                                             #<?= h($row['event']) ?>
