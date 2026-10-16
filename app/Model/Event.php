@@ -12712,7 +12712,7 @@ class Event extends AppModel
     {
         $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
         $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
-        $default_event_memory_divisor = Configure::check('MISP.default_event_memory_multiplier') ? Configure::read('MISP.default_event_memory_divisor') : 3;
+        $default_event_memory_divisor = Configure::read('MISP.default_event_memory_divisor') ?: 3;
         $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
         // increase the cost per attribute to account for the overhead of object metadata
         $memory_scaling_factor = $memory_scaling_factor / $default_event_memory_divisor;
