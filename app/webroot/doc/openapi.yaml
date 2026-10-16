@@ -7133,7 +7133,6 @@ components:
         - text
         - stix
         - stix2
-        - stix-json
         - attack
         - attack-sightings
         - cache
@@ -7157,7 +7156,6 @@ components:
         - text
         - stix
         - stix2
-        - stix-json
         - hashes
         - cache
         - count
@@ -11442,7 +11440,6 @@ components:
           - download
           - stix
           - stix2
-          - stix-json
           - attack
           - attack-sightings
           - cache
@@ -11468,7 +11465,6 @@ components:
           - download
           - stix
           - stix2
-          - stix-json
           - attack
           - attack-sightings
           - cache

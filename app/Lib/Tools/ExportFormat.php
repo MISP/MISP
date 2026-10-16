@@ -58,7 +58,6 @@ class ExportFormat
 
         // ── Structured threat intel ──
         'stix'            => array('icon' => 'share-nodes',     'hue' => 300),
-        'stixjson'        => array('icon' => 'share-nodes',     'hue' => 310),
         'stix2'           => array('icon' => 'share-nodes',     'hue' => 320),
 
         // ── Network plumbing ──
@@ -85,7 +84,6 @@ class ExportFormat
         'stixxml'    => 'stix',
         'stix1'      => 'stix',
         'stix1xml'   => 'stix',
-        'stix1json'  => 'stixjson',
         'stix2json'  => 'stix2',
         'csvsig'     => 'csv',
         'mispjson'   => 'json',

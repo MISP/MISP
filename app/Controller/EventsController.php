@@ -5999,7 +5999,6 @@ class EventsController extends AppController
                 'rpz' => __('RPZ'),
                 'snort' => __('Snort rules'),
                 'stix' => __('STIX 1 XML'),
-                'stix-json' => __('STIX 1 JSON'),
                 'stix2' => __('STIX 2'),
                 'suricata' => __('Suricata rules'),
                 'text' => __('Text file'),
@@ -6982,14 +6981,6 @@ class EventsController extends AppController
                 'checkbox' => true,
                 'checkbox_text' => __('Encode Attachments'),
                 'checkbox_set' => $this->baseurl . '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1',
-            ),
-            'stix_json' => array(
-                'url' => $this->baseurl . '/events/restSearch/stix-json/eventid:' . $id,
-                'text' => __('STIX 1 JSON (metadata + all attributes)'),
-                'requiresPublished' => false,
-                'checkbox' => true,
-                'checkbox_text' => __('Encode Attachments'),
-                'checkbox_set' => $this->baseurl . '/events/restSearch/stix-json/withAttachments:1/eventid:' . $id,
             ),
             'stix2_json' => array(
                 'url' => $this->baseurl . '/events/restSearch/stix2/eventid:' . $id,

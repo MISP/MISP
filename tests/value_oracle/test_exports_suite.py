@@ -67,8 +67,6 @@ class CasesTest(unittest.TestCase):
         by_name = {c.name: c for c in build(FIXTURES)}
         self.assertEqual('application/xml',
                          by_name['event.small.stix.admin'].accept)
-        self.assertEqual('application/json',
-                         by_name['event.small.stix-json.admin'].accept)
         self.assertEqual({'eventid': '11', 'returnFormat': 'stix'},
                          by_name['event.small.stix.admin'].body)
 
@@ -133,7 +131,7 @@ class NormaliseTest(unittest.TestCase):
     def test_stix_package_and_bundle_ids(self):
         root = 'ORGNAME:STIXPackage-8b040d6d-4255-4b13-93c8-7b1859ed1d1b'
         inner = 'ORGNAME:STIXPackage-5ab4fbe3-3c98-4cf9-9a80-04b3ac1b880d'
-        out = exports.normalise('stix-json', root + ' ' + inner,
+        out = exports.normalise('stix', root + ' ' + inner,
                                 *self.window())
         self.assertEqual('ORGNAME:STIXPackage-<random> ' + inner, out)
         bundle = '{"id": "bundle--ff5b9700-e5f5-4944-97b6-984f1e3e10a0"}'
