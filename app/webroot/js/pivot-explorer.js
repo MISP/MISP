@@ -5146,9 +5146,17 @@
         }
 
         /* ── pivotick options ──────────────────────────────────── */
+
+        // MISP's zh-s is no BCP 47 tag; fall back to its language.
+        function pivotickLocale() {
+            var lang = document.documentElement.lang || 'en';
+            try { return Intl.getCanonicalLocales(lang)[0]; }
+            catch (e) { return lang.split('-')[0]; }
+        }
         function graphOptions() {
             return {
                 isDirected: true,
+                i18n: { locale: pivotickLocale() },
                 render: {
                     type: 'svg',
                     minLabelFontSize: 8,

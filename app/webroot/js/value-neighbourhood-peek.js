@@ -40,6 +40,13 @@
         return e;
     }
 
+    // MISP's zh-s is no BCP 47 tag; fall back to its language.
+    function pivotickLocale() {
+        var lang = document.documentElement.lang || 'en';
+        try { return Intl.getCanonicalLocales(lang)[0]; }
+        catch (e) { return lang.split('-')[0]; }
+    }
+
     function fmt(n) { return Number(n || 0).toLocaleString('en'); }
     function plural(n, one, many) { return fmt(n) + ' ' + (n === 1 ? one : (many || one + 's')); }
 
@@ -77,6 +84,7 @@
         try {
             var graph = new window.Pivotick(canvas, data, {
                 isDirected: true,
+                i18n: { locale: pivotickLocale() },
                 render: {
                     type: 'svg',
                     nodeTypeAccessor: function (n) { return (n.getData() || {}).type; },
