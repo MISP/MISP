@@ -3033,6 +3033,7 @@ public function updateJSON()
             $this->set('updateFailNumberReached', $dbSchemaDiagnostics['update_fail_number_reached']);
             $this->set('updateLocked', $dbSchemaDiagnostics['update_locked']);
             $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
+            $this->set('warnings', $dbSchemaDiagnostics['warnings']);
             $this->set('migrationsPending', $dbSchemaDiagnostics['migrations_pending']);
             $this->set('migrationsPendingIds', $dbSchemaDiagnostics['migrations_pending_ids']);
             $this->set('migrationsFailed', $dbSchemaDiagnostics['migrations_failed']);

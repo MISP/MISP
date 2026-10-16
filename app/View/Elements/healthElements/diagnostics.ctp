@@ -358,6 +358,7 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
             'updateFailNumberReached' => $dbSchemaDiagnostics['update_fail_number_reached'],
             'updateLocked' => $dbSchemaDiagnostics['update_locked'],
             'dataSource' => $dbSchemaDiagnostics['dataSource'],
+            'warnings' => $dbSchemaDiagnostics['warnings'],
             'migrationsPending' => $dbSchemaDiagnostics['migrations_pending'],
             'migrationsPendingIds' => $dbSchemaDiagnostics['migrations_pending_ids'],
             'migrationsFailed' => $dbSchemaDiagnostics['migrations_failed'],
