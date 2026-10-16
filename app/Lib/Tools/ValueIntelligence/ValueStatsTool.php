@@ -681,10 +681,12 @@ class ValueStatsTool
     }
 
     /**
-     * The three dates the rail can cut on, and what they span.
+     * The four dates the rail can cut on, and what they span.
      *
      * `timestamp` is when the attribute was last modified and every
-     * attribute has one. `published` is when its event was last
+     * attribute has one. `created` is when this instance created it, and
+     * an attribute from before MISP 3.0 has none, counted for the same
+     * reason as an unpublished event. `published` is when its event was last
      * published, and an unpublished event has none — so those rows are
      * counted rather than quietly dropped, because a date cut over a
      * column that is sometimes absent has to say how much it removes
@@ -699,17 +701,22 @@ class ValueStatsTool
      * render identically.
      *
      * @param array $rows
-     * @return array `time_spans`, `time_buckets`, `published_unset`
+     * @return array `time_spans`, `time_buckets`, `published_unset`,
+     *     `created_unset`
      */
     private static function timeSpans(array $rows)
     {
-        $keys = array('timestamp', 'published', 'event');
+        $keys = array('timestamp', 'created', 'published', 'event');
         $spans = array_fill_keys($keys, null);
         $days = array_fill_keys($keys, array());
         $unpublished = 0;
+        $uncreated = 0;
         foreach ($rows as $row) {
             $stamps = array(
                 'timestamp' => $row['Attribute']['timestamp'] ?? null,
+                'created' => empty($row['Attribute']['created'])
+                    ? null
+                    : $row['Attribute']['created'],
                 'published' => empty($row['Event']['publish_timestamp'])
                     ? null
                     : $row['Event']['publish_timestamp'],
@@ -717,6 +724,9 @@ class ValueStatsTool
             );
             if ($stamps['published'] === null) {
                 $unpublished++;
+            }
+            if ($stamps['created'] === null) {
+                $uncreated++;
             }
             foreach ($stamps as $key => $stamp) {
                 if (empty($stamp)) {
@@ -745,6 +755,7 @@ class ValueStatsTool
             'time_spans' => $spans,
             'time_buckets' => $buckets,
             'published_unset' => $unpublished,
+            'created_unset' => $uncreated,
         );
     }
 

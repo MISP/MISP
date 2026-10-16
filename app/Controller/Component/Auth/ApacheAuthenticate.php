@@ -65,15 +65,15 @@ class ApacheAuthenticate extends BaseAuthenticate
         $ldapEmailField = Configure::read('ApacheSecureAuth.ldapEmailField');
 
         // LDAP connection
-        ldap_set_option(NULL, LDAP_OPT_NETWORK_TIMEOUT, Configure::read('ApacheSecureAuth.ldapNetworkTimeout', -1));
+        ldap_set_option(NULL, LDAP_OPT_NETWORK_TIMEOUT, Configure::read('ApacheSecureAuth.ldapNetworkTimeout') ?? -1);
         $ldapconn = ldap_connect(Configure::read('ApacheSecureAuth.ldapServer'))
                 or die('LDAP server connection failed');
 
         // LDAP protocol configuration
         ldap_set_option($ldapconn, LDAP_OPT_PROTOCOL_VERSION, Configure::read('ApacheSecureAuth.ldapProtocol'));
-        ldap_set_option($ldapconn, LDAP_OPT_REFERRALS, Configure::read('ApacheSecureAuth.ldapAllowReferrals', true));
+        ldap_set_option($ldapconn, LDAP_OPT_REFERRALS, Configure::read('ApacheSecureAuth.ldapAllowReferrals') ?? true);
 
-        if (Configure::read('ApacheSecureAuth.starttls', false) == true) {
+        if (Configure::read('ApacheSecureAuth.starttls') == true) {
             # Default is false, sine STARTTLS support is a new feature
             # Ignored on ldaps://, but can trigger problems for orgs
             # using unencrypted LDAP. Loose comparison allows users to

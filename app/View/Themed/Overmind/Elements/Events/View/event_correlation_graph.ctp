@@ -70,6 +70,9 @@ echo $this->element('genericElements/assetLoader', [
                     </button>
                 </div>
 
+                <!-- Period brush: every correlated event, its window is the period the graph draws -->
+                <div id="sankey-overview" class="sankey-overview" hidden></div>
+
                 <!-- Empty state (no correlation, or everything filtered out) -->
                 <div id="sankey-empty"
                      class="d-none d-flex flex-column align-items-center text-muted pt-2 small"></div>
@@ -149,7 +152,7 @@ echo $this->element('genericElements/assetLoader', [
         </section>
 
         <?php foreach ([
-            'iocs' => [__('Correlating IOCs'), __('Search a value or a type'), __('An unticked IOC leaves the graph and the list below, with every event it alone links to.')],
+            'iocs' => [__('Correlating IOCs'), __('Search a value, a type or an object'), __('An unticked IOC leaves the graph and the list below, with every event it alone links to.')],
             'events' => [__('Correlated events'), __('Search a title, a date or an organisation'), __('An unticked event leaves the graph and the list below.')],
         ] as $kind => [$label, $placeholder, $hint]): ?>
             <section>
@@ -158,6 +161,15 @@ echo $this->element('genericElements/assetLoader', [
                     'label' => $label,
                     'badge' => ' ',
                 ]) ?>
+                <?php if ($kind === 'iocs'): ?>
+                    <?php foreach (['types' => __('Types'), 'objects' => __('Objects')] as $facet => $facetLabel): ?>
+                        <div class="sankey-facet d-none mb-2" data-facet="<?= $facet ?>">
+                            <div class="small text-body-secondary mb-1"><?= h($facetLabel) ?></div>
+                            <div class="d-flex flex-wrap gap-1" data-facet-list role="group"
+                                 aria-label="<?= h($facetLabel) ?>"></div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
                 <div class="d-flex gap-2 mb-2">
                     <input type="search" class="form-control form-control-sm" data-filter-search="<?= $kind ?>"
                            placeholder="<?= h($placeholder) ?>" aria-label="<?= h($placeholder) ?>">
@@ -191,8 +203,10 @@ echo $this->element('genericElements/assetLoader', [
     var eventDate = <?= json_encode($eventDate) ?>;
 
     /* ── state ─────────────────────────────────────────────── */
-    var _correlationData         = null;   // working set (warninglist filter applied)
+    var _correlationData         = null;   // working set: IOC key -> relations still drawn
     var _rawCorrelationData      = null;   // untouched API payload
+    var _iocs                    = null;   // IOC key -> {value, rels, pids}, one per matched value
+    var _parentAttributes        = {};     // this event's attribute id -> {type, object}
     var _warninglistHits         = {};     // parent attribute id -> [warninglist name, ..]
     var _warninglistHitCount     = 0;
     var _correlationEventDetails = null;
@@ -216,6 +230,10 @@ echo $this->element('genericElements/assetLoader', [
     var _pan = null;                 // drag-to-pan in progress
     var _suppressClick = false;      // a pan must not open the node it started on
     var _dateZone = null;            // the graph's date column, in svg pixels
+    var _overview     = null;        // the period brush strip
+    var _overviewBars = [];          // its bars: {from, to, count}, in ms
+    var _brushing     = false;       // a brush drag is changing the period
+    var _brushBars    = null;        // bar indices under the brush
     var updateTargetPositionsOnly = function () {};   // set inside renderSankey
     var rescaleDateLane = function () {};             // set inside renderSankey
 
@@ -223,6 +241,8 @@ echo $this->element('genericElements/assetLoader', [
     var MONTH_MS = 2629746000;
     var YEAR_MS  = 31556952000;
     var MIN_ZOOM_SPAN_MS = 7 * DAY_MS;
+    var OVERVIEW_MAX_BARS = 120;
+    var OVERVIEW_UNITS = ['day', 'week', 'month', 'quarter', 'year'];
 
     /* ── helpers ───────────────────────────────────────────── */
     function formatTimelineDateUtc(ts) {
@@ -381,6 +401,7 @@ echo $this->element('genericElements/assetLoader', [
         _rangeMaxTs = hi;
         _rangeIsFull = lo <= _domainMinTs && hi >= _domainMaxTs;
         _syncZoomBadge();
+        _syncOverview();
     }
 
     /* a drag follows the pointer exactly, so it skips the glide */
@@ -453,7 +474,7 @@ echo $this->element('genericElements/assetLoader', [
     function _scheduleGraphUpdate() {
         _graphUpdatePending = true;
         clearTimeout(_graphUpdateTimer);
-        if (_pan) return;   // the release redraws
+        if (_pan || _brushing) return;   // the release redraws
         _graphUpdateTimer = setTimeout(_flushGraphUpdate, 250);
     }
 
@@ -627,6 +648,170 @@ echo $this->element('genericElements/assetLoader', [
         }
     }
 
+    /* ── period brush ──────────────────────────────────────── */
+    /* the strip always spans the whole domain, its window is the drawn period */
+    var _overviewTitle = <?= json_encode(h(__('Correlated events over time'))) ?>;
+    var _overviewHint  = <?= json_encode(h(__('Drag to choose the period drawn below, click to show it all.'))) ?>;
+    var _overviewUnits = <?= json_encode([
+        'day' => h(__('One bar per day.')),
+        'week' => h(__('One bar per week.')),
+        'month' => h(__('One bar per month.')),
+        'quarter' => h(__('One bar per quarter.')),
+        'year' => h(__('One bar per year.')),
+    ]) ?>;
+    var _overviewThisEvent = <?= json_encode(h(__('This event'))) ?>;
+
+    function _nextBar(ts, unit) {
+        if (unit === 'day')     return ts + DAY_MS;
+        if (unit === 'week')    return ts + 7 * DAY_MS;
+        if (unit === 'month')   return addUtcMonths(ts, 1);
+        if (unit === 'quarter') return addUtcMonths(ts, 3);
+        return addUtcYears(ts, 1);
+    }
+
+    /* the finest calendar unit that keeps the bars readable */
+    function _overviewBuckets(minTs, maxTs) {
+        var unit, bars;
+        for (var u = 0; u < OVERVIEW_UNITS.length; u++) {
+            var cap = u === OVERVIEW_UNITS.length - 1 ? Infinity : OVERVIEW_MAX_BARS;
+            unit = OVERVIEW_UNITS[u];
+            bars = [];
+            for (var t = minTs; t < maxTs && bars.length <= cap; t = _nextBar(t, unit)) {
+                bars.push({from: t, to: Math.min(maxTs, _nextBar(t, unit)), count: 0});
+            }
+            if (bars.length <= cap) break;
+        }
+        return {unit: unit, bars: bars};
+    }
+
+    function _barIndexAt(ts) {
+        var lo = 0, hi = _overviewBars.length - 1;
+        while (lo < hi) {
+            var mid = (lo + hi + 1) >> 1;
+            if (_overviewBars[mid].from <= ts) lo = mid;
+            else hi = mid - 1;
+        }
+        return lo;
+    }
+
+    /* 0..bar count along the strip */
+    function _barPosition(ts) {
+        var n = _overviewBars.length;
+        if (ts >= _overviewBars[n - 1].to) return n;
+        var i = _barIndexAt(ts), bar = _overviewBars[i];
+        return i + Math.max(0, (ts - bar.from) / (bar.to - bar.from));
+    }
+
+    /* the date lane's tick picker, so both axes read alike */
+    function _overviewLabels(widthPx) {
+        var n = _overviewBars.length, labels = {};
+        var step = _pickTickStep(_domainMaxTs - _domainMinTs, widthPx);
+        _tickTimes(_domainMinTs, _domainMaxTs, step).forEach(function (ts) {
+            var i = _barIndexAt(ts);
+            if (ts >= _domainMaxTs || (i / n) * widthPx + _tickLabelWidth(step.unit) > widthPx) return;
+            labels[i] = {
+                text: formatSankeyGridDate(ts, step.unit),
+                major: ts === startOfUtcYear(ts)
+            };
+        });
+        return labels;
+    }
+
+    function _buildOverview(eventDetails) {
+        var host = document.getElementById('sankey-overview');
+        _overview  = null;
+        _brushing  = false;
+        _brushBars = null;
+        if (!host) return;
+        host.innerHTML = '';
+        if (!window.MispTimeline || !(_domainMaxTs > _domainMinTs)) {
+            _syncOverview();
+            return;
+        }
+        var buckets = _overviewBuckets(_domainMinTs, _domainMaxTs);
+        _overviewBars = buckets.bars;
+        var max = 0;
+        Object.keys(eventDetails).forEach(function (eid) {
+            var date = (eventDetails[eid] || {}).date || '';
+            var ts   = date ? Date.parse(date + 'T00:00:00Z') : NaN;
+            if (!isFinite(ts)) return;
+            max = Math.max(max, ++_overviewBars[_barIndexAt(ts)].count);
+        });
+        var contentEl = document.getElementById('correlations-content');
+        var labels = _overviewLabels((contentEl && contentEl.clientWidth) || 800);
+        var dated  = isFinite(_currentEventDateTs);
+
+        _overview = window.MispTimeline.overview({
+            bars: _overviewBars,
+            max: max,
+            maxLabels: _overviewBars.length,
+            tickLabel: function (i) { return labels[i] || null; },
+            head: '<strong>' + _overviewTitle + '</strong>'
+                + '<span>' + _overviewUnits[buckets.unit] + ' ' + _overviewHint + '</span>'
+                + (dated
+                    ? '<span class="sankey-overview-key"><span class="sankey-overview-star">★</span>'
+                      + _overviewThisEvent + '</span>'
+                    : ''),
+            onRange: function (from, to) {
+                _brushBars = {from: from, to: to};
+                /* a press still inside its bar may yet be a click */
+                if (!_brushing && from === to) return;
+                _brushing = true;
+                _brushTo(from, to);
+            },
+            onSettle: function () {
+                if (_brushBars) _brushTo(_brushBars.from, _brushBars.to);
+                _endBrush();
+            },
+            onClear: function () {
+                _brushing  = false;
+                _brushBars = null;
+                _resetZoom();
+            }
+        });
+        _overview.el.addEventListener('pointercancel', _endBrush);
+        host.appendChild(_overview.el);
+
+        if (dated) {
+            var plot = _overview.el.querySelector('.tl-ov-plot');
+            var mark = document.createElement('div');
+            mark.className = 'sankey-overview-current';
+            mark.style.left = (100 * _barPosition(_currentEventDateTs + DAY_MS / 2)
+                / _overviewBars.length) + '%';
+            mark.innerHTML = '<span class="sankey-overview-star">★</span>';
+            plot.insertBefore(mark, plot.querySelector('[data-misp-brush]'));
+        }
+        _syncOverview();
+    }
+
+    /* a run reaching the last bar runs to the domain's end, so a full sweep is "everything" */
+    function _brushTo(from, to) {
+        var last = to === _overviewBars.length - 1;
+        _setRange(_overviewBars[from].from, last ? _domainMaxTs : _overviewBars[to].to - 1);
+        _syncOverview();
+    }
+
+    function _endBrush() {
+        if (!_brushing && !_brushBars) return;
+        _brushing  = false;
+        _brushBars = null;
+        _syncOverview();
+        _flushGraphUpdate();
+    }
+
+    function _syncOverview() {
+        var host    = document.getElementById('sankey-overview');
+        var alignEl = document.getElementById('sankey-date-align');
+        if (!host) return;
+        host.hidden = !_overview || !(alignEl && alignEl.checked);
+        if (host.hidden) return;
+        if (_rangeIsFull && !_brushing) {
+            _overview.set(null);
+            return;
+        }
+        _overview.set({from: _barPosition(_rangeMinTs), to: _barPosition(_rangeMaxTs) - 1});
+    }
+
     /* ── fetch ─────────────────────────────────────────────── */
     function loadCorrelations() {
         if (_correlationData !== null || _correlationsLoading) return;
@@ -635,7 +820,7 @@ echo $this->element('genericElements/assetLoader', [
         var contentEl = document.getElementById('correlations-content');
         var url = baseurl + '/correlations/eventCorrelations/' + eventId
                 + '.json?include_attributes=1&include_org_names=1'
-                + '&include_warninglist_hits=1';
+                + '&include_warninglist_hits=1&include_parent_attributes=1';
 
         fetch(url)
             .then(function (r) {
@@ -669,8 +854,17 @@ echo $this->element('genericElements/assetLoader', [
         return !!(_warninglistHits && _warninglistHits[parentId]);
     }
 
-    function _warninglistNames(parentId) {
-        return (_warninglistHits[parentId] || []).join(', ');
+    /* warninglists match attributes: an IOC carries the hits of every attribute behind it */
+    function _iocWarninglisted(key) {
+        return Object.keys(_iocs[key].pids).some(_isWarninglisted);
+    }
+
+    function _iocWarninglistNames(key) {
+        var names = {};
+        Object.keys(_iocs[key].pids).forEach(function (pid) {
+            (_warninglistHits[pid] || []).forEach(function (name) { names[name] = true; });
+        });
+        return Object.keys(names).join(', ');
     }
 
     function _hideWarninglisted() {
@@ -691,36 +885,50 @@ echo $this->element('genericElements/assetLoader', [
     }
 
     /* ── exclusions (the filters drawer and the graph's ×) ─── */
-    var _excludedIocs   = {};    // parent attribute id -> true
-    var _excludedEvents = {};    // event id -> true
-    var _eventLimit     = 0;     // most recent events drawn, 0 for all
-    var _filterIndex    = null;  // every IOC and event of the payload, with its row
-    var _refilterTimer  = null;
+    var _excludedIocs    = {};   // IOC key -> true
+    var _excludedEvents  = {};   // event id -> true
+    var _excludedTypes   = {};   // attribute type -> true
+    var _excludedObjects = {};   // object template, '' for standalone -> true
+    var _eventLimit      = 0;    // most recent events drawn, 0 for all
+    var _filterIndex     = null; // every IOC and event of the payload, with its row
+    var _refilterTimer   = null;
 
     var _fltIocEvents   = <?= json_encode(__('Correlated events')) ?>;
     var _fltEventIocs   = <?= json_encode(__('Correlating IOCs')) ?>;
     var _fltByWl        = <?= json_encode(__('Hidden by the warninglist filter')) ?>;
+    var _fltByKind      = <?= json_encode(__('Hidden by the type or object filter')) ?>;
     var _fltNoEventLeft = <?= json_encode(__('Every event it links to is excluded')) ?>;
     var _fltNoIocLeft   = <?= json_encode(__('Every IOC that links to it is excluded')) ?>;
     var _fltExclOne     = <?= json_encode(__('%s exclusion')) ?>;
     var _fltExclMany    = <?= json_encode(__('%s exclusions')) ?>;
-    var _fltNone        = <?= json_encode(__('No IOC or event excluded')) ?>;
+    var _fltNone        = <?= json_encode(__('Nothing excluded')) ?>;
+    var _fltStandalone  = <?= json_encode(__('Standalone')) ?>;
 
     function _countKeys(bag) { return Object.keys(bag).length; }
 
-    function _activeFilterCount() {
+    function _exclusionCount() {
         return _countKeys(_excludedIocs) + _countKeys(_excludedEvents)
-            + (_eventLimit > 0 ? 1 : 0) + (_hideWarninglisted() ? 1 : 0);
+            + _countKeys(_excludedTypes) + _countKeys(_excludedObjects);
+    }
+
+    function _activeFilterCount() {
+        return _exclusionCount() + (_eventLimit > 0 ? 1 : 0) + (_hideWarninglisted() ? 1 : 0);
+    }
+
+    /* what the attribute behind a relation lets through: warninglist, type, object */
+    function _attrShown(pid, hideWl) {
+        if (hideWl && _isWarninglisted(pid)) return false;
+        var attr = _parentAttributes[pid];
+        return !attr || (!_excludedTypes[attr.type] && !_excludedObjects[attr.object || '']);
     }
 
     function _filterRow(kind, id, search) {
         var row = document.createElement('label');
-        row.className = 'list-group-item list-group-item-action d-flex gap-2 py-1 px-2 small '
-            + (kind === 'events' ? 'align-items-start' : 'align-items-center');
+        row.className = 'list-group-item list-group-item-action d-flex align-items-start gap-2 py-1 px-2 small';
         row.setAttribute('data-search', search.toLowerCase());
         var box = document.createElement('input');
         box.type = 'checkbox';
-        box.className = 'form-check-input m-0 flex-shrink-0' + (kind === 'events' ? ' mt-1' : '');
+        box.className = 'form-check-input m-0 mt-1 flex-shrink-0';
         box.value = id;
         box.setAttribute('data-filter-item', kind);
         row.appendChild(box);
@@ -737,23 +945,30 @@ echo $this->element('genericElements/assetLoader', [
 
     /* built once per payload - a filter change only re-ticks the rows */
     function _buildFilterLists() {
-        var iocs = {}, events = {};
-        Object.keys(_rawCorrelationData || {}).forEach(function (pid) {
-            var rels  = _rawCorrelationData[pid] || [];
-            var first = rels[0] || {};
-            var ioc   = iocs[pid] = {id: pid, value: first.value || pid, type: first.type || '', events: {}};
-            rels.forEach(function (rel) {
+        var events = {}, types = {}, objects = {};
+        var iocList = Object.keys(_iocs).map(function (key) {
+            var ioc = {id: key, value: _iocs[key].value, rels: _iocs[key].rels, events: {}, types: {}, objects: {}};
+            ioc.rels.forEach(function (rel) {
                 var eid = String(rel.id);
                 ioc.events[eid] = true;
                 var ev = events[eid] || (events[eid] = {
                     id: eid, info: rel.info || ('#' + eid), date: rel.date || '',
-                    org: rel.org_name || '', iocs: {}
+                    org: rel.org_name || '', iocs: {}, rels: []
                 });
-                ev.iocs[pid] = true;
+                ev.iocs[key] = true;
+                ev.rels.push(rel);
             });
+            Object.keys(_iocs[key].pids).forEach(function (pid) {
+                var attr = _parentAttributes[pid];
+                if (!attr) return;
+                ioc.types[attr.type] = true;
+                ioc.objects[attr.object || ''] = true;
+            });
+            Object.keys(ioc.types).forEach(function (t) { types[t] = (types[t] || 0) + 1; });
+            Object.keys(ioc.objects).forEach(function (o) { objects[o] = (objects[o] || 0) + 1; });
+            return ioc;
         });
 
-        var iocList = Object.keys(iocs).map(function (k) { return iocs[k]; });
         iocList.sort(function (a, b) {
             return _countKeys(b.events) - _countKeys(a.events)
                 || String(a.value).localeCompare(String(b.value));
@@ -767,23 +982,29 @@ echo $this->element('genericElements/assetLoader', [
         if (iocBody) {
             iocBody.innerHTML = '';
             iocList.forEach(function (ioc) {
-                var parts = _filterRow('iocs', ioc.id, ioc.value + ' ' + ioc.type);
+                var typeNames   = Object.keys(ioc.types);
+                var objectNames = Object.keys(ioc.objects).filter(Boolean);
+                var parts = _filterRow('iocs', ioc.id, [ioc.value].concat(typeNames, objectNames).join(' '));
+                var text = document.createElement('span');
+                text.className = 'flex-fill overflow-hidden';
                 var value = document.createElement('span');
-                value.className = 'text-truncate flex-fill';
+                value.className = 'd-block text-truncate';
                 value.textContent = ioc.value;
                 value.title = ioc.value;
-                parts.row.appendChild(value);
-                if (_isWarninglisted(ioc.id)) {
-                    var wl = document.createElement('i');
-                    wl.className = 'fa-solid fa-triangle-exclamation text-warning flex-shrink-0';
-                    wl.title = _wlLabel + ': ' + _warninglistNames(ioc.id);
-                    parts.row.appendChild(wl);
+                text.appendChild(value);
+                var meta = typeNames.join(', ') + (objectNames.length ? ' · ' + objectNames.join(', ') : '');
+                if (meta) {
+                    var metaEl = document.createElement('span');
+                    metaEl.className = 'd-block text-truncate text-body-secondary small';
+                    metaEl.textContent = meta;
+                    text.appendChild(metaEl);
                 }
-                if (ioc.type) {
-                    var type = document.createElement('span');
-                    type.className = 'badge text-bg-light border fw-normal flex-shrink-0';
-                    type.textContent = ioc.type;
-                    parts.row.appendChild(type);
+                parts.row.appendChild(text);
+                if (_iocWarninglisted(ioc.id)) {
+                    var wl = document.createElement('i');
+                    wl.className = 'fa-solid fa-triangle-exclamation text-warning flex-shrink-0 mt-1';
+                    wl.title = _wlLabel + ': ' + _iocWarninglistNames(ioc.id);
+                    parts.row.appendChild(wl);
                 }
                 parts.row.appendChild(_countBadge(_countKeys(ioc.events), _fltIocEvents));
                 ioc.row = parts.row;
@@ -815,7 +1036,43 @@ echo $this->element('genericElements/assetLoader', [
                 eventBody.appendChild(parts.row);
             });
         }
+        _buildFacet('types', types, function (t) { return t; });
+        _buildFacet('objects', objects, function (o) { return o || _fltStandalone; });
         _filterIndex = {iocs: iocList, events: eventList};
+    }
+
+    /* a facet with a single option would filter nothing, so it stays hidden */
+    function _buildFacet(kind, counts, label) {
+        var wrap = document.querySelector('[data-facet="' + kind + '"]');
+        var list = wrap && wrap.querySelector('[data-facet-list]');
+        if (!list) return;
+        var names = Object.keys(counts).sort(function (a, b) {
+            return counts[b] - counts[a] || label(a).localeCompare(label(b));
+        });
+        list.innerHTML = '';
+        wrap.classList.toggle('d-none', names.length < 2);
+        names.forEach(function (name, i) {
+            var box = document.createElement('input');
+            box.type = 'checkbox';
+            box.className = 'btn-check';
+            box.id = 'sankey-facet-' + kind + '-' + i;
+            box.value = name;
+            box.setAttribute('data-filter-item', kind);
+            var chip = document.createElement('label');
+            chip.className = 'sankey-facet-chip';
+            chip.htmlFor = box.id;
+            var text = document.createElement('span');
+            text.className = 'sankey-facet-name';
+            text.textContent = label(name);
+            chip.appendChild(text);
+            var count = document.createElement('span');
+            count.className = 'sankey-facet-count';
+            count.textContent = counts[name];
+            count.title = _fltEventIocs;
+            chip.appendChild(count);
+            list.appendChild(box);
+            list.appendChild(chip);
+        });
     }
 
     /* ticks, greyed rows, counters and the toolbar badge follow the state */
@@ -823,22 +1080,26 @@ echo $this->element('genericElements/assetLoader', [
         if (!_filterIndex) return;
         var hideWl = _hideWarninglisted();
         var shownIocs = 0, shownEvents = 0;
-        function wlHidden(pid) { return hideWl && _isWarninglisted(pid); }
 
         _filterIndex.iocs.forEach(function (ioc) {
             var excluded  = !!_excludedIocs[ioc.id];
-            var byWl      = wlHidden(ioc.id);
-            var reachable = Object.keys(ioc.events).some(function (eid) { return !_excludedEvents[eid]; });
-            ioc.box.checked  = !excluded && !byWl;
-            ioc.box.disabled = byWl;
-            ioc.row.classList.toggle('opacity-50', byWl || (!excluded && !reachable));
-            ioc.row.title = byWl ? _fltByWl : (!excluded && !reachable ? _fltNoEventLeft : '');
-            if (!excluded && !byWl && reachable) shownIocs++;
+            var pids      = Object.keys(_iocs[ioc.id].pids);
+            var byAttr    = !pids.some(function (pid) { return _attrShown(pid, hideWl); });
+            var reachable = ioc.rels.some(function (rel) {
+                return !_excludedEvents[rel.id] && _attrShown(rel._pid, hideWl);
+            });
+            ioc.box.checked  = !excluded && !byAttr;
+            ioc.box.disabled = byAttr;
+            ioc.row.classList.toggle('opacity-50', byAttr || (!excluded && !reachable));
+            ioc.row.title = byAttr
+                ? (hideWl && pids.every(_isWarninglisted) ? _fltByWl : _fltByKind)
+                : (!excluded && !reachable ? _fltNoEventLeft : '');
+            if (!excluded && reachable) shownIocs++;
         });
         _filterIndex.events.forEach(function (ev) {
             var excluded  = !!_excludedEvents[ev.id];
-            var reachable = Object.keys(ev.iocs).some(function (pid) {
-                return !_excludedIocs[pid] && !wlHidden(pid);
+            var reachable = ev.rels.some(function (rel) {
+                return !_excludedIocs[rel._ioc] && _attrShown(rel._pid, hideWl);
             });
             ev.box.checked = !excluded;
             ev.row.classList.toggle('opacity-50', !excluded && !reachable);
@@ -852,9 +1113,13 @@ echo $this->element('genericElements/assetLoader', [
                 var badge = list && list.closest('section').querySelector('.badge');
                 if (badge) badge.textContent = c[1] + ' / ' + c[2];
             });
+        document.querySelectorAll('[data-facet-list] [data-filter-item]').forEach(function (box) {
+            var bag = box.getAttribute('data-filter-item') === 'types' ? _excludedTypes : _excludedObjects;
+            box.checked = !bag[box.value];
+        });
 
         var active  = _activeFilterCount();
-        var exclusions = _countKeys(_excludedIocs) + _countKeys(_excludedEvents);
+        var exclusions = _exclusionCount();
         var countEl = document.getElementById('sankey-filters-count');
         if (countEl) {
             countEl.textContent = active;
@@ -883,6 +1148,8 @@ echo $this->element('genericElements/assetLoader', [
     function _resetFilters() {
         _excludedIocs = {};
         _excludedEvents = {};
+        _excludedTypes = {};
+        _excludedObjects = {};
         _eventLimit = 0;
         var limit = document.getElementById('sankey-event-limit');
         if (limit) limit.value = '';
@@ -941,6 +1208,8 @@ echo $this->element('genericElements/assetLoader', [
 
         if (stageEl)  stageEl.style.display  = '';
         _dateZone = null;
+        _overview = null;
+        _syncOverview();
         _hideExcludeButton(0);
         if (zoomEl)   zoomEl.classList.add('d-none');
         if (listEl)   listEl.style.display   = 'none';
@@ -979,10 +1248,31 @@ echo $this->element('genericElements/assetLoader', [
     }
 
     /* ── process API response ──────────────────────────────── */
+    /* one IOC per matched value: a composite attribute matched on both halves feeds two */
+    function _groupByValue(raw) {
+        var iocs = {}, keyOf = {}, next = 0;
+        Object.keys(raw).forEach(function (pid) {
+            (raw[pid] || []).forEach(function (rel) {
+                var value = rel.value || ('#' + pid);
+                /* correlation ignores case */
+                var norm = value.toLowerCase();
+                var key  = keyOf[norm] || (keyOf[norm] = String(next++));
+                var ioc  = iocs[key] || (iocs[key] = {value: value, rels: [], pids: {}});
+                rel._pid = pid;
+                rel._ioc = key;
+                ioc.rels.push(rel);
+                ioc.pids[pid] = true;
+            });
+        });
+        return iocs;
+    }
+
     function renderCorrelations(payload) {
         _rawCorrelationData = (payload && payload.correlations !== undefined)
             ? (payload.correlations || {})
             : (payload || {});
+        _iocs                = _groupByValue(_rawCorrelationData);
+        _parentAttributes    = (payload && payload.parent_attributes) || {};
         _warninglistHits     = (payload && payload.warninglist_hits) || {};
         _warninglistHitCount = Object.keys(_warninglistHits).length;
         _syncWarninglistToggle();
@@ -998,16 +1288,14 @@ echo $this->element('genericElements/assetLoader', [
         options = options || {};
         var hideWl = _hideWarninglisted();
         var data   = {};
-        var hidden = 0;
-        for (var rawPid in _rawCorrelationData) {
-            if (!Object.prototype.hasOwnProperty.call(_rawCorrelationData, rawPid)) continue;
-            if (hideWl && _isWarninglisted(rawPid)) { hidden++; continue; }
-            if (_excludedIocs[rawPid]) continue;
-            var kept = (_rawCorrelationData[rawPid] || []).filter(function (rel) {
-                return !_excludedEvents[rel.id];
+        var hidden = hideWl ? _warninglistHitCount : 0;
+        Object.keys(_iocs).forEach(function (key) {
+            if (_excludedIocs[key]) return;
+            var kept = _iocs[key].rels.filter(function (rel) {
+                return !_excludedEvents[rel.id] && _attrShown(rel._pid, hideWl);
             });
-            if (kept.length) data[rawPid] = kept;
-        }
+            if (kept.length) data[key] = kept;
+        });
         _correlationData = data;
 
         var wlMsgEl = document.getElementById('sankey-wl-msg');
@@ -1021,8 +1309,8 @@ echo $this->element('genericElements/assetLoader', [
         var eventCounts   = {};
         var attributeMap  = {};
 
-        for (var parentId in data) {
-            (data[parentId] || []).forEach(function (rel) {
+        for (var iocKey in data) {
+            (data[iocKey] || []).forEach(function (rel) {
                 var eid = rel.id;
                 if (!eventDetails[eid]) {
                     var distRaw = rel.Attribute && rel.Attribute.distribution !== undefined
@@ -1044,10 +1332,11 @@ echo $this->element('genericElements/assetLoader', [
                 if (!attributeMap[eid]) attributeMap[eid] = [];
                 var attrCategory = rel.category
                     || (rel.Attribute ? rel.Attribute.category : '') || '';
+                /* the card shows the correlated event's attribute: its type and category */
                 attributeMap[eid].push({
-                    id:       parentId,
-                    value:    rel.value || parentId,
-                    type:     rel.type  || '',
+                    id:       rel._ioc,
+                    value:    rel.value || _iocs[rel._ioc].value,
+                    type:     (rel.Attribute && rel.Attribute.type) || '',
                     category: attrCategory,
                     attribute: rel.Attribute || null
                 });
@@ -1068,7 +1357,7 @@ echo $this->element('genericElements/assetLoader', [
         }
 
         if (total === 0) {
-            var excluded = _countKeys(_excludedIocs) + _countKeys(_excludedEvents) > 0;
+            var excluded = _exclusionCount() > 0;
             _showEmptyState(excluded ? 'filters' : (hidden > 0 ? 'warninglist' : null));
             return;
         }
@@ -1076,6 +1365,7 @@ echo $this->element('genericElements/assetLoader', [
 
         _computeDateDomain(eventDetails);
         _syncZoomBadge();
+        _buildOverview(eventDetails);
         renderSankey(data, eventDetails, null,
             options.morph ? {morph: true} : (options.animateToggle ? {animateToggle: true} : {}));
         renderCorrelationsList(eventDetails, eventCounts, attributeMap);
@@ -1109,10 +1399,10 @@ echo $this->element('genericElements/assetLoader', [
             var dist    = (_distMap[distId] !== undefined)
                 ? _distMap[distId] : _distFallback;
 
-            /* collect unique parent IDs for DOM-based filtering */
-            var allParentIds = attrs.map(function (a) { return a.id; });
-            var uniqueParentIds = allParentIds.filter(
-                function (v, i) { return allParentIds.indexOf(v) === i; }
+            /* the IOCs it shares, for DOM-based filtering */
+            var allIocKeys = attrs.map(function (a) { return a.id; });
+            var uniqueIocKeys = allIocKeys.filter(
+                function (v, i) { return allIocKeys.indexOf(v) === i; }
             );
 
             /* deduplicate attribute entries */
@@ -1127,8 +1417,8 @@ echo $this->element('genericElements/assetLoader', [
             /* card wrapper */
             var card = document.createElement('div');
             card.className = 'corr-event-card border-bottom';
-            card.setAttribute('data-attr-parent-ids',
-                uniqueParentIds.join(','));
+            card.setAttribute('data-ioc-keys',
+                uniqueIocKeys.join(','));
 
             /* distribution badge */
             var distBadge = document.createElement('div');
@@ -1188,7 +1478,7 @@ echo $this->element('genericElements/assetLoader', [
             uniqueAttrs.forEach(function (a) {
                 var row = document.createElement('div');
                 row.className = 'd-flex align-items-center gap-1 flex-wrap corr-attr-row';
-                row.setAttribute('data-parent-id', a.id);
+                row.setAttribute('data-ioc-key', a.id);
 
                 if (a.category) {
                     var catEl = document.createElement('p');
@@ -1215,12 +1505,12 @@ echo $this->element('genericElements/assetLoader', [
                 valEl.textContent = a.value;
                 row.appendChild(valEl);
 
-                if (_isWarninglisted(a.id)) {
+                if (_iocWarninglisted(a.id)) {
                     var wlIcon = document.createElement('i');
                     wlIcon.className =
                         'fa-solid fa-triangle-exclamation text-warning ms-1';
                     wlIcon.style.fontSize = '.7rem';
-                    wlIcon.title = _wlLabel + ': ' + _warninglistNames(a.id);
+                    wlIcon.title = _wlLabel + ': ' + _iocWarninglistNames(a.id);
                     row.appendChild(wlIcon);
                 }
 
@@ -1229,7 +1519,7 @@ echo $this->element('genericElements/assetLoader', [
 
             var shown      = uniqueAttrs.length;
             var anyWarned   = uniqueAttrs.some(function (a) {
-                return _isWarninglisted(a.id);
+                return _iocWarninglisted(a.id);
             });
             var toggle = document.createElement('button');
             toggle.type = 'button';
@@ -1290,12 +1580,12 @@ echo $this->element('genericElements/assetLoader', [
         if (!bodyEl) return;
         var attrStr = String(attrId);
         bodyEl.querySelectorAll('.corr-event-card').forEach(function (card) {
-            var ids = (card.getAttribute('data-attr-parent-ids') || '').split(',');
+            var ids = (card.getAttribute('data-ioc-keys') || '').split(',');
             if (ids.indexOf(attrStr) !== -1) {
                 card.style.display = '';
                 card.querySelectorAll('.corr-attr-row').forEach(function (row) {
                     row.style.opacity =
-                        row.getAttribute('data-parent-id') === attrStr ? '1' : '0.25';
+                        row.getAttribute('data-ioc-key') === attrStr ? '1' : '0.25';
                 });
                 /* the highlight is worthless while the list is collapsed */
                 _setCardExpanded(card, true);
@@ -1336,6 +1626,7 @@ echo $this->element('genericElements/assetLoader', [
 
         document.getElementById('sankey-date-align').addEventListener('change', function () {
             _syncZoomBadge();
+            _syncOverview();
             /* the period filter follows the axis, and a graph drawn without
                the axis has no date column to slide into */
             if (!_rangeIsFull || (this.checked && !_dateZone)) {
@@ -1366,7 +1657,10 @@ echo $this->element('genericElements/assetLoader', [
         drawer.addEventListener('change', function (e) {
             var box = e.target.closest('[data-filter-item]');
             if (!box) return;
-            var bag = box.getAttribute('data-filter-item') === 'iocs' ? _excludedIocs : _excludedEvents;
+            var bag = {
+                iocs: _excludedIocs, events: _excludedEvents,
+                types: _excludedTypes, objects: _excludedObjects
+            }[box.getAttribute('data-filter-item')];
             if (box.checked) delete bag[box.value];
             else bag[box.value] = true;
             _refilter();
@@ -1406,7 +1700,7 @@ echo $this->element('genericElements/assetLoader', [
     }
 
     /* ── renderSankey ──────────────────────────────────────── */
-    function renderSankey(data, eventDetails, filterAttributeId, options) {
+    function renderSankey(data, eventDetails, filterIocKey, options) {
         options = options || {};
         var nodes   = [];
         var links   = [];
@@ -1450,17 +1744,17 @@ echo $this->element('genericElements/assetLoader', [
             return _inRange(ts);
         }
 
-        var parentIds;
-        if (filterAttributeId) {
-            parentIds = Object.keys(data).filter(function (id) { return id == filterAttributeId; });
+        var iocKeys;
+        if (filterIocKey) {
+            iocKeys = Object.keys(data).filter(function (id) { return id == filterIocKey; });
         } else {
             /* rank within the period, so zooming in can reach what the cap hides */
             var drawable = {};
-            Object.keys(data).forEach(function (pid) {
-                drawable[pid] = (data[pid] || []).filter(relInRange).length;
+            Object.keys(data).forEach(function (key) {
+                drawable[key] = (data[key] || []).filter(relInRange).length;
             });
-            parentIds = Object.keys(drawable)
-                .filter(function (pid) { return drawable[pid] > 0; })
+            iocKeys = Object.keys(drawable)
+                .filter(function (key) { return drawable[key] > 0; })
                 .sort(function (a, b) { return drawable[b] - drawable[a]; })
                 .slice(0, 100);
         }
@@ -1469,8 +1763,8 @@ echo $this->element('genericElements/assetLoader', [
         if (latestEventsOnly) {
             var latestTargetEvents = [];
             var seen = {};
-            parentIds.forEach(function (pid) {
-                (data[pid] || []).forEach(function (rel) {
+            iocKeys.forEach(function (key) {
+                (data[key] || []).forEach(function (rel) {
                     if (seen[rel.id]) return;
                     if (!relInRange(rel)) return;
                     seen[rel.id] = true;
@@ -1494,16 +1788,16 @@ echo $this->element('genericElements/assetLoader', [
         if (eventDetails) {
             for (var eid0 in eventDetails) eventLinkCounts[eid0] = 0;
         }
-        parentIds.forEach(function (pid) {
-            (data[pid] || []).forEach(function (rel) {
+        iocKeys.forEach(function (key) {
+            (data[key] || []).forEach(function (rel) {
                 if (allowedTargetEventIds && !allowedTargetEventIds[String(rel.id)]) return;
                 if (!relInRange(rel)) return;
                 eventLinkCounts[rel.id] = (eventLinkCounts[rel.id] || 0) + 1;
             });
         });
 
-        parentIds.forEach(function (pid) {
-            var relations = data[pid] || [];
+        iocKeys.forEach(function (key) {
+            var relations = data[key] || [];
             var filtered  = relations.filter(function (rel) {
                 if (allowedTargetEventIds && !allowedTargetEventIds[String(rel.id)]) return false;
                 if (!relInRange(rel)) return false;
@@ -1515,14 +1809,14 @@ echo $this->element('genericElements/assetLoader', [
             });
             if (!filtered.length) return;
 
-            var attrValue = (relations[0] && relations[0].value) ? relations[0].value : ('Attr #' + pid);
+            var attrValue = _iocs[key].value;
             var attrLabel = attrValue;
             var attrTitle = attrValue;
-            if (_isWarninglisted(pid)) {
+            if (_iocWarninglisted(key)) {
                 attrLabel = '\u26a0 ' + attrValue;
-                attrTitle = attrValue + ' | ' + _wlLabel + ': ' + _warninglistNames(pid);
+                attrTitle = attrValue + ' | ' + _wlLabel + ': ' + _iocWarninglistNames(key);
             }
-            var attrIdx   = addNode(attrLabel, 'attribute', pid, attrTitle);
+            var attrIdx   = addNode(attrLabel, 'attribute', key, attrTitle);
             links.push({source: sourceIdx, target: attrIdx, value: filtered.length});
 
             filtered.forEach(function (rel) {

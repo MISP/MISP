@@ -12,7 +12,7 @@ class OvermindPages
         'events' => array(
             'index', 'add', 'edit', 'delete', 'view', 'view1', 'view2',
             'viewLegacy',
-            'importChoice', 'automation', 'export', 'downloadExport', 'getEventInfoById',
+            'importChoice', 'automation', 'getEventInfoById',
             'freeTextImport', 'proposalEventIndex',
             'merge'
         ),

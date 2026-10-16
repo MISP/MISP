@@ -423,10 +423,6 @@ $divider = '<li class="divider"></li>';
                         ));
                     }
                     echo $divider;
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/events/export',
-                        'text' => __('Export')
-                    ));
                     if ($this->Acl->canAccess('events', 'automation')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'automation',
@@ -943,13 +939,6 @@ $divider = '<li class="divider"></li>';
                     break;
 
                 case 'admin':
-                    if ($menuItem === 'restore_deleted_events') {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'restore_deleted_events',
-                            'url' => $baseurl . '/events/restoreDeletedEvents',
-                            'text' => __('Restore Deleted Events')
-                        ));
-                    }
                     if ($menuItem === 'editUser' || $menuItem === 'viewUser' || $menuItem === 'authKeyIndex') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'viewUser',

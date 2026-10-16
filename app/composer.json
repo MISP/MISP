@@ -10,7 +10,6 @@
         "ext-simplexml": "*",
         "ext-pcre": "*",
         "ext-curl": "*",
-        "iglocska/cake-resque": ">=4.2.1",
         "pear/crypt_gpg": "1.6.7",
         "monolog/monolog": "^2.5.0 || ^3.0.0",
         "spomky-labs/otphp": "~11.4.3",
@@ -55,8 +54,7 @@
         "ext-curl": "For faster fetching data from remote servers and feeds",
         "elasticsearch/elasticsearch": "For logging to elasticsearch",
         "aws/aws-sdk-php": "To upload samples to S3",
-        "jakub-onderka/openid-connect-php": "To enable OIDC authentication",
-        "iglocska/cake-resque": "If you would like to use the old background worker system install this. But this is advised against."
+        "jakub-onderka/openid-connect-php": "To enable OIDC authentication"
     },
     "config": {
         "vendor-dir": "Vendor",

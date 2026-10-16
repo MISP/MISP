@@ -1030,13 +1030,7 @@ class AppModel extends Model
         if (!self::$loadedBackgroundJobsTool) {
             App::uses('BackgroundJobsTool', 'Tools');
 
-            // TODO: remove after CakeResque is deprecated
-            $settings = ['enabled' => false];
-            if (Configure::read('SimpleBackgroundJobs.enabled')) {
-                $settings = Configure::read('SimpleBackgroundJobs');
-            }
-
-            $backgroundJobsTool = new BackgroundJobsTool($settings);
+            $backgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs') ?: []);
             self::$loadedBackgroundJobsTool = $backgroundJobsTool;
         }
         return self::$loadedBackgroundJobsTool;

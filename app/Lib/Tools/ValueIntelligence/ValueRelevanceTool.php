@@ -38,7 +38,7 @@ App::uses('ValueTrustTool', 'Tools/ValueIntelligence');
  * stating.
  *
  * **Uncertainty is a flag as well as a state**, and the order the two
- * resolve in is an argument rather than a preference. A row-write date
+ * resolve in is an argument rather than a preference. A record date
  * is *later* than the observation it stands for, so elapsed-time
  * measured from it is a **lower bound** on the true elapsed time. A
  * lower bound already past the TTL is past it on any honest reading, so
@@ -49,12 +49,10 @@ App::uses('ValueTrustTool', 'Tools/ValueIntelligence');
  *
  * ## The virtual age, and why it is not a measurement
  *
- * MISP stores **no creation date for an attribute**: `timestamp` is
- * last-modified and `Event.date` is typed by an analyst. Subtracting
- * one from the other and calling the difference an encoding lag is
- * unsound: a row edited long after its event was published reads as
- * hundreds of days of lag, flags the timeline uncertain, and would take
- * points off the signal strength through `record.temporal_precision` as well.
+ * A record date — `created`, or `timestamp` on rows from before MISP
+ * 3.0 — says when MISP was written to, not when the value was seen, and
+ * `Event.date` is typed by an analyst, so no pair of them measures how
+ * late a value was encoded.
  *
  * The axis uses `undated_assumed_days` instead — **a declared
  * assumption, not a reading.** When no occurrence carries
@@ -97,12 +95,12 @@ class ValueRelevanceTool
     const STATES = array('current', 'aging', 'expired', 'uncertain');
 
     /**
-     * Clock kinds whose date is an observation rather than a row write.
+     * Clock kinds whose date is an observation rather than a record date.
      *
      * A sighting carries `date_sighting` — an organisation saying *I
      * saw this, at this time*. `org_joined`, `occurrence` and
-     * `fallback` all read `Attribute.timestamp`, which is when a row
-     * was last written and says nothing about when anything was seen.
+     * `fallback` read the occurrences' dates, which are a record date
+     * wherever no seen date is declared.
      */
     const SIGHTED_CLOCK_KINDS = array('sighting', 'foreign_sighting');
 
@@ -212,7 +210,7 @@ class ValueRelevanceTool
          *
          * A value like `github.com` is the case: MISP flags it as
          * over-correlating, so the evidence budget leaves its rows
-         * unread and the clock falls back to `Attribute.timestamp`,
+         * unread and the clock falls back to the record date,
          * which can read well past the TTL. The Sightings tab reads the
          * same value with no budget, finds a recent independent
          * sighting, and draws days left. Two panels, one axis, opposite
@@ -880,16 +878,9 @@ class ValueRelevanceTool
      *
      * **`at` is a declared observation where one exists.**
      * `org['oldest']` is `MIN(Value::observedFrom())` — `first_seen`,
-     * then `last_seen`, then the row write — so an organisation's join
-     * date is when it says it saw the value rather than when it last
-     * touched the row. On `MIN(Attribute.timestamp)` an edit would move
-     * that date forward and the value would read as freshly
-     * corroborated.
-     *
-     * The fallback is still a row write, because most attributes
-     * declare no seen date at all. `Attribute.creation_datetime` slots
-     * in above it when the table has one, in `Value::observedFrom()` and
-     * nowhere else.
+     * then `last_seen`, then when the row was recorded — so an
+     * organisation's join date is when it says it saw the value rather
+     * than when it last touched the row.
      *
      * @param array $context
      * @return array
@@ -957,10 +948,10 @@ class ValueRelevanceTool
      * The clock with nothing to corroborate it: the value's own most
      * recent encoding.
      *
-     * **An encoding date, deliberately.** MISP's `Attribute.timestamp`
-     * is when a row was written, not when anything was observed, so a
-     * value whose only date is this one has an unknown observation
-     * date — and the precision check turns that into
+     * **An encoding date, deliberately.** It is when a row was
+     * recorded, not when anything was observed, so a value whose only
+     * date is this one has an unknown observation date — and the
+     * precision check turns that into
      * `timeline uncertain` rather than into a confident `current`. The
      * fallback is not a guess dressed up as a measurement; it is the
      * measurement the record actually supports, labelled as such.
@@ -1017,17 +1008,14 @@ class ValueRelevanceTool
      * campaign *current*.
      *
      * **One detecting fact, not two.** The obvious second would be a
-     * created-to-published lag — `Event.date` against
-     * `Attribute.timestamp`. Neither column supports the reading:
-     * `timestamp` is *last-modified*, so a tag, a sync or a delete
-     * years later inflates it, and `Event.date` is typed by an analyst
-     * and carries the very delay the measurement would be hunting. MISP
-     * records no attribute creation date at all, so there is nothing to
-     * repair it with, and neither this check nor
-     * `record.temporal_precision` uses it.
+     * created-to-published lag — `Event.date` against the record date.
+     * `Event.date` is typed by an analyst and carries the very delay
+     * the measurement would be hunting, so neither this check nor
+     * `record.temporal_precision` uses it, whether or not the
+     * occurrence carries `created`.
      *
      * What remains is the question the rows can answer: **is the date
-     * the clock measures from an observation date, or a row-write
+     * the clock measures from an observation date, or a record
      * date?** Where a lag would be a bad estimate of how much older the
      * value really is, `undated_assumed_days` is a declared assumption
      * about the same thing — visible, editable, and never pretending to
@@ -1042,9 +1030,10 @@ class ValueRelevanceTool
      *
      * So the flag asks about the clock it qualifies. A
      * sighting-based clock is dated by definition; an occurrence-based
-     * one reads `Attribute.timestamp`, which is a row write, and is
-     * uncertain unless the occurrences carry `first_seen` to show MISP
-     * holds real observation dates for this value at all.
+     * one reads a record date — a creation time dates the record, not
+     * the observation — and is uncertain unless the occurrences carry
+     * `first_seen` to show MISP holds real observation dates for this
+     * value at all.
      *
      * @param array $context
      * @param array $section

@@ -17,7 +17,6 @@ class DeprecationComponent extends Component
             ),
             'events' => array(
                 'csv' => __('Use /events/restSearch to export in CSV format.'),
-                'export' => __('Use the REST client to refine your search conditions and export in any of the given formats with much more control.'),
                 'hids' => __('Use /events/restSearch to export hashes.'),
                 'nids' => __('Use /events/restSearch to export in the various NIDS formats.'),
                 'stix' => __('Use /events/restSearch to export in STIX format.'),

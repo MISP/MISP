@@ -4,12 +4,16 @@ App::uses('ValueIntelligenceBuckets', 'Tools/ValueIntelligence');
 
 /**
  * The data behind the Overmind event Timeline tab: loose attributes and
- * objects placed by first_seen / last_seen, or by their timestamp, an object
- * spanning its own dates and its attributes'.
+ * objects placed by first_seen / last_seen, by their timestamp or by when
+ * the attribute was created, an object spanning its own dates and its
+ * attributes'.
  *
  * Under the seen basis a row is dated when it has either end; under the
- * timestamp basis it is a single instant. An undated row is counted, never
- * placed. Dates are microseconds; days are UTC days since the epoch.
+ * timestamp and created bases it is a single instant. Objects carry no
+ * creation time, so under the created basis an object spans its attributes'
+ * alone, and attributes from before MISP 3.0 (created 0) are undated. An
+ * undated row is counted, never placed. Dates are microseconds; days are
+ * UTC days since the epoch.
  *
  * Every query is scoped to the events asked for. Visibility is MISP's own
  * read conditions (`EventOverviewTool::aclSql()`), part of the SQL because
@@ -33,6 +37,8 @@ class EventSeenTimelineTool
     const BASIS_SEEN = 'seen';
 
     const BASIS_TIMESTAMP = 'timestamp';
+
+    const BASIS_CREATED = 'created';
 
     /** How far past today the histogram reaches before calling dates outside. */
     const SPAN_AHEAD_DAYS = 3653;
@@ -403,6 +409,7 @@ class EventSeenTimelineTool
                 . " $a.category, $a.to_ids,"
                 . " $a.value1_id, $a.value2_id,"
                 . " $a.first_seen, $a.last_seen, $a.timestamp,"
+                . " $a.created,"
                 . ' ' . self::dateSql($basis, $a, 's') . ' AS s, '
                 . self::dateSql($basis, $a, 'e') . ' AS e ' . $sql
                 . " ORDER BY s, $a.id LIMIT " . (self::ITEM_CAP + 1),
@@ -559,7 +566,7 @@ class EventSeenTimelineTool
             "SELECT $a.id, $a.uuid, $a.event_id, $a.object_id,"
             . " $a.object_relation, $a.type, $a.category, $a.to_ids,"
             . " $a.value1_id, $a.value2_id,"
-            . " $a.first_seen, $a.last_seen, $a.timestamp,"
+            . " $a.first_seen, $a.last_seen, $a.timestamp, $a.created,"
             . ' ' . self::dateSql($basis, $a, 's') . ' AS s, ' . self::dateSql($basis, $a, 'e') . ' AS e'
             . " FROM attributes $a JOIN events $e ON $e.id = $a.event_id"
             . " JOIN objects $o ON $o.id = $a.object_id"
@@ -591,6 +598,7 @@ class EventSeenTimelineTool
             'first_seen' => self::micro($row['first_seen']),
             'last_seen' => self::micro($row['last_seen']),
             'timestamp' => self::secondsToMicro($row['timestamp'] ?? null),
+            'created' => self::secondsToMicro($row['created'] ?? null),
             'start' => self::micro($row['s']),
             'end' => self::micro($row['e']),
         ];
@@ -690,21 +698,26 @@ class EventSeenTimelineTool
     }
 
     /**
-     * The basis asked for, seen dates unless the timestamp is.
+     * The basis asked for, seen dates unless another known one is.
      */
     public static function basis(array $options)
     {
-        return ($options['basis'] ?? null) === self::BASIS_TIMESTAMP ? self::BASIS_TIMESTAMP : self::BASIS_SEEN;
+        $basis = $options['basis'] ?? null;
+        return in_array($basis, [self::BASIS_TIMESTAMP, self::BASIS_CREATED], true) ? $basis : self::BASIS_SEEN;
     }
 
     /**
      * The start (s) or end (e) of a row in microseconds: the earlier or later
-     * seen date, whichever ends it has, or its timestamp, NULL when unset.
+     * seen date, whichever ends it has, or its timestamp or creation time,
+     * NULL when unset.
      */
     public static function dateSql($basis, $alias, $end)
     {
         if ($basis === self::BASIS_TIMESTAMP) {
             return "(NULLIF($alias.timestamp, 0) * 1000000)";
+        }
+        if ($basis === self::BASIS_CREATED) {
+            return self::isAttribute($alias) ? "(NULLIF($alias.created, 0) * 1000000)" : 'NULL';
         }
         $first = "COALESCE($alias.first_seen, $alias.last_seen)";
         $last = "COALESCE($alias.last_seen, $alias.first_seen)";
@@ -716,7 +729,19 @@ class EventSeenTimelineTool
         if ($basis === self::BASIS_TIMESTAMP) {
             return "$alias.timestamp > 0";
         }
+        if ($basis === self::BASIS_CREATED) {
+            return self::isAttribute($alias) ? "$alias.created > 0" : '1 = 0';
+        }
         return "($alias.first_seen IS NOT NULL OR $alias.last_seen IS NOT NULL)";
+    }
+
+    /**
+     * Whether an alias, bare or quoted as EventOverviewTool::aliases() quotes
+     * it, names the attributes.
+     */
+    private static function isAttribute($alias)
+    {
+        return trim($alias, '`"') === 'Attribute';
     }
 
     private static function placeholders(array $values)

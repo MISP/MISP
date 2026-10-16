@@ -3,6 +3,7 @@ App::uses('AppShell', 'Console/Command');
 App::uses('ProcessTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('ValueDictionaryStatsTool', 'Tools/ValueIntelligence');
 App::uses('AbstractMigration', 'Migration');
 App::uses('MigrationManager', 'Migration');
 App::uses('AbstractGrammar', 'Migration/Grammar');
@@ -26,7 +27,6 @@ class AdminShell extends AppShell
         'MispAttribute',
         'Job',
         'User',
-        'Task',
         'Server',
         'Organisation',
         'AdminSetting',
@@ -135,6 +135,21 @@ class AdminShell extends AppShell
         ]);
         $parser->addSubcommand('removeOrphanedCorrelations', [
             'help' => __('Remove orphaned correlations.'),
+        ]);
+        $parser->addSubcommand('valueDictionaryStats', [
+            'help' => __('Count the attribute value dictionary for the values index. Counts only what was added since the last run, and everything once a week. The values index queues it once a day when background workers run; without them, run it daily from cron.'),
+            'parser' => [
+                'arguments' => [
+                    'jobId' => ['help' => __('Job ID'), 'required' => false],
+                ],
+                'options' => [
+                    'full' => [
+                        'help' => __('Recount every value instead of only the new ones.'),
+                        'default' => false,
+                        'boolean' => true,
+                    ],
+                ],
+            ],
         ]);
         $parser->addSubcommand('optimiseTables', [
             'help' => __('Optimise database tables.'),
@@ -364,48 +379,32 @@ class AdminShell extends AppShell
 
     public function restartWorkers()
     {
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            try {
-                $this->getBackgroundJobsTool()->restartWorkers(true);
-            } catch (Throwable $e) {
-                $this->error(__('Could not restart the workers'), $e->getMessage());
-            }
-        } else {
-            $this->Server->restartWorkers();
+        try {
+            $this->getBackgroundJobsTool()->restartWorkers(true);
+        } catch (Throwable $e) {
+            $this->error(__('Could not restart the workers'), $e->getMessage());
         }
         echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
     }
 
     public function restartWorker()
     {
-        $simpleBackgroundJobs = (bool)Configure::read('SimpleBackgroundJobs.enabled');
-
-        // Supervisor identifies its programs by name, CakeResque by PID.
-        if (empty($this->args[0]) || (!$simpleBackgroundJobs && !is_numeric($this->args[0]))) {
+        if (empty($this->args[0])) {
             $this->error('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Restart a worker']);
         }
 
         $worker = $this->args[0];
-        if ($simpleBackgroundJobs) {
-            try {
-                $tool = $this->getBackgroundJobsTool();
-                $tool->stopWorker($worker, true);
-                if (is_numeric($worker)) {
-                    $tool->restartDeadWorkers(true);
-                } else {
-                    $tool->startWorker($worker, true);
-                }
-                $response = __('Worker restarted.');
-            } catch (Throwable $e) {
-                $response = __('Could not restart the worker. Reason: %s', $e->getMessage());
-            }
-        } else {
-            $result = $this->Server->restartWorker($worker);
-            if ($result === true) {
-                $response = __('Worker restarted.');
+        try {
+            $tool = $this->getBackgroundJobsTool();
+            $tool->stopWorker($worker, true);
+            if (is_numeric($worker)) {
+                $tool->restartDeadWorkers(true);
             } else {
-                $response = __('Could not restart the worker. Reason: %s', $result);
+                $tool->startWorker($worker, true);
             }
+            $response = __('Worker restarted.');
+        } catch (Throwable $e) {
+            $response = __('Could not restart the worker. Reason: %s', $e->getMessage());
         }
         echo sprintf(
             '%s%s%s',
@@ -417,21 +416,15 @@ class AdminShell extends AppShell
 
     public function killWorker()
     {
-        $simpleBackgroundJobs = (bool)Configure::read('SimpleBackgroundJobs.enabled');
-
-        if (empty($this->args[0]) || (!$simpleBackgroundJobs && !is_numeric($this->args[0]))) {
+        if (empty($this->args[0])) {
             $this->error('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Kill a worker']);
         }
 
         $worker = $this->args[0];
-        if ($simpleBackgroundJobs) {
-            try {
-                $this->getBackgroundJobsTool()->stopWorker($worker, true);
-            } catch (Throwable $e) {
-                $this->error(__('Could not kill the worker'), $e->getMessage());
-            }
-        } else {
-            $this->Server->killWorker($worker, false);
+        try {
+            $this->getBackgroundJobsTool()->stopWorker($worker, true);
+        } catch (Throwable $e) {
+            $this->error(__('Could not kill the worker'), $e->getMessage());
         }
         echo sprintf(
             '%s%s%s',
@@ -448,16 +441,12 @@ class AdminShell extends AppShell
         }
 
         $queue = $this->args[0];
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            try {
-                if (!$this->getBackgroundJobsTool()->startWorkerByQueue($queue)) {
-                    $this->error(__('Could not start a worker for queue %s', $queue), __('No stopped worker found for that queue.'));
-                }
-            } catch (Throwable $e) {
-                $this->error(__('Could not start the worker'), $e->getMessage());
+        try {
+            if (!$this->getBackgroundJobsTool()->startWorkerByQueue($queue)) {
+                $this->error(__('Could not start a worker for queue %s', $queue), __('No stopped worker found for that queue.'));
             }
-        } else {
-            $this->Server->startWorker($queue);
+        } catch (Throwable $e) {
+            $this->error(__('Could not start the worker'), $e->getMessage());
         }
         echo sprintf(
             '%s%s%s',
@@ -717,24 +706,6 @@ class AdminShell extends AppShell
                 $this->Job->saveStatus($jobId, true, $message);
             }
         }
-    }
-
-    public function prune_update_logs()
-    {
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Prune update logs']);
-        }
-
-        $jobId = $this->args[0];
-        $user_id = $this->args[1];
-        $user = $this->User->getAuthUser($user_id);
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('Log');
-        $this->Log->pruneUpdateLogs($jobId, $user);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done.');
-        $this->Job->saveField('status', 4);
     }
 
     public function getWorkers()
@@ -2139,6 +2110,25 @@ class AdminShell extends AppShell
     {
         $count = $this->Server->removeOrphanedCorrelations();
         $this->out(__('%s orphaned correlation removed', $count));
+    }
+
+    public function valueDictionaryStats()
+    {
+        $jobId = $this->args[0] ?? null;
+        $tool = new ValueDictionaryStatsTool($this->MispAttribute);
+        try {
+            $state = $tool->snapshot(!empty($this->params['full']));
+        } catch (Exception $e) {
+            if ($jobId) {
+                $this->Job->saveStatus($jobId, false, $e->getMessage());
+            }
+            throw $e;
+        }
+        $message = __('%s distinct values counted.', number_format($state['total']));
+        if ($jobId) {
+            $this->Job->saveStatus($jobId, true, $message);
+        }
+        $this->out($message);
     }
 
     public function optimiseTables()

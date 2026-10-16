@@ -77,7 +77,8 @@ class RestSearchComponent extends Component
             'minimum_ttl',
             'ttl',
             'hash_type',
-            'escape_formulas_literal'
+            'escape_formulas_literal',
+            'attribute_created'
         ],
         'Event' => [
             'returnFormat',
@@ -206,6 +207,7 @@ class RestSearchComponent extends Component
             'object_relation',
             'metadata',
             'includeAllTags',
+            'includeSightingdb',
             'object_name',
             'object_template_uuid',
             'object_template_version'

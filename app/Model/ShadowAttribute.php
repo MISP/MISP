@@ -470,20 +470,6 @@ class ShadowAttribute extends AppModel
         return $this->loadAttachmentTool()->getShadowFile($shadowAttribute['event_id'], $shadowAttribute['id'], $path_suffix);
     }
 
-    public function checkComposites()
-    {
-        $compositeTypes = $this->getCompositeTypes();
-        $fails = array();
-        $attributes = $this->find('all', array('recursive' => 0));
-
-        foreach ($attributes as $attribute) {
-            if ((in_array($attribute['ShadowAttribute']['type'], $compositeTypes)) && (!strlen($attribute['ShadowAttribute']['value1']) || !strlen($attribute['ShadowAttribute']['value2']))) {
-                $fails[] = $attribute['ShadowAttribute']['event_id'] . ':' . $attribute['ShadowAttribute']['id'];
-            }
-        }
-        return $fails;
-    }
-
     // check whether the variable is null or datetime
     public function datetimeOrNull($fields)
     {

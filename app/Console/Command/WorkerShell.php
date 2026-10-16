@@ -193,8 +193,6 @@ class WorkerShell extends AppShell
         switch ($status) {
             case BackgroundJobsTool::STATUS_RUNNING:
                 return __('OK');
-            case BackgroundJobsTool::STATUS_NOT_ENABLED:
-                return __('SimpleBackgroundJobs not enabled');
             case BackgroundJobsTool::STATUS_REDIS_NOT_OK:
                 return __('Redis not reachable');
             case BackgroundJobsTool::STATUS_SUPERVISOR_NOT_OK:

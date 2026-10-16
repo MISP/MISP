@@ -2,6 +2,7 @@
 App::uses('RedisTool', 'Tools');
 App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
 App::uses('ValueStatsTool', 'Tools/ValueIntelligence');
+App::uses('Value', 'Model');
 
 /**
  * The figures behind the Overmind event overview: what the indicators are,
@@ -502,8 +503,9 @@ class EventOverviewTool
     }
 
     /**
-     * When the event's attributes and objects last changed: the earliest
-     * such timestamp and a `Y-m-d` => count map, one count per element.
+     * When the event's attributes and objects last changed, a `Y-m-d` =>
+     * count map with one count per element, and the earliest recorded
+     * change — an attribute's creation where it has one.
      *
      * @param array $user
      * @param array $event Event row: id, org_id, timestamp
@@ -512,7 +514,7 @@ class EventOverviewTool
     public function activity(array $user, array $event)
     {
         $scope = $this->scope($user, $event);
-        return $this->cached('activity-v2', $event, $scope, function () use ($user, $event) {
+        return $this->cached('activity-v3', $event, $scope, function () use ($user, $event) {
             return $this->computeActivity($user, (int)$event['id']);
         });
     }
@@ -522,7 +524,7 @@ class EventOverviewTool
         list($a, $o) = $this->aliases();
         // Hour buckets keep the rows bounded and let PHP's own timezone name the day.
         $attributes = $this->Attribute->query(
-            "SELECT FLOOR($a.timestamp / 3600) AS h, MIN($a.timestamp) AS first, COUNT(*) AS n"
+            "SELECT FLOOR($a.timestamp / 3600) AS h, MIN(" . Value::recordedAt($a) . ') AS first, COUNT(*) AS n'
             . $this->attributesFrom($user)
             . " GROUP BY FLOOR($a.timestamp / 3600)",
             [$eventId],

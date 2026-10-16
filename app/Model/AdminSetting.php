@@ -124,6 +124,7 @@ class AdminSetting extends AppModel
         }
     }
 
+    // Purges files left behind by the removed cached exports; nothing writes there any more
     private function __deleteCachedExportFiles($time) {
         $cache_path = APP . 'tmp/cached_exports';
         $cache_dir = new Folder($cache_path);

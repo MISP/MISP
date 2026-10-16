@@ -5944,7 +5944,7 @@ class Event extends AppModel
         }
         if (
             $options['includeServerCorrelations'] &&
-            (!$isSiteAdmin && $user['org_id'] != Configure::read('MISP.host_org_id') && !Configure::read('MISP.show_server_correlations_for_all_users', false))
+            (!$isSiteAdmin && $user['org_id'] != Configure::read('MISP.host_org_id') && !Configure::read('MISP.show_server_correlations_for_all_users'))
         ) {
             $options['includeServerCorrelations'] = false; // not permission to see server correlations
         }
@@ -6281,7 +6281,7 @@ class Event extends AppModel
 
     private function __pruneUnknownClusters(array &$event, array $user)
     {
-        if (!Configure::read('MISP.hide_unknown_cluster', true) || $user['Role']['perm_sync']) {
+        if (!(Configure::read('MISP.hide_unknown_cluster') ?? true) || $user['Role']['perm_sync']) {
             return;
         }
         foreach ($event['EventTag'] as $i => $eventTag) {
@@ -7340,12 +7340,19 @@ class Event extends AppModel
                 'attribute_timestamp' => array(
                     'Attribute.timestamp'
                 ),
+                'attribute_created' => array(
+                    'Attribute.created'
+                ),
             );
             foreach ($filters[$options['filter']] as $f) {
                 $conditions = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, $f);
                 if (!empty($options['pop'])) {
                     unset($params[$options['filter']]);
                 }
+            }
+            // Attributes from before MISP 3.0 hold 0: no creation time to match.
+            if ($options['filter'] === 'attribute_created') {
+                $conditions['AND'][] = array('Attribute.created >' => 0);
             }
         }
         return $conditions;
@@ -8600,7 +8607,7 @@ class Event extends AppModel
             return array('error' => 'Event could not be saved: Could not find the local event.');
         }
         if (
-            (Configure::read('MISP.block_publishing_for_same_creator', false) && !$user['Role']['perm_sync'] && $user['id'] == $existingEvent['Event']['user_id']) ||
+            (Configure::read('MISP.block_publishing_for_same_creator') && !$user['Role']['perm_sync'] && $user['id'] == $existingEvent['Event']['user_id']) ||
             (!empty($data['Event']['published']) && !$user['Role']['perm_publish'])
         ) {
             $data['Event']['published'] = 0;
@@ -9142,7 +9149,7 @@ class Event extends AppModel
                     }
                 }
                 if (isset($this->data['ShadowAttribute'])) {
-                    $this->Server->syncProposals(null, $server, null, $id, $this);
+                    $this->Server->syncProposals(null, $server, $id, $this);
                 }
                 if (!$thisUploaded) {
                     $uploaded = !$uploaded ? $uploaded : $thisUploaded;
@@ -10649,7 +10656,7 @@ class Event extends AppModel
                     $this->add_original_file($decoded['original'], $originalFile, $created_id, $stixVersion);
                 }
                 if ($publish && $user['Role']['perm_publish']) {
-                    if (!Configure::read('MISP.block_publishing_for_same_creator', false) || $user['Role']['perm_sync']) {
+                    if (!Configure::read('MISP.block_publishing_for_same_creator') || $user['Role']['perm_sync']) {
                         $this->publish($created_id);
                     }
                 }
@@ -12704,7 +12711,7 @@ class Event extends AppModel
     {
         $memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
         $default_attribute_memory_coefficient = Configure::check('MISP.default_attribute_memory_coefficient') ? Configure::read('MISP.default_attribute_memory_coefficient') : 80;
-        $default_event_memory_divisor = Configure::check('MISP.default_event_memory_multiplier') ? Configure::read('MISP.default_event_memory_divisor') : 3;
+        $default_event_memory_divisor = Configure::read('MISP.default_event_memory_divisor') ?: 3;
         $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : $default_attribute_memory_coefficient;
         // increase the cost per attribute to account for the overhead of object metadata
         $memory_scaling_factor = $memory_scaling_factor / $default_event_memory_divisor;
@@ -12991,13 +12998,6 @@ class Event extends AppModel
         return $tags;
     }
 
-    public function recoverEvent($id)
-    {
-        $this->Log = ClassRegistry::init('Log');
-        $result = $this->Log->recoverDeletedEvent($id);
-        return $result;
-    }
-
     /**
      * @param array $event Event with assigned `EventTag`
      * @return string
@@ -13098,120 +13098,6 @@ class Event extends AppModel
         }
         $banStatus['message'] = __('Emailing republishing ban setting is not enabled');
         return $banStatus;
-    }
-
-    /**
-     * @return array[]
-     * @deprecated
-     */
-    public function exportTypes()
-    {
-        return array(
-            'json' => array(
-                'extension' => '.json',
-                'type' => 'JSON',
-                'scope' => 'Event',
-                'requiresPublished' => 0,
-                'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'json'),
-                'description' => __('Click this to download all events and attributes that you have access to in MISP JSON format.'),
-            ),
-            'xml' => array(
-                'extension' => '.xml',
-                'type' => 'XML',
-                'scope' => 'Event',
-                'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'xml'),
-                'requiresPublished' => 0,
-                'description' => __('Click this to download all events and attributes that you have access to in MISP XML format.'),
-            ),
-            'csv_sig' => array(
-                'extension' => '.csv',
-                'type' => 'CSV_Sig',
-                'scope' => 'Event',
-                'requiresPublished' => 1,
-                'params' => array('published' => 1, 'to_ids' => 1, 'returnFormat' => 'csv'),
-                'description' => __('Click this to download all attributes that are indicators and that you have access to (except file attachments) in CSV format.'),
-            ),
-            'csv_all' => array(
-                'extension' => '.csv',
-                'type' => 'CSV_All',
-                'scope' => 'Event',
-                'requiresPublished' => 0,
-                'params' => array('ignore' => 1, 'returnFormat' => 'csv'),
-                'description' => __('Click this to download all attributes that you have access to (except file attachments) in CSV format.'),
-            ),
-            'suricata' => array(
-                'extension' => '.rules',
-                'type' => 'Suricata',
-                'scope' => 'Attribute',
-                'requiresPublished' => 1,
-                'params' => array('returnFormat' => 'suricata'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported.'),
-            ),
-            'snort' => array(
-                'extension' => '.rules',
-                'type' => 'Snort',
-                'scope' => 'Attribute',
-                'requiresPublished' => 1,
-                'params' => array('returnFormat' => 'snort'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported.'),
-            ),
-            'bro' => array(
-                'extension' => '.intel',
-                'type' => 'Bro',
-                'scope' => 'Attribute',
-                'requiresPublished' => 1,
-                'params' => array('returnFormat' => 'bro'),
-                'description' => __('Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported.'),
-            ),
-            'stix' => array(
-                'extension' => '.xml',
-                'type' => 'STIX',
-                'scope' => 'Event',
-                'requiresPublished' => 1,
-                'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
-                'description' => __('Click this to download a STIX document containing the STIX version of all events and attributes that you have access to.')
-            ),
-            'stix2' => array(
-                'extension' => '.json',
-                'type' => 'STIX2',
-                'scope' => 'Event',
-                'requiresPublished' => 1,
-                'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
-                'description' => __('Click this to download a STIX2 document containing the STIX2 version of all events and attributes that you have access to.')
-            ),
-            'rpz' => array(
-                'extension' => '.txt',
-                'type' => 'RPZ',
-                'scope' => 'Attribute',
-                'requiresPublished' => 1,
-                'params' => array('returnFormat' => 'rpz'),
-                'description' => __('Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.')
-            ),
-            'text' => array(
-                'extension' => '.txt',
-                'type' => 'TEXT',
-                'scope' => 'Attribute',
-                'requiresPublished' => 1,
-                'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
-                'description' => __('Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for suspicious files. Only published events and attributes marked as IDS Signature are exported.')
-            ),
-            'yara' => array(
-                'extension' => '.yara',
-                'type' => 'Yara',
-                'scope' => 'Event',
-                'requiresPublished' => 1,
-                'params' => array('returnFormat' => 'yara'),
-                'description' => __('Click this to download Yara rules generated from all relevant attributes.')
-            ),
-            'yara-json' => array(
-                'extension' => '.json',
-                'type' => 'Yara',
-                'scope' => 'Event',
-                'requiresPublished' => 1,
-                'params' => array('returnFormat' => 'yara-json'),
-                'description' => __('Click this to download Yara rules generated from all relevant attributes. Rules are returned in a JSON format with information about origin (generated or parsed) and validity.')
-            ),
-        );
     }
 
     private function __prepareEventForPubSub($id, $user, &$fullEvent)
