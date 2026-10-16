@@ -103,6 +103,8 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 ['value-palette', ['preload' => true]],
                 ['value-hover-card', ['preload' => true]],
                 ['tag-chips', ['preload' => true]],
+                // Analyst data threads also arrive in modals, which bring no assets.
+                ['analyst-rail', ['preload' => true]],
             ];
             $css = array_values(array_filter($css));
             $js = [
@@ -299,6 +301,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 'mispOvermind',
                 // After `mispOvermind`, which is where `baseurl` is set.
                 'value-hover-card',
+                'analyst-rail',
             ];
             if (!$isAuthPage) {
                 $bs5Js[] = $useRail ? 'overmind-rail' : 'overmind-navbar';

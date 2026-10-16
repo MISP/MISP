@@ -151,6 +151,25 @@
   background: rgba(var(--adr-accent-rgb), .13);
   user-select: none;
 }
+/* the entry's type, read by colour: a rule at the card's edge and the avatar */
+.adr-kind-note { --adr-kind: var(--bs-primary); }
+.adr-kind-opinion { --adr-kind: var(--adr-opinion); }
+.adr-kind-relationship,
+.adr-kind-relationshipinbound { --adr-kind: var(--bs-correlation, var(--adr-rel)); }
+.adr-entry[class*="adr-kind-"] > .adr-avatar {
+  color: var(--adr-kind);
+  background: color-mix(in srgb, var(--adr-kind) 13%, transparent);
+}
+.adr-list > .adr-entry[class*="adr-kind-"]::before {
+  content: "";
+  position: absolute;
+  left: -.75rem;
+  top: .5rem;
+  bottom: .5rem;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--adr-kind);
+}
 .adr-main { min-width: 0; }
 .adr-meta {
   display: flex;

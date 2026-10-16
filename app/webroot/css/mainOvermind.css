@@ -2253,12 +2253,6 @@ tr.evt-extension-row td:first-child { position: relative; }
 }
 
 
-.ov-ad-nested {
-    --ov-ad-accent: var(--bs-border-color);
-    border-left: 3px solid var(--ov-ad-accent) !important;
-}
-
-
 #preview-related-card .related-event-row:hover { 
     background: var(--misp-surface-hover, #f8fafc);
 }
@@ -4545,6 +4539,28 @@ tr.evt-extension-row td:first-child { position: relative; }
    over the scrollbar that has taken over the job of saying there is more. */
 .er-preview-overlay.is-expanded .er-preview-gradient {
     display: none;
+}
+
+.collapse-peek {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1.25rem;
+    padding: .5rem 1rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+}
+
+.collapse-peek-item {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.collapse-peek-item:hover {
+    text-decoration: underline;
 }
 
 /* ═══════════════════════════════════════════════════════════
