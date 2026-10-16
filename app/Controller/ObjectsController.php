@@ -40,7 +40,7 @@ class ObjectsController extends AppController
     public function index()
     {
         $this->__htmlOnly();
-        if (!is_file(APP . 'View' . DS . 'Themed' . DS . ($this->theme ?? 'Default') . DS . 'Objects' . DS . 'index.ctp')) {
+        if (!MispTheme::carriesView($this->theme, 'Objects', 'index')) {
             $this->Flash->info(__('The objects index needs the Overmind theme.'));
             return $this->redirect(['controller' => 'attributes', 'action' => 'index']);
         }

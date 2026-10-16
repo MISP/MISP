@@ -41,6 +41,23 @@ class MispTheme
     }
 
     /**
+     * Whether a theme ships its own template for one view.
+     *
+     * @param string|null $theme
+     * @param string $controller The view directory, e.g. `Events`
+     * @param string $view The template name, e.g. `view2`
+     * @return bool
+     */
+    public static function carriesView($theme, $controller, $view)
+    {
+        if (empty($theme) || $theme === 'Default') {
+            return false;
+        }
+        return is_file(APP . 'View' . DS . 'Themed' . DS . $theme . DS
+            . $controller . DS . $view . '.ctp');
+    }
+
+    /**
      * Get all available themes as MispTheme objects
      *
      * @param string $currentActiveTheme The name of the currently active theme

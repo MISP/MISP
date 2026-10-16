@@ -1125,7 +1125,8 @@ class AppController extends Controller
 
     private function __allowSameOriginFramesForEventView(array &$policy)
     {
-        if ($this->_isControllerAction(['events' => ['view']])) {
+        $eventViews = ['view', 'view1', 'view2', 'viewLegacy'];
+        if ($this->_isControllerAction(['events' => $eventViews])) {
             // Beta event view embeds the rendered event report preview in a same-origin iframe.
             $policy['frame-src'] = "'self'";
         }

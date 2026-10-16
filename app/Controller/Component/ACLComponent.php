@@ -501,7 +501,7 @@ class ACLComponent extends Component
             'upload_stix' => array('perm_modify'),
             'view' => array('*'),
             'view1' => array('*'),
-            'view2' => array('theming_enabled'),
+            'view2' => array('*'),
             'viewLegacy' => array('*'),
             'viewAttributes' => array('theming_enabled'),
             'viewClusterRelations' => array('*'),

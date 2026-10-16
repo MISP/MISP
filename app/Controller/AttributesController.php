@@ -1346,16 +1346,6 @@ class AttributesController extends AppController
             $tab = empty($attribute['Attribute']['object_id']) ? 'attributes' : 'objects';
             $this->redirect('/events/view/' . $attribute['Attribute']['event_id'] . '#tab-' . $tab);
         } else {
-            if ($this->theme === 'Overmind') {
-                $inObject = !empty($attribute['Attribute']['object_id']);
-                $this->redirect([
-                    'controller' => 'events',
-                    'action' => 'view',
-                    $attribute['Attribute']['event_id'],
-                    'searchFor' => $attribute['Attribute']['uuid'],
-                    '#' => $inObject ? 'tab-objects' : 'tab-attributes',
-                ]);
-            }
             $this->redirect('/events/view/' . $attribute['Attribute']['event_id']);
         }
     }
