@@ -75,6 +75,9 @@ class TableConverger
         AbstractGrammar::FLAVOUR_PGSQL => array('string', 'decimal'),
     );
 
+    /** Seconds a rebuild waits for a lock another session holds. */
+    const LOCK_WAIT = 300;
+
     const STRING_TYPES = array('string', 'text', 'mediumtext', 'longtext');
 
     const INTEGER_TYPES = array('integer', 'biginteger', 'smallinteger', 'tinyinteger');
@@ -130,16 +133,17 @@ class TableConverger
      * @param SchemaBuilder $schema
      * @param string $table
      * @param array $target
+     * @param array $session see emit()
      * @return array The plan.
      * @throws MigrationDeferredException When the plan has a blocker.
      */
-    public static function converge(SchemaInspector $inspector, SchemaBuilder $schema, $table, array $target)
+    public static function converge(SchemaInspector $inspector, SchemaBuilder $schema, $table, array $target, array $session = array())
     {
         $plan = self::plan($inspector, $table, $target);
         if (!empty($plan['blockers'])) {
             throw new MigrationDeferredException(implode(' ', $plan['blockers']));
         }
-        self::emit($schema, $plan);
+        self::emit($schema, $plan, $session);
         return $plan;
     }
 
@@ -152,13 +156,14 @@ class TableConverger
      * @param SchemaBuilder $schema
      * @param string $table
      * @param array $target
+     * @param array $session see emit()
      * @return array The plan against the live table.
      */
-    public static function recreate(SchemaInspector $inspector, SchemaBuilder $schema, $table, array $target)
+    public static function recreate(SchemaInspector $inspector, SchemaBuilder $schema, $table, array $target, array $session = array())
     {
         $plan = self::plan($inspector, $table, $target);
         if (!self::isEmpty($plan)) {
-            self::emit($schema, self::recreation($plan, $table, $target));
+            self::emit($schema, self::recreation($plan, $table, $target), $session);
         }
         return $plan;
     }
@@ -201,13 +206,18 @@ class TableConverger
      *
      * @param SchemaBuilder $schema
      * @param array $plan
+     * @param array $session session()'s, wrapped around a plan that changes something
      * @return void
      */
-    public static function emit(SchemaBuilder $schema, array $plan)
+    public static function emit(SchemaBuilder $schema, array $plan, array $session = array())
     {
         $table = $plan['table'];
         foreach ($plan['notes'] as $note) {
             $schema->note($note);
+        }
+        $session = empty($plan['recreate']) && self::isEmpty($plan) ? array() : $session;
+        if (!empty($session['set'])) {
+            $schema->rawSql(array('mysql' => $session['set'], 'pgsql' => array()));
         }
         if (!empty($plan['recreate'])) {
             $schema->dropTable($table);
@@ -255,6 +265,35 @@ class TableConverger
         if ($fulltext) {
             $schema->rawSql(array('mysql' => 'SET SESSION innodb_ft_enable_stopword = DEFAULT;', 'pgsql' => array()));
         }
+        if (!empty($session['reset'])) {
+            $schema->rawSql(array('mysql' => $session['reset'], 'pgsql' => array()));
+        }
+    }
+
+    /**
+     * The session settings a rebuild runs under, for the connected server.
+     *
+     * The server should choose the ALGORITHM of each ALTER: a session left at
+     * COPY (MariaDB's alter_algorithm, MySQL's old_alter_table) would turn
+     * every instant change into a full copy. MariaDB's keyword DEFAULT must be
+     * quoted, or it copies the global. A lock held by another session is
+     * waited for, for five minutes rather than a year.
+     *
+     * @param SchemaInspector $inspector
+     * @return array 'set' and 'reset', MySQL statements; empty on PostgreSQL.
+     */
+    public static function session(SchemaInspector $inspector)
+    {
+        if ($inspector->flavour() !== AbstractGrammar::FLAVOUR_MYSQL) {
+            return array();
+        }
+        $set = array(
+            $inspector->isMariaDb()
+                ? "SET SESSION alter_algorithm = 'DEFAULT';"
+                : 'SET SESSION old_alter_table = OFF;',
+            'SET SESSION lock_wait_timeout = ' . self::LOCK_WAIT . ';',
+        );
+        return array('set' => $set, 'reset' => array('SET SESSION lock_wait_timeout = DEFAULT;'));
     }
 
     /**

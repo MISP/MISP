@@ -36,6 +36,16 @@ if (!class_exists('StatementRecordingMigrationManager', false)) {
             };
         }
     }
+
+    class ReportingStatementManager extends StatementRecordingMigrationManager
+    {
+        public $reported = array();
+
+        public function collect($event, $id, array $lines)
+        {
+            $this->reported[] = array($event, $id, $lines);
+        }
+    }
 }
 
 /**
@@ -270,12 +280,15 @@ class TablePreflightTest extends TestCase
         );
         $this->assertSame(
             array(
+                'SET SESSION alter_algorithm = \'DEFAULT\';',
+                'SET SESSION lock_wait_timeout = 300;',
                 'SET SESSION innodb_ft_enable_stopword = 0;',
                 'ALTER TABLE `events` MODIFY `info` BLOB NOT NULL;',
                 "ALTER TABLE `events`\n"
                     . "    MODIFY `info` text CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci NOT NULL,\n"
                     . "    ADD FULLTEXT INDEX `info_search` (`info`);",
                 'SET SESSION innodb_ft_enable_stopword = DEFAULT;',
+                'SET SESSION lock_wait_timeout = DEFAULT;',
             ),
             $manager->ran
         );
@@ -572,9 +585,40 @@ class TablePreflightTest extends TestCase
 
         $manager->liveSchema->probes = array();
         $this->assertTrue($manager->apply($id));
-        $this->assertSame(array('ALTER TABLE `events` MODIFY `info` text CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci NOT NULL;'), $manager->ran);
+        $this->assertSame(
+            array(
+                'SET SESSION alter_algorithm = \'DEFAULT\';',
+                'SET SESSION lock_wait_timeout = 300;',
+                'ALTER TABLE `events` MODIFY `info` text CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci NOT NULL;',
+                'SET SESSION lock_wait_timeout = DEFAULT;',
+            ),
+            $manager->ran
+        );
     }
 
+    public function testTheForecastNamesTheWorkAndTheBusySessions()
+    {
+        $id = '20261101_000000_converge_events';
+        $live = TableConvergerTest::mysqlLive(self::TARGET);
+        $live['columns']['org_id'] = TableConvergerTest::mysqlColumn('int(11)');
+        $inspector = $this->mysqlInspector('events', $live);
+        $inspector->sizes = array('events' => array(
+            'table' => 'events', 'data_in_bytes' => 1073741824, 'index_in_bytes' => 0,
+            'total_in_bytes' => 1073741824, 'reclaimable_in_bytes' => 0, 'row_estimate' => 2000000,
+        ));
+        $inspector->sessions = array(array('id' => 7, 'user' => 'misp', 'command' => 'Query', 'seconds' => 3, 'state' => ''));
+        $manager = new ReportingStatementManager(array('Migration_' . $id . '.php'));
+        $manager->liveSchema = $inspector;
+        $manager->setReporter(array($manager, 'collect'));
+
+        $this->assertTrue($manager->apply($id), (string)$manager->lastError());
+        $events = array_column($manager->reported, 0);
+        $this->assertSame(array('start', 'forecast', 'applied'), $events);
+        $forecast = $manager->reported[1][2];
+        $this->assertRegExp('/about 2000000 rows, 1\.0 GB/', $forecast[0]);
+        $this->assertRegExp('/SHOW FULL PROCESSLIST/', $forecast[1]);
+        $this->assertRegExp('/1 other session\(s\)/', $forecast[2]);
+    }
     // ---------------------------------------------------------------- helpers
 
     private function mysqlInspector($table, array $definition)

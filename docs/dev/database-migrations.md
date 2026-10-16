@@ -277,6 +277,20 @@ A check reads an index where one covers the column and otherwise shares one
 scan of the table. `up()` then declares the plan `beforeUp()` checked. A subclass
 that puts rows right in `beforeUp()` does so before calling the parent's.
 
+A rebuild can run for hours, so a `TableMigration` is **offline**
+(`$offline = true`): the manager refuses to start any run that has one pending
+from a web request, and on the command line while `MISP.live` is on
+(`MigrationManager::refusal()`; `runUpdates` and `migrationApply` say why, a page
+load just leaves it). `beforeUp()` defers outside the CLI as well. The statements
+run under session settings that leave the ALTER's algorithm to the server (a
+session at COPY would turn instant changes into copies: MariaDB's
+`alter_algorithm = 'DEFAULT'`, quoted, MySQL's `old_alter_table = OFF`) and wait
+at most 300 s for a lock. While it runs, the shell prints a line when each
+migration starts and ends, and before the statements the table's rows and size,
+the kind of work, the free disk it needs, other sessions busy on the database,
+and where to watch the progress (the Progress column of `SHOW FULL PROCESSLIST`
+on MariaDB, `performance_schema.events_stages_current` on MySQL).
+
 **Data changes go through models, in `beforeUp()` and `afterUp()`, never as
 DML.** A
 `save()`/`updateAll()` is portable by construction where a hand-written `INSERT`

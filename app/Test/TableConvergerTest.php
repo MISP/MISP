@@ -412,7 +412,15 @@ class TableConvergerTest extends TestCase
         $manager = new SchemaRenderingMigrationManager(array('Migration_' . $id . '.php'));
         $manager->liveSchema = $this->mysqlInspector($live);
 
-        $this->assertSame(array('ALTER TABLE `events` MODIFY `org_id` bigint(20) NOT NULL;'), $manager->toSql($id));
+        $this->assertSame(
+            array(
+                "SET SESSION alter_algorithm = 'DEFAULT';",
+                'SET SESSION lock_wait_timeout = 300;',
+                'ALTER TABLE `events` MODIFY `org_id` bigint(20) NOT NULL;',
+                'SET SESSION lock_wait_timeout = DEFAULT;',
+            ),
+            $manager->toSql($id)
+        );
         $this->assertSame(array('events: column legacy is not in the target; kept'), $manager->notes($id));
         $this->assertSame(array(), $manager->lastSkipped());
     }
@@ -425,8 +433,45 @@ class TableConvergerTest extends TestCase
         $manager = new SchemaRenderingMigrationManager(array('Migration_' . $id . '.php'));
         $manager->liveSchema = $this->mysqlInspector($live);
         $sql = $manager->toSql($id);
-        $this->assertSame('DROP TABLE `events`;', $sql[0]);
-        $this->assertCount(5, $sql);
+        $this->assertSame('DROP TABLE `events`;', $sql[2]);
+        $this->assertCount(8, $sql);
+    }
+
+    public function testTheSessionLetsTheServerChooseTheAlgorithm()
+    {
+        $mariadb = TableConverger::session($this->mysqlInspector(null));
+        $this->assertSame(
+            array("SET SESSION alter_algorithm = 'DEFAULT';", 'SET SESSION lock_wait_timeout = 300;'),
+            $mariadb['set']
+        );
+        $this->assertSame(array('SET SESSION lock_wait_timeout = DEFAULT;'), $mariadb['reset']);
+        $mysql = TableConverger::session($this->mysqlInspector(null, '8.4.11'));
+        $this->assertSame('SET SESSION old_alter_table = OFF;', $mysql['set'][0]);
+        $this->assertSame(array(), TableConverger::session($this->pgsqlInspector(self::pgsqlLive('events', self::TARGET))));
+    }
+
+    public function testATableAtItsTargetRunsNoSessionStatements()
+    {
+        $id = '20261101_000000_converge_events';
+        $manager = new SchemaRenderingMigrationManager(array('Migration_' . $id . '.php'));
+        $manager->liveSchema = $this->mysqlInspector(self::mysqlLive(self::TARGET));
+        $this->assertSame(array(), $manager->toSql($id));
+    }
+
+    public function testAnOfflineMigrationIsNotStartedOnALiveInstance()
+    {
+        $id = '20261101_000000_converge_events';
+        $manager = new SchemaRenderingMigrationManager(array('Migration_' . $id . '.php'));
+        $live = Configure::read('MISP.live');
+        try {
+            Configure::write('MISP.live', true);
+            $this->assertRegExp('/does not start while the instance is live/', $manager->refusal(array($id)));
+            $this->assertNull($manager->refusal(array()));
+            Configure::write('MISP.live', false);
+            $this->assertNull($manager->refusal(array($id)));
+        } finally {
+            Configure::write('MISP.live', $live);
+        }
     }
 
     /**

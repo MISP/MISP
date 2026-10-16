@@ -950,6 +950,24 @@ class SchemaInspector
     }
 
     /**
+     * Other connections to this database that are running something.
+     * Empty on PostgreSQL, as runningQueries() is.
+     *
+     * @return array Rows with id, user, command, seconds and state.
+     */
+    public function otherActiveSessions()
+    {
+        if (!$this->isMysql()) {
+            return array();
+        }
+        return $this->fetchRows(
+            'SELECT ID AS id, USER AS user, COMMAND AS command, TIME AS seconds, STATE AS state'
+            . ' FROM information_schema.PROCESSLIST'
+            . " WHERE ID <> CONNECTION_ID() AND DB = DATABASE() AND COMMAND NOT IN ('Sleep', 'Daemon', 'Binlog Dump');"
+        );
+    }
+
+    /**
      * Rows of one read-only query over a table's data, for the checks a
      * migration makes before it changes the table (TablePreflight). Not
      * cached, as every catalog read here.

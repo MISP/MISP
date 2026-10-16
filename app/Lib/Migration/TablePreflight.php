@@ -1061,6 +1061,12 @@ class TablePreflight
             $need = array('datadir' => $copy, 'tmpdir' => $kind === 'inplace' ? $indexes : 0.0);
             $what = 'the rebuild (a new copy of the table beside the old one)';
         }
+        $this->plan['forecast'] = array(
+            'kind' => $kind,
+            'rows' => (int)$rows,
+            'bytes' => $size['data_in_bytes'] + $size['index_in_bytes'],
+            'need' => $need['datadir'] + $need['tmpdir'],
+        );
         $this->disk($need, $what);
     }
 
@@ -1194,7 +1200,7 @@ class TablePreflight
      * @param float $bytes
      * @return string
      */
-    private static function bytes($bytes)
+    public static function bytes($bytes)
     {
         return $bytes >= 1073741824 ? sprintf('%.1f GB', $bytes / 1073741824) : sprintf('%.1f MB', $bytes / 1048576);
     }

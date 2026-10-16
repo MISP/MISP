@@ -255,6 +255,19 @@ if (!class_exists('MigrationTestInspector', false)) {
             return $this->version;
         }
 
+        public function isMariaDb()
+        {
+            return stripos($this->version, 'mariadb') !== false;
+        }
+
+        /** @var array What otherActiveSessions() reports. */
+        public $sessions = array();
+
+        public function otherActiveSessions()
+        {
+            return $this->sessions;
+        }
+
         public function tables()
         {
             return array_keys($this->schema);
