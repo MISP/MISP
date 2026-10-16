@@ -1,63 +1,21 @@
-<div class="container-fluid text-white-50 expansion" style="background-color: #28191B; z-index:2">
-    <!-- Shortcut Toggle -->
-    <div id="triangle" title="<?= __('Show keyboard shortcuts help') ?>"></div>
-
-    <!-- Shortcut List -->
-    <div class="shortcutsListContainer <?php echo $debugMode == 'debugOn' ? 'd-none': ''; ?>">
-        <div>
-            <?= __('Keyboard shortcuts for this page') ?>:<br>
-            <div id="shortcuts"><?php echo __('none'); ?></div>
-        </div>
-    </div>
-
-    <!-- Footer Content -->
-    <footer class="row align-items-center text-center my-3">
-        <!-- Left section: Downloads -->
-        <div class="col text-start">
-            <?php
-            $gpgpath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'gpg.asc';
-            if (Configure::read("MISP.download_gpg_from_homedir")) { ?>
-                <span>Download: <?= $this->Html->link(__('Server PGP public key'), ['controller' => 'users', 'action' => 'getGpgPublicKey']) ?></span>
-            <?php } elseif (file_exists($gpgpath) && (is_file($gpgpath) || is_link($gpgpath))) { ?>
-                <span>Download: <?= $this->Html->link(__('Server PGP public key'), $this->webroot.'gpg.asc'); ?></span>
-            <?php } else { ?>
-                <span><?= __('Could not locate the PGP public key.'); ?></span>
-            <?php }
-            if (Configure::read('SMIME.enabled') && isset($me['id'])):
-                $smimepath = Configure::read('SMIME.cert_public_sign');
-                if (!empty($smimepath) && is_file($smimepath) && is_readable($smimepath)) { ?>
-                    <span>Download: <?= $this->Html->link(__('Server S/MIME certificate'), ['controller' => 'users', 'action' => 'getSmimeCertificate']) ?></span>
-                <?php } else { ?>
-                    <span><?= __('Could not locate S/MIME certificate.'); ?></span>
-                <?php }
-            endif; ?>
-        </div>
-
-        <!-- Center section: Footer text -->
-        <div class="col text-center">
-            <span>
-                <?= h(Configure::read('MISP.footermidleft')); ?> 
-                Powered by <a href="https://github.com/MISP/MISP" rel="noopener" class="text-primary">MISP <?= isset($me['id']) ? h($mispVersionFull) : '' ?></a> 
-                <?= h(Configure::read('MISP.footermidright')); ?> - <?= $this->Time->time(time()) ?>
-            </span>
-        </div>
-
-        <!-- Right section: Logo -->
-        <div class="col text-end">
-            <?php if (Configure::read('MISP.footer_logo')): ?>
-                <img src="<?= $this->Image->base64(APP . 'files/img/custom/' . Configure::read('MISP.footer_logo')) ?>" 
-                    alt="<?= __('Footer logo') ?>" 
-                    class="img-fluid"
-                    style="max-height:30px;" 
-                    onerror="this.style.display='none';">
-            <?php endif; ?>
-        </div>
-    </footer>
-</div>
-
-
-<script>
-document.getElementById('triangle').addEventListener('click', function() {
-    document.querySelector('.expansion').classList.toggle('footer-expanded');
-});
-</script>
+<?php
+// Only drawn when an admin set MISP.footermidleft, footermidright or footer_logo.
+$footerText = array_filter([
+    Configure::read('MISP.footermidleft'),
+    Configure::read('MISP.footermidright'),
+], 'strlen');
+$footerLogo = Configure::read('MISP.footer_logo');
+if (empty($footerText) && empty($footerLogo)) {
+    return;
+}
+?>
+<footer class="ov-footer">
+    <?php if (!empty($footerText)): ?>
+        <span><?= implode(' ', array_map('h', $footerText)) ?></span>
+    <?php endif; ?>
+    <?php if (!empty($footerLogo)): ?>
+        <img src="<?= $this->Image->base64(APP . 'files/img/custom/' . $footerLogo) ?>"
+            alt="<?= __('Footer logo') ?>"
+            onerror="this.style.display='none';">
+    <?php endif; ?>
+</footer>

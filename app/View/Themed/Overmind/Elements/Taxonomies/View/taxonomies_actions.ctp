@@ -13,8 +13,10 @@ if ($isSiteAdmin) {
             'type' => 'post',
             'url' => "$baseurl/taxonomies/enable/$taxonomyId",
             'id' => $taxonomyId,
-            'icon' => 'fas fa-play',
+            'icon' => 'fas fa-toggle-on',
+            'entity' => 'tag',
             'label' => __('Enable Taxonomy'),
+            'short' => __('Enable'),
             'class' => 'text-success'
         ];
     } else {
@@ -22,8 +24,10 @@ if ($isSiteAdmin) {
             'type' => 'post',
             'url' => "$baseurl/taxonomies/disable/$taxonomyId",
             'id' => $taxonomyId,
-            'icon' => 'fas fa-stop',
+            'icon' => 'fas fa-toggle-off',
+            'entity' => 'tag',
             'label' => __('Disable Taxonomy'),
+            'short' => __('Disable'),
             'class' => 'text-warning'
         ];
     }
@@ -35,7 +39,9 @@ if ($isSiteAdmin) {
             'id' => $taxonomyId,
             'required' => $required,
             'icon' => 'fas fa-asterisk',
+            'entity' => 'tag',
             'label' => __('Make Taxonomy required'),
+            'short' => __('Required'),
             'class' => 'text-success'
         ];
     } else {
@@ -45,7 +51,9 @@ if ($isSiteAdmin) {
             'id' => $taxonomyId,
             'required' => $required,
             'icon' => 'fas fa-question',
+            'entity' => 'tag',
             'label' => __('Make Taxonomy optional'),
+            'short' => __('Optional'),
             'class' => 'text-warning'
         ];
     }
@@ -56,7 +64,9 @@ if ($isSiteAdmin) {
             'url' => "$baseurl/taxonomies/toggleHighlighted/$taxonomyId",
             'id' => $taxonomyId,
             'icon' => 'fas fa-highlighter',
+            'entity' => 'tag',
             'label' => __('Highlight Taxonomy'),
+            'short' => __('Highlight'),
             'class' => 'text-success'
         ];
     } else {
@@ -65,7 +75,9 @@ if ($isSiteAdmin) {
             'url' => "$baseurl/taxonomies/toggleHighlighted/$taxonomyId",
             'id' => $taxonomyId,
             'icon' => 'fas fa-down-long',
+            'entity' => 'tag',
             'label' => __('Remove Highlight from Taxonomy'),
+            'short' => __('Unhighlight'),
             'class' => 'text-warning'
         ];
     }
@@ -79,7 +91,7 @@ if ($isSiteAdmin) {
     ];
 }
 
-echo $this->element('genericElementsBS5/Cards/card_actions', [
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions
 ]);
 ?>

@@ -1,4 +1,5 @@
 <?php
+    $railCards = $railCards ?? [];
     $this->set('headerTitle', $taxonomy['namespace'] ?? '');
     $this->set('headerIdentity', $taxonomy);
 
@@ -16,9 +17,11 @@
                     'Taxonomies/View/taxonomies_general',
                     'Taxonomies/View/taxonomies_tags_card',
                 ],
-                'right' => [
+                'right' => array_merge([
                     'Taxonomies/View/taxonomies_actions',
-                ]
+                ], $this->RailCard->rail($railCards, [
+                    'taxonomy-freshness', 'taxonomy-inventory', 'taxonomy-usage',
+                ], 'general')),
             ],
             [
                 'id' => 'tags',
@@ -32,6 +35,7 @@
                         'ajax' => sprintf('%s/taxonomies/taxonomy_tags/%s', $baseurl, h($taxonomy['id']))
                     ]
                 ],
+                'right' => $this->RailCard->rail($railCards, ['taxonomy-inventory'], 'tags'),
             ]
         ]
     ]);

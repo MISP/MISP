@@ -23,8 +23,23 @@ echo $this->element('Objects/index', [
 ]);
 ?>
 
+<?php
+// The tab badge counts the event's objects, so a filtered load leaves it alone.
+$filterKeys = [
+    'deleted', 'name', 'object', 'meta-category', 'searchFor', 'proposal', 'category', 'type', 'tags',
+    'galaxy', 'org', 'toIDS', 'correlation', 'feed', 'warning', 'analystData', 'narrower', 'seen',
+];
+$filtered = array_intersect_key(
+    array_filter($this->request->params['named'] ?? [], function ($value) {
+        return is_array($value) ? !empty($value) : !in_array((string)$value, ['', '0'], true);
+    }),
+    array_flip($filterKeys)
+);
+?>
+<?php if (empty($filtered)): ?>
 <script>
 if (typeof setTabCount === 'function') {
     setTabCount('objects', <?= (int)($total ?? 0) ?>);
 }
 </script>
+<?php endif; ?>

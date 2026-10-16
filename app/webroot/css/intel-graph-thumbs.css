@@ -1,0 +1,330 @@
+/* A graph's picture in the rows that list graphs, and its preview
+   (intel-graph-thumbs.js). The graph's own type colours, pulled toward ink so
+   each mark reaches 3:1 on the tile in both themes. */
+.igt,
+.igt-pop {
+    --igt-tile: var(--bs-tertiary-bg);
+    --igt-event: color-mix(in srgb, var(--bs-event) 75%, var(--bs-emphasis-color));
+    --igt-attribute: color-mix(in srgb, var(--bs-attribute) 70%, var(--bs-emphasis-color));
+    --igt-object: color-mix(in srgb, var(--bs-object) 72%, var(--bs-emphasis-color));
+    --igt-galaxy: color-mix(in srgb, var(--bs-galaxy) 80%, var(--bs-emphasis-color));
+    --igt-value: var(--bs-emphasis-color);
+    --igt-answer: color-mix(in srgb, var(--bs-enrichment, #6a6396) 75%, var(--bs-emphasis-color));
+    --igt-edge: var(--bs-secondary-color);
+}
+
+/* ── the tile ─────────────────────────────────────────────── */
+.igt {
+    display: block;
+    flex: none;
+    position: relative;
+    overflow: hidden;
+    box-sizing: content-box;
+    padding: 0;
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius-sm);
+    background: var(--igt-tile);
+    line-height: 0;
+}
+
+button.igt {
+    cursor: zoom-in;
+}
+
+button.igt:hover,
+button.igt[aria-expanded="true"] {
+    border-color: var(--bs-secondary-color);
+}
+
+button.igt:focus-visible {
+    outline: 2px solid var(--bs-focus-ring-color, var(--bs-primary));
+    outline-offset: 2px;
+}
+
+.igt > svg {
+    display: block;
+    overflow: visible;
+}
+
+.igt--card {
+    margin-top: 0.5rem;
+}
+
+.igt-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.igt-cell > span {
+    min-width: 0;
+}
+
+.ig-so-pick > .igt--switcher {
+    margin-right: 0.625rem;
+    align-self: center;
+}
+
+.ig-so-pick {
+    -webkit-touch-callout: none;
+}
+
+/* The drawing, in the tile and in the preview */
+.igt-edges {
+    fill: none;
+    stroke: var(--igt-edge);
+    stroke-width: 0.75;
+    stroke-linecap: round;
+    stroke-opacity: 0.7;
+}
+
+.igt-edges--busy {
+    stroke-width: 0.5;
+    stroke-opacity: 0.4;
+}
+
+.igt-n {
+    stroke: var(--igt-tile);
+    stroke-width: 0.9;
+    paint-order: stroke;
+}
+
+.igt-nodes--busy .igt-n {
+    stroke-width: 0.5;
+}
+
+.igt-Event { fill: var(--igt-event); }
+.igt-Attribute { fill: var(--igt-attribute); }
+.igt-Object { fill: var(--igt-object); }
+.igt-GalaxyCluster { fill: var(--igt-galaxy); }
+.igt-Value { fill: var(--igt-value); }
+.igt-ModuleAnswer { fill: var(--igt-answer); }
+
+.igt-pin {
+    fill: none;
+    stroke: var(--bs-emphasis-color);
+    stroke-width: 1.2;
+    stroke-dasharray: 2 1.6;
+}
+
+/* States */
+.igt[data-thumb-state="loading"] {
+    background:
+        linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--bs-body-bg) 70%, transparent) 50%, transparent 70%)
+        0 0 / 250% 100% no-repeat,
+        var(--igt-tile);
+    animation: igt-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes igt-sweep {
+    from { background-position: 120% 0, 0 0; }
+    to { background-position: -120% 0, 0 0; }
+}
+
+/* Nothing drawn yet: the frame of a drawing, blank */
+.igt[data-thumb-state="empty"] {
+    background: transparent;
+    border-style: dashed;
+    border-color: var(--bs-tertiary-color);
+}
+
+.igt-broken-line {
+    fill: none;
+    stroke: var(--bs-secondary-color);
+    stroke-width: 1.25;
+    stroke-linecap: round;
+}
+
+.igt-broken-node {
+    fill: var(--bs-secondary-color);
+}
+
+/* ── the preview ──────────────────────────────────────────── */
+.igt-pop {
+    position: fixed;
+    z-index: 1070;
+    box-sizing: border-box;
+    width: 420px;
+    padding: 10px 12px 8px;
+    color: var(--bs-body-color);
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg, 0.5rem);
+    box-shadow: var(--bs-box-shadow);
+    font-family: var(--bs-body-font-family, var(--bs-font-sans-serif));
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    pointer-events: none;
+    text-align: left;
+    white-space: normal;
+}
+
+.igt-pop[hidden] {
+    display: none;
+}
+
+.igt-pop--in {
+    animation: igt-pop-in 120ms ease-out;
+}
+
+@keyframes igt-pop-in {
+    from { opacity: 0; transform: translateY(var(--igt-from, 4px)); }
+    to { opacity: 1; transform: none; }
+}
+
+.igt-pop[data-side="left"] { --igt-from: 0; }
+.igt-pop[data-side="above"] { --igt-from: -4px; }
+
+.igt-pop-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    height: 22px;
+    margin-bottom: 6px;
+}
+
+.igt-pop-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--bs-emphasis-color);
+}
+
+.igt-pop-count {
+    flex: 0 0 auto;
+    color: var(--bs-secondary-color);
+    font-variant-numeric: tabular-nums;
+}
+
+.igt-pop-stage {
+    width: 396px;
+    max-width: 100%;
+    height: 228px;
+    border-radius: var(--bs-border-radius);
+    background: var(--igt-tile);
+    border: 1px solid var(--bs-border-color-translucent, var(--bs-border-color));
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.igt-pop-stage svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.igt-pop-stage .igt-edges { stroke-width: 1; }
+.igt-pop-stage .igt-edges--busy { stroke-width: 0.6; stroke-opacity: 0.6; }
+.igt-pop-stage .igt-n { stroke-width: 1.2; }
+
+.igt-pop-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: flex-start;
+    gap: 2px 12px;
+    min-height: 22px;
+    margin-top: 6px;
+}
+
+.igt-pop-key,
+.igt-pop-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.igt-pop-meta {
+    color: var(--bs-secondary-color);
+}
+
+.igt-pop-note {
+    margin-top: 4px;
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
+}
+
+.igt-swatch {
+    flex: 0 0 auto;
+    overflow: visible;
+}
+
+.igt-swatch .igt-n {
+    stroke: none;
+}
+
+.igt-msg-glyph {
+    fill: none;
+    stroke: var(--bs-secondary-color);
+    stroke-width: 1.5;
+}
+
+.igt-msg--error .igt-msg-glyph { stroke: var(--bs-danger-text-emphasis, var(--bs-danger)); }
+.igt-msg-bang { stroke-linecap: round; stroke-width: 2; }
+.igt-msg-dot { fill: var(--bs-danger-text-emphasis, var(--bs-danger)); }
+
+.igt-msg-pulse {
+    fill: var(--bs-secondary-color);
+    animation: igt-pulse 900ms ease-in-out infinite;
+}
+
+@keyframes igt-pulse {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 1; }
+}
+
+.igt-msg-text {
+    fill: var(--bs-body-color);
+    font-size: 13px;
+    font-weight: 600;
+    text-anchor: middle;
+}
+
+.igt-msg-sub {
+    fill: var(--bs-secondary-color);
+    font-size: 12px;
+    text-anchor: middle;
+}
+
+/* The caret ties the preview to its tile */
+.igt-pop-caret {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.igt-pop[data-side="left"] .igt-pop-caret {
+    left: 100% !important;
+    border-left: 0;
+    border-bottom: 0;
+}
+
+.igt-pop[data-side="below"] .igt-pop-caret {
+    top: 0 !important;
+    border-right: 0;
+    border-bottom: 0;
+}
+
+.igt-pop[data-side="above"] .igt-pop-caret {
+    top: 100% !important;
+    border-left: 0;
+    border-top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .igt[data-thumb-state="loading"],
+    .igt-pop--in,
+    .igt-msg-pulse {
+        animation: none;
+    }
+}

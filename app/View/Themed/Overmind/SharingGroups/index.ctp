@@ -89,7 +89,7 @@ $fields = [
             } ?>
             <span data-toggle="popover" data-trigger="hover" title="<?= __('Distribution List') ?>" data-content="<?= h($combined) ?>">
                 <?= empty($sharingGroup['SharingGroup']['releasability']) ?
-                    '<span style="color: gray">' . __('Not defined') . '</span>' :
+                    '<span style="color: var(--misp-ink-muted, gray)">' . __('Not defined') . '</span>' :
                     h($sharingGroup['SharingGroup']['releasability'])
                 ?>
             </span>

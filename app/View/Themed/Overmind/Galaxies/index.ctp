@@ -258,6 +258,16 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                                     '0' => __('Disabled'),
                                 ]
                             ],
+                            [
+                                'type' => 'dropdown',
+                                'label' => __('Origin'),
+                                'name' => 'default',
+                                'options' => [
+                                    '' => __('All'),
+                                    '1' => __('Default'),
+                                    '0' => __('Custom'),
+                                ]
+                            ],
                         ]
                     ],
                 ],

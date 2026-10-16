@@ -1,0 +1,22 @@
+{
+  "name": "misp-bootstrap-themes",
+  "private": true,
+  "description": "Builds the Bootstrap 5 themes used by the Overmind UI.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/ibm-plex-sans": "5.3.0",
+    "@fontsource/lato": "5.3.0",
+    "@fontsource/orbitron": "5.3.0",
+    "@fontsource/oxanium": "5.3.0",
+    "@fontsource/source-sans-pro": "5.3.0",
+    "@fontsource/source-serif-4": "5.3.0",
+    "@fontsource/titillium-web": "5.3.0",
+    "bootstrap": "5.3.8",
+    "bootswatch": "5.3.8",
+    "sass": "1.105.0"
+  }
+}

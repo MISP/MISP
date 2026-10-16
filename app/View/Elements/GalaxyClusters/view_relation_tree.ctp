@@ -303,14 +303,16 @@ $randomClass = "relation-{$random}";
             
         paddingX = 8;
         gEnter.append("foreignObject")
-            .attr("height", 18)
+            .attr("height", window.TagChips ? 26 : 18)
             .attr("y", 20)
             .attr("x", function(d) { return  -(d.Relation.Tag !== undefined ? getTextWidth(d.Relation.Tag, {'white-space': 'nowrap', 'font-weight': 'bold'}, 'name') - 2*paddingX : 0)/2 + 'px'; })
             .attr("width", function(d) { return  (d.Relation.Tag !== undefined ? getTextWidth(d.Relation.Tag, {'white-space': 'nowrap', 'font-weight': 'bold'}, 'name') + 2*paddingX : 0) + 'px'; })
             .append("xhtml:div")
             .each(function(d) {
                 var tagContainer = d3.select(this);
-                if (d.Relation.Tag !== undefined) {
+                if (d.Relation.Tag !== undefined && window.TagChips) {
+                    tagContainer.html(TagChips.collection(d.Relation.Tag, {searchUrl: '', display: 'leaf'}));
+                } else if (d.Relation.Tag !== undefined) {
                     d.Relation.Tag.forEach(function(tag) {
                         tagContainer
                             .append("span")

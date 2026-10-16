@@ -37,6 +37,12 @@ class Event extends AppModel
     const NO_PUSH_DISTRIBUTION = 'distribution',
         NO_PUSH_SERVER_RULES = 'push_rules';
 
+    // Correlations read each way per event for the index's correlation count
+    const INDEX_CORRELATION_LIMIT = 1000;
+
+    // Objects read per event for the index's object count
+    const INDEX_OBJECT_LIMIT = 1000;
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -696,12 +702,31 @@ class Event extends AppModel
      * @param array $user
      * @param array $events
      * @param bool $excludeNonCorrelating Count only the related events that the
-     *      event view can actually show a correlation for
+     *      event view can actually show a correlation for, within
+     *      INDEX_CORRELATION_LIMIT correlations; `correlation_count_more` marks
+     *      a count that stopped there
      * @return array
      */
     public function attachCorrelationCountToEvents(array $user, array $events, bool $excludeNonCorrelating = false)
     {
         $sgids = $this->SharingGroup->authorizedIds($user);
+        if ($excludeNonCorrelating) {
+            if (empty($sgids)) {
+                $sgids = [-1];
+            }
+            $counts = $this->Attribute->Correlation->countRelatedEventsFor(
+                $user,
+                array_map('intval', array_column(array_column($events, 'Event'), 'id')),
+                $sgids,
+                self::INDEX_CORRELATION_LIMIT
+            );
+            foreach ($events as &$event) {
+                list($count, $more) = $counts[(int)$event['Event']['id']] ?? [0, false];
+                $event['Event']['correlation_count'] = $count;
+                $event['Event']['correlation_count_more'] = $more;
+            }
+            return $events;
+        }
         foreach ($events as &$event) {
             $event['Event']['correlation_count'] = $this->getRelatedEventCount($user, $event['Event']['id'], $sgids, $excludeNonCorrelating);
         }
@@ -711,14 +736,9 @@ class Event extends AppModel
     public function attachSightingsCountToEvents(array $user, array $events)
     {
         $eventIds = array_column(array_column($events, 'Event'), 'id');
-        $this->Sighting->virtualFields['count'] = 'count(Sighting.id)';
-        $sightings = $this->Sighting->find('list', array(
-            'fields' => array('Sighting.event_id', 'Sighting.count'),
-            'conditions' => array('event_id' => $eventIds),
-            'group' => array('event_id')
-        ));
+        $sightings = $this->Sighting->countForEvents($user, $eventIds);
         foreach ($events as $key => $event) {
-            $events[$key]['Event']['sightings_count'] = isset($sightings[$event['Event']['id']]) ? $sightings[$event['Event']['id']] : 0;
+            $events[$key]['Event']['sightings_count'] = $sightings[$event['Event']['id']] ?? 0;
         }
         return $events;
     }
@@ -738,26 +758,104 @@ class Event extends AppModel
         if (empty($eventIds)) {
             return $events;
         }
-        $objectCounts = $this->Object->find('all', array(
-            'fields' => array('Object.event_id', 'COUNT(Object.id) as count'),
-            'conditions' => array('Object.event_id' => $eventIds, 'Object.deleted' => 0),
-            'recursive' => -1,
-            'group' => array('Object.event_id'),
-        ));
-        $objectCounts = Hash::combine($objectCounts, '{n}.Object.event_id', '{n}.0.count');
+        $events = $this->attachObjectCountToEvents($events);
         $attributeCounts = $this->Attribute->find('all', array(
             'fields' => array('Attribute.event_id', 'COUNT(Attribute.id) as count'),
             'conditions' => array('Attribute.event_id' => $eventIds, 'Attribute.deleted' => 0, 'Attribute.object_id' => 0),
             'recursive' => -1,
             'group' => array('Attribute.event_id'),
+            'forceIndexHint' => $this->Attribute->looseAttributeIndex(),
         ));
         $attributeCounts = Hash::combine($attributeCounts, '{n}.Attribute.event_id', '{n}.0.count');
         foreach ($events as $key => $event) {
             $eventId = $event['Event']['id'];
-            $events[$key]['Event']['object_count'] = isset($objectCounts[$eventId]) ? (int)$objectCounts[$eventId] : 0;
             $events[$key]['Event']['attribute_count_no_objects'] = isset($attributeCounts[$eventId]) ? (int)$attributeCounts[$eventId] : 0;
         }
         return $events;
+    }
+
+    /**
+     * Attaches `object_count`, the number of (non-deleted) objects, to each
+     * event of an index list.
+     *
+     * @param array $events
+     * @param int|null $limit Read at most this many objects per event;
+     *      `object_count_more` marks a count that stopped there
+     * @return array
+     */
+    public function attachObjectCountToEvents(array $events, $limit = null)
+    {
+        $eventIds = array_column(array_column($events, 'Event'), 'id');
+        if (empty($eventIds)) {
+            return $events;
+        }
+        if ($limit === null) {
+            $objectCounts = $this->Object->find('all', array(
+                'fields' => array('Object.event_id', 'COUNT(Object.id) as count'),
+                'conditions' => array('Object.event_id' => $eventIds, 'Object.deleted' => 0),
+                'recursive' => -1,
+                'group' => array('Object.event_id'),
+            ));
+            $objectCounts = Hash::combine($objectCounts, '{n}.Object.event_id', '{n}.0.count');
+        } else {
+            $objectCounts = $this->__countObjectsUpTo($eventIds, $limit + 1);
+        }
+        foreach ($events as $key => $event) {
+            $count = (int)($objectCounts[$event['Event']['id']] ?? 0);
+            if ($limit !== null) {
+                $events[$key]['Event']['object_count_more'] = $count > $limit;
+                $count = min($count, $limit);
+            }
+            $events[$key]['Event']['object_count'] = $count;
+        }
+        return $events;
+    }
+
+    /**
+     * @param array $eventIds
+     * @param int $limit
+     * @return array event id => non-deleted objects, at most $limit
+     */
+    private function __countObjectsUpTo(array $eventIds, $limit)
+    {
+        $db = $this->Object->getDataSource();
+        $counts = [];
+        foreach (array_chunk($eventIds, 50) as $chunk) {
+            $branches = [];
+            foreach ($chunk as $eventId) {
+                $counts[$eventId] = 0;
+                $branches[] = '(' . $db->buildStatement([
+                    'fields' => [sprintf('%d AS %s', $eventId, $db->name('event_id'))],
+                    'table' => $db->fullTableName($this->Object),
+                    'alias' => 'Object',
+                    'conditions' => [
+                        'Object.event_id' => (int)$eventId,
+                        'Object.deleted' => 0,
+                    ],
+                    'order' => null,
+                    'group' => null,
+                    'limit' => $limit,
+                    'offset' => null,
+                ], $this->Object) . ')';
+            }
+            $rows = $db->fetchAll(
+                sprintf(
+                    'SELECT %s, COUNT(*) AS %s FROM (%s) AS %s GROUP BY %s',
+                    $db->name('event_id'),
+                    $db->name('n'),
+                    implode(' UNION ALL ', $branches),
+                    $db->name('capped'),
+                    $db->name('event_id')
+                ),
+                [],
+                ['cache' => false]
+            );
+            foreach ($rows as $row) {
+                $row = ($row['capped'] ?? []) + ($row[0] ?? []);
+                $counts[(int)$row['event_id']] = (int)$row['n'];
+            }
+        }
+        return $counts;
     }
 
     public function attachProposalsCountToEvents($user, $events)
@@ -852,6 +950,528 @@ class Event extends AppModel
         $sgids = $this->SharingGroup->authorizedIds($user);
         $relatedAttributes = $this->Correlation->getAttributesRelatedToEvent($user, $eventIds, $sgids);
         return $relatedAttributes;
+    }
+
+    /**
+     * Correlation counts for an event, per attribute, object and
+     * correlated event — the same correlations getRelatedAttributes()
+     * returns, bounded by MISP.max_correlations_per_event like it.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @return array
+     */
+    public function getCorrelationCounts(array $user, $eventId)
+    {
+        $related = $this->getRelatedAttributes($user, $eventId);
+        $visible = [];
+        if (!empty($related)) {
+            $attributes = $this->Attribute->fetchAttributesSimple($user, [
+                'conditions' => [
+                    'Attribute.id' => array_keys($related),
+                    'Attribute.event_id' => $eventId,
+                    'Attribute.deleted' => 0,
+                ],
+                'fields' => ['Attribute.id', 'Attribute.uuid'],
+                'contain' => [
+                    'Event' => ['fields' => ['Event.id']],
+                    'Object' => ['fields' => ['Object.uuid']],
+                ],
+            ]);
+            foreach ($attributes as $attribute) {
+                $visible[] = [
+                    'id' => $attribute['Attribute']['id'],
+                    'uuid' => $attribute['Attribute']['uuid'],
+                    'object_uuid' => $attribute['Object']['uuid'] ?? null,
+                ];
+            }
+        }
+        App::uses('CorrelationCountTool', 'Tools');
+        $counts = CorrelationCountTool::aggregate($related, $visible);
+        $counts['limit'] = (int)(Configure::read('MISP.max_correlations_per_event') ?: 5000);
+        return $counts;
+    }
+
+    /**
+     * getCorrelationCounts() for attributes of other events drawn beside
+     * this one, leaving out what correlates back into it.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array $attributeUuids
+     * @return array
+     */
+    public function getForeignCorrelationCounts(array $user, $eventId, array $attributeUuids)
+    {
+        [$related, $visible] = $this->foreignAttributeCorrelations($user, $eventId, $attributeUuids);
+        App::uses('CorrelationCountTool', 'Tools');
+        return CorrelationCountTool::aggregate($related, $visible);
+    }
+
+    /**
+     * Correlations of attributes outside the event, into any event but it.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array $attributeUuids
+     * @return array [rows keyed by attribute id as getRelatedAttributes()
+     *               shapes them, the attributes as ['id', 'uuid', 'object_uuid']]
+     */
+    private function foreignAttributeCorrelations(array $user, $eventId, array $attributeUuids)
+    {
+        $uuids = array_values(array_unique(array_filter($attributeUuids, 'is_string')));
+        if (empty($uuids)) {
+            return [[], []];
+        }
+        $attributes = $this->Attribute->fetchAttributesSimple($user, [
+            'conditions' => [
+                'Attribute.uuid' => $uuids,
+                'Attribute.event_id !=' => $eventId,
+                'Attribute.deleted' => 0,
+            ],
+            'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.event_id'],
+            'contain' => [
+                'Event' => ['fields' => ['Event.id']],
+                'Object' => ['fields' => ['Object.uuid']],
+            ],
+        ]);
+        $byEvent = [];
+        $visible = [];
+        foreach ($attributes as $attribute) {
+            $byEvent[$attribute['Attribute']['event_id']][] = $attribute['Attribute']['id'];
+            $visible[] = [
+                'id' => $attribute['Attribute']['id'],
+                'uuid' => $attribute['Attribute']['uuid'],
+                'object_uuid' => $attribute['Object']['uuid'] ?? null,
+            ];
+        }
+        $sgids = $this->SharingGroup->authorizedIds($user);
+        $related = [];
+        foreach ($byEvent as $ownerId => $ids) {
+            $rows = $this->Attribute->Correlation->getAttributeCorrelations($user, $ownerId, $sgids, $ids);
+            foreach ($rows as $attributeId => $list) {
+                $list = array_values(array_filter($list, function ($row) use ($eventId) {
+                    return (string)$row['id'] !== (string)$eventId;
+                }));
+                if (!empty($list)) {
+                    $related[$attributeId] = $list;
+                }
+            }
+        }
+        return [$related, $visible];
+    }
+
+    /**
+     * The correlations getCorrelationCounts() and getForeignCorrelationCounts()
+     * count, as pairs: a source attribute and the attribute it correlates
+     * with elsewhere.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array $attributeUuids only these attributes, the event's or drawn
+     *              beside it from other events; all of the event's when empty
+     * @param array $relatedEventIds only correlations into these events; all when empty
+     * @return array 'pairs': list of ['source_uuid', 'Attribute', 'Event', 'Object'],
+     *               Object null unless the user may read it; 'objects': those
+     *               objects as MispObject::fetchGraphObjects() shapes them
+     */
+    public function getCorrelatedAttributes(array $user, $eventId, array $attributeUuids = [], array $relatedEventIds = [])
+    {
+        $none = ['pairs' => [], 'objects' => []];
+        $wanted = array_flip(array_map('strval', $relatedEventIds));
+        $pairs = [];
+        $collect = function (array $related, array $sources) use ($wanted, &$pairs) {
+            foreach ($sources as $source) {
+                foreach ($related[$source['id']] ?? [] as $row) {
+                    if (!empty($wanted) && !isset($wanted[(string)$row['id']])) {
+                        continue;
+                    }
+                    $pairs[] = [$source['uuid'], $row['attribute_id']];
+                }
+            }
+        };
+
+        $related = $this->getRelatedAttributes($user, $eventId);
+        if (!empty($related)) {
+            $conditions = [
+                'Attribute.id' => array_keys($related),
+                'Attribute.event_id' => $eventId,
+                'Attribute.deleted' => 0,
+            ];
+            if (!empty($attributeUuids)) {
+                $conditions['Attribute.uuid'] = array_values($attributeUuids);
+            }
+            $sources = $this->Attribute->fetchAttributesSimple($user, [
+                'conditions' => $conditions,
+                'fields' => ['Attribute.id', 'Attribute.uuid'],
+                'contain' => ['Event' => ['fields' => ['Event.id']], 'Object' => ['fields' => ['Object.id']]],
+            ]);
+            $collect($related, array_column($sources, 'Attribute'));
+        }
+        if (!empty($attributeUuids)) {
+            [$foreign, $foreignSources] = $this->foreignAttributeCorrelations($user, $eventId, $attributeUuids);
+            $collect($foreign, $foreignSources);
+        }
+        if (empty($pairs)) {
+            return $none;
+        }
+
+        $targets = $this->Attribute->fetchAttributesSimple($user, [
+            'conditions' => [
+                'Attribute.id' => array_unique(array_column($pairs, 1)),
+                'Attribute.deleted' => 0,
+            ],
+            'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value'],
+            'contain' => [
+                'Event' => ['fields' => ['Event.id', 'Event.uuid', 'Event.info']],
+                'Object' => ['fields' => ['Object.id', 'Object.uuid', 'Object.name']],
+            ],
+        ]);
+        $byId = [];
+        $objectIds = [];
+        foreach ($targets as $target) {
+            $byId[$target['Attribute']['id']] = $target;
+            if (!empty($target['Object']['id'])) {
+                $objectIds[$target['Object']['id']] = true;
+            }
+        }
+        $objects = empty($objectIds) ? [] : $this->Object->fetchGraphObjects($user, [
+            'Object.id' => array_map('strval', array_keys($objectIds)),
+        ]);
+
+        $result = [];
+        foreach ($pairs as [$sourceUuid, $targetId]) {
+            if (!isset($byId[$targetId])) {
+                continue;
+            }
+            $target = $byId[$targetId];
+            $result[] = [
+                'source_uuid' => $sourceUuid,
+                'Attribute' => $target['Attribute'],
+                'Event' => $target['Event'],
+                'Object' => isset($objects[$target['Object']['uuid'] ?? '']) ? $target['Object'] : null,
+            ];
+        }
+        return ['pairs' => $result, 'objects' => $objects];
+    }
+
+    /**
+     * What the Pivot Explorer's event card draws for each of these events:
+     * the index row, its tags and galaxy clusters, none of its content.
+     *
+     * @param array $user
+     * @param array $eventIds
+     * @return array keyed by event id
+     */
+    public function correlatedEventCards(array $user, array $eventIds)
+    {
+        if (empty($eventIds)) {
+            return [];
+        }
+        $conditions = $this->createEventConditions($user);
+        $conditions['AND'][] = ['Event.id' => array_values($eventIds)];
+        $events = $this->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => [
+                'Event.id', 'Event.uuid', 'Event.info', 'Event.date',
+                'Event.published', 'Event.publish_timestamp',
+                'Event.distribution', 'Event.attribute_count',
+            ],
+            'contain' => [
+                'Orgc' => ['fields' => ['Orgc.name', 'Orgc.uuid']],
+                'EventTag' => [
+                    'fields' => [
+                        'EventTag.event_id', 'EventTag.tag_id',
+                        'EventTag.local', 'EventTag.relationship_type',
+                    ],
+                ],
+            ],
+        ]);
+        $events = $this->attachTagsToEvents($events);
+        $events = ClassRegistry::init('GalaxyCluster')
+            ->attachClustersToEventIndex($user, $events, true);
+        $events = $this->attachObjectCountToEvents($events);
+
+        $cards = [];
+        foreach ($events as $event) {
+            $card = $event['Event'];
+            $card['Orgc'] = $event['Orgc'];
+            $card['Tag'] = [];
+            foreach ($event['EventTag'] as $eventTag) {
+                $card['Tag'][] = [
+                    'name' => $eventTag['Tag']['name'],
+                    'colour' => $eventTag['Tag']['colour'],
+                    'is_galaxy' => $eventTag['Tag']['is_galaxy'],
+                ];
+            }
+            $galaxies = [];
+            foreach ($event['GalaxyCluster'] ?? [] as $cluster) {
+                $type = $cluster['Galaxy']['type'] ?? $cluster['type'];
+                $galaxies[$type]['type'] = $type;
+                $galaxies[$type]['name'] = $cluster['Galaxy']['name'] ?? $type;
+                $galaxies[$type]['GalaxyCluster'][] = [
+                    'value' => $cluster['value'],
+                    'tag_name' => $cluster['tag_name'],
+                    'uuid' => $cluster['uuid'],
+                ];
+            }
+            $card['Galaxy'] = array_values($galaxies);
+            $cards[$card['id']] = $card;
+        }
+        return $cards;
+    }
+
+    /**
+     * How many landing units an event's slice holds: each matching attribute
+     * inside an object stands for that object, each other one for itself.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array $options slice ('all'|'ids'|'network'), q, types, category,
+     *                       ids (null|bool), exclude (object and attribute uuids)
+     * @return array ['total' => units, 'by_type' and 'by_category' =>
+     *               matching attributes, each ignoring its own narrowing]
+     */
+    public function cardElementCounts(array $user, $eventId, array $options)
+    {
+        $units = $this->Attribute->find('first', [
+            'fields' => ['COUNT(DISTINCT NULLIF(Attribute.object_id, 0)) AS objects', 'SUM(Attribute.object_id = 0) AS free'],
+        ] + $this->cardElementQuery($user, $eventId, $options));
+        $result = ['total' => (int)$units[0]['objects'] + (int)$units[0]['free']];
+        $groups = [
+            'by_type' => ['types', 'Attribute.type', 'type'],
+            'by_category' => ['category', 'Attribute.category', 'category'],
+        ];
+        foreach ($groups as $key => [$skip, $field, $column]) {
+            $rows = $this->Attribute->find('all', [
+                'fields' => [$field, 'COUNT(*) AS n'],
+                'group' => [$field],
+            ] + $this->cardElementQuery($user, $eventId, $options, $skip));
+            $result[$key] = [];
+            foreach ($rows as $row) {
+                $result[$key][$row['Attribute'][$column]] = (int)$row[0]['n'];
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * The slice cardElementCounts() counts: the objects holding a matching
+     * attribute, with all their live attributes, and the matching attributes
+     * outside any object.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array $options as for cardElementCounts()
+     * @return array 'attributes': free attributes; 'objects': as
+     *               MispObject::fetchGraphObjects() shapes them; 'matched':
+     *               the uuids of the attributes that matched
+     */
+    public function cardElements(array $user, $eventId, array $options)
+    {
+        $rows = $this->Attribute->find('all', [
+            'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.object_id'],
+            'order' => ['Attribute.id'],
+        ] + $this->cardElementQuery($user, $eventId, $options));
+        $objectIds = [];
+        $freeIds = [];
+        $matched = [];
+        foreach ($rows as $row) {
+            $attribute = $row['Attribute'];
+            $matched[] = $attribute['uuid'];
+            if (empty($attribute['object_id'])) {
+                $freeIds[] = $attribute['id'];
+            } else {
+                $objectIds[$attribute['object_id']] = true;
+            }
+        }
+        $objects = empty($objectIds) ? [] : $this->Object->fetchGraphObjects($user, [
+            'Object.id' => array_map('strval', array_keys($objectIds)),
+            'Object.event_id' => $eventId,
+        ]);
+        $attributes = [];
+        if (!empty($freeIds)) {
+            $free = $this->Attribute->find('all', [
+                'conditions' => ['Attribute.id' => $freeIds],
+                'contain' => ['AttributeTag' => ['Tag']],
+                'order' => ['Attribute.id'],
+            ]);
+            $orgId = $this->find('first', [
+                'conditions' => ['Event.id' => $eventId],
+                'fields' => ['Event.org_id'],
+                'recursive' => -1,
+            ])['Event']['org_id'];
+            $attributes = $this->Object->graphAttributes($user, array_map(function ($row) {
+                return $row['Attribute'] + ['AttributeTag' => $row['AttributeTag']];
+            }, $free), $orgId);
+        }
+        return ['attributes' => $attributes, 'objects' => $objects, 'matched' => $matched];
+    }
+
+    /**
+     * The live attributes of $eventId the user may read in one slice,
+     * narrowed, with Event and Object joined. $skip leaves out one narrowing
+     * ('types' or 'category'), for that facet's own counts.
+     */
+    private function cardElementQuery(array $user, $eventId, array $options, $skip = null)
+    {
+        $conditions = $this->Attribute->buildConditions($user);
+        $conditions['AND'][] = ['Attribute.event_id' => $eventId, 'Attribute.deleted' => 0];
+        $conditions['AND'][] = ['OR' => ['Attribute.object_id' => 0, 'Object.deleted' => 0]];
+        if ($options['slice'] === 'ids') {
+            $conditions['AND'][] = ['Attribute.to_ids' => 1];
+        } elseif ($options['ids'] !== null) {
+            $conditions['AND'][] = ['Attribute.to_ids' => $options['ids'] ? 1 : 0];
+        }
+        if ($options['slice'] === 'network') {
+            App::uses('NetworkIndicators', 'Tools/PivotExplorer');
+            $conditions['AND'][] = NetworkIndicators::conditions();
+        }
+        if ($options['q'] !== '') {
+            $like = '%' . addcslashes($options['q'], '%_\\') . '%';
+            // value1 and value2 are case-insensitive, the rest is not.
+            $lower = mb_strtolower($like);
+            $conditions['AND'][] = ['OR' => [
+                'Attribute.value1 LIKE' => $like,
+                'Attribute.value2 LIKE' => $like,
+                'LOWER(Attribute.comment) LIKE' => $lower,
+                'LOWER(Attribute.object_relation) LIKE' => $lower,
+                'LOWER(Object.name) LIKE' => $lower,
+            ]];
+        }
+        if (!empty($options['types']) && $skip !== 'types') {
+            $conditions['AND'][] = ['Attribute.type' => $options['types']];
+        }
+        if ($options['category'] !== '' && $skip !== 'category') {
+            $conditions['AND'][] = ['Attribute.category' => $options['category']];
+        }
+        if (!empty($options['exclude'])) {
+            $conditions['AND'][] = ['Attribute.uuid !=' => $options['exclude']];
+            $conditions['AND'][] = ['OR' => ['Attribute.object_id' => 0, 'Object.uuid !=' => $options['exclude']]];
+        }
+        return [
+            // Callbacks are off: the value search is rewritten here, bounded
+            // by the event so its unanchored LIKE is checked per row
+            'conditions' => ClassRegistry::init('AttributeValue')
+                ->rewriteConditions($conditions, 'Attribute', true),
+            'joins' => [
+                ['table' => 'events', 'alias' => 'Event', 'type' => 'INNER', 'conditions' => ['Event.id = Attribute.event_id']],
+                ['table' => 'objects', 'alias' => 'Object', 'type' => 'LEFT', 'conditions' => ['Object.id = Attribute.object_id']],
+            ],
+            'recursive' => -1,
+            'callbacks' => false,
+            'order' => false,
+        ];
+    }
+
+    /**
+     * The events other than $eventId that carry these tags, on the event
+     * itself or on one of its live attributes, as correlatedEventCards()
+     * draws them, newest first.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @param array $tagNames
+     * @param string $mode 'and' for events carrying every tag, 'or' for any
+     * @param int $limit
+     * @return array ['total' => int, 'events' => list of cards], each card
+     *               with 'matched' => [tag name => 'event'|'attribute']
+     */
+    public function taggedEventCards(array $user, $eventId, array $tagNames, $mode = 'and', $limit = 200)
+    {
+        $none = ['total' => 0, 'events' => []];
+        $tagNames = array_values(array_unique(array_filter(array_map('strval', $tagNames), 'strlen')));
+        if (empty($tagNames)) {
+            return $none;
+        }
+        $Tag = $this->EventTag->Tag;
+        $tags = $Tag->find('list', [
+            'conditions' => array_merge($Tag->createConditions($user), ['Tag.name' => $tagNames]),
+            'fields' => ['Tag.id', 'Tag.name'],
+            'recursive' => -1,
+        ]);
+        if (empty($tags) || ($mode === 'and' && count(array_unique($tags)) < count($tagNames))) {
+            return $none;
+        }
+
+        $matched = [];
+        $eventTags = $this->EventTag->find('all', [
+            'conditions' => ['EventTag.tag_id' => array_keys($tags)],
+            'fields' => ['DISTINCT EventTag.event_id', 'EventTag.tag_id'],
+            'recursive' => -1,
+        ]);
+        foreach ($eventTags as $row) {
+            $matched[$row['EventTag']['event_id']][$tags[$row['EventTag']['tag_id']]] = 'event';
+        }
+
+        $conditions = [
+            ['AttributeTag.tag_id' => array_keys($tags)],
+            ['Attribute.deleted' => 0],
+            ['OR' => ['Attribute.object_id' => 0, 'Object.deleted' => 0]],
+        ];
+        $acl = $this->Attribute->buildConditions($user);
+        if (!empty($acl)) {
+            $conditions[] = $acl;
+        }
+        $attributeTags = $this->Attribute->find('all', [
+            'conditions' => ['AND' => $conditions],
+            'fields' => ['DISTINCT Attribute.event_id', 'AttributeTag.tag_id'],
+            'joins' => [
+                [
+                    'table' => 'attribute_tags',
+                    'alias' => 'AttributeTag',
+                    'type' => 'INNER',
+                    'conditions' => ['AttributeTag.attribute_id = Attribute.id'],
+                ],
+                [
+                    'table' => 'events',
+                    'alias' => 'Event',
+                    'type' => 'INNER',
+                    'conditions' => ['Event.id = Attribute.event_id'],
+                ],
+                [
+                    'table' => 'objects',
+                    'alias' => 'Object',
+                    'type' => 'LEFT',
+                    'conditions' => ['Object.id = Attribute.object_id'],
+                ],
+            ],
+            'recursive' => -1,
+            'order' => [],
+        ]);
+        foreach ($attributeTags as $row) {
+            $name = $tags[$row['AttributeTag']['tag_id']];
+            $matched[$row['Attribute']['event_id']][$name] ??= 'attribute';
+        }
+
+        unset($matched[$eventId]);
+        if ($mode === 'and') {
+            $wanted = count($tagNames);
+            $matched = array_filter($matched, function ($m) use ($wanted) {
+                return count($m) === $wanted;
+            });
+        }
+        if (empty($matched)) {
+            return $none;
+        }
+
+        $conditions = $this->createEventConditions($user);
+        $conditions['AND'][] = ['Event.id' => array_keys($matched)];
+        $visible = $this->find('column', [
+            'conditions' => $conditions,
+            'fields' => ['Event.id'],
+            'order' => ['Event.timestamp DESC', 'Event.id DESC'],
+        ]);
+        $ids = array_slice($visible, 0, $limit);
+        $cards = $this->correlatedEventCards($user, $ids);
+        $events = [];
+        foreach ($ids as $id) {
+            if (isset($cards[$id])) {
+                $events[] = $cards[$id] + ['matched' => $matched[$id]];
+            }
+        }
+        return ['total' => count($visible), 'events' => $events];
     }
 
     /**
@@ -2034,6 +2654,7 @@ class Event extends AppModel
      *   - toIDS (int|null, 1=yes, 2=no)
      *   - correlation, feed, warning, analystData (int|null, 1=has related
      *     events / feed hits / warninglist hits / analyst data, 2=has none)
+     *   - seen (int|null, 1=has a first or last seen date, 2=has neither)
      *   - tags (string|string[]|null) exact tag names
      *   - galaxy (string|null) galaxy type, any of its clusters
      *   - org (string|null) creator org name of the event a row belongs to
@@ -2143,6 +2764,14 @@ class Event extends AppModel
                 $user,
                 $analystData === 1
             );
+        }
+        $narrower = (int)($options['narrower'] ?? 0);
+        if ($narrower === 1 || $narrower === 2) {
+            $conditions[] = $this->__narrowerAttributeCondition($eventId, $narrower === 1);
+        }
+        $seen = (int)($options['seen'] ?? 0);
+        if ($seen === 1 || $seen === 2) {
+            $conditions[] = $this->__seenCondition('Attribute', $seen === 1);
         }
         if (!empty($options['tags'])) {
             $conditions[] = $this->Attribute->tagCondition(
@@ -2777,6 +3406,10 @@ class Event extends AppModel
         if ($requiresSomething) {
             $conditions['ShadowAttribute.id'] = -1;
         }
+        $seen = (int)($options['seen'] ?? 0);
+        if ($seen === 1 || $seen === 2) {
+            $conditions[] = $this->__seenCondition('ShadowAttribute', $seen === 1);
+        }
         if (!empty($options['searchFor'])) {
             $needle = '%' . $options['searchFor'] . '%';
             $conditions[] = ['OR' => [
@@ -2926,6 +3559,92 @@ class Event extends AppModel
      * @param array $options fetchPaginatedObjects() options
      * @return array conditions to add to the object query
      */
+    /**
+     * @param int $eventId
+     * @return int[] the event's distribution and sharing group id
+     */
+    private function __eventDistribution($eventId)
+    {
+        $event = $this->find('first', [
+            'conditions' => ['Event.id' => $eventId],
+            'fields' => ['Event.distribution', 'Event.sharing_group_id'],
+            'recursive' => -1,
+        ]);
+        return [
+            (int)($event['Event']['distribution'] ?? 0),
+            (int)($event['Event']['sharing_group_id'] ?? 0),
+        ];
+    }
+
+    /**
+     * Conditions on an element's own distribution that share it more
+     * narrowly than its event, as EventOverviewTool::isNarrower() counts
+     * them; null when the event leaves nothing narrower.
+     *
+     * @param string $alias Attribute or Object
+     * @param int $eventDist
+     * @param int $eventSg
+     * @return array|null
+     */
+    private function __narrowerThanEvent($alias, $eventDist, $eventSg)
+    {
+        if ($eventDist === 0) {
+            return null;
+        }
+        if ($eventDist === 4) {
+            return ['OR' => [
+                $alias . '.distribution' => 0,
+                'AND' => [
+                    $alias . '.distribution' => 4,
+                    $alias . '.sharing_group_id !=' => $eventSg,
+                ],
+            ]];
+        }
+        return [$alias . '.distribution' => array_merge(range(0, $eventDist - 1), [4])];
+    }
+
+    /**
+     * Attributes shared more narrowly than their event: by their own
+     * distribution, or by inheriting it from a narrower object.
+     *
+     * @param int $eventId
+     * @param bool $wanted false for the complement
+     * @return array|string
+     */
+    private function __narrowerAttributeCondition($eventId, $wanted)
+    {
+        list($eventDist, $eventSg) = $this->__eventDistribution($eventId);
+        $own = $this->__narrowerThanEvent('Attribute', $eventDist, $eventSg);
+        if ($own === null) {
+            return $wanted ? '1 = 0' : '1 = 1';
+        }
+        $inNarrowerObject = $this->subQueryGenerator(
+            $this->Object,
+            [
+                'fields' => ['Object.id'],
+                'conditions' => $this->__narrowerThanEvent('Object', $eventDist, $eventSg),
+            ],
+            'Attribute.object_id'
+        )[0];
+        $match = ['OR' => [
+            $own,
+            ['AND' => ['Attribute.distribution' => 5, $inNarrowerObject]],
+        ]];
+        return $wanted ? $match : ['NOT' => $match];
+    }
+
+    /**
+     * A row carrying a first or a last seen date or, $dated false, neither.
+     */
+    private function __seenCondition($alias, $dated)
+    {
+        $either = ['OR' => [
+            $alias . '.first_seen IS NOT NULL',
+            $alias . '.last_seen IS NOT NULL',
+        ]];
+        return $dated ? $either : ['NOT' => $either];
+    }
+
     private function __objectAttributeFilterConditions(
         array $user,
         $eventId,
@@ -2977,6 +3696,48 @@ class Event extends AppModel
                 $attrScope + ['Attribute.to_ids' => 1],
                 !$toIds
             );
+        }
+
+        $narrower = $yesNo('narrower');
+        if ($narrower !== null) {
+            list($eventDist, $eventSg) = $this->__eventDistribution($eventId);
+            $objectOwn = $this->__narrowerThanEvent('Object', $eventDist, $eventSg);
+            if ($objectOwn === null) {
+                $conditions[] = $narrower ? '1 = 0' : '1 = 1';
+            } else {
+                $narrowerAttributes = $attrScope;
+                $narrowerAttributes[] = $this->__narrowerThanEvent('Attribute', $eventDist, $eventSg);
+                $match = ['OR' => [$objectOwn, $holding($narrowerAttributes)]];
+                $conditions[] = $narrower ? $match : ['NOT' => $match];
+            }
+        }
+
+        // Dated as the Timeline tab dates an object: by its own seen dates or
+        // by any of the attributes it shows.
+        $seen = $yesNo('seen');
+        if ($seen !== null) {
+            // A correlated scalar subquery rather than IN (...), which the
+            // optimiser materialises over the whole attributes table: this
+            // stays one object_id lookup per object of the event.
+            $datedAttributes = $attrScope;
+            $datedAttributes[] = 'Attribute.object_id = Object.id';
+            $datedAttributes[] = $this->__seenCondition('Attribute', true);
+            $holdsDated = '(' . $this->getDataSource()->buildStatement([
+                'fields' => ['1'],
+                'table' => $this->Attribute->table,
+                'alias' => 'Attribute',
+                'conditions' => $datedAttributes,
+                'limit' => 1,
+                'offset' => null,
+                'joins' => [],
+                'order' => null,
+                'group' => null,
+            ], $this->Attribute) . ') IS NOT NULL';
+            $match = ['OR' => [
+                $this->__seenCondition('Object', true),
+                $holdsDated,
+            ]];
+            $conditions[] = $seen ? $match : ['NOT' => $match];
         }
 
         $analystData = $yesNo('analystData');
@@ -3031,6 +3792,7 @@ class Event extends AppModel
      *   - direction (string, default 'desc')
      *   - deleted (int, 0/1/2)
      *   - name (string|null) object template name filter
+     *   - object (int|null) one object, by id
      *   - meta-category (string|null)
      *   - searchFor (string|null) substring search over the object's own
      *     uuid / name / comment and its attributes' values and uuids
@@ -3039,6 +3801,8 @@ class Event extends AppModel
      *   - toIDS, correlation, feed, warning, analystData (1=at least one of
      *     its attributes has it, 2=none has; analyst data counts the object's
      *     own as well)
+     *   - seen (int|null, 1=the object or one of its attributes has a first
+     *     or last seen date, 2=none has)
      *   - org (string|null) creator org name of the object's event
      *   - eventIds (int[]|null) extended / extending view: every event whose
      *     objects belong in the list
@@ -3119,6 +3883,9 @@ class Event extends AppModel
         // Optional filters
         if (!empty($options['name'])) {
             $conditions['Object.name'] = $options['name'];
+        }
+        if (!empty($options['object'])) {
+            $conditions[] = ['Object.id' => (int)$options['object']];
         }
         if (!empty($options['meta-category'])) {
             $conditions['Object.meta-category'] =
@@ -3429,6 +4196,8 @@ class Event extends AppModel
                 'ObjectReference.deleted' => 0,
             ],
             'fields' => [
+                'ObjectReference.id',
+                'ObjectReference.uuid',
                 'ObjectReference.object_id',
                 'ObjectReference.referenced_id',
                 'ObjectReference.referenced_uuid',
@@ -3438,9 +4207,13 @@ class Event extends AppModel
             ],
             'order' => ['ObjectReference.id' => 'ASC'],
         ]);
+        $referenceTargets = $this->Object->ObjectReference->describeTargets(
+            $user, array_column($references, 'ObjectReference')
+        );
         $referencesByObject = [];
         foreach ($references as $reference) {
             $row = $reference['ObjectReference'];
+            $row['Target'] = $referenceTargets[$row['referenced_uuid']] ?? null;
             $referencesByObject[$row['object_id']][] = $row;
         }
         foreach ($flat as $objId => &$obj) {
@@ -3652,9 +4425,27 @@ class Event extends AppModel
             $attributes
         );
 
+        $scanAttachments = $this->loadAttachmentScan()->isEnabled();
+        foreach ($attributes as &$attribute) {
+            if (($attribute['category'] ?? '') === 'Financial fraud') {
+                $attribute = $this->Attribute->attachValidationWarnings($attribute);
+            }
+            if ($scanAttachments && ($attribute['type'] ?? '') === 'attachment') {
+                $attribute['infected'] = $this->loadAttachmentScan()->isInfected(
+                    AttachmentScan::TYPE_ATTRIBUTE, $attribute['id']
+                );
+            }
+        }
+        unset($attribute);
+
         $attributes = $this->__attachFeedAndServerHits(
             $attributes, $user, $eventId
         );
+
+        if ($this->Attribute->Correlation->getCorrelationModelName() !== 'OnDemand') {
+            $attributes = $this->Attribute->Correlation
+                ->attachCorrelationExclusion($attributes);
+        }
 
         // Attribute correlations
         $attributeIds = array_column($attributes, 'id');
@@ -3663,9 +4454,26 @@ class Event extends AppModel
             ->getAttributeCorrelations(
                 $user, $eventId, $sgids, $attributeIds
             );
+        $correlatedOrgIds = [];
+        foreach ($correlations as $related) {
+            foreach ($related as $entry) {
+                if (!empty($entry['org_id'])) {
+                    $correlatedOrgIds[$entry['org_id']] = true;
+                }
+            }
+        }
+        $orgNames = empty($correlatedOrgIds) ? [] : $this->Orgc->find('list', [
+            'conditions' => ['Orgc.id' => array_keys($correlatedOrgIds)],
+            'fields' => ['Orgc.id', 'Orgc.name'],
+            'recursive' => -1,
+        ]);
         foreach ($attributes as &$attribute) {
-            $attribute['RelatedAttribute'] =
-                $correlations[$attribute['id']] ?? [];
+            $related = $correlations[$attribute['id']] ?? [];
+            foreach ($related as &$entry) {
+                $entry['org_name'] = $orgNames[$entry['org_id'] ?? 0] ?? null;
+            }
+            unset($entry);
+            $attribute['RelatedAttribute'] = $related;
         }
         unset($attribute);
 
@@ -5010,6 +5818,16 @@ class Event extends AppModel
         if (!empty($options['to_ids']) || $options['to_ids'] === 0) {
             $conditionsAttributes['AND'][] = array('Attribute.to_ids' => $options['to_ids']);
         }
+        // Only these attributes and objects, each object with its attributes.
+        if (isset($options['elementIds'])) {
+            $attributeIds = array_values($options['elementIds']['attributes'] ?? []) ?: [-1];
+            $objectIds = array_values($options['elementIds']['objects'] ?? []) ?: [-1];
+            $conditionsAttributes['AND'][] = ['OR' => [
+                'Attribute.id' => $attributeIds,
+                'Attribute.object_id' => $objectIds,
+            ]];
+            $conditionsObjects['AND'][] = ['Object.id' => $objectIds];
+        }
 
         // removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
         // $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
@@ -5158,12 +5976,16 @@ class Event extends AppModel
             $options['allow_proposal_blocking'] = false; // proposal blocking is not enabled
         }
 
+        // A subset much smaller than its event reads its own tags and references
+        // by id; otherwise the event's are read whole, which is cheaper.
+        $loadedOnly = isset($options['elementIds'])
+            && count($results[0]['Attribute'] ?? []) * 4 < (int)$results[0]['Event']['attribute_count'];
         if (!$options['metadata']) {
-            $this->__attachAttributeTags($results, $options['excludeLocalTags']);
+            $this->__attachAttributeTags($results, $options['excludeLocalTags'], $loadedOnly);
         }
 
         if (!$options['metadata'] && !$flatten) {
-            $this->__attachReferences($results);
+            $this->__attachReferences($results, $loadedOnly);
         }
 
         foreach ($results as &$event) {
@@ -10508,7 +11330,11 @@ class Event extends AppModel
      * @return int|string
      * @throws JsonException
      */
-    public function processModuleResultsData(array $user, $resolved_data, $id, $default_comment = '', $jobId = false, $adhereToWarninglists = false, $event_level = false)
+    /**
+     * @param array|null $outcome Filled with `recovered` (sent uuid => the uuid
+     *   the event already holds) and `failed` (sent uuids not written)
+     */
+    public function processModuleResultsData(array $user, $resolved_data, $id, $default_comment = '', $jobId = false, $adhereToWarninglists = false, $event_level = false, &$outcome = null)
     {
         $event = $this->find('first', [
             'recursive' => -1,
@@ -10805,6 +11631,7 @@ class Event extends AppModel
             }
         }
 
+        $outcome = ['recovered' => $recovered_uuids, 'failed' => $failed];
         if ($saved_attributes > 0 || $saved_objects > 0 || $saved_reports > 0) {
             $this->unpublishEvent($event);
         }
@@ -10911,35 +11738,25 @@ class Event extends AppModel
 
     private function __findOriginalUUID($attribute_type, $attribute_value, $event_id)
     {
-        $original_uuid = $this->Object->Attribute->find(
+        $original_uuid = $this->__caseTwin($event_id, $attribute_type, $attribute_value);
+        if (!empty($original_uuid)) {
+            return $original_uuid;
+        }
+        $value = (string)$attribute_value;
+        $ids = ClassRegistry::init('Value')->caseIdsFor([$value])[$value] ?? [];
+        if (empty($ids)) {
+            return [];
+        }
+        $original_uuid = $this->Object->find(
             'first',
             array(
                 'conditions' => array(
                     'Attribute.event_id' => $event_id,
                     'Attribute.deleted' => 0,
-                    'Attribute.object_id' => 0,
                     'Attribute.type' => $attribute_type,
-                    'Attribute.value' => $attribute_value
+                    'Attribute.value1_id' => $ids,
+                    'Object.event_id' => $event_id
                 ),
-                'recursive' => -1,
-                'fields' => array('Attribute.uuid', 'Attribute.id')
-            )
-        );
-        if (!empty($original_uuid)) {
-            return $original_uuid['Attribute'];
-        }
-        // An Object find: its beforeFind leaves the joined attribute's value alone
-        $conditions = $this->Object->Attribute->loadAttributeValue()->rewriteConditions(array(
-            'Attribute.event_id' => $event_id,
-            'Attribute.deleted' => 0,
-            'Attribute.type' => $attribute_type,
-            'Attribute.value1' => $attribute_value,
-            'Object.event_id' => $event_id
-        ), 'Attribute');
-        $original_uuid = $this->Object->find(
-            'first',
-            array(
-                'conditions' => $conditions,
                 'recursive' => -1,
                 'fields' => array('Object.uuid'),
                 'joins' => array(
@@ -10955,6 +11772,58 @@ class Event extends AppModel
             )
         );
         return (!empty($original_uuid)) ? ['uuid' => $original_uuid['Object']['uuid']] : $original_uuid;
+    }
+
+    /**
+     * The attribute the event holds outside objects with this type and
+     * value up to case, its own spelling first. Accents are not folded: an
+     * accent can make a different domain.
+     *
+     * @param int $eventId
+     * @param string $type
+     * @param string $value
+     * @param string|null $category
+     * @param array|null $caseIds As Value::caseIdsFor() returns them
+     * @return array `uuid` and `id`, or none
+     */
+    private function __caseTwin($eventId, $type, $value, $category = null, $caseIds = null)
+    {
+        $value = (string)$value;
+        $parts = $this->Attribute->valueParts($type, $value);
+        if (empty($parts)) {
+            return [];
+        }
+        if ($caseIds === null) {
+            $caseIds = ClassRegistry::init('Value')->caseIdsFor($parts);
+        }
+        $first = $caseIds[$parts[0]] ?? [];
+        $second = isset($parts[1]) ? ($caseIds[$parts[1]] ?? []) : null;
+        if (empty($first) || $second === []) {
+            return [];
+        }
+        $conditions = [
+            'Attribute.event_id' => $eventId,
+            'Attribute.deleted' => 0,
+            'Attribute.object_id' => 0,
+            'Attribute.type' => $type,
+            'Attribute.value1_id' => $first,
+            'Attribute.value2_id' => $second,
+        ];
+        if ($category !== null) {
+            $conditions['Attribute.category'] = $category;
+        }
+        $twin = [];
+        $rows = $this->Attribute->find('all', [
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => ['Attribute.id', 'Attribute.uuid', 'Attribute.value'],
+        ]);
+        foreach ($rows as $row) {
+            if (empty($twin) || $row['Attribute']['value'] === $value) {
+                $twin = ['uuid' => $row['Attribute']['uuid'], 'id' => $row['Attribute']['id']];
+            }
+        }
+        return $twin;
     }
 
     /**
@@ -11087,15 +11956,369 @@ class Event extends AppModel
     }
 
     /**
+     * Write enrichment results into an event, synchronously, and say what
+     * became of each one.
+     *
+     * An enrichment answer as the Value Intelligence stores it keeps no object
+     * template, so each object's is resolved here by name.
+     *
+     * @param array $user
+     * @param array $event As fetchSimpleEvent returns it
+     * @param array $data `Attribute[]`, `Object[]` (each with its own
+     *   `ObjectReference[]`), and `ObjectReference[]` from an object the
+     *   event already holds; every element carries a client uuid, and a result
+     *   may carry `origins`, the uuids of the attributes it was asked about,
+     *   whose distribution caps its own
+     * @return array `results`: sent uuid => `state` saved|existing|failed,
+     *   the `uuid` the event holds it under, a `message` when failed; and
+     *   the overall `message`
+     */
+    public function saveEnrichmentResults(array $user, array $event, array $data)
+    {
+        $eventId = $event['Event']['id'];
+        $distribution = $this->Attribute->defaultDistribution();
+        $sharingFor = $this->__enrichmentSharing($eventId, $distribution, $data);
+        $attributeFields = array_flip(['uuid', 'type', 'category', 'value', 'to_ids', 'comment', 'object_relation']);
+        $types = $this->Attribute->typeDefinitions;
+        // The category MISP would give it on save, so the duplicate check
+        // compares like with like.
+        $shape = function (array $attribute, array $sharing) use ($attributeFields, $types) {
+            $attribute = array_intersect_key($attribute, $attributeFields) + $sharing;
+            if (empty($attribute['category']) && isset($types[$attribute['type'] ?? '']['default_category'])) {
+                $attribute['category'] = $types[$attribute['type']]['default_category'];
+            }
+            return $attribute;
+        };
+        $resolved = ['Attribute' => [], 'Object' => []];
+        $results = [];
+        $sentAttributes = $sentObjects = [];
+        $originReferences = is_array($data['ObjectReference'] ?? null) ? $data['ObjectReference'] : [];
+
+        foreach ($data['Attribute'] ?? [] as $attribute) {
+            if (is_array($attribute) && Validation::uuid($attribute['uuid'] ?? '')) {
+                unset($attribute['object_relation']);
+                $resolved['Attribute'][] = $shape($attribute, $sharingFor($attribute));
+                $sentAttributes[] = $attribute['uuid'];
+            }
+        }
+        // MISP would save a case variant as a new attribute
+        $twins = $this->__enrichmentCaseTwins($eventId, $resolved['Attribute']);
+        $resolved['Attribute'] = array_values(array_filter($resolved['Attribute'], function (array $attribute) use ($twins) {
+            return !isset($twins[$attribute['uuid']]);
+        }));
+
+        $templates = [];
+        $objectTemplate = ClassRegistry::init('ObjectTemplate');
+        foreach ($data['Object'] ?? [] as $object) {
+            if (!is_array($object) || !Validation::uuid($object['uuid'] ?? '')) {
+                continue;
+            }
+            $name = (string)($object['name'] ?? '');
+            if (!array_key_exists($name, $templates)) {
+                $templates[$name] = $objectTemplate->find('first', [
+                    'recursive' => -1,
+                    'conditions' => ['name' => $name, 'active' => 1],
+                    'fields' => ['uuid', 'version', 'meta-category'],
+                    'order' => ['version DESC'],
+                ]);
+            }
+            if (empty($templates[$name])) {
+                $results[$object['uuid']] = [
+                    'state' => 'failed',
+                    'message' => __('No object template is named "%s".', $name),
+                ];
+                continue;
+            }
+            $template = $templates[$name]['ObjectTemplate'];
+            $sharing = $sharingFor($object);
+            $attributes = [];
+            foreach ($object['Attribute'] ?? [] as $attribute) {
+                if (is_array($attribute) && Validation::uuid($attribute['uuid'] ?? '')) {
+                    $attributes[] = $shape($attribute, $sharing);
+                }
+            }
+            $references = [];
+            foreach ($object['ObjectReference'] ?? [] as $reference) {
+                if ($this->__enrichmentReference($reference)) {
+                    $references[] = [
+                        'object_uuid' => $object['uuid'],
+                        'referenced_uuid' => $twins[$reference['referenced_uuid']] ?? $reference['referenced_uuid'],
+                        'relationship_type' => $reference['relationship_type'],
+                    ];
+                }
+            }
+            $resolvedObject = [
+                'uuid' => $object['uuid'],
+                'name' => $name,
+                'meta-category' => $template['meta-category'],
+                'template_uuid' => $template['uuid'],
+                'template_version' => $template['version'],
+                'comment' => (string)($object['comment'] ?? ''),
+                'Attribute' => $attributes,
+                'ObjectReference' => $references,
+            ] + $sharing;
+            // Saved before, from this origin or another: the event keeps its
+            // copy, and gains this origin's reference.
+            $duplicate = $this->Object->duplicateObjectUuid($resolvedObject, $eventId);
+            if ($duplicate) {
+                $results[$object['uuid']] = ['state' => 'existing', 'uuid' => $duplicate];
+                foreach ($references as $reference) {
+                    $originReferences[] = array_merge($reference, ['object_uuid' => $duplicate]);
+                }
+                continue;
+            }
+            $resolved['Object'][] = $resolvedObject;
+            $sentObjects[] = $object['uuid'];
+            foreach ($attributes as $attribute) {
+                $sentAttributes[] = $attribute['uuid'];
+            }
+        }
+
+        $message = '';
+        $outcome = ['recovered' => [], 'failed' => []];
+        if (!empty($resolved['Attribute']) || !empty($resolved['Object'])) {
+            $message = $this->processModuleResultsData($user, $resolved, $eventId, '', false, false, false, $outcome);
+        }
+        $recovered = $twins + $outcome['recovered'];
+
+        $referenceErrors = 0;
+        foreach ($originReferences as $reference) {
+            if (!$this->__enrichmentReference($reference) || !Validation::uuid($reference['object_uuid'] ?? '')) {
+                continue;
+            }
+            $reference = [
+                'object_uuid' => $reference['object_uuid'],
+                'referenced_uuid' => $recovered[$reference['referenced_uuid']] ?? $reference['referenced_uuid'],
+                'relationship_type' => $reference['relationship_type'],
+            ];
+            $objectId = $this->Object->find('first', [
+                'recursive' => -1,
+                'conditions' => ['Object.uuid' => $reference['object_uuid'], 'Object.event_id' => $eventId, 'Object.deleted' => 0],
+                'fields' => ['Object.id'],
+            ]);
+            if (empty($objectId)) {
+                $referenceErrors++;
+                continue;
+            }
+            $exists = $this->Object->ObjectReference->hasAny([
+                'ObjectReference.object_id' => $objectId['Object']['id'],
+                'ObjectReference.referenced_uuid' => $reference['referenced_uuid'],
+                'ObjectReference.relationship_type' => $reference['relationship_type'],
+                'ObjectReference.event_id' => $eventId,
+                'ObjectReference.deleted' => 0,
+            ]);
+            if (!$exists && $this->Object->ObjectReference->smartSave($reference, $eventId) !== true) {
+                $referenceErrors++;
+            }
+        }
+        if ($referenceErrors) {
+            $message .= ' ' . __n('A reference could not be saved.', '%s references could not be saved.', $referenceErrors, $referenceErrors);
+        }
+
+        $held = [
+            'attribute' => $this->__uuidsInEvent($this->Attribute, $sentAttributes, $eventId),
+            'object' => $this->__uuidsInEvent($this->Object, $sentObjects, $eventId),
+        ];
+        foreach (['attribute' => $sentAttributes, 'object' => $sentObjects] as $kind => $uuids) {
+            foreach ($uuids as $uuid) {
+                if (isset($held[$kind][$uuid])) {
+                    $results[$uuid] = ['state' => 'saved', 'uuid' => $uuid];
+                } elseif (isset($recovered[$uuid])) {
+                    $results[$uuid] = ['state' => 'existing', 'uuid' => $recovered[$uuid]];
+                } else {
+                    $results[$uuid] = ['state' => 'failed'];
+                }
+            }
+        }
+        return ['results' => $results, 'message' => trim($message)];
+    }
+
+    /**
+     * The results the event already holds as attributes outside objects,
+     * with the value as MISP would store it, up to case.
+     *
+     * @param int $eventId
+     * @param array $attributes As saveEnrichmentResults() shapes them
+     * @return array sent uuid => held uuid
+     */
+    private function __enrichmentCaseTwins($eventId, array $attributes)
+    {
+        $values = $parts = [];
+        foreach ($attributes as $i => $attribute) {
+            if (!is_string($attribute['type'] ?? null) || !is_scalar($attribute['value'] ?? null)) {
+                continue;
+            }
+            $values[$i] = $this->Attribute->massageValue($attribute['type'], (string)$attribute['value']);
+            foreach ($this->Attribute->valueParts($attribute['type'], $values[$i]) as $part) {
+                $parts[$part] = true;
+            }
+        }
+        if (empty($parts)) {
+            return [];
+        }
+        $caseIds = ClassRegistry::init('Value')->caseIdsFor(array_map('strval', array_keys($parts)));
+        $twins = [];
+        foreach ($values as $i => $value) {
+            $attribute = $attributes[$i];
+            $twin = $this->__caseTwin($eventId, $attribute['type'], $value, $attribute['category'] ?? null, $caseIds);
+            if (!empty($twin)) {
+                $twins[$attribute['uuid']] = $twin['uuid'];
+            }
+        }
+        return $twins;
+    }
+
+    /**
+     * How each enrichment result is shared: the default distribution, unless
+     * the narrowest of its `origins` (attribute uuids) in this event is
+     * narrower, in which case the result takes that origin's distribution and
+     * sharing group. An origin is as narrow as the narrowest of itself, its
+     * object and the event. Origins elsewhere, or values, leave the default.
+     *
+     * @param int $eventId
+     * @param int|string $default
+     * @param array $data As saveEnrichmentResults() takes it
+     * @return callable Given a result, returns its distribution fields
+     */
+    private function __enrichmentSharing($eventId, $default, array $data)
+    {
+        $originsOf = function ($result) {
+            $origins = is_array($result) && is_array($result['origins'] ?? null) ? $result['origins'] : [];
+            return array_values(array_filter($origins, function ($uuid) {
+                return is_string($uuid) && Validation::uuid($uuid);
+            }));
+        };
+        $uuids = [];
+        foreach (array_merge($data['Attribute'] ?? [], $data['Object'] ?? []) as $result) {
+            $uuids = array_merge($uuids, $originsOf($result));
+        }
+        $defaultSharing = ['distribution' => $default];
+        if (empty($uuids)) {
+            return function () use ($defaultSharing) {
+                return $defaultSharing;
+            };
+        }
+
+        $event = $this->find('first', [
+            'conditions' => ['Event.id' => $eventId],
+            'fields' => ['Event.distribution', 'Event.sharing_group_id'],
+            'recursive' => -1,
+        ]);
+        $eventLevel = [(int)$event['Event']['distribution'], $event['Event']['sharing_group_id']];
+        $attributes = $this->Attribute->find('all', [
+            'conditions' => [
+                'Attribute.uuid' => array_values(array_unique($uuids)),
+                'Attribute.event_id' => $eventId,
+                'Attribute.deleted' => 0,
+            ],
+            'fields' => ['Attribute.uuid', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.object_id'],
+            'recursive' => -1,
+        ]);
+        $objectIds = array_values(array_filter(array_unique(Hash::extract($attributes, '{n}.Attribute.object_id'))));
+        $objects = empty($objectIds) ? [] : Hash::combine($this->Object->find('all', [
+            'conditions' => ['Object.id' => $objectIds],
+            'fields' => ['Object.id', 'Object.distribution', 'Object.sharing_group_id'],
+            'recursive' => -1,
+        ]), '{n}.Object.id', '{n}.Object');
+
+        // From narrowest to widest: your organisation, a sharing group, then community upward
+        $rank = function (array $level) {
+            return [0 => 0, 4 => 1, 1 => 2, 2 => 3, 3 => 4][$level[0]] ?? 4;
+        };
+        $narrowest = function (array $levels) use ($rank) {
+            $out = null;
+            foreach ($levels as $level) {
+                if ($out === null || $rank($level) < $rank($out)) {
+                    $out = $level;
+                }
+            }
+            return $out;
+        };
+        $levelOf = [];
+        foreach ($attributes as $row) {
+            $attribute = $row['Attribute'];
+            $chain = [$eventLevel];
+            $object = $objects[$attribute['object_id']] ?? null;
+            if ($object !== null && (int)$object['distribution'] !== 5) {
+                $chain[] = [(int)$object['distribution'], $object['sharing_group_id']];
+            }
+            if ((int)$attribute['distribution'] !== 5) {
+                $chain[] = [(int)$attribute['distribution'], $attribute['sharing_group_id']];
+            }
+            $levelOf[strtolower($attribute['uuid'])] = $narrowest($chain);
+        }
+        $defaultLevel = (int)$default === 5 ? $eventLevel : [(int)$default, null];
+
+        return function ($result) use ($originsOf, $levelOf, $narrowest, $rank, $defaultLevel, $defaultSharing) {
+            $levels = [];
+            foreach ($originsOf($result) as $uuid) {
+                if (isset($levelOf[strtolower($uuid)])) {
+                    $levels[] = $levelOf[strtolower($uuid)];
+                }
+            }
+            $origin = empty($levels) ? null : $narrowest($levels);
+            if ($origin === null) {
+                return $defaultSharing;
+            }
+            $narrower = $rank($origin) < $rank($defaultLevel)
+                || ($origin[0] === 4 && $defaultLevel[0] === 4 && (string)$origin[1] !== (string)$defaultLevel[1]);
+            if (!$narrower) {
+                return $defaultSharing;
+            }
+            return $origin[0] === 4
+                ? ['distribution' => 4, 'sharing_group_id' => $origin[1]]
+                : ['distribution' => $origin[0]];
+        };
+    }
+
+    /**
+     * @param mixed $reference
+     * @return bool
+     */
+    private function __enrichmentReference($reference)
+    {
+        return is_array($reference)
+            && Validation::uuid($reference['referenced_uuid'] ?? '')
+            && is_string($reference['relationship_type'] ?? null)
+            && trim($reference['relationship_type']) !== '';
+    }
+
+    /**
+     * @param AppModel $model Attribute or Object
+     * @param array $uuids
+     * @param int $eventId
+     * @return array uuid => true, for those the event holds
+     */
+    private function __uuidsInEvent($model, array $uuids, $eventId)
+    {
+        if (empty($uuids)) {
+            return [];
+        }
+        $found = $model->find('column', [
+            'conditions' => [
+                $model->alias . '.uuid' => $uuids,
+                $model->alias . '.event_id' => $eventId,
+                $model->alias . '.deleted' => 0,
+            ],
+            'fields' => [$model->alias . '.uuid'],
+        ]);
+        return array_fill_keys($found, true);
+    }
+
+    /**
      * Attach references to objects faster than CakePHP.
      * @param array $events
      */
-    private function __attachReferences(array &$events)
+    private function __attachReferences(array &$events, $loadedOnly = false)
     {
         $eventIds = [];
+        $objectIds = [];
         foreach ($events as $event) {
             if (!empty($event['Object'])) {
                 $eventIds[] = $event['Event']['id']; // event contains objects
+                foreach ($event['Object'] as $object) {
+                    $objectIds[] = $object['id'];
+                }
             }
         }
         if (!empty($eventIds)) {
@@ -11104,8 +12327,12 @@ class Event extends AppModel
             unset($schema['event_id']);
             unset($schema['source_uuid']);
 
+            $conditions = ['ObjectReference.event_id' => $eventIds];
+            if ($loadedOnly) {
+                $conditions['ObjectReference.object_id'] = $objectIds;
+            }
             $references = $this->Object->ObjectReference->find('all', [
-                'conditions' => ['ObjectReference.event_id' => $eventIds],
+                'conditions' => $conditions,
                 'fields' => array_keys($schema),
                 'recursive' => -1,
             ]);
@@ -11172,10 +12399,19 @@ class Event extends AppModel
      * @param array $events
      * @param bool $excludeLocalTags
      */
-    private function __attachAttributeTags(array &$events, $excludeLocalTags = false)
+    private function __attachAttributeTags(array &$events, $excludeLocalTags = false, $loadedOnly = false)
     {
         $eventIds = array_column(array_column($events, 'Event'), 'id');
         $conditions = ['AttributeTag.event_id' => $eventIds];
+        if ($loadedOnly) {
+            $attributeIds = [];
+            foreach ($events as $event) {
+                foreach ($event['Attribute'] as $attribute) {
+                    $attributeIds[] = $attribute['id'];
+                }
+            }
+            $conditions['AttributeTag.attribute_id'] = $attributeIds ?: [-1];
+        }
         if ($excludeLocalTags) {
             $conditions['AttributeTag.local'] = false;
         }

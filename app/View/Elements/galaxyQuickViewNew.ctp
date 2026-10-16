@@ -85,6 +85,38 @@ $generatePopover = function (array $cluster) use ($normalizeKey) {
 <?php if (!empty($data)): ?>
 <div class="galaxyQuickView">
 <?php $data = array_values(array_combine(array_column($data, 'id'), $data)); ?>
+<?php
+/*
+ * The reader's galaxy priority, where a caller resolved one.
+ *
+ * This element is rendered by some twenty callers — the event view, the
+ * index tables, a feed preview, a server preview — and most of them have
+ * no analyst profile to hand and no business resolving one. `$labelPlan`
+ * is therefore optional, and its absence is not a neutral plan but no
+ * call at all: `ValueLabelPriority::order()` returns the identical array
+ * for a profile that declares nothing, which is what a stock instance
+ * must render (prd/personas/04-label-surfaces.md §6, D52).
+ *
+ * The groups are the galaxies themselves, keyed by `type` — the key a
+ * profile's lists actually hold — which `Event::massageTags()` attaches
+ * in full. Ordering happens here and never in that model method,
+ * because it also feeds `restSearch` and the sync paths, and an event's
+ * JSON must not depend on who is reading it (D52).
+ */
+if (!empty($labelPlan)) {
+    App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
+    foreach ($data as $galaxyAt => $galaxyRow) {
+        $data[$galaxyAt]['key'] = isset($galaxyRow['type'])
+            ? $galaxyRow['type']
+            : null;
+    }
+    $data = ValueLabelPriority::order(
+        $data,
+        $labelPlan,
+        ValueLabelPriority::GALAXIES
+    );
+}
+?>
 <?php foreach ($data as $galaxy): ?>
     <h3 title="<?= isset($galaxy['description']) ? h($galaxy['description']) : h($galaxy['name']) ?>">
         <?= h($galaxy['name']) ?>

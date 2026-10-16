@@ -12,29 +12,18 @@
 
 <?php else: ?>
 
-    <div class="d-flex flex-wrap gap-2 p-3" data-tag-list>
-        <?php foreach ($eventTags as $et):
-            $tag     = $et['Tag'];
-            $local   = !empty($et['local']);
-            $relType = $et['relationship_type'] ?? '';
-        ?>
-            <div data-tag-item
-                 class="d-inline-flex flex-column align-items-start gap-1"
-                 data-tag-name="<?= h(strtolower($tag['name'])) ?>">
-                <?= $this->element('Events/View/extension_origin', [
-                    'event_id'     => $et['event_id'] ?? null,
-                    'compact'      => true,
+    <div class="p-3" data-tag-list>
+        <?= $this->TagChip->collection($eventTags, [
+            'searchUrl' => '',
+            'class' => 'w-100',
+            'prefix' => function ($et) {
+                return $this->element('Events/View/extension_origin', [
+                    'event_id' => $et['event_id'] ?? null,
+                    'compact' => true,
                     'only_foreign' => true,
-                ]); ?>
-                <?= $this->element('genericElementsBS5/Badges/tag', [
-                    'tag'           => $tag,
-                    'local'         => $local,
-                    'hiddenClass'   => '',
-                    'showFavourite' => false,
-                    'relationship'  => $relType,
-                ]); ?>
-            </div>
-        <?php endforeach; ?>
+                ]);
+            },
+        ]) ?>
     </div>
 
     <div class="d-none text-center text-muted py-3 small"

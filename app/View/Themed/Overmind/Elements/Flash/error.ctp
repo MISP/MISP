@@ -1,18 +1,11 @@
-<div class="alert alert-danger alert-dismissible fade show m-2" role="alert">
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    <?php
-        $message = h($message);
-        if (strpos('$flashErrorMessage', $message) >= 0 && $this->Session->read('flashErrorMessage')) {
-            $toReplace = sprintf('<a href="#" data-content="%s" data-toggle="popover" class="bold">%s</a>', h($this->Session->read('flashErrorMessage')), __("here"));
-            $message = str_replace('$flashErrorMessage', $toReplace, $message);
-        }
-        echo $message;
-        if (isset($params['url'])) {
-            if (isset($params['urlName'])) {
-                echo '<a href="' . h($params['url']) . '">' . h($params['urlName']) . '</a>';
-            } else {
-                echo '<a href="' . h($params['url']) . '">' .  h($params['url']) . '</a>';
-            }
-        }
-    ?>
-</div>
+<?php
+$body = h($message);
+$errorDetail = $this->Session->read('flashErrorMessage');
+if ($errorDetail && strpos($body, '$flashErrorMessage') !== false) {
+    $link = sprintf('<a href="#" data-content="%s" data-toggle="popover">%s</a>', h($errorDetail), __('here'));
+    $body = str_replace('$flashErrorMessage', $link, $body);
+}
+if (isset($params['url'])) {
+    $body .= ' <a href="' . h($params['url']) . '">' . h($params['urlName'] ?? $params['url']) . '</a>';
+}
+echo $this->element('genericElementsBS5/toast', ['kind' => 'danger', 'bodyHtml' => $body]);

@@ -1,4 +1,5 @@
 <?php
+    $railCards = $railCards ?? [];
     $this->set('headerIdentity', $report['EventReport']);
     $headerTitle = $report['EventReport']['name'] ?? '';
     $headerDescription = '';
@@ -24,7 +25,7 @@
                 'distribution' => $parentEvent['Event']['distribution'],
                 'sharingGroup' => $parentEvent['SharingGroup'] ?? [],
                 'label' => __('Inherited from event #%s', $parentEvent['Event']['id']),
-                'url' => $baseurl . '/events/view2/' . $parentEvent['Event']['id'],
+                'url' => $baseurl . '/events/view/' . $parentEvent['Event']['id'],
             ],
         ],
         'tabs' => [
@@ -36,10 +37,12 @@
                     'EventReports/View/eventReport_general',
                     'EventReports/View/eventReport_preview',
                 ],
-                'right' => [
+                'right' => array_merge([
                     'EventReports/View/eventReport_actions',
                     'EventReports/View/eventReport_analyst_data',
-                ],
+                ], $this->RailCard->rail($railCards, [
+                    'report-siblings', 'report-mentions',
+                ], 'general')),
             ],
             [
                 'id'    => 'content',

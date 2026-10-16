@@ -9,15 +9,17 @@ if ($adminView) {
     $actions[] = [
         'url'     => "$baseurl/admin/users/edit/$uid",
         'onclick' => "event.preventDefault(); openModal('$baseurl/admin/users/edit/$uid');",
-        'icon'    => 'fas fa-pen-to-square',
+        'icon'    => 'fas fa-pen',
         'label'   => __('Edit user'),
+        'short'   => __('Edit'),
     ];
 } else {
     $actions[] = [
         'url'     => "$baseurl/users/edit",
         'onclick' => "event.preventDefault(); openModal('$baseurl/users/edit');",
-        'icon'    => 'fas fa-pen-to-square',
+        'icon'    => 'fas fa-pen',
         'label'   => __('Edit profile'),
+        'short'   => __('Edit'),
     ];
 }
 
@@ -28,6 +30,7 @@ if ($adminView) {
         'onclick' => "event.preventDefault(); openModal('$baseurl/admin/users/quickEmail/$uid');",
         'icon'    => 'fas fa-envelope',
         'label'   => __('Send email to user'),
+        'short'   => __('Email'),
     ];
 }
 
@@ -35,6 +38,7 @@ $actions[] = [
     'url'   => "$baseurl/users/view/$uid.json",
     'icon'  => 'fas fa-download',
     'label' => __('Download profile'),
+    'short' => __('Download'),
 ];
 
 
@@ -45,6 +49,7 @@ $actions[] = [
     'url'   => $logsUrl,
     'icon'  => 'fas fa-clipboard-list',
     'label' => __('Review user logs'),
+    'short' => __('Logs'),
 ];
 
 
@@ -52,6 +57,7 @@ $actions[] = [
     'url'   => "$baseurl/users/view_login_history/$uid",
     'icon'  => 'fas fa-right-to-bracket',
     'label' => __('Review user logins'),
+    'short' => __('Logins'),
 ];
 
 // Delete (site admins, admin view only)
@@ -65,6 +71,6 @@ if ($adminView && !empty($isSiteAdmin)) {
     ];
 }
 
-echo $this->element('genericElementsBS5/Cards/card_actions', [
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions,
 ]);

@@ -28,9 +28,9 @@ $overlayHtml = '
         <div class="p-3 border-bottom">
             <div class="d-flex align-items-center gap-3 flex-wrap">
                 <div class="d-flex align-items-center gap-2 me-auto">
-                    <div class="rounded-2 d-flex align-items-center justify-content-center"
-                         style="width:36px;height:36px;background:#d4fcee;">
-                        <span class="misp-icon misp-icon-report misp-simple" style="color:#10B981;font-size:1rem;"></span>
+                    <div class="misp-icon-tile rounded-2 d-flex align-items-center justify-content-center"
+                         style="width:36px;height:36px;--tile:#10B981;--tile-bg:#d4fcee;">
+                        <span class="misp-icon misp-icon-report misp-simple" style="font-size:1rem;"></span>
                     </div>
                     <div>
                         <div class="fw-bold lh-1"><?= __('Latest Event Report') ?></div>

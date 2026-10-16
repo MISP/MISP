@@ -9,7 +9,8 @@ if ($editable) {
         'url' => "$baseurl/SharingGroups/edit/$SharingGroupId",
         'onclick' => "event.preventDefault(); openModal('$baseurl/SharingGroups/edit/$SharingGroupId');",
         'icon' => 'fas fa-pen',
-        'label' => __('Edit sharing group')
+        'label' => __('Edit sharing group'),
+        'short' => __('Edit')
     ];
 }
 
@@ -23,7 +24,7 @@ if ($deletable) {
     ];
 }
 
-echo $this->element('genericElementsBS5/Cards/card_actions', [
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions
 ]);
 ?>

@@ -219,6 +219,10 @@
             }
 
             var existing = document.querySelector(selector);
+            if (existing && !isVisible(existing)) {
+                // Lets a collapsed container (a menu, a fold) open onto the anchor.
+                existing.dispatchEvent(new CustomEvent('onboarding:reveal', { bubbles: true }));
+            }
             if (existing && isVisible(existing)) {
                 finish(existing);
                 return;

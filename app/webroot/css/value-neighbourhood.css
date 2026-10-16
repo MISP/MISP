@@ -1,0 +1,157 @@
+/* Value Neighbourhood: the rail peek (value-neighbourhood-peek.js) and the
+   full-window graph it opens. Entity hues are the node designs'. */
+
+.vn-peek {
+    --vn-trunk: var(--bs-border-color);
+    --vn-x: 20px;
+    --vn-event: #1892B1;
+    --vn-ref: #428bca;
+    --vn-claim: #d9820f;
+    --vn-feed: #B7791F;
+    --vn-server: #C2448F;
+    padding: 0 12px 12px;
+    font-size: 13px;
+    line-height: 1.3;
+    color: var(--bs-body-color);
+    min-width: 0;
+}
+[data-misp-mode="dark"] .vn-peek {
+    --vn-ref: #6aa7de;
+    --vn-claim: #f39a1f;
+    --vn-feed: #E0A030;
+    --vn-server: #E06AB2;
+}
+
+.vn-graph { margin: 0 -12px 8px; position: relative; border-bottom: 1px solid var(--bs-border-color); }
+.vn-graph:empty { display: none; }
+.vn-graph-canvas { height: 100%; }
+.vn-graph-loading {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 8px; font-size: 12px; color: var(--bs-secondary-color);
+}
+/* A picture, not a canvas: no grid. */
+.vn-graph .pivotick { --pvt-graph-grid-color: transparent; }
+.vn-peek > .vn-head:first-child, .vn-graph:empty + .vn-head { padding-top: 12px; }
+
+.vn-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.vn-vnode { flex: 0 0 40px; width: 40px; height: 40px; line-height: 0; }
+.vn-vnode svg { width: 40px; height: 40px; }
+.vn-htext { min-width: 0; flex: 1 1 auto; }
+.vn-value {
+    font-family: var(--bs-font-monospace, monospace);
+    font-weight: 600;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.vn-sub { font-size: 11.5px; color: var(--bs-secondary-color); }
+.vn-nw { white-space: nowrap; }
+.vn-warnline { display: flex; align-items: center; gap: 5px; margin-top: 3px; font-size: 11.5px; min-width: 0; }
+.vn-wcat { color: var(--bs-secondary-color); }
+.vn-tri { flex: 0 0 12px; width: 12px; height: 12px; line-height: 0; }
+.vn-tri svg { width: 12px; height: 12px; }
+
+/* Worth following: rows hanging off one trunk from the value node. */
+.vn-tree { position: relative; margin-top: 2px; }
+.vn-row { position: relative; display: flex; align-items: center; gap: 8px; min-height: 38px; padding-left: 42px; min-width: 0; }
+.vn-tree .vn-row::before {
+    content: ''; position: absolute; left: var(--vn-x); top: 0; bottom: 0;
+    border-left: 1.5px solid var(--vn-trunk);
+}
+.vn-tree .vn-row:last-child::before { bottom: 50%; }
+.vn-branch { position: absolute; left: var(--vn-x); top: 50%; width: 18px; border-top: 1.5px solid var(--vn-trunk); }
+.vn-mark { flex: 0 0 22px; width: 22px; height: 22px; line-height: 0; }
+.vn-mark svg { width: 22px; height: 22px; }
+.vn-mark:empty { flex-basis: 0; width: 0; margin-right: -8px; }
+.vn-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.vn-l1, .vn-l2 { display: flex; align-items: baseline; gap: 5px; min-width: 0; overflow: hidden; }
+.vn-l2 { font-size: 11.5px; color: var(--bs-secondary-color); gap: 0; }
+.vn-l2 .vn-plus { margin-left: 3px; }
+.vn-l2 .vn-sep { margin: 0 4px; }
+.vn-fix { flex: 0 0 auto; white-space: nowrap; }
+.vn-ell { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vn-mono { font-family: var(--bs-font-monospace, monospace); font-size: 12px; }
+.vn-kicker { font-size: 10.5px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--bs-secondary-color); }
+.vn-rel { font-weight: 600; }
+.vn-plus { color: var(--bs-secondary-color); font-size: 11.5px; }
+.vn-count {
+    flex: 0 0 auto; font-size: 11px; font-weight: 600; color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color);
+    border-radius: 9px; padding: 0 6px; line-height: 16px;
+}
+.vn-caption { min-height: 26px; gap: 6px; align-items: flex-end; padding-bottom: 2px; }
+.vn-cap { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.vn-cap-sub { font-size: 11px; color: var(--bs-secondary-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.vn-more .vn-l1 { font-size: 12px; color: var(--bs-secondary-color); }
+.vn-more { min-height: 32px; }
+
+/* In these events: one story per event, on the event's spine. */
+.vn-events-caption { padding-left: 0; }
+.vn-stories { list-style: none; margin: 2px 0 0; padding: 0; position: relative; }
+.vn-stories::before {
+    content: ""; position: absolute; left: 10px; top: 6px; bottom: 6px;
+    border-left: 1.5px solid var(--vn-event); opacity: .35;
+}
+.vn-story { display: flex; gap: 8px; padding: 6px 0; position: relative; min-width: 0; font-size: 12px; }
+.vn-story + .vn-story { border-top: 1px solid color-mix(in srgb, var(--bs-border-color) 60%, transparent); }
+.vn-story-mark {
+    flex: 0 0 21px; height: 21px; margin-top: 1px;
+    display: flex; align-items: center; justify-content: center; position: relative; z-index: 1;
+}
+.vn-story-mark::before {
+    content: ""; position: absolute; inset: 0; background: var(--vn-event);
+    clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+}
+.vn-story-count { position: relative; font-size: 9.5px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+[data-misp-mode="dark"] .vn-story-count { color: #0B0B0C; }
+.vn-story-body { min-width: 0; flex: 1 1 auto; }
+.vn-story-head { display: flex; gap: 6px; align-items: baseline; min-width: 0; }
+.vn-story-title { font-weight: 600; min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vn-story-marks { display: inline-flex; gap: 7px; flex: 0 0 auto; font-size: 11px; }
+.vn-story-lead { display: inline-flex; gap: 2px; align-items: baseline; font-variant-numeric: tabular-nums; }
+.vn-story-lead i { font-size: 10px; }
+.vn-claim { color: var(--vn-claim); }
+.vn-feed { color: var(--vn-feed); }
+.vn-server { color: var(--vn-server); }
+.vn-roles { display: flex; flex-wrap: wrap; gap: 3px 4px; margin-top: 3px; min-width: 0; align-items: baseline; }
+.vn-date, .vn-org { color: var(--bs-secondary-color); font-size: 11px; white-space: nowrap; }
+.vn-date { font-variant-numeric: tabular-nums; }
+.vn-org { margin-right: 4px; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+.vn-org::before { content: "·"; margin-right: 4px; }
+.vn-role {
+    gap: 4px; display: inline-flex; align-items: baseline; max-width: 100%;
+    font-size: 11px; line-height: 1.3; padding: 0 5px; border-radius: 4px;
+    border: 1px solid var(--bs-border-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vn-role-rel { font-family: var(--bs-font-monospace, monospace); font-weight: 600; font-size: 10.5px; }
+.vn-role-in, .vn-role-n, .vn-role-more { color: var(--bs-secondary-color); }
+.vn-role-in { overflow: hidden; text-overflow: ellipsis; }
+.vn-role-n { font-variant-numeric: tabular-nums; }
+.vn-role-more { font-size: 11px; }
+.vn-context {
+    color: var(--bs-secondary-color); font-size: 11px; font-style: italic; margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.vn-rest { margin-top: 4px; padding-top: 6px; border-top: 1px dashed var(--bs-border-color); color: var(--bs-secondary-color); font-size: 11px; }
+.vn-rest-line + .vn-rest-line { margin-top: 3px; }
+
+.vn-open { display: block; width: 100%; margin-top: 12px; }
+
+/* The full-window graph. */
+.vn-overlay { position: fixed; inset: 0; z-index: 1080; display: flex; flex-direction: column; background: var(--bs-body-bg); }
+.vn-overlay.d-none { display: none; }
+/* Pivotick mounts its tooltips on <body>, which the overlay covers. */
+body:has(> .vn-overlay:not(.d-none)) .pvt-tooltip { z-index: 1083; }
+body:has(> .vn-overlay:not(.d-none)) .pvt-tooltip.pvt-tooltip-floating { z-index: 1082; }
+body:has(> .vn-overlay:not(.d-none)) .pivotick-shadowlink-container { z-index: 1081; }
+.vn-overlay-bar {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+    border-bottom: 1px solid var(--bs-border-color); background: var(--bs-tertiary-bg);
+}
+.vn-overlay-title { font-weight: 600; min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vn-overlay-title .vn-mono { font-size: 13px; }
+.vn-overlay-stage { flex: 1 1 auto; position: relative; min-height: 0; }
+.vn-overlay-stage > .vn-loader { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }

@@ -1,0 +1,321 @@
+// Hex: the MISP mark's blues and facets, from the Hex Rail navbar.
+// Mode-dependent component colours point at the --hx-* tokens that
+// _hex.scss declares for both modes, so one variable serves light and dark.
+
+// The mark's five blues, plus ink.
+$hx-sky:     #33C3EE;
+$hx-cyan:    #0DA6C8;
+$hx-primary: #1892B1;
+$hx-teal:    #13718E;
+$hx-abyss:   #0C3A4A;
+$hx-ink:     #10262E;
+
+// Light surfaces: the rail's panel tokens, widened to the page.
+$hx-page:       #EEF5F8;
+$hx-surface:    #FFFFFF;
+$hx-surface-2:  #F1F8FB;
+$hx-raised:     #E3EEF3;
+$hx-border:     #C3DAE3;
+$hx-rule:       #DCE9EE;
+$hx-guide:      #BCD8E2;
+$hx-muted:      #4E6670;
+$hx-hover:      #E3F3F9;
+$hx-field:      #FBFDFE;
+$hx-field-line: #6E92A0;
+
+// Dark surfaces: the rail's dark panel, one step deeper for the page.
+$hx-page-dark:       #0A171D;
+$hx-surface-dark:    #0F2129;
+$hx-surface-2-dark:  #132C36;
+$hx-raised-dark:     #173F4E;
+$hx-border-dark:     #24505F;
+$hx-rule-dark:       #1D3C48;
+$hx-guide-dark:      #2C5868;
+$hx-text-dark:       #DCEAEF;
+$hx-muted-dark:      #93AEB8;
+$hx-head-dark:       #74D4F1;
+$hx-link-dark:       #5CCFF1;
+$hx-field-dark:      #0B1B22;
+$hx-field-line-dark: #4A7A8C;
+
+// The teal reads white text at 5.6:1, so it is the primary; the brand
+// primary stays the focus and "on" colour, as on the rail.
+$primary:   $hx-teal;
+$secondary: #5B7682;
+$success:   #1C8466;
+$info:      $hx-cyan;
+$warning:   #E3A21A;
+$danger:    #C23A2B;
+$light:     $hx-page;
+$dark:      $hx-abyss;
+
+$min-contrast-ratio: 4.5;
+
+$body-bg:              $hx-surface;
+$body-color:           $hx-ink;
+$body-secondary-color: $hx-muted;
+$body-secondary-bg:    $hx-raised;
+$body-tertiary-bg:     $hx-page;
+$body-emphasis-color:  #071F28;
+$headings-color:       $hx-abyss;
+$border-color:         $hx-rule;
+$border-color-translucent: rgba($hx-abyss, .14);
+
+$link-color:            $hx-teal;
+$link-hover-color:      $hx-abyss;
+$link-decoration:       none;
+$link-hover-decoration: underline;
+
+$border-radius:      .5rem;
+$border-radius-sm:   .3125rem;
+$border-radius-lg:   .875rem;
+$border-radius-xl:   1rem;
+$border-radius-pill: 50rem;
+
+$box-shadow:    0 26px 50px -22px rgba($hx-abyss, .5), 0 4px 12px -4px rgba($hx-abyss, .16);
+$box-shadow-sm: 0 1px 2px rgba($hx-abyss, .08);
+$box-shadow-lg: 0 28px 56px -18px rgba($hx-abyss, .55), 0 6px 16px -6px rgba($hx-abyss, .2);
+
+$focus-ring-color: rgba($hx-primary, .35);
+$focus-ring-width: .2rem;
+
+$component-active-bg: $hx-teal;
+
+// Forms
+$input-bg:                 var(--hx-field);
+$input-border-color:       var(--hx-field-line);
+$input-focus-border-color: $hx-primary;
+$input-focus-box-shadow:   0 0 0 .2rem rgba($hx-primary, .22);
+$input-placeholder-color:  var(--hx-placeholder);
+$input-disabled-bg:        var(--bs-secondary-bg);
+$form-label-font-weight:   600;
+$form-label-color:         var(--hx-label);
+$form-text-color:          var(--bs-secondary-color);
+$input-group-addon-bg:     var(--hx-surface-2);
+$input-group-addon-color:  var(--hx-icon);
+$form-check-input-border:  1px solid var(--hx-field-line);
+$form-check-input-checked-bg-color:     $hx-teal;
+$form-check-input-checked-border-color: $hx-teal;
+$form-check-input-focus-border:         $hx-primary;
+$form-check-radio-border-radius:        0;
+$form-select-indicator-color:      $hx-teal;
+$form-select-indicator-color-dark: $hx-sky;
+
+// The rail's switch: a slate track and a hexagonal knob.
+$hx-hex-knob: "M0-3.4L2.95-1.7L2.95 1.7L0 3.4L-2.95 1.7L-2.95-1.7Z";
+$form-switch-color:            #FFFFFF;
+$form-switch-bg-image:         url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'><path fill='#fff' d='#{$hx-hex-knob}'/></svg>");
+$form-switch-focus-bg-image:   $form-switch-bg-image;
+$form-switch-checked-bg-image: $form-switch-bg-image;
+$form-switch-bg-image-dark:    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'><path fill='#{$hx-surface-dark}' d='#{$hx-hex-knob}'/></svg>");
+
+// Buttons: the shape is in _hex.scss; these set the metrics.
+$btn-font-weight:       600;
+$btn-padding-x:         1.05rem;
+$btn-padding-x-sm:      .7rem;
+$btn-padding-x-lg:      1.35rem;
+$btn-box-shadow:        none;
+$btn-focus-box-shadow:  none;
+$btn-active-box-shadow: none;
+$btn-disabled-opacity:  .5;
+
+// Cards: the rail's panel, standing on the page.
+$card-border-color:  var(--hx-border);
+$card-cap-bg:        var(--hx-surface-2);
+$card-cap-padding-y: .6rem;
+$card-cap-padding-x: 1rem;
+$card-border-radius: $border-radius-lg;
+$card-bg:            var(--bs-body-bg);
+
+// Dropdowns: the compact panel.
+$dropdown-border-color:     var(--hx-border);
+$dropdown-divider-bg:       var(--hx-rule);
+$dropdown-link-color:       var(--bs-body-color);
+$dropdown-link-hover-bg:    var(--hx-hover-bg);
+$dropdown-link-hover-color: var(--hx-hover-fg);
+$dropdown-link-active-bg:   $hx-teal;
+$dropdown-header-color:     var(--hx-head);
+$dropdown-padding-x:        .375rem;
+$dropdown-padding-y:        .375rem;
+$dropdown-item-padding-x:   .65rem;
+$dropdown-item-padding-y:   .4rem;
+$dropdown-border-radius:    .5rem;
+$dropdown-box-shadow:       var(--hx-shadow);
+
+// Tables: calm, ruled, no texture.
+$table-border-color:          var(--hx-rule);
+$table-striped-bg:            var(--hx-stripe);
+$table-hover-bg:              var(--hx-row-hover);
+$table-active-bg:             var(--hx-row-active);
+$table-group-separator-color: var(--hx-border);
+$table-th-font-weight:        600;
+
+// Navs
+$nav-link-color:                    var(--bs-secondary-color);
+$nav-link-hover-color:              var(--bs-emphasis-color);
+$nav-link-font-weight:              500;
+$nav-tabs-border-color:             var(--hx-rule);
+$nav-tabs-link-active-color:        var(--bs-emphasis-color);
+$nav-tabs-link-active-bg:           transparent;
+$nav-tabs-link-active-border-color: transparent;
+$nav-pills-link-active-bg:          $hx-teal;
+
+// Modals
+$modal-content-border-color:     var(--hx-border);
+$modal-content-border-radius:    $border-radius-lg;
+$modal-header-border-color:      transparent;
+$modal-footer-border-color:      var(--hx-rule);
+$modal-footer-bg:                var(--hx-surface-2);
+$modal-backdrop-bg:              #04141A;
+$modal-backdrop-opacity:         .55;
+$modal-content-box-shadow-xs:    var(--hx-shadow);
+$modal-content-box-shadow-sm-up: var(--hx-shadow);
+
+// Badges, pagination, list groups, alerts, progress, the rest
+$badge-font-weight:   700;
+$badge-padding-x:     .75em;
+$badge-border-radius: 0;
+$pagination-border-color:        var(--hx-border);
+$pagination-color:               var(--hx-icon);
+$pagination-hover-bg:            var(--hx-hover-bg);
+$pagination-hover-color:         var(--hx-hover-fg);
+$pagination-hover-border-color:  var(--hx-border);
+$pagination-active-bg:           $hx-teal;
+$pagination-active-border-color: $hx-teal;
+$pagination-focus-box-shadow:    0 0 0 .2rem rgba($hx-primary, .3);
+$list-group-border-color:        var(--hx-rule);
+$list-group-hover-bg:            var(--hx-hover-bg);
+$list-group-active-bg:           $hx-teal;
+$list-group-active-border-color: $hx-teal;
+$alert-border-radius:            $border-radius;
+$progress-bg:                    var(--bs-secondary-bg);
+$progress-height:                .75rem;
+$progress-border-radius:         0;
+$progress-bar-bg:                $hx-teal;
+$accordion-border-color:         var(--hx-border);
+$accordion-button-active-bg:     var(--hx-surface-2);
+$accordion-button-active-color:  var(--bs-emphasis-color);
+$accordion-button-focus-box-shadow: inset 0 0 0 2px $hx-primary;
+$tooltip-bg:                     $hx-abyss;
+$tooltip-opacity:                1;
+$tooltip-color:                  #FFFFFF;
+$popover-border-color:           var(--hx-border);
+$popover-header-bg:              var(--hx-surface-2);
+$popover-header-color:           var(--bs-emphasis-color);
+$toast-border-color:             var(--hx-border);
+$toast-header-background-color:  var(--hx-surface-2);
+$toast-header-color:             var(--bs-emphasis-color);
+$breadcrumb-divider-color:       var(--bs-secondary-color);
+$breadcrumb-active-color:        var(--bs-emphasis-color);
+
+// Dark palette
+$body-bg-dark:                  $hx-surface-dark;
+$body-color-dark:               $hx-text-dark;
+$body-secondary-color-dark:     $hx-muted-dark;
+$body-secondary-bg-dark:        $hx-surface-2-dark;
+$body-tertiary-bg-dark:         $hx-page-dark;
+$body-emphasis-color-dark:      #F2FAFC;
+$headings-color-dark:           #EAF6FA;
+$border-color-dark:             $hx-rule-dark;
+$border-color-translucent-dark: rgba($hx-head-dark, .14);
+$link-color-dark:               $hx-link-dark;
+$link-hover-color-dark:         #A6E6F8;
+$code-color-dark:               #F59BC4;
+
+$primary-text-emphasis-dark:   $hx-head-dark;
+$primary-bg-subtle-dark:       mix($hx-primary, $hx-surface-dark, 24%);
+$primary-border-subtle-dark:   mix($hx-primary, $hx-surface-dark, 50%);
+$secondary-bg-subtle-dark:     mix($secondary, $hx-surface-dark, 18%);
+$secondary-border-subtle-dark: mix($secondary, $hx-surface-dark, 42%);
+$success-text-emphasis-dark:   #4FD1A5;
+$success-bg-subtle-dark:       mix($success, $hx-surface-dark, 20%);
+$success-border-subtle-dark:   mix($success, $hx-surface-dark, 50%);
+$info-text-emphasis-dark:      $hx-sky;
+$info-bg-subtle-dark:          mix($hx-cyan, $hx-surface-dark, 18%);
+$info-border-subtle-dark:      mix($hx-cyan, $hx-surface-dark, 45%);
+$warning-text-emphasis-dark:   #F2C14E;
+$warning-bg-subtle-dark:       mix($warning, $hx-surface-dark, 16%);
+$warning-border-subtle-dark:   mix($warning, $hx-surface-dark, 40%);
+$danger-text-emphasis-dark:    #F28B7E;
+$danger-bg-subtle-dark:        mix($danger, $hx-surface-dark, 22%);
+$danger-border-subtle-dark:    mix($danger, $hx-surface-dark, 50%);
+$light-bg-subtle-dark:         $hx-surface-2-dark;
+$light-border-subtle-dark:     $hx-border-dark;
+$dark-bg-subtle-dark:          $hx-page-dark;
+$dark-border-subtle-dark:      $hx-border-dark;
+
+$form-valid-color-dark:          #4FD1A5;
+$form-valid-border-color-dark:   #4FD1A5;
+$form-invalid-color-dark:        #F28B7E;
+$form-invalid-border-color-dark: #F28B7E;
+
+// Light-mode subtle tones, tinted toward the blues.
+$primary-bg-subtle:     #DDF0F7;
+$primary-border-subtle: #A9D7E7;
+$primary-text-emphasis: $hx-abyss;
+$info-bg-subtle:        #DCF3F9;
+$light-bg-subtle:       $hx-surface-2;
+$light-border-subtle:   $hx-border;
+
+$misp-accent:      $hx-teal;
+$misp-accent-dark: $hx-link-dark;
+
+// The rail replaces the Refined Classic bar; these only matter on a page
+// that still carries rc-nav.
+$misp-navbar-bg: $hx-abyss;
+$misp-navbar-brand-filter: none;
+
+// Correlation graph in the mark's blues: sky events, teal rules and the
+// brand primary on the period handles.
+$misp-surface-overrides: (
+  "graph-node-source":      $success,
+  "graph-node-attribute":   $warning,
+  "graph-node-target":      $hx-sky,
+  "graph-node-org":         $hx-field-line,
+  "graph-link-attribute":   tint-color($warning, 70%),
+  "graph-link-target":      tint-color($hx-sky, 55%),
+  "graph-link-org":         rgba($hx-teal, .16),
+  "graph-label":            $hx-ink,
+  "graph-label-source":     $hx-abyss,
+  "graph-label-org":        rgba($hx-muted, .8),
+  "graph-label-org-linked": $hx-abyss,
+  "graph-lane":             rgba($hx-primary, .04),
+  "graph-lane-line":        rgba($hx-teal, .2),
+  "graph-axis":             rgba($hx-teal, .5),
+  "graph-grid":             rgba($hx-teal, .16),
+  "graph-grid-label":       $hx-muted,
+  "graph-leader":           rgba($hx-teal, .35),
+  "graph-accent":           $hx-primary,
+  "graph-accent-ink":       $hx-teal,
+  "graph-marker":           $hx-field-line,
+  "graph-marker-hover":     $hx-abyss,
+  "graph-current":          $success,
+  "graph-current-ink":      #fff,
+  "graph-current-on":       #fff
+);
+$misp-surface-overrides-dark: (
+  "graph-node-source":      #4FD1A5,
+  "graph-node-attribute":   #F0B544,
+  "graph-node-target":      $hx-sky,
+  "graph-node-org":         $hx-muted-dark,
+  "graph-link-attribute":   mix(#F0B544, $hx-surface-dark, 45%),
+  "graph-link-target":      mix($hx-sky, $hx-surface-dark, 50%),
+  "graph-link-org":         rgba($hx-muted-dark, .18),
+  "graph-label":            $hx-text-dark,
+  "graph-label-source":     #fff,
+  "graph-label-org":        rgba($hx-muted-dark, .8),
+  "graph-label-org-linked": $hx-head-dark,
+  "graph-lane":             rgba($hx-sky, .05),
+  "graph-lane-line":        rgba($hx-sky, .2),
+  "graph-axis":             rgba($hx-sky, .5),
+  "graph-grid":             rgba($hx-sky, .15),
+  "graph-grid-label":       $hx-muted-dark,
+  "graph-leader":           rgba($hx-muted-dark, .45),
+  "graph-accent":           $hx-sky,
+  "graph-accent-ink":       #A6E6F8,
+  "graph-marker":           $hx-field-line-dark,
+  "graph-marker-hover":     $hx-head-dark,
+  "graph-current":          #4FD1A5,
+  "graph-current-ink":      $hx-abyss,
+  "graph-current-on":       $hx-abyss
+);

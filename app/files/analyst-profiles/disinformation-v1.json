@@ -1,0 +1,94 @@
+{
+    "uuid": "578259b3-1511-4ed9-ab0c-cd82cb29845f",
+    "name": "Disinformation & Influence",
+    "description": "For a researcher tracking narratives and campaigns rather than infrastructure, whose output is published. It keeps the shipped default's numbers and changes what the page shows first, with the longest shelf life of the five.",
+    "version": 10,
+    "extends": "default-v1",
+    "parameters": {
+        "relevance": {
+            "ttl_default": 365,
+            "ttl_buckets": {
+                "long": 730
+            }
+        },
+        "reference": {
+            "module_trust": {
+                "socialscan": "B",
+                "sourcecache": "A",
+                "urlscan": "B",
+                "hibp": "B"
+            }
+        },
+        "enrichment": {
+            "shapes": [
+                "account-presence",
+                "page-capture",
+                "registration",
+                "geolocation",
+                "resolution-timeline"
+            ]
+        },
+        "context": {
+            "taxonomies": {
+                "pinned": [
+                    "tlp",
+                    "PAP",
+                    "admiralty-scale"
+                ],
+                "preferred": [
+                    "DFRLab-dichotomies-of-disinformation",
+                    "diamond-model-for-influence-operations"
+                ]
+            },
+            "galaxies": {
+                "preferred": [
+                    "disarm-techniques",
+                    "disarm-actortypes"
+                ]
+            }
+        },
+        "galaxies": {
+            "attribution": [
+                "threat-actor",
+                "mitre-intrusion-set",
+                "mitre-enterprise-attack-intrusion-set",
+                "mitre-mobile-attack-intrusion-set",
+                "mitre-pre-attack-intrusion-set",
+                "mitre-ics-groups",
+                "groups",
+                "microsoft-activity-group",
+                "360net", "360net-threat-actor",
+                "surveillance-vendor",
+                "canada-listed-terrorist-entities",
+                "campaigns",
+                "mitre-campaign",
+                "malpedia",
+                "ransomware",
+                "backdoor",
+                "banker",
+                "stealer",
+                "wiper",
+                "rat",
+                "botnet",
+                "cryptominers",
+                "android",
+                "stalkerware",
+                "mitre-malware",
+                "mitre-enterprise-attack-malware",
+                "mitre-mobile-attack-malware",
+                "mitre-ics-software",
+                "tool",
+                "mitre-tool",
+                "mitre-enterprise-attack-tool",
+                "mitre-mobile-attack-tool",
+                "exploit-kit",
+                "tds",
+                "rmm-tool",
+                "software",
+                "mitre-software",
+                "disarm-techniques",
+                "amitt-misinformation-pattern"
+            ]
+        }
+    }
+}

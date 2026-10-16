@@ -75,7 +75,22 @@ class RegexpController extends AppController
 
     public function admin_index()
     {
+        $this->__searchConditions('quickFilter');
         $this->AdminCrud->adminIndex();
+    }
+
+    private function __searchConditions($param)
+    {
+        $term = $this->request->params['named'][$param] ?? '';
+        if ($term === '') {
+            return;
+        }
+        $needle = '%' . mb_strtolower($term) . '%';
+        $this->paginate['conditions'][] = ['OR' => [
+            'LOWER(Regexp.regexp) LIKE' => $needle,
+            'LOWER(Regexp.replacement) LIKE' => $needle,
+            'LOWER(Regexp.type) LIKE' => $needle,
+        ]];
     }
 
     public function admin_edit($id = null)
@@ -213,6 +228,7 @@ class RegexpController extends AppController
     public function index()
     {
         $this->recursive = 0;
+        $this->__searchConditions('value');
         $this->set('list', $this->paginate());
     }
 

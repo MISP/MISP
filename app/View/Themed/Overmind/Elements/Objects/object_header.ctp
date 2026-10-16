@@ -26,7 +26,7 @@ $firstTitle = ($ctx['firstRelation'] !== '' ? $ctx['firstRelation'] . ': ' : '')
 <span class="ov-obj-head">
 
     <span class="ov-obj-dist"
-          style="--ov-dist-bg:<?= h($dist['bg']) ?>;--ov-dist-ink:<?= h($dist['color']) ?>;"
+          style="--ov-dist-bg:<?= h($this->DistributionLevel->themed($dist, 'bg')) ?>;--ov-dist-ink:<?= h($this->DistributionLevel->themed($dist, 'fg')) ?>;"
           title="<?= h(__('Distribution: %s', $dist['label'])) ?>">
         <i class="<?= h($dist['icon']) ?>"></i>
     </span>

@@ -1,64 +1,66 @@
 <?php
-/*
- * "Show on map" for the objects that carry a place, as the default theme's
- * row_object.ctp offers it: a geolocation (point, accuracy radius as a
- * circle), a gpx / uav track and a geojson attachment. Nothing is rendered
- * unless Plugin.Geolocation_enabled is on and the object holds what the map
- * needs. openGeoMap() in mispOvermind.js draws it.
+/**
+ * "Show on map" for the objects that carry a place or a path: geolocation,
+ * gpx, uav and geojson. Rendered in the card header, outside the accordion
+ * button, so a click opens the map instead of collapsing the card.
  *
- *   object  array   the object, with its Attribute list
- *   class   string  button classes (default: the card view's small outline)
- *   label   bool    print "Map" after the glyph (default false)
+ * Parameters:
+ *   object  array  one entry of $objects
+ *   class   string extra classes for the wrapper
  */
-if (!Configure::read('Plugin.Geolocation_enabled')) {
+if (!Configure::read('Plugin.Geolocation_enabled') || !empty($object['deleted'])) {
     return;
 }
-$object = $object ?? [];
-$attributes = $object['Attribute'] ?? [];
-$valueOf = function ($relation) use ($attributes) {
-    foreach ($attributes as $attribute) {
-        if (($attribute['object_relation'] ?? '') === $relation) {
-            return $attribute;
-        }
+$byRelation = [];
+foreach ($object['Attribute'] ?? [] as $attribute) {
+    if (empty($attribute['deleted']) && !isset($byRelation[$attribute['object_relation']])) {
+        $byRelation[$attribute['object_relation']] = $attribute;
     }
-    return null;
-};
+}
 
 $data = null;
-$name = $object['name'] ?? '';
-if ($name === 'geolocation') {
-    $lat = $valueOf('latitude');
-    $lon = $valueOf('longitude');
-    if ($lat !== null && $lon !== null) {
-        $radius = $valueOf('accuracy-radius');
-        $data = ['kind' => 'point', 'lat' => $lat['value'], 'lon' => $lon['value'], 'radius' => $radius['value'] ?? ''];
+if ($object['name'] === 'geolocation') {
+    if (isset($byRelation['latitude'], $byRelation['longitude'])) {
+        $data = [
+            'kind' => 'point',
+            'lat' => $byRelation['latitude']['value'],
+            'lon' => $byRelation['longitude']['value'],
+            'radius' => $byRelation['accuracy-radius']['value'] ?? '',
+        ];
     }
-} elseif ($name === 'gpx' || $name === 'uav') {
-    $file = $valueOf($name === 'gpx' ? 'attachment' : 'flight-path');
-    if ($file !== null) {
-        $data = ['kind' => 'gpx', 'attachment' => $file['id']];
+} else {
+    $attachmentRelations = ['gpx' => 'attachment', 'uav' => 'flight-path', 'geojson' => 'attachment'];
+    $relation = $attachmentRelations[$object['name']] ?? null;
+    // A uav carries any number of flight paths.
+    $files = [];
+    foreach ($object['Attribute'] ?? [] as $attribute) {
+        if ($relation !== null && empty($attribute['deleted'])
+            && $attribute['object_relation'] === $relation
+        ) {
+            $files[] = ['attachment' => $attribute['id'], 'name' => $attribute['value']];
+        }
     }
-} elseif ($name === 'geojson') {
-    $file = $valueOf('attachment');
-    if ($file !== null) {
-        $data = ['kind' => 'geojson', 'attachment' => $file['id']];
+    if (!empty($files)) {
+        $data = [
+            'kind' => $object['name'] === 'geojson' ? 'geojson' : 'gpx',
+            'files' => $files,
+        ];
     }
 }
 if ($data === null) {
     return;
 }
+
 $tileUrl = Configure::read('Plugin.Geolocation_url') ?: 'https://geo.circl.lu';
-$title = __('Show on map');
 ?>
-<button type="button" class="<?= h($class ?? 'btn btn-sm btn-outline-secondary py-0 px-2') ?>"
-        data-geo-map="<?= h($data['kind']) ?>"
-        data-tile-url="<?= h($tileUrl) ?>"
-        data-title="<?= h($name) ?>"
-        <?php if ($data['kind'] === 'point'): ?>
-            data-lat="<?= h($data['lat']) ?>" data-lon="<?= h($data['lon']) ?>" data-radius="<?= h($data['radius']) ?>"
-        <?php else: ?>
-            data-attachment-id="<?= (int)$data['attachment'] ?>"
-        <?php endif; ?>
-        title="<?= h($title) ?>" aria-label="<?= h($title) ?>">
-    <i class="fas fa-map-location-dot"></i><?php if (!empty($label)): ?><span><?= __('Map') ?></span><?php endif; ?>
-</button>
+<div class="flex-shrink-0 <?= h($class ?? 'pe-3') ?>">
+    <button type="button"
+            class="btn btn-sm ov-obj-map-btn"
+            data-object-map="<?= h(json_encode($data)) ?>"
+            data-tile-url="<?= h($tileUrl) ?>"
+            data-title="<?= h($object['name']) ?>"
+            title="<?= h(__('Show on map')) ?>">
+        <i class="fas fa-map-location-dot"></i>
+        <?= __('Map') ?>
+    </button>
+</div>

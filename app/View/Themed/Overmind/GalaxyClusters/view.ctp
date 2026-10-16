@@ -21,6 +21,7 @@ $this->set('headerTitleHtml', sprintf(
 ));
 
 $elementCount = isset($data['GalaxyElement']) ? count($data['GalaxyElement']) : 0;
+$railCards = $railCards ?? [];
 
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,
@@ -39,10 +40,13 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
                 'GalaxyClusters/View/galaxy_clusters_general',
                 'GalaxyClusters/View/galaxy_clusters_elements_card',
             ],
-            'right' => [
+            'right' => array_merge([
                 'GalaxyClusters/View/galaxy_clusters_actions',
                 'GalaxyClusters/View/galaxy_clusters_analyst_data',
-            ],
+                'GalaxyClusters/View/galaxy_clusters_graphs',
+            ], $this->RailCard->rail($railCards, [
+                'cluster-facts', 'cluster-relations', 'cluster-activity', 'cluster-latest',
+            ], 'general')),
         ],
         [
             'id' => 'elements',
@@ -63,6 +67,15 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
                 [
                     'ajax' => $baseurl . '/galaxy_clusters/viewRelations/' . h($data['id']),
                 ],
+            ],
+            'right' => $this->RailCard->rail($railCards, ['cluster-relations'], 'relations'),
+        ],
+        [
+            'id' => 'pivot-explorer',
+            'title' => __('Pivot Explorer'),
+            'icon' => 'fas fa-circle-nodes',
+            'left' => [
+                'GalaxyClusters/View/galaxy_cluster_pivot_explorer',
             ],
         ],
     ],

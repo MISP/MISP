@@ -614,7 +614,7 @@ class EventTemplatesController extends AppController
         $this->Flash->success(__('Event created from template.'));
         $this->redirect(array(
             'controller' => 'events',
-            'action' => 'view2',
+            'action' => 'view',
             $result['event_id'],
         ));
     }

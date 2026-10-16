@@ -124,6 +124,45 @@
         }
     }
 
+    /*
+     * The reader's taxonomy priority, where a caller resolved one.
+     *
+     * Optional, and absent for most of this element's twenty-odd
+     * callers — a feed preview and a server preview are looking at
+     * somebody else's data, and a tag-collection index is not a reading
+     * surface for a threat. With no plan nothing is called at all, so
+     * those callers render the array they were handed
+     * (prd/personas/04-label-surfaces.md §6).
+     *
+     * **Below the highlighted table, and after it took its tags.**
+     * An administrator's `taxonomies.highlighted` outranks a profile's
+     * pin (D53) for D41's reason: highlighting says *this instance
+     * reads these first*, which is a statement about the deployment,
+     * and a pin says *I attend to this*, which is a statement about a
+     * reader. The highlighted loop above has already lifted those tags
+     * out of `$tags`, so what is ordered here is what is left — a
+     * pinned-and-highlighted taxonomy is at the top either way, and a
+     * pinned one that is not highlighted leads the rest.
+     *
+     * `labels()` and not `order()`: this column draws a chip per tag,
+     * so a pinned `tlp` group has no single slot to win and what
+     * matters is that `tlp:red` precedes `tlp:clear` (D51).
+     */
+    if (!empty($labelPlan)) {
+        App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
+        $ordered = [];
+        foreach ($tags as $tag) {
+            $name = $tag['Tag']['name'] ?? ($tag['name'] ?? null);
+            $tag['key'] = ValueLabelPriority::namespaceOf($name);
+            $tag['name'] = $name;
+            $ordered[] = $tag;
+        }
+        $tags = ValueLabelPriority::labels(
+            $ordered,
+            $labelPlan,
+            ValueLabelPriority::TAXONOMIES
+        );
+    }
     foreach ($tags as $tag) {
         $tagData .= $this->element('rich_tag', [
             'tag' => $tag,

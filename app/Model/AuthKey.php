@@ -334,27 +334,47 @@ class AuthKey extends AppModel
      */
     public function getKeyUsage($id)
     {
-        $redis = RedisTool::init();
-        $data = $redis->hGetAll("misp:authkey_usage:$id");
+        list($byIp, $lastUsage) = $this->getKeyUsageByIp($id);
+        list($perDay, $uniqueIps) = self::summariseKeyUsage($byIp);
+        return [$perDay, $lastUsage, $uniqueIps];
+    }
 
-        $output = [];
-        $uniqueIps = [];
-        foreach ($data as $key => $count) {
-            list($date, $ip) = explode(':', $key);
-            $uniqueIps[$ip] = true;
-            if (isset($output[$date])) {
-                $output[$date] += $count;
-            } else {
-                $output[$date] = $count;
+    /**
+     * The key's logged requests per day and source address, and its last use.
+     *
+     * @param int $id
+     * @return array [date => ip => count, int|null last usage timestamp]
+     */
+    public function getKeyUsageByIp($id)
+    {
+        $redis = RedisTool::init();
+        $byIp = [];
+        foreach ($redis->hGetAll("misp:authkey_usage:$id") as $field => $count) {
+            // An IPv6 address carries colons of its own
+            $parts = explode(':', $field, 2);
+            if (count($parts) === 2) {
+                $byIp[$parts[0]][$parts[1]] = (int)$count;
             }
         }
         // Data from redis are not sorted
-        ksort($output);
-
+        ksort($byIp);
         $lastUsage = $redis->get("misp:authkey_last_usage:$id");
-        $lastUsage = $lastUsage === false ? null : (int)$lastUsage;
+        return [$byIp, $lastUsage === false ? null : (int)$lastUsage];
+    }
 
-        return [$output, $lastUsage, count($uniqueIps)];
+    /**
+     * @param array $byIp date => ip => count, from getKeyUsageByIp()
+     * @return array [date => count, number of distinct addresses]
+     */
+    public static function summariseKeyUsage(array $byIp)
+    {
+        $perDay = [];
+        $ips = [];
+        foreach ($byIp as $date => $counts) {
+            $perDay[$date] = array_sum($counts);
+            $ips += $counts;
+        }
+        return [$perDay, count($ips)];
     }
 
     /**

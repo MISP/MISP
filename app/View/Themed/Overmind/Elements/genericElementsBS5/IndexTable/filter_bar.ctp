@@ -6,6 +6,65 @@ if (empty($filter_bar)) {
     return;
 }
 
+/*
+ * Every bar is a picker bar unless it opts out with `picker_bar => false`:
+ * `more_filters` selects and top-level `dropdown`s become fixed-option
+ * pickers. A picker takes one value unless its child names the `separator`
+ * its controller splits on (`||` for CRUD and IndexFilter parameters).
+ */
+$pickerBarOn = $filter_bar['picker_bar'] ?? true;
+if ($pickerBarOn) {
+    $toPicker = function (array $child) {
+        $options = [];
+        $walk = function ($list) use (&$walk, &$options) {
+            foreach ((array)$list as $value => $label) {
+                if (is_array($label) && isset($label['value'], $label['name'])) {
+                    $value = $label['value'];
+                    $label = $label['name'];
+                } elseif (is_array($label)) {
+                    $walk($label);
+                    continue;
+                }
+                if ((string)$value === '') {
+                    continue;
+                }
+                $options[] = ['value' => (string)$value, 'label' => (string)$label];
+            }
+        };
+        $walk($child['options'] ?? []);
+        return [
+            'type' => 'picker',
+            'name' => $child['name'],
+            'label' => $child['label'] ?? $child['name'],
+            'icon' => $child['icon'] ?? null,
+            'options' => $options,
+            'single' => empty($child['separator']),
+            'separator' => $child['separator'] ?? '|',
+            'exclude' => !empty($child['exclude']),
+            'hint' => $child['help'] ?? null,
+        ];
+    };
+    $children = [];
+    foreach ($filter_bar['children'] as $child) {
+        $type = $child['type'] ?? '';
+        if ($type === 'more_filters') {
+            $selects = $child['children'] ?? [];
+        } elseif ($type === 'dropdown') {
+            $selects = [$child];
+        } else {
+            $children[] = $child;
+            continue;
+        }
+        foreach ($selects as $select) {
+            $picker = empty($select['name']) ? null : $toPicker($select);
+            if (!empty($picker['options'])) {
+                $children[] = $picker;
+            }
+        }
+    }
+    $filter_bar['children'] = $children;
+}
+
 // The action this bar drives — pagination/search/filter URLs are built against
 // `<item_url>/<action>`. Defaults to 'index';
 $filterAction = $filter_bar['action'] ?? 'index';
@@ -62,6 +121,161 @@ if ($transport === 'query') {
 $hasActiveFilters = !empty($currentFilters);
 
 $filterId = 'filter-bar-' . uniqid();
+
+/*
+ * A bar with `picker` children drives its filters through index-filters.js:
+ * pickers apply when they close, chips and toggles are links the server has
+ * already built, and the results are swapped in place.
+ */
+$pickers = [];
+$browserStrings = null;
+foreach ($filter_bar['children'] as $child) {
+    if (($child['type'] ?? '') === 'picker') {
+        $pickers[$child['name']] = $child;
+        if (!empty($child['browser'])) {
+            $browserStrings = [];
+        }
+        if (!empty($child['sub'])) {
+            $pickers[$child['sub']['name']] = $child['sub'];
+        }
+    }
+}
+$pickerMode = $pickerBarOn || !empty($pickers);
+if ($pickerMode) {
+    App::uses('IndexFilterState', 'Tools');
+    /*
+     * The URL this bar's links start from. A bar drawn for the request's own
+     * action keeps its positional arguments (`auth_keys/index/<user>`); a tab
+     * whose URL is not `<item_url>/<action>` names it with `base_url`.
+     */
+    $filterBase = $filter_bar['base_url'] ?? null;
+    if ($filterBase === null) {
+        $filterBase = $baseurl . $item_url . '/' . $filterAction;
+        $requestPrefix = (string)($this->request->params['prefix'] ?? '');
+        $requestAction = $requestPrefix === ''
+            ? $this->request->params['action']
+            : preg_replace('/^' . preg_quote($requestPrefix, '/') . '_/', '', $this->request->params['action']);
+        $sameAction = $requestAction === $filterAction
+            && basename($item_url) === Inflector::underscore($this->request->params['controller']);
+        if ($sameAction) {
+            foreach (($this->request->params['pass'] ?? []) as $pass) {
+                $filterBase .= '/' . rawurlencode($pass);
+            }
+        }
+    }
+    $filterState = new IndexFilterState(
+        $filterBase,
+        $this->request->params['named'] ?? [],
+        $stripSearchPrefix ? 'search' : '',
+        ($filter_bar['transport'] ?? 'path') === 'query' ? ($this->request->query ?? []) : null
+    );
+    echo $this->element('genericElements/assetLoader', [
+        'css' => ['org-tile', 'index-filters'],
+        'js' => ['index-filters'],
+    ]);
+    if ($browserStrings !== null) {
+        echo $this->element('genericElements/assetLoader', [
+            'css' => ['index-filter-browser'],
+            'js' => ['index-filter-browser'],
+        ]);
+        $browserStrings = [
+            'aka' => __('aka %s'),
+            'all' => __('All'),
+            'allGalaxies' => __('All galaxies'),
+            'allOf' => __('All of %s'),
+            'allTactics' => __('All tactics'),
+            'allTags' => __('All tags'),
+            'az' => __('A–Z'),
+            'backTo' => __('Back to %s'),
+            'browse' => __('Browse'),
+            'byNamespace' => __('By namespace'),
+            'checkSpelling' => __('Check the spelling, or browse a scope on the left.'),
+            'clear' => __('Clear'),
+            'deprecated' => __('Deprecated'),
+            'enabled' => __('Enabled'),
+            'everywhere' => __('Everywhere'),
+            'exclude' => __('Exclude'),
+            'firstMatches' => __('First %s matches · keep typing or narrow'),
+            'galaxies' => __('Galaxies'),
+            'hasSelected' => __('Has selected values'),
+            'inUse' => __('In use'),
+            'inUseTitle' => __('Clusters already attached somewhere'),
+            'keepTyping' => __('Keep typing'),
+            'keyApply' => __('apply'),
+            'keyBack' => __('back'),
+            'keyExclude' => __('exclude'),
+            'keyInclude' => __('include'),
+            'loading' => __('Loading'),
+            'loadingScopes' => __('Loading scopes…'),
+            'loadScopesFailed' => __('Could not load the scopes.'),
+            'loadValuesFailed' => __('Could not load these values'),
+            'matchAll' => __('All of'),
+            'matchAllTitle' => __('Events tagged with every one of them, on the event itself'),
+            'matchAny' => __('Any of'),
+            'matchAnyTitle' => __('Events with at least one of them, on the event or one of its attributes'),
+            'matchLabel' => __('Match'),
+            'matrix' => __('matrix'),
+            'matrixTitle' => __('A matrix: browse it by tactic'),
+            'moreN' => __('+%s more'),
+            'moreNotShown' => __('More not shown · type to narrow'),
+            'moreTypeToNarrow' => __('+%s more · type to narrow'),
+            'namespaces' => __('Namespaces'),
+            'narrowKeeping' => __('Narrow to %s, keeping “%s”'),
+            'narrowTo' => __('Narrow to'),
+            'noClusterInUse' => __('No cluster in use'),
+            'noClusterInUseMatches' => __('No cluster in use matches “%s”'),
+            'noClusterInUseTactic' => __('No cluster in use for this tactic'),
+            'noNamespace' => __('No namespace'),
+            'noNamespaceDesc' => __('Free-text tags, written without a "namespace:" prefix.'),
+            'noPredicateMatch' => __('No predicate has a match.'),
+            'not' => __('not'),
+            'notAttached' => __('Not attached to anything yet'),
+            'noTaxonomy' => __('no taxonomy'),
+            'notEnabled' => __('Not enabled'),
+            'nothingHere' => __('Nothing here yet'),
+            'nothingInMatches' => __('Nothing in %s matches “%s”'),
+            'nothingMatches' => __('Nothing matches “%s”'),
+            'noValueMatches' => __('No %s value matches “%s”'),
+            'nsDesc' => __('Tags written as "%s:…", with no taxonomy behind them.'),
+            'numericalValue' => __('Numerical value'),
+            'open' => __('Open %s'),
+            'openShort' => __('Open'),
+            'orTypeToSearchAll' => __('or type to search all %s %s values.'),
+            'otherNamespaces' => __('Other namespaces'),
+            'otherTags' => __('Other %s tags'),
+            'otherTagsTitle' => __('Tags in this namespace that are not entries of the taxonomy'),
+            'pickHeading' => __('pick a heading to narrow'),
+            'pickPredicate' => __('Pick a predicate'),
+            'pinnedInProfile' => __('Pinned in your profile'),
+            'predicates' => __('Predicates'),
+            'preferredInProfile' => __('Preferred in your profile'),
+            'remove' => __('Remove'),
+            'search' => __('Search'),
+            'searchAllClusters' => __('Search all clusters, or pick a scope'),
+            'searchAllOf' => __('Search all of %s'),
+            'searchAllTags' => __('Search all tags, or pick a scope'),
+            'searchFailed' => __('Search failed'),
+            'searchIn' => __('Search in %s'),
+            'selected' => __('Selected'),
+            'showAll' => __('show all'),
+            'showAllClusters' => __('Show all clusters'),
+            'showWhere' => __('Show where it lives'),
+            'startsWith' => __('Starts with %s'),
+            'stopExcluding' => __('Stop excluding'),
+            'tactics' => __('Tactics'),
+            'tags' => __('Tags'),
+            'taxonomies' => __('Taxonomies'),
+            'taxonomy' => __('taxonomy'),
+            'trayEmpty' => __('Nothing selected · click a value to include it,'),
+            'trayEmptyExclude' => __('to exclude it'),
+            'tryAgain' => __('Try again'),
+            'twoCharsClusters' => __('Two characters search every cluster, or pick a scope on the left.'),
+            'twoCharsTags' => __('Two characters search every tag, or pick a scope on the left.'),
+            'whereYouAre' => __('Where you are'),
+            'whichClusters' => __('Which clusters'),
+        ];
+    }
+}
 
 /*
  * The advanced filters are pulled out of the bar's flex row: the button stays
@@ -139,9 +353,56 @@ $activeTotal = count(array_diff_key(
 ));
 ?>
 
-<div id="<?= h($filterId) ?>" class="d-flex flex-wrap gap-2 align-items-center">
+<div id="<?= h($filterId) ?>" class="d-flex flex-wrap gap-2 align-items-center<?= $pickerMode ? ' ifp-bar' : '' ?>"<?php
+    if ($pickerMode): ?> data-ifp-bar="<?= h(json_encode([
+        'base' => $filterBase,
+        'prefix' => $stripSearchPrefix ? 'search' : '',
+        'searchField' => ($searchChild['mode'] ?? 'quickFilter') === 'quickFilter'
+            ? 'quickFilter' : ($searchChild['name'] ?? null),
+        'idField' => $searchChild['id_field'] ?? null,
+        'apply' => $filter_bar['apply'] ?? 'close',
+        'transport' => $filter_bar['transport'] ?? 'path',
+        'strings' => [
+            'typeToSearch' => __('Type 2 characters to search'),
+            'searching' => __('Searching…'),
+            'loading' => __('Loading…'),
+            'listFailed' => __('The list could not be loaded'),
+            'back' => __('Back to %s'),
+            'drill' => __('Choose %s'),
+            'noMatch' => __('Nothing matches'),
+            'more' => __('%s more: type to narrow'),
+            'searchFailed' => __('The search failed'),
+            'search' => __('Search'),
+            'selected' => __('Selected'),
+            'include' => __('Include'),
+            'exclude' => __('Exclude'),
+            'excluded' => __('Excluded'),
+            'remove' => __('Remove'),
+            'apply' => __('Apply'),
+            'applyOnClose' => __('Any of these. Applies when you close the picker.'),
+            'applyDraft' => __('Any of these.'),
+            'allOf' => __('This link asks for events with all of these. Changing the selection here switches to any of them.'),
+            'unresolved' => __('Not found on this instance'),
+            'loadError' => __('The filtered list could not be loaded.'),
+        ],
+        'browser' => $browserStrings,
+    ], JSON_UNESCAPED_UNICODE)) ?>"<?php endif; ?>>
 
     <?php foreach ($filter_bar['children'] as $child): ?>
+
+        <?php if ($child['type'] === 'picker'): ?>
+            <?= $this->element('genericElementsBS5/IndexTable/filter_picker', [
+                'child' => $child,
+                'state' => $filterState,
+            ]) ?>
+        <?php endif; ?>
+
+        <?php if ($child['type'] === 'time'): ?>
+            <?= $this->element('genericElementsBS5/IndexTable/filter_time', [
+                'child' => $child,
+                'state' => $filterState,
+            ]) ?>
+        <?php endif; ?>
 
         <?php if ($child['type'] === 'search'): ?>
             <?php
@@ -157,6 +418,20 @@ $activeTotal = count(array_diff_key(
                 $searchVal = $currentFilters['quickFilter'] ?? null;
             }
             ?>
+            <?php if ($pickerMode): ?>
+            <div class="input-group input-group-sm ifp-query" data-tour="index-search">
+                <span class="input-group-text"><i class="fas fa-search" aria-hidden="true"></i></span>
+                <input
+                    class="form-control"
+                    id="filterField"
+                    type="search"
+                    autocomplete="off"
+                    placeholder="<?= h($child['placeholder']) ?>"
+                    aria-label="<?= h($child['placeholder']) ?>"
+                    value="<?= $searchVal !== null ? h(urldecode($searchVal)) : '' ?>"
+                >
+            </div>
+            <?php else: ?>
             <div class="flex-grow-1" style="max-width: 600px">
                 <div class="input-group" data-tour="index-search">
                     <input
@@ -175,6 +450,7 @@ $activeTotal = count(array_diff_key(
                     </button>
                 </div>
             </div>
+            <?php endif; ?>
         <?php endif; ?>
 
         <?php if ($child['type'] === 'value_match'): ?>
@@ -187,8 +463,8 @@ $activeTotal = count(array_diff_key(
             $vmVal = $vmVal !== null ? urldecode($vmVal) : '';
             $vmActive = $vmVal !== '';
             ?>
-            <div class="dropdown dropdown-filters flex-shrink-0">
-                <button class="btn <?= $vmActive ? 'btn-primary' : 'btn-outline-primary' ?> dropdown-toggle"
+            <div class="dropdown dropdown-filters flex-shrink-0"<?= $pickerMode ? ' data-ifp-swap="vm-' . h($child['name']) . '"' : '' ?>>
+                <button class="btn <?= $pickerMode ? 'btn-sm ' : '' ?><?= $vmActive ? 'btn-primary' : 'btn-outline-primary' ?> dropdown-toggle"
                         type="button"
                         data-bs-toggle="dropdown"
                         data-bs-auto-close="outside"
@@ -250,20 +526,8 @@ $activeTotal = count(array_diff_key(
             ]) ?>
         <?php endif; ?>
 
-        <?php if ($child['type'] === 'button'): ?>
-            <a href="<?= h($child['url']) ?>"
-               class="<?= h($child['class']) ?> flex-shrink-0"<?php
-               if (!empty($child['title'])): ?>
-               title="<?= h($child['title']) ?>"<?php
-               endif; ?><?php
-               if (!empty($child['onclick'])): ?>
-               onclick="<?= h($child['onclick']) ?>"<?php
-               endif; ?>>
-                <?php if (!empty($child['icon'])): ?>
-                    <i class="<?= h($child['icon']) ?>"></i>
-                <?php endif; ?>
-                <?= h($child['label']) ?>
-            </a>
+        <?php if ($child['type'] === 'button' && !$pickerMode): ?>
+            <?= $this->element('genericElementsBS5/IndexTable/filter_button', ['child' => $child]) ?>
         <?php endif; ?>
 
         <?php if ($child['type'] === 'menu' && !empty($child['items'])): ?>
@@ -302,6 +566,21 @@ $activeTotal = count(array_diff_key(
 
     <?php endforeach; ?>
 
+    <?php if ($pickerMode): ?>
+    <div class="ifp-end">
+        <?php
+        $toggles = array_filter($filter_bar['children'], function ($child) {
+            return $child['type'] === 'button';
+        });
+        ?>
+        <?php if ($toggles): ?>
+            <div class="btn-group btn-group-sm" role="group">
+                <?php foreach ($toggles as $child): ?>
+                    <?= $this->element('genericElementsBS5/IndexTable/filter_button', ['child' => $child, 'nav' => true]) ?>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    <?php else: ?>
     <div class="ms-auto index-filter-pager">
         <?php
         if (empty($filter_bar['skip_pagination'])) {
@@ -312,6 +591,7 @@ $activeTotal = count(array_diff_key(
         }
         ?>
     </div>
+    <?php endif; ?>
 
     <?php foreach ($filter_bar['children'] as $child): ?>
     <?php if ($child['type'] === 'button_group'): ?>
@@ -348,7 +628,7 @@ $activeTotal = count(array_diff_key(
     <?php endif; ?>
     <?php endforeach; ?>
 
-    <div class="btn-group" role="group" data-tour="index-view">
+    <div class="btn-group<?= $pickerMode ? ' btn-group-sm' : '' ?>" role="group" data-tour="index-view">
 
         <?php if (!empty($filter_bar['view_switch'])): ?>
             <!-- Custom view switch (e.g. table / JSON) — each is a link/reload, not the default client-side table/card toggle. -->
@@ -378,6 +658,7 @@ $activeTotal = count(array_diff_key(
             </button>
         <?php endif; ?>
     </div>
+    <?php if ($pickerMode): ?></div><?php endif; ?>
 
 </div>
 
@@ -428,9 +709,59 @@ if ($explicitActive !== null) {
     $clearHref = $item_url . '/' . $filterAction;
 }
 ?>
+<?php if ($pickerMode): ?>
+    <?php
+    // Indexes paged in PHP leave the paginator describing something else.
+    $pageParams = $this->Paginator->params();
+    $rowCount = count($scaffold_data['data'] ?? []);
+    $pagingOk = !empty($pageParams) && (int)($pageParams['current'] ?? -1) === $rowCount
+        && (int)($pageParams['pageCount'] ?? 0) > 0;
+    ?>
+    <div class="ifp-row">
+        <span class="ifp-count" data-ifp-swap="count"><?php
+            // Paged by "is there a next one" (the attribute index): no total.
+            $openEnded = !empty($pageParams['nextPage'])
+                && (int)($pageParams['pageCount'] ?? 0) <= (int)($pageParams['page'] ?? 1);
+            if ($pagingOk && $openEnded) {
+                echo sprintf(
+                    __('%s shown, page %s'),
+                    '<b>' . h(number_format($rowCount)) . '</b>',
+                    h($pageParams['page'])
+                );
+            } elseif ($pagingOk) {
+                echo sprintf(
+                    __('%s shown, page %s of %s'),
+                    '<b>' . h(number_format($rowCount)) . '</b>',
+                    h($pageParams['page']),
+                    h($pageParams['pageCount'])
+                );
+            } else {
+                echo sprintf(__('%s shown'), '<b>' . h(number_format($rowCount)) . '</b>');
+            }
+        ?></span>
+        <?= $this->element('genericElementsBS5/IndexTable/filter_chips', [
+            'state' => $filterState,
+            'pickers' => $pickers,
+            'chips' => array_merge($filter_bar['chips'] ?? [], [
+                'labels' => ($filter_bar['chips']['labels'] ?? []) + $controlLabels,
+            ]),
+            'searchChild' => $searchChild,
+        ]) ?>
+        <div class="index-filter-pager">
+            <?php
+            if (empty($filter_bar['skip_pagination'])) {
+                echo $this->element(
+                    'genericElementsBS5/IndexTable/pagination_nav',
+                    ['maxPages' => 5, 'size' => 'sm']
+                );
+            }
+            ?>
+        </div>
+    </div>
+<?php endif; ?>
 <div class="index-active-filters">
 <?php // With a draft in play the chips live in its summary, buttons included. ?>
-<?php if (!empty($activeToShow) && empty($moreFiltersChild)): ?>
+<?php if (!empty($activeToShow) && empty($moreFiltersChild) && !$pickerMode): ?>
     <div class="mt-2 d-flex align-items-center flex-wrap gap-2">
 
         <strong class="me-1"><?= __('Active filters') ?>:</strong>
@@ -591,6 +922,12 @@ var filterBarConfig = <?= json_encode([
             ))), JSON_UNESCAPED_UNICODE) ?>,
             results: '#index-results',
             swap: ['#headerCountBadge', '.index-filter-pager', '.index-active-filters'],
+            // The swapped-in results arrive in the server's default view.
+            onApplied: function () {
+                if (scope.querySelector('#viewCard')) {
+                    setView(isMobile() ? 'card' : (localStorage.getItem('indexViewMode') || 'table'), false, scope);
+                }
+            },
             strings: <?= IndexFilterDraft::stringsJson() ?>,
         });
     }
@@ -683,7 +1020,9 @@ var filterBarConfig = <?= json_encode([
         }
     }
 
-    if (ajaxContainer) {
+    if (filterBarEl && filterBarEl.hasAttribute('data-ifp-bar')) {
+        // index-filters.js owns the search box and every link of a picker bar.
+    } else if (ajaxContainer) {
         // With a draft in play the search box goes through it, so a search
         // never reloads the index out from under half-filled advanced filters.
         scope.querySelector('#filterButton')?.addEventListener('click', () => draft ? draft.apply() : go(buildScopedUrl()));
@@ -745,7 +1084,9 @@ var filterBarConfig = <?= json_encode([
         applyFilters();
     }
 
-    scope.querySelectorAll('.value-match-input').forEach(input => {
+    // A picker bar's value-match box is index-filters.js's.
+    const valueMatchScope = filterBarEl && filterBarEl.hasAttribute('data-ifp-bar') ? document.createDocumentFragment() : scope;
+    valueMatchScope.querySelectorAll('.value-match-input').forEach(input => {
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -754,11 +1095,11 @@ var filterBarConfig = <?= json_encode([
         });
     });
 
-    scope.querySelectorAll('.value-match-apply').forEach(btn => {
+    valueMatchScope.querySelectorAll('.value-match-apply').forEach(btn => {
         btn.addEventListener('click', () => applyValueMatch(btn));
     });
 
-    scope.querySelectorAll('.value-match-clear').forEach(btn => {
+    valueMatchScope.querySelectorAll('.value-match-clear').forEach(btn => {
         btn.addEventListener('click', () => {
             const input = btn.closest('.input-group')?.querySelector('.value-match-input');
             if (input) {

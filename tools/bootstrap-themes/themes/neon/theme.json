@@ -1,0 +1,7 @@
+{
+    "label": "Neon",
+    "description": "Synthwave console: indigo and cyan tubes on a blue-black grid.",
+    "mode": "dark",
+    "fonts": ["Oxanium", "IBM Plex Sans", "IBM Plex Mono", "Orbitron"],
+    "hide_from_users": false
+}

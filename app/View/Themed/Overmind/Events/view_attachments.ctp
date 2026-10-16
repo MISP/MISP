@@ -48,165 +48,100 @@ $extMap = [
 
 $malwareCfg = ['icon'=>'fa-virus', 'bg'=>'#f8d7da', 'color'=>'#842029', 'mime'=>'application/zip'];
 $defaultCfg = ['icon'=>'fa-file',  'bg'=>'#e2e3e5', 'color'=>'#41464b', 'mime'=>'application/octet-stream'];
+
+// The theme's --misp-tone-<hue>-* token for each tile colour above.
+$toneHues = [
+    '#cfe2ff' => 'blue', '#f8d7da' => 'red', '#d1e7dd' => 'green',
+    '#d0f4de' => 'green', '#d4e8c4' => 'green', '#fff3cd' => 'yellow',
+    '#e2e3e5' => 'gray', '#fce4d6' => 'orange', '#ffe5d0' => 'orange',
+    '#e9d7f5' => 'purple',
+];
+$tone = function (array $cfg, $role) use ($toneHues) {
+    $value = $role === 'bg' ? $cfg['bg'] : $cfg['color'];
+    if (!isset($toneHues[$cfg['bg']])) {
+        return $value;
+    }
+    return sprintf('var(--misp-tone-%s-%s, %s)', $toneHues[$cfg['bg']], $role, $value);
+};
 ?>
 
 <div data-attachment-count="<?= count($attachments) ?>">
 
 <?php if (empty($attachments)): ?>
 
-    <div class="d-flex flex-column align-items-center justify-content-center
-                text-muted py-5" data-attachment-empty>
-        <i class="fas fa-paperclip fa-2x mb-2 opacity-50"></i>
-        <p class="mb-0 small fw-semibold">
-            <?= __('No attachments found for this event.') ?>
-        </p>
-    </div>
+    <p class="eo-empty" data-attachment-empty><?= __('No file attached to this event.') ?></p>
 
 <?php else: ?>
 
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+    <ul class="eo-files" data-attachment-list>
+    <?php foreach ($attachments as $att):
+        $isMalware = ($att['type'] === 'malware-sample');
 
-            <thead class="table-light border-bottom">
-                <tr class="small text-uppercase text-muted fw-semibold">
-                    <th class="ps-3" style="min-width:240px;">
-                        <?= __('Filename / Type') ?>
-                    </th>
-                    <th><?= __('Mime Type') ?></th>
-                    <th><?= __('Hash (Partial)') ?></th>
-                    <th><?= __('Distribution') ?></th>
-                    <th class="text-end pe-3"><?= __('Actions') ?></th>
-                </tr>
-            </thead>
+        if ($isMalware) {
+            $parts    = explode('|', $att['value'], 2);
+            $filename = $parts[0];
+            $hash     = $parts[1] ?? '';
+            $cfg      = $malwareCfg;
+        } else {
+            $filename = $att['value'];
+            $hash     = '';
+            $ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+            $cfg      = $extMap[$ext] ?? $defaultCfg;
+        }
 
-            <tbody data-attachment-list>
-            <?php foreach ($attachments as $att):
-                $isMalware = ($att['type'] === 'malware-sample');
+        $ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $extUpper = strtoupper($ext ?: '???');
 
-                if ($isMalware) {
-                    $parts    = explode('|', $att['value'], 2);
-                    $filename = $parts[0];
-                    $hash     = $parts[1] ?? '';
-                    $cfg      = $malwareCfg;
-                } else {
-                    $filename = $att['value'];
-                    $hash     = '';
-                    $ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-                    $cfg      = $extMap[$ext] ?? $defaultCfg;
-                }
+        $searchText = strtolower(implode(' ', array_filter([
+            $filename, $att['category'], $att['comment'],
+            $hash, $cfg['mime'] ?? '', $extUpper
+        ])));
+    ?>
+        <li class="eo-file" data-attachment-row data-search-text="<?= h($searchText) ?>">
+            <span class="eo-file-icon"
+                  style="background-color:<?= h($tone($cfg, 'bg')) ?>;color:<?= h($tone($cfg, 'fg')) ?>;">
+                <i class="fas <?= h($cfg['icon']) ?>"></i>
+            </span>
 
-                $ext     = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-                $extUpper = strtoupper($ext ?: '???');
-                $mime    = $cfg['mime'] ?? 'application/octet-stream';
+            <div class="eo-file-main">
+                <div class="eo-file-name" title="<?= h($filename) ?>"><?= h($filename) ?></div>
+                <div class="eo-file-meta">
+                    <span class="eo-file-ext"
+                          style="background-color:<?= h($tone($cfg, 'bg')) ?>;color:<?= h($tone($cfg, 'fg')) ?>;">
+                        .<?= h($extUpper) ?>
+                    </span>
+                    <span><?= h($att['category']) ?></span>
+                    <?php if (!empty($att['timestamp'])): ?>
+                        <span><?= $this->Time->time($att['timestamp']) ?></span>
+                    <?php endif; ?>
+                    <?php if (!empty($hash)): ?>
+                        <span class="font-monospace" title="<?= h($hash) ?>"><?= h(substr($hash, 0, 12)) ?>…</span>
+                    <?php endif; ?>
+                </div>
+                <?php if (!empty($att['comment'])): ?>
+                    <div class="eo-file-comment" title="<?= h($att['comment']) ?>">
+                        <i class="fas fa-comment"></i><?= h($att['comment']) ?>
+                    </div>
+                <?php endif; ?>
+            </div>
 
-                $searchText = strtolower(implode(' ', array_filter([
-                    $filename, $att['category'], $att['comment'],
-                    $hash, $mime, $extUpper
-                ])));
-            ?>
-                <tr data-attachment-row
-                    data-search-text="<?= h($searchText) ?>">
+            <?= $this->element('genericElementsBS5/Badges/distribution', [
+                'distribution' => (int)($att['distribution'] ?? 0),
+                'full'         => false,
+            ]); ?>
 
-                    <!-- FILENAME / TYPE -->
-                    <td class="ps-3">
-                        <div class="d-flex align-items-center gap-3">
+            <a href="<?= h($baseurl . '/attributes/download/' . $att['id']) ?>"
+               class="btn btn-sm btn-outline-primary flex-shrink-0"
+               title="<?= __('Download') ?>"
+               aria-label="<?= __('Download') ?>">
+                <i class="fas fa-download"></i>
+            </a>
+        </li>
+    <?php endforeach; ?>
+    </ul>
 
-                            <!-- Colored icon box -->
-                            <div class="rounded-2 d-flex align-items-center
-                                        justify-content-center flex-shrink-0"
-                                 style="width:40px;height:40px;
-                                        background-color:<?= h($cfg['bg']) ?>;">
-                                <i class="fas <?= h($cfg['icon']) ?>"
-                                   style="color:<?= h($cfg['color']) ?>;
-                                          font-size:1.15rem;">
-                                </i>
-                            </div>
-
-                            <div class="d-flex flex-column gap-1">
-                                <div class="fw-semibold text-truncate"
-                                     title="<?= h($filename) ?>">
-                                    <?= h($filename) ?>
-                                </div>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <!-- Extension badge -->
-                                    <span class="badge rounded-pill fw-semibold px-2"
-                                          style="background-color:<?= h($cfg['bg']) ?>;
-                                                 color:<?= h($cfg['color']) ?>;
-                                                 font-size:.65rem;letter-spacing:.04em;">
-                                        .<?= h($extUpper) ?>
-                                    </span>
-                                    <!-- Category / description -->
-                                    <span class="d-flex small text-muted gap-2">
-                                        <?= h($att['category']) ?>
-                                         <?php if (!empty($att['timestamp'])): ?>
-                                            <span>
-                                                ·
-                                                <i class="fas fa-clock"></i>
-                                                <?= $this->Time->time($att['timestamp']) ?>
-                                            </span>
-                                        <?php endif; ?>
-                                    </span>
-                                </div>
-                                <?php if (!empty($att['comment'])): ?>
-                                    <div class="small text-muted text-truncate"
-                                        title="<?= h($att['comment'] ?? '') ?>">
-                                        <i class="fas fa-comment"></i>
-                                        <?= h($att['comment'] ?? '') ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-
-                        </div>
-                    </td>
-
-                    <!-- SIZE (not given by the backend) -->
-
-                    <!-- MIME TYPE -->
-                    <td class="small text-muted">
-                        <?= h($mime) ?>
-                    </td>
-
-                    <!-- HASH (partial) -->
-                    <td class="font-monospace small text-muted">
-                        <?php if (!empty($hash)): ?>
-                            <span title="<?= h($hash) ?>">
-                                <?= h(substr($hash, 0, 16)) ?>…
-                            </span>
-                        <?php else: ?>
-                            <span class="opacity-25">—</span>
-                        <?php endif; ?>
-                    </td>
-
-                    <!-- DISTRIBUTION -->
-                    <td>
-                        <?= $this->element('genericElementsBS5/Badges/distribution', [
-                            'distribution' => (int)($att['distribution'] ?? 0),
-                            'full'         => true,
-                        ]); ?>
-                    </td>
-
-                    <!-- ACTIONS -->
-                    <td class="text-end pe-3">
-                        <a href="<?= h($baseurl . '/attributes/download/' . $att['id']) ?>"
-                           class="btn btn-sm btn-outline-primary"
-                           title="<?= __('Download') ?>"
-                           aria-label="<?= __('Download') ?>">
-                            <i class="fas fa-download"></i>
-                        </a>
-                    </td>
-
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-
-        </table>
-    </div>
-
-    <!-- No-results row shown by JS when search yields nothing -->
-    <div class="d-none text-center text-muted py-4 small border-top"
-         data-attachment-noresult>
-        <i class="fas fa-search me-2 opacity-50"></i>
-        <?= __('No attachments match your search.') ?>
+    <div class="d-none eo-empty border-top" data-attachment-noresult>
+        <?= __('No attachment matches this filter.') ?>
     </div>
 
 <?php endif; ?>

@@ -178,7 +178,7 @@ if (!empty($server['id'])) {
                 <div>
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
                         <span class="<?= $labelClass ?>" style="<?= $labelStyle ?>">
-                            <i class="fas fa-user text-primary me-1"></i><?= __('User') ?>
+                            <i class="fas fa-user text-accent me-1"></i><?= __('User') ?>
                         </span>
                         <?php if ($adminView): ?>
                             <span class="badge rounded-pill fw-normal <?= empty($u['disabled']) ? 'text-bg-success' : 'text-bg-danger' ?>">
@@ -272,7 +272,7 @@ $keyBlock = function ($key, $copyMessage) {
 <div class="card shadow-sm mb-3">
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
-            <div class="rounded-2 d-flex align-items-center justify-content-center bg-primary-subtle text-primary flex-shrink-0" style="width:36px;height:36px;">
+            <div class="rounded-2 d-flex align-items-center justify-content-center bg-primary-subtle text-primary-emphasis flex-shrink-0" style="width:36px;height:36px;">
                 <i class="fas fa-shield-halved"></i>
             </div>
             <div>
@@ -466,7 +466,7 @@ foreach ($notificationKeys as $notificationKey) {
 <div class="card shadow-sm mb-3">
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
-            <div class="rounded-2 d-flex align-items-center justify-content-center bg-primary-subtle text-primary flex-shrink-0" style="width:36px;height:36px;">
+            <div class="rounded-2 d-flex align-items-center justify-content-center bg-primary-subtle text-primary-emphasis flex-shrink-0" style="width:36px;height:36px;">
                 <i class="fas fa-bell"></i>
             </div>
             <div class="me-auto">

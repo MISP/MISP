@@ -1,0 +1,177 @@
+/* Overmind events index — table view (the event_* field elements), on top of
+   the shared ix-table look in index-table.css. Shared pieces (state, markings,
+   org tile, chips, distribution, popover) are the card's dk- classes in
+   events-index-cards.css. */
+
+.te-index { --te-top: 0px; }
+
+/* The header sticks to the page, not to a scroll box of its own. */
+.te-index #tableView > .table-responsive.table-scroll { height: auto; overflow: visible; }
+
+.te-index .te-table {
+    /* The theme's own card border (set on .card): --bs-border-color stays light on some dark themes. */
+    --dk-line: var(--ix-line);
+    --te-lane-line: color-mix(in srgb, var(--dk-line) 55%, transparent);
+    width: 100%; table-layout: fixed;
+}
+.te-index .te-table > :not(caption) > * > * {
+    padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    overflow-wrap: normal; word-break: normal;
+}
+
+/* header */
+.te-index .te-table thead th { top: var(--te-top); line-height: inherit; }
+.te-index .te-table thead th.te-c-sel, .te-index .te-table thead th.te-c-act { overflow: visible; z-index: 6; }
+.te-index .te-table thead th .sortable-header { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.te-index .te-table thead th.te-num { text-align: right; }
+
+/* column resize handle on each header's right edge */
+.te-rsz {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 8px; z-index: 2;
+    cursor: col-resize; touch-action: none;
+}
+.te-rsz::after {
+    content: ''; position: absolute; top: 25%; bottom: 25%; right: 2px; width: 2px; border-radius: 1px;
+}
+.te-index .te-table thead th:hover > .te-rsz::after { background: var(--bs-border-color); }
+.te-index .te-table thead th > .te-rsz:hover::after,
+.te-rsz:focus-visible::after,
+.te-resizing .te-rsz:active::after { background: var(--dk-accent); }
+.te-rsz:focus-visible { outline: none; }
+.te-resizing, .te-resizing * { cursor: col-resize !important; user-select: none; }
+.te-hicon { display: inline-flex; align-items: center; gap: 3px; }
+.te-hicon .misp-icon { width: 15px; height: 15px; }
+.te-hicon i.fas { font-size: .85rem; }
+.te-hx .misp-icon, .te-hx i { opacity: .7; }
+.te-hx .misp-icon { width: 12px; height: 12px; }
+.te-hx i.fas { font-size: .72rem; }
+.te-lanecap { display: inline-flex; align-items: center; gap: 6px; }
+.te-lanecap i { color: var(--bs-tertiary-color); font-size: .8rem; width: 12px; text-align: center; }
+.te-lanecap .misp-icon { width: 12px; height: 12px; }
+.te-narrow .te-lanecap > i { display: none; }
+.te-index .te-table thead th.te-c-state { text-align: center; padding: 0; }
+.te-index .te-table thead th.te-c-state .te-hicon i.fas { font-size: .78rem; }
+.te-short { display: none; }
+.te-narrow .te-long { display: none; }
+.te-narrow .te-short { display: inline; }
+.te-narrow .te-table > :not(caption) > * > * { padding-left: 6px; padding-right: 6px; }
+
+/* select */
+.te-index .te-table .te-c-sel { padding-left: 12px; padding-right: 0; }
+.te-index .te-table .te-c-sel .checkbox-actions-wrapper { display: flex !important; }
+
+/* rows */
+.te-index .te-table tbody tr.te-row { height: var(--ix-row-h); cursor: pointer; }
+.te-index .te-table tbody tr.te-row > td { max-height: var(--ix-row-h); background-color: var(--ix-bg); }
+.te-index .te-table tbody tr.te-row:hover > td,
+.te-index .te-table tbody tr.te-row:focus-within > td { background-color: var(--ix-hover); }
+.te-index .te-table tbody tr.te-row.is-selected > td { background-color: var(--ix-sel); }
+.te-index .te-table tbody tr.te-row.is-selected:hover > td { background-color: var(--ix-sel-hover); }
+
+/* publish state: one glyph per state */
+.te-index .te-table td.te-c-state { padding: 0; text-align: center; }
+.te-st { display: inline-grid; place-items: center; width: 20px; height: 20px; vertical-align: middle; cursor: default; font-size: .8rem; }
+.te-st.is-pub { color: var(--dk-ink); font-size: .74rem; }
+.te-st.is-unpub,
+.te-st.is-pending { color: var(--dk-amber-ink); background: var(--dk-amber-bg); border: 1px solid var(--dk-amber-line); border-radius: 5px; font-size: .7rem; }
+.te-st.is-pending { border-style: dashed; }
+
+/* id, title */
+.te-index .te-table td.te-c-id > div { display: block !important; }
+.te-index .te-table td.te-c-id a {
+    font-family: var(--bs-font-monospace); font-size: .75rem; font-weight: 400;
+    color: var(--bs-secondary-color) !important; text-decoration: none !important; font-variant-numeric: tabular-nums;
+}
+.te-index .te-table tr:hover td.te-c-id a { color: var(--bs-body-color) !important; }
+.te-titlewrap { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.te-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--bs-body-color); font-weight: 600; text-decoration: none; }
+.te-title:hover, tr:hover .te-title { color: color-mix(in srgb, var(--dk-accent) 72%, var(--bs-body-color)); }
+.te-title:focus-visible { outline: 2px solid var(--dk-accent); outline-offset: 1px; border-radius: 2px; }
+.te-extmark { flex: none; font-size: .7rem; color: var(--bs-tertiary-color); cursor: default; }
+
+/* org */
+.te-org { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.te-org .dk-logo { width: 20px; height: 20px; border-radius: 4px; }
+.te-org .dk-logo img { max-width: 20px; max-height: 20px; }
+.te-org .dk-logo.is-mono { font-size: 8.5px; }
+.te-org a { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--bs-body-color); text-decoration: none; }
+.te-org a:hover { color: var(--dk-accent); text-decoration: underline; }
+.te-org .dk-grade { margin-left: auto; }
+.te-quiet { color: var(--bs-secondary-color); }
+.te-faint { color: var(--bs-tertiary-color); }
+
+/* markings */
+.te-index .te-table .te-c-mk { padding-left: 5px; padding-right: 2px; }
+.te-marks { display: flex; align-items: center; gap: 3px; min-width: 0; overflow: hidden; }
+.te-marks .dk-mk { flex: none; height: 18px; line-height: 16px; padding: 0 5px; }
+.te-marks .dk-mk:first-child:not(.is-none) { flex-shrink: 1; min-width: 0; overflow: hidden; }
+.te-marks .dk-mk:first-child b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.te-marks .dk-mk.te-tight b { display: none; }
+.te-marks.te-measure .dk-mk { flex-shrink: 0 !important; }
+.te-marks .dk-mk.te-tight small { color: var(--dk-ink); }
+.te-marks .dk-mk.is-none { height: 15px; line-height: 13px; padding: 0 3px; border-radius: 3px; }
+.te-marks .dk-mk.is-none small { font-size: .58rem; }
+.te-marks .dk-grade { flex: none; }
+.te-marks .dk-pin-tag { height: 18px; font-size: .68rem; padding: 0 5px 0 4px; max-width: 70px; }
+
+/* context: three lanes, each holding one kind */
+.te-index .te-table .te-lane { border-left: 1px solid var(--te-lane-line); padding-left: 6px; padding-right: 4px; }
+.te-index .te-table .te-lane.te-c-classif { border-right: 1px solid var(--te-lane-line); }
+.te-ctx { display: flex; align-items: center; gap: 4px; height: 22px; overflow: hidden; min-width: 0; }
+.te-ctx .dk-chip { height: 20px; max-width: 100%; padding: 0 6px; }
+.te-ctx .dk-chip.is-tid, .te-ctx .dk-chip.is-mit { padding: 0 5px; }
+.te-ctx .dk-chip.is-tag { padding-left: 5px; }
+.te-ctx .dk-chip.dk-pref { padding-right: 10px; }
+.te-tn {
+    flex: none; min-width: 1.6em; padding-right: 2px; text-align: right;
+    font-size: .74rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--dk-gx-ink); cursor: default;
+}
+.te-ctx .dk-more { flex: none; position: relative; z-index: 2; padding: 0 3px; }
+.te-index .te-table tbody tr.te-row > td.te-lane.is-popped { background-color: color-mix(in srgb, var(--dk-accent) 7%, var(--ix-bg)); }
+
+/* counts */
+.te-num { text-align: right; font-variant-numeric: tabular-nums; }
+.te-index .te-table td.te-num { font-weight: 600; }
+.te-zero { color: var(--bs-tertiary-color); font-weight: 400; opacity: .7; }
+.te-xtra { display: flex; gap: 7px; align-items: center; color: var(--bs-secondary-color); font-variant-numeric: tabular-nums; font-size: .76rem; overflow: hidden; }
+.te-xtra > * { display: inline-flex; align-items: center; gap: 3px; flex: none; cursor: default; }
+.te-xtra .misp-icon { width: 13px; height: 13px; }
+.te-xtra i.fas { font-size: .74rem; }
+.te-xtra a { color: var(--bs-secondary-color); text-decoration: none; font-weight: 600; cursor: pointer; }
+.te-xtra a:hover { color: var(--dk-accent); }
+.te-ext { font-size: .76rem; color: var(--bs-secondary-color); }
+.te-ext a, .te-ext span { color: var(--bs-secondary-color); text-decoration: none; }
+.te-ext a:hover { color: var(--dk-accent); text-decoration: underline; }
+.te-ext i { font-size: .72rem; margin-right: 3px; color: var(--bs-tertiary-color); }
+.te-ext .is-unheld { font-style: italic; color: var(--bs-tertiary-color); }
+.te-index .te-table td.te-c-dist { text-align: center; padding: 0; }
+.te-index .te-table td.te-c-dist .dk-dist { margin: 0; vertical-align: middle; width: 24px; height: 20px; }
+.te-index .te-table td.te-c-date, .te-index .te-table td.te-c-pub, .te-index .te-table td.te-c-changed {
+    font-size: .76rem; color: var(--bs-secondary-color); font-variant-numeric: tabular-nums;
+}
+.te-index .te-table td.te-c-changed span { cursor: default; }
+.te-index .te-table tr:hover td.te-c-changed { color: var(--bs-body-color); }
+
+/* row menu, revealed on hover / focus; the column chooser above it */
+.te-index .te-table .te-c-act { text-align: center; padding: 0; overflow: visible; }
+.te-index .te-table .te-c-act > div > .me-2 { margin: 0 !important; }
+.te-gear:focus-visible { outline: 2px solid var(--dk-accent); }
+.te-gear {
+    width: 28px; height: 26px; border: 1px solid transparent; border-radius: 6px; background: none;
+    color: var(--bs-secondary-color); display: inline-grid; place-items: center; cursor: pointer;
+}
+.te-gear:hover, .te-gear[aria-expanded="true"] { color: var(--bs-body-color); background: var(--bs-secondary-bg); border-color: var(--bs-border-color); }
+.te-cols { min-width: 15.5rem; padding: 6px 0; font-weight: 400; color: var(--bs-body-color); text-align: left; }
+.te-cols h6 { font-size: .72rem; font-weight: 600; color: var(--bs-secondary-color); padding: 2px 14px 6px; margin: 0; }
+.te-cols label { display: flex; align-items: center; gap: 9px; padding: 3px 14px; margin: 0; cursor: pointer; font-weight: 400; white-space: nowrap; }
+.te-cols label:hover { background: var(--bs-tertiary-bg); }
+.te-cols label .form-check-input { margin: 0; flex: none; }
+.te-cols label .te-cols-ic { width: 16px; text-align: center; color: var(--bs-secondary-color); flex: none; }
+.te-cols label .te-cols-ic .misp-icon { width: 13px; height: 13px; }
+.te-cols label small { margin-left: auto; padding-left: 10px; color: var(--bs-tertiary-color); font-size: .7rem; }
+.te-cols .te-cols-foot {
+    border-top: 1px solid var(--bs-border-color-translucent); margin-top: 6px; padding: 6px 14px 2px;
+    display: flex; justify-content: space-between; align-items: center; font-size: .72rem; color: var(--bs-secondary-color);
+}
+.te-cols .te-cols-foot button { border: 0; background: none; color: var(--dk-accent); font: inherit; padding: 0; }
+.te-cols .te-cols-foot > span:last-child { display: flex; gap: 12px; }

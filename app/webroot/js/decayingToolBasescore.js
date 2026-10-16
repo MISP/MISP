@@ -20,7 +20,7 @@ function addPickedTags(clicked) {
     var $select = $('#basescore-example-tag-picker');
     var $previous_tags = $('#basescore-example-customtag-container span.decayingExampleTags');
     $previous_tags.each(function() {
-        numerical_values.push({name: getPrefixTagName($(this).text()), value: parseInt($(this).data('numerical_value'))});
+        numerical_values.push({name: getPrefixTagName($(this).data('tag_name') || $(this).text()), value: parseInt($(this).data('numerical_value'))});
     });
     $select.val().forEach(function(tag_id) {
         var tag = mapping_tag_name_to_tag[tag_id];
@@ -28,14 +28,26 @@ function addPickedTags(clicked) {
 
         var $outer_tag = $('<div></div>').css({display: 'inline-block'})
             .attr('title', 'numerical_value=' + tag.numerical_value);
-        var $inner_tag_1 = $('<span></span>').addClass('tagComplete decayingExampleTags')
-            .css({'background-color': tag.colour, color: getTextColour(tag.colour)})
-            .data('numerical_value', tag.numerical_value)
-            .text(tag.name);
-        var $inner_tag_2 = $('<span></span>').addClass('tagSecondHalf useCursorPointer')
-            .css({'margin-right': '4px'})
-            .attr('onclick', 'removeCustomTag(this);')
-            .text('×');
+        var $inner_tag_1, $inner_tag_2;
+        if (window.TagChips) {
+            $outer_tag.addClass('hinge-tags');
+            $inner_tag_1 = $(TagChips.chip(tag, {searchUrl: '', cls: 'decayingExampleTags'}))
+                .data('numerical_value', tag.numerical_value)
+                .data('tag_name', tag.name);
+            $inner_tag_2 = $('<span></span>').addClass('hg-act useCursorPointer')
+                .css({'margin-right': '4px'})
+                .attr('onclick', 'removeCustomTag(this);')
+                .text('×');
+        } else {
+            $inner_tag_1 = $('<span></span>').addClass('tagComplete decayingExampleTags')
+                .css({'background-color': tag.colour, color: getTextColour(tag.colour)})
+                .data('numerical_value', tag.numerical_value)
+                .text(tag.name);
+            $inner_tag_2 = $('<span></span>').addClass('tagSecondHalf useCursorPointer')
+                .css({'margin-right': '4px'})
+                .attr('onclick', 'removeCustomTag(this);')
+                .text('×');
+        }
         $outer_tag.append($inner_tag_1).append($inner_tag_2);
         
         $('#basescore-example-customtag-container').append($outer_tag);
@@ -57,7 +69,7 @@ function removeCustomTag(clicked) {
     var numerical_values = [];
     var $previous_tags = $('#basescore-example-customtag-container span.decayingExampleTags');
     $previous_tags.each(function() {
-        numerical_values.push({name: getPrefixTagName($(this).text()), value: parseInt($(this).data('numerical_value'))});
+        numerical_values.push({name: getPrefixTagName($(this).data('tag_name') || $(this).text()), value: parseInt($(this).data('numerical_value'))});
     });
     base_score_computation[0] = compute_base_score(numerical_values);
     var base_score = base_score_computation[0].score.toFixed(1);
@@ -261,6 +273,15 @@ function refreshExamples() {
         tags.forEach(function(tag) {
             var tag_name = getPrefixTagName(tag.name);
             numerical_values.push({name: tag_name, value: tag['numerical_value']});
+            if (window.TagChips) {
+                $tag_container.append(
+                    $(TagChips.chip(tag, {searchUrl: '', cls: 'decayingExampleTags'}))
+                        .css({'margin-right': '4px', 'margin-bottom': '4px'})
+                        .data('placement', 'right')
+                        .data('tag_name', tag.name)
+                );
+                return;
+            }
             var text_color = getTextColour(tag.colour);
             var $tag = $('<span></span>').addClass('tagComplete decayingExampleTags')
                 .css({'background-color': tag.colour, color: text_color, 'margin-right': '4px'})

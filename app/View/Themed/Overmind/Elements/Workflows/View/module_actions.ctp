@@ -14,17 +14,17 @@ if ($canManage) {
         $actions[] = [
             'type' => 'post',
             'url' => "$baseurl/workflows/toggleModule/$moduleId/0$suffix",
-            'icon' => 'fas fa-stop',
+            'icon' => 'fas fa-toggle-off',
             'label' => $isAdhoc ? __('Disable workflow') : ($isTrigger ? __('Disable trigger') : __('Disable module')),
-            'warning' => true,
+            'short' => __('Disable'),
         ];
     } else {
         $actions[] = [
             'type' => 'post',
             'url' => "$baseurl/workflows/toggleModule/$moduleId/1$suffix",
-            'icon' => 'fas fa-play',
+            'icon' => 'fas fa-toggle-on',
             'label' => $isAdhoc ? __('Enable workflow') : ($isTrigger ? __('Enable trigger') : __('Enable module')),
-            'success' => true,
+            'short' => __('Enable'),
         ];
     }
 }
@@ -35,13 +35,16 @@ if ($isTrigger) {
             'url' => "$baseurl/workflows/editor/$workflowId",
             'icon' => 'fas fa-code',
             'label' => __('Open in editor'),
+            'short' => __('Editor'),
         ];
     } elseif (!$isAdhoc) {
         // The editor creates the workflow of a trigger that has none yet.
         $actions[] = [
             'url' => "$baseurl/workflows/editor/$moduleId",
-            'icon' => 'fas fa-plus',
+            'icon' => 'fas fa-diagram-project',
+            'add' => true,
             'label' => __('Create its workflow'),
+            'short' => __('Create'),
         ];
     }
 }
@@ -51,15 +54,17 @@ if ($isAdhoc && $workflowId && $canManage) {
         $actions[] = [
             'url' => "$baseurl/workflows/executeWorkflow/$workflowId",
             'onclick' => "event.preventDefault(); openModal('$baseurl/workflows/executeWorkflow/$workflowId');",
-            'icon' => 'fas fa-play-circle',
+            'icon' => 'fas fa-diagram-project',
             'label' => __('Run workflow'),
+            'short' => __('Run'),
         ];
     }
     $actions[] = [
         'url' => "$baseurl/workflows/edit/$workflowId",
         'onclick' => "event.preventDefault(); openModal('$baseurl/workflows/edit/$workflowId');",
-        'icon' => 'fas fa-pen-to-square',
+        'icon' => 'fas fa-pen',
         'label' => __('Edit'),
+        'short' => __('Edit'),
     ];
 }
 
@@ -68,6 +73,7 @@ if ($workflowId) {
         'url' => "$baseurl/admin/logs/index/model:Workflow/action:execute_workflow/model_id:$workflowId",
         'icon' => 'fas fa-rectangle-list',
         'label' => __('Execution logs'),
+        'short' => __('Logs'),
     ];
     if ($canManage) {
         $debugOn = !empty($data['Workflow']['debug_enabled']);
@@ -76,6 +82,7 @@ if ($workflowId) {
             'onclick' => "event.preventDefault(); openModal('$baseurl/workflows/toggleDebugMode/$workflowId/" . ($debugOn ? '0' : '1') . "', 'md');",
             'icon' => $debugOn ? 'fas fa-bug-slash' : 'fas fa-bug',
             'label' => $debugOn ? __('Disable debug mode') : __('Enable debug mode'),
+            'short' => $debugOn ? __('Debug off') : __('Debug on'),
         ];
     }
 }
@@ -91,6 +98,6 @@ if ($isAdhoc && $workflowId && $canManage) {
     ];
 }
 
-echo $this->element('genericElementsBS5/Cards/card_actions', [
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions,
 ]);

@@ -16,7 +16,7 @@ $chips = function (array $items, $class) {
 <div class="card mb-3 shadow-sm">
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
-            <div class="rounded-2 d-flex align-items-center justify-content-center bg-primary-subtle text-primary"
+            <div class="rounded-2 d-flex align-items-center justify-content-center bg-primary-subtle text-primary-emphasis"
                  style="width:36px;height:36px;">
                 <i class="fas fa-bullhorn"></i>
             </div>

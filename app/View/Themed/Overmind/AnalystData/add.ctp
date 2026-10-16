@@ -1,4 +1,5 @@
 <?php
+App::uses('AnalystData', 'Model');
 $m       = $modelSelection;
 $action  = $this->request->params['action'];
 $isEdit  = $action === 'edit';
@@ -28,11 +29,14 @@ $s     = $styles[$m] ?? $styles['Note'];
 $color = $s['color'];
 
 $presetTarget = !$isEdit && !empty($data['object_type']);
+$targetIsValue = in_array($data['object_type'] ?? null, AnalystData::SHA256_TARGETS, true);
+$targetAddress = (string)($data[AnalystData::addressColumn($data['object_type'] ?? null, 'object')] ?? '');
+$targetLabel = $targetIsValue ? ($analystTargets[strtolower($targetAddress)]['label'] ?? null) : null;
 
 $formUrl = $isEdit
     ? $baseurl . '/analystData/edit/' . $m . '/' . h($id)
     : ($presetTarget
-        ? $baseurl . '/analystData/add/' . $m . '/' . h($data['object_uuid']) . '/' . h($data['object_type'])
+        ? $baseurl . '/analystData/add/' . $m . '/' . h($targetAddress) . '/' . h($data['object_type'])
         : $baseurl . '/analystData/add/' . $m);
 
 $currentDistribution = isset($data['distribution'])
@@ -81,9 +85,13 @@ echo $this->Form->create($m, [
             <?php if ($isEdit || $presetTarget): ?>
                 <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 bg-light">
                     <span class="badge bg-secondary-subtle text-secondary-emphasis">
-                        <?= h($data['object_type'] ?? '') ?>
+                        <?= h($targetIsValue ? __('Value') : ($data['object_type'] ?? '')) ?>
                     </span>
-                    <code class="small"><?= h($data['object_uuid'] ?? '') ?></code>
+                    <?php if ($targetLabel !== null): ?>
+                        <span class="font-monospace small text-break" title="<?= h($targetAddress) ?>"><?= h($targetLabel) ?></span>
+                    <?php else: ?>
+                        <code class="small text-break"><?= h($targetAddress) ?></code>
+                    <?php endif; ?>
                 </div>
 
             <?php else: ?>

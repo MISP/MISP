@@ -1,0 +1,628 @@
+/*
+ * Tag chips, rendered by TagChipHelper and js/tag-chips.js.
+ *
+ * Chips carry their own surface and neutrals rather than the theme's, so
+ * they read the same on every theme; only the mode switches them. A taxonomy
+ * whose declared colours are kept (--hg-c) outlines the chip in that colour
+ * over a tint of it.
+ *
+ * The hue is held as plain inheritable values (--hg-h, --hg-s) and the hsl()
+ * is composed at each use site. Composing it into a custom property on an
+ * ancestor would resolve --hg-h there and hand every chip the same hue.
+ */
+.hinge-tags {
+    --hg-l-ink: 28%;
+    --hg-l-mark: 48%;
+    --hg-surface: var(--misp-chip-surface, #ffffff);
+    --hg-text: var(--misp-chip-text, #14140f);
+    --hg-muted: var(--misp-chip-muted, #6b6b63);
+    --hg-faint: var(--misp-chip-faint, #9b9b92);
+    --hg-border: var(--misp-chip-border, #dededa);
+    --hg-border-strong: var(--misp-chip-border-strong, #c2c2bc);
+    --hg-track: color-mix(in srgb, var(--hg-text) 12%, var(--hg-surface));
+    --hg-tint: 14%;
+    --hg-shadow: 0 1px 2px rgba(20, 20, 15, .14), 0 0 1px rgba(20, 20, 15, .1);
+    --hg-raised: var(--misp-chip-raised, #ffffff);
+    --hg-raised-border: var(--misp-chip-raised-border, #dededa);
+    --hg-raised-shadow: 0 1px 3px rgba(20, 20, 15, .2), 0 0 1px rgba(20, 20, 15, .16);
+    --hg-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    align-items: flex-start;
+    min-width: 0;
+    max-width: 100%;
+    vertical-align: top;
+    font-size: 13px;
+    line-height: normal;
+    text-align: left;
+    white-space: normal;
+    color: var(--hg-text);
+}
+[data-misp-mode="dark"] .hinge-tags,
+[data-theme="midnight"] .hinge-tags {
+    --hg-l-ink: 74%;
+    --hg-l-mark: 62%;
+    --hg-surface: var(--misp-chip-surface, #1d1d18);
+    --hg-text: var(--misp-chip-text, #f0f0ea);
+    --hg-muted: var(--misp-chip-muted, #a3a39a);
+    --hg-faint: var(--misp-chip-faint, #75756d);
+    --hg-border: var(--misp-chip-border, #33332c);
+    --hg-border-strong: var(--misp-chip-border-strong, #4a4a42);
+    --hg-tint: 22%;
+    --hg-shadow: none;
+    --hg-raised: var(--misp-chip-raised, #2a2a24);
+    --hg-raised-border: var(--misp-chip-raised-border, #46463e);
+    --hg-raised-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+.hinge-tags .hg-chip {
+    position: relative;
+    display: inline-grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    vertical-align: top;
+    max-width: 330px;
+    min-width: 0;
+    overflow: hidden;
+    padding: 3px 8px 4px;
+    text-align: left;
+    color: var(--hg-text);
+    background: var(--hg-surface);
+    border: 1px solid var(--hg-border);
+    border-left: 4px solid hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark));
+    border-radius: 4px 5px 5px 4px;
+    box-shadow: var(--hg-shadow);
+    text-decoration: none;
+    text-shadow: none;
+    font-weight: normal;
+}
+.hinge-tags a.hg-chip:hover,
+.hinge-tags a.hg-chip:focus-visible {
+    border-color: hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark));
+    color: var(--hg-text);
+    text-decoration: none;
+}
+.hinge-tags .hg-chip.has-colour,
+.hinge-tags .hg-group.is-varied .hg-chip.has-colour,
+.hinge-tags a.hg-chip.has-colour:hover {
+    border-color: var(--hg-edge, var(--hg-c));
+    background: color-mix(in srgb, var(--hg-c) var(--hg-tint), var(--hg-surface));
+}
+/* A colourless declared colour (tlp:clear is white) would vanish as an
+   outline against the surface, so its edge leans toward the muted tone. */
+.hinge-tags .hg-chip.is-neutral {
+    --hg-edge: color-mix(in srgb, var(--hg-c) 35%, var(--hg-muted));
+}
+.hinge-tags .hg-chip.has-colour .hg-path {
+    color: color-mix(in srgb, var(--hg-muted) 70%, var(--hg-text));
+}
+.hinge-tags .hg-chip.has-colour .hg-meter i {
+    background: var(--hg-edge, var(--hg-c));
+}
+.hinge-tags a.hg-chip:focus-visible {
+    outline: 2px solid hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark));
+    outline-offset: 1px;
+}
+/* Nothing above the leaf: a free-text tag. */
+.hinge-tags .hg-chip.is-single {
+    display: inline-flex;
+    align-items: baseline;
+}
+.hinge-tags .hg-chip.is-tight {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 2px 7px 3px;
+}
+.hinge-tags .hg-chip.is-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 18px;
+    padding: 0;
+    border-width: 1px 1px 1px 4px;
+    background: hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark) / .35);
+}
+.hinge-tags .hg-chip.is-swatch.has-colour {
+    background: var(--hg-c);
+}
+.hinge-tags .hg-chip.is-local {
+    border-top-style: dashed;
+    border-right-style: dashed;
+    border-bottom-style: dashed;
+}
+.hinge-tags .hg-rail {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    font-family: var(--hg-mono);
+    font-size: 10px;
+    line-height: 13px;
+}
+.hinge-tags .hg-path {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--hg-muted);
+}
+.hinge-tags .hg-ns {
+    font-weight: 700;
+    color: hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-ink));
+}
+/* A galaxy's icon marks a cluster chip apart from a tag chip. */
+.hinge-tags .hg-icon {
+    flex: none;
+    margin-right: 4px;
+    font-size: 9px;
+    color: hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark));
+}
+.hinge-tags .hg-head .hg-icon {
+    align-self: center;
+    margin-right: -2px;
+    font-size: 10px;
+}
+.hinge-tags .hg-sep {
+    font-style: normal;
+    opacity: .5;
+    padding: 0 2px;
+}
+.hinge-tags .hg-leaf {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 17px;
+    letter-spacing: -.005em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* Leaf, value and local flag share one row, so a stacked chip stays two rows
+   high instead of growing a third for the flag. */
+.hinge-tags .hg-tail {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+}
+.hinge-tags .hg-chip.is-single .hg-tail {
+    flex: 0 1 auto;
+}
+/* A lone chip boxes its value the way a block boxes each member. */
+.hinge-tags .hg-chip.is-stacked {
+    row-gap: 3px;
+}
+.hinge-tags .hg-chip.is-stacked .hg-tail {
+    justify-self: start;
+    max-width: 100%;
+    padding: 1px 6px 2px;
+    background: var(--hg-raised);
+    border: 1px solid var(--hg-raised-border);
+    border-radius: 4px;
+    box-shadow: var(--hg-raised-shadow);
+}
+/* Namespace and value on one row: the row itself is the value's box. */
+.hinge-tags .hg-chip.is-inline {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+}
+.hinge-tags .hg-chip.is-inline .hg-rail {
+    flex: none;
+}
+.hinge-tags .hg-chip.is-inline .hg-n {
+    margin-left: 0;
+    padding-left: 0;
+}
+/* Outlined, not inverted: an inverted pill would need the page background. */
+.hinge-tags .hg-rel {
+    flex: none;
+    font-size: 9px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 0 3px;
+    border-radius: 2px;
+    border: 1px solid currentColor;
+}
+.hinge-tags .hg-flag {
+    flex: none;
+    font-size: 9px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 0 3px;
+    border-radius: 2px;
+    color: var(--hg-muted);
+    border: 1px dashed var(--hg-border-strong);
+}
+.hinge-tags .hg-n {
+    flex: none;
+    margin-left: auto;
+    padding-left: 5px;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 10px;
+}
+.hinge-tags .hg-n.is-over {
+    color: var(--hg-muted);
+}
+.hinge-tags .hg-chip.is-single .hg-n,
+.hinge-tags .hg-chip.is-tight .hg-n {
+    margin-left: 0;
+    padding-left: 0;
+}
+.hinge-tags .hg-chip.has-meter {
+    padding-bottom: 10px;
+}
+.hinge-tags .hg-chip.is-tight.has-meter {
+    padding-bottom: 9px;
+}
+.hinge-tags .hg-meter {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 3px;
+    height: 3px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: var(--hg-track);
+}
+.hinge-tags .hg-chip.is-tight .hg-meter {
+    left: 7px;
+    right: 7px;
+}
+.hinge-tags .hg-meter i {
+    display: block;
+    height: 100%;
+    background: hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark));
+}
+.hinge-tags .hg-meter.is-over i {
+    width: 100% !important;
+    background: repeating-linear-gradient(135deg,
+        hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark)) 0 3px,
+        transparent 3px 5px);
+}
+.hinge-tags .hg-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    max-width: 100%;
+    padding: 5px 7px 6px;
+    background: var(--hg-surface);
+    border: 1px solid var(--hg-border);
+    border-left: 4px solid hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark));
+    border-radius: 4px 5px 5px 4px;
+}
+.hinge-tags .hg-group.is-wide {
+    flex: 1 1 100%;
+}
+.hinge-tags .hg-head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    font-family: var(--hg-mono);
+    font-size: 10.5px;
+    line-height: 15px;
+}
+.hinge-tags .hg-hns {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-ink));
+}
+.hinge-tags a.hg-hns {
+    text-decoration: none;
+}
+.hinge-tags a.hg-hns:hover,
+.hinge-tags a.hg-hns:focus-visible {
+    color: hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-ink));
+    text-decoration: underline;
+}
+.hinge-tags .hg-count {
+    flex: none;
+    margin-left: auto;
+    padding-left: 8px;
+    color: var(--hg-faint);
+    font-variant-numeric: tabular-nums;
+}
+/* The block shares the chips' surface, so its members stand on a raised one. */
+.hinge-tags .hg-members {
+    --hg-surface: var(--hg-raised);
+    --hg-border: var(--hg-raised-border);
+    --hg-shadow: var(--hg-raised-shadow);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+}
+/* A crowded block files its members into shared column tracks instead of a
+   ragged run; min() drops to one column in a narrow container. */
+.hinge-tags .hg-group.is-wide .hg-members {
+    display: grid;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(auto-fill, minmax(min(var(--hg-colw, 280px), 100%), 1fr));
+    column-gap: 14px;
+    row-gap: 3px;
+}
+.hinge-tags .hg-group.is-wide .hg-unit {
+    min-width: 0;
+}
+.hinge-tags .hg-group.is-wide .hg-chip {
+    max-width: none;
+    flex: 1 1 auto;
+}
+.hinge-tags .hg-group .hg-chip {
+    border-left: 1px solid var(--hg-border);
+    border-radius: 4px;
+}
+.hinge-tags .hg-group.is-varied {
+    border-left-color: var(--hg-border-strong);
+}
+.hinge-tags .hg-group.is-varied .hg-hns {
+    color: var(--hg-text);
+}
+.hinge-tags .hg-group.is-varied .hg-chip {
+    border-left: 4px solid hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark));
+    border-radius: 4px 5px 5px 4px;
+}
+.hinge-tags .hg-unit {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    max-width: 100%;
+}
+.hinge-tags .hg-act {
+    align-self: center;
+    font-family: var(--hg-mono);
+    font-size: 10px;
+    line-height: 1;
+    padding: 3px 4px;
+    color: var(--hg-muted);
+    background: var(--hg-surface);
+    border: 1px solid var(--hg-border);
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+}
+.hinge-tags .hg-act:hover,
+.hinge-tags .hg-act:focus-visible {
+    color: var(--hg-text);
+    border-color: var(--hg-border-strong);
+    text-decoration: none;
+}
+/* Units past a collection's limit, shown by the "+N" toggle. */
+.hinge-tags .hg-extra {
+    display: none;
+}
+.hinge-tags.is-open .hg-extra {
+    display: contents;
+}
+.hinge-tags .hg-overflow {
+    align-self: center;
+    border: 0;
+    cursor: pointer;
+}
+
+/* A folded block: namespace, one mark per member gathered in fives, count. */
+.hinge-tags .hg-fold {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 100%;
+}
+.hinge-tags .hg-strip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    padding: 4px 8px 4px 7px;
+    font-family: var(--hg-mono);
+    font-size: 10.5px;
+    line-height: 15px;
+    text-align: left;
+    color: var(--hg-text);
+    background: var(--hg-surface);
+    border: 1px solid var(--hg-border);
+    border-left: 3px solid hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark));
+    border-radius: 4px 5px 5px 4px;
+    box-shadow: var(--hg-shadow);
+    cursor: default;
+}
+.hinge-tags .hg-strip:hover,
+.hinge-tags .hg-strip[aria-expanded="true"] {
+    border-color: var(--hg-border-strong);
+    border-left-color: hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark));
+}
+.hinge-tags .hg-strip:focus-visible {
+    outline: 2px solid hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark));
+    outline-offset: 1px;
+}
+.hinge-tags .hg-strip .hg-icon,
+.hinge-tags .hg-card-head .hg-icon {
+    align-self: center;
+    margin-right: -3px;
+    font-size: 10px;
+}
+.hinge-tags .hg-strip .hg-hns {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hinge-tags .hg-fold-n {
+    flex: none;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.hinge-tags .hg-marks {
+    flex: none;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    height: 13px;
+}
+.hinge-tags .hg-mrow {
+    display: flex;
+    flex: 1 1 0;
+    gap: 1.5px;
+}
+.hinge-tags .hg-mrow i {
+    display: block;
+    width: 3px;
+    border-radius: .5px;
+    background: var(--hg-c, hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark)));
+}
+.hinge-tags .hg-mrow i:nth-child(5n):not(:last-child) {
+    margin-right: 3.5px;
+}
+.hinge-tags .hg-marks-more {
+    flex: none;
+    margin-left: -4px;
+    color: var(--hg-muted);
+}
+
+/* The folded members, lifted into a popover: a dense reference list. */
+.hg-pop.popover {
+    --bs-popover-max-width: calc(100vw - 24px);
+    --bs-popover-body-padding-x: 0;
+    --bs-popover-body-padding-y: 0;
+}
+.hg-pop .popover-body {
+    max-height: calc(100vh - 40px);
+    overflow: auto;
+}
+.hinge-tags.hg-card {
+    display: block;
+    font-size: 12px;
+}
+.hinge-tags .hg-card-head {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 7px 12px 6px 10px;
+    font-family: var(--hg-mono);
+    font-size: 10.5px;
+    line-height: 15px;
+    border-bottom: 1px solid var(--hg-border);
+    box-shadow: inset 3px 0 0 hsl(var(--hg-h, 210) var(--hg-s, 62%) var(--hg-l-mark));
+}
+.hinge-tags .hg-card-note {
+    margin-left: auto;
+    padding-left: 16px;
+    color: var(--hg-faint);
+}
+.hinge-tags .hg-list {
+    --hg-colw: calc(var(--hg-namew) + var(--hg-codew) + 4ch);
+    margin: 0;
+    padding: 6px 12px 8px;
+    list-style: none;
+    column-gap: 22px;
+    column-rule: 1px solid var(--hg-border);
+    width: calc(var(--hg-colw) + 24px);
+    max-width: calc(100vw - 48px);
+}
+.hinge-tags .hg-list[data-cols="2"] {
+    column-count: 2;
+    width: calc(2 * var(--hg-colw) + 46px);
+}
+.hinge-tags .hg-list[data-cols="3"] {
+    column-count: 3;
+    width: calc(3 * var(--hg-colw) + 68px);
+}
+.hinge-tags .hg-fam {
+    break-inside: avoid;
+}
+.hinge-tags .hg-fam-head {
+    padding: 3px 0 0;
+    font-family: var(--hg-mono);
+    font-size: 10.5px;
+    line-height: 15px;
+    color: var(--hg-muted);
+}
+.hinge-tags .hg-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    margin: 0 -4px;
+    padding: 1.5px 4px;
+    line-height: 17px;
+    border-radius: 3px;
+}
+.hinge-tags .hg-row:hover {
+    background: var(--hg-track);
+}
+.hinge-tags .hg-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--hg-text);
+}
+.hinge-tags .hg-row.is-sub .hg-name {
+    position: relative;
+    padding-left: 13px;
+}
+.hinge-tags .hg-row.is-sub .hg-name::before {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 1px;
+    width: 6px;
+    height: 8px;
+    border-left: 1px solid var(--hg-faint);
+    border-bottom: 1px solid var(--hg-faint);
+}
+.hinge-tags .hg-row-path {
+    font-family: var(--hg-mono);
+    font-size: 10.5px;
+    color: var(--hg-muted);
+}
+.hinge-tags .hg-row .hg-rel,
+.hinge-tags .hg-row .hg-flag {
+    align-self: center;
+}
+.hinge-tags .hg-lead {
+    flex: 1 1 8px;
+    min-width: 8px;
+    border-bottom: 1px dotted var(--hg-border-strong);
+    transform: translateY(-3px);
+}
+.hinge-tags .hg-code {
+    flex: none;
+    min-width: var(--hg-codew);
+    padding: 0;
+    font-family: var(--hg-mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--hg-text);
+    background: none;
+}
+.hinge-tags .hg-code-up {
+    color: var(--hg-faint);
+}
+@media (max-width: 1000px) {
+    .hinge-tags .hg-list[data-cols="3"] {
+        column-count: 2;
+        width: calc(2 * var(--hg-colw) + 46px);
+    }
+}
+@media (max-width: 640px) {
+    .hinge-tags .hg-list[data-cols] {
+        column-count: 1;
+        width: calc(100vw - 48px);
+    }
+}
+
+@media print {
+    .hinge-tags .hg-act,
+    .hinge-tags .hg-overflow {
+        display: none;
+    }
+}

@@ -25,7 +25,7 @@ echo $this->Form->create('CorrelationExclusion', [
         <!-- ── VALUE ───────────────────────────────────────────── -->
         <div class="w-100 px-2">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                <div class="d-flex align-items-center gap-2 text-accent fw-bold
                             text-uppercase"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Value') ?>
@@ -56,7 +56,7 @@ echo $this->Form->create('CorrelationExclusion', [
                 <?= $this->Form->text('value', [
                     'id' => 'ExclusionValue',
                     'class' => 'w-100 border-0 bg-transparent fs-5 py-1 font-monospace',
-                    'style' => 'border-bottom:1px solid #d8dde3 !important;'
+                    'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                         . ' outline:none;',
                     'placeholder' => '8.8.8.8',
                     'autocomplete' => 'off',
@@ -64,7 +64,7 @@ echo $this->Form->create('CorrelationExclusion', [
                 <div class="d-flex align-items-start gap-2 rounded-2 p-2 mt-2 small"
                      style="background:rgba(24,146,177,.05);
                             border:1px solid rgba(24,146,177,.25);">
-                    <i class="fas fa-circle-info text-primary mt-1"
+                    <i class="fas fa-circle-info text-accent mt-1"
                        style="font-size:.7rem;"></i>
                     <div class="text-muted">
                         <?= __('A leading or trailing %s makes the match partial:', '<code>%</code>') ?>
@@ -87,7 +87,7 @@ echo $this->Form->create('CorrelationExclusion', [
                 'id' => 'ExclusionComment',
                 'class' => 'form-control',
                 'rows' => 3,
-                'style' => 'border-color:#d8dde3;',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                 'placeholder' => __('Why this value is not worth correlating on…'),
             ]) ?>
         </div>
@@ -134,7 +134,7 @@ echo $this->Form->create('CorrelationExclusion', [
     valueEl.addEventListener('input', function () {
         refreshMode();
         if (valueEl.value.trim()) {
-            valueEl.style.setProperty('border-bottom-color', '#d8dde3', 'important');
+            valueEl.style.setProperty('border-bottom-color', 'var(--misp-field-line, #d8dde3)', 'important');
             var msg = document.getElementById('ExclusionValueError');
             if (msg) { msg.remove(); }
         }
@@ -145,7 +145,7 @@ echo $this->Form->create('CorrelationExclusion', [
         if (valueEl.value.trim()) { return; }
         e.preventDefault();
         e.stopPropagation();
-        valueEl.style.setProperty('border-bottom-color', '#dc3545', 'important');
+        valueEl.style.setProperty('border-bottom-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
         if (!document.getElementById('ExclusionValueError')) {
             var msg = document.createElement('div');
             msg.id = 'ExclusionValueError';

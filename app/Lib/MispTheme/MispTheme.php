@@ -17,6 +17,47 @@ class MispTheme
     }
 
     /**
+     * Whether a theme carries an implementation of one controller's
+     * views.
+     *
+     * A page whose templates exist under exactly one theme is a fact
+     * about where its files are, not a preference: rendering it under
+     * a theme that does not have it throws `MissingViewException` and
+     * the reader gets a 500 rather than a page. A controller with one
+     * implementation asks this before leaving the reader's own theme
+     * in place.
+     *
+     * @param string|null $theme
+     * @param string $controller The view directory, e.g. `Values`
+     * @return bool
+     */
+    public static function carries($theme, $controller)
+    {
+        if (empty($theme) || $theme === 'Default') {
+            return false;
+        }
+        return is_dir(APP . 'View' . DS . 'Themed' . DS . $theme . DS
+            . $controller);
+    }
+
+    /**
+     * Whether a theme ships its own template for one view.
+     *
+     * @param string|null $theme
+     * @param string $controller The view directory, e.g. `Events`
+     * @param string $view The template name, e.g. `view2`
+     * @return bool
+     */
+    public static function carriesView($theme, $controller, $view)
+    {
+        if (empty($theme) || $theme === 'Default') {
+            return false;
+        }
+        return is_file(APP . 'View' . DS . 'Themed' . DS . $theme . DS
+            . $controller . DS . $view . '.ctp');
+    }
+
+    /**
      * Get all available themes as MispTheme objects
      *
      * @param string $currentActiveTheme The name of the currently active theme
@@ -53,5 +94,109 @@ class MispTheme
             $themes[] = new MispTheme($name, $label, $description, $name === $currentActiveTheme, $hideFromUsers);
         }
         return $themes;
+    }
+
+    const DEFAULT_BOOTSTRAP_THEME = 'overmind';
+
+    const BOOTSTRAP_THEME_MODES = ['light', 'dark', 'both'];
+
+    // theme: the bar in the theme's colours; builtin: its own palette;
+    // rail: the rail navbar (Elements/navbar_rail.ctp).
+    const BOOTSTRAP_THEME_NAVBARS = ['theme', 'builtin', 'rail'];
+
+    /** @var array|null */
+    private static $bootstrapThemes = null;
+
+    /**
+     * The Bootstrap stylesheets built by tools/bootstrap-themes, discovered from
+     * the metadata file the build writes beside each one.
+     *
+     * @return array name => ['name', 'label', 'description', 'mode', 'hide_from_users', 'navbar']
+     */
+    public static function getBootstrapThemes()
+    {
+        if (self::$bootstrapThemes !== null) {
+            return self::$bootstrapThemes;
+        }
+        $themes = [];
+        $dir = WWW_ROOT . 'css' . DS . 'themes' . DS;
+        foreach (glob($dir . '*.json') ?: [] as $file) {
+            $name = basename($file, '.json');
+            if (!self::isBootstrapThemeName($name) || !is_file($dir . $name . '.min.css')) {
+                continue;
+            }
+            $meta = json_decode(file_get_contents($file), true);
+            if (!is_array($meta) || !in_array($meta['mode'] ?? null, self::BOOTSTRAP_THEME_MODES, true)) {
+                continue;
+            }
+            $themes[$name] = [
+                'name' => $name,
+                'label' => !empty($meta['label']) ? $meta['label'] : $name,
+                'description' => $meta['description'] ?? '',
+                'mode' => $meta['mode'],
+                'hide_from_users' => !empty($meta['hide_from_users']),
+                'navbar' => in_array($meta['navbar'] ?? null, self::BOOTSTRAP_THEME_NAVBARS, true) ? $meta['navbar'] : 'theme',
+            ];
+        }
+        ksort($themes);
+        return self::$bootstrapThemes = $themes;
+    }
+
+    /**
+     * @param mixed $name
+     * @return bool
+     */
+    public static function isBootstrapTheme($name)
+    {
+        return self::isBootstrapThemeName($name) && isset(self::getBootstrapThemes()[$name]);
+    }
+
+    /**
+     * The Bootstrap theme a page renders with: the user's choice, else the
+     * instance default, else Overmind. A name that no longer resolves to a built
+     * theme falls through to the next.
+     *
+     * @param array|null $user
+     * @return array The theme's metadata plus 'css', its path under css/, and
+     *  'userChoice', whether it is the user's own setting
+     */
+    public static function bootstrapTheme($user = null)
+    {
+        $candidates = [];
+        if (!empty($user['id'])) {
+            $candidates['user'] = ClassRegistry::init('UserSetting')->getValueForUser($user['id'], 'ui_bootstrap_theme');
+        }
+        $candidates['instance'] = Configure::read('MISP.default_bootstrap_theme');
+        $candidates['fallback'] = self::DEFAULT_BOOTSTRAP_THEME;
+
+        $themes = self::getBootstrapThemes();
+        foreach ($candidates as $source => $name) {
+            if (self::isBootstrapThemeName($name) && isset($themes[$name])) {
+                return $themes[$name] + [
+                    'css' => 'themes/' . $name . '.min',
+                    'userChoice' => $source === 'user',
+                ];
+            }
+        }
+        // No build output at all: keep the page styled.
+        return [
+            'name' => self::DEFAULT_BOOTSTRAP_THEME,
+            'label' => 'Overmind',
+            'description' => '',
+            'mode' => 'both',
+            'hide_from_users' => false,
+            'navbar' => 'builtin',
+            'css' => 'themes/' . self::DEFAULT_BOOTSTRAP_THEME . '.min',
+            'userChoice' => false,
+        ];
+    }
+
+    /**
+     * @param mixed $name
+     * @return bool
+     */
+    private static function isBootstrapThemeName($name)
+    {
+        return is_string($name) && preg_match('/^[a-z0-9][a-z0-9_-]*$/', $name) === 1;
     }
 }

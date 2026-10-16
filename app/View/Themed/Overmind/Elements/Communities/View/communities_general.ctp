@@ -99,7 +99,7 @@ foreach ($facts as $fact) {
         <div>
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
                 <span class="<?= $labelClass ?>" style="<?= $labelStyle ?>">
-                    <i class="fas fa-people-group text-primary me-1"></i><?= __('Community') ?>
+                    <i class="fas fa-people-group text-accent me-1"></i><?= __('Community') ?>
                 </span>
                 <span class="d-flex flex-wrap align-items-center gap-1">
                     <span class="badge rounded-pill fw-normal <?= $vetted ? 'text-bg-success' : 'border bg-body text-body-secondary' ?>"

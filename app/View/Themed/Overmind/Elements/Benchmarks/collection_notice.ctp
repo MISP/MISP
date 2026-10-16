@@ -23,21 +23,32 @@ if ($benchmarkingEnabled && $hasRecords && !$isStale) {
     return;
 }
 
+$amber = [
+    'hue' => 'var(--misp-tone-yellow-solid, #F59E0B)',
+    'ink' => 'var(--misp-tone-yellow-fg, #B45309)',
+];
+// Without theme tokens the fallback makes this mix exactly #0F6D86.
+$teal = [
+    'hue' => '#1892B1',
+    'ink' => 'color-mix(in srgb, #1892B1 50%, var(--misp-ink, #06485B))',
+];
 if (!$benchmarkingEnabled) {
-    $tone = ['border' => '#F59E0B', 'tint' => '#F59E0B14', 'icon' => 'fas fa-circle-pause', 'ink' => '#B45309'];
+    $tone = $amber + ['icon' => 'fas fa-circle-pause'];
     $title = __('Benchmark collection is off');
 } else if (!$hasRecords) {
-    $tone = ['border' => '#1892B1', 'tint' => '#1892B114', 'icon' => 'fas fa-hourglass-start', 'ink' => '#0F6D86'];
+    $tone = $teal + ['icon' => 'fas fa-hourglass-start'];
     $title = __('Collection is on, nothing recorded yet');
 } else {
-    $tone = ['border' => '#F59E0B', 'tint' => '#F59E0B14', 'icon' => 'fas fa-clock-rotate-left', 'ink' => '#B45309'];
+    $tone = $amber + ['icon' => 'fas fa-clock-rotate-left'];
     $title = __('These figures have stopped moving');
 }
+$tint = sprintf('color-mix(in srgb, %s 7.843%%, transparent)', $tone['hue']);
+$edge = sprintf('color-mix(in srgb, %s 26.667%%, transparent)', $tone['hue']);
 ?>
 
 <div class="container-fluid">
     <div class="rounded-3 p-3 mb-4 d-flex align-items-start gap-3"
-         style="background:<?= h($tone['tint']) ?>; border:1px solid <?= h($tone['border']) ?>44;">
+         style="background:<?= h($tint) ?>; border:1px solid <?= h($edge) ?>;">
 
         <i class="<?= h($tone['icon']) ?> flex-shrink-0 mt-1"
            style="color:<?= h($tone['ink']) ?>; font-size:1rem; width:1rem;"></i>

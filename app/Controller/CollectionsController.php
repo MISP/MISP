@@ -1,6 +1,8 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('AnalystData', 'Model');
+App::uses('Collection', 'Model');
+App::uses('CollectionRailCards', 'Tools/RailCards');
 App::uses('SyncTool', 'Tools');
 
 class CollectionsController extends AppController
@@ -24,14 +26,6 @@ class CollectionsController extends AppController
     public $uses = [
     ];
 
-    private $valid_types = [
-        'campaign',
-        'intrusion_set',
-        'named_threat',
-        'research',
-        'other'
-    ];
-
     public function add()
     {
         $this->Collection->current_user = $this->Auth->user();
@@ -39,6 +33,16 @@ class CollectionsController extends AppController
         $attachTarget = $this->__getAttachTargetFromRequest();
         $attachElementType = $attachTarget['type'] ?? null;
         $attachElementUuids = $attachTarget['uuids'] ?? [];
+        // A value is shown by its text when the user can see it, never its SHA-256
+        $attachElementLabels = $attachElementUuids;
+        if (in_array($attachElementType, AnalystData::SHA256_TARGETS, true)) {
+            $described = $this->Collection->CollectionElement->attachTargets($currentUser, array_map(function ($hex) use ($attachElementType) {
+                return ['element_type' => $attachElementType, 'element_sha256' => $hex];
+            }, $attachElementUuids));
+            foreach ($described as $i => $element) {
+                $attachElementLabels[$i] = $element[$attachElementType]['value'] ?? $attachElementUuids[$i];
+            }
+        }
         $attachElementUuid = !empty($attachElementUuids) ? $attachElementUuids[0] : null;
         $params = [];
         $this->loadModel('Event');
@@ -86,7 +90,7 @@ class CollectionsController extends AppController
         }
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'add'));
         $dropdownData = [
-            'types' => array_combine($this->valid_types, $this->valid_types),
+            'types' => array_combine(Collection::VALID_TYPES, Collection::VALID_TYPES),
             'distributionLevels' => $this->Event->distributionLevels,
             'sgs' => $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1)  
         ];
@@ -98,7 +102,7 @@ class CollectionsController extends AppController
         // needs its header back.
         $this->set('embedded', $this->request->is('get') && (bool)$this->request->query('embedded'));
         $attachElementDescription = $attachTarget['description'] ?? '';
-        $this->set(compact('dropdownData', 'attachElementType', 'attachElementUuid', 'attachElementUuids', 'attachElementDescription'));
+        $this->set(compact('dropdownData', 'attachElementType', 'attachElementUuid', 'attachElementUuids', 'attachElementLabels', 'attachElementDescription'));
         if($this->theme === "Overmind"){
             $this->layout = false;
         }
@@ -327,7 +331,7 @@ class CollectionsController extends AppController
         }
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'edit'));
         $dropdownData = [
-            'types' => array_combine($this->valid_types, $this->valid_types),
+            'types' => array_combine(Collection::VALID_TYPES, Collection::VALID_TYPES),
             'distributionLevels' => $this->Event->distributionLevels,
             'sgs' => $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1)  
         ];
@@ -375,6 +379,10 @@ class CollectionsController extends AppController
         }
         $this->set('menuData', array('menuList' => 'collections', 'menuItem' => 'view'));
         $user = $this->Auth->user();
+        if ($this->IndexFilter->isRest()) {
+            $this->Collection->includeAnalystData = true;
+            $this->Collection->includeAnalystDataRecursive = true;
+        }
         $params = [
             'contain' => [
                 'Orgc',
@@ -403,61 +411,9 @@ class CollectionsController extends AppController
         }
         $elements = $data['Collection']['CollectionElement'] ?? [];
 
-        // Enrich elements with a human-readable reference so the elements
-        // index can display the resolved target instead of the raw UUID.
-        $eventUuids = [];
-        $clusterUuids = [];
-        foreach ($elements as $element) {
-            $elementType = $element['element_type'] ?? null;
-            if (empty($element['element_uuid'])) {
-                continue;
-            }
-            if ($elementType === 'Event') {
-                $eventUuids[] = $element['element_uuid'];
-            } elseif ($elementType === 'GalaxyCluster') {
-                $clusterUuids[] = $element['element_uuid'];
-            }
-        }
-
-        $eventsByUuid = [];
-        if (!empty($eventUuids)) {
-            $this->loadModel('Event');
-            $events = $this->Event->fetchSimpleEvents($user, [
-                'conditions' => ['Event.uuid' => array_values(array_unique($eventUuids))]
-            ]);
-            foreach ($events as $event) {
-                $eventsByUuid[$event['Event']['uuid']] = [
-                    'id' => $event['Event']['id'],
-                    'info' => $event['Event']['info'],
-                ];
-            }
-        }
-
-        $clustersByUuid = [];
-        if (!empty($clusterUuids)) {
-            $this->loadModel('GalaxyCluster');
-            $clusters = $this->GalaxyCluster->fetchGalaxyClusters($user, [
-                'conditions' => ['GalaxyCluster.uuid' => array_values(array_unique($clusterUuids))]
-            ]);
-            foreach ($clusters as $cluster) {
-                $arranged = $this->GalaxyCluster->arrangeData($cluster);
-                $clustersByUuid[$cluster['GalaxyCluster']['uuid']] = $arranged['GalaxyCluster'];
-            }
-        }
-
-        if (!empty($eventsByUuid) || !empty($clustersByUuid)) {
-            foreach ($elements as $k => $element) {
-                $elementType = $element['element_type'] ?? null;
-                $elementUuid = $element['element_uuid'] ?? null;
-                if ($elementType === 'Event' && isset($eventsByUuid[$elementUuid])) {
-                    $elements[$k]['Event'] = $eventsByUuid[$elementUuid];
-                } elseif ($elementType === 'GalaxyCluster' && isset($clustersByUuid[$elementUuid])) {
-                    $elements[$k]['GalaxyCluster'] = [$clustersByUuid[$elementUuid]];
-                }
-            }
-            $data['Collection']['CollectionElement'] = $elements;
-            $this->set('data', $data);
-        }
+        $elements = $this->Collection->CollectionElement->attachTargets($user, $elements);
+        $data['Collection']['CollectionElement'] = $elements;
+        $this->set('data', $data);
 
         $totalElements = count($elements);
         $this->request->params['paging']['CollectionElement'] = [
@@ -472,6 +428,14 @@ class CollectionsController extends AppController
             'options'   => [],
             'paramType' => 'named',
         ];
+
+        if ($this->theme === 'Overmind') {
+            $railCards = new CollectionRailCards();
+            $this->set('railCards', RailCard::byId([
+                $railCards->inventory($elements),
+                $railCards->sources($elements),
+            ]));
+        }
 
         $this->set('id', $id);
         $this->loadModel('Event');
@@ -530,7 +494,7 @@ class CollectionsController extends AppController
         $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('dropdownData', [
-            'types' => array_combine($this->valid_types, $this->valid_types)
+            'types' => array_combine(Collection::VALID_TYPES, Collection::VALID_TYPES)
         ]);
         $this->CRUD->index($params);
         if ($this->IndexFilter->isRest()) {
@@ -716,7 +680,7 @@ class CollectionsController extends AppController
                 return is_string($hex) ? strtolower($hex) : $hex;
             }, $uuids);
         }
-        $uuids = array_values(array_unique(array_filter($uuids)));
+        $uuids = array_values(array_unique(array_filter($uuids, 'is_string')));
         if (empty($uuids)) {
             return [];
         }

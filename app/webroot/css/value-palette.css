@@ -1,0 +1,300 @@
+/*
+ * The verdict palette, shared.
+ *
+ * Two pages speak the three roles a verdict has: the Value Intelligence and
+ * the Analyst Profile editor. One declaration, loaded by both, because
+ * the alternative is two files drifting a shade apart on the one pair
+ * of colours whose meaning is load-bearing.
+ */
+
+/* ==================================================================
+ * Verdict palette
+ * ------------------------------------------------------------------
+ * The three roles a verdict speaks in, named once. Two of them already
+ * exist in MISP's palette — the benign case is `--report`, the same
+ * green the artboard uses — and only the conflict amber is new, so it
+ * is declared here rather than borrowed from a Bootstrap state that
+ * means something else.
+ *
+ * `-ink` is the text tone that sits on a tint of the same hue. In dark
+ * they invert: the tint carries more of the hue and the ink lightens,
+ * because the artboards are light-only and give no guidance here.
+ * ================================================================== */
+
+:root {
+    --vp-conflict: #f39a1f;
+    --vp-conflict-ink: #8a5a04;
+    --vp-mal: var(--bs-danger);
+    --vp-mal-ink: #a71d2a;
+    --vp-ben: var(--report);
+    --vp-ben-ink: #2f6b45;
+
+    /*
+     * The quiet role, for a verdict that names no state. It is a grey
+     * from the scale rather than `--bs-secondary-color`, which is a
+     * text colour and inverts between the themes — used as a chip fill
+     * it turns light in dark mode and takes the white label with it.
+     */
+    --vp-unknown: var(--bs-gray-600);
+
+    /*
+     * And its reading tone, which is the text colour the note above
+     * keeps out of the fill — the inversion that ruins a chip is
+     * exactly what ink wants. `--vp-unknown` itself lands at 4.42:1 on
+     * the hero, just under small text's 4.5.
+     */
+    --vp-unknown-ink: var(--bs-secondary-color);
+
+    /*
+     * `unflagged`: recorded as context, nobody flagged it for
+     * detection. Quiet like `none`, and told apart from it by glyph
+     * and label rather than by a sixth hue; its own name so the two
+     * can part later without touching every surface.
+     */
+    --vp-context: var(--vp-unknown);
+    --vp-context-ink: var(--vp-unknown-ink);
+
+    /*
+     * Which way a signal points, as opposed to which hue that is. A ▲
+     * row supports the disposition the card states, so on a BENIGN
+     * value `with` is the green and `against` is the red. The default
+     * pair is the malicious reading; `ValueDisposition::directionStyle`
+     * swaps them on the cards that need it.
+     */
+    --vp-dir-with: var(--vp-mal);
+    --vp-dir-against: var(--vp-ben);
+    /*
+     * The same pair as ink, for the surfaces that need the lighter tone
+     * on a dark ground. It has to be a *pair* and not two fixed inks:
+     * a rule reaching straight for `--vp-mal-ink` cannot be swapped,
+     * so a dark theme would keep the malicious reading on a benign
+     * value however carefully the hue above was flipped for it.
+     */
+    --vp-dir-with-ink: var(--vp-mal-ink);
+    --vp-dir-against-ink: var(--vp-ben-ink);
+
+    /*
+     * The signal-strength axis, which has **no hue of its own, deliberately**
+     * (`review-2026-09-13.md` §D1, and the colour swipe that followed
+     * it).
+     *
+     * The `dir` pair above swaps with the lean, which is right for a
+     * row that argues about the lean and wrong for one that weighs the
+     * record: *four independent organisations reported it* is the same
+     * fact whether the record concluded threat or benign, and painting
+     * it red on one and green on the other puts the anchoring back in
+     * the ink after the arithmetic stopped doing it. Red and green are
+     * also spoken for here — they *are* the two readings — so a fixed
+     * red/green pair would say benign about a corroboration row just
+     * as loudly.
+     *
+     * **And a hue of its own was worse.** Measured on the rendered
+     * pane, a teal ledger put the signal-strength axis in two colours at once
+     * — the hero gauge is painted in `--vp-vc-color`, the *lean's*
+     * hue, so the number read amber while the rows that sum to it read
+     * teal — and it borrowed the family the relevance clock speaks in
+     * one band below (`#1892b1` against `#0e7490`). Five state hues on
+     * one card, two of them doubled across axes.
+     *
+     * What the card actually has is two *categorical* axes — which
+     * reading, which relevance state — and they are what hues are for.
+     * Signal strength is a magnitude, and a row's ▲ or ▼ is a **sign, not a
+     * state**. So it is drawn the way a sign is drawn: ink weight,
+     * glyph, and whether the bar is filled at all. Three redundant
+     * cues and no sixth colour.
+     *
+     *   carries → the record has this: body ink, a solid bar
+     *   lacks   → it does not: muted ink, and a bar drawn hollow,
+     *             because the thing being reported is an absence
+     *
+     * Both sides are Bootstrap's theme-aware inks, so the dark theme
+     * needs no override here — which is the other half of why this is
+     * the quieter choice.
+     */
+    --vp-weighs-carries: var(--bs-body-color);
+    --vp-weighs-lacks: var(--bs-secondary-color);
+}
+
+[data-misp-mode="dark"] {
+    --vp-conflict-ink: #f0b657;
+    --vp-mal-ink: #f1919b;
+    --vp-ben-ink: #8fd0a7;
+}
+
+/* ==================================================================
+ * The dates behind the relevance axis
+ * ------------------------------------------------------------------
+ * Here rather than in `value-intelligence.css` for this file's own stated
+ * reason: two pages speak it. The Value Intelligence's Lifetime card and the
+ * Analyst Profile editor's bench render the same element, and the
+ * editor does not load `value-intelligence.css`.
+ *
+ * `--vp-shelf-colour` is the card's own state colour and is only set
+ * inside a `.vp-shelf`; on the bench there is none, so every use
+ * carries `--correlation` as the fallback.
+ * ================================================================== */
+
+/*
+ * The dates behind the axis: what each column means and what this value
+ * has in it. Folded shut, and styled as the footnote it is — the card
+ * above is the answer, this is the working, and a table that competed
+ * with the answer for attention would have been the wrong fix for a
+ * card this pass spent three rounds shortening.
+ */
+.vp-dates {
+    margin-top: 2px;
+    font-size: 0.68rem;
+}
+
+/*
+ * A line somebody can find. Closed, this was grey text on the card
+ * background and the first reader of it scrolled past — which is the
+ * whole table's usefulness resting on noticing one word. It reads as a
+ * control now: its own tinted strip, a border, and a hover that lifts.
+ */
+.vp-dates > summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 6px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 4px;
+    background: var(--bs-secondary-bg, rgba(128, 128, 128, 0.08));
+    color: var(--bs-body-color);
+    font-weight: 600;
+    list-style: none;
+}
+
+.vp-dates[open] > summary {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.vp-dates > summary::-webkit-details-marker { display: none; }
+
+/* A disclosure arrow that turns, rather than a glyph font. */
+.vp-dates > summary::before {
+    content: "";
+    flex: none;
+    width: 0;
+    height: 0;
+    border: 3.5px solid transparent;
+    border-left-color: currentColor;
+    transform: translateY(1px);
+    transition: transform 0.12s ease;
+}
+
+.vp-dates[open] > summary::before {
+    transform: translateY(1px) rotate(90deg);
+}
+
+.vp-dates > summary:hover {
+    border-color: var(--vp-shelf-colour, var(--correlation));
+}
+
+/*
+ * Reads on from the title rather than being pushed to the right edge:
+ * at rail width it wrapped, and `margin-left: auto` then stranded it
+ * alone on a right-aligned second line.
+ */
+.vp-dates-sub {
+    opacity: 0.75;
+    font-size: 0.64rem;
+    font-weight: 400;
+}
+
+
+.vp-dates-tbl {
+    width: 100%;
+    margin: 0;
+    padding: 0 8px 4px;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.vp-dates-tbl th {
+    padding: 2px 6px 3px 0;
+    border-bottom: 1px solid var(--bs-border-color);
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--bs-secondary-color);
+    text-align: left;
+}
+
+.vp-dates-tbl td {
+    padding: 3px 6px 3px 0;
+    border-bottom: 1px solid color-mix(in srgb,
+        var(--bs-border-color) 45%, transparent);
+    vertical-align: top;
+    color: var(--bs-body-color);
+}
+
+.vp-dates-tbl tr:last-child td { border-bottom: 0; }
+
+.vp-dates-tbl th:nth-child(2),
+.vp-dates-tbl td:nth-child(2) { width: 37%; }
+
+.vp-dates-tbl th:last-child,
+.vp-dates-tbl td:last-child { width: 31%; }
+
+.vp-dates-tbl code {
+    font-size: 0.62rem;
+    color: var(--bs-secondary-color);
+    background: none;
+    padding: 0;
+    /*
+     * `normal`, not `break-word`: the only break point is the `wbr`
+     * the template puts after the dot, so a name too long for the
+     * column wraps as `Sighting.` / `date_sighting` rather than one
+     * character short of its end.
+     */
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
+/* The row the clock read. The only one a reader has to find. */
+.vp-dates-tbl tr.is-held td {
+    background: color-mix(in srgb, var(--vp-shelf-colour, var(--correlation))
+        10%, transparent);
+}
+
+.vp-dates-tbl tr.is-held td:first-child { font-weight: 600; }
+
+.vp-dates-held {
+    margin-left: 5px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--vp-shelf-colour, var(--correlation));
+    color: var(--bs-body-bg);
+    font-size: 0.56rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: help;
+}
+
+.vp-dates-tbl tr.is-absent td { color: var(--bs-secondary-color); }
+
+.vp-dates-when {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.vp-dates-note,
+.vp-dates-none {
+    display: block;
+    font-size: 0.62rem;
+    line-height: 1.35;
+    color: var(--bs-secondary-color);
+}
+
+.vp-dates-foot {
+    margin: 6px 0 0;
+    font-size: 0.63rem;
+    line-height: 1.45;
+    color: var(--bs-secondary-color);
+}

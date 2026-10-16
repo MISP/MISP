@@ -355,7 +355,7 @@ if ($aiExtractUrl !== null) {
             <div class="modal-header">
                 <h5 class="modal-title d-flex align-items-center gap-2"
                     id="er-llm-modal-label">
-                    <i class="fas fa-robot text-primary"></i>
+                    <i class="fas fa-robot text-accent"></i>
                     <?= __('Send to LLM') ?>
                 </h5>
                 <button type="button"
@@ -563,7 +563,8 @@ if ($aiExtractUrl !== null) {
 
         var version = <?= json_encode($queryVersion ?? '') ?>;
         var suffix  = version ? ('?v=' + encodeURIComponent(version)) : '';
-        var sheets  = ['bootstrap5-custom.min', 'mainOvermind', 'fontawesome7.min'];
+        // Printed in Overmind's light palette whatever the page's theme is.
+        var sheets  = ['themes/overmind.min', 'mainOvermind', 'fontawesome7.min'];
         var links   = sheets.map(function (name) {
             return '<link rel="stylesheet" href="'
                 + baseurl + '/css/' + name + '.css' + suffix + '">';

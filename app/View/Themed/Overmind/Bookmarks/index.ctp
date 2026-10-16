@@ -131,7 +131,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'label' => __('My bookmarks'),
                         'icon' => 'misp-icon misp-icon-user1 misp-simple',
                         'class' => 'btn btn-primary',
-                        'url' => $baseurl . '/bookmarks/index/searchemail:' . urlencode($me['email'])
+                        'url' => $baseurl . '/bookmarks/index/scope:mine'
                     ]
                 ],
                 'delete' => '/deleteSelection'

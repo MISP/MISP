@@ -77,6 +77,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'data' => $data,
             'filter_bar' => [
                 'pull' => 'right',
+                'base_url' => $baseurl . '/cerebrates/preview_sharing_groups/' . h($cerebrate['Cerebrate']['id']),
                 'children' => [
                     [
                         'type' => 'search',

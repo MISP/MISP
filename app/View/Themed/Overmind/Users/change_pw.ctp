@@ -8,7 +8,7 @@ $requireCurrent = (bool)Configure::read('Security.require_password_confirmation'
         <div class="col-lg-6 col-md-8">
             <div class="card shadow-sm">
                 <div class="card-header d-flex align-items-center gap-2 bg-light">
-                    <i class="fas fa-key text-primary"></i>
+                    <i class="fas fa-key text-accent"></i>
                     <span class="fw-semibold"><?= __('Change your password') ?></span>
                 </div>
                 <div class="card-body">

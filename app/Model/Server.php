@@ -709,12 +709,13 @@ class Server extends AppModel
 
             $pulledSightings = $eventModel->Sighting->pullSightings($user, $serverSync);
 
-            if ($jobId) {
-                $job->saveProgress($jobId, 'Pulling analyst data.', 87);
+            if (!empty($server['Server']['pull_analyst_data'])) {
+                if ($jobId) {
+                    $job->saveProgress($jobId, 'Pulling analyst data.', 87);
+                }
+                $this->AnalystData = ClassRegistry::init('AnalystData');
+                $pulledAnalystData = $this->AnalystData->pull($user, $serverSync);
             }
-
-            $this->AnalystData = ClassRegistry::init('AnalystData');
-            $pulledAnalystData = $this->AnalystData->pull($user, $serverSync);
 
             // Collections: gated on the per-server pull_collections toggle (T1.2) AND
             // feature negotiation (isSupported reads the already-cached remote info, so no
@@ -1933,6 +1934,12 @@ class Server extends AppModel
         return array_flip($this->UserSetting::VALID_SETTINGS['ui_theme']['options']);
     }
 
+    public function loadAvailableBootstrapThemes()
+    {
+        App::uses('MispTheme', 'Lib/MispTheme');
+        return array_column(MispTheme::getBootstrapThemes(), 'label', 'name');
+    }
+
     public function testLanguage($value)
     {
         $languages = $this->loadAvailableLanguages();
@@ -2055,6 +2062,17 @@ class Server extends AppModel
         return true;
     }
 
+    public function testBootstrapTheme($value)
+    {
+        if ($value === '' || $value === null) {
+            return true;
+        }
+        if (!isset($this->loadAvailableBootstrapThemes()[$value])) {
+            return __('Invalid Bootstrap theme.');
+        }
+        return true;
+    }
+
     public function testForPositiveInteger($value)
     {
         if ((is_int($value) && $value >= 0) || ctype_digit($value)) {
@@ -2144,6 +2162,59 @@ class Server extends AppModel
         $value = trim($value);
         if ($value === '') {
             return 'Value not set.';
+        }
+        return true;
+    }
+
+    /**
+     * The instance's Analyst Profile names a shipped profile that is here.
+     *
+     * A warning rather than a refusal when the row is missing: the
+     * setting is written by `Admin setSetting` on instances where the
+     * profiles have not been loaded yet - `updateDefaults()` runs on
+     * upgrade, and a deployment may set this first - and refusing would
+     * make the order of two unrelated steps matter. What it does refuse
+     * is a value that can never work: something that is not a uuid, or a
+     * profile owned by a user or an organisation.
+     *
+     * @param string $value
+     * @return string|true
+     */
+    public function testAnalystProfileUuid($value)
+    {
+        $value = trim((string)$value);
+        if ($value === '') {
+            return 'Value not set.';
+        }
+        if (!Validation::uuid($value)) {
+            return 'This has to be the uuid of an Analyst Profile.';
+        }
+        $profile = ClassRegistry::init('AnalystProfile')->find('first', array(
+            'conditions' => array('AnalystProfile.uuid' => $value),
+            'fields' => array(
+                'AnalystProfile.name',
+                'AnalystProfile.user_id',
+                'AnalystProfile.org_id',
+                'AnalystProfile.default',
+                'AnalystProfile.shared',
+                'AnalystProfile.enabled',
+            ),
+            'recursive' => -1,
+        ));
+        if (empty($profile)) {
+            return 'No Analyst Profile on this instance carries that uuid.'
+                . ' If the shipped profiles have not been loaded yet, run'
+                . ' the profile update and this will resolve.';
+        }
+        if (!empty($profile['AnalystProfile']['shared'])) {
+            return empty($profile['AnalystProfile']['enabled'])
+                ? 'That shared profile is disabled.'
+                : true;
+        }
+        if (empty($profile['AnalystProfile']['default'])) {
+            return 'That profile belongs to a user or an organisation.'
+                . ' Only a profile MISP ships or one a site admin shared can'
+                . ' be put in force for the whole instance.';
         }
         return true;
     }
@@ -5116,7 +5187,7 @@ class Server extends AppModel
      */
     public function updateJSON()
     {
-        foreach (['Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate', 'ObjectRelationship'] as $target) {
+        foreach (['Galaxy', 'Noticelist', 'Warninglist', 'Taxonomy', 'ObjectTemplate', 'ObjectRelationship', 'AnalystProfile'] as $target) {
             $model = ClassRegistry::init($target);
             $start = microtime(true);
             $result = $model->update();
@@ -5516,6 +5587,17 @@ class Server extends AppModel
                     },
                     'null' => true,
                     'cli_only' => 1
+                ),
+                'default_bootstrap_theme' => array(
+                    'level' => 2,
+                    'description' => __('The Bootstrap theme pages render with under the Overmind UI, for users who have not chosen one themselves.'),
+                    'value' => '',
+                    'test' => 'testBootstrapTheme',
+                    'type' => 'string',
+                    'optionsSource' => function () {
+                        return $this->loadAvailableBootstrapThemes();
+                    },
+                    'null' => true,
                 ),
                 'default_attribute_memory_coefficient' => array(
                     'level' => 1,
@@ -6112,6 +6194,13 @@ class Server extends AppModel
                     'level' => 2,
                     'description' => __('True enables the alternate org fields for the event index (source org and member org) instead of the traditional way of showing only an org field. This allows users to see if an event was uploaded by a member organisation on their MISP instance, or if it originated on an interconnected instance.'),
                     'value' => '',
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'value_hover_card' => array(
+                    'level' => 1,
+                    'description' => __('Hovering an attribute value shows a card summarising what this instance records about that value — its assessment, how widely it is reported, when it was last seen and how long it stays relevant. Each hover is a database read, so this is off by default; the card costs the same as the assessment on the Value Intelligence page and nothing more. Where Plugin.Enrichment_hover_enable is also on, this card takes over the hover and the enrichment popover is not shown; enrichment\'s click-to-open form, if configured, is unaffected.'),
+                    'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
@@ -8173,6 +8262,70 @@ class Server extends AppModel
                     'value' => 10,
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
+                ),
+                /*
+                 * The Value Intelligence page's auto-run gate
+                 * (prd/analyst-profile/13-auto-run.md §6, D24).
+                 *
+                 * An Analyst Profile declares which enrichment modules
+                 * matter for a type, and may mark one `auto`. This
+                 * decides whether an `auto` may actually cause a
+                 * query. It has to sit above the profile because
+                 * profiles resolve user -> org -> instance default, so
+                 * an analyst can be running under one they did not
+                 * author; without this, an org admin's declaration
+                 * would spend everyone's quota on their behalf.
+                 *
+                 * Off by default, so no instance changes behaviour by
+                 * taking the upgrade.
+                 */
+                'ValueIntelligence_enrichment_auto_run' => array(
+                    'level' => 1,
+                    'description' => __('Whether an Analyst Profile may run enrichment modules on the Value Intelligence page without a press. The profile decides which modules; this decides whether any of them may run here. Off by default: a module run spends the instance\'s quota and tells whoever operates the module that somebody is looking at this value.'),
+                    'value' => 'off',
+                    'test' => 'testForEmpty',
+                    'type' => 'string',
+                    'options' => array(
+                        'off' => __('Off - nothing runs without a press'),
+                        'site_admin' => __('Site administrators only'),
+                        'on' => __('On'),
+                    ),
+                ),
+                /*
+                 * Which Analyst Profile this instance runs
+                 * (prd/personas/03-profiles.md §4, D44).
+                 *
+                 * `resolveFor()`'s instance branch used to mean "any
+                 * enabled row with `default = 1`", which was well defined
+                 * only because exactly one such row existed. MISP now
+                 * ships six, so the instance says which one it means.
+                 *
+                 * It names a uuid rather than a name or an id, because a
+                 * uuid is what survives `updateDefaults()` re-reading the
+                 * shipped files and a re-import giving a profile a new id.
+                 * The default is `default-v1`'s, so an instance taking the
+                 * upgrade keeps scoring exactly as it did: none of the
+                 * five opinionated profiles comes into force unless a site
+                 * admin names it here.
+                 *
+                 * Only a shipped or a shared profile can be named. Any other
+                 * row belongs to a user or an organisation, and putting one
+                 * of those in force instance-wide would hand `scopeOf()` a
+                 * row whose owner is not the reader - which is the one
+                 * assumption that lets `verdictPanels()` describe the
+                 * profile in force without taking a `$user`. A shared row
+                 * is described as shared, never as its owner's.
+                 *
+                 * Disabling the named profile still switches assessment
+                 * scoring off for everyone who owns none, which is how
+                 * that is done today and stays unchanged.
+                 */
+                'ValueIntelligence_instance_profile' => array(
+                    'level' => 1,
+                    'description' => __('The uuid of the Analyst Profile this instance scores values with, for every reader whose organisation and account have selected none. Defaults to the shipped default-v1. It must name a profile MISP ships or one a site admin has shared; a profile owned by a user or an organisation cannot be put in force here.'),
+                    'value' => '6e2679bc-ebb0-417f-90d8-16cb1d0144ba',
+                    'test' => 'testAnalystProfileUuid',
+                    'type' => 'string',
                 ),
                 'Import_services_enable' => array(
                     'level' => 0,

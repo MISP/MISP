@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('NoticelistRailCards', 'Tools/RailCards');
 
 class NoticelistsController extends AppController
 {
@@ -193,6 +194,12 @@ class NoticelistsController extends AppController
         );
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
+        }
+        if ($this->theme === 'Overmind') {
+            $railCards = new NoticelistRailCards();
+            $this->set('railCards', RailCard::byId([
+                $railCards->fires($this->viewVars['data']),
+            ]));
         }
         $this->set('id', $id);
         $this->set('menuData', array('menuList' => 'noticelist', 'menuItem' => 'view_noticelist'));

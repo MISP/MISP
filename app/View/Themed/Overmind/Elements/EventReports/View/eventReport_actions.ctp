@@ -10,7 +10,9 @@ if (!empty($canEdit)) {
         'url' => "$baseurl/event_reports/edit/$reportId",
         'onclick' => "event.preventDefault(); openModal('$baseurl/event_reports/edit/$reportId');",
         'icon' => 'fas fa-pen',
+        'entity' => 'report',
         'label' => __('Edit Report'),
+        'short' => __('Edit'),
     ];
 
     $actions[] = [
@@ -29,9 +31,10 @@ $actions[] = [
     'onclick' => "erDownloadMarkdown('pdf-print', event);",
     'icon' => 'fas fa-print',
     'label' => __('Download PDF (via print)'),
+    'short' => __('PDF'),
 ];
 
-echo $this->element('genericElementsBS5/Cards/card_actions', [
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions
 ]);
 ?>

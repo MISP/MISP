@@ -1,10 +1,15 @@
 <?php
-$analysisDots = ['#0d6efd', '#fd7e14', '#198754'];
+$analysisDots = [
+    'var(--misp-tone-blue-solid, #0d6efd)',
+    'var(--misp-tone-orange-solid, #fd7e14)',
+    'var(--misp-tone-green-solid, #198754)',
+];
+$noDot = 'var(--misp-tone-gray-solid, #adb5bd)';
 $threatColors = [
-    'High'      => '#dc3545',
-    'Medium'    => '#fd7e14',
-    'Low'       => '#ffc107',
-    'Undefined' => '#adb5bd',
+    'High'      => 'var(--misp-tone-red-solid, #dc3545)',
+    'Medium'    => 'var(--misp-tone-orange-solid, #fd7e14)',
+    'Low'       => 'var(--misp-tone-yellow-solid, #ffc107)',
+    'Undefined' => $noDot,
 ];
 
 if (empty($event)):
@@ -14,7 +19,7 @@ if (empty($event)):
     }
 ?>
 <div class="d-flex align-items-start gap-2 p-2 rounded border mt-1"
-     style="border-color:#d8dde3; font-size:.8rem;">
+     style="border-color:var(--misp-field-line, #d8dde3); font-size:.8rem;">
     <i class="fas fa-circle-exclamation text-warning mt-1"
        style="font-size:.75rem; flex-shrink:0;"></i>
     <span class="text-muted"><?= h($msg) ?></span>
@@ -27,9 +32,9 @@ if (empty($event)):
     $eAnalysis  = (int)($event['Event']['analysis'] ?? 0);
     $eThreat    = $event['ThreatLevel']['name'] ?? '';
     $eTags      = $event['EventTag'] ?? [];
-    $analysisDot   = $analysisDots[$eAnalysis] ?? '#adb5bd';
+    $analysisDot   = $analysisDots[$eAnalysis] ?? $noDot;
     $analysisLabel = $analysisLevels[$eAnalysis] ?? '';
-    $threatDot     = $threatColors[$eThreat] ?? '#adb5bd';
+    $threatDot     = $threatColors[$eThreat] ?? $noDot;
 ?>
 <div class="rounded border mt-2 overflow-hidden js-extends-event-card"
      data-extends-uuid="<?= h($eUuid) ?>"
@@ -46,7 +51,7 @@ if (empty($event)):
                 <?= __('Matched Event') ?>
             </span>
         </div>
-        <a href="<?= h($baseurl) ?>/events/view2/<?= h($eId) ?>"
+        <a href="<?= h($baseurl) ?>/events/view/<?= h($eId) ?>"
            class="d-flex align-items-center gap-1 text-decoration-none"
            style="font-size:.7rem; color:var(--primary);"
            target="_blank"
@@ -95,18 +100,7 @@ if (empty($event)):
             $overflow   = count($eTags) - $maxVisible;
         ?>
         <div class="d-flex flex-wrap gap-1 align-items-center">
-            <?php foreach ($shown as $et):
-                $tag     = $et['Tag'] ?? [];
-                $colour  = $tag['colour'] ?? '#adb5bd';
-                $txtCol  = $this->TextColour->getTextColour($colour);
-            ?>
-            <span class="badge"
-                  style="background:<?= h($colour) ?>; color:<?= h($txtCol) ?>;
-                         font-size:.65rem; font-weight:500;
-                         padding:.25em .5em; letter-spacing:.01em;">
-                <?= h($tag['name'] ?? '') ?>
-            </span>
-            <?php endforeach; ?>
+            <?= $this->TagChip->collection($shown, ['searchUrl' => '']) ?>
             <?php if ($overflow > 0): ?>
             <span class="text-muted" style="font-size:.7rem;">
                 +<?= $overflow ?> <?= __('more') ?>

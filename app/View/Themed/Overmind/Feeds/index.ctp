@@ -99,18 +99,21 @@ $filterChildren = [
                 'type' => 'dropdown',
                 'label' => __('Source format'),
                 'name' => 'source_format',
+                'separator' => '||',
                 'options' => ['' => ''] + ($feedTypeOptions ?? []),
             ],
             [
                 'type' => 'dropdown',
                 'label' => __('Input source'),
                 'name' => 'input_source',
+                'separator' => '||',
                 'options' => ['' => ''] + ($inputSourceOptions ?? []),
             ],
             [
                 'type' => 'dropdown',
                 'label' => __('Distribution'),
                 'name' => 'distribution',
+                'separator' => '||',
                 'options' => ['' => ''] + $distributionLevels,
             ],
             [
@@ -139,6 +142,7 @@ if (!empty($providerOptions)) {
         'type' => 'dropdown',
         'label' => __('Provider'),
         'name' => 'provider',
+        'separator' => '||',
         'options' => ['' => ''] + $providerOptions,
     ];
 }
@@ -147,6 +151,7 @@ if (!empty($orgOptions)) {
         'type' => 'dropdown',
         'label' => __('Creator org'),
         'name' => 'orgc_id',
+        'separator' => '||',
         'options' => ['' => ''] + $orgOptions,
     ];
 }

@@ -73,7 +73,7 @@ $fields = [
         'function' => function (array $row) use ($settingDescriptions) {
             $setting = $row['UserSetting']['setting'] ?? '';
             $description = $settingDescriptions[$setting] ?? '';
-            $nameClass = 'font-monospace small text-primary text-nowrap';
+            $nameClass = 'font-monospace small text-accent text-nowrap';
             if ($description === '') {
                 return '<span class="' . $nameClass . '">' . h($setting) . '</span>';
             }

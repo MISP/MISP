@@ -52,7 +52,7 @@ echo $this->Form->create('Collection', [
         <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 ">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                <div class="d-flex align-items-center gap-2 text-accent fw-bold
                             text-uppercase"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Collection Name') ?>
@@ -67,7 +67,7 @@ echo $this->Form->create('Collection', [
             <?= $this->Form->text('name', [
                 'id' => 'CollectionName',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important;'
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                     . ' outline:none;',
                 'maxlength' => 60,
                 'placeholder' => __('e.g. APTX phishing campaign assets'),
@@ -117,7 +117,7 @@ echo $this->Form->create('Collection', [
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 3,
-                'style' => 'border-color:#d8dde3;',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                 'placeholder' => __('Briefly describe what this collection is for and what kind of assets it contains…'),
             ]) ?>
         </div>
@@ -126,14 +126,14 @@ echo $this->Form->create('Collection', [
             <!-- ── ATTACH TARGET ───────────────────────────────── -->
             <div class="alert alert-light border d-flex align-items-center gap-3 mb-0"
                  role="alert" style="border-color:var(--primary) !important;">
-                <i class="fas fa-link text-primary"></i>
+                <i class="fas fa-link text-accent"></i>
                 <div class="flex-grow-1">
                     <div class="fw-semibold" style="font-size:.85rem;">
                         <?= __('%s element(s) will be attached', count($attachElementUuids)) ?>
                     </div>
                     <div class="text-muted" style="font-size:.75rem; margin-top:.15rem;">
                         <?= h($attachElementType) ?> ·
-                        <code><?= h(implode(', ', $attachElementUuids)) ?></code>
+                        <code class="text-break"><?= h(implode(', ', $attachElementLabels ?? $attachElementUuids)) ?></code>
                     </div>
                 </div>
             </div>
@@ -249,7 +249,7 @@ echo $this->Form->create('Collection', [
         var errorId = 'collectionNameError';
 
         var showError = function () {
-            nameEl.style.setProperty('border-bottom-color', '#dc3545', 'important');
+            nameEl.style.setProperty('border-bottom-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
             if (!document.getElementById(errorId)) {
                 var msg = document.createElement('div');
                 msg.id = errorId;
@@ -265,7 +265,7 @@ echo $this->Form->create('Collection', [
         };
 
         var clearError = function () {
-            nameEl.style.setProperty('border-bottom-color', '#d8dde3', 'important');
+            nameEl.style.setProperty('border-bottom-color', 'var(--misp-field-line, #d8dde3)', 'important');
             var msg = document.getElementById(errorId);
             if (msg) { msg.remove(); }
         };

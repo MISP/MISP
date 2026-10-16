@@ -57,7 +57,7 @@ $kv = function ($label, $value) {
 $panel = function ($title, $icon, $body, $opts = []) {
     $attrs = empty($opts['id']) ? '' : ' id="' . h($opts['id']) . '"';
     $class = 'srv-panel' . (empty($opts['class']) ? '' : ' ' . h($opts['class']));
-    $accent = $opts['accent'] ?? 'text-primary';
+    $accent = $opts['accent'] ?? 'text-accent';
     ob_start();
     ?>
     <div class="<?= $class ?>"<?= $attrs ?>>
@@ -147,7 +147,7 @@ $pending = '<div class="server-action-result srv-flat small">'
                 ?>
                 <?= $panel(__('Sync User'), 'fa-user-gear', $syncBody, [
                     'id' => $syncId,
-                    'accent' => 'text-primary',
+                    'accent' => 'text-accent',
                     'class' => 'srv-probe',
                     'tools' => $retry('sync-user', __('Fetch the remote sync user again')),
                 ]) ?>
@@ -189,7 +189,7 @@ $pending = '<div class="server-action-result srv-flat small">'
                     . '</div>';
                 ?>
                 <?= $panel(__('Synchronisation Options'), 'fa-arrows-rotate', $syncBody, [
-                    'accent' => 'text-primary',
+                    'accent' => 'text-accent',
                 ]) ?>
             </div>
 
@@ -242,7 +242,7 @@ $pending = '<div class="server-action-result srv-flat small">'
                 $detailsBody = ob_get_clean();
                 ?>
                 <?= $panel(__('Server Details'), 'fa-circle-info', $detailsBody, [
-                    'accent' => 'text-primary',
+                    'accent' => 'text-accent',
                 ]) ?>
             </div>
 
@@ -259,7 +259,7 @@ $pending = '<div class="server-action-result srv-flat small">'
                 }
                 ?>
                 <?= $panel(__('Bound Sync Users'), 'fa-users', $usersBody, [
-                    'accent' => 'text-primary',
+                    'accent' => 'text-accent',
                 ]) ?>
             </div>
 

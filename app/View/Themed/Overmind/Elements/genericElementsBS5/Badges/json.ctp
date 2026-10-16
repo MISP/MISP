@@ -31,7 +31,7 @@ $full = $full ?? true;
              data-bs-toggle="tooltip" 
              data-bs-html="true" 
              title="<pre class='text-start small mb-0'><?= h(mb_strimwidth($formattedJson, 0, 200, '...')) ?></pre>">
-            <i class="fas fa-file-code text-primary"></i>
+            <i class="fas fa-file-code text-accent"></i>
         </div>
     <?php endif; ?>
 </div>

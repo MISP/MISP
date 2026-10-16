@@ -26,9 +26,9 @@ if (Configure::read('Plugin.AI_services_enable')
 
             <!-- Icon + title + count -->
             <div class="d-flex align-items-center gap-2 me-auto">
-                <div class="rounded-2 d-flex align-items-center justify-content-center"
-                     style="width:36px;height:36px;background:#DB6A4718;">
-                    <span class="misp-icon misp-icon-tag misp-simple" style="color:#DB6A47;font-size:1rem;"></span>
+                <div class="misp-icon-tile rounded-2 d-flex align-items-center justify-content-center"
+                     style="width:36px;height:36px;--tile:#DB6A47;--tile-bg:#DB6A4718;">
+                    <span class="misp-icon misp-icon-tag misp-simple" style="font-size:1rem;"></span>
                 </div>
                 <div>
                     <div class="fw-bold lh-1"><?= __('Tags') ?></div>
@@ -93,7 +93,7 @@ if (Configure::read('Plugin.AI_services_enable')
     <div id="<?= $uid ?>-body"
          data-collapse-tall="400">
         <div class="text-center py-4 text-muted">
-            <div class="spinner-border spinner-border-sm" role="status"></div>
+            <div class="misp-loader misp-loader-sm" role="status"></div>
         </div>
     </div>
 
@@ -171,6 +171,9 @@ if (Configure::read('Plugin.AI_services_enable')
             var show = q === '' || name.includes(q);
             item.classList.toggle('d-none', !show);
             if (show) { visible++; }
+        });
+        body.querySelectorAll('.hg-group').forEach(function (group) {
+            group.classList.toggle('d-none', !group.querySelector('[data-tag-item]:not(.d-none)'));
         });
 
         var noMatch = items.length > 0 && visible === 0;

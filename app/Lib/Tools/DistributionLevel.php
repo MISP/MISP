@@ -18,6 +18,8 @@
  *   bg     badge / icon-frame background (a pale tint)
  *   color  text and glyph colour, also the border at 20% via `%s20`
  *   icon   full class attribute for the glyph (Font Awesome or misp-iconify)
+ *   token  the level's --misp-<token>-bg/-fg/-border theme properties; see
+ *          themed() for drawing a colour a theme can replace
  *
  */
 
@@ -32,6 +34,7 @@ class DistributionLevel
      */
     private static $levels = array(
         0 => array(
+            'token' => 'dist-0',
             'label' => 'Your organisation only',
             'sub'   => 'Your organisation on this server only',
             'bg'    => '#f8d7da',
@@ -39,6 +42,7 @@ class DistributionLevel
             'icon'  => 'fas fa-building',
         ),
         1 => array(
+            'token' => 'dist-1',
             'label' => 'This community only',
             'sub'   => 'Every organisation on this server',
             'bg'    => '#ffe5b4',
@@ -46,6 +50,7 @@ class DistributionLevel
             'icon'  => 'fas fa-users',
         ),
         2 => array(
+            'token' => 'dist-2',
             'label' => 'Connected communities',
             'sub'   => 'This server and the ones connected to it',
             'bg'    => '#e7d3c3',
@@ -53,6 +58,7 @@ class DistributionLevel
             'icon'  => 'fas fa-network-wired',
         ),
         3 => array(
+            'token' => 'dist-3',
             'label' => 'All communities',
             'sub'   => 'Free to propagate from one server to the next',
             'bg'    => '#d1f7e0',
@@ -60,6 +66,7 @@ class DistributionLevel
             'icon'  => 'fas fa-globe',
         ),
         4 => array(
+            'token' => 'dist-4',
             'label' => 'Sharing group',
             'sub'   => 'Any organisation that is part of the selected sharing group',
             'bg'    => '#dce8ff',
@@ -67,6 +74,7 @@ class DistributionLevel
             'icon'  => 'misp-icon misp-icon-sharing-group misp-simple',
         ),
         5 => array(
+            'token' => 'dist-5',
             'label' => 'Inherited',
             'sub'   => 'Follows the distribution of the event',
             'bg'    => '#e6b7df',
@@ -82,6 +90,7 @@ class DistributionLevel
      * @var array
      */
     private static $unknown = array(
+        'token' => 'dist-unknown',
         'label' => 'Unknown',
         'sub'   => 'This value is not one of MISP\'s distribution levels',
         'bg'    => '#f1f1f1',
@@ -145,6 +154,25 @@ class DistributionLevel
     public static function fallback()
     {
         return self::translate(self::$unknown);
+    }
+
+    /**
+     * A colour of an entry as the theme's token, falling back to the value
+     * in this table: 'bg', 'fg' (the text colour) or 'border', which is the
+     * text colour with $alpha (a hex alpha such as '20') appended.
+     *
+     * @param array $meta an entry from get(), all() or fallback()
+     * @param string $role bg, fg or border
+     * @param string $alpha
+     * @return string
+     */
+    public static function themed(array $meta, $role, $alpha = '')
+    {
+        $value = $role === 'bg' ? $meta['bg'] : $meta['color'];
+        if ($role === 'border') {
+            $value .= $alpha;
+        }
+        return sprintf('var(--misp-%s-%s, %s)', $meta['token'], $role, $value);
     }
 
     /**

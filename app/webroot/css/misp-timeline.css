@@ -1,0 +1,545 @@
+/* The ledger timeline (misp-timeline.js): rows over a time axis, object
+ * envelopes, and the histogram strip that sets the window. A theme
+ * recolours it through the --misp-timeline-* tokens; these are the
+ * fallback. The column widths are --tl-label-w, --tl-dates-w, --tl-tail
+ * and --tl-inset, overridable on a more specific selector. */
+:root {
+    --misp-timeline-attribute: color-mix(in srgb,
+        var(--bs-attribute, #97cc04) 84%, #203000);
+    --misp-timeline-attribute-edge: color-mix(in srgb,
+        var(--bs-attribute, #97cc04) 52%, #000);
+    --misp-timeline-object: var(--bs-object, #524948);
+    --misp-timeline-child: color-mix(in srgb,
+        var(--misp-timeline-attribute) 78%, var(--bs-object, #524948));
+    --misp-timeline-envelope-bg: color-mix(in srgb,
+        var(--misp-timeline-object) 9%, transparent);
+    --misp-timeline-envelope-line: color-mix(in srgb,
+        var(--misp-timeline-object) 58%, transparent);
+    --misp-timeline-group-bg: color-mix(in srgb,
+        var(--misp-timeline-object) 3.5%, transparent);
+    --misp-timeline-grid: var(--bs-border-color-translucent);
+    --misp-timeline-axis: var(--bs-secondary-color);
+    --misp-timeline-overview: color-mix(in srgb,
+        var(--bs-primary) 72%, var(--bs-body-bg));
+    --misp-timeline-today: var(--bs-danger);
+    --misp-timeline-row-hover: color-mix(in srgb,
+        var(--bs-primary) 6%, transparent);
+    --misp-timeline-gutter: color-mix(in srgb,
+        var(--bs-secondary-bg) 70%, transparent);
+}
+[data-misp-mode="dark"] {
+    --misp-timeline-attribute: var(--bs-attribute, #97cc04);
+    --misp-timeline-attribute-edge: color-mix(in srgb,
+        var(--bs-attribute, #97cc04) 62%, #fff);
+    --misp-timeline-object: color-mix(in srgb,
+        var(--bs-object, #524948) 40%, var(--bs-body-color));
+    --misp-timeline-child: color-mix(in srgb,
+        var(--bs-attribute, #97cc04) 72%, var(--bs-body-color));
+    --misp-timeline-envelope-bg: color-mix(in srgb,
+        var(--misp-timeline-object) 13%, transparent);
+    --misp-timeline-envelope-line: color-mix(in srgb,
+        var(--misp-timeline-object) 62%, transparent);
+    --misp-timeline-group-bg: color-mix(in srgb,
+        var(--misp-timeline-object) 5%, transparent);
+    --misp-timeline-overview: color-mix(in srgb,
+        var(--bs-primary) 78%, var(--bs-body-color));
+    --misp-timeline-row-hover: color-mix(in srgb,
+        var(--bs-primary) 10%, transparent);
+}
+
+/* ── ledger ────────────────────────────────────────────── */
+.tl-ledger {
+    --tl-label-w: 27rem;
+    --tl-dates-w: 13.5rem;
+    --tl-tail: 58px;
+    --tl-inset: 26px;
+    position: relative;
+    max-height: 34rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    border-top: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+@media (max-width: 1440px) {
+    .tl-ledger { --tl-label-w: 23rem; --tl-dates-w: 12.5rem; --tl-inset: 22px; }
+}
+.tl-grid {
+    display: grid;
+    grid-template-columns: var(--tl-label-w) minmax(0, 1fr) var(--tl-dates-w);
+}
+.tl-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    height: 30px;
+    background: var(--bs-card-bg, var(--bs-body-bg));
+    border-bottom: 1px solid var(--bs-border-color);
+    font-size: .68rem;
+    letter-spacing: .02em;
+    color: var(--bs-secondary-color);
+}
+.tl-head > div {
+    display: flex;
+    align-items: flex-end;
+    min-width: 0;
+    padding: 0 10px 6px;
+}
+.tl-head .tl-head-plot {
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    border-left: 1px solid var(--bs-border-color);
+    border-right: 1px solid var(--bs-border-color);
+}
+.tl-head-dates { justify-content: center; }
+.tl-ticks { position: absolute; inset: 0 var(--tl-inset); }
+.tl-tick {
+    position: absolute;
+    bottom: 5px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    transform: translateX(-50%);
+}
+.tl-tick-major { color: var(--bs-body-color); font-weight: 600; }
+.tl-tick-today {
+    bottom: 16px;
+    font-size: .62rem;
+    font-weight: 600;
+    color: var(--misp-timeline-today);
+}
+
+.tl-rows { position: relative; }
+.tl-gridlayer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--tl-label-w) + var(--tl-inset) + 1px);
+    right: calc(var(--tl-dates-w) + var(--tl-inset) + 1px);
+    pointer-events: none;
+}
+.tl-gridline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--misp-timeline-grid);
+}
+.tl-gridline-major { background: var(--bs-border-color); }
+.tl-gridline-today {
+    z-index: 2;
+    width: 0;
+    background: none;
+    border-left: 1px dashed var(--misp-timeline-today);
+}
+/* The inset gutters keep a one-ended shape at either edge readable. */
+.tl-plotframe {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--tl-label-w);
+    right: var(--tl-dates-w);
+    border-left: 1px solid var(--bs-border-color);
+    border-right: 1px solid var(--bs-border-color);
+    pointer-events: none;
+    background: linear-gradient(90deg,
+        var(--misp-timeline-gutter) var(--tl-inset),
+        transparent var(--tl-inset),
+        transparent calc(100% - var(--tl-inset)),
+        var(--misp-timeline-gutter) calc(100% - var(--tl-inset)));
+}
+
+/* ── rows ──────────────────────────────────────────────── */
+.tl-row {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: var(--tl-row-h, 32px);
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    font-size: .8rem;
+}
+.tl-row:hover { background: var(--misp-timeline-row-hover); }
+.tl-row-envelope, .tl-row-child, .tl-row-loading {
+    background-color: var(--misp-timeline-group-bg);
+}
+.tl-row-envelope.tl-open { border-bottom-color: transparent; }
+.tl-row-child { border-bottom-style: dotted; }
+
+.tl-cell-label {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    min-width: 0;
+    padding: 0 10px 0 8px;
+    overflow: hidden;
+    cursor: pointer;
+}
+.tl-cue .tl-cell-label {
+    box-shadow: inset 3px 0 0 var(--tl-cue);
+    padding-left: 11px;
+}
+.tl-caret {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: none;
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+}
+.tl-caret:hover {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+}
+.tl-caret:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 1px;
+}
+.tl-caret i { transition: transform .12s ease; }
+.tl-open .tl-caret i { transform: rotate(90deg); }
+.tl-caret-none { visibility: hidden; }
+.tl-tree {
+    position: relative;
+    flex: none;
+    align-self: stretch;
+    width: 14px;
+    margin-left: 9px;
+    border-left: 1px solid var(--misp-timeline-envelope-line);
+}
+.tl-tree::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 9px;
+    border-top: 1px solid var(--misp-timeline-envelope-line);
+}
+.tl-tree-last { align-self: flex-start; height: 50%; }
+.tl-tree-last::after { top: 100%; }
+.tl-val {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.tl-row-envelope .tl-val { font-weight: 600; }
+.tl-val-count {
+    margin-left: .3rem;
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+.tl-loading-text {
+    font-size: .76rem;
+    font-style: italic;
+    color: var(--bs-secondary-color);
+}
+.tl-spin {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--bs-border-color);
+    border-top-color: var(--bs-primary);
+    animation: tl-spin .8s linear infinite;
+}
+@keyframes tl-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .tl-spin { animation: none; }
+    .tl-caret i { transition: none; }
+}
+
+/* ── marks ─────────────────────────────────────────────── */
+.tl-cell-plot { position: relative; overflow: hidden; }
+.tl-track {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--tl-inset);
+    right: var(--tl-inset);
+}
+.tl-mark {
+    --tl-c: var(--misp-timeline-attribute);
+    position: absolute;
+    top: 50%;
+    height: 10px;
+    margin-top: -5px;
+    cursor: pointer;
+}
+.tl-mark-range {
+    background: var(--tl-c);
+    border-radius: 2px;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb,
+        var(--tl-c) 70%, var(--misp-timeline-attribute-edge));
+}
+.tl-mark-range.tl-clip-l {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.tl-mark-range.tl-clip-r {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.tl-mark-first, .tl-mark-last { width: var(--tl-tail); }
+.tl-mark-first {
+    border-left: 3px solid var(--misp-timeline-attribute-edge);
+    background: linear-gradient(90deg, var(--tl-c) 0%,
+        color-mix(in srgb, var(--tl-c) 45%, transparent) 45%,
+        transparent 100%);
+}
+.tl-mark-last {
+    margin-left: calc(-1 * var(--tl-tail));
+    border-right: 3px solid var(--misp-timeline-attribute-edge);
+    background: linear-gradient(270deg, var(--tl-c) 0%,
+        color-mix(in srgb, var(--tl-c) 45%, transparent) 45%,
+        transparent 100%);
+}
+.tl-mark-point {
+    width: 10px;
+    margin-left: -5px;
+    border-radius: 50%;
+    background: var(--tl-c);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb,
+        var(--tl-c) 60%, var(--misp-timeline-attribute-edge));
+}
+.tl-row-child .tl-mark {
+    --tl-c: var(--misp-timeline-child);
+    height: 8px;
+    margin-top: -4px;
+}
+.tl-row-child .tl-mark-point { width: 8px; margin-left: -4px; }
+.tl-mark:hover { filter: brightness(1.08) saturate(1.1); }
+
+/* An envelope: the span of a row and its children. Unfolded, it runs
+ * down through the child rows as one box, drawn in segments. */
+.tl-env {
+    position: absolute;
+    top: 7px;
+    bottom: 7px;
+    background: var(--misp-timeline-envelope-bg);
+    border: 1px solid var(--misp-timeline-envelope-line);
+    border-radius: 4px;
+    cursor: pointer;
+}
+.tl-env-range { min-width: 8px; }
+.tl-env-point { width: 12px; margin-left: -6px; }
+.tl-env-first, .tl-env-last {
+    width: var(--tl-tail);
+    border-top: 0;
+    border-bottom: 0;
+    border-radius: 0;
+}
+.tl-env-first {
+    border-right: 0;
+    border-left: 2px solid var(--misp-timeline-object);
+    background: linear-gradient(90deg, color-mix(in srgb,
+        var(--misp-timeline-object) 26%, transparent), transparent);
+}
+.tl-env-last {
+    margin-left: calc(-1 * var(--tl-tail));
+    border-left: 0;
+    border-right: 2px solid var(--misp-timeline-object);
+    background: linear-gradient(270deg, color-mix(in srgb,
+        var(--misp-timeline-object) 26%, transparent), transparent);
+}
+.tl-open .tl-env {
+    bottom: -1px;
+    border-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.tl-seg {
+    position: absolute;
+    top: -1px;
+    bottom: -1px;
+    background: var(--misp-timeline-envelope-bg);
+    border-left: 1px solid var(--misp-timeline-envelope-line);
+    border-right: 1px solid var(--misp-timeline-envelope-line);
+    pointer-events: none;
+}
+.tl-seg-end {
+    bottom: 6px;
+    border-bottom: 1px solid var(--misp-timeline-envelope-line);
+    border-radius: 0 0 4px 4px;
+}
+.tl-seg-point { width: 12px; margin-left: -6px; }
+.tl-seg-first, .tl-seg-last {
+    width: var(--tl-tail);
+    border-bottom: 0;
+    border-radius: 0;
+}
+.tl-seg-first {
+    border-right: 0;
+    border-left: 2px solid var(--misp-timeline-object);
+    background: linear-gradient(90deg, color-mix(in srgb,
+        var(--misp-timeline-object) 16%, transparent), transparent);
+}
+.tl-seg-last {
+    margin-left: calc(-1 * var(--tl-tail));
+    border-left: 0;
+    border-right: 2px solid var(--misp-timeline-object);
+    background: linear-gradient(270deg, color-mix(in srgb,
+        var(--misp-timeline-object) 16%, transparent), transparent);
+}
+.tl-own {
+    position: absolute;
+    top: 50%;
+    height: 4px;
+    margin-top: 3px;
+    pointer-events: none;
+}
+.tl-open .tl-own { margin-top: 2px; }
+.tl-own-range {
+    min-width: 4px;
+    border-radius: 1px;
+    background: var(--misp-timeline-object);
+}
+.tl-own-point {
+    width: 4px;
+    margin-left: -2px;
+    border-radius: 1px;
+    background: var(--misp-timeline-object);
+}
+.tl-own-first, .tl-own-last { width: calc(var(--tl-tail) * .7); }
+.tl-own-first {
+    border-left: 2px solid var(--misp-timeline-object);
+    background: linear-gradient(90deg,
+        var(--misp-timeline-object), transparent);
+}
+.tl-own-last {
+    margin-left: calc(var(--tl-tail) * -.7);
+    border-right: 2px solid var(--misp-timeline-object);
+    background: linear-gradient(270deg,
+        var(--misp-timeline-object), transparent);
+}
+
+/* ── dates column: "from → to" ─────────────────────────── */
+.tl-cell-dates {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: .4rem;
+    min-width: 0;
+    padding: 0 10px;
+    overflow: hidden;
+    font-size: .74rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.tl-d-from { text-align: right; overflow: hidden; text-overflow: ellipsis; }
+.tl-d-to { overflow: hidden; text-overflow: ellipsis; }
+.tl-d-arrow { color: var(--bs-secondary-color); }
+.tl-d-at {
+    grid-column: 1 / -1;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.tl-d-none { font-style: italic; color: var(--bs-secondary-color); }
+.tl-row-envelope .tl-cell-dates {
+    color: color-mix(in srgb,
+        var(--misp-timeline-object) 55%, var(--bs-body-color));
+}
+
+.tl-nomatch {
+    padding: 2rem 1rem;
+    text-align: center;
+    font-size: .85rem;
+    color: var(--bs-secondary-color);
+}
+
+/* ── tooltip ───────────────────────────────────────────── */
+.tl-tip {
+    position: fixed;
+    z-index: 2000;
+    min-width: 240px;
+    max-width: 380px;
+    padding: .6rem .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    box-shadow: 0 6px 22px rgba(0, 0, 0, .18);
+    font-size: .78rem;
+    pointer-events: none;
+}
+.tl-tip[hidden] { display: none; }
+.tl-tip-title {
+    margin-bottom: .15rem;
+    font-weight: 600;
+    word-break: break-all;
+}
+.tl-tip-sub { margin-bottom: .45rem; color: var(--bs-secondary-color); }
+.tl-tip dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .15rem .7rem;
+    margin: 0;
+}
+.tl-tip dt { font-weight: 400; color: var(--bs-secondary-color); }
+.tl-tip dd { margin: 0; font-variant-numeric: tabular-nums; }
+.tl-tip-hint {
+    margin-top: .45rem;
+    padding-top: .35rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+    font-size: .72rem;
+    color: var(--bs-secondary-color);
+}
+
+/* ── overview strip ────────────────────────────────────── */
+.tl-ov { margin-bottom: .9rem; }
+.tl-ov-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: .35rem;
+    font-size: .76rem;
+    color: var(--bs-secondary-color);
+}
+.tl-ov-head strong {
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--bs-body-color);
+}
+.tl-ov-plot {
+    --misp-brush-dim: 60%;
+    position: relative;
+    height: 56px;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.tl-ov-bars {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 1px;
+}
+.tl-ov-bar {
+    flex: 1 1 0;
+    min-width: 0;
+    border-radius: 1px 1px 0 0;
+    background: var(--misp-timeline-overview);
+}
+.tl-ov-bar.tl-ov-bar-zero { height: 1px; background: var(--bs-border-color); }
+.tl-ov-axis {
+    position: relative;
+    height: 1.1rem;
+    overflow: hidden;
+    font-size: .66rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--misp-timeline-axis);
+}
+.tl-ov-axis span {
+    position: absolute;
+    top: 0;
+    padding: 3px 0 0 3px;
+    white-space: nowrap;
+    border-left: 1px solid var(--bs-border-color);
+}
+.tl-ov-axis .tl-ov-major { font-weight: 600; color: var(--bs-body-color); }

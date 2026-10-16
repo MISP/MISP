@@ -1,0 +1,63 @@
+// MISP's own colours, merged into every theme's $theme-colors so each gets
+// the full set of Bootstrap utilities (--bs-X, .text-X, .btn-X, ...).
+// A theme tunes one by setting it before importing misp-bootstrap.
+$misp-event:        #1892B1 !default;
+$misp-object:       #524948 !default;
+$misp-attribute:    #97CC04 !default;
+$misp-tag:          #DB6A47 !default;
+$misp-galaxy:       #8B5CF6 !default;
+$misp-report:       #4DA167 !default;
+$misp-sighting:     #890096 !default;
+$misp-correlation:  #E67F0D !default;
+$misp-category:     #EF476F !default;
+$misp-type:         #06D6A0 !default;
+$misp-analystData:  #8F2D56 !default;
+$misp-enrichment:   #48435C !default;
+$misp-valueIntelligence: #997902 !default;
+$misp-analystGraph: #9055A9 !default;
+
+$misp-colors: (
+  "event":       $misp-event,
+  "object":      $misp-object,
+  "attribute":   $misp-attribute,
+  "tag":         $misp-tag,
+  "galaxy":      $misp-galaxy,
+  "report":      $misp-report,
+  "sighting":    $misp-sighting,
+  "correlation": $misp-correlation,
+  "category":    $misp-category,
+  "type":        $misp-type,
+  "analystData": $misp-analystData,
+  "enrichment":  $misp-enrichment,
+  "valueIntelligence": $misp-valueIntelligence,
+  "analystGraph": $misp-analystGraph
+) !default;
+
+// The page background in dark mode: a dark-only theme's is $body-bg.
+$misp-dark-page-bg: $body-bg-dark;
+@if $misp-theme-mode == "dark" {
+  $misp-dark-page-bg: $body-bg;
+}
+
+// Colours that only need a custom property, not utilities: a colour and the
+// pale background it sits on. Emitted as --misp-<name>.
+$misp-warninglist:            #9d174d !default;
+$misp-warninglist-soft:       #fce7f3 !default;
+$misp-warninglist-dark:       #f9a8d4 !default;
+$misp-warninglist-soft-dark:  mix($misp-warninglist, $misp-dark-page-bg, 22%) !default;
+
+// The primary as a text colour, for icons, labels and headings.
+$misp-accent:       misp-readable-for($primary, $body-bg) !default;
+$misp-accent-dark:  misp-readable-for($primary, $misp-dark-page-bg) !default;
+
+$misp-tokens: (
+  "warninglist":      $misp-warninglist,
+  "warninglist-soft": $misp-warninglist-soft,
+  "accent":           $misp-accent
+) !default;
+
+$misp-tokens-dark: (
+  "warninglist":      $misp-warninglist-dark,
+  "warninglist-soft": $misp-warninglist-soft-dark,
+  "accent":           $misp-accent-dark
+) !default;

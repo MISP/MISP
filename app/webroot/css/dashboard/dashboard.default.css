@@ -23,7 +23,8 @@
  * via getComputedStyle to drive ECharts theme registration at boot.
  */
 
-:root {
+/* Zero specificity, so a theme's own :root wins whatever the load order. */
+:where(:root) {
   /* ---- Surface ---- */
   --misp-dash-surface:        #f7f8fa;
   --misp-dash-surface-raised: #ffffff;

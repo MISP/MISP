@@ -10,8 +10,9 @@ if ($this->Acl->canAccess('eventTemplates', 'add')) {
         'url' => "$baseurl/event_templates/edit/$templateId",
         'onclick' => "event.preventDefault(); openModal('"
             . "$baseurl/event_templates/edit/$templateId', 'xl');",
-        'icon' => 'fas fa-pen-to-square',
+        'icon' => 'fas fa-pen',
         'label' => __('Edit this template'),
+        'short' => __('Edit'),
     ];
 }
 
@@ -21,9 +22,11 @@ if ($this->Acl->canAccess('eventTemplates', 'instantiate') && $isActive) {
         'url' => "$baseurl/event_templates/instantiate/$templateId",
         'onclick' => "event.preventDefault(); openModal('"
             . "$baseurl/event_templates/instantiate/$templateId', 'xl');",
-        'icon' => 'fas fa-play',
+        'icon' => 'misp-icon misp-icon-event misp-simple',
+        'entity' => 'event',
+        'add' => true,
         'label' => __('Create event from template'),
-        'success' => true,
+        'short' => __('Create event'),
     ];
 }
 
@@ -34,6 +37,7 @@ if ($this->Acl->canAccess('eventTemplates', 'preview')) {
             . "$baseurl/event_templates/preview/$templateId', 'xl');",
         'icon' => 'fas fa-eye',
         'label' => __('Preview the user form'),
+        'short' => __('Preview'),
     ];
 }
 
@@ -43,8 +47,9 @@ if ($this->Acl->canAccess('eventTemplates', 'edit')) {
         'url' => "$baseurl/event_templates/edit/$templateId",
         'onclick' => "event.preventDefault(); openModal('"
             . "$baseurl/event_templates/edit/$templateId', 'xl');",
-        'icon' => 'fas fa-pen-to-square',
+        'icon' => 'fas fa-pen-ruler',
         'label' => __('Open in builder'),
+        'short' => __('Builder'),
     ];
 }
 
@@ -56,6 +61,7 @@ if ($this->Acl->canAccess('eventTemplates', 'duplicate')) {
             . "$baseurl/event_templates/duplicate/$templateId', 'md');",
         'icon' => 'fas fa-copy',
         'label' => __('Duplicate'),
+        'short' => __('Duplicate'),
     ];
 }
 
@@ -63,6 +69,7 @@ $actions[] = [
     'url' => "$baseurl/event_templates/export/$templateId",
     'icon' => 'fas fa-download',
     'label' => __('Export as JSON'),
+    'short' => __('Export'),
 ];
 
 
@@ -77,7 +84,7 @@ if ($this->Acl->canAccess('eventTemplates', 'delete')) {
     ];
 }
 
-echo $this->element('genericElementsBS5/Cards/card_actions', [
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions,
 ]);
 

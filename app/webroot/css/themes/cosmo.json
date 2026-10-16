@@ -1,0 +1,10 @@
+{
+    "label": "Cosmo",
+    "description": "Clean and bright, with square corners.",
+    "mode": "light",
+    "fonts": [
+        "Source Sans Pro"
+    ],
+    "hide_from_users": false,
+    "navbar": "theme"
+}

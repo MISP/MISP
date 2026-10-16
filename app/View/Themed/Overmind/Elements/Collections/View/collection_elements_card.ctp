@@ -31,7 +31,7 @@ foreach ($elements as $element) {
     if ($type === 'Event' && !empty($element['Event'])) {
         $title = $element['Event']['info'];
         $refId = (int)$element['Event']['id'];
-        $url = $baseurl . '/events/view2/' . $element['Event']['id'];
+        $url = $baseurl . '/events/view/' . $element['Event']['id'];
     } elseif ($type === 'GalaxyCluster' && !empty($element['GalaxyCluster'][0])) {
         $cluster = $element['GalaxyCluster'][0];
         $title = $cluster['value'] ?? null;

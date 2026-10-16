@@ -50,6 +50,9 @@ class MispAttribute extends AppModel
     /** @var bool|null Cached result of checking if 'deleted' index exists on attributes table */
     private static $hasDeletedIndex = null;
 
+    /** @var bool|null Cached result of checking if 'idx_event_deleted_object' exists on attributes table */
+    private static $hasLooseAttributeIndex = null;
+
     /** @var array Cached ACL conditions keyed by "{perm_site_admin}-{org_id}" */
     private $aclConditionsCache = [];
 
@@ -2051,8 +2054,9 @@ class MispAttribute extends AppModel
     }
 
     /**
-     * Option lists of the attribute indexes' "More filters" panel, shared by
-     * the global index and the event view so both offer the same choices.
+     * Option lists of the attribute indexes' filter pickers, shared by the
+     * global index and the event view so both offer the same choices. Tags are
+     * searched as you type (tags/pickerSearch), so no list of them is sent.
      *
      * @return array view var name => [value => label], each led by ''
      */
@@ -2065,11 +2069,6 @@ class MispAttribute extends AppModel
             'categoryOptions' => ['' => '']
                 + array_combine($categoryKeys, $categoryKeys),
             'typeOptions' => ['' => ''] + array_combine($typeKeys, $typeKeys),
-            'tagOptions' => ['' => ''] + $this->AttributeTag->Tag->find('list', [
-                'fields' => ['Tag.name', 'Tag.name'],
-                'conditions' => ['Tag.is_galaxy' => 0],
-                'order' => ['Tag.name' => 'ASC'],
-            ]),
             'galaxyOptions' => ['' => ''] + ClassRegistry::init('Galaxy')->find('list', [
                 'fields' => ['Galaxy.type', 'Galaxy.name'],
                 'order' => ['Galaxy.name' => 'ASC'],
@@ -2307,13 +2306,67 @@ class MispAttribute extends AppModel
         if (isset($options['contain'])) {
             $params['contain'] = $options['contain'];
         }
-        return $this->find('all', array(
+        $query = array(
             'conditions' => $params['conditions'],
             'recursive' => -1,
             'fields' => $params['fields'],
             'contain' => $params['contain'],
             'order' => false,
-        ));
+        );
+        // Optional and guarded: a caller that passes none of these
+        // reaches the same unordered, unbounded query it always did.
+        foreach (array('order', 'limit', 'page') as $key) {
+            if (isset($options[$key])) {
+                $query[$key] = $options[$key];
+            }
+        }
+        return $this->find('all', $query);
+    }
+
+    /**
+     * Live attributes the user may read, shaped as
+     * MispObject::fetchGraphObjects() shapes an object's.
+     *
+     * @param array $user
+     * @param array $conditions
+     * @return array
+     */
+    public function fetchGraphAttributes(array $user, array $conditions)
+    {
+        $conditions['Attribute.deleted'] = 0;
+        $rows = $this->fetchAttributesSimple($user, [
+            'conditions' => $conditions,
+            'contain' => [
+                'Event' => ['fields' => ['Event.id', 'Event.org_id']],
+                'Object' => ['fields' => ['Object.id']],
+                'AttributeTag' => ['Tag'],
+            ],
+        ]);
+        $objectModel = ClassRegistry::init('MispObject');
+        $out = [];
+        foreach ($rows as $row) {
+            $attribute = $row['Attribute'];
+            $attribute['AttributeTag'] = $row['AttributeTag'] ?? [];
+            $shaped = $objectModel->graphAttributes($user, [$attribute], $row['Event']['org_id'] ?? null);
+            $out[] = $shaped[0];
+        }
+        return $out;
+    }
+
+    /**
+     * The index to pin a read of some events' live loose attributes to:
+     * (event_id, deleted, object_id) once its migration has run, event_id
+     * before. Left alone, the optimiser intersects event_id with object_id,
+     * whose 0 range holds every loose attribute of the instance.
+     *
+     * @return string
+     */
+    public function looseAttributeIndex()
+    {
+        if (self::$hasLooseAttributeIndex === null) {
+            self::$hasLooseAttributeIndex = $this->getSchemaInspector()->hasNamedIndex('attributes', 'idx_event_deleted_object');
+        }
+        return self::$hasLooseAttributeIndex ? 'idx_event_deleted_object' : 'event_id';
     }
 
     /**

@@ -6,7 +6,7 @@ $config = [
     'attribute' => [
         'icon' => 'tag',
         'label' => __('Attribute'),
-        'class' => 'text-primary bg-primary-subtle border-primary-subtle',
+        'class' => 'text-primary-emphasis bg-primary-subtle border-primary-subtle',
         'desc' => __('Standard MISP attribute')
     ],
     'text' => [

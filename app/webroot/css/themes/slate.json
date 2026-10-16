@@ -1,0 +1,8 @@
+{
+    "label": "Slate",
+    "description": "Dark grey and steel, in the system font.",
+    "mode": "dark",
+    "fonts": [],
+    "hide_from_users": false,
+    "navbar": "theme"
+}

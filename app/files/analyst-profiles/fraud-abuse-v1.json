@@ -1,0 +1,91 @@
+{
+    "uuid": "201b6b4a-b8cd-4ca1-9fe2-827a424665ec",
+    "name": "Fraud & Abuse",
+    "description": "For an analyst who blocks quickly and pays visibly for blocking the wrong thing. It keeps the shipped default's numbers and changes what the page shows first, with the shortest shelf life of the five.",
+    "version": 10,
+    "extends": "default-v1",
+    "parameters": {
+        "relevance": {
+            "ttl_default": 45,
+            "ttl_buckets": {
+                "short": 14,
+                "medium": 30
+            }
+        },
+        "reference": {
+            "module_trust": {
+                "btc_steroids": "B",
+                "btc_scam_check": "B",
+                "greynoise": "C",
+                "socialscan": "C"
+            }
+        },
+        "enrichment": {
+            "shapes": [
+                "reputation",
+                "registration",
+                "resolution-timeline",
+                "network-ownership",
+                "geolocation"
+            ]
+        },
+        "context": {
+            "taxonomies": {
+                "pinned": [
+                    "tlp",
+                    "false-positive"
+                ]
+            },
+            "galaxies": {
+                "preferred": [
+                    "financial-fraud",
+                    "banker",
+                    "mitre-fraud-framework"
+                ]
+            }
+        },
+        "galaxies": {
+            "attribution": [
+                "threat-actor",
+                "mitre-intrusion-set",
+                "mitre-enterprise-attack-intrusion-set",
+                "mitre-mobile-attack-intrusion-set",
+                "mitre-pre-attack-intrusion-set",
+                "mitre-ics-groups",
+                "groups",
+                "microsoft-activity-group",
+                "360net", "360net-threat-actor",
+                "surveillance-vendor",
+                "canada-listed-terrorist-entities",
+                "campaigns",
+                "mitre-campaign",
+                "malpedia",
+                "ransomware",
+                "backdoor",
+                "banker",
+                "stealer",
+                "wiper",
+                "rat",
+                "botnet",
+                "cryptominers",
+                "android",
+                "stalkerware",
+                "mitre-malware",
+                "mitre-enterprise-attack-malware",
+                "mitre-mobile-attack-malware",
+                "mitre-ics-software",
+                "tool",
+                "mitre-tool",
+                "mitre-enterprise-attack-tool",
+                "mitre-mobile-attack-tool",
+                "exploit-kit",
+                "tds",
+                "rmm-tool",
+                "software",
+                "mitre-software",
+                "financial-fraud",
+                "mitre-fraud-framework"
+            ]
+        }
+    }
+}

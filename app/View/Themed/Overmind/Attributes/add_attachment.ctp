@@ -101,7 +101,7 @@ echo $this->Form->create('Attribute', [
             <?= $this->Form->text('comment', [
                 'id'          => 'AttributeComment',
                 'class'       => 'w-100 border-0 bg-transparent py-1',
-                'style'       => 'border-bottom:1px solid #d8dde3 !important;'
+                'style'       => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                     . ' outline:none; font-size:.925rem;',
                 'placeholder' => __('Add a contextual comment…'),
             ]) ?>
@@ -135,7 +135,7 @@ echo $this->Form->create('Attribute', [
                     <label id="card-malware"
                            class="d-flex align-items-center gap-3 rounded-2 p-3
                                   h-100 w-100 user-select-none mb-0"
-                           style="cursor:pointer; border:1px solid #dee2e6;
+                           style="cursor:pointer; border:1px solid var(--misp-check-off-line, #dee2e6);
                                   transition:border-color .15s, background .15s;">
                         <?= $this->Form->checkbox('malware', [
                             'id'      => 'AttributeMalware',
@@ -154,7 +154,7 @@ echo $this->Form->create('Attribute', [
                             </div>
                         </div>
                         <i id="icon-malware" class="fas fa-biohazard"
-                           style="font-size:.95rem; color:#adb5bd; opacity:.7;
+                           style="font-size:.95rem; color:var(--misp-check-off-icon, #adb5bd); opacity:.7;
                                   transition:color .15s;"></i>
                     </label>
                 </div>
@@ -163,7 +163,7 @@ echo $this->Form->create('Attribute', [
                     <label id="card-advanced"
                            class="d-flex align-items-center gap-3 rounded-2 p-3
                                   h-100 w-100 user-select-none mb-0"
-                           style="cursor:pointer; border:1px solid #dee2e6;
+                           style="cursor:pointer; border:1px solid var(--misp-check-off-line, #dee2e6);
                                   transition:border-color .15s;">
                         <?= $this->Form->checkbox('advanced', [
                             'id'                   => 'AttributeAdvanced',
@@ -187,7 +187,7 @@ echo $this->Form->create('Attribute', [
                             </div>
                         </div>
                         <i class="fas fa-microscope"
-                           style="font-size:.95rem; color:#adb5bd; opacity:.7;"></i>
+                           style="font-size:.95rem; color:var(--misp-check-off-icon, #adb5bd); opacity:.7;"></i>
                     </label>
                 </div>
 
@@ -278,9 +278,9 @@ var fileTemplateUuid  = <?= json_encode($maliciousDefault) ?>;
                 card.style.background  = AMBER_SOFT;
                 if (icon) { icon.style.color = AMBER; icon.style.opacity = '1'; }
             } else {
-                card.style.borderColor = '#dee2e6';
+                card.style.borderColor = 'var(--misp-check-off-line, #dee2e6)';
                 card.style.background  = '';
-                if (icon) { icon.style.color = '#adb5bd'; icon.style.opacity = '.7'; }
+                if (icon) { icon.style.color = 'var(--misp-check-off-icon, #adb5bd)'; icon.style.opacity = '.7'; }
             }
         }
 

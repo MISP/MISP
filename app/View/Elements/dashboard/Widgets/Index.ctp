@@ -125,6 +125,9 @@ $renderCell = function ($row, $field) use ($pluck, $baseurl) {
             // static colored pills; tag modify / collection UI from v1
             // is deliberately omitted (read-only widget surface).
             if (!is_array($value) || empty($value)) return '';
+            if ($this->theme === 'Overmind') {
+                return $this->TagChip->collection($value, ['searchUrl' => '']);
+            }
             $chips = [];
             foreach ($value as $eventTag) {
                 $tag = isset($eventTag['Tag']) && is_array($eventTag['Tag'])

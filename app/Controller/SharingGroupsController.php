@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('SharingGroupRailCards', 'Tools/RailCards');
 
 /**
  * @property SharingGroup $SharingGroup
@@ -530,14 +531,16 @@ class SharingGroupsController extends AppController
             return $this->RestResponse->viewData($sg, $this->response->type());
         }
 
-        $this->loadModel('Event');
-        $conditions = $this->Event->createEventConditions($this->Auth->user());
-        $conditions['AND']['sharing_group_id'] = $sg['SharingGroup']['id'];
-        $sg['SharingGroup']['event_count'] = $this->Event->find('count', [
-            'conditions' => $conditions,
-            'recursive' => -1,
-            'callbacks' => false,
-        ]);
+        if ($this->theme !== 'Overmind') {
+            $this->loadModel('Event');
+            $conditions = $this->Event->createEventConditions($this->Auth->user());
+            $conditions['AND']['sharing_group_id'] = $sg['SharingGroup']['id'];
+            $sg['SharingGroup']['event_count'] = $this->Event->find('count', [
+                'conditions' => $conditions,
+                'recursive' => -1,
+                'callbacks' => false,
+            ]);
+        }
 
         // check if the current user can modify or delete the SG
         $userOrganisationUuid = $this->Auth->user()['Organisation']['uuid'];
@@ -559,10 +562,51 @@ class SharingGroupsController extends AppController
         $this->set('editable', $editable);
         $this->set('deletable', $deletable);
 
-        $this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $sg['SharingGroup']['id']));
+        $mayModify = $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $sg['SharingGroup']['id']);
+        if ($this->theme === 'Overmind') {
+            $user = $this->Auth->user();
+            $railCards = new SharingGroupRailCards();
+            $this->set('railCards', RailCard::byId(array_filter([
+                $railCards->slot('sg-inventory', $sg['SharingGroup']['id']),
+                $railCards->reach($sg),
+                $editable || $mayModify
+                    ? $railCards->blueprint($user, $sg, $this->ACL->canUserAccess($user, 'sharingGroupBlueprints', 'view'))
+                    : null,
+            ])));
+        }
+        $this->set('mayModify', $mayModify);
         $this->set('id', $sg['SharingGroup']['id']);
         $this->set('sg', $sg);
         $this->set('menuData', ['menuList' => 'globalActions', 'menuItem' => 'viewSG']);
+    }
+
+    /**
+     * Every sharing group the reader may see, for an index filter picker.
+     */
+    public function pickerSearch()
+    {
+        $this->request->allowMethod(['get']);
+        App::uses('IndexPicker', 'Tools');
+        return $this->RestResponse->viewData(IndexPicker::sharingGroups($this->Auth->user()), 'json');
+    }
+
+    /**
+     * One of the sharing group page's lazy rail cards.
+     *
+     * @param int $id
+     * @param string $cardId
+     */
+    public function railCard($id, $cardId)
+    {
+        if (!$this->SharingGroup->checkIfAuthorised($this->Auth->user(), $id)) {
+            throw new NotFoundException(__('Invalid sharing group.'));
+        }
+        $sgId = $this->SharingGroup->find('first', [
+            'recursive' => -1,
+            'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
+            'fields' => ['SharingGroup.id'],
+        ])['SharingGroup']['id'];
+        $this->_renderRailCard((new SharingGroupRailCards())->lazy($cardId, $this->Auth->user(), $sgId));
     }
 
     private function __initialiseSGQuickEdit($id, $request)

@@ -340,7 +340,7 @@ through `add_value_filter_subquery()`, which takes a per-term condition builder.
 
 **The `FULLTEXT` index must be built without stopwords.** InnoDB's default list
 holds `com`, `www`, `the` and others, and an index built with it cannot find
-them. The migration rebuilds the table with `innodb_ft_enable_stopword = 0`.
+them. The create migration builds it with `innodb_ft_enable_stopword = 0`.
 Any later rebuild in a default session (`OPTIMIZE TABLE`, `ALTER TABLE … FORCE`)
 brings the stopwords back. `value_search` notices this and falls back to a
 slower check for those words, with a warning that says how to rebuild. Do not
@@ -533,5 +533,5 @@ any time.
 | `app/Controller/ValuesController.php` | `/values/view`, `/values/search`, `/values/delete` |
 | `app/Model/Behavior/OnDemandCorrelationBehavior.php` | On Demand passes |
 | `app/Model/Correlation.php`, `OverCorrelatingValue.php` | Group keys, display, exclusions, CIDR |
-| `app/Lib/Migration/Migrations/` | The schema changes: `create_attribute_values`, `create_value_ip_ranges`, `attribute_value_ids`, `value_keyed_correlation_counts`, `value_group_correlations`, `drop_shadow_attribute_correlations`, `drop_attribute_value_text`, `value_search_without_stopwords` |
+| `app/Lib/Migration/Migrations/` | The schema changes: `create_attribute_values`, `create_value_ip_ranges`, `attribute_value_ids`, `value_keyed_correlation_counts`, `value_group_correlations`, `drop_shadow_attribute_correlations`, `drop_attribute_value_text` |
 | `tests/value_oracle/` | The lint and the 2.x comparison suites |

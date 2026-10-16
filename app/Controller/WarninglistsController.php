@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('WarninglistRailCards', 'Tools/RailCards');
 
 /**
  * @property Warninglist $Warninglist
@@ -45,6 +46,9 @@ class WarninglistsController extends AppController
         }
         if (isset($filters['type'])) {
             $this->paginate['conditions'][] = ['Warninglist.type' => $filters['type']];
+        }
+        if (isset($filters['default'])) {
+            $this->paginate['conditions'][] = ['Warninglist.default' => $filters['default']];
         }
         if (isset($filters['enabled'])) {
             $this->paginate['conditions'][] = ['Warninglist.enabled' => $filters['enabled']];
@@ -458,15 +462,19 @@ class WarninglistsController extends AppController
         if (!is_numeric($id)) {
             throw new NotFoundException(__('Invalid ID.'));
         }
-        // The page pages its values through viewEntries(); only the API and the
-        // CSV export need the whole list, which can run to a million rows.
-        $withEntries = $this->IndexFilter->isCsv() || $this->_isRest();
+        $page = $this->theme === 'Overmind' && !$this->IndexFilter->isCsv() && !$this->_isRest();
         $warninglist = $this->Warninglist->find('first', array(
-            'contain' => $withEntries ? array('WarninglistEntry', 'WarninglistType') : array('WarninglistType'),
+            'contain' => $page ? ['WarninglistType'] : ['WarninglistEntry', 'WarninglistType'],
             'conditions' => array('id' => $id))
         );
         if (empty($warninglist)) {
             throw new NotFoundException(__('Warninglist not found.'));
+        }
+        if ($page) {
+            $railCards = new WarninglistRailCards();
+            $this->set('railCards', RailCard::byId([
+                $railCards->slot('warninglist-inventory', $id),
+            ]));
         }
         if ($this->IndexFilter->isCsv()) {
             $csv = [];
@@ -486,51 +494,74 @@ class WarninglistsController extends AppController
         }
 
         $this->set('warninglist', $warninglist);
-        $this->set('entryCount', $this->Warninglist->WarninglistEntry->find('count', [
-            'recursive' => -1,
-            'conditions' => ['WarninglistEntry.warninglist_id' => $id],
-        ]));
         $this->set('possibleCategories', $this->Warninglist->categories());
     }
 
     /**
-     * One page of a warninglist's values for the view's Values card, optionally
-     * narrowed to those containing ?q=. Scoped to the list's own rows, so a
-     * search costs the size of that list, not of the table.
+     * A warninglist's entries, a page at a time.
      *
      * @param int $id
      */
-    public function viewEntries($id)
+    public function entries($id)
     {
-        if (!is_numeric($id)) {
-            throw new NotFoundException(__('Invalid ID.'));
+        if (!$this->Warninglist->hasAny(['Warninglist.id' => $id])) {
+            throw new NotFoundException(__('Warninglist not found.'));
         }
-        $limit = 100;
-        $page = max(1, (int)($this->request->query['page'] ?? 1));
-        $query = trim((string)($this->request->query['q'] ?? ''));
         $conditions = ['WarninglistEntry.warninglist_id' => $id];
-        if ($query !== '') {
-            $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $query) . '%';
-            $conditions['OR'] = [
-                'WarninglistEntry.value LIKE' => $like,
-                'WarninglistEntry.comment LIKE' => $like,
-            ];
+        $filter = trim((string)($this->passedArgs['filter'] ?? ''));
+        if ($filter !== '') {
+            $conditions['WarninglistEntry.value LIKE'] = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $filter) . '%';
         }
-        $total = $this->Warninglist->WarninglistEntry->find('count', [
-            'recursive' => -1,
-            'conditions' => $conditions,
-        ]);
-        $entries = $this->Warninglist->WarninglistEntry->find('all', [
-            'recursive' => -1,
-            'conditions' => $conditions,
-            'fields' => ['WarninglistEntry.value', 'WarninglistEntry.comment'],
-            'order' => ['WarninglistEntry.id'],
-            'limit' => $limit,
-            'page' => $page,
-        ]);
-        $this->set(compact('entries', 'total', 'page', 'limit', 'query'));
+        $this->paginate = [
+            'WarninglistEntry' => [
+                'conditions' => $conditions,
+                'fields' => ['WarninglistEntry.id', 'WarninglistEntry.value', 'WarninglistEntry.comment'],
+                'order' => ['WarninglistEntry.id' => 'ASC'],
+                'limit' => 50,
+                'recursive' => -1,
+            ],
+        ];
+        $this->set('entries', $this->paginate('WarninglistEntry'));
+        $this->set('id', $id);
+        $this->set('passedArgsArray', $this->passedArgs);
         $this->layout = false;
-        $this->render('ajax/view_entries');
+        $this->render('ajax/entries');
+    }
+
+    /**
+     * Whether this warninglist alone would flag ?value=, as JSON.
+     *
+     * @param int $id
+     */
+    public function testValue($id)
+    {
+        $warninglist = $this->Warninglist->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Warninglist.id' => $id],
+        ]);
+        if (empty($warninglist)) {
+            throw new NotFoundException(__('Warninglist not found.'));
+        }
+        $result = (new WarninglistRailCards())->test($warninglist, $this->request->query('value'));
+        return $this->RestResponse->viewData($result, 'json');
+    }
+
+    /**
+     * One of the warninglist page's lazy rail cards.
+     *
+     * @param int $id
+     * @param string $cardId
+     */
+    public function railCard($id, $cardId)
+    {
+        $warninglist = $this->Warninglist->find('first', [
+            'recursive' => -1,
+            'conditions' => ['Warninglist.id' => $id],
+        ]);
+        if (empty($warninglist)) {
+            throw new NotFoundException(__('Warninglist not found.'));
+        }
+        $this->_renderRailCard((new WarninglistRailCards())->lazy($cardId, $warninglist));
     }
 
     public function import()

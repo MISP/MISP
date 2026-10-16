@@ -1,0 +1,10 @@
+{
+    "label": "Flatly",
+    "description": "Flat and modern, with a dark blue primary.",
+    "mode": "light",
+    "fonts": [
+        "Lato"
+    ],
+    "hide_from_users": false,
+    "navbar": "theme"
+}

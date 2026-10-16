@@ -23,21 +23,21 @@ $options = [
         'label' => __('Exportable'),
         'hint'  => __('Included when data leaves this instance'),
         'icon'  => 'fas fa-share-nodes',
-        'accent' => '#DB6A47',
+        'accent' => 'var(--misp-tone-orange-solid, #DB6A47)',
         'checked' => $isEdit ? !empty($tag['exportable']) : true,
     ],
     'hide_tag' => [
         'label' => __('Hidden'),
         'hint'  => __('Kept out of the tag pickers'),
         'icon'  => 'fas fa-eye-slash',
-        'accent' => '#6c757d',
+        'accent' => 'var(--misp-tone-gray-solid, #6c757d)',
         'checked' => !empty($tag['hide_tag']),
     ],
     'local_only' => [
         'label' => __('Local only'),
         'hint'  => __('Can only ever be attached locally'),
         'icon'  => 'fas fa-user-lock',
-        'accent' => '#0d6efd',
+        'accent' => 'var(--misp-tone-blue-solid, #0d6efd)',
         'checked' => !empty($tag['local_only']),
     ],
 ];
@@ -75,7 +75,7 @@ echo $this->Form->create('Tag', [
             <?= $this->Form->text('name', [
                 'id' => 'TagName',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important;'
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                     . ' outline:none;',
                 'placeholder' => __('e.g. tlp:red or malware:apt'),
                 'autocomplete' => 'off',
@@ -101,14 +101,14 @@ echo $this->Form->create('Tag', [
                     'value' => $currentColour,
                     'class' => 'form-control form-control-color',
                     'style' => 'width:3rem; height:2.5rem; padding:.2rem;'
-                        . ' border-color:#d8dde3; cursor:pointer;',
+                        . ' border-color:var(--misp-field-line, #d8dde3); cursor:pointer;',
                 ]) ?>
 
                 <!-- Nameless, so it never reaches the POST: a mirror of the swatch -->
                 <input type="text"
                        id="TagColourHex"
                        class="form-control font-monospace text-uppercase"
-                       style="width:7.5rem; border-color:#d8dde3;"
+                       style="width:7.5rem; border-color:var(--misp-field-line, #d8dde3);"
                        maxlength="7"
                        autocomplete="off"
                        value="<?= h($currentColour) ?>">
@@ -125,8 +125,7 @@ echo $this->Form->create('Tag', [
                           style="font-size:.6rem; letter-spacing:.1em;">
                         <?= __('Preview') ?>
                     </span>
-                    <span class="badge d-inline-flex align-items-center"
-                          id="TagPreview"></span>
+                    <span id="TagPreview"></span>
                 </div>
 
             </div>
@@ -190,7 +189,7 @@ echo $this->Form->create('Tag', [
                                data-accent="<?= h($option['accent']) ?>"
                                style="cursor:pointer; transition:border-color .15s;
                                       border:1px solid <?= $option['checked']
-                                          ? h($option['accent']) : '#dee2e6' ?>;">
+                                          ? h($option['accent']) : 'var(--misp-check-off-line, #dee2e6)' ?>;">
                             <?= $this->Form->checkbox($field, [
                                 'id' => 'Tag' . Inflector::camelize($field),
                                 'class' => 'form-check-input flex-shrink-0',
@@ -212,7 +211,7 @@ echo $this->Form->create('Tag', [
                             <i class="<?= h($option['icon']) ?>" data-option-icon
                                style="font-size:.95rem; transition:color .15s;
                                       color:<?= $option['checked']
-                                          ? h($option['accent']) : '#adb5bd' ?>;"></i>
+                                          ? h($option['accent']) : 'var(--misp-check-off-icon, #adb5bd)' ?>;"></i>
                         </label>
                     </div>
                 <?php endforeach; ?>
@@ -248,19 +247,13 @@ echo $this->Form->create('Tag', [
     var localEl = document.getElementById('TagLocalOnly');
     var form = document.getElementById('tagForm');
 
-    /* Preview drawn with the shared helper, so it matches the badge the
-     * index and the pickers render for a saved tag. */
     function refreshPreview() {
         if (!previewEl) { return; }
-        var name = (nameEl && nameEl.value.trim()) || NAME_EMPTY;
-        previewEl.style.cssText = tagBadgeStyle(colourEl ? colourEl.value : null);
-        previewEl.textContent = '';
-        if (localEl && localEl.checked) {
-            var icon = document.createElement('i');
-            icon.className = 'fas fa-user me-1';
-            previewEl.appendChild(icon);
-        }
-        previewEl.appendChild(document.createTextNode(name));
+        previewEl.innerHTML = TagChips.chip({
+            name: (nameEl && nameEl.value.trim()) || NAME_EMPTY,
+            colour: colourEl ? colourEl.value : null,
+            local: !!(localEl && localEl.checked)
+        }, { searchUrl: '' });
     }
 
     function setColour(value) {
@@ -303,11 +296,11 @@ echo $this->Form->create('Tag', [
     document.querySelectorAll('[data-option-card]').forEach(function (card) {
         var box = card.querySelector('input[type="checkbox"]');
         var icon = card.querySelector('[data-option-icon]');
-        var accent = card.dataset.accent || '#0d6efd';
+        var accent = card.dataset.accent || 'var(--misp-tone-blue-solid, #0d6efd)';
         if (!box) { return; }
         box.addEventListener('change', function () {
-            card.style.borderColor = box.checked ? accent : '#dee2e6';
-            if (icon) { icon.style.color = box.checked ? accent : '#adb5bd'; }
+            card.style.borderColor = box.checked ? accent : 'var(--misp-check-off-line, #dee2e6)';
+            if (icon) { icon.style.color = box.checked ? accent : 'var(--misp-check-off-icon, #adb5bd)'; }
             if (box === localEl) { refreshPreview(); }
         });
     });
@@ -316,7 +309,7 @@ echo $this->Form->create('Tag', [
         var errorId = 'tagNameError';
 
         var showError = function () {
-            nameEl.style.setProperty('border-bottom-color', '#dc3545', 'important');
+            nameEl.style.setProperty('border-bottom-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
             if (!document.getElementById(errorId)) {
                 var msg = document.createElement('div');
                 msg.id = errorId;
@@ -342,7 +335,7 @@ echo $this->Form->create('Tag', [
 
         nameEl.addEventListener('input', function () {
             if (nameEl.value.trim()) {
-                nameEl.style.setProperty('border-bottom-color', '#d8dde3', 'important');
+                nameEl.style.setProperty('border-bottom-color', 'var(--misp-field-line, #d8dde3)', 'important');
                 var msg = document.getElementById(errorId);
                 if (msg) { msg.remove(); }
             }

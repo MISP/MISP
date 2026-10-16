@@ -146,7 +146,7 @@ if ($canAdd) {
 
     function spinner() {
         remote.innerHTML = '<div class="d-flex justify-content-center py-5">'
-            + '<div class="spinner-border text-secondary" role="status">'
+            + '<div class="misp-loader" role="status">'
             + '<span class="visually-hidden">' + msg.loading + '</span></div></div>';
     }
 

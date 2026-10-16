@@ -1,6 +1,7 @@
 <?php
 App::uses('AppHelper', 'View/Helper');
 App::uses('Router', 'Routing');
+App::uses('MispTheme', 'Lib/MispTheme');
 
 class NavbarHelper extends AppHelper {
 
@@ -12,6 +13,8 @@ class NavbarHelper extends AppHelper {
         // Data points
         'events'            => ['default' => 'datapoints', 'automation' => 'api', 'export' => 'api'],
         'attributes'        => 'datapoints',
+        'objects'           => 'datapoints',
+        'values'            => 'datapoints',
         'shadow_attributes' => 'datapoints',
         'event_delegations' => 'datapoints',
         'collections'       => 'datapoints',
@@ -27,6 +30,7 @@ class NavbarHelper extends AppHelper {
         'galaxy_clusters'          => 'datamodels',
         'galaxy_cluster_relations' => 'datamodels',
         'decayingmodel'            => 'datamodels',
+        'analystprofiles'          => 'datamodels',
         'objecttemplates'          => 'datamodels',
         'object_relationships'     => 'datamodels',
         'event_templates'          => 'datamodels',
@@ -104,6 +108,7 @@ class NavbarHelper extends AppHelper {
 
         // --- RIGHT ---
         $right = [];
+        $right[] = $this->buildIntelGraphItem($context);
         $right[] = $this->buildBookmarksMenu($context, $baseurl);
         $right[] = $this->buildAccountMenu($context, $baseurl);
 
@@ -132,28 +137,14 @@ class NavbarHelper extends AppHelper {
                 'action' => 'index',
                 'icon' => 'misp-icon misp-icon-event misp-simple',
             ],
-            // To implement later, when the object view will be ready
-            /* [
+            [
                 'type' => 'group',
                 'label' => __('Objects'),
+                'url' => $baseurl . '/objects/index',
+                'controller' => 'objects',
+                'action' => 'index',
                 'icon' => 'fas fa-cubes',
-                'children' => [
-                    [
-                        'label' => __('Search'),
-                        'url' => $baseurl . '/objects/search',
-                        'controller' => 'objects',
-                        'action' => 'seatch',
-                        'icon' => 'fas fa-search'
-                    ],
-                    [
-                        'label' => __('Index'),
-                        'url' => $baseurl . '/objects/index',
-                        'controller' => 'objects',
-                        'action' => 'index',
-                        'icon' => 'fas fa-list'
-                    ]
-                ]
-            ], */
+            ],
             [
                 'type' => 'group',
                 'label' => __('Attributes'),
@@ -161,6 +152,17 @@ class NavbarHelper extends AppHelper {
                 'controller' => 'attributes',
                 'action' => 'index',
                 'icon' => 'misp-icon misp-icon-attribute misp-simple',
+            ],
+            [
+                // The entry names the feature and points at the way in:
+                // the profile's subject is a value the reader supplies,
+                // so there is nothing to link but the resolver.
+                'type' => 'group',
+                'label' => __('Value Intelligence'),
+                'url' => $baseurl . '/values/index',
+                'controller' => 'values',
+                'action' => 'index',
+                'icon' => 'misp-icon misp-icon-value-intelligence misp-simple',
             ],
             ['divider' => true],
             [
@@ -335,6 +337,14 @@ class NavbarHelper extends AppHelper {
                     //     'icon' => 'fas fa-toolbox'
                     // ]
                 //]
+            ],
+            [
+                'type' => 'group',
+                'label' => __('Analyst Profiles'),
+                'url' => $baseurl . '/analystProfiles/index',
+                'controller' => 'analystProfiles',
+                'action' => 'index',
+                'icon' => 'fas fa-magnifying-glass-chart'
             ],
             ['divider' => true],
             [
@@ -858,6 +868,7 @@ class NavbarHelper extends AppHelper {
     {
         extract($context);
 
+        $smimeCertificate = (string)Configure::read('SMIME.cert_public_sign');
         $resourcesChildren = [
             [
                 'label' => __('User Guide'),
@@ -870,6 +881,24 @@ class NavbarHelper extends AppHelper {
                 'controller' => 'doc',
                 'action' => 'categories_and_types',
                 'icon' => 'fas fa-table-list'
+            ],
+            ['divider' => true],
+            [
+                'label' => __('Server PGP public key'),
+                'url' => Configure::read('MISP.download_gpg_from_homedir')
+                    ? $baseurl . '/users/getGpgPublicKey'
+                    : $baseurl . '/gpg.asc',
+                'icon' => 'fas fa-key',
+                'requirement' => Configure::read('MISP.download_gpg_from_homedir')
+                    || is_file(WWW_ROOT . 'gpg.asc'),
+            ],
+            [
+                'label' => __('Server S/MIME certificate'),
+                'url' => $baseurl . '/users/getSmimeCertificate',
+                'icon' => 'fas fa-certificate',
+                'requirement' => Configure::read('SMIME.enabled')
+                    && is_file($smimeCertificate)
+                    && is_readable($smimeCertificate),
             ],
             ['divider' => true],
             [
@@ -918,6 +947,24 @@ class NavbarHelper extends AppHelper {
         }
 
         return $items;
+    }
+
+    /**
+     * The analyst graph "Add to graph" feeds, when the controller says this
+     * user may have one (AppController::beforeRender sets `intelGraph`).
+     */
+    private function buildIntelGraphItem(array $context)
+    {
+        $graph = $context['intelGraph']['active'] ?? null;
+        return [
+            'type' => 'intelGraph',
+            'id' => 'intel-graph',
+            'requirement' => !empty($context['intelGraph']),
+            'label' => $graph ? $graph['name'] : __('No graph'),
+            'count' => $graph ? (int)$graph['node_count'] : null,
+            'title' => __('Analyst graph'),
+            'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',
+        ];
     }
 
     private function buildBookmarksMenu(array $context, $baseurl)
@@ -972,12 +1019,22 @@ class NavbarHelper extends AppHelper {
         extract($context);
         $user_icon = !empty($me['Role']['perm_site_admin']) ? 'misp-icon misp-icon-user3 misp-simple' : 'misp-icon misp-icon-user1 misp-simple';
 
-        $profileChildren = [
-            [
+        $profileChildren = [];
+        $themeMenu = $this->buildBootstrapThemeMenu($context);
+        if ($themeMenu !== null) {
+            $profileChildren[] = $themeMenu;
+        }
+        // Only a Bootstrap theme with both a light and a dark palette has
+        // anything to toggle.
+        if ($context['darkModeToggle'] ?? true) {
+            $profileChildren[] = [
                 'type' => 'darkMode',
                 'label' => __('Dark mode'),
                 'icon'  => 'fas fa-moon',
-            ],
+            ];
+        }
+        $profileChildren = array_merge($profileChildren, [
+            ['divider' => true],
             [
                 'type' => 'tutorial',
                 'label' => __('Replay the tutorial'),
@@ -998,7 +1055,7 @@ class NavbarHelper extends AppHelper {
                 'action' => 'logout',
                 'icon' => 'fas fa-right-from-bracket'
             ]
-        ];
+        ]);
 
         $orgLogo = $this->OrgImg->getOrgLogoV2($me, 20);
 
@@ -1015,6 +1072,64 @@ class NavbarHelper extends AppHelper {
 
     }
 
+
+    private function buildBootstrapThemeMenu(array $context)
+    {
+        $current = $context['bootstrapTheme'] ?? null;
+        $chosen = !empty($context['bootstrapThemeChosen']);
+        $modes = [
+            'light' => ['icon' => 'fas fa-sun', 'label' => __('Light')],
+            'dark' => ['icon' => 'fas fa-moon', 'label' => __('Dark')],
+            'both' => ['icon' => 'fas fa-circle-half-stroke', 'label' => __('Light and dark')],
+        ];
+
+        $items = [];
+        $visible = 0;
+        $currentLabel = null;
+        foreach (MispTheme::getBootstrapThemes() as $name => $theme) {
+            if ($name === $current) {
+                $currentLabel = $theme['label'];
+            }
+            // Hidden themes ship masked; the dark-mode easter egg in
+            // navbar_actions.ctp unmasks them.
+            $secret = $theme['hide_from_users']
+                && !($chosen && $name === $current);
+            $visible += $secret ? 0 : 1;
+            $items[] = [
+                'type' => 'bootstrapTheme',
+                'theme' => $name,
+                'label' => $theme['label'],
+                'description' => $theme['description'],
+                'modeIcon' => $modes[$theme['mode']]['icon'],
+                'modeLabel' => $modes[$theme['mode']]['label'],
+                'on' => $chosen && $name === $current,
+                'secret' => $secret,
+            ];
+        }
+        if ($visible < 2) {
+            return null;
+        }
+        $default = MispTheme::bootstrapTheme();
+        array_unshift(
+            $items,
+            [
+                'type' => 'bootstrapTheme',
+                'theme' => '',
+                'label' => __('Instance default (%s)', $default['label']),
+                'description' => __('Follow the theme your administrator picks for this instance.'),
+                'modeIcon' => $modes[$default['mode']]['icon'],
+                'modeLabel' => $modes[$default['mode']]['label'],
+                'on' => !$chosen,
+            ],
+            ['divider' => true]
+        );
+        return [
+            'label' => __('Theme'),
+            'icon' => 'fas fa-palette',
+            'value' => $currentLabel,
+            'children' => $items,
+        ];
+    }
 
     /**
      * Recursively filter menu items based on requirement and children visibility

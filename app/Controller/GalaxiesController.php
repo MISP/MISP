@@ -1,5 +1,8 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('GalaxyRailCards', 'Tools/RailCards');
+App::uses('GalaxyCategory', 'Tools');
+App::uses('EventMatrixTool', 'Tools/EventOverview');
 
 /**
  * @property Galaxy $Galaxy
@@ -19,11 +22,22 @@ class GalaxiesController extends AppController
             ),
     );
 
+    /**
+     * What an index's Galaxy picker can narrow to: the galaxies with
+     * clusters the reader may see.
+     */
+    public function pickerScopes()
+    {
+        $this->request->allowMethod(['get']);
+        App::uses('IndexPicker', 'Tools');
+        return $this->RestResponse->viewData(IndexPicker::galaxyScopes($this->Auth->user()), 'json');
+    }
+
     public function index()
     {
         $aclConditions = $this->Galaxy->buildConditions($this->Auth->user());
         $params = [
-            'filters' => ['name', 'namespace', 'description', 'kill_chain_order', 'uuid', 'enabled', 'value'],
+            'filters' => ['name', 'namespace', 'description', 'kill_chain_order', 'uuid', 'enabled', 'default', 'value'],
             'quickFilters' => ['name', 'namespace', 'description', 'kill_chain_order', 'uuid'],
             'quickFilterParameter' => 'value',
             'conditions' => ['AND' => $aclConditions],
@@ -108,24 +122,90 @@ class GalaxiesController extends AppController
                 ],
             ]);
             $this->set('clusterCount', $clusterCount);
-            $this->set('clusterPreview', $this->Galaxy->GalaxyCluster->find('all', [
-                'recursive' => -1,
-                'fields' => [
-                    'GalaxyCluster.id', 'GalaxyCluster.value', 'GalaxyCluster.default',
-                    'GalaxyCluster.distribution',
-                    'LEFT(GalaxyCluster.description, 120) AS short_description',
-                ],
-                'conditions' => [
-                    'AND' => [
-                        $this->Galaxy->GalaxyCluster->buildConditions($this->Auth->user()),
-                        'GalaxyCluster.galaxy_id' => $id,
-                        'GalaxyCluster.deleted' => false,
+            if ($this->theme === 'Overmind') {
+                $railCards = new GalaxyRailCards();
+                $this->set('railCards', RailCard::byId([
+                    $railCards->composition($this->Auth->user(), $galaxy),
+                    $railCards->slot('galaxy-usage', $id),
+                ]));
+                $this->set('isMatrixGalaxy', EventMatrixTool::isMatrixGalaxy($galaxy['Galaxy']));
+                $this->set('clusterPreview', $this->Galaxy->GalaxyCluster->find('all', [
+                    'recursive' => -1,
+                    'fields' => [
+                        'GalaxyCluster.id', 'GalaxyCluster.value', 'GalaxyCluster.default',
+                        'GalaxyCluster.distribution',
+                        'LEFT(GalaxyCluster.description, 120) AS short_description',
                     ],
-                ],
-                'order' => ['GalaxyCluster.value'],
-                'callbacks' => false,
-            ]));
+                    'conditions' => [
+                        'AND' => [
+                            $this->Galaxy->GalaxyCluster->buildConditions($this->Auth->user()),
+                            'GalaxyCluster.galaxy_id' => $id,
+                            'GalaxyCluster.deleted' => false,
+                        ],
+                    ],
+                    'order' => ['GalaxyCluster.value'],
+                    'callbacks' => false,
+                ]));
+            }
         }
+    }
+
+    /**
+     * One of the galaxy page's lazy rail cards.
+     *
+     * @param int $id
+     * @param string $cardId
+     */
+    public function railCard($id, $cardId)
+    {
+        $user = $this->Auth->user();
+        $galaxy = $this->Galaxy->fetchIfAuthorized($user, $id, 'view', true, false, true);
+        $this->_renderRailCard((new GalaxyRailCards())->lazy($cardId, $user, $galaxy));
+    }
+
+    /**
+     * The galaxy's full matrix, one tab (`?tab=`, the busiest by default) at
+     * a time, the techniques carried by events the user can see standing out.
+     *
+     * @param int|string $id Galaxy ID or UUID
+     */
+    public function viewMatrix($id)
+    {
+        $user = $this->Auth->user();
+        $id = $this->Toolbox->findIdByUuid($this->Galaxy, $id);
+        $galaxy = $this->Galaxy->fetchIfAuthorized($user, $id, 'view', true, false, true);
+        if (!EventMatrixTool::isMatrixGalaxy($galaxy['Galaxy'])) {
+            throw new NotFoundException(__('Invalid galaxy'));
+        }
+        $skeleton = $this->Galaxy->matrixSkeleton($user, $galaxy['Galaxy']);
+        $tagNames = [];
+        foreach ($skeleton['tabs'] as $columns) {
+            foreach ($columns as $cells) {
+                foreach ($cells as $cell) {
+                    $tagNames[$cell['tag_name']] = true;
+                }
+            }
+        }
+        $tags = empty($tagNames) ? [] : ClassRegistry::init('Tag')->find('list', [
+            'conditions' => ['Tag.name' => array_map('strval', array_keys($tagNames))],
+            'fields' => ['Tag.id', 'Tag.name'],
+        ]);
+        $counts = ClassRegistry::init('EventTag')->countForTags(array_keys($tags), $user);
+        $eventCounts = [];
+        foreach ($counts as $tagId => $count) {
+            if ((int)$count > 0 && isset($tags[$tagId])) {
+                $eventCounts[$tags[$tagId]] = (int)$count;
+            }
+        }
+        $tab = $this->request->query('tab');
+        $matrix = EventMatrixTool::usage($skeleton, $galaxy['Galaxy'], $eventCounts, is_string($tab) ? $tab : null);
+        $matrix['origins'] = [];
+        if ($this->_isRest()) {
+            $matrix['origins'] = (object)$matrix['origins'];
+            return $this->RestResponse->viewData($matrix, 'json');
+        }
+        $this->set('matrix', $matrix);
+        $this->layout = false;
     }
 
     public function add()
@@ -155,6 +235,7 @@ class GalaxiesController extends AppController
         }
 
         $this->__setDistribution();
+        $this->__setCategories();
         $this->set('action', 'add');
 
         if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
@@ -201,6 +282,7 @@ class GalaxiesController extends AppController
         $this->set('galaxy', $galaxy);
         $this->set('action', 'edit');
         $this->__setDistribution();
+        $this->__setCategories();
         if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
@@ -214,6 +296,39 @@ class GalaxiesController extends AppController
         unset($distributionLevels[4], $distributionLevels[5]);
         $this->set('distributionLevels', $distributionLevels);
         $this->set('initialDistribution', 0);
+    }
+
+    /**
+     * What a galaxy's clusters represent, for the two selects the add
+     * and edit form carries.
+     *
+     * Both forms reach locally created galaxies only — `add()` forces
+     * `default = false` and `edit()` refuses a default galaxy — which
+     * is the half no shipped classification can cover, because a local
+     * galaxy's `type` is the UUID it was given.
+     *
+     * The sub-categories go out as one map rather than one flat list so
+     * the form can narrow the second select to the category chosen in the
+     * first.
+     *
+     * @return void
+     */
+    private function __setCategories()
+    {
+        $categories = [];
+        $subCategories = [];
+        $descriptions = [];
+        foreach (GalaxyCategory::categories() as $category) {
+            $categories[$category] = $category;
+            $subCategories[$category] = [];
+            foreach (GalaxyCategory::subCategoriesIn($category) as $subCategory) {
+                $subCategories[$category][$subCategory] = $subCategory;
+            }
+            $descriptions[$category] = GalaxyCategory::describe($category);
+        }
+        $this->set('galaxyCategories', $categories);
+        $this->set('galaxySubCategories', $subCategories);
+        $this->set('galaxyCategoryDescriptions', $descriptions);
     }
 
     public function delete($id)

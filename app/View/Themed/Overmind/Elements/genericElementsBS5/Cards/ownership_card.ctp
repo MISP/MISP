@@ -121,7 +121,7 @@ if (!empty($user['email'])) {
             <div class="d-flex flex-wrap row-gap-1 column-gap-3">
                 <div class="d-flex align-items-center gap-2 min-w-0" style="flex:1 1 11rem;">
                     <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3"
-                          style="<?= $tileStyle ?>background:<?= h($level['bg']) ?>;color:<?= h($level['color']) ?>;">
+                          style="<?= $tileStyle ?>background:<?= h($this->DistributionLevel->themed($level, 'bg')) ?>;color:<?= h($this->DistributionLevel->themed($level, 'fg')) ?>;">
                         <i class="<?= h($level['icon']) ?>"></i>
                     </span>
                     <div class="min-w-0">

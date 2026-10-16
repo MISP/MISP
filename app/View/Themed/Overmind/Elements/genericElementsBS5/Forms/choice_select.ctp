@@ -91,6 +91,7 @@ foreach ($options as $option) {
         'icon' => $option['icon'] ?? '',
         'tone' => $option['tone'] ?? $option['dot'] ?? '',
         'toneBg' => $option['toneBg'] ?? '',
+        'toneBorder' => $option['toneBorder'] ?? '',
     ];
 }
 ?>
@@ -104,7 +105,8 @@ foreach ($options as $option) {
               data-choice-icon="<?= h($entry['value']) ?>"
               data-icon="<?= h($entry['icon']) ?>"
               data-tone="<?= h($entry['tone']) ?>"
-              data-tone-bg="<?= h($entry['toneBg']) ?>"></span>
+              data-tone-bg="<?= h($entry['toneBg']) ?>"
+              data-tone-border="<?= h($entry['toneBorder']) ?>"></span>
     <?php endforeach; ?>
 
     <?= $this->Form->select($field, $selectOptions, $selectAttrs) ?>

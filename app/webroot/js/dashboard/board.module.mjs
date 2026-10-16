@@ -399,6 +399,23 @@ class Board {
         document.documentElement.getAttribute('data-theme') === 'midnight';
       themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
     }
+
+    // Under a Bootstrap theme the navbar's dark-mode switch owns the
+    // appearance: follow it instead of the dashboard's own toggle.
+    const html = document.documentElement;
+    if (html.hasAttribute('data-misp-theme')) {
+      if (themeBtn) themeBtn.hidden = true;
+      new MutationObserver(() => {
+        const dark = html.getAttribute('data-misp-mode') === 'dark';
+        if (dark === (html.getAttribute('data-theme') === 'midnight')) return;
+        if (dark) {
+          html.setAttribute('data-theme', 'midnight');
+        } else {
+          html.removeAttribute('data-theme');
+        }
+        rethemeChartsIn(this.root);
+      }).observe(html, { attributes: true, attributeFilter: ['data-misp-mode'] });
+    }
   }
 
   // ---- mode ----

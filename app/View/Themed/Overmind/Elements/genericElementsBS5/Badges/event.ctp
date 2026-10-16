@@ -6,7 +6,7 @@
  * - $id     (int|string)  Event id. Required — nothing renders without it.
  * - $name   (string|null) Event info / name shown as the subtitle.
  * - $url    (string|null) Link target. Falls back to the canonical
- *                         events/view2 route when omitted.
+ *                         events/view route when omitted.
  * - $org    (array|null)  Owner organisation (id|uuid|name) for the logo/link.
  * - $icon   (string|null) Font Awesome class drawn before the "Event" eyebrow —
  *                         e.g. the direction glyph of an extension relationship.
@@ -23,7 +23,7 @@ if (empty($id)) {
     return;
 }
 $name = $name ?? null;
-$url = !empty($url) ? $url : $baseurl . '/events/view2/' . $id;
+$url = !empty($url) ? $url : $baseurl . '/events/view/' . $id;
 $org = !empty($org) ? $org : [];
 $icon = $icon ?? null;
 $accent = !empty($accent) ? $accent : [];

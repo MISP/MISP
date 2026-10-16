@@ -14,6 +14,18 @@ $isCard = isset($viewMode) && $viewMode === 'card';
 $formatted = is_numeric($value)
     ? date('Y-m-d H:i:s', (int)$value)
     : $value;
+
+/*
+ * `format` re-renders a parseable value with a date() pattern, for a
+ * column too narrow to carry a full ISO 8601 string. Absent for every
+ * existing caller, which keeps showing the stored value as it is.
+ */
+if (!empty($field['format']) && !empty($value)) {
+    $parsed = is_numeric($value) ? (int)$value : strtotime($value);
+    if ($parsed !== false) {
+        $formatted = date($field['format'], $parsed);
+    }
+}
 ?>
 
 <?php if ($isCard && !empty($field['name'])): ?>

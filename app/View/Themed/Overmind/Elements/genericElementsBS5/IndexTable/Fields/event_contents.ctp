@@ -9,21 +9,21 @@ $corrCount = (int)Hash::get($event, 'correlation_count', 0);
 <div class="d-flex flex-column flex-wrap gap-2">
 
     <?php if ($attrCount !== 0): ?>
-        <a class="d-inline-flex align-items-center fw-bold text-nowrap text-decoration-none text-attribute" href="<?= $this->Html->url(['action' => 'view2', $event['id']]) ?>#tab-attributes">
+        <a class="d-inline-flex align-items-center fw-bold text-nowrap text-decoration-none text-attribute" href="<?= $this->Html->url(['action' => 'view', $event['id']]) ?>#tab-attributes">
             <span class="misp-icon misp-icon-attribute misp-simple misp-icon-md me-1"></span>
             <span><?= h($attrCount) ?> <?= $attrCount > 1 ? __('Attributes') : __('Attribute') ?></span>
         </a>
     <?php endif; ?>
 
     <?php if ($objCount !== 0): ?>
-        <a class="d-inline-flex align-items-center fw-bold text-nowrap text-decoration-none text-object" href="<?= $this->Html->url(['action' => 'view2', $event['id']]) ?>#tab-objects">
+        <a class="d-inline-flex align-items-center fw-bold text-nowrap text-decoration-none text-object" href="<?= $this->Html->url(['action' => 'view', $event['id']]) ?>#tab-objects">
             <span class="misp-icon misp-icon-object misp-simple misp-icon-md me-1"></span>
             <span><?= h($objCount) ?> <?= $objCount > 1 ? __('Objects') : __('Object') ?></span>
         </a>
     <?php endif; ?>
 
     <?php if ($corrCount !== 0): ?>
-        <a class="d-inline-flex align-items-center fw-bold text-nowrap text-decoration-none text-correlation" href="<?= $this->Html->url(['action' => 'view2', $event['id']]) ?>#tab-correlation">
+        <a class="d-inline-flex align-items-center fw-bold text-nowrap text-decoration-none text-correlation" href="<?= $this->Html->url(['action' => 'view', $event['id']]) ?>#tab-correlation">
             <i class="fas fa-link me-1"></i>
             <span><?= h($corrCount) ?> Correlations</span>
         </a>

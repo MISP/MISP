@@ -34,4 +34,15 @@ class DistributionLevelHelper extends AppHelper
     {
         return DistributionLevel::fallback();
     }
+
+    /**
+     * @param array $meta
+     * @param string $role
+     * @param string $alpha
+     * @return string see DistributionLevel::themed()
+     */
+    public function themed(array $meta, $role, $alpha = '')
+    {
+        return DistributionLevel::themed($meta, $role, $alpha);
+    }
 }

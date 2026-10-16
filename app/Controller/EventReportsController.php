@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('EventReportRailCards', 'Tools/RailCards');
 App::uses('AnalystData', 'Model');
 
 /**
@@ -58,11 +59,7 @@ class EventReportsController extends AppController
             }
             $report = $this->request->data;
             $errors = $this->EventReport->addReport($this->Auth->user(), $report, $eventId);
-            if ($this->theme === "Overmind"){
-                $redirectTarget = array('controller' => 'events', 'action' => 'view2', $eventId);
-            } else {
-                $redirectTarget = array('controller' => 'events', 'action' => 'view', $eventId);
-            }
+            $redirectTarget = array('controller' => 'events', 'action' => 'view', $eventId);
             if (!empty($errors)) {
                 return $this->__getFailResponseBasedOnContext($errors, null, 'add', $this->EventReport->id, $redirectTarget);
             } else {
@@ -88,6 +85,14 @@ class EventReportsController extends AppController
         $report = $this->EventReport->simpleFetchById($this->Auth->user(), $reportId);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($report, $this->response->type());
+        }
+        if ($this->theme === 'Overmind' && !$ajax) {
+            $user = $this->Auth->user();
+            $railCards = new EventReportRailCards();
+            $this->set('railCards', RailCard::byId([
+                $railCards->mentions($user, $report),
+                $railCards->siblings($user, $report),
+            ]));
         }
         $this->set('ajax', $ajax);
         $this->set('id', $reportId);

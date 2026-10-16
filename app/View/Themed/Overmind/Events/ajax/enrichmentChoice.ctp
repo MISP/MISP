@@ -69,10 +69,10 @@ usort($modules, function ($a, $b) {
         btn.addEventListener('click', function () {
             var url = btn.getAttribute('data-result-url');
             if (!url) { return; }
-            // Swap the choice list for a spinner while the module is queried
+            // Swap the choice list for a loader while the module is queried
             body.innerHTML =
                 '<div class="d-flex flex-column align-items-center justify-content-center gap-3" style="min-height:220px;">'
-              + '<div class="spinner-border text-enrichment" role="status" style="width:2.5rem;height:2.5rem;"></div>'
+              + '<div class="misp-loader" role="status"></div>'
               + '<div class="text-muted">' + loadingMsg + '</div>'
               + '</div>';
             openModal(url);

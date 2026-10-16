@@ -1,5 +1,6 @@
 <?php
 $noticelist = $data['Noticelist'] ?? [];
+$railCards = $railCards ?? [];
 
 $this->set('headerIdentity', $noticelist);
 $this->set('headerTitle', $noticelist['name'] ?? '');
@@ -16,9 +17,9 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
                 'Noticelists/View/noticelists_general',
                 'Noticelists/View/noticelists_values',
             ],
-            'right' => [
+            'right' => array_merge([
                 'Noticelists/View/noticelists_actions',
-            ],
+            ], $this->RailCard->rail($railCards, ['noticelist-fires'], 'general')),
         ],
     ],
 ]);

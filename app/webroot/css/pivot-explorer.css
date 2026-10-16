@@ -1,0 +1,153 @@
+/* Pivotick in MISP's colours. Loaded after pivotick.css, whose theme
+   variables are scoped to the same selectors. */
+.pivotick[data-theme],
+.pvt-portal[data-theme] {
+    --pvt-misp-primary: var(--primary, #1892B1);
+    --pvt-theme-primary: var(--pvt-misp-primary);
+    --pvt-selection-color: var(--pvt-misp-primary);
+    --pvt-selection-stroke-color: var(--pvt-misp-primary);
+    --pvt-node-selected-color: var(--pvt-misp-primary);
+    --pvt-badge-color: var(--pvt-misp-primary);
+    /* A theme's body font and size never reach the graph and its panels. */
+    font-family: system-ui, sans-serif;
+    font-size: 1rem;
+}
+
+/* A stand-in for edges into a closed object dashes like the edges it
+   stands for. Kept at pivotick's own specificity so its forecast dash
+   still wins. */
+.pvt-edge-synthetic path.dashed {
+    stroke-dasharray: var(--pvt-edge-stroke-dasharray);
+}
+
+/* Save as graph: its select and textarea take the box pivotick gives
+   a form input. */
+.pe-save-graph .pvt-form-element > select,
+.pe-save-graph .pvt-form-element > textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--pvt-text-color-6);
+    background: var(--pvt-bg-color-0);
+    border: 1px solid var(--pvt-bg-color-5);
+    border-radius: 8px;
+}
+.pe-save-graph .pvt-form-element > select:focus,
+.pe-save-graph .pvt-form-element > textarea:focus {
+    outline: none;
+    border-color: var(--pvt-theme-primary);
+}
+.pe-save-graph-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+.pe-save-graph-summary {
+    margin: 0;
+    font-size: 12px;
+    color: var(--pvt-text-color-5);
+}
+.pe-save-graph-left-out {
+    font-size: 12px;
+    color: var(--pvt-text-color-6);
+    background: color-mix(in srgb, var(--pvt-bg-color-info) 10%, var(--pvt-bg-color-0));
+    border: 1px solid color-mix(in srgb, var(--pvt-bg-color-info) 40%, var(--pvt-bg-color-0));
+    border-radius: 8px;
+}
+.pe-save-graph-left-out > summary {
+    padding: 7px 10px;
+    cursor: pointer;
+}
+.pe-save-graph-left-out > summary > i {
+    color: var(--pvt-text-color-info);
+}
+.pe-save-graph-left-out-body {
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 0 10px 8px;
+}
+.pe-save-graph-left-out-kind {
+    margin-top: 4px;
+    font-weight: 600;
+}
+.pe-save-graph-left-out-body ul {
+    margin: 2px 0 0;
+    padding-left: 18px;
+    overflow-wrap: anywhere;
+}
+.pe-save-graph-left-out-detail {
+    color: var(--pvt-text-color-5);
+}
+.pe-save-graph-answers {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+.pe-save-graph-answers > legend {
+    float: none;
+    width: auto;
+    margin: 0 0 4px;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: inherit;
+}
+.pe-save-graph-answers-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+}
+.pe-save-graph-answers-options > label {
+    margin: 0;
+}
+.pe-save-graph-answers-options input[type="radio"] {
+    margin: 0;
+}
+.pe-size {
+    font-size: 12px;
+    color: var(--pvt-text-color-5);
+}
+.pe-size--near {
+    color: var(--pvt-text-color-warning, #b8860b);
+}
+.pe-size--over {
+    font-weight: 600;
+    color: var(--pvt-text-color-danger, #c0392b);
+}
+.pe-save-graph-groups {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--pvt-text-color-6);
+}
+.pe-save-graph-groups > summary {
+    cursor: pointer;
+}
+.pe-save-graph-groups ul {
+    margin: 2px 0 0;
+    padding-left: 18px;
+    overflow-wrap: anywhere;
+}
+.pe-save-graph-hint {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--pvt-text-color-5);
+}
+
+/* Pivotick's dialogs sit above the page's fixed navbar (1030) and sticky tab
+   bar (1020), on Bootstrap's modal layer. */
+.pivotick .pvt-modal-overlay {
+    z-index: 1055;
+}
+
+/* A tag or cluster node zoomed in: the event page's chip, kept to a node's width. */
+.pe-node-chip {
+    display: inline-block;
+    line-height: normal;
+}
+.pe-node-chip .hinge-tags .hg-chip {
+    max-width: 240px;
+}

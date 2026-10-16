@@ -22,7 +22,7 @@ $headerDescription = '<span class="d-inline-flex gap-3 flex-wrap">'
 $this->set('headerDescription', $headerDescription);
 
 $eventId = $report['event_id'] ?? ($event['id'] ?? null);
-$eventUrl = $baseurl . '/events/view2/' . $eventId;
+$eventUrl = $baseurl . '/events/view/' . $eventId;
 $published = !empty($parentEvent['Event']['published']);
 $labelStyle = 'font-size:.7rem;';
 ?>

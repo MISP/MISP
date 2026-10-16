@@ -1,0 +1,730 @@
+/*
+ * The value hover card.
+ *
+ * Shown when a reader hovers a value on an event page, an index table
+ * or an object card — proposal C of `38-hover-card.md`, *the instrument
+ * panel*. The card itself is below; this first block is the floating
+ * shell it arrives in.
+ *
+ * Loaded site-wide from `Layouts/default.ctp`, not from the Value
+ * Profile's own asset list: the card's whole point is that it appears
+ * where the reader already is, and `/values/*` is the one place they
+ * do not need it.
+ *
+ * **Hue belongs to the lean and to nothing else here.** Signal strength is a
+ * magnitude and is drawn in ink weight; relevance is categorical and
+ * would have taken a fourth colour, so it is a figure opposite *last
+ * seen* instead. `value-palette.css` carries that argument in full.
+ */
+
+/* ==================================================================
+ * The floating shell
+ * ------------------------------------------------------------------
+ * Fixed rather than absolute, and appended to `<body>`: an index table
+ * is inside `.table-responsive`, which clips, and the lazy-popover
+ * IIFE in `mispOvermind.js` already learned that the hard way.
+ *
+ * Opacity and visibility rather than `display`, so the card can be
+ * measured before it is shown — the placer needs its height to decide
+ * whether to flip above the anchor.
+ * ================================================================== */
+
+#vpHoverCard {
+    position: fixed;
+    z-index: 1090;
+    top: 0;
+    left: 0;
+    width: 360px;
+    max-width: calc(100vw - 24px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.12s ease-out, visibility 0.12s;
+    pointer-events: none;
+}
+
+#vpHoverCard.vp-hc-shown {
+    opacity: 1;
+    visibility: visible;
+    /*
+     * Enterable only once shown, so a card fading out cannot swallow
+     * the click that was aimed at the row underneath it.
+     */
+    pointer-events: auto;
+}
+
+/*
+ * The trigger. `help` rather than `pointer`: hovering tells you
+ * something, and the value itself is not a link on most of the pages
+ * this appears on.
+ */
+.vp-hc-trigger {
+    cursor: help;
+    text-underline-offset: 3px;
+    text-decoration: underline dotted
+        color-mix(in srgb, currentColor 45%, transparent);
+}
+
+.vp-hc-trigger:hover,
+.vp-hc-trigger:focus-visible {
+    text-decoration-color: currentColor;
+}
+
+/* The failure the fetch can actually have, said in the card's own box. */
+.vp-hc-error {
+    padding: 10px 12px;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 9px;
+    background: var(--bs-body-bg, #fff);
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.17);
+    color: var(--bs-danger, #dc3545);
+    font-size: 11.5px;
+}
+
+.vp-hc,
+.vp-hc *,
+.vp-hc *::before,
+.vp-hc *::after { box-sizing: border-box; }
+
+/* ==================================================================
+ * Card C — "The instrument panel"
+ *
+ * A telemetry readout rather than a summary: labels are chrome, the
+ * figures are the design. Every selector is namespaced under .cc- so
+ * this fragment can share a page with its siblings, and the palette
+ * tokens are declared on .vp-hc (never :root) with MISP's real
+ * variables first and a standalone fallback second.
+ * ================================================================== */
+
+/* ---- the panel shell -------------------------------------------- */
+
+.vp-hc {
+    --vp-hc-mal: var(--vp-mal, #dc3545);
+    --vp-hc-mal-ink: var(--vp-mal-ink, #a71d2a);
+    --vp-hc-ben: var(--vp-ben, #3c8c5c);
+    --vp-hc-ben-ink: var(--vp-ben-ink, #2f6b45);
+    --vp-hc-conflict: var(--vp-conflict, #f39a1f);
+    --vp-hc-conflict-ink: var(--vp-conflict-ink, #8a5a04);
+    --vp-hc-unknown: var(--vp-unknown, #6c757d);
+
+    --vp-hc-bg: var(--bs-body-bg, #ffffff);
+    --vp-hc-ink: var(--bs-body-color, #14181d);
+    --vp-hc-mute: var(--bs-secondary-color, #6a7280);
+    --vp-hc-line: var(--bs-border-color, #dde2e7);
+
+    --vp-hc-lean: var(--vp-hc-unknown);
+    --vp-hc-lean-ink: var(--vp-hc-unknown);
+
+    --vp-hc-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+        "Liberation Mono", monospace;
+
+    position: relative;
+    display: flex;
+    width: 360px;
+    max-width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--vp-hc-line);
+    border-radius: 7px;
+    background: var(--vp-hc-bg);
+    color: var(--vp-hc-ink);
+    box-shadow:
+        0 1px 1px rgba(12, 18, 28, 0.04),
+        0 10px 24px -14px rgba(12, 18, 28, 0.32);
+    font: 400 13px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
+    /* Every reading on the panel is a figure. Digits must not shuffle. */
+    font-variant-numeric: tabular-nums;
+}
+.vp-hc-lean-threat { --vp-hc-lean: var(--vp-hc-mal); --vp-hc-lean-ink: var(--vp-hc-mal-ink); }
+.vp-hc-lean-benign { --vp-hc-lean: var(--vp-hc-ben); --vp-hc-lean-ink: var(--vp-hc-ben-ink); }
+.vp-hc-lean-contested {
+    --vp-hc-lean: var(--vp-hc-conflict);
+    --vp-hc-lean-ink: var(--vp-hc-conflict-ink);
+}
+.vp-hc-lean-unflagged {
+    --vp-hc-lean: var(--vp-context, var(--vp-hc-unknown));
+    --vp-hc-lean-ink: var(--vp-context, var(--vp-hc-unknown));
+}
+.vp-hc-lean-none { --vp-hc-lean: var(--vp-hc-unknown); --vp-hc-lean-ink: var(--vp-hc-unknown); }
+.vp-hc-lean-skel { --vp-hc-lean: var(--vp-hc-line); --vp-hc-lean-ink: var(--vp-hc-mute); }
+[data-misp-mode="dark"] .vp-hc {
+    --vp-hc-mal-ink: var(--vp-mal-ink, #f1919b);
+    --vp-hc-ben-ink: var(--vp-ben-ink, #8fd0a7);
+    --vp-hc-conflict-ink: var(--vp-conflict-ink, #f0b657);
+    --vp-hc-unknown: var(--vp-unknown, #8b95a1);
+    --vp-hc-bg: var(--bs-body-bg, #171a1e);
+    --vp-hc-ink: var(--bs-body-color, #e8ecf1);
+    --vp-hc-mute: var(--bs-secondary-color, #8d97a3);
+    --vp-hc-line: var(--bs-border-color, #2c3138);
+    box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.3),
+        0 12px 26px -14px rgba(0, 0, 0, 0.7);
+}
+/* Status runs down the edge as a channel, not across as a block. */
+.vp-hc-rail { flex: none; width: 3px; background: var(--vp-hc-lean); }
+.vp-hc-quiet .vp-hc-rail {
+    background: color-mix(in srgb, var(--vp-hc-lean) 42%, var(--vp-hc-line));
+}
+.vp-hc-panel { flex: 1 1 auto; min-width: 0; }
+.vp-hc-sec { padding: 5px 11px; }
+.vp-hc-sec + .vp-hc-sec { border-top: 1px solid var(--vp-hc-line); }
+/* The one micro-label. Tiny, tracked, always secondary to its figure. */
+.vp-hc-k {
+    font-size: 8.5px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--vp-hc-mute);
+}
+/* ---- the anchor ------------------------------------------------- */
+
+.vp-hc-head { padding: 7px 11px 6px; }
+
+/* Shown while the assessment is being fetched. */
+.vp-hc-wait {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px 11px;
+    font-size: 11.5px;
+    color: var(--vp-hc-mute);
+}
+.vp-hc-wait .misp-loader { margin: 0; }
+.vp-hc-value {
+    font: 600 14.5px/1.25 var(--vp-hc-mono);
+    letter-spacing: -0.1px;
+    word-break: break-all;
+    -webkit-user-select: text;
+    user-select: text;
+}
+.vp-hc-types { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.vp-hc-type {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    padding: 0 4px;
+    border: 1px solid var(--vp-hc-line);
+    border-radius: 3px;
+    font: 400 9.5px/14px var(--vp-hc-mono);
+    color: var(--vp-hc-mute);
+}
+.vp-hc-type-n { font-weight: 600; color: var(--vp-hc-ink); }
+.vp-hc-type-n::before { content: "\00d7"; opacity: 0.55; }
+/* ---- status strip: lean + segmented band ------------------------ */
+
+.vp-hc-status { display: flex; align-items: center; gap: 6px; }
+.vp-hc-ico { flex: none; font-size: 12px; line-height: 1; color: var(--vp-hc-lean); }
+.vp-hc-lean {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.085em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--vp-hc-lean-ink);
+}
+/*
+ * `contested`, `unflagged` and `none` are the absence of an answer.
+ * Same channel, lower voltage: the label drops to secondary ink, the
+ * glyph is mixed back toward grey, the rail is diluted.
+ */
+.vp-hc-quiet .vp-hc-lean { font-weight: 600; color: var(--vp-hc-mute); }
+.vp-hc-quiet .vp-hc-ico {
+    color: color-mix(in srgb, var(--vp-hc-lean) 72%, var(--vp-hc-mute));
+}
+.vp-hc-band { margin-left: auto; display: flex; align-items: baseline; gap: 6px; }
+.vp-hc-band-n {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.3px;
+    color: var(--vp-hc-ink);
+}
+.vp-hc-band-n.vp-hc-absent { font-weight: 500; color: var(--vp-hc-mute); }
+/*
+ * The band is ordinal, so the meter is discrete: three segments, lit
+ * or hollow. Ink weight only — signal strength gets no hue of its own.
+ */
+.vp-hc-segs { align-self: center; display: inline-flex; gap: 2px; }
+.vp-hc-seg {
+    display: block;
+    width: 9px;
+    height: 6px;
+    border: 1px solid color-mix(in srgb, var(--vp-hc-mute) 60%, transparent);
+    border-radius: 1px;
+}
+.vp-hc-seg.vp-hc-on { background: var(--vp-hc-ink); border-color: var(--vp-hc-ink); }
+/* ---- alert condition: warninglist ------------------------------- */
+
+.vp-hc-sec.vp-hc-alert {
+    padding: 5px 11px 6px;
+    background: color-mix(in srgb, var(--vp-hc-conflict) 10%, var(--vp-hc-bg));
+    border-top: 1px solid color-mix(in srgb, var(--vp-hc-conflict) 38%, var(--vp-hc-line));
+}
+.vp-hc-alert-hd { display: flex; align-items: center; gap: 6px; }
+.vp-hc-led {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: var(--vp-hc-conflict);
+    box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--vp-hc-conflict) 24%, transparent);
+}
+.vp-hc-alert-k {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--vp-hc-conflict-ink);
+}
+.vp-hc-alert-cat {
+    padding: 0 4px;
+    border: 1px solid color-mix(in srgb, var(--vp-hc-conflict) 50%, transparent);
+    border-radius: 2px;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--vp-hc-conflict-ink);
+}
+.vp-hc-alert-v {
+    margin-left: auto;
+    font: 400 9.5px/1 var(--vp-hc-mono);
+    color: var(--vp-hc-mute);
+}
+.vp-hc-alert-n { margin-top: 3px; font-size: 11.5px; line-height: 1.25; }
+.vp-hc-alert-m { color: var(--vp-hc-mute); }
+.vp-hc-alert-s {
+    margin-top: 2px;
+    font-size: 9px;
+    line-height: 1.3;
+    color: var(--vp-hc-mute);
+}
+/* ---- the two headline readings: recency and runway -------------- */
+
+.vp-hc-read {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0 10px;
+    padding: 6px 11px;
+}
+.vp-hc-cell-r { text-align: right; }
+.vp-hc-n {
+    margin-top: 2px;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.35px;
+    white-space: nowrap;
+}
+.vp-hc-n.vp-hc-absent { font-weight: 500; color: var(--vp-hc-mute); }
+.vp-hc-u { margin-left: 1px; font-size: 12px; font-weight: 600; color: var(--vp-hc-mute); }
+.vp-hc-s {
+    margin-top: 1px;
+    font: 400 9.5px/1.3 var(--vp-hc-mono);
+    color: var(--vp-hc-mute);
+}
+.vp-hc-s.vp-hc-state {
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+/* A shelf life running out is a warning about the reading, so it is
+ * carried by ink weight rather than by a fifth hue. `expired` gets the
+ * heaviest ink on the card's smallest type, which is the loudest this
+ * axis is allowed to be: it qualifies the lean, it does not overrule
+ * it, and a red *EXPIRED* under a red *ASSERTED THREAT* would read as
+ * one claim rather than two. */
+.vp-hc-s.vp-hc-state-aging { color: var(--vp-hc-ink); }
+.vp-hc-s.vp-hc-state-expired {
+    color: var(--vp-hc-ink);
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 2px;
+}
+/* Nothing to age it by is not a state of the value; it is a gap in the
+ * record, and it is drawn as the absence the rest of the card uses. */
+.vp-hc-s.vp-hc-state-uncertain { color: var(--vp-hc-mute); }
+.vp-hc-first {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    margin-top: 6px;
+    padding-top: 5px;
+    border-top: 1px dotted color-mix(in srgb, var(--vp-hc-line) 85%, transparent);
+    font-size: 9.5px;
+}
+.vp-hc-first .vp-hc-k { flex: none; }
+.vp-hc-first-v { font-family: var(--vp-hc-mono); color: var(--vp-hc-ink); }
+.vp-hc-first-v.vp-hc-absent { font-family: inherit; color: var(--vp-hc-mute); }
+.vp-hc-first-s { margin-left: auto; color: var(--vp-hc-mute); }
+/* ---- the counts, hairline-separated ----------------------------- */
+
+.vp-hc-tiles { display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px 0; }
+.vp-hc-tile { padding: 0 3px; text-align: center; }
+.vp-hc-tile + .vp-hc-tile { border-left: 1px solid var(--vp-hc-line); }
+.vp-hc-tile-n {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.3px;
+}
+.vp-hc-tile-k {
+    display: block;
+    margin-top: 1px;
+    font-size: 7.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--vp-hc-mute);
+}
+.vp-hc-tile-zero .vp-hc-tile-n { font-weight: 500; color: var(--vp-hc-mute); }
+/* ---- the signed sightings trace --------------------------------- */
+
+.vp-hc-trace { padding: 6px 11px 5px; }
+.vp-hc-spark { display: block; width: 100%; height: auto; color: var(--vp-hc-ink); }
+.vp-hc-spark-up { fill: color-mix(in srgb, var(--vp-hc-ink) 44%, transparent); }
+.vp-hc-spark-dn { fill: color-mix(in srgb, var(--vp-hc-ink) 24%, transparent); }
+.vp-hc-spark-mid { fill: none; stroke: var(--vp-hc-line); stroke-width: 1; }
+.vp-hc-spark-last { fill: var(--vp-hc-lean); }
+.vp-hc-quiet .vp-hc-spark-last {
+    fill: color-mix(in srgb, var(--vp-hc-lean) 75%, var(--vp-hc-mute));
+}
+.vp-hc-spark-cur {
+    fill: none;
+    stroke: color-mix(in srgb, var(--vp-hc-lean) 45%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 1.5 2;
+}
+.vp-hc-trace-ft {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 4px;
+    font-size: 8px;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--vp-hc-mute);
+}
+.vp-hc-trace-rt { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.vp-hc-lg { display: inline-flex; align-items: center; gap: 4px; }
+.vp-hc-mk-dn {
+    width: 0;
+    height: 0;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    border-top: 4px solid currentColor;
+}
+.vp-hc-mk-now { width: 5px; height: 5px; border-radius: 50%; background: var(--vp-hc-lean); }
+.vp-hc-quiet .vp-hc-mk-now {
+    background: color-mix(in srgb, var(--vp-hc-lean) 75%, var(--vp-hc-mute));
+}
+/* No signal is a reading too: the trace flatlines and says so. */
+.vp-hc-null {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 31px;
+}
+.vp-hc-null::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    border-top: 1px dashed color-mix(in srgb, var(--vp-hc-mute) 45%, transparent);
+}
+.vp-hc-null-t {
+    position: relative;
+    padding: 0 8px;
+    background: var(--vp-hc-bg);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--vp-hc-mute);
+}
+/* ---- one clipped line of why ------------------------------------ */
+
+/* The rows stack tight: they are already separated by their own
+ * direction glyph and their weight, so a rule between them would be
+ * three borders buying nothing. */
+.vp-hc-whys { display: flex; flex-direction: column; row-gap: 1px; }
+.vp-hc-why { display: flex; align-items: flex-start; gap: 7px; }
+.vp-hc-why-ico { flex: none; width: 10px; font-size: 11px; line-height: 1; margin-top: 2px; text-align: center; }
+.vp-hc-why-t {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 11.5px;
+    line-height: 1.3;
+    /* A panel clips; it does not paragraph. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.vp-hc-why-w { flex: none; font-size: 11px; font-weight: 700; line-height: 1.3; }
+/* The exception: when the panel has no number to show, the sentence is
+ * the reading, so it gets its second line. Never a third. */
+.vp-hc-why-full .vp-hc-why-t {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+    text-wrap: pretty;
+}
+.vp-hc-why-null .vp-hc-why-ico,
+.vp-hc-why-null .vp-hc-why-t { color: var(--vp-hc-mute); }
+/* ---- the way in ------------------------------------------------- */
+
+.vp-hc-foot { display: flex; align-items: center; gap: 6px; min-height: 25px; }
+.vp-hc-gx { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+.vp-hc-gx-t {
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--vp-hc-mute);
+}
+.vp-hc-gx-more { font-size: 9.5px; color: var(--vp-hc-mute); }
+.vp-hc-open {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--vp-hc-mute);
+}
+.vp-hc-open-ico { flex: none; font-size: 11px; line-height: 1; }
+/* ---- loading ---------------------------------------------------- */
+
+/*
+ * The chrome is real while the readings are not: every label the panel
+ * always shows stays put, so nothing moves when the data lands.
+ */
+.vp-hc-sk { animation: vp-hc-pulse 1.6s ease-in-out infinite; }
+.vp-hc-bar { display: block; border-radius: 2px; background: currentColor; opacity: 0.12; }
+.vp-hc-bar-blk { border-radius: 3px; opacity: 0.08; }
+.vp-hc-cell-r .vp-hc-bar { margin-left: auto; }
+.vp-hc-tile .vp-hc-bar { margin: 0 auto; }
+.vp-hc-first .vp-hc-bar { align-self: center; }
+@keyframes vp-hc-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.58; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .vp-hc-sk { animation: none; }
+}
+
+
+/* ==================================================================
+ * What the modules said
+ * ------------------------------------------------------------------
+ * External knowledge, kept apart from the instance's own evidence by
+ * the rule above it. One row a module: its name in a gutter sized to
+ * the longest one, linking to that module on the Enrichment tab, then
+ * the headline answer with its field label, and what the headline left
+ * out counted at the right edge — pressing the count opens it below.
+ * ================================================================== */
+
+.vp-hc-sec.vp-hc-enr { padding: 6px 11px 7px; }
+
+.vp-hc-enr-hd {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 3px;
+}
+
+.vp-hc-enr-more {
+    margin-left: auto;
+    font-size: 9.5px;
+    line-height: 1;
+    color: var(--vp-hc-mute);
+    text-decoration: none;
+}
+
+.vp-hc-enr-more:hover,
+.vp-hc-enr-more:focus-visible {
+    color: var(--vp-hc-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.vp-hc-enr-rows {
+    display: grid;
+    grid-template-columns: fit-content(104px) minmax(0, 1fr);
+    /* Fixed, so the baseline shift between the two fonts cannot grow a row. */
+    grid-auto-rows: 16px;
+    column-gap: 12px;
+    row-gap: 2px;
+    align-items: baseline;
+}
+
+/* Both exist for the script to address; the grid lays out their cells. */
+.vp-hc-enr-row,
+.vp-hc-enr-slot { display: contents; }
+
+.vp-hc-enr-mod {
+    grid-column: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 400 10px/13px var(--vp-hc-mono);
+    color: var(--vp-hc-mute);
+    text-decoration: none;
+}
+
+a.vp-hc-enr-mod {
+    text-decoration: underline dotted
+        color-mix(in srgb, currentColor 45%, transparent);
+    text-underline-offset: 2px;
+}
+
+a.vp-hc-enr-mod:hover,
+a.vp-hc-enr-mod:focus-visible {
+    color: var(--vp-hc-ink);
+    text-decoration: underline solid currentColor;
+}
+
+.vp-hc-enr-ans {
+    grid-column: 2;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    font-size: 11.5px;
+    line-height: 16px;
+}
+
+.vp-hce-v {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--vp-hc-ink);
+}
+
+.vp-hce-l { font-size: 10px; line-height: 1; color: var(--vp-hc-mute); }
+
+.vp-hce-x { font-weight: 600; }
+
+/*
+ * A module that was asked and holds nothing is a finding, not a
+ * failure, and one that could not answer is neither. Both are drawn as
+ * the absence the rest of the card uses rather than in a colour.
+ */
+.vp-hce-silent,
+.vp-hce-fail,
+.vp-hce-wait,
+.vp-hce-ask { color: var(--vp-hc-mute); }
+
+.vp-hce-silent .vp-hce-x,
+.vp-hce-fail .vp-hce-x { font-weight: 400; }
+
+.vp-hce-fail { font-style: italic; }
+
+.vp-hce-ask .fa-spin { margin-right: 3px; font-size: 9px; line-height: 1; opacity: 0.7; }
+
+/* Pinned to the edge, outside the clipped text, so it is never cut. */
+.vp-hce-more {
+    flex: none;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    margin: -1px -4px -1px auto;
+    padding: 1px 4px;
+    border: 0;
+    border-radius: 3px;
+    background: none;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--vp-hc-mute);
+    cursor: pointer;
+}
+
+.vp-hce-more:hover,
+.vp-hce-more:focus-visible,
+.vp-hce-more[aria-expanded="true"] {
+    color: var(--vp-hc-ink);
+    background: color-mix(in srgb, var(--vp-hc-ink) 8%, transparent);
+}
+
+.vp-hce-more:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--vp-hc-ink) 45%, transparent);
+    outline-offset: 0;
+}
+
+.vp-hce-more .fa-angle-down { font-size: 9px; transition: transform 0.15s; }
+
+.vp-hce-more[aria-expanded="true"] .fa-angle-down { transform: rotate(180deg); }
+
+/* The rest of one answer, hung under its headline. */
+.vp-hc-enr-rest {
+    grid-column: 2;
+    display: none;
+    min-width: 0;
+    padding-left: 8px;
+    border-left: 1px solid var(--vp-hc-line);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--vp-hc-ink);
+}
+
+.vp-hc-enr-open .vp-hc-enr-rest { display: block; }
+
+.vp-hc-enr-rest .vp-hce-x { font-weight: 500; }
+
+.vp-hc-enr-rest-link {
+    font-size: 10px;
+    color: var(--vp-hc-mute);
+    text-decoration: none;
+}
+
+.vp-hc-enr-rest-link:hover,
+.vp-hc-enr-rest-link:focus-visible {
+    color: var(--vp-hc-ink);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.vp-hc-enr-rest-link .fa-arrow-right { margin-left: 4px; font-size: 8.5px; }
+
+.vp-hc-enr-bar {
+    display: block;
+    height: 8px;
+    margin: 4px 0;
+    border-radius: 2px;
+    background: currentColor;
+    opacity: 0.1;
+}
+
+/* No text to align on, so a baseline would sit them lower than a real row. */
+.vp-hc-enr-skel .vp-hc-enr-mod,
+.vp-hc-enr-skel .vp-hc-enr-ans {
+    align-self: center;
+    animation: vp-hc-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vp-hc-enr-skel .vp-hc-enr-mod,
+    .vp-hc-enr-skel .vp-hc-enr-ans { animation: none; }
+    .vp-hce-more .fa-angle-down { transition: none; }
+}

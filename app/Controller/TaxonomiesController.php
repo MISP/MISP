@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('TaxonomyRailCards', 'Tools/RailCards');
 
 /**
  * @property Taxonomy $Taxonomy
@@ -53,7 +54,7 @@ class TaxonomiesController extends AppController
 
     public function view($id)
     {
-        $taxonomy = $this->Taxonomy->getTaxonomy($id);
+        $taxonomy = $this->Taxonomy->getTaxonomy($id, $this->_isRest() || $this->theme === 'Overmind');
         if (empty($taxonomy)) {
             throw new NotFoundException(__('Taxonomy not found.'));
         }
@@ -65,8 +66,31 @@ class TaxonomiesController extends AppController
         $this->set('tag_count', count($taxonomy['entries']));
         $this->set('entries', $taxonomy['entries']);
 
+        if ($this->theme === 'Overmind') {
+            $railCards = new TaxonomyRailCards();
+            $this->set('railCards', RailCard::byId([
+                $railCards->inventory($taxonomy),
+                $railCards->slot('taxonomy-usage', $taxonomy['Taxonomy']['id']),
+                $railCards->freshness($taxonomy, $this->ACL->canUserAccess($this->Auth->user(), 'taxonomies', 'update')),
+            ]));
+        }
         $this->set('taxonomy', $taxonomy['Taxonomy']);
         $this->set('id', $taxonomy['Taxonomy']['id']);
+    }
+
+    /**
+     * One of the taxonomy page's lazy rail cards.
+     *
+     * @param int $id
+     * @param string $cardId
+     */
+    public function railCard($id, $cardId)
+    {
+        $taxonomy = $this->Taxonomy->getTaxonomy($id);
+        if (empty($taxonomy)) {
+            throw new NotFoundException(__('Taxonomy not found.'));
+        }
+        $this->_renderRailCard((new TaxonomyRailCards())->lazy($cardId, $this->Auth->user(), $taxonomy));
     }
 
     public function taxonomy_tags($id)

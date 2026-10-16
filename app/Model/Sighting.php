@@ -1748,6 +1748,124 @@ class Sighting extends AppModel
     }
 
     /**
+     * `Plugin.Sightings_policy` as SQL, for a query that has already
+     * joined `Sighting` and `Event`.
+     *
+     * **The same four branches `createConditionsByAttributes` applies,
+     * expressed without the attribute id set.** That method is the
+     * reference and it works from fetched rows: it groups the
+     * attributes by event, decides ownership per event in PHP, and
+     * emits one `OR` arm per event naming that event's attribute ids.
+     * Exact, and bounded by however many attributes the caller
+     * materialised — which is the whole problem for a value like `443`,
+     * whose 48,255 occurrences would have to be read before its
+     * sightings could be counted.
+     *
+     * Every branch turns out to be expressible as a predicate over the
+     * joined rows instead, because each is a statement about the
+     * *event* rather than about the attribute:
+     *
+     * | Policy | The rule | As a predicate |
+     * |---|---|---|
+     * | `EVERYONE`, or a site admin | everything | no condition |
+     * | `EVENT_OWNER` | own events, plus your own reports elsewhere | `Event.orgc_id = you OR Sighting.org_id = you` |
+     * | `HOST_ORG` | the same, plus the host org's reports | `Event.orgc_id = you OR Sighting.org_id IN (you, host)` |
+     * | `SIGHTING_REPORTER` | own events, plus every report on an event you have reported on | `Event.orgc_id = you OR EXISTS (a sighting of yours on that event)` |
+     *
+     * The `EXISTS` is `isReporter` as a subquery rather than as a query
+     * per event — the same `(event_id, org_id)` lookup, evaluated by
+     * the database against the rows it is already visiting.
+     *
+     * **`orgc_id`, and MISP does not agree with itself about that.**
+     * The two implementations of this policy compare *own event*
+     * against different columns: `createConditionsByAttributes` uses
+     * `Event.org_id`, the owner, while `listSightings` builds its
+     * `$eventOwnerOrgIdList` from `Event.orgc_id`, the creator, and
+     * uses it in both of its branches. The two differ on any synced
+     * event, which is most of them on a connected instance. This
+     * follows `listSightings` because that is the method whose answer
+     * the Value Intelligence's Sightings tab renders, and a count on the
+     * page frame that disagreed with the panel it links to would be the
+     * cross-panel contradiction this feature keeps being bitten by.
+     * The discrepancy is MISP's own and is left where it is rather than
+     * picked a winner for from here.
+     *
+     * **This grants nothing on its own.** It is the sighting half of
+     * the visibility rule; the attribute half is the caller's
+     * `MispAttribute::buildConditions($user)`, and a caller that omits
+     * that would count sightings on attributes the reader cannot see.
+     * `Value::sightingCountsFor` is the one caller and applies both.
+     *
+     * @param array $user
+     * @param string $ownColumn The column that makes an event the reader's own;
+     *      `Event.org_id` agrees with eventsStatistic(), the event page's count
+     * @return array Conditions, empty where the reader may see all
+     */
+    public function visibilityConditions(array $user, $ownColumn = 'Event.orgc_id')
+    {
+        $policy = $this->sightingsPolicy();
+        if ($policy === self::SIGHTING_POLICY_EVERYONE
+            || !empty($user['Role']['perm_site_admin'])
+        ) {
+            return array();
+        }
+        $orgId = (int)$user['org_id'];
+        $own = array($ownColumn => $orgId);
+        if ($policy === self::SIGHTING_POLICY_SIGHTING_REPORTER) {
+            return array('OR' => array(
+                $own,
+                'EXISTS (SELECT 1 FROM sightings reporter'
+                    . ' WHERE reporter.event_id = Event.id'
+                    . ' AND reporter.org_id = ' . $orgId . ')',
+            ));
+        }
+        $orgs = array($orgId);
+        if ($policy === self::SIGHTING_POLICY_HOST_ORG) {
+            $orgs[] = (int)Configure::read('MISP.host_org_id');
+        }
+        return array('OR' => array(
+            $own,
+            array('Sighting.org_id' => $orgs),
+        ));
+    }
+
+    /**
+     * Sightings and false positives per event that the reader may see, counted
+     * as eventsStatistic() counts them for the event page.
+     *
+     * @param array $user
+     * @param array $eventIds
+     * @return array event id => count, absent where there is none
+     */
+    public function countForEvents(array $user, array $eventIds)
+    {
+        if (empty($eventIds)) {
+            return [];
+        }
+        $conditions = [
+            'Sighting.event_id' => $eventIds,
+            'Sighting.type' => array_keys(array_intersect(self::TYPE, ['sighting', 'false-positive'])),
+        ];
+        $policy = $this->visibilityConditions($user, 'Event.org_id');
+        if (!empty($policy)) {
+            $conditions['AND'][] = $policy;
+        }
+        $counts = $this->find('all', [
+            'fields' => ['Sighting.event_id', 'COUNT(Sighting.id) AS count'],
+            'conditions' => $conditions,
+            'joins' => [[
+                'table' => 'events',
+                'alias' => 'Event',
+                'type' => 'INNER',
+                'conditions' => ['Event.id = Sighting.event_id'],
+            ]],
+            'group' => ['Sighting.event_id'],
+            'recursive' => -1,
+        ]);
+        return array_map('intval', Hash::combine($counts, '{n}.Sighting.event_id', '{n}.0.count'));
+    }
+
+    /**
      * Reduce memory usage by not fetching organisation object for every sighting but just once. Then organisation
      * object will be deduplicated in memory.
      *

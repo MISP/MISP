@@ -98,7 +98,7 @@ class SyncAnalystDataPushProbe extends AnalystData
     {
     }
 
-    public function collectDataForPush(array $server): array
+    public function collectDataForPush(array $server, array $types = self::ANALYST_DATA_TYPES): array
     {
         return $this->collected;
     }

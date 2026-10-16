@@ -359,7 +359,7 @@ $openCard('puzzle-piece', '#6f42c1', __('PHP extensions'),
                     <td><span class="ss-setting-name"><?= h($extension) ?></span></td>
                     <td>
                         <?= $info['required']
-                            ? '<i class="fas fa-check text-primary" title="' . h(__('Required')) . '"></i>'
+                            ? '<i class="fas fa-check text-accent" title="' . h(__('Required')) . '"></i>'
                             : '<i class="fas fa-minus text-muted" title="' . h(__('Optional')) . '"></i>' ?>
                     </td>
                     <td class="text-muted" style="font-size:.76rem;"><?= $info['info'] ?></td>
@@ -417,7 +417,7 @@ $openCard('cubes', '#795548', __('PHP dependencies'),
                     <td><span class="ss-setting-name"><?= h($dependency) ?></span></td>
                     <td>
                         <?= $info['required']
-                            ? '<i class="fas fa-check text-primary" title="' . h(__('Required')) . '"></i>'
+                            ? '<i class="fas fa-check text-accent" title="' . h(__('Required')) . '"></i>'
                             : '<i class="fas fa-minus text-muted" title="' . h(__('Optional')) . '"></i>' ?>
                     </td>
                     <td class="text-muted" style="font-size:.76rem;"><?= $info['info'] ?></td>
@@ -469,6 +469,8 @@ $migrationsApplied = (int)($dbSchemaDiagnostics['migrations_applied'] ?? 0);
 
 if ($migrationsFailed > 0) {
     $databaseBadge = array('level' => 0, 'label' => __('%s migration(s) failed', $migrationsFailed));
+} elseif ($migrationsDeferredReasons) {
+    $databaseBadge = array('level' => 1, 'label' => __('%s migration(s) deferred', count($migrationsDeferredReasons)));
 } elseif ($migrationsPending > 0) {
     $databaseBadge = array('level' => 1, 'label' => __('%s migration(s) pending', $migrationsPending));
 } elseif ((int)$dbSchemaDiagnostics['actual_db_version'] < (int)$dbSchemaDiagnostics['expected_db_version']) {
@@ -501,6 +503,8 @@ $openCard('database', '#0dcaf0', __('Database status'),
                 <?php
                 if ($migrationsFailed > 0) {
                     echo $pill(0, __('%s failed', $migrationsFailed));
+                } elseif ($migrationsDeferredReasons) {
+                    echo $pill(1, __('%s deferred', count($migrationsDeferredReasons)));
                 } elseif ($migrationsPending > 0) {
                     echo $pill(1, __('%s pending', $migrationsPending));
                 } else {
@@ -1051,7 +1055,7 @@ $openCard('screwdriver-wrench', '#495057', __('Maintenance & tools'),
     var submoduleTarget = root.querySelector('[data-dg-submodule-target]');
     if (submoduleTarget) {
         var loadSubmodules = function () {
-            submoduleTarget.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
+            submoduleTarget.innerHTML = '<div class="p-3"><div class="misp-loader misp-loader-sm" role="status"></div></div>';
             fetch(baseurl + '/servers/getSubmodulesStatus/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then(function (r) { if (!r.ok) throw 0; return r.text(); })
                 .then(function (html) { submoduleTarget.innerHTML = html; })
