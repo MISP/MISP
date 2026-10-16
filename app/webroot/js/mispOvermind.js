@@ -7635,8 +7635,9 @@ document.addEventListener('DOMContentLoaded', function () {
  *
  *   <div id="…-body" data-collapse-tall="400">
  *
- * `data-collapse-peek="<selector>"` also names, under the fade, the sections
- * the clip hides whole: each match's first child is its title.
+ * `data-collapse-peek="<selector>"` also names, under the fade, what the clip
+ * hides: matches carry `data-collapse-peek-label` (optionally -class and
+ * -icon), and the hidden ones are counted per label.
  *
  * The fade is inserted AFTER the box, never inside it: inside a clipped box it
  * is laid out against the scrollport, so it drifts into the middle of the
@@ -7699,7 +7700,7 @@ function initCollapsibleSection(box) {
         applying = false;
     }
 
-    /* A section counts as hidden once its title sits under the fade. Emptied
+    /* A match counts as hidden once its top sits under the fade. Emptied
        only when rebuilt: the click that expands the box must still find its
        target inside the overlay, or the close-on-outside-click shuts it. */
     function updatePeek(clipped) {
@@ -7707,18 +7708,27 @@ function initCollapsibleSection(box) {
             peek.replaceChildren();
             const boxTop = box.getBoundingClientRect().top;
             const cut = threshold - gradient.offsetHeight;
-            box.querySelectorAll(peekSelector).forEach(function (section) {
-                const title = section.firstElementChild;
-                if (!title || !title.getClientRects().length) { return; }
-                if (title.getBoundingClientRect().top - boxTop < cut) { return; }
-                const label = title.cloneNode(true);
+            const groups = new Map();
+            box.querySelectorAll(peekSelector).forEach(function (match) {
+                const label = match.dataset.collapsePeekLabel;
+                if (!label || !match.getClientRects().length) { return; }
+                if (match.getBoundingClientRect().top - boxTop < cut) { return; }
+                if (!groups.has(label)) { groups.set(label, { first: match, count: 0 }); }
+                groups.get(label).count++;
+            });
+            groups.forEach(function (group, label) {
                 const item = document.createElement('button');
                 item.type = 'button';
-                item.className = 'collapse-peek-item';
-                item.appendChild(label);
+                item.className = 'collapse-peek-item ' + (group.first.dataset.collapsePeekClass || '');
+                if (group.first.dataset.collapsePeekIcon) {
+                    const icon = document.createElement('i');
+                    icon.className = group.first.dataset.collapsePeekIcon + ' me-1';
+                    item.appendChild(icon);
+                }
+                item.appendChild(document.createTextNode(label + ' (' + group.count + ')'));
                 item.addEventListener('click', function () {
                     setExpanded(true);
-                    section.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    group.first.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                 });
                 peek.appendChild(item);
             });

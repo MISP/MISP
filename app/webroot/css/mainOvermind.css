@@ -4559,13 +4559,13 @@ tr.evt-extension-row td:first-child { position: relative; }
     padding: 0;
     border: 0;
     background: none;
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
 }
 
-.collapse-peek-item > * {
-    margin: 0 !important;
-}
-
-.collapse-peek-item:hover > * {
+.collapse-peek-item:hover {
     text-decoration: underline;
 }
 

@@ -12,7 +12,6 @@ foreach ($data['EventTag'] ?? [] as $eventTag) {
 $opinions = $data['Opinion'] ?? [];
 $notes = $data['Note'] ?? [];
 $relationships = $data['Relationship'] ?? [];
-$hasAnalystData = !empty($opinions) || !empty($notes) || !empty($relationships);
 $canAdd = !empty($me['Role']['perm_analyst_data']) && $eventUuid !== '';
 $addUrl = function ($type) use ($baseurl, $eventUuid) {
     return $baseurl . '/analystData/add/' . $type . '/' . rawurlencode($eventUuid) . '/Event';
@@ -82,10 +81,15 @@ if (!empty($relationships)) {
         </div>
     <?php endif; ?>
 
-    <?php if ($hasAnalystData): ?>
-        <div id="eo-analyst-data"<?= empty($confidence) ? '' : ' class="border-top"' ?> data-collapse-tall="350" data-collapse-peek="[data-ad-section]" data-eo-fragment="<?= h($baseurl . '/analystData/viewForObject/Event/' . rawurlencode($eventUuid) . '?embedded=1') ?>">
-            <div class="text-center text-muted py-3"><div class="misp-loader misp-loader-sm" role="status"></div></div>
-        </div>
+    <?php
+    $thread = $eventUuid === '' ? '' : $this->element('AnalystData/rail_card', [
+        'objectType' => 'Event',
+        'objectUuid' => $eventUuid,
+        'embedded' => true,
+    ]);
+    ?>
+    <?php if (trim($thread) !== ''): ?>
+        <div class="eo-assessment-thread" data-collapse-tall="350" data-collapse-peek="[data-collapse-peek-label]"><?= $thread ?></div>
     <?php else: ?>
         <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center text-muted py-4">
             <i class="fas fa-comment-dots fa-2x mb-2 opacity-50"></i>

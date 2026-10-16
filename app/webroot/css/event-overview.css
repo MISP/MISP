@@ -329,6 +329,7 @@ button.eo-on.is-only:hover, button.eo-on.is-only:focus-visible { background: col
     .eo-assessment .eo-btn-label { display: none; }
 }
 .eo-assessment-chips { display: flex; flex-wrap: wrap; gap: .3rem; padding: .65rem 1rem; }
+.eo-assessment-chips + .eo-assessment-thread { border-top: 1px solid var(--bs-border-color); }
 .eo-assessment .btn-outline-analystData {
     --bs-btn-color: color-mix(in srgb, var(--bs-analystData) 65%, var(--bs-body-color));
     --bs-btn-border-color: color-mix(in srgb, var(--bs-analystData) 65%, var(--bs-body-color));
