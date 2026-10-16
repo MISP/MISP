@@ -20,8 +20,6 @@
  * @var array $errors
  * @var array $warnings
  */
-App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
-
 echo $this->element('genericElements/assetLoader', array(
     'css' => array('value-palette', 'analyst-profile'),
     'js' => array('analyst-profile'),
@@ -29,7 +27,7 @@ echo $this->element('genericElements/assetLoader', array(
 
 $query = $focus === null
     ? array()
-    : array('value' => ValueUrlTool::encode($focus));
+    : array('value' => $focus);
 
 $this->set('headerTitle', __('Full comparison'));
 $this->set('headerBreadcrumb', array(

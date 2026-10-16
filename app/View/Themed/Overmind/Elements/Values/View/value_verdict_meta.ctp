@@ -24,6 +24,7 @@
  */
 $metaRule = $metaRule ?? null;
 $valueB64 = $valueB64 ?? null;
+$value = $valueIntelligence['value'] ?? null;
 
 /*
  * Literally true: there is no stored verdict, so the timestamp is this
@@ -58,9 +59,9 @@ if (!empty($verdict['ledger'])) {
                 'controller' => 'analystProfiles',
                 'action' => 'view',
                 $verdict['profile_id'],
-                '?' => $valueB64 === null
+                '?' => $value === null
                     ? array()
-                    : array('value' => $valueB64),
+                    : array('value' => $value),
             ),
             array('escape' => false)
         );

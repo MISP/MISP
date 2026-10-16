@@ -411,7 +411,7 @@ class AnalystProfilesController extends AppController
             array('action' => 'edit', $row['id'],
                 '?' => $benched === null
                     ? array()
-                    : array('value' => ValueUrlTool::encode($benched)))
+                    : array('value' => $benched))
         );
     }
 
@@ -1611,35 +1611,34 @@ class AnalystProfilesController extends AppController
     }
 
     /**
-     * The value the caller asked about, from `?value=` or a posted one.
+     * The value the caller asked about: `?value=` as raw text, as `/values`
+     * takes it, or the bench's posted `b64value`, encoded because a form
+     * post rewrites a bare LF as CRLF.
      *
      * @return string|null
      */
     private function __requestedValue()
     {
-        foreach (array('value', 'b64value') as $key) {
-            if (!empty($this->request->query[$key])) {
-                return $this->__decodeValue(
-                    $this->request->query[$key]
-                );
-            }
+        $query = $this->request->query;
+        if (isset($query['value']) && is_string($query['value'])
+            && $query['value'] !== ''
+        ) {
+            return $query['value'];
         }
         $posted = isset($this->request->data['AnalystProfile'])
             ? $this->request->data['AnalystProfile']
             : array();
-        if (!empty($posted['value'])) {
-            return $this->__decodeValue($posted['value']);
+        if (!empty($posted['b64value'])) {
+            return $this->__decodeValue($posted['b64value']);
         }
         return null;
     }
 
     /**
-     * The value a request names, or a 404.
+     * The value a path segment or the bench's posted field names, or a 404.
      *
-     * `ValueUrlTool` owns the encoding — the Value Intelligence page mints
-     * the same `?value=` and there is one implementation of the
-     * alphabet question — and the refusal stays here, so this
-     * endpoint's wording is its own.
+     * `ValueUrlTool` owns the encoding, the one `/values/view/<b64>` uses;
+     * the refusal stays here, so this endpoint's wording is its own.
      *
      * @param string|null $b64value
      * @return string
@@ -1650,9 +1649,9 @@ class AnalystProfilesController extends AppController
         $value = ValueUrlTool::decode($b64value);
         if ($value === null) {
             throw new NotFoundException(__(
-                'That is not a value this page can read. Values travel'
-                . ' base64-encoded, because they are arbitrary strings'
-                . ' in a URL.'
+                'That is not a value this page can read. A value in a URL'
+                . ' path travels base64-encoded, because it is an arbitrary'
+                . ' string.'
             ));
         }
         return $value;

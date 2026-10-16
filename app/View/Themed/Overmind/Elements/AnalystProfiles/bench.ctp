@@ -307,7 +307,7 @@ $carry = array(
                $profileId,
                '?' => $focus === null
                    ? array()
-                   : array('value' => ValueUrlTool::encode($focus)),
+                   : array('value' => $focus),
            ))) ?>">
             <?= h(__('Open the full comparison')) ?>
         </a>

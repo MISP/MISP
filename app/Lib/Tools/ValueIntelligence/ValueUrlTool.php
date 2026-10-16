@@ -4,9 +4,10 @@
  * A value in a URL segment, both ways.
  *
  * The Value Intelligence page's subject is an arbitrary string — a hash, a
- * domain, a URL with slashes in it — so it travels base64-encoded. Two
- * controllers need the same encoding: `ValuesController` mints it and
- * `AnalystProfilesController`'s simulator takes it as `?value=`.
+ * domain, a URL with slashes in it — so in a path segment it travels
+ * base64-encoded. Two controllers need the same encoding: `ValuesController`
+ * mints it and `AnalystProfilesController` takes it in `pin`/`unpin`. A
+ * `?value=` query parameter is raw text on both.
  *
  * It lives here rather than on either of them for two reasons. One is
  * the ordinary one — two copies of an alphabet decision drift. The

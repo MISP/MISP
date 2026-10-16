@@ -107,11 +107,11 @@ $parse = isset($parse) ? $parse : null;
                 $profile['id'],
                 '?' => $value === null
                     ? array()
-                    : array('value' => ValueUrlTool::encode($value)),
+                    : array('value' => $value),
             )),
         )) ?>
             <input type="hidden" id="ap-bench-value"
-                   name="data[AnalystProfile][value]"
+                   name="data[AnalystProfile][b64value]"
                    value="<?= $value === null
                        ? '' : h(ValueUrlTool::encode($value)) ?>">
             <div class="wb">

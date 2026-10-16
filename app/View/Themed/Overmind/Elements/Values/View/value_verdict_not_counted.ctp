@@ -8,7 +8,6 @@
  * still fall either way, these were never going to count.
  *
  * @var array $valueIntelligence
- * @var string $valueB64
  */
 $verdict = $valueIntelligence['verdict'];
 $notCounted = $verdict['not_counted'] ?? array();
@@ -20,7 +19,7 @@ $notCounted = $verdict['not_counted'] ?? array();
  * call, so it appears only when the assessment names one.
  */
 $profileId = $verdict['profile_id'] ?? null;
-$valueB64 = $valueB64 ?? null;
+$value = $valueIntelligence['value'] ?? null;
 ?>
 <?php if (!empty($notCounted)): ?>
     <div class="card shadow-sm mb-3 vp-panel vp-aside">
@@ -42,11 +41,11 @@ $valueB64 = $valueB64 ?? null;
                             'controller' => 'analystProfiles',
                             'action' => 'view',
                             $profileId,
-                            '?' => $valueB64 === null
+                            '?' => $value === null
                                 ? array('section' => 'exclusions')
                                 : array(
                                     'section' => 'exclusions',
-                                    'value' => $valueB64,
+                                    'value' => $value,
                                 ),
                         ))) ?>"><?= h(__('the rule that set it aside')) ?></a>
                     <?php endif; ?>

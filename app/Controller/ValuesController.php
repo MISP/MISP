@@ -1996,7 +1996,7 @@ class ValuesController extends AppController
      * The value this request is about, or a 404.
      *
      * The encoding itself is `ValueUrlTool`'s — two controllers mint and
-     * read the same `?value=`, and its docblock says why the pair does
+     * read the same path segment, and its docblock says why the pair does
      * not live on either of them. What stays here is the refusal, so the
      * page's own wording travels with the page.
      *
