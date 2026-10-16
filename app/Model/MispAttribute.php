@@ -535,6 +535,12 @@ class MispAttribute extends AppModel
 
     public $fast_update = false;
 
+    /**
+     * @var int|null The `created` the next insert keeps instead of now, for a
+     *     row that replaces another; a property so no request can set it.
+     */
+    public $carryCreated = null;
+
     // The paginator sorts only by fields and virtual fields; beforeFind sorts by the value
     public function hasField($name, $checkVirtual = false)
     {
@@ -729,7 +735,7 @@ class MispAttribute extends AppModel
         }
         // Cake fills `created` on insert but keeps a sent value, on edits too.
         if ($insert) {
-            $attribute['created'] = time();
+            $attribute['created'] = $this->carryCreated ?? time();
         } else {
             unset($attribute['created']);
         }
