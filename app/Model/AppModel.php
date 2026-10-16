@@ -394,6 +394,38 @@ class AppModel extends Model
         }
     }
 
+    /**
+     * Whether the database still has the MISP 2.x layout, which only the
+     * command line upgrade converts. MISP 3 widens events.id to a bigint.
+     *
+     * @return bool
+     */
+    public function awaitsV3Upgrade()
+    {
+        $cacheKey = 'misp:v3_schema';
+        try {
+            $redis = RedisTool::init();
+            if ($redis->get($cacheKey) === '1') {
+                return false;
+            }
+        } catch (Exception $e) {
+            $redis = null;
+        }
+        $inspector = new SchemaInspector($this->getDataSource());
+        $id = $inspector->column('events', 'id');
+        if ($id === null || $id['type'] !== 'biginteger') {
+            return true;
+        }
+        if ($redis) {
+            try {
+                $redis->setex($cacheKey, 3600, '1');
+            } catch (Exception $e) {
+                // Uncached, the column is read again on the next request.
+            }
+        }
+        return false;
+    }
+
     public function runUpdates($verbose = false, $useWorker = true, $processId = false, $avoidSilentFail = false, $retryDeferred = false)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');

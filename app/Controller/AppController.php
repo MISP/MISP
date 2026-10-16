@@ -184,6 +184,10 @@ class AppController extends Controller
 
         $this->_setupDatabaseConnection();
 
+        if ($this->User->awaitsV3Upgrade()) {
+            $this->__v3UpgradeRequired();
+        }
+
         $this->set('debugMode', Configure::read('debug') >= 1 ? 'debugOn' : 'debugOff');
         $isAjax = $this->request->is('ajax');
         $this->set('ajax', $isAjax);
@@ -1132,6 +1136,26 @@ class AppController extends Controller
             // Beta event view embeds the rendered event report preview in a same-origin iframe.
             $policy['frame-src'] = "'self'";
         }
+    }
+
+    /**
+     * Stops every request while the database has the 2.x layout: the upgrade
+     * is one-way, so it is left to an administrator on the command line.
+     */
+    private function __v3UpgradeRequired()
+    {
+        $message = __('This MISP instance runs MISP 3, but its database has not been upgraded yet. An administrator has to run the upgrade from the command line.');
+        if ($this->_isRest() || $this->request->is('ajax')) {
+            $response = $this->RestResponse->throwException(503, $message);
+        } else {
+            $this->layout = false;
+            $this->set('title_for_layout', __('Database upgrade required'));
+            $response = $this->render('/genericTemplates/v3_upgrade_required');
+            $response->statusCode(503);
+        }
+        $response->header('Retry-After', '3600');
+        $response->send();
+        $this->_stop();
     }
 
     private function __cors()
