@@ -164,7 +164,12 @@ altered.** CakePHP caches a table's description and `Model::save()` filters
 fields against it, so without that a write to a column added moments earlier is
 silently dropped. The migration runner turns the datasource's schema cache off
 before `afterUp()`, which handles the common case, but a model already
-initialised earlier in the process keeps its own copy.
+initialised earlier in the process keeps its own copy. A `find()` without a
+field list follows the columns as well: the runner also empties CakePHP's method
+cache, where that column list is cached, and MISP's datasources key the list by
+the columns (`CurrentColumnListTrait`), so no other process brings back one from
+before the change. Long-running workers keep their own descriptions until they
+restart.
 
 ## 5. Check before you run
 
