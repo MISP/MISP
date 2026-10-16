@@ -256,7 +256,7 @@ class EventSeenTimelineToolTest extends TestCase
         $this->assertSame($start, EventSeenTimelineTool::dateSql('created', 'Attribute', 'e'));
         $this->assertStringContainsString('NULLIF(Attribute.created, 0)', $start);
         $this->assertSame('Attribute.created > 0', EventSeenTimelineTool::datedSql('created', 'Attribute'));
-        $this->assertSame('NULL', EventSeenTimelineTool::dateSql('created', 'Object', 's'));
+        $this->assertSame('NULLIF(0, 0)', EventSeenTimelineTool::dateSql('created', 'Object', 's'));
         $this->assertSame('1 = 0', EventSeenTimelineTool::datedSql('created', 'Object'));
     }
 

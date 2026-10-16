@@ -717,7 +717,8 @@ class EventSeenTimelineTool
             return "(NULLIF($alias.timestamp, 0) * 1000000)";
         }
         if ($basis === self::BASIS_CREATED) {
-            return self::isAttribute($alias) ? "(NULLIF($alias.created, 0) * 1000000)" : 'NULL';
+            // A NULL typed as a number: PostgreSQL reads a bare one in a derived table as text
+            return self::isAttribute($alias) ? "(NULLIF($alias.created, 0) * 1000000)" : 'NULLIF(0, 0)';
         }
         $first = "COALESCE($alias.first_seen, $alias.last_seen)";
         $last = "COALESCE($alias.last_seen, $alias.first_seen)";
