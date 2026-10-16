@@ -224,12 +224,15 @@ class EventOverviewTool
 
     /**
      * FROM … WHERE over one event's live objects the user may read. Binds
-     * the event id. Pinned to event_id, which the optimiser otherwise trades
-     * for a scan of every object once an event holds a large share of them.
+     * the event id. Pinned to MispObject::liveObjectIndex(), which the
+     * optimiser otherwise trades for a scan of every object once an event
+     * holds a large share of them.
      */
     private function objectsFrom(array $user)
     {
-        return ' FROM objects Object FORCE INDEX (event_id) JOIN events Event ON Event.id = Object.event_id'
+        $index = $this->Object->liveObjectIndex();
+        return ' FROM objects Object' . ($index === null ? '' : ' FORCE INDEX (' . $index . ')')
+            . ' JOIN events Event ON Event.id = Object.event_id'
             . ' WHERE Object.event_id = ? AND Object.deleted = 0'
             . ' AND ' . $this->aclSql($user, 'Object');
     }

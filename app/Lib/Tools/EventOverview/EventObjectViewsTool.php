@@ -19,8 +19,6 @@ class EventObjectViewsTool
     /** Subjects drawn per `each` shape. */
     const SUBJECT_CAP = 50;
 
-    const INDEX = 'idx_event_deleted_name';
-
     /** Files the map opens: template => the relation holding them. */
     const MAP_FILES = array(
         'gpx' => 'attachment',
@@ -398,9 +396,8 @@ class EventObjectViewsTool
     private function indexHint()
     {
         if ($this->hint === null) {
-            $indexes = $this->Object->getDataSource()->index($this->Object);
-            $index = isset($indexes[self::INDEX]) ? self::INDEX : 'event_id';
-            $this->hint = 'FORCE INDEX (' . $index . ')';
+            $index = $this->Object->liveObjectIndex();
+            $this->hint = $index === null ? '' : 'FORCE INDEX (' . $index . ')';
         }
         return $this->hint;
     }

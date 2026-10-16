@@ -46,10 +46,14 @@ class EventSeenTimelineTool
     /** @var Model */
     private $Attribute;
 
+    /** @var Model */
+    private $Object;
+
     public function __construct(EventOverviewTool $overview = null)
     {
         $this->overview = $overview ?? new EventOverviewTool();
         $this->Attribute = ClassRegistry::init('MispAttribute');
+        $this->Object = ClassRegistry::init('MispObject');
     }
 
     /**
@@ -641,6 +645,7 @@ class EventSeenTimelineTool
      */
     private function envelopeSql(array $acl, $basis)
     {
+        $index = $this->Object->liveObjectIndex();
         $inner = 'SELECT Object.id, Object.uuid, Object.event_id, Object.name,'
             . ' Object.`meta-category` AS category, Object.first_seen AS ofs, Object.last_seen AS ols,'
             . ' Object.timestamp AS ots,'
@@ -648,7 +653,8 @@ class EventSeenTimelineTool
             . ' MIN(' . self::dateSql($basis, 'Attribute', 's') . ') AS amin,'
             . ' MAX(' . self::dateSql($basis, 'Attribute', 'e') . ') AS amax,'
             . ' COUNT(Attribute.id) AS dated_children'
-            . ' FROM objects Object FORCE INDEX (event_id) JOIN events Event ON Event.id = Object.event_id'
+            . ' FROM objects Object' . ($index === null ? '' : ' FORCE INDEX (' . $index . ')')
+            . ' JOIN events Event ON Event.id = Object.event_id'
             . ' LEFT JOIN attributes Attribute ON Attribute.object_id = Object.id AND Attribute.deleted = 0'
             . ' AND ' . self::datedSql($basis, 'Attribute') . ' AND ' . $acl['attribute']
             . ' WHERE Object.event_id IN (' . $acl['events'] . ') AND Object.deleted = 0 AND ' . $acl['object']
