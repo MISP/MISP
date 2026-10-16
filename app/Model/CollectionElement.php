@@ -224,8 +224,9 @@ class CollectionElement extends AppModel
     /*
      *  Pass a Collection as received from another instance to this function to capture the elements
      *  The received object is authoritative, so all elements that no longer exist in the upstream will be culled.
+     *  A MISP older than 3.0 cannot hold value elements: from one ($fromPre30), they are neither taken nor culled.
      */
-    public function captureElements($data) {
+    public function captureElements($data, $fromPre30 = false) {
         // Sync capture: the parent Collection's `modified` is set authoritatively
         // from the remote by Collection::captureCollection(), so element saves/
         // deletes here must NOT bump it to the local now (D5 / D6 dedup).
@@ -244,6 +245,9 @@ class CollectionElement extends AppModel
         if (isset($data['Collection']['CollectionElement'])) {
             $elementsToSave = [];
             foreach ($data['Collection']['CollectionElement'] as $k => $element) {
+                if ($fromPre30 && self::isValueElement($element)) {
+                    continue;
+                }
                 // Without a known uuid, a stored element with the same target is
                 // this one: a new row would hit the unique key, and the stored one
                 // would then be culled as absent
@@ -306,6 +310,9 @@ class CollectionElement extends AppModel
                 }
             }
             foreach ($oldElements as $toDelete) {
+                if ($fromPre30 && self::isValueElement($toDelete)) {
+                    continue;
+                }
                 $this->delete($toDelete['id']);
             }
             $temp = $this->find('all', [
@@ -321,6 +328,15 @@ class CollectionElement extends AppModel
             $this->skipCollectionModifiedBump = false;
         }
         return $data;
+    }
+
+    /**
+     * @param array $element
+     * @return bool Whether the element is addressed by a value's SHA-256
+     */
+    private static function isValueElement(array $element)
+    {
+        return !empty($element['element_sha256']);
     }
 
     /**

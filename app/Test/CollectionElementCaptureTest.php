@@ -171,9 +171,9 @@ class CollectionElementCaptureTest extends TestCase
         ];
     }
 
-    private function capture(array $elements)
+    private function capture(array $elements, $fromPre30 = false)
     {
-        $this->elements->captureElements(['Collection' => ['id' => self::COLLECTION, 'CollectionElement' => $elements]]);
+        $this->elements->captureElements(['Collection' => ['id' => self::COLLECTION, 'CollectionElement' => $elements]], $fromPre30);
         $byUuid = [];
         foreach ($this->elements->rows as $row) {
             $byUuid[$row['uuid']] = [$row['id'], $row['element_uuid'] ?? $row['element_sha256'], $row['description']];
@@ -222,6 +222,26 @@ class CollectionElementCaptureTest extends TestCase
         $added = array_values(array_diff_key($rows, ['stored-event' => true]));
         $this->assertCount(1, $added);
         $this->assertSame([self::OTHER_EVENT, 'new'], array_slice($added[0], 1));
+    }
+
+    public function testACopyFromAMispOlderThan30KeepsTheValueElements()
+    {
+        $rows = $this->capture([
+            ['uuid' => 'stored-event', 'element_type' => 'Event', 'element_uuid' => self::EVENT],
+            ['uuid' => 'remote-value', 'element_type' => 'AttributeValue', 'element_sha256' => str_repeat('a', 64)],
+        ], true);
+        $this->assertSame(['stored-event', 'stored-value'], array_keys($rows));
+        $this->assertSame([101], $this->elements->deleted, 'an absent uuid element is still culled');
+    }
+
+    public function testACopyFrom30WithoutAValueElementCullsIt()
+    {
+        $rows = $this->capture([
+            ['uuid' => 'stored-event', 'element_type' => 'Event', 'element_uuid' => self::EVENT],
+            ['uuid' => 'stored-cluster', 'element_type' => 'GalaxyCluster', 'element_uuid' => self::CLUSTER],
+        ]);
+        $this->assertSame(['stored-cluster', 'stored-event'], array_keys($rows));
+        $this->assertSame([102], $this->elements->deleted);
     }
 
     public function testOneStoredRowServesOneResentElement()

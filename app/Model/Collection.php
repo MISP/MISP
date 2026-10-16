@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('SyncTool', 'Tools');
 
 class Collection extends AppModel
 {
@@ -293,6 +294,7 @@ class Collection extends AppModel
         $saved = 0;
         // The sink applies the downgrade unless internal + this flag (mirrors pullInChunks).
         $remotePermSyncInternal = !empty($serverSync->cachedUserInfo()['Role']['perm_sync_internal']);
+        $fromPre30 = !$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS);
 
         foreach (array_chunk($uuids, 100) as $uuidChunk) {
             try {
@@ -304,7 +306,7 @@ class Collection extends AppModel
 
             foreach ($chunkedCollections as $collection) {
                 // RAW payload straight to the sink — it owns downgrade + locked=1 + D6.
-                $savedResult = $this->captureCollection($user, $collection, $serverSync->server(), $remotePermSyncInternal);
+                $savedResult = $this->captureCollection($user, $collection, $serverSync->server(), $remotePermSyncInternal, $fromPre30);
                 if ($savedResult['success']) {
                     $saved += $savedResult['imported'];
                 }
@@ -418,9 +420,10 @@ class Collection extends AppModel
      * @param array $collection Remote collection (with Orgc / SharingGroup / CollectionElement).
      * @param array|false $server The server the capture originates from (internal/locked rules).
      * @param bool $remotePermSyncInternal Whether the remote sync user has perm_sync_internal.
+     * @param bool|null $fromPre30 The collection comes from a MISP older than 3.0; null: the requester decides
      * @return array ['success', 'imported', 'ignored', 'failed', 'errors']
      */
-    public function captureCollection(array $user, array $collection, $server = false, $remotePermSyncInternal = false): array
+    public function captureCollection(array $user, array $collection, $server = false, $remotePermSyncInternal = false, $fromPre30 = null): array
     {
         $results = ['success' => false, 'imported' => 0, 'ignored' => 0, 'failed' => 0, 'errors' => []];
 
@@ -534,7 +537,7 @@ class Collection extends AppModel
                         'id' => $saved['Collection']['id'],
                         'CollectionElement' => $elements,
                     ],
-                ]);
+                ], $fromPre30 === null ? SyncTool::valueTargetsWithheld() : $fromPre30);
             }
         } else {
             $results['failed']++;

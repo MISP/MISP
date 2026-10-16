@@ -13,6 +13,12 @@ use PHPUnit\Framework\TestCase;
 if (!defined('APP')) {
     define('APP', __DIR__ . '/../');
 }
+if (!function_exists('__')) {
+    function __($singular, $args = null)
+    {
+        return vsprintf($singular, array_slice(func_get_args(), 1));
+    }
+}
 if (!class_exists('App', false)) {
     class App
     {
@@ -88,6 +94,7 @@ if (!class_exists('SyncAnalystDataFallbackModel', false)) {
     }
 }
 
+require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
 
 class SyncAnalystDataCaptureProbe extends AnalystData
@@ -166,6 +173,7 @@ class SyncAnalystDataCaptureTest extends TestCase
 
     protected function tearDown(): void
     {
+        Configure::write('CurrentRequesterMispVersion', null);
         foreach ($this->previous as $name => $instance) {
             if ($instance === null) {
                 unset(ClassRegistry::$instances[$name]);
@@ -188,6 +196,40 @@ class SyncAnalystDataCaptureTest extends TestCase
             'object_type' => 'Event',
             'object_uuid' => 'not-a-uuid',
         ]]);
+    }
+
+    private function captureValueNote($fromPre30)
+    {
+        $user = [
+            'Organisation' => ['uuid' => '5f8a3c4e-1b2d-4e6f-8a9b-0c1d2e3f4a5b'],
+            'Role' => ['perm_sync' => 1, 'perm_site_admin' => 0],
+        ];
+        return (new SyncAnalystDataCaptureProbe())->captureAnalystData($user, ['Note' => [
+            'uuid' => 'bdfc376c-be54-44be-bc54-53cb08832a65',
+            'note' => 'x',
+            'object_type' => 'AttributeValue',
+            'object_sha256' => '3cbad7bc936718f07fa8665bc64ce46986142bea60f86fd0c05cd2a4a8ea2bc4',
+        ]], true, false, false, $fromPre30);
+    }
+
+    public function testValueRowsAreRefusedFromAMispOlderThan30()
+    {
+        $result = $this->captureValueNote(true);
+        $this->assertSame([0, 1, 0], [$result['imported'], $result['ignored'], $result['failed']]);
+        $this->assertSame([], $this->note->saved);
+
+        Configure::write('CurrentRequesterMispVersion', '2.5.50');
+        $result = $this->captureValueNote(null);
+        $this->assertSame(1, $result['ignored'], 'pushed to us by a 2.5 MISP');
+        $this->assertSame([], $this->note->saved);
+    }
+
+    public function testValueRowsAreTakenFromMisp30()
+    {
+        $this->assertSame(1, $this->captureValueNote(false)['imported']);
+        Configure::write('CurrentRequesterMispVersion', '3.0.0');
+        $this->assertSame(1, $this->captureValueNote(null)['imported']);
+        $this->assertCount(2, $this->note->saved);
     }
 
     public function testRejectedCreateIsCountedAsFailed()

@@ -967,9 +967,10 @@ class AnalystData extends AppModel
      * @param bool  $fromPull If the current capture is performed from a PULL sync
      * @param int   $orgId The organisation id that should own the analyst data
      * @param array $server The server for which to capture is ongoing
+     * @param bool|null $fromPre30 The data comes from a MISP older than 3.0; null: the requester decides
      * @return array Result of the capture including successes, fails and errors
      */
-    public function captureAnalystData(array $user, array $analystData, $fromPull=false, $orgUUId=false, $server=false): array
+    public function captureAnalystData(array $user, array $analystData, $fromPull=false, $orgUUId=false, $server=false, $fromPre30=null): array
     {
         $this->Note = ClassRegistry::init('Note');
         $this->Opinion = ClassRegistry::init('Opinion');
@@ -980,6 +981,15 @@ class AnalystData extends AppModel
             $analystData = [$type => $analystData];
         }
         $analystModel = ClassRegistry::init($type);
+
+        if ($fromPre30 === null) {
+            $fromPre30 = SyncTool::valueTargetsWithheld();
+        }
+        if ($fromPre30 && self::isValueAddressed($analystData[$type])) {
+            $results['errors'][] = __('Analyst data on attribute values is not accepted from a MISP older than 3.0');
+            $results['ignored']++;
+            return $results;
+        }
 
         if ($fromPull && !empty($orgUUId)) {
             $analystData[$type]['org_uuid'] = $orgUUId;
@@ -1031,7 +1041,7 @@ class AnalystData extends AppModel
         foreach (self::ANALYST_DATA_TYPES as $childType) {
             if (!empty($analystData[$type][$childType])) {
                 foreach ($analystData[$type][$childType] as $childAnalystData) {
-                    $captureResult = $this->{$childType}->captureAnalystData($user, $childAnalystData, $fromPull, $orgUUId, $server);
+                    $captureResult = $this->{$childType}->captureAnalystData($user, $childAnalystData, $fromPull, $orgUUId, $server, $fromPre30);
                     $results['imported'] += $captureResult['imported'];
                     $results['ignored'] += $captureResult['ignored'];
                     $results['failed'] += $captureResult['failed'];
@@ -1263,10 +1273,24 @@ class AnalystData extends AppModel
     {
         foreach ($dataForPush as $type => $entries) {
             $dataForPush[$type] = array_values(array_filter($entries, function ($entry) use ($type) {
-                return empty($entry[$type]['object_sha256']) && empty($entry[$type]['related_object_sha256']);
+                return !self::isValueAddressed($entry[$type]);
             }));
         }
         return $dataForPush;
+    }
+
+    /**
+     * @param array $row A note, opinion or relationship
+     * @return bool Whether either end is addressed by a value's SHA-256
+     */
+    public static function isValueAddressed(array $row): bool
+    {
+        foreach (['object', 'related_object'] as $end) {
+            if (!empty($row[$end . '_sha256']) || in_array($row[$end . '_type'] ?? null, self::SHA256_TARGETS, true)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function collectValidSharingGroupIDs(array $server): array
@@ -1573,6 +1597,7 @@ class AnalystData extends AppModel
 
         $remoteUser = $serverSync->cachedUserInfo();
         $remotePermSyncInternal = !empty($remoteUser['Role']['perm_sync_internal']);
+        $fromPre30 = !$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS);
 
         foreach ($analystDataUuids as $type => $entries) {
             $uuids = array_keys($entries);
@@ -1590,7 +1615,7 @@ class AnalystData extends AppModel
     
                 foreach ($chunkedAnalystData as $analystData) {
                     $analystData = $this->updatePulledBeforeInsert($analystData, $type, $serverSync->server(), $user, $serverSync->pullRules(), $remotePermSyncInternal);
-                    $savedResult = $this->captureAnalystData($user, $analystData, true, $serverOrgUUID, $serverSync->server());
+                    $savedResult = $this->captureAnalystData($user, $analystData, true, $serverOrgUUID, $serverSync->server(), $fromPre30);
                     if ($savedResult['success']) {
                         $saved += $savedResult['imported'];
                     }
