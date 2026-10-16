@@ -22,7 +22,6 @@ $thread = [
             'analystData' => $thread,
             'objectType' => $m,
             'objectUuid' => $record['uuid'] ?? '',
-            'showModalHeader' => false,
         ]) ?>
     </div>
 </div>
