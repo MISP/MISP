@@ -152,13 +152,7 @@ class Module_attach_enrichment extends WorkflowBaseActionModule
 
     protected function getModuleOptions(array $moduleConfig): array
     {
-        $type = 'Enrichment';
-        $options = [];
-        if (isset($moduleConfig['meta']['config'])) {
-            foreach ($moduleConfig['meta']['config'] as $conf) {
-                $options[$conf] = Configure::read('Plugin.' . $type . '_' . $moduleConfig['name'] . '_' . $conf);
-            }
-        }
+        $options = Module::moduleConfig($moduleConfig);
         return !empty($options) ? $options : ['_' => '_']; // avoid casting empty associative array into empty list
     }
 }

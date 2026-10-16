@@ -4931,11 +4931,7 @@ class MispAttribute extends AppModel
         $options = array();
         foreach ($enabledModules['modules'] as $k => $temp) {
             if (isset($temp['meta']['config'])) {
-                $settings = array();
-                foreach ($temp['meta']['config'] as $conf) {
-                    $settings[$conf] = Configure::read('Plugin.Enrichment_' . $temp['name'] . '_' . $conf);
-                }
-                $enabledModules['modules'][$k]['config'] = $settings;
+                $enabledModules['modules'][$k]['config'] = Module::moduleConfig($temp);
             }
         }
         $attributes_added = 0;

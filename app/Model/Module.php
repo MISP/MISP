@@ -407,8 +407,8 @@ class Module extends AppModel
                         ];
                         if (isset($module['meta']['config'])) {
                             foreach ($module['meta']['config'] as $key => $value) {
+                                $name = self::configName($key, $value);
                                 if (is_array($value)) {
-                                    $name = is_string($key) ? $key : $value['name'];
                                     $moduleSettings[] = [
                                         'name' => $name,
                                         'type' => $value['type'] ?? 'string',
@@ -421,12 +421,12 @@ class Module extends AppModel
                                     ];
                                 } else if (is_string($key)) {
                                     $moduleSettings[] = [
-                                        'name' => $key,
+                                        'name' => $name,
                                         'type' => 'string',
                                         'description' => $value
                                     ];
                                 } else {
-                                    $moduleSettings[] = array('name' => $value, 'type' => 'string');
+                                    $moduleSettings[] = array('name' => $name, 'type' => 'string');
                                 }
                             }
                         }
@@ -436,6 +436,36 @@ class Module extends AppModel
             }
         }
         return $result;
+    }
+
+    /**
+     * A module's settings, keyed by the names getModuleSettings() defines,
+     * as the modules server expects them in a query's `config`.
+     *
+     * @param array $module
+     * @param string $moduleFamily
+     * @return array
+     */
+    public static function moduleConfig(array $module, $moduleFamily = 'Enrichment')
+    {
+        $config = [];
+        foreach ($module['meta']['config'] ?? [] as $key => $value) {
+            $name = self::configName($key, $value);
+            $config[$name] = Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_' . $name);
+        }
+        return $config;
+    }
+
+    /**
+     * meta.config lists names, maps names to descriptions or definitions, or
+     * lists definitions that carry their name.
+     */
+    private static function configName($key, $value)
+    {
+        if (is_array($value)) {
+            return is_string($key) ? $key : $value['name'];
+        }
+        return is_string($key) ? $key : $value;
     }
 
     /**

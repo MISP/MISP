@@ -2684,11 +2684,7 @@ class AttributesController extends AppController
                 if ($temp['name'] === $type) {
                     $found = true;
                     $format = isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
-                    if (isset($temp['meta']['config'])) {
-                        foreach ($temp['meta']['config'] as $conf) {
-                            $options[$conf] = Configure::read('Plugin.Enrichment_' . $type . '_' . $conf);
-                        }
-                    }
+                    $options = Module::moduleConfig($temp);
                     break;
                 }
             }
