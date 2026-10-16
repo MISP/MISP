@@ -71,9 +71,10 @@
 /* publish state: one glyph per state */
 .te-index .te-table td.te-c-state { padding: 0; text-align: center; }
 .te-st { display: inline-grid; place-items: center; width: 20px; height: 20px; vertical-align: middle; cursor: default; font-size: .8rem; }
-.te-st.is-pub { color: var(--dk-ink3); font-size: .74rem; }
-.te-st.is-unpub { color: var(--dk-ink2); }
+.te-st.is-pub { color: var(--dk-ink); font-size: .74rem; }
+.te-st.is-unpub,
 .te-st.is-pending { color: var(--dk-amber-ink); background: var(--dk-amber-bg); border: 1px solid var(--dk-amber-line); border-radius: 5px; font-size: .7rem; }
+.te-st.is-pending { border-style: dashed; }
 
 /* id, title */
 .te-index .te-table td.te-c-id > div { display: block !important; }
