@@ -2,7 +2,7 @@
     "uuid": "6e2679bc-ebb0-417f-90d8-16cb1d0144ba",
     "name": "default-v1",
     "description": "The Analyst Profile MISP ships with, and the one every value page is scored by until somebody enables another. Take a copy rather than editing it - the profile nearest the reader wins.",
-    "version": 23,
+    "version": 24,
     "parameters": {
         "format": 1,
         "signals": [
@@ -246,11 +246,13 @@
                 },
                 "hostname": {
                     "circl_passivedns": "ticked",
-                    "dns": "ticked"
+                    "dns": "ticked",
+                    "rdap": "auto"
                 },
                 "domain": {
                     "circl_passivedns": "ticked",
                     "dns": "ticked",
+                    "rdap": "auto",
                     "whois": "ticked"
                 },
                 "domain|ip": {
