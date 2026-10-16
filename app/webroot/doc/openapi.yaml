@@ -3653,7 +3653,7 @@ components:
       example: "logged source ip"
 
     AttributeCreated:
-      description: "When this instance created the attribute, as an epoch timestamp. Set on creation and never changed by an edit; a value sent with an add or an edit is ignored. 0 for attributes created before MISP 3.0."
+      description: "When this instance created the attribute, as an epoch timestamp. Set on creation and never changed by an edit; a value sent with an add or an edit is ignored. An attribute moved into an object keeps its original's. 0 for attributes created before MISP 3.0. Filter on it with the attribute restSearch's attribute_created."
       type: string
       pattern: '^\d+$'
       readOnly: true
@@ -3853,6 +3853,11 @@ components:
           $ref: "#/components/schemas/Timestamp"
         attribute_timestamp:
           $ref: "#/components/schemas/Timestamp"
+        attribute_created:
+          description: "Attributes this instance created in a time span: a time delta (7d), a timestamp, or a [from, to] range of them. Attributes created before MISP 3.0 have no creation time and never match."
+          oneOf:
+            - $ref: "#/components/schemas/DateRestSearchFilter"
+            - $ref: "#/components/schemas/DateIntervalRestSearchFilter"
         enforceWarninglist:
           $ref: "#/components/schemas/EnforceWarninglistRestSearchFilter"
         to_ids:

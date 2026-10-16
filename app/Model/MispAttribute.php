@@ -1543,7 +1543,7 @@ class MispAttribute extends AppModel
     $selectiveFields = [
         'value', 'value1', 'value2', 'type',
         'category', 'object_relation', 'uuid',
-        'timestamp', 'attribute_timestamp',
+        'timestamp', 'attribute_timestamp', 'attribute_created',
         'first_seen', 'last_seen', 'to_ids',
     ];
     foreach ($selectiveFields as $f) {
@@ -3942,6 +3942,7 @@ class MispAttribute extends AppModel
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'attribute_created' => array('function' => 'set_filter_timestamp'),
                     'first_seen' => array('function' => 'set_filter_seen'),
                     'last_seen' => array('function' => 'set_filter_seen'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
