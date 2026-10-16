@@ -26,6 +26,12 @@ App::uses('TableConverger', 'Migration');
  * when a later one does. What the table already has is not declared again
  * (TableConverger), so a table at its target costs nothing and a run that
  * stopped resumes with what is left.
+ *
+ * beforeUp() checks the server and the rows first (TablePreflight) and defers
+ * on anything the rebuild could not get past; up() then declares the plan it
+ * checked, since a check can change it. A subclass that puts rows right in
+ * beforeUp() does so before calling the parent's. A dry run plans without
+ * the checks.
  */
 abstract class TableMigration extends AbstractMigration
 {
@@ -41,8 +47,28 @@ abstract class TableMigration extends AbstractMigration
      */
     const RECREATE = false;
 
+    /** @var array|null What beforeUp() checked, for up() to declare. */
+    private $plan;
+
+    public function beforeUp()
+    {
+        $this->plan = null;
+        $checked = TableConverger::preflight($this->inspector(), static::TABLE, static::TARGET, static::RECREATE);
+        if (!empty($checked['defer'])) {
+            $this->defer(implode(PHP_EOL, $checked['defer']));
+        }
+        $this->plan = $checked['plan'];
+        return true;
+    }
+
     public function up(SchemaBuilder $schema)
     {
+        if ($this->plan !== null) {
+            $plan = $this->plan;
+            $this->plan = null;
+            TableConverger::emit($schema, $plan);
+            return;
+        }
         if (static::RECREATE) {
             TableConverger::recreate($this->inspector(), $schema, static::TABLE, static::TARGET);
             return;

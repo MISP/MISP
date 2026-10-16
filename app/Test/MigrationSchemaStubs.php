@@ -210,6 +210,8 @@ if (!class_exists('MigrationTestInspector', false)) {
      * 'options' => tableOptions()), the primary key being the index named
      * PRIMARY, as both drivers report it. A table scripted as
      * array('definition' => tableDefinition()) answers all four from that.
+     * probeRows() answers with the rows of the first pattern in $probes that
+     * matches the query, and keeps every query in $asked.
      */
     class MigrationTestInspector extends SchemaInspector
     {
@@ -218,6 +220,21 @@ if (!class_exists('MigrationTestInspector', false)) {
 
         /** @var string What serverVersion() reports. */
         public $version = '10.11.14-MariaDB';
+
+        /** @var array regex => rows */
+        public $probes = array();
+
+        /** @var array Every query probeRows() was given. */
+        public $asked = array();
+
+        /** @var array What serverVariables() reports. */
+        public $variables = array('innodb_page_size' => '16384', 'sql_mode' => 'STRICT_TRANS_TABLES');
+
+        /** @var array What tableSizes() reports. */
+        public $sizes = array();
+
+        /** @var array|null What storage() reports. */
+        public $storage;
 
         /** @var string */
         private $readsFlavour;
@@ -275,6 +292,36 @@ if (!class_exists('MigrationTestInspector', false)) {
                 }
             }
             return $indexes;
+        }
+
+        public function probeRows($sql)
+        {
+            $this->asked[] = $sql;
+            foreach ($this->probes as $pattern => $rows) {
+                if (preg_match($pattern, $sql)) {
+                    return $rows;
+                }
+            }
+            return array();
+        }
+
+        public function serverVariables()
+        {
+            return $this->variables;
+        }
+
+        public function tableSizes()
+        {
+            return $this->sizes;
+        }
+
+        public function storage()
+        {
+            return $this->storage;
+        }
+
+        public function disableSchemaCache()
+        {
         }
 
         public function tableOptions($table)

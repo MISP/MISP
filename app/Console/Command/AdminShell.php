@@ -1237,6 +1237,9 @@ class AdminShell extends AppShell
             if ($this->__hasDataStep($migration, 'beforeUp')) {
                 $this->out();
                 $this->out('  <comment>' . __('This migration also has a beforeUp() data step, run before any of the SQL above and described by none of it.') . '</comment>');
+            } elseif ($migration instanceof TableMigration) {
+                $this->out();
+                $this->out('  <comment>' . __('Applied, this migration first checks the server, the disk and the rows, and defers on what the rebuild could not get past. A dry run reads no rows, so a latin1 column holding UTF-8 shows here as a plain conversion.') . '</comment>');
             }
             if ($this->__hasDataStep($migration, 'afterUp')) {
                 $this->out();
@@ -1262,7 +1265,8 @@ class AdminShell extends AppShell
     private function __hasDataStep(AbstractMigration $migration, $method)
     {
         $declaring = (new ReflectionMethod($migration, $method))->getDeclaringClass();
-        return $declaring->getName() !== 'AbstractMigration';
+        // TableMigration's own beforeUp() checks; it changes no data.
+        return !in_array($declaring->getName(), array('AbstractMigration', 'TableMigration'), true);
     }
 
     /**
