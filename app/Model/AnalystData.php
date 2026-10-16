@@ -1168,21 +1168,54 @@ class AnalystData extends AppModel
 
     private function updatePulledBeforeInsert(array $analystData, $type, array $server, array $user, array $pullRules, $remotePermSyncInternal = false): array
     {
-        $analystData[$type]['locked'] = true;
+        $downgrade = empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || !$remotePermSyncInternal;
+        $analystData[$type] = self::updatePulledAnalystData($analystData[$type], $downgrade);
+        return $analystData;
+    }
 
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || !$remotePermSyncInternal) {
-            switch ($analystData[$type]['distribution']) {
-                case 1:
-                    // if community only, downgrade to org only after pull
-                    $analystData[$type]['distribution'] = '0';
-                    break;
-                case 2:
-                    // if connected communities downgrade to community only
-                    $analystData[$type]['distribution'] = '1';
-                    break;
+    /**
+     * A pulled analyst data row is locked and, over a non-internal link, downgraded
+     * (community only to org only, connected communities to community only).
+     * Its nested children get the same.
+     *
+     * @param array $analystData A single Note, Opinion or Relationship row
+     * @param bool $downgrade
+     * @return array
+     */
+    public static function updatePulledAnalystData(array $analystData, $downgrade): array
+    {
+        $analystData['locked'] = true;
+        if ($downgrade && isset($analystData['distribution'])) {
+            if ($analystData['distribution'] == 1) {
+                $analystData['distribution'] = '0';
+            } elseif ($analystData['distribution'] == 2) {
+                $analystData['distribution'] = '1';
             }
         }
-        return $analystData;
+        return self::updatePulledNested($analystData, $downgrade);
+    }
+
+    /**
+     * Apply updatePulledAnalystData() to the analyst data nested in a pulled element
+     * (an event, attribute, object, report or another analyst data row).
+     *
+     * @param array $element
+     * @param bool $downgrade
+     * @return array
+     */
+    public static function updatePulledNested(array $element, $downgrade): array
+    {
+        foreach (self::ANALYST_DATA_TYPES as $type) {
+            if (empty($element[$type]) || !is_array($element[$type])) {
+                continue;
+            }
+            foreach ($element[$type] as $k => $analystData) {
+                if (is_array($analystData)) {
+                    $element[$type][$k] = self::updatePulledAnalystData($analystData, $downgrade);
+                }
+            }
+        }
+        return $element;
     }
 
     private function buildPullFilterRules(array $server): array
