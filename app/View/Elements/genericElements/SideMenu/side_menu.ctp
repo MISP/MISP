@@ -423,10 +423,6 @@ $divider = '<li class="divider"></li>';
                         ));
                     }
                     echo $divider;
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/events/export',
-                        'text' => __('Export')
-                    ));
                     if ($this->Acl->canAccess('events', 'automation')) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'automation',

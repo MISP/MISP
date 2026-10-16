@@ -14,7 +14,7 @@ require_once 'AppShell.php';
  */
 class EventShell extends AppShell
 {
-    public $uses = array('Event', 'MispAttribute', 'Job', 'User', 'Task', 'Server', 'Organisation', 'Correlation', 'Tag');
+    public $uses = array('Event', 'MispAttribute', 'Job', 'User', 'Server', 'Organisation', 'Correlation', 'Tag');
 
     public function getOptionParser()
     {
@@ -190,103 +190,6 @@ class EventShell extends AppShell
         ]);
     }
 
-    public function cache()
-    {
-        if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache event']);
-        }
-
-        $timeStart = time();
-        $userId = $this->args[0];
-        $id = $this->args[1];
-        $user = $this->getUser($userId);
-        $this->Job->id = $id;
-        $export_type = $this->args[2];
-        file_put_contents('/tmp/test', $export_type);
-        $exportTypes = $this->Event->exportTypes();
-        $typeData = $exportTypes[$export_type];
-        if (!in_array($export_type, array_keys($exportTypes))) {
-            $this->Job->saveField('progress', 100);
-            $timeDelta = (time()-$timeStart);
-            $this->Job->saveField('message', 'Job Failed due to invalid export format. (in '.$timeDelta.'s)');
-            $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-            return false;
-        }
-        if ($export_type == 'text') {
-            $types = array_keys($this->MispAttribute->typeDefinitions);
-            $typeCount = count($types);
-            foreach ($types as $k => $type) {
-                $typeData['params']['type'] = $type;
-                $this->__runCaching($user, $typeData, false, $export_type, '_' . $type);
-                $this->Job->saveField('message', 'Processing all attributes of type '. $type . '.');
-                $this->Job->saveField('progress', intval($k / $typeCount));
-            }
-        } else {
-            $this->__runCaching($user, $typeData, $id, $export_type);
-        }
-        $this->Job->saveField('progress', 100);
-        $timeDelta = (time()-$timeStart);
-        $this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-    }
-
-    private function __runCaching($user, $typeData, $id, $export_type, $subType = '')
-    {
-        $export_type = strtolower($typeData['type']);
-        $modelScope = $typeData['scope'] == 'Attribute' ? 'MispAttribute' : $typeData['scope'];
-        $final = $this->{$modelScope}->restSearch($user, $typeData['params']['returnFormat'], $typeData['params'], false, $id);
-        $dir = new Folder(APP . 'tmp/cached_exports/' . $export_type, true, 0750);
-        //echo PHP_EOL . $dir->pwd() . DS . 'misp.' . $export_type . $subType . '.ADMIN' . $typeData['extension'] . PHP_EOL;
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.' . $export_type . $subType . '.ADMIN' . $typeData['extension']);
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.' . $export_type . $subType . '.' . $user['Organisation']['name'] .  $typeData['extension']);
-        }
-        $file->write($final);
-        $file->close();
-        return true;
-    }
-
-    public function cachebro()
-    {
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Cache bro']);
-        }
-
-        $timeStart = time();
-        $userId = $this->args[0];
-        $user = $this->getUser($userId);
-        $id = $this->args[1];
-        $this->Job->id = $id;
-        $this->Job->saveField('progress', 1);
-        App::uses('BroExport', 'Export');
-        $export = new BroExport();
-        $types = array_keys($export->mispTypes);
-        $typeCount = count($types);
-        $dir = new Folder(APP . DS . '/tmp/cached_exports/bro', true, 0750);
-        if ($user['Role']['perm_site_admin']) {
-            $file = new File($dir->pwd() . DS . 'misp.bro.ADMIN.intel');
-        } else {
-            $file = new File($dir->pwd() . DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel');
-        }
-
-        $file->write('');
-        $skipHeader = false;
-        foreach ($types as $k => $type) {
-            $final = $this->MispAttribute->bro($user, $type, false, false, false, false, false, false, $skipHeader);
-            $skipHeader = true;
-            foreach ($final as $attribute) {
-                $file->append($attribute . PHP_EOL);
-            }
-            $this->Job->saveField('progress', $k / $typeCount * 100);
-        }
-        $file->close();
-        $timeDelta = (time()-$timeStart);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
-        $this->Job->saveField('date_modified', date("Y-m-d H:i:s"));
-    }
-
     public function alertemail()
     {
         if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
@@ -371,62 +274,6 @@ class EventShell extends AppShell
         $user = $this->getUser($userId);
         $result = $this->Event->sendContactEmail($id, $message, $all, $user);
         $this->Job->saveStatus($jobId, $result);
-    }
-
-    public function enqueueCaching()
-    {
-        if (empty($this->args[0])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['event_management_tasks']['data']['Enqueue caching']);
-        }
-
-        $timestamp = $this->args[0];
-        $task = $this->Task->findByType('cache_exports');
-
-        // If the next execution time and the timestamp don't match, it means that this task is no longer valid as the time for the execution has since being scheduled
-        // been updated.
-        if ($task['Task']['next_execution_time'] != $timestamp) return;
-
-        $users = $this->User->find('all', array(
-                'recursive' => -1,
-                'conditions' => array(
-                        'Role.perm_site_admin' => 0,
-                        'User.disabled' => 0,
-                ),
-                'contain' => array(
-                        'Organisation' => array('fields' => array('name')),
-                        'Role' => array('fields' => array('perm_site_admin'))
-                ),
-                'fields' => array('User.org_id', 'User.id'),
-                'group' => array('User.org_id')
-        ));
-        $site_admin = $this->User->find('first', array(
-                'recursive' => -1,
-                'conditions' => array(
-                        'Role.perm_site_admin' => 1,
-                        'User.disabled' => 0
-                ),
-                'contain' => array(
-                        'Organisation' => array('fields' => array('name')),
-                        'Role' => array('fields' => array('perm_site_admin'))
-                ),
-                'fields' => array('User.org_id', 'User.id')
-        ));
-        $users[] = $site_admin;
-
-        if ($task['Task']['timer'] > 0)    $this->Task->reQueue($task, 'cache', 'EventShell', 'enqueueCaching', false, false);
-
-        // Queue a set of exports for admins. This "ADMIN" organisation. The organisation of the admin users doesn't actually matter, it is only used to identify
-        // the special cache files containing all events
-        $i = 0;
-        foreach ($users as $user) {
-            foreach ($this->Event->exportTypes() as $k => $type) {
-                if ($k == 'stix') continue;
-                $this->Job->cache($k, $user['User']);
-                $i++;
-            }
-        }
-        $this->Task->id = $task['Task']['id'];
-        $this->Task->saveField('message', $i . ' job(s) started at ' . date('d/m/Y - H:i:s') . '.');
     }
 
     public function publish()

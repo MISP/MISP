@@ -132,10 +132,6 @@ if (!empty($me)) {
                     'type' => 'separator'
                 ),
                 array(
-                    'text' => __('Export'),
-                    'url' => $baseurl . '/events/export'
-                ),
-                array(
                     'text' => __('Automation'),
                     'url' => $baseurl . '/events/automation',
                     'requirement' => $this->Acl->canAccess('events', 'automation'),

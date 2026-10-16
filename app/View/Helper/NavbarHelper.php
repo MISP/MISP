@@ -848,14 +848,6 @@ class NavbarHelper extends AppHelper {
                 'requirement' => $this->Acl->canAccess('events', 'automation'),
                 'icon' => 'fas fa-robot',
             ],
-            [
-                'type' => 'group',
-                'label' => __('Export'),
-                'url' => $baseurl . '/events/export',
-                'controller' => 'events',
-                'action' => 'export',
-                'icon' => 'fas fa-file-export',
-            ]
         ];
 
         return [

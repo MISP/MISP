@@ -372,7 +372,6 @@ class ServerSettingGroups
                     'MISP.disable_sighting_loading',
                     'MISP.disable_event_locks',
                     'MISP.enable_automatic_garbage_collection',
-                    'MISP.disable_cached_exports',
                     'MISP.deadlock_avoidance',
                     'MISP.updateTimeThreshold',
                     'MISP.default_restsearch_limit',

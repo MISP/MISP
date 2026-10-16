@@ -239,27 +239,6 @@ class JobsController extends AppController
         }
     }
 
-    public function cache($type)
-    {
-        if (Configure::read('MISP.disable_cached_exports', true)) {
-            throw new MethodNotAllowedException('This feature is currently disabled');
-        }
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException('This endpoint only accept POST.');
-        }
-        if ($this->_isSiteAdmin()) {
-            $target = 'All events.';
-        } else {
-            $target = 'Events visible to: ' . $this->Auth->user('Organisation')['name'];
-        }
-        $id = $this->Job->cache($type, $this->Auth->user());
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData(array('job_id' => $id), $this->response->type());
-        } else {
-            return new CakeResponse(array('body' => json_encode($id), 'type' => 'json'));
-        }
-    }
-
     public function clearJobs($type = 'completed')
     {
         if ($this->request->is('post')) {

@@ -2398,14 +2398,6 @@ class Server extends AppModel
         return true;
     }
 
-    public function testDisableCache($value)
-    {
-        if (isset($value) && $value) {
-            return 'Export caches are disabled.';
-        }
-        return true;
-    }
-
     public function testLive($value)
     {
         if ($this->testBool($value) !== true) {
@@ -2757,30 +2749,6 @@ class Server extends AppModel
             return true;
         }
         $this->getPubSubTool()->reloadServer();
-        return true;
-    }
-
-    public function disableCacheAfterHook($setting, $value)
-    {
-        if ($value) {
-            $this->Event = ClassRegistry::init('Event');
-            App::uses('Folder', 'Utility');
-            App::uses('File', 'Utility');
-            // delete all cache files
-            foreach ($this->Event->exportTypes() as $type => $settings) {
-                $dir = new Folder(APP . 'tmp/cached_exports/' . $type);
-                // No caches created for this type of export, move on
-                if ($dir == null) {
-                    continue;
-                }
-                $files = $dir->find('.*' . $settings['extension']);
-                foreach ($files as $file) {
-                    $file = new File($dir->pwd() . DS . $file);
-                    $file->delete();
-                    $file->close();
-                }
-            }
-        }
         return true;
     }
 
@@ -5765,15 +5733,6 @@ class Server extends AppModel
                     'errorMessage' => __('If this is not set the default value will be used.'),
                     'test' => 'testForEmpty',
                     'type' => 'string',
-                ),
-                'disable_cached_exports' => array(
-                    'level' => 2,
-                    'description' => __('Cached exports can take up a considerable amount of space and can be disabled instance wide using this setting. Even tough the feature is deprecated and will be removed in the future, you can still decide to enable it.'),
-                    'value' => true,
-                    'null' => true,
-                    'test' => 'testDisableCache',
-                    'type' => 'boolean',
-                    'afterHook' => 'disableCacheAfterHook',
                 ),
                 'footermidleft' => array(
                     'level' => 2,
@@ -8913,12 +8872,9 @@ class Server extends AppModel
                     'Publish event' => 'MISP/app/Console/cake Event publish [event_id] [pass_along] [job_id] [user_id]',
                     'Publish sightings' => 'MISP/app/Console/cake Event publish_sightings [event_id] [pass_along] [job_id] [user_id]',
                     'Publish Galaxy clusters' => 'MISP/app/Console/cake Event publish_galaxy_clusters [cluster_id] [job_id] [user_id] [pass_along]',
-                    'Cache event' => 'MISP/app/Console/cake Event cache [user_id] [event_id] [export_type]',
-                    'Cache bro' => 'MISP/app/Console/cake Event cachebro [user_id] [event_id]',
                     'Recover event' => 'MISP/app/Console/cake Event recoverEvent [job_id] [event_id]',
                     'Alert email' => 'MISP/app/Console/cake Event alertemail [user_id] [job_id] [event_id] [old_publish]',
                     'Contact email' => 'MISP/app/Console/cake Event contactemail [event_id] [message] [all] [user_id] [process_id]',
-                    'Enqueue caching' => 'MISP/app/Console/cake Event enqueueCaching [timestamp]',
                     'Do publish' => 'MISP/app/Console/cake Event doPublish [event_id]',
                     'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
                     'Process free text' => 'MISP/app/Console/cake Event processfreetext [input]',
