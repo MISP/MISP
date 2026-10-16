@@ -2,7 +2,7 @@
     "uuid": "6e2679bc-ebb0-417f-90d8-16cb1d0144ba",
     "name": "default-v1",
     "description": "The Analyst Profile MISP ships with, and the one every value page is scored by until somebody enables another. Take a copy rather than editing it - the profile nearest the reader wins.",
-    "version": 25,
+    "version": 26,
     "parameters": {
         "format": 1,
         "signals": [
@@ -210,7 +210,7 @@
         },
         "reference": {
             "org_trust": {},
-            "module_trust": { "rdap": "C" },
+            "module_trust": { "rdap": "C", "hashlookup": "C" },
             "org_trust_scale": {
                 "A": 1.25, "B": 1.1, "C": 1.0, "D": 0.75, "E": 0.25,
                 "F": 1.0, "G": 0.0,

@@ -47,13 +47,14 @@
  *
  * ## Ungraded is zero, and the row says so
  *
- * The shipped default grades no module, so on a stock instance these
- * rows appear in the ledger **marked as not counted**, with the reason.
- * The reader sees what outside sources said, sees that it moved
+ * The shipped default grades no verdict vendor, so on a stock instance
+ * their rows appear in the ledger **marked as not counted**, with the
+ * reason. The reader sees what outside sources said, sees that it moved
  * nothing, and grading a module in their profile is the single act
  * that turns it on. A shipped fallback grade would have the neutral
  * document asserting that some particular vendor is worth twelve
- * points.
+ * points. The one verdict module it grades is `hashlookup`, at C: the
+ * free known-good lookup the default already pre-ticks for hashes.
  *
  * ## Two windows, two jobs
  *
