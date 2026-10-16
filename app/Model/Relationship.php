@@ -183,7 +183,7 @@ class Relationship extends AnalystData
             $backup = $this->GalaxyCluster->includeAnalystData;
             $this->GalaxyCluster->includeAnalystData = false;
             $cluster = $this->GalaxyCluster->fetchGalaxyClusters($user, [
-                'conditions' => ['GalaxyCluster.uuid' => $uuid],
+                'conditions' => ['GalaxyCluster.uuid' => $address],
                 'fields' => [
                     'GalaxyCluster.id', 'GalaxyCluster.uuid',
                     'GalaxyCluster.value', 'GalaxyCluster.tag_name',

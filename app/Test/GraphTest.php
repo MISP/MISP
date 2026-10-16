@@ -113,7 +113,6 @@ if (!class_exists('AuditLog', false)) {
     }
 }
 
-require_once __DIR__ . '/../Model/Value.php';
 require_once __DIR__ . '/../Lib/Tools/AnalystGraphDocumentTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
 require_once __DIR__ . '/../Model/Graph.php';
@@ -392,7 +391,7 @@ class GraphTest extends TestCase
             'version' => 1,
             'nodes' => array(
                 array('type' => 'Attribute', 'uuid' => strtolower(self::ATTRIBUTE), 'x' => 120, 'y' => -40.5, 'pinned' => true),
-                array('type' => 'Value', 'uuid' => Value::uuidFor('8.8.8.8'), 'value' => '8.8.8.8'),
+                array('type' => 'Value', 'sha256' => hash('sha256', '8.8.8.8'), 'value' => '8.8.8.8'),
             ),
             'groups' => array(),
             'hidden_edges' => array('relationship:a'),
@@ -422,7 +421,7 @@ class GraphTest extends TestCase
         $this->assertSame(array(), $errors);
         $this->assertSame(array('type' => 'Event', 'uuid' => self::EVENT, 'pulled_out' => true), $document['nodes'][0]);
         $this->assertSame(array(
-            array('title' => 'C2', 'members' => array('Attribute:' . strtolower(self::ATTRIBUTE), 'Value:' . Value::uuidFor('8.8.8.8')),
+            array('title' => 'C2', 'members' => array('Attribute:' . strtolower(self::ATTRIBUTE), 'Value:' . AnalystGraphDocumentTool::valueAddress('8.8.8.8')),
                   'x' => 10, 'y' => -2.5, 'open' => true),
             array('members' => array('Attribute:' . self::uuid(1), 'Attribute:' . self::uuid(2))),
         ), $document['groups']);
@@ -445,7 +444,7 @@ class GraphTest extends TestCase
         $this->assertSame(array(
             array('id' => self::uuid(1), 'content' => '**C2**', 'x' => 10, 'y' => -2.5, 'width' => 220, 'height' => 160,
                   'color' => '#FDE68A', 'surface' => 'terminal', 'node' => 'Attribute:' . strtolower(self::ATTRIBUTE)),
-            array('id' => 'note-2', 'content' => '', 'node' => 'Value:' . Value::uuidFor('8.8.8.8')),
+            array('id' => 'note-2', 'content' => '', 'node' => 'Value:' . AnalystGraphDocumentTool::valueAddress('8.8.8.8')),
             array('id' => 'note-3', 'content' => '', 'edge' => 'relationship:a'),
         ), $document['notes']);
     }
@@ -683,7 +682,7 @@ class GraphTest extends TestCase
             'node_count' => array(2, 3),
             'content_size' => array(strlen($old), strlen($new)),
             'nodes_added_count' => 2,
-            'nodes_added' => array('Attribute:' . self::uuid(2), 'Value:' . Value::uuidFor('8.8.8.8')),
+            'nodes_added' => array('Attribute:' . self::uuid(2), 'Value:' . AnalystGraphDocumentTool::valueAddress('8.8.8.8')),
             'nodes_removed_count' => 1,
             'nodes_removed' => array('Attribute:' . self::uuid(1)),
         ), AnalystGraphDocumentTool::summariseChange($old, $new));
@@ -779,7 +778,7 @@ class GraphTest extends TestCase
         $this->assertSame(array('content'), array_keys($row['change']));
         $this->assertSame(3, $row['change']['content']['revision']);
         $this->assertSame(array(1, 2), $row['change']['content']['node_count']);
-        $this->assertSame(array('Value:' . Value::uuidFor('8.8.8.8')), $row['change']['content']['nodes_added']);
+        $this->assertSame(array('Value:' . AnalystGraphDocumentTool::valueAddress('8.8.8.8')), $row['change']['content']['nodes_added']);
     }
 
     // ----------------------------------------------------------- embed skip
@@ -952,7 +951,7 @@ class GraphTest extends TestCase
         ));
 
         $attribute = 'Attribute:' . strtolower(self::ATTRIBUTE);
-        $value = 'Value:' . Value::uuidFor('8.8.8.8');
+        $value = 'Value:' . AnalystGraphDocumentTool::valueAddress('8.8.8.8');
         $this->assertSame(array($attribute, $value), $report['added']);
         $this->assertSame(array('Event:' . self::EVENT, $value, $attribute), $report['present']);
         $this->assertSame(array(array('index' => 4, 'error' => 'unknown node type.')), $report['refused']);
@@ -990,7 +989,7 @@ class GraphTest extends TestCase
             array('type' => 'Object'),
         ));
 
-        $this->assertSame(array('Attribute:' . strtolower(self::ATTRIBUTE), 'Value:' . Value::uuidFor('8.8.8.8')), $report['removed']);
+        $this->assertSame(array('Attribute:' . strtolower(self::ATTRIBUTE), 'Value:' . AnalystGraphDocumentTool::valueAddress('8.8.8.8')), $report['removed']);
         $this->assertSame(array('Event:' . self::uuid(9)), $report['absent']);
         $this->assertSame(array(3, 4), array_column($report['refused'], 'index'));
         $this->assertSame(array('Event:' . self::EVENT), array_map(array('AnalystGraphDocumentTool', 'nodeKey'), $document['nodes']));
@@ -1119,13 +1118,15 @@ class GraphTest extends TestCase
             ->on('find', function () {
                 $row = function ($uuid, $fromType, $from, $toType, $to) {
                     return array('Relationship' => array(
-                        'uuid' => $uuid, 'object_type' => $fromType, 'object_uuid' => $from,
-                        'related_object_type' => $toType, 'related_object_uuid' => $to,
+                        'uuid' => $uuid, 'object_type' => $fromType, 'object_uuid' => $from, 'object_sha256' => null,
+                        'related_object_type' => $toType,
+                        'related_object_uuid' => $toType === 'AttributeValue' ? null : $to,
+                        'related_object_sha256' => $toType === 'AttributeValue' ? $to : null,
                         'relationship_type' => 'related-to', 'authors' => 'a@b', 'orgc_uuid' => 'o', 'distribution' => '1',
                     ));
                 };
                 return array(
-                    $row('rel1', 'Attribute', self::A1, 'Value', Value::uuidFor('8.8.8.8')),
+                    $row('rel1', 'Attribute', self::A1, 'AttributeValue', AnalystGraphDocumentTool::valueAddress('8.8.8.8')),
                     $row('rel2', 'Attribute', self::A1, 'Event', self::E2),
                 );
             });
@@ -1218,7 +1219,7 @@ class GraphTest extends TestCase
         }
         ksort($edges);
         $value = function ($v) {
-            return Value::uuidFor($v);
+            return AnalystGraphDocumentTool::valueAddress($v);
         };
         $expected = array(
             'object-reference:r1' => array('object-reference', 'Object:' . self::O2, 'Object:' . self::O1),
@@ -1262,10 +1263,10 @@ class GraphTest extends TestCase
         ksort($valueEdges);
         $to = ' > Attribute:' . self::A_CHILD2;
         $expected = array(
-            'Value:' . Value::uuidFor('EXAMPLE.ORG') . $to => 'spelled example.org',
-            'Value:' . Value::uuidFor('example.org') . $to => null,
-            'Value:' . Value::uuidFor('exämple.org') . $to => 'spelled example.org',
-            'Value:' . Value::uuidFor('8.8.8.8') . ' > Attribute:' . self::A_CHILD1 => null,
+            'Value:' . AnalystGraphDocumentTool::valueAddress('EXAMPLE.ORG') . $to => 'spelled example.org',
+            'Value:' . AnalystGraphDocumentTool::valueAddress('example.org') . $to => null,
+            'Value:' . AnalystGraphDocumentTool::valueAddress('exämple.org') . $to => 'spelled example.org',
+            'Value:' . AnalystGraphDocumentTool::valueAddress('8.8.8.8') . ' > Attribute:' . self::A_CHILD1 => null,
         );
         ksort($expected);
         $this->assertSame($expected, $valueEdges);
@@ -1304,7 +1305,7 @@ class GraphTest extends TestCase
         $this->assertArrayNotHasKey('x', $thumb['nodes'][2], 'no saved position, none given');
 
         $value = function ($v) {
-            return 'Value:' . Value::uuidFor($v);
+            return 'Value:' . AnalystGraphDocumentTool::valueAddress($v);
         };
         $pairs = array();
         foreach ($thumb['edges'] as list($from, $to, $kind)) {
@@ -1342,7 +1343,7 @@ class GraphTest extends TestCase
 
         $this->assertCount(AnalystGraphData::THUMBNAIL_BUDGET, $thumb['nodes']);
         $this->assertSame(AnalystGraphData::THUMBNAIL_BUDGET + 1, $thumb['total']);
-        $this->assertSame('Value:' . Value::uuidFor('v0'), $thumb['nodes'][0]['key'], 'in document order');
+        $this->assertSame('Value:' . AnalystGraphDocumentTool::valueAddress('v0'), $thumb['nodes'][0]['key'], 'in document order');
     }
 
     public function testResolveDrawsTheBudgetAndListsTheRest()
@@ -1359,7 +1360,7 @@ class GraphTest extends TestCase
 
         $this->assertSame(AnalystGraphData::NODE_BUDGET + 1, $resolved['meta']['nodes']);
         $this->assertSame(AnalystGraphData::NODE_BUDGET, $resolved['meta']['drawn']);
-        $this->assertSame(array('Value:' . Value::uuidFor('v' . AnalystGraphData::NODE_BUDGET)), $resolved['meta']['skipped']);
+        $this->assertSame(array('Value:' . AnalystGraphDocumentTool::valueAddress('v' . AnalystGraphData::NODE_BUDGET)), $resolved['meta']['skipped']);
         $this->assertCount(AnalystGraphData::NODE_BUDGET, $resolved['Value']);
         $this->assertCount(AnalystGraphData::NODE_BUDGET + 1, $resolved['document']['nodes']);
     }
@@ -1701,7 +1702,7 @@ class GraphTest extends TestCase
         $this->assertSame(array('type', 'uuid', 'x', 'y', 'pinned', 'module', 'modules', 'origins', 'content'), array_keys($node));
         $this->assertSame(array('dns', 'circl_passivedns'), $node['modules'], 'the stored module first');
         $this->assertSame('Attribute:' . self::ORG_ONLY, $node['origins'][0]['node']);
-        $this->assertSame('Value:' . Value::uuidFor('example.org'), $node['origins'][1]['node'], 'a Value origin is named by its value');
+        $this->assertSame('Value:' . AnalystGraphDocumentTool::valueAddress('example.org'), $node['origins'][1]['node'], 'a Value origin is named by its value');
         $this->assertSame(array('kind' => 'attribute', 'type' => 'ip-dst', 'value' => '203.0.113.7', 'category' => 'Network activity', 'comment' => '', 'to_ids' => false), $node['content']);
     }
 
@@ -1743,7 +1744,7 @@ class GraphTest extends TestCase
             self::origin('Value:', 'domain', 'a.example'),
         ))))['nodes'][0];
 
-        $this->assertSame(array('Value:' . Value::uuidFor('a.example')), array_column($node['origins'], 'node'), 'and an origin is listed once');
+        $this->assertSame(array('Value:' . AnalystGraphDocumentTool::valueAddress('a.example')), array_column($node['origins'], 'node'), 'and an origin is listed once');
     }
 
     public function invalidAnswers()
@@ -1818,7 +1819,7 @@ class GraphTest extends TestCase
         ));
         $key = self::answerKey('ip-dst', '192.0.2.1');
 
-        list($after, $report) = AnalystGraphDocumentTool::removeNodes($document, array($key, 'Value:' . Value::uuidFor('a.example')), array($key => true));
+        list($after, $report) = AnalystGraphDocumentTool::removeNodes($document, array($key, 'Value:' . AnalystGraphDocumentTool::valueAddress('a.example')), array($key => true));
 
         $this->assertSame(array($key), self::keys($after['nodes']));
         $this->assertSame(array($key), $report['absent'], 'reported as if the document did not hold it');
@@ -1944,7 +1945,7 @@ class GraphTest extends TestCase
         }));
         $this->assertSame(array(
             array('Attribute:' . self::A_CHILD1, $answer, 'dns'),
-            array('Value:' . Value::uuidFor('a.example'), $answer, 'passive'),
+            array('Value:' . AnalystGraphDocumentTool::valueAddress('a.example'), $answer, 'passive'),
         ), array_map(function ($e) {
             return array($e['from'], $e['to'], $e['label']);
         }, $enrichment), 'from an attribute inside a drawn object, from a Value; none from what is not drawn');
@@ -2007,7 +2008,7 @@ class GraphTest extends TestCase
         $this->assertSame('', $node['content']['comment'], 'the stored content wins');
         $this->assertSame('dns', $node['module']);
         $this->assertSame(array('dns', 'passive'), $node['modules']);
-        $this->assertSame(array('Value:' . Value::uuidFor('a.example'), 'Attribute:' . self::OPEN), array_column($node['origins'], 'node'));
+        $this->assertSame(array('Value:' . AnalystGraphDocumentTool::valueAddress('a.example'), 'Attribute:' . self::OPEN), array_column($node['origins'], 'node'));
         $this->assertSame(array(5, 6), array($node['x'], $node['y']));
         $this->assertArrayNotHasKey('pinned', $node, 'the layout is the writer\'s');
     }
@@ -2046,7 +2047,7 @@ class GraphTest extends TestCase
         $rest = $data->documentFor(self::analyst(), $document, true);
 
         $this->assertSame(array(
-            array('title' => 'Seen', 'members' => array('Attribute:' . self::OPEN, 'Value:' . Value::uuidFor('a.example'))),
+            array('title' => 'Seen', 'members' => array('Attribute:' . self::OPEN, 'Value:' . AnalystGraphDocumentTool::valueAddress('a.example'))),
         ), $read['groups']);
         $this->assertStringNotContainsString(self::ORG_ONLY, json_encode($read));
         $this->assertStringNotContainsString('Unseen', json_encode($read), 'a group left with one member goes, title and all');
@@ -2077,8 +2078,8 @@ class GraphTest extends TestCase
         )), $stored);
 
         $this->assertSame(array(
-            array('title' => 'Renamed', 'members' => array('Attribute:' . self::OPEN, 'Value:' . Value::uuidFor('a.example'), $shown)),
-            array('title' => 'Unshown', 'members' => array('Value:' . Value::uuidFor('b.example'), $unshown), 'x' => 4),
+            array('title' => 'Renamed', 'members' => array('Attribute:' . self::OPEN, 'Value:' . AnalystGraphDocumentTool::valueAddress('a.example'), $shown)),
+            array('title' => 'Unshown', 'members' => array('Value:' . AnalystGraphDocumentTool::valueAddress('b.example'), $unshown), 'x' => 4),
         ), $out['groups'], 'a shown group follows the write; one the writer was not shown stays as stored');
 
         $out = $data->documentForWrite(self::analyst(), self::normalised($nodes), $stored);
@@ -2213,7 +2214,7 @@ class GraphTest extends TestCase
         $pushed = (new AnalystGraphData())->documentForServer($document, self::pushServer());
 
         $this->assertSame(array(
-            array('members' => array(self::answerKey('ip-dst', '192.0.2.1'), 'Value:' . Value::uuidFor('v.example'))),
+            array('members' => array(self::answerKey('ip-dst', '192.0.2.1'), 'Value:' . AnalystGraphDocumentTool::valueAddress('v.example'))),
         ), $pushed['groups']);
         $this->assertStringNotContainsString(self::answerKey('ip-dst', '192.0.2.2'), json_encode($pushed));
         $this->assertStringNotContainsString('Org only', json_encode($pushed));

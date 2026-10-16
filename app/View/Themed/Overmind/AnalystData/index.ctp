@@ -51,6 +51,7 @@ $fields[] = [
     'element' => 'analyst_object_ref',
     'type_path' => $m . '.object_type',
     'uuid_path' => $m . '.object_uuid',
+    'sha256_path' => $m . '.object_sha256',
     'card_section' => 'title',
     'display_in' => ['table', 'card'],
 ];
@@ -146,6 +147,7 @@ if ($m === 'Note') {
         'element' => 'analyst_object_ref',
         'type_path' => $m . '.related_object_type',
         'uuid_path' => $m . '.related_object_uuid',
+        'sha256_path' => $m . '.related_object_sha256',
         'card_section' => 'attribute',
         'display_in' => ['table', 'card'],
     ];

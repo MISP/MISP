@@ -955,7 +955,7 @@
             return hit && { type: type, title: hit.name + ' object', sub: (hit.Attribute || []).length + ' attributes inside' };
         }
         if (type === 'Value') {
-            (p.Value || []).forEach(function (r) { if (lower(r.uuid) === uuid) hit = r; });
+            (p.Value || []).forEach(function (r) { if (lower(r.sha256) === uuid) hit = r; });
             return hit && { type: type, title: hit.value, sub: 'value', value: hit.value };
         }
         if (type === 'Event') {
@@ -980,7 +980,9 @@
         var a = drawnUuid();
         var p = (current && current.payload()) || {};
         var held = {};
-        ((p.document && p.document.nodes) || []).forEach(function (n) { held[n.type + ':' + lower(n.uuid)] = true; });
+        ((p.document && p.document.nodes) || []).forEach(function (n) {
+            held[n.type + ':' + lower(n.type === 'Value' ? n.sha256 : n.uuid)] = true;
+        });
         var changed = false;
         entriesOf(a).forEach(function (e) {
             var keys = (e.keys || []).concat(e.present || []);

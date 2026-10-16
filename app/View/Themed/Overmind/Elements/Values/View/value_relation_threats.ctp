@@ -123,7 +123,7 @@ $anchorWords = array(
     'Attribute' => __('on this value'),
     'Event' => __('on an event it appears in'),
     'Object' => __('on the object it sits in'),
-    'Value' => __('on this value'),
+    'AttributeValue' => __('on this value'),
 );
 
 /*

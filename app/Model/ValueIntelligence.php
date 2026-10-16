@@ -38,6 +38,7 @@ App::uses('EventMatrixTool', 'Tools/EventOverview');
  * class has to be loaded rather than instantiated through `model()`.
  */
 App::uses('MispAttribute', 'Model');
+App::uses('AnalystData', 'Model');
 
 /**
  * The Value Intelligence page's per-panel facade.
@@ -7392,7 +7393,7 @@ class ValueIntelligence extends AppModel
             'Attribute' => $occurrences,
             'Event' => array(),
             'Object' => array(),
-            'Value' => $this->valueAnchorUuids($user, $value),
+            'AttributeValue' => $this->valueAnchorHashes($user, $value),
         );
         foreach ($occurrences as $occurrence) {
             if (!empty($occurrence['event_uuid'])) {
@@ -7405,7 +7406,7 @@ class ValueIntelligence extends AppModel
 
         $claims = array();
         $orgs = array();
-        if (!empty($occurrences) || !empty($near['Value'])) {
+        if (!empty($occurrences) || !empty($near['AttributeValue'])) {
             $relationships = $this->model('Relationship');
             $conditions = $relationships->buildConditions($user);
             /*
@@ -7421,11 +7422,11 @@ class ValueIntelligence extends AppModel
                 $uuids = array_keys($set);
                 $anchors[] = array(
                     'Relationship.object_type' => $kind,
-                    'Relationship.object_uuid' => $uuids,
+                    'Relationship.' . AnalystData::addressColumn($kind, 'object') => $uuids,
                 );
                 $anchors[] = array(
                     'Relationship.related_object_type' => $kind,
-                    'Relationship.related_object_uuid' => $uuids,
+                    'Relationship.' . AnalystData::addressColumn($kind, 'related_object') => $uuids,
                 );
             }
             $conditions['AND'][] = array('OR' => $anchors);
@@ -7449,11 +7450,11 @@ class ValueIntelligence extends AppModel
                     continue;
                 }
                 $claim['spelled'] = null;
-                if ($claim['anchor'] === 'Value') {
+                if ($claim['anchor'] === 'AttributeValue') {
                     $nearUuid = $claim['direction'] === 'outbound'
-                        ? $row['Relationship']['object_uuid']
-                        : $row['Relationship']['related_object_uuid'];
-                    $spelling = $near['Value'][$nearUuid] ?? null;
+                        ? $row['Relationship']['object_sha256']
+                        : $row['Relationship']['related_object_sha256'];
+                    $spelling = $near['AttributeValue'][$nearUuid] ?? null;
                     if ($spelling !== null && $spelling !== (string)$value) {
                         $claim['spelled'] = $spelling;
                     }
@@ -7502,16 +7503,23 @@ class ValueIntelligence extends AppModel
     private function claimFrom(array $user, array $row, array $near)
     {
         $relationship = $row['Relationship'];
+        $address = function ($end) use ($relationship) {
+            $column = AnalystData::addressColumn(
+                $relationship[$end . '_type'],
+                $end
+            );
+            return (string)($relationship[$column] ?? '');
+        };
         $isNear = function ($kind, $uuid) use ($near) {
             return isset($near[$kind]) && isset($near[$kind][$uuid]);
         };
         $outbound = $isNear(
             $relationship['object_type'],
-            $relationship['object_uuid']
+            $address('object')
         );
         if ($outbound) {
             $kind = $relationship['related_object_type'];
-            $uuid = $relationship['related_object_uuid'];
+            $uuid = $address('related_object');
             /*
              * `Relationship::afterFind` has already resolved the far
              * end — one ACL'd fetch per row, whether anybody wanted it
@@ -7524,10 +7532,10 @@ class ValueIntelligence extends AppModel
                 : array();
         } elseif ($isNear(
             $relationship['related_object_type'],
-            $relationship['related_object_uuid']
+            $address('related_object')
         )) {
             $kind = $relationship['object_type'];
-            $uuid = $relationship['object_uuid'];
+            $uuid = $address('object');
             $target = $this->model('Relationship')->getRelatedElement(
                 $user,
                 $kind,
@@ -7909,6 +7917,14 @@ class ValueIntelligence extends AppModel
             'clusters' => array(),
             'resolved' => false,
         );
+        // A value has no id: it is opened by its text
+        if ($kind === 'AttributeValue') {
+            if (isset($element[$kind]['value'])) {
+                $target['label'] = (string)$element[$kind]['value'];
+                $target['resolved'] = true;
+            }
+            return $target;
+        }
         if (empty($element[$kind]['id'])) {
             return $target;
         }
@@ -10492,8 +10508,8 @@ class ValueIntelligence extends AppModel
                 ),
             );
         }
-        foreach ($this->valueAnchorUuids($user, $value) as $uuid => $spelling) {
-            $targets[$uuid] = array(
+        foreach ($this->valueAnchorHashes($user, $value) as $hex => $spelling) {
+            $targets[$hex] = array(
                 'kind' => 'value',
                 'id' => null,
                 'event' => null,
@@ -10511,19 +10527,20 @@ class ValueIntelligence extends AppModel
             );
         }
 
-        $uuids = array_keys($targets);
+        list($uuids, $hexes) = self::analystAnchorKeys($targets);
         $entries = array();
-        foreach (array('Note', 'Opinion') as $type) {
-            $found = $this->model($type)->fetchForUuids($uuids, $user);
-            foreach ($found as $uuid => $byType) {
-                if (!isset($byType[$type]) || !isset($targets[$uuid])) {
-                    continue;
-                }
-                foreach ($byType[$type] as $row) {
+        foreach ($this->analystRowsFor($user, $uuids, $hexes) as
+            $anchor => $byType
+        ) {
+            if (!isset($targets[$anchor])) {
+                continue;
+            }
+            foreach ($byType as $type => $rows) {
+                foreach ($rows as $row) {
                     $entries[] = $this->timelineAnalystEntry(
                         $type,
                         $row,
-                        $targets[$uuid]
+                        $targets[$anchor]
                     );
                 }
             }
@@ -12399,8 +12416,8 @@ class ValueIntelligence extends AppModel
     /* ==================================================================
      * Analyst data
      * ==================================================================
-     * Notes and opinions hang off an `object_uuid`. A value's is
-     * `Value::uuidFor()` of its text, one per spelling, so both panels
+     * Notes and opinions hang off an `object_uuid`, or for a value an
+     * `object_sha256` of its text, one per spelling, so both panels
      * are a union assembled here over the value's spellings and the
      * things the value is *in*; there is no single query behind either
      * of them, and there is no pagination across them.
@@ -12447,11 +12464,10 @@ class ValueIntelligence extends AppModel
             'value' => $value,
             'analyst' => $context,
             /*
-             * The composer's disabled *Attach to* picker states how
-             * many occurrences it would offer. Counted off the union
-             * this request already read rather than fetched again, so
-             * the number the picker names and the set the notes were
-             * looked up against cannot disagree.
+             * Counted off the union this request already read rather
+             * than fetched again, so the number the capped note names
+             * and the set the notes were looked up against cannot
+             * disagree.
              */
             'occurrence_stats' => array(
                 'shown' => $context['occurrences'],
@@ -13138,8 +13154,8 @@ class ValueIntelligence extends AppModel
             ))
         );
         $targets = array();
-        foreach ($this->valueAnchorUuids($user, $value) as $uuid => $spelling) {
-            $targets[$uuid] = array(
+        foreach ($this->valueAnchorHashes($user, $value) as $hex => $spelling) {
+            $targets[$hex] = array(
                 'kind' => 'value',
                 'value' => $spelling,
                 'spelled' => $spelling === (string)$value ? null : $spelling,
@@ -13201,16 +13217,16 @@ class ValueIntelligence extends AppModel
     }
 
     /**
-     * The uuids analyst data names this value by: its own spelling's, and
-     * those of the other spellings of its group that an attribute the
+     * The SHA-256s analyst data names this value by: its own spelling's,
+     * and those of the other spellings of its group that an attribute the
      * reader can see holds. Only visibly held spellings, so a note on a
      * spelling nobody visibly holds cannot say the instance stores it.
      *
      * @param array $user
      * @param string $value
-     * @return array uuid => spelling, the page's own spelling first
+     * @return array lowercase hex => spelling, the page's own spelling first
      */
-    private function valueAnchorUuids(array $user, $value)
+    private function valueAnchorHashes(array $user, $value)
     {
         $value = (string)$value;
         $spellings = array($value);
@@ -13226,14 +13242,14 @@ class ValueIntelligence extends AppModel
                 $spellings[] = (string)$text;
             }
         }
-        $uuids = array();
+        $hashes = array();
         foreach ($spellings as $spelling) {
-            $uuid = Value::uuidFor($spelling);
-            if (!isset($uuids[$uuid])) {
-                $uuids[$uuid] = $spelling;
+            $hex = hash('sha256', $spelling);
+            if (!isset($hashes[$hex])) {
+                $hashes[$hex] = $spelling;
             }
         }
-        return $uuids;
+        return $hashes;
     }
 
     /**
@@ -13360,11 +13376,11 @@ class ValueIntelligence extends AppModel
         $items = array();
         $roots = array();
         $children = array();
-        $frontier = array_keys($targets);
+        list($frontier, $hexes) = self::analystAnchorKeys($targets);
         for ($depth = 0; $depth <= self::ANALYST_THREAD_DEPTH; $depth++) {
             $next = array();
-            foreach ($this->analystRowsFor($user, $frontier) as
-                $parent => $byType
+            foreach ($this->analystRowsFor($user, $frontier,
+                $depth === 0 ? $hexes : array()) as $parent => $byType
             ) {
                 foreach ($byType as $type => $rows) {
                     foreach ($rows as $row) {
@@ -13412,20 +13428,29 @@ class ValueIntelligence extends AppModel
     }
 
     /**
-     * Every note and opinion written on any of these uuids.
+     * Every note and opinion written on any of these uuids, or on any of
+     * the values these SHA-256s name.
      *
-     * Two queries whatever the frontier's width, which is the whole
-     * point of reading per level.
+     * Two queries per kind of address whatever the frontier's width,
+     * which is the whole point of reading per level.
      *
      * @param array $user
      * @param array $uuids
-     * @return array parent uuid => type => rows
+     * @param array $hexes
+     * @return array parent uuid or SHA-256 => type => rows
      */
-    private function analystRowsFor(array $user, array $uuids)
-    {
+    private function analystRowsFor(array $user, array $uuids,
+        array $hexes = array()
+    ) {
         $found = array();
         foreach (array('Note', 'Opinion') as $type) {
-            $rows = $this->model($type)->fetchForUuids($uuids, $user);
+            $model = $this->model($type);
+            $rows = (empty($uuids)
+                    ? array()
+                    : $model->fetchForUuids($uuids, $user))
+                + (empty($hexes)
+                    ? array()
+                    : $model->fetchForSha256s($hexes, $user));
             foreach ($rows as $parent => $byType) {
                 if (empty($byType[$type])) {
                     continue;
@@ -13434,6 +13459,28 @@ class ValueIntelligence extends AppModel
             }
         }
         return $found;
+    }
+
+    /**
+     * An anchor set split by how analyst data addresses it: the value's
+     * own spellings by SHA-256, everything else by uuid.
+     *
+     * @param array $targets anchor => attachment, as `analystAnchors`
+     *                       builds them
+     * @return array [uuids, SHA-256s]
+     */
+    private static function analystAnchorKeys(array $targets)
+    {
+        $uuids = array();
+        $hexes = array();
+        foreach ($targets as $anchor => $target) {
+            if ($target['kind'] === 'value') {
+                $hexes[] = (string)$anchor;
+            } else {
+                $uuids[] = (string)$anchor;
+            }
+        }
+        return array($uuids, $hexes);
     }
 
     /**
@@ -15846,7 +15893,7 @@ class ValueIntelligence extends AppModel
              */
             $types = $this->model('MispAttribute')->typeDefinitions;
             $postData['attribute'] = array(
-                'uuid' => Value::uuidFor($value),
+                'uuid' => CakeText::uuid(),
                 'type' => $type,
                 'category' => $types[$type]['default_category'] ?? 'Other',
                 'value' => $value,

@@ -1,4 +1,6 @@
 <?php
+App::uses('AnalystData', 'Model');
+App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 /*
  * Shared Analyst Data thread renderer (Notes / Opinions / Relationships +
  * inbound relationships) for the Overmind theme.
@@ -85,18 +87,32 @@ $distBadge = function ($item) {
         . '</span>';
 };
 
-// Link to a referenced MISP object (analyst types open their own view).
-$objLink = function ($type, $uuid) use ($baseurl) {
+// Link to one end of a relationship (analyst types open their own view).
+// $rel['related_object'] is the end the row does not belong to, resolved by Relationship::afterFind.
+$objLink = function (array $rel, $end) use ($baseurl) {
+    $type = $rel[$end . '_type'] ?? '';
+    $uuid = $rel[AnalystData::addressColumn($type, $end)] ?? '';
     if (empty($uuid)) {
         return '<span class="text-muted">&mdash;</span>';
     }
-    if ($type === 'Value') {
+    if (in_array($type, AnalystData::SHA256_TARGETS, true)) {
+        $text = $rel['related_object'][$type]['value'] ?? null;
+        if ($text === null) {
+            return sprintf(
+                '<span class="badge bg-secondary-subtle text-secondary-emphasis me-1">%s</span>'
+                . '<span class="font-monospace small text-body-secondary text-break" title="%s">%s</span>',
+                h(__('Value')),
+                h(__('This value could not be resolved, so it is shown by the SHA-256 of its text.')),
+                h($uuid)
+            );
+        }
         return sprintf(
             '<span class="badge bg-secondary-subtle text-secondary-emphasis me-1">%s</span>'
-            . '<span class="font-monospace small text-body-secondary" title="%s">%s</span>',
-            h($type),
-            h(__('A value is named by a fingerprint of its text, which does not say which value it is.')),
-            h($uuid)
+            . '<a class="text-decoration-none font-monospace small text-break" href="%s" title="%s">%s</a>',
+            h(__('Value')),
+            h($baseurl . '/values/view/' . ValueUrlTool::encode($text)),
+            h($uuid),
+            h($text)
         );
     }
     if (in_array($type, ['Note', 'Opinion', 'Relationship'], true)) {
@@ -287,7 +303,7 @@ $renderNode = function ($item, $type, $nested = false) use (&$renderNode, $baseu
                                     </span>
                                 <?php endif; ?>
                                 <i class="fas fa-arrow-right text-muted"></i>
-                                <?= $objLink($rel['related_object_type'] ?? '', $rel['related_object_uuid'] ?? '') ?>
+                                <?= $objLink($rel, 'related_object') ?>
                                 <?= $itemActions($rel, 'Relationship') ?>
                             </div>
                             <?php
@@ -315,7 +331,7 @@ $renderNode = function ($item, $type, $nested = false) use (&$renderNode, $baseu
                     <?php foreach ($inbound as $rel): ?>
                         <div class="border rounded p-2 d-flex align-items-center gap-2 flex-wrap" data-ad-entry>
                             <?= $distBadge($rel) ?>
-                            <?= $objLink($rel['object_type'] ?? '', $rel['object_uuid'] ?? '') ?>
+                            <?= $objLink($rel, 'object') ?>
                             <i class="fas fa-arrow-right text-muted"></i>
                             <?php if (!empty($rel['relationship_type'])): ?>
                                 <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">

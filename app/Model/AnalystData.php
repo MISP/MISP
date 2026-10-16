@@ -657,7 +657,8 @@ class AnalystData extends AppModel
      * @param array $user
      * @param array $targets list of ['type' => string, 'address' => string]
      * @return array address => ['label' => string, 'meta' => string[]]; a
-     *               SHA-256 in lower case
+     *               SHA-256 in lower case, whose entry also holds the
+     *               value's full text as 'value'
      */
     public function describeTargets(array $user, array $targets): array
     {
@@ -677,6 +678,7 @@ class AnalystData extends AppModel
                     $described[$hex] = [
                         'label' => mb_strimwidth((string)$texts[$id], 0, 160, '…'),
                         'meta' => [],
+                        'value' => (string)$texts[$id],
                     ];
                 }
             }

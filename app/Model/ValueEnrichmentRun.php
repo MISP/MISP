@@ -88,17 +88,9 @@ class ValueEnrichmentRun extends AppModel
     const PURGE_LIMIT = 500;
 
     /**
-     * The identity of a value for this table.
-     *
-     * `Value::uuidFor()` is specified in `value-intelligence-writes.md` §7
-     * — STIX 2.1's deterministic UUIDv5, with a `value_dictionary`
-     * making the one-way identity renderable — and neither it nor the
-     * table exists. Adopting that contract here would make an
-     * enrichment cache depend on the whole writes phase.
-     *
-     * So this is the identity the page already uses everywhere else:
-     * `ValueIntelligence`'s Redis keys hash the value, and this hashes it
-     * the same way. **No normalisation of its own** — a store that
+     * The identity of a value for this table: the SHA-256 of its text,
+     * the digest analyst data and collections name a value by.
+     * **No normalisation of its own** — a store that
      * normalised differently from the page would disagree with the
      * page about which value is on screen, and §14.3 of the main PRD
      * reserves that decision for one function nobody has written.

@@ -3612,13 +3612,13 @@
             postJson('/analyst_graphs/edges.json', { nodes: items }).then(function (out) {
                 if (g !== _graph) return;
                 var valueOf = {};
-                (out.Value || []).forEach(function (v) { valueOf[v.uuid] = v.value; });
+                (out.Value || []).forEach(function (v) { valueOf[v.sha256] = v.value; });
                 // A uuid two drawn nodes share (one cluster in two galaxies)
                 // cannot say which of them a link joins.
                 function endId(end) {
                     var at = end.indexOf(':');
-                    var type = end.slice(0, at), uuid = end.slice(at + 1);
-                    var key = type === 'Value' ? (valueOf[uuid] != null ? 'Value=' + valueOf[uuid] : null) : type + ':' + uuid;
+                    var type = end.slice(0, at), address = end.slice(at + 1);
+                    var key = type === 'Value' ? (valueOf[address] != null ? 'Value=' + valueOf[address] : null) : type + ':' + address;
                     var ids = key && idsOf[key];
                     return ids && ids.length === 1 && g.getMutableNode(ids[0]) ? ids[0] : null;
                 }
@@ -5436,8 +5436,13 @@
            ══════════════════════════════════════════════════════════ */
         // Canvas node type → AnalystData::valid_targets name.
         var ANALYST_TYPES = {
-            attribute: 'Attribute', object: 'Object', event: 'Event', cluster: 'GalaxyCluster', value: 'Value'
+            attribute: 'Attribute', object: 'Object', event: 'Event', cluster: 'GalaxyCluster', value: 'AttributeValue'
         };
+
+        // What analyst data names a canvas node by: a value by the SHA-256 of its text.
+        function analystAddress(d) {
+            return d.type === 'value' ? d.sha256 : d.uuid;
+        }
 
         // The object_relationships vocabulary, fetched once on first use. A
         // failed fetch leaves only the free-text field, which the server
@@ -5532,8 +5537,9 @@
                     && (t.type === 'object' || t.type === 'attribute') && referenceable(s, t)) {
                     kinds.push('object-reference');
                 }
+                var sAddress = analystAddress(s), tAddress = analystAddress(t);
                 if (canAnalyst && ANALYST_TYPES[s.type] && ANALYST_TYPES[t.type]
-                    && s.uuid && t.uuid && s.uuid !== t.uuid) {
+                    && sAddress && tAddress && sAddress !== tAddress) {
                     kinds.push('analyst-relationship');
                 }
                 return kinds;
@@ -5682,13 +5688,14 @@
             }
 
             function saveRelationship(from, to, rel, sharing) {
-                return post('/analystData/add/Relationship/' + encodeURIComponent(from.uuid)
+                var target = {
+                    related_object_type: ANALYST_TYPES[to.type],
+                    relationship_type:   rel
+                };
+                target[to.type === 'value' ? 'related_object_sha256' : 'related_object_uuid'] = analystAddress(to);
+                return post('/analystData/add/Relationship/' + encodeURIComponent(analystAddress(from))
                             + '/' + ANALYST_TYPES[from.type] + '.json', {
-                    Relationship: Object.assign({
-                        related_object_uuid: to.uuid,
-                        related_object_type: ANALYST_TYPES[to.type],
-                        relationship_type:   rel
-                    }, sharing)
+                    Relationship: Object.assign(target, sharing)
                 }).then(function (body) { return body.Relationship || {}; }, saveFailed);
             }
 

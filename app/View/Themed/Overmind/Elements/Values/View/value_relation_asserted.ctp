@@ -1,4 +1,5 @@
 <?php
+App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 /**
  * Section three: relationships somebody wrote down on purpose.
  *
@@ -41,10 +42,11 @@ $targetIcons = array(
     'GalaxyCluster' => 'misp-icon misp-icon-galaxy misp-simple',
     'Object' => 'misp-icon misp-icon-object misp-simple',
     'Attribute' => 'misp-icon misp-icon-attribute misp-simple',
+    'AttributeValue' => 'misp-icon misp-icon-value-intelligence misp-simple',
 );
 
 /*
- * The same four kinds in a sentence. `strtolower` on the model name
+ * The same kinds in a sentence. `strtolower` on the model name
  * would say *this galaxycluster*.
  */
 $kindWords = array(
@@ -52,6 +54,7 @@ $kindWords = array(
     'GalaxyCluster' => __('galaxy cluster'),
     'Object' => __('object'),
     'Attribute' => __('attribute'),
+    'AttributeValue' => __('value'),
 );
 
 /**
@@ -77,6 +80,9 @@ $targetUrl = function ($target) use ($baseurl) {
     if ($target['kind'] === 'GalaxyCluster') {
         return $baseurl . '/galaxy_clusters/view/' . $target['id'];
     }
+    if ($target['kind'] === 'AttributeValue') {
+        return $baseurl . '/values/view/' . ValueUrlTool::encode($target['label']);
+    }
     if (empty($target['event'])) {
         return null;
     }
@@ -98,6 +104,9 @@ $targetTitle = function ($target) {
     }
     if ($target['kind'] === 'GalaxyCluster') {
         return __('Open this galaxy cluster');
+    }
+    if ($target['kind'] === 'AttributeValue') {
+        return __('Open this value');
     }
     return sprintf(
         $target['kind'] === 'Object'
@@ -279,7 +288,7 @@ if (empty($claims)) {
                                     <i class="<?= h($icon) ?>"></i>
                                 <?php endif; ?>
                                 <span class="fw-semibold">
-                                    <?= h($target['kind']) ?>
+                                    <?= h($target['kind'] === 'AttributeValue' ? __('Value') : $target['kind']) ?>
                                 </span>
                                 <?php
                                 /*

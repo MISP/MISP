@@ -9977,41 +9977,6 @@ th.vp-rel-num {
     margin-bottom: 0;
 }
 
-/* ------------------------------------------------------------------
- * The composer
- * ------------------------------------------------------------------ */
-
-/* Dashed, because it is the one region on this tab that would write. */
-.vpa-composer {
-    padding: 13px 14px;
-    border: 1px dashed color-mix(in srgb, var(--analystData) 45%,
-        var(--bs-border-color));
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--analystData) 5%,
-        var(--bs-body-bg));
-}
-
-[data-misp-mode="dark"] .vpa-composer {
-    background: color-mix(in srgb, var(--analystData) 12%,
-        var(--bs-body-bg));
-}
-
-.vpa-composer-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-}
-
-.vpa-kindswitch .nav-link {
-    padding: 2px 10px;
-    font-size: 0.78rem;
-}
-
-.vpa-kindswitch .nav-link.disabled {
-    opacity: 0.75;
-}
-
 /* ==================================================================
  * Timeline tab — the spine, the source lanes and the chronology
  * ------------------------------------------------------------------
@@ -11559,55 +11524,6 @@ a.vp-lane-tag:focus-visible {
 
 .vp-dense .vpa-report > .d-flex:first-child {
     margin-bottom: 2px !important;
-}
-
-/*
- * The disabled composer, folded away. It is 231px of controls that
- * cannot be used — the page does not write — and it sat between the
- * thread and the panel below it on every value, including the ones
- * with nothing written at all. Open it and it is exactly what it was;
- * closed it states in one line what it would do and why it will not.
- */
-.vpa-composer-fold > summary {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 10px;
-    border: 1px dashed color-mix(in srgb, var(--analystData) 45%,
-        var(--bs-border-color));
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--analystData) 5%,
-        var(--bs-body-bg));
-    font-size: 0.78rem;
-    color: var(--bs-secondary-color);
-    cursor: pointer;
-    list-style: none;
-}
-
-[data-misp-mode="dark"] .vpa-composer-fold > summary {
-    background: color-mix(in srgb, var(--analystData) 12%,
-        var(--bs-body-bg));
-}
-
-.vpa-composer-fold > summary::-webkit-details-marker {
-    display: none;
-}
-
-.vpa-composer-fold > summary:hover {
-    border-color: color-mix(in srgb, var(--analystData) 70%,
-        var(--bs-border-color));
-}
-
-.vpa-composer-fold > summary > .fa-caret-right {
-    transition: transform 0.12s ease;
-}
-
-.vpa-composer-fold[open] > summary > .fa-caret-right {
-    transform: rotate(90deg);
-}
-
-.vpa-composer-fold[open] > summary {
-    margin-bottom: 8px;
 }
 
 /* The gap between panels, which is four of them on this tab. */

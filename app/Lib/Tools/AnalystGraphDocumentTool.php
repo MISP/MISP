@@ -1,6 +1,4 @@
 <?php
-App::uses('Value', 'Model');
-
 /**
  * The document an analyst graph stores in its `content` column: which records
  * it shows and where they sit, never copies of them and no edges of its own.
@@ -10,12 +8,12 @@ App::uses('Value', 'Model');
  *     {
  *       "version": 1,
  *       "nodes": [{"type": "Attribute", "uuid": "…", "x": 120, "y": -40, "pinned": true},
- *                 {"type": "Value", "uuid": "…", "value": "8.8.8.8"},
+ *                 {"type": "Value", "sha256": "…", "value": "8.8.8.8"},
  *                 {"type": "ModuleAnswer", "uuid": "…", "module": "dns", "modules": ["dns"],
  *                  "origins": [{"node": "Attribute:…", "module": "dns", "type": "domain",
  *                               "value": "example.com", "ran_at": 1791100000}],
  *                  "content": {"kind": "attribute", "type": "ip-dst", "value": "203.0.113.7", …}}],
- *       "groups": [{"title": "C2", "members": ["Attribute:<uuid>", "Value:<uuid>"], "x": 0, "y": 0}],
+ *       "groups": [{"title": "C2", "members": ["Attribute:<uuid>", "Value:<sha256>"], "x": 0, "y": 0}],
  *       "hidden_edges": ["relationship:<uuid>"],
  *       "view": {"layout": "force", "zoom": 1.0, "center": [0, 0], "rules": {"neighbours": false}},
  *       "notes": [{"id": "…", "content": "Markdown", "x": 0, "y": 0, "width": 220, "height": 160,
@@ -52,6 +50,9 @@ class AnalystGraphDocumentTool
     const ANSWER_KINDS = ['attribute', 'object', 'element'];
 
     const UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
+    const SHA256_PATTERN = '/^[0-9a-f]{64}$/i';
+    /** Fixed forever: two instances agree on an answer's uuid only while this does. */
+    const ANSWER_NAMESPACE = '6f3c2a8e-1d4b-5e7f-9a0c-3b8d2e4f6a1c';
     // No dot: the name is read back inside a configuration path
     const MODULE_PATTERN = '/^[A-Za-z0-9_\-]{1,128}$/';
 
@@ -115,8 +116,8 @@ class AnalystGraphDocumentTool
 
     /**
      * Validate a document and bring it to its stored form: keys it does not
-     * define are dropped, node uuids are lowercased, and a Value node's uuid is
-     * recomputed from its literal.
+     * define are dropped, node uuids are lowercased, and a Value node's SHA-256
+     * is recomputed from its literal.
      *
      * @param array|string|null $content
      * @return array [array|null $document, string[] $errors]
@@ -265,7 +266,27 @@ class AnalystGraphDocumentTool
      */
     public static function nodeKey(array $node)
     {
-        return $node['type'] . ':' . $node['uuid'];
+        return $node['type'] . ':' . self::addressOf($node);
+    }
+
+    /**
+     * @param array $node A normalised node
+     * @return string|null Its uuid, or a Value node's SHA-256
+     */
+    public static function addressOf(array $node)
+    {
+        return $node[$node['type'] === 'Value' ? 'sha256' : 'uuid'] ?? null;
+    }
+
+    /**
+     * The SHA-256 a Value node is named by.
+     *
+     * @param string $value
+     * @return string Lowercase hex
+     */
+    public static function valueAddress($value)
+    {
+        return hash('sha256', trim((string)$value));
     }
 
     /**
@@ -388,12 +409,14 @@ class AnalystGraphDocumentTool
         }
         if ($item['type'] === 'Value' && isset($item['value']) && is_scalar($item['value'])) {
             $value = trim((string)$item['value']);
-            return $value === '' ? null : 'Value:' . Value::uuidFor($value);
+            return $value === '' ? null : 'Value:' . self::valueAddress($value);
         }
-        if (!isset($item['uuid']) || !is_string($item['uuid']) || !preg_match(self::UUID_PATTERN, $item['uuid'])) {
+        $address = $item['type'] === 'Value' ? ($item['sha256'] ?? $item['uuid'] ?? null) : ($item['uuid'] ?? null);
+        $pattern = $item['type'] === 'Value' ? self::SHA256_PATTERN : self::UUID_PATTERN;
+        if (!is_string($address) || !preg_match($pattern, $address)) {
             return null;
         }
-        return $item['type'] . ':' . strtolower($item['uuid']);
+        return $item['type'] . ':' . strtolower($address);
     }
 
     /**
@@ -485,8 +508,8 @@ class AnalystGraphDocumentTool
     {
         $keys = [];
         foreach ($nodes as $node) {
-            if (isset($node['type'], $node['uuid'])) {
-                $keys[] = $node['type'] . ':' . $node['uuid'];
+            if (isset($node['type']) && self::addressOf($node) !== null) {
+                $keys[] = self::nodeKey($node);
             }
         }
         return $keys;
@@ -525,7 +548,7 @@ class AnalystGraphDocumentTool
                 $errors[] = __('a Value node holds at most %s bytes.', self::MAX_VALUE_BYTES);
                 return null;
             }
-            $normalised['uuid'] = Value::uuidFor($value);
+            $normalised['sha256'] = self::valueAddress($value);
             $normalised['value'] = $value;
         } else {
             $uuid = $node['uuid'] ?? null;
@@ -608,14 +631,14 @@ class AnalystGraphDocumentTool
     }
 
     /**
-     * An RFC 4122 version 5 uuid, in the namespace values are named in.
+     * An RFC 4122 version 5 uuid, in the namespace answers are named in.
      *
      * @param string $name
      * @return string
      */
     public static function uuidV5($name)
     {
-        $hash = sha1(hex2bin(str_replace('-', '', Value::UUID_NAMESPACE)) . $name);
+        $hash = sha1(hex2bin(str_replace('-', '', self::ANSWER_NAMESPACE)) . $name);
         return sprintf(
             '%s-%s-%04x-%04x-%s',
             substr($hash, 0, 8),
@@ -802,7 +825,7 @@ class AnalystGraphDocumentTool
                 $error = __('a Value origin needs a value.');
                 return null;
             }
-            $uuid = Value::uuidFor($asked['value']);
+            $uuid = self::valueAddress($asked['value']);
         } else {
             $uuid = self::answerUuidFor($asked['type'], $asked['value']);
         }

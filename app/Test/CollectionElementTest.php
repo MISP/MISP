@@ -95,7 +95,6 @@ if (!class_exists('AppModel', false)) {
     }
 }
 
-require_once __DIR__ . '/../Model/Value.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
 require_once __DIR__ . '/../Model/CollectionElement.php';
 
@@ -174,29 +173,6 @@ class CollectionElementTest extends TestCase
     protected function setUp(): void
     {
         $this->element = new TestableCollectionElement();
-    }
-
-    /**
-     * Fixed forever: these are what every instance calls these values, so a
-     * change here breaks dedup against data already stored and synced.
-     * Computed independently with Python's uuid.uuid5.
-     */
-    public function testValueUuidIsStable()
-    {
-        $this->assertSame('57668568-d717-5a92-91bf-be3a939ee8eb', Value::uuidFor('8.8.8.8'));
-        $this->assertSame('024b2526-3080-5e9a-940a-d121967b93d8', Value::uuidFor('évil.example'));
-    }
-
-    public function testValueUuidIsVersion5AndIgnoresSurroundingWhitespace()
-    {
-        $uuid = Value::uuidFor("  8.8.8.8\n");
-        $this->assertSame(Value::uuidFor('8.8.8.8'), $uuid);
-        $this->assertRegExp('/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/', $uuid);
-    }
-
-    public function testValueUuidKeepsCase()
-    {
-        $this->assertNotSame(Value::uuidFor('Example.com'), Value::uuidFor('example.com'));
     }
 
     public function testAValueElementIsAddressedByItsLowercasedSha256()

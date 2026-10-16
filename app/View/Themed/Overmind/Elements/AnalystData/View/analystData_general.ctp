@@ -1,10 +1,12 @@
 <?php
+App::uses('AnalystData', 'Model');
+App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 /*
  * What a Note / Opinion / Relationship says, and what it is about. Its id,
  * UUID, organisations and distribution are drawn by the page header and the
  * ownership card, so they are not repeated here.
  *
- * $analystTargets (uuid => label, meta) comes from AnalystData::describeTargets();
+ * $analystTargets (address => label, meta) comes from AnalystData::describeTargets();
  * a target missing from it is not on this instance or not visible to the user.
  */
 $m = $modelSelection ?? 'Note';
@@ -44,15 +46,20 @@ $targetGlyphs = [
     'Galaxy' => 'fas fa-globe',
     'Organisation' => 'fas fa-building',
     'SharingGroup' => 'misp-icon misp-icon-sharing-group misp-simple',
-    'Value' => 'fas fa-fingerprint',
+    'AttributeValue' => 'misp-icon misp-icon-value-intelligence misp-simple',
 ];
 
-$target = function ($type, $uuid) use ($baseurl, $analystTargets, $styles, $targetGlyphs) {
+$target = function ($type, $end) use ($baseurl, $record, $analystTargets, $styles, $targetGlyphs) {
+    $uuid = $record[AnalystData::addressColumn($type, $end)] ?? '';
     if (empty($uuid)) {
         return '<span class="text-body-secondary fst-italic small">' . __('Nothing') . '</span>';
     }
-    $isValue = $type === 'Value';
-    if (isset($styles[$type])) {
+    $isValue = in_array($type, AnalystData::SHA256_TARGETS, true);
+    $known = $analystTargets[$isValue ? strtolower($uuid) : $uuid] ?? null;
+    if ($isValue) {
+        $url = isset($known['value']) ? $baseurl . '/values/view/' . ValueUrlTool::encode($known['value']) : '';
+        $glyph = $targetGlyphs[$type];
+    } elseif (isset($styles[$type])) {
         $url = $baseurl . '/analystData/view/' . $type . '/' . $uuid;
         $glyph = $styles[$type]['icon'];
     } else {
@@ -61,14 +68,13 @@ $target = function ($type, $uuid) use ($baseurl, $analystTargets, $styles, $targ
             : $baseurl . '/' . Inflector::tableize($type) . '/view/' . $uuid;
         $glyph = $targetGlyphs[$type] ?? 'fas fa-link';
     }
-    $known = $analystTargets[$uuid] ?? null;
     $tile = sprintf(
         '<span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3 %s"'
         . ' style="width:2.5rem;height:2.5rem;"><i class="%s fs-5"></i></span>',
         $known ? 'bg-primary-subtle text-primary' : 'bg-body-secondary text-body-secondary',
         h($glyph)
     );
-    $meta = '<span class="badge rounded-pill border bg-body text-body-secondary fw-normal">' . h($type) . '</span>';
+    $meta = '<span class="badge rounded-pill border bg-body text-body-secondary fw-normal">' . h($isValue ? __('Value') : $type) . '</span>';
     foreach ($known['meta'] ?? [] as $part) {
         $meta .= '<span class="text-truncate">' . h($part) . '</span>';
     }
@@ -79,14 +85,10 @@ $target = function ($type, $uuid) use ($baseurl, $analystTargets, $styles, $targ
         $known
             ? h($known['label'] !== '' ? $known['label'] : $type)
             : '<span class="text-body-secondary fst-italic">' . h($isValue
-                ? __('A value is named by a fingerprint of its text, which does not say which value it is.')
+                ? __('This value could not be resolved, so it is shown by the SHA-256 of its text.')
                 : __('Not on this instance, or not visible to you')) . '</span>',
         $meta
     );
-    if ($isValue) {
-        return '<div class="d-flex align-items-center gap-3 p-2 rounded-3 border bg-body-tertiary">'
-            . $tile . $body . '</div>';
-    }
     if (!$known) {
         return '<div class="d-flex align-items-center gap-3 p-2 rounded-3 border bg-body-tertiary" style="border-style:dashed !important;">'
             . $tile . $body . '</div>';
@@ -164,14 +166,14 @@ if ($opinion !== null) {
 
             <?php elseif ($m === 'Relationship'): ?>
                 <div class="d-flex flex-column gap-1">
-                    <?= $target($record['object_type'] ?? '', $record['object_uuid'] ?? '') ?>
+                    <?= $target($record['object_type'] ?? '', 'object') ?>
                     <div class="d-flex align-items-center gap-2 ps-3">
                         <i class="fas fa-arrow-down text-body-secondary"></i>
                         <span class="badge rounded-pill bg-<?= $color ?>-subtle text-<?= $color ?>-emphasis border border-<?= $color ?>-subtle">
                             <?= h($record['relationship_type'] ?? __('related to')) ?>
                         </span>
                     </div>
-                    <?= $target($record['related_object_type'] ?? '', $record['related_object_uuid'] ?? '') ?>
+                    <?= $target($record['related_object_type'] ?? '', 'related_object') ?>
                 </div>
             <?php endif; ?>
         </div>
@@ -179,7 +181,7 @@ if ($opinion !== null) {
         <?php if ($m !== 'Relationship'): ?>
             <div>
                 <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('About') ?></div>
-                <?= $target($record['object_type'] ?? '', $record['object_uuid'] ?? '') ?>
+                <?= $target($record['object_type'] ?? '', 'object') ?>
             </div>
         <?php endif; ?>
 

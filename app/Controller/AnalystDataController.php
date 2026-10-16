@@ -68,8 +68,14 @@ class AnalystDataController extends AppController
             }
         }
         if (!empty($object_address)) {
-            $column = AnalystData::addressColumn($this->request->data[$model]['object_type'] ?? null, 'object');
-            $this->request->data[$model][$column] = $object_address;
+            $objectType = $this->request->data[$model]['object_type'] ?? null;
+            $this->request->data[$model][AnalystData::addressColumn($objectType, 'object')] = $object_address;
+            if (in_array($objectType, AnalystData::SHA256_TARGETS, true) && !$this->request->is('post')) {
+                $this->set('analystTargets', $this->AnalystData->describeTargets(
+                    $this->Auth->user(),
+                    [['type' => $objectType, 'address' => $object_address]]
+                ));
+            }
         }
 
         if (empty($this->request->data[$model]['object_type']) && !empty($this->request->data[$model]['object_uuid'])) {
@@ -504,7 +510,8 @@ class AnalystDataController extends AppController
     /**
      * Tell the index which of the rendered targets still resolve, so a UUID
      * pointing at something this instance no longer holds is rendered as text
-     * instead of a link into a "not found" page.
+     * instead of a link into a "not found" page. A value target is described
+     * too, as its SHA-256 alone says nothing.
      *
      * @param array $rows the page of analyst data about to be rendered
      */
@@ -512,21 +519,28 @@ class AnalystDataController extends AppController
     {
         $model = $this->modelSelection;
         $targets = [];
+        $values = [];
         foreach ($rows as $row) {
             foreach (['object', 'related_object'] as $end) {
                 $type = $row[$model][$end . '_type'] ?? '';
                 $address = $row[$model][AnalystData::addressColumn($type, $end)] ?? '';
-                if (!empty($address)) {
-                    $targets[] = [
-                        'type' => $type,
-                        'address' => $address,
-                    ];
+                if (empty($address)) {
+                    continue;
+                }
+                $target = ['type' => $type, 'address' => $address];
+                if (in_array($type, AnalystData::SHA256_TARGETS, true)) {
+                    $values[] = $target;
+                } else {
+                    $targets[] = $target;
                 }
             }
         }
+        $user = $this->Auth->user();
+        $described = empty($values) ? [] : $this->AnalystData->describeTargets($user, $values);
+        $this->set('analystTargets', $described);
         $this->set(
             'analystTargetExists',
-            $this->AnalystData->existingTargets($this->Auth->user(), $targets)
+            $this->AnalystData->existingTargets($user, $targets) + array_fill_keys(array_keys($described), true)
         );
     }
 

@@ -35,36 +35,6 @@ class Value extends AppModel
     public $useTable = false;
 
     /**
-     * Namespace of the UUIDv5 that names a value. Fixed forever: two
-     * instances agree on a value's UUID only while this does.
-     */
-    const UUID_NAMESPACE = '6f3c2a8e-1d4b-5e7f-9a0c-3b8d2e4f6a1c';
-
-    /**
-     * The UUID a value is known by wherever it is stored as a record of
-     * its own, such as a collection element.
-     *
-     * The value is taken as given apart from surrounding whitespace, the
-     * reading the value page takes.
-     *
-     * @param string $value
-     * @return string RFC 4122 version 5 UUID
-     */
-    public static function uuidFor($value)
-    {
-        $namespace = hex2bin(str_replace('-', '', self::UUID_NAMESPACE));
-        $hash = sha1($namespace . trim((string)$value));
-        return sprintf(
-            '%s-%s-%04x-%04x-%s',
-            substr($hash, 0, 8),
-            substr($hash, 8, 4),
-            (hexdec(substr($hash, 12, 4)) & 0x0fff) | 0x5000,
-            (hexdec(substr($hash, 16, 4)) & 0x3fff) | 0x8000,
-            substr($hash, 20, 12)
-        );
-    }
-
-    /**
      * The event and object columns every row on the Relationships tab
      * is read through — the reporter, the audience and the object
      * template — stated once so the three fetchers cannot drift.

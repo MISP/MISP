@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('AnalystData', 'Model');
 App::uses('AnalystGraphDocumentTool', 'Tools');
 App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 
@@ -49,7 +50,7 @@ class AnalystGraphData extends AppModel
         foreach ($drawn as $node) {
             if ($node['type'] === 'Value') {
                 $values[] = [
-                    'uuid' => $node['uuid'],
+                    'sha256' => $node['sha256'],
                     'value' => $node['value'],
                     'b64' => ValueUrlTool::encode($node['value']),
                 ];
@@ -84,7 +85,7 @@ class AnalystGraphData extends AppModel
      *
      * @param array $user
      * @param array $nodes Graph document nodes
-     * @return array [edges or null, errors]; Value nodes as {uuid, value}
+     * @return array [edges or null, errors]; Value nodes as {sha256, value}
      */
     public function edgesBetween(array $user, array $nodes)
     {
@@ -97,7 +98,7 @@ class AnalystGraphData extends AppModel
         }
         $payload = $this->resolve($user, $document);
         $values = array_map(function ($value) {
-            return ['uuid' => $value['uuid'], 'value' => $value['value']];
+            return ['sha256' => $value['sha256'], 'value' => $value['value']];
         }, $payload['Value']);
         return [['edges' => $payload['edges'], 'Value' => $values], []];
     }
@@ -831,7 +832,7 @@ class AnalystGraphData extends AppModel
     {
         $uuids = array_fill_keys(AnalystGraphDocumentTool::NODE_TYPES, []);
         foreach ($nodes as $node) {
-            $uuids[$node['type']][] = $node['uuid'];
+            $uuids[$node['type']][] = AnalystGraphDocumentTool::addressOf($node);
         }
         return $uuids;
     }
@@ -957,7 +958,7 @@ class AnalystGraphData extends AppModel
             $clusterByTag[$cluster['tag_name']] = strtolower($cluster['uuid']);
         }
         foreach ($values as $value) {
-            $keys['Value:' . $value['uuid']] = true;
+            $keys['Value:' . $value['sha256']] = true;
         }
 
         $edges = [];
@@ -1046,11 +1047,11 @@ class AnalystGraphData extends AppModel
         if (!empty($nodesBySpelling)) {
             foreach ($ends as $uuid => $attribute) {
                 foreach ($this->valueParts($attribute) as $part) {
-                    foreach ($nodesBySpelling[$part] ?? [] as $valueUuid => $nodeValue) {
+                    foreach ($nodesBySpelling[$part] ?? [] as $valueHex => $nodeValue) {
                         $edge = [
-                            'id' => 'value:' . $valueUuid . '>' . $uuid,
+                            'id' => 'value:' . $valueHex . '>' . $uuid,
                             'kind' => 'value',
-                            'from' => 'Value:' . $valueUuid,
+                            'from' => 'Value:' . $valueHex,
                             'to' => 'Attribute:' . $uuid,
                         ];
                         if ($part !== $nodeValue) {
@@ -1163,39 +1164,65 @@ class AnalystGraphData extends AppModel
      */
     private function relationships(array $user, array $keys)
     {
-        $uuids = [];
+        $uuids = $hexes = [];
         foreach (array_keys($keys) as $key) {
-            $uuids[] = explode(':', $key, 2)[1];
+            list($type, $address) = explode(':', $key, 2);
+            if ($type === 'Value') {
+                $hexes[$address] = true;
+            } else {
+                $uuids[$address] = true;
+            }
         }
-        $uuids = array_values(array_unique($uuids));
-        if (empty($uuids)) {
+        $uuids = array_map('strval', array_keys($uuids));
+        $hexes = array_map('strval', array_keys($hexes));
+        // A value end is matched on its own column, one statement per column
+        $scopes = [];
+        if (!empty($uuids)) {
+            $scopes[] = [
+                'Relationship.object_uuid' => $uuids,
+                'Relationship.related_object_uuid' => $uuids,
+            ];
+        }
+        if (!empty($hexes)) {
+            $scopes[] = ['Relationship.object_sha256' => $hexes];
+            $scopes[] = ['Relationship.related_object_sha256' => $hexes];
+        }
+        if (empty($scopes)) {
             return [];
         }
         $relationship = $this->model('Relationship');
-        $conditions = [
-            'Relationship.object_uuid' => $uuids,
-            'Relationship.related_object_uuid' => $uuids,
-        ];
         $acl = $relationship->buildConditions($user);
-        if (!empty($acl)) {
-            $conditions['AND'][] = $acl;
+        $rows = [];
+        foreach ($scopes as $conditions) {
+            if (!empty($acl)) {
+                $conditions['AND'][] = $acl;
+            }
+            $found = $relationship->find('all', [
+                'conditions' => $conditions,
+                'fields' => [
+                    'Relationship.uuid', 'Relationship.object_uuid', 'Relationship.object_sha256',
+                    'Relationship.object_type', 'Relationship.related_object_uuid',
+                    'Relationship.related_object_sha256', 'Relationship.related_object_type',
+                    'Relationship.relationship_type', 'Relationship.authors',
+                    'Relationship.orgc_uuid', 'Relationship.distribution',
+                ],
+                'recursive' => -1,
+                'callbacks' => false,
+            ]);
+            foreach ($found as $row) {
+                $rows[$row['Relationship']['uuid']] = $row;
+            }
         }
-        $rows = $relationship->find('all', [
-            'conditions' => $conditions,
-            'fields' => [
-                'Relationship.uuid', 'Relationship.object_uuid', 'Relationship.object_type',
-                'Relationship.related_object_uuid', 'Relationship.related_object_type',
-                'Relationship.relationship_type', 'Relationship.authors',
-                'Relationship.orgc_uuid', 'Relationship.distribution',
-            ],
-            'recursive' => -1,
-            'callbacks' => false,
-        ]);
+        $endKey = function (array $r, $end) {
+            $type = $r[$end . '_type'];
+            $address = strtolower((string)$r[AnalystData::addressColumn($type, $end)]);
+            return ($type === 'AttributeValue' ? 'Value' : $type) . ':' . $address;
+        };
         $edges = [];
         foreach ($rows as $row) {
             $r = $row['Relationship'];
-            $from = $r['object_type'] . ':' . strtolower($r['object_uuid']);
-            $to = $r['related_object_type'] . ':' . strtolower($r['related_object_uuid']);
+            $from = $endKey($r, 'object');
+            $to = $endKey($r, 'related_object');
             if (!isset($keys[$from], $keys[$to])) {
                 continue;
             }
@@ -1260,8 +1287,8 @@ class AnalystGraphData extends AppModel
      * Every stored spelling of each Value node's value group, and the nodes
      * holding that group, so an attribute spelled another way still links.
      *
-     * @param array $values Value nodes, each with its value and uuid
-     * @return array spelling => [node uuid => the node's own value]
+     * @param array $values Value nodes, each with its value and SHA-256
+     * @return array spelling => [node SHA-256 => the node's own value]
      */
     private function valueNodesBySpelling(array $values)
     {
@@ -1288,7 +1315,7 @@ class AnalystGraphData extends AppModel
                 }
             }
             foreach (array_unique($members) as $member) {
-                $out[$member][$value['uuid']] = $text;
+                $out[$member][$value['sha256']] = $text;
             }
         }
         return $out;

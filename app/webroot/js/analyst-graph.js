@@ -37,8 +37,13 @@
         return String(uuid || '').toLowerCase();
     }
 
+    // A Value node is named by the SHA-256 of its text, every other node by its uuid
+    function addressOf(node) {
+        return lower(node.type === 'Value' ? node.sha256 : node.uuid);
+    }
+
     function nodeKey(node) {
-        return node.type + ':' + lower(node.uuid);
+        return node.type + ':' + addressOf(node);
     }
 
     function valueNodeData(v) {
@@ -47,15 +52,15 @@
             label:       v.value,
             value:       v.value,
             b64:         v.b64,
-            uuid:        v.uuid,
+            sha256:      v.sha256,
             description: 'Value',
             near_label:  'Value'
         };
     }
 
-    function byUuid(list) {
+    function byUuid(list, field) {
         var out = {};
-        (list || []).forEach(function (r) { out[lower(r.uuid)] = r; });
+        (list || []).forEach(function (r) { out[lower(r[field || 'uuid'])] = r; });
         return out;
     }
 
@@ -86,7 +91,7 @@
         var objects = byUuid(payload.Object);
         var attributes = byUuid(payload.Attribute);
         var clusters = byUuid(payload.GalaxyCluster);
-        var values = byUuid(payload.Value);
+        var values = byUuid(payload.Value, 'sha256');
         kit.mergePriorities(payload.ui_priorities);
         // An answer claims who kept it: the graph's organisation
         var keptBy = (payload.Graph && payload.Graph.Orgc && payload.Graph.Orgc.name) || null;
@@ -111,7 +116,7 @@
         var idOf = {}, keyOf = {}, folded = {}, clusterIdOf = {}, valueIdOf = {}, answerIdOf = {};
         var positioned = 0, drawn = 0;
         doc.nodes.forEach(function (n) {
-            var uuid = lower(n.uuid);
+            var uuid = addressOf(n);
             var node = null;
             switch (n.type) {
                 case 'Event':

@@ -49,11 +49,6 @@ $thread = $analyst['thread'];
 $counts = $analyst['counts'];
 $stats = $valueIntelligence['occurrence_stats'];
 
-$noWrites = __(
-    'Disabled in this pass — the Value Intelligence page does not write to'
-    . ' the database yet.'
-);
-
 /**
  * MISP's distribution levels, as the words the rest of the product
  * uses for them.
@@ -875,132 +870,37 @@ if (!empty($thread)) {
 
     <?php
     /*
-     * The composer, drawn and disabled.
-     *
-     * The `Attach to` picker is drawn rather than implied because it is
-     * the one control this tab cannot ship without: analyst data has no
-     * value-level target, so writing a note from a value page means
-     * naming which occurrence, object or event it hangs off. A composer
-     * with nowhere to put what it writes is the thing that would have
-     * to be redesigned rather than enabled.
-     *
-     * The picker offers what the viewer can see, not what exists. An
-     * occurrence hidden by distribution is not a target this user can
-     * attach anything to.
-     *
-     * **Folded shut by default since the density pass.** It is 231px of
-     * controls that cannot be operated, on every value, including the
-     * ones with nothing written at all — where it was the tallest thing
-     * in a panel whose body said *nobody has written a note*. Folded
-     * rather than dropped, because the argument above is about the
-     * *shape* being settled and a design nobody can open is not one
-     * anybody can check. The summary states in one line what it is and
-     * why it is off, which is what the badge inside it was saying at
-     * ten times the height.
+     * A note or an opinion is written on the value itself, by the SHA-256
+     * of its text, through MISP's own analyst-data form. The form returns
+     * to this page, where the thread reads it back.
      */
+    $canWrite = !empty($me['Role']['perm_analyst_data'])
+        && $this->Acl->canAccess('analystData', 'add');
+    $hex = hash('sha256', (string)$valueIntelligence['value']);
     ?>
-    <div class="p-3 border-top">
-        <details class="vpa-composer-fold">
-            <summary>
-                <i class="fas fa-caret-right" aria-hidden="true"></i>
-                <span class="misp-icon misp-icon-analyst-note
-                             misp-simple"></span>
-                <span class="fw-semibold"><?= h(__('Write a note or an'
-                    . ' opinion')) ?></span>
-                <span class="badge bg-warning-subtle text-warning-emphasis
-                             border border-warning-subtle fw-semibold
-                             ms-auto">
-                    <i class="fas fa-ban me-1"></i>
-                    <?= h(__('Disabled in this pass')) ?>
+    <div class="p-3 border-top d-flex align-items-center flex-wrap gap-2">
+        <span class="fw-semibold me-auto"><?= h(__('Write about this value')) ?></span>
+        <?php foreach (array(
+            'Note' => array('misp-icon misp-icon-analyst-note misp-simple', __('Add note')),
+            'Opinion' => array('misp-icon misp-icon-analyst-opinion misp-simple', __('Add opinion')),
+        ) as $kind => list($icon, $label)): ?>
+            <?php if ($canWrite): ?>
+                <button type="button" class="btn btn-outline-primary btn-sm fw-semibold"
+                        onclick="openModal(<?= h(json_encode(
+                            $baseurl . '/analystData/add/' . $kind . '/' . $hex . '/AttributeValue',
+                            JSON_UNESCAPED_SLASHES
+                        )) ?>)">
+                    <span class="<?= h($icon) ?> me-1"></span><?= h($label) ?>
+                </button>
+            <?php else: ?>
+                <span class="d-inline-block" tabindex="0"
+                      title="<?= h(__('Your role does not allow writing analyst data.')) ?>">
+                    <button type="button" class="btn btn-outline-primary btn-sm fw-semibold" disabled>
+                        <span class="<?= h($icon) ?> me-1"></span><?= h($label) ?>
+                    </button>
                 </span>
-            </summary>
-        <div class="vpa-composer">
-            <div class="vpa-composer-head">
-                <ul class="nav nav-pills vpa-kindswitch" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active disabled" href="#"
-                           aria-disabled="true" title="<?= h($noWrites) ?>">
-                            <span class="misp-icon misp-icon-analyst-note
-                                         misp-simple me-1"></span>
-                            <?= __('Note') ?>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link disabled" href="#"
-                           aria-disabled="true" title="<?= h($noWrites) ?>">
-                            <span class="misp-icon misp-icon-analyst-opinion
-                                         misp-simple me-1"></span>
-                            <?= __('Opinion') ?>
-                        </a>
-                    </li>
-                </ul>
-                <?php
-                /*
-                 * The *Disabled in this pass* badge moved to the fold's
-                 * summary, where it is the reader's reason not to open
-                 * this. Repeated inside it would state the same thing
-                 * twice within 40px.
-                 */
-                ?>
-            </div>
-            <div class="row g-3">
-                <div class="col-lg-7">
-                    <textarea class="form-control" rows="3" disabled
-                              title="<?= h($noWrites) ?>"
-                              placeholder="<?= h(__(
-                                  'Write a note. Markdown is rendered.'
-                              )) ?>"></textarea>
-                    <div class="form-text"><?= __(
-                        'Markdown is rendered on save. MISP stores no'
-                        . ' per-note markup flag, so this would apply to'
-                        . ' every note the tab shows.'
-                    ) ?></div>
-                </div>
-                <div class="col-lg-5">
-                    <label class="form-label small fw-semibold mb-1"><?=
-                        __('Attach to')
-                    ?></label>
-                    <select class="form-select form-select-sm" disabled
-                            title="<?= h($noWrites) ?>">
-                        <option><?= h($stats['shown'] > 0
-                            ? sprintf(
-                                __('Choose one of the %s of this value'),
-                                __n(
-                                    '%s occurrence you can see',
-                                    '%s occurrences you can see',
-                                    $stats['shown'],
-                                    $stats['shown']
-                                )
-                            )
-                            : __('No occurrence of this value to attach to')
-                        ) ?></option>
-                    </select>
-                    <div class="form-text mb-2"><?= __(
-                        'Analyst data attaches to an attribute, event or'
-                        . ' object UUID. There is no value-level target,'
-                        . ' so the composer has to name one.'
-                    ) ?></div>
-                    <div class="d-flex gap-2 align-items-end">
-                        <div class="flex-grow-1">
-                            <label class="form-label small fw-semibold
-                                          mb-1"><?=
-                                __('Distribution')
-                            ?></label>
-                            <select class="form-select form-select-sm"
-                                    disabled title="<?= h($noWrites) ?>">
-                                <option><?= __('All communities') ?></option>
-                            </select>
-                        </div>
-                        <a href="#" class="btn btn-primary btn-sm disabled
-                                           fw-semibold"
-                           aria-disabled="true" title="<?= h($noWrites) ?>"><?=
-                            __('Add note')
-                        ?></a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        </details>
+            <?php endif; ?>
+        <?php endforeach; ?>
     </div>
 
     <?php if (!empty($analyst['capped'])): ?>

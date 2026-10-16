@@ -188,7 +188,7 @@ $kindWord = isset($kindWords[$target['kind']])
                 'vp-claim-chips'
             ) ?>
         <?php endif; ?>
-        <?= $row(__('UUID'), $target['uuid'], 'font-monospace') ?>
+        <?= $row($target['kind'] === 'AttributeValue' ? __('SHA-256') : __('UUID'), $target['uuid'], 'font-monospace') ?>
 
         <?php if (!empty($target['event'])): ?>
             <?php

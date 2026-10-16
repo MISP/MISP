@@ -1,5 +1,7 @@
 <?php
+App::uses('AnalystData', 'Model');
 App::uses('RailCard', 'Tools/RailCards');
+App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 
 /**
  * Rail cards for a note, an opinion or a relationship. $record is the
@@ -20,28 +22,20 @@ class AnalystDataRailCards
     public function target(array $user, array $record)
     {
         $type = (string)($record['object_type'] ?? '');
-        $uuid = (string)($record['object_uuid'] ?? '');
+        $isValue = in_array($type, AnalystData::SHA256_TARGETS, true);
+        $uuid = (string)($record[AnalystData::addressColumn($type, 'object')] ?? '');
         $resolved = $uuid === '' ? null : $this->resolve($user, $type, $uuid);
-        $items = [['label' => __('Type'), 'value' => $type === '' ? __('Unknown') : $type]];
-        if ($type === 'Value' && $uuid !== '') {
-            $items[] = ['label' => __('UUID'), 'value' => $uuid];
-            return RailCard::status(
-                'analyst-target',
-                __('Annotates'),
-                'fas fa-crosshairs',
-                'muted',
-                __('A value, named by a fingerprint of its text. The fingerprint does not say which value it is.'),
-                $items
-            );
-        }
+        $items = [['label' => __('Type'), 'value' => $type === '' ? __('Unknown') : ($isValue ? __('Value') : $type)]];
         if ($resolved === null) {
-            $items[] = ['label' => __('UUID'), 'value' => $uuid];
+            $items[] = ['label' => $isValue ? __('SHA-256') : __('UUID'), 'value' => $uuid];
             return RailCard::status(
                 'analyst-target',
                 __('Annotates'),
                 'fas fa-crosshairs',
                 'muted',
-                __('What this annotates is not available on this instance.'),
+                $isValue
+                    ? __('This value could not be resolved, so it is shown by the SHA-256 of its text.')
+                    : __('What this annotates is not available on this instance.'),
                 $items
             );
         }
@@ -62,12 +56,23 @@ class AnalystDataRailCards
     /**
      * @param array $user
      * @param string $type
-     * @param string $uuid
+     * @param string $uuid A uuid, or a SHA-256 for a value
      * @return array|null ['label', 'href', 'items']
      */
     private function resolve(array $user, $type, $uuid)
     {
         switch ($type) {
+            case 'AttributeValue':
+                $value = ClassRegistry::init('Relationship')->getRelatedElement($user, $type, $uuid);
+                if (!isset($value['AttributeValue']['value'])) {
+                    return null;
+                }
+                $text = (string)$value['AttributeValue']['value'];
+                return [
+                    'label' => mb_strimwidth($text, 0, 160, '…'),
+                    'href' => '/values/view/' . ValueUrlTool::encode($text),
+                    'items' => [['label' => __('SHA-256'), 'value' => $value['AttributeValue']['sha256']]],
+                ];
             case 'Event':
                 $Event = ClassRegistry::init('Event');
                 $conditions = $Event->createEventConditions($user);
