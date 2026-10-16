@@ -50,73 +50,61 @@ if (empty($data)) {
     }
 }
 
-// Group galaxies by name, collecting cluster values and local status
-$groupedGalaxies = [];
-
+$clusters = [];
 foreach ($data as $item) {
-    // AttributeTag format: Tag.is_galaxy = true 
+    // AttributeTag format: Tag.is_galaxy = true
     if (!empty($item['Tag']) && !empty($item['Tag']['is_galaxy'])) {
         $tagName = $item['Tag']['name'];
         preg_match('/^[^:]+:([^=]+)="(.+)"$/', $tagName, $m);
-        $galaxyType   = isset($m[1]) ? $m[1] : 'unknown';
-        $clusterValue = isset($m[2]) ? $m[2] : $tagName;
-        $isLocal      = !empty($item['local']);
-        $galaxyName   = ucwords(str_replace('-', ' ', $galaxyType));
-
-        if (!isset($groupedGalaxies[$galaxyName])) {
-            $groupedGalaxies[$galaxyName] = [
-                'clusters' => [],
-                'icon'     => 'circle-dot',
-            ];
-        }
-        $groupedGalaxies[$galaxyName]['clusters'][] = [
-            'value' => $clusterValue,
-            'local' => $isLocal,
+        $clusters[] = [
+            'value' => isset($m[2]) ? $m[2] : $tagName,
+            'galaxy' => ucwords(str_replace('-', ' ', isset($m[1]) ? $m[1] : 'unknown')),
+            'key' => $m[1] ?? null,
+            'tag_id' => $item['Tag']['id'] ?? null,
+            'local' => !empty($item['local']),
+            'relationship_type' => $item['relationship_type'] ?? null,
         ];
-        continue;
-    }
-
-    //Galaxy / GalaxyCluster format
-    if (!empty($item['Galaxy'])) {
-        $galaxyName  = $item['Galaxy']['name'];
-        $clusterValue = $item['value'] ?? '';
-        $isLocal     = !empty($item['local']);
-        $icon        = $item['Galaxy']['icon'] ?? 'globe';
-
+    } elseif (!empty($item['Galaxy'])) {
+        // Galaxy / GalaxyCluster format
+        $clusters[] = [
+            'value' => $item['value'] ?? '',
+            'galaxy' => $item['Galaxy']['name'],
+            'icon' => $item['Galaxy']['icon'] ?? 'globe',
+            'key' => $item['Galaxy']['type'] ?? ($item['type'] ?? null),
+            'tag_id' => $item['tag_id'] ?? null,
+            'local' => !empty($item['local']),
+            'relationship_type' => $item['relationship_type'] ?? null,
+            'description' => $item['description'] ?? null,
+        ];
     } elseif (!empty($item['GalaxyCluster'])) {
-        // $item is a galaxy carrying its whole cluster list — show them all.
-        $galaxyName = $item['name'] ?? 'Unknown';
-        $icon       = $item['icon'] ?? 'globe';
-        if (!isset($groupedGalaxies[$galaxyName])) {
-            $groupedGalaxies[$galaxyName] = ['clusters' => [], 'icon' => $icon];
-        }
+        // A galaxy carrying its whole cluster list
         foreach ($item['GalaxyCluster'] as $gc) {
-            $groupedGalaxies[$galaxyName]['clusters'][] = [
+            $clusters[] = [
                 'value' => $gc['value'] ?? '',
+                'galaxy' => $item['name'] ?? 'Unknown',
+                'icon' => $item['icon'] ?? 'globe',
+                'key' => $item['type'] ?? ($gc['type'] ?? null),
+                'tag_id' => $gc['tag_id'] ?? null,
                 'local' => !empty($gc['local']),
+                'relationship_type' => $gc['relationship_type'] ?? null,
+                'description' => $gc['description'] ?? null,
             ];
         }
-        continue;
-
-    } else {
-        continue;
     }
+}
 
-    if (!isset($groupedGalaxies[$galaxyName])) {
-        $groupedGalaxies[$galaxyName] = [
-            'clusters' => [],
-            'icon' => $icon
-        ];
-    }
-
-    $groupedGalaxies[$galaxyName]['clusters'][] = [
-        'value' => $clusterValue,
-        'local' => $isLocal
-    ];
+// Optional reader's label priority, keyed by galaxy type
+if (!empty($field['plan']) && !empty($clusters)) {
+    App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
+    $clusters = ValueLabelPriority::labels(
+        $clusters,
+        $field['plan'],
+        ValueLabelPriority::GALAXIES
+    );
 }
 
 // Nothing attached, nothing to relate
-if (empty($groupedGalaxies)) {
+if (empty($clusters)) {
     $addRelationshipUrl = null;
 }
 
@@ -124,94 +112,20 @@ if (empty($groupedGalaxies)) {
 $addBtnStyle = 'cursor:pointer; background:hsla(258,90%,66%,.12);'
              . ' color:hsl(258,55%,40%);';
 
-// Show all galaxy badges until cumulative galaxy >= 2 or cumulative clusters >= 5
-$maxGalaxies     = 2;
-$runningGalaxies = 0;
-$maxClusters     = 5;
-$runningClusters = 0;
-$hiddenCount     = 0;
+$noLink = function () {
+    return null;
+};
 ?>
 
-<div class="galaxy-container">
+<div class="galaxy-container d-inline-flex flex-wrap align-items-center gap-1">
 
-<?php foreach ($groupedGalaxies as $galaxyName => $galaxyData):
-    $isHidden = (($runningClusters >= $maxClusters) || ($runningGalaxies >= $maxGalaxies));
-    if (!$isHidden) {
-        $runningGalaxies++;
-    }
-    $runningClusters += count($galaxyData['clusters']);
-
-    if ($isHidden) {
-        $hiddenCount++;
-    }
-
-    $palette = $this->GalaxyColour->palette($galaxyName);
-
-    $style = "background-color:{$palette['badgeBg']}; color:{$palette['badgeText']};"
-           . " border:1px solid {$palette['badgeBorder']};"
-           . " background-image:{$this->GalaxyColour->metallic()};"
-           . " text-align:left; white-space:normal; word-wrap:break-word; cursor:pointer;";
-
-    $clusterList = implode(' &middot; ', array_map(function($c) { return h($c['value']); }, $galaxyData['clusters']));
-    $hiddenClass = $isHidden ? 'd-none extra-galaxies' : '';
-?>
 <?php
-$brandIcons = [
-    'github',
-    'gitlab',
-    'docker',
-    'linux',
-    'android',
-    'apple',
-    'google',
-    'microsoft',
-    'facebook',
-    'twitter',
-    'linkedin',
-    'btc',
-    'ethereum',
-    'optin-monster',
-    'internet-explorer'
-];
-
-$iconPrefix = in_array($groupedGalaxies[$galaxyName]['icon'], $brandIcons, true) ? 'fab' : 'fas';
+echo $this->TagChip->clusters($clusters, [
+    'href' => $noLink,
+    'fold' => 5,
+    'limit' => 5,
+]);
 ?>
-
-
-    <span class="badge me-1 mb-1 <?= $hiddenClass ?>" style="<?= $style ?>">
-        <div class="d-flex flex-column">
-            <div
-                class="fw-bold mb-1 d-flex align-items-center"
-                style="font-size:0.95rem; color:<?= $palette['headerText'] ?>;"
-            >
-                <i class="<?= $iconPrefix ?> fa-<?= h($groupedGalaxies[$galaxyName]['icon']) ?> me-1"></i>
-                <span><?= h($galaxyName) ?></span>
-            </div>
-            <div
-                style="font-size:0.78rem; color:<?= $palette['subText'] ?>; line-height:1.25;"
-            >
-                <?php foreach ($galaxyData['clusters'] as $cluster): ?>
-                    <div class="d-flex align-items-center gap-1">
-                        <?php if ($cluster['local']): ?>
-                            <i class="fas fa-user"></i>
-                        <?php endif; ?>
-                        <span><?= h($cluster['value']) ?></span>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </span>
-<?php endforeach; ?>
-
-<?php if ($hiddenCount > 0): ?>
-    <span
-        class="badge bg-secondary text-white me-1 mb-1 galaxy-expand"
-        style="cursor:pointer;"
-        onclick="toggleGalaxies(this)"
-    >
-        +<?= $hiddenCount ?>
-    </span>
-<?php endif; ?>
 
 <?php if (!empty($addUrl)): ?>
     <button
@@ -240,14 +154,3 @@ $iconPrefix = in_array($groupedGalaxies[$galaxyName]['icon'], $brandIcons, true)
 <?php endif; ?>
 
 </div>
-
-<script>
-window.toggleGalaxies = window.toggleGalaxies || function(badge) {
-    const container = badge.closest('.galaxy-container');
-    const hidden = container.querySelectorAll('.extra-galaxies');
-    if (!hidden.length) return;
-    const isHidden = hidden[0].classList.contains('d-none');
-    hidden.forEach(el => el.classList.toggle('d-none'));
-    badge.textContent = isHidden ? '−' : '+' + hidden.length;
-};
-</script>

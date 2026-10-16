@@ -555,7 +555,7 @@ not the reference's shape and are the review list, not noise:
   truncate, any hint the grammar could not express.
 
 On MySQL, `attribute_values` is created with `innodb_ft_enable_stopword` off,
-as the migration that rebuilt its FULLTEXT index did: InnoDB takes the session's
+as its create migration builds the FULLTEXT index: InnoDB takes the session's
 stopword setting when it builds the index.
 
 MariaDB and MySQL get a baseline each because their target collations have

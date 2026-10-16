@@ -8,6 +8,10 @@ class DefaultCorrelationBehavior extends ModelBehavior
 {
     const TABLE_NAME = 'default_correlations';
 
+    // Events per UNION ALL statement, and related events per visibility check
+    const COUNT_BATCH = 50;
+    const VISIBILITY_CHUNK = 5000;
+
     const CONFIG = [
         'AttributeFetcher' => [
             'fields' =>  [
@@ -582,20 +586,12 @@ class DefaultCorrelationBehavior extends ModelBehavior
     public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids, bool $excludeNonCorrelating = false)
     {
         if ($excludeNonCorrelating) {
-            // Run the very collector getAttributesRelatedToEvent() runs, so the
-            // list of related events and the correlations rendered for them are
-            // one set: __collectCorrelations() drops the values held in
-            // correlation_exclusions and over_correlating_values, which the
-            // plain path below does not, and an event related only through such
-            // a value has no correlation anyone can be shown.
-            $eventIds = [];
-            foreach ($this->__collectCorrelations($user, $eventId, $sgids, false) as $correlation) {
-                $eventIds[$correlation['Correlation']['event_id']] = true;
-            }
-            foreach ($this->__collectCorrelations($user, $eventId, $sgids, true) as $correlation) {
-                $eventIds[$correlation['Correlation']['1_event_id']] = true;
-            }
-            return $this->__filterVisibleEventIds($Model, $user, array_keys($eventIds));
+            // The same set getAttributesRelatedToEvent() lists: no value held in
+            // correlation_exclusions or over_correlating_values, and no more
+            // than max_correlations_per_event correlations read each way.
+            $limit = Configure::read('MISP.max_correlations_per_event') ?: 5000;
+            list($eventIds) = $this->__correlatingEventIds($user, [$eventId], $sgids, $limit)[$eventId];
+            return $this->__filterVisibleEventIds($Model, $user, $eventIds);
         }
         // search the correlation table for the event ids of the related events
         // Rules:
@@ -615,6 +611,158 @@ class DefaultCorrelationBehavior extends ModelBehavior
             $user,
             array_unique(array_merge($primaryEventIds,$secondaryEventIds), SORT_REGULAR)
         );
+    }
+
+    /**
+     * How many events fetchRelatedEventIds(..., true) finds within $limit
+     * correlations each way, and whether either way held more.
+     *
+     * @param Model $Model
+     * @param array $user
+     * @param int $eventId
+     * @param array $sgids
+     * @param int $limit
+     * @return array [int $count, bool $more]
+     */
+    public function fetchRelatedEventCount(Model $Model, array $user, int $eventId, array $sgids, int $limit)
+    {
+        return $this->fetchRelatedEventCounts($Model, $user, [$eventId], $sgids, $limit)[$eventId];
+    }
+
+    /**
+     * fetchRelatedEventCount() for several events, in one correlation read
+     * and one visibility check.
+     *
+     * @param Model $Model
+     * @param array $user
+     * @param int[] $eventIds
+     * @param array $sgids
+     * @param int $limit
+     * @return array event id => [int $count, bool $more]
+     */
+    public function fetchRelatedEventCounts(Model $Model, array $user, array $eventIds, array $sgids, int $limit)
+    {
+        $found = $this->__correlatingEventIds($user, $eventIds, $sgids, $limit + 1);
+        $related = [];
+        foreach ($found as $relatedIds) {
+            $related += array_flip($relatedIds[0]);
+        }
+        $visible = [];
+        foreach (array_chunk(array_keys($related), self::VISIBILITY_CHUNK) as $chunk) {
+            $visible += array_flip($this->__filterVisibleEventIds($Model, $user, $chunk));
+        }
+        $counts = [];
+        foreach ($found as $eventId => list($relatedIds, $read)) {
+            $counts[$eventId] = [
+                count(array_intersect_key(array_flip($relatedIds), $visible)),
+                $read > $limit,
+            ];
+        }
+        return $counts;
+    }
+
+    /**
+     * The events each of $eventIds correlates with through a value that is
+     * neither excluded nor over-correlating, read from at most $limit
+     * correlations each way. Every event and direction is its own capped
+     * branch of one UNION ALL, so the cap stays per event; the database
+     * returns one row per related event and set of distribution columns.
+     *
+     * @param array $user
+     * @param int[] $eventIds
+     * @param array $sgids
+     * @param int $limit
+     * @return array event id => [int[] $eventIds, int $read] the most
+     *      correlations read one way
+     */
+    private function __correlatingEventIds(array $user, array $eventIds, array $sgids, int $limit)
+    {
+        $db = $this->Correlation->getDataSource();
+        $isSiteAdmin = !empty($user['Role']['perm_site_admin']);
+        $columns = ['event_id'];
+        if (!$isSiteAdmin) {
+            $columns = array_merge($columns, [
+                'org_id', 'event_distribution', 'event_sharing_group_id',
+                'object_distribution', 'object_sharing_group_id',
+                'distribution', 'sharing_group_id',
+            ]);
+        }
+        $grouped = array_merge(['source_id', 'direction'], $columns);
+        if (!$isSiteAdmin) {
+            $grouped[] = 'object_id';
+        }
+        $grouped = implode(', ', array_map([$db, 'name'], $grouped));
+
+        $related = [];
+        $read = [];
+        foreach ($eventIds as $eventId) {
+            $related[(int)$eventId] = [];
+            $read[(int)$eventId] = [0, 0];
+        }
+        $excluded = $this->Correlation->excludedValueConditions();
+        foreach (array_chunk(array_keys($related), self::COUNT_BATCH) as $chunk) {
+            $branches = [];
+            foreach ($chunk as $eventId) {
+                foreach ([1, 0] as $primary) {
+                    $source = $primary ? '' : '1_';
+                    $prefix = $primary ? '1_' : '';
+                    $fields = [
+                        sprintf('%d AS %s', $eventId, $db->name('source_id')),
+                        sprintf('%d AS %s', $primary, $db->name('direction')),
+                    ];
+                    foreach ($columns as $column) {
+                        $fields[] = $db->name('Correlation.' . $prefix . $column) . ' AS ' . $db->name($column);
+                    }
+                    if (!$isSiteAdmin) {
+                        // checkCorrelationACL() only asks whether there is an object.
+                        $fields[] = sprintf(
+                            'CASE WHEN %s = 0 THEN 0 ELSE 1 END AS %s',
+                            $db->name('Correlation.' . $prefix . 'object_id'),
+                            $db->name('object_id')
+                        );
+                    }
+                    $branches[] = '(' . $db->buildStatement([
+                        'fields' => $fields,
+                        'table' => $db->fullTableName($this->Correlation),
+                        'alias' => 'Correlation',
+                        'joins' => [],
+                        'conditions' => [
+                            'Correlation.' . $source . 'event_id' => $eventId,
+                            'AND' => $excluded,
+                        ],
+                        'order' => null,
+                        'group' => null,
+                        'limit' => $limit,
+                        'offset' => null,
+                    ], $this->Correlation) . ')';
+                }
+            }
+            $rows = $db->fetchAll(
+                sprintf(
+                    'SELECT %s, COUNT(*) AS %s FROM (%s) AS %s GROUP BY %s',
+                    $grouped,
+                    $db->name('n'),
+                    implode(' UNION ALL ', $branches),
+                    $db->name('related'),
+                    $grouped
+                ),
+                [],
+                ['cache' => false]
+            );
+            foreach ($rows as $row) {
+                $row = ($row['related'] ?? []) + ($row[0] ?? []);
+                $eventId = (int)$row['source_id'];
+                $read[$eventId][(int)$row['direction']] += (int)$row['n'];
+                if ($isSiteAdmin || $this->checkCorrelationACL($user, $row, $sgids, '')) {
+                    $related[$eventId][$row['event_id']] = true;
+                }
+            }
+        }
+        $result = [];
+        foreach ($related as $eventId => $relatedIds) {
+            $result[$eventId] = [array_keys($relatedIds), max($read[$eventId])];
+        }
+        return $result;
     }
 
     /**

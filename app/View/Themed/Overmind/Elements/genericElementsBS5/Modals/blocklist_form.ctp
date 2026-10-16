@@ -49,7 +49,7 @@ echo $this->Form->create($model, [
         <!-- ── UUID(S) ─────────────────────────────────────────── -->
         <div class="w-100 px-2">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                <div class="d-flex align-items-center gap-2 text-accent fw-bold
                             text-uppercase"
                      style="font-size:.65rem; letter-spacing:.1em;">
                     <?= h($uuidLabel) ?>
@@ -81,7 +81,7 @@ echo $this->Form->create($model, [
                     'id' => 'BlocklistUuids',
                     'class' => 'w-100 rounded-2 p-3',
                     'style' => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                        . ' border:1px solid #d8dde3; resize:vertical;'
+                        . ' border:1px solid var(--misp-field-line, #d8dde3); resize:vertical;'
                         . ' outline:none; font-size:.85rem; min-height:150px;'
                         . ' color:inherit; font-family:monospace;',
                     'rows' => 6,
@@ -107,7 +107,7 @@ echo $this->Form->create($model, [
                 <?php
                 $common = [
                     'class' => 'form-control',
-                    'style' => 'border-color:#d8dde3;',
+                    'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                     'value' => $field['value'] ?? '',
                     'placeholder' => $field['placeholder'] ?? '',
                     'autocomplete' => 'off',
@@ -228,13 +228,13 @@ echo $this->Form->create($model, [
             if (state.accepted) { return; }
             e.preventDefault();
             e.stopPropagation();
-            uuidsEl.style.setProperty('border-color', '#dc3545', 'important');
+            uuidsEl.style.setProperty('border-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
             setError(L.required);
             uuidsEl.focus();
         });
         uuidsEl.addEventListener('input', function () {
             if (uuidsEl.value.trim()) {
-                uuidsEl.style.setProperty('border-color', '#d8dde3', 'important');
+                uuidsEl.style.setProperty('border-color', 'var(--misp-field-line, #d8dde3)', 'important');
             }
         });
     }

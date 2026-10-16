@@ -105,7 +105,7 @@ $__fixCommand = 'cd ' . rtrim(APP, DS) . ' && composer install';
                         <?php if (empty($isSiteAdmin)): ?>
                             <div class="alert alert-light border mt-3 mb-0" role="alert"
                                  style="font-size:.8rem;">
-                                <i class="fas fa-circle-info me-1 text-primary"></i>
+                                <i class="fas fa-circle-info me-1 text-accent"></i>
                                 <?= __('You do not have the privileges to fix this yourself — contact your MISP administrator.') ?>
                             </div>
                         <?php endif; ?>

@@ -36,7 +36,7 @@ echo $this->Form->create('EventReport', ['novalidate' => true]);
             <?= $this->Form->text('name', [
                 'id'          => 'EventReportName',
                 'class'       => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style'       => 'border-bottom:1px solid #d8dde3 !important;'
+                'style'       => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                     . ' outline:none;',
                 'placeholder' => __('Enter a descriptive name for this report…'),
             ]) ?>
@@ -64,7 +64,7 @@ echo $this->Form->create('EventReport', ['novalidate' => true]);
                 'id'          => 'EventReportContent',
                 'class'       => 'w-100 rounded-2 p-3',
                 'style'       => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                    . ' border:1px solid #d8dde3; resize:vertical;'
+                    . ' border:1px solid var(--misp-field-line, #d8dde3); resize:vertical;'
                     . ' outline:none; font-size:.875rem; min-height:200px;'
                     . ' color:inherit; font-family:monospace;',
                 'rows'        => 10,

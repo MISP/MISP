@@ -13,8 +13,10 @@ if ($isSiteAdmin) {
             'type' => 'post',
             'url' => "$baseurl/objectTemplates/toggleActive/$objectTemplateId",
             'id' => $objectTemplateId,
-            'icon' => 'fas fa-play',
+            'icon' => 'fas fa-toggle-on',
+            'entity' => 'object',
             'label' => __('Activate Object Template'),
+            'short' => __('Activate'),
             'class' => 'text-success'
         ];
     } else {
@@ -22,8 +24,10 @@ if ($isSiteAdmin) {
             'type' => 'post',
             'url' => "$baseurl/objectTemplates/toggleActive/$objectTemplateId",
             'id' => $objectTemplateId,
-            'icon' => 'fas fa-stop',
+            'icon' => 'fas fa-toggle-off',
+            'entity' => 'object',
             'label' => __('Deactivate Object Template'),
+            'short' => __('Deactivate'),
             'class' => 'text-warning'
         ];
     }
@@ -33,8 +37,10 @@ if ($isSiteAdmin) {
         $actions[] = [
             'url' => $updateUrl,
             'onclick' => "event.preventDefault(); openModal('" . h($updateUrl) . "', 'md');",
-            'icon' => 'fas fa-sync',
-            'label' => __('Update Object Template')
+            'icon' => 'fas fa-arrows-rotate',
+            'entity' => 'object',
+            'label' => __('Update Object Template'),
+            'short' => __('Update')
         ];
     }
 
@@ -48,7 +54,7 @@ if ($isSiteAdmin) {
 }
 
 
-echo $this->element('genericElementsBS5/Cards/card_actions', [
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions
 ]);
 ?>

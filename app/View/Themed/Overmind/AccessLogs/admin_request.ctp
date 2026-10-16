@@ -1,5 +1,5 @@
 <div class="p-3 border-bottom d-flex align-items-center gap-2">
-    <i class="far fa-file-alt text-primary"></i>
+    <i class="far fa-file-alt text-accent"></i>
     <span class="fw-bold"><?= __('HTTP request') ?></span>
     <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
 </div>

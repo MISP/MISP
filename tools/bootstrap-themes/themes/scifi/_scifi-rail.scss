@@ -1,0 +1,201 @@
+// The rail navbar in the console's language: a navy bar with a honeycomb,
+// extended capitals, a gold marker on the current section, the tapered lit
+// divider underneath; mega-panels as framed console panels.
+
+$sc-rail-cut: polygon(0 0, 70% 0, 100% 30%, 100% 100%, 30% 100%, 0 70%);
+
+.rail-nav {
+  --misp-rail-height: 48px;
+  --misp-rail-bg: linear-gradient(180deg, #{rgba(#1b2540, .92)}, #{$sc-bar});
+  --misp-rail-shadow: 0 6px 18px -6px #{rgba(0, 0, 0, .8)};
+  --misp-rail-fg: #{rgba($white, .86)};
+  --misp-rail-fg-current: #{$white};
+  --misp-rail-icon: #{$sc-ice};
+  --misp-rail-hover: #{rgba($white, .07)};
+  --misp-rail-open: #{rgba($sc-blue, .22)};
+  --misp-rail-ring: #{$sc-blue-bright};
+  --misp-rail-mark: #{$sc-gold-bright};
+  --misp-rail-mark-fg: #{$color-contrast-dark};
+  --misp-rail-texture: #{sc-hex("%2399ccff", .07)};
+  --misp-rail-texture-size: 36px 20.78px;
+  --misp-rail-texture-opacity: 1;
+  --misp-rail-texture-mask: none;
+  --misp-rail-brand-bg: linear-gradient(180deg, #{rgba($sc-blue, .3)}, #{rgba($sc-blue, .08)});
+  --misp-rail-brand-shape: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  --misp-rail-brand-width: 68px;
+  --misp-rail-chip-fill: #{rgba($sc-blue, .1)};
+  --misp-rail-chip-line: #{rgba($sc-ice, .4)};
+
+  // The theme's cut corners in place of the hexagons.
+  --misp-rail-shape-pill: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  --misp-rail-shape-ring: polygon(evenodd, 0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px), 0 0,
+    1px 1px, 1px calc(100% - 6.4px), 6.4px calc(100% - 1px), calc(100% - 1px) calc(100% - 1px),
+    calc(100% - 1px) 6.4px, calc(100% - 6.4px) 1px, 1px 1px);
+  --misp-rail-shape-hex: #{$sc-rail-cut};
+  --misp-rail-shape-bar: polygon(3px 0, calc(100% - 3px) 0, 100% 100%, 0 100%);
+  --misp-rail-shape-count: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+
+  --misp-rail-font: #{$sc-display};
+  --misp-rail-font-size: 10.5px;
+  --misp-rail-weight: 700;
+  --misp-rail-weight-strong: 800;
+  --misp-rail-label-transform: uppercase;
+  --misp-rail-label-spacing: .09em;
+
+  --misp-rail-surface: #10182b;
+  --misp-rail-surface-2: linear-gradient(180deg, #{rgba($sc-blue, .18)}, #{rgba($sc-blue, .05)});
+  --misp-rail-border: #{$sc-blue-line};
+  --misp-rail-rule: #{rgba($sc-ice, .12)};
+  --misp-rail-guide: #{rgba($sc-blue, .45)};
+  --misp-rail-text: #{$sc-text};
+  --misp-rail-muted: #{$sc-muted};
+  --misp-rail-icon-panel: #{$sc-ice};
+  --misp-rail-head: #{$sc-glow};
+  --misp-rail-badge-bg: #{rgba($sc-blue, .24)};
+  --misp-rail-badge-fg: #{$sc-ice};
+  --misp-rail-hover-bg: #{rgba($sc-blue-line, .32)};
+  --misp-rail-hover-fg: #{$white};
+  --misp-rail-sel-bg: #{rgba($sc-blue, .2)};
+  --misp-rail-focus: #{$sc-blue-bright};
+  --misp-rail-on: #{$sc-gold};
+  --misp-rail-off: #{$sc-faint};
+  --misp-rail-knob: #{$sc-well};
+  --misp-rail-warn: #{tint-color($danger, 35%)};
+  --misp-rail-warn-bg: #{rgba($danger, .12)};
+  // The double frame: a dark seam, then the translucent outer frame of the
+  // console's buttons, then the drop.
+  --misp-rail-panel-shadow: 0 0 0 1px #{$sc-well}, 0 0 0 4px #{rgba($sc-blue-deep, .6)},
+    0 .9rem 2.2rem #{rgba(0, 0, 0, .75)};
+  --misp-rail-panel-radius: 0;
+  --misp-rail-panel-edge: 2px;
+  --misp-rail-item-radius: 0;
+  --misp-rail-current-bg: linear-gradient(90deg, #{rgba($sc-gold, .24)}, #{rgba($sc-gold, .04)} 70%);
+  --misp-rail-current-fg: #{$sc-amber};
+}
+
+// The MISP mark is drawn white on the navy, as on the console's other bar.
+.rail-brand img {
+  filter: brightness(0) invert(1);
+}
+
+// The tapered steel divider with its lit centre, under the bar.
+.rail-bar::after {
+  content: "";
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  bottom: -3px;
+  height: 3px;
+  background:
+    linear-gradient($sc-blue-bright, $sc-blue-bright) center top / 44% 2px no-repeat,
+    linear-gradient(#24548f, #24548f) center top / 100% 2px no-repeat,
+    linear-gradient(180deg, rgba($sc-blue, .45), transparent) center bottom / 100% 1px no-repeat;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 3px) 100%, 3px 100%);
+  pointer-events: none;
+}
+
+.rail-trigger[aria-current]::after {
+  box-shadow: 0 0 10px rgba($sc-gold-bright, .8);
+}
+
+// ---------- panels: framed console panels ----------
+
+// The bar's font is the display face; a panel's entries read in the body
+// face, its heads and sub-heads stay in the display face.
+.rail-panel {
+  font-family: var(--bs-body-font-family);
+  font-size: 14px;
+  letter-spacing: .01em;
+  text-transform: none;
+  // The bottom-left corner is cut, frame and all; the lit strip runs along
+  // the left of the top edge, and the cut's own edge is redrawn.
+  border-top-color: rgba($sc-blue, .8);
+  background:
+    linear-gradient($sc-blue-bright, $sc-blue-bright) 18px 0 / 30% 2px no-repeat,
+    linear-gradient(45deg, transparent calc(50% - .5px), $sc-blue-line calc(50% - .5px), $sc-blue-line calc(50% + .5px), transparent calc(50% + .5px)) left bottom / 15px 15px no-repeat,
+    var(--misp-rail-surface);
+  clip-path: polygon(-8px -8px, calc(100% + 8px) -8px, calc(100% + 8px) calc(100% + 8px), 22px calc(100% + 8px), -8px calc(100% - 22px));
+}
+
+.rail-phead,
+.rail-subhead {
+  font-family: $sc-display;
+  text-transform: uppercase;
+}
+
+.rail-phead {
+  font-size: 11px;
+  letter-spacing: .09em;
+  color: $white;
+  text-shadow: 0 0 10px rgba($sc-glow, .7);
+}
+
+// The head's gold marker: a lit trapezoid on its bottom edge.
+.rail-phead::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  bottom: -1px;
+  width: 56px;
+  height: 2px;
+  background: $sc-gold-bright;
+  box-shadow: 0 0 8px rgba($sc-gold-bright, .8);
+  clip-path: polygon(2px 0, calc(100% - 2px) 0, 100% 100%, 0 100%);
+}
+
+.rail-panel--current .rail-phead {
+  color: $sc-amber;
+  border-bottom-color: rgba($sc-gold, .35);
+}
+
+.rail-subhead {
+  font-size: 9.5px;
+  letter-spacing: .1em;
+}
+
+.rail-item:hover .rail-ico,
+.rail-nav a.rail-item:hover .rail-ico {
+  color: $white;
+}
+
+.rail-count {
+  font-family: $sc-display;
+  font-size: 10px;
+}
+
+.rail-switch {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+}
+
+.rail-msg {
+  border-radius: 0;
+}
+
+// ---------- the phone drawer ----------
+
+@media (max-width: 1099.98px) {
+  .rail-menu {
+    border-top-color: $sc-blue-bright;
+    box-shadow: inset 0 8px 16px -10px rgba($sc-blue-bright, .5);
+  }
+
+  .rail-trigger {
+    font-size: 11.5px;
+  }
+
+  .rail-trigger::before {
+    border-radius: 0;
+    clip-path: var(--misp-rail-shape-pill);
+  }
+
+  .rail-panel {
+    clip-path: none;
+    background: none;
+  }
+
+  .rail-trigger:focus-visible,
+  .rail-graph:focus-visible {
+    border-radius: 0;
+  }
+}

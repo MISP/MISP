@@ -1,6 +1,7 @@
 <?php
 /*
- * Attach one element — an event, a galaxy cluster — to a collection.
+ * Attach one element — an event, a cluster, an attribute, an object, a value —
+ * to a collection.
  *
  * "Add it to a collection" and "add it to a collection I do not have yet" are
  * the same intent, so they are one control: the picker's first entry is
@@ -13,8 +14,10 @@
  * Set by CollectionElementsController::addElementToCollection():
  *   $dropdownData['collections']  id => name, the collections of the user's org
  *   $alreadyInCollectionIds       ids among those that already hold the element
- *   $elementType, $elementUuid    what is being attached
+ *   $elementType, $elementUuid    what is being attached; a SHA-256 for a value
+ *   $elementValue                 the value's text, when the user can see it
  */
+$elementValue = $elementValue ?? null;
 
 $collections = $dropdownData['collections'] ?? [];
 $alreadyIn = array_map('strval', $alreadyInCollectionIds ?? []);
@@ -85,13 +88,13 @@ echo $this->Form->create('CollectionElement', [
         <!-- ── ELEMENT BEING ATTACHED ───────-->
         <div class="alert alert-light border d-flex align-items-center gap-3 mb-0 js-picker-existing<?= $startsNew ? ' d-none' : '' ?>"
              role="alert" style="border-color:var(--bs-primary) !important;">
-            <i class="fas fa-link text-primary"></i>
+            <i class="fas fa-link text-accent"></i>
             <div class="flex-grow-1">
                 <div class="fw-semibold" style="font-size:.85rem;">
-                    <?= __('This %s will be attached', h($elementType)) ?>
+                    <?= __('This %s will be attached', h($this->ElementType->label($elementType))) ?>
                 </div>
                 <div class="text-muted" style="font-size:.75rem; margin-top:.15rem;">
-                    <code><?= h($elementUuid) ?></code>
+                    <code class="text-break"><?= h($elementValue ?? $elementUuid) ?></code>
                 </div>
             </div>
         </div>
@@ -142,6 +145,11 @@ echo $this->Form->create('CollectionElement', [
     'url' => $newCollectionUrl,
     'loading' => __('Loading the collection form…'),
     'failed' => __('Could not load the collection form.'),
+    'saved' => __('Element added to the Collection.'),
+    'created' => __('Collection created, with the element in it.'),
+    'saveFailed' => __('Element could not be added to the Collection.'),
+    'elementType' => $elementType,
+    'elementUuid' => $elementUuid,
 ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
 </script>
 
@@ -191,7 +199,7 @@ function initCollectionPicker() {
         if (loaded) { return; }
         loaded = true;
         box.innerHTML = '<div class="text-center text-muted py-4">'
-            + '<div class="spinner-border spinner-border-sm me-2" role="status"></div>'
+            + '<div class="misp-loader misp-loader-sm mb-2" role="status"></div>'
             + cfg.loading + '</div>';
         fetch(cfg.url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (r) {
@@ -213,6 +221,12 @@ function initCollectionPicker() {
                 if (typeof initTomSelect === 'function') { initTomSelect(box); }
                 if (typeof initChoiceFields === 'function') { initChoiceFields(box); }
                 if (typeof initCollectionForm === 'function') { initCollectionForm(box); }
+                var created = box.querySelector('form');
+                if (created) {
+                    saveInPlace(created, cfg.created, function (body) {
+                        return body.Collection ? body.Collection.id : null;
+                    });
+                }
             })
             .catch(function () {
                 loaded = false;
@@ -233,12 +247,70 @@ function initCollectionPicker() {
     select.addEventListener('change', apply);
     apply();
 
-    /* Belt and braces: the picker's submit is hidden in New collection mode, so
-       this only ever fires if something else submits the form. */
+    /* openModal runs this before it shows the modal, and Bootstrap ignores a
+       hide() while the modal is still fading in. */
+    var modalEl = form ? form.closest('.modal') : null;
+    var shown = !!modalEl && modalEl.classList.contains('show');
+    if (modalEl && !shown) {
+        modalEl.addEventListener('shown.bs.modal', function () { shown = true; }, { once: true });
+    }
+    function closeModal() {
+        if (!modalEl || typeof bootstrap === 'undefined') { return; }
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (shown) { modal.hide(); return; }
+        modalEl.addEventListener('shown.bs.modal', function () { modal.hide(); }, { once: true });
+    }
+
+    /* Both forms save in place: a full post would redirect, which puts an
+       event page back on its first tab and empties the /values/index
+       worklist. The token goes in the header, where it is checked but not
+       spent, so a refused save can be sent again. */
+    function saveInPlace(target, savedMessage, collectionIdOf) {
+        target.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) { return; }
+            e.preventDefault();
+            var submit = target.querySelector('[type="submit"]')
+                || (target.closest('.modal-content') || document).querySelector('[type="submit"]');
+            if (submit) { submit.disabled = true; }
+            var headers = { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+            var token = target.querySelector('[name="data[_Token][key]"]');
+            if (token) { headers['X-CSRF-Token'] = token.value; }
+            fetch(target.action, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: headers,
+                body: new FormData(target)
+            })
+                .then(function (r) {
+                    return r.json().catch(function () { return {}; }).then(function (body) {
+                        return { ok: r.ok && body.saved !== false, body: body };
+                    });
+                })
+                .then(function (res) {
+                    var message = res.ok
+                        ? res.body.message || savedMessage
+                        : res.body.message || res.body.errors || cfg.saveFailed;
+                    if (typeof message !== 'string') { message = res.ok ? savedMessage : cfg.saveFailed; }
+                    if (!res.ok) { throw new Error(message); }
+                    closeModal();
+                    if (typeof showToast === 'function') { showToast(message, 'success'); }
+                    document.dispatchEvent(new CustomEvent('misp:collection-element-added', {
+                        detail: { type: cfg.elementType, uuid: cfg.elementUuid, collectionId: collectionIdOf(res.body) }
+                    }));
+                })
+                .catch(function (err) {
+                    if (submit) { submit.disabled = false; }
+                    if (typeof showToast === 'function') { showToast(err.message || cfg.saveFailed, 'danger'); }
+                });
+        });
+    }
+
     if (form) {
+        // The picker's submit is hidden in New collection mode.
         form.addEventListener('submit', function (e) {
             if (select.value === cfg.newValue) { e.preventDefault(); }
         });
+        saveInPlace(form, cfg.saved, function () { return select.value; });
     }
 }
 

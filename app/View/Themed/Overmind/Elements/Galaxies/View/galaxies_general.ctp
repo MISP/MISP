@@ -1,4 +1,5 @@
 <?php
+App::uses('GalaxyMatrixLayout', 'Tools');
 $iconClass = !empty($data['icon']) ? $this->FontAwesome->getClass($data['icon']) : 'fas fa-shapes';
 $palette = $this->GalaxyColour->palette($data['name'] ?? '');
 $connectorPrefix = 'misp-galaxy:' . ($data['type'] ?? '') . '=';
@@ -91,6 +92,20 @@ $flags = [
         </div>
 
         <div>
+            <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Category') ?></div>
+            <?php if (empty($data['category'])): ?>
+                <span class="text-body-secondary fst-italic small"><?= __('Not classified') ?></span>
+            <?php else: ?>
+                <div class="d-inline-flex align-items-center gap-2">
+                    <span class="badge rounded-pill bg-body-tertiary text-body border fw-normal"><?= h($data['category']) ?></span>
+                    <?php if (!empty($data['sub_category'])): ?>
+                        <span class="text-body-secondary small"><?= h($data['sub_category']) ?></span>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div>
             <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Settings') ?></div>
             <div class="d-flex flex-wrap row-gap-2 column-gap-3">
                 <?php foreach ($flags as $flag): ?>
@@ -118,7 +133,7 @@ $flags = [
                     <?php foreach ($killChains as $chain => $phases): ?>
                         <div class="d-flex flex-wrap align-items-center gap-1">
                             <?php if (count($killChains) > 1): ?>
-                                <span class="small fw-semibold font-monospace me-1"><?= h($chain) ?></span>
+                                <span class="small fw-semibold me-1"><?= h(GalaxyMatrixLayout::formatTactic($chain)) ?></span>
                             <?php endif; ?>
                             <?php foreach (array_values((array)$phases) as $i => $phase): ?>
                                 <?php if ($i > 0): ?>
@@ -126,7 +141,7 @@ $flags = [
                                 <?php endif; ?>
                                 <span class="badge rounded-pill fw-normal border"
                                       style="background:<?= h($palette['badgeBg']) ?>;color:<?= h($palette['badgeText']) ?>;border-color:<?= h($palette['badgeBorder']) ?> !important;">
-                                    <span class="opacity-50 me-1"><?= $i + 1 ?></span><?= h($phase) ?>
+                                    <span class="opacity-50 me-1"><?= $i + 1 ?></span><?= h(GalaxyMatrixLayout::formatTactic($phase)) ?>
                                 </span>
                             <?php endforeach; ?>
                         </div>

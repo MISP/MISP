@@ -53,7 +53,7 @@ $formulaDesc = $available_formulas[$dm['formula']]['description'] ?? null;
                             <?php $logo = $this->OrgImg->getOrgLogoV2($org, 24); ?>
                             <?= $logo !== '' ? $logo : '<i class="misp-icon misp-icon-organisation misp-simple text-muted"></i>' ?>
                             <a href="<?= h($baseurl . '/organisations/view/' . $org['id']) ?>" 
-                               class="text-decoration-none fw-semibold text-primary"><?= h($org['name'] ?? '') ?>
+                               class="text-decoration-none fw-semibold"><?= h($org['name'] ?? '') ?>
                             </a>
                         </div>
                         <div class="d-flex align-items-center gap-2 text-muted small">

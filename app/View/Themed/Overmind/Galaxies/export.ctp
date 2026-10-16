@@ -59,11 +59,14 @@ $this->Form->unlockField('Galaxy.download');
                     $level = (int)$level;
                     $checked = in_array($level, $defaultDist, true);
                     $meta = $distMeta[$level] ?? ['title' => $label, 'icon' => 'fas fa-question', 'color' => '#6c757d'];
+                    $onColor = isset($meta['token'])
+                        ? $this->DistributionLevel->themed($meta, 'fg')
+                        : $meta['color'];
                 ?>
                     <div class="col-md-6">
                         <label class="dist-export-card d-flex align-items-center gap-3 rounded-2 p-3 h-100 w-100 user-select-none mb-0"
-                               data-active-color="<?= h($meta['color']) ?>"
-                               style="cursor:pointer; border:1px solid <?= $checked ? $meta['color'] : '#dee2e6' ?>; transition:border-color .15s;">
+                               data-active-color="<?= h($onColor) ?>"
+                               style="cursor:pointer; border:1px solid <?= $checked ? $onColor : 'var(--misp-check-off-line, #dee2e6)' ?>; transition:border-color .15s;">
                             <input type="checkbox"
                                    name="data[Galaxy][distribution][]"
                                    value="<?= h($level) ?>"
@@ -79,7 +82,7 @@ $this->Form->unlockField('Galaxy.download');
                                 </div>-->
                             </div>
                             <i class="dist-export-icon <?= h($meta['icon']) ?>"
-                               style="font-size:.95rem; color:<?= $checked ? $meta['color'] : '#adb5bd' ?>; transition:color .15s;"></i>
+                               style="font-size:.95rem; color:<?= $checked ? $onColor : 'var(--misp-check-off-icon, #adb5bd)' ?>; transition:color .15s;"></i>
                         </label>
                     </div>
                 <?php endforeach; ?>
@@ -179,8 +182,8 @@ $this->Form->unlockField('Galaxy.download');
         if (!cb) return;
         var activeColor = card.dataset.activeColor || 'var(--bs-galaxy)';
         cb.addEventListener('change', function () {
-            card.style.borderColor = cb.checked ? activeColor : '#dee2e6';
-            if (icon) icon.style.color = cb.checked ? activeColor : '#adb5bd';
+            card.style.borderColor = cb.checked ? activeColor : 'var(--misp-check-off-line, #dee2e6)';
+            if (icon) icon.style.color = cb.checked ? activeColor : 'var(--misp-check-off-icon, #adb5bd)';
         });
     });
 })();

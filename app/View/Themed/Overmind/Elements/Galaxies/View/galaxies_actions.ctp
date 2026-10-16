@@ -8,8 +8,10 @@ if ($this->Acl->canModifyGalaxy($galaxy)) {
     $actions[] = [
         'url' => "$baseurl/galaxies/edit/$id",
         'onclick' => "event.preventDefault(); openModal('$baseurl/galaxies/edit/$id');",
-        'icon' => 'fas fa-pen-to-square',
+        'icon' => 'fas fa-pen',
+        'entity' => 'galaxy',
         'label' => __('Edit Galaxy'),
+        'short' => __('Edit'),
     ];
 }
 
@@ -17,8 +19,11 @@ if ($this->Acl->canAccess('galaxies', 'add')) {
     $actions[] = [
         'url' => "$baseurl/galaxy_clusters/add/$id",
         'onclick' => "event.preventDefault(); openModal('$baseurl/galaxy_clusters/add/$id');",
-        'icon' => 'fas fa-circle-plus',
+        'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+        'entity' => 'galaxy',
+        'add' => true,
         'label' => __('Add Galaxy Cluster'),
+        'short' => __('Add cluster'),
     ];
 }
 
@@ -27,6 +32,7 @@ $actions[] = [
     'onclick' => "event.preventDefault(); openModal('$baseurl/galaxies/export/$id');",
     'icon' => 'fas fa-download',
     'label' => __('Export Galaxy Clusters'),
+    'short' => __('Export'),
 ];
 
 if ($isSiteAdmin) {
@@ -34,17 +40,19 @@ if ($isSiteAdmin) {
         $actions[] = [
             'url' => "$baseurl/galaxies/enable/$id",
             'onclick' => "event.preventDefault(); openModal('$baseurl/galaxies/toggle/$id', 'md');",
-            'icon' => 'fas fa-play',
+            'icon' => 'fas fa-toggle-on',
+            'entity' => 'galaxy',
             'label' => __('Enable Galaxy'),
-            'success' => true,
+            'short' => __('Enable'),
         ];
     } else {
         $actions[] = [
             'url' => "$baseurl/galaxies/disable/$id",
             'onclick' => "event.preventDefault(); openModal('$baseurl/galaxies/toggle/$id', 'md');",
-            'icon' => 'fas fa-stop',
+            'icon' => 'fas fa-toggle-off',
+            'entity' => 'galaxy',
             'label' => __('Disable Galaxy'),
-            'warning' => true,
+            'short' => __('Disable'),
         ];
     }
 
@@ -57,6 +65,6 @@ if ($isSiteAdmin) {
     ];
 }
 
-echo $this->element('genericElementsBS5/Cards/card_actions', [
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions
 ]);

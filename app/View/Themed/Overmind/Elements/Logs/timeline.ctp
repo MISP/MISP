@@ -64,6 +64,21 @@ $meta = [
 ];
 $fallback = ['color' => '#6c757d', 'bg' => '#e2e3e5', 'icon' => 'fas fa-circle'];
 
+// The theme's --misp-tone-<hue>-* token for each pastel above.
+$toneHues = [
+    '#d1e7dd' => 'green', '#cfe2ff' => 'blue', '#ffe5cc' => 'orange',
+    '#f8d7da' => 'red', '#d2f4ea' => 'teal', '#e8d5f5' => 'purple',
+    '#fad8e8' => 'pink', '#e0d0fd' => 'indigo', '#fce3f0' => 'pink',
+    '#e0f2fe' => 'blue', '#cffafe' => 'cyan', '#cff4fc' => 'cyan',
+    '#e2e3e5' => 'gray',
+];
+$tone = function (array $m, $role, $value) use ($toneHues) {
+    if (!isset($toneHues[$m['bg']])) {
+        return $value;
+    }
+    return sprintf('var(--misp-tone-%s-%s, %s)', $toneHues[$m['bg']], $role, $value);
+};
+
 // group entries by calendar day (entries are already ordered newest-first)
 $groups = [];
 foreach ($entries as $e) {
@@ -87,8 +102,8 @@ $fmtDay = function ($dayKey) {
     <div class="card-header bg-transparent p-3">
         <div class="d-flex flex-wrap align-items-center gap-2">
             <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-                 style="width:36px;height:36px;background:#e0e7ff;">
-                <i class="<?= h($icon) ?>" style="color:#4f46e5;font-size:1rem;"></i>
+                 style="width:36px;height:36px;background:var(--misp-tone-indigo-bg, #e0e7ff);">
+                <i class="<?= h($icon) ?>" style="color:var(--misp-tone-indigo-solid, #4f46e5);font-size:1rem;"></i>
             </div>
             <div>
                 <div class="fw-bold lh-1"><?= h($title) ?></div>
@@ -120,14 +135,14 @@ $fmtDay = function ($dayKey) {
                             $collapseId = preg_replace('/[^A-Za-z0-9_-]/', '', $collapseId);
                         ?>
                             <div class="tl-entry">
-                                <div class="tl-dot" style="color:<?= h($m['color']) ?>;background:<?= h($m['bg']) ?>;"></div>
+                                <div class="tl-dot" style="color:<?= h($tone($m, 'solid', $m['color'])) ?>;background:<?= h($tone($m, 'bg', $m['bg'])) ?>;"></div>
 
                                 <div class="d-flex align-items-start gap-2 flex-wrap">
                                     <span class="text-muted flex-shrink-0 mt-1"
                                           style="font-size:.72rem;min-width:2.8rem;"><?= h($fmtTime($e['created'] ?? '')) ?></span>
                                     <div style = "width:8.5rem;">
                                         <span class="badge flex-shrink-0 mt-1"
-                                            style="display:inline-block;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:<?= h($m['bg']) ?>;color:<?= h($m['color']) ?>;font-size:.68rem;border:1px solid <?= h($m['color']) ?>33;"
+                                            style="display:inline-block;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:<?= h($tone($m, 'bg', $m['bg'])) ?>;color:<?= h($tone($m, 'fg', $m['color'])) ?>;font-size:.68rem;border:1px solid <?= h($tone($m, 'border', $m['color'] . '33')) ?>;"
                                             title="<?= h($label) ?>">
                                             <i class="<?= h($m['icon']) ?> me-1"></i><?= h($label) ?>
                                         </span>

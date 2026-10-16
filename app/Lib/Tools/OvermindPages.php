@@ -10,7 +10,8 @@ class OvermindPages
     private static $pages = array(
         // Events and their content
         'events' => array(
-            'index', 'add', 'edit', 'delete', 'view', 'view2',
+            'index', 'add', 'edit', 'delete', 'view', 'view1', 'view2',
+            'viewLegacy',
             'importChoice', 'automation', 'export', 'downloadExport', 'getEventInfoById',
             'freeTextImport', 'proposalEventIndex',
             'merge'
@@ -18,10 +19,10 @@ class OvermindPages
         'attributes' => array(
             'index', 'add', 'edit', 'delete', 'add_attachment'
         ),
+        'values' => array('index', 'resolve', 'view'),
         'shadow_attributes' => array('index'),
-        'values' => array('view'),
         'event_delegations' => array('index'),
-        'objects' => array('add', 'edit', 'delete'),
+        'objects' => array('index', 'add', 'edit', 'delete'),
         'sightings' => array('advanced'),
         'event_reports' => array('index', 'view', 'add', 'edit'),
         'EventReportTemplateVariables' => array('index', 'add', 'edit'),
@@ -30,6 +31,7 @@ class OvermindPages
         'analystData' => array(
             'index', 'add', 'edit', 'view', 'delete', 'deleteSelection'
         ),
+        'analystGraphs' => array('view'),
 
         // Taxonomy, galaxies and templates
         'tags' => array('index', 'add', 'edit', 'viewGraph'),
@@ -53,6 +55,9 @@ class OvermindPages
             'preview', 'update', 'library_status'
         ),
         'decayingModel' => array('index', 'view', 'add', 'edit', 'import'),
+        'analystProfiles' => array(
+            'index', 'view', 'edit', 'simulate', 'import', 'fork'
+        ),
 
         // Lists and correlation
         'warninglists' => array('index', 'view', 'add', 'edit'),

@@ -29,7 +29,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
         ? __('Edit Galaxy Cluster Relationship')
         : __('Add Galaxy Cluster Relationship'),
     'description' => __('Relationships link two galaxy clusters together and explain the context of their connection.'),
-    'icon' => 'fas fa-circle-nodes',
+    'icon' => 'fas fa-diagram-project',
     'isEdit' => $isEdit,
 ]);
 ?>
@@ -47,12 +47,29 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
                     'label' => __('Source Cluster'),
                     'required' => true,
                 ]) ?>
+                <?php if (!empty($sourceCluster) && !$isEdit): ?>
+                    <?= $this->Form->hidden('galaxy_cluster_uuid', ['id' => 'GalaxyClusterRelationSourceUuid']) ?>
+                    <div class="py-1">
+                        <?= $this->TagChip->cluster([
+                            'id' => $sourceCluster['id'],
+                            'value' => $sourceCluster['value'],
+                            'galaxy' => $sourceCluster['Galaxy']['name'] ?? '',
+                            'galaxy_id' => $sourceCluster['galaxy_id'],
+                            'icon' => $sourceCluster['Galaxy']['icon'] ?? null,
+                            'description' => $sourceCluster['description'] ?? null,
+                        ]) ?>
+                    </div>
+                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                        'text' => __('Saving unpublishes this cluster.'),
+                        'icon' => 'fas fa-circle-info mt-1',
+                    ]) ?>
+                <?php else: ?>
                 <?php
                 $sourceOptions = [
                     'id' => 'GalaxyClusterRelationSourceUuid',
                     'class' => 'form-control font-monospace'
                         . ($isEdit ? ' bg-body-secondary' : ''),
-                    'style' => 'border-color:#d8dde3;',
+                    'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                     'placeholder' => __('UUID of the cluster the relationship starts from'),
                     'autocomplete' => 'off',
                 ];
@@ -72,6 +89,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
                         : __('You need edit rights on this cluster — saving also unpublishes it.'),
                     'icon' => $isEdit ? 'fas fa-lock mt-1' : 'fas fa-circle-info mt-1',
                 ]) ?>
+                <?php endif; ?>
             </div>
 
             <div class="col-md-auto d-none d-md-flex align-items-center justify-content-center pt-1">
@@ -87,19 +105,24 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
                     'label' => __('Target Cluster'),
                     'required' => true,
                 ]) ?>
-                <?= $this->Form->text('referenced_galaxy_cluster_uuid', [
+                <?php
+                $targetUuid = $relation['referenced_galaxy_cluster_uuid'] ?? '';
+                $targetOptions = $targetUuid === '' ? [] : [$targetUuid => $targetCluster['value'] ?? $targetUuid];
+                ?>
+                <?= $this->Form->select('referenced_galaxy_cluster_uuid', $targetOptions, [
                     'id' => 'GalaxyClusterRelationTargetUuid',
-                    'class' => 'form-control font-monospace',
-                    'style' => 'border-color:#d8dde3;',
-                    'placeholder' => __('UUID of the cluster the relationship points to'),
-                    'autocomplete' => 'off',
+                    'class' => 'form-select',
+                    'empty' => '',
+                    'value' => $targetUuid,
                     'data-om-required' => 'true',
+                    'data-cluster-search' => $baseurl . '/galaxy_clusters/pickerSearch?value=uuid',
+                    'data-exclude' => $sourceCluster['uuid'] ?? '',
                 ]) ?>
                 <div class="invalid-feedback">
-                    <?= __('A target cluster UUID is required.') ?>
+                    <?= __('A target cluster is required.') ?>
                 </div>
                 <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                    'text' => __('The cluster on the receiving end — it may live in another galaxy.'),
+                    'text' => __('Type a cluster name to search any galaxy, or paste its UUID.'),
                 ]) ?>
             </div>
 
@@ -148,15 +171,24 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
                 'accent' => 'galaxy',
                 'label' => __('Tags'),
             ]) ?>
-            <?= $this->Form->textarea('tags', [
-                'id' => 'GalaxyClusterRelationTags',
-                'class' => 'form-control font-monospace',
-                'style' => 'border-color:#d8dde3;',
-                'rows' => 3,
-                'placeholder' => 'estimative-language:likelihood-probability="very-likely", false-positive:risk="low"',
+            <?= $this->element('genericElementsBS5/Forms/tag_picker_field', [
+                'field' => 'GalaxyClusterRelation.tags',
+                'uid' => 'galaxy-cluster-relation-tags',
+                'categories' => [
+                    'all' => [
+                        'label' => __('All Tags'),
+                        'tags' => $pickerAllTags ?? [],
+                    ],
+                    'custom' => [
+                        'label' => __('Custom Tags'),
+                        'tags' => $pickerCustomTags ?? [],
+                    ],
+                ],
+                'selected' => $currentTags ?? [],
+                'emptyText' => __('No tags on this relationship.'),
             ]) ?>
             <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                'text' => __('Comma separated list of tag names to attach to the relationship.'),
+                'text' => __('Qualify the relationship, e.g. how likely it is.'),
             ]) ?>
         </div>
 
@@ -196,6 +228,58 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
             createOnBlur: true,
             maxOptions: null,
             placeholder: <?= json_encode(__('e.g. is-similar')) ?>
+        });
+    }
+
+    var targetEl = document.getElementById('GalaxyClusterRelationTargetUuid');
+    if (targetEl && !targetEl.tomselect && typeof TomSelect !== 'undefined') {
+        var uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        var exclude = targetEl.getAttribute('data-exclude');
+        var searchUrl = targetEl.getAttribute('data-cluster-search');
+        var esc = function (s) {
+            var d = document.createElement('div');
+            d.textContent = s == null ? '' : String(s);
+            return d.innerHTML;
+        };
+        var row = function (item) {
+            return '<div>' + esc(item.text)
+                + (item.galaxy ? '<span class="text-muted small ms-2">' + esc(item.galaxy) + '</span>' : '')
+                + '</div>';
+        };
+        new TomSelect(targetEl, {
+            maxItems: 1,
+            maxOptions: null,
+            loadThrottle: 250,
+            searchField: ['text', 'galaxy'],
+            placeholder: <?= json_encode(__('Search a cluster by name')) ?>,
+            create: function (input) {
+                return uuidRe.test(input.trim()) ? { value: input.trim(), text: input.trim() } : false;
+            },
+            createFilter: function (input) { return uuidRe.test(input.trim()); },
+            shouldLoad: function (query) { return query.trim().length >= 2 && !uuidRe.test(query.trim()); },
+            load: function (query, callback) {
+                fetch(searchUrl + '&q=' + encodeURIComponent(query.trim()), {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin'
+                })
+                    .then(function (r) { return r.ok ? r.json() : []; })
+                    .then(function (rows) {
+                        callback(rows.filter(function (r) { return r.value !== exclude; }).map(function (r) {
+                            return { value: r.value, text: r.label, galaxy: (r.style && r.style.galaxy) || '' };
+                        }));
+                    })
+                    .catch(function () { callback(); });
+            },
+            render: {
+                option: row,
+                item: row,
+                option_create: function (data) {
+                    return '<div class="create">' + <?= json_encode(__('Use UUID')) ?> + ' <code>' + esc(data.input) + '</code></div>';
+                },
+                no_results: function () {
+                    return '<div class="no-results text-muted">' + <?= json_encode(__('No cluster matches')) ?> + '</div>';
+                }
+            }
         });
     }
 

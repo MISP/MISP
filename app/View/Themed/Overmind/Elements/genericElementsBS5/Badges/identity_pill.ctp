@@ -37,6 +37,6 @@ if (empty($parts)) {
     return;
 }
 ?>
-<span class="d-inline-flex align-items-stretch border rounded-pill bg-body-tertiary font-monospace overflow-hidden lh-base">
+<span class="d-inline-flex align-items-stretch border rounded bg-body-tertiary font-monospace overflow-hidden lh-base">
     <?= implode('<span class="vr my-1"></span>', $parts) ?>
 </span>

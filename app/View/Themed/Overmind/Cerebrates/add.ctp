@@ -8,20 +8,25 @@ $options = [
         'field' => 'pull_orgs', 'id' => 'CerebratePullOrgs',
         'label' => __('Pull organisations'),
         'hint' => __('Fetch the organisations this Cerebrate knows'),
-        'icon' => 'fas fa-building', 'accent' => '#1892B1',
+        'icon' => 'fas fa-building',
+        // Pulled toward the ink to hold 3:1 on tinted surfaces; the
+        // identical fallbacks leave the theme default on #1892B1.
+        'accent' => 'color-mix(in srgb, var(--misp-tone-cyan-solid, #1892B1) 85%,'
+            . ' var(--misp-ink, #1892B1))',
     ],
     [
         'field' => 'pull_sharing_groups', 'id' => 'CerebratePullSharingGroups',
         'label' => __('Pull sharing groups'),
         'hint' => __('Fetch the sharing groups it publishes'),
         'icon' => 'misp-icon misp-icon-sharing-group misp-simple',
-        'accent' => '#0d6efd',
+        'accent' => 'var(--misp-tone-blue-solid, #0d6efd)',
     ],
     [
         'field' => 'skip_proxy', 'id' => 'CerebrateSkipProxy',
         'label' => __('Skip proxy'),
         'hint' => __('Reach it directly, ignoring the configured proxy'),
-        'icon' => 'fas fa-diagram-project', 'accent' => '#6c757d',
+        'icon' => 'fas fa-diagram-project',
+        'accent' => 'var(--misp-tone-gray-solid, #6c757d)',
     ],
 ];
 
@@ -162,7 +167,7 @@ $fieldError = function ($field) {
                                data-option-card
                                data-accent="<?= h($option['accent']) ?>"
                                style="cursor:pointer; transition:border-color .15s;
-                                      border:1px solid #dee2e6;">
+                                      border:1px solid var(--misp-check-off-line, #dee2e6);">
                             <?= $this->Form->checkbox($option['field'], [
                                 'id' => $option['id'],
                                 'class' => 'form-check-input flex-shrink-0',
@@ -182,7 +187,7 @@ $fieldError = function ($field) {
                             </div>
                             <i class="<?= h($option['icon']) ?>" data-option-icon
                                style="font-size:.95rem; transition:color .15s;
-                                      color:#adb5bd;"></i>
+                                      color:var(--misp-check-off-icon, #adb5bd);"></i>
                         </label>
                     </div>
                 <?php endforeach; ?>
@@ -209,10 +214,10 @@ $fieldError = function ($field) {
     function paintCard(card) {
         var box = card.querySelector('input[type="checkbox"]');
         var icon = card.querySelector('[data-option-icon]');
-        var accent = card.dataset.accent || '#0d6efd';
+        var accent = card.dataset.accent || 'var(--misp-tone-blue-solid, #0d6efd)';
         if (!box) { return; }
-        card.style.borderColor = box.checked ? accent : '#dee2e6';
-        if (icon) { icon.style.color = box.checked ? accent : '#adb5bd'; }
+        card.style.borderColor = box.checked ? accent : 'var(--misp-check-off-line, #dee2e6)';
+        if (icon) { icon.style.color = box.checked ? accent : 'var(--misp-check-off-icon, #adb5bd)'; }
     }
     document.querySelectorAll('[data-option-card]').forEach(function (card) {
         var box = card.querySelector('input[type="checkbox"]');

@@ -46,7 +46,7 @@ if ($enabled) {
         ]
     ); ?>
     <?php if ($enabled): ?>
-        <small class="<?= empty($cacheTimestamp) ? 'text-danger fw-semibold' : 'text-primary fw-semibold' ?>">
+        <small class="<?= empty($cacheTimestamp) ? 'text-danger fw-semibold' : 'text-accent fw-semibold' ?>">
             <?= h($cacheState) ?>
         </small>
     <?php endif; ?>

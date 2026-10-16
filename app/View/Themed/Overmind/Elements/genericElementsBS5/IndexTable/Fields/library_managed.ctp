@@ -8,7 +8,7 @@
 $flag = (int)Hash::get($row, $field['data_path']);
 if ($flag === 1) {
     printf(
-        '<span class="badge bg-primary-subtle text-primary border border-primary-subtle" '
+        '<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle" '
         . 'title="%s"><i class="fas fa-cube me-1"></i>%s</span>',
         h(__('This template is managed by the misp-event-templates submodule. The library-update flow may overwrite it on every upstream version bump. Flip the misp_default flag off to fork.')),
         h(__('Library'))

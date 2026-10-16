@@ -2,6 +2,7 @@
 // Overmind BS5 single-view for a Feed.
 $feed = $data['Feed'] ?? [];
 $feedId = (int)($feed['id'] ?? 0);
+$railCards = $railCards ?? [];
 
 $this->set('headerIdentity', $feed);
 $this->set('headerTitle', $feed['name'] ?? '');
@@ -19,9 +20,11 @@ $tabs = [
             'Feeds/View/feeds_general',
             'Feeds/View/feeds_settings',
         ],
-        'right' => [
+        'right' => array_merge([
             'Feeds/View/feeds_actions',
-        ],
+        ], $this->RailCard->rail($railCards, [
+            'feed-freshness', 'feed-overlap', 'feed-fetches',
+        ], 'general')),
     ],
 ];
 
@@ -35,6 +38,7 @@ if (!empty($feed['caching_enabled'])) {
         'left' => [
             'Feeds/View/feeds_coverage',
         ],
+        'right' => $this->RailCard->rail($railCards, ['feed-overlap'], 'coverage'),
     ];
 }
 

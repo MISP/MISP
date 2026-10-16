@@ -6,7 +6,7 @@
  * @param id, an image identifying string
  *
  * used in Events/index.ctp
- * used in Events/view.ctp
+ * used in Events/view_legacy.ctp
  */
 
 $imgId = h($id);

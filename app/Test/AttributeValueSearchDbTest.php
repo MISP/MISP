@@ -467,7 +467,7 @@ class AttributeValueSearchDbTest extends TestCase
         $this->assertSame($this->ids('a_url'), $this->select($this->values->searchCondition(["www.$t.com"], 'Attribute')));
         $probe = $this->statements("/AGAINST\('the with from this' IN BOOLEAN MODE\) LIMIT 1/");
         $this->assertCount(1, $probe);
-        $this->assertSame('1', $redis->get(AttributeValue::STOPWORD_CACHE_KEY), 'The rebuilt index holds stopwords.');
+        $this->assertSame('1', $redis->get(AttributeValue::STOPWORD_CACHE_KEY), 'The index holds stopwords.');
         $ttl = $redis->ttl(AttributeValue::STOPWORD_CACHE_KEY);
         $this->assertGreaterThan(0, $ttl);
         $this->assertLessThanOrEqual(AttributeValue::STOPWORD_CACHE_SECONDS, $ttl);

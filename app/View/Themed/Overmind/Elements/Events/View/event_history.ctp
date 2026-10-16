@@ -11,8 +11,8 @@ $fetchUrl = h($baseurl . '/audit_logs/eventIndexV2/' . $eventId);
         <div class="d-flex flex-wrap align-items-center gap-2">
 
             <div class="rounded-2 d-flex align-items-center justify-content-center"
-                 style="width:36px;height:36px;background:#e0e7ff;">
-                <i class="fas fa-history" style="color:#4f46e5;font-size:1rem;"></i>
+                 style="width:36px;height:36px;background:var(--misp-tone-indigo-bg, #e0e7ff);">
+                <i class="fas fa-history" style="color:var(--misp-tone-indigo-solid, #4f46e5);font-size:1rem;"></i>
             </div>
 
             <div>
@@ -70,7 +70,7 @@ $fetchUrl = h($baseurl . '/audit_logs/eventIndexV2/' . $eventId);
     <!-- BODY -->
     <div id="<?= $uid ?>-body" class="p-3">
         <div class="d-flex align-items-center justify-content-center py-5 text-muted">
-            <div class="spinner-border spinner-border-sm" role="status"></div>
+            <div class="misp-loader misp-loader-sm" role="status"></div>
         </div>
     </div>
 
@@ -123,6 +123,18 @@ $fetchUrl = h($baseurl . '/audit_logs/eventIndexV2/' . $eventId);
         publish_sightings:   { label: <?= json_encode(__('Publish sightings'))     ?>, color:'#0891b2', bg:'#cffafe', icon:'misp-icon misp-icon-sighting misp-simple'        },
         instantiate:         { label: <?= json_encode(__('Instantiate'))           ?>, color:'#6c757d', bg:'#e2e3e5', icon:'fas fa-clone'          }
     };
+
+    /* The theme's --misp-tone-<hue>-* token for each pastel above. */
+    var TONE_HUES = {
+        '#d1e7dd': 'green', '#cfe2ff': 'blue', '#ffe5cc': 'orange',
+        '#f8d7da': 'red', '#d2f4ea': 'teal', '#e8d5f5': 'purple',
+        '#fad8e8': 'pink', '#e0d0fd': 'indigo', '#fce3f0': 'pink',
+        '#e0f2fe': 'blue', '#cffafe': 'cyan', '#e2e3e5': 'gray'
+    };
+    function tone(meta, role, value) {
+        var hue = TONE_HUES[meta.bg];
+        return hue ? 'var(--misp-tone-' + hue + '-' + role + ', ' + value + ')' : value;
+    }
 
     /* ── Helpers ───────────────────────────────── */
     function fmtTime(ts) {
@@ -230,12 +242,12 @@ $fetchUrl = h($baseurl . '/audit_logs/eventIndexV2/' . $eventId);
         }
 
         return '<div class="tl-entry" data-search="' + escapeHtml(searchVal) + '">'
-            + '<div class="tl-dot" style="color:' + escapeHtml(meta.color) + ';background:' + escapeHtml(meta.bg) + ';"></div>'
+            + '<div class="tl-dot" style="color:' + escapeHtml(tone(meta, 'solid', meta.color)) + ';background:' + escapeHtml(tone(meta, 'bg', meta.bg)) + ';"></div>'
             + '<div class="d-flex align-items-start gap-2 flex-wrap">'
             + '<span class="text-muted flex-shrink-0 mt-1" style="font-size:.72rem;min-width:2.8rem;">' + fmtTime(log.created) + '</span>'
             + '<span class="badge flex-shrink-0 d-inline-flex align-items-center gap-1 mt-1"'
-            + ' style="background:' + escapeHtml(meta.bg) + ';color:' + escapeHtml(meta.color) + ';'
-            + 'font-size:.68rem;border:1px solid ' + escapeHtml(meta.color) + '33;">'
+            + ' style="background:' + escapeHtml(tone(meta, 'bg', meta.bg)) + ';color:' + escapeHtml(tone(meta, 'fg', meta.color)) + ';'
+            + 'font-size:.68rem;border:1px solid ' + escapeHtml(tone(meta, 'border', meta.color + '33')) + ';">'
             + '<i class="' + escapeHtml(meta.icon) + '"></i>' + escapeHtml(meta.label) + '</span>'
             + '<div class="flex-fill" style="min-width:0;">'
             + '<div class="small fw-medium lh-sm">' + titleHtml + '</div>'
@@ -302,7 +314,7 @@ $fetchUrl = h($baseurl . '/audit_logs/eventIndexV2/' . $eventId);
     function fetchPage(page) {
         body.innerHTML =
             '<div class="d-flex align-items-center justify-content-center py-5 text-muted">'
-            + '<div class="spinner-border spinner-border-sm" role="status"></div>'
+            + '<div class="misp-loader misp-loader-sm" role="status"></div>'
             + '</div>';
 
         fetch(buildUrl(page), {

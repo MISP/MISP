@@ -39,7 +39,8 @@ $galaxyOptions = isset($galaxyOptions) ? $galaxyOptions : null;
  *
  * Fields specific to actions:
  *
- * - type           : modal | navigate | toggle | copy | divider
+ * - type           : modal | navigate | toggle | copy | divider | intelGraph
+ * - items          : intelGraph only: fn($row) → the records "Add to graph" sends
  * - label          : Displayed text
  * - label_on/off   : Text for toggle
  * - icon           : FontAwesome icon
@@ -57,6 +58,8 @@ $model      = !empty($firstRow['Attribute']) ? 'Attribute' : null;
 $_canModify = !empty($mayModify);
 $_canPropose = !empty($me['Role']['perm_add']);
 $_canAnalystData = !empty($me['Role']['perm_analyst_data']);
+$_canGraph = $this->Acl->canAccess('analystGraphs', 'addNodes');
+$_canCollect = $this->Acl->canAccess('collectionElements', 'addElementToCollection');
 // Enrichment / Cortex expansion (misp-modules): the "Enrich" actions are only
 // offered when the matching services plugin is enabled and the user can add data.
 $_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
@@ -110,7 +113,7 @@ if (!empty($show_event_id)) {
         'sort' => $path('event_id'),
         'data_path' => 'Event.id',
         'element' => 'id',
-        'url' => $baseurl . '/events/view2/%id%',
+        'url' => $baseurl . '/events/view/%id%',
         'card_section' => 'top',
         'display_in' => ['table', 'card']
     ];
@@ -175,6 +178,7 @@ $fields = array_merge($fields, [
         'name' => __('Tags'),
         'data_path' => $path('AttributeTag'),
         'element' => 'tag_list',
+        'plan' => $labelPlan ?? null,
         'card_section' => 'tag',
         'display_in' => ['table', 'card'],
         // Cell actions are handled by the tag_list element
@@ -188,6 +192,7 @@ $fields = array_merge($fields, [
         'name' => __('Galaxy'),
         'data_path' => $path('Galaxy'),
         'element' => 'galaxy',
+        'plan' => $labelPlan ?? null,
         'card_section' => 'galaxy',
         'display_in' => ['table', 'card'],
         // Cell actions are handled by the galaxy element
@@ -346,7 +351,7 @@ $fields = array_merge($fields, [
             [
                 'type' => 'modal',
                 'label' => __('Add note'),
-                'icon' => 'text-primary misp-icon misp-icon-analyst-note misp-simple',
+                'icon' => 'text-accent misp-icon misp-icon-analyst-note misp-simple',
                 'url' => $baseurl . '/analystData/add/Note/%uuid%/Attribute',
                 'url_params_data_paths' => ['uuid' => $path('uuid')],
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
@@ -371,6 +376,34 @@ $fields = array_merge($fields, [
                 'url_params_data_paths' => ['uuid' => $path('uuid')],
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
                     return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => function($row) use ($_canGraph, $_canCollect) {
+                    return ($_canGraph || $_canCollect) && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Add to collection'),
+                'icon' => 'folder-plus',
+                'url' => $baseurl . '/collectionElements/addElementToCollection/Attribute/%uuid%',
+                'url_params_data_paths' => ['uuid' => $path('uuid')],
+                'size' => 'xl',
+                'requirement' => function($row) use ($_canCollect) {
+                    return $_canCollect && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'intelGraph',
+                'label' => __('Add to graph'),
+                'icon' => 'text-analystGraph misp-icon misp-icon-analyst-graph misp-simple',
+                'items' => function ($row) use ($path) {
+                    return [['type' => 'Attribute', 'uuid' => Hash::get($row, $path('uuid')), 'label' => Hash::get($row, $path('value'))]];
+                },
+                'requirement' => function($row) use ($_canGraph) {
+                    return $_canGraph && empty($row['deleted']) && empty($row['is_proposal']);
                 }
             ]
         ]
@@ -410,10 +443,29 @@ $children = [
 // attribute value is free text, and `https://host/path/` cannot survive as a
 // path segment (see the `transport` note in filter_bar.ctp). This is the same
 // reason the default theme's attributes/search POSTs its expression field.
+// The global index matches words starting with the term (value_search, through
+// the index); `value` still matches anywhere, and a page opened with it keeps
+// that mode until the reader switches back.
+$valueNotice = '';
 if (!$inEventView) {
+    $valueQuery = $this->request->query ?? [];
+    $containsTerm = $valueQuery['value'] ?? ($this->request->params['named']['value'] ?? null);
+    $wordTerm = $valueQuery['value_search'] ?? null;
+    $valueMode = $wordTerm === null && is_string($containsTerm) && $containsTerm !== '' ? 'contains' : 'words';
     $children[0]['mode'] = 'legacy';
-    $children[0]['name'] = 'value';
+    $children[0]['name'] = $valueMode === 'contains' ? 'value' : 'value_search';
     $children[0]['chip_label'] = __('Value');
+    $children[0]['placeholder'] = __('Filter by attribute value');
+    $valueTerm = $valueMode === 'contains' ? $containsTerm : $wordTerm;
+    if (is_string($valueTerm) && $valueTerm !== '' && strpos($valueTerm, '%') === false) {
+        $switchQuery = array_diff_key($valueQuery, array_flip(['value', 'value_search', 'page']));
+        $switchQuery[$valueMode === 'contains' ? 'value_search' : 'value'] = $valueTerm;
+        $valueNotice = $this->element('Attributes/value_match_notice', [
+            'mode' => $valueMode,
+            'term' => $valueTerm,
+            'switchUrl' => $baseurl . '/attributes/index?' . http_build_query($switchQuery),
+        ]);
+    }
 } else {
     // Inside an event the tab filters on `searchFor:`. Naming it here is what
     // lets the bar render the term back into the box.
@@ -421,39 +473,102 @@ if (!$inEventView) {
     $children[0]['name'] = 'searchFor';
 }
 
+App::uses('AttributeFilterPanel', 'Tools');
+App::uses('IndexPicker', 'Tools');
+
 if (!empty($show_filters)) {
-    $myOrg = !empty($me['Organisation']['name'])
-        ? $me['Organisation']['name']
-        : $me['org_id'];
-    $children = array_merge($children, [
-        [
-            'type' => 'button',
-            'label' => __('My attributes'),
-            'icon' => 'misp-icon misp-icon-user1 misp-simple',
-            'class' => 'btn btn-primary',
-            'url' => $baseurl . '/attributes/index?email=' . urlencode($me['email'])
-        ],
-        [
+    $children[] = [
+        'type' => 'button',
+        'label' => __('My attributes'),
+        'icon' => 'misp-icon misp-icon-user1 misp-simple',
+        'class' => 'btn btn-primary',
+        'url' => $baseurl . '/attributes/index?email=' . urlencode($me['email'])
+    ];
+    // With the creator org picker, the reader's own org heads its list instead.
+    if (!IndexPicker::canPickOrgs($me)) {
+        $myOrg = !empty($me['Organisation']['name'])
+            ? $me['Organisation']['name']
+            : $me['org_id'];
+        $children[] = [
             'type' => 'button',
             'label' => __('Org attributes'),
             'icon' => 'misp-icon misp-icon-organisation misp-simple',
             'class' => 'btn btn-primary',
             'url' => $baseurl . '/attributes/index?org=' . urlencode($myOrg)
-        ]
-    ]);
+        ];
+    }
 }
 
-App::uses('AttributeFilterPanel', 'Tools');
-$moreFilterChildren = AttributeFilterPanel::children(
-    compact('categoryOptions', 'typeOptions', 'orgOptions', 'tagOptions')
-        + ['galaxyOptions' => $galaxyOptions ?? null],
+$filterLabels = $filterLabels ?? ['org' => [], 'tag' => [], 'galaxy' => []];
+/*
+ * The global index's filters go through restSearch, which takes several values
+ * joined with || and ! to exclude one; the event tab's take one value, except
+ * `type`, which takes a comma list.
+ */
+$pickerSettings = $inEventView
+    ? ['type' => ['separator' => ',']]
+    : ['category' => ['separator' => '||'], 'type' => ['separator' => '||']];
+$remotePickers = [];
+if (!$inEventView && IndexPicker::canPickOrgs($me)) {
+    $remotePickers[] = [
+        'type' => 'picker',
+        'name' => 'org',
+        'label' => __('Creator Org'),
+        'icon' => 'misp-icon misp-icon-organisation misp-simple',
+        'source' => $baseurl . '/organisations/pickerSearch',
+        'separator' => '||',
+        'exclude' => true,
+        'resolved' => $filterLabels['org'],
+        'suggest' => IndexPicker::orgSuggestions($me, Hash::extract($attributes ?? [], '{n}.Event.Orgc')),
+    ];
+}
+$remotePickers[] = [
+    'type' => 'picker',
+    'name' => 'tags',
+    'label' => __('Tags'),
+    'icon' => 'fas fa-tag',
+    'source' => $baseurl . '/tags/pickerSearch',
+    'resolved' => $filterLabels['tag'],
+] + ($inEventView ? ['single' => true] : [
+    'separator' => '||',
+    'exclude' => true,
+    'hint' => __('Attribute or event tags.'),
+    'browser' => [
+        'kind' => 'tag',
+        'scopes' => $baseurl . '/tags/pickerScopes',
+        'tree' => $baseurl . '/tags/pickerTree',
+    ],
+]);
+// The event tab filters on a whole galaxy; here on clusters, as on the events index.
+if (!$inEventView) {
+    $remotePickers[] = [
+        'type' => 'picker',
+        'name' => 'galaxy',
+        'label' => __('Galaxy'),
+        'icon' => 'misp-icon misp-icon-galaxy misp-simple',
+        'source' => $baseurl . '/galaxy_clusters/pickerSearch',
+        'separator' => '||',
+        'exclude' => true,
+        'resolved' => $filterLabels['galaxy'],
+        'hint' => __('Clusters attached to the attribute or its event.'),
+        'browser' => [
+            'kind' => 'galaxy',
+            'scopes' => $baseurl . '/galaxies/pickerScopes',
+        ],
+    ];
+}
+foreach (AttributeFilterPanel::children(
+    compact('categoryOptions', 'typeOptions', 'orgOptions')
+        + ['galaxyOptions' => $inEventView ? ($galaxyOptions ?? null) : null],
     $inEventView
-);
-$children[] = [
-    'type' => 'more_filters',
-    'label' => __('More filters'),
-    'children' => $moreFilterChildren,
-];
+) as $filter) {
+    $children[] = $filter + ($pickerSettings[$filter['name']] ?? []);
+    if ($filter['name'] === 'type') {
+        $children = array_merge($children, $remotePickers);
+        $remotePickers = [];
+    }
+}
+$children = array_merge($children, $remotePickers);
 
 if (empty($show_event_id) && !empty($event['Event']['id'])) {
     $attrEventId     = $event['Event']['id'];
@@ -466,18 +581,20 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
     $attrBaseUrl     = $baseurl . '/events/viewAttributes/' . $attrEventId
         . ($extensionSuffix ?? '');
 
-    // Fallback hrefs (real toggles are handled by view_attributes.ctp)
-    $deletedUrl  = $attrBaseUrl
-        . ($toggleDeleted ? '/deleted:' . $toggleDeleted : '')
-        . ($currentProposal ? '/proposal:' . $currentProposal : '');
-    $proposalUrl = $attrBaseUrl
-        . ($currentDeleted ? '/deleted:' . $currentDeleted : '')
-        . ($toggleProposal ? '/proposal:' . $toggleProposal : '');
+    // The toggles keep every other filter of the tab.
+    App::uses('IndexFilterState', 'Tools');
+    $tabState = new IndexFilterState(
+        $attrBaseUrl,
+        array_diff_key($namedParams, array_flip(['extended', 'extending']))
+    );
+    $deletedUrl  = $tabState->url(['deleted' => $toggleDeleted ?: null]);
+    $proposalUrl = $tabState->url(['proposal' => $toggleProposal ?: null]);
 
     $children[] = [
         'type'  => 'button',
         'url'   => $proposalUrl,
         'class' => 'btn attr-proposal-toggle ' . ($currentProposal ? 'btn-warning' : 'btn-outline-warning'),
+        'id' => 'attr-proposal-toggle',
         'icon'  => 'fas fa-comment-dots',
         'label' => __('Proposals') . (!empty($proposalCount) ? ' (' . (int)$proposalCount . ')' : ''),
     ];
@@ -486,6 +603,7 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
         'type'  => 'button',
         'url'   => $deletedUrl,
         'class' => 'btn attr-deleted-toggle ' . ($currentDeleted ? 'btn-danger' : 'btn-outline-danger'),
+        'id' => 'attr-deleted-toggle',
         'icon'  => 'fas fa-trash',
         'label' => __('Deleted') . (!empty($deletedCount) ? ' (' . (int)$deletedCount . ')' : ''),
     ];
@@ -496,7 +614,25 @@ $filterBar = [
     'pull' => 'right',
     'children' => $children,
     'soft_delete' => '/deleteSelection',
+    'chips' => [
+        'labels' => [
+            'deleted' => __('Deleted'),
+            'proposal' => __('Proposals'),
+            'warninglist' => __('Warninglist'),
+            'email' => __('Creator'),
+        ],
+        'values' => [
+            'deleted' => ['1' => __('included'), '2' => __('only')],
+            'proposal' => ['1' => __('only')],
+        ],
+    ],
 ];
+if ($inEventView) {
+    $filterBar['base_url'] = $baseurl . '/events/viewAttributes/' . $event['Event']['id'] . ($extensionSuffix ?? '');
+} else {
+    // The instance-wide index is the heaviest query MISP pages: a picker asks first.
+    $filterBar['apply'] = 'draft';
+}
 
 // Mass actions beside delete. A soft-deleted row can only be deleted for good,
 // and edit / object / relationship are scoped to the event whose page this is,
@@ -566,7 +702,16 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     $origin['palette']['badgeBorder']
                 );
             },
+            'row_marker_callable' => function($row) use ($inExtensionView) {
+                if (!$inExtensionView) {
+                    return '';
+                }
+                return $this->element('Events/View/extension_band', [
+                    'event_id' => $row['event_id'] ?? 0,
+                ]);
+            },
             'filter_bar' => $filterBar + $massActions,
+            'before_results' => $valueNotice,
             'fields' => $fields,
         ]
     ],

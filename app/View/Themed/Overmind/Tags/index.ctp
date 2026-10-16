@@ -139,7 +139,6 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                                 'options' => [
                                     '' => '',
                                     '1' => 'Favourite only',
-                                    '0' => 'Not favourite'
                                 ]
                             ],
                         ]

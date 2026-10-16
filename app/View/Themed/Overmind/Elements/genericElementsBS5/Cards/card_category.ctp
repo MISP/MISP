@@ -30,7 +30,7 @@ $headerClass = $isCollapsed ? 'collapsed' : '';
             <div class="d-flex align-items-center gap-2 p-1">
 
                 <?php if (!empty($icon)): ?>
-                    <i class="fas fa-<?= h($icon) ?> text-primary"></i>
+                    <i class="fas fa-<?= h($icon) ?> text-accent"></i>
                 <?php endif; ?>
 
                 <span class="fw-semibold">

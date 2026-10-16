@@ -75,7 +75,7 @@ echo $this->Form->create('CorrelationRule', [
             <?= $this->Form->text('name', [
                 'id' => 'CorrelationRuleName',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #e3dfd8 !important;'
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #e3dfd8) !important;'
                     . ' outline:none;',
                 'placeholder' => __('e.g. Skip the daily OSINT ingestion'),
                 'autocomplete' => 'off',
@@ -125,7 +125,7 @@ echo $this->Form->create('CorrelationRule', [
                 'id' => 'CorrelationRuleSelectorList',
                 'class' => 'w-100 rounded-2 p-3',
                 'style' => 'background:var(--bs-tertiary-bg, #faf9f8);'
-                    . ' border:1px solid #e3dfd8; resize:vertical;'
+                    . ' border:1px solid var(--misp-field-line, #e3dfd8); resize:vertical;'
                     . ' outline:none; font-size:.85rem; min-height:160px;'
                     . ' color:inherit; font-family:monospace;'
                     . ' white-space:pre; overflow-x:auto;',
@@ -140,7 +140,7 @@ echo $this->Form->create('CorrelationRule', [
             <!-- Reading of the list, rebuilt as it is typed -->
             <div class="mt-2 d-none" id="correlationRuleReadingWrap">
                 <div class="border rounded p-2" id="correlationRuleReading"
-                     style="border-color:#d8dde3 !important; font-size:.78rem;
+                     style="border-color:var(--misp-field-line, #d8dde3) !important; font-size:.78rem;
                             max-height:160px; overflow-y:auto;"></div>
             </div>
 
@@ -158,7 +158,7 @@ echo $this->Form->create('CorrelationRule', [
             <?= $this->Form->textarea('comment', [
                 'class' => 'form-control',
                 'rows' => 2,
-                'style' => 'border-color:#d8dde3;',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                 'placeholder' => __('Why these events should not correlate…'),
             ]) ?>
         </div>
@@ -377,7 +377,7 @@ echo $this->Form->create('CorrelationRule', [
             var noName = nameEl && !nameEl.value.trim();
             var noList = !listEl.value.trim();
             if (noName) {
-                nameEl.style.setProperty('border-bottom-color', '#dc3545', 'important');
+                nameEl.style.setProperty('border-bottom-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
                 if (!el('CorrelationRuleNameError')) {
                     var msg = document.createElement('div');
                     msg.id = 'CorrelationRuleNameError';
@@ -405,7 +405,7 @@ echo $this->Form->create('CorrelationRule', [
         if (nameEl) {
             nameEl.addEventListener('input', function () {
                 if (!nameEl.value.trim()) { return; }
-                nameEl.style.setProperty('border-bottom-color', '#d8dde3', 'important');
+                nameEl.style.setProperty('border-bottom-color', 'var(--misp-field-line, #d8dde3)', 'important');
                 var msg = el('CorrelationRuleNameError');
                 if (msg) { msg.remove(); }
             });

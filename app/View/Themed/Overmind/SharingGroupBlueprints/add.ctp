@@ -48,7 +48,7 @@ echo $this->Form->create('SharingGroupBlueprint', [
 
         <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Blueprint Name') ?>
@@ -60,7 +60,7 @@ echo $this->Form->create('SharingGroupBlueprint', [
             <?= $this->Form->text('name', [
                 'id' => 'BlueprintName',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important;'
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                     . ' outline:none;',
                 'placeholder' => __('e.g. European financial institutions'),
                 'autocomplete' => 'off',
@@ -127,7 +127,7 @@ echo $this->Form->create('SharingGroupBlueprint', [
             <div class="d-flex align-items-start gap-2 rounded-2 p-2 mt-3 small"
                  style="background:rgba(24,146,177,.05);
                         border:1px solid rgba(24,146,177,.25);">
-                <i class="fas fa-circle-info text-primary mt-1"
+                <i class="fas fa-circle-info text-accent mt-1"
                    style="font-size:.7rem;"></i>
                 <div class="text-muted">
                     <?= __('Nest %s, %s and %s branches to combine filters — a value can be a single value or a list.', '<code>OR</code>', '<code>AND</code>', '<code>NOT</code>') ?>
@@ -292,7 +292,7 @@ echo $this->Form->create('SharingGroupBlueprint', [
                 msg.appendChild(document.createTextNode(L.nameRequired));
                 nameEl.parentNode.insertBefore(msg, nameEl.nextSibling);
             }
-            nameEl.style.setProperty('border-bottom-color', '#dc3545', 'important');
+            nameEl.style.setProperty('border-bottom-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
             e.preventDefault();
             e.stopPropagation();
             nameEl.focus();
@@ -301,7 +301,7 @@ echo $this->Form->create('SharingGroupBlueprint', [
         if (nameEl) {
             nameEl.addEventListener('input', function () {
                 if (!nameEl.value.trim()) { return; }
-                nameEl.style.setProperty('border-bottom-color', '#d8dde3', 'important');
+                nameEl.style.setProperty('border-bottom-color', 'var(--misp-field-line, #d8dde3)', 'important');
                 var msg = document.getElementById('BlueprintNameError');
                 if (msg) { msg.remove(); }
             });

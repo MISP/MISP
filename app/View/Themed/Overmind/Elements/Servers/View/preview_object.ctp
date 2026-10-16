@@ -21,9 +21,12 @@ $distBadge = function ($dist) {
     $c = $this->DistributionLevel->get($dist);
     return sprintf(
         '<span class="badge d-inline-flex align-items-center px-2 py-1"'
-        . ' style="background:%s;color:%s;border:1px solid %s20;font-weight:500;">'
+        . ' style="background:%s;color:%s;border:1px solid %s;font-weight:500;">'
         . '<i class="%s"></i></span>',
-        h($c['bg']), h($c['color']), h($c['color']), h($c['icon'])
+        h($this->DistributionLevel->themed($c, 'bg')),
+        h($this->DistributionLevel->themed($c, 'fg')),
+        h($this->DistributionLevel->themed($c, 'border', '20')),
+        h($c['icon'])
     );
 };
 

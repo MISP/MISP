@@ -2,6 +2,14 @@
 $tag = Hash::extract($row, $field['data_path']);
 
 if (empty($tag)) {
+    // A taxonomy entry whose tag does not exist yet, dimmed
+    if (!empty($field['uncreated']) && !empty($row['tag'])) {
+        echo '<span class="opacity-50">' . $this->TagChip->chip([
+            'name' => $row['tag'],
+            'colour' => $row['colour'] ?? null,
+            'numerical_value' => $row['numerical_value'] ?? null,
+        ], ['searchUrl' => '']) . '</span>';
+    }
     return;
 }
 
@@ -29,7 +37,7 @@ $canViewTaxonomy = !empty($taxonomy['id']) && $this->Acl->canAccess('taxonomies'
 
 <div class="ms-4 mt-1">
     <?php if ($canViewTaxonomy): ?>
-        <a class="text-primary text-decoration-none d-flex align-items-center small "
+        <a class="text-decoration-none d-flex align-items-center small "
             href="<?= $baseurl ?>/taxonomies/view/<?= (int)$taxonomy['id'] ?>"
             title="<?= __('View the %s taxonomy', $namespace) ?>"
             aria-label="<?= __('View the %s taxonomy', $namespace) ?>">

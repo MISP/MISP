@@ -38,17 +38,19 @@ class UserSettingsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        // These four are only ever reached by hand-built same-origin AJAX from
+        // These five are only ever reached by hand-built same-origin AJAX from
         // the menu/navbar, so they cannot produce the field hash _validatePost()
         // wants - but they can and do carry the page's CSRF token in the
         // X-CSRF-Token header, so keep that check rather than unlocking both.
-        // Nothing here has a hidden field worth hashing: setTheme and
-        // setEventTemplateUserFormMode take an allowlisted URL argument,
-        // eventIndexColumnToggle a column name, and setHomePage a single path
-        // the user picks anyway and which setSetting() validates server-side.
+        // Nothing here has a hidden field worth hashing: setTheme,
+        // setBootstrapTheme and setEventTemplateUserFormMode take an
+        // allowlisted URL argument, eventIndexColumnToggle a column name, and
+        // setHomePage a single path the user picks anyway and which
+        // setSetting() validates server-side.
         $this->_csrfTokenHeaderOnly([
             'eventIndexColumnToggle',
             'setTheme',
+            'setBootstrapTheme',
             'setHomePage',
             'setEventTemplateUserFormMode',
         ]);
@@ -578,10 +580,16 @@ class UserSettingsController extends AppController
             throw new MethodNotAllowedException(__('Expecting POST request.'));
         }
 
-        $hideColumns = $this->UserSetting->getValueForUser($this->Auth->user()['id'], 'event_index_hide_columns');
-        if ($hideColumns === null) {
-            $hideColumns = [];
+        if (!in_array($columnName, $this->UserSetting::EVENT_INDEX_HIDEABLE_COLUMNS, true)) {
+            throw new BadRequestException(__('Invalid column name.'));
         }
+
+        $hideColumns = $this->UserSetting->getValueForUser($this->Auth->user()['id'], 'event_index_hide_columns');
+        // A name since renamed (`extending`) would fail the whole save.
+        $hideColumns = array_values(array_intersect(
+            (array)$hideColumns,
+            $this->UserSetting::EVENT_INDEX_HIDEABLE_COLUMNS
+        ));
 
         if (($key = array_search($columnName, $hideColumns, true)) !== false) {
             unset($hideColumns[$key]);
@@ -628,6 +636,43 @@ class UserSettingsController extends AppController
             $message = __('Failed to set %s theme.', $theme);
             return $this->RestResponse->saveFailResponse('UserSettings', 'setTheme', false, $message, 'json');
         }
+    }
+
+    /**
+     * Set the Bootstrap stylesheet the current user's pages render with. With
+     * no name, the user's choice is cleared and the instance default applies.
+     */
+    public function setBootstrapTheme($name = null)
+    {
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('Expecting POST request.'));
+        }
+        if ($name === null || $name === '') {
+            $result = $this->UserSetting->deleteAll([
+                'UserSetting.user_id' => $this->Auth->user('id'),
+                'UserSetting.setting' => 'ui_bootstrap_theme',
+            ], false);
+            if ($result) {
+                $message = __('Theme set to the instance default. The page will now reload.');
+                return $this->RestResponse->saveSuccessResponse('UserSettings', 'setBootstrapTheme', false, 'json', $message);
+            }
+            $message = __('Failed to reset the theme.');
+            return $this->RestResponse->saveFailResponse('UserSettings', 'setBootstrapTheme', false, $message, 'json');
+        }
+        if (!MispTheme::isBootstrapTheme($name)) {
+            throw new BadRequestException(__('Invalid Bootstrap theme provided.'));
+        }
+        $label = MispTheme::getBootstrapThemes()[$name]['label'];
+
+        $result = $this->UserSetting->setSettingInternal(
+            $this->Auth->user('id'), 'ui_bootstrap_theme', $name
+        );
+        if ($result) {
+            $message = __('%s theme set. The page will now reload.', $label);
+            return $this->RestResponse->saveSuccessResponse('UserSettings', 'setBootstrapTheme', false, 'json', $message);
+        }
+        $message = __('Failed to set %s theme.', $label);
+        return $this->RestResponse->saveFailResponse('UserSettings', 'setBootstrapTheme', false, $message, 'json');
     }
 
     /**

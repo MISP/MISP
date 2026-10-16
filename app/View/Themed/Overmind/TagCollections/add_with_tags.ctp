@@ -24,7 +24,7 @@ echo $this->Form->create('TagCollection', [
 
         <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Collection Name') ?>
@@ -36,7 +36,7 @@ echo $this->Form->create('TagCollection', [
             <?= $this->Form->text('name', [
                 'id' => 'TagCollectionName',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important;'
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                     . ' outline:none;',
                 'placeholder' => __('e.g. Phishing triage set'),
                 'autocomplete' => 'off',
@@ -52,7 +52,7 @@ echo $this->Form->create('TagCollection', [
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 2,
-                'style' => 'border-color:#d8dde3;',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                 'placeholder' => __('What this set of tags is for…'),
             ]) ?>
         </div>
@@ -111,7 +111,7 @@ echo $this->Form->create('TagCollection', [
                           user-select-none mb-0"
                    id="TagCollectionAllOrgsCard"
                    style="cursor:pointer; transition:border-color .15s;
-                          border:1px solid <?= $allOrgs ? 'var(--bs-primary)' : '#dee2e6' ?>;">
+                          border:1px solid <?= $allOrgs ? 'var(--bs-primary)' : 'var(--misp-check-off-line, #dee2e6)' ?>;">
                 <?= $this->Form->checkbox('all_orgs', [
                     'id' => 'TagCollectionAllOrgs',
                     'class' => 'form-check-input flex-shrink-0',
@@ -131,7 +131,7 @@ echo $this->Form->create('TagCollection', [
                 </div>
                 <i class="fas fa-globe" id="TagCollectionAllOrgsIcon"
                    style="font-size:.95rem; transition:color .15s;
-                          color:<?= $allOrgs ? 'var(--bs-primary)' : '#adb5bd' ?>;"></i>
+                          color:<?= $allOrgs ? 'var(--bs-primary)' : 'var(--misp-check-off-icon, #adb5bd)' ?>;"></i>
             </label>
         </div>
 
@@ -158,10 +158,10 @@ echo $this->Form->create('TagCollection', [
     if (allOrgsBox && allOrgsCard) {
         allOrgsBox.addEventListener('change', function () {
             allOrgsCard.style.setProperty('border-color',
-                allOrgsBox.checked ? 'var(--bs-primary)' : '#dee2e6');
+                allOrgsBox.checked ? 'var(--bs-primary)' : 'var(--misp-check-off-line, #dee2e6)');
             if (allOrgsIcon) {
                 allOrgsIcon.style.setProperty('color',
-                    allOrgsBox.checked ? 'var(--bs-primary)' : '#adb5bd');
+                    allOrgsBox.checked ? 'var(--bs-primary)' : 'var(--misp-check-off-icon, #adb5bd)');
             }
         });
     }
@@ -175,7 +175,7 @@ echo $this->Form->create('TagCollection', [
             if (nameEl.value.trim()) { return; }
             e.preventDefault();
             e.stopPropagation();
-            nameEl.style.setProperty('border-bottom-color', '#dc3545', 'important');
+            nameEl.style.setProperty('border-bottom-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
             if (!document.getElementById(errorId)) {
                 var msg = document.createElement('div');
                 msg.id = errorId;
@@ -193,7 +193,7 @@ echo $this->Form->create('TagCollection', [
 
         nameEl.addEventListener('input', function () {
             if (!nameEl.value.trim()) { return; }
-            nameEl.style.setProperty('border-bottom-color', '#d8dde3', 'important');
+            nameEl.style.setProperty('border-bottom-color', 'var(--misp-field-line, #d8dde3)', 'important');
             var msg = document.getElementById(errorId);
             if (msg) { msg.remove(); }
         });

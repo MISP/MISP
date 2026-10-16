@@ -27,14 +27,19 @@ $fields = [
         'name' => __('Target (galaxy :: cluster)'),
         'data_path' => 'GalaxyCluster',
         'element' => 'custom',
-        'function' => function ($row) use ($baseurl) {
+        'function' => function ($row) {
             $t = $row['GalaxyCluster'] ?? null;
             if (empty($t) || empty($t['id'])) {
                 return '<span class="text-muted">-</span>';
             }
-            $galaxyName = $t['Galaxy']['name'] ?? ($t['Galaxy']['type'] ?? '');
-            $label = ($galaxyName !== '' ? h($galaxyName) . ' :: ' : '') . h($t['value'] ?? '');
-            return '<a href="' . $baseurl . '/galaxy_clusters/view/' . h($t['id']) . '" class="text-decoration-none fw-semibold">' . $label . '</a>';
+            return $this->TagChip->cluster([
+                'id' => $t['id'],
+                'value' => $t['value'] ?? '',
+                'galaxy' => $t['Galaxy']['name'] ?? ($t['Galaxy']['type'] ?? ''),
+                'galaxy_id' => $t['Galaxy']['id'] ?? null,
+                'icon' => $t['Galaxy']['icon'] ?? null,
+                'description' => $t['description'] ?? null,
+            ]);
         },
     ],
     [
@@ -100,12 +105,29 @@ $fields = [
     ],
 ];
 
+$canAddRelation = $this->Acl->canAccess('galaxyClusterRelations', 'add')
+    && (!empty($me['Role']['perm_site_admin'])
+        || (!empty($me['Role']['perm_galaxy_editor']) && $me['org_id'] == $cluster['GalaxyCluster']['orgc_id']));
+$addRelationButton = '';
+if ($canAddRelation) {
+    $addUrl = $baseurl . '/galaxy_cluster_relations/add/' . (int)$cluster['GalaxyCluster']['id'];
+    $addRelationButton = sprintf(
+        '<button type="button" class="btn btn-sm btn-primary" onclick="openModal(%s)"><i class="fas fa-plus me-1"></i>%s</button>',
+        h(json_encode($addUrl)),
+        __('Add relationship')
+    );
+}
+
 if (empty($relations)) {
     echo '<div class="text-center text-muted py-5">'
         . '<i class="fas fa-diagram-project fa-2x mb-2 opacity-50"></i><br>'
         . __('This cluster has no relationships.')
+        . ($addRelationButton ? '<div class="mt-3">' . $addRelationButton . '</div>' : '')
         . '</div>';
 } else {
+    if ($addRelationButton) {
+        echo '<div class="d-flex justify-content-end mb-2">' . $addRelationButton . '</div>';
+    }
     echo $this->element('genericElementsBS5/IndexTable/scaffold', [
         'scaffold_data' => [
             'data' => [

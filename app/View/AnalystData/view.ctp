@@ -1,4 +1,25 @@
 <?php
+App::uses('AnalystData', 'Model');
+App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
+$analystTargets = $analystTargets ?? [];
+$valueTarget = function ($hex) use ($baseurl, $analystTargets) {
+    $known = $analystTargets[strtolower((string)$hex)] ?? null;
+    if ($known === null) {
+        return sprintf(
+            '<span class="bold">%s</span>: <span title="%s">%s</span>',
+            __('Value'),
+            h(__('This value could not be resolved, so it is shown by the SHA-256 of its text.')),
+            h($hex)
+        );
+    }
+    return sprintf(
+        '<span class="bold">%s</span>: <a href="%s/values/view/%s">%s</a>',
+        __('Value'),
+        h($baseurl),
+        h(ValueUrlTool::encode($known['value'])),
+        h($known['label'])
+    );
+};
 $fields = [
     [
         'key' => __('ID'),
@@ -17,7 +38,10 @@ $fields = [
     [
         'key' => __('Target Object'),
         'type' => 'custom',
-        'function' => function (array $row) use ($baseurl, $modelSelection) {
+        'function' => function (array $row) use ($baseurl, $modelSelection, $valueTarget) {
+            if (in_array($row[$modelSelection]['object_type'], AnalystData::SHA256_TARGETS, true)) {
+                return $valueTarget($row[$modelSelection]['object_sha256']);
+            }
             $path = Inflector::tableize($row[$modelSelection]['object_type']);
             $url = sprintf('%s/%s/view/%s',
                 h($baseurl),
@@ -92,7 +116,10 @@ if ($modelSelection === 'Note') {
     $fields[] = [
         'key' => __('Related Object'),
         'type' => 'custom',
-        'function' => function (array $row) use ($baseurl, $modelSelection) {
+        'function' => function (array $row) use ($baseurl, $modelSelection, $valueTarget) {
+            if (in_array($row[$modelSelection]['related_object_type'], AnalystData::SHA256_TARGETS, true)) {
+                return $valueTarget($row[$modelSelection]['related_object_sha256']);
+            }
             $path = Inflector::pluralize(strtolower($row[$modelSelection]['related_object_type']));
             return sprintf(
                 '<span class="bold">%s</span>: <a href="%s/%s/view/%s">%s</a>',

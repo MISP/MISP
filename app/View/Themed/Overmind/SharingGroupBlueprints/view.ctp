@@ -1,5 +1,6 @@
 <?php
 $blueprint = $data['SharingGroupBlueprint'] ?? [];
+$railCards = $railCards ?? [];
 
 $this->set('headerIdentity', $blueprint);
 $this->set('headerTitle', $blueprint['name'] ?? '');
@@ -19,9 +20,9 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
                 'SharingGroupBlueprints/View/sharingGroupBlueprints_general',
                 'SharingGroupBlueprints/View/sharingGroupBlueprints_orgs_card',
             ],
-            'right' => [
+            'right' => array_merge([
                 'SharingGroupBlueprints/View/sharingGroupBlueprints_actions',
-            ],
+            ], $this->RailCard->rail($railCards, ['blueprint-pending', 'blueprint-result'], 'general')),
         ],
         [
             'id' => 'organisations',
@@ -33,6 +34,7 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
                     'ajax' => sprintf('%s/SharingGroupBlueprints/viewOrgs/%s', $baseurl, (int)$blueprint['id']),
                 ],
             ],
+            'right' => $this->RailCard->rail($railCards, ['blueprint-pending'], 'organisations'),
         ],
     ],
 ]);

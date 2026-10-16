@@ -30,9 +30,11 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'left' => [
                 'AuthKeys/View/authkeys_general',
             ],
-            'right' => [
+            'right' => array_merge([
                 'AuthKeys/View/authkeys_actions',
-            ],
+            ], $this->RailCard->rail($railCards ?? [], [
+                'authkey-lifecycle', 'authkey-activity', 'authkey-addresses',
+            ], 'general')),
         ],
     ],
 ]);

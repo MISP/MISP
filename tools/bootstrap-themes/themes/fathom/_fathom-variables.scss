@@ -1,0 +1,263 @@
+// Fathom: a hydrographic chart. Warm chart paper around white "deep water"
+// surfaces, ink-navy line work, pale sounding blues, and the chart's magenta
+// for whatever marks a position: focus, the active tab, the current page.
+
+// Chart palette
+$fathom-ink:        #1d2a36;   // line work and type
+$fathom-ink-soft:   #56626d;   // margin notes
+$fathom-paper:      #f3eee2;   // the sheet outside the water
+$fathom-margin:     #fbf9f3;   // the white margin outside the neatline
+$fathom-water:      #fffefa;   // deep water: cards, tables, inputs
+$fathom-tan:        #ece3cb;   // land tint
+$fathom-shoal:      #dcebf5;   // shallow-water tint
+$fathom-shoal-deep: #c4dcec;   // the next contour in
+$fathom-navy:       #1f5683;   // sounding blue
+$fathom-magenta:    #a2338a;   // aids to navigation
+$fathom-rule:       #d6cfbd;   // hairlines on paper
+$fathom-rule-strong:#8a8473;   // input frames, 3:1 on water
+
+// Bootstrap colours
+$white:     #fff;
+$black:     #0f1820;
+$primary:   $fathom-navy;
+$secondary: #5b6670;
+$success:   #2e7449;
+$info:      #2f7ea6;
+$warning:   #c98a17;
+$danger:    #b42a2a;
+$light:     $fathom-paper;
+$dark:      $fathom-ink;
+
+$gray-100: #f7f4ec;
+$gray-200: #ece7da;
+$gray-300: #ddd6c5;
+$gray-400: #c4bca8;
+$gray-500: #9e9785;
+$gray-600: #6c6a62;
+$gray-700: #4b4f52;
+$gray-800: #2f3840;
+$gray-900: $fathom-ink;
+
+// MISP's colours, tuned to read at 3:1 on the water surface
+$misp-attribute:   #557a00;
+$misp-galaxy:      #7a4fdc;
+$misp-correlation: #a5590a;
+$misp-type:        #047a60;
+$misp-valueIntelligence: #856a00;
+
+// Surfaces: the page is .bg-light, which maps to the tertiary background
+$body-bg:            $fathom-water;
+$body-color:         $fathom-ink;
+$body-tertiary-bg:   $fathom-paper;
+$body-secondary-bg:  $gray-200;
+$body-secondary-color: $fathom-ink-soft;
+$body-tertiary-color:  rgba($fathom-ink, .7);
+$body-emphasis-color:  #0b131a;
+
+$link-color:            $fathom-navy;
+$link-hover-color:      $fathom-magenta;
+$link-decoration:       none;
+$link-hover-decoration: underline;
+
+$border-color:             $fathom-rule;
+$border-color-translucent: rgba($fathom-ink, .16);
+
+$primary-bg-subtle:     $fathom-shoal;
+$primary-border-subtle: $fathom-shoal-deep;
+$primary-text-emphasis: #163f61;
+$warning-bg-subtle:     #f6ebcc;
+$warning-border-subtle: #e6d29d;
+$warning-text-emphasis: #6a4806;
+$info-bg-subtle:        #e1eff6;
+$info-border-subtle:    #b7d6e6;
+$secondary-bg-subtle:   $gray-200;
+$secondary-border-subtle: $gray-300;
+$light-bg-subtle:       $gray-100;
+$light-border-subtle:   $gray-300;
+
+// Type: Plex Sans for reading, Plex Mono for values, Source Serif 4 for
+// titles, the way chart names are lettered apart from the soundings
+$font-family-sans-serif: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-family-monospace:  "IBM Plex Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+$fathom-font-serif:      "Source Serif 4", Georgia, "Times New Roman", serif;
+$font-size-base:         .9375rem;
+$line-height-base:       1.5;
+$headings-font-family:   $fathom-font-serif;
+$headings-font-weight:   600;
+$headings-color:         $fathom-ink;
+$headings-line-height:   1.2;
+$font-weight-semibold:   600;
+$small-font-size:        .8125rem;
+$code-color:             #8f2a79;
+
+// Sharp corners: a chart is ruled, not rounded
+$border-radius:     .125rem;
+$border-radius-sm:  .125rem;
+$border-radius-lg:  .1875rem;
+$border-radius-xl:  .25rem;
+$border-radius-xxl: .375rem;
+
+$box-shadow:    0 1px 2px rgba($fathom-ink, .08), 0 6px 16px -6px rgba($fathom-ink, .16);
+$box-shadow-sm: 0 1px 2px rgba($fathom-ink, .1);
+$box-shadow-lg: 0 2px 4px rgba($fathom-ink, .08), 0 18px 40px -12px rgba($fathom-ink, .3);
+
+// Focus is a plotted position: the chart's magenta
+$focus-ring-width:   .1875rem;
+$focus-ring-opacity: .3;
+$focus-ring-color:   rgba($fathom-magenta, .3);
+$input-btn-focus-color: $focus-ring-color;
+$input-btn-focus-width: .1875rem;
+
+// Buttons
+$btn-font-weight:        600;
+$btn-padding-y:          .375rem;
+$btn-padding-x:          .875rem;
+$btn-padding-y-sm:       .1875rem;
+$btn-padding-x-sm:       .5rem;
+$btn-border-radius:      $border-radius;
+$btn-border-radius-sm:   $border-radius-sm;
+$btn-border-radius-lg:   $border-radius-lg;
+$btn-active-box-shadow:  inset 0 2px 3px rgba($fathom-ink, .25);
+$btn-disabled-opacity:   .5;
+
+// Forms
+$input-bg:                  $fathom-water;
+$input-border-color:        $fathom-rule-strong;
+$input-color:               $fathom-ink;
+$input-placeholder-color:   #6f6c63;
+$input-focus-border-color:  $fathom-magenta;
+$input-focus-box-shadow:    0 0 0 .1875rem rgba($fathom-magenta, .2);
+$input-disabled-bg:         $gray-200;
+$input-group-addon-bg:      $fathom-paper;
+$input-group-addon-color:   $fathom-ink-soft;
+$form-label-font-weight:    600;
+$form-label-color:          $fathom-ink;
+$form-text-color:           $fathom-ink-soft;
+$form-check-input-border:   1px solid $fathom-rule-strong;
+$form-check-input-checked-bg-color:     $fathom-navy;
+$form-check-input-checked-border-color: $fathom-navy;
+$form-check-input-focus-border:         $fathom-magenta;
+$form-select-focus-border-color:        $fathom-magenta;
+$form-switch-color:         $fathom-rule-strong;
+$form-range-thumb-bg:       $fathom-navy;
+
+// Cards: white water inside a ruled frame
+$card-bg:               $fathom-water;
+$card-border-color:     rgba($fathom-ink, .22);
+$card-border-radius:    $border-radius;
+$card-cap-bg:           $fathom-margin;
+$card-cap-padding-y:    .625rem;
+$card-spacer-y:         1rem;
+$card-spacer-x:         1rem;
+
+// Tables
+$table-cell-padding-y:     .4375rem;
+$table-cell-padding-x:     .625rem;
+$table-cell-padding-y-sm:  .25rem;
+$table-cell-padding-x-sm:  .375rem;
+$table-border-color:       #e6e0d1;
+$table-striped-bg:         rgba($fathom-paper, .55);
+$table-hover-bg:           rgba($fathom-navy, .055);
+$table-active-bg:          rgba($fathom-navy, .1);
+$table-group-separator-color: $fathom-ink;
+
+// Navs and tabs
+$nav-link-color:            $fathom-ink-soft;
+$nav-link-hover-color:      $fathom-ink;
+$nav-link-font-weight:      600;
+$nav-tabs-border-color:     $fathom-rule;
+$nav-tabs-link-active-color: $fathom-ink;
+$nav-tabs-link-active-bg:    $fathom-water;
+$nav-tabs-link-active-border-color: $fathom-rule $fathom-rule $fathom-water;
+$nav-pills-link-active-bg:   $fathom-navy;
+$nav-underline-border-width: .1875rem;
+
+// Dropdowns
+$dropdown-bg:                $fathom-water;
+$dropdown-border-color:      rgba($fathom-ink, .28);
+$dropdown-link-color:        $fathom-ink;
+$dropdown-link-hover-color:  $fathom-ink;
+$dropdown-link-hover-bg:     $fathom-shoal;
+$dropdown-link-active-color: $white;
+$dropdown-link-active-bg:    $fathom-navy;
+$dropdown-divider-bg:        $fathom-rule;
+$dropdown-header-color:      $fathom-ink-soft;
+$dropdown-box-shadow:        $box-shadow;
+
+// Pagination, list groups, badges, alerts, progress
+$pagination-color:              $fathom-navy;
+$pagination-border-color:       $fathom-rule;
+$pagination-hover-bg:           $fathom-shoal;
+$pagination-hover-border-color: $fathom-shoal-deep;
+$pagination-active-bg:          $fathom-navy;
+$pagination-active-border-color: $fathom-navy;
+$list-group-border-color:       rgba($fathom-ink, .16);
+$list-group-hover-bg:           rgba($fathom-navy, .05);
+$list-group-active-bg:          $fathom-navy;
+$list-group-active-border-color: $fathom-navy;
+$badge-font-weight:             600;
+$badge-border-radius:           $border-radius;
+$alert-border-radius:           $border-radius;
+$alert-border-width:            1px;
+$progress-bg:                   $gray-200;
+$progress-border-radius:        $border-radius;
+$progress-height:               .75rem;
+
+// Modals, toasts, popovers, tooltips
+$modal-content-bg:            $fathom-water;
+$modal-content-border-color:  rgba($fathom-ink, .4);
+$modal-content-border-radius: $border-radius-lg;
+$modal-header-border-color:   $fathom-rule;
+$modal-footer-bg:             $fathom-margin;
+$modal-footer-border-color:   $fathom-rule;
+$modal-backdrop-bg:           #0d1a26;
+$modal-backdrop-opacity:      .45;
+$toast-background-color:      rgba($fathom-water, .97);
+$toast-header-background-color: $fathom-margin;
+$toast-border-color:          rgba($fathom-ink, .25);
+$popover-border-color:        rgba($fathom-ink, .3);
+$popover-header-bg:           $fathom-margin;
+$tooltip-bg:                  $fathom-ink;
+$tooltip-opacity:             .96;
+
+$accordion-button-active-bg:    $fathom-shoal;
+$accordion-button-active-color: $primary-text-emphasis;
+$accordion-border-color:        rgba($fathom-ink, .18);
+$breadcrumb-divider-color:      $fathom-ink-soft;
+$breadcrumb-active-color:       $fathom-ink-soft;
+
+// The navbar is the chart's white margin, lettered in ink
+$misp-navbar-bg:           $fathom-margin;
+$misp-navbar-accent:       $fathom-ink;
+$misp-navbar-brand-filter: none;
+
+// Correlation graph as a chart: this event marked in the chart's magenta,
+// flows in land and shoal tints, a ruled neatline, years lettered in mono
+// like soundings.
+$misp-surface-overrides: (
+  "graph-node-source":      $fathom-magenta,
+  "graph-node-attribute":   $misp-correlation,
+  "graph-node-target":      tint-color($fathom-navy, 35%),
+  "graph-node-org":         $fathom-rule-strong,
+  "graph-link-attribute":   shade-color($fathom-tan, 12%),
+  "graph-link-target":      $fathom-shoal-deep,
+  "graph-link-org":         rgba($fathom-rule-strong, .2),
+  "graph-label":            $fathom-ink,
+  "graph-label-source":     $fathom-magenta,
+  "graph-label-org":        rgba($fathom-ink-soft, .75),
+  "graph-label-org-linked": $fathom-ink,
+  "graph-lane":             rgba($fathom-shoal, .4),
+  "graph-lane-line":        rgba($fathom-ink, .3),
+  "graph-axis":             rgba($fathom-ink, .6),
+  "graph-grid":             rgba($fathom-ink, .14),
+  "graph-grid-label":       $fathom-ink-soft,
+  "graph-leader":           rgba($fathom-ink, .35),
+  "graph-accent":           $fathom-navy,
+  "graph-accent-ink":       $primary-text-emphasis,
+  "graph-marker":           $fathom-rule-strong,
+  "graph-marker-hover":     $fathom-ink,
+  "graph-current":          $fathom-magenta,
+  "graph-current-ink":      #fff,
+  "graph-current-on":       #fff,
+  "graph-font-display":     inspect($font-family-monospace)
+);

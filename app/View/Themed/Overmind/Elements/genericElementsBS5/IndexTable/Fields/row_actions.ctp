@@ -11,6 +11,9 @@ $renderIcon = function ($icon) {
     $icon = (string)$icon;
     $isFullClass = strpos($icon, ' ') !== false || strpos($icon, 'misp-icon') !== false;
     $cls = $isFullClass ? $icon : 'fas fa-' . $icon;
+    if (strpos($cls, 'fa-') !== false) {
+        $cls .= ' fa-fw';
+    }
     return '<i class="' . h($cls) . ' me-2"></i>';
 };
 
@@ -43,14 +46,14 @@ if ($field['data_path'] === 'Event.id') {
 <div class="d-inline-flex align-items-center checkbox-actions-wrapper checkbox-index">
     <div class="dropdown">
         <button
-            class="btn btn-sm btn-light p-1"
+            class="btn btn-sm p-1 row-menu-toggle"
             type="button"
             data-bs-toggle="dropdown"
             aria-expanded="false">
             <i class="fa-solid fa-ellipsis-vertical fs-5"></i>
         </button>
 
-        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+        <ul class="dropdown-menu dropdown-menu-end">
 
             <?php foreach ($actions as $action): ?>
 
@@ -91,17 +94,13 @@ if ($field['data_path'] === 'Event.id') {
                     <?php if ($action['type'] === 'navigate'): ?>
                         <?php if (!empty($action['download'])): ?>
                             <a class="dropdown-item" href="<?= h($url) ?>" download="<?= h($title_for_layout) . h($id) . '.json' ?>">
-                                <div>
-                                    <?= $renderIcon($action['icon']) ?>
-                                    <?= h($action['label']) ?>
-                                </div>
+                                <?= $renderIcon($action['icon']) ?>
+                                <?= h($action['label']) ?>
                             </a>
                         <?php else: ?>
                             <a class="dropdown-item" href="<?= h($url) ?>">
-                                <div>
-                                    <?= $renderIcon($action['icon']) ?>
-                                    <?= h($action['label']) ?>
-                                </div>
+                                <?= $renderIcon($action['icon']) ?>
+                                <?= h($action['label']) ?>
                             </a>
                         <?php endif; ?>
                     <?php elseif ($action['type'] === 'toggle'): ?>
@@ -130,7 +129,7 @@ if ($field['data_path'] === 'Event.id') {
                             </a>
                         <?php else: ?>
                             <?= $this->Form->postLink(
-                                '<div>' . $renderIcon($iconClass) . h($label) . '</div>',
+                                $renderIcon($iconClass) . h($label),
                                 $url,
                                 [
                                     'escape' => false,
@@ -154,10 +153,8 @@ if ($field['data_path'] === 'Event.id') {
                         <a class="<?= trim($classes) ?>"
                            href="<?= h($url) ?>"
                            onclick="<?= h($onclick) ?>">
-                            <div>
-                                <?= $renderIcon($action['icon']) ?>
-                                <?= h($action['label']) ?>
-                            </div>
+                            <?= $renderIcon($action['icon']) ?>
+                            <?= h($action['label']) ?>
                         </a>
 
                     <?php elseif ($action['type'] === 'js'): ?>
@@ -167,8 +164,8 @@ if ($field['data_path'] === 'Event.id') {
                         <a class="<?= trim('dropdown-item ' . ($action['class'] ?? '')) ?>"
                            href="#"
                            onclick="event.preventDefault(); <?= h($onclick) ?>">
-                                <?= $renderIcon($action['icon']) ?>
-                                <?= h($action['label']) ?>
+                            <?= $renderIcon($action['icon']) ?>
+                            <?= h($action['label']) ?>
                         </a>
 
                     <?php elseif ($action['type'] === 'copy'): ?>
@@ -185,7 +182,7 @@ if ($field['data_path'] === 'Event.id') {
 
                     <?php elseif ($action['type'] === 'postLink'): ?>
                         <?= $this->Form->postLink(
-                            '<div>' . $renderIcon($action['icon']) . h($action['label']) . '</div>',
+                            $renderIcon($action['icon']) . h($action['label']),
                             $url,
                             [
                                 'escape' => false,
@@ -194,8 +191,16 @@ if ($field['data_path'] === 'Event.id') {
                             $action['confirm'] ?? false
                         ) ?>
 
+                    <?php elseif ($action['type'] === 'intelGraph'): ?>
+                        <?php // Sent by intel-graph-actions.js: the records items($row) names ?>
+                        <a class="<?= trim('dropdown-item ' . ($action['class'] ?? '')) ?>" href="#"
+                           data-intel-graph-add="<?= h(json_encode($action['items']($row))) ?>">
+                            <?= $renderIcon($action['icon']) ?>
+                            <?= h($action['label']) ?>
+                        </a>
+
                     <?php elseif ($action['type'] === 'divider'): ?>
-                        <li><hr class="dropdown-divider"></li>
+                        <hr class="dropdown-divider">
 
                     <?php endif; ?>
 

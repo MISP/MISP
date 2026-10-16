@@ -16,9 +16,9 @@ $config = $this->DistributionLevel->get($distribution);
 
 <span class="badge d-inline-flex align-items-center px-2 py-1"
       style="
-        background-color: <?= h($config['bg']) ?>;
-        color: <?= h($config['color']) ?>;
-        border: 1px solid <?= h($config['color']) ?>20;
+        background-color: <?= h($this->DistributionLevel->themed($config, 'bg')) ?>;
+        color: <?= h($this->DistributionLevel->themed($config, 'fg')) ?>;
+        border: 1px solid <?= h($this->DistributionLevel->themed($config, 'border', '20')) ?>;
         font-weight: 500;
       "
       title="<?= h($config['label']) ?>">

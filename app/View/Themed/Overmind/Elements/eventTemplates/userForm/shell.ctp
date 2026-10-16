@@ -244,7 +244,7 @@
         baseurl:    <?= json_encode($baseurl, $jsonScriptFlags) ?>,
         templateId: <?= (int)$templateId ?>,
         isPreview:  <?= $isPreview ? 'true' : 'false' ?>,
-        eventViewUrl: <?= json_encode($baseurl . '/events/view2/', $jsonScriptFlags) ?>
+        eventViewUrl: <?= json_encode($baseurl . '/events/view/', $jsonScriptFlags) ?>
     };
 </script>
 

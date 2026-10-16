@@ -1,0 +1,366 @@
+// Sci-Fi: a command-console look. Deep navy hull, blue framed controls,
+// gold for the command that matters, extended techno capitals in the chrome.
+
+// Hull and plates, darkest first. The page is .bg-light, so the tertiary
+// background; cards, inputs and tables sit on $body-bg.
+$sc-void:        #090918;
+$sc-hull:        #0e1426;
+$sc-plate:       #151d33;
+$sc-bar:         #111829;
+$sc-well:        #070d1b;
+
+// Blue: the frame of every control.
+$sc-blue:        #2d7be0;
+$sc-blue-bright: #4f9dff;
+$sc-blue-deep:   #133a72;
+$sc-blue-line:   #306ba7;
+$sc-ice:         #99ccff;
+$sc-glow:        #809cd0;
+
+// Gold: the command button and the active marker.
+$sc-gold:        #d9a334;
+$sc-gold-bright: #f0bd4f;
+$sc-gold-deep:   #5c3f0e;
+$sc-amber:       #ffdd99;
+
+$sc-text:        #c8d4e8;
+$sc-muted:       #8fa0bf;
+$sc-faint:       #7083a6;
+$sc-line:        #1e2a46;
+
+$sc-display: "Orbitron", "Source Sans Pro", system-ui, sans-serif;
+
+// Palette
+$white:     #fff;
+$blue:      $sc-blue;
+$indigo:    #6a5cff;
+$purple:    #9b6bff;
+$pink:      #e05ab8;
+$red:       #e5484d;
+$orange:    #f08a24;
+$yellow:    $sc-gold;
+$green:     #2fbf7a;
+$teal:      #22c3b5;
+$cyan:      #3fb6ff;
+
+$primary:   $sc-gold;
+$secondary: #7d93bd;
+$success:   $green;
+$info:      $cyan;
+$warning:   $orange;
+$danger:    $red;
+
+$min-contrast-ratio: 4.5;
+$color-contrast-dark: #0b0f1c;
+$color-contrast-light: $white;
+
+// Body
+$body-bg:               $sc-hull;
+$body-color:            $sc-text;
+$body-secondary-color:  $sc-muted;
+$body-secondary-bg:     $sc-plate;
+$body-tertiary-color:   $sc-faint;
+$body-tertiary-bg:      $sc-void;
+$body-emphasis-color:   $white;
+
+$border-color:             $sc-line;
+$border-color-translucent: rgba($sc-ice, .14);
+
+$link-color:            $sc-ice;
+$link-hover-color:      $white;
+$link-decoration:       none;
+$link-hover-decoration: underline;
+
+$component-active-color: $color-contrast-dark;
+$component-active-bg:    $primary;
+
+$focus-ring-color:   rgba($sc-blue-bright, .45);
+$focus-ring-width:   .2rem;
+
+// Subtle surfaces: Bootstrap's light-mode defaults are pastel, so every one
+// is mixed into the hull instead.
+$primary-bg-subtle:       mix($primary, $sc-void, 18%);
+$primary-border-subtle:   mix($primary, $sc-hull, 45%);
+$primary-text-emphasis:   $sc-amber;
+$secondary-bg-subtle:     $sc-plate;
+$secondary-border-subtle: mix($secondary, $sc-hull, 40%);
+$secondary-text-emphasis: #c3d0e8;
+$success-bg-subtle:       mix($success, $sc-hull, 16%);
+$success-border-subtle:   mix($success, $sc-hull, 45%);
+$success-text-emphasis:   tint-color($success, 45%);
+$info-bg-subtle:          mix($info, $sc-hull, 16%);
+$info-border-subtle:      mix($info, $sc-hull, 45%);
+$info-text-emphasis:      $sc-ice;
+$warning-bg-subtle:       mix($warning, $sc-hull, 16%);
+$warning-border-subtle:   mix($warning, $sc-hull, 45%);
+$warning-text-emphasis:   tint-color($warning, 50%);
+$danger-bg-subtle:        mix($danger, $sc-hull, 18%);
+$danger-border-subtle:    mix($danger, $sc-hull, 45%);
+$danger-text-emphasis:    tint-color($danger, 45%);
+$light-bg-subtle:         $sc-plate;
+$light-border-subtle:     $sc-line;
+$light-text-emphasis:     $sc-text;
+$dark-bg-subtle:          $sc-well;
+$dark-border-subtle:      $sc-line;
+$dark-text-emphasis:      $sc-text;
+
+// MISP colours: the four darkest are lifted to 3:1 on the hull, hue kept.
+$misp-object:      #9b8f8d;
+$misp-sighting:    #c552d4;
+$misp-analystData: #cf5a8c;
+$misp-enrichment:  #8f88b0;
+
+// Type
+$font-family-sans-serif: "Source Sans Pro", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-size-base:         .9375rem;
+$font-size-sm:           $font-size-base * .875;
+$headings-font-family:   $sc-display;
+$headings-font-weight:   700;
+$headings-color:         $white;
+$h1-font-size:           $font-size-base * 2;
+$h2-font-size:           $font-size-base * 1.6;
+$h3-font-size:           $font-size-base * 1.35;
+$h4-font-size:           $font-size-base * 1.15;
+$h5-font-size:           $font-size-base * 1;
+$h6-font-size:           $font-size-base * .875;
+$display-font-family:    $sc-display;
+
+// Shape: near-square corners; the chamfers are drawn in the component layer.
+$border-radius:      2px;
+$border-radius-sm:   1px;
+$border-radius-lg:   3px;
+$border-radius-xl:   4px;
+$border-radius-xxl:  6px;
+
+$box-shadow:    0 .5rem 1.25rem rgba(0, 0, 0, .55);
+$box-shadow-sm: 0 .125rem .3rem rgba(0, 0, 0, .45);
+$box-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, .65);
+
+// Buttons
+$btn-font-family:   $sc-display;
+$btn-font-weight:   700;
+$btn-font-size:     .72rem;
+$btn-font-size-sm:  .64rem;
+$btn-font-size-lg:  .85rem;
+$btn-padding-y:     .55rem;
+$btn-padding-x:     1.05rem;
+$btn-padding-y-sm:  .32rem;
+$btn-padding-x-sm:  .6rem;
+$btn-padding-y-lg:  .75rem;
+$btn-padding-x-lg:  1.5rem;
+$btn-border-width:  2px;
+$btn-box-shadow:    none;
+$btn-focus-width:   .2rem;
+$btn-link-color:    $sc-ice;
+$btn-link-hover-color: $white;
+
+// Forms
+$input-bg:                  $sc-well;
+$input-color:               $sc-ice;
+$input-border-color:        #24508f;
+$input-focus-bg:            #08132a;
+$input-focus-color:         #e3f0ff;
+$input-focus-border-color:  $sc-blue-bright;
+$input-focus-box-shadow:    0 0 0 .2rem rgba($sc-blue, .35);
+$input-placeholder-color:   #7b8fb3;
+$input-disabled-bg:         $sc-plate;
+$input-disabled-color:      $sc-muted;
+$input-group-addon-bg:      $sc-plate;
+$input-group-addon-color:   $sc-ice;
+$form-select-indicator-color: $sc-ice;
+$form-label-color:          $white;
+$form-text-color:           $sc-muted;
+$form-check-input-bg:       $sc-well;
+$form-check-input-border:   1px solid #2f5d9e;
+$form-check-input-border-radius: 1px;
+$form-check-input-checked-color: $color-contrast-dark;
+$form-check-input-checked-bg-color: $sc-gold;
+$form-check-input-checked-border-color: $sc-gold-bright;
+$form-check-input-focus-border: $sc-blue-bright;
+$form-switch-color:         #4f6a96;
+$form-switch-focus-color:   $sc-blue-bright;
+$form-switch-checked-color: $color-contrast-dark;
+$form-range-track-bg:       $sc-plate;
+$form-range-thumb-bg:       $sc-gold;
+$form-valid-color:          tint-color($success, 25%);
+$form-valid-border-color:   $success;
+$form-invalid-color:        tint-color($danger, 35%);
+$form-invalid-border-color: $danger;
+
+// Cards, panels
+$card-bg:           $sc-hull;
+$card-border-color: rgba($sc-blue, .45);
+$card-border-radius: 0;
+$card-inner-border-radius: 0;
+$card-cap-bg:       rgba($sc-blue, .07);
+$card-cap-color:    $white;
+$card-spacer-y:     1rem;
+$card-spacer-x:     1.1rem;
+$card-cap-padding-y: .65rem;
+
+$accordion-bg:                    $sc-hull;
+$accordion-border-color:          $sc-line;
+$accordion-button-active-bg:      rgba($sc-blue, .14);
+$accordion-button-active-color:   $sc-ice;
+$accordion-button-color:          $sc-text;
+$accordion-icon-color:            $sc-ice;
+$accordion-icon-active-color:     $sc-amber;
+$accordion-button-focus-box-shadow: 0 0 0 .2rem rgba($sc-blue, .35);
+
+$list-group-bg:            $sc-hull;
+$list-group-border-color:  $sc-line;
+$list-group-hover-bg:      rgba($sc-blue, .1);
+$list-group-action-color:  $sc-text;
+$list-group-action-hover-color: $white;
+$list-group-active-bg:     mix($sc-blue, $sc-hull, 30%);
+$list-group-active-border-color: $sc-blue;
+$list-group-active-color:  $white;
+
+// Dropdowns: the reference's open list, a 1px steel-blue edge on navy.
+$dropdown-bg:               #10182b;
+$dropdown-color:            $sc-text;
+$dropdown-border-color:     $sc-blue-line;
+$dropdown-border-radius:    0;
+$dropdown-divider-bg:       rgba($sc-ice, .12);
+$dropdown-link-color:       $sc-text;
+$dropdown-link-hover-color: $white;
+$dropdown-link-hover-bg:    rgba($sc-blue-line, .32);
+$dropdown-link-active-color: $color-contrast-dark;
+$dropdown-link-active-bg:   $sc-gold;
+$dropdown-header-color:     $sc-glow;
+$dropdown-box-shadow:       0 .75rem 2rem rgba(0, 0, 0, .7);
+
+// Navs
+$nav-link-color:              $sc-ice;
+$nav-link-hover-color:        $white;
+$nav-link-font-weight:        600;
+$nav-tabs-border-color:       rgba($sc-blue, .4);
+$nav-tabs-link-hover-border-color: transparent;
+$nav-tabs-link-active-color:  $white;
+$nav-tabs-link-active-bg:     $sc-hull;
+$nav-tabs-link-active-border-color: rgba($sc-blue, .7) rgba($sc-blue, .7) $sc-hull;
+$nav-pills-link-active-bg:    $sc-gold;
+$nav-pills-link-active-color: $color-contrast-dark;
+$nav-underline-link-active-color: $white;
+
+$pagination-color:              $sc-ice;
+$pagination-bg:                 $sc-hull;
+$pagination-border-color:       $sc-line;
+$pagination-hover-color:        $white;
+$pagination-hover-bg:           rgba($sc-blue, .2);
+$pagination-hover-border-color: $sc-blue-line;
+$pagination-active-color:       $color-contrast-dark;
+$pagination-active-bg:          $sc-gold;
+$pagination-active-border-color: $sc-gold-bright;
+$pagination-disabled-color:     $sc-faint;
+$pagination-disabled-bg:        $sc-hull;
+$pagination-disabled-border-color: $sc-line;
+$pagination-focus-box-shadow:   0 0 0 .2rem rgba($sc-blue, .35);
+
+$breadcrumb-divider-color: $sc-faint;
+$breadcrumb-active-color:  $sc-muted;
+
+// Tables: calm. No ornament per row.
+$table-color:          $sc-text;
+$table-bg:             transparent;
+$table-border-color:   #1b2540;
+$table-striped-bg-factor: .025;
+$table-striped-bg:     rgba($sc-ice, .025);
+$table-hover-bg:       rgba($sc-blue, .08);
+$table-active-bg:      rgba($sc-blue, .14);
+$table-th-font-weight: 700;
+// Row variants are shaded towards black, not tinted to pastel.
+$table-bg-scale:       75%;
+$table-cell-padding-y-sm: .3rem;
+
+// Badges
+$badge-font-weight:   700;
+$badge-font-size:     .68em;
+$badge-border-radius: 1px;
+$badge-padding-x:     .6em;
+
+// Alerts
+$alert-border-radius: 0;
+$alert-border-width:  1px;
+
+// Modals, toasts, popovers, tooltips
+$modal-content-bg:            $sc-hull;
+$modal-content-border-color:  rgba($sc-blue, .55);
+$modal-content-border-radius: 0;
+$modal-header-border-color:   rgba($sc-blue, .35);
+$modal-footer-border-color:   rgba($sc-blue, .2);
+$modal-backdrop-bg:           #02030b;
+$modal-backdrop-opacity:      .78;
+$modal-content-box-shadow-xs: 0 .5rem 1.5rem rgba(0, 0, 0, .7);
+$modal-content-box-shadow-sm-up: 0 1rem 3rem rgba(0, 0, 0, .75);
+
+$toast-background-color:   rgba($sc-hull, .97);
+$toast-border-color:       $sc-blue-line;
+$toast-header-background-color: rgba($sc-blue, .12);
+$toast-header-color:       $sc-ice;
+$toast-border-radius:      0;
+
+$popover-bg:               #10182b;
+$popover-border-color:     $sc-blue-line;
+$popover-header-bg:        rgba($sc-blue, .14);
+$popover-header-color:     $white;
+$popover-body-color:       $sc-text;
+$popover-border-radius:    0;
+
+$tooltip-bg:      #182744;
+$tooltip-color:   #e6f0ff;
+$tooltip-opacity: 1;
+$tooltip-border-radius: 1px;
+
+$progress-bg:         $sc-well;
+$progress-bar-bg:     $sc-blue;
+$progress-border-radius: 0;
+$progress-height:     .9rem;
+
+$btn-close-color:   $sc-ice;
+$btn-close-opacity: .8;
+
+$offcanvas-bg-color:     $sc-hull;
+$offcanvas-border-color: $sc-blue-line;
+
+$mark-bg:    mix($sc-gold, $sc-hull, 35%);
+$mark-color: $white;
+$kbd-bg:     $sc-plate;
+$kbd-color:  $sc-ice;
+
+$hr-border-color: rgba($sc-ice, .25);
+$hr-opacity:      1;
+
+// The navbar: the reference's slate bar with gold as the active marker.
+$misp-navbar-bg:     $sc-bar;
+$misp-navbar-accent: $sc-gold-bright;
+
+// Correlation graph: this event in command gold, its values in readout teal,
+// the events they reach in the frame blue, on a blue-ruled lane.
+$misp-surface-overrides: (
+  "graph-node-source":      $sc-gold-bright,
+  "graph-node-attribute":   $teal,
+  "graph-node-target":      $sc-blue-bright,
+  "graph-node-org":         $sc-glow,
+  "graph-link-attribute":   mix($sc-gold, $sc-hull, 40%),
+  "graph-link-target":      mix($sc-blue, $sc-hull, 60%),
+  "graph-link-org":         rgba($sc-glow, .18),
+  "graph-label":            $sc-text,
+  "graph-label-source":     $sc-amber,
+  "graph-label-org":        rgba($sc-muted, .75),
+  "graph-label-org-linked": $sc-ice,
+  "graph-lane":             rgba($sc-blue, .06),
+  "graph-lane-line":        rgba($sc-blue-line, .4),
+  "graph-axis":             rgba($sc-blue-line, .85),
+  "graph-grid":             rgba($sc-blue-line, .3),
+  "graph-grid-label":       $sc-glow,
+  "graph-leader":           rgba($sc-glow, .4),
+  "graph-accent":           $sc-blue-bright,
+  "graph-accent-ink":       $sc-ice,
+  "graph-marker":           mix($sc-blue-line, $sc-void, 75%),
+  "graph-marker-hover":     $sc-ice,
+  "graph-current":          $sc-gold-bright,
+  "graph-current-ink":      $sc-void,
+  "graph-current-on":       $sc-void,
+  "graph-font-display":     inspect($sc-display)
+);

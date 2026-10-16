@@ -59,6 +59,7 @@ class AuditLogBehavior extends ModelBehavior
         'Galaxy' => 'name',
         'GalaxyCluster' => 'value',
         'Warninglist' => 'name',
+        'Graph' => 'name',
     ];
 
     public function __construct()
@@ -411,6 +412,13 @@ class AuditLogBehavior extends ModelBehavior
 
             if ($value == $old) {
                 continue;
+            }
+            if (method_exists($model, 'auditLogSummary')) {
+                $summary = $model->auditLogSummary($key, $old, $value);
+                if ($summary !== null) {
+                    $changedFields[$key] = $summary;
+                    continue;
+                }
             }
             $sanitiseFields = ['password', 'api_key', 'authkey', 'headers', 'api_token', 'token', 'key'];
             if (in_array($key, $sanitiseFields) || ($key === 'value' && $model->name === 'SystemSetting' && SystemSetting::isSensitive($model->data[$model->alias]['setting']))) {

@@ -8,14 +8,13 @@ echo $this->element('genericElements/assetLoader', [
 ]);
 ?>
 
-<div class="card shadow-sm mb-3">
+<div class="card shadow-sm mb-3 corr-graph">
 
     <!-- HEADER -->
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
-            <div class="rounded-2 d-flex align-items-center justify-content-center"
-                 style="width:36px;height:36px;background:rgba(66,139,202,.15);">
-                <i class="fas fa-project-diagram" style="color:#428bca;font-size:1rem;"></i>
+            <div class="corr-graph-icon rounded-2 d-flex align-items-center justify-content-center">
+                <i class="fas fa-project-diagram"></i>
             </div>
             <div class="me-auto">
                 <div class="fw-bold lh-1"><?= __('Correlation Graph') ?></div>
@@ -29,7 +28,7 @@ echo $this->element('genericElements/assetLoader', [
 
         <!-- Loader -->
         <div id="correlations-loader" class="text-center py-4 text-muted">
-            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            <div class="misp-loader mb-2" role="status"></div>
             <?= h(__('Analyzing correlations…')) ?>
         </div>
 
@@ -492,7 +491,7 @@ echo $this->element('genericElements/assetLoader', [
             ticks.appendChild(tick);
         });
 
-        /* event marks are light strokes now - blue is reserved for the handles */
+        /* event marks are light strokes - the accent is reserved for the handles */
         markers.innerHTML = '';
         if (isFinite(_currentEventDateTs)
             && _currentEventDateTs >= _rangeMinTs
@@ -721,7 +720,7 @@ echo $this->element('genericElements/assetLoader', [
         $meta['label'] = h($meta['label']);
         return $meta;
     }, $this->DistributionLevel->all()), JSON_FORCE_OBJECT) ?>;
-    var _distFallback = {bg:'#f1f5f9', color:'#64748b', icon:'fas fa-link', label:''};
+    var _distFallback = {bg:'#f1f5f9', color:'#64748b', icon:'fas fa-link', label:'', token:'dist-unknown'};
 
     function renderCorrelationsList(eventDetails, eventCounts, attributeMap) {
         var listEl = document.getElementById('correlations-list');
@@ -770,12 +769,18 @@ echo $this->element('genericElements/assetLoader', [
             distBadge.className =
                 'rounded-2 d-flex align-items-center justify-content-center'
                 + ' flex-shrink-0 mt-1';
+            var distTone = function (role, value) {
+                return dist.token
+                    ? 'var(--misp-' + dist.token + '-' + role + ', ' + value + ')'
+                    : value;
+            };
             distBadge.style.cssText = 'width:34px;height:34px;'
-                + 'background:' + dist.bg + ';'
-                + 'border:1px solid ' + dist.color + '33;';
+                + 'background:' + distTone('bg', dist.bg) + ';'
+                + 'border:1px solid ' + distTone('border', dist.color + '33') + ';';
             if (dist.label) distBadge.title = dist.label;
             distBadge.innerHTML = '<i class="' + dist.icon
-                + '" style="color:' + dist.color + ';font-size:.85rem;"></i>';
+                + '" style="color:' + distTone('fg', dist.color)
+                + ';font-size:.85rem;"></i>';
 
             /* header row - the link no longer spans it, the pill is a button */
             var header = document.createElement('div');
@@ -783,10 +788,10 @@ echo $this->element('genericElements/assetLoader', [
                 'd-flex align-items-start gap-3 px-3 py-2 corr-event-row';
 
             var link = document.createElement('a');
-            link.href = baseurl + '/events/view2/' + eid;
+            link.href = baseurl + '/events/view/' + eid;
             link.className =
                 'd-flex align-items-start gap-3 flex-fill overflow-hidden'
-                + ' text-decoration-none text-dark';
+                + ' text-decoration-none text-body';
 
             var meta = document.createElement('div');
             meta.className = 'flex-fill overflow-hidden';
@@ -1307,19 +1312,12 @@ echo $this->element('genericElements/assetLoader', [
         });
 
         /* ── interaction helpers ──────────────────────────── */
-        function sankeyNodeFill(node) {
-            if (node.type === 'target')    return '#8fbfe8';
-            if (node.type === 'org')       return '#b7c5d6';
-            if (node.type === 'source')    return '#6fbe80';
-            if (node.type === 'attribute') return '#f39a1f';
-            return '#428bca';
-        }
         function isSankeyInteractiveNode(node) {
             return node && (node.type === 'target' || node.type === 'attribute' || node.type === 'org');
         }
         function handleSankeyNodeClick(node) {
             if (node.type === 'target' && node.id) {
-                window.location.href = baseurl + '/events/view2/' + node.id;
+                window.location.href = baseurl + '/events/view/' + node.id;
             } else if (node.type === 'attribute' && node.id) {
                 omFilterCorrelations(node.id, 'attribute');
             }
@@ -1390,17 +1388,14 @@ echo $this->element('genericElements/assetLoader', [
                     var c = an.type === 'attribute' ? sankeyLinkConnectedToAttribute(l, an) : sankeyLinkConnectedToTarget(l, an);
                     return c ? linkOpacity : 0.08;
                 });
-            svg.selectAll('.sankey-label').transition().duration(200)
+            svg.selectAll('.sankey-label')
+                .classed('is-linked', function (n) {
+                    return n.type === 'org'
+                        && (an.type === 'attribute' ? sankeyNodeConnectedToAttribute(n, an) : sankeyNodeConnectedToTarget(n, an));
+                })
+                .transition().duration(200)
                 .style('opacity', function (n) {
                     return (an.type === 'attribute' ? sankeyNodeConnectedToAttribute(n, an) : sankeyNodeConnectedToTarget(n, an)) ? 1 : 0.1;
-                })
-                .style('fill', function (n) {
-                    if (n.type === 'source') return '#21486f';
-                    if (n.type === 'org') {
-                        var c = an.type === 'attribute' ? sankeyNodeConnectedToAttribute(n, an) : sankeyNodeConnectedToTarget(n, an);
-                        return c ? '#31465b' : 'rgba(86, 105, 125, 0.5)';
-                    }
-                    return null;
                 })
                 .style('font-weight', function (n) {
                     if (n.type === 'org') {
@@ -1422,13 +1417,9 @@ echo $this->element('genericElements/assetLoader', [
                 .style('stroke-opacity', function (l) {
                     return (l.source && l.source.type === 'target' && l.target && l.target.type === 'org') ? 0.24 : 0.5;
                 });
-            svg.selectAll('.sankey-label').transition().duration(200)
+            svg.selectAll('.sankey-label').classed('is-linked', false)
+                .transition().duration(200)
                 .style('opacity', 1)
-                .style('fill', function (n) {
-                    if (n.type === 'source') return '#21486f';
-                    if (n.type === 'org')    return 'rgba(86, 105, 125, 0.62)';
-                    return null;
-                })
                 .style('font-weight', function (n) {
                     return n.type === 'org' ? '500' : (isSankeyInteractiveNode(n) ? 'bold' : 'normal');
                 });
@@ -1451,26 +1442,26 @@ echo $this->element('genericElements/assetLoader', [
 
                 gridGroup.append('rect').attr('x', dateLaneStart).attr('y', laneTop)
                     .attr('width', dateLaneEnd - dateLaneStart).attr('height', laneHeight)
-                    .attr('fill', 'rgba(84,142,94,.035)').attr('stroke', 'rgba(71,109,79,.12)').attr('stroke-width', 1);
+                    .attr('class', 'sankey-grid-lane').attr('stroke-width', 1);
                 gridGroup.append('line').attr('x1', dateLaneStart).attr('x2', dateLaneEnd)
                     .attr('y1', axisY).attr('y2', axisY)
-                    .attr('stroke', 'rgba(63,88,70,.34)').attr('stroke-width', 2).attr('shape-rendering', 'geometricPrecision');
+                    .attr('class', 'sankey-grid-axis').attr('stroke-width', 2).attr('shape-rendering', 'geometricPrecision');
 
                 var tg = gridGroup.selectAll('g').data(gridTicks).enter().append('g').attr('class', 'sankey-target-grid-tick');
                 tg.append('line')
                     .attr('x1', function (d) { return d.x; }).attr('x2', function (d) { return d.x; })
                     .attr('y1', tickTopY).attr('y2', laneBottom)
-                    .attr('stroke', function (d) { return d.isEdge ? 'rgba(63,88,70,.28)' : 'rgba(63,88,70,.18)'; })
+                    .attr('class', function (d) { return 'sankey-grid-line' + (d.isEdge ? ' is-edge' : ''); })
                     .attr('stroke-width', 1).attr('shape-rendering', 'crispEdges');
                 tg.append('line')
                     .attr('x1', function (d) { return d.x; }).attr('x2', function (d) { return d.x; })
                     .attr('y1', tickTopY).attr('y2', axisY)
-                    .attr('stroke', 'rgba(63,88,70,.42)').attr('stroke-width', 1.4).attr('shape-rendering', 'crispEdges');
+                    .attr('class', 'sankey-grid-stub').attr('stroke-width', 1.4).attr('shape-rendering', 'crispEdges');
                 tg.append('text')
                     .attr('x', function (d) { return d.x; }).attr('y', laneTop - 38)
                     .attr('text-anchor', 'start').attr('dx', '3px').attr('dy', '-2px')
                     .attr('transform', function (d) { return 'rotate(-55,' + d.x + ',' + (laneTop - 38) + ')'; })
-                    .style('font', '700 10px sans-serif').style('fill', '#44515f')
+                    .attr('class', 'sankey-grid-label')
                     .text(function (d) { return d.label; });
 
                 if (isFinite(currentEventDateTs) && sankeyScaleMaxTs > sankeyScaleMinTs) {
@@ -1483,18 +1474,18 @@ echo $this->element('genericElements/assetLoader', [
                     var ceCY    = ceNY + ceNH / 2, ceLX = ceNX + ceNW + targetLabelGap;
                     var mg = gridGroup.append('g').attr('class', 'sankey-current-event-marker');
                     mg.append('rect').attr('x', ceNX).attr('y', ceNY).attr('width', ceNW).attr('height', ceNH)
-                        .attr('fill', '#6fbe80').append('title').text(currentEventFullTitle);
+                        .attr('class', 'sankey-current-node').append('title').text(currentEventFullTitle);
                     mg.append('text').attr('x', ceNX + ceNW / 2).attr('y', ceCY)
                         .attr('text-anchor', 'middle').attr('dy', '0.35em')
-                        .style('font', '700 10px sans-serif').style('fill', '#fff')
+                        .attr('class', 'sankey-current-star')
                         .text('★').append('title').text(currentEventFullTitle);
                     mg.append('line').attr('x1', ceNX + ceNW).attr('x2', ceLX - 6)
                         .attr('y1', ceCY).attr('y2', ceCY)
-                        .attr('stroke', 'rgba(74,92,112,.45)').attr('stroke-width', 1)
+                        .attr('class', 'sankey-leader').attr('stroke-width', 1)
                         .attr('shape-rendering', 'crispEdges').attr('pointer-events', 'none');
                     mg.append('text').attr('x', ceLX).attr('y', ceCY)
                         .attr('text-anchor', 'start').attr('dy', '0.35em')
-                        .style('font', '700 10px sans-serif').style('fill', '#26313d')
+                        .attr('class', 'sankey-current-label')
                         .text(truncateSourceLabel(currentEventName)).append('title').text(currentEventFullTitle);
                 }
             }
@@ -1525,7 +1516,7 @@ echo $this->element('genericElements/assetLoader', [
         nodeGroup.append('rect')
             .attr('x', function (d) { return d.x0; }).attr('y', function (d) { return d.y0; })
             .attr('height', function (d) { return d.y1 - d.y0; }).attr('width', function (d) { return d.x1 - d.x0; })
-            .attr('fill', sankeyNodeFill)
+            .attr('class', 'sankey-node-bar')
             .attr('cursor', function (d) { return isSankeyInteractiveNode(d) ? 'pointer' : 'default'; })
             .on('click', handleSankeyNodeClick)
             .on('mouseover', function (d) { applySankeyHoverState(d, 0.7); })
@@ -1536,31 +1527,31 @@ echo $this->element('genericElements/assetLoader', [
         /* ── draw links ───────────────────────────────────── */
         var link = svg.append('g').attr('fill', 'none').attr('stroke-opacity', 0.5)
             .selectAll('path').data(graph.links).enter().append('path')
-            .attr('class', 'sankey-link')
+            .attr('class', function (d) {
+                var kind = '';
+                if (d.source.type === 'source'    && d.target.type === 'attribute') kind = ' sankey-link-attribute';
+                if (d.source.type === 'attribute' && d.target.type === 'target')    kind = ' sankey-link-target';
+                if (d.source.type === 'target'    && d.target.type === 'org')       kind = ' sankey-link-org';
+                return 'sankey-link' + kind;
+            })
             .attr('d', function (d) {
                 var x0 = d.source.x1, x1 = d.target.x0, xi = d3.interpolateNumber(x0, x1), x2 = xi(0.5), x3 = xi(0.5);
                 return 'M' + x0 + ',' + d.y0 + 'C' + x2 + ',' + d.y0 + ' ' + x3 + ',' + d.y1 + ' ' + x1 + ',' + d.y1;
-            })
-            .attr('stroke', function (d) {
-                if (d.source.type === 'source'    && d.target.type === 'attribute') return '#f6e8a6';
-                if (d.source.type === 'attribute' && d.target.type === 'target')    return '#7ec8f3';
-                if (d.source.type === 'target'    && d.target.type === 'org')       return 'rgba(116,147,179,.22)';
-                return '#428bca';
             })
             .attr('stroke-width', function (d) { return Math.max(1, d.width); });
 
         /* ── draw labels ──────────────────────────────────── */
         var leaderLines = svg.append('g').selectAll('line')
             .data(graph.nodes.filter(function (d) { return d.type === 'target'; })).enter().append('line')
-            .attr('class', 'sankey-target-label-line')
+            .attr('class', 'sankey-target-label-line sankey-leader')
             .attr('x1', function (d) { return d.x1; }).attr('x2', function (d) { return d.x1 + targetLabelGap - 6; })
             .attr('y1', function (d) { return (d.y0 + d.y1) / 2; }).attr('y2', function (d) { return (d.y0 + d.y1) / 2; })
-            .attr('stroke', 'rgba(74,92,112,.45)').attr('stroke-width', 1)
+            .attr('stroke-width', 1)
             .attr('shape-rendering', 'crispEdges').attr('pointer-events', 'none');
 
-        var labelSelection = svg.append('g').style('font', '10px sans-serif')
+        var labelSelection = svg.append('g').attr('class', 'sankey-labels')
             .selectAll('text').data(graph.nodes).enter().append('text')
-            .attr('class', 'sankey-label')
+            .attr('class', function (d) { return 'sankey-label sankey-label-' + d.type; })
             .attr('x', function (d) {
                 if (d.type === 'source' || d.type === 'attribute') return d.x0 - (d.type === 'source' ? 18 : 8);
                 if (d.type === 'target') return d.x1 + targetLabelGap;
@@ -1574,15 +1565,6 @@ echo $this->element('genericElements/assetLoader', [
                 return 'start';
             })
             .attr('cursor', function (d) { return isSankeyInteractiveNode(d) ? 'pointer' : 'default'; })
-            .style('fill', function (d) {
-                if (d.type === 'source') return '#21486f';
-                if (d.type === 'org')    return 'rgba(86,105,125,.48)';
-                return null;
-            })
-            .style('paint-order', function (d) { return d.type === 'source' ? 'stroke' : null; })
-            .style('stroke',       function (d) { return d.type === 'source' ? 'rgba(255,255,255,.96)' : 'none'; })
-            .style('stroke-width', function (d) { return d.type === 'source' ? 4 : 0; })
-            .style('stroke-linejoin', function (d) { return d.type === 'source' ? 'round' : null; })
             .style('font-weight', function (d) {
                 if (d.type === 'org') return '400';
                 return isSankeyInteractiveNode(d) ? 'bold' : 'normal';

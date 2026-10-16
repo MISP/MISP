@@ -1,0 +1,89 @@
+/* Overmind index tables (genericElementsBS5/IndexTable): the events index
+   ledger's look for every table the scaffold draws. Column-specific styling
+   stays with each index (events-index-table.css for the events ledger). */
+
+.ix-table {
+    --ix-row-h: 38px;
+    --ix-head-h: 36px;
+    /* Some dark-only themes keep a dark --bs-primary; their links stay legible. */
+    --ix-accent: var(--bs-link-color, var(--bs-primary));
+    --ix-bg: var(--bs-card-bg, var(--bs-body-bg));
+    /* The theme's own card border: --bs-border-color stays light on some dark themes. */
+    --ix-line: var(--bs-card-border-color, var(--bs-border-color));
+    --ix-hair: color-mix(in srgb, var(--ix-line) 70%, transparent);
+    --ix-hover: color-mix(in srgb, var(--bs-body-color) 4.5%, var(--ix-bg));
+    --ix-sel: color-mix(in srgb, var(--ix-accent) 9%, var(--ix-bg));
+    --ix-sel-hover: color-mix(in srgb, var(--ix-accent) 13%, var(--ix-bg));
+    border-collapse: separate; border-spacing: 0;
+    font-size: .8125rem; color: var(--bs-body-color); margin: 0;
+    --bs-table-bg: transparent; --bs-table-hover-bg: transparent; --bs-table-accent-bg: transparent;
+}
+.ix-table > :not(caption) > * > * {
+    padding: 4px 8px; vertical-align: middle; box-shadow: none; border-bottom-width: 0;
+}
+.ix-table tr > :first-child { padding-left: 12px; }
+
+/* header */
+.ix-table thead { position: static; }
+.ix-table thead th {
+    position: sticky; top: var(--ix-top, 0px); z-index: 5;
+    height: var(--ix-head-h); background: var(--ix-bg);
+    border-bottom: 1px solid var(--ix-line);
+    font-size: .75rem; font-weight: 600; line-height: 1.25; color: var(--bs-secondary-color); text-align: left;
+}
+.ix-table thead th a { display: inline-flex; align-items: center; max-width: 100%; color: inherit; }
+.ix-table thead th a:hover { color: var(--bs-body-color); }
+/* The arrow hangs off the link, which keeps room for it, so clipping the label never reaches it. */
+.ix-table thead th a:has(.sort-icon) { position: relative; padding-right: 13px; }
+.ix-table thead th .sort-icon {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    margin: 0; font-size: .62rem; line-height: 1;
+}
+.ix-table thead th .sort-icon::before { content: "\f063"; }
+.ix-table thead th:has(a.asc), .ix-table thead th:has(a.desc) {
+    color: var(--bs-body-color); box-shadow: inset 0 -2px 0 var(--ix-accent);
+}
+.ix-table thead th a.asc .sort-icon, .ix-table thead th a.desc .sort-icon { opacity: 1; color: var(--ix-accent); }
+.ix-table thead th a.asc .sort-icon::before { content: "\f062"; }
+
+/* select */
+.ix-table .checkbox-actions-wrapper { margin: 0; background: none; }
+.ix-table .checkbox-index input[type="checkbox"] {
+    width: 15px; height: 15px; margin: 0; cursor: pointer;
+    background-color: var(--bs-body-bg);
+    border-color: color-mix(in srgb, var(--bs-body-color) 34%, transparent); border-radius: 4px;
+}
+.ix-table .checkbox-index input[type="checkbox"]::after { left: 4.5px; top: 1.5px; width: 4.5px; height: 8px; }
+.ix-table .checkbox-index input[type="checkbox"]:hover:not(:checked) { border-color: var(--bs-primary); }
+.ix-table .checkbox-index input[type="checkbox"]:checked,
+.ix-table .checkbox-index input[type="checkbox"].select_all:checked { background-color: var(--bs-primary); border-color: var(--bs-primary); }
+.ix-table .checkbox-index input[type="checkbox"]:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs-primary) 30%, transparent); }
+.ix-table thead #select_all { margin-left: 0 !important; }
+
+/* rows: cells stay transparent so a row's own tint (proposal, extension) shows */
+.ix-table tbody tr > td { height: var(--ix-row-h); border-bottom: 1px solid var(--ix-hair); }
+.ix-table tbody tr:last-child > td { border-bottom: 0; }
+.ix-table tbody tr:hover > td,
+.ix-table tbody tr:focus-within > td { background-color: var(--ix-hover); }
+.ix-table tbody tr.is-selected > td,
+.ix-table tbody tr:has(.mass-select:checked) > td { background-color: var(--ix-sel); }
+.ix-table tbody tr.is-selected:hover > td,
+.ix-table tbody tr:has(.mass-select:checked):hover > td { background-color: var(--ix-sel-hover); }
+
+.ix-table td.idx-col-id a {
+    font-family: var(--bs-font-monospace); font-size: .75rem; font-weight: 400 !important;
+    color: var(--bs-secondary-color) !important; text-decoration: none !important; font-variant-numeric: tabular-nums;
+}
+.ix-table tr:hover td.idx-col-id a { color: var(--bs-body-color) !important; }
+
+/* row menu, revealed on hover / focus where there is a pointer to hover with */
+.ix-table td .row-menu-toggle { width: 26px; height: 24px; padding: 0 !important; border: 0; border-radius: 5px; }
+.ix-table td .row-menu-toggle i { font-size: .9rem !important; }
+@media (hover: hover) {
+    .ix-table td .row-menu-toggle { opacity: 0; }
+    .ix-table tr:hover .row-menu-toggle,
+    .ix-table tr:focus-within .row-menu-toggle,
+    .ix-table .row-menu-toggle[aria-expanded="true"] { opacity: 1; }
+}
+.ix-table .row-menu-toggle:focus-visible { outline: 2px solid var(--ix-accent); }
+.ix-table .dropdown-menu { font-size: .82rem; }

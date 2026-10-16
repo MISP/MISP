@@ -1,251 +1,224 @@
-
 <?php
-    echo $this->Session->flash('auth');
-?>
+$customLogo = function ($setting) {
+    $file = Configure::read($setting);
+    if (empty($file) || !file_exists(APP . 'files/img/custom/' . $file)) {
+        return null;
+    }
+    return $this->Image->base64(APP . 'files/img/custom/' . $file);
+};
+$mainLogo = $customLogo('MISP.main_logo');
+$partnerLogos = [
+    'left' => $customLogo('MISP.welcome_logo'),
+    'right' => $customLogo('MISP.welcome_logo2'),
+];
+$hasPartners = !empty(array_filter($partnerLogos));
 
-<div class="d-flex align-items-center justify-content-center overflow-y-auto" style="position: fixed; inset: 0;">
-    <div class="col-md-auto" style="max-width: 500px; width: 100%;">
-        <div class="card shadow-lg p-4" style="background-color: #ffffff">
-            <!-- Welcome message -->
-            <div class="mb-4 text-center">
-                <h2 class="fw-bold">
-                    <?php
-                        if (Configure::read('MISP.welcome_text_top')) {
-                            echo h(Configure::read('MISP.welcome_text_top'));
-                        }
-                    ?>
-                </h2>
-            </div>
-
-            <!-- Logos : welcome_logo | main_logo | welcome_logo2 -->
-            <div class="d-flex align-items-center justify-content-center gap-5 mb-4">
-
-                <div>
-                    <?php
-                    if (Configure::read('MISP.welcome_logo') && file_exists(APP . '/files/img/custom/' . Configure::read('MISP.welcome_logo'))) {
-                        $logoPath = APP . 'files/img/custom/' . Configure::read('MISP.welcome_logo');
-                        $logoBase64 = $this->Image->base64($logoPath);
-                    ?>
-                            <img src="<?= $logoBase64 ?>"
-                                alt="<?= __('Welcome Logo') ?>"
-                                class="welcome-logo"
-                                onerror="this.style.display='none';">
-                    <?php } ?>
-                </div>
-
-                <div>
-                    <?php
-                    if (Configure::read('MISP.main_logo') && file_exists(APP . '/files/img/custom/' . Configure::read('MISP.main_logo'))) {
-                        echo $this->Html->image('files/img/custom/' . Configure::read('MISP.main_logo'), [
-                            'alt' => __('Main Logo'),
-                            'class' => 'main-logo'
-                        ]);
-                    } else {
-                        echo $this->Html->image('misp-logo-main-cmyk-hori-.png', [
-                            'alt' => __('MISP Logo'),
-                            'class' => 'main-logo'
-                        ]);
-                    }
-                    ?>
-                </div>
-
-                <div>
-                    <?php
-                    if (Configure::read('MISP.welcome_logo2') && file_exists(APP . '/files/img/custom/' . Configure::read('MISP.welcome_logo2'))) {
-                        $logoPath2 = APP . 'files/img/custom/' . Configure::read('MISP.welcome_logo2');
-                        $logoBase642 = $this->Image->base64($logoPath2);
-                    ?>
-                        <img src="<?= $logoBase642 ?>"
-                            alt="<?= __('Welcome Logo 2') ?>"
-                            class="welcome-logo"
-                            onerror="this.style.display='none';">
-                    <?php } ?>
-                </div>
-            </div>
-
-            <!-- Bottom message -->
-            <div class="mb-4 text-center">
-                <?php
-                    if (Configure::read('MISP.welcome_text_bottom')) {
-                        echo h(Configure::read('MISP.welcome_text_bottom'));
-                    }
-                ?>
-            </div>
-
-            <!-- Form -->
-            <?php if ($formLoginEnabled): ?>
-                <?php
-                echo $this->Form->create('User', [
-                    'class' => 'needs-validation',
-                    'novalidate' => true
-                ]);
-                ?>
-                <h4 class="mb-3 fw-semibold" style="color: #28191B;">Sign in</h4>
-
-                <!-- Email -->
-                <div class="form-floating mb-3">
-                    <?= $this->Form->input('email', [
-                        'type' => 'email',
-                        'id' => 'UserEmail',
-                        'class' => 'form-control',
-                        'placeholder' => __('Email'),
-                        'label' => false,
-                        'div' => false
-                    ]) ?>
-                    <label for="UserEmail"><?= __('Email') ?></label>
-                </div>
-
-                <!-- Password -->
-                <div class="form-floating mb-3 position-relative">
-                    <?= $this->Form->input('password', [
-                        'type' => 'password',
-                        'id' => 'UserPassword',
-                        'class' => 'form-control ',
-                        'placeholder' => __('Password'),
-                        'label' => false,
-                        'div' => false
-                    ]) ?>
-                    <label for="UserPassword"><?= __('Password') ?></label>
-
-                    <button type="button"
-                            class="btn position-absolute top-50 end-0 translate-middle-y me-3 p-0 border-0 bg-transparent"
-                            onclick="togglePassword()">
-                        <i id="toggleIcon" class="fa-solid fa-eye text-muted"></i>
-                    </button>
-                </div>
-
-
-                <!-- OTP -->
-                <?php if (!empty(Configure::read('LinOTPAuth')) && Configure::read('LinOTPAuth.enabled') !== FALSE): ?>
-                    <div class="form-floating mb-3">
-                        <?= $this->Form->input('otp', [
-                            'type' => 'integer',
-                            'id' => 'UserOtp',
-                            'class' => 'form-control',
-                            'placeholder' => __('One-Time Password'),
-                            'label' => false,
-                            'div' => false
-                        ]) ?>
-                        <label for="UserOtp"><?= __('OTP') ?></label>
-                    </div>
-                    <div class="alert alert-secondary d-flex align-items-center small mb-3" role="alert">
-                        <i class="fa-solid fa-info-circle me-2 text-primary"></i>
-                        <div>
-                            <?= __('Visit') ?>
-                            <a href="<?= h(Configure::read('LinOTPAuth.baseUrl')) ?>/selfservice"
-                            class="link-primary text-decoration-none fw-semibold"
-                            title="LinOTP Selfservice">
-                                LinOTP Selfservice
-                            </a>
-                            <?= __('for the One-Time-Password selfservice.') ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Login Button -->
-                <div class="d-grid mb-4">
-                    <?= $this->Form->button(
-                    '<i class="fa-solid fa-sign-out-alt me-2"></i>' . __('Login'),
-                    [
-                        'class' => 'btn btn-primary btn-login btn-lg',
-                        'escape' => false
-                    ]
-                ); ?>
-                </div>
-
-
-                <!-- Password reset / Registration -->
-                <div class="d-flex justify-content-between mb-4">
-                    <?= empty(Configure::read('Security.allow_self_registration')) ? '' :
-                        sprintf('<a href="%s/users/register" class="btn-lg text-decoration-none">
-                            <i class="fa-solid fa-user-plus me-2"></i> %s </a>',
-                        $baseurl,
-                        __('Sign up')) ?>
-                    <?= empty(Configure::read('Security.allow_password_forgotten')) ? '' :
-                        sprintf('<a href="%s/users/forgot" class="text-decoration-none">%s</a>',
-                        $baseurl,
-                        __('Forgot password?')) ?>
-                </div>
-
-                <?= $this->Form->end(); ?>
-
-                <!-- Auth alternatives -->
-                <?php if (Configure::read('ApacheShibbAuth') || Configure::read('AadAuth') || (Configure::read('OidcAuth') && Configure::read('OidcAuth.mixedAuth'))): ?>
-                    <div class="text-center text-muted mb-3 separator">
-                        <?= __('Or login with') ?>
-                    </div>
-                <?php endif; ?>
-
-                <?php if (Configure::read('ApacheShibbAuth')): ?>
-                    <div class="d-grid mb-3">
-                            <?= $this->Html->link(
-                                '<i class="fa-solid fa-shield-alt text-danger me-2"></i>' . __('Login with SAML'),
-                                '/Shibboleth.sso/Login',
-                                [
-                                    'class' => 'btn btn-outline-primary btn-login btn-lg',
-                                    'escape' => false
-                                ]
-                            ) ?>
-                    </div>
-                <?php endif; ?>
-
-                <?php if (Configure::read('AadAuth')): ?>
-                    <div class="d-grid mb-3">
-                            <?= $this->Html->link(
-                            '<i class="fa-brands fa-microsoft text-info me-2"></i>' . __('Login with Azure AD'),
-                            [
-                                'controller' => 'users',
-                                'action' => 'login',
-                                '?' => ['AzureAD' => 'enable']
-                            ],
-                            [
-                                'class' =>  'btn btn-outline-primary btn-login btn-lg',
-                                'escape' => false
-                            ]
-                        ) ?>
-                    </div>
-                <?php endif; ?>
-
-                <?php if (Configure::read('OidcAuth') && Configure::read('OidcAuth.mixedAuth')): ?>
-                    <div class="d-grid mb-3">
-                            <?php
-                                $oidcLoginText = Configure::read('OidcAuth.login_button_text');
-                                if (empty($oidcLoginText)) {
-                                    $oidcLoginText = __('Login with OIDC');
-                                }
-                            ?>
-                            <?= $this->Html->link(
-                                '<i class="fa-solid fa-id-badge text-warning me-2"></i>' . h($oidcLoginText),
-                                [
-                                    'controller' => 'users',
-                                    'action' => 'login',
-                                    '?' => ['OidcAuth' => 'enable']
-                                ],
-                                [
-                                    'class' =>  'btn btn-outline-primary btn-login btn-lg',
-                                    'escape' => false
-                                ]
-                            ) ?>
-                    </div>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-    </div>
-</div>
-
-<script>
-function togglePassword() {
-    const passwordInput = document.getElementById("UserPassword");
-    const icon = document.getElementById("toggleIcon");
-
-    if (passwordInput.type === "password") {
-        passwordInput.type = "text";
-        icon.classList.remove("fa-eye");
-        icon.classList.add("fa-eye-slash");
-    } else {
-        passwordInput.type = "password";
-        icon.classList.remove("fa-eye-slash");
-        icon.classList.add("fa-eye");
+// Rendered inside the panel rather than in the layout's flash overlay.
+$flashes = [];
+foreach (['flash', 'auth'] as $flashKey) {
+    $messages = CakeSession::read('Message.' . $flashKey);
+    if (empty($messages)) {
+        continue;
+    }
+    CakeSession::delete('Message.' . $flashKey);
+    foreach ($messages as $flash) {
+        $flashes[] = [
+            'message' => $flash['message'],
+            'error' => isset($flash['element']) && basename($flash['element']) === 'error',
+        ];
     }
 }
-</script>
+
+$ssoButtons = [];
+if (Configure::read('ApacheShibbAuth')) {
+    $ssoButtons[] = [
+        'url' => '/Shibboleth.sso/Login',
+        'icon' => 'fa-solid fa-key',
+        'label' => __('Log in with SAML'),
+    ];
+}
+if (Configure::read('AadAuth')) {
+    $ssoButtons[] = [
+        'url' => $baseurl . '/users/login?AzureAD=enable',
+        'icon' => 'fa-brands fa-microsoft',
+        'label' => __('Log in with Azure AD'),
+    ];
+}
+if (Configure::read('OidcAuth') && Configure::read('OidcAuth.mixedAuth')) {
+    $ssoButtons[] = [
+        'url' => $baseurl . '/users/login?OidcAuth=enable',
+        'icon' => 'fa-solid fa-id-card',
+        'label' => Configure::read('OidcAuth.login_button_text') ?: __('Log in with OIDC'),
+    ];
+}
+
+$otpEnabled = !empty(Configure::read('LinOTPAuth')) && Configure::read('LinOTPAuth.enabled') !== false;
+$welcomeTop = Configure::read('MISP.welcome_text_top');
+$welcomeBottom = Configure::read('MISP.welcome_text_bottom');
+
+echo $this->element('genericElements/assetLoader', [
+    'css' => ['overmind-login'],
+]);
+?>
+<div class="oml">
+    <canvas class="oml-sky" id="omlSky" aria-hidden="true"></canvas>
+    <div class="oml-stage">
+        <section class="oml-panel" aria-labelledby="omlTitle">
+            <div class="oml-rule" aria-hidden="true"></div>
+            <?php foreach (['omlPortHub' => 'oml-port-hub', 'omlPortSide' => 'oml-port-side'] as $portId => $portClass): ?>
+                <svg class="oml-port <?= $portClass ?>" id="<?= $portId ?>" viewBox="-12 -12 24 24" aria-hidden="true" focusable="false">
+                    <polygon class="oml-port-ring" points="0,-7 6.06,-3.5 6.06,3.5 0,7 -6.06,3.5 -6.06,-3.5"/>
+                    <polygon class="oml-port-core" points="0,-7 6.06,-3.5 6.06,3.5 0,7 -6.06,3.5 -6.06,-3.5"/>
+                </svg>
+            <?php endforeach; ?>
+            <?php if ($welcomeTop): ?>
+                <p class="oml-welcome-top"><?= h($welcomeTop) ?></p>
+            <?php endif; ?>
+
+            <header class="oml-brand<?= $hasPartners ? ' oml-has-partners' : '' ?>">
+                <?php if ($hasPartners): ?>
+                    <div class="oml-brand-partner oml-brand-partner-left">
+                        <?php if ($partnerLogos['left']): ?>
+                            <img src="<?= $partnerLogos['left'] ?>" alt="<?= __('Logo') ?>" onerror="this.style.display='none';">
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+                <div class="oml-brand-main">
+                    <?php if ($mainLogo): ?>
+                        <img src="<?= $mainLogo ?>" alt="<?= __('Logo') ?>">
+                    <?php else: ?>
+                        <img class="oml-logo-light" src="<?= $baseurl ?>/img/misp-logo-horizontal.png" alt="<?= __('MISP — Intelligence Sharing') ?>" width="1200" height="352">
+                        <img class="oml-logo-dark" src="<?= $baseurl ?>/img/misp-logo-horizontal-light.png" alt="<?= __('MISP — Intelligence Sharing') ?>" width="1200" height="352">
+                    <?php endif; ?>
+                </div>
+                <?php if ($hasPartners): ?>
+                    <div class="oml-brand-partner oml-brand-partner-right">
+                        <?php if ($partnerLogos['right']): ?>
+                            <img src="<?= $partnerLogos['right'] ?>" alt="<?= __('Logo') ?>" onerror="this.style.display='none';">
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </header>
+
+            <?php foreach ($flashes as $flash): ?>
+                <?php if ($flash['error']): ?>
+                    <div class="oml-flash oml-flash-error" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                        <span><?= h($flash['message']) ?></span>
+                    </div>
+                <?php else: ?>
+                    <div class="oml-flash oml-flash-info" role="status">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        <span><?= h($flash['message']) ?></span>
+                    </div>
+                <?php endif; ?>
+            <?php endforeach; ?>
+
+            <h1 class="oml-title" id="omlTitle"><?= __('Log in') ?></h1>
+
+            <?php if (!$formLoginEnabled && $ssoButtons): ?>
+                <p class="oml-sso-lead"><?= __('This instance uses single sign-on. Choose your identity provider.') ?></p>
+            <?php endif; ?>
+
+            <?php if ($formLoginEnabled): ?>
+                <?= $this->Form->create('User', ['novalidate' => true]) ?>
+                    <div class="oml-field">
+                        <div class="oml-field-head">
+                            <label for="UserEmail"><?= __('Email') ?></label>
+                        </div>
+                        <?= $this->Form->input('email', [
+                            'type' => 'email',
+                            'id' => 'UserEmail',
+                            'class' => 'oml-input',
+                            'autocomplete' => 'username',
+                            'autofocus' => true,
+                            'required' => true,
+                            'label' => false,
+                            'div' => false,
+                            'error' => false,
+                        ]) ?>
+                    </div>
+
+                    <div class="oml-field">
+                        <div class="oml-field-head">
+                            <label for="UserPassword"><?= __('Password') ?></label>
+                            <?php if (Configure::read('Security.allow_password_forgotten')): ?>
+                                <a href="<?= $baseurl ?>/users/forgot"><?= __('Forgot your password?') ?></a>
+                            <?php endif; ?>
+                        </div>
+                        <div class="oml-control">
+                            <?= $this->Form->input('password', [
+                                'type' => 'password',
+                                'id' => 'UserPassword',
+                                'class' => 'oml-input oml-input-pw',
+                                'autocomplete' => 'current-password',
+                                'required' => true,
+                                'label' => false,
+                                'div' => false,
+                                'error' => false,
+                            ]) ?>
+                            <button type="button" class="oml-reveal" id="omlPasswordToggle"
+                                aria-controls="UserPassword" aria-pressed="false"
+                                aria-label="<?= __('Show password') ?>"
+                                data-label-show="<?= __('Show password') ?>"
+                                data-label-hide="<?= __('Hide password') ?>">
+                                <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <?php if ($otpEnabled): ?>
+                        <div class="oml-field">
+                            <div class="oml-field-head">
+                                <label for="UserOtp"><?= __('One-time password') ?></label>
+                            </div>
+                            <?= $this->Form->input('otp', [
+                                'type' => 'text',
+                                'id' => 'UserOtp',
+                                'class' => 'oml-input oml-input-otp',
+                                'inputmode' => 'numeric',
+                                'autocomplete' => 'one-time-code',
+                                'label' => false,
+                                'div' => false,
+                                'error' => false,
+                            ]) ?>
+                            <p class="oml-hint">
+                                <?= __('Enter the code from your token. Manage your tokens in %s.', sprintf(
+                                    '<a href="%s/selfservice">LinOTP Selfservice</a>',
+                                    h(Configure::read('LinOTPAuth.baseUrl'))
+                                )) ?>
+                            </p>
+                        </div>
+                    <?php endif; ?>
+
+                    <button class="oml-btn oml-btn-primary" type="submit"><?= __('Log in') ?></button>
+                <?= $this->Form->end() ?>
+
+                <?php if ($ssoButtons): ?>
+                    <div class="oml-divider" aria-hidden="true"><?= __('or') ?></div>
+                <?php endif; ?>
+            <?php endif; ?>
+
+            <?php foreach ($ssoButtons as $sso): ?>
+                <a class="oml-btn oml-btn-sso" href="<?= h($sso['url']) ?>">
+                    <i class="<?= $sso['icon'] ?>" aria-hidden="true"></i>
+                    <?= h($sso['label']) ?>
+                </a>
+            <?php endforeach; ?>
+
+            <?php if ($formLoginEnabled && Configure::read('Security.allow_self_registration')): ?>
+                <p class="oml-register">
+                    <?= __('No account yet?') ?>
+                    <a href="<?= $baseurl ?>/users/register" title="<?= __('Registration will be sent to the administrators of the instance for consideration.') ?>"><?= __('Request access') ?></a>
+                </p>
+            <?php endif; ?>
+
+            <?php if ($welcomeBottom): ?>
+                <p class="oml-welcome-bottom"><?= h($welcomeBottom) ?></p>
+            <?php endif; ?>
+        </section>
+    </div>
+</div>
+<?= $this->element('genericElements/assetLoader', [
+    'js' => ['overmind-login'],
+]) ?>

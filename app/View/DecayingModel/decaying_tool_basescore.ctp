@@ -37,10 +37,16 @@
                                             <?php foreach ($predicate['TaxonomyEntry'] as $e => $entry): ?>
                                                 <li>
                                                     <a style="position: relative; padding: 3px 5px;">
+                                                        <?php if ($this->theme === 'Overmind'): ?>
+                                                        <span style="margin-right:50px;" title="<?php echo sprintf('%s: %s', h($entry['expanded']), h($entry['description'])) ?>">
+                                                            <?= $this->TagChip->chip(array_diff_key($entry['Tag'], ['numerical_value' => true]), ['searchUrl' => '']) ?>
+                                                        </span>
+                                                        <?php else: ?>
                                                         <span class="tagComplete"
                                                         style="margin-right:50px;background-color: <?php echo h($entry['Tag']['colour']); ?>;color:<?php echo h($this->TextColour->getTextColour($entry['Tag']['colour']));?>"
                                                         title="<?php echo sprintf('%s: %s', h($entry['expanded']), h($entry['description'])) ?>"><?php echo h($entry['Tag']['name']); ?>
                                                         </span>
+                                                        <?php endif; ?>
                                                         <span class="label label-inverse numerical-value-label">
                                                             <?php echo h($entry['numerical_value']) ?>
                                                             <?php if(isset($entry['original_numerical_value'])): ?>
@@ -74,10 +80,16 @@
                                             <?php foreach ($taxonomies[$name]['TaxonomyPredicate'] as $p => $predicate): ?>
                                                 <li>
                                                     <a style="position: relative; padding: 3px 5px;">
+                                                        <?php if ($this->theme === 'Overmind'): ?>
+                                                        <span style="margin-right: 35px;" title="<?php echo sprintf('%s: %s', h($predicate['expanded']), h($predicate['description'])) ?>">
+                                                            <?= $this->TagChip->chip(array_diff_key($predicate['Tag'], ['numerical_value' => true]), ['searchUrl' => '']) ?>
+                                                        </span>
+                                                        <?php else: ?>
                                                         <span class="tagComplete"
                                                         style="margin-right: 35px;background-color: <?php echo h($predicate['Tag']['colour']); ?>;color:<?php echo h($this->TextColour->getTextColour($predicate['Tag']['colour']));?>"
                                                         title="<?php echo sprintf('%s: %s', h($predicate['expanded']), h($predicate['description'])) ?>"><?php echo h($predicate['Tag']['name']); ?>
                                                         </span>
+                                                        <?php endif; ?>
                                                         <span class="label label-inverse numerical-value-label"><?php echo h($predicate['numerical_value']) ?></span>
                                                     </a>
                                                 </li>

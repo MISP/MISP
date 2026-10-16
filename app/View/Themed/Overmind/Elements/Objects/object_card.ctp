@@ -53,6 +53,20 @@ $expanded = !empty($ctx['expand']);
                     'ctx' => $ctx,
                 ]) ?>
             </button>
+            <?php $showRels = !empty($object['ObjectReference']) || ($objCanEdit && !$isDeleted); ?>
+            <?= $this->element('Objects/object_map_button', [
+                'object' => $object,
+                'class' => $showRels ? 'pe-2' : '',
+            ]) ?>
+            <?php if ($showRels): ?>
+                <?= $this->element('Objects/object_relationships', [
+                    'references' => $object['ObjectReference'] ?? [],
+                    'objId' => $objId,
+                    'eventId' => $object['event_id'] ?? null,
+                    'canEdit' => $objCanEdit && !$isDeleted,
+                    'menuPrefix' => 'objCardRels',
+                ]) ?>
+            <?php endif; ?>
         </h2>
 
         <!-- ── The object's own actions, right under the header ────── -->
@@ -82,7 +96,6 @@ $expanded = !empty($ctx['expand']);
             ]) ?>
 
             <div class="ms-auto d-flex align-items-center gap-1">
-                <?= $this->element('Objects/object_map_button', ['object' => $object]) ?>
                 <?php if ($objCanEdit): ?>
                     <a href="<?= $baseurl ?>/objects/edit/<?= $objId ?>"
                        class="btn btn-sm btn-outline-secondary py-0 px-2"
@@ -109,6 +122,19 @@ $expanded = !empty($ctx['expand']);
                         </a>
                     <?php endif; ?>
                 <?php endif; ?>
+                <?php if (!$isDeleted && $this->Acl->canAccess('analystGraphs', 'addNodes')): ?>
+                    <a href="#" class="btn btn-sm btn-outline-analystGraph py-0 px-2" title="<?= h(__('Add to graph')) ?>"
+                       data-intel-graph-add="<?= h(json_encode([['type' => 'Object', 'uuid' => $object['uuid'], 'label' => $object['name']]])) ?>">
+                        <i class="misp-icon misp-icon-analyst-graph misp-simple"></i>
+                    </a>
+                <?php endif; ?>
+                <?php if (!$isDeleted && $this->Acl->canAccess('collectionElements', 'addElementToCollection')): ?>
+                    <?php $collectUrl = $baseurl . '/collectionElements/addElementToCollection/Object/' . h($object['uuid']); ?>
+                    <a href="<?= $collectUrl ?>" class="btn btn-sm btn-outline-dark py-0 px-2" title="<?= h(__('Add to collection')) ?>"
+                       onclick="event.preventDefault(); openModal('<?= $collectUrl ?>', 'xl');">
+                        <i class="fas fa-folder-plus"></i>
+                    </a>
+                <?php endif; ?>
                 <?php if (!empty($me['Role']['perm_analyst_data'])): ?>
                     <?= $this->element('AnalystData/add_controls', [
                         'objectType' => 'Object',
@@ -122,112 +148,13 @@ $expanded = !empty($ctx['expand']);
         <!-- ── Attributes, behind the header's click ───────────────── -->
         <div id="<?= $collapseId ?>"
              class="accordion-collapse obj-collapse collapse<?= $expanded ? ' show' : '' ?>">
-            <?php if (!empty($attrs)): ?>
-                <div class="list-group list-group-flush border-top">
-                    <?php foreach ($attrs as $attr): ?>
-                        <?php
-                            $relation = (string)($attr['object_relation'] ?? '');
-                            $label = $relation !== ''
-                                ? $relation : (string)($attr['type'] ?? '');
-                        ?>
-                        <div class="list-group-item px-3 py-2<?= !empty($attr['deleted']) ? ' opacity-50' : '' ?>">
-                            <div class="d-flex align-items-start gap-2">
-                                <div class="flex-grow-1" style="min-width:0;">
-                                    <div class="d-flex align-items-baseline gap-2">
-                                        <span class="text-uppercase text-secondary fw-semibold text-truncate"
-                                              style="font-size:.65rem;letter-spacing:.04em;"
-                                              title="<?= h($label) ?>">
-                                            <?= h($label) ?>
-                                        </span>
-                                        <span class="d-inline-flex align-items-center gap-2 flex-shrink-0">
-                                            <?php if (!empty($attr['deleted'])): ?>
-                                                <i class="fas fa-trash text-danger" style="font-size:.7rem;"
-                                                   title="<?= h(__('Deleted')) ?>"></i>
-                                            <?php endif; ?>
-                                            <?= $this->element(
-                                                'genericElementsBS5/IndexTable/Fields/ids',
-                                                ['row' => $attr, 'field' => ['data_path' => 'to_ids']]
-                                            ) ?>
-                                            <?= $this->element(
-                                                'genericElementsBS5/IndexTable/Fields/correlate',
-                                                ['row' => $attr, 'field' => ['data_path' => 'disable_correlation']]
-                                            ) ?>
-                                            <?php if (!empty($attr['warnings'])): ?>
-                                                <i class="fas fa-exclamation-triangle text-warning" style="font-size:.7rem;"
-                                                   title="<?= h(implode(', ', array_column(
-                                                       $attr['warnings'], 'warninglist_name'
-                                                   ))) ?>"></i>
-                                            <?php endif; ?>
-                                        </span>
-                                    </div>
-
-                                    <div class="font-monospace small text-break">
-                                        <?= $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/attribute_value',
-                                            [
-                                                'row'      => ['Attribute' => $attr],
-                                                'field'    => ['data_path' => 'Attribute'],
-                                                'viewMode' => 'card',
-                                            ]
-                                        ) ?>
-                                    </div>
-
-                                    <?php
-                                    $chips = trim(
-                                        $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/tag_list',
-                                            [
-                                                'row' => $attr,
-                                                'field' => [
-                                                    'data_path'       => 'AttributeTag',
-                                                    'add_tag'         => $objCanTag,
-                                                    'add_tag_url'     => $baseurl . '/attributes/editAttributeTags/%id%',
-                                                    'add_tag_id_path' => 'id',
-                                                    'add_relationship_url' => $baseurl
-                                                        . '/attributes/editAttributeTagRelationships/%id%',
-                                                ],
-                                            ]
-                                        )
-                                        . $this->element(
-                                            'genericElementsBS5/IndexTable/Fields/galaxy',
-                                            [
-                                                'row' => $attr,
-                                                'field' => [
-                                                    'data_path'          => 'Galaxy',
-                                                    'add_galaxy'         => $objCanTag,
-                                                    'add_galaxy_url'     => $baseurl . '/attributes/editAttributeGalaxies/%id%',
-                                                    'add_galaxy_id_path' => 'id',
-                                                    'add_galaxy_relationship_url' => $baseurl
-                                                        . '/attributes/editAttributeGalaxyRelationships/%id%',
-                                                ],
-                                            ]
-                                        )
-                                    );
-                                    ?>
-                                    <?php if ($chips !== ''): ?>
-                                        <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
-                                            <?= $chips ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-
-                                <div class="flex-shrink-0">
-                                    <?= $this->element('Objects/attribute_actions', [
-                                        'attr' => $attr,
-                                        'canEdit' => $objCanEdit,
-                                        'enrichmentEnabled' => $enrichmentEnabled ?? false,
-                                        'cortexEnabled' => $cortexEnabled ?? false,
-                                    ]) ?>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php else: ?>
-                <div class="border-top py-3 px-3 text-center text-muted small fst-italic">
-                    <?= __('No attributes to display for this object.') ?>
-                </div>
-            <?php endif; ?>
+            <?= $this->element('Objects/object_attribute_list', [
+                'attrs' => $attrs,
+                'canEdit' => $objCanEdit,
+                'canTag' => $objCanTag,
+                'enrichmentEnabled' => $enrichmentEnabled ?? false,
+                'cortexEnabled' => $cortexEnabled ?? false,
+            ]) ?>
         </div>
 
     </div>

@@ -1,4 +1,5 @@
 <?php
+App::uses('AnalystData', 'Model');
 
 /**
  * Common functions for the 3 analyst objects
@@ -18,6 +19,7 @@ class AnalystDataParentBehavior extends ModelBehavior
         if (empty($object['uuid'])) {
             return $object;
         }
+        $types = $this->embeddableTypes($types);
         if (empty($this->__currentUser)) {
             $user_id = Configure::read('CurrentUserId');
             $this->User = ClassRegistry::init('User');
@@ -86,6 +88,7 @@ class AnalystDataParentBehavior extends ModelBehavior
     }
 
     public function fetchAnalystDataBulk(Model $model, array $uuids, array $types = ['Note', 'Opinion', 'Relationship']) {
+        $types = $this->embeddableTypes($types);
         // Keep the per-query IN-list bounded so the optimizer stays on the object_uuid index
         // and parse cost stays low. 1000 is comfortable for MySQL/MariaDB defaults.
         $uuids = array_chunk($uuids, 1000);
@@ -110,6 +113,7 @@ class AnalystDataParentBehavior extends ModelBehavior
 
     public function attachAnalystDataBulk(Model $model, array $objects, array $types = ['Note', 'Opinion', 'Relationship'])
     {
+        $types = $this->embeddableTypes($types);
         // Keep the per-query IN-list bounded so the optimizer stays on the object_uuid index
         // and parse cost stays low. 1000 is comfortable for MySQL/MariaDB defaults.
         $objects = array_chunk($objects, 1000, true);
@@ -156,9 +160,26 @@ class AnalystDataParentBehavior extends ModelBehavior
                     }
                 }
             }
+            if (in_array('Relationship', $types, true) && !empty($this->__currentUser)) {
+                $inbound = $this->Relationship->getInboundRelationshipsForUuids($this->__currentUser, $model->alias, $uuids);
+                foreach ($chunked_objects as $k => $object) {
+                    if (!empty($object['uuid']) && !empty($inbound[$object['uuid']])) {
+                        $objects[$chunk][$k]['RelationshipInbound'] = $inbound[$object['uuid']];
+                    }
+                }
+            }
         }
         $objects = call_user_func_array('array_merge', $objects);
         return $objects;
+    }
+
+    /**
+     * Graphs are fetched on their own and never ride along with the record
+     * they are attached to.
+     */
+    private function embeddableTypes(array $types)
+    {
+        return array_values(array_intersect($types, AnalystData::ANALYST_DATA_TYPES));
     }
 
     public function afterFind(Model $model, $results, $primary = false)

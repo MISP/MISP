@@ -1,0 +1,868 @@
+// The rail navbar (Elements/navbar_rail*.ctp, js/overmind-rail.js): a slim
+// bar whose groups open as mega-panels. Imported by a theme whose theme.json
+// has "navbar": "rail", after misp-bootstrap.
+//
+// Every look is a --misp-rail-* custom property. The defaults below are the
+// Hex look; they carry no specificity, so a theme re-skins the rail by
+// setting tokens on `.rail-nav`, and on `[data-bs-theme="dark"] .rail-nav`
+// for its dark palette.
+//
+//   The bar
+//   --misp-rail-height             bar height; set it on html.misp-railed so
+//                                  the page offset follows it
+//   --misp-rail-bg                 bar background; by default a gradient of
+//   --misp-rail-bg-a, -bg-b          its two stops
+//   --misp-rail-shadow             shadow under the bar
+//   --misp-rail-fg                 group labels; -fg-current the current group
+//   --misp-rail-icon               group glyphs on the bar
+//   --misp-rail-trigger-bg, -trigger-shadow, -trigger-fg   a group trigger
+//                                  at rest (none by default: bare labels)
+//   --misp-rail-hover, -open       trigger fill on hover / while its panel is open
+//   --misp-rail-ring               focus ring on the bar
+//   --misp-rail-mark, -mark-fg     the accent: current-group bar, panel top
+//                                  edge, count chip (and the text on it)
+//   --misp-rail-texture            background-image laid over the bar and the
+//                                  current panel head; -texture-size,
+//                                  -texture-opacity, -texture-mask place it
+//   --misp-rail-brand-bg, -brand-shape, -brand-width   the logo's facet
+//   --misp-rail-brand-filter       filter on the logo image
+//   --misp-rail-chip-fill, -chip-line   the analyst-graph launcher
+//
+//   Shapes (clip-path values)
+//   --misp-rail-shape-pill         trigger fill, graph chip
+//   --misp-rail-shape-ring         the graph chip's outline
+//   --misp-rail-shape-hex          panel-head badge, radio, knob, pip, avatar
+//   --misp-rail-shape-bar          the current-group marker
+//   --misp-rail-shape-count        the count chip
+//   --misp-rail-shape-panel        a mega-panel and the phone drawer
+//
+//   Type
+//   --misp-rail-font, -font-size, -weight (bar labels), -weight-strong
+//   (current group, panel heads), -label-transform, -label-spacing
+//
+//   Panels and the phone drawer
+//   --misp-rail-surface, -surface-2   panel body / panel head band
+//   --misp-rail-border, -rule, -guide panel border / column rules / sub-list line
+//   --misp-rail-text, -muted          entries / descriptions
+//   --misp-rail-icon-panel, -head     entry glyphs / sub-group headings
+//   --misp-rail-badge-bg, -badge-fg   the panel-head glyph badge
+//   --misp-rail-hover-bg, -hover-fg   entry hover
+//   --misp-rail-sel-bg                the chosen theme
+//   --misp-rail-focus                 focus ring in panels
+//   --misp-rail-on, -off, -knob       switches and radios
+//   --misp-rail-warn, -warn-bg        a menu message
+//   --misp-rail-panel-shadow, -panel-radius, -panel-edge (top edge width),
+//   -panel-edge-color, -item-radius
+//   --misp-rail-panel-font, -panel-font-size   type inside panels
+//   --misp-rail-cols-bg, -cols-shadow  the well holding a panel's columns
+//   --misp-rail-current-bg, -current-fg   head of the panel holding the page
+//
+// .rail-bar::after and .rail-phead::after are left free for a theme's
+// ornaments.
+
+:where(html.misp-railed) {
+    --misp-rail-height: 48px;
+}
+
+:where(.rail-nav) {
+    --misp-rail-trigger-bg: none;
+    --misp-rail-trigger-shadow: none;
+    --misp-rail-trigger-fg: var(--misp-rail-fg);
+    --misp-rail-brand-filter: none;
+    --misp-rail-shape-panel: none;
+    --misp-rail-panel-edge-color: var(--misp-rail-mark);
+    --misp-rail-panel-font: var(--misp-rail-font);
+    --misp-rail-panel-font-size: var(--misp-rail-font-size);
+    --misp-rail-cols-bg: none;
+    --misp-rail-cols-shadow: none;
+    --misp-rail-bg-a: #0C3A4A;
+    --misp-rail-bg-b: #13718E;
+    --misp-rail-bg: linear-gradient(100deg, var(--misp-rail-bg-a) 0%,
+        var(--misp-rail-bg-a) 28%, var(--misp-rail-bg-b) 100%);
+    --misp-rail-shadow: 0 1px 0 rgba(12, 58, 74, .3),
+        0 10px 22px -14px rgba(12, 58, 74, .75);
+    --misp-rail-fg: #EAF7FB;
+    --misp-rail-fg-current: #FFFFFF;
+    --misp-rail-icon: #8FDDF5;
+    --misp-rail-hover: rgba(255, 255, 255, .09);
+    --misp-rail-open: rgba(255, 255, 255, .17);
+    --misp-rail-ring: #A6E6F8;
+    --misp-rail-mark: #33C3EE;
+    --misp-rail-mark-fg: #0C3A4A;
+    --misp-rail-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24.249' height='42' viewBox='0 0 24.249 42'%3E%3Cpath fill='%23fff' fill-opacity='.075' d='M12.12 0L24.25 7L12.12 14L0 7ZM0 21L12.12 28L0 35L-12.12 28ZM24.25 21L36.37 28L24.25 35L12.12 28Z'/%3E%3Cpath fill='%23fff' fill-opacity='.03' d='M12.12 14L24.25 7L24.25 21L12.12 28ZM0 35L12.12 28L12.12 42L0 49ZM24.25 35L36.37 28L36.37 42L24.25 49ZM0 -7L12.12 -14L12.12 0L0 7ZM24.25 -7L36.37 -14L36.37 0L24.25 7Z'/%3E%3C/svg%3E");
+    --misp-rail-texture-size: 24.25px 42px;
+    --misp-rail-texture-opacity: 1;
+    --misp-rail-texture-mask: linear-gradient(270deg, #000 0, rgba(0, 0, 0, .5) 20%,
+        transparent 46%);
+    --misp-rail-brand-bg: #EEF8FC;
+    --misp-rail-brand-shape: polygon(0 0, calc(100% - 14px) 0, 100% 50%,
+        calc(100% - 14px) 100%, 0 100%);
+    --misp-rail-brand-width: 72px;
+    --misp-rail-chip-fill: rgba(3, 22, 30, .30);
+    --misp-rail-chip-line: rgba(143, 221, 245, .55);
+
+    --misp-rail-shape-pill: polygon(9px 0, calc(100% - 9px) 0, 100% 50%,
+        calc(100% - 9px) 100%, 9px 100%, 0 50%);
+    --misp-rail-shape-ring: polygon(evenodd, 9px 0, calc(100% - 9px) 0, 100% 50%,
+        calc(100% - 9px) 100%, 9px 100%, 0 50%, 9px 0,
+        9.6px 1px, 1.2px 50%, 9.6px calc(100% - 1px),
+        calc(100% - 9.6px) calc(100% - 1px), calc(100% - 1.2px) 50%,
+        calc(100% - 9.6px) 1px, 9.6px 1px);
+    --misp-rail-shape-hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    --misp-rail-shape-bar: polygon(4px 0, calc(100% - 4px) 0, 100% 50%,
+        calc(100% - 4px) 100%, 4px 100%, 0 50%);
+    --misp-rail-shape-count: polygon(5px 0, calc(100% - 5px) 0, 100% 50%,
+        calc(100% - 5px) 100%, 5px 100%, 0 50%);
+
+    --misp-rail-font: var(--bs-body-font-family);
+    --misp-rail-font-size: 14px;
+    --misp-rail-weight: 500;
+    --misp-rail-weight-strong: 600;
+    --misp-rail-label-transform: none;
+    --misp-rail-label-spacing: normal;
+
+    --misp-rail-surface: #FFFFFF;
+    --misp-rail-surface-2: #F1F8FB;
+    --misp-rail-border: #C3DAE3;
+    --misp-rail-rule: #DCE9EE;
+    --misp-rail-guide: #BCD8E2;
+    --misp-rail-text: #10262E;
+    --misp-rail-muted: #4E6670;
+    --misp-rail-icon-panel: #13718E;
+    --misp-rail-head: #13718E;
+    --misp-rail-badge-bg: #DDF0F7;
+    --misp-rail-badge-fg: #13718E;
+    --misp-rail-hover-bg: #E3F3F9;
+    --misp-rail-hover-fg: #0C3A4A;
+    --misp-rail-sel-bg: #EFF8FB;
+    --misp-rail-focus: #1892B1;
+    --misp-rail-on: #1892B1;
+    --misp-rail-off: #7A949E;
+    --misp-rail-knob: #FFFFFF;
+    --misp-rail-warn: #B42318;
+    --misp-rail-warn-bg: #FDF1EF;
+    --misp-rail-panel-shadow: 0 26px 50px -22px rgba(12, 58, 74, .5),
+        0 4px 12px -4px rgba(12, 58, 74, .16);
+    --misp-rail-panel-radius: 0 0 14px 14px;
+    --misp-rail-panel-edge: 2px;
+    --misp-rail-item-radius: 8px;
+    --misp-rail-current-bg: linear-gradient(100deg, #0C3A4A 0%, #13718E 100%);
+    --misp-rail-current-fg: #FFFFFF;
+}
+:where([data-bs-theme="dark"]) :where(.rail-nav) {
+    --misp-rail-bg-a: #05161D;
+    --misp-rail-bg-b: #0C3A4A;
+    --misp-rail-shadow: 0 1px 0 #1A4353, 0 12px 26px -14px rgba(0, 0, 0, .9);
+    --misp-rail-fg: #DCEFF5;
+    --misp-rail-icon: #33C3EE;
+    --misp-rail-hover: rgba(51, 195, 238, .10);
+    --misp-rail-open: rgba(51, 195, 238, .19);
+    --misp-rail-ring: #33C3EE;
+    --misp-rail-texture-opacity: .65;
+    --misp-rail-brand-bg: #0F3443;
+    --misp-rail-chip-fill: rgba(0, 0, 0, .28);
+    --misp-rail-chip-line: rgba(51, 195, 238, .45);
+
+    --misp-rail-surface: #0F2129;
+    --misp-rail-surface-2: #132C36;
+    --misp-rail-border: #24505F;
+    --misp-rail-rule: #1D3C48;
+    --misp-rail-guide: #2C5868;
+    --misp-rail-text: #DCEAEF;
+    --misp-rail-muted: #93AEB8;
+    --misp-rail-icon-panel: #33C3EE;
+    --misp-rail-head: #74D4F1;
+    --misp-rail-badge-bg: #173F4E;
+    --misp-rail-badge-fg: #33C3EE;
+    --misp-rail-hover-bg: rgba(51, 195, 238, .13);
+    --misp-rail-hover-fg: #FFFFFF;
+    --misp-rail-sel-bg: rgba(51, 195, 238, .07);
+    --misp-rail-focus: #33C3EE;
+    --misp-rail-on: #33C3EE;
+    --misp-rail-off: #577A87;
+    --misp-rail-knob: #0F2129;
+    --misp-rail-warn: #F28B7E;
+    --misp-rail-warn-bg: rgba(242, 139, 126, .10);
+    --misp-rail-panel-shadow: 0 28px 56px -18px rgba(0, 0, 0, .8),
+        0 4px 14px -4px rgba(0, 0, 0, .5);
+}
+
+.rail-nav {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 1030;
+    font-family: var(--misp-rail-font);
+    font-size: var(--misp-rail-font-size);
+    line-height: 1.3;
+    color: var(--misp-rail-text);
+}
+
+/* ---------- the bar ---------- */
+.rail-bar {
+    position: relative;
+    z-index: 0;
+    display: flex;
+    align-items: stretch;
+    height: var(--misp-rail-height);
+    padding-right: 8px;
+    color: var(--misp-rail-fg);
+    background: var(--misp-rail-bg);
+    box-shadow: var(--misp-rail-shadow);
+}
+.rail-bar::before,
+.rail-phead::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: var(--misp-rail-texture-opacity);
+    background-image: var(--misp-rail-texture);
+    background-size: var(--misp-rail-texture-size);
+    background-position: right top;
+    -webkit-mask-image: var(--misp-rail-texture-mask);
+    mask-image: var(--misp-rail-texture-mask);
+}
+
+.rail-brand {
+    position: relative;
+    flex: none;
+    display: flex;
+    align-items: center;
+    width: var(--misp-rail-brand-width);
+    padding-left: 18px;
+    z-index: 0;
+}
+.rail-brand::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--misp-rail-brand-bg);
+    clip-path: var(--misp-rail-brand-shape);
+}
+.rail-brand img {
+    width: 32px;
+    height: 32px;
+    display: block;
+    filter: var(--misp-rail-brand-filter);
+}
+.rail-brand:focus-visible {
+    outline: 2px solid var(--misp-rail-focus);
+    outline-offset: -5px;
+    border-radius: 8px;
+}
+
+.rail-menu { display: contents; }
+.rail-groups {
+    display: flex;
+    align-items: stretch;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.rail-groups--start { flex: none; margin: 0 auto 0 6px; }
+.rail-groups--end { flex: none; }
+.rail-group { display: flex; }
+
+.rail-trigger,
+.rail-toggle {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: var(--misp-rail-height);
+    margin: 0;
+    padding: 0 11px;
+    border: 0;
+    background: var(--misp-rail-trigger-bg);
+    box-shadow: var(--misp-rail-trigger-shadow);
+    color: var(--misp-rail-trigger-fg);
+    font: inherit;
+    font-weight: var(--misp-rail-weight);
+    letter-spacing: var(--misp-rail-label-spacing);
+    text-transform: var(--misp-rail-label-transform);
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    z-index: 0;
+}
+.rail-trigger:hover { color: var(--misp-rail-trigger-fg); text-decoration: none; }
+.rail-trigger::before,
+.rail-toggle::before {
+    content: "";
+    position: absolute;
+    inset: 8px 1px;
+    z-index: -1;
+    background: var(--misp-rail-hover);
+    clip-path: var(--misp-rail-shape-pill);
+    opacity: 0;
+}
+.rail-trigger:hover::before,
+.rail-toggle:hover::before { opacity: 1; }
+.rail-trigger[aria-expanded="true"]::before {
+    opacity: 1;
+    background: var(--misp-rail-open);
+}
+.rail-trigger:focus-visible,
+.rail-toggle:focus-visible,
+.rail-graph:focus-visible {
+    outline: 2px solid var(--misp-rail-ring);
+    outline-offset: -7px;
+    border-radius: 12px;
+}
+.rail-trigger .rail-ico { color: var(--misp-rail-icon); }
+.rail-trigger[aria-current] {
+    color: var(--misp-rail-fg-current);
+    font-weight: var(--misp-rail-weight-strong);
+}
+.rail-trigger[aria-current] .rail-ico { color: var(--misp-rail-mark); }
+.rail-trigger[aria-current]::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 3px;
+    height: 4px;
+    background: var(--misp-rail-mark);
+    clip-path: var(--misp-rail-shape-bar);
+}
+.rail-caret {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    margin-left: 1px;
+    border: solid currentColor;
+    border-width: 0 1.5px 1.5px 0;
+    opacity: .75;
+    transform: translateY(-2px) rotate(45deg);
+}
+[aria-expanded="true"] > .rail-caret {
+    transform: translateY(1px) rotate(-135deg);
+}
+
+.rail-ico {
+    flex: none;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 1.25em;
+}
+.rail-ico .misp-icon { vertical-align: middle; }
+// An entry without a glyph (a bookmark) keeps the column aligned.
+.rail-pip {
+    width: 7px;
+    height: 8px;
+    background: var(--misp-rail-icon-panel);
+    opacity: .7;
+    clip-path: var(--misp-rail-shape-hex);
+}
+
+.rail-avatar {
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 32px;
+    z-index: 0;
+}
+.rail-avatar::before,
+.rail-avatar::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    clip-path: var(--misp-rail-shape-hex);
+}
+.rail-avatar::before { inset: 0; background: var(--misp-rail-icon); }
+.rail-avatar::after { inset: 2px; background: #FFFFFF; }
+.rail-avatar img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    display: block;
+}
+.rail-who {
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---------- the analyst-graph launcher ---------- */
+.rail-slot {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 6px 0 4px;
+}
+.rail-nav .rail-graph[data-intel-graph-toggle] {
+    position: relative;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    max-width: 100%;
+    height: 32px;
+    margin: 0;
+    padding: 0 9px 0 13px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--misp-rail-fg);
+    font: inherit;
+    font-weight: var(--misp-rail-weight);
+    white-space: nowrap;
+    cursor: pointer;
+}
+.rail-graph::before,
+.rail-graph::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+}
+.rail-graph::before {
+    background: var(--misp-rail-chip-fill);
+    clip-path: var(--misp-rail-shape-pill);
+}
+.rail-graph::after {
+    background: var(--misp-rail-chip-line);
+    clip-path: var(--misp-rail-shape-ring);
+}
+.rail-graph:hover::before,
+.rail-nav .rail-graph[aria-expanded="true"]::before {
+    background: var(--misp-rail-open);
+}
+.rail-graph .rail-ico { color: var(--misp-rail-icon); }
+.rail-graph-name {
+    flex: 0 1 auto;
+    min-width: 2.5em;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.rail-graph .rail-ico,
+.rail-graph .ig-slot-new,
+.rail-graph .ig-slot-side,
+.rail-count { flex: none; }
+.rail-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 26px;
+    height: 18px;
+    padding: 0 7px;
+    font-size: 11.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--misp-rail-mark-fg);
+    background: var(--misp-rail-mark);
+    clip-path: var(--misp-rail-shape-count);
+}
+.rail-slot[data-state="none"] .rail-graph { padding-right: 13px; }
+.rail-slot[data-state="none"] .rail-graph::before { background: transparent; }
+.rail-slot[data-state="none"] .rail-graph:hover::before { background: var(--misp-rail-hover); }
+
+.rail-toggle { display: none; }
+
+/* ---------- panels ---------- */
+.rail-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 5;
+    display: none;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - var(--misp-rail-height) - 12px);
+    overflow: auto;
+    color: var(--misp-rail-text);
+    background: var(--misp-rail-surface);
+    border: 1px solid var(--misp-rail-border);
+    border-top: var(--misp-rail-panel-edge) solid var(--misp-rail-panel-edge-color);
+    border-radius: var(--misp-rail-panel-radius);
+    box-shadow: var(--misp-rail-panel-shadow);
+    clip-path: var(--misp-rail-shape-panel);
+    font-family: var(--misp-rail-panel-font);
+    font-size: var(--misp-rail-panel-font-size);
+}
+.rail-group.is-open > .rail-panel { display: block; }
+
+.rail-phead {
+    position: relative;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px 7px 14px;
+    font-size: 14.5px;
+    font-weight: var(--misp-rail-weight-strong);
+    letter-spacing: var(--misp-rail-label-spacing);
+    text-transform: var(--misp-rail-label-transform);
+    background: var(--misp-rail-surface-2);
+    border-bottom: 1px solid var(--misp-rail-rule);
+}
+.rail-phead::before { display: none; }
+.rail-phead .rail-avatar::before { background: var(--misp-rail-icon-panel); }
+.rail-ptitle {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.rail-hex {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 30px;
+    font-size: 13px;
+    color: var(--misp-rail-badge-fg);
+    background: var(--misp-rail-badge-bg);
+    clip-path: var(--misp-rail-shape-hex);
+}
+.rail-panel--current .rail-phead {
+    color: var(--misp-rail-current-fg);
+    background: var(--misp-rail-current-bg);
+    border-bottom-color: transparent;
+}
+.rail-panel--current .rail-phead::before { display: block; opacity: 1; }
+.rail-panel--current .rail-hex {
+    color: var(--misp-rail-mark-fg);
+    background: var(--misp-rail-mark);
+}
+
+.rail-cols {
+    display: flex;
+    padding: 10px 8px 12px;
+    background: var(--misp-rail-cols-bg);
+    box-shadow: var(--misp-rail-cols-shadow);
+}
+.rail-col {
+    flex: 0 0 auto;
+    min-width: 188px;
+    max-width: 292px;
+    margin: 0;
+    padding: 0 8px;
+    list-style: none;
+}
+.rail-col + .rail-col { border-left: 1px solid var(--misp-rail-rule); }
+.rail-panel--compact { min-width: 232px; }
+.rail-panel--compact .rail-cols { flex-direction: column; padding: 6px; }
+.rail-panel--compact .rail-col { min-width: 0; max-width: 340px; padding: 0; }
+.rail-panel--compact .rail-col + .rail-col {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-left: 0;
+    border-top: 1px solid var(--misp-rail-rule);
+}
+
+.rail-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 34px;
+    margin: 0;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: var(--misp-rail-item-radius);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+.rail-nav a.rail-item { color: inherit; text-decoration: none; }
+.rail-item .rail-ico { color: var(--misp-rail-icon-panel); }
+.rail-item:hover,
+.rail-nav a.rail-item:hover {
+    background: var(--misp-rail-hover-bg);
+    color: var(--misp-rail-hover-fg);
+}
+.rail-item:focus-visible {
+    outline: 2px solid var(--misp-rail-focus);
+    outline-offset: -2px;
+    background: var(--misp-rail-hover-bg);
+}
+.rail-lbl { min-width: 0; }
+
+.rail-sub { margin: 6px 0 2px; }
+.rail-col > .rail-sub:first-child { margin-top: 0; }
+.rail-sub + li:not(.rail-sub) { margin-top: 4px; }
+.rail-subhead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px 3px;
+    font-size: 12.5px;
+    font-weight: var(--misp-rail-weight-strong);
+    letter-spacing: .01em;
+    color: var(--misp-rail-head);
+}
+.rail-subhead .rail-ico { color: inherit; }
+.rail-sublist {
+    margin: 0 0 0 18px;
+    padding: 0 0 0 6px;
+    list-style: none;
+    border-left: 1px solid var(--misp-rail-guide);
+}
+.rail-sublist .rail-item { min-height: 31px; padding: 5px 8px; font-size: 13.5px; }
+.rail-sep { height: 1px; margin: 5px 8px; background: var(--misp-rail-rule); }
+
+.rail-theme { align-items: flex-start; }
+.rail-theme[aria-pressed="true"],
+.rail-bstheme[aria-current="true"] {
+    background: var(--misp-rail-sel-bg);
+    font-weight: var(--misp-rail-weight-strong);
+}
+.rail-radio {
+    position: relative;
+    flex: none;
+    width: 14px;
+    height: 16px;
+    margin: 1px 3px 0 2px;
+    background: var(--misp-rail-icon-panel);
+    clip-path: var(--misp-rail-shape-hex);
+}
+.rail-bstheme .rail-radio { margin-top: 0; }
+.rail-radio::before,
+.rail-radio::after {
+    content: "";
+    position: absolute;
+    clip-path: var(--misp-rail-shape-hex);
+}
+.rail-radio::before { inset: 1.5px; background: var(--misp-rail-surface); }
+.rail-radio::after { inset: 4px; background: var(--misp-rail-on); opacity: 0; }
+[aria-pressed="true"] > .rail-radio::after,
+[aria-current="true"] > .rail-radio::after { opacity: 1; }
+.rail-desc {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.38;
+    color: var(--misp-rail-muted);
+}
+.rail-item:hover .rail-desc { color: inherit; }
+.rail-mode {
+    flex: none;
+    margin-left: auto;
+    padding-left: 8px;
+    font-size: 12px;
+    color: var(--misp-rail-muted);
+}
+.rail-value {
+    margin-left: auto;
+    padding-left: 10px;
+    font-weight: 500;
+    color: var(--misp-rail-muted);
+}
+
+.rail-switch {
+    position: relative;
+    flex: none;
+    width: 32px;
+    height: 18px;
+    margin-left: auto;
+    border-radius: 9px;
+    background: var(--misp-rail-off);
+}
+.rail-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    width: 12px;
+    height: 14px;
+    background: var(--misp-rail-knob);
+    clip-path: var(--misp-rail-shape-hex);
+}
+[aria-checked="true"] > .rail-switch { background: var(--misp-rail-on); }
+[aria-checked="true"] > .rail-switch::after { transform: translateX(14px); }
+
+.rail-msg {
+    margin: 4px;
+    padding: 7px 10px;
+    font-size: 13px;
+    border-left: 3px solid var(--misp-rail-warn);
+    border-radius: 6px;
+    background: var(--misp-rail-warn-bg);
+}
+.rail-msg-t { font-weight: var(--misp-rail-weight-strong); }
+
+/* ---------- laptop: keep one line ---------- */
+@media (max-width: 1439.98px) {
+    .rail-who {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+}
+@media (min-width: 1100px) and (max-width: 1299.98px) {
+    .rail-trigger { padding: 0 9px; gap: 6px; }
+    .rail-trigger .rail-caret { display: none; }
+    .rail-groups--start { margin-left: 2px; }
+}
+
+/* ---------- phone: the drawer ---------- */
+@media (max-width: 1099.98px) {
+    .rail-toggle {
+        display: flex;
+        justify-content: center;
+        width: 48px;
+        margin-left: auto;
+        padding: 0;
+        font-size: 18px;
+    }
+    .rail-toggle[aria-expanded="true"]::before { opacity: 1; background: var(--misp-rail-open); }
+    .rail-menu {
+        position: fixed;
+        top: var(--misp-rail-height);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 4;
+        display: none;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 10px 16px 32px;
+        color: var(--misp-rail-text);
+        background: var(--misp-rail-surface);
+        border-top: var(--misp-rail-panel-edge) solid var(--misp-rail-panel-edge-color);
+        font-family: var(--misp-rail-panel-font);
+        font-size: var(--misp-rail-panel-font-size);
+        --misp-rail-chip-fill: var(--misp-rail-surface-2);
+        --misp-rail-chip-line: var(--misp-rail-border);
+        --misp-rail-hover: var(--misp-rail-hover-bg);
+        --misp-rail-open: var(--misp-rail-hover-bg);
+        --misp-rail-ring: var(--misp-rail-focus);
+        --misp-rail-icon: var(--misp-rail-icon-panel);
+    }
+    .rail-nav.is-drawer .rail-menu { display: block; }
+    .rail-groups { flex-direction: column; }
+    .rail-groups--start { margin: 0; }
+    .rail-groups--end {
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid var(--misp-rail-rule);
+    }
+    .rail-group { display: block; }
+    .rail-trigger {
+        width: 100%;
+        gap: 12px;
+        padding: 0 10px;
+        color: var(--misp-rail-text);
+        font-size: 15px;
+    }
+    .rail-trigger:hover { color: var(--misp-rail-text); }
+    .rail-trigger::before { inset: 4px 0; clip-path: none; border-radius: 10px; }
+    .rail-trigger[aria-current] { color: var(--misp-rail-text); }
+    .rail-trigger[aria-current] .rail-ico { color: var(--misp-rail-icon-panel); }
+    .rail-trigger[aria-current]::after {
+        left: -8px;
+        right: auto;
+        top: 12px;
+        bottom: 12px;
+        width: 4px;
+        height: auto;
+        clip-path: polygon(0 3px, 50% 0, 100% 3px, 100% calc(100% - 3px),
+            50% 100%, 0 calc(100% - 3px));
+    }
+    .rail-trigger:focus-visible,
+    .rail-graph:focus-visible { outline-offset: -2px; border-radius: 10px; }
+    .rail-caret { margin-left: auto; }
+    .rail-who { position: static; width: auto; height: auto; clip: auto; max-width: none; }
+    .rail-avatar::before { background: var(--misp-rail-icon-panel); }
+
+    .rail-panel {
+        position: static;
+        max-width: none;
+        max-height: none;
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+    }
+    .rail-panel--compact { min-width: 0; }
+    .rail-phead { display: none; }
+    .rail-cols,
+    .rail-panel--compact .rail-cols {
+        flex-direction: column;
+        margin: 0 0 8px 20px;
+        padding: 0 0 0 10px;
+        border-left: 2px solid var(--misp-rail-rule);
+    }
+    .rail-col,
+    .rail-panel--compact .rail-col { min-width: 0; max-width: none; padding: 4px 0; }
+    .rail-col + .rail-col,
+    .rail-panel--compact .rail-col + .rail-col {
+        margin-top: 0;
+        border-left: 0;
+        border-top: 1px solid var(--misp-rail-rule);
+    }
+    .rail-item { min-height: 40px; }
+    .rail-sublist .rail-item { min-height: 38px; }
+
+    .rail-slot {
+        padding: 8px 0;
+        margin-top: 6px;
+        border-top: 1px solid var(--misp-rail-rule);
+    }
+    .rail-nav .rail-graph[data-intel-graph-toggle] {
+        width: 100%;
+        height: 44px;
+        gap: 12px;
+        padding: 0 14px;
+        color: var(--misp-rail-text);
+        font-size: 15px;
+    }
+    .rail-graph-name { max-width: none; flex: 1 1 auto; text-align: left; }
+    .rail-slot + .rail-groups--end { margin-top: 0; }
+}
+@media (min-width: 600px) and (max-width: 1099.98px) {
+    .rail-menu {
+        left: auto;
+        width: 440px;
+        border-left: 1px solid var(--misp-rail-border);
+        box-shadow: var(--misp-rail-panel-shadow);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .rail-trigger::before,
+    .rail-toggle::before { transition: opacity .12s ease; }
+    .rail-caret { transition: transform .15s ease; }
+    .rail-graph::before { transition: background-color .12s ease; }
+    .rail-switch { transition: background-color .15s ease; }
+    .rail-switch::after { transition: transform .15s ease; }
+}
+@media (prefers-reduced-motion: no-preference) and (min-width: 1100px) {
+    .rail-group.is-open > .rail-panel { animation: misp-rail-drop .14s ease-out; }
+    @keyframes misp-rail-drop {
+        from { opacity: 0; transform: translateY(-5px); }
+    }
+}
+
+/* ---------- the page under the rail ---------- */
+// Pages are laid out for the 56px Refined Classic bar; the layout marks
+// <html> with .misp-railed when it renders the rail instead.
+html.misp-railed {
+    --ig-so-top: var(--misp-rail-height);
+}
+html.misp-railed body {
+    padding-top: var(--misp-rail-height);
+}
+html.misp-railed .ov-view-tabs,
+html.misp-railed .ct-page .ct-toolbar {
+    top: var(--misp-rail-height);
+}
+html.misp-railed #flashOverlay {
+    top: calc(var(--misp-rail-height) + 4px);
+}

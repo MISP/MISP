@@ -37,7 +37,7 @@ echo $this->Form->create('ShadowAttribute', [
         <!-- ── DELETION TOGGLE ──────────────────────────────────── -->
         <label id="proposeDeleteCard"
                class="d-flex align-items-center gap-3 rounded-2 p-3 user-select-none mb-0"
-               style="cursor:pointer; border:1px solid #dee2e6;">
+               style="cursor:pointer; border:1px solid var(--misp-check-off-line, #dee2e6);">
             <input type="checkbox" id="proposeDeleteToggle"
                    class="form-check-input flex-shrink-0" style="margin-top:0;">
             <div class="flex-fill">
@@ -50,7 +50,7 @@ echo $this->Form->create('ShadowAttribute', [
                 </div>
             </div>
             <i id="proposeDeleteIcon" class="fas fa-trash"
-               style="font-size:.95rem; color:#adb5bd; opacity:.7; transition:color .15s;"></i>
+               style="font-size:.95rem; color:var(--misp-check-off-icon, #adb5bd); opacity:.7; transition:color .15s;"></i>
         </label>
 
         <!-- ── EDIT FIELDS (greyed when proposing deletion) ─────── -->
@@ -92,7 +92,7 @@ echo $this->Form->create('ShadowAttribute', [
                     'id'    => 'ShadowAttributeValue',
                     'class' => 'w-100 rounded-2 p-3',
                     'style' => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                        . ' border:1px solid #d8dde3; resize:vertical; outline:none;'
+                        . ' border:1px solid var(--misp-field-line, #d8dde3); resize:vertical; outline:none;'
                         . ' font-size:.9rem; min-height:88px; color:inherit; font-family:inherit;',
                     'rows'  => 4,
                 ]) ?>
@@ -106,14 +106,14 @@ echo $this->Form->create('ShadowAttribute', [
                 <?= $this->Form->text('comment', [
                     'id'    => 'ShadowAttributeComment',
                     'class' => 'w-100 border-0 bg-transparent py-1',
-                    'style' => 'border-bottom:1px solid #d8dde3 !important; outline:none; font-size:.925rem;',
+                    'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important; outline:none; font-size:.925rem;',
                     'placeholder' => __('Add a contextual comment…'),
                 ]) ?>
             </div>
 
             <label id="proposalIdsCard"
                    class="d-flex align-items-center gap-3 rounded-2 p-3 user-select-none mb-0"
-                   style="cursor:pointer; border:1px solid <?= $toIdsChecked ? '#ffc107' : '#dee2e6' ?>; transition:border-color .15s;">
+                   style="cursor:pointer; border:1px solid <?= $toIdsChecked ? 'var(--misp-tone-yellow-solid, #ffc107)' : 'var(--misp-check-off-line, #dee2e6)' ?>; transition:border-color .15s;">
                 <?= $this->Form->checkbox('to_ids', [
                     'id'    => 'ShadowAttributeToIds',
                     'class' => 'form-check-input flex-shrink-0',
@@ -130,7 +130,7 @@ echo $this->Form->create('ShadowAttribute', [
                     </div>
                 </div>
                 <i id="proposalIdsIcon" class="fas fa-shield-halved"
-                   style="font-size:.95rem; color:<?= $toIdsChecked ? '#ffc107' : '#adb5bd' ?>; transition:color .15s;"></i>
+                   style="font-size:.95rem; color:<?= $toIdsChecked ? 'var(--misp-tone-yellow-solid, #ffc107)' : 'var(--misp-check-off-icon, #adb5bd)' ?>; transition:color .15s;"></i>
             </label>
 
         </fieldset>
@@ -182,8 +182,8 @@ echo $this->Form->create('ShadowAttribute', [
             fields.style.opacity = on ? '0.45' : '';
             fields.style.pointerEvents = on ? 'none' : '';
         }
-        if (card) { card.style.borderColor = on ? '#dc3545' : '#dee2e6'; }
-        if (icon) { icon.style.color = on ? '#dc3545' : '#adb5bd'; icon.style.opacity = on ? '1' : '.7'; }
+        if (card) { card.style.borderColor = on ? 'var(--misp-tone-red-solid, #dc3545)' : 'var(--misp-check-off-line, #dee2e6)'; }
+        if (icon) { icon.style.color = on ? 'var(--misp-tone-red-solid, #dc3545)' : 'var(--misp-check-off-icon, #adb5bd)'; icon.style.opacity = on ? '1' : '.7'; }
         if (submitLabel) { submitLabel.textContent = on ? lblDelete : lblEdit; }
     }
 
@@ -197,8 +197,8 @@ echo $this->Form->create('ShadowAttribute', [
     function syncIds() {
         if (!idsCheckbox) { return; }
         var on = idsCheckbox.checked;
-        if (idsCard) { idsCard.style.borderColor = on ? '#ffc107' : '#dee2e6'; }
-        if (idsIcon) { idsIcon.style.color = on ? '#ffc107' : '#adb5bd'; }
+        if (idsCard) { idsCard.style.borderColor = on ? 'var(--misp-tone-yellow-solid, #ffc107)' : 'var(--misp-check-off-line, #dee2e6)'; }
+        if (idsIcon) { idsIcon.style.color = on ? 'var(--misp-tone-yellow-solid, #ffc107)' : 'var(--misp-check-off-icon, #adb5bd)'; }
     }
     if (idsCheckbox) { idsCheckbox.addEventListener('change', syncIds); syncIds(); }
 }());

@@ -206,16 +206,17 @@
             var $name = document.createElement('span');
             $name.textContent = f.filename;
             var $status = document.createElement('span');
-            $status.style.cssText = 'font-size:11px;color:#666;flex-shrink:0;';
+            $status.style.cssText = 'font-size:11px;' +
+                'color:var(--misp-ink-muted, #666);flex-shrink:0;';
             var pct = Math.round((f.progress || 0) * 100);
             if (f.error) {
                 $status.textContent = '⚠ ' + f.error;
-                $status.style.color = '#c33';
+                $status.style.color = 'var(--misp-tone-red-fg, #c33)';
             } else if (f.data === null) {
                 $status.textContent = pct + '% · ' + humanSize(f.size);
             } else {
                 $status.textContent = '✓ ' + humanSize(f.size);
-                $status.style.color = '#2e7d32';
+                $status.style.color = 'var(--misp-tone-green-fg, #2e7d32)';
             }
             $top.appendChild($name);
             $top.appendChild($status);
@@ -227,11 +228,12 @@
             if (!f.error && f.data === null) {
                 var $bar = document.createElement('div');
                 $bar.style.cssText =
-                    'height:4px;background:#e9ecef;border-radius:2px;' +
-                    'overflow:hidden;margin-top:3px;';
+                    'height:4px;background:var(--misp-line, #e9ecef);' +
+                    'border-radius:2px;overflow:hidden;margin-top:3px;';
                 var $fill = document.createElement('div');
                 $fill.style.cssText =
-                    'height:100%;background:#0d6efd;' +
+                    'height:100%;' +
+                    'background:var(--misp-tone-blue-solid, #0d6efd);' +
                     'transition:width 0.15s linear;width:' + pct + '%;';
                 $bar.appendChild($fill);
                 $row.appendChild($bar);
@@ -767,7 +769,8 @@
         $list.innerHTML = '';
         if (!filtered.length) {
             $list.innerHTML =
-                '<div style="padding:20px; text-align:center; color:#888;">' +
+                '<div style="padding:20px; text-align:center; ' +
+                'color:var(--misp-ink-muted, #888);">' +
                 '<em>No tags match this restriction.</em></div>';
             return;
         }

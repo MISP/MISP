@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('BookmarkRailCards', 'Tools/RailCards');
 
 class BookmarksController extends AppController
 {
@@ -164,6 +165,15 @@ class BookmarksController extends AppController
         $this->CRUD->view($id, $params);
         if ($this->restResponsePayload) {
             return $this->restResponsePayload;
+        }
+        if ($this->theme === 'Overmind') {
+            $user = $this->Auth->user();
+            $railCards = new BookmarkRailCards();
+            $this->set('railCards', RailCard::byId([
+                $railCards->audience($this->viewVars['data']),
+                $railCards->others($user, $this->viewVars['data'], $this->viewVars['bookmarks'] ?? []),
+            ]));
+            $this->set('mayModify', $this->Bookmark->mayModify($user, (int)$id));
         }
         $this->set('id', $id);
         $this->set('menuData', ['menuList' => 'bookmarks', 'menuItem' => 'view']);

@@ -21,7 +21,17 @@ class CollectionElement extends AppModel
     public $valid_types = [
         'Event',
         'GalaxyCluster',
+        'Attribute',
+        'Object',
         'AttributeValue',
+    ];
+
+    /**
+     * Model behind each pointer type, for those whose class name differs.
+     */
+    private $typeModels = [
+        'Attribute' => 'MispAttribute',
+        'Object' => 'MispObject',
     ];
 
     public $validate = [
@@ -48,11 +58,16 @@ class CollectionElement extends AppModel
         ],
         'element_type' => [
             'element_type' => [
-                'rule' => ['inList', []], // filled from $valid_types
+                'rule' => ['validElementType'],
                 'message' => 'Invalid object type.'
             ]
         ]
     ];
+
+    public function validElementType($check)
+    {
+        return in_array(reset($check), $this->valid_types, true);
+    }
 
     /**
      * When true, element saves/deletes do NOT bump the parent Collection's
@@ -65,12 +80,6 @@ class CollectionElement extends AppModel
     /** @var int|null parent collection_id stashed in beforeDelete for afterDelete */
     private $deletedElementCollectionId = null;
 
-
-    public function __construct($id = false, $table = null, $ds = null)
-    {
-        parent::__construct($id, $table, $ds);
-        $this->validate['element_type']['element_type']['rule'] = ['inList', $this->valid_types];
-    }
 
     public function beforeValidate($options = array())
     {
@@ -92,6 +101,157 @@ class CollectionElement extends AppModel
             $this->data['CollectionElement']['element_type'] = $this->deduceType($this->data['CollectionElement']['element_uuid']);
         }
         return true;
+    }
+
+    /**
+     * The element addresses of one type that $user may read.
+     *
+     * @param array $user
+     * @param string $type
+     * @param array $uuids uuids, or SHA-256s for AnalystData::SHA256_TARGETS
+     * @return array SHA-256s in lower case
+     */
+    public function readableUuids(array $user, $type, array $uuids)
+    {
+        $uuids = array_values(array_unique($uuids));
+        if (empty($uuids)) {
+            return [];
+        }
+        switch ($type) {
+            case 'AttributeValue':
+                return array_keys(ClassRegistry::init('AnalystData')->visibleValuesBySha256($user, $uuids));
+            case 'Event':
+                $rows = ClassRegistry::init('Event')->fetchSimpleEvents($user, [
+                    'conditions' => ['Event.uuid' => $uuids]
+                ]);
+                return Hash::extract($rows, '{n}.Event.uuid');
+            case 'GalaxyCluster':
+                $rows = ClassRegistry::init('GalaxyCluster')->fetchGalaxyClusters($user, [
+                    'conditions' => ['GalaxyCluster.uuid' => $uuids],
+                    'fields' => ['GalaxyCluster.uuid'],
+                    'contain' => []
+                ]);
+                return Hash::extract($rows, '{n}.GalaxyCluster.uuid');
+            case 'Attribute':
+                $rows = ClassRegistry::init('MispAttribute')->fetchAttributesSimple($user, [
+                    'conditions' => ['Attribute.uuid' => $uuids, 'Attribute.deleted' => 0],
+                    'fields' => ['Attribute.uuid']
+                ]);
+                return Hash::extract($rows, '{n}.Attribute.uuid');
+            case 'Object':
+                $rows = ClassRegistry::init('MispObject')->fetchObjectSimple($user, [
+                    'conditions' => ['Object.uuid' => $uuids, 'Object.deleted' => 0],
+                    'fields' => ['Object.uuid']
+                ]);
+                return Hash::extract($rows, '{n}.Object.uuid');
+        }
+        return [];
+    }
+
+    /**
+     * Attach to each element the record it points at, as $user sees it.
+     * Elements whose record the user cannot read are returned bare.
+     *
+     * @param array $user
+     * @param array $elements CollectionElement rows, unwrapped
+     * @return array
+     */
+    public function attachTargets(array $user, array $elements)
+    {
+        $uuidsByType = [];
+        foreach ($elements as $element) {
+            $type = $element['element_type'] ?? '';
+            $address = $element[AnalystData::addressColumn($type, 'element')] ?? '';
+            if (!empty($address)) {
+                $uuidsByType[$type][] = $address;
+            }
+        }
+        $targets = [];
+        foreach ($uuidsByType as $type => $uuids) {
+            $targets[$type] = $this->fetchTargets($user, $type, array_values(array_unique($uuids)));
+        }
+        foreach ($elements as $k => $element) {
+            $type = $element['element_type'] ?? '';
+            $uuid = $element[AnalystData::addressColumn($type, 'element')] ?? '';
+            if (isset($targets[$type][$uuid])) {
+                $elements[$k][$type] = $targets[$type][$uuid];
+            }
+        }
+        return $elements;
+    }
+
+    /**
+     * @param array $user
+     * @param string $type
+     * @param array $uuids uuids, or SHA-256s for AnalystData::SHA256_TARGETS
+     * @return array uuid => what the view shows of the record
+     */
+    private function fetchTargets(array $user, $type, array $uuids)
+    {
+        $byUuid = [];
+        switch ($type) {
+            case 'AttributeValue':
+                $ids = ClassRegistry::init('AnalystData')->visibleValuesBySha256($user, $uuids);
+                $texts = empty($ids) ? [] : ClassRegistry::init('MispAttribute')->loadAttributeValue()->fetchValues(array_values($ids));
+                foreach ($ids as $hex => $id) {
+                    if (isset($texts[$id])) {
+                        $byUuid[$hex] = ['sha256' => $hex, 'value' => $texts[$id]];
+                    }
+                }
+                break;
+            case 'Event':
+                $rows = ClassRegistry::init('Event')->fetchSimpleEvents($user, [
+                    'conditions' => ['Event.uuid' => $uuids]
+                ]);
+                foreach ($rows as $row) {
+                    $byUuid[$row['Event']['uuid']] = [
+                        'id' => $row['Event']['id'],
+                        'info' => $row['Event']['info'],
+                    ];
+                }
+                break;
+            case 'GalaxyCluster':
+                $GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+                $rows = $GalaxyCluster->fetchGalaxyClusters($user, [
+                    'conditions' => ['GalaxyCluster.uuid' => $uuids]
+                ]);
+                foreach ($rows as $row) {
+                    $arranged = $GalaxyCluster->arrangeData($row);
+                    $byUuid[$row['GalaxyCluster']['uuid']] = [$arranged['GalaxyCluster']];
+                }
+                break;
+            case 'Attribute':
+                $rows = ClassRegistry::init('MispAttribute')->fetchAttributesSimple($user, [
+                    'conditions' => ['Attribute.uuid' => $uuids, 'Attribute.deleted' => 0],
+                    'fields' => [
+                        'Attribute.id', 'Attribute.uuid', 'Attribute.type',
+                        'Attribute.category', 'Attribute.value', 'Attribute.event_id',
+                        'Attribute.object_id', 'Event.id', 'Event.info',
+                    ]
+                ]);
+                foreach ($rows as $row) {
+                    $byUuid[$row['Attribute']['uuid']] = $row['Attribute'] + [
+                        'Event' => $row['Event'],
+                    ];
+                }
+                break;
+            case 'Object':
+                $rows = ClassRegistry::init('MispObject')->fetchObjectSimple($user, [
+                    'conditions' => ['Object.uuid' => $uuids, 'Object.deleted' => 0],
+                    'fields' => [
+                        'Object.id', 'Object.uuid', 'Object.name',
+                        'Object.meta-category', 'Object.event_id',
+                    ],
+                    'contain' => ['Event' => ['fields' => ['id', 'info']]]
+                ]);
+                foreach ($rows as $row) {
+                    $byUuid[$row['Object']['uuid']] = $row['Object'] + [
+                        'Event' => $row['Event'],
+                    ];
+                }
+                break;
+        }
+        return $byUuid;
     }
 
     public function afterSave($created, $options = array())
@@ -154,9 +314,10 @@ class CollectionElement extends AppModel
     public function deduceType(string $uuid)
     {
         foreach (array_diff($this->valid_types, AnalystData::SHA256_TARGETS) as $valid_type) {
-            $this->{$valid_type} = ClassRegistry::init($valid_type);
-            $result = $this->$valid_type->find('first', [
-                'conditions' => [$valid_type.'.uuid' => $uuid],
+            $model = ClassRegistry::init($this->typeModels[$valid_type] ?? $valid_type);
+            $result = $model->find('first', [
+                'conditions' => [$model->alias . '.uuid' => $uuid],
+                'fields' => [$model->alias . '.id'],
                 'recursive' => -1
             ]);
             if (!empty($result)) {
@@ -169,7 +330,8 @@ class CollectionElement extends AppModel
     /**
      * Refuse any target $user cannot read. The read side resolves elements back
      * into objects, so every write path that stores one must check it first. A
-     * missing target and an invisible one get the same answer.
+     * missing target and an invisible one get the same answer. Any value is
+     * accepted: the read side shows its text only to whoever can see it.
      *
      * @param array $user
      * @param string|null $elementType When empty, deduced per address as
@@ -197,11 +359,10 @@ class CollectionElement extends AppModel
                     throw new NotFoundException(__('Invalid galaxy cluster or not authorized.'));
                 }
             } elseif ($type === 'AttributeValue') {
-                $found = ClassRegistry::init('AnalystData')->existingTargets($user, [
-                    ['type' => $type, 'address' => $address],
-                ]);
-                if (empty($found)) {
-                    throw new NotFoundException(__('Invalid value or not authorized.'));
+                continue;
+            } elseif ($type === 'Attribute' || $type === 'Object') {
+                if (empty($this->readableUuids($user, $type, [$address]))) {
+                    throw new NotFoundException(__('Invalid element or not authorized.'));
                 }
             } else {
                 throw new NotFoundException(__('Invalid element type.'));
@@ -236,38 +397,46 @@ class CollectionElement extends AppModel
             'recursive' => -1,
             'conditions' => ['CollectionElement.collection_id' => $data['Collection']['id']]
         ]);
+        // Rows match as the unique keys compare them: by row uuid, else by element
+        // within the collection, both case-insensitive (ascii_general_ci).
         $oldElements = [];
         $oldByTarget = [];
         foreach ($temp as $oldElement) {
-            $oldElements[$oldElement['CollectionElement']['uuid']] = $oldElement['CollectionElement'];
-            $oldByTarget[$this->targetKey($oldElement['CollectionElement'])] = $oldElement['CollectionElement']['uuid'];
+            $row = $oldElement['CollectionElement'];
+            $oldElements[strtolower($row['uuid'])] = $row;
+            $oldByTarget[$this->targetKey($row)] = strtolower($row['uuid']);
         }
         if (isset($data['Collection']['CollectionElement'])) {
             $elementsToSave = [];
+            $captured = [];
             foreach ($data['Collection']['CollectionElement'] as $k => $element) {
-                if ($fromPre30 && self::isValueElement($element)) {
+                if (!is_array($element)) {
                     continue;
                 }
-                // Without a known uuid, a stored element with the same target is
-                // this one: a new row would hit the unique key, and the stored one
-                // would then be culled as absent
-                $key = $this->targetKey($element);
-                if (
-                    (empty($element['uuid']) || !isset($oldElements[$element['uuid']])) &&
-                    $key !== '' && isset($oldByTarget[$key]) && isset($oldElements[$oldByTarget[$key]])
-                ) {
-                    $element['uuid'] = $oldByTarget[$key];
+                if ($fromPre30 && self::isValueElement($element)) {
+                    continue;
                 }
                 if (empty($element['uuid'])) {
                     $element['uuid'] = CakeText::uuid();
                 }
-                if (isset($oldElements[$element['uuid']])) {
+                $key = $this->targetKey($element);
+                $rowUuid = is_string($element['uuid']) ? strtolower($element['uuid']) : '';
+                if (!isset($oldElements[$rowUuid]) && $key !== '' && isset($oldByTarget[$key])) {
+                    $rowUuid = $oldByTarget[$key];
+                }
+                if (isset($oldElements[$rowUuid])) {
+                    $captured[$this->targetKey($oldElements[$rowUuid])] = true;
                     if (isset($element['description'])) {
-                        $oldElements[$element['uuid']]['description'] = $element['description'];
+                        $oldElements[$rowUuid]['description'] = $element['description'];
                     }
-                    $elementsToSave[$k] = $oldElements[$element['uuid']];
-                    unset($oldElements[$element['uuid']]);
+                    $elementsToSave[$k] = $oldElements[$rowUuid];
+                    unset($oldElements[$rowUuid]);
+                } elseif ($key !== '' && isset($captured[$key])) {
+                    continue;
                 } else {
+                    if ($key !== '') {
+                        $captured[$key] = true;
+                    }
                     $elementsToSave[$k] = [
                         'CollectionElement' => [
                             'uuid' => $element['uuid'],

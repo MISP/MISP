@@ -1,0 +1,591 @@
+// Neon component layer: only what Bootstrap's variables can't say. Glows,
+// gradient edges and the grid ground are chrome; nothing here is applied per
+// table row or per tag.
+
+$neon-glow-primary: rgba($neon-primary, .55);
+$neon-glow-cyan: rgba($neon-cyan, .5);
+$neon-sunset:    linear-gradient(90deg, $neon-violet, $neon-primary 45%, $neon-cyan);
+
+// A neon tube: a tight core and one soft halo.
+@mixin neon-glow($color, $strength: .55) {
+  box-shadow: 0 0 0 1px rgba($color, $strength * .6), 0 0 .9rem -.1rem rgba($color, $strength);
+}
+
+@mixin neon-text-glow($color) {
+  text-shadow: 0 0 .05em rgba($white, .35), 0 0 .55em rgba($color, .6);
+}
+
+// The synthwave floor: a perspective indigo grid under a cyan horizon.
+$neon-floor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 360' preserveAspectRatio='none'><path d='M800 0L-3200 360M800 0L-3040 360M800 0L-2880 360M800 0L-2720 360M800 0L-2560 360M800 0L-2400 360M800 0L-2240 360M800 0L-2080 360M800 0L-1920 360M800 0L-1760 360M800 0L-1600 360M800 0L-1440 360M800 0L-1280 360M800 0L-1120 360M800 0L-960 360M800 0L-800 360M800 0L-640 360M800 0L-480 360M800 0L-320 360M800 0L-160 360M800 0L0 360M800 0L160 360M800 0L320 360M800 0L480 360M800 0L640 360M800 0L800 360M800 0L960 360M800 0L1120 360M800 0L1280 360M800 0L1440 360M800 0L1600 360M800 0L1760 360M800 0L1920 360M800 0L2080 360M800 0L2240 360M800 0L2400 360M800 0L2560 360M800 0L2720 360M800 0L2880 360M800 0L3040 360M800 0L3200 360M800 0L3360 360M800 0L3520 360M800 0L3680 360M800 0L3840 360M800 0L4000 360M800 0L4160 360M800 0L4320 360M800 0L4480 360M800 0L4640 360M800 0L4800 360M0 2.3H1600M0 10H1600M0 23.5H1600M0 43H1600M0 68.7H1600M0 100.8H1600M0 139.3H1600M0 184.4H1600M0 236.2H1600M0 294.7H1600M0 360H1600' fill='none' stroke='%237d74ff' stroke-opacity='.22' stroke-width='1.2' vector-effect='non-scaling-stroke'/><path d='M0 0.5H1600' stroke='%232de2e6' stroke-opacity='.4' stroke-width='1.5' vector-effect='non-scaling-stroke'/></svg>");
+$neon-floor-height: 26vh;
+
+:root {
+  color-scheme: dark;
+  --neon-primary: #{$neon-primary};
+  --neon-cyan: #{$neon-cyan};
+  --neon-sunset: #{$neon-sunset};
+  --misp-navbar-edge: #{rgba($neon-primary, .35)};
+  --misp-navbar-shadow: 0 0 1.25rem -.25rem #{rgba($neon-primary, .45)};
+  scrollbar-color: #{$neon-line} #{$neon-void};
+}
+
+::selection {
+  color: $white;
+  background: rgba($neon-primary, .4);
+}
+
+// Ground: the page is fixed to the viewport, so the floor stays at the
+// bottom edge while the content scrolls over it.
+body {
+  background-image:
+    repeating-linear-gradient(180deg, rgba($white, .018) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, $neon-void, rgba($neon-void, 0) 45%),
+    $neon-floor,
+    radial-gradient(ellipse 55% #{$neon-floor-height * .6} at 50% #{100vh - $neon-floor-height}, rgba($neon-primary, .1), transparent),
+    radial-gradient(ellipse 60% 50% at 0 0, rgba($neon-violet, .1), transparent),
+    linear-gradient(180deg, $neon-void 0%, #0d0c2a 100%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: 0 0, 0 #{100vh - $neon-floor-height}, bottom, 0 0, 0 0, 0 0;
+  background-size: auto, 100% $neon-floor-height, 100% $neon-floor-height, auto, auto, auto;
+}
+
+// Headings and the page title
+
+h1, h2, h3, .h1, .h2, .h3 {
+  letter-spacing: .01em;
+}
+
+html[data-misp-mode] [data-tour="page-title"] h1 {
+  color: $white;
+  @include neon-text-glow($neon-primary);
+}
+
+// The breadcrumb kicker reads as a HUD label.
+html[data-misp-mode] [data-tour="page-title"] > .text-uppercase {
+  font-family: $neon-font-hud;
+  font-weight: 700;
+  color: $neon-cyan !important;
+  letter-spacing: .14em !important;
+  @include neon-text-glow($neon-cyan);
+
+  a {
+    color: inherit !important;
+  }
+}
+
+.display-1, .display-2, .display-3, .display-4, .display-5, .display-6 {
+  font-family: $neon-font-hud;
+  @include neon-text-glow($neon-primary);
+}
+
+// On a filled tile the glow only blurs the figure.
+:is([class*="text-bg-"], .bg-primary, .bg-secondary, .bg-success, .bg-info, .bg-warning, .bg-danger)
+  :is(.display-1, .display-2, .display-3, .display-4, .display-5, .display-6) {
+  text-shadow: none;
+}
+
+hr {
+  border: 0;
+  height: 1px;
+  background: $neon-sunset;
+  opacity: .45;
+}
+
+// Navbar: a violet-to-cyan tube under the bar, a glowing active marker.
+
+.rc-nav .rc-bar {
+  font-family: $neon-font-display;
+  letter-spacing: .02em;
+}
+
+.rc-nav .rc-bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: $neon-sunset;
+  box-shadow: 0 0 .5rem rgba($neon-primary, .7);
+  pointer-events: none;
+}
+
+.rc-nav .rc-group.is-active::after {
+  box-shadow: 0 0 .5rem $neon-glow-primary, 0 0 1px $neon-primary;
+}
+
+.rc-nav .rc-trigger,
+.rc-nav .rc-chip {
+  font-weight: 600;
+}
+
+.rc-nav .rc-version {
+  font-family: $neon-font-hud;
+  letter-spacing: .08em;
+}
+
+// The view tabs band: HUD tabs over a dark strip, the active one lit.
+
+html[data-misp-mode] .ov-view-tabs {
+  background: rgba($neon-void, .92);
+  border-top-color: $neon-line;
+  border-bottom-color: rgba($neon-primary, .3);
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view {
+  font-family: $neon-font-display;
+  letter-spacing: .03em;
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view.active {
+  color: $white;
+  @include neon-text-glow($neon-primary);
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view.active::after {
+  height: 2px;
+  box-shadow: 0 0 .5rem $neon-glow-primary, 0 0 1px $neon-primary;
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view.active .ov-tab-count {
+  background: rgba($neon-primary, .18);
+  color: tint-color($neon-primary, 55%);
+  text-shadow: none;
+}
+
+// Cards: a translucent violet frame with a sunset edge along the top.
+
+.card {
+  box-shadow: 0 0 1.5rem -.75rem rgba($neon-violet, .35);
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: .75rem;
+  right: .75rem;
+  height: 1px;
+  background: $neon-sunset;
+  opacity: .7;
+  pointer-events: none;
+}
+
+.card-header {
+  font-family: $neon-font-display;
+  font-weight: 600;
+  letter-spacing: .03em;
+}
+
+.card-title {
+  font-family: $neon-font-display;
+}
+
+// Cards nested in cards keep the frame but drop the edge and the glow.
+.card .card {
+  box-shadow: none;
+
+  &::before {
+    content: none;
+  }
+}
+
+// Buttons: neon fills with dark ink; the glow comes on with intent.
+
+.btn {
+  letter-spacing: .02em;
+  transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .2s ease-in-out;
+}
+
+// Primary is MISP's everyday button (search, filters, view toggles), so it
+// is a lit tube: an indigo rim over a tinted fill, solid only on hover.
+$neon-tube-fill: mix($neon-primary, $neon-surface, 22%);
+
+.btn-primary {
+  @include button-variant(
+    $neon-tube-fill, $neon-primary,
+    $color: tint-color($neon-primary, 72%),
+    $hover-background: $neon-primary, $hover-border: $neon-primary, $hover-color: $neon-void,
+    $active-background: tint-color($neon-primary, 15%), $active-border: tint-color($neon-primary, 15%), $active-color: $neon-void,
+    $disabled-background: $neon-tube-fill, $disabled-border: rgba($neon-primary, .5), $disabled-color: tint-color($neon-primary, 50%)
+  );
+  box-shadow: 0 0 .75rem -.2rem $neon-glow-primary;
+}
+
+@each $name, $value in $theme-colors {
+  .btn-#{$name}:hover,
+  .btn-outline-#{$name}:hover {
+    @include neon-glow($value);
+  }
+}
+
+// Secondary is the workhorse button, so it stays a dark tile with a rim.
+.btn-secondary {
+  @include button-variant(
+    $neon-raised, #403c80,
+    $color: $neon-ink,
+    $hover-background: #23204f, $hover-border: $neon-violet, $hover-color: $white,
+    $active-background: #2c2864, $active-border: $neon-violet, $active-color: $white,
+    $disabled-background: $neon-raised, $disabled-border: $neon-line, $disabled-color: $neon-faint
+  );
+}
+
+.btn-secondary:hover {
+  @include neon-glow($neon-violet, .45);
+}
+
+.btn-outline-secondary {
+  @include button-outline-variant(
+    $neon-dim,
+    $color-hover: $white,
+    $active-background: #23204f,
+    $active-border: $neon-violet,
+    $active-color: $white
+  );
+  --#{$prefix}btn-border-color: #403c80;
+  --#{$prefix}btn-hover-bg: #23204f;
+  --#{$prefix}btn-hover-border-color: #{$neon-violet};
+}
+
+.btn-outline-secondary:hover {
+  @include neon-glow($neon-violet, .45);
+}
+
+.btn:focus-visible,
+.btn-check:focus-visible + .btn {
+  box-shadow: 0 0 0 .2rem rgba($neon-cyan, .35), 0 0 1rem rgba($neon-cyan, .45);
+}
+
+// Rows of action buttons stay unlit until hovered.
+.table .btn,
+.table .btn-primary {
+  box-shadow: none;
+}
+
+.btn-link {
+  font-family: inherit;
+  letter-spacing: normal;
+}
+
+// Forms
+
+.form-control,
+.form-select {
+  transition: border-color .15s ease-in-out, box-shadow .2s ease-in-out;
+}
+
+.form-control:hover:not(:focus):not(:disabled),
+.form-select:hover:not(:focus):not(:disabled) {
+  border-color: #4f4a96;
+}
+
+.form-check-input:checked {
+  box-shadow: 0 0 .5rem rgba($neon-primary, .5);
+}
+
+// Select-all would otherwise light every row.
+.table .form-check-input:checked:not(:focus) {
+  box-shadow: none;
+}
+
+.form-check-input:focus {
+  box-shadow: 0 0 0 .2rem rgba($neon-cyan, .3);
+}
+
+legend,
+.form-label,
+.col-form-label {
+  letter-spacing: .01em;
+}
+
+.input-group-text {
+  font-family: $neon-font-display;
+}
+
+// Tables: only the header row carries any colour.
+
+.table > thead > tr > th,
+.table > thead > tr > td {
+  font-family: $neon-font-display;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: tint-color($neon-cyan, 30%);
+  border-bottom: 1px solid rgba($neon-primary, .45);
+}
+
+// Navs, pagination, pills
+
+.nav-tabs .nav-link,
+.nav-pills .nav-link,
+.nav-underline .nav-link {
+  font-family: $neon-font-display;
+  font-weight: 600;
+  letter-spacing: .03em;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+  border-top: 2px solid $neon-primary;
+  box-shadow: 0 -.4rem .9rem -.5rem $neon-glow-primary;
+}
+
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link {
+  box-shadow: 0 0 .8rem -.1rem $neon-glow-primary;
+}
+
+.nav-underline .nav-link.active {
+  border-bottom-color: $neon-primary;
+}
+
+.page-link {
+  font-family: $neon-font-display;
+  font-weight: 600;
+}
+
+.page-item.active .page-link {
+  box-shadow: 0 0 .8rem -.1rem $neon-glow-primary;
+}
+
+.breadcrumb {
+  font-family: $neon-font-display;
+  letter-spacing: .03em;
+}
+
+// Badges
+
+.badge {
+  font-family: $neon-font-display;
+  letter-spacing: .03em;
+}
+
+// Dropdowns and overlays carry the brightest frames.
+
+.dropdown-menu {
+  box-shadow: $dropdown-box-shadow;
+}
+
+.dropdown-header {
+  font-family: $neon-font-hud;
+  font-size: .65rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.modal-content {
+  box-shadow: 0 0 0 1px rgba($neon-primary, .25), 0 0 2.5rem -.5rem rgba($neon-primary, .45), 0 1.5rem 3rem rgba($black, .6);
+}
+
+.modal-header {
+  position: relative;
+  border-bottom: 0;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: $neon-sunset;
+    opacity: .6;
+  }
+}
+
+.modal-title {
+  font-family: $neon-font-display;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+.popover {
+  box-shadow: $popover-box-shadow, 0 0 1.25rem -.25rem rgba($neon-cyan, .35);
+}
+
+.popover-header {
+  font-family: $neon-font-display;
+  letter-spacing: .03em;
+}
+
+.tooltip-inner {
+  border: 1px solid rgba($neon-cyan, .5);
+  box-shadow: 0 0 .75rem -.1rem rgba($neon-cyan, .4);
+  font-size: .8125rem;
+}
+
+.toast {
+  box-shadow: 0 0 1.5rem -.4rem rgba($neon-primary, .45), 0 .75rem 2rem rgba($black, .5);
+}
+
+.toast-header {
+  font-family: $neon-font-display;
+  letter-spacing: .03em;
+}
+
+// Alerts: a dark tint with a lit edge on the left.
+
+.alert {
+  border-left-width: 3px;
+}
+
+@each $name in (primary, secondary, success, info, warning, danger) {
+  .alert-#{$name} {
+    border-left-color: var(--#{$prefix}#{$name});
+    box-shadow: -.4rem 0 .8rem -.6rem rgba(map-get($theme-colors, $name), .8);
+  }
+}
+
+.alert-heading {
+  font-family: $neon-font-display;
+}
+
+// Progress bars glow; the track stays dark.
+
+.progress,
+.progress-stacked {
+  border: 1px solid $neon-line;
+}
+
+.progress-bar:not([class*="bg-"]) {
+  box-shadow: 0 0 .6rem rgba($neon-primary, .6);
+}
+
+// List groups
+
+.list-group-item.active {
+  border-left: 3px solid $neon-primary;
+}
+
+// Accordion: the title in the display face, any subtitle in the body face.
+
+.accordion-button {
+  font-family: $neon-font-display;
+  font-weight: 600;
+  letter-spacing: .02em;
+
+  .small,
+  small,
+  .text-muted,
+  .text-body-secondary {
+    font-family: $font-family-sans-serif;
+    font-weight: 400;
+    letter-spacing: normal;
+  }
+}
+
+.accordion-button:not(.collapsed) {
+  box-shadow: inset 0 -1px 0 rgba($neon-primary, .35);
+}
+
+// MISP reads .text-dark as "high-contrast text" and lightens it in dark
+// mode; on a bright neon fill that has to be the ground colour again.
+html[data-misp-mode="dark"] :is(.bg-primary, .bg-success, .bg-info, .bg-warning, .bg-danger).text-dark {
+  color: $neon-void !important;
+}
+
+// Code and keyboard
+
+kbd {
+  border: 1px solid rgba($neon-cyan, .4);
+}
+
+// Motion: the navbar edge breathes, for those who allow it.
+
+@media (prefers-reduced-motion: no-preference) {
+  .rc-nav .rc-bar::after {
+    animation: neon-hum 6s ease-in-out infinite;
+  }
+
+  @keyframes neon-hum {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .65; }
+  }
+}
+
+// The dashboard draws itself from --misp-dash-* tokens; Neon redefines
+// them. The dashboard's own midnight switch still wins when chosen.
+html[data-misp-mode] {
+  --misp-dash-surface:        #{$neon-void};
+  --misp-dash-surface-raised: #{$neon-surface};
+  --misp-dash-surface-sunken: #{$neon-well};
+  --misp-dash-border:         #{$neon-line};
+  --misp-dash-border-strong:  #{#403c80};
+  --misp-dash-text:           #{$neon-ink};
+  --misp-dash-text-muted:     #{$neon-dim};
+  --misp-dash-text-on-accent: #{$neon-void};
+  --misp-dash-accent:         #{$neon-primary};
+  --misp-dash-accent-hover:   #{tint-color($neon-primary, 25%)};
+  --misp-dash-accent-muted:   #{rgba($neon-primary, .16)};
+  --misp-dash-success:        #{$neon-mint};
+  --misp-dash-danger:         #{$neon-red};
+  --misp-dash-warning:        #{$neon-amber};
+  --misp-dash-info:           #{$neon-cyan};
+  --misp-dash-success-muted:  #{rgba($neon-mint, .16)};
+  --misp-dash-danger-muted:   #{rgba($neon-red, .16)};
+  --misp-dash-warning-muted:  #{rgba($neon-amber, .16)};
+  --misp-dash-info-muted:     #{rgba($neon-cyan, .16)};
+  --misp-dash-shadow-sm: 0 1px 2px #{rgba($black, .4)};
+  --misp-dash-shadow-md: 0 0 1rem -.35rem #{rgba($neon-violet, .35)};
+  --misp-dash-shadow-lg: 0 0 1.5rem -.4rem #{rgba($neon-primary, .35)}, 0 .75rem 2rem #{rgba($black, .5)};
+}
+
+// Login: the sign-in card keeps its white face for the logo, framed in
+// indigo over the full horizon, a magenta core in its sun.
+html[data-misp-mode] body:is([data-action="login"], [data-action="register"], [data-action="forgot"], [data-action="change_pw"])[data-controller="users"] {
+  background-image:
+    repeating-linear-gradient(180deg, rgba($white, .02) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, $neon-void, rgba($neon-void, 0) 40%),
+    $neon-floor,
+    radial-gradient(ellipse 18% 12vh at 50% 62vh, rgba($neon-pink, .22), transparent),
+    radial-gradient(ellipse 45% 28vh at 50% 62vh, rgba($neon-primary, .4), transparent),
+    radial-gradient(ellipse 80% 40vh at 50% 62vh, rgba($neon-violet, .2), transparent),
+    linear-gradient(180deg, $neon-void 0%, #14113a 62%, $neon-void 62.1%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: 0 0, 0 62vh, bottom, 0 0, 0 0, 0 0, 0 0;
+  background-size: auto, 100% 38vh, 100% 38vh, auto, auto, auto, auto;
+}
+
+html[data-misp-mode] .card[data-bs-theme="light"] {
+  border: 1px solid $neon-primary;
+  box-shadow: 0 0 0 1px rgba($neon-primary, .35), 0 0 2.5rem -.25rem rgba($neon-primary, .55), 0 1.5rem 3rem rgba($black, .6);
+
+  &::before {
+    left: 0;
+    right: 0;
+    height: 2px;
+    opacity: 1;
+  }
+
+  .form-control {
+    color: $gray-900;
+    background-color: $white;
+    border-color: #c2c0e6;
+  }
+
+  .form-control:focus {
+    border-color: #0fb8bc;
+    box-shadow: 0 0 0 .2rem rgba($neon-cyan, .3);
+  }
+
+  .form-floating > label {
+    color: #55527f;
+  }
+
+  .btn-primary {
+    @include button-variant(
+      $neon-primary, $neon-primary,
+      $color: $neon-void,
+      $hover-background: tint-color($neon-primary, 15%), $hover-border: tint-color($neon-primary, 15%), $hover-color: $neon-void
+    );
+  }
+
+  .text-muted {
+    color: #55527f !important;
+  }
+
+  a {
+    color: #3f37c9;
+  }
+}

@@ -12,17 +12,19 @@ $sections = [
         'items'   => $fp,
         'label'   => __('Potential false positives'),
         'icon'    => 'fas fa-times-circle',
-        'bg'      => '#fff1f2',
-        'border'  => '#fecdd3',
-        'iconCol' => '#dc2626',
+        'bg'      => 'var(--misp-tone-red-bg, #fff1f2)',
+        'border'  => 'var(--misp-tone-red-border, #fecdd3)',
+        'fg'      => 'var(--misp-tone-red-fg, #dc2626)',
+        'badgeBg' => 'var(--misp-surface, #fecdd3)',
     ],
     [
         'items'   => $known,
         'label'   => __('Known identifiers'),
         'icon'    => 'fas fa-info-circle',
-        'bg'      => '#fef3c7',
-        'border'  => '#fde68a',
-        'iconCol' => '#d97706',
+        'bg'      => 'var(--misp-tone-yellow-bg, #fef3c7)',
+        'border'  => 'var(--misp-tone-yellow-border, #fde68a)',
+        'fg'      => 'var(--misp-tone-yellow-fg, #d97706)',
+        'badgeBg' => 'var(--misp-surface, #fde68a)',
     ],
 ];
 ?>
@@ -53,15 +55,15 @@ $sections = [
                     border-left:3px solid
                         <?= $section['border'] ?> !important;">
             <i class="<?= $section['icon'] ?> small"
-               style="color:<?= $section['iconCol'] ?>;
+               style="color:<?= $section['fg'] ?>;
                       font-size:.85rem;"></i>
             <span class="fw-semibold small"
-                  style="color:<?= $section['iconCol'] ?>;">
+                  style="color:<?= $section['fg'] ?>;">
                 <?= $section['label'] ?>
             </span>
             <span class="badge rounded-pill ms-auto"
-                  style="background:<?= $section['border'] ?>;
-                         color:<?= $section['iconCol'] ?>;
+                  style="background:<?= $section['badgeBg'] ?>;
+                         color:<?= $section['fg'] ?>;
                          font-size:.7rem;">
                 <?= count($section['items']) ?>
             </span>
@@ -72,11 +74,12 @@ $sections = [
         <?php foreach ($section['items'] as $id => $name): ?>
         <a href="#"
            class="d-flex align-items-center gap-2 px-3 py-2
-                  border-bottom text-decoration-none text-dark
+                  border-bottom text-decoration-none
                   wl-item-row"
            data-wl-id="<?= (int)$id ?>"
            title="<?= __('Show the attributes flagged by this warning list') ?>"
-           style="transition:background .15s;">
+           style="transition:background .15s;
+                  color:var(--misp-ink, var(--bs-body-color));">
             <i class="fas fa-list-ul text-muted"
                style="font-size:.8rem;width:14px;"></i>
             <span class="small flex-fill text-truncate">
@@ -95,5 +98,5 @@ $sections = [
 </div>
 
 <style>
-.wl-item-row:hover { background: #f8fafc; }
+.wl-item-row:hover { background: var(--misp-surface-hover, #f8fafc); }
 </style>

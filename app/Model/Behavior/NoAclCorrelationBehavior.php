@@ -457,21 +457,87 @@ class NoAclCorrelationBehavior extends ModelBehavior
     public function fetchRelatedEventIds(Model $Model, array $user, int $eventId, array $sgids, bool $excludeNonCorrelating = false)
     {
         if ($excludeNonCorrelating) {
-            // Same collector as runGetAttributesRelatedToEvent(), which alone
-            // skips the values in correlation_exclusions and in
-            // over_correlating_values.
-            $eventIds = [];
-            foreach ($this->__collectCorrelations($user, $eventId, false) as $correlation) {
-                $eventIds[$correlation['Correlation']['event_id']] = true;
-            }
-            foreach ($this->__collectCorrelations($user, $eventId, true) as $correlation) {
-                $eventIds[$correlation['Correlation']['1_event_id']] = true;
-            }
-            return array_keys($eventIds);
+            // The same set runGetAttributesRelatedToEvent() lists: no value held
+            // in correlation_exclusions or over_correlating_values, and no more
+            // than max_correlations_per_event correlations read each way.
+            $limit = Configure::read('MISP.max_correlations_per_event') ?: 5000;
+            list($eventIds) = $this->__correlatingEventIds($eventId, $limit);
+            return $eventIds;
         }
         $primaryEventIds = $this->__filterRelatedEvents($Model, $eventId, true);
         $secondaryEventIds = $this->__filterRelatedEvents($Model, $eventId, false);
         return array_unique(array_merge($primaryEventIds, $secondaryEventIds), SORT_REGULAR);
+    }
+
+    /**
+     * How many events fetchRelatedEventIds(..., true) finds within $limit
+     * correlations each way, and whether either way held more.
+     *
+     * @param Correlation $Model
+     * @param array $user Not used
+     * @param int $eventId
+     * @param array $sgids Not used
+     * @param int $limit
+     * @return array [int $count, bool $more]
+     */
+    public function fetchRelatedEventCount(Model $Model, array $user, int $eventId, array $sgids, int $limit)
+    {
+        list($eventIds, $read) = $this->__correlatingEventIds($eventId, $limit + 1);
+        return [count($eventIds), $read > $limit];
+    }
+
+    /**
+     * The events $eventId correlates with through a value that is neither
+     * excluded nor over-correlating, read from at most $limit correlations each
+     * way, one row per related event.
+     *
+     * @param int $eventId
+     * @param int $limit
+     * @return array [int[] $eventIds, int $read] the most correlations read one way
+     */
+    private function __correlatingEventIds(int $eventId, int $limit)
+    {
+        $db = $this->Correlation->getDataSource();
+        $eventIds = [];
+        $read = 0;
+        $excluded = $this->Correlation->excludedValueConditions();
+        foreach ([true, false] as $primary) {
+            $source = $primary ? '' : '1_';
+            $related = ($primary ? '1_' : '') . 'event_id';
+            $inner = $db->buildStatement([
+                'fields' => [$db->name('Correlation.' . $related)],
+                'table' => $db->fullTableName($this->Correlation),
+                'alias' => 'Correlation',
+                'joins' => [],
+                'conditions' => [
+                    'Correlation.' . $source . 'event_id' => $eventId,
+                    'AND' => $excluded,
+                ],
+                'order' => null,
+                'group' => null,
+                'limit' => $limit,
+                'offset' => null,
+            ], $this->Correlation);
+            $rows = $db->fetchAll(
+                sprintf(
+                    'SELECT %1$s, COUNT(*) AS %2$s FROM (%3$s) AS %4$s GROUP BY %1$s',
+                    $db->name($related),
+                    $db->name('n'),
+                    $inner,
+                    $db->name('related')
+                ),
+                [],
+                ['cache' => false]
+            );
+            $directionRead = 0;
+            foreach ($rows as $row) {
+                $row = ($row['related'] ?? []) + ($row[0] ?? []);
+                $directionRead += (int)$row['n'];
+                $eventIds[$row[$related]] = true;
+            }
+            $read = max($read, $directionRead);
+        }
+        return [array_keys($eventIds), $read];
     }
 
     /**

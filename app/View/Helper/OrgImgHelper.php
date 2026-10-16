@@ -151,6 +151,21 @@ class OrgImgHelper extends AppHelper
             return $this->imageCache[$options['id']];
         }
 
+        $image = self::imageFile($options);
+
+        if (isset($options['id'])) {
+            $this->imageCache[$options['id']] = $image;
+        }
+
+        return $image;
+    }
+
+    /**
+     * @param array $options id, name, uuid
+     * @return string|null the logo's file name under IMG_PATH
+     */
+    public static function imageFile(array $options)
+    {
         $image = null;
         foreach (['id', 'name', 'uuid'] as $field) {
             if (isset($options[$field])) {
@@ -170,11 +185,6 @@ class OrgImgHelper extends AppHelper
                 }
             }
         }
-
-        if (isset($options['id'])) {
-            $this->imageCache[$options['id']] = $image;
-        }
-
         return $image;
     }
 }

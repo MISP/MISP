@@ -110,7 +110,7 @@ $fields = [
                     . h(__('invalid interval')) . '</span>';
             }
             return '<span class="badge rounded-pill text-bg-light border border-secondary-subtle text-body d-inline-flex align-items-center">'
-                . '<i class="fas fa-clock me-1 text-primary"></i>'
+                . '<i class="fas fa-clock me-1 text-accent"></i>'
                 . h($label) . '</span>';
         },
         'card_section' => 'top',

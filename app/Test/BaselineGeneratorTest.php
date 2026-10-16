@@ -534,7 +534,7 @@ class BaselineGeneratorTest extends TestCase
      * value(128) prefix index would become a hash index, so the PostgreSQL
      * baseline carries what the migration declares for PostgreSQL, with
      * pg_trgm ahead of it; the MySQL one builds the FULLTEXT index without
-     * stopwords, as the migration that rebuilt it.
+     * stopwords, as the migration that creates it.
      */
     private function valueDictionarySchema()
     {

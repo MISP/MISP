@@ -32,6 +32,10 @@
             if (!empty($field['decorator'])) {
                 $valueField = $field['decorator']($valueField);
             }
+            if (!empty($marker)) {
+                $valueField = $marker . $valueField;
+                $marker = '';
+            }
             // Per-column class derived from the field element, so CSS can tune
             // wrapping behaviour by column type (see .idx-col-* rules).
             $tdClasses = [];

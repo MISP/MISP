@@ -75,13 +75,13 @@ class ObjectRelationshipsController extends AppController
             $relationships[$i] = $relationships[$i]['ObjectRelationship'];
         }
 
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($relationships, $this->response->type());
+        }
+
         App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         $customPagination->truncateAndPaginate($relationships, $this->params, $this->modelClass, true);
-
-        if ($this->restResponsePayload) {
-            return $this->restResponsePayload;
-        }
 
         $this->set('data', $relationships);
         $this->set('passedArgs', json_encode($this->passedArgs));

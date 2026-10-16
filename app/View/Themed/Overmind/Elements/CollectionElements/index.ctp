@@ -27,7 +27,7 @@ $fields = [
         'name' => __('Type'),
         'sort' => 'type',
         'data_path' => 'element_type',
-        'element' => 'type',
+        'element' => 'element_type',
         'card_section' => 'attribute',
         'display_in' => ['table', 'card']
     ],

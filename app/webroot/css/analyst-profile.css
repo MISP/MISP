@@ -1,0 +1,2270 @@
+/*
+ * The Analyst Profile editor.
+ *
+ * Two panes on every page. The left pane is the profile: an outline
+ * rail and one open section. The right pane is the value under
+ * assessment, and it never leaves — which is the whole bet, so it is
+ * sticky rather than merely present, and the last thing to be given up
+ * when the window narrows.
+ *
+ * Loaded by the AnalystProfiles views only. It shares the value page's
+ * palette — `--vp-mal`, `--vp-ben`, `--vp-dir-with`,
+ * `--vp-dir-against` — and nothing else, which is why it is its own
+ * file rather than another 300 lines of value-intelligence.css.
+ */
+
+/*
+ * The query container is the page wrapper rather than the workbench
+ * itself: an element cannot answer a container query against itself.
+ * Every degradation below fires on this width, so it fires on the
+ * content column and not on the window — which is the same thing on a
+ * `container-fluid` page and not the same thing inside a modal.
+ */
+.ap-page {
+    container-type: inline-size;
+    container-name: wb;
+}
+
+.wb {
+    display: grid;
+    grid-template-columns: 212px minmax(0, 1fr) 468px;
+    grid-template-areas:
+        "lefthead lefthead benchhead"
+        "rail     body     bench";
+    margin: 0 -0.75rem;                 /* bleed to the content column */
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.wb-panehead {
+    font: 600 .6875rem/1.7 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+    padding: .35rem .85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.wb-panehead em {
+    font-style: normal;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: .75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wb-panehead-left  { grid-area: lefthead; }
+.wb-panehead-right {
+    grid-area: benchhead;
+    border-left: 1px solid var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+.wb-rail {
+    grid-area: rail;
+    border-right: 1px solid var(--bs-border-color);
+    padding: .5rem 0 1rem;
+    min-width: 0;
+}
+
+.wb-rail-title {
+    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    padding: .1rem .85rem .3rem;
+}
+
+/*
+ * The editor rail's group headings, which replaced its one `Sections`
+ * title and so carry its weight.
+ *
+ * The rule is what does the grouping. Space alone was not enough: every
+ * row already carries its axis in the same small grey uppercase, so a
+ * heading set apart by margin only reads as one more axis tag that has
+ * lost its row. Indented to the item text rather than to the rail, so
+ * a heading lines up with what it heads — the items clear a 3px
+ * selection border the headings do not have.
+ */
+.wb-rail-group {
+    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    padding: .5rem .85rem .3rem .7rem;
+    margin-top: .5rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.wb-rail-group:first-child {
+    margin-top: 0;
+    padding-top: .1rem;
+    border-top: 0;
+}
+
+.wb-rail-item {
+    display: flex;
+    align-items: baseline;
+    gap: .35rem;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-left: 3px solid transparent;
+    padding: .3rem .6rem .3rem .55rem;
+    font-size: .8125rem;
+    line-height: 1.35;
+    color: var(--bs-body-color);
+}
+
+.wb-rail-item:hover { background: var(--bs-secondary-bg); }
+
+.wb-rail-item.is-open {
+    border-left-color: var(--bs-primary);
+    background: var(--bs-secondary-bg);
+    font-weight: 600;
+}
+
+.wb-rail-item .c {
+    margin-left: auto;
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+    font-variant-numeric: tabular-nums;
+}
+
+.wb-rail-note {
+    font-size: .6875rem;
+    line-height: 1.45;
+    color: var(--bs-secondary-color);
+    padding: .5rem .85rem 0;
+}
+
+.wb-body {
+    grid-area: body;
+    padding: .85rem 1rem 1.4rem;
+    min-width: 0;
+}
+
+.wb-bench {
+    grid-area: bench;
+    border-left: 1px solid var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
+    min-width: 0;
+}
+
+.wb-bench-inner {
+    position: sticky;
+    top: .5rem;
+    padding: .8rem .9rem 1.1rem;
+}
+
+/* Wide bench: the simulate board turns the split around — what you
+ * changed is the small half, the consequence is the large one. */
+.wb-flip {
+    grid-template-columns: 400px minmax(0, 1fr);
+    grid-template-areas:
+        "lefthead benchhead"
+        "body     bench";
+}
+.wb-flip .wb-body { border-right: 1px solid var(--bs-border-color); }
+
+/* ---- type ---- */
+.num {
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+}
+/* A numeric setting is a `number` box, and the stepper is the one part
+ * of that it cannot afford: the chip gives a weight 3.4rem of
+ * monospace, and two arrows inside it leave room for a single digit.
+ * The keyboard still steps; only the buttons are gone. */
+input.num[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+input.num[type="number"]::-webkit-outer-spin-button,
+input.num[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.wb-id {
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-size: .75rem;
+}
+.wb-name {
+    font-weight: 600;
+    line-height: 1.35;
+}
+.wb-name-id {
+    margin-top: .05rem;
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+}
+.wb-h {
+    font: 600 .8125rem/1.4 var(--bs-font-sans-serif, system-ui);
+    margin: 0 0 .15rem;
+}
+.wb-blurb {
+    font-size: .75rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
+    margin: 0 0 .7rem;
+    max-width: 66ch;
+}
+.wb-sub {
+    font-size: .6875rem;
+    line-height: 1.45;
+    color: var(--bs-secondary-color);
+}
+
+/* ---- pills ---- */
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: 0 .4rem;
+    border-radius: 999px;
+    font-size: .6875rem;
+    font-weight: 600;
+    line-height: 1.55;
+    white-space: nowrap;
+    background: color-mix(in srgb, var(--tone, var(--vp-unknown)) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--tone, var(--vp-unknown)) 38%, transparent);
+    color: var(--tone-ink, var(--tone, var(--vp-unknown)));
+}
+.pill.t-force   { --tone: var(--bs-primary); }
+.pill.t-off     { --tone: var(--vp-unknown); }
+.pill.t-over    { --tone: var(--vp-conflict); --tone-ink: var(--vp-conflict-ink); }
+.pill.t-missing { --tone: var(--vp-mal); --tone-ink: var(--vp-mal-ink); }
+.pill.t-custom  { --tone: var(--bs-primary); }
+.pill.t-plain   { --tone: var(--bs-secondary-color); }
+
+
+/*
+ * ---- what a row *is*, not what it is set to ----
+ *
+ * The trust multiplier and the data source are declared by the
+ * implementation and are not on the form. They used to be grey prose
+ * lines under the description, which put them in the same voice as the
+ * sentence explaining the signal — so the multiplier that scales every
+ * point the row contributes read as the tail of a sentence.
+ *
+ * Square where the state pills are round: `available` and `missing` say
+ * what a row's relationship to this profile is and belong to the pill
+ * vocabulary; these say what the signal reads and how its points are
+ * scaled, and a reader should not have to parse the text to tell the
+ * two apart.
+ */
+.sig-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .3rem;
+    margin-top: .4rem;
+}
+.sig-tag {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .3rem;
+    padding: .05rem .4rem;
+    border-radius: .25rem;
+    /* A neutral tint rather than `--bs-tertiary-bg`, which is a hair off
+     * the row behind it and left the tag reading as prose again — the
+     * thing the tag exists to stop. Mixed from a token, so it is the
+     * same weight of grey against either theme's ground. */
+    background: color-mix(in srgb, var(--bs-secondary-color) 13%, transparent);
+    font-size: .6875rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+.sig-tag .k {
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+}
+.sig-tag b {
+    font-weight: 600;
+    color: var(--bs-body-color);
+}
+/*
+ * The multiplier earns the accent: it is arithmetic, and it is the one
+ * thing in this cell that changes what the points column is worth. The
+ * tint is the whole tag's, never one character's — an accented glyph
+ * inside a tag is how a label starts looking like a button.
+ */
+.sig-tag.is-mult {
+    background: color-mix(in srgb, var(--bs-primary) 10%, transparent);
+    color: var(--bs-primary);
+    font-weight: 600;
+}
+
+/* ---- key/value chips: a points map has no fixed schema ---- */
+.kv {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .3rem;
+    padding: .05rem .35rem;
+    margin: .1rem .25rem .1rem 0;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .25rem;
+    background: var(--bs-body-bg);
+    font-size: .6875rem;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.kv k {
+    color: var(--bs-secondary-color);
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+}
+.kv v {
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+.kv.is-edited {
+    border-color: var(--bs-primary);
+    background: color-mix(in srgb, var(--bs-primary) 10%, var(--bs-body-bg));
+}
+.kv.is-undeclared { border-style: dashed; }
+.kv .was {
+    color: var(--bs-secondary-color);
+    text-decoration: line-through;
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+}
+.nd {
+    border-bottom: 1px dotted var(--bs-secondary-color);
+    cursor: help;
+}
+
+/* the two markers, which are not the same thing */
+.mk {
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-weight: 700;
+    color: var(--bs-primary);
+    cursor: help;
+}
+.neq {
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-weight: 700;
+    color: var(--vp-conflict-ink);
+    cursor: help;
+}
+
+/* ---- tables ---- */
+.wb-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .8125rem;
+}
+.wb-tbl th {
+    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    text-align: left;
+    padding: .25rem .5rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    white-space: nowrap;
+}
+.wb-tbl td {
+    padding: .38rem .5rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--bs-border-color) 55%, transparent);
+    vertical-align: top;
+}
+.wb-tbl tfoot td {
+    border-top: 2px solid var(--bs-border-color);
+    border-bottom: 0;
+    font-weight: 600;
+    padding-top: .45rem;
+}
+.wb-tbl .r { text-align: right; }
+/* The second line of a header: what a column's numbers are measured
+ * against, in the header's own voice rather than a footnote. */
+.wb-tbl-sub {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+.wb-tbl tr.is-off > td { opacity: .62; }
+.wb-tbl tr.is-hot > td {
+    background: color-mix(in srgb, var(--bs-primary) 8%, transparent);
+}
+.wb-grp td {
+    background: var(--bs-tertiary-bg);
+    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    padding: .2rem .5rem;
+}
+
+.d-up { color: var(--vp-dir-with); font-weight: 700; }
+.d-dn { color: var(--vp-dir-against); font-weight: 700; }
+.d-0  { color: var(--vp-unknown); }
+/*
+ * Through the direction pair, not the inks themselves: `d-up` is *with
+ * the lean*, and on a benign value that is the green one. Naming
+ * `--vp-mal-ink` here was how the dark theme kept painting a row that
+ * agrees with a benign verdict as an objection to it, however the hue
+ * pair above had been swapped for it.
+ */
+[data-misp-mode="dark"] .d-up { color: var(--vp-dir-with-ink); }
+[data-misp-mode="dark"] .d-dn { color: var(--vp-dir-against-ink); }
+
+/*
+ * A cell holding a row that *weighs the record* rather than reads the
+ * value. Nine of the eleven shipped signals are these, and since
+ * `review-2026-09-13.md` §D1 their sign does not move with the lean —
+ * so the red/green pair, which means *with* and *against a reading*,
+ * is the wrong vocabulary for them. They take the value page's
+ * carries/lacks ink instead, which is what `.vp-signal-up` /
+ * `.vp-signal-down` resolve to on the ledger for the same reason.
+ *
+ * Overridden on the cell rather than swapped in the rules above, so
+ * `.d-up` / `.d-dn` stay one declaration and the two rows that really
+ * are directional keep them. Both inks are Bootstrap's theme-aware
+ * ones, so the dark pair is the same pair — `value-palette.css` says
+ * why.
+ */
+.wb-tbl td.is-weighs {
+    --vp-dir-with: var(--vp-weighs-carries);
+    --vp-dir-against: var(--vp-weighs-lacks);
+    --vp-dir-with-ink: var(--vp-weighs-carries);
+    --vp-dir-against-ink: var(--vp-weighs-lacks);
+}
+
+/* ---- the band strip ---- */
+.wb-strip {
+    position: relative;
+    height: 30px;
+    border-radius: .2rem;
+    background: var(--bs-secondary-bg);
+    border: 1px solid var(--bs-border-color);
+}
+.wb-strip:has(.wb-mark) { margin-top: 1.05rem; }
+.wb-strip.sm { height: 18px; }
+.seg {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 600 .6875rem/1 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-body-color);
+    overflow: hidden;
+}
+.seg-low  { background: color-mix(in srgb, var(--vp-unknown) 20%, transparent); }
+.seg-med  { background: color-mix(in srgb, var(--vp-conflict) 30%, transparent); }
+.seg-high { background: color-mix(in srgb, var(--vp-mal) 26%, transparent); }
+.seg-dead {
+    background: repeating-linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--vp-unknown) 26%, transparent) 0 4px,
+        transparent 4px 9px);
+}
+.seg-clash {
+    background: repeating-linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--vp-mal) 42%, transparent) 0 4px,
+        transparent 4px 9px);
+    border-left: 1px solid var(--vp-mal);
+    border-right: 1px solid var(--vp-mal);
+}
+.wb-mark {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: var(--bs-body-color);
+}
+.wb-mark.ghost { background: var(--bs-secondary-color); opacity: .55; }
+.wb-mark b {
+    position: absolute;
+    top: -1.05rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font: 700 .6875rem/1 var(--bs-font-monospace, monospace);
+    white-space: nowrap;
+}
+.wb-scale span { text-align: right; white-space: nowrap; }
+.wb-scale span:first-child { text-align: left; }
+
+.wb-scale {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font: .625rem/1.6 var(--bs-font-monospace, monospace);
+    color: var(--bs-secondary-color);
+}
+
+/* ---- notes, refusals, empty states ---- */
+.wb-note {
+    border-left: 3px solid var(--bs-border-color);
+    padding: .3rem .6rem;
+    font-size: .75rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg);
+    border-radius: 0 .25rem .25rem 0;
+}
+.wb-note.bad {
+    border-left-color: var(--vp-mal);
+    color: var(--bs-body-color);
+    background: color-mix(in srgb, var(--vp-mal) 8%, transparent);
+}
+.wb-note.warn {
+    border-left-color: var(--vp-conflict);
+    color: var(--bs-body-color);
+    background: color-mix(in srgb, var(--vp-conflict) 10%, transparent);
+}
+.wb-empty {
+    border: 1px dashed var(--bs-border-color);
+    border-radius: .35rem;
+    padding: .7rem .8rem;
+    font-size: .75rem;
+    line-height: 1.55;
+    color: var(--bs-secondary-color);
+    background: var(--bs-body-bg);
+}
+
+/* ---- the bench ---- */
+.bench-value {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin-bottom: .55rem;
+}
+.bench-value .v {
+    font: 700 1.0625rem/1.2 var(--bs-font-monospace, monospace);
+    letter-spacing: -.01em;
+}
+.bench-q {
+    display: flex;
+    align-items: flex-end;
+    gap: .55rem;
+    line-height: 1;
+}
+.bench-q .now {
+    font: 700 2.4rem/1 var(--bs-font-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+}
+.bench-q .from {
+    font: .75rem/1.4 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-secondary-color);
+    padding-bottom: .2rem;
+}
+.bench-axes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .1rem 1.5rem;
+    margin: .55rem 0 .1rem;
+    font-size: .75rem;
+}
+.bench-axes div {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .12rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--bs-border-color) 45%, transparent);
+}
+.bench-axes span { color: var(--bs-secondary-color); }
+
+/*
+ * The assessment is three axes — lean, relevance, signal strength (D11,
+ * 12-assessment.md). Only signal strength has a ledger, so only signal strength
+ * has arithmetic under it; drawing the other two as footnotes to that
+ * arithmetic taught the first reader of this mockup that a profile is
+ * signal-strength weights. These three sit at one rank, and the ledger is
+ * labelled as belonging to one of them.
+ */
+.bench-ax3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .4rem;
+    margin: .1rem 0 .45rem;
+}
+.bench-ax3 .ax {
+    display: flex;
+    flex-direction: column;
+    gap: .05rem;
+    min-width: 0;
+    padding: .3rem .45rem .35rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .3rem;
+}
+.bench-ax3 .ax-led {
+    border-color: color-mix(in srgb, var(--bs-primary) 55%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-primary) 5%, transparent);
+}
+.bench-ax3 .ax-n {
+    font: 600 .5625rem/1.5 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.bench-ax3 .ax-v {
+    font-size: .9375rem;
+    line-height: 1.25;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+.bench-ax3 .ax-was {
+    font: 400 .6875rem/1.3 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-secondary-color);
+}
+.bench-ax3 .ax-g {
+    font-size: .6875rem;
+    line-height: 1.35;
+    color: var(--bs-secondary-color);
+}
+.bench-rel {
+    font-size: .6875rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
+    margin: 0 0 .35rem;
+}
+.bench-rel b { color: var(--bs-body-color); font-weight: 600; }
+.bench-meta { margin-top: .45rem; }
+
+/*
+ * The relevance axis has a magnitude — a shelf life — and the shipped
+ * value_relevance.ctp already draws it, so signal strength is not the only
+ * axis with a bar.
+ */
+.ax-runway { margin-top: .25rem; }
+.ax-track {
+    position: relative;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--bs-secondary-bg);
+    border: 1px solid var(--bs-border-color);
+}
+.ax-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 2px 0 0 2px;
+    background: var(--bs-correlation, var(--bs-secondary-color));
+}
+.ax-agemark {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 1px;
+    background: var(--bs-body-color);
+    opacity: .5;
+}
+.ax-runway-t {
+    display: block;
+    margin-top: .15rem;
+    font-size: .625rem;
+    line-height: 1.35;
+    color: var(--bs-secondary-color);
+}
+.ax-runway-t b { color: var(--bs-body-color); font-weight: 600; }
+.wb-tbl .ax-runway { margin-top: .15rem; max-width: 9rem; }
+
+/* Which axis a section configures. The rail is the only place that can
+ * say it, because it is the only place that lists all seven at once. */
+.wb-rail-ax {
+    display: block;
+    font: 600 .5625rem/1.5 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.wb-rail-item.is-open .wb-rail-ax { color: var(--bs-primary); }
+.bench-sec {
+    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    margin: .85rem 0 .3rem;
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+}
+.bench-live {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-primary);
+}
+.bench-live::before {
+    content: "";
+    width: .45rem;
+    height: .45rem;
+    border-radius: 50%;
+    background: var(--bs-primary);
+}
+
+/* ==================================================================
+ * The index board.
+ *
+ * Its right column is not the editor's bench — it is three short
+ * answers about this visit — so it does not need the editor's 468px,
+ * and the width it gives back is the width the table needed. Declared
+ * before the container query on purpose: at a narrow pane the query
+ * restacks `.wb` at equal specificity and later source order, and the
+ * index restacks with everything else.
+ * ================================================================== */
+/* Six rows of 80px no longer reach the fold, so the board needs a
+ * bottom edge: without one the rail and bench rules stop in mid-page
+ * and the whole thing reads as cut off rather than finished. */
+.wb-index {
+    grid-template-columns: 212px minmax(0, 1fr) 336px;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+/*
+ * A resolution step is a scope and its answer, stacked. The scope name
+ * is the question and the profile under it is the answer, so they are
+ * not the same size — and the answering scope is the one the reader is
+ * looking for, so it is the one that reads as solid.
+ */
+.wb-rail-step {
+    align-items: flex-start;
+    gap: .45rem;
+}
+.wb-rail-step:hover { background: none; }
+.wb-rail-step.is-open:hover { background: var(--bs-secondary-bg); }
+.wb-rail-step .s {
+    color: var(--bs-secondary-color);
+    font-variant-numeric: tabular-nums;
+}
+.wb-rail-step .t {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.wb-rail-step .a {
+    font-size: .6875rem;
+    line-height: 1.4;
+    color: var(--bs-secondary-color);
+    overflow-wrap: anywhere;
+}
+.wb-rail-step.is-open .a { color: var(--bs-body-color); }
+.wb-rail-step .a a { color: inherit; text-decoration: none; }
+.wb-rail-step .a a:hover { text-decoration: underline; }
+.wb-rail-step .a.none { font-style: italic; }
+.wb-rail-step .a.warn { color: var(--vp-conflict-ink, var(--vp-conflict)); }
+.wb-rail-aside:hover { background: none; }
+
+/* The name is the way into a profile, so `View` is not a button.
+ * Underline on hover only: six underlined names down a column read as
+ * a list of links rather than a list of profiles. */
+.ap-name { color: inherit; text-decoration: none; }
+.ap-name:hover { text-decoration: underline; }
+
+/*
+ * Which scopes point at this row. Outline and secondary ink, because
+ * the standing column beside it is where colour means something — a
+ * scope pointing here is a fact about the instance, not a verdict on
+ * the profile.
+ */
+.ap-point {
+    display: inline-block;
+    margin-left: .3rem;
+    padding: 0 .4rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    font: 500 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+    vertical-align: 1px;
+}
+
+/*
+ * One decision in the open, the rest behind the dots.
+ *
+ * `nowrap` is the whole point: nine buttons in this cell wrapped to
+ * nine lines and set the row's height, and a row that is 260px tall
+ * because of its buttons is a row whose content nobody compares.
+ */
+.ap-acts {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: .25rem;
+    flex-wrap: nowrap;
+}
+.ap-acts form { display: inline; }
+.ap-act-primary { white-space: nowrap; }
+.ap-act-more { line-height: 1; }
+
+.ap-inforce { font-size: .8125rem; line-height: 1.5; }
+.ap-when { white-space: nowrap; }
+
+/*
+ * The instance's answers. Value weight carries the state, so a reader
+ * scanning the column sees what is on without reading a word of it;
+ * `warn` is kept for the one state somebody has to act on — permitted
+ * and inert.
+ */
+.ap-caps { display: grid; gap: .05rem; margin-bottom: .2rem; }
+.ap-cap {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: .6rem;
+    font-size: .75rem;
+    line-height: 1.7;
+}
+.ap-cap-k { color: var(--bs-secondary-color); }
+.ap-cap-v {
+    font-weight: 600;
+    text-align: right;
+    min-width: 0;
+}
+.ap-cap-v a { color: inherit; text-decoration: none; }
+.ap-cap-v a:hover { text-decoration: underline; }
+.ap-cap-off .ap-cap-v { color: var(--bs-secondary-color); font-weight: 400; }
+.ap-cap-warn .ap-cap-v { color: var(--vp-conflict-ink, var(--vp-conflict)); }
+
+/* ==================================================================
+ * The degradation, made rather than caveated.
+ *
+ * The workbench is a container, so this fires on the pane width and
+ * not on the window: at a 1280px MISP page the content column is about
+ * 1220px, and the same rules run inside the inset below the boards.
+ *
+ * What is given up, in order: the outline stops being a column and
+ * becomes a row of chips; the bench sheds evidence prose, the source
+ * and band chips, and the comparison set's lean and relevance columns.
+ * What is never given up: the bench itself, the value, the signal strength,
+ * the delta, the band, and every row that moved.
+ * ================================================================== */
+@container wb (max-width: 1400px) {
+    .wb {
+        grid-template-columns: minmax(0, 1fr) 344px;
+        grid-template-areas:
+            "lefthead benchhead"
+            "rail     bench"
+            "body     bench";
+        /* the bench spans two rows and is the taller half, so the chip row
+         * has to be told not to absorb its slack */
+        grid-template-rows: auto min-content 1fr;
+    }
+    .wb-flip {
+        grid-template-columns: 300px minmax(0, 1fr);
+        grid-template-areas:
+            "lefthead benchhead"
+            "body     bench";
+    }
+    .wb-rail {
+        border-right: 0;
+        border-bottom: 1px solid var(--bs-border-color);
+        padding: .4rem .5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .25rem;
+        align-items: center;
+    }
+    .wb-rail-title { display: none; }
+    .wb-rail-note  { display: none; }
+    /*
+     * The headings stay when the rail restacks into a row of pills —
+     * they are the grouping, and a wrapped row of ten pills needs it
+     * more than the column did. Full-width so the pills under one
+     * heading wrap among themselves.
+     */
+    .wb-rail-group {
+        flex: 1 0 100%;
+        margin-top: .4rem;
+        padding: .35rem .15rem 0;
+    }
+    /*
+     * Except on the index, where the two notes are the only statement
+     * of how resolution works and how choosing differs from forking —
+     * the rest of the page assumes both. The editor's rail note is a
+     * caption on a column that is still visible; this one is the
+     * explanation, and it survives the restack as its own line under
+     * the chips.
+     */
+    .wb-index .wb-rail-note {
+        display: block;
+        flex: 1 0 100%;
+        padding: .2rem .15rem 0;
+    }
+    /*
+     * A step becomes a pill, so its two lines become one: *Your
+     * organisation · Incident Response & Investigation*, clipped rather
+     * than wrapped, because a two-line pill in a row of one-line pills
+     * reads as a different kind of thing.
+     */
+    .wb-index .wb-rail-step .t {
+        flex-direction: row;
+        align-items: baseline;
+        gap: .35rem;
+    }
+    .wb-index .wb-rail-step .a {
+        max-width: 15rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .wb-index .wb-rail-step .a::before {
+        content: "·";
+        margin-right: .35rem;
+        color: var(--bs-secondary-color);
+    }
+    .wb-rail-item {
+        width: auto;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 999px;
+        padding: .1rem .5rem;
+        font-size: .75rem;
+    }
+    .wb-rail-item.is-open {
+        border-color: var(--bs-primary);
+        background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
+    }
+    .wb-rail-item .c { margin-left: .3rem; }
+    .wb-narrow-only { display: revert !important; }
+    .wb-wide-only   { display: none !important; }
+    .bench-axes     { grid-template-columns: minmax(0, 1fr); }
+    .bench-ax3      { gap: .3rem; }
+    .bench-ax3 .ax  { padding: .25rem .35rem .3rem; }
+    .bench-ax3 .ax-v { font-size: .8125rem; }
+    .wb-panehead em { display: none; }
+    .wb-bench-inner { padding: .7rem .7rem 1rem; }
+}
+
+.wb-narrow-only { display: none; }
+
+/* one section open at a time */
+.wb-sec { display: none; }
+.wb-sec.is-open { display: block; }
+.wb-sec-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.wb-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: .55rem .9rem;
+    margin: .2rem 0 .3rem;
+}
+.wb-field label {
+    display: block;
+    font: 600 .6875rem/1.5 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-secondary-color);
+}
+.wb-field .help {
+    font-size: .6875rem;
+    line-height: 1.45;
+    color: var(--bs-secondary-color);
+    margin: .15rem 0 0;
+}
+.wb-inline { display: flex; align-items: center; gap: .4rem; }
+
+/*
+ * A numeric setting says what it counts (3.18). The unit sits beside
+ * the input rather than inside the label, so the label stays the
+ * question and the unit stays the answer's scale.
+ */
+.wb-unit {
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+
+/*
+ * One sentence visible, the rest behind an `i` (4.2). A real tooltip on
+ * the page; here the browser's own, so the text is readable in a static
+ * mockup without a script.
+ */
+.wb-i {
+    display: inline-grid;
+    place-items: center;
+    width: .95rem;
+    height: .95rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 50%;
+    font: 700 .625rem/1 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-secondary-color);
+    text-decoration: none;
+    vertical-align: -1px;
+}
+.wb-i:hover, .wb-i:focus {
+    color: var(--bs-body-color);
+    border-color: var(--bs-secondary-color);
+}
+
+/*
+ * Types go into a bucket as chips, so the row is the bucket and not the
+ * type: four rows whatever the instance has, against 194 before.
+ */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .05rem .3rem .05rem .4rem;
+    margin: 0 .2rem .2rem 0;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .8rem;
+    background: var(--bs-tertiary-bg);
+    font: 500 .6875rem/1.6 var(--bs-font-monospace, monospace);
+    color: var(--bs-body-color);
+}
+.chip a {
+    color: var(--bs-secondary-color);
+    text-decoration: none;
+    font-family: var(--bs-font-sans-serif, system-ui);
+}
+.chip a:hover { color: var(--vp-mal); }
+.chip.is-muted {
+    opacity: .55;
+    border-style: dashed;
+}
+
+/*
+ * Which axis a sub-pane serves. The rail says it per section; the panes
+ * did not, which is how a reader hunting for "where is the lean
+ * decided" found neither of the two panes that decide it (3.15).
+ */
+.wb-ax {
+    margin-left: .45rem;
+    padding: 0 .3rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .25rem;
+    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-secondary-color);
+    text-transform: lowercase;
+    letter-spacing: .02em;
+    vertical-align: 1px;
+}
+
+/*
+ * Each band threshold sits under the segment it starts, so the reading
+ * order matches the strip instead of contradicting it (3.10).
+ */
+.band-inputs {
+    position: relative;
+    height: 3.4rem;
+}
+.band-in {
+    position: absolute;
+    top: 0;
+    transform: translateX(-.35rem);
+}
+.band-in::before {
+    content: "";
+    position: absolute;
+    top: -.35rem;
+    left: .35rem;
+    width: 1px;
+    height: .35rem;
+    background: var(--bs-border-color);
+}
+.band-in label {
+    display: block;
+    font: 600 .6875rem/1.5 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-secondary-color);
+}
+@media (max-width: 900px) {
+    .band-inputs { height: auto; display: flex; gap: 1rem; }
+    .band-in { position: static; transform: none; }
+    .band-in::before { display: none; }
+}
+
+/*
+ * The create path and the fork, as menus. Drawn open, because a mockup
+ * that hides a state behind a click is a mockup of a closed menu.
+ */
+.wb-menu { display: inline-block; }
+.wb-caret { font-size: .7em; opacity: .7; }
+.wb-menu-list {
+    margin-top: .3rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .375rem;
+    background: var(--bs-body-bg);
+    box-shadow: 0 .3rem .9rem rgba(0, 0, 0, .09);
+    overflow: hidden;
+    max-width: 21rem;
+}
+.wb-menu-item {
+    display: flex;
+    gap: .55rem;
+    padding: .4rem .55rem;
+    text-decoration: none;
+    color: var(--bs-body-color);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.wb-menu-item:last-child { border-bottom: 0; }
+.wb-menu-item:hover { background: var(--bs-tertiary-bg); }
+.wb-menu-item i {
+    margin-top: .15rem;
+    color: var(--bs-secondary-color);
+    width: .9rem;
+    text-align: center;
+}
+.wb-menu-item b {
+    display: block;
+    font-size: .8125rem;
+    font-weight: 600;
+}
+.wb-menu-item em {
+    display: block;
+    font-size: .6875rem;
+    font-style: normal;
+    line-height: 1.4;
+    color: var(--bs-secondary-color);
+}
+
+/*
+ * A confirm, drawn as the state it is. The one-enabled invariant is
+ * only visible here, and what it does — disable, never delete — is the
+ * whole reason the confirm exists.
+ */
+.wb-confirm {
+    max-width: 34rem;
+    padding: .6rem .7rem;
+    border: 1px solid var(--bs-border-color);
+    border-left: 3px solid var(--bs-primary);
+    border-radius: .375rem;
+    background: var(--bs-tertiary-bg);
+    font-size: .8125rem;
+    line-height: 1.5;
+}
+.wb-confirm-head {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin-bottom: .35rem;
+    font-weight: 600;
+}
+.wb-confirm-head i { color: var(--bs-primary); }
+.wb-confirm-head em { font-style: normal; font-weight: 700; }
+
+/*
+ * The bench's value is searched for, not chosen from a fixed list: in
+ * the product it arrives as `?value=<b64>` or from the analyst's own
+ * pinned set, and a select over four implied that four was all there
+ * was (3.6).
+ */
+.bench-pick { margin: .4rem 0 .2rem; }
+.bench-quick {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem;
+    margin-top: .35rem;
+}
+.bench-quick .chip {
+    margin: 0;
+    cursor: pointer;
+}
+.bench-quick .chip.is-on {
+    border-color: var(--bs-primary);
+    color: var(--bs-primary);
+    font-weight: 700;
+}
+
+/*
+ * Dropping the Group column removed the repetition and the control with
+ * it. `group` is declared per implementation and overridable per signal
+ * in the profile, and it is not derived from the id prefix, so the
+ * control survives as a row action (3.8).
+ */
+.wb-move {
+    margin-top: .2rem;
+    padding: 0 .3rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .25rem;
+    background: transparent;
+    font: 600 .625rem/1.7 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-secondary-color);
+}
+.wb-move:hover {
+    color: var(--bs-body-color);
+    border-color: var(--bs-secondary-color);
+}
+.wb-grp-drop {
+    float: right;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: .45;
+}
+.chip-add {
+    padding: .05rem .45rem;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: .8rem;
+    background: transparent;
+    font: 600 .6875rem/1.6 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-secondary-color);
+}
+.chip-add:hover {
+    color: var(--bs-body-color);
+    border-color: var(--bs-secondary-color);
+}
+
+/*
+ * The bucket table and the curve, side by side until there is no room.
+ * The table leads: it holds the chips, and the curve is a fixed figure
+ * that neither gains nor needs the extra width.
+ *
+ * It wraps on its own width rather than the window's. The pane here is
+ * the window minus a rail and, above some widths, minus a bench — so
+ * it is *narrower* at 1440 than at 1280, and a media query set to the
+ * viewport puts the curve beside a 320px table on exactly the screens
+ * that have the least room for it. A flex basis is the measurement
+ * that matters: below it the curve takes the line under the table and
+ * the chips get the whole pane.
+ */
+.ttl-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.4rem;
+    align-items: flex-start;
+}
+.ttl-buckets { flex: 1 1 40rem; min-width: 0; }
+.ttl-def td, .ttl-def .fw-semibold { color: var(--bs-secondary-color); }
+/* The column head says `days`, so the box only has to hold the number. */
+.ap-map-key-field .form-control { max-width: 5rem; }
+.ttl-curve { margin: 0; flex: 0 1 24rem; max-width: 24rem; }
+.ttl-curve figcaption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .4rem;
+    font-size: .75rem;
+    margin-bottom: .2rem;
+}
+.ttl-curve svg { width: 100%; height: auto; display: block; }
+.ttl-ax {
+    fill: none;
+    stroke: var(--bs-border-color);
+    stroke-width: 1;
+}
+.ttl-line {
+    fill: none;
+    stroke: var(--bs-primary);
+    stroke-width: 2;
+}
+.ttl-aging {
+    stroke: var(--bs-secondary-color);
+    stroke-width: 1;
+    stroke-dasharray: 2 2;
+}
+.ttl-here { fill: var(--bs-body-color); }
+/*
+ * The three states, as three stretches of the axis. `current` is the
+ * plain ground rather than a third tint: two washes read as two bands
+ * and a background, which is the shape of the thing — the figure is
+ * saying where a value stops being ordinary, twice.
+ */
+.ttl-band { fill: none; }
+.ttl-band-aging {
+    fill: color-mix(in srgb, var(--bs-warning, #f0ad4e) 14%, transparent);
+}
+.ttl-band-expired {
+    fill: color-mix(in srgb, var(--bs-secondary-color) 16%, transparent);
+}
+.ttl-band-t { text-transform: uppercase; letter-spacing: .04em; }
+.ttl-t {
+    font: 500 7px/1 var(--bs-font-sans-serif, system-ui);
+    fill: var(--bs-secondary-color);
+}
+.ttl-t.ttl-hl { fill: var(--bs-body-color); font-weight: 700; }
+
+/*
+ * Three states per module, so a checklist will not do (D17). The
+ * middle column is the state; `auto` is declarable and inert and says
+ * so rather than being drawn as though it ran.
+ */
+.mod-tbl .mod-state { width: 9.5rem; }
+.mod-inert {
+    font-size: .625rem;
+    color: var(--vp-unknown);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-weight: 700;
+}
+
+/* ==================================================================
+ * What the wiring adds.
+ *
+ * The mockup drew a reading of a profile; this is an editor. Three
+ * things follow: the key/value chip has to hold an input, a map row
+ * has to be removable, and the bench has to be able to say that it is
+ * behind the form while the engine catches up.
+ * ================================================================== */
+
+/*
+ * The chip keeps its density with a field inside it: no border, no
+ * padding of its own, and the chip's own border is the one the reader
+ * sees. Sized to its content so a two-character weight does not get a
+ * six-character box.
+ */
+.kv input.form-control,
+.kv select.form-select {
+    border: 0;
+    background: transparent;
+    /*
+     * A theme's input colour is paired with its own field background,
+     * which the chip has just dropped: Factory's black-on-steel and
+     * Slate's dark-on-white both vanish on a dark chip. Use the chip's
+     * pair instead.
+     */
+    color: var(--bs-body-color);
+    padding: 0;
+    height: auto;
+    min-height: 0;
+    min-width: 3.4rem;
+    width: var(--fld-w, 3.4rem);
+    max-width: 12rem;
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-size: .6875rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: right;
+    box-shadow: none;
+}
+.kv input.form-control:focus,
+.kv select.form-select:focus {
+    color: var(--bs-body-color);
+    outline: 1px solid var(--bs-primary);
+    outline-offset: 1px;
+}
+.kv input.form-control::placeholder {
+    color: var(--bs-secondary-color);
+    opacity: 1;
+}
+.kv select.form-select option {
+    color: var(--bs-body-color);
+    background-color: var(--bs-body-bg);
+}
+
+/*
+ * A chip's box is as wide as what it holds, never narrower than a
+ * weight. `--fld-w` is the character count the template measured;
+ * `min-width` is the floor that keeps a column of two-digit weights
+ * lining up, so only a box with more to say than that grows — the
+ * placeholder naming a fallback, or a value somebody typed in words.
+ *
+ * Text reads left, numbers read right, which is the one thing the
+ * shared rule above cannot get right for both.
+ */
+.kv input.form-control[type="text"] {
+    text-align: left;
+}
+
+/*
+ * A select in a chip sizes to its options and keeps its caret.
+ *
+ * The width above is a cap on free text, which is unbounded — `4.6` and
+ * a category name are the same box, and the box has to suit the one
+ * that could be anything. A select's options are known and finite, so
+ * it is as wide as its longest one instead of truncating
+ * `false_positive` to `false_po`. The caret comes back for the same
+ * reason it was lost: the rule above zeroes the background to flatten
+ * the control into the chip, and that takes Bootstrap's arrow with it,
+ * leaving a picker drawn exactly like the text boxes beside it. It is
+ * drawn in the text colour, not with the theme's arrow image, whose
+ * stroke is baked for the theme's own field background.
+ */
+.kv select.form-select {
+    width: auto;
+    max-width: none;
+    padding-right: .8rem;
+    text-align: left;
+    background-image:
+        linear-gradient(45deg, transparent calc(50% - .6px),
+            currentColor calc(50% - .6px), currentColor calc(50% + .6px),
+            transparent calc(50% + .6px)),
+        linear-gradient(135deg, transparent calc(50% - .6px),
+            currentColor calc(50% - .6px), currentColor calc(50% + .6px),
+            transparent calc(50% + .6px));
+    background-repeat: no-repeat;
+    background-position: calc(100% - .3rem) 55%, calc(100% - .05rem) 55%;
+    background-size: .25rem .25rem;
+}
+.kv k label { cursor: text; margin: 0; }
+
+/* Removing a map row. A map is written whole on save, so this is the
+ * only gesture that can take a key out of one. */
+.wb-drop {
+    border: 0;
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-size: .875rem;
+    line-height: 1;
+    padding: .1rem .3rem;
+    border-radius: .25rem;
+}
+.wb-drop:hover {
+    color: var(--vp-mal-ink);
+    background: color-mix(in srgb, var(--vp-mal) 12%, transparent);
+}
+
+/*
+ * A map row's control, with what the chosen option is worth beside it.
+ * The multiplier is a fixed column on the right so a table of them
+ * lines up, and the control takes whatever is left — the grade labels
+ * run from `A — Completely reliable` to `F — Reliability cannot be
+ * judged`, and a select sized to its content would step about.
+ */
+.ap-map-val {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+}
+.ap-map-val > .form-select,
+.ap-map-val > .form-control { min-width: 0; flex: 1 1 auto; }
+.ap-factor {
+    flex: 0 0 auto;
+    min-width: 3.2rem;
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+
+/*
+ * A map's value vocabulary, spelled out under the table. Two voices on
+ * purpose: the term and what it means read as prose, and what it does
+ * *in this profile* is set apart, because one is a fact about
+ * warninglists and the other is a reading of settings the analyst can
+ * go and change.
+ */
+.ap-legend {
+    margin-top: .7rem;
+    padding: .55rem .7rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .35rem;
+    background: var(--bs-tertiary-bg);
+}
+.ap-legend-h {
+    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    margin: 0 0 .35rem;
+}
+.ap-legend dl {
+    display: grid;
+    grid-template-columns: minmax(6rem, 9rem) minmax(0, 1fr);
+    gap: .3rem .8rem;
+    margin: 0;
+    font-size: .75rem;
+    line-height: 1.5;
+}
+.ap-legend dt {
+    font-weight: 600;
+    color: var(--bs-body-color);
+}
+.ap-legend dd {
+    margin: 0;
+    color: var(--bs-secondary-color);
+}
+.ap-legend-does {
+    display: block;
+    margin-top: .15rem;
+    color: var(--bs-body-color);
+}
+.ap-legend-note {
+    margin: .5rem 0 0;
+    padding-top: .4rem;
+    border-top: 1px solid var(--bs-border-color);
+    font-size: .6875rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
+}
+/* What a map costs as a whole, where no row of it can say so. Advisory
+ * — the warning colour, not the danger one: nothing here is refused. */
+.ap-map-note {
+    margin: .25rem 0 0;
+    padding: .35rem .6rem;
+    border-left: 3px solid var(--bs-warning);
+    border-radius: 0 4px 4px 0;
+    background: var(--bs-tertiary-bg);
+    font-size: .6875rem;
+    line-height: 1.5;
+    color: var(--bs-body-color);
+}
+/* The pane is narrow under a bench; one column reads better than two
+ * with nine characters in the first. */
+@container wb (max-width: 900px) {
+    .ap-legend dl { grid-template-columns: minmax(0, 1fr); gap: .15rem; }
+    .ap-legend dd { margin-bottom: .35rem; }
+}
+
+/*
+ * Picking a map key out of a catalogue too large to draw. The list is
+ * taken out of flow so the pane below it does not jump every time a
+ * query comes back, and it is capped at a scroll rather than sized to
+ * the fifty rows the endpoint may answer with.
+ */
+.ap-pick { position: relative; }
+.ap-pick > .form-control { max-width: 16rem; }
+.ap-pick-list {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + .2rem);
+    left: 0;
+    min-width: 20rem;
+    max-width: 26rem;
+    max-height: 14rem;
+    overflow-y: auto;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .35rem;
+    background: var(--bs-body-bg);
+    box-shadow: 0 .4rem 1rem rgba(0, 0, 0, .12);
+    padding: .2rem;
+}
+.ap-pick-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .05rem;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    padding: .3rem .45rem;
+    border-radius: .25rem;
+    color: var(--bs-body-color);
+}
+.ap-pick-opt:hover,
+.ap-pick-opt.is-on {
+    background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
+}
+.ap-pick-name { font-size: .8125rem; font-weight: 600; }
+/*
+ * The uuid is what the document stores, so it stays visible under the
+ * name rather than being hidden behind it — an analyst comparing this
+ * pane against an exported profile is reading uuids.
+ */
+.ap-pick-uuid {
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+.ap-pick-none {
+    padding: .35rem .45rem;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+
+/*
+ * The bench while the engine is recomputing it. Dimmed rather than
+ * replaced: the previous numbers are still true of the previous
+ * document, and blanking them would make every keystroke flash.
+ */
+.wb-bench.is-recomputing { opacity: .55; transition: opacity .12s ease-in; }
+
+/* A module's three states, one row each. */
+.mod-states { display: flex; flex-direction: column; gap: .25rem; }
+.mod-row {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .75rem;
+}
+/*
+ * The name column is fixed and the state box takes the rest. Both
+ * halves of that matter: the names run from `whois` to
+ * `circl_passivedns`, so a flex row put every select at a different x
+ * and a column of eight read as a staircase; and the 9rem cap the box
+ * had was set when a state was the single word `ticked`, so a label
+ * that says what the state *does* was cut off at `ticked — the sa`.
+ */
+.mod-row .wb-id { flex: 0 0 10.5rem; }
+.mod-row .form-select { flex: 0 1 22rem; max-width: 22rem; }
+.mod-row.is-off { opacity: .6; }
+
+/*
+ * The row-wide setter sits above the names it writes and is separated
+ * from them, because it is a control *over* the list rather than the
+ * first item in it.
+ */
+.mod-bulk {
+    padding-bottom: .3rem;
+    margin-bottom: .1rem;
+    border-bottom: 1px dashed var(--bs-border-color);
+}
+.mod-bulk .wb-id { font-style: italic; opacity: .85; }
+
+/* Hidden by the fold, not by the server: the fields still post. */
+.mod-row.is-folded { display: none; }
+.mod-more {
+    align-self: flex-start;
+    padding: 0;
+    font-size: .72rem;
+    text-decoration: none;
+}
+
+/*
+ * Where a module answers from, and whether it can answer at all, on
+ * the row that asks you to decide about it.
+ */
+.ap-tags { display: flex; flex-wrap: wrap; gap: .25rem; margin: .15rem 0; }
+
+/* Narrowing the rows already in the table, above the table. */
+.ap-row-filter {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: .35rem 0 .2rem;
+}
+
+/* A bucket's types, as chips that toggle. */
+.ttl-chips { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; }
+.ttl-chips label.chip { cursor: pointer; }
+
+/*
+ * The dates table on the bench. The rules are in `value-palette.css`,
+ * which both pages load; this is only the room it needs here — it sits
+ * below the three-axis strip at the bench's full width, after the first
+ * attempt put it inside the relevance column and gave a three-column
+ * table 125 pixels.
+ */
+.bench-dates {
+    margin: 0 0 10px;
+}
+
+.bench-dates .vp-dates-tbl th:nth-child(2),
+.bench-dates .vp-dates-tbl td:nth-child(2) { width: 32%; }
+
+.bench-dates .vp-dates-tbl th:last-child,
+.bench-dates .vp-dates-tbl td:last-child { width: 28%; }
+
+/* ---- the ordered list ---- */
+/* The fifth block kind, and the first whose order is the setting. It
+   is drawn as a list rather than as a table because a table's columns
+   promise that each row says several things; this one says its
+   position, and the position is a number down the left. */
+.ap-order-list {
+    margin: .6rem 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: none;
+}
+
+.ap-order-row {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+    padding: .45rem .1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.ap-order-row:last-child {
+    border-bottom: 0;
+}
+
+/* The rank, and it is the reason this block exists. Fixed width so the
+   labels line up whether the list has three rows or twelve. */
+.ap-order-rank {
+    flex: 0 0 1.4rem;
+    color: var(--bs-secondary-color);
+    font: 700 .8rem/1.5 var(--bs-font-monospace, monospace);
+    text-align: right;
+}
+
+.ap-order-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: .1rem;
+    min-width: 0;
+}
+
+/* Why a ranked shape will not draw. Not a warning colour: ranking
+   something nothing emits yet is a legitimate thing to do - it is how
+   a profile says what it wants the day a module lands - so this is a
+   note rather than a complaint. */
+.ap-order-note {
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+    font-style: italic;
+}
+
+/* A row that cannot draw at all on this instance. Dimmed rather than
+   removed: it is still in the document, and it will draw again
+   wherever its renderer is installed. */
+.ap-order-row.is-dim .fw-semibold {
+    color: var(--bs-secondary-color);
+}
+
+/* Past the fifth. The strip holds five, so a sixth entry only matters
+   when something above it is not drawn - which is a real thing to
+   declare and a thing worth seeing at a glance. */
+.ap-order-row.is-past-cap .ap-order-rank {
+    opacity: .45;
+}
+
+.ap-order-moves {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0;
+}
+
+.ap-order-moves .btn {
+    padding: 0 .3rem;
+    color: var(--bs-secondary-color);
+    font-size: .9rem;
+    line-height: 1.3;
+    text-decoration: none;
+}
+
+.ap-order-moves .btn:hover {
+    color: var(--bs-body-color);
+}
+
+.ap-order-cap {
+    margin-top: .45rem;
+}
+
+.ap-order-add {
+    margin-top: .6rem;
+}
+
+/* ---- "How it works": the signal help popovers ---- */
+.sig-more {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    margin-left: .2rem;
+    padding: 0 .2rem;
+    border: 0;
+    border-radius: .25rem;
+    background: none;
+    font: inherit;
+    font-weight: 600;
+    color: var(--bs-primary);
+    white-space: nowrap;
+    cursor: pointer;
+    vertical-align: baseline;
+}
+.sig-more:hover,
+.sig-more.is-open {
+    background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
+}
+.sig-more:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 1px;
+}
+
+.sig-pop {
+    position: absolute;
+    z-index: 1080;
+    width: min(46rem, calc(100vw - 32px));
+    color: var(--bs-body-color);
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    box-shadow: 0 .9rem 2.2rem rgba(0, 0, 0, .16),
+        0 .15rem .45rem rgba(0, 0, 0, .08);
+    font-size: .8125rem;
+    line-height: 1.5;
+    text-align: left;
+}
+[data-misp-mode="dark"] .sig-pop {
+    box-shadow: 0 .9rem 2.2rem rgba(0, 0, 0, .55),
+        0 0 0 1px rgba(255, 255, 255, .04);
+}
+.sig-pop.is-stack { width: min(30rem, calc(100vw - 32px)); }
+.sig-pop.is-three { width: min(66rem, calc(100vw - 32px)); }
+.sig-pop.is-full { width: calc(100vw - 32px); }
+.sig-pop:focus { outline: none; }
+
+.sig-pop-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .75rem .6rem .1rem .95rem;
+}
+.sig-pop-title {
+    margin: 0;
+    font-size: .9375rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--bs-emphasis-color);
+}
+.sig-pop-id {
+    margin: .1rem 0 0;
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+}
+.sig-pop-close {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 0;
+    border-radius: .375rem;
+    background: none;
+    color: var(--bs-secondary-color);
+}
+.sig-pop-close:hover {
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+}
+
+.sig-pop-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    padding: .35rem .95rem 0;
+}
+
+.sig-pop-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "a" "b" "c";
+    gap: .75rem 0;
+    margin-top: .6rem;
+    padding: .7rem .95rem .9rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+.sig-pop-col[data-col="a"] { grid-area: a; }
+.sig-pop-col[data-col="b"] { grid-area: b; }
+.sig-pop-col[data-col="c"] { grid-area: c; }
+.sig-pop.is-two .sig-pop-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "a b" "a c";
+    gap: .9rem 0;
+}
+.sig-pop.is-two.c-left .sig-pop-grid {
+    grid-template-areas: "a b" "c b";
+}
+.sig-pop.is-two.c-left .sig-pop-col[data-col="c"] {
+    padding: 0 1.1rem 0 0;
+    border-left: 0;
+}
+.sig-pop.is-three .sig-pop-grid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "a b c";
+    gap: 0;
+}
+/* No settings column: the examples take its place */
+.sig-pop.is-two .sig-pop-grid.no-b,
+.sig-pop.is-three .sig-pop-grid.no-b {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: "a c";
+    gap: 0;
+}
+.sig-pop.is-two .sig-pop-col[data-col="a"],
+.sig-pop.is-three .sig-pop-col:not(:last-child) {
+    padding-right: 1.1rem;
+}
+.sig-pop.is-two .sig-pop-col[data-col="b"],
+.sig-pop.is-two .sig-pop-col[data-col="c"],
+.sig-pop.is-three .sig-pop-col:not(:first-child) {
+    padding-left: 1.1rem;
+    border-left: 1px solid var(--bs-border-color);
+}
+
+.sig-pop h4 {
+    margin: .7rem 0 .2rem;
+    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.sig-pop-col > h4:first-child { margin-top: 0; }
+.sig-pop p { margin: 0 0 .4rem; }
+
+.sig-pop-v {
+    padding: 0 .25rem;
+    border-radius: .2rem;
+    background: color-mix(in srgb, var(--bs-primary) 10%, transparent);
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-size: .92em;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-emphasis-color);
+}
+.sig-pop-v.is-edited {
+    background: color-mix(in srgb, var(--bs-primary) 22%, transparent);
+    box-shadow: inset 0 -2px 0 var(--bs-primary);
+}
+.sig-pop .kv .sig-pop-v {
+    padding: 0;
+    background: none;
+    box-shadow: none;
+}
+
+.sig-pop-lands {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+.sig-pop-note {
+    display: flex;
+    gap: .5rem;
+    padding: .45rem .6rem;
+    border-radius: .375rem;
+    background: color-mix(in srgb, var(--bs-primary) 8%, transparent);
+    font-size: .75rem;
+}
+.sig-pop-note > i {
+    margin-top: .2rem;
+    color: var(--bs-primary);
+}
+
+.sig-pop-sets {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: .35rem .6rem;
+    align-items: baseline;
+    margin: 0;
+    font-size: .75rem;
+}
+.sig-pop-sets dt,
+.sig-pop-sets dd { margin: 0; }
+.sig-pop-sets .kv { margin: 0; }
+
+.sig-pop-settings {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: .75rem;
+}
+.sig-pop-settings .kv { margin: 0 .2rem 0 0; }
+
+.sig-pop-sub {
+    margin: .15rem 0 0;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+
+.sig-pop-recipes {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.sig-pop-recipes li {
+    padding: .35rem .55rem .4rem;
+    border-left: 2px solid
+        color-mix(in srgb, var(--bs-primary) 55%, transparent);
+    border-radius: 0 .3rem .3rem 0;
+    background: var(--bs-tertiary-bg);
+    font-size: .75rem;
+}
+.sig-pop-recipes li[hidden] { display: none; }
+.sig-pop-recipes .want {
+    display: block;
+    font-weight: 600;
+    color: var(--bs-emphasis-color);
+}
+.sig-pop-recipes .do {
+    display: block;
+    color: var(--bs-secondary-color);
+}
+.sig-pop-recipes .do::before {
+    content: "\2192";
+    display: inline-block;
+    margin-right: .3rem;
+    font-size: 1.15em;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--bs-primary);
+}
+.sig-pop code {
+    padding: 0 .2rem;
+    border-radius: .2rem;
+    background: color-mix(in srgb, var(--bs-secondary-color) 14%, transparent);
+    font-size: .95em;
+    color: var(--bs-body-color);
+}
+.sig-pop-more {
+    margin: .35rem 0 0;
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+}
+
+.sig-pop-bands {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    margin: .2rem 0 .5rem;
+    padding: 0;
+    list-style: none;
+    font-size: .75rem;
+}
+.sig-pop-bands li {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+}
+.sig-pop-bands .pill {
+    min-width: 4rem;
+    justify-content: center;
+}
+
+.sig-pop-order {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    margin: .2rem 0 .5rem;
+    padding: 0;
+    list-style: none;
+}
+.sig-pop-order li {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+}
+.sig-pop-order .sig-pop-id { margin: 0; }
+.sig-pop-step {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
+    color: var(--bs-primary);
+    font-size: .6875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    transform: translateY(-.05rem);
+}
+
+/* ---- section rhythm ---- */
+.wb-sec-head { margin-bottom: 1rem; }
+.wb-sec-head .wb-blurb { margin-bottom: 0; }
+.wb-h.wb-sec-title { font-size: 1rem; margin-bottom: .25rem; }
+.wb-h.wb-bh { font-size: .875rem; margin: 0 0 .2rem; }
+.wb-block + .wb-block {
+    margin-top: 1.35rem;
+    padding-top: 1.15rem;
+    border-top: 1px solid color-mix(in srgb, var(--bs-border-color) 70%, transparent);
+}
+.wb-block > .wb-blurb:last-child { margin-bottom: 0; }
+
+/* Why a section is worth tuning, symptom first. */
+.wb-guide {
+    margin: 0 0 1.4rem;
+    padding: .75rem .9rem .85rem;
+    border: 1px solid color-mix(in srgb, var(--bs-primary) 22%, var(--bs-border-color));
+    border-radius: .5rem;
+    background: color-mix(in srgb, var(--bs-primary) 4%, var(--bs-body-bg));
+}
+.wb-guide-h {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: 0 0 .25rem;
+    font: 600 .8125rem/1.4 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-primary-text-emphasis, var(--bs-primary));
+}
+.wb-guide-h .fa-solid { font-size: .75rem; }
+.wb-guide-intro {
+    margin: 0 0 .7rem;
+    max-width: 72ch;
+    font-size: .75rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
+}
+.wb-guide-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: .6rem 1.4rem;
+    margin: 0;
+}
+.wb-guide-list > div {
+    padding-left: .65rem;
+    border-left: 2px solid color-mix(in srgb, var(--bs-primary) 40%, transparent);
+}
+.wb-guide-list dt {
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--bs-body-color);
+}
+.wb-guide-list dd {
+    margin: .1rem 0 0;
+    font-size: .72rem;
+    line-height: 1.45;
+    color: var(--bs-secondary-color);
+}
+
+/* Settings most profiles never move, folded under a readout of them. */
+.wb-fold {
+    margin-top: 1.5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    background: var(--bs-body-bg);
+}
+.wb-fold > summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .2rem .65rem;
+    padding: .6rem .85rem;
+    border-radius: .5rem;
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+}
+.wb-fold > summary::-webkit-details-marker { display: none; }
+.wb-fold > summary:hover { background: var(--bs-tertiary-bg); }
+.wb-fold > summary:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+.wb-fold[open] > summary {
+    border-bottom: 1px solid var(--bs-border-color);
+    border-radius: .5rem .5rem 0 0;
+}
+.wb-fold-caret {
+    align-self: center;
+    width: .7rem;
+    font-size: .625rem;
+    color: var(--bs-secondary-color);
+    transition: transform .15s ease;
+}
+.wb-fold[open] .wb-fold-caret { transform: rotate(90deg); }
+.wb-fold-label {
+    font: 600 .8125rem/1.4 var(--bs-font-sans-serif, system-ui);
+    color: var(--bs-body-color);
+}
+.wb-fold-sum {
+    flex: 1 1 16rem;
+    min-width: 0;
+    font-size: .72rem;
+    line-height: 1.45;
+    color: var(--bs-secondary-color);
+}
+.wb-fold[open] .wb-fold-sum { display: none; }
+.wb-fold-edited {
+    display: none;
+    padding: 0 .4rem;
+    border-radius: 999px;
+    font-size: .6875rem;
+    font-weight: 600;
+    line-height: 1.55;
+    background: color-mix(in srgb, var(--vp-conflict) 15%, transparent);
+    color: var(--vp-conflict-ink, var(--vp-conflict));
+}
+.wb-fold.is-edited .wb-fold-edited { display: inline-block; }
+.wb-fold.is-edited:not([open]) .wb-fold-sum { display: none; }
+.wb-fold-body { padding: 1rem .9rem 1.1rem; }
+
+/* Many short settings of one kind, such as one per grade. */
+.wb-fields.is-dense {
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: .5rem .75rem;
+}
+.wb-fields.is-dense .wb-field label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- empty states and the add row ---- */
+.wb-empty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .15rem .5rem;
+    padding: .55rem .75rem;
+}
+.wb-empty-h {
+    font-weight: 600;
+    color: var(--bs-body-color);
+}
+.ap-map-add {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem .6rem;
+    margin-top: .55rem;
+}
+.ap-map-add > label {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin: 0;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+.ap-map-add > label .fa-solid { font-size: .625rem; }
+
+/*
+ * A map whose rows carry one possible value is a set, drawn as chips.
+ * The table markup stays so the add and remove controls work unchanged;
+ * the one-option select still posts, it is just not shown.
+ */
+.ap-map.is-chips .wb-tbl,
+.ap-map.is-chips .wb-tbl tbody {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+.ap-map.is-chips .wb-tbl { margin-top: .35rem; }
+.ap-map.is-chips .wb-tbl[hidden] { display: none; }
+.ap-map.is-chips .wb-tbl thead { display: none; }
+.ap-map.is-chips .wb-tbl tr {
+    display: inline-flex;
+    align-items: center;
+    gap: .15rem;
+    max-width: 100%;
+    padding: .2rem .2rem .2rem .6rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .45rem;
+    background: var(--bs-tertiary-bg);
+}
+.ap-map.is-chips .wb-tbl tr:hover { border-color: var(--bs-secondary-color); }
+.ap-map.is-chips .wb-tbl td {
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+.ap-map.is-chips .wb-tbl td .fw-semibold {
+    font-size: .75rem;
+    line-height: 1.35;
+}
+.ap-map.is-chips .wb-tbl td .wb-sub {
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-size: .625rem;
+    line-height: 1.3;
+}
+.ap-map.is-chips .wb-tbl td:nth-child(2) { display: none; }
+.ap-map.is-chips .wb-tbl tr.is-off { border-style: dashed; }
+
+/* ---- enrichment: one module per row, its types underneath ---- */
+.mod-row .wb-id {
+    flex: 0 0 7.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mod-row .form-select { flex: 1 1 auto; max-width: 15rem; }
+.mod-bulk .wb-id { font-style: normal; color: var(--bs-secondary-color); }

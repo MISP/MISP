@@ -58,6 +58,36 @@ echo $this->Form->create('Galaxy', [
         </div>
     </div>
 
+    <!-- CATEGORY / SUB-CATEGORY -->
+    <div class="row g-3 mt-0">
+        <div class="col-md-6">
+            <?= $this->Form->label('category', __('Category'), ['class' => 'form-label fw-semibold']) ?>
+            <?= $this->Form->select('category', $galaxyCategories, [
+                'class' => 'form-select bg-light',
+                'empty' => __('Not classified'),
+            ]) ?>
+            <div class="form-text" id="GalaxyCategoryDefinition"
+                 data-default="<?= h(__('What this galaxy\'s clusters represent. Left unset means nobody has classified it.')) ?>">
+                <?= __('What this galaxy\'s clusters represent. Left unset means nobody has classified it.') ?>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <?= $this->Form->label('sub_category', __('Sub-category'), ['class' => 'form-label fw-semibold']) ?>
+            <?= $this->Form->select('sub_category', array_filter($galaxySubCategories), [
+                'class' => 'form-select bg-light',
+                'empty' => __('No sub-category'),
+                // Without it CakePHP drops an option whose label matches an
+                // optgroup's - `technique` and `reference` are each a category
+                // and a sub-category, and would render nowhere.
+                'showParents' => true,
+            ]) ?>
+            <div class="form-text">
+                <?= __('The finer distinction inside the category. Optional even when a category is set.') ?>
+            </div>
+        </div>
+    </div>
+
     <!-- DESCRIPTION -->
     <div class="mt-3">
         <?= $this->Form->label('description', __('Description'), ['class' => 'form-label fw-semibold']) ?>
@@ -155,5 +185,58 @@ echo $this->Form->create('Galaxy', [
 </div>
 
 <?= $this->Form->end(); ?>
+
+<script>
+/* The second select offers the sub-categories in use under the category
+ * chosen in the first - upstream's schema does not constrain one to the
+ * other, but offering `actor` under `detection` would be offering nonsense. */
+(function () {
+    var subCategories = <?= json_encode($galaxySubCategories, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+    var definitions = <?= json_encode($galaxyCategoryDescriptions, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+
+    var category = document.getElementById('GalaxyCategory');
+    var subCategory = document.getElementById('GalaxySubCategory');
+    var definition = document.getElementById('GalaxyCategoryDefinition');
+    if (!category || !subCategory) {
+        return;
+    }
+    var noSubCategory = subCategory.querySelector('option[value=""]');
+    noSubCategory = noSubCategory ? noSubCategory.textContent : '';
+
+    function option(value, label) {
+        var el = document.createElement('option');
+        el.value = value;
+        el.textContent = label;
+        return el;
+    }
+
+    function refresh(reset) {
+        var chosen = category.value;
+        var current = reset ? '' : subCategory.value;
+        var available = subCategories[chosen] || {};
+        subCategory.innerHTML = '';
+        subCategory.appendChild(option('', noSubCategory));
+        var offered = false;
+        Object.keys(available).forEach(function (name) {
+            subCategory.appendChild(option(name, available[name]));
+            offered = offered || name === current;
+        });
+        /* A sub-category set from outside this form - over the API, or by a
+         * definition file - stays on offer, so opening the form and saving it
+         * does not quietly drop what is stored. */
+        if (current && !offered) {
+            subCategory.appendChild(option(current, current));
+        }
+        subCategory.value = current;
+        if (definition) {
+            definition.textContent = definitions[chosen]
+                || definition.dataset.default || '';
+        }
+    }
+
+    category.addEventListener('change', function () { refresh(true); });
+    refresh(false);
+})();
+</script>
 
 

@@ -66,6 +66,8 @@ app/Lib/EventWarning/Custom/*
 !/app/files/schemas/*
 !/app/files/dashboard-templates
 !/app/files/dashboard-templates/*
+!/app/files/analyst-profiles
+!/app/files/analyst-profiles/*
 /app/files/scripts/*.pyc
 /app/files/scripts/*.py~
 /app/files/scripts/__pycache__

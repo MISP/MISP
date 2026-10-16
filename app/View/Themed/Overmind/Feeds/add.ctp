@@ -59,52 +59,52 @@ $options = [
     [
         'field' => 'enabled', 'id' => 'FeedEnabled',
         'label' => __('Enabled'), 'hint' => __('Pull this feed on the scheduled run'),
-        'icon' => 'fas fa-power-off', 'accent' => '#198754',
+        'icon' => 'fas fa-power-off', 'accent' => 'var(--misp-tone-green-solid, #198754)',
     ],
     [
         'field' => 'caching_enabled', 'id' => 'FeedCachingEnabled',
         'label' => __('Caching enabled'), 'hint' => __('Cache the values for correlation without importing'),
-        'icon' => 'fas fa-database', 'accent' => '#0d6efd',
+        'icon' => 'fas fa-database', 'accent' => 'var(--misp-tone-blue-solid, #0d6efd)',
     ],
     [
         'field' => 'lookup_visible', 'id' => 'FeedLookupVisible',
         'label' => __('Lookup visible'), 'hint' => __('Show hits on this feed to every user'),
-        'icon' => 'fas fa-eye', 'accent' => '#0dcaf0',
+        'icon' => 'fas fa-eye', 'accent' => 'var(--misp-tone-cyan-solid, #0dcaf0)',
     ],
     [
         'field' => 'Feed.settings.disable_correlation', 'id' => 'FeedSettingsDisableCorrelation',
         'label' => __('Disable correlation'), 'hint' => __('Imported attributes never correlate'),
-        'icon' => 'fas fa-link-slash', 'accent' => '#6c757d',
+        'icon' => 'fas fa-link-slash', 'accent' => 'var(--misp-tone-gray-solid, #6c757d)',
     ],
     [
         'field' => 'Feed.settings.unpublish_event', 'id' => 'FeedSettingsUnpublishEvent',
         'label' => __('Unpublish events'), 'hint' => __('Leave the touched events unpublished'),
-        'icon' => 'fas fa-rotate-left', 'accent' => '#6c757d',
+        'icon' => 'fas fa-rotate-left', 'accent' => 'var(--misp-tone-gray-solid, #6c757d)',
     ],
     [
         'field' => 'lock_events', 'id' => 'FeedLockEvents',
         'label' => __('Lock events'), 'hint' => __('Mark created events as locked'),
-        'icon' => 'fas fa-lock', 'accent' => '#6c757d',
+        'icon' => 'fas fa-lock', 'accent' => 'var(--misp-tone-gray-solid, #6c757d)',
     ],
     [
         'field' => 'publish', 'id' => 'FeedPublish', 'div' => 'PublishDiv',
         'label' => __('Auto publish'), 'hint' => __('Publish the event right after the pull'),
-        'icon' => 'fas fa-bullhorn', 'accent' => '#1892B1',
+        'icon' => 'fas fa-bullhorn', 'accent' => 'var(--misp-tone-cyan-solid, #1892B1)',
     ],
     [
         'field' => 'override_ids', 'id' => 'FeedOverrideIds', 'div' => 'OverrideIdsDiv',
         'label' => __('Override IDS flag'), 'hint' => __('Import the values with to_ids turned off'),
-        'icon' => 'fas fa-shield-halved', 'accent' => '#ffc107',
+        'icon' => 'fas fa-shield-halved', 'accent' => 'var(--misp-tone-yellow-solid, #ffc107)',
     ],
     [
         'field' => 'delta_merge', 'id' => 'FeedDeltaMerge', 'div' => 'DeltaMergeDiv',
         'label' => __('Delta merge'), 'hint' => __('Drop the values that vanished from the feed'),
-        'icon' => 'fas fa-code-compare', 'accent' => '#fd7e14',
+        'icon' => 'fas fa-code-compare', 'accent' => 'var(--misp-tone-orange-solid, #fd7e14)',
     ],
     [
         'field' => 'delete_local_file', 'id' => 'FeedDeleteLocalFile', 'div' => 'DeleteLocalFileDiv',
         'label' => __('Delete local file'), 'hint' => __('Remove the source file once it is pulled'),
-        'icon' => 'fas fa-trash', 'accent' => '#dc3545',
+        'icon' => 'fas fa-trash', 'accent' => 'var(--misp-tone-red-solid, #dc3545)',
     ],
 ];
 
@@ -142,7 +142,7 @@ echo $this->Form->create('Feed', [
 
         <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 ">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Feed Name') ?>
@@ -154,7 +154,7 @@ echo $this->Form->create('Feed', [
             <?= $this->Form->text('name', [
                 'id' => 'FeedName',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important;'
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                     . ' outline:none;',
                 'placeholder' => __('e.g. CIRCL OSINT feed'),
                 'autocomplete' => 'off',
@@ -163,7 +163,7 @@ echo $this->Form->create('Feed', [
 
         <!-- ── SOURCE ──────────────────────────────────────────── -->
         <div class="w-100 ">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Source') ?>
@@ -183,7 +183,7 @@ echo $this->Form->create('Feed', [
                     <?= $this->Form->text('provider', [
                         'id' => 'FeedProvider',
                         'class' => 'form-control',
-                        'style' => 'border-color:#d8dde3;',
+                        'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                         'placeholder' => __('Who publishes it'),
                         'autocomplete' => 'off',
                     ]) ?>
@@ -224,14 +224,14 @@ echo $this->Form->create('Feed', [
                 </label>
                 <div class="input-group">
                     <span class="input-group-text bg-transparent"
-                          style="border-color:#d8dde3;">
+                          style="border-color:var(--misp-field-line, #d8dde3);">
                         <i class="fas fa-link text-muted" id="FeedUrlIcon"
                            style="font-size:.8rem;"></i>
                     </span>
                     <?= $this->Form->text('url', [
                         'id' => 'FeedUrl',
                         'class' => 'form-control font-monospace',
-                        'style' => 'border-color:#d8dde3;',
+                        'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                         'placeholder' => 'https://example.org/feed.json',
                         'autocomplete' => 'off',
                     ]) ?>
@@ -249,7 +249,7 @@ echo $this->Form->create('Feed', [
                 'class' => 'w-100 rounded-2 p-3',
                 'id' => 'FeedHeaders',
                 'style' => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                    . ' border:1px solid #d8dde3; resize:vertical;'
+                    . ' border:1px solid var(--misp-field-line, #d8dde3); resize:vertical;'
                     . ' outline:none; font-size:.85rem; min-height:90px;'
                     . ' color:inherit; font-family:monospace;',
                 'rows' => 3,
@@ -268,7 +268,7 @@ echo $this->Form->create('Feed', [
                 </button>
             </div>
             <div id="feedBasicAuthForm" class="border rounded p-3 mt-2"
-                 style="display:none; border-color:#d8dde3 !important;">
+                 style="display:none; border-color:var(--misp-field-line, #d8dde3) !important;">
                 <div class="row g-2">
                     <div class="col-md-5">
                         <input type="text" class="form-control form-control-sm"
@@ -308,7 +308,7 @@ echo $this->Form->create('Feed', [
                                data-option-card
                                data-accent="<?= h($option['accent']) ?>"
                                style="cursor:pointer; transition:border-color .15s;
-                                      border:1px solid #dee2e6;">
+                                      border:1px solid var(--misp-check-off-line, #dee2e6);">
                             <?= $this->Form->checkbox($option['field'], [
                                 'id' => $option['id'],
                                 'class' => 'form-check-input flex-shrink-0',
@@ -328,7 +328,7 @@ echo $this->Form->create('Feed', [
                             </div>
                             <i class="<?= h($option['icon']) ?>" data-option-icon
                                style="font-size:.95rem; transition:color .15s;
-                                      color:#adb5bd;"></i>
+                                      color:var(--misp-check-off-icon, #adb5bd);"></i>
                         </label>
                     </div>
                 <?php endforeach; ?>
@@ -381,7 +381,7 @@ echo $this->Form->create('Feed', [
                     echo $this->Form->text($isEdit ? 'event_id' : 'target_event', [
                         'id' => 'FeedTargetEvent',
                         'class' => 'form-control font-monospace',
-                        'style' => 'border-color:#d8dde3;',
+                        'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                         'value' => $reqFeed['event_id'] ?? null,
                         'placeholder' => __('Leave blank to let the pull create it'),
                         'autocomplete' => 'off',
@@ -395,7 +395,7 @@ echo $this->Form->create('Feed', [
                     </label>
                     <?= $this->Form->text('Feed.settings.common.excluderegex', [
                         'class' => 'form-control font-monospace',
-                        'style' => 'border-color:#d8dde3;',
+                        'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                         'value' => $excludeRegexVal,
                         'placeholder' => '/^https:\/\/example\.org/i',
                         'autocomplete' => 'off',
@@ -408,7 +408,7 @@ echo $this->Form->create('Feed', [
                     </label>
                     <?= $this->Form->text('Feed.settings.csv.value', [
                         'class' => 'form-control font-monospace',
-                        'style' => 'border-color:#d8dde3;',
+                        'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                         'value' => $csvValueVal,
                         'placeholder' => __('e.g. 2,3,4'),
                         'autocomplete' => 'off',
@@ -421,7 +421,7 @@ echo $this->Form->create('Feed', [
                     </label>
                     <?= $this->Form->text('Feed.settings.csv.delimiter', [
                         'class' => 'form-control font-monospace',
-                        'style' => 'border-color:#d8dde3;',
+                        'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                         'value' => $delimiterVal,
                         'placeholder' => ',',
                         'autocomplete' => 'off',
@@ -494,7 +494,7 @@ echo $this->Form->create('Feed', [
             <div class="d-flex align-items-start gap-2 rounded-2 p-2 mt-2 small"
                  style="background:rgba(24,146,177,.05);
                         border:1px solid rgba(24,146,177,.25);">
-                <i class="fas fa-circle-info text-primary mt-1"
+                <i class="fas fa-circle-info text-accent mt-1"
                    style="font-size:.7rem;"></i>
                 <div class="text-muted">
                     <?= __('%s and %s take tag or organisation names under %s and %s; %s is appended to the event index query.', '<code>tags</code>', '<code>orgs</code>', '<code>OR</code>', '<code>NOT</code>', '<code>url_params</code>') ?>
@@ -635,10 +635,10 @@ echo $this->Form->create('Feed', [
     function paintCard(card) {
         var box = card.querySelector('input[type="checkbox"]');
         var icon = card.querySelector('[data-option-icon]');
-        var accent = card.dataset.accent || '#0d6efd';
+        var accent = card.dataset.accent || 'var(--misp-tone-blue-solid, #0d6efd)';
         if (!box) { return; }
-        card.style.borderColor = box.checked ? accent : '#dee2e6';
-        if (icon) { icon.style.color = box.checked ? accent : '#adb5bd'; }
+        card.style.borderColor = box.checked ? accent : 'var(--misp-check-off-line, #dee2e6)';
+        if (icon) { icon.style.color = box.checked ? accent : 'var(--misp-check-off-icon, #adb5bd)'; }
     }
     function refreshCards() {
         document.querySelectorAll('[data-option-card]').forEach(paintCard);
@@ -781,11 +781,11 @@ echo $this->Form->create('Feed', [
             var existing = el(errorId);
             var property = entry.underlined ? 'border-bottom-color' : 'border-color';
             if (!show) {
-                target.style.setProperty(property, '#d8dde3', 'important');
+                target.style.setProperty(property, 'var(--misp-field-line, #d8dde3)', 'important');
                 if (existing) { existing.remove(); }
                 return;
             }
-            target.style.setProperty(property, '#dc3545', 'important');
+            target.style.setProperty(property, 'var(--misp-tone-red-solid, #dc3545)', 'important');
             if (existing) { return; }
             var msg = document.createElement('div');
             msg.id = errorId;

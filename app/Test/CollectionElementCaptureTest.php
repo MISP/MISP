@@ -253,6 +253,23 @@ class CollectionElementCaptureTest extends TestCase
             ['element_type' => 'AttributeValue', 'element_sha256' => self::VALUE],
         ]);
         $this->assertCount(3, $this->elements->rows);
-        $this->assertCount(1, $this->elements->logged, 'The second copy collides and is logged.');
+        $this->assertSame([], $this->elements->logged, 'The second copy is dropped before it can collide.');
+    }
+
+    public function testRowUuidsCompareAsTheColumnDoes()
+    {
+        $rows = $this->capture([
+            ['uuid' => 'STORED-EVENT', 'element_type' => 'Event', 'element_uuid' => self::EVENT],
+        ]);
+        $this->assertSame([100, self::EVENT, 'stored'], $rows['stored-event']);
+        $this->assertSame([], $this->elements->logged);
+    }
+
+    public function testCapturedCorpusIsReturned()
+    {
+        $data = $this->elements->captureElements(['Collection' => ['id' => self::COLLECTION, 'CollectionElement' => [
+            ['element_type' => 'GalaxyCluster', 'element_uuid' => self::CLUSTER],
+        ]]]);
+        $this->assertSame(['stored-cluster'], array_column($data['Collection']['CollectionElement'], 'uuid'));
     }
 }

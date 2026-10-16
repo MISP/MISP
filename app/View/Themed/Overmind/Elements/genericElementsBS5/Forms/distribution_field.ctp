@@ -98,8 +98,9 @@ foreach ($levels as $level => $levelLabel) {
         'title' => $levelLabel,
         'sub' => $meta['sub'],
         'icon' => $meta['icon'],
-        'tone' => $meta['color'],
-        'toneBg' => $meta['bg'],
+        'tone' => $this->DistributionLevel->themed($meta, 'fg'),
+        'toneBg' => $this->DistributionLevel->themed($meta, 'bg'),
+        'toneBorder' => $this->DistributionLevel->themed($meta, 'border', '33'),
     ];
 }
 

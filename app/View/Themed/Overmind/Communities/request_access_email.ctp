@@ -1,7 +1,7 @@
 <div class="container-fluid mt-4">
     <div class="mb-4">
         <h3 class="fw-bold text-dark">
-            <i class="fas fa-paper-plane text-primary me-2"></i>
+            <i class="fas fa-paper-plane text-accent me-2"></i>
             <?= __('Email to send in order to request access') ?>
         </h3>
         <?php if (empty($mock)): ?>

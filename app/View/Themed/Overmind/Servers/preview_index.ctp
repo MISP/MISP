@@ -92,6 +92,7 @@ $fields = [
         'requirement' => Configure::read('MISP.tagging'),
         'data_path' => 'Event.EventTag',
         'element' => 'tag_list',
+        'plan' => $labelPlan ?? null,
         'card_section' => 'tag',
         'display_in' => ['table', 'card']
     ],
@@ -99,6 +100,7 @@ $fields = [
         'name' => __('Galaxy'),
         'data_path' => 'Event.GalaxyCluster',
         'element' => 'galaxy',
+        'plan' => $labelPlan ?? null,
         'card_section' => 'galaxy',
         'display_in' => ['table', 'card']
     ],

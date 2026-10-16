@@ -186,14 +186,7 @@ $children = $data['extended_by'] ?? [];
                 <?php if (!empty($children)): ?>
                     <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
                         <span class="small text-body-secondary me-1"><?= __('Forked by') ?></span>
-                        <?php foreach ($children as $child): ?>
-                            <?php $cc = $child['GalaxyCluster']; ?>
-                            <a class="badge rounded-pill fw-normal text-decoration-none"
-                               style="background:<?= h($palette['badgeBg']) ?>;color:<?= h($palette['badgeText']) ?>;border:1px dashed <?= h($palette['badgeBorder']) ?>;"
-                               href="<?= h($baseurl . '/galaxy_clusters/view/' . $cc['id']) ?>">
-                                <i class="fas fa-code-branch me-1"></i><?= h($cc['value']) ?>
-                            </a>
-                        <?php endforeach; ?>
+                        <?= $this->TagChip->clusters($children) ?>
                     </div>
                 <?php endif; ?>
             </div>

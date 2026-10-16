@@ -49,7 +49,7 @@ echo $this->Form->create('Organisation', [
                 <div class="d-flex align-items-center gap-3">
                     <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
                           style="width:2.25rem;height:2.25rem;background:rgba(24,146,177,.12);">
-                        <i class="fas fa-house-flag text-primary"></i>
+                        <i class="fas fa-house-flag text-accent"></i>
                     </span>
                     <div>
                         <span class="fw-semibold d-block">
@@ -75,7 +75,7 @@ echo $this->Form->create('Organisation', [
 
         <!-- ── IDENTITY ────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold text-uppercase mb-2"
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Identity') ?>
                 <span class="badge bg-primary" style="font-size:.55rem; opacity:.8; font-weight:700;">

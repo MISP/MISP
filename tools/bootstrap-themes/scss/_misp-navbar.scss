@@ -1,0 +1,43 @@
+// The Overmind top navbar (css/overmind-navbar.css), emitted as
+// --misp-navbar-<name>. The bar is the theme's primary, darkened until white
+// text reads on it, and its menus are the theme's own dropdowns. A theme that
+// keeps the navbar's built-in palette sets "navbar": "builtin" in theme.json.
+$misp-navbar-bg:     misp-shade-for-white($primary) !default;
+$misp-navbar-accent: $white !default;
+// The MISP mark's facets sink into a coloured bar; draw it white like the text.
+$misp-navbar-brand-filter: brightness(0) invert(1) !default;
+
+// A dropdown whose hover is a filled colour keeps its icons the hover's
+// colour; one with a faint hover lights them in the accent.
+$misp-navbar-hover-icon: $dropdown-link-hover-color;
+@if $dropdown-link-hover-color == $dropdown-link-color {
+  $misp-navbar-hover-icon: var(--misp-accent);
+}
+
+$misp-navbar-tokens: (
+  "bg":          $misp-navbar-bg,
+  "edge":        rgba($black, .3),
+  "shadow":      (0 1px 2px rgba($black, .12), 0 4px 12px -2px rgba($black, .18)),
+  "accent":      $misp-navbar-accent,
+  "brand-filter": $misp-navbar-brand-filter,
+  "count-bg":    rgba($misp-navbar-accent, .2),
+  "count-fg":    tint-color($misp-navbar-accent, 60%),
+  "menu-bg":     $dropdown-bg,
+  "menu-fg":     $dropdown-link-color,
+  "menu-muted":  var(--#{$prefix}secondary-color),
+  "menu-icon":   var(--#{$prefix}secondary-color),
+  "menu-border": $dropdown-border-color,
+  "menu-shadow": var(--#{$prefix}box-shadow),
+  "hover-bg":    $dropdown-link-hover-bg,
+  "hover-fg":    $dropdown-link-hover-color,
+  "hover-icon":  $misp-navbar-hover-icon,
+  "divider":     $dropdown-divider-bg,
+  "ring":        var(--misp-accent),
+  "on-bg":       var(--#{$prefix}primary-bg-subtle),
+  "on-fg":       var(--#{$prefix}primary-text-emphasis),
+  "off-bg":      var(--#{$prefix}secondary-bg),
+  "off-fg":      var(--#{$prefix}secondary-color),
+  "track-off":   var(--#{$prefix}secondary-color),
+  "track-on":    var(--misp-accent),
+  "note-bg":     var(--#{$prefix}tertiary-bg)
+) !default;

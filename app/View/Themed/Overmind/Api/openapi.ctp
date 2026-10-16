@@ -15,7 +15,7 @@
     html, body {
         scroll-behavior: auto !important;
     }
-    .fixed-top {
+    .rc-nav {
         position: absolute !important;
     }
 </style>

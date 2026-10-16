@@ -1545,17 +1545,15 @@ function toggleLoadingInSaveButton(saving, ignoreDisabledState) {
 }
 
 function toggleEditorLoading(loading, message) {
-    loadingSpanAnimation = '<span class="fa fa-spin fa-spinner loading-span"></span>'
     if (loading) {
         $loadingBackdrop.show()
         $loadingBackdrop.append(
             $('<div/>').css({
                 'font-size': '20px',
-                'color': 'white'
+                'color': 'white',
+                'text-align': 'center'
             }).append(
-                $(loadingSpanAnimation).css({
-                    'margin-right': '0.5em'
-                }),
+                $('<div/>', {'class': 'misp-loader', 'role': 'status'}),
                 $('<span/>').text(message)
             )
         )

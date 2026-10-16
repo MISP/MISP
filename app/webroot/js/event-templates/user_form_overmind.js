@@ -94,23 +94,6 @@
         return restrict.some((tax) => name.indexOf(tax + ':') === 0);
     }
 
-    function textColour(hex) {
-        const s = safeColour(hex);
-        if (s.charAt(0) !== '#' || s.length < 7) { return 'black'; }
-        const r = parseInt(s.slice(1, 3), 16);
-        const g = parseInt(s.slice(3, 5), 16);
-        const b = parseInt(s.slice(5, 7), 16);
-        return ((2 * r) + b + (3 * g)) / 6 < 127 ? 'white' : 'black';
-    }
-    function badgeStyle(colour) {
-        const col = safeColour(colour);
-        return 'background-color:' + col + '; color:' + textColour(col) + ';'
-            + ' filter: drop-shadow(-1px 3px 2px rgba(50, 50, 0, 0.5));'
-            + ' background-image: linear-gradient(145deg, rgba(255,255,255,0.25) 0%,'
-            + ' rgba(255,255,255,0.05) 40%, rgba(0,0,0,0.05) 100%);'
-            + ' text-align:left; white-space:normal; word-wrap:break-word;';
-    }
-
     // A TLP tag states one sensitivity level: picking a second one replaces the
     // first rather than stacking a contradiction.
     function isTlp(name) {
@@ -135,26 +118,25 @@
         function render() {
             if ($empty) { $empty.classList.toggle('d-none', selected.length > 0); }
             if (!$selected) { return; }
-            $selected.innerHTML = '';
-            selected.forEach(function (name) {
-                const badge = document.createElement('span');
-                badge.className = 'badge me-1 mb-1 d-inline-flex align-items-center gap-1';
-                badge.style.cssText = badgeStyle(colours[name]);
-                badge.appendChild(document.createTextNode(name));
-
-                const remove = document.createElement('i');
-                remove.className = 'fas fa-times';
-                remove.style.cssText = 'cursor:pointer; opacity:.8;';
-                remove.setAttribute('role', 'button');
+            $selected.innerHTML = window.TagChips.collection(selected.map(function (name) {
+                return { name: name, colour: colours[name] };
+            }), { searchUrl: '' });
+            $selected.querySelectorAll('.hg-unit').forEach(function (unit) {
+                const key = unit.getAttribute('data-tag-name');
+                const name = selected.find(function (n) { return n.toLowerCase() === key; });
+                if (name === undefined) { return; }
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'hg-act';
                 remove.setAttribute('aria-label', 'Remove');
+                remove.title = 'Remove';
+                remove.innerHTML = '&times;';
                 remove.addEventListener('click', function () {
                     selected = selected.filter(function (n) { return n !== name; });
                     render();
                     csvSync($value, selected);
                 });
-
-                badge.appendChild(remove);
-                $selected.appendChild(badge);
+                unit.appendChild(remove);
             });
         }
 
@@ -173,14 +155,10 @@
             csvSync($value, selected);
         }
 
-        function renderOption(data, escape) {
-            const swatch = '<span style="display:inline-block;width:10px;'
-                + 'height:10px;border-radius:2px;flex-shrink:0;'
-                + 'border:1px solid rgba(0,0,0,0.15);background:'
-                + escape(safeColour(data.colour)) + ';"></span>';
-            return '<div class="d-flex align-items-center gap-2 py-1">'
-                + swatch + '<span class="text-truncate">'
-                + escape(data.name) + '</span></div>';
+        function renderOption(data) {
+            return '<div class="py-1">'
+                + window.TagChips.chip({ name: data.name, colour: data.colour }, { searchUrl: '' })
+                + '</div>';
         }
 
         const ts = new window.TomSelect($select, {
@@ -235,6 +213,19 @@
         );
         const initial = readInitialCsv($value);
 
+        // Values restored from the CSV are bare tag names with no galaxy.
+        function clusterChip(data) {
+            if (!data.galaxy) {
+                return window.TagChips.chip({ name: data.value }, { searchUrl: '' });
+            }
+            return window.TagChips.cluster({
+                value: data.label,
+                galaxy: data.galaxy,
+                galaxy_id: data.galaxy_id,
+                iconClass: data.icon_class
+            }, { href: () => null });
+        }
+
         const ts = new window.TomSelect($select, {
             valueField: 'value',
             labelField: 'label',
@@ -284,12 +275,15 @@
             render: {
                 option(data, escape) {
                     const desc = data.description
-                        ? ('<div style="color:#888;font-size:11px;' +
+                        ? ('<div style="color:var(--misp-ink-muted, #888);' +
+                           'font-size:11px;' +
                            'max-height:3em;overflow:hidden;">' +
                            escape(data.description) + '</div>')
                         : '';
-                    return '<div><strong>' + escape(data.label) +
-                        '</strong>' + desc + '</div>';
+                    return '<div class="py-1">' + clusterChip(data) + desc + '</div>';
+                },
+                item(data) {
+                    return '<div>' + clusterChip(data) + '</div>';
                 }
             },
             onChange(values) {

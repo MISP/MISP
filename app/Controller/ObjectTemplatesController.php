@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('ObjectTemplateRailCards', 'Tools/RailCards');
 
 /**
  * @property ObjectTemplate  $ObjectTemplate
@@ -134,16 +135,44 @@ class ObjectTemplatesController extends AppController
         }
         $this->set('id', $id);
         $this->set('template', $this->viewVars['data']);
-        $this->set('templateElements', $this->ObjectTemplate->ObjectTemplateElement->find('all', [
+        if ($this->theme === 'Overmind') {
+            $railCards = new ObjectTemplateRailCards();
+            $template = $this->viewVars['data'];
+            $this->set('railCards', RailCard::byId([
+                $railCards->slot('template-usage', $id),
+                $railCards->inventory($template),
+                $railCards->versions($template),
+                $railCards->requiredBy($this->Auth->user(), $template),
+            ]));
+            $this->set('templateElements', $this->ObjectTemplate->ObjectTemplateElement->find('all', [
+                'recursive' => -1,
+                'conditions' => ['ObjectTemplateElement.object_template_id' => $id],
+                'fields' => [
+                    'ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type',
+                    'ObjectTemplateElement.multiple', 'ObjectTemplateElement.disable_correlation',
+                    'ObjectTemplateElement.description', 'ObjectTemplateElement.ui-priority',
+                ],
+                'order' => ['ObjectTemplateElement.ui-priority DESC', 'ObjectTemplateElement.object_relation'],
+            ]));
+        }
+    }
+
+    /**
+     * One of the template page's lazy rail cards.
+     *
+     * @param int $id
+     * @param string $cardId
+     */
+    public function railCard($id, $cardId)
+    {
+        $template = $this->ObjectTemplate->find('first', [
             'recursive' => -1,
-            'conditions' => ['ObjectTemplateElement.object_template_id' => $id],
-            'fields' => [
-                'ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type',
-                'ObjectTemplateElement.multiple', 'ObjectTemplateElement.disable_correlation',
-                'ObjectTemplateElement.description', 'ObjectTemplateElement.ui-priority',
-            ],
-            'order' => ['ObjectTemplateElement.ui-priority DESC', 'ObjectTemplateElement.object_relation'],
-        ]));
+            'conditions' => ['ObjectTemplate.id' => (int)$id],
+        ]);
+        if (empty($template)) {
+            throw new NotFoundException(__('Invalid object template'));
+        }
+        $this->_renderRailCard((new ObjectTemplateRailCards())->lazy($cardId, $this->Auth->user(), $template));
     }
 
     public function delete($id)

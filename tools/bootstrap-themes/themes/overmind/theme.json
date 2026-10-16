@@ -1,0 +1,12 @@
+{
+    "label": "Overmind",
+    "description": "MISP's own look, with a light and a dark palette.",
+    "mode": "both",
+    "fonts": [],
+    "hide_from_users": false,
+    "navbar": "builtin",
+    "contrast_accepted": {
+        "light": ["attribute", "correlation", "type"],
+        "dark": ["object", "sighting", "analystData", "enrichment"]
+    }
+}

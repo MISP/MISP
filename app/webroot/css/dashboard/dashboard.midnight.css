@@ -19,7 +19,8 @@
  * trivial to gate or retire then. PRD §8.1 / DD-51.
  */
 
-:root[data-theme="midnight"] {
+/* Zero specificity, so a Bootstrap theme's own tokens win. */
+:where(:root[data-theme="midnight"]) {
   /* ---- Surface (dark base) ---- */
   --misp-dash-surface:        #0e0f12;
   --misp-dash-surface-raised: #161821;

@@ -1,0 +1,53 @@
+{
+    "uuid": "ec29ae9c-2551-480f-81f7-f230f6100951",
+    "name": "SOC Triage",
+    "description": "For an analyst working an alert queue, where a false positive costs more than a miss. It keeps the shipped default's numbers and changes what the page shows first, with a shorter shelf life for what triage acts on.",
+    "version": 9,
+    "extends": "default-v1",
+    "parameters": {
+        "relevance": {
+            "ttl_buckets": {
+                "short": 30
+            },
+            "ttl_overrides": {
+                "url": 21
+            }
+        },
+        "reference": {
+            "module_trust": {
+                "greynoise": "B",
+                "crowdsec": "B",
+                "abuseipdb": "C",
+                "rbl": "C",
+                "dbl_spamhaus": "C",
+                "hashlookup": "A"
+            }
+        },
+        "enrichment": {
+            "shapes": [
+                "reputation",
+                "geolocation",
+                "network-ownership",
+                "registration",
+                "resolution-timeline"
+            ]
+        },
+        "context": {
+            "taxonomies": {
+                "pinned": [
+                    "tlp",
+                    "false-positive"
+                ],
+                "preferred": [
+                    "malware_classification"
+                ]
+            },
+            "galaxies": {
+                "preferred": [
+                    "threat-actor",
+                    "mitre-attack-pattern"
+                ]
+            }
+        }
+    }
+}

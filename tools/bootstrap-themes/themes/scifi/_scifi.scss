@@ -1,0 +1,762 @@
+// Sci-Fi component layer: what Bootstrap's variables can't express.
+// Chamfered frames, double-framed buttons, glowing labels and dividers.
+// Nothing here is applied per table row or per tag beyond flat colour.
+
+// A flat-topped honeycomb tile, 36x20.78, drawn as one hexagon plus the
+// edge that joins it to its neighbour.
+@function sc-hex($stroke, $opacity) {
+  @return url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='20.78' viewBox='0 0 36 20.78'%3E%3Cpath d='M0 10.39 6 0h12l6 10.39-6 10.39H6zM24 10.39h12' fill='none' stroke='#{$stroke}' stroke-opacity='#{$opacity}' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+// Two opposite corners cut: top right and bottom left.
+@function sc-cut($c) {
+  @return polygon(0 0, calc(100% - #{$c}) 0, 100% #{$c}, 100% 100%, #{$c} 100%, 0 calc(100% - #{$c}));
+}
+
+// All four corners cut.
+@function sc-octagon($c) {
+  @return polygon(#{$c} 0, calc(100% - #{$c}) 0, 100% #{$c}, 100% calc(100% - #{$c}), calc(100% - #{$c}) 100%, #{$c} 100%, 0 calc(100% - #{$c}), 0 #{$c});
+}
+
+// The smallest tint of $color that reads at 7:1 on $bg.
+@function sc-ink($color, $bg) {
+  $step: 30%;
+  $result: tint-color($color, $step);
+  @while contrast-ratio($result, $bg) < 7 and $step < 95% {
+    $step: $step + 5%;
+    $result: tint-color($color, $step);
+  }
+  @return $result;
+}
+
+%sc-display {
+  font-family: $sc-display;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+// ---------------------------------------------------------------- page
+
+:root {
+  color-scheme: dark;
+}
+
+// Light text on the dark hull reads tight at Source Sans's own fit.
+html[data-misp-mode] body {
+  letter-spacing: .01em;
+  background-image:
+    radial-gradient(ellipse 70% 360px at 50% 0, rgba($sc-blue, .16), transparent 75%),
+    sc-hex("%2378a8ff", .045);
+  background-repeat: no-repeat, repeat;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  letter-spacing: .03em;
+}
+
+// Authored text (reports, notes) keeps the reading face.
+.markdown-preview-body :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--bs-body-font-family);
+  font-weight: 700;
+  letter-spacing: normal;
+}
+
+::selection {
+  background: rgba($sc-blue, .55);
+  color: $white;
+}
+
+hr {
+  border: 0;
+  height: 3px;
+  background:
+    linear-gradient($sc-blue-bright, $sc-blue-bright) center / 46% 1px no-repeat,
+    linear-gradient(90deg, transparent, rgba($sc-blue, .55) 6%, rgba($sc-blue, .55) 94%, transparent) center / 100% 1px no-repeat;
+  opacity: 1;
+}
+
+// The page title: extended capitals with the reference's soft blue halo.
+html[data-misp-mode] [data-tour="page-title"] h1 {
+  color: $white;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  line-height: 1.15;
+  text-shadow: 0 0 18px rgba($sc-glow, .55);
+}
+
+// An event's title is its author's text: kept in its own case.
+html[data-misp-mode] body[data-controller="events"][data-action^="view"] [data-tour="page-title"] h1 {
+  text-transform: none;
+}
+
+// The extended capitals are too wide for a phone's title column.
+@include media-breakpoint-down(sm) {
+  html[data-misp-mode] [data-tour="page-title"] h1 {
+    text-transform: none;
+    letter-spacing: -.02em;
+  }
+
+  html[data-misp-mode] [data-tour="page-title"] .badge {
+    letter-spacing: 0;
+  }
+
+  html[data-misp-mode] [data-tour="page-actions"] .btn {
+    --bs-btn-padding-x: .55rem;
+    --bs-btn-font-size: .6rem;
+    letter-spacing: .03em;
+    white-space: nowrap;
+  }
+}
+
+html[data-misp-mode] [data-tour="page-title"] > span:first-child {
+  font-family: $sc-display;
+  color: $sc-glow;
+}
+
+html[data-misp-mode] [data-tour="page-title"] > span:first-child a {
+  color: $sc-ice;
+}
+
+// ---------------------------------------------------------------- panels
+
+// Cards, modals and toasts carry a chamfered frame drawn on two layers
+// behind the content, so nothing inside (menus, popovers) is clipped:
+// ::before is the edge, ::after the fill one pixel in, with a lit strip
+// along the top edge.
+%sc-frame {
+  position: relative;
+  isolation: isolate;
+  background-color: transparent;
+  border-color: transparent;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  &::before {
+    inset: 0;
+    background:
+      linear-gradient($sc-blue-bright, $sc-blue-bright) 18px 0 / 26% 3px no-repeat,
+      linear-gradient(180deg, rgba($sc-blue, .75), rgba($sc-blue, .35));
+    clip-path: sc-cut(var(--sc-cut, 14px));
+  }
+
+  &::after {
+    inset: 1px;
+    background:
+      linear-gradient(180deg, #121c35 0, $sc-hull 4.5rem);
+    clip-path: sc-cut(calc(var(--sc-cut, 14px) - .4px));
+  }
+}
+
+.card {
+  @extend %sc-frame;
+  --sc-cut: 14px;
+}
+
+.card > .card-header {
+  @extend %sc-display;
+  background: transparent;
+  border-bottom-color: rgba($sc-blue, .35);
+  color: $white;
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.card > .card-header .card-title,
+.card > .card-header h5,
+.card > .card-header h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+// A header's description line reads as text, not as a label.
+.card > .card-header :is(.text-muted, .text-body-secondary, small, .small, p, .form-text) {
+  font-family: var(--bs-body-font-family);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.card > .card-footer {
+  background: transparent;
+  border-top-color: rgba($sc-blue, .25);
+}
+
+.card-title {
+  font-family: $sc-display;
+  letter-spacing: .04em;
+}
+
+.list-group-flush > .list-group-item {
+  background-color: transparent;
+}
+
+// A card wearing a colour or border utility keeps that, not the frame.
+.card[class*="text-bg-"],
+.card[class*="bg-"]:not(.bg-light):not(.bg-body):not(.bg-body-tertiary) {
+  &::before,
+  &::after {
+    content: none;
+  }
+}
+
+.card[class*=" border-"]:not(.border-0) {
+  background-color: var(--bs-card-bg);
+
+  &::before,
+  &::after {
+    content: none;
+  }
+}
+
+kbd {
+  border: 1px solid rgba($sc-blue, .5);
+  font-family: var(--bs-font-monospace);
+}
+
+.modal-content {
+  @extend %sc-frame;
+  --sc-cut: 18px;
+}
+
+.modal-header {
+  border-bottom-color: rgba($sc-blue, .35);
+}
+
+.modal-title {
+  @extend %sc-display;
+  font-size: .95rem;
+  color: $white;
+  text-shadow: 0 0 12px rgba($sc-glow, .6);
+}
+
+.modal-footer {
+  border-top-color: rgba($sc-blue, .2);
+}
+
+.toast {
+  @extend %sc-frame;
+  --sc-cut: 10px;
+}
+
+.toast-header {
+  @extend %sc-display;
+  background: transparent;
+  font-size: .66rem;
+}
+
+.popover-header,
+.offcanvas-title,
+.accordion-button {
+  @extend %sc-display;
+  font-size: .72rem;
+}
+
+.dropdown-menu {
+  box-shadow: inset 0 2px 0 $sc-blue-bright, $dropdown-box-shadow;
+}
+
+.dropdown-header {
+  @extend %sc-display;
+  font-size: .62rem;
+}
+
+// ---------------------------------------------------------------- buttons
+
+// The reference's button: a dark plate whose fill rises from black into
+// the button's colour, a 2px lit edge, a translucent outer frame with
+// cut corners, and thicker tabs at both ends of that frame.
+$sc-btn-colors: map-merge($theme-colors, ("secondary": $sc-blue));
+
+.btn {
+  --sc-edge: transparent;
+  --sc-deep: transparent;
+  --sc-tab: transparent;
+  --sc-glow-in: transparent;
+  position: relative;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, .62), rgba(0, 0, 0, 0) 90%);
+  box-shadow: inset 0 -.9em 1.1em -1em var(--sc-glow-in), inset 0 1px 0 rgba($white, .05);
+}
+
+.btn:hover,
+.btn:focus-visible {
+  text-shadow: 0 0 8px rgba($white, .45);
+}
+
+.btn:focus-visible {
+  box-shadow: inset 0 -.9em 1.1em -1em var(--sc-glow-in), var(--bs-btn-focus-box-shadow);
+}
+
+@each $name, $color in $sc-btn-colors {
+  $bg: mix($color, $sc-void, 20%);
+  $ink: sc-ink($color, $bg);
+  @if $name == "primary" {
+    $ink: $sc-amber;
+  } @else if $name == "secondary" {
+    $ink: $sc-ice;
+  }
+
+  .btn-#{$name} {
+    --sc-edge: #{$color};
+    --sc-deep: #{rgba($color, .28)};
+    --sc-tab: #{rgba($color, .55)};
+    --sc-glow-in: #{rgba($color, .6)};
+    --bs-btn-color: #{$ink};
+    --bs-btn-bg: #{$bg};
+    --bs-btn-border-color: #{$color};
+    --bs-btn-hover-color: #{$white};
+    --bs-btn-hover-bg: #{mix($color, $sc-void, 30%)};
+    --bs-btn-hover-border-color: #{tint-color($color, 22%)};
+    --bs-btn-active-color: #{$white};
+    --bs-btn-active-bg: #{mix($color, $sc-void, 42%)};
+    --bs-btn-active-border-color: #{tint-color($color, 32%)};
+    --bs-btn-disabled-color: #{rgba($ink, .5)};
+    --bs-btn-disabled-bg: #{mix($color, $sc-void, 10%)};
+    --bs-btn-disabled-border-color: #{rgba($color, .4)};
+    --bs-btn-focus-shadow-rgb: #{to-rgb($color)};
+  }
+
+  .btn-outline-#{$name} {
+    --bs-btn-color: #{$ink};
+    --bs-btn-border-color: #{rgba($color, .6)};
+    --bs-btn-hover-color: #{$white};
+    --bs-btn-hover-bg: #{rgba($color, .16)};
+    --bs-btn-hover-border-color: #{$color};
+    --bs-btn-active-color: #{$white};
+    --bs-btn-active-bg: #{rgba($color, .28)};
+    --bs-btn-active-border-color: #{$color};
+    --bs-btn-disabled-color: #{rgba($ink, .45)};
+    --bs-btn-disabled-border-color: #{rgba($color, .3)};
+    --bs-btn-focus-shadow-rgb: #{to-rgb($color)};
+  }
+}
+
+// MISP's dark mode turns .btn-dark into a pale plate; here it is a steel
+// one, and .btn-light a lighter steel.
+html[data-misp-mode] .btn-dark,
+html[data-misp-mode] .btn-light {
+  --sc-edge: #{$sc-faint};
+  --sc-deep: #{rgba($sc-faint, .28)};
+  --sc-tab: #{rgba($sc-faint, .55)};
+  --sc-glow-in: #{rgba($sc-faint, .5)};
+  --bs-btn-color: #{$sc-text};
+  --bs-btn-bg: #{$sc-plate};
+  --bs-btn-border-color: #{$sc-faint};
+  --bs-btn-hover-color: #{$white};
+  --bs-btn-hover-bg: #{tint-color($sc-plate, 8%)};
+  --bs-btn-hover-border-color: #{$sc-muted};
+  --bs-btn-active-color: #{$white};
+  --bs-btn-active-bg: #{tint-color($sc-plate, 14%)};
+  --bs-btn-active-border-color: #{$sc-muted};
+  --bs-btn-disabled-color: #{$sc-faint};
+  --bs-btn-disabled-bg: #{$sc-plate};
+  --bs-btn-disabled-border-color: #{$sc-line};
+}
+
+html[data-misp-mode] .btn-light {
+  --sc-edge: #{$sc-muted};
+  --bs-btn-color: #{$white};
+  --bs-btn-bg: #{mix($sc-muted, $sc-void, 22%)};
+  --bs-btn-border-color: #{$sc-muted};
+}
+
+html[data-misp-mode] .btn-outline-dark {
+  --bs-btn-color: #{$sc-muted};
+  --bs-btn-border-color: #{rgba($sc-muted, .55)};
+  --bs-btn-hover-color: #{$white};
+  --bs-btn-hover-bg: #{$sc-plate};
+  --bs-btn-hover-border-color: #{$sc-muted};
+  --bs-btn-active-color: #{$white};
+  --bs-btn-active-bg: #{$sc-plate};
+}
+
+[class*="btn-outline-"] {
+  --bs-btn-border-width: 1px;
+  background-image: none;
+  box-shadow: none;
+}
+
+.btn-link {
+  font-family: var(--bs-body-font-family);
+  text-transform: none;
+  letter-spacing: normal;
+  background-image: none;
+  box-shadow: none;
+}
+
+.btn-link:hover {
+  text-shadow: none;
+}
+
+.btn:not(.btn-sm):not(.btn-link):not([class*="btn-outline-"])::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 4px solid var(--sc-deep);
+  clip-path: sc-octagon(4px);
+  pointer-events: none;
+}
+
+.btn:not(.btn-sm):not(.btn-link):not([class*="btn-outline-"]):not(.dropdown-toggle)::after {
+  content: "";
+  position: absolute;
+  inset: -6px -5px;
+  border-style: solid;
+  border-width: 5px 0;
+  border-image: linear-gradient(90deg, var(--sc-tab) 0 22px, transparent 22px calc(100% - 22px), var(--sc-tab) calc(100% - 22px)) 1;
+  clip-path: sc-octagon(4px);
+  pointer-events: none;
+}
+
+// Controls repeated per table row keep a flat plate: no glow layers.
+.table .btn,
+.table .form-control,
+.table .form-select {
+  box-shadow: none;
+}
+
+.table .btn:hover {
+  text-shadow: none;
+}
+
+// Packed buttons and buttons inside data keep the plate, not the frame.
+.btn-group > .btn,
+.btn-group-vertical > .btn,
+.input-group > .btn,
+.table .btn,
+.dropdown-menu .btn,
+.rc-nav .btn,
+.modal-header .btn,
+.card-header .btn,
+.ov-view-tabs .btn {
+  &::before,
+  &:not(.dropdown-toggle)::after {
+    content: none;
+  }
+}
+
+// ---------------------------------------------------------------- forms
+
+// The reference's input: a lit blue edge inside a darker outer frame, the
+// field falling from black into deep blue.
+.form-control,
+.form-select {
+  letter-spacing: .01em;
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, .45), rgba($sc-blue, .14));
+  box-shadow: 0 0 0 2px rgba($sc-blue-deep, .55), inset 0 -.6rem 1rem -.8rem rgba($sc-blue, .55);
+}
+
+.form-select {
+  background-image:
+    escape-svg($form-select-indicator),
+    linear-gradient(180deg, rgba(0, 0, 0, .45), rgba($sc-blue, .14));
+  background-position: $form-select-bg-position, 0 0;
+  background-size: $form-select-bg-size, 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.form-select[multiple],
+.form-select[size]:not([size="1"]) {
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, .45), rgba($sc-blue, .14));
+  background-size: 100% 100%;
+}
+
+.form-control:focus,
+.form-select:focus {
+  box-shadow: 0 0 0 2px rgba($sc-blue, .7), 0 0 14px rgba($sc-blue-bright, .35);
+}
+
+.form-control-sm,
+.form-select-sm {
+  box-shadow: 0 0 0 1px rgba($sc-blue-deep, .55);
+}
+
+.form-control-plaintext {
+  box-shadow: none;
+  background-image: none;
+}
+
+.form-control::file-selector-button {
+  font-family: $sc-display;
+  font-size: .66rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: $sc-ice;
+  background-color: $sc-plate;
+}
+
+.form-label,
+.col-form-label,
+legend {
+  font-family: $sc-display;
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: $white;
+  text-shadow: 0 0 10px rgba($sc-glow, .75);
+}
+
+.form-check-input {
+  box-shadow: inset 0 0 6px rgba($sc-blue, .35);
+}
+
+.form-check-input:checked {
+  box-shadow: 0 0 8px rgba($sc-gold, .55);
+}
+
+// The index tables' mass-select boxes: flat colours only, one per row.
+html[data-misp-mode] .checkbox-index input[type="checkbox"] {
+  background-color: $sc-well;
+  border-color: #2f5d9e;
+  border-radius: 1px;
+}
+
+html[data-misp-mode] .checkbox-index input[type="checkbox"]:checked {
+  background-color: $sc-gold;
+  border-color: $sc-gold-bright;
+}
+
+html[data-misp-mode] .checkbox-index input[type="checkbox"]::after {
+  border-color: $color-contrast-dark;
+}
+
+.input-group-text {
+  font-family: $sc-display;
+  font-size: .66rem;
+  letter-spacing: .06em;
+  border-color: $input-border-color;
+}
+
+// ---------------------------------------------------------------- navs
+
+.nav-tabs .nav-link,
+.nav-pills .nav-link,
+.nav-underline .nav-link {
+  @extend %sc-display;
+  font-size: .68rem;
+  font-weight: 700;
+}
+
+.nav-tabs .nav-link {
+  color: $sc-muted;
+  border-radius: 0;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+  border-color: transparent transparent var(--bs-nav-tabs-link-active-bg);
+  background: linear-gradient(180deg, rgba($sc-blue, .3), $sc-hull 85%);
+  box-shadow: inset 0 2px 0 $sc-blue-bright, inset 1px 0 0 rgba($sc-blue, .55), inset -1px 0 0 rgba($sc-blue, .55);
+  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%);
+  text-shadow: 0 0 10px rgba($sc-glow, .8);
+}
+
+.nav-pills .nav-link {
+  border-radius: 0;
+  color: $sc-ice;
+}
+
+.nav-pills .nav-link.active {
+  clip-path: sc-cut(6px);
+}
+
+// MISP's view tabs: a dark band, extended capitals, a gold lit marker.
+html[data-misp-mode] .ov-view-tabs {
+  background: linear-gradient(180deg, #111a30, #0b1222);
+  border-top-color: rgba($sc-blue, .3);
+  border-bottom-color: rgba($sc-blue, .45);
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view {
+  @extend %sc-display;
+  font-size: .66rem;
+  font-weight: 700;
+  color: $sc-muted;
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view:hover,
+html[data-misp-mode] .ov-view-tabs .nav-view.active {
+  color: $white;
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view.active {
+  text-shadow: 0 0 10px rgba($sc-glow, .8);
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view::after {
+  border-radius: 0;
+  clip-path: polygon(3px 0, calc(100% - 3px) 0, 100% 100%, 0 100%);
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view.active::after {
+  background: $sc-gold-bright;
+  box-shadow: 0 0 10px rgba($sc-gold-bright, .8);
+}
+
+html[data-misp-mode] .ov-view-tabs .ov-tab-count {
+  border-radius: 0;
+  background: rgba($sc-blue, .2);
+  color: $sc-ice;
+  font-family: $sc-display;
+  font-size: .58rem;
+  letter-spacing: .04em;
+  clip-path: sc-cut(4px);
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view.active .ov-tab-count {
+  background: rgba($sc-gold, .22);
+  color: $sc-amber;
+}
+
+.pagination {
+  font-family: $sc-display;
+  font-size: .7rem;
+}
+
+.breadcrumb {
+  font-family: $sc-display;
+  font-size: .66rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+// ---------------------------------------------------------------- tables
+
+// Only the header row takes the display face; rows stay plain.
+.table > thead > tr > th {
+  font-family: $sc-display;
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: $sc-ice;
+  border-bottom-color: rgba($sc-blue, .5);
+}
+
+// ---------------------------------------------------------------- alerts
+
+// Each alert gets a lit bar on its left and two corner brackets.
+@each $name, $color in $theme-colors {
+  .alert-#{$name} {
+    --sc-alert-edge: #{$color};
+  }
+}
+
+.alert {
+  border-left-width: 3px;
+  border-left-color: var(--sc-alert-edge, var(--bs-alert-border-color));
+}
+
+.alert::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--sc-alert-edge), var(--sc-alert-edge)) right top / 16px 2px no-repeat,
+    linear-gradient(var(--sc-alert-edge), var(--sc-alert-edge)) right top / 2px 16px no-repeat,
+    linear-gradient(var(--sc-alert-edge), var(--sc-alert-edge)) right bottom / 16px 2px no-repeat,
+    linear-gradient(var(--sc-alert-edge), var(--sc-alert-edge)) right bottom / 2px 16px no-repeat;
+}
+
+.alert-heading {
+  @extend %sc-display;
+  font-size: .85rem;
+}
+
+// ---------------------------------------------------------------- badges
+
+.badge {
+  font-family: $sc-display;
+  letter-spacing: .06em;
+}
+
+.badge:not(.rounded-pill) {
+  clip-path: sc-cut(3px);
+}
+
+// ---------------------------------------------------------------- progress
+
+.progress,
+.progress-stacked {
+  box-shadow: inset 0 0 0 1px rgba($sc-blue, .4);
+}
+
+.progress-bar {
+  background-image: linear-gradient(180deg, rgba($white, .22), rgba($white, 0) 55%);
+}
+
+.list-group-item.active {
+  box-shadow: inset 3px 0 0 $sc-gold-bright;
+}
+
+// ---------------------------------------------------------------- dashboard
+
+// The dashboard's own token set, outweighing both its :root defaults and
+// its midnight overlay.
+html:root[data-misp-mode] {
+  --misp-dash-surface:        #{$sc-void};
+  --misp-dash-surface-raised: #{$sc-hull};
+  --misp-dash-surface-sunken: #{$sc-well};
+  --misp-dash-border:         #{$sc-line};
+  --misp-dash-border-strong:  #{rgba($sc-blue, .5)};
+  --misp-dash-text:           #{$sc-text};
+  --misp-dash-text-muted:     #{$sc-muted};
+  --misp-dash-text-on-accent: #{$color-contrast-dark};
+  --misp-dash-accent:         #{$sc-blue-bright};
+  --misp-dash-accent-hover:   #{$sc-ice};
+  --misp-dash-accent-muted:   #{rgba($sc-blue, .18)};
+  --misp-dash-success:        #{$success};
+  --misp-dash-danger:         #{$danger};
+  --misp-dash-warning:        #{$sc-gold};
+  --misp-dash-info:           #{$info};
+  --misp-dash-success-muted:  #{rgba($success, .16)};
+  --misp-dash-danger-muted:   #{rgba($danger, .16)};
+  --misp-dash-warning-muted:  #{rgba($sc-gold, .16)};
+  --misp-dash-info-muted:     #{rgba($info, .16)};
+  --misp-dash-radius-sm: 1px;
+  --misp-dash-radius-md: 2px;
+  --misp-dash-radius-lg: 3px;
+  --misp-dash-shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+  --misp-dash-shadow-md: 0 2px 8px rgba(0, 0, 0, .5);
+  --misp-dash-shadow-lg: 0 6px 20px rgba(0, 0, 0, .6);
+}
+
+// ---------------------------------------------------------------- login
+
+html[data-misp-mode] body[data-controller="users"]:is([data-action="login"], [data-action="register"], [data-action="forgot"], [data-action="change_pw"]) {
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 45%, rgba($sc-blue, .2), transparent 70%),
+    sc-hex("%2378a8ff", .06),
+    $sc-void;
+}
+
+// The login card asks for a light surface in its markup; the console draws
+// it dark, so its dark logo turns white and its inline heading colour is
+// painted over.
+.card[data-bs-theme="light"] {
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.card[data-bs-theme="light"] .main-logo {
+  filter: brightness(0) invert(1);
+}
+
+.card[data-bs-theme="light"] h4 {
+  font-family: $sc-display;
+  font-size: .9rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  -webkit-text-fill-color: $white;
+  text-shadow: 0 0 10px rgba($sc-glow, .75);
+}

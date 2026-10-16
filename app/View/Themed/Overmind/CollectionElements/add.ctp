@@ -4,21 +4,10 @@ $collectionId = $this->request->params['pass'][0] ?? null;
 $types = $dropdownData['types'] ?? [];
 
 
-$typeStyles = [
-    'Event' => [
-        'icon'  => 'misp-icon misp-icon-event misp-simple',
-        'color' => 'var(--bs-event)',
-        'bg'    => 'rgba(24,146,177,.12)',
-    ],
-    'GalaxyCluster' => [
-        'icon'  => 'misp-icon misp-icon-galaxy misp-simple',
-        'color' => 'var(--bs-galaxy)',
-        'bg'    => 'rgba(139,92,246,.12)',
-    ],
-];
+$typeStyles = $this->ElementType->styles();
 $typeOptions = [];
 foreach ($types as $value => $label) {
-    $typeOptions[$value] = ucfirst(preg_replace('/(?<!^)[A-Z]/', ' $0', (string)$label));
+    $typeOptions[$value] = $this->ElementType->label($value);
 }
 
 echo $this->Form->create('CollectionElement', [
@@ -30,7 +19,7 @@ echo $this->Form->create('CollectionElement', [
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
     'eyebrow' => __('Collections'),
     'title' => __('Add Element to Collection'),
-    'description' => __('Attach an existing event or galaxy cluster to this collection by its UUID.'),
+    'description' => __('Attach an event, galaxy cluster, attribute or object by its UUID, or add a value.'),
     'icon' => 'fas fa-link',
 ]) ?>
 
@@ -40,8 +29,8 @@ echo $this->Form->create('CollectionElement', [
     <div class="d-flex flex-column gap-4">
 
         <!-- ── ELEMENT UUID ────────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
+        <div class="w-100 px-2" id="collectionElementUuidBox">
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Element UUID') ?>
@@ -53,14 +42,32 @@ echo $this->Form->create('CollectionElement', [
             <?= $this->Form->text('element_uuid', [
                 'id' => 'CollectionElementElementUuid',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1 font-monospace',
-                'style' => 'border-bottom:1px solid #d8dde3 !important;'
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                     . ' outline:none;',
                 'maxlength' => 36,
                 'placeholder' => 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
                 'autocomplete' => 'off',
             ]) ?>
             <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                'text' => __('The RFC 4122 UUID of the event or galaxy cluster to attach.'),
+                'text' => __('The RFC 4122 UUID of the event, galaxy cluster, attribute or object to attach.'),
+            ]) ?>
+        </div>
+
+        <!-- ── VALUE ───────────────────────────────────────────── -->
+        <div class="w-100 px-2 d-none" id="collectionElementValueBox">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Value'),
+                'required' => true,
+                'for' => 'CollectionElementValue',
+            ]) ?>
+            <?= $this->Form->text('value', [
+                'id' => 'CollectionElementValue',
+                'class' => 'form-control font-monospace',
+                'autocomplete' => 'off',
+            ]) ?>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('An IP address, a domain, a hash — any value. Its text shows to readers who can see an attribute carrying it.'),
             ]) ?>
         </div>
 
@@ -89,7 +96,7 @@ echo $this->Form->create('CollectionElement', [
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 3,
-                'style' => 'border-color:#d8dde3;',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                 'placeholder' => __('Briefly describe why this element belongs to the collection…'),
             ]) ?>
         </div>
@@ -112,6 +119,7 @@ echo $this->Form->create('CollectionElement', [
     var UUID_REQUIRED = <?= json_encode(__('Please provide the UUID of the element to attach.')) ?>;
     var UUID_INVALID = <?= json_encode(__('This is not a valid UUID.')) ?>;
     var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    var VALUE_REQUIRED = <?= json_encode(__('Please provide the value to add.')) ?>;
 
     /* Element type — the badge shape the distribution and collection type
      * selects use, tinted with the entity's own colour. */
@@ -121,14 +129,13 @@ echo $this->Form->create('CollectionElement', [
                 + escape(data.text) + '</div>';
         }
         var s = TYPE_STYLES[data.value]
-            || { icon: 'fas fa-cube', color: 'var(--primary)', bg: 'rgba(24,146,177,.12)' };
+            || { icon: 'fas fa-cube', color: 'var(--bs-secondary)', ink: '#fff' };
         return '<div class="d-flex align-items-center gap-2' + (compact ? '' : ' py-1') + '">'
             + '<span class="badge d-inline-flex align-items-center'
                 + (compact ? ' px-1' : ' px-2 py-1') + '" style="'
-                + 'background:' + s.bg + ';color:' + s.color + ';'
-                + 'border:1px solid ' + s.bg + ';'
+                + 'background:' + s.color + ';color:' + s.ink + ';'
                 + (compact ? 'font-size:.65rem;' : '') + '">'
-            + '<i class="' + s.icon + '"></i>'
+            + '<i class="' + escape(s.icon) + '"></i>'
             + '</span>'
             + '<span>' + escape(data.text) + '</span>'
             + '</div>';
@@ -147,12 +154,24 @@ echo $this->Form->create('CollectionElement', [
     }
 
     var uuidEl = document.getElementById('CollectionElementElementUuid');
+    var valueEl = document.getElementById('CollectionElementValue');
     var form = document.getElementById('collectionElementForm');
+    var isValue = function () { return typeEl && typeEl.value === 'AttributeValue'; };
+    /* Hidden, never disabled: a disabled input is not posted, which breaks
+       the form's field hash. The model ignores whichever does not apply. */
+    var applyType = function () {
+        document.getElementById('collectionElementUuidBox').classList.toggle('d-none', isValue());
+        document.getElementById('collectionElementValueBox').classList.toggle('d-none', !isValue());
+    };
+    if (typeEl && uuidEl && valueEl) {
+        typeEl.addEventListener('change', applyType);
+        applyType();
+    }
     if (form && uuidEl) {
         var errorId = 'collectionElementUuidError';
 
         var showError = function (message) {
-            uuidEl.style.setProperty('border-bottom-color', '#dc3545', 'important');
+            uuidEl.style.setProperty('border-bottom-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
             var msg = document.getElementById(errorId);
             if (!msg) {
                 msg = document.createElement('div');
@@ -170,12 +189,21 @@ echo $this->Form->create('CollectionElement', [
         };
 
         var clearError = function () {
-            uuidEl.style.setProperty('border-bottom-color', '#d8dde3', 'important');
+            uuidEl.style.setProperty('border-bottom-color', 'var(--misp-field-line, #d8dde3)', 'important');
             var msg = document.getElementById(errorId);
             if (msg) { msg.remove(); }
         };
 
         form.addEventListener('submit', function (e) {
+            if (isValue()) {
+                if (valueEl.value.trim()) { return; }
+                e.preventDefault();
+                e.stopPropagation();
+                valueEl.classList.add('is-invalid');
+                valueEl.setAttribute('title', VALUE_REQUIRED);
+                valueEl.focus();
+                return;
+            }
             var value = uuidEl.value.trim();
             if (value && UUID_RE.test(value)) { return; }
             e.preventDefault();

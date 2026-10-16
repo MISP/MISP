@@ -5,8 +5,9 @@
  *
  * Structure: the tour is cut along the navigation bar, so a section maps to
  * the part of MISP a given role actually works in. `general` is for everyone;
- * the other four mirror the first four navbar menus and are gated on the
- * permissions they need, which means a read-only analyst gets a short tour and
+ * the others mirror the navbar menus, or the analysis tools reached from them,
+ * and are gated on the permissions they need, which means a read-only
+ * analyst gets a short tour and
  * a site admin gets all of it. Each section is split into named groups
  * (sub-sections) that can be skipped or replayed on their own.
  *
@@ -49,6 +50,10 @@ class OnboardingTour
     /** Path fragment of any single event view, whichever route was used. */
     const EVENT_VIEW_MATCH = '^/events/(view2|view)/[0-9]+';
 
+    const VALUE_VIEW_MATCH = '^/values/view/[^/]+';
+
+    const GRAPH_VIEW_MATCH = '^/(analyst_graphs|analystGraphs)/view/';
+
     /**
      * Build the catalogue, dropping anything the user cannot reach.
      *
@@ -65,6 +70,7 @@ class OnboardingTour
             self::general(),
             self::reportIncident(),
             self::dataModels(),
+            self::investigate(),
             self::sync(),
             self::administration(),
         ];
@@ -868,7 +874,358 @@ class OnboardingTour
     }
 
     /* ------------------------------------------------------------------ */
-    /* 4. Sync                                                             */
+    /* 4. Investigate — values, profiles and graphs                        */
+    /* ------------------------------------------------------------------ */
+
+    private static function investigate()
+    {
+        return [
+            'id' => 'investigate',
+            'title' => __('Investigate a value'),
+            'icon' => 'fas fa-magnifying-glass-chart',
+            'colour' => 'correlation',
+            'summary' => __('Everything known about one indicator, the profile '
+                . 'that judges it, and the graphs that tie it to the rest.'),
+            'groups' => [
+                [
+                    'id' => 'value-intelligence',
+                    'title' => __('Value Intelligence'),
+                    'requires' => ['values', 'index'],
+                    'steps' => self::valueIntelligenceSteps(),
+                ],
+                [
+                    'id' => 'analyst-profiles',
+                    'title' => __('Analyst profiles'),
+                    'requires' => ['analystProfiles', 'index'],
+                    'steps' => self::analystProfileSteps(),
+                ],
+                [
+                    'id' => 'pivot-explorer',
+                    'title' => __('Pivot Explorer'),
+                    'steps' => self::pivotExplorerSteps(),
+                ],
+                [
+                    'id' => 'intelligence-graph',
+                    'title' => __('Intelligence graph'),
+                    'requires' => ['analystGraphs', 'view'],
+                    'steps' => self::intelligenceGraphSteps(),
+                ],
+            ],
+        ];
+    }
+
+    private static function valueIntelligenceSteps()
+    {
+        return [
+            [
+                'page' => '/values/index',
+                'anchor' => '[data-tour="page-title"]',
+                'placement' => 'bottom',
+                'skipIf' => self::VALUE_VIEW_MATCH,
+                'title' => __('One value, everywhere'),
+                'body' => '<p>' . __('An indicator rarely lives in a single '
+                    . 'event. <strong>Value Intelligence</strong> gathers '
+                    . 'every place a value appears — across events, '
+                    . 'organisations and sightings — into one page.')
+                    . '</p><p>' . __('It sits under <strong>Data '
+                    . 'points</strong>.') . '</p>',
+            ],
+            [
+                'page' => '/values/index',
+                'anchor' => '#vi-prompt',
+                'placement' => 'bottom',
+                'skipIf' => self::VALUE_VIEW_MATCH,
+                'title' => __('Look it up'),
+                'body' => '<p>' . __('Paste an IP, a domain or a hash. '
+                    . 'Defanged input is cleaned up for you.') . '</p><p>'
+                    . __('Paste a list instead and you get one row per value '
+                    . 'to triage, or switch to extraction to pull the values '
+                    . 'out of a report.') . '</p>',
+            ],
+            [
+                'page' => '/values/index',
+                'anchor' => '[data-tour="values-run"]',
+                'placement' => 'left',
+                'advance' => 'click',
+                'optional' => true,
+                'skipIf' => self::VALUE_VIEW_MATCH,
+                'title' => __('Open one'),
+                'body' => '<p>' . __('Enter a value this instance holds and '
+                    . 'press <strong>Open intelligence</strong>. The tour '
+                    . 'picks up on its page.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::VALUE_VIEW_MATCH,
+                'anchor' => '[data-tour="value-facts"]',
+                'placement' => 'bottom',
+                'waitingText' => __('Open a value to carry on. One nobody has '
+                    . 'recorded yet stays on the lookup page with an '
+                    . '<strong>Open anyway</strong> button.'),
+                'title' => __('At a glance'),
+                'body' => '<p>' . __('How often the value occurs, in how many '
+                    . 'events, reported by how many organisations, and how '
+                    . 'often it has been sighted.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::VALUE_VIEW_MATCH,
+                'anchor' => '[data-tour="view-tab-assessment"]',
+                'placement' => 'bottom',
+                'optional' => true,
+                'title' => __('The assessment'),
+                'body' => '<p>' . __('MISP weighs what it holds about the '
+                    . 'value and says which way it leans, and why.')
+                    . '</p><p>' . __('What counts as evidence is decided by '
+                    . 'your analyst profile — the next part.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::VALUE_VIEW_MATCH,
+                'anchor' => '[data-tour="view-tabs"]',
+                'placement' => 'bottom',
+                'title' => __('Dig further'),
+                'body' => '<p>' . __('Every occurrence, sightings over time, '
+                    . 'related values, enrichment results and analyst notes '
+                    . 'each have their own tab.') . '</p>',
+            ],
+        ];
+    }
+
+    private static function analystProfileSteps()
+    {
+        return [
+            [
+                'page' => '/analystProfiles/index',
+                'anchor' => '[data-tour="page-title"]',
+                'placement' => 'bottom',
+                'title' => __('Analyst profiles'),
+                'body' => '<p>' . __('A profile decides what MISP makes of a '
+                    . 'value: which evidence counts and for how long, which '
+                    . 'labels come first, and which enrichment modules may '
+                    . 'run.') . '</p><p>' . __('One profile is in force for '
+                    . 'you at a time. It scores every value page you open and '
+                    . 'orders the context panel of an event.') . '</p>',
+            ],
+            [
+                'page' => '/analystProfiles/index',
+                'anchor' => '[data-tour="ap-resolution"]',
+                'placement' => 'right',
+                'title' => __('Which one applies'),
+                'body' => '<p>' . __('MISP looks in three places in order — '
+                    . 'your own choice, your organisation&rsquo;s, then the '
+                    . 'instance default — and takes the first answer.')
+                    . '</p>',
+            ],
+            [
+                'page' => '/analystProfiles/index',
+                'anchor' => '[data-tour="ap-profiles"]',
+                'placement' => 'top',
+                'title' => __('The profiles'),
+                'body' => '<p>' . __('Every profile you can use, with its '
+                    . 'standing: in force, overridden, not chosen or switched '
+                    . 'off. Open one by its name to read what it '
+                    . 'weighs.') . '</p>',
+            ],
+            [
+                'page' => '/analystProfiles/index',
+                'anchor' => '[data-tour="ap-row-actions"]',
+                'placement' => 'left',
+                'optional' => true,
+                'title' => __('Choosing one'),
+                'body' => '<p>' . __('<strong>Use this</strong> makes a '
+                    . 'profile yours; <strong>Stop using</strong> hands the '
+                    . 'choice back to your organisation.') . '</p><p>'
+                    . __('The menu beside it lets you try a profile on a real '
+                    . 'value before committing to it.') . '</p>',
+            ],
+            [
+                'page' => '/analystProfiles/index',
+                'anchor' => '[data-tour="page-actions"]',
+                'placement' => 'bottom',
+                'optional' => true,
+                'title' => __('Making your own'),
+                'body' => '<p>' . __('Fork an existing profile to get a copy '
+                    . 'you can edit, or import one exported from another '
+                    . 'instance.') . '</p><p>' . __('A shipped profile you '
+                    . 'choose stays up to date; a fork stays as you left '
+                    . 'it.') . '</p>',
+            ],
+            [
+                'page' => '/analystProfiles/index',
+                'anchor' => '[data-tour="ap-standing"]',
+                'placement' => 'left',
+                'optional' => true,
+                'title' => __('Where you stand'),
+                'body' => '<p>' . __('The profile scoring you right now, what '
+                    . 'this instance allows a profile to do, and the values '
+                    . 'you pinned to check changes against.') . '</p>',
+            ],
+        ];
+    }
+
+    private static function pivotExplorerSteps()
+    {
+        return [
+            [
+                'page' => '/events/index',
+                'anchor' => 'a[href*="/events/view"]',
+                'placement' => 'right',
+                'advance' => 'click',
+                'optional' => true,
+                'skipIf' => self::EVENT_VIEW_MATCH,
+                'title' => __('Open any event'),
+                'body' => '<p>' . __('The explorer starts from an event, so '
+                    . 'pick one — ideally one with a few objects in '
+                    . 'it.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::EVENT_VIEW_MATCH,
+                'anchor' => '[data-tour="view-tab-pivot-explorer"]',
+                'placement' => 'bottom',
+                'advance' => 'click',
+                'waitingText' => __('Open an event to carry on with the Pivot '
+                    . 'Explorer.'),
+                'title' => __('The event as a graph'),
+                'body' => '<p>' . __('<strong>Pivot Explorer</strong> draws '
+                    . 'the event as a graph: its objects, attributes and the '
+                    . 'links between them. Open the tab to build it.')
+                    . '</p>',
+            ],
+            [
+                'pageMatch' => self::EVENT_VIEW_MATCH,
+                'anchor' => '[data-tour="event-pivot-explorer"]',
+                'placement' => 'top',
+                'optional' => true,
+                'title' => __('The canvas'),
+                'body' => '<p>' . __('Each node is something in MISP, each '
+                    . 'line a relationship — an object reference, a '
+                    . 'correlation, a shared tag. Select a node to read its '
+                    . 'details.') . '</p><p>' . __('Moving or hiding nodes '
+                    . 'does not change the event. Double-click a node from '
+                    . 'another event to open it.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::EVENT_VIEW_MATCH,
+                'anchor' => '#pivot-explorer-graph '
+                    . '.pvt-moderail-button[data-mode="pivot"]',
+                'placement' => 'right',
+                'optional' => true,
+                'title' => __('Pivot from a node'),
+                'body' => '<p>' . __('Pivot on a node to pull in what MISP '
+                    . 'knows around it: correlations with other events, feed '
+                    . 'hits, events sharing a tag, related clusters.')
+                    . '</p><p>' . __('Right-clicking a node offers the same '
+                    . 'menu. Large results are shown for review before they '
+                    . 'land.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::EVENT_VIEW_MATCH,
+                'anchor' => '#pivot-explorer-graph .pvt-legend',
+                'placement' => 'left',
+                'optional' => true,
+                'title' => __('Legend and filters'),
+                'body' => '<p>' . __('The legend names every colour: what a '
+                    . 'node is, whether it belongs to this event or comes '
+                    . 'from elsewhere, and what kind of link a line is. Click '
+                    . 'an entry to filter the canvas.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::EVENT_VIEW_MATCH,
+                'anchor' => '#pivot-explorer-graph '
+                    . '.pvt-moderail-button[data-mode="create"]',
+                'placement' => 'right',
+                'optional' => true,
+                'requires' => ['objectReferences', 'add'],
+                'title' => __('Draw a relationship'),
+                'body' => '<p>' . __('In <strong>Create</strong> mode, drag '
+                    . 'from an object to another object or attribute and pick '
+                    . 'the relationship — <code>drops</code>, '
+                    . '<code>resolves-to</code>.') . '</p><p>' . __('Unlike '
+                    . 'the rest of the canvas this edits the event: the '
+                    . 'reference is saved straight away, and deleting a line '
+                    . 'deletes it from MISP.') . '</p>',
+            ],
+        ];
+    }
+
+    private static function intelligenceGraphSteps()
+    {
+        return [
+            [
+                'anchor' => '[data-tour="nav-intel-graph"]',
+                'placement' => 'bottom',
+                'optional' => true,
+                'requires' => ['analystGraphs', 'addNodes'],
+                'title' => __('Your active graph'),
+                'body' => '<p>' . __('Where the Pivot Explorer is for '
+                    . 'exploring, an <strong>analyst graph</strong> keeps the '
+                    . 'result: a saved, shareable drawing of how records '
+                    . 'relate.') . '</p><p>' . __('This chip shows the graph '
+                    . 'you are building. Every <strong>Add to graph</strong> '
+                    . 'button in MISP sends its record here; click the chip to '
+                    . 'open the graph beside any page.') . '</p>',
+            ],
+            [
+                'page' => '/analystData/index/Graph',
+                'anchor' => '[data-tour="page-title"]',
+                'placement' => 'bottom',
+                'skipIf' => self::GRAPH_VIEW_MATCH,
+                'title' => __('All graphs'),
+                'body' => '<p>' . __('Graphs are analyst data, attached to a '
+                    . 'collection, an event or a galaxy cluster and shared '
+                    . 'like any other record.') . '</p><p>' . __('Each one '
+                    . 'also appears in a <strong>Graphs</strong> card on the '
+                    . 'record it belongs to, which is where new ones are '
+                    . 'started.') . '</p>',
+            ],
+            [
+                'page' => '/analystData/index/Graph',
+                'anchor' => '[data-tour="graph-row"]',
+                'placement' => 'right',
+                'optional' => true,
+                'skipIf' => self::GRAPH_VIEW_MATCH,
+                'title' => __('Open one'),
+                'body' => '<p>' . __('Hover a thumbnail for a preview, then '
+                    . 'double-click a row to open the graph.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::GRAPH_VIEW_MATCH,
+                'anchor' => '[data-tour="graph-canvas"]',
+                'placement' => 'top',
+                'waitingText' => __('Open a graph from the list to carry on, '
+                    . 'or skip this part if there are none yet.'),
+                'title' => __('The canvas'),
+                'body' => '<p>' . __('The same canvas as the Pivot Explorer, '
+                    . 'but what you arrange here is kept: positions, nodes '
+                    . 'pulled in from a pivot, nodes removed and links '
+                    . 'hidden.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::GRAPH_VIEW_MATCH,
+                'anchor' => '[data-tour="graph-bar"]',
+                'placement' => 'bottom',
+                'optional' => true,
+                'title' => __('Saving'),
+                'body' => '<p>' . __('This bar says what has changed since the '
+                    . 'last save. Only the organisation that owns a graph can '
+                    . 'save it; if someone saved in the meantime, you are '
+                    . 'offered to merge or reload.') . '</p>',
+            ],
+            [
+                'pageMatch' => self::GRAPH_VIEW_MATCH,
+                'anchor' => '[data-tour="page-actions"]',
+                'placement' => 'bottom',
+                'optional' => true,
+                'title' => __('Settings and forks'),
+                'body' => '<p>' . __('Rename a graph or change who can see it '
+                    . 'from its settings.') . '</p><p>' . __('A graph from '
+                    . 'another organisation is read-only: '
+                    . '<strong>Fork</strong> it to get a copy your '
+                    . 'organisation owns.') . '</p>',
+            ],
+        ];
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* 5. Sync                                                             */
     /* ------------------------------------------------------------------ */
 
     private static function sync()
@@ -975,7 +1332,7 @@ class OnboardingTour
     }
 
     /* ------------------------------------------------------------------ */
-    /* 5. Administration                                                   */
+    /* 6. Administration                                                   */
     /* ------------------------------------------------------------------ */
 
     private static function administration()

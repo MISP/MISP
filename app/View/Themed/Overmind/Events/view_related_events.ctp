@@ -30,21 +30,22 @@ $distMap = $this->DistributionLevel->all();
         $dist    = $distMap[$distId] ?? $distMap[0];
         $corrCount = (int)($correlationCounts[$evId] ?? 0);
     ?>
-        <a href="<?= h($baseurl) ?>/events/view2/<?= $evId ?>"
+        <a href="<?= h($baseurl) ?>/events/view/<?= $evId ?>"
            class="d-flex align-items-start gap-3 px-3 py-2
-                  text-decoration-none text-dark border-bottom
+                  text-decoration-none border-bottom
                   related-event-row"
-           style="transition:background .15s;">
+           style="transition:background .15s;
+                  color:var(--misp-ink, var(--bs-body-color));">
 
             <!-- Distribution badge -->
             <div class="rounded-2 d-flex align-items-center
                         justify-content-center flex-shrink-0 mt-1"
                  style="width:34px;height:34px;
-                        background:<?= $dist['bg'] ?>;
-                        border:1px solid <?= $dist['color'] ?>33;"
+                        background:<?= $this->DistributionLevel->themed($dist, 'bg') ?>;
+                        border:1px solid <?= $this->DistributionLevel->themed($dist, 'border', '33') ?>;"
                  title="<?= h($dist['label']) ?>">
                 <i class="<?= h($dist['icon']) ?>"
-                   style="color:<?= $dist['color'] ?>;
+                   style="color:<?= $this->DistributionLevel->themed($dist, 'fg') ?>;
                           font-size:.85rem;"></i>
             </div>
 
@@ -72,7 +73,7 @@ $distMap = $this->DistributionLevel->all();
             <?php if ($corrCount > 0): ?>
             <!-- Correlation count badge -->
             <span class="badge rounded-pill flex-shrink-0 align-self-center"
-                  style="background:#dbeafe;color:#1e40af;
+                  style="background:var(--misp-tone-blue-bg, #dbeafe);color:var(--misp-tone-blue-fg, #1e40af);
                          font-size:.72rem;"
                   title="<?= __n(
                       '%s shared correlation',
@@ -92,5 +93,5 @@ $distMap = $this->DistributionLevel->all();
 </div>
 
 <style>
-.related-event-row:hover { background: #f8fafc; }
+.related-event-row:hover { background: var(--misp-surface-hover, #f8fafc); }
 </style>

@@ -50,10 +50,14 @@ $legacy = !empty($legacy);
         </div>
     </div>
 </div>
-<div id="mainToastContainer" class="main-toast-container"></div>
+<div id="mainToastContainer" class="main-toast-container ov-toast-stack"></div>
 <div id="api-tooltip" class="api-tooltip"></div>
 <?php endif; ?>
 <div class="loading ov-loading-overlay">
+<?php if ($legacy): ?>
     <div class="spinner"></div>
     <div class="loadingText"><?= __('Loading') ?></div>
+<?php else: ?>
+    <?= $this->element('genericElementsBS5/loader', ['size' => 'lg']) ?>
+<?php endif; ?>
 </div>

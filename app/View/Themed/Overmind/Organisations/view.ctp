@@ -2,6 +2,7 @@
 $this->set('headerIdentity', $org['Organisation'] ?? []);
 $orgData = $org['Organisation'] ?? [];
 $orgId   = $orgData['id'] ?? $id;
+$railCards = $railCards ?? [];
 
 // ── PAGE HEADER ──────────────────────────────────────────────────
 
@@ -38,9 +39,9 @@ $tabs = [
             'Organisations/View/organisations_general',
             'Organisations/View/organisations_related',
         ],
-        'right' => [
+        'right' => array_merge([
             'Organisations/View/organisations_actions',
-        ],
+        ], $this->RailCard->rail($railCards, ['org-glance', 'org-activity'], 'general')),
     ],
 ];
 
@@ -69,6 +70,7 @@ $tabs[] = [
             urlencode(h($orgId))
         )],
     ],
+    'right' => $this->RailCard->rail($railCards, ['org-activity'], 'events'),
 ];
 
 // Sharing groups this organisation is a member of.

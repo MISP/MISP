@@ -1,0 +1,418 @@
+// Factory: warm gunmetal panels on a brown factory floor, grey bevelled
+// controls that light orange under the cursor, green for the action that
+// moves things forward.
+
+// Surfaces, darkest first.
+$fac-floor:      #1d1814;   // the page, between panels
+$fac-well:       #262425;   // sunken insets: footers, code, thead
+$fac-panel:      #313031;   // cards, tables, menus
+$fac-plate:      #414040;   // raised plates inside a panel
+$fac-frame:      #171311;   // the dark outer edge of a panel
+$fac-rim:        #6f6b69;   // the lit top edge of a panel
+$fac-groove:     #1c1918;   // separators and table rules
+
+// Controls.
+$fac-steel:      #8e8e8e;   // the regular button and the input
+$fac-steel-hi:   #e3e3e3;   // its top highlight
+$fac-steel-lo:   #5f5f5f;
+$fac-hot:        #e39827;   // hover: the button lights orange
+$fac-hot-glow:   #f9b44b;
+$fac-pressed:    #f1be64;   // pressed and selected
+$fac-pressed-lo: #563a10;
+$fac-cream:      #ffe6c0;   // headings
+$fac-focus:      #f0dab4;   // a focused input
+$fac-ink:        #000;      // text on controls
+
+$fac-go:         #5eb663;   // the green action button
+$fac-go-hi:      #95df99;
+$fac-go-hover:   #92e897;
+$fac-go-pressed: #cfdf93;
+$fac-stop:       #ff6b6b;
+$fac-stop-hi:    #fda1a1;
+$fac-stop-hover: #ff9b9b;
+$fac-orange:     #ffa200;   // the accent, as text and marks
+$fac-sky:        #7dcaed;   // links
+
+$fac-text:       #ece7df;
+$fac-muted:      #b5ada2;
+
+// Bootstrap palette.
+$white:   #fff;
+$black:   #000;
+$blue:    #4f8fd6;
+$indigo:  #7a6fd0;
+$purple:  #9b6cc7;
+$pink:    #e0709c;
+$red:     $fac-stop;
+$orange:  $fac-orange;
+$yellow:  #f5c542;
+$green:   $fac-go;
+$teal:    #4fbfa5;
+$cyan:    $fac-sky;
+
+$gray-100: #ece7df;
+$gray-200: #d6d0c6;
+$gray-300: #b5ada2;
+$gray-400: #9a9895;
+$gray-500: #8e8e8e;
+$gray-600: #5f5d5b;
+$gray-700: #414040;
+$gray-800: #313031;
+$gray-900: #1d1814;
+
+$primary:   $fac-go;
+$secondary: #a09d99;
+$success:   #4fa35a;
+$info:      $fac-sky;
+$warning:   $yellow;
+$danger:    $fac-stop;
+$light:     #c8c2b8;
+$dark:      #1b1817;
+
+$min-contrast-ratio: 4.5;
+$color-contrast-dark:  $fac-ink;
+$color-contrast-light: $white;
+
+// Body.
+$body-bg:             $fac-panel;
+$body-color:          $fac-text;
+$body-secondary-bg:   $fac-plate;
+$body-secondary-color: $fac-muted;
+$body-tertiary-bg:    $fac-floor;
+$body-tertiary-color: rgba($fac-text, .6);
+$body-emphasis-color: #fff;
+$headings-color:      $fac-cream;
+$link-color:          $fac-sky;
+$link-hover-color:    #a6dcf3;
+$link-decoration:     none;
+$link-hover-decoration: underline;
+$text-muted:          $fac-muted;
+
+$border-color:             $fac-groove;
+$border-color-translucent: rgba(0, 0, 0, .45);
+$border-width:             1px;
+
+// Subtle backgrounds for alerts, list-group and badges: the reference's
+// tinted alert panels, all dark.
+$primary-bg-subtle:       #2c4130;
+$primary-border-subtle:   #44683f;
+$primary-text-emphasis:   #b5e8b7;
+$secondary-bg-subtle:     #3b3a3b;
+$secondary-border-subtle: #5d5a58;
+$secondary-text-emphasis: $fac-text;
+$success-bg-subtle:       #364f30;
+$success-border-subtle:   #4f7046;
+$success-text-emphasis:   #bfe8b6;
+$info-bg-subtle:          #233c47;
+$info-border-subtle:      #39606f;
+$info-text-emphasis:      #bfe5f6;
+$warning-bg-subtle:       #554c27;
+$warning-border-subtle:   #7a6c35;
+$warning-text-emphasis:   #ffe7a1;
+$danger-bg-subtle:        #552929;
+$danger-border-subtle:    #7c3b3b;
+$danger-text-emphasis:    #ffc0c0;
+$light-bg-subtle:         $fac-plate;
+$light-border-subtle:     #5d5a58;
+$light-text-emphasis:     $fac-text;
+$dark-bg-subtle:          $fac-well;
+$dark-border-subtle:      #3a3736;
+$dark-text-emphasis:      $fac-text;
+
+// Type.
+$font-family-sans-serif: "Titillium Web", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-family-base:       $font-family-sans-serif;
+$font-size-base:         1rem;
+$font-weight-semibold:   600;
+$font-weight-bold:       700;
+$headings-font-weight:   700;
+$headings-line-height:   1.2;
+$line-height-base:       1.45;
+
+// Shape: square panels and buttons; inputs keep a small radius.
+$border-radius:        2px;
+$border-radius-sm:     2px;
+$border-radius-lg:     3px;
+$border-radius-xl:     4px;
+$border-radius-xxl:    4px;
+$border-radius-pill:   50rem;
+
+$box-shadow:    0 0 4px 0 rgba(0, 0, 0, .9);
+$box-shadow-sm: 0 0 3px 0 rgba(0, 0, 0, .8);
+$box-shadow-lg: 0 0 0 1px $fac-frame, 0 8px 24px rgba(0, 0, 0, .7);
+
+$component-active-color: $fac-ink;
+$component-active-bg:    $fac-pressed;
+
+$focus-ring-width:   2px;
+$focus-ring-opacity: .7;
+$focus-ring-color:   rgba($fac-hot-glow, .7);
+$focus-ring-blur:    0;
+
+// Buttons: the reference's chunky bevel, drawn in the component layer.
+$btn-font-weight:      600;
+$btn-padding-y:        .375rem;
+$btn-padding-x:        .875rem;
+$btn-border-width:     0;
+$btn-box-shadow:       none;
+$btn-focus-width:      2px;
+$btn-active-box-shadow: none;
+$btn-disabled-opacity: 1;
+$btn-link-color:       $fac-sky;
+$btn-link-hover-color: #a6dcf3;
+
+// Inputs: steel wells with dark text, cream when focused.
+$input-bg:                  $fac-steel;
+$input-color:               $fac-ink;
+$input-border-color:        $fac-steel-lo;
+$input-border-width:        1px;
+$input-border-radius:       4px;
+$input-border-radius-sm:    3px;
+$input-border-radius-lg:    4px;
+$input-placeholder-color:   #2d2b2a;
+$input-focus-bg:            $fac-focus;
+$input-focus-color:         $fac-ink;
+$input-focus-border-color:  #a6885c;
+$input-focus-box-shadow:    0 0 0 2px rgba($fac-hot-glow, .55);
+$input-disabled-bg:         #4a4948;
+$input-disabled-color:      #bdb7ae;
+$input-disabled-border-color: #3a3837;
+$input-group-addon-bg:      $fac-plate;
+$input-group-addon-color:   $fac-text;
+$input-group-addon-border-color: $fac-groove;
+$form-select-indicator-color: $fac-ink;
+$form-select-bg:            $fac-steel;
+$form-select-focus-box-shadow: $input-focus-box-shadow;
+
+$form-check-input-bg:                $fac-steel;
+$form-check-input-border:            1px solid #262424;
+$form-check-input-border-radius:     1px;
+$form-check-input-checked-color:     #282728;
+$form-check-input-checked-bg-color:  $fac-hot;
+$form-check-input-checked-border-color: #5a3c10;
+$form-check-input-indeterminate-color: #282728;
+$form-check-input-indeterminate-bg-color: $fac-hot;
+$form-check-input-indeterminate-border-color: #5a3c10;
+$form-check-input-focus-border:      #5a3c10;
+$form-check-input-focus-box-shadow:  0 0 0 2px rgba($fac-hot-glow, .6);
+$form-switch-color:                  #2a2828;
+$form-switch-focus-color:            #2a2828;
+$form-switch-checked-color:          #282728;
+$form-range-thumb-bg:                $fac-hot;
+$form-range-track-bg:                $fac-well;
+$form-label-font-weight:             600;
+$form-label-color:                   $fac-cream;
+$form-text-color:                    $fac-muted;
+$form-feedback-valid-color:          #8fd694;
+$form-feedback-invalid-color:        #ff8c8c;
+$form-valid-border-color:            #3f8f46;
+$form-invalid-border-color:          #c43c3c;
+$form-feedback-icon-valid-color:     #1d5e23;
+$form-feedback-icon-invalid-color:   #8b0f0f;
+
+// Cards: panels. The frame and bevel are box-shadows in the component layer.
+$card-bg:               $fac-panel;
+$card-border-color:     $fac-frame;
+$card-border-width:     1px;
+$card-border-radius:    0;
+$card-inner-border-radius: 0;
+$card-cap-bg:           transparent;
+$card-cap-color:        $fac-cream;
+$card-cap-padding-y:    .625rem;
+$card-cap-padding-x:    .875rem;
+$card-spacer-x:         .875rem;
+$card-spacer-y:         .875rem;
+$card-box-shadow:       none;
+
+$list-group-bg:             transparent;
+$list-group-border-color:   $fac-groove;
+$list-group-hover-bg:       $fac-plate;
+$list-group-active-bg:      $fac-pressed;
+$list-group-active-color:   $fac-ink;
+$list-group-active-border-color: #c08a3c;
+$list-group-action-color:   $fac-text;
+$list-group-action-hover-color: #fff;
+
+// Tables: calm. Only a groove between rows and a sunken header.
+$table-bg:               transparent;
+$table-color:            $fac-text;
+$table-border-color:     $fac-groove;
+$table-striped-bg:       rgba(255, 255, 255, .025);
+$table-hover-bg:         rgba($fac-hot, .09);
+$table-active-bg:        rgba($fac-hot, .16);
+$table-cell-padding-y:   .4rem;
+$table-cell-padding-x:   .55rem;
+$table-cell-padding-y-sm: .25rem;
+$table-cell-padding-x-sm: .4rem;
+$table-th-font-weight:   700;
+$table-group-separator-color: $fac-groove;
+// Row variants (.table-warning, ...) are shaded into the dark, not tinted.
+$table-bg-scale:         72%;
+
+// Dropdowns: a framed panel; rows light orange like a button.
+$dropdown-bg:              $fac-panel;
+$dropdown-color:           $fac-text;
+$dropdown-border-color:    $fac-frame;
+$dropdown-border-radius:   0;
+$dropdown-border-width:    1px;
+$dropdown-inner-border-radius: 0;
+$dropdown-box-shadow:      0 0 0 3px #26201d, 0 10px 24px rgba(0, 0, 0, .7);
+$dropdown-link-color:      $fac-text;
+$dropdown-link-hover-color: $fac-ink;
+$dropdown-link-hover-bg:   $fac-hot;
+$dropdown-link-active-color: $fac-ink;
+$dropdown-link-active-bg:  $fac-pressed;
+$dropdown-link-disabled-color: #7c7874;
+$dropdown-divider-bg:      $fac-groove;
+$dropdown-header-color:    $fac-cream;
+$dropdown-item-padding-y:  .35rem;
+$dropdown-item-padding-x:  .875rem;
+$dropdown-padding-y:       .375rem;
+
+// Navigation.
+$nav-link-color:          $fac-text;
+$nav-link-hover-color:    #fff;
+$nav-link-font-weight:    600;
+$nav-tabs-border-color:   $fac-frame;
+$nav-tabs-border-width:   0;
+$nav-tabs-border-radius:  0;
+$nav-tabs-link-active-color: $fac-cream;
+$nav-tabs-link-active-bg: $fac-panel;
+$nav-pills-border-radius: 0;
+$nav-pills-link-active-color: $fac-ink;
+$nav-pills-link-active-bg: $fac-pressed;
+
+$pagination-color:              $fac-ink;
+$pagination-bg:                 $fac-steel;
+$pagination-border-width:       0;
+$pagination-border-radius:      0;
+$pagination-hover-color:        $fac-ink;
+$pagination-hover-bg:           $fac-hot;
+$pagination-focus-color:        $fac-ink;
+$pagination-focus-bg:           $fac-hot;
+$pagination-active-color:       $fac-ink;
+$pagination-active-bg:          $fac-pressed;
+$pagination-disabled-color:     #6d6a67;
+$pagination-disabled-bg:        #3d3d3d;
+$pagination-margin-start:       4px;
+$pagination-font-weight:        700;
+
+$breadcrumb-divider-color: $fac-muted;
+$breadcrumb-active-color:  $fac-muted;
+
+// Badges: square plates, heavy type.
+$badge-font-weight:   700;
+$badge-border-radius: 2px;
+$badge-padding-y:     .3em;
+$badge-padding-x:     .55em;
+
+// Alerts: the reference's tinted panels, framed.
+$alert-border-radius: 0;
+$alert-border-width:  1px;
+$alert-link-font-weight: 700;
+
+$progress-bg:            $fac-well;
+$progress-bar-bg:        $fac-hot;
+$progress-border-radius: 0;
+$progress-height:        .875rem;
+$progress-box-shadow:    inset 0 2px 2px rgba(0, 0, 0, .7);
+
+$modal-content-bg:            $fac-panel;
+$modal-content-border-color:  $fac-frame;
+$modal-content-border-width:  1px;
+$modal-content-border-radius: 0;
+$modal-content-inner-border-radius: 0;
+$modal-content-box-shadow-xs: 0 0 0 4px #26201d, 0 12px 40px rgba(0, 0, 0, .8);
+$modal-content-box-shadow-sm-up: $modal-content-box-shadow-xs;
+$modal-header-border-color:   $fac-groove;
+$modal-footer-border-color:   $fac-frame;
+$modal-footer-bg:             $fac-well;
+$modal-backdrop-bg:           #0b0806;
+$modal-backdrop-opacity:      .7;
+
+$toast-background-color:  $fac-panel;
+$toast-border-color:      $fac-frame;
+$toast-border-radius:     0;
+$toast-header-background-color: $fac-well;
+$toast-header-color:      $fac-cream;
+$toast-box-shadow:        0 0 0 3px #26201d, 0 8px 20px rgba(0, 0, 0, .7);
+
+$popover-bg:              $fac-panel;
+$popover-border-color:    $fac-frame;
+$popover-border-radius:   0;
+$popover-header-bg:       $fac-cream;
+$popover-header-color:    $fac-ink;
+$popover-body-color:      $fac-text;
+$popover-box-shadow:      0 0 0 3px #26201d, 0 8px 20px rgba(0, 0, 0, .7);
+
+$tooltip-bg:              $fac-cream;
+$tooltip-color:           $fac-ink;
+$tooltip-border-radius:   0;
+$tooltip-opacity:         1;
+
+$accordion-bg:                 $fac-panel;
+$accordion-color:              $fac-text;
+$accordion-border-color:       $fac-frame;
+$accordion-border-radius:      0;
+$accordion-inner-border-radius: 0;
+$accordion-button-color:       $fac-cream;
+$accordion-button-bg:          $fac-panel;
+$accordion-button-active-bg:   $fac-well;
+$accordion-button-active-color: $fac-cream;
+$accordion-button-focus-box-shadow: inset 0 0 0 2px rgba($fac-hot-glow, .6);
+$accordion-icon-color:         $fac-cream;
+$accordion-icon-active-color:  $fac-orange;
+
+$btn-close-color:          $fac-text;
+$btn-close-opacity:        .7;
+$btn-close-hover-opacity:  1;
+
+$hr-color:   $fac-frame;
+$hr-opacity: 1;
+
+$offcanvas-bg-color:     $fac-panel;
+$offcanvas-border-color: $fac-frame;
+
+// MISP colours: lifted where they sink into the dark panels.
+$misp-object:      #a39592;
+$misp-sighting:    #c46bd1;
+$misp-analystData: #d0628f;
+$misp-enrichment:  #9c94b8;
+$misp-galaxy:      #a084f7;
+$misp-analystGraph: #b583ca;
+
+// The accent is the reference's orange.
+$misp-accent:      $fac-orange;
+$misp-accent-dark: $fac-orange;
+// The MISP mark, tinted to the accent orange.
+$fac-brand-filter: brightness(0) saturate(100%) invert(62%) sepia(91%) saturate(1500%) hue-rotate(3deg) brightness(103%);
+
+// Correlation graph: this event on the green "go", its values in the orange
+// accent, the events they reach in link sky, steel for the publishers; the
+// period handles light orange like a hovered control.
+$misp-surface-overrides: (
+  "graph-node-source":      $fac-go,
+  "graph-node-attribute":   $fac-orange,
+  "graph-node-target":      $fac-sky,
+  "graph-node-org":         $fac-steel,
+  "graph-link-attribute":   mix($fac-orange, $fac-panel, 45%),
+  "graph-link-target":      mix($fac-sky, $fac-panel, 50%),
+  "graph-link-org":         rgba($fac-muted, .18),
+  "graph-label":            $fac-text,
+  "graph-label-source":     $fac-cream,
+  "graph-label-org":        rgba($fac-muted, .75),
+  "graph-label-org-linked": $fac-cream,
+  "graph-lane":             rgba($fac-orange, .04),
+  "graph-lane-line":        rgba($fac-rim, .45),
+  "graph-axis":             $fac-rim,
+  "graph-grid":             rgba($fac-rim, .35),
+  "graph-grid-label":       $fac-muted,
+  "graph-leader":           rgba($fac-muted, .4),
+  "graph-accent":           $fac-hot,
+  "graph-accent-ink":       $fac-hot-glow,
+  "graph-marker":           $fac-steel-lo,
+  "graph-marker-hover":     $fac-steel-hi,
+  "graph-current":          $fac-go,
+  "graph-current-ink":      $fac-ink,
+  "graph-current-on":       $fac-ink
+);

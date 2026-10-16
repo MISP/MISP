@@ -250,12 +250,14 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                                 'type' => 'dropdown',
                                 'label' => __('Category'),
                                 'name' => 'category',
+                                'separator' => '||',
                                 'options' => $categoryOptions
                             ],
                             [
                                 'type' => 'dropdown',
                                 'label' => __('Type'),
                                 'name' => 'type',
+                                'separator' => '||',
                                 'options' => $typeOptions
                             ],
                             [

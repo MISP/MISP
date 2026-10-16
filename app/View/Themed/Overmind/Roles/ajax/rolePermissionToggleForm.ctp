@@ -14,7 +14,7 @@ $toggleUrl = $baseurl . '/admin/roles/togglePermission/' . h($role['id']) . '/' 
     <div class="card shadow-sm d-inline-block w-auto" style="max-width: 32rem;">
         <div class="card-header">
             <h4 class="card-title mb-2 mt-2">
-                <i class="fas fa-key text-primary me-2"></i>
+                <i class="fas fa-key text-accent me-2"></i>
                 <?= h($permFlag['text']) ?>
             </h4>
         </div>

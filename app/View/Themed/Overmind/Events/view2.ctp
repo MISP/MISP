@@ -1,5 +1,4 @@
 <?php
-    $this->set('headerIdentity', $event['Event']);
     $headerTitle = __('') . ($event['Event']['info'] ?? '');
     $headerDescription = '';
     $headerActions = [];
@@ -32,11 +31,22 @@
     }
 
     $this->set('headerTitle', $headerTitle);
+    $this->set('headerIdentity', $event['Event']);
     $this->set('headerDescription', $headerDescription);
     $this->set('headerActions', $headerActions);
 
+    $viewJs = ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'event-report-reader', 'Chart.min',
+        'event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline', 'event-seen-timeline', 'tile-drawer',
+        'event-object-views'];
+    $viewCss = ['event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline', 'value-widgets', 'tile-drawer',
+        'event-object-views'];
+    if (Configure::read('Plugin.Geolocation_enabled')) {
+        $viewJs = array_merge($viewJs, ['leaflet', 'object-map']);
+        $viewCss[] = 'leaflet';
+    }
     echo $this->element('genericElements/assetLoader', [
-        'js'  => ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'Chart.min']
+        'js'  => $viewJs,
+        'css' => $viewCss,
     ]);
 
     // Extended / extending view: say so, and carry the mode into every lazy
@@ -49,34 +59,12 @@
     $listSuffix = $extensionSuffix
         . ($searchFor !== '' ? '/searchFor:' . rawurlencode($searchFor) : '')
         . ($distributionFilter !== '' ? '/distribution:' . (int)$distributionFilter : '');
-
-    $outliers = [];
-    foreach (['Attribute' => 'attributes', 'Object' => 'objects'] as $scope => $tab) {
-        foreach ($distributionOutliers[$scope] ?? [] as $level => $count) {
-            $outliers[] = [
-                'level' => $level,
-                'text' => $scope === 'Attribute'
-                    ? __n('%s attribute', '%s attributes', $count, $count)
-                    : __n('%s object', '%s objects', $count, $count),
-                'url' => sprintf(
-                    '%s/events/view2/%s%s/distribution:%s#tab-%s',
-                    $baseurl, h($event['Event']['id']), $extensionSuffix, $level, $tab
-                ),
-            ];
-        }
-    }
+    $objectFilter = (int)($this->request->params['named']['object'] ?? 0);
+    $objectsSuffix = $listSuffix . ($objectFilter > 0 ? '/object:' . $objectFilter : '');
 
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
         'data' => $event,
-        'ownership' => [
-            'orgc' => $event['Orgc'] ?? [],
-            'org' => $event['Org'] ?? [],
-            'user' => $event['User'] ?? [],
-            'distribution' => $event['Event']['distribution'] ?? null,
-            'sharingGroup' => $event['SharingGroup'] ?? [],
-            'outliers' => $outliers,
-        ],
         'report' => $event['EventReport'] ?? null,
         'tabs' => [
             [
@@ -86,17 +74,21 @@
 
                 // Content
                 'left' => [
-                    'EventReports/View/eventReport_preview',
-                    ['row' => ['Events/View/event_tags', 'Events/View/event_galaxies']],
-                    ['row' => ['Events/View/event_attachments', 'Events/View/event_analyst_data']],
-                    'Events/View/event_general',
+                    'Events/View/overview_band',
+                    'Events/View/overview_story',
+                    'Events/View/overview_facts',
+                    'Events/View/overview_annex',
+                    'Events/View/overview_details',
                 ],
                 'right' => [
+                    'Events/View/event_warnings',
                     'Events/View/event_actions',
+                    'Events/View/event_matrix',
+                    'Events/View/event_warninglists',
                     'Events/View/event_sightings',
                     'Events/View/event_related',
-                    'Events/View/event_warninglists',
                     'Events/View/event_collections',
+                    'Events/View/event_graphs',
                 ]
             ],
             [
@@ -108,7 +100,7 @@
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']), $listSuffix)
+                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']), $objectsSuffix)
                     ]
                 ],
             ],
@@ -142,6 +134,7 @@
                 'id' => 'correlation',
                 'title' => __('Correlation'),
                 'icon' => 'fas fa-link',
+                'iconColor' => 'var(--bs-correlation)',
                 'count' => $correlation_count ?? 0,
 
                 // Content
@@ -159,16 +152,16 @@
                     'Events/View/event_pivot_explorer',
                 ],
             ],
-            // [
-            //     'id' => 'timeline',
-            //     'title' => __('Timeline'),
-            //     'icon' => 'fas fa-clock',
+            [
+                'id' => 'timeline',
+                'title' => __('Timeline'),
+                'icon' => 'fas fa-clock',
 
-            //     // Content
-            //     'left' => [
-            //         'Events/View/event_timeline',
-            //     ],
-            // ],
+                // Content
+                'left' => [
+                    'Events/View/event_timeline',
+                ],
+            ],
             [
                 'id' => 'history',
                 'title' => __('History'),
@@ -181,5 +174,7 @@
             ]
         ]
     ]);
+
+    echo $this->element('Events/View/report_reader');
 ?>
 

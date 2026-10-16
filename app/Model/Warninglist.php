@@ -106,9 +106,10 @@ class Warninglist extends AppModel
      * Attach warninglist matches to attributes or proposals with IDS mark.
      *
      * @param array $attributes
+     * @param bool $withComments Fetch the matched entries' comments
      * @return array Warninglist ID => name
      */
-    public function attachWarninglistToAttributes(array &$attributes)
+    public function attachWarninglistToAttributes(array &$attributes, $withComments = true)
     {
         if (empty($attributes)) {
             return [];
@@ -132,7 +133,7 @@ class Warninglist extends AppModel
                     }
                 }
             }
-            if (!empty($eventWarnings)) {
+            if ($withComments && !empty($eventWarnings)) {
                 $this->assignComments($attributes);
             }
             return $eventWarnings;
@@ -229,7 +230,7 @@ class Warninglist extends AppModel
             $pipe->exec();
         }
 
-        if (!empty($eventWarnings)) {
+        if ($withComments && !empty($eventWarnings)) {
             $this->assignComments($attributes);
         }
 
@@ -291,7 +292,7 @@ class Warninglist extends AppModel
     {
         // Fetch existing default warninglists
         $existingWarninglist = $this->find('all', [
-            'fields' => ['id', 'name', 'version', 'enabled'],
+            'fields' => ['id', 'name', 'version', 'enabled', 'category'],
             'recursive' => -1,
             'conditions' => ['default' => 1],
         ]);
@@ -309,17 +310,29 @@ class Warninglist extends AppModel
             } elseif (is_array($list['type'])) {
                 $list['type'] = $list['type'][0];
             }
-            if (!isset($existingWarninglist[$list['name']]) || $list['version'] > $existingWarninglist[$list['name']]['version']) {
-                $current = $existingWarninglist[$list['name']] ?? [];
-                try {
-                    $id = $this->__updateList($list, $current);
-                    $result['success'][$id] = ['name' => $list['name'], 'new' => $list['version']];
-                    if (!empty($current)) {
-                        $result['success'][$id]['old'] = $current['version'];
+            if (!isset($list['category'])) {
+                $list['category'] = 'false_positive';
+            }
+            $current = $existingWarninglist[$list['name']] ?? [];
+            if (!empty($current) && $list['version'] <= $current['version']) {
+                if ($list['category'] !== $current['category']) {
+                    $this->id = $current['id'];
+                    if ($this->saveField('category', $list['category'], ['validate' => true])) {
+                        $result['success'][$current['id']] = ['name' => $list['name'], 'new' => $list['version'], 'old' => $current['version']];
+                    } else {
+                        $result['fails'][] = ['name' => $list['name'], 'fail' => 'Could not update category.'];
                     }
-                } catch (Exception $e) {
-                    $result['fails'][] = ['name' => $list['name'], 'fail' => $e->getMessage()];
                 }
+                continue;
+            }
+            try {
+                $id = $this->__updateList($list, $current);
+                $result['success'][$id] = ['name' => $list['name'], 'new' => $list['version']];
+                if (!empty($current)) {
+                    $result['success'][$id]['old'] = $current['version'];
+                }
+            } catch (Exception $e) {
+                $result['fails'][] = ['name' => $list['name'], 'fail' => $e->getMessage()];
             }
         }
 
@@ -394,6 +407,9 @@ class Warninglist extends AppModel
         $fieldsToSave = array('name', 'version', 'description', 'type', 'enabled');
         foreach ($fieldsToSave as $fieldToSave) {
             $warninglist['Warninglist'][$fieldToSave] = $list[$fieldToSave];
+        }
+        if (isset($list['category'])) {
+            $warninglist['Warninglist']['category'] = $list['category'];
         }
         if (!$default) {
             $warninglist['Warninglist']['default'] = 0;

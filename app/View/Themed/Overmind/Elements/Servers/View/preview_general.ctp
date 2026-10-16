@@ -172,7 +172,7 @@ $stats = [
             total: stats.objects.total,
             data:  stats.objects.by_name,
             icon:  'misp-icon misp-icon-object misp-hexagone',
-            color: '#524948',
+            color: 'var(--object, #524948)',
             empty: <?= json_encode(__('No objects')) ?>
         },
         {
@@ -187,10 +187,24 @@ $stats = [
         }
     ];
 
+    var charts = [];
+
+    function cardBackground() {
+        var el = document.getElementById(uid);
+        for (; el && el.nodeType === 1; el = el.parentElement) {
+            var bg = getComputedStyle(el).backgroundColor;
+            if (bg && bg !== 'transparent' && !/^rgba\(.*,\s*0\)$/.test(bg)) {
+                return bg;
+            }
+        }
+        return '#fff';
+    }
+
     function render() {
         var row = document.getElementById(uid + '-charts');
         if (!row) { return; }
         row.innerHTML = '';
+        charts = [];
 
         chartDefs.forEach(function (def) {
             var col = document.createElement('div');
@@ -246,11 +260,14 @@ $stats = [
                 if (typeof Chart === 'undefined') { setTimeout(tryChart, 100); return; }
                 var ctx = document.getElementById(canvasId);
                 if (!ctx) { return; }
-                new Chart(ctx, {
+                charts.push(new Chart(ctx, {
                     type: 'doughnut',
                     data: {
                         labels: labels,
-                        datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, hoverOffset: 4 }]
+                        datasets: [{
+                            data: values, backgroundColor: colors,
+                            borderColor: cardBackground(), borderWidth: 2, hoverOffset: 4
+                        }]
                     },
                     options: {
                         cutout: '68%',
@@ -263,10 +280,26 @@ $stats = [
                             } } }
                         }
                     }
-                });
+                }));
             }());
         });
     }
+
+    var observer = new MutationObserver(function () {
+        if (!document.getElementById(uid)) {
+            observer.disconnect();
+            return;
+        }
+        var border = cardBackground();
+        charts.forEach(function (chart) {
+            chart.data.datasets[0].borderColor = border;
+            chart.update('none');
+        });
+    });
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-misp-mode'],
+    });
 
     if (document.readyState !== 'loading') { render(); }
     else { document.addEventListener('DOMContentLoaded', render); }

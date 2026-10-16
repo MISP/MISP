@@ -27,7 +27,7 @@ echo $this->Form->create('Regexp', [
 
         <!-- ── REGEXP ──────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold
                         text-uppercase mb-2"
                  style="font-size:.65rem; letter-spacing:.1em;">
                 <?= __('Expression') ?>
@@ -39,7 +39,7 @@ echo $this->Form->create('Regexp', [
             <?= $this->Form->text('regexp', [
                 'id' => 'RegexpRegexp',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1 font-monospace',
-                'style' => 'border-bottom:1px solid #d8dde3 !important;'
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                     . ' outline:none;',
                 'maxlength' => 255,
                 'placeholder' => '/^127\.0\.0\.1$/',
@@ -59,7 +59,7 @@ echo $this->Form->create('Regexp', [
             <?= $this->Form->text('replacement', [
                 'id' => 'RegexpReplacement',
                 'class' => 'form-control font-monospace',
-                'style' => 'border-color:#d8dde3;',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                 'maxlength' => 255,
                 'placeholder' => __('Left empty, a matching value is blocked instead of rewritten'),
                 'autocomplete' => 'off',
@@ -77,7 +77,7 @@ echo $this->Form->create('Regexp', [
                           user-select-none mb-2"
                    id="RegexpAllCard"
                    style="cursor:pointer; transition:border-color .15s;
-                          border:1px solid <?= $allTypes ? 'var(--primary)' : '#dee2e6' ?>;">
+                          border:1px solid <?= $allTypes ? 'var(--primary)' : 'var(--misp-check-off-line, #dee2e6)' ?>;">
                 <?= $this->Form->checkbox('all', [
                     'id' => 'RegexpAll',
                     'class' => 'form-check-input flex-shrink-0',
@@ -97,7 +97,7 @@ echo $this->Form->create('Regexp', [
                 </div>
                 <i class="fas fa-asterisk" id="RegexpAllIcon"
                    style="font-size:.95rem; transition:color .15s;
-                          color:<?= $allTypes ? 'var(--primary)' : '#adb5bd' ?>;"></i>
+                          color:<?= $allTypes ? 'var(--primary)' : 'var(--misp-check-off-icon, #adb5bd)' ?>;"></i>
             </label>
 
             <div id="RegexpTypesContainer"
@@ -145,8 +145,8 @@ echo $this->Form->create('Regexp', [
      * looking like it still matters. It stays submitted, just ignored. */
     function refreshAll() {
         var on = allBox.checked;
-        allCard.style.borderColor = on ? 'var(--primary)' : '#dee2e6';
-        if (allIcon) { allIcon.style.color = on ? 'var(--primary)' : '#adb5bd'; }
+        allCard.style.borderColor = on ? 'var(--primary)' : 'var(--misp-check-off-line, #dee2e6)';
+        if (allIcon) { allIcon.style.color = on ? 'var(--primary)' : 'var(--misp-check-off-icon, #adb5bd)'; }
         typesWrap.style.opacity = on ? '.4' : '';
         typesWrap.style.pointerEvents = on ? 'none' : '';
         if (on) { clearError('RegexpTypesError'); }
@@ -162,7 +162,7 @@ echo $this->Form->create('Regexp', [
 
     function showError(id, anchor, message, underlined) {
         if (underlined) {
-            anchor.style.setProperty('border-bottom-color', '#dc3545', 'important');
+            anchor.style.setProperty('border-bottom-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
         }
         if (document.getElementById(id)) { return; }
         var msg = document.createElement('div');
@@ -198,7 +198,7 @@ echo $this->Form->create('Regexp', [
 
         regexpEl.addEventListener('input', function () {
             if (!regexpEl.value.trim()) { return; }
-            regexpEl.style.setProperty('border-bottom-color', '#d8dde3', 'important');
+            regexpEl.style.setProperty('border-bottom-color', 'var(--misp-field-line, #d8dde3)', 'important');
             clearError('RegexpRegexpError');
         });
         if (typesEl) {

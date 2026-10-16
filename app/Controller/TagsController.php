@@ -29,6 +29,51 @@ class TagsController extends AppController
         $this->Security->unlockedActions[] = 'search';
     }
 
+    /**
+     * Visible, non-galaxy tags for an index filter picker: GET ?q=<term>.
+     * Narrowed with &scope=<namespace> (`-` for none) and &predicate=,
+     * where an empty term lists the scope; &limit= up to 200.
+     */
+    public function pickerSearch()
+    {
+        $this->request->allowMethod(['get']);
+        App::uses('IndexPicker', 'Tools');
+        return $this->RestResponse->viewData(
+            IndexPicker::tags($this->Auth->user(), $this->request->query('q'), [
+                'scope' => $this->request->query('scope'),
+                'predicate' => $this->request->query('predicate'),
+                'limit' => $this->request->query('limit'),
+            ]),
+            'json'
+        );
+    }
+
+    /**
+     * What an index's Tag picker can narrow to: taxonomies, namespaces
+     * without one, and the count of tags with no namespace.
+     */
+    public function pickerScopes()
+    {
+        $this->request->allowMethod(['get']);
+        App::uses('IndexPicker', 'Tools');
+        return $this->RestResponse->viewData(IndexPicker::tagScopes($this->Auth->user()), 'json');
+    }
+
+    /**
+     * One taxonomy's predicates and entries for the Tag picker:
+     * GET ?namespace=<namespace>.
+     */
+    public function pickerTree()
+    {
+        $this->request->allowMethod(['get']);
+        App::uses('IndexPicker', 'Tools');
+        $tree = IndexPicker::taxonomyTree($this->Auth->user(), (string)$this->request->query('namespace'));
+        if ($tree === null) {
+            throw new NotFoundException(__('Invalid taxonomy.'));
+        }
+        return $this->RestResponse->viewData($tree, 'json');
+    }
+
     public function index()
     {
         $this->loadModel('Taxonomy');

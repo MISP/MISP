@@ -100,19 +100,11 @@ echo $this->element('Attributes/index', [
         return url;
     }
 
-    // Full URL: the base plus whatever the filter bar's controls hold.
+    // The tab's URL is its filter state (index-filters.js), minus the page.
     function buildAttrsUrl() {
-        var url  = buildBaseUrl();
         var cont = getContainer();
-        if (!cont) { return url; }
-        cont.querySelectorAll('select.filter-draft-input').forEach(function (sel) {
-            var name  = sel.getAttribute('name');
-            var value = (sel.value || '').trim();
-            if (name && value !== '') { url += '/' + name + ':' + encodeURIComponent(value); }
-        });
-        var field = cont.querySelector('#filterField');
-        if (field && field.value.trim()) { url += '/searchFor:' + encodeURIComponent(field.value.trim()); }
-        return url;
+        var url = (cont && cont.dataset.url) || buildBaseUrl();
+        return url.replace(/\/page:[^/?]*/, '');
     }
 
     function loadAttributes(url) {
@@ -143,6 +135,9 @@ echo $this->element('Attributes/index', [
                 // value poked in afterwards leaves the summary saying there is
                 // no filter over a box that holds one.
                 registerFilterOverride(container);
+                container.dispatchEvent(new CustomEvent('misp:container-loaded', {
+                    bubbles: true, detail: { url: url }
+                }));
             })
             .catch(function () { showMessage('fail', _msgFail); });
     }
@@ -184,21 +179,6 @@ echo $this->element('Attributes/index', [
         });
     }
 
-    function wireToggle(selector, stateKey, onValue) {
-        var btn = container ? container.querySelector(selector) : null;
-        if (!btn) return;
-        var fresh = btn.cloneNode(true);
-        btn.parentNode.replaceChild(fresh, btn);
-        fresh.addEventListener('click', function (e) {
-            e.preventDefault();
-            var S = window.mispView.attrs;
-            S[stateKey] = S[stateKey] ? 0 : onValue;
-            loadAttributes(buildAttrsUrl());
-        });
-    }
-    wireToggle('.attr-deleted-toggle', 'deletedState', 2);
-    wireToggle('.attr-proposal-toggle', 'proposalState', 1);
-
     // Warning-list banner: drop the filter and re-render the full list.
     var wlClear = container
         ? container.querySelector('#attr-wl-filter-clear')
@@ -206,7 +186,7 @@ echo $this->element('Attributes/index', [
     if (wlClear) {
         wlClear.addEventListener('click', function () {
             delete window.mispView.attrs.activeFilters.warninglist;
-            loadAttributes(buildAttrsUrl());
+            loadAttributes(buildAttrsUrl().replace(/\/warninglist:[^/?]*/, ''));
         });
     }
 

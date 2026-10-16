@@ -1,0 +1,863 @@
+// Hex: the rail's system extended to the page.
+//   - the pill (a hexagon stretched sideways) is the shape of anything you
+//     press or that counts: buttons, tabs, pills, badges, pagination
+//   - the upright hexagon marks a choice or a glyph: radios, switch knobs,
+//     icon badges, bullets
+//   - panels hang from a sky edge, with a pale head band; a band in the rail's
+//     own gradient and facets heads what the page is about (modals)
+//   - the isometric facets are texture on chrome only, never per row
+
+// ---------- shapes ----------
+
+// A pill whose ends are cut by --hx-cut-l / --hx-cut-r (0px: a straight end).
+@function hx-pill($l: var(--hx-cut-l), $r: var(--hx-cut-r)) {
+  @return polygon(#{$l} 0, calc(100% - #{$r}) 0, 100% 50%,
+    calc(100% - #{$r}) 100%, #{$l} 100%, 0 50%);
+}
+
+// The same outline as a $w-wide ring. A cut end steps in .6w at the top and
+// 1.2w at its point; a straight one steps in w. min() picks between them
+// without knowing whether the end is cut.
+@function hx-ring($l: var(--hx-cut-l), $r: var(--hx-cut-r), $w: 1px) {
+  $k1: $w * .4;
+  $k2: $w * .2;
+  $li: calc(#{$l} + #{$w} - min(#{$l}, 1px) * #{divide($k1, 1px)});
+  $lm: calc(#{$w} + min(#{$l}, 1px) * #{divide($k2, 1px)});
+  $ri: calc(100% - #{$r} - #{$w} + min(#{$r}, 1px) * #{divide($k1, 1px)});
+  $rm: calc(100% - #{$w} - min(#{$r}, 1px) * #{divide($k2, 1px)});
+  @return polygon(evenodd, #{$l} 0, calc(100% - #{$r}) 0, 100% 50%,
+    calc(100% - #{$r}) 100%, #{$l} 100%, 0 50%, #{$l} 0,
+    #{$li} #{$w}, #{$lm} 50%, #{$li} calc(100% - #{$w}),
+    #{$ri} calc(100% - #{$w}), #{$rm} 50%, #{$ri} #{$w}, #{$li} #{$w});
+}
+
+$hx-hexv: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+
+// The rail's isometric facets: top faces and side faces of the logo's cubes.
+@function hx-facets($color, $top: .075, $side: .03) {
+  @return escape-svg(url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24.249' height='42' viewBox='0 0 24.249 42'><path fill='#{$color}' fill-opacity='#{$top}' d='M12.12 0L24.25 7L12.12 14L0 7ZM0 21L12.12 28L0 35L-12.12 28ZM24.25 21L36.37 28L24.25 35L12.12 28Z'/><path fill='#{$color}' fill-opacity='#{$side}' d='M12.12 14L24.25 7L24.25 21L12.12 28ZM0 35L12.12 28L12.12 42L0 49ZM24.25 35L36.37 28L36.37 42L24.25 49ZM0 -7L12.12 -14L12.12 0L0 7ZM24.25 -7L36.37 -14L36.37 0L24.25 7Z'/></svg>"));
+}
+
+@function hx-hex-radio($line, $fill: null, $dot: null) {
+  $outer: "M8 1.2L13.9 4.6L13.9 11.4L8 14.8L2.1 11.4L2.1 4.6Z";
+  $inner: "M8 5.1L11.3 7L11.3 9L8 10.9L4.7 9L4.7 7Z";
+  @if $fill {
+    @return escape-svg(url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='#{$fill}' d='#{$outer}'/><path fill='#{$dot}' d='#{$inner}'/></svg>"));
+  }
+  @return escape-svg(url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='none' stroke='#{$line}' stroke-width='1.3' d='#{$outer}'/></svg>"));
+}
+
+// ---------- tokens: the rail's names, for the page ----------
+
+:root,
+[data-bs-theme="light"] {
+  --hx-abyss: #{$hx-abyss};
+  --hx-teal: #{$hx-teal};
+  --hx-primary: #{$hx-primary};
+  --hx-sky: #{$hx-sky};
+  --hx-pill-cut: 9px;
+
+  --hx-band-a: #{$hx-abyss};
+  --hx-band-b: #{$hx-teal};
+  --hx-band-fg: #FFFFFF;
+  --hx-band-tex: 1;
+  --hx-mark: #{$hx-sky};
+  --hx-mark-page: #{$hx-primary};
+
+  --hx-surface: #{$hx-surface};
+  --hx-surface-2: #{$hx-surface-2};
+  --hx-border: #{$hx-border};
+  --hx-rule: #{$hx-rule};
+  --hx-guide: #{$hx-guide};
+  --hx-text: #{$hx-ink};
+  --hx-muted: #{$hx-muted};
+  --hx-icon: #{$hx-teal};
+  --hx-head: #{$hx-teal};
+  --hx-label: #{$hx-abyss};
+  --hx-badge-bg: #DDF0F7;
+  --hx-badge-fg: #{$hx-teal};
+  --hx-hover-bg: #{$hx-hover};
+  --hx-hover-fg: #{$hx-abyss};
+  --hx-sel-bg: #EFF8FB;
+  --hx-focus: #{$hx-primary};
+  --hx-on: #{$hx-primary};
+  --hx-off: #7A949E;
+  --hx-field: #{$hx-field};
+  --hx-field-line: #{$hx-field-line};
+  --hx-placeholder: #6B8792;
+  --hx-stripe: #{rgba($hx-abyss, .025)};
+  --hx-row-hover: #{rgba($hx-primary, .07)};
+  --hx-row-active: #{rgba($hx-primary, .12)};
+  --hx-chip-bg: #{$hx-surface-2};
+  --hx-chip-line: #{$hx-border};
+  --hx-shadow: 0 26px 50px -22px #{rgba($hx-abyss, .5)},
+    0 4px 12px -4px #{rgba($hx-abyss, .16)};
+  --hx-lift: 0 1px 0 #{rgba($hx-abyss, .04)}, 0 6px 16px -12px #{rgba($hx-abyss, .35)};
+  --hx-facets: #{hx-facets($hx-abyss, .05, .022)};
+  --hx-facets-band: #{hx-facets(#fff)};
+}
+
+[data-bs-theme="dark"] {
+  --hx-band-a: #05161D;
+  --hx-band-b: #{$hx-abyss};
+  --hx-band-tex: .65;
+  --hx-mark-page: #{$hx-sky};
+
+  --hx-surface: #{$hx-surface-dark};
+  --hx-surface-2: #{$hx-surface-2-dark};
+  --hx-border: #{$hx-border-dark};
+  --hx-rule: #{$hx-rule-dark};
+  --hx-guide: #{$hx-guide-dark};
+  --hx-text: #{$hx-text-dark};
+  --hx-muted: #{$hx-muted-dark};
+  --hx-icon: #{$hx-sky};
+  --hx-head: #{$hx-head-dark};
+  --hx-label: #{$hx-text-dark};
+  --hx-badge-bg: #{$hx-raised-dark};
+  --hx-badge-fg: #{$hx-sky};
+  --hx-hover-bg: #{rgba($hx-sky, .13)};
+  --hx-hover-fg: #FFFFFF;
+  --hx-sel-bg: #{rgba($hx-sky, .07)};
+  --hx-focus: #{$hx-sky};
+  --hx-on: #{$hx-sky};
+  --hx-off: #577A87;
+  --hx-field: #{$hx-field-dark};
+  --hx-field-line: #{$hx-field-line-dark};
+  --hx-placeholder: #7C98A3;
+  --hx-stripe: #{rgba($hx-sky, .025)};
+  --hx-row-hover: #{rgba($hx-sky, .06)};
+  --hx-row-active: #{rgba($hx-sky, .11)};
+  --hx-chip-bg: #{$hx-surface-2-dark};
+  --hx-chip-line: #{$hx-border-dark};
+  --hx-shadow: 0 28px 56px -18px rgba(0, 0, 0, .8), 0 4px 14px -4px rgba(0, 0, 0, .5);
+  --hx-lift: 0 1px 0 rgba(0, 0, 0, .25), 0 8px 18px -12px rgba(0, 0, 0, .7);
+  --hx-facets: #{hx-facets($hx-sky, .045, .018)};
+}
+
+// ---------- page ----------
+
+// Facets in the top-right corner of the page, fading out down and left:
+// the rail's texture, continued once behind the page header.
+// The body is only a viewport tall, so the band is its own layer.
+html[data-misp-mode] body.bg-light::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  height: 15rem;
+  pointer-events: none;
+  background-image: var(--hx-facets);
+  background-size: 24.25px 42px;
+  background-position: right top;
+  -webkit-mask-image: linear-gradient(180deg, #000, transparent),
+    linear-gradient(270deg, #000, transparent 55%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(180deg, #000, transparent),
+    linear-gradient(270deg, #000, transparent 55%);
+  mask-composite: intersect;
+}
+
+// The sign-in pages stand on the rail itself, in both modes.
+html[data-misp-mode] body[data-controller="users"]:is([data-action="login"],
+    [data-action="register"], [data-action="forgot"], [data-action="change_pw"]) {
+  background-image:
+    radial-gradient(ellipse at 50% 45%, rgba($hx-primary, .35) 0, rgba($hx-primary, 0) 55%),
+    linear-gradient(100deg, #05161D 0%, $hx-abyss 40%, $hx-teal 100%);
+  background-repeat: no-repeat;
+}
+html[data-misp-mode] body[data-controller="users"]:is([data-action="login"],
+    [data-action="register"], [data-action="forgot"], [data-action="change_pw"])::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  height: auto;
+  pointer-events: none;
+  background-image: var(--hx-facets-band);
+  background-size: 24.25px 42px;
+  background-position: right top;
+  -webkit-mask-image: linear-gradient(270deg, #000 0, rgba(0, 0, 0, .45) 25%, transparent 60%);
+  mask-image: linear-gradient(270deg, #000 0, rgba(0, 0, 0, .45) 25%, transparent 60%);
+}
+html[data-misp-mode] body[data-controller="users"]:is([data-action="login"],
+    [data-action="register"], [data-action="forgot"], [data-action="change_pw"]) .card.shadow-lg {
+  border-top: 3px solid $hx-sky;
+  box-shadow: 0 30px 70px -20px rgba(0, 0, 0, .65), 0 0 0 1px rgba($hx-sky, .25);
+}
+
+::selection {
+  background: rgba($hx-sky, .35);
+}
+
+// Text utilities whose colour is too dark to read on the dark page take the
+// subtle text tone, locally, so their backgrounds keep the colour itself.
+[data-bs-theme="dark"] {
+  .text-primary { --bs-primary-rgb: #{red($hx-link-dark)}, #{green($hx-link-dark)}, #{blue($hx-link-dark)}; }
+  .text-success { --bs-success-rgb: 79, 209, 165; }
+  .text-danger { --bs-danger-rgb: 242, 139, 126; }
+  .text-secondary { --bs-secondary-rgb: 147, 174, 184; }
+  .text-dark { --bs-dark-rgb: #{red($hx-text-dark)}, #{green($hx-text-dark)}, #{blue($hx-text-dark)}; }
+}
+
+// ---------- dashboard: its token catalogue, fed from the rail's ----------
+
+html[data-misp-mode] {
+  --misp-dash-surface: var(--bs-tertiary-bg);
+  --misp-dash-surface-raised: var(--bs-body-bg);
+  --misp-dash-surface-sunken: var(--hx-surface-2);
+  --misp-dash-border: var(--hx-border);
+  --misp-dash-border-strong: var(--hx-field-line);
+  --misp-dash-text: var(--bs-body-color);
+  --misp-dash-text-muted: var(--bs-secondary-color);
+  --misp-dash-text-on-accent: #FFFFFF;
+  --misp-dash-accent: #{$hx-teal};
+  --misp-dash-accent-hover: #{$hx-abyss};
+  --misp-dash-accent-muted: #{rgba($hx-primary, .12)};
+  --misp-dash-success: #{$success};
+  --misp-dash-danger: #{$danger};
+  --misp-dash-info: #{$hx-cyan};
+  --misp-dash-radius-lg: #{$border-radius-lg};
+  --misp-dash-shadow-md: var(--hx-lift);
+}
+html[data-misp-mode="dark"] {
+  --misp-dash-text-on-accent: #{$hx-abyss};
+  --misp-dash-accent: #{$hx-sky};
+  --misp-dash-accent-hover: #A6E6F8;
+  --misp-dash-accent-muted: #{rgba($hx-sky, .14)};
+  --misp-dash-success: #4FD1A5;
+  --misp-dash-danger: #F28B7E;
+}
+
+// ---------- page header ----------
+
+// The breadcrumb takes a facet bullet; the count badge becomes the rail's
+// sky count.
+[data-tour="page-title"] > .text-uppercase::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 8px;
+  margin: 0 7px 1px 0;
+  vertical-align: middle;
+  background: var(--hx-mark-page);
+  clip-path: $hx-hexv;
+}
+[data-tour="page-title"] .breadcrumb-controller-link:hover {
+  color: var(--hx-icon) !important;
+}
+html[data-misp-mode] [data-tour="page-title"] .badge.bg-primary {
+  --bs-primary-rgb: #{red($hx-sky)}, #{green($hx-sky)}, #{blue($hx-sky)};
+  color: $hx-abyss;
+}
+
+// ---------- buttons: pills ----------
+
+.btn:not(.btn-link) {
+  --hx-cut: var(--hx-pill-cut);
+  --hx-cut-l: var(--hx-cut);
+  --hx-cut-r: var(--hx-cut);
+  position: relative;
+  border-radius: 0;
+  clip-path: hx-pill();
+}
+// The border, redrawn as a ring so it follows the cut ends.
+.btn:not(.btn-link)::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--bs-btn-border-width));
+  z-index: 0;
+  pointer-events: none;
+  background: var(--bs-btn-border-color);
+  clip-path: hx-ring();
+}
+.btn:not(.btn-link):hover::before {
+  background: var(--bs-btn-hover-border-color);
+}
+.btn:not(.btn-link):is(:active, .active, .show)::before,
+.btn-check:checked + .btn::before {
+  background: var(--bs-btn-active-border-color);
+}
+.btn:not(.btn-link):disabled::before,
+.btn:not(.btn-link).disabled::before {
+  background: var(--bs-btn-disabled-border-color);
+}
+// Focus is drawn inside the shape, as on the rail, in the button's own ink.
+.btn:not(.btn-link):focus-visible::before,
+.btn-check:focus-visible + .btn::before {
+  --hx-in-l: calc(var(--hx-cut-l) * .8);
+  --hx-in-r: calc(var(--hx-cut-r) * .8);
+  inset: 3px;
+  background: currentColor;
+  clip-path: hx-ring(var(--hx-in-l), var(--hx-in-r), 2px);
+}
+
+.btn-sm,
+.btn-group-sm > .btn { --hx-pill-cut: 7px; }
+.btn-lg,
+.btn-group-lg > .btn { --hx-pill-cut: 11px; }
+
+// Inside a group, only the outer ends are cut.
+.btn-group > :not(.btn-check:first-child) + .btn,
+.btn-group > .btn-group:not(:first-child) > .btn,
+.input-group > .btn:not(:first-child),
+.input-group > .dropdown-toggle:not(:first-child) {
+  --hx-cut-l: 0px;
+}
+.btn-group > .btn:not(:last-child):not(.dropdown-toggle),
+.btn-group > .btn.dropdown-toggle-split:first-child,
+.btn-group > .btn-group:not(:last-child) > .btn,
+.input-group > .btn:not(:last-child):not(.dropdown-toggle),
+.input-group:not(.has-validation) > .dropdown-toggle:nth-last-child(n + 3) {
+  --hx-cut-r: 0px;
+}
+.btn-group-vertical > .btn {
+  --hx-cut-l: 0px;
+  --hx-cut-r: 0px;
+}
+
+// Primary: the rail in small, abyss easing into teal.
+.btn-primary {
+  --bs-btn-bg: #{$hx-teal};
+  --bs-btn-border-color: #{$hx-teal};
+  --bs-btn-hover-bg: #167B99;
+  --bs-btn-hover-border-color: #167B99;
+  --bs-btn-active-bg: #{$hx-abyss};
+  --bs-btn-active-border-color: #{$hx-abyss};
+  --bs-btn-disabled-bg: #{$hx-teal};
+  --bs-btn-disabled-border-color: #{$hx-teal};
+  background-image: linear-gradient(100deg, rgba($hx-abyss, .55) 0%, rgba($hx-abyss, 0) 72%);
+}
+[data-bs-theme="dark"] .btn-primary {
+  --bs-btn-active-bg: #0E5970;
+  --bs-btn-active-border-color: #{$hx-sky};
+}
+
+// Secondary and light: the rail's chip, a pale facet with a guide line.
+.btn-secondary,
+.btn-light {
+  --bs-btn-color: var(--hx-text);
+  --bs-btn-bg: var(--hx-chip-bg);
+  --bs-btn-border-color: var(--hx-chip-line);
+  --bs-btn-hover-color: var(--hx-hover-fg);
+  --bs-btn-hover-bg: var(--hx-hover-bg);
+  --bs-btn-hover-border-color: var(--hx-guide);
+  --bs-btn-active-color: var(--hx-hover-fg);
+  --bs-btn-active-bg: var(--hx-badge-bg);
+  --bs-btn-active-border-color: var(--hx-icon);
+  --bs-btn-disabled-color: var(--hx-muted);
+  --bs-btn-disabled-bg: var(--hx-chip-bg);
+  --bs-btn-disabled-border-color: var(--hx-chip-line);
+}
+html[data-misp-mode="dark"] .btn-light {
+  --bs-btn-color: var(--hx-text);
+  --bs-btn-bg: var(--hx-chip-bg);
+  --bs-btn-border-color: var(--hx-chip-line);
+  --bs-btn-hover-color: var(--hx-hover-fg);
+  --bs-btn-hover-bg: var(--hx-hover-bg);
+  --bs-btn-hover-border-color: var(--hx-guide);
+}
+// mainOvermind.css paints .btn-light in the primary and every .btn.active
+// near-white; both lose the button's own ink.
+html[data-misp-mode] .btn-light { color: var(--bs-btn-color); }
+html[data-misp-mode] .btn-light:hover { color: var(--bs-btn-hover-color); }
+html[data-misp-mode] .btn.active,
+html[data-misp-mode] .btn:active { color: var(--bs-btn-active-color); }
+
+[data-bs-theme="light"] .btn-dark,
+:root:not([data-bs-theme="dark"]) .btn-dark {
+  background-image: linear-gradient(100deg, #05161D 0%, rgba(5, 22, 29, 0) 80%);
+}
+
+// Outline primary and secondary keep their ring and light up like a rail
+// trigger; the other outlines keep Bootstrap's filled hover.
+.btn-outline-primary {
+  --bs-btn-color: var(--hx-icon);
+  --bs-btn-border-color: var(--hx-icon);
+  --bs-btn-hover-color: var(--hx-hover-fg);
+  --bs-btn-hover-bg: var(--hx-hover-bg);
+  --bs-btn-hover-border-color: var(--hx-icon);
+  --bs-btn-active-color: #FFFFFF;
+  --bs-btn-active-bg: #{$hx-teal};
+  --bs-btn-active-border-color: #{$hx-teal};
+  --bs-btn-disabled-color: var(--hx-icon);
+  --bs-btn-disabled-border-color: var(--hx-icon);
+}
+.btn-outline-secondary {
+  --bs-btn-color: var(--hx-muted);
+  --bs-btn-border-color: var(--hx-field-line);
+  --bs-btn-hover-color: var(--hx-hover-fg);
+  --bs-btn-hover-bg: var(--hx-hover-bg);
+  --bs-btn-hover-border-color: var(--hx-icon);
+  --bs-btn-active-color: var(--hx-hover-fg);
+  --bs-btn-active-bg: var(--hx-badge-bg);
+  --bs-btn-active-border-color: var(--hx-icon);
+  --bs-btn-disabled-color: var(--hx-muted);
+  --bs-btn-disabled-border-color: var(--hx-rule);
+}
+:root:not([data-bs-theme="dark"]) .btn-outline-light {
+  --bs-btn-color: var(--hx-muted);
+  --bs-btn-border-color: var(--hx-border);
+  --bs-btn-hover-color: var(--hx-hover-fg);
+  --bs-btn-hover-bg: var(--hx-hover-bg);
+  --bs-btn-hover-border-color: var(--hx-guide);
+}
+@each $name in (success, info, warning, danger) {
+  [data-bs-theme="dark"] .btn-outline-#{$name} {
+    --bs-btn-color: var(--bs-#{$name}-text-emphasis);
+    --bs-btn-disabled-color: var(--bs-#{$name}-text-emphasis);
+  }
+}
+
+.btn-link {
+  font-weight: 500;
+}
+
+// ---------- badges: the rail's count ----------
+
+.badge {
+  clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 50%,
+    calc(100% - 5px) 100%, 5px 100%, 0 50%);
+  letter-spacing: .01em;
+}
+.badge:empty,
+.badge[style*="border-left"] {
+  clip-path: none;
+}
+// An outlined badge: the border utility's width goes to zero and a ring in
+// the badge's ink follows the cut ends instead.
+.badge.border {
+  --bs-border-width: 0px;
+  position: relative;
+}
+.badge.border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, currentColor 65%, transparent);
+  clip-path: hx-ring(5px, 5px, 1px);
+}
+
+// ---------- forms ----------
+
+.form-label,
+.col-form-label {
+  color: var(--hx-label);
+  font-size: .875rem;
+}
+.form-control,
+.form-select {
+  box-shadow: inset 0 1px 0 rgba($hx-abyss, .04);
+}
+[data-bs-theme="dark"] :is(.form-control, .form-select) {
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, .25);
+}
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--bs-body-bg);
+}
+.form-control::file-selector-button {
+  font-weight: 600;
+  color: var(--hx-hover-fg);
+  background-color: var(--hx-chip-bg);
+}
+.input-group-text {
+  font-weight: 600;
+}
+
+// Radios are the rail's hexagonal radio.
+.form-check-input[type="radio"] {
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: hx-hex-radio($hx-field-line);
+  background-size: 100% 100%;
+}
+.form-check-input[type="radio"]:checked {
+  background-color: transparent;
+  background-image: hx-hex-radio(null, $hx-teal, #FFFFFF);
+}
+.form-check-input[type="radio"]:focus {
+  box-shadow: none;
+  outline: 2px solid var(--hx-focus);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+[data-bs-theme="dark"] .form-check-input[type="radio"] {
+  background-image: hx-hex-radio($hx-field-line-dark);
+}
+[data-bs-theme="dark"] .form-check-input[type="radio"]:checked {
+  background-image: hx-hex-radio(null, $hx-sky, $hx-surface-dark);
+}
+.form-check-input[type="checkbox"] {
+  border-radius: .3rem;
+}
+
+// MISP's index checkboxes and their wrapper are painted white in
+// mainOvermind.css; the wrapper shows through a button's cut ends.
+html[data-misp-mode] .checkbox-actions-wrapper {
+  background: transparent;
+}
+html[data-misp-mode] .checkbox-index input[type="checkbox"] {
+  background-color: var(--hx-field);
+  border-color: var(--hx-field-line);
+  border-radius: .3rem;
+}
+html[data-misp-mode] .checkbox-index input[type="checkbox"]:checked {
+  background-color: var(--hx-on);
+  border-color: var(--hx-on);
+}
+html[data-misp-mode] .checkbox-index input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--hx-focus);
+  outline-offset: 1px;
+}
+
+// The switch: a slate track whose knob is a facet.
+.form-switch .form-check-input {
+  border-radius: 2em;
+  border-color: var(--hx-off);
+  background-color: var(--hx-off);
+}
+.form-switch .form-check-input:checked {
+  border-color: var(--hx-on);
+  background-color: var(--hx-on);
+}
+[data-bs-theme="dark"] .form-switch .form-check-input {
+  --bs-form-switch-bg: #{escape-svg(url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'><path fill='#{$hx-surface-dark}' d='#{$hx-hex-knob}'/></svg>"))};
+}
+
+.form-range::-webkit-slider-thumb {
+  border-radius: 0;
+  clip-path: $hx-hexv;
+  height: 1.15rem;
+  margin-top: -.33rem;
+}
+.form-range::-moz-range-thumb {
+  border-radius: 0;
+  clip-path: $hx-hexv;
+}
+
+// ---------- cards: the rail's panels ----------
+
+.card {
+  --bs-card-cap-color: var(--bs-emphasis-color);
+}
+.card > .card-header:first-child {
+  border-top: 2px solid var(--hx-mark);
+  margin-top: -1px;
+}
+.card-header {
+  font-weight: 600;
+}
+.card-footer {
+  background-color: var(--hx-surface-2);
+  border-top-color: var(--hx-rule);
+}
+.card-title {
+  color: var(--bs-emphasis-color);
+}
+
+// ---------- dropdowns: the compact panel ----------
+
+.dropdown-menu {
+  border-top: 2px solid var(--hx-mark);
+}
+.dropdown-item {
+  border-radius: 7px;
+}
+.dropdown-item > i,
+.dropdown-item > .fas,
+.dropdown-item > .fa {
+  color: var(--hx-icon);
+}
+.dropdown-item[class*="text-"] > i,
+.dropdown-item:active > i,
+.dropdown-item.active > i {
+  color: inherit;
+}
+.dropdown-header {
+  font-size: .78rem;
+  font-weight: 600;
+  letter-spacing: .01em;
+  padding-top: .45rem;
+  padding-bottom: .2rem;
+}
+.dropdown-divider {
+  margin-left: .35rem;
+  margin-right: .35rem;
+}
+
+// ---------- navs ----------
+
+// Tabs are rail triggers: a pill lights up on hover, the current one sits on
+// the rail's flat hexagon.
+.nav-tabs {
+  gap: .15rem;
+  border-bottom: 1px solid var(--hx-rule);
+}
+.nav-tabs .nav-link {
+  position: relative;
+  z-index: 0;
+  border: 0;
+  margin-bottom: 0;
+  padding: .6rem .85rem .7rem;
+  color: var(--bs-secondary-color);
+}
+.nav-tabs .nav-link::before,
+.nav-pills .nav-link::before,
+.ov-view-tabs .nav-view::before {
+  content: "";
+  position: absolute;
+  inset: 5px 0;
+  z-index: -1;
+  background: var(--hx-hover-bg);
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%,
+    calc(100% - 8px) 100%, 8px 100%, 0 50%);
+  opacity: 0;
+}
+.nav-tabs .nav-link:hover::before,
+.nav-pills .nav-link:hover::before,
+.ov-view-tabs .nav-view:hover::before {
+  opacity: 1;
+}
+.nav-tabs .nav-link:hover {
+  color: var(--hx-hover-fg);
+}
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+  color: var(--bs-emphasis-color);
+  font-weight: 600;
+  background: transparent;
+}
+.nav-tabs .nav-link.active::after {
+  content: "";
+  position: absolute;
+  left: .7rem;
+  right: .7rem;
+  bottom: -1px;
+  height: 4px;
+  background: var(--hx-mark-page);
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 50%,
+    calc(100% - 4px) 100%, 4px 100%, 0 50%);
+}
+.nav-tabs .nav-link.active:hover::before {
+  opacity: 0;
+}
+
+.nav-underline .nav-link.active,
+.nav-underline .show > .nav-link {
+  border-bottom-color: var(--hx-mark-page);
+}
+
+.nav-pills .nav-link {
+  position: relative;
+  z-index: 0;
+  border-radius: 0;
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 50%,
+    calc(100% - 9px) 100%, 9px 100%, 0 50%);
+  padding-left: 1.1rem;
+  padding-right: 1.1rem;
+}
+.nav-pills .nav-link::before {
+  inset: 0;
+}
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link {
+  background-image: linear-gradient(100deg, rgba($hx-abyss, .55) 0%, rgba($hx-abyss, 0) 72%);
+}
+.nav-pills .nav-link.active::before {
+  opacity: 0;
+}
+
+// The view tabs band: a slim second rail in the page's own surface.
+html[data-misp-mode] .ov-view-tabs {
+  background: var(--bs-body-bg);
+  border-top-color: var(--hx-rule);
+  border-bottom-color: var(--hx-border);
+}
+html[data-misp-mode] .ov-view-tabs .nav-view {
+  z-index: 0;
+}
+html[data-misp-mode] .ov-view-tabs .nav-view:hover::after {
+  background: transparent;
+}
+html[data-misp-mode] .ov-view-tabs .nav-view.active::after {
+  left: .5rem;
+  right: .5rem;
+  height: 4px;
+  border-radius: 0;
+  background: var(--hx-mark-page);
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 50%,
+    calc(100% - 4px) 100%, 4px 100%, 0 50%);
+}
+html[data-misp-mode] .ov-view-tabs .nav-view.active:hover::before {
+  opacity: 0;
+}
+html[data-misp-mode] .ov-view-tabs .ov-tab-count {
+  border-radius: 0;
+  padding: 0 .5rem;
+  color: var(--hx-badge-fg);
+  background: var(--hx-badge-bg);
+  clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 50%,
+    calc(100% - 5px) 100%, 5px 100%, 0 50%);
+}
+html[data-misp-mode] .ov-view-tabs .nav-view.active .ov-tab-count {
+  color: $hx-abyss;
+  background: $hx-sky;
+}
+
+// ---------- tables ----------
+
+.table > thead > tr > th,
+.table > thead > tr > td {
+  color: var(--hx-head);
+  font-size: .8125rem;
+  letter-spacing: .01em;
+  background-color: var(--hx-surface-2);
+  border-bottom-color: var(--hx-border);
+}
+.table-group-divider {
+  border-top-width: 1px;
+}
+// Bootstrap's contextual rows are fixed light tints; in dark they take the
+// subtle tones instead.
+@each $name in (primary, secondary, success, info, warning, danger, light, dark) {
+  [data-bs-theme="dark"] .table-#{$name} {
+    --bs-table-color: var(--bs-body-color);
+    --bs-table-bg: var(--bs-#{$name}-bg-subtle);
+    --bs-table-border-color: var(--bs-#{$name}-border-subtle);
+    --bs-table-striped-bg: var(--bs-#{$name}-bg-subtle);
+    --bs-table-striped-color: var(--bs-body-color);
+    --bs-table-active-bg: var(--bs-#{$name}-border-subtle);
+    --bs-table-active-color: var(--bs-emphasis-color);
+    --bs-table-hover-bg: var(--bs-#{$name}-border-subtle);
+    --bs-table-hover-color: var(--bs-emphasis-color);
+    color: var(--bs-table-color);
+    border-color: var(--bs-table-border-color);
+  }
+}
+
+// ---------- modals: headed by a band of the rail ----------
+
+.modal-header {
+  position: relative;
+  z-index: 0;
+  color: var(--hx-band-fg);
+  background: linear-gradient(100deg, var(--hx-band-a) 0%, var(--hx-band-a) 22%, var(--hx-band-b) 100%);
+  border-bottom: 2px solid var(--hx-mark);
+}
+.modal-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--hx-band-tex);
+  background-image: var(--hx-facets-band);
+  background-size: 24.25px 42px;
+  background-position: right top;
+  -webkit-mask-image: linear-gradient(270deg, #000 0, rgba(0, 0, 0, .5) 20%, transparent 46%);
+  mask-image: linear-gradient(270deg, #000 0, rgba(0, 0, 0, .5) 20%, transparent 46%);
+}
+.modal-header .modal-title,
+.modal-header :is(h1, h2, h3, h4, h5, h6) {
+  color: inherit;
+  font-weight: 600;
+}
+.modal-header .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+  opacity: .8;
+}
+.modal-header .btn-close:hover {
+  opacity: 1;
+}
+
+// ---------- alerts: the rail's note ----------
+
+.alert {
+  border-left-width: 3px;
+}
+@each $name in (primary, secondary, success, info, warning, danger, light, dark) {
+  .alert-#{$name} {
+    border-left-color: var(--bs-#{$name});
+  }
+}
+.alert-light {
+  border-left-color: var(--hx-guide);
+}
+
+// ---------- pagination: rail triggers in a row ----------
+
+.pagination {
+  gap: 2px;
+}
+.page-link {
+  border-color: transparent;
+  border-radius: 0;
+  background-color: transparent;
+  font-weight: 600;
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 50%,
+    calc(100% - 6px) 100%, 6px 100%, 0 50%);
+}
+.page-item:first-child .page-link,
+.page-item:last-child .page-link {
+  border-radius: 0;
+}
+.page-link:focus {
+  box-shadow: none;
+  background-color: var(--hx-hover-bg);
+  outline: 0;
+}
+.active > .page-link,
+.page-link.active {
+  background-image: linear-gradient(100deg, rgba($hx-abyss, .5) 0%, rgba($hx-abyss, 0) 80%);
+}
+.disabled > .page-link,
+.page-link.disabled {
+  background-color: transparent;
+  border-color: transparent;
+}
+.pagination .page-item:not(:first-child) .page-link {
+  margin-left: 0;
+}
+
+// ---------- the rest ----------
+
+.list-group-item.active {
+  background-image: linear-gradient(100deg, rgba($hx-abyss, .5) 0%, rgba($hx-abyss, 0) 72%);
+}
+.accordion-button:not(.collapsed) {
+  box-shadow: inset 0 -1px 0 var(--hx-rule), inset 3px 0 0 var(--hx-mark-page);
+}
+
+.progress,
+.progress-stacked {
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 50%,
+    calc(100% - 6px) 100%, 6px 100%, 0 50%);
+}
+
+.popover {
+  border-top: 2px solid var(--hx-mark);
+}
+.popover-header {
+  font-weight: 600;
+}
+.toast-header {
+  font-weight: 600;
+}
+.toast {
+  border-top: 2px solid var(--hx-mark);
+}
+
+.tooltip-inner {
+  font-weight: 500;
+}
+
+code {
+  border-radius: 4px;
+}
+
+.spinner-border {
+  border-right-color: var(--hx-mark);
+}
