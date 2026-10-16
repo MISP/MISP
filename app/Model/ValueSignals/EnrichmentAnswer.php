@@ -34,7 +34,8 @@
  * declares points *toward or away from threat*. A geolocation, an
  * autonomous system, a certificate or a registration record has no
  * such reading: where an address sits is context. It is drawn in the
- * strip and never scored.
+ * strip and never scored. The one exception is how old a domain was at
+ * its first report, which `enrichment.registration_age` scores.
  *
  * Three shapes carry a verdict, and **the reading lives in their
  * renderers rather than here**: `ReputationRenderer::readingOf()` and
