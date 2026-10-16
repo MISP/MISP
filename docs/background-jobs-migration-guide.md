@@ -1,7 +1,7 @@
 # Migration guide to new Background Jobs backend
 As of **MISP** version `2.4.151` we introduced a simpler way to handle background jobs without relying in CakeResque as this library is no longer maintained.
 
-For the time being both background jobs backends will be supported, but we plan to phase out the CakeResque one in a near future.
+MISP 3.0 removed the CakeResque backend: Supervisor is the only one, used whenever `MISP.background_jobs` is on.
 
 The new backend requires [Supervisor](http://supervisord.org/) and some extra PHP packages.
 
@@ -176,7 +176,7 @@ Run on your MISP instance the following commands.
 
 3. Update the `SimpleBackgroundJobs.supervisor_user` with the supervisord username. (default: supervisor)
 
-4. Verify Redis and other settings are correct and then set `SimpleBackgroundJobs.enabled` to `true`.
+4. Verify Redis and other settings are correct, and that `MISP.background_jobs` is `true`.
 
 5. Restart **Supervisord** to load the changes:
     - Ubuntu / Debian

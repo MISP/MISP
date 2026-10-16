@@ -642,7 +642,6 @@ set_misp_setting "MISP.default_event_tag_collection" 0
 set_misp_setting "MISP.log_new_audit" 1
 
 # Configure background workers
-set_misp_setting "SimpleBackgroundJobs.enabled" 1
 set_misp_setting "SimpleBackgroundJobs.redis_host" '127.0.0.1'
 set_misp_setting "SimpleBackgroundJobs.redis_port" 6379
 set_misp_setting "SimpleBackgroundJobs.redis_database" 13

@@ -247,7 +247,9 @@ print_status "Setting up background workers"
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "MISP.redis_serializer" "JSON" &>> $logfile
 error_check_soft "Switching to JSON redis serializer"
 
-SUPERVISOR_ALREADY_ENABLED=$(${MISP_PATH}/app/Console/cake Admin getSetting SimpleBackgroundJobs.enabled | jq -r '.value')
+# Supervisor is the only worker backend; a configured instance already has the group MISP drives
+SUPERVISOR_ALREADY_ENABLED=false
+grep -rqs '^\[group:misp-workers\]' /etc/supervisor/ && SUPERVISOR_ALREADY_ENABLED=true
 
 if [ "$SWITCH_TO_SUPERVISOR" = "true" ] && [ "$SUPERVISOR_ALREADY_ENABLED" != "true" ]; then
 
@@ -339,7 +341,6 @@ user=$APACHE_USER"  | sudo tee -a /etc/supervisor/conf.d/misp-workers.conf  &>> 
 sudo systemctl restart supervisor  &>> $logfile
 
 # Configure background workers
-sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 1 &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_host" '127.0.0.1' &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_port" 6379 &>> $logfile
 sudo -u ${APACHE_USER} ${MISP_PATH}/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_database" 13 &>> $logfile
