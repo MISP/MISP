@@ -3679,7 +3679,7 @@
                     text:      'Open its event',
                     iconClass: 'fas fa-external-link-alt',
                     visible:   function (el) { return !!foreignEventId(menuData(el)); },
-                    onclick:   function (e, el) { openInTab('/events/view2/' + foreignEventId(menuData(el))); }
+                    onclick:   function (e, el) { openInTab('/events/view/' + foreignEventId(menuData(el))); }
                 },
                 {
                     text:      'Browse feed',
@@ -5223,7 +5223,7 @@
                         var d = node && node.getData ? node.getData() : null;
                         if (!d || d.type !== 'event') return;
                         if (!d.event_id || String(d.event_id) === String(eventId)) return;
-                        window.location.href = baseurl + '/events/view2/' + d.event_id;
+                        window.location.href = baseurl + '/events/view/' + d.event_id;
                     }
                 },
                 UI: {

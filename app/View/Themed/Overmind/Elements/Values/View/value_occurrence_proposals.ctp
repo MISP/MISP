@@ -50,7 +50,7 @@ $ops = array(
                     'changes' => $proposal['change'],
                 )) ?>
             <?php endif; ?>
-            <a class="small" href="<?= h($baseurl) ?>/events/view2/<?=
+            <a class="small" href="<?= h($baseurl) ?>/events/view/<?=
                 h($proposal['event_id']) ?>#tab-attributes"><?=
                 __('Review on the event') ?></a>
         </div>

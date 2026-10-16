@@ -59,7 +59,7 @@ if (!empty($extended) && !empty($extending)) {
             <?php endif; ?>
         </div>
 
-        <a href="<?= h($baseurl . '/events/view2/' . $bannerEventId) ?>"
+        <a href="<?= h($baseurl . '/events/view/' . $bannerEventId) ?>"
            class="btn btn-sm btn-outline-primary flex-shrink-0">
             <i class="fas fa-arrow-rotate-left me-1"></i>
             <?= __('Back to atomic view') ?>

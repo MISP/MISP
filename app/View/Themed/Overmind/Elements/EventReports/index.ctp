@@ -59,7 +59,7 @@ $fields = [
         'sort' => 'Event.id',
         'data_path' => 'Event.id, Event.info',
         'element' => 'event',
-        'url' => $baseurl . '/events/view2/%event_id%',
+        'url' => $baseurl . '/events/view/%event_id%',
         'card_section' => 'links',
         'display_in' => ['table', 'card']
     ],

@@ -484,7 +484,7 @@ $columns = array(
             'name' => __('Event'),
             'element' => 'event',
             'data_path' => 'Event.id, Event.info',
-            'url' => $baseurl . '/events/view2/%id%',
+            'url' => $baseurl . '/events/view/%id%',
         ),
     ),
     array(

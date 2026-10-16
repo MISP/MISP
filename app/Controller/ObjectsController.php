@@ -486,7 +486,7 @@ class ObjectsController extends AppController
                     if (is_numeric($result)) {
                         $this->Flash->success($groupMessage ?? 'Object saved.');
                         if ($this->theme === 'Overmind') {
-                            $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId, '#' => 'tab-objects'));
+                            $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, '#' => 'tab-objects'));
                         } else {
                             $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                         }
@@ -916,7 +916,7 @@ class ObjectsController extends AppController
         if (empty($template) && !$this->_isRest() && !$update_template_available) {
             $this->Flash->error('Object cannot be edited, no valid template found. ', ['params' => ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')]]);
             if($this->theme === "Overmind"){
-                $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id'], '#' => 'tab-objects'));
+                $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id'], '#' => 'tab-objects'));
             } else {
                 $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
             }
@@ -1031,7 +1031,7 @@ class ObjectsController extends AppController
                         $this->Flash->error($error_message);
                     }
                     if ($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id'], '#' => 'tab-objects'));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id'], '#' => 'tab-objects'));
                     } else {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
                     }
@@ -1661,7 +1661,7 @@ class ObjectsController extends AppController
         } else if (($this->theme ?? null) === 'Overmind') {
             $this->redirect([
                 'controller' => 'events',
-                'action' => 'view2',
+                'action' => 'view',
                 $object['Object']['event_id'],
                 'object' => $object['Object']['id'],
                 '#' => 'tab-objects',

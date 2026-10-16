@@ -172,7 +172,7 @@ $icon = 'fas fa-diagram-project';
                              * attribute, so that is the tab it opens.
                              */
                             $farIsObject = $far['kind'] === 'object';
-                            $farUrl = $baseurl . '/events/view2/'
+                            $farUrl = $baseurl . '/events/view/'
                                 . $far['event']
                                 . ($farIsObject
                                     ? '#tab-objects'
@@ -269,7 +269,7 @@ $icon = 'fas fa-diagram-project';
                                         </span>
                                     <?php endif; ?>
                                     <div class="vp-fact-line-sub">
-                                        <a href="<?= h($baseurl) ?>/events/view2/<?=
+                                        <a href="<?= h($baseurl) ?>/events/view/<?=
                                             h($far['event']) ?>"
                                            class="font-monospace small">
                                             #<?= h($far['event']) ?>

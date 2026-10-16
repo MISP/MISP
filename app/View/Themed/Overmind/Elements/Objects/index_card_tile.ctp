@@ -49,7 +49,7 @@ $last = $object['last_seen'] ?? null;
     <dl class="oi-tile-facts">
         <dt><?= __('Event') ?></dt>
         <dd>
-            <a class="oi-event" href="<?= h($baseurl . '/events/view2/' . (int)$row['Event']['id']) ?>"
+            <a class="oi-event" href="<?= h($baseurl . '/events/view/' . (int)$row['Event']['id']) ?>"
                title="<?= h($row['Event']['info']) ?>">
                 <span class="oi-event-id">#<?= (int)$row['Event']['id'] ?></span>
                 <span class="oi-event-info"><?= h($row['Event']['info']) ?></span>

@@ -263,7 +263,7 @@ function returnToEventView(eventId) {
     /* baseurl is absolute on most instances but empty on some, so the two sides
      * of the comparison are resolved against the current document rather than
      * compared as written. */
-    const target = new URL(baseurl + '/events/view2/' + eventId + hash, window.location.href);
+    const target = new URL(baseurl + '/events/view/' + eventId + hash, window.location.href);
     if (target.origin === window.location.origin && target.pathname === window.location.pathname) {
         if (hash && window.location.hash !== hash) {
             window.location.hash = hash;
@@ -9096,7 +9096,7 @@ function initObjectAddForm(container, payloadEl) {
                             'danger');
                     }
                     if (!showObjectsTab()) {
-                        window.location.href = baseurl + '/events/view2/'
+                        window.location.href = baseurl + '/events/view/'
                             + encodeURIComponent(data.eventId) + '#tab-objects';
                     }
                 });

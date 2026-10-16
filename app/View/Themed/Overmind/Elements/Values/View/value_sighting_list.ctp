@@ -285,7 +285,7 @@ $subtitle = $total === 0
                                         $against['event']
                                     );
                                 ?>
-                                <a href="<?= $baseurl ?>/events/view2/<?=
+                                <a href="<?= $baseurl ?>/events/view/<?=
                                         h($against['event'])
                                     ?>#tab-attributes"
                                    class="vp-sight-link"

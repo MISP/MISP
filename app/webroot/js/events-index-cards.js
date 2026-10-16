@@ -261,7 +261,7 @@
         }
         var note = document.createElement('a');
         note.className = 'dk-pop-more';
-        note.href = (window.baseurl || '') + '/events/view2/' + pop.root.getAttribute('data-event-id');
+        note.href = (window.baseurl || '') + '/events/view/' + pop.root.getAttribute('data-event-id');
         var foot = el.querySelector('.dk-pop-foot');
         foot.insertBefore(note, foot.firstChild);
         var say = function (n) { note.textContent = '+' + n + ' not shown · open the event'; };

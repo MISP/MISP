@@ -293,7 +293,7 @@ class EventIndexHelper extends AppHelper
             $extras[] = sprintf(
                 '<a class="dk-graph" href="%s" aria-label="%s" data-intel-graph-thumb="%s" data-revision="%d" data-surface="peek" data-name="%s"%s>'
                     . '<i class="misp-icon misp-icon-analyst-graph misp-simple text-analystGraph"></i> %d</a>',
-                h($this->baseurl() . ($n === 1 ? '/analyst_graphs/view/' . $graphs[0]['uuid'] : '/events/view2/' . (int)$event['id'])),
+                h($this->baseurl() . ($n === 1 ? '/analyst_graphs/view/' . $graphs[0]['uuid'] : '/events/view/' . (int)$event['id'])),
                 h($label),
                 h($graphs[0]['uuid']),
                 (int)($graphs[0]['revision'] ?? 0),
@@ -307,7 +307,7 @@ class EventIndexHelper extends AppHelper
             $extras[] = sprintf(
                 '<a class="dk-x-report_count dk-report" href="%s" title="%s">'
                     . '<i class="misp-icon misp-icon-report misp-simple text-report"></i> %s</a>',
-                h($this->baseurl() . '/events/view2/' . (int)$event['id'] . '#tab-reports'),
+                h($this->baseurl() . '/events/view/' . (int)$event['id'] . '#tab-reports'),
                 h($this->plural($n, '%s event report', '%s event reports')),
                 EventCardTool::compactCount($n)
             );
@@ -344,7 +344,7 @@ class EventIndexHelper extends AppHelper
             $ext[] = $parent['id']
                 ? sprintf(
                     '<a href="%s" title="%s"><i class="fas fa-turn-up fa-rotate-90"></i>%s</a>',
-                    h($this->baseurl() . '/events/view2/' . $parent['id']),
+                    h($this->baseurl() . '/events/view/' . $parent['id']),
                     h(__('Extends #%s %s', $parent['id'], $parent['info'])),
                     h($short ? '#' . $parent['id'] : __('extends #%s', $parent['id']))
                 )

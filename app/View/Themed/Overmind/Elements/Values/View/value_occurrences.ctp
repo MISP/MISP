@@ -83,7 +83,7 @@ $fields = array(
          */
         'element' => 'value_event_ref',
         'data_path' => 'Event.id, Event.info',
-        'url' => $baseurl . '/events/view2/%id%',
+        'url' => $baseurl . '/events/view/%id%',
     ),
     array(
         'name' => __('Reported by'),

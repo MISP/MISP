@@ -138,7 +138,7 @@ $fields = [
         'sort' => 'Event.id',
         'data_path' => 'Event.id',
         'element' => 'id',
-        'url' => $baseurl . '/events/view2/%id%',
+        'url' => $baseurl . '/events/view/%id%',
     ]),
     $col('title', [
         'name' => __('Title'),
@@ -221,7 +221,7 @@ $fields = [
                 'type' => 'navigate',
                 'label' => __('View'),
                 'icon' => 'eye',
-                'url' => $baseurl . '/events/view2/%id%'
+                'url' => $baseurl . '/events/view/%id%'
             ],
             [
                 'type' => 'modal',
@@ -543,7 +543,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             ],
             'fields' => $fields,
             'primary_id_path' => 'Event.id',
-            'row_dblclick_url' => $baseurl . '/events/view2/%id%',
+            'row_dblclick_url' => $baseurl . '/events/view/%id%',
             'table_class' => 'te-table',
             'row_class_callable' => function ($row) {
                 return 'te-row';

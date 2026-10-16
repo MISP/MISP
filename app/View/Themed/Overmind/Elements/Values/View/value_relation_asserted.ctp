@@ -72,7 +72,7 @@ $targetUrl = function ($target) use ($baseurl) {
         return null;
     }
     if ($target['kind'] === 'Event') {
-        return $baseurl . '/events/view2/' . $target['id'];
+        return $baseurl . '/events/view/' . $target['id'];
     }
     if ($target['kind'] === 'GalaxyCluster') {
         return $baseurl . '/galaxy_clusters/view/' . $target['id'];
@@ -80,7 +80,7 @@ $targetUrl = function ($target) use ($baseurl) {
     if (empty($target['event'])) {
         return null;
     }
-    return $baseurl . '/events/view2/' . $target['event']['id']
+    return $baseurl . '/events/view/' . $target['event']['id']
         . ($target['kind'] === 'Object'
             ? '#tab-objects'
             : '#tab-attributes');
@@ -333,7 +333,7 @@ if (empty($claims)) {
                         $facts = array();
                         if (!empty($target['event'])) {
                             $facts[] = '<a class="vp-claim-link" href="'
-                                . h($baseurl . '/events/view2/'
+                                . h($baseurl . '/events/view/'
                                     . $target['event']['id'])
                                 . '" title="' . h(__('Open the event'))
                                 . '">' . h(sprintf(

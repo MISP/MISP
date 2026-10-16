@@ -28,7 +28,7 @@ if (empty($id)) {
 
 $name = isset($paths[1]) ? Hash::get($row, $paths[1]) : null;
 $url = empty($field['url'])
-    ? $baseurl . '/events/view2/' . $id
+    ? $baseurl . '/events/view/' . $id
     : str_replace(array('%id%', '%event_id%'), $id, $field['url']);
 ?>
 <div class="vp-event-ref">

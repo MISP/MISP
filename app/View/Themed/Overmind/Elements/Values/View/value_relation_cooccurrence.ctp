@@ -1489,7 +1489,7 @@ $headerSub = ob_get_clean();
                                     ?>
                                     <?php foreach ($sibIds as $sibObject): ?>
                                         <a href="<?= h($baseurl)
-                                            ?>/events/view2/<?=
+                                            ?>/events/view/<?=
                                             h($sibObject['event'])
                                             ?>#tab-objects"
                                            class="font-monospace small ms-1"
@@ -1585,7 +1585,7 @@ $headerSub = ob_get_clean();
                                     ?>
                                     <?php if ($sibling['event'] !== null): ?>
                                         <a href="<?= $baseurl
-                                            ?>/events/view2/<?=
+                                            ?>/events/view/<?=
                                             h($sibling['event']) ?>"
                                            class="font-monospace small">
                                             #<?= h($sibling['event']) ?>
@@ -2449,7 +2449,7 @@ $headerSub = ob_get_clean();
                                     )) ?>">
                                     <td class="vp-min-w-0">
                                         <a href="<?= $baseurl
-                                            ?>/events/view2/<?=
+                                            ?>/events/view/<?=
                                             h($row['event']['id']) ?>"
                                            class="font-monospace small">
                                             #<?= h($row['event']['id']) ?>
@@ -2530,7 +2530,7 @@ $headerSub = ob_get_clean();
                                     </td>
                                     <td class="text-nowrap">
                                         <a href="<?= $baseurl
-                                            ?>/events/view2/<?=
+                                            ?>/events/view/<?=
                                             h($row['event']) ?>"
                                            class="font-monospace small">
                                             #<?= h($row['event']) ?>

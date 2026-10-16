@@ -230,7 +230,7 @@ suite("another event's attribute arrives slim and asks for its record", () => {
     eq('the record read', before.lazy.record.request,
        { method: 'POST', url: '/attributes/restSearch',
          body: { returnFormat: 'json', uuid: 'far', includeSightings: 1, includeWarninglistHits: 1, includeEventTags: 0 } });
-    eq('its event linked', before.links, [{ kind: 'event', label: 'Open its event', path: '/events/view2/16' }]);
+    eq('its event linked', before.links, [{ kind: 'event', label: 'Open its event', path: '/events/view/16' }]);
     const after = M.build(node(d), env({ lazy: { record: { response: { Attribute: [{
         uuid: 'far', value: '1.1.1.1', type: 'ip-dst', event_id: '16', Tag: [{ name: 'pap:green' }],
         Sighting: [{ Sighting: { type: '0', date_sighting: '9' }, Organisation: { name: 'X' } }] }] } } } }));

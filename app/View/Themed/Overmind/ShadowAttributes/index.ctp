@@ -75,7 +75,7 @@ $fields = [
         'data_path' => 'Event.id, Event.info',
         'element' => 'event',
         'org_data_path' => 'Event.Orgc',
-        'url' => $baseurl . '/events/view2/%event_id%',
+        'url' => $baseurl . '/events/view/%event_id%',
         'card_section' => 'links',
         'display_in' => ['table', 'card']
     ],
@@ -100,7 +100,7 @@ $fields = [
                 'type' => 'navigate',
                 'label' => __('View Event'),
                 'icon' => 'eye',
-                'url' => $baseurl . '/events/view2/%id%/focus:%focus%',
+                'url' => $baseurl . '/events/view/%id%/focus:%focus%',
                 'url_params_data_paths' => ['focus' => 'ShadowAttribute.uuid'],
             ],
         ],

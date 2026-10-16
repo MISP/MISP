@@ -34,7 +34,7 @@ $isExtending = !empty($extending);
 $extensionEvents = $extensionEvents ?? [];
 
 $viewUrl = function ($extended, $extending) use ($baseurl, $extEventId) {
-    return $baseurl . '/events/view2/' . $extEventId
+    return $baseurl . '/events/view/' . $extEventId
         . ($extended ? '/extended:1' : '')
         . ($extending ? '/extending:1' : '');
 };
@@ -78,7 +78,7 @@ $eventCell = function ($eventId, $info, $org, $icon, $title)
             <?= $this->element('genericElementsBS5/Badges/event', [
                 'id' => $eventId,
                 'name' => $info,
-                'url' => $baseurl . '/events/view2/' . (int)$eventId,
+                'url' => $baseurl . '/events/view/' . (int)$eventId,
                 'org' => $org,
                 'icon' => $icon,
                 'accent' => $accent,

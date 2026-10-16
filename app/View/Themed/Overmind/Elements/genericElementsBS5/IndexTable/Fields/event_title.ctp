@@ -26,7 +26,7 @@ if ($card !== null && (!empty($card['extends']) || !empty($card['extended_by']))
 printf(
     '<span class="te-titlewrap">%s<a class="te-title" href="%s" title="%s">%s</a></span>',
     $marker,
-    h($baseurl . '/events/view2/' . (int)$event['id']),
+    h($baseurl . '/events/view/' . (int)$event['id']),
     h($event['info']),
     h($event['info'])
 );

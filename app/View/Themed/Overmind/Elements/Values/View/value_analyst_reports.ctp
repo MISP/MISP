@@ -253,7 +253,7 @@ $subtitle = empty($rows)
                          */
                         ?>
                         <a class="ms-auto vpa-chip vpa-chip-link"
-                           href="<?= h($baseurl) ?>/events/view2/<?=
+                           href="<?= h($baseurl) ?>/events/view/<?=
                                (int)$row['event']['id'] ?>#tab-reports"
                            title="<?= h(__(
                                'A report is written about an event,'

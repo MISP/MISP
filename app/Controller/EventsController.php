@@ -2188,12 +2188,138 @@ class EventsController extends AppController
         $this->set('sightingsDbEnabled', (bool)Configure::read('Plugin.Sightings_sighting_db_enable'));
     }
 
+    /**
+     * Routes an event view to the API payload (view1), the theme's own event
+     * page (view2) or the legacy page (viewLegacy), keeping this URL.
+     *
+     * @param int|string $id Event ID or UUID
+     * @param bool $continue legacy pivot thread: continue it
+     * @param int|null $fromEvent legacy pivot thread: event pivoted from
+     */
     public function view($id = null, $continue = false, $fromEvent = null)
     {
-        if ($this->request->is('head')) { // Just check if event exists
+        $target = $this->__viewTarget();
+        if ($target === 'view') {
             $exists = $this->Event->fetchSimpleEvent($this->Auth->user(), $id, ['fields' => ['id']]);
             return new CakeResponse(['status' => $exists ? 200 : 404]);
         }
+        $this->request->params['action'] = $target;
+        $this->view = $target;
+        if ($target === 'viewLegacy') {
+            return $this->viewLegacy($id, $continue, $fromEvent);
+        }
+        return $this->{$target}($id);
+    }
+
+    /**
+     * The action view() dispatches the current request to, or 'view' itself
+     * for a HEAD existence check.
+     *
+     * @return string
+     */
+    private function __viewTarget()
+    {
+        if ($this->request->is('head')) {
+            return 'view';
+        }
+        if ($this->_isRest()) {
+            return 'view1';
+        }
+        if (!empty($this->theme) && file_exists(App::themePath($this->theme) . 'Events' . DS . 'view2.ctp')) {
+            return 'view2';
+        }
+        return 'viewLegacy';
+    }
+
+    /**
+     * The event as served to API clients.
+     *
+     * @param int|string $id Event ID or UUID
+     */
+    public function view1($id = null)
+    {
+        if ($this->__viewTarget() !== 'view1') {
+            return $this->view($id);
+        }
+        $namedParams = $this->request->params['named'];
+        $conditions = $this->__viewEventConditions($id, true);
+        $conditions['includeAnalystData'] = true;
+        $conditions['includeAttachments'] = isset($namedParams['includeAttachments']) ? $namedParams['includeAttachments'] : true;
+        foreach (['includeEventCorrelations', 'includeFeedCorrelations', 'includeWarninglistHits', 'noEventReports', 'noShadowAttributes'] as $param) {
+            if (isset($namedParams[$param])) {
+                $conditions[$param] = $namedParams[$param];
+            }
+        }
+        $event = $this->__fetchViewEvent($this->__viewAsUser(false), $conditions);
+        if ($event['Event']['protected']) {
+            $this->RestResponse->signContents = true;
+        }
+        return $this->__restResponse($event);
+    }
+
+    /**
+     * The event page of themes that do not ship their own (Events/view2.ctp).
+     *
+     * @param int|string $id Event ID or UUID
+     * @param bool $continue continue the pivot thread
+     * @param int|null $fromEvent event pivoted from
+     */
+    public function viewLegacy($id = null, $continue = false, $fromEvent = null)
+    {
+        if ($this->__viewTarget() !== 'viewLegacy') {
+            return $this->view($id, $continue, $fromEvent);
+        }
+        $namedParams = $this->request->params['named'];
+        $conditions = $this->__viewEventConditions($id, false);
+        $conditions['includeAllTags'] = true;
+        $conditions['noEventReports'] = true; // event reports for view are loaded dynamically
+        $conditions['noSightings'] = true;
+        $conditions['fetchFullClusters'] = false;
+        if (!empty($namedParams['overrideLimit'])) {
+            $conditions['overrideLimit'] = 1;
+        }
+        $user = $this->__viewAsUser(true);
+        $event = $this->__fetchViewEvent($user, $conditions);
+
+        $this->set('extended', empty($conditions['extended']) ? 0 : 1);
+        $this->set('extending', empty($conditions['extending']) ? 0 : 1);
+        $this->set('deleted', $this->__viewDeletedParam() > 0);
+        $this->set('includeRelatedTags', (!empty($namedParams['includeRelatedTags'])) ? 1 : 0);
+        $this->set('includeDecayScore', (!empty($namedParams['includeDecayScore'])) ? 1 : 0);
+
+        $this->__setHighlightedTags($event);
+
+        if ($this->_isSiteAdmin() && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+            $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
+        }
+        $this->__viewUI($user, $event, $continue, $fromEvent);
+    }
+
+    /**
+     * @return mixed the `deleted` filter as passed, named parameter or body
+     */
+    private function __viewDeletedParam()
+    {
+        $deleted = 0;
+        if (isset($this->request->params['named']['deleted'])) {
+            $deleted = $this->request->params['named']['deleted'];
+        }
+        if (isset($this->request->data['deleted'])) {
+            $deleted = $this->request->data['deleted'];
+        }
+        return $deleted;
+    }
+
+    /**
+     * fetchEvent() conditions shared by view1 and viewLegacy; $isRest picks
+     * the defaults that differ between the two.
+     *
+     * @param int|string $id Event ID or UUID
+     * @param bool $isRest
+     * @return array
+     */
+    private function __viewEventConditions($id, $isRest)
+    {
         if (is_numeric($id)) {
             $conditions = array('eventid' => $id);
         } else if (Validation::uuid($id)) {
@@ -2203,24 +2329,9 @@ class EventsController extends AppController
         }
 
         $namedParams = $this->request->params['named'];
-        if ($this->_isRest()) {
-            $conditions['includeAnalystData'] = true;
-            $conditions['includeAttachments'] = isset($namedParams['includeAttachments']) ? $namedParams['includeAttachments'] : true;
-        } else {
-            $conditions['includeAllTags'] = true;
-            $conditions['noEventReports'] = true; // event reports for view are loaded dynamically
-            $conditions['noSightings'] = true;
-            $conditions['fetchFullClusters'] = false;
-        }
-        $deleted = 0;
-        if (isset($namedParams['deleted'])) {
-            $deleted = $namedParams['deleted'];
-        }
-        if (isset($this->request->data['deleted'])) {
-            $deleted = $this->request->data['deleted'];
-        }
+        $deleted = $this->__viewDeletedParam();
         // workaround for old instances trying to pull events with both deleted / non deleted data
-        if (($this->userRole['perm_sync'] && $this->_isRest() && !$this->userRole['perm_site_admin']) && $deleted == 1) {
+        if (($this->userRole['perm_sync'] && $isRest && !$this->userRole['perm_site_admin']) && $deleted == 1) {
             $conditions['deleted'] = array(0, 1);
         } else {
             if (is_array($deleted)) {
@@ -2245,9 +2356,6 @@ class EventsController extends AppController
         if (isset($namedParams['public']) && $namedParams['public']) {
             $conditions['distribution'] = array(3, 5);
         }
-        if (!empty($namedParams['overrideLimit']) && !$this->_isRest()) {
-            $conditions['overrideLimit'] = 1;
-        }
         if (!empty($namedParams['excludeGalaxy'])) {
             $conditions['excludeGalaxy'] = 1;
             if (!empty($namedParams['includeCustomGalaxyCluster'])) {
@@ -2259,15 +2367,9 @@ class EventsController extends AppController
         }
         if (!empty($namedParams['extended']) || !empty($this->request->data['extended'])) {
             $conditions['extended'] = 1;
-            $this->set('extended', 1);
-        } else {
-            $this->set('extended', 0);
         }
         if (!empty($namedParams['extending']) || !empty($this->request->data['extending'])) {
             $conditions['extending'] = 1;
-            $this->set('extending', 1);
-        } else {
-            $this->set('extending', 0);
         }
         $conditions['excludeLocalTags'] = false;
         $conditions['includeWarninglistHits'] = true;
@@ -2275,38 +2377,47 @@ class EventsController extends AppController
             $conditions['excludeLocalTags'] = $namedParams['excludeLocalTags'];
         }
         $conditions['includeFeedCorrelations'] = 1;
-        if (!$this->_isRest()) {
-            $conditions['includeGranularCorrelations'] = 1;
-        } else if (!empty($namedParams['includeGranularCorrelations'])) {
+        if (!$isRest || !empty($namedParams['includeGranularCorrelations'])) {
             $conditions['includeGranularCorrelations'] = 1;
         }
         if (!isset($namedParams['includeServerCorrelations'])) {
-            $conditions['includeServerCorrelations'] = 1;
-            if ($this->_isRest()) {
-                $conditions['includeServerCorrelations'] = 0;
-            }
+            $conditions['includeServerCorrelations'] = $isRest ? 0 : 1;
         } else {
             $conditions['includeServerCorrelations'] = $namedParams['includeServerCorrelations'];
         }
+        return $conditions;
+    }
 
-        if ($this->_isRest()) {
-            foreach (['includeEventCorrelations', 'includeFeedCorrelations', 'includeWarninglistHits', 'noEventReports', 'noShadowAttributes'] as $param) {
-                if (isset($namedParams[$param])) {
-                    $conditions[$param] = $namedParams[$param];
-                }
-            }
+    /**
+     * Site admins may view an event as another user (viewAs named parameter).
+     *
+     * @param bool $notify flash which user the event is viewed as
+     * @return array
+     */
+    private function __viewAsUser($notify)
+    {
+        $namedParams = $this->request->params['named'];
+        if (!$this->_isSiteAdmin() || !isset($namedParams['viewAs'])) {
+            return $this->Auth->user();
         }
-
-        // Site admin can view event as different user
-        if ($this->_isSiteAdmin() && isset($namedParams['viewAs'])) {
-            $user = $this->User->getAuthUser($namedParams['viewAs']);
-            if (empty($user)) {
-                throw new NotFoundException(__("User not found"));
-            }
+        $user = $this->User->getAuthUser($namedParams['viewAs']);
+        if (empty($user)) {
+            throw new NotFoundException(__("User not found"));
+        }
+        if ($notify) {
             $this->Flash->info(__('Viewing event as %s from %s', h($user['email']), h($user['Organisation']['name'])));
-        } else {
-            $user = $this->Auth->user();
         }
+        return $user;
+    }
+
+    /**
+     * @param array $user
+     * @param array $conditions
+     * @return array the event, narrowed by the searchFor-style named parameters
+     */
+    private function __fetchViewEvent(array $user, array $conditions)
+    {
+        $namedParams = $this->request->params['named'];
         $results = $this->Event->fetchEvent($user, $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
@@ -2342,23 +2453,7 @@ class EventsController extends AppController
         if (isset($namedParams['galaxyAttachedAttributes']) && $namedParams['galaxyAttachedAttributes'] !== '') {
             $this->__applyQueryString($event, $namedParams['galaxyAttachedAttributes'], 'Tag.name');
         }
-        if ($this->_isRest()) {
-            if ($event['Event']['protected']) {
-                $this->RestResponse->signContents = true;
-            }
-            return $this->__restResponse($event);
-        }
-
-        $this->set('deleted', $deleted > 0);
-        $this->set('includeRelatedTags', (!empty($namedParams['includeRelatedTags'])) ? 1 : 0);
-        $this->set('includeDecayScore', (!empty($namedParams['includeDecayScore'])) ? 1 : 0);
-
-        $this->__setHighlightedTags($event);
-
-        if ($this->_isSiteAdmin() && $event['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
-            $this->Flash->info(__('You are currently logged in as a site administrator and about to edit an event not belonging to your organisation. This goes against the sharing model of MISP. Use a normal user account for day to day work.'));
-        }
-        $this->__viewUI($user, $event, $continue, $fromEvent);
+        return $event;
     }
 
     /**
@@ -2371,38 +2466,10 @@ class EventsController extends AppController
      */
     public function view2($id = null)
     {
-        if ($this->request->is('head')) {
-            $exists = $this->Event->fetchSimpleEvent(
-                $this->Auth->user(), $id, ['fields' => ['id']]
-            );
-            return new CakeResponse(
-                ['status' => $exists ? 200 : 404]
-            );
+        if ($this->__viewTarget() !== 'view2') {
+            return $this->view($id);
         }
-
-        $user = $this->Auth->user();
-
-        // Site admin can view event as different user
-        $namedParams = $this->request->params['named'];
-        if (
-            $this->_isSiteAdmin() &&
-            isset($namedParams['viewAs'])
-        ) {
-            $viewAsUser = $this->User->getAuthUser(
-                $namedParams['viewAs']
-            );
-            if (empty($viewAsUser)) {
-                throw new NotFoundException(__("User not found"));
-            }
-            $this->Flash->info(
-                __(
-                    'Viewing event as %s from %s',
-                    h($viewAsUser['email']),
-                    h($viewAsUser['Organisation']['name'])
-                )
-            );
-            $user = $viewAsUser;
-        }
+        $user = $this->__viewAsUser(true);
 
         // Fetch event metadata only — no attributes, no objects
         $event = $this->Event->fetchSimpleEvent($user, $id, [
@@ -2419,13 +2486,6 @@ class EventsController extends AppController
         }
 
         $event = $this->__enrichEvent($event, $user);
-
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData(
-                $event,
-                $this->response->type()
-            );
-        }
 
         // Extended / extending view: the tabs below span several events, so
         // resolve the set first and count over all of it.
@@ -5351,11 +5411,7 @@ class EventsController extends AppController
                     } else {
                         // redirect to the view of the newly created event
                         $this->Flash->success(__('The event has been saved'));
-                        if ($this->theme === "Overmind") {
-                            $this->redirect(array('action' => 'view2', $this->Event->getID()));
-                        } else {
-                            $this->redirect(array('action' => 'view', $this->Event->getID()));
-                        }
+                        $this->redirect(array('action' => 'view', $this->Event->getID()));
                     }
                 } else {
                     if ($this->_isRest()) { // TODO return error if REST
@@ -5595,7 +5651,7 @@ class EventsController extends AppController
                 }
                 if (count($created) === 1 && $existing === 0 && $failed === 0) {
                     $this->Flash->success(__('The event has been imported.'));
-                    $this->redirect(['action' => 'view2', $created[0]]);
+                    $this->redirect(['action' => 'view', $created[0]]);
                 }
                 $summary = [];
                 if (!empty($created)) {
@@ -5732,9 +5788,6 @@ class EventsController extends AppController
                     );
                     if (is_numeric($result)) {
                         $this->Flash->success(__('STIX document imported.'));
-                        if ($this->theme === 'Overmind') {
-                            $this->redirect(array('action' => 'view2', $result));
-                        }
                         $this->redirect(array('action' => 'view', $result));
                     } else {
                         $this->Flash->error(__('Could not import STIX document: %s', $result));
@@ -5976,11 +6029,7 @@ class EventsController extends AppController
                         $this->request->data = $this->_jsonDecode($this->request->data['json']);
                     } catch (Exception $e) {
                         $this->Flash->error(__('Invalid JSON input. Please provide a correctly formatted MISP JSON document.'));
-                        if ($this->theme === 'Overmind') {
-                            $this->redirect(array('action' => 'view2', $id));
-                        } else {
-                            $this->redirect(array('action' => 'view', $id));
-                        }
+                        $this->redirect(array('action' => 'view', $id));
                     }
                 }
             }
@@ -6034,11 +6083,7 @@ class EventsController extends AppController
             }
             if ($result) {
                 $this->Flash->success(__('The event has been saved'));
-                if ($this->theme === "Overmind") {
-                    $this->redirect(array('action' => 'view2', $id));
-                } else {
-                    $this->redirect(array('action' => 'view', $id));
-                }
+                $this->redirect(array('action' => 'view', $id));
             } else {
                 $this->Flash->error(__('The event could not be saved. Please, try again.'));
             }
@@ -6214,11 +6259,7 @@ class EventsController extends AppController
             $this->request->data['Event']['timestamp'] = time();
             if ($this->Event->save($this->request->data, true, $fieldList)) {
                 $this->Flash->success(__('The event has been saved'));
-                if ($this->theme === "Overmind"){
-                    $this->redirect(array('action' => 'view2', $id));
-                } else {
-                    $this->redirect(array('action' => 'view', $id));
-                }
+                $this->redirect(array('action' => 'view', $id));
             } else if ($this->theme === "Overmind") {
                 $this->Flash->error($this->__saveFailMessage($this->Event->validationErrors));
             } else {
@@ -6395,11 +6436,7 @@ class EventsController extends AppController
                     return $this->RestResponse->saveSuccessResponse('events', 'unpublish', $id, false, $message);
                 } else {
                     $this->Flash->success($message);
-                    if ($this->theme === "Overmind"){
-                        $this->redirect(array('action' => 'view2', $id));
-                    } else {
-                        $this->redirect(array('action' => 'view', $id));
-                    }
+                    $this->redirect(array('action' => 'view', $id));
                 }
             } else {
                 throw new MethodNotAllowedException('Could not unpublish event.');
@@ -6450,7 +6487,7 @@ class EventsController extends AppController
             } else {
                 $this->Flash->success($message);
                 $this->redirect([
-                    'action' => $this->theme === 'Overmind' ? 'view2' : 'view',
+                    'action' => 'view',
                     $event['Event']['id']
                 ]);
             }
@@ -6500,11 +6537,7 @@ class EventsController extends AppController
                 } else {
                     $this->Flash->success($message);
                 }
-                if ($this->theme === "Overmind"){
-                    $this->redirect(array('action' => 'view2',  $event['Event']['id']));
-                } else {
-                    $this->redirect(array('action' => 'view',  $event['Event']['id']));
-                }
+                $this->redirect(array('action' => 'view',  $event['Event']['id']));
             }
         } else {
             $servers = $this->Event->listServerToPush($event);
@@ -6579,11 +6612,7 @@ class EventsController extends AppController
                 } else {
                     $this->Flash->success($message);
                 }
-                if ($this->theme === "Overmind"){
-                    $this->redirect(array('action' => 'view2',  $event['Event']['id']));
-                } else {
-                    $this->redirect(array('action' => 'view',  $event['Event']['id']));
-                }
+                $this->redirect(array('action' => 'view',  $event['Event']['id']));
             }
         } else {
             $servers = $this->Event->listServerToPush($event);
@@ -6621,11 +6650,7 @@ class EventsController extends AppController
                 $publishable = $this->Event->checkIfPublishable($event['Event']['id']);
                 if ($publishable !== true) {
                     $this->Flash->error(__('Could not publish event - no tag for required taxonomies missing: %s', implode(', ', $publishable)));
-                    if ($this->theme === "Overmind"){
-                        $this->redirect(array('action' => 'view2',  $event['Event']['id']));
-                    } else {
-                        $this->redirect(array('action' => 'view',  $event['Event']['id']));
-                    }
+                    $this->redirect(array('action' => 'view',  $event['Event']['id']));
                 }
             }
         }
@@ -6686,7 +6711,7 @@ class EventsController extends AppController
                     $this->Flash->success($return_message);
                     // redirect to the view event page
                     $this->redirect([
-                        'action' => $this->theme === 'Overmind' ? 'view2' : 'view',
+                        'action' => 'view',
                         $event['Event']['id']
                     ]);
                 }
@@ -6698,7 +6723,7 @@ class EventsController extends AppController
                     $this->Flash->error($return_message, 'default', array(), 'error');
                     // redirect to the view event page
                     $this->redirect([
-                        'action' => $this->theme === 'Overmind' ? 'view2' : 'view',
+                        'action' => 'view',
                         $event['Event']['id']
                     ]);
                 }
@@ -9670,7 +9695,7 @@ class EventsController extends AppController
                 return $this->RestResponse->saveSuccessResponse('events', 'toggleCorrelation', $event['Event']['id'], false, 'Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
             } else {
                 $this->Flash->success('Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
-                $this->redirect(array('controller' => 'events', 'action' => $this->theme === 'Overmind' ? 'view2' : 'view', $event['Event']['id']));
+                $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
             }
         } else {
             $this->set('event', $event);
@@ -9811,7 +9836,7 @@ class EventsController extends AppController
                     $this->Flash->error($errorMessage);
                 }
                 $this->redirect([
-                    'action' => $this->theme === 'Overmind' ? 'view2' : 'view',
+                    'action' => 'view',
                     $id
                 ]);
             }
@@ -9934,7 +9959,6 @@ class EventsController extends AppController
             throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
         }
         $eventId = (int)$event['Event']['id'];
-        $viewAction = $this->theme === 'Overmind' ? 'view2' : 'view';
         $this->loadModel('Module');
         if (!$this->request->is('post')) {
             if ($this->_isRest()) {
@@ -9977,14 +10001,14 @@ class EventsController extends AppController
                 return $this->RestResponse->saveFailResponse('Events', 'aiExtractIndicators', $eventId, $e->getMessage(), 'json');
             }
             $this->Flash->error($e->getMessage());
-            return $this->redirect(['action' => $viewAction, $eventId]);
+            return $this->redirect(['action' => 'view', $eventId]);
         }
         $counts = Event::aiExtractionCounts($resolved);
         $rejected = $resolved['rejected'];
         unset($resolved['rejected'], $resolved['metadata']);
         if ($counts['attributes'] === 0 && $counts['objects'] === 0 && !$isAjax) {
             $this->Flash->info(Event::aiExtractionMessage($counts));
-            return $this->redirect(['action' => $viewAction, $eventId]);
+            return $this->redirect(['action' => 'view', $eventId]);
         }
         $distributionData = $this->Event->Attribute->fetchDistributionData($this->Auth->user());
         $this->set('event', $resolved);
@@ -10024,7 +10048,6 @@ class EventsController extends AppController
         if (!Configure::read('Plugin.AI_services_enable')) {
             throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
         }
-        $viewAction = $this->theme === 'Overmind' ? 'view2' : 'view';
         if ($this->request->is('post')) {
             try {
                 $result = $this->Event->aiSummarizeRouter($this->Auth->user(), $event['Event']['id']);
@@ -10033,7 +10056,7 @@ class EventsController extends AppController
                     return $this->RestResponse->saveFailResponse('Events', 'aiSummarize', $event['Event']['id'], $e->getMessage(), $this->response->type());
                 }
                 $this->Flash->error($e->getMessage());
-                return $this->redirect(['action' => $viewAction, $event['Event']['id']]);
+                return $this->redirect(['action' => 'view', $event['Event']['id']]);
             }
             if (isset($result['job_id'])) {
                 $message = __('AI summary job #%s queued — refresh the event when it completes.', $result['job_id']);
@@ -10048,7 +10071,7 @@ class EventsController extends AppController
                 );
             }
             $this->Flash->success($message);
-            return $this->redirect(['action' => $viewAction, $event['Event']['id']]);
+            return $this->redirect(['action' => 'view', $event['Event']['id']]);
         }
         $this->set('event', $event);
         $this->layout = false;
@@ -10077,7 +10100,6 @@ class EventsController extends AppController
             throw new MethodNotAllowedException(__('The AI services are not enabled on this instance.'));
         }
         $eventId = (int)$event['Event']['id'];
-        $viewAction = $this->theme === 'Overmind' ? 'view2' : 'view';
         // A plain AJAX caller (no Accept header) gets JSON, not JSON escaped
         // for an HTML document.
         $format = $this->_isRest() ? $this->response->type() : 'json';
@@ -10094,7 +10116,7 @@ class EventsController extends AppController
                     return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $error, $format);
                 }
                 $this->Flash->error($error);
-                return $this->redirect(['action' => $viewAction, $eventId]);
+                return $this->redirect(['action' => 'view', $eventId]);
             }
             try {
                 $result = $this->Event->aiAttachTags($this->Auth->user(), $event, $names, $local);
@@ -10103,7 +10125,7 @@ class EventsController extends AppController
                     return $this->RestResponse->saveFailResponse('Events', 'aiRecommendTags', $eventId, $e->getMessage(), $format);
                 }
                 $this->Flash->error($e->getMessage());
-                return $this->redirect(['action' => $viewAction, $eventId]);
+                return $this->redirect(['action' => 'view', $eventId]);
             }
             $message = Event::aiTagResultMessage($result);
             $saved = $result['attached'] > 0 || $result['failed'] === 0;
@@ -10123,7 +10145,7 @@ class EventsController extends AppController
             } else {
                 $this->Flash->error($message);
             }
-            return $this->redirect(['action' => $viewAction, $eventId]);
+            return $this->redirect(['action' => 'view', $eventId]);
         }
         // The tag-suggest backend is retrieval, not generation, but the call
         // is still bound by the module timeout.
@@ -10206,7 +10228,7 @@ class EventsController extends AppController
                 }
                 $this->Flash->success($result);
                 $this->redirect([
-                    'action' => $this->theme === 'Overmind' ? 'view2' : 'view',
+                    'action' => 'view',
                     $id
                 ]);
             }
@@ -10485,7 +10507,7 @@ class EventsController extends AppController
                     ]);
                 } else {
                     $this->Flash->success(__('Object(s) created'));
-                    $this->redirect('/events/view2/' . $eventId);
+                    $this->redirect('/events/view/' . $eventId);
                 }
             }
             $this->redirect('/events/view/' . $eventId);
@@ -10772,7 +10794,7 @@ class EventsController extends AppController
                     return $this->RestResponse->saveSuccessResponse('events', $protect ? 'protect' : 'unprotect', $event['Event']['id'], false, $message);
                 } else {
                     $this->Flash->success($message);
-                    $this->redirect(['controller' => 'events', 'action' => $this->theme === 'Overmind' ? 'view2' : 'view', $id]);
+                    $this->redirect(['controller' => 'events', 'action' => 'view', $id]);
                 }
             } else {
                 $message = __('Something went wrong - could not switch event to %s mode.', $protect ? __('protected') : __('unprotected'));
@@ -10780,7 +10802,7 @@ class EventsController extends AppController
                     return $this->RestResponse->saveFailResponse('Events', $protect ? 'protect' : 'unprotect', $event['Event']['id'], $message);
                 } else {
                     $this->Flash->error($message);
-                    $this->redirect(['controller' => 'events', 'action' => $this->theme === 'Overmind' ? 'view2' : 'view', $event['Event']['id']]);
+                    $this->redirect(['controller' => 'events', 'action' => 'view', $event['Event']['id']]);
                 }
             }
         } else {

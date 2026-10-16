@@ -353,7 +353,7 @@ $this->set('headerDescription', $headerDescription);
 
             col.innerHTML =
                 '<div class="d-flex flex-column h-100">'
-                + '<a class="d-flex align-items-center text-muted small text-uppercase text-decoration-none fw-bold mb-3" href="' + (typeof baseurl !== 'undefined' ? baseurl : '') + '/events/view2/' + eventId + def.tab + '">'
+                + '<a class="d-flex align-items-center text-muted small text-uppercase text-decoration-none fw-bold mb-3" href="' + (typeof baseurl !== 'undefined' ? baseurl : '') + '/events/view/' + eventId + def.tab + '">'
                 + '<i class="' + def.icon + ' fs-3" style="color:' + def.color + '"></i>'
                 + def.title
                 + '</a>'

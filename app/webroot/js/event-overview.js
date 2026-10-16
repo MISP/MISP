@@ -1,4 +1,4 @@
-// The Overmind event overview (General tab of /events/view2): lazy cards,
+// The Overmind event overview (General tab of /events/view): lazy cards,
 // the report card and its picker, the object graph, and the inventory's
 // filters into the Objects and Attributes tabs.
 (function () {

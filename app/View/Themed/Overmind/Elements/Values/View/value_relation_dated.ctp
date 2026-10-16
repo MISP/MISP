@@ -60,7 +60,7 @@ $icon = 'fas fa-clock-rotate-left';
  * that wrote the resolution is not. So the click goes to the object
  * that carries the dates the row is made of.
  *
- * `/events/view2/<event>#tab-objects` for §19.2's reason: the flat
+ * `/events/view/<event>#tab-objects` for §19.2's reason: the flat
  * views redirect to the event and lose which record they were asked
  * about, and this theme's event view takes no `focus:`. Every dated
  * relation is an attribute inside an object, so the tab never varies
@@ -70,7 +70,7 @@ $icon = 'fas fa-clock-rotate-left';
  * @return string
  */
 $recordUrl = function ($event) use ($baseurl) {
-    return $baseurl . '/events/view2/' . (int)$event . '#tab-objects';
+    return $baseurl . '/events/view/' . (int)$event . '#tab-objects';
 };
 
 /**

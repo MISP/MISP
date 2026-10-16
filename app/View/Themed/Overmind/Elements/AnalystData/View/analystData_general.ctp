@@ -55,7 +55,7 @@ $target = function ($type, $uuid) use ($baseurl, $analystTargets, $styles, $targ
         $glyph = $styles[$type]['icon'];
     } else {
         $url = $type === 'Event'
-            ? $baseurl . '/events/view2/' . $uuid
+            ? $baseurl . '/events/view/' . $uuid
             : $baseurl . '/' . Inflector::tableize($type) . '/view/' . $uuid;
         $glyph = $targetGlyphs[$type] ?? 'fas fa-link';
     }

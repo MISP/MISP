@@ -77,7 +77,7 @@ $fields = [
         'element' => 'custom',
         'function' => function ($row) use ($baseurl) {
             return sprintf(
-                '<a class="oi-event" href="%s/events/view2/%d" title="%s"><span class="oi-event-id">#%d</span>'
+                '<a class="oi-event" href="%s/events/view/%d" title="%s"><span class="oi-event-id">#%d</span>'
                     . '<span class="oi-event-info">%s</span></a>',
                 h($baseurl),
                 (int)$row['Event']['id'],
@@ -165,7 +165,7 @@ $fields = [
                 'type' => 'navigate',
                 'label' => __('Open in event'),
                 'icon' => 'arrow-up-right-from-square',
-                'url' => $baseurl . '/events/view2/%event%/object:%id%#tab-objects',
+                'url' => $baseurl . '/events/view/%event%/object:%id%#tab-objects',
                 'url_params_data_paths' => ['event' => 'Event.id'],
             ],
             [

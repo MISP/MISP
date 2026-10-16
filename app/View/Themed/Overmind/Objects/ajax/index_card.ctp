@@ -34,7 +34,7 @@ $references = $object['ObjectReference'] ?? [];
             ]) ?>
         <?php endif; ?>
         <a class="btn btn-sm btn-outline-primary ms-auto"
-           href="<?= h($baseurl . '/events/view2/' . (int)$eventId . '/object:' . $objId . '#tab-objects') ?>">
+           href="<?= h($baseurl . '/events/view/' . (int)$eventId . '/object:' . $objId . '#tab-objects') ?>">
             <i class="fas fa-arrow-up-right-from-square me-1"></i><?= __('Open in event') ?>
         </a>
     </div>

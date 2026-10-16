@@ -56,7 +56,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     'name' => __('Event'),
                     'element' => 'event',
                     'data_path' => 'Sighting.event_id',
-                    'url' => $baseurl . '/events/view2/%id%',
+                    'url' => $baseurl . '/events/view/%id%',
                 ],
                 [
                     'name' => __('Attribute'),

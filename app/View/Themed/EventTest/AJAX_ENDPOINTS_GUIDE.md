@@ -7,7 +7,7 @@ The view templates in this theme are **reference implementations** that demonstr
 ## Architecture Overview
 
 ```
-/events/view2/{id}              Main page shell (metadata only)
+/events/view/{id}               Main page shell (metadata only, rendered by view2)
   |
   +-- /events/viewAttributes/{id}      AJAX: paginated attributes
   +-- /events/viewObjects/{id}         AJAX: paginated objects
@@ -48,9 +48,9 @@ If you add new endpoints for the decomposed event view, add them to the ACL list
 
 ## Endpoints
 
-### GET /events/view2/{id}
+### GET /events/view/{id} (view2)
 
-The entry point. Loads only event metadata — no attributes or objects.
+The entry point. `/events/view` dispatches browsers on a theme shipping `Events/view2.ctp` to `view2`; API clients get the full event from `view1`. Loads only event metadata — no attributes or objects.
 
 **Named parameters:**
 - `viewAs:{userId}` (site admin only) — view the event as a different user
@@ -63,7 +63,7 @@ The entry point. Loads only event metadata — no attributes or objects.
 - Extension chain: `Event.Extends` (parent) and `Event.ExtendedBy[]` (children)
 - Analyst data: Note, Opinion, Relationship
 
-**REST response:** Full enriched event object as JSON.
+**REST response:** none — API requests are handled by `view1`.
 
 **HTML rendering:** Uses `single_view` generic element with:
 - Metadata fields (ID, UUID, creator org, owner org, tags, date, threat level, analysis, distribution, published status, timestamps, extends/extended-by, correlation toggle)

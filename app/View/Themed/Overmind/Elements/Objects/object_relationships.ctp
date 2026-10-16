@@ -51,7 +51,7 @@ $addUrl = $baseurl . '/objectReferences/add/' . (int)$objId;
             $targetEventId = $target['event_id'] ?? $eventId;
             $href = $isObject
                 ? $baseurl . '/objects/view/' . h($target['id'] ?? $reference['referenced_id'])
-                : $baseurl . '/events/view2/' . h($targetEventId)
+                : $baseurl . '/events/view/' . h($targetEventId)
                     . '/searchFor:' . h($reference['referenced_uuid']) . '#tab-attributes';
             ?>
             <li class="d-flex align-items-center ov-obj-rel-item" data-reference-id="<?= (int)($reference['id'] ?? 0) ?>">

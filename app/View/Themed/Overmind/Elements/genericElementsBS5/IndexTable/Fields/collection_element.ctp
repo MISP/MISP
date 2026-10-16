@@ -19,7 +19,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
                         . '<span class="badge bg-event">#%s</span>'
                         . '<span class="text-body">%s</span>'
                     . '</a>',
-                    h($baseurl . '/events/view2/' . $element['Event']['id']),
+                    h($baseurl . '/events/view/' . $element['Event']['id']),
                     h($element['Event']['id']),
                     h($element['Event']['info'])
                 );
@@ -30,7 +30,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
                         'row' => $row,
                         'field' => [
                             'data_path' => 'element_uuid',
-                            'url' => $baseurl . '/events/view2/%id%',
+                            'url' => $baseurl . '/events/view/%id%',
                         ]
                     ]
                 );
@@ -69,7 +69,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
                             . '<span class="badge %s">%s</span>'
                             . '<span class="text-body%s">%s</span>'
                         . '</a>',
-                        h($baseurl . '/events/view2/' . $target['event_id']),
+                        h($baseurl . '/events/view/' . $target['event_id']),
                         $isAttribute ? 'bg-attribute' : 'bg-object',
                         h($isAttribute ? $target['type'] : $target['name']),
                         $isAttribute ? ' font-monospace' : '',

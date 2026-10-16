@@ -112,7 +112,7 @@ switch ($type) {
     case 'text':
         if (in_array($attribute['category'] ?? '', ['External analysis', 'Internal reference'], true)
             && Validation::uuid($value)) {
-            echo $hover('<a href="' . h($baseurl . '/events/view2/' . $value) . '">' . h($value) . '</a>');
+            echo $hover('<a href="' . h($baseurl . '/events/view/' . $value) . '">' . h($value) . '</a>');
         } else {
             echo $longText($value);
         }

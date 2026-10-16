@@ -134,7 +134,7 @@ $tileStyle = 'width:1.75rem;height:1.75rem;';
                         </div>
                     </div>
                 <?php elseif (!empty($feed['event_id'])): ?>
-                    <a href="<?= h($baseurl . '/events/view2/' . $feed['event_id']) ?>"
+                    <a href="<?= h($baseurl . '/events/view/' . $feed['event_id']) ?>"
                        class="d-inline-flex align-items-center gap-2 p-2 rounded-3 border bg-body-tertiary text-decoration-none link-body-emphasis ov-mini-card">
                         <i class="misp-icon misp-icon-event misp-simple text-primary"></i>
                         <span class="small"><?= __('Fixed event') ?></span>

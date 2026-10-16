@@ -25,7 +25,7 @@ if (!empty($event['disable_correlation'])) {
 $isExtended = !empty($extended);
 $isExtending = !empty($extending);
 $modeUrl = function ($extendedOn, $extendingOn) use ($baseurl, $event) {
-    return $baseurl . '/events/view2/' . (int)($event['id'] ?? 0)
+    return $baseurl . '/events/view/' . (int)($event['id'] ?? 0)
         . ($extendedOn ? '/extended:1' : '')
         . ($extendingOn ? '/extending:1' : '');
 };
@@ -43,7 +43,7 @@ $extSwitch = function ($on, $url, $label, $title) {
 $extEventLink = function (array $related, $class, $prefix, $suffix = '') use ($baseurl) {
     $orgName = $related['Orgc']['name'] ?? '';
     return sprintf(
-        '<a class="%s" href="%s/events/view2/%d" title="%s">%s'
+        '<a class="%s" href="%s/events/view/%d" title="%s">%s'
         . '<span class="eo-ext-id">#%d</span><span class="eo-ext-info">%s</span>%s</a>',
         $class,
         h($baseurl),

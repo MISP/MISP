@@ -10,7 +10,7 @@
 // to pivotick's {nodes, edges}. They are the substance of the layer work in
 // docs/dev/pivot-explorer-v16-prd.md §9 (tasks 3, 3b, 3c, 5, 5b), and they need
 // no browser — so they are tested here rather than by clicking through
-// /events/view2. Anything visual (styling, legend, layout) still needs the
+// /events/view. Anything visual (styling, legend, layout) still needs the
 // manual pass in PRD §8.
 //
 // Since task 3c draws every live object, "which level put this object on the
@@ -1158,7 +1158,7 @@ test('double-click on another event opens it, and does nothing anywhere else', a
     ok('the callback is declared', typeof dbl === 'function');
 
     dbl({}, { getData: () => ({ type: 'event', event_id: '22' }) });
-    eq('navigates to the other event', g.win.location.href, '/misp/events/view2/22');
+    eq('navigates to the other event', g.win.location.href, '/misp/events/view/22');
 
     g.win.location.href = '';
     dbl({}, { getData: () => ({ type: 'event', event_id: '1' }) });
@@ -2559,7 +2559,7 @@ test('18: another event\'s page opens in a new tab, for whatever belongs to one'
         shows(g, 'Open its event', null),
     ], [true, true, true, false, false, false, false]);
     menuItem(g, 'Open its event').onclick({}, pnode({ type: 'attribute', event_id: '7' }));
-    eq('view2, in a new tab, without an opener', g.win.opened, [['/misp/events/view2/7', '_blank', 'noopener']]);
+    eq('event page, in a new tab, without an opener', g.win.opened, [['/misp/events/view/7', '_blank', 'noopener']]);
     ok('the page itself stays', g.win.location.href === '');
     eq('a multi-selection is not one element', shows(g, 'Open its event', undefined) === false
        && menuItem(g, 'Open its event').visible([pnode({ type: 'event', event_id: '7' }), pnode({ type: 'event', event_id: '8' })]),

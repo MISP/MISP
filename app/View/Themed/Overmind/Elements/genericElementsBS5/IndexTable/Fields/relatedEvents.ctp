@@ -94,7 +94,7 @@ $overflow   = $total - $maxVisible;
                     . h(__('Your organisation')) . '</div>';
             }
         ?>
-        <a href="<?= $baseurl ?>/events/view2/<?= h($ev['id']) ?>"
+        <a href="<?= $baseurl ?>/events/view/<?= h($ev['id']) ?>"
            class="badge text-decoration-none bg-primary om-lazy-popover<?= $hidden ? ' d-none related-event-extra' : '' ?>"
            aria-label="<?= h(__('Event #%s', $ev['id'])) ?>"
            data-bs-title="<?= h(__('Event #%s', $ev['id'])) ?>"
