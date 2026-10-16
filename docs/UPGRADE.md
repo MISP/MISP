@@ -156,6 +156,17 @@ built while the old text columns still exist.
   `TrendingAttributesWidget` counts case variants apart; `TrendingWidget` counts
   them together.
 
+**Analyst data and collections**
+
+- **Notes, opinions, relationships and collection elements can point at a
+  value**, addressed by the SHA-256 of its text (`object_sha256`,
+  `related_object_sha256`, `element_sha256`, type `AttributeValue`). On those
+  rows `object_uuid`, `related_object_uuid` or `element_uuid` is `null`: API
+  clients that assume a uuid there need to cope with it. Developer reference:
+  [docs/dev/value_targets.md](dev/value_targets.md).
+- **2.x peers never receive these rows.** A collection a 2.x instance sends back
+  replaces the other elements as before, but never removes the value elements.
+
 **Indexes**
 
 - The final migration drops every index on the old text columns, custom ones

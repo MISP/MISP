@@ -3288,6 +3288,7 @@ components:
         - "Relationship"
         - "Organisation"
         - "SharingGroup"
+        - "AttributeValue"
 
     AnalystDataAuthors:
       type: string
@@ -3317,6 +3318,11 @@ components:
           $ref: "#/components/schemas/UUID"
         object_uuid:
           $ref: "#/components/schemas/UUID"
+        object_sha256:
+          allOf:
+            - $ref: "#/components/schemas/ValueSha256"
+          nullable: true
+          description: "Set instead of object_uuid (then null) when object_type is AttributeValue"
         object_type:
           $ref: "#/components/schemas/AnalystObjectType"
         authors:
@@ -3372,6 +3378,11 @@ components:
           properties:
             related_object_uuid:
               $ref: "#/components/schemas/UUID"
+            related_object_sha256:
+              allOf:
+                - $ref: "#/components/schemas/ValueSha256"
+              nullable: true
+              description: "Set instead of related_object_uuid (then null) when related_object_type is AttributeValue"
             related_object_type:
               $ref: "#/components/schemas/AnalystObjectType"
             relationship_type:
@@ -6639,6 +6650,12 @@ components:
       format: uuid
       example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
 
+    ValueSha256:
+      type: string
+      description: "SHA-256 of an attribute value's stored text, lowercase hex. Addresses the value as an analyst data or collection target (type AttributeValue)."
+      pattern: "^[0-9a-f]{64}$"
+      example: "3cbad7bc936718f07fa8665bc64ce46986142bea60f86fd0c05cd2a4a8ea2bc4"
+
     ExtendsUUID:
       type: string
       nullable: true
@@ -7414,9 +7431,14 @@ components:
           $ref: "#/components/schemas/CollectionId"
         element_uuid:
           $ref: "#/components/schemas/UUID"
+        element_sha256:
+          allOf:
+            - $ref: "#/components/schemas/ValueSha256"
+          nullable: true
+          description: "Set instead of element_uuid (then null) when element_type is AttributeValue"
         element_type:
           type: string
-          enum: [ "Event", "GalaxyCluster" ]
+          enum: [ "Event", "GalaxyCluster", "AttributeValue" ]
         description:
           $ref: "#/components/schemas/CollectionElementDescription"
 
@@ -7836,10 +7858,12 @@ components:
     analystDataObjectUUIDParameter:
       name: analystObjectUUID
       in: path
-      description: "Object UUID that has an analyst data"
+      description: "UUID of the object the analyst data is on, or the SHA-256 of a value (object type AttributeValue)"
       required: true
       schema:
-        $ref: "#/components/schemas/UUID"
+        oneOf:
+          - $ref: "#/components/schemas/UUID"
+          - $ref: "#/components/schemas/ValueSha256"
 
     analystDataObjectTypeParameter:
       name: analystObjectType

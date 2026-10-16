@@ -37,6 +37,9 @@ attribute_values (
   `value` column's collation equates strings that differ in case, so it could
   not. Every hit on `hash` is compared with the full value, and a mismatch (a
   hash collision) throws.
+- **`hash` is also the value's public address**, as lowercase hex: in
+  `/values/view/sha256:<hex>`, and for analyst data and collection elements
+  that point at a value ([value_targets.md](value_targets.md)).
 - **Rows are never changed.** They are added by saves and deleted only through
   `/values/delete` (section 10). Nothing garbage-collects them: a value
   stays after its last attribute is gone.
