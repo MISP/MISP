@@ -4547,6 +4547,28 @@ tr.evt-extension-row td:first-child { position: relative; }
     display: none;
 }
 
+.collapse-peek {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1.25rem;
+    padding: .5rem 1rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+}
+
+.collapse-peek-item {
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.collapse-peek-item > * {
+    margin: 0 !important;
+}
+
+.collapse-peek-item:hover > * {
+    text-decoration: underline;
+}
+
 /* ═══════════════════════════════════════════════════════════
    BORDERED MINI-CARDS
    The tile a general card states one value in: the event

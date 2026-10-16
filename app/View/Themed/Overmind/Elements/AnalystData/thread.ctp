@@ -69,7 +69,7 @@ $counter = function ($type, $direct) use ($threadCount) {
 $typeAccents = [
     'Note'         => 'primary',
     'Opinion'      => 'success',
-    'Relationship' => 'info',
+    'Relationship' => 'correlation',
 ];
 $accentOf = function ($type) use ($typeAccents) {
     return $this->ModalAccent->get($typeAccents[$type] ?? 'primary');

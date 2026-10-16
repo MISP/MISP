@@ -37,27 +37,40 @@ if (!empty($relationships)) {
         . h(__n('%s relationship', '%s relationships', count($relationships), count($relationships))) . '</span>';
 }
 ?>
-<div class="card shadow-sm eo-card eo-assessment" id="analyst-data-card">
+<div class="card shadow-sm eo-card eo-assessment w-100" id="analyst-data-card">
     <div class="eo-card-head">
         <div class="misp-icon-tile eo-tile" style="--tile:var(--bs-analystData);--tile-bg:color-mix(in srgb, var(--bs-analystData) 12%, transparent);">
             <i class="fas fa-scale-balanced"></i>
         </div>
         <div class="min-w-0 me-auto">
             <div class="eo-card-title"><?= __('Assessment') ?></div>
-            <div class="eo-card-sub eo-assessment-facts">
-                <?php if (empty($facts) && empty($confidence)): ?>
-                    <?= __('No assessment yet') ?>
-                <?php elseif (empty($facts)): ?>
-                    <?= __('No analyst data yet') ?>
-                <?php else: ?>
-                    <?= implode('', $facts) ?>
-                <?php endif; ?>
-            </div>
+            <?php if (!empty($facts)): ?>
+                <div class="eo-card-sub eo-assessment-facts"><?= implode('', $facts) ?></div>
+            <?php endif; ?>
         </div>
-        <?php if ($hasAnalystData): ?>
-            <button type="button" class="btn btn-sm btn-outline-analystData flex-shrink-0 d-inline-flex align-items-center gap-1" data-bs-toggle="collapse" data-bs-target="#eo-analyst-data" aria-expanded="false" title="<?= __('Show analyst data') ?>">
-                <i class="fas fa-comment-dots"></i><span class="eo-btn-label"><?= __('Show analyst data') ?></span>
-            </button>
+        <?php if ($canAdd): ?>
+            <div class="dropdown flex-shrink-0">
+                <button type="button" class="btn btn-sm btn-outline-analystData dropdown-toggle d-inline-flex align-items-center gap-1" data-bs-toggle="dropdown" aria-expanded="false" title="<?= h(__('Add analyst data')) ?>">
+                    <i class="fas fa-plus"></i><span class="eo-btn-label"><?= __('Add') ?></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <button type="button" class="dropdown-item d-flex align-items-center gap-2" onclick="openModal('<?= h($addUrl('Note')) ?>')">
+                            <i class="misp-icon misp-icon-analyst-note misp-simple"></i><?= __('Note') ?>
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" class="dropdown-item d-flex align-items-center gap-2" onclick="openModal('<?= h($addUrl('Opinion')) ?>')">
+                            <i class="misp-icon misp-icon-analyst-opinion misp-simple"></i><?= __('Opinion') ?>
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" class="dropdown-item d-flex align-items-center gap-2" onclick="openModal('<?= h($addUrl('Relationship')) ?>')">
+                            <i class="fas fa-diagram-project"></i><?= __('Relationship') ?>
+                        </button>
+                    </li>
+                </ul>
+            </div>
         <?php endif; ?>
     </div>
 
@@ -70,27 +83,13 @@ if (!empty($relationships)) {
     <?php endif; ?>
 
     <?php if ($hasAnalystData): ?>
-        <div class="collapse" id="eo-analyst-data">
-            <div class="border-top" data-eo-fragment-lazy="<?= h($baseurl . '/analystData/viewForObject/Event/' . rawurlencode($eventUuid) . '?embedded=1') ?>">
-                <div class="text-center text-muted py-3"><div class="misp-loader misp-loader-sm" role="status"></div></div>
-            </div>
+        <div id="eo-analyst-data"<?= empty($confidence) ? '' : ' class="border-top"' ?> data-collapse-tall="350" data-collapse-peek="[data-ad-section]" data-eo-fragment="<?= h($baseurl . '/analystData/viewForObject/Event/' . rawurlencode($eventUuid) . '?embedded=1') ?>">
+            <div class="text-center text-muted py-3"><div class="misp-loader misp-loader-sm" role="status"></div></div>
         </div>
-    <?php endif; ?>
-
-    <?php if ($canAdd): ?>
-        <div class="eo-card-foot eo-assessment-foot">
-            <span class="eo-muted small"><?= __('Add') ?></span>
-            <span class="btn-group btn-group-sm" role="group" aria-label="<?= h(__('Add analyst data')) ?>">
-                <button type="button" class="btn btn-outline-analystData" onclick="openModal('<?= h($addUrl('Note')) ?>')">
-                    <i class="misp-icon misp-icon-analyst-note misp-simple me-1"></i><?= __('Note') ?>
-                </button>
-                <button type="button" class="btn btn-outline-analystData" onclick="openModal('<?= h($addUrl('Opinion')) ?>')">
-                    <i class="misp-icon misp-icon-analyst-opinion misp-simple me-1"></i><?= __('Opinion') ?>
-                </button>
-                <button type="button" class="btn btn-outline-analystData" onclick="openModal('<?= h($addUrl('Relationship')) ?>')">
-                    <i class="fas fa-diagram-project me-1"></i><?= __('Relationship') ?>
-                </button>
-            </span>
+    <?php else: ?>
+        <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center text-muted py-4">
+            <i class="fas fa-comment-dots fa-2x mb-2 opacity-50"></i>
+            <p class="mb-0 small fw-semibold"><?= __('No notes, opinions or relationships on this event yet.') ?></p>
         </div>
     <?php endif; ?>
 </div>

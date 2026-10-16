@@ -6,7 +6,7 @@ $uploadUrl = h($baseurl . '/attributes/add_attachment/' . $eventId);
 $mayModify = $this->Acl->canModifyEvent($data);
 ?>
 
-<div class="card shadow-sm eo-card eo-attachments" id="attachment-card">
+<div class="card shadow-sm eo-card eo-attachments w-100" id="attachment-card">
 
     <div class="eo-card-head eo-attach-head">
         <div class="misp-icon-tile eo-tile" style="--tile:#F59E0B;--tile-bg:#fff3cd;">
@@ -45,7 +45,7 @@ $mayModify = $this->Acl->canModifyEvent($data);
         </span>
     </div>
 
-    <div id="<?= $uid ?>-body" data-collapse-tall="300">
+    <div id="<?= $uid ?>-body" data-collapse-tall="350">
         <div class="text-center py-5 text-muted" id="<?= $uid ?>-spinner">
             <div class="misp-loader misp-loader-sm" role="status"></div>
         </div>
@@ -76,6 +76,7 @@ $mayModify = $this->Acl->canModifyEvent($data);
             var dlBtn = document.getElementById(uid + '-dl-all');
             if (filter) { filter.classList.toggle('d-none', total <= 3); }
             if (dlBtn) { dlBtn.classList.toggle('d-none', total <= 1); }
+            body.classList.toggle('my-auto', total === 0);
         })
         .catch(function () {
             body.innerHTML =

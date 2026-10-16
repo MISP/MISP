@@ -69,7 +69,10 @@ $tone = function (array $cfg, $role) use ($toneHues) {
 
 <?php if (empty($attachments)): ?>
 
-    <p class="eo-empty" data-attachment-empty><?= __('No file attached to this event.') ?></p>
+    <div class="d-flex flex-column align-items-center justify-content-center text-muted py-4" data-attachment-empty>
+        <i class="fas fa-paperclip fa-2x mb-2 opacity-50"></i>
+        <p class="mb-0 small fw-semibold"><?= __('No file attached to this event.') ?></p>
+    </div>
 
 <?php else: ?>
 

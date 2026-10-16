@@ -544,7 +544,7 @@
         });
         reopenTab();
         if (!document.querySelector('.eo-band')) return;
-        document.querySelectorAll('#eo-context-card, #eo-inventory-card, #eo-object-views')
+        document.querySelectorAll('#eo-context-card, #eo-inventory-card, #eo-object-views, #eo-analyst-data')
             .forEach(loadFragment);
         document.querySelectorAll('[data-eo-fragment-lazy]').forEach(function (el) {
             var holder = el.closest('.collapse');
