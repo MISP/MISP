@@ -275,7 +275,7 @@ jobs:
       - name: DB Update
         run: |
           app/Console/cake Admin setSetting "MISP.osuser" $USER
-          app/Console/cake Admin runUpdates
+          app/Console/cake Admin runUpgrade
           app/Console/cake Admin schemaDiagnostics
           # A fresh install starts at the current schema: the legacy corpus had nothing
           # to do, and no migration is pending.
@@ -292,7 +292,7 @@ jobs:
           git fetch --depth 1 origin tag v2.5.45
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "create database misp_legacy; grant all privileges on misp_legacy.* to misp@'%';"
           git show v2.5.45:INSTALL/MYSQL.sql | mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp_legacy
-          MISP_DB_NAME=misp_legacy app/Console/cake Admin runUpdates
+          MISP_DB_NAME=misp_legacy app/Console/cake Admin runUpgrade
           MISP_DB_NAME=misp_legacy app/Console/cake Admin schemaDiagnostics
           MISP_DB_NAME=misp_legacy app/Console/cake Admin migrationStatus | grep -q "Everything on disk has been applied."
           app/Console/cake Admin verifyInstallBaseline --connection legacy --database misp

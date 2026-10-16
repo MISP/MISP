@@ -43,6 +43,12 @@ class AdminShell extends AppShell
         'OverCorrelatingValue'
     ];
 
+    /** The 3.0 migration that waits for the attribute value conversion. */
+    const UPGRADE_VALUE_DROP = '20261010_103316_drop_attribute_value_text';
+
+    /** The conversion, as `Console/cake AttributeValue <step>`, in order. */
+    const UPGRADE_VALUE_STEPS = array('backfill', 'rebuildFacets', 'remapCorrelations');
+
     public function getOptionParser()
     {
         $parser = parent::getOptionParser();
@@ -203,6 +209,9 @@ class AdminShell extends AppShell
                     ],
                 ],
             ],
+        ]);
+        $parser->addSubcommand('runUpgrade', [
+            'help' => __('Upgrade the database to this version in one offline run: take the instance offline, apply every pending update (the numeric ones first, then the migrations, with the attribute value conversion where it is due), then bring the instance back. A run that stops leaves the instance offline; running it again carries on.'),
         ]);
         $parser->addSubcommand('migrationCreate', [
             'help' => __('Scaffold a new migration class from the stub.'),
@@ -842,15 +851,139 @@ class AdminShell extends AppShell
         $this->AdminSetting->resetUpdateFailNumber();
         $this->__assertOsUserMayWrite();
         $this->out('Executing all updates to bring the database up to date with the current version.');
-        $lock = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'update_locked')));
-        if (!empty($lock)) {
-            $this->AdminSetting->delete($lock['AdminSetting']['id']);
-        }
+        $this->__clearUpdateLock();
         $processId = empty($this->args[0]) ? false : $this->args[0];
         // Run by hand, not by a worker: try deferred migrations again now.
         $this->Server->runUpdates(true, false, $processId, true, $processId === false);
         $this->Server->cleanCacheFiles();
         $this->out('All updates completed.');
+    }
+
+    /**
+     * The whole upgrade in one offline run. A run that stops leaves the
+     * instance offline, its schema possibly half converted; a re-run carries on.
+     *
+     * @return void
+     */
+    public function runUpgrade()
+    {
+        $this->__assertOsUserMayWrite();
+        $pending = array_keys($this->Server->pendingUpdates());
+        if (empty($pending)) {
+            $this->out(__('Nothing to upgrade: every update has been applied.'));
+            if (!Configure::read('MISP.live')) {
+                $this->out(__('The instance is offline; Console/cake Admin live 1 brings it back.'));
+            }
+            return;
+        }
+        $manager = $this->Server->getMigrationManager();
+        $migrations = array_values(array_filter($pending, function ($update) use ($manager) {
+            return is_string($update) && $manager->has($update);
+        }));
+        $this->AdminSetting->resetUpdateFailNumber();
+        $this->__clearUpdateLock();
+        $manager->setReporter(array($this, 'reportMigration'));
+
+        $this->out(__('Taking the instance offline.'));
+        if (!$this->__setLive(false)) {
+            $this->error(__('Could not take the instance offline: MISP.live could not be saved in Redis or in the PHP config file.'));
+        }
+        if (count($migrations) < count($pending)) {
+            $this->out(__('Numeric updates:'));
+            $this->__upgradeUntil(empty($migrations) ? null : $migrations[0], true);
+        }
+        if (in_array(self::UPGRADE_VALUE_DROP, $migrations, true)) {
+            $this->__upgradeUntil(self::UPGRADE_VALUE_DROP, false);
+            foreach (self::UPGRADE_VALUE_STEPS as $step) {
+                $this->out(__('Converting the attribute values: Console/cake AttributeValue %s', $step));
+                $this->dispatchShell('AttributeValue', $step);
+            }
+        }
+        $this->__upgradeUntil(null, false);
+        $this->__upgradeUntil(null, true);
+        $this->Server->cleanCacheFiles();
+        $manager->inspector()->flushSchemaCacheFiles();
+
+        // A worker started before the run still knows the tables as they were.
+        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+            $this->out(__('Restarting the background workers.'));
+            try {
+                $this->getBackgroundJobsTool()->restartWorkers(true);
+            } catch (Throwable $e) {
+                $this->out('<warning>' . __('Could not restart the workers (%s): Console/cake Admin restartWorkers', $e->getMessage()) . '</warning>');
+            }
+        }
+        $this->out(__('Bringing the instance back.'));
+        if (!$this->__setLive(true)) {
+            $this->error(__('The upgrade is complete, but MISP.live could not be saved: Console/cake Admin live 1'));
+        }
+        $this->out(__('Upgrade complete.'));
+    }
+
+    /**
+     * One runUpdates() pass, and a halt unless it applied everything in front
+     * of $stopBefore (everything, without one).
+     *
+     * @param string|null $stopBefore
+     * @param bool $verbose
+     * @return void
+     */
+    private function __upgradeUntil($stopBefore, $verbose)
+    {
+        try {
+            $this->Server->runUpdates($verbose, false, false, true, true, $stopBefore);
+        } catch (Exception $e) {
+            $this->__upgradeHalted(null, array(), $e->getMessage());
+        }
+        $left = array_keys($this->Server->pendingUpdates());
+        $next = empty($left) ? null : $left[0];
+        if ($next !== $stopBefore) {
+            $this->__upgradeHalted($next, $left);
+        }
+    }
+
+    /**
+     * @param string|int|null $next The update the run stopped at.
+     * @param array $left Every update still pending.
+     * @param string|null $reason Why no update could be attempted.
+     * @return void
+     */
+    private function __upgradeHalted($next, array $left, $reason = null)
+    {
+        $manager = $this->Server->getMigrationManager();
+        $manager->inspector()->flushSchemaCacheFiles();
+        $lines = $reason === null ? array() : array($reason);
+        if ($next !== null && is_string($next) && $manager->has($next)) {
+            $ledger = $manager->ledger();
+            $status = isset($ledger[$next]['status']) ? $ledger[$next]['status'] : __('not attempted');
+            $lines[] = __('Stopped at %s (%s).', $next, $status);
+            if (!empty($ledger[$next]['error'])) {
+                foreach (explode(PHP_EOL, $ledger[$next]['error']) as $line) {
+                    $lines[] = '  ' . $line;
+                }
+            }
+        } elseif ($next !== null) {
+            $lines[] = __('Stopped at the numeric update %s; the logs say why.', $next);
+        }
+        if (!empty($left)) {
+            $lines[] = __n('%s update is still pending.', '%s updates are still pending.', count($left), count($left));
+        }
+        $lines[] = __('The instance stays offline. Fix the cause and run Console/cake Admin runUpgrade again: it carries on from there.');
+        $this->error(__('The upgrade stopped.'), implode(PHP_EOL, $lines));
+    }
+
+    /**
+     * Run from the command line by an administrator, so a lock left behind by
+     * an earlier run that died is not one to wait for.
+     *
+     * @return void
+     */
+    private function __clearUpdateLock()
+    {
+        $lock = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'update_locked')));
+        if (!empty($lock)) {
+            $this->AdminSetting->delete($lock['AdminSetting']['id']);
+        }
     }
 
     /**
@@ -2083,33 +2216,7 @@ class AdminShell extends AppShell
     public function live()
     {
         if (isset($this->args[0])) {
-            $newStatus = $this->toBoolean($this->args[0]);
-            $overallSuccess = false;
-            try {
-                $redis = RedisTool::init();
-                if ($newStatus) {
-                    $redis->del('misp:live');
-                    $this->out('Set live status to True in Redis.');
-                } else {
-                    $redis->set('misp:live', '0');
-                    $this->out('Set live status to False in Redis.');
-                }
-                $overallSuccess = true;
-            } catch (Exception $e) {
-                $this->out('<warning>Redis is not reachable.</warning>');
-            }
-
-            $success = $this->Server->serverSettingsSaveValue('MISP.live', $newStatus);
-            if ($success) {
-                $this->out('Set live status in PHP config file.');
-                $overallSuccess = true;
-            } else {
-                $this->out('<warning>Could not set MISP.live in PHP config file.</warning>');
-            }
-
-            if ($overallSuccess) {
-                $this->out($newStatus ? 'MISP is now live. Users can now log in.' : 'MISP is now disabled. Only site admins can log in.');
-            } else {
+            if (!$this->__setLive($this->toBoolean($this->args[0]))) {
                 $this->error('Could not save live status in Redis or PHP config file.');
             }
         } else {
@@ -2118,6 +2225,43 @@ class AdminShell extends AppShell
             $newStatus = RedisTool::init()->get('misp:live');
             $this->out('Redis: ' . ($newStatus !== '0' ? 'True' : 'False'));
         }
+    }
+
+    /**
+     * @param bool $newStatus
+     * @return bool Whether Redis or the PHP config file took it.
+     */
+    private function __setLive($newStatus)
+    {
+        $overallSuccess = false;
+        try {
+            $redis = RedisTool::init();
+            if ($newStatus) {
+                $redis->del('misp:live');
+                $this->out('Set live status to True in Redis.');
+            } else {
+                $redis->set('misp:live', '0');
+                $this->out('Set live status to False in Redis.');
+            }
+            $overallSuccess = true;
+        } catch (Exception $e) {
+            $this->out('<warning>Redis is not reachable.</warning>');
+        }
+
+        $success = $this->Server->serverSettingsSaveValue('MISP.live', $newStatus);
+        if ($success) {
+            $this->out('Set live status in PHP config file.');
+            $overallSuccess = true;
+        } else {
+            $this->out('<warning>Could not set MISP.live in PHP config file.</warning>');
+        }
+
+        if ($overallSuccess) {
+            // Saving writes the file only; this process reads the setting too.
+            Configure::write('MISP.live', (bool)$newStatus);
+            $this->out($newStatus ? 'MISP is now live. Users can now log in.' : 'MISP is now disabled. Only site admins can log in.');
+        }
+        return $overallSuccess;
     }
 
     public function reencrypt()

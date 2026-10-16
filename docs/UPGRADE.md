@@ -42,7 +42,7 @@ of what a halted instance looks like is in
 ## Attribute values move to a value table (MISP 3.0)
 
 !!! warning
-    The conversion needs a few commands after the update, and the instance should be offline while they run. Read the steps before you start.
+    The upgrade runs offline, from the command line, in one command. Read the steps before you start.
 
 MISP 3.0 stores each distinct attribute value once, in `attribute_values`.
 Attributes and proposals point at it instead of holding their value as text.
@@ -54,36 +54,26 @@ is [docs/dev/attribute_values.md](dev/attribute_values.md).
 Run the commands from `app/` as the web server user
 (`sudo -u www-data Console/cake …`).
 
-1. **Update, then apply the migrations**: `Console/cake Admin runUpdates`, or
-   log in. They create the value table and the new id columns. The last one,
-   which drops the old text columns, waits until the next steps are done.
-   `Console/cake Admin migrationStatus` shows it as deferred, and its message
-   names the step it is waiting for.
-2. **Take the instance offline**: `Console/cake Admin live 0`. Until steps 3–5
-   finish, searches and correlation miss the attributes not converted yet, and
-   existing correlations do not show their values correctly.
-3. **Fill the value table**: `Console/cake AttributeValue backfill`. It shows its
-   progress and can be stopped and started again; it carries on where it
-   stopped.
-4. **Build the IP index** used by CIDR correlation and the `value_cidr` filter:
-   `Console/cake AttributeValue rebuildFacets`.
-5. **Re-key the existing correlations**:
-   `Console/cake AttributeValue remapCorrelations`. Also resumable.
-6. **Apply the last migration**: `Console/cake Admin runUpdates`. It checks that
-   every attribute and proposal gives back its exact text from the value table
-   before it drops anything. `Console/cake AttributeValue verify` runs the same
-   check on its own and changes nothing.
-7. **Restart the background workers**: `Console/cake Admin restartWorkers`. A
-   worker that was running during the update still knows the tables as they
-   were before it, and fails on the columns the update dropped.
-8. **Bring the instance back**: `Console/cake Admin live 1`.
-9. **Regenerate the lists the conversion emptied**:
+1. **Update the code**, then run the upgrade from the command line before
+   anyone logs in: `Console/cake Admin runUpgrade`. It takes the instance offline, applies every pending update and converts the
+   attribute values: it fills the value table
+   (`Console/cake AttributeValue backfill`), builds the IP index used by CIDR
+   correlation and the `value_cidr` filter (`rebuildFacets`), re-keys the
+   existing correlations (`remapCorrelations`), and checks that every attribute
+   and proposal gives back its exact text from the value table before the last
+   migration drops the old text columns. Then it restarts the background
+   workers and brings the instance back. It shows its progress as it goes.
+   If anything fails, it stops and leaves the instance offline; fix what it
+   names and run it again, and it carries on where it stopped.
+   `Console/cake AttributeValue verify` runs the same check on its own and
+   changes nothing.
+2. **Regenerate the lists the conversion emptied**:
    - **Top correlations**: `Console/cake Event generateTopCorrelations`, or the
      button on the top correlations page.
    - **Over-correlation counts**: the button on the over-correlating values
      page.
-10. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
-    `misp:correlation_exclusions`, so both keys can be deleted.
+3. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
+   `misp:correlation_exclusions`, so both keys can be deleted.
 
 Make sure the database has room for the value table before you start: it is
 built while the old text columns still exist.

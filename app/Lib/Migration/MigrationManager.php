@@ -436,7 +436,7 @@ class MigrationManager
         if (empty($offline)) {
             return null;
         }
-        $how = 'Run it from the command line with the instance switched off: Console/cake Admin live 0; Console/cake Admin migrationApply';
+        $how = 'Run the upgrade from the command line: Console/cake Admin runUpgrade';
         if (PHP_SAPI !== 'cli') {
             return sprintf('%s can run for hours and does not start from a web request. %s', $offline[0], $how);
         }

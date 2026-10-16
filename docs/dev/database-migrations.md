@@ -281,7 +281,8 @@ A rebuild can run for hours, so a `TableMigration` is **offline**
 (`$offline = true`): the manager refuses to start any run that has one pending
 from a web request, and on the command line while `MISP.live` is on
 (`MigrationManager::refusal()`; `runUpdates` and `migrationApply` say why, a page
-load just leaves it). `beforeUp()` defers outside the CLI as well. The statements
+load just leaves it). `Console/cake Admin runUpgrade` is the way through (§7).
+`beforeUp()` defers outside the CLI as well. The statements
 run under session settings that leave the ALTER's algorithm to the server (a
 session at COPY would turn instant changes into copies: MariaDB's
 `alter_algorithm = 'DEFAULT'`, quoted, MySQL's `old_alter_table = OFF`) and wait
@@ -373,6 +374,15 @@ Console/cake Admin migrationApply --id <id>       # one
 Applying is also what `runUpdates()` does, so an ordinary login or
 `Console/cake Admin runUpdates` picks migrations up alongside the legacy corpus —
 legacy first in numeric order, then migrations in id order.
+
+A release with an offline migration is applied with `Console/cake Admin
+runUpgrade`, as one run: it takes the instance offline (`MISP.live`), applies
+the numeric updates, then every migration in id order, runs the attribute value
+conversion (`AttributeValue backfill`, `rebuildFacets`, `remapCorrelations`) in
+front of `drop_attribute_value_text`, runs `runUpdates` once more, restarts the
+workers and brings the instance back. When anything fails or defers it stops
+there and leaves the instance offline, the schema possibly half converted; a
+second run carries on. `migrationApply` stays for applying by hand.
 
 `migrationApply` must run as the web server's user (`www-data`, `httpd`,
 `apache`, `wwwrun`, `www`, or whoever `MISP.osuser` names). Applying writes cache
