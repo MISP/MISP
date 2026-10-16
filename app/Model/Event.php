@@ -4403,6 +4403,11 @@ class Event extends AppModel
             $attributes, $user, $eventId
         );
 
+        if ($this->Attribute->Correlation->getCorrelationModelName() !== 'OnDemand') {
+            $attributes = $this->Attribute->Correlation
+                ->attachCorrelationExclusion($attributes);
+        }
+
         // Attribute correlations
         $attributeIds = array_column($attributes, 'id');
         $sgids = $this->SharingGroup->authorizedIds($user);
