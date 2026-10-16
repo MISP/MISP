@@ -8322,7 +8322,7 @@ class Server extends AppModel
                  */
                 'ValueIntelligence_instance_profile' => array(
                     'level' => 1,
-                    'description' => __('The uuid of the Analyst Profile this instance scores values with, for every reader whose organisation and account have selected none. Defaults to the shipped default-v1. It must name a profile MISP ships or one a site admin has shared; a profile owned by a user or an organisation cannot be put in force here.'),
+                    'description' => __('The uuid of the Analyst Profile this instance scores values with, for every reader whose organisation and account have selected none. Defaults to the shipped default profile. It must name a profile MISP ships or one a site admin has shared; a profile owned by a user or an organisation cannot be put in force here.'),
                     'value' => '6e2679bc-ebb0-417f-90d8-16cb1d0144ba',
                     'test' => 'testAnalystProfileUuid',
                     'type' => 'string',
