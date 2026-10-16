@@ -67,7 +67,7 @@ echo $this->Form->create('CollectionElement', [
                 'autocomplete' => 'off',
             ]) ?>
             <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                'text' => __('An IP address, a domain, a hash — exactly as an attribute you can see carries it.'),
+                'text' => __('An IP address, a domain, a hash — any value. Its text shows to readers who can see an attribute carrying it.'),
             ]) ?>
         </div>
 

@@ -245,6 +245,16 @@ class CollectionElementTest extends TestCase
         $this->assertSame(array(array($visible, $hidden)), $acl->asked);
     }
 
+    public function testAnyValueIsAcceptedWithoutALookup()
+    {
+        $acl = new RecordingValueAcl(array());
+        ClassRegistry::$instances['AnalystData'] = $acl;
+
+        $this->element->assertTargetsUsable(array('id' => 2), 'AttributeValue', array(hash('sha256', 'never.seen.example')));
+
+        $this->assertSame(array(), $acl->asked);
+    }
+
     public function testAttributeReadabilityGoesThroughTheAclFetch()
     {
         $visible = '5d34e7f4-bc50-4907-b4e3-245ea1501b3a';

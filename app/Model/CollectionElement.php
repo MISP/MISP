@@ -330,7 +330,8 @@ class CollectionElement extends AppModel
     /**
      * Refuse any target $user cannot read. The read side resolves elements back
      * into objects, so every write path that stores one must check it first. A
-     * missing target and an invisible one get the same answer.
+     * missing target and an invisible one get the same answer. Any value is
+     * accepted: the read side shows its text only to whoever can see it.
      *
      * @param array $user
      * @param string|null $elementType When empty, deduced per address as
@@ -358,12 +359,7 @@ class CollectionElement extends AppModel
                     throw new NotFoundException(__('Invalid galaxy cluster or not authorized.'));
                 }
             } elseif ($type === 'AttributeValue') {
-                $found = ClassRegistry::init('AnalystData')->existingTargets($user, [
-                    ['type' => $type, 'address' => $address],
-                ]);
-                if (empty($found)) {
-                    throw new NotFoundException(__('Invalid value or not authorized.'));
-                }
+                continue;
             } elseif ($type === 'Attribute' || $type === 'Object') {
                 if (empty($this->readableUuids($user, $type, [$address]))) {
                     throw new NotFoundException(__('Invalid element or not authorized.'));
