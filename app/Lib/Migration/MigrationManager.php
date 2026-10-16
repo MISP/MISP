@@ -164,6 +164,9 @@ class MigrationManager
     /** @var array id => what the migration's most recent rendering noted. */
     private $notes = array();
 
+    /** @var callable|null see setReporter() */
+    private $reporter;
+
     /**
      * @param Model $model Supplies the datasource and carries the statements.
      * @param string|null $directory Defaults to app/Lib/Migration/Migrations.
@@ -399,6 +402,51 @@ class MigrationManager
     // --------------------------------------------------------------- running
 
     /**
+     * Have a run announce itself while it goes, for a shell to print.
+     *
+     * @param callable|null $reporter function ($event, $id, array $lines);
+     *   events: 'start' (the description), 'forecast' (what the migration
+     *   expects to do), then 'applied', 'deferred' or 'failed' (the duration
+     *   in ms, then the reason's lines).
+     * @return void
+     */
+    public function setReporter($reporter)
+    {
+        $this->reporter = $reporter;
+    }
+
+    /**
+     * Why a run of these migrations must not start now, if it must not.
+     *
+     * A migration that can run for hours (AbstractMigration::$offline) is not
+     * started from a web request, nor while the instance serves users.
+     *
+     * @param array|null $ids Defaults to everything pending.
+     * @return string|null
+     */
+    public function refusal(array $ids = null)
+    {
+        $ids = $ids === null ? array_keys($this->pending()) : $ids;
+        $offline = array();
+        foreach ($ids as $id) {
+            if ($this->has($id) && $this->migration($id)->offline) {
+                $offline[] = $id;
+            }
+        }
+        if (empty($offline)) {
+            return null;
+        }
+        $how = 'Run it from the command line with the instance switched off: Console/cake Admin live 0; Console/cake Admin migrationApply';
+        if (PHP_SAPI !== 'cli') {
+            return sprintf('%s can run for hours and does not start from a web request. %s', $offline[0], $how);
+        }
+        if (Configure::read('MISP.live')) {
+            return sprintf('%s can run for hours and does not start while the instance is live. %s', $offline[0], $how);
+        }
+        return null;
+    }
+
+    /**
      * Apply one migration and record the outcome.
      *
      * @param string $id
@@ -411,6 +459,7 @@ class MigrationManager
         $this->lastError = null;
         $this->deferredReason = null;
 
+        $this->report('start', $id, array($migration->description));
         $startedAt = microtime(true);
         try {
             $success = $this->execute($id, $migration);
@@ -429,6 +478,11 @@ class MigrationManager
             $this->lastStatus = self::STATUS_FAILED;
         }
         $this->writeLedger($id, $this->lastStatus, $durationMs, $success ? null : $this->lastError);
+        $this->report(
+            $this->lastStatus === self::STATUS_APPLIED ? 'applied' : $this->lastStatus,
+            $id,
+            array_merge(array($durationMs), $success || $this->lastError === null ? array() : explode(PHP_EOL, $this->lastError))
+        );
         return $success;
     }
 
@@ -611,6 +665,7 @@ class MigrationManager
         }
         $migration->up($schema);
         $this->notes[$id] = $schema->notes();
+        $this->report('forecast', $id, $migration->forecast());
         // Checking and rendering defer too, before anything is sent: a
         // collation token refuses a server older than the oldest one it
         // resolves for.
@@ -782,6 +837,19 @@ class MigrationManager
             return;
         }
         $this->logUpdate(__('Schema hints dropped while rendering the migration %s', $id), $hints);
+    }
+
+    /**
+     * @param string $event
+     * @param string $id
+     * @param array $lines
+     * @return void
+     */
+    protected function report($event, $id, array $lines)
+    {
+        if ($this->reporter !== null) {
+            call_user_func($this->reporter, $event, $id, $lines);
+        }
     }
 
     /**

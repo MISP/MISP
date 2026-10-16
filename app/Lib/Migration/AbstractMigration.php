@@ -84,6 +84,15 @@ abstract class AbstractMigration
     public $requiresLogout = false;
 
     /**
+     * Whether this migration may run for hours and so must not start from a
+     * web request or while the instance is live: the manager refuses such a
+     * run (MigrationManager::refusal()).
+     *
+     * @var bool
+     */
+    public $offline = false;
+
+    /**
      * @var SchemaInspector|null The live schema, handed over by the manager
      *   before up() runs.
      */
@@ -157,6 +166,17 @@ abstract class AbstractMigration
     public function beforeUp()
     {
         return true;
+    }
+
+    /**
+     * What the administrator should know before the statements run: size,
+     * kind of work, where to watch it. Asked after up().
+     *
+     * @return array Lines.
+     */
+    public function forecast()
+    {
+        return array();
     }
 
     /**

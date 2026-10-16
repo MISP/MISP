@@ -250,6 +250,47 @@ with that as the reason. `const RECREATE = true` drops the table and creates it
 empty at the target instead, for a table whose rows are rebuilt afterwards. The
 logic is `TableConverger`, which the migrations of other tables can call too.
 
+Before any of it runs, `beforeUp()` checks what the rebuild needs, and defers
+(§7) with the rows or the figures to fix rather than failing hours into an
+`ALTER` (`TablePreflight`):
+
+- the server: MariaDB 10.11, MySQL 8.4 or PostgreSQL 16 at least;
+- every index left afterwards, the kept ones measured in their new charsets,
+  within the key limit of `innodb_page_size` (3,072 bytes at 16 KB);
+- free disk for the new copy beside the old one, or for the new indexes and
+  their sort files in tmpdir, estimated from the target: checked where the
+  server runs on this host, otherwise noted;
+- rows that fit: no value longer than a narrower column, no NULL in a column
+  becoming NOT NULL, no number outside a narrower type; uuid and hash columns
+  ASCII only;
+- unique keys: one the run adds, or one whose new collation compares more
+  values as equal (`strasse` and `straße` under `uca1400_ai_ci`), must hold;
+- latin1 columns holding UTF-8 bytes, which a latin1 connection stored, pass
+  through a binary type first, so the bytes are read as utf8mb4 rather than
+  converted twice; a column mixing them with real latin1 text defers;
+- a missing NOT NULL column without a default: PostgreSQL gets the value MySQL
+  fills with as a default, dropped again; a temporal one, which has none,
+  defers on a table with rows;
+- PostgreSQL can create an extension an added index needs.
+
+A check reads an index where one covers the column and otherwise shares one
+scan of the table. `up()` then declares the plan `beforeUp()` checked. A subclass
+that puts rows right in `beforeUp()` does so before calling the parent's.
+
+A rebuild can run for hours, so a `TableMigration` is **offline**
+(`$offline = true`): the manager refuses to start any run that has one pending
+from a web request, and on the command line while `MISP.live` is on
+(`MigrationManager::refusal()`; `runUpdates` and `migrationApply` say why, a page
+load just leaves it). `beforeUp()` defers outside the CLI as well. The statements
+run under session settings that leave the ALTER's algorithm to the server (a
+session at COPY would turn instant changes into copies: MariaDB's
+`alter_algorithm = 'DEFAULT'`, quoted, MySQL's `old_alter_table = OFF`) and wait
+at most 300 s for a lock. While it runs, the shell prints a line when each
+migration starts and ends, and before the statements the table's rows and size,
+the kind of work, the free disk it needs, other sessions busy on the database,
+and where to watch the progress (the Progress column of `SHOW FULL PROCESSLIST`
+on MariaDB, `performance_schema.events_stages_current` on MySQL).
+
 **Data changes go through models, in `beforeUp()` and `afterUp()`, never as
 DML.** A
 `save()`/`updateAll()` is portable by construction where a hand-written `INSERT`
@@ -289,7 +330,8 @@ dry run also prints:
   `migrationApply` prints them under the migration;
 - `No schema changes.` for a data-only migration;
 - a note when the migration carries a `beforeUp()` or an `afterUp()`, because
-  otherwise "no schema changes" reads as "does nothing";
+  otherwise "no schema changes" reads as "does nothing"; for a `TableMigration`,
+  that applying it checks the rows first, which a dry run does not;
 - a hard error for a `rawSql()` that does not cover every flavour.
 
 With no `--id`, it renders every pending migration.
@@ -677,7 +719,7 @@ place alongside the new one — it will simply never fire again.
 | `app/Lib/Migration/Migration.stub` | Scaffold template. Not `.php`, and not in `Migrations/`, so it is neither discovered nor linted |
 | `app/Lib/Migration/AbstractMigration.php` | The contract, and the id rules |
 | `app/Lib/Migration/SchemaBuilder.php` | The DSL |
-| `app/Lib/Migration/TableMigration.php`, `TableConverger.php` | A table brought to a target definition |
+| `app/Lib/Migration/TableMigration.php`, `TableConverger.php`, `TablePreflight.php` | A table brought to a target definition, and what is checked first |
 | `app/Lib/Migration/Grammar/` | Per-engine rendering, and the connectionless datasources `--dry-run` uses |
 | `app/Lib/Migration/MigrationManager.php` | Discovery, the ledger, applying |
 | `app/Lib/Migration/MigrationRunner.php` | Statement execution, logging, progress — shared with the legacy path |

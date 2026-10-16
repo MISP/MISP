@@ -53,6 +53,13 @@ abstract class AbstractGrammar
     const FLAVOUR_PGSQL = 'pgsql';
 
     /**
+     * The type Cake quotes each type of the map extension as. Its value()
+     * knows binary, boolean, string and text, and takes an empty string of
+     * any other type for NULL.
+     */
+    const QUOTED_AS = array('mediumtext' => 'text', 'longtext' => 'text', 'varbinary' => 'binary');
+
+    /**
      * @var DboSource
      */
     protected $db;
@@ -563,7 +570,7 @@ abstract class AbstractGrammar
      */
     public function value($data, $type = null)
     {
-        return $this->db->value($data, $type);
+        return $this->db->value($data, isset(self::QUOTED_AS[$type]) ? self::QUOTED_AS[$type] : $type);
     }
 
     /**
@@ -590,10 +597,15 @@ abstract class AbstractGrammar
         $spec = $this->normaliseColumn($spec);
         $this->assertRenderable($spec);
 
+        $build = $this->stripOwnOptions($spec);
+        if (isset($build['default'], self::QUOTED_AS[$build['type']])) {
+            // The driver quotes a default under the column's own type.
+            $build['default'] = (object)array('type' => 'expression', 'value' => $this->value($build['default'], $build['type']));
+        }
         $original = $this->db->columns;
         $this->db->columns = $this->mergedColumns();
         try {
-            $sql = $this->db->buildColumn($this->stripOwnOptions($spec));
+            $sql = $this->db->buildColumn($build);
         } finally {
             $this->db->columns = $original;
         }

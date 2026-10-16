@@ -7,6 +7,7 @@ App::uses('MigrationDeferredException', 'Migration');
 App::uses('SchemaBuilder', 'Migration');
 App::uses('SchemaInspector', 'Migration');
 App::uses('SchemaTargetGenerator', 'Migration');
+App::uses('TablePreflight', 'Migration');
 
 /**
  * Brings one table to a target definition by declaring only what the live
@@ -40,6 +41,10 @@ App::uses('SchemaTargetGenerator', 'Migration');
  * not know are the administrator's, and are kept and listed in the notes.
  * A primary key over other columns than the target's is not moved: the plan
  * names it as a blocker and converge() defers.
+ *
+ * What the rows must allow - values that fit, unique keys that hold, disk for
+ * the copy - is checked by preflight() (TablePreflight), which a
+ * TableMigration runs before it declares anything.
  */
 class TableConverger
 {
@@ -70,6 +75,9 @@ class TableConverger
         AbstractGrammar::FLAVOUR_PGSQL => array('string', 'decimal'),
     );
 
+    /** Seconds a rebuild waits for a lock another session holds. */
+    const LOCK_WAIT = 300;
+
     const STRING_TYPES = array('string', 'text', 'mediumtext', 'longtext');
 
     const INTEGER_TYPES = array('integer', 'biginteger', 'smallinteger', 'tinyinteger');
@@ -88,8 +96,12 @@ class TableConverger
      *   'dropIndexes' => name => why, the name as dropIndex() takes it,
      *   'addIndexes' => list of array('column', 'options') as addIndex() takes them,
      *   'options' => what changeOptions() sets,
+     *   'kept' => physical name => the live index, for indexes the target does not know,
+     *   'reroute' => column => the binary type a latin1 column passes through (TablePreflight),
+     *   'recreate' => whether the table is dropped first,
      *   'notes' => lines for the administrator,
      *   'blockers' => why the table cannot be converged in place.
+     *   On PostgreSQL an addition may carry 'fill' (fill()).
      * @throws LogicException On a malformed target.
      * @throws MigrationDeferredException When a collation cannot be resolved for this server.
      */
@@ -121,16 +133,17 @@ class TableConverger
      * @param SchemaBuilder $schema
      * @param string $table
      * @param array $target
+     * @param array $session see emit()
      * @return array The plan.
      * @throws MigrationDeferredException When the plan has a blocker.
      */
-    public static function converge(SchemaInspector $inspector, SchemaBuilder $schema, $table, array $target)
+    public static function converge(SchemaInspector $inspector, SchemaBuilder $schema, $table, array $target, array $session = array())
     {
         $plan = self::plan($inspector, $table, $target);
         if (!empty($plan['blockers'])) {
             throw new MigrationDeferredException(implode(' ', $plan['blockers']));
         }
-        self::emit($schema, $plan);
+        self::emit($schema, $plan, $session);
         return $plan;
     }
 
@@ -143,46 +156,102 @@ class TableConverger
      * @param SchemaBuilder $schema
      * @param string $table
      * @param array $target
+     * @param array $session see emit()
      * @return array The plan against the live table.
      */
-    public static function recreate(SchemaInspector $inspector, SchemaBuilder $schema, $table, array $target)
+    public static function recreate(SchemaInspector $inspector, SchemaBuilder $schema, $table, array $target, array $session = array())
     {
         $plan = self::plan($inspector, $table, $target);
-        if (self::isEmpty($plan)) {
-            return $plan;
+        if (!self::isEmpty($plan)) {
+            self::emit($schema, self::recreation($plan, $table, $target), $session);
         }
-        if ($plan['exists']) {
-            $schema->dropTable($table);
-            $schema->note(sprintf('%s: recreated empty at the target', $table));
-        }
-        self::emit($schema, self::creation($table, $target));
         return $plan;
+    }
+
+    /**
+     * Plan the table and check what the run needs from the server and the
+     * rows, for an apply; a dry run renders the plan alone.
+     *
+     * @param SchemaInspector $inspector
+     * @param string $table
+     * @param array $target
+     * @param bool $recreate As recreate() would bring it to the target.
+     * @return array 'plan' for emit(), the checks' notes among its own (null
+     *   when the server cannot be planned for), and 'defer' => why the table
+     *   cannot be changed yet.
+     */
+    public static function preflight(SchemaInspector $inspector, $table, array $target, $recreate = false)
+    {
+        $preflight = new TablePreflight($inspector, $table, $target);
+        $floor = $preflight->floor();
+        if ($floor !== null) {
+            return array('plan' => null, 'defer' => array($floor));
+        }
+        $plan = self::plan($inspector, $table, $target);
+        if ($recreate) {
+            $plan = self::recreation($plan, $table, $target);
+        }
+        if (!empty($plan['blockers'])) {
+            return array('plan' => $plan, 'defer' => $plan['blockers']);
+        }
+        return $preflight->check($plan);
     }
 
     /**
      * Declare a plan's operations: column additions, which share a statement
      * only with each other, then the rebuild - index drops, column changes,
-     * index additions, table options - as one statement on MySQL.
+     * index additions, table options - as one statement on MySQL. A latin1
+     * column's pass through binary goes before the rebuild, and the stopword
+     * setting around an added FULLTEXT index, each as statements of their own.
      *
      * @param SchemaBuilder $schema
      * @param array $plan
+     * @param array $session session()'s, wrapped around a plan that changes something
      * @return void
      */
-    public static function emit(SchemaBuilder $schema, array $plan)
+    public static function emit(SchemaBuilder $schema, array $plan, array $session = array())
     {
         $table = $plan['table'];
         foreach ($plan['notes'] as $note) {
             $schema->note($note);
+        }
+        $session = empty($plan['recreate']) && self::isEmpty($plan) ? array() : $session;
+        if (!empty($session['set'])) {
+            $schema->rawSql(array('mysql' => $session['set'], 'pgsql' => array()));
+        }
+        if (!empty($plan['recreate'])) {
+            $schema->dropTable($table);
+        }
+        $fulltext = false;
+        foreach ($plan['addIndexes'] as $index) {
+            $fulltext = $fulltext || !empty($index['options']['fulltext']);
+        }
+        // InnoDB applies its stopword list when it builds a FULLTEXT index;
+        // the install baseline builds them without one.
+        if ($fulltext) {
+            $schema->rawSql(array('mysql' => 'SET SESSION innodb_ft_enable_stopword = 0;', 'pgsql' => array()));
         }
         if (!$plan['exists']) {
             $schema->createTable($table, $plan['create']['columns'], $plan['create']['options']);
         }
         $builder = $schema->table($table);
         foreach ($plan['add'] as $column => $add) {
-            $builder->addColumn($column, $add['type'], $add['options']);
+            $options = $add['options'];
+            if (isset($add['fill'])) {
+                $options['default'] = $add['fill'];
+            }
+            $builder->addColumn($column, $add['type'], $options);
+        }
+        if (!empty($plan['reroute'])) {
+            $schema->rawSql(array('mysql' => self::rerouteSql($table, $plan['reroute']), 'pgsql' => array()));
         }
         foreach (array_keys($plan['dropIndexes']) as $name) {
             $builder->dropIndex($name);
+        }
+        foreach ($plan['add'] as $column => $add) {
+            if (isset($add['fill'])) {
+                $builder->changeColumn($column, $add['type'], $add['options'] + array('null' => true, 'default' => null));
+            }
         }
         foreach ($plan['change'] as $column => $change) {
             $builder->changeColumn($column, $change['type'], $change['options']);
@@ -193,6 +262,38 @@ class TableConverger
         if (!empty($plan['options'])) {
             $builder->changeOptions($plan['options']);
         }
+        if ($fulltext) {
+            $schema->rawSql(array('mysql' => 'SET SESSION innodb_ft_enable_stopword = DEFAULT;', 'pgsql' => array()));
+        }
+        if (!empty($session['reset'])) {
+            $schema->rawSql(array('mysql' => $session['reset'], 'pgsql' => array()));
+        }
+    }
+
+    /**
+     * The session settings a rebuild runs under, for the connected server.
+     *
+     * The server should choose the ALGORITHM of each ALTER: a session left at
+     * COPY (MariaDB's alter_algorithm, MySQL's old_alter_table) would turn
+     * every instant change into a full copy. MariaDB's keyword DEFAULT must be
+     * quoted, or it copies the global. A lock held by another session is
+     * waited for, for five minutes rather than a year.
+     *
+     * @param SchemaInspector $inspector
+     * @return array 'set' and 'reset', MySQL statements; empty on PostgreSQL.
+     */
+    public static function session(SchemaInspector $inspector)
+    {
+        if ($inspector->flavour() !== AbstractGrammar::FLAVOUR_MYSQL) {
+            return array();
+        }
+        $set = array(
+            $inspector->isMariaDb()
+                ? "SET SESSION alter_algorithm = 'DEFAULT';"
+                : 'SET SESSION old_alter_table = OFF;',
+            'SET SESSION lock_wait_timeout = ' . self::LOCK_WAIT . ';',
+        );
+        return array('set' => $set, 'reset' => array('SET SESSION lock_wait_timeout = DEFAULT;'));
     }
 
     /**
@@ -201,7 +302,7 @@ class TableConverger
      */
     public static function isEmpty(array $plan)
     {
-        foreach (array('blockers', 'add', 'change', 'dropIndexes', 'addIndexes', 'options') as $part) {
+        foreach (array('blockers', 'add', 'change', 'dropIndexes', 'addIndexes', 'options', 'reroute') as $part) {
             if (!empty($plan[$part])) {
                 return false;
             }
@@ -226,6 +327,9 @@ class TableConverger
             'dropIndexes' => array(),
             'addIndexes' => array(),
             'options' => array(),
+            'kept' => array(),
+            'reroute' => array(),
+            'recreate' => false,
             'notes' => array(),
             'blockers' => array(),
         );
@@ -247,6 +351,47 @@ class TableConverger
             $plan['addIndexes'][] = self::declaration($key, $index, $target['columns']);
         }
         return $plan;
+    }
+
+    /**
+     * What recreate() declares for a live plan: nothing when the table is at
+     * its target, else the table created anew, dropped first if it is there.
+     *
+     * @param array $plan
+     * @param string $table
+     * @param array $target
+     * @return array
+     */
+    private static function recreation(array $plan, $table, array $target)
+    {
+        if (self::isEmpty($plan)) {
+            return $plan;
+        }
+        $creation = self::creation($table, $target);
+        if ($plan['exists']) {
+            $creation['recreate'] = true;
+            $creation['notes'][] = sprintf('%s: recreated empty at the target', $table);
+        }
+        return $creation;
+    }
+
+    /**
+     * ALTER TABLE for the latin1 columns whose bytes are UTF-8: as binary,
+     * the rebuild that follows reads the bytes as utf8mb4 instead of
+     * converting them a second time.
+     *
+     * @param string $table
+     * @param array $reroute column => type clause
+     * @return string
+     */
+    private static function rerouteSql($table, array $reroute)
+    {
+        $grammar = AbstractGrammar::offline(AbstractGrammar::FLAVOUR_MYSQL);
+        $parts = array();
+        foreach ($reroute as $column => $clause) {
+            $parts[] = sprintf('MODIFY %s %s', $grammar->name($column), $clause);
+        }
+        return sprintf('ALTER TABLE %s %s;', $grammar->name($table), implode(', ', $parts));
     }
 
     /**
@@ -322,6 +467,10 @@ class TableConverger
                     $options += $previous === null ? array('first' => true) : array('after' => $previous);
                 }
                 $plan['add'][$column] = array('type' => $spec['type'], 'options' => $options);
+                $fill = $mysql ? null : self::fill($spec);
+                if ($fill !== null) {
+                    $plan['add'][$column]['fill'] = $fill;
+                }
                 $previous = $column;
                 continue;
             }
@@ -361,6 +510,27 @@ class TableConverger
                 $plan['notes'][] = sprintf('%s: column %s is not in the target; kept', $table, $column);
             }
         }
+    }
+
+    /**
+     * What MySQL writes into the rows of a NOT NULL column added without a
+     * default. PostgreSQL refuses such a column on a table with rows, so it
+     * gets this as its default, dropped again once the column is there.
+     * Temporal columns have no such value (MySQL's zero date); TablePreflight
+     * defers those where the table has rows.
+     *
+     * @param array $spec
+     * @return string|null
+     */
+    private static function fill(array $spec)
+    {
+        if (self::isKey($spec) || !array_key_exists('null', $spec) || $spec['null'] !== false
+            || (array_key_exists('default', $spec) && $spec['default'] !== null)
+            || in_array($spec['type'], TablePreflight::UNFILLED_TYPES, true)
+        ) {
+            return null;
+        }
+        return in_array($spec['type'], array_merge(self::STRING_TYPES, array('binary', 'varbinary')), true) ? '' : '0';
     }
 
     /**
@@ -579,6 +749,7 @@ class TableConverger
                 'fulltext' => $index['type'] === 'fulltext',
                 'length' => $index['length'],
             ), $target['indexes']);
+            $plan['kept'][$physical] = $index;
             $plan['notes'][] = sprintf(
                 '%s: index %s %s is not in the target; kept%s',
                 $table,
