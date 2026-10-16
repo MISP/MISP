@@ -2579,83 +2579,6 @@ class Server extends AppModel
         return true;
     }
 
-    public function testNDJSONLogPath($value)
-    {
-        // Controls where the ndjson error log is written (JsonLogTool). Those log
-        // lines can contain attacker-influenced content, so an unconstrained path
-        // is an RCE primitive (e.g. writing a *.php file under the webroot). We are
-        // therefore strict about BOTH the target directory and the file name.
-
-        // Empty is allowed: the logger falls back to its built-in default under
-        // APP/tmp/logs. On the save path the value already arrives trimmed.
-        if ($value === null || !is_string($value) || trim($value) === '') {
-            return true;
-        }
-        $value = trim($value);
-
-        // No NUL bytes, line breaks or stream wrappers (phar://, php://, ...).
-        if (strpos($value, "\0") !== false || preg_match('/[\r\n]/', $value) || strpos($value, '://') !== false) {
-            return 'Invalid characters in the log path.';
-        }
-
-        // Must be an absolute path.
-        if ($value[0] !== '/') {
-            return 'The log path must be an absolute path.';
-        }
-
-        // Resolve the parent directory so that symlinks and '..' traversal are
-        // collapsed before the allow-list check. The file need not exist yet, but
-        // its directory must (JsonLogTool does not create directories).
-        $realDir = realpath(dirname($value));
-        if ($realDir === false) {
-            return 'The directory for the log file does not exist.';
-        }
-
-        // The directory must sit inside one of the two permitted roots, and
-        // nowhere else - this is what keeps the log out of the webroot.
-        $allowedRoots = array();
-        foreach (array(realpath(APP . 'tmp/logs'), realpath('/var/log')) as $root) {
-            if ($root !== false) {
-                $allowedRoots[] = $root;
-            }
-        }
-        $inAllowedRoot = false;
-        foreach ($allowedRoots as $root) {
-            if ($realDir === $root || strpos($realDir, $root . DS) === 0) {
-                $inAllowedRoot = true;
-                break;
-            }
-        }
-        if (!$inAllowedRoot) {
-            return 'The log file must be located within ' . APP . 'tmp/logs/ or /var/log/.';
-        }
-
-        // Strict file name: ASCII alphanumerics plus '_' and '-', split into
-        // dot-separated segments and ending in an allowed log extension. Each
-        // segment must be non-empty, so '..' (and path traversal) cannot occur;
-        // this also rules out path separators, unicode look-alikes, leading dots
-        // and executable extensions such as .php.
-        $fileName = basename($value);
-        if (!preg_match('/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*\.(log|ndjson|json)$/', $fileName)) {
-            return 'Invalid log file name. Use ASCII letters, digits, "_", "-" and "." only (no ".."), ending in .log, .ndjson or .json (e.g. error.log.ndjson).';
-        }
-
-        // Defence in depth: reject script/executable extensions appearing as any
-        // dotted segment (e.g. error.php.ndjson), which some web server
-        // mis-configurations would still execute.
-        $forbidden = array(
-            'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'phtml',
-            'pht', 'phar', 'cgi', 'pl', 'py', 'sh', 'asp', 'aspx', 'jsp', 'exe',
-        );
-        foreach (explode('.', strtolower($fileName)) as $segment) {
-            if (in_array($segment, $forbidden, true)) {
-                return 'The log file name must not contain an executable extension.';
-            }
-        }
-
-        return true;
-    }
-
     public function testForRdKafkaConfig($value)
     {
         // Path to the ini file parsed for rdkafka (AppModel::getKafkaPubTool ->
@@ -6081,20 +6004,6 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
-                'name' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'version' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
                 'disable_cached_exports' => array(
                     'level' => 2,
                     'description' => __('Cached exports can take up a considerable amount of space and can be disabled instance wide using this setting. Even tough the feature is deprecated and will be removed in the future, you can still decide to enable it.'),
@@ -6103,21 +6012,6 @@ class Server extends AppModel
                     'test' => 'testDisableCache',
                     'type' => 'boolean',
                     'afterHook' => 'disableCacheAfterHook',
-                ),
-                'disable_threat_level' => array(
-                    'level' => 1,
-                    'description' => __('Disable displaying / modifications to the threat level altogether on the instance (deprecated field).'),
-                    'value' => false,
-                    'null' => true,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
-                ),
-                'header' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
                 ),
                 'footermidleft' => array(
                     'level' => 2,
@@ -6129,34 +6023,6 @@ class Server extends AppModel
                 'footermidright' => array(
                     'level' => 2,
                     'description' => __('Footer text following the "Powered by MISP" text.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'footerpart1' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'footerpart2' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'footer' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'footerversion' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
@@ -6207,13 +6073,6 @@ class Server extends AppModel
                     'test' => 'testUuid',
                     'type' => 'string'
                 ),
-                'logo' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
                 'showorg' => array(
                     'level' => 0,
                     'description' => __('Setting this setting to \'false\' will hide all organisation names / logos.'),
@@ -6263,20 +6122,6 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ],
-                'taxii_sync' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'taxii_client_path' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
                 'background_jobs' => array(
                     'level' => 1,
                     'description' => __('Enables the use of MISP\'s background processing.'),
@@ -6341,13 +6186,6 @@ class Server extends AppModel
                 'contact' => array(
                     'level' => 1,
                     'description' => __('The e-mail address that MISP should include as a contact address for the instance\'s support team.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'dns' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
@@ -6764,22 +6602,6 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
-                    'null' => true
-                ],
-                'log_errors_ndjson' => [
-                    'level' =>  self::SETTING_RECOMMENDED,
-                    'description' => __('Log errors in ndjson format additionally to error.log.)'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
-                ],
-                'log_errors_ndjson_path' => [
-                    'level' =>  self::SETTING_RECOMMENDED,
-                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . 'tmp/logs/error.log.ndjson.'),
-                    'value' => APP . 'tmp/logs/error.log.ndjson',
-                    'test' => 'testNDJSONLogPath',
-                    'type' => 'string',
-                    'cli_only' => true,
                     'null' => true
                 ],
                 'disable_seen_ips_authkeys' => [
@@ -7264,14 +7086,6 @@ class Server extends AppModel
                     'null' => true,
                     'cli_only' => true,
                 ],
-                'fetchAttributeLegacyStrategy' => [
-                    'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Enabling this setting flip the attribute fetcher into using single joined queries rather than subqueries. This should be a performance downgrade for most, but could improve performance on older mysql versions.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true,
-                ],
                 'disable_baseurl_coercion' => [
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Disable the automatic coercion of the baseurl for the framework. This is generally recommended against as it solves some potential redirect issues, but has been reported to help when running MISP in a subdirectory.'),
@@ -7351,14 +7165,6 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
-                'restrict_server_signing_to_host_org' => [
-                    'level' => self::SETTING_RECOMMENDED,
-                    'description' => __('Restrict server signing via /encryptionKeys/serverSign to host org only users, even for users that otherwise meet role requirements. This setting defaults to false. Site admins are exempt from this requirement, even when the setting is enabled.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true
-                ],
             ),
             'SMIME' => array(
                 'branch' => 1,
@@ -7368,13 +7174,6 @@ class Server extends AppModel
                     'value' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
-                ),
-                'email' => array(
-                    'level' => 2,
-                    'description' => __('The e-mail address that the instance\'s S/MIME key is tied to.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
                 ),
                 'cert_public_sign' => array(
                     'level' => 2,
