@@ -177,7 +177,6 @@ class ObjectsController extends AppController
             return [$resolve($value, false), null];
         };
 
-        $version = $raw('template_version');
         $event = $raw('event');
         $filters = [
             'template' => $inOut('template'),
@@ -185,7 +184,6 @@ class ObjectsController extends AppController
                 array_map('strtolower', $pieces('template_uuid')),
                 [Validation::class, 'uuid']
             )),
-            'template_version' => is_string($version) && ctype_digit($version) ? (int)$version : null,
             'value' => is_string($raw('value')) && $raw('value') !== '' ? $raw('value') : null,
             'relation' => is_string($raw('relation')) && $raw('relation') !== '' ? $raw('relation') : null,
             'org' => Configure::read('MISP.showorg') ? $inOut('org', 'int') : ['in' => [], 'out' => []],

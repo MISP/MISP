@@ -646,10 +646,6 @@ class MispObject extends AppModel
         if (!empty($filters['template_uuid'])) {
             $and['Object.template_uuid'] = $filters['template_uuid'];
         }
-        $oneTemplate = count($names['in']) + count($filters['template_uuid'] ?? []) === 1;
-        if (isset($filters['template_version']) && $oneTemplate) {
-            $and['Object.template_version'] = (int)$filters['template_version'];
-        }
 
         if (isset($filters['value']) && $filters['value'] !== '') {
             $value = $filters['value'];
