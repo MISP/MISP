@@ -860,7 +860,7 @@ class AdminShell extends AppShell
             $this->error(__('Could not take the instance offline: MISP.live could not be saved in Redis or in the PHP config file.'));
         }
         // A job left running can hold the locks a rebuild waits for.
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+        if (Configure::read('MISP.background_jobs')) {
             $this->out(__('Stopping the background workers.'));
             try {
                 $this->getBackgroundJobsTool()->stopWorkers(true);
@@ -885,7 +885,7 @@ class AdminShell extends AppShell
         $manager->inspector()->flushSchemaCacheFiles();
 
         // A worker started before the run still knows the tables as they were.
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
+        if (Configure::read('MISP.background_jobs')) {
             $this->out(__('Restarting the background workers.'));
             try {
                 $this->getBackgroundJobsTool()->restartWorkers(true);
@@ -948,7 +948,7 @@ class AdminShell extends AppShell
         if (!empty($left)) {
             $lines[] = __n('%s update is still pending.', '%s updates are still pending.', count($left), count($left));
         }
-        $lines[] = Configure::read('SimpleBackgroundJobs.enabled')
+        $lines[] = Configure::read('MISP.background_jobs')
             ? __('The instance stays offline and its background workers stopped. Fix the cause and run Console/cake Admin runUpgrade again: it carries on from there.')
             : __('The instance stays offline. Fix the cause and run Console/cake Admin runUpgrade again: it carries on from there.');
         $this->error(__('The upgrade stopped.'), implode(PHP_EOL, $lines));
