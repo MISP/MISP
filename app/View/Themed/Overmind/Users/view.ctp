@@ -13,6 +13,7 @@
         || ($isSelf && empty(Configure::read('MISP.disableUserSelfManagement')));
 
     $this->set('headerTitle', h($this->UserName->convertEmailToName($email)));
+    $this->set('headerIdentity', $user['User']);
 
     $tabs = [
         [

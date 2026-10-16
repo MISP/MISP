@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
 App::uses('SecurityAudit', 'Tools');
 App::uses('SystemSetting', 'Model');
 
@@ -557,19 +558,11 @@ class ServersController extends AppController
                     if (empty($this->request->data['Server']['remote_org_id'])) {
                         return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Remote Organisation\'s id/uuid not given (remote_org_id)'), $this->response->type());
                     }
-                    if (Validation::uuid($this->request->data['Server']['remote_org_id'])) {
-                        $orgCondition = array('uuid' => $this->request->data['Server']['remote_org_id']);
-                    } else {
-                        $orgCondition = array('id' => $this->request->data['Server']['remote_org_id']);
-                    }
-                    $existingOrgs = $this->Server->Organisation->find('first', array(
-                            'conditions' => $orgCondition,
-                            'recursive' => -1,
-                            'fields' => array('id', 'uuid')
-                    ));
-                    if (empty($existingOrgs)) {
+                    $remoteOrgId = $this->__findOrgId($this->request->data['Server']['remote_org_id']);
+                    if ($remoteOrgId === false) {
                         return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Invalid Remote Organisation'), $this->response->type());
                     }
+                    $this->request->data['Server']['remote_org_id'] = $remoteOrgId;
                 } else {
                     if ($this->request->data['Server']['organisation_type'] === ""){
                         $fail = true;
@@ -773,6 +766,13 @@ class ServersController extends AppController
                 $this->request->data['Server']['id'] = $id;
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
+                }
+                if ($this->_isRest() && !isset($json) && !empty($this->request->data['Server']['remote_org_id'])) {
+                    $remoteOrgId = $this->__findOrgId($this->request->data['Server']['remote_org_id']);
+                    if ($remoteOrgId === false) {
+                        return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('Organisation' => 'Invalid Remote Organisation'), $this->response->type());
+                    }
+                    $this->request->data['Server']['remote_org_id'] = $remoteOrgId;
                 }
                 if (isset($this->request->data['Server']['organisation_type']) && isset($json)) {
                     // adds 'remote_org_id' in the fields to update
@@ -1174,6 +1174,20 @@ class ServersController extends AppController
             $this->Flash->success($message);
             $this->redirect(array('action' => 'index'));
         }
+    }
+
+    /**
+     * @param int|string $idOrUuid
+     * @return int|false
+     */
+    private function __findOrgId($idOrUuid)
+    {
+        $org = $this->Server->Organisation->find('first', [
+            'conditions' => [Validation::uuid($idOrUuid) ? 'uuid' : 'id' => $idOrUuid],
+            'recursive' => -1,
+            'fields' => ['id'],
+        ]);
+        return empty($org) ? false : (int)$org['Organisation']['id'];
     }
 
     private function __saveCert($server, $id, $client = false, $delete = false)
@@ -2498,7 +2512,7 @@ class ServersController extends AppController
                         }
                     }
                 }
-                if (!$mismatch && $version[1] == 4 && $version[2] < 111) {
+                if (!$mismatch && version_compare($result['info']['version'], '2.4.111', '<')) {
                     $mismatch = 'proposal';
                 }
                 if (!$perm_sync && !$perm_sighting) {
@@ -2515,6 +2529,9 @@ class ServersController extends AppController
                     if ($version[1] == 4 && $version[2] < 111) {
                             $mismatch = 'proposal';
                     }
+                }
+                if ($mismatch === 'major' && ServerSyncTool::isCrossMajorCompatible(implode('.', $local_version), $result['info']['version'])) {
+                    $mismatch = 'major_compatible';
                 }
                 return $this->RestResponse->viewData([
                     'status' => 1,
@@ -3023,18 +3040,13 @@ public function updateJSON()
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($dbSchemaDiagnostics, $this->response->type());
         } else {
-            $this->set('checkedTableColumn', $dbSchemaDiagnostics['checked_table_column']);
-            $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics['diagnostic']);
-            $this->set('dbIndexDiagnostics', $dbSchemaDiagnostics['diagnostic_index']);
             $this->set('expectedDbVersion', $dbSchemaDiagnostics['expected_db_version']);
             $this->set('actualDbVersion', $dbSchemaDiagnostics['actual_db_version']);
-            $this->set('error', $dbSchemaDiagnostics['error']);
             $this->set('remainingLockTime', $dbSchemaDiagnostics['remaining_lock_time']);
             $this->set('updateFailNumberReached', $dbSchemaDiagnostics['update_fail_number_reached']);
             $this->set('updateLocked', $dbSchemaDiagnostics['update_locked']);
             $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
-            $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
-            $this->set('indexes', $dbSchemaDiagnostics['indexes']);
+            $this->set('warnings', $dbSchemaDiagnostics['warnings']);
             $this->set('migrationsPending', $dbSchemaDiagnostics['migrations_pending']);
             $this->set('migrationsPendingIds', $dbSchemaDiagnostics['migrations_pending_ids']);
             $this->set('migrationsFailed', $dbSchemaDiagnostics['migrations_failed']);
@@ -3136,113 +3148,6 @@ public function updateJSON()
         return $this->RestResponse->viewData($syncFilteringRules);
     }
 
-    public function pruneDuplicateUUIDs()
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->loadModel('MispAttribute');
-        $duplicates = $this->MispAttribute->find('all', array(
-            'fields' => array('Attribute.uuid', 'count(*) as occurrence'),
-            'recursive' => -1,
-            'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
-        ));
-        $counter = 0;
-        foreach ($duplicates as $duplicate) {
-            $attributes = $this->MispAttribute->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('uuid' => $duplicate['Attribute']['uuid'])
-            ));
-            foreach ($attributes as $k => $attribute) {
-                if ($k > 0) {
-                    $this->MispAttribute->delete($attribute['Attribute']['id']);
-                    $counter++;
-                }
-            }
-        }
-        $this->Server->updateDatabase('makeAttributeUUIDsUnique');
-        $this->Flash->success('Done. Deleted ' . $counter . ' duplicate attribute(s).');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-    }
-
-    public function removeDuplicateEvents()
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->loadModel('Event');
-        $duplicates = $this->Event->find('all', array(
-            'fields' => array('Event.uuid', 'count(*) as occurrence'),
-            'recursive' => -1,
-            'group' => array('Event.uuid HAVING COUNT(*) > 1'),
-        ));
-        $counter = 0;
-
-        // load this so we can remove the blocklist item that will be created, this is the one case when we do not want it.
-        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-        }
-
-        foreach ($duplicates as $duplicate) {
-            $events = $this->Event->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('uuid' => $duplicate['Event']['uuid'])
-            ));
-            foreach ($events as $k => $event) {
-                if ($k > 0) {
-                    $uuid = $event['Event']['uuid'];
-                    $this->Event->delete($event['Event']['id']);
-                    $counter++;
-                    // remove the blocklist entry that we just created with the event deletion, if the feature is enabled
-                    // We do not want to block the UUID, since we just deleted a copy
-                    if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-                        $this->EventBlocklist->deleteAll(array('EventBlocklist.event_uuid' => $uuid));
-                    }
-                }
-            }
-        }
-        $this->Server->updateDatabase('makeEventUUIDsUnique');
-        $this->Flash->success('Done. Removed ' . $counter . ' duplicate events.');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-    }
-
-    public function upgrade2324()
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        if (!Configure::read('MISP.background_jobs')) {
-            $this->Server->upgrade2324($this->Auth->user('id'));
-            $this->Flash->success('Done. For more details check the audit logs.');
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        } else {
-
-            $this->loadModel('Job');
-            $jobId = $this->Job->createJob(
-                $this->Auth->user(),
-                Job::WORKER_DEFAULT,
-                'upgrade_24',
-                'Old database',
-                __('Job created.')
-            );
-
-            $this->Server->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_ADMIN,
-                [
-                    'jobUpgrade24',
-                    $jobId,
-                    $this->Auth->user('id'),
-                ],
-                true,
-                $jobId
-            );
-
-            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        }
-    }
-
     public function cleanModelCaches()
     {
         if (!$this->request->is('post')) {
@@ -3251,23 +3156,6 @@ public function updateJSON()
         $this->Server->cleanCacheFiles();
         $this->Flash->success('Caches cleared.');
         $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
-    }
-
-    public function updateDatabase($command)
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        if (is_numeric($command)) {
-            $command = intval($command);
-        }
-        $this->Server->updateDatabase($command);
-        $this->Flash->success('Done.');
-        if ($liveOff) {
-            $this->redirect(array('controller' => 'servers', 'action' => 'updateProgress'));
-        } else {
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        }
     }
 
     public function ipUser($input = false)

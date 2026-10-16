@@ -3410,7 +3410,7 @@ function testConnection(id) {
                 var compatibility_colour = "green";
                 var colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
                 var issue_colour = "red";
-                if (result.mismatch == "hotfix") issue_colour = "orange";
+                if (result.mismatch == "hotfix" || result.mismatch == "major_compatible") issue_colour = "orange";
                 if (result.newer == "local") {
                     colours.remote = 'class="' + issue_colour + '"';
                     if (result.mismatch == "minor") {
@@ -3419,12 +3419,12 @@ function testConnection(id) {
                     } else if (result.mismatch == "major") {
                         compatibility = "Incompatible";
                         compatibility_colour = "red";
-                    } else if (result.mismatch == "minor_compatible") {
+                    } else if (result.mismatch == "minor_compatible" || result.mismatch == "major_compatible") {
                         compatibility_colour = "green";
                     }
                 } else if (result.newer == "remote") {
                     colours.local = 'class="' + issue_colour + '"';
-                    if (result.mismatch != "hotfix") {
+                    if (result.mismatch != "hotfix" && result.mismatch != "major_compatible") {
                         compatibility = "Incompatible";
                         compatibility_colour = "red";
                     }
@@ -3434,10 +3434,16 @@ function testConnection(id) {
                 }
                 if (result.mismatch != false && result.mismatch != "proposal") {
                     if (result.newer == "remote") {
-                        status_message = "Local instance outdated, update!";
+                        if (result.mismatch == "major_compatible") {
+                            status_message = "Local instance on 2.5, moving to 3.0 is recommended.";
+                        } else {
+                            status_message = "Local instance outdated, update!";
+                        }
                     } else if (result.newer == "local") {
                         if (result.mismatch == "minor_compatible") {
                             status_message = "Remote on 2.4, moving to 2.5 is recommended.";
+                        } else if (result.mismatch == "major_compatible") {
+                            status_message = "Remote on 2.5, moving to 3.0 is recommended.";
                         } else {
                             status_message = "Remote outdated, notify admin!";
                         }
@@ -4256,29 +4262,6 @@ function feedFormUpdate() {
 function toggleContextFields() {
     $('.context').toggle()
     $('#show_attribute_context').toggleClass("btn-inverse").toggleClass("btn-primary")
-}
-
-function checkOrphanedAttributes() {
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loading").show();
-        },
-        success:function (data, textStatus) {
-            var color = 'red';
-            var text = ' (Removal recommended)';
-            if (data == '0') {
-                color = 'green';
-                text = ' (OK)';
-            }
-            $("#orphanedAttributeCount").html('<span class="' + color + '">' + data + text + '</span>');
-        },
-        complete:function() {
-            $(".loading").hide();
-        },
-        type:"get",
-        cache: false,
-        url: baseurl + "/attributes/checkOrphanedAttributes/",
-    });
 }
 
 function checkAttachments() {

@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('GalaxyColour', 'Tools');
 App::uses('ExtensionEventColour', 'Tools');
+App::uses('SyncTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -14,7 +15,6 @@ class EventsController extends AppController
 
     public $components = array(
         'RequestHandler',
-        'IOCImport',
     );
 
     public $paginate = array(
@@ -938,10 +938,8 @@ class EventsController extends AppController
     private function __indexRestResponse(array $passedArgs)
     {
         // We do not want to allow instances to pull our data that can't make sense of protected mode events
-        $skipProtected = (
-            !empty($this->request->header('misp-version')) &&
-            version_compare($this->request->header('misp-version'), '2.4.156') < 0
-        );
+        $requesterVersion = SyncTool::requesterMispVersion($this->request);
+        $skipProtected = $requesterVersion !== null && version_compare($requesterVersion, '2.4.156') < 0;
 
         $fieldNames = $this->Event->schema();
         $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
@@ -953,7 +951,7 @@ class EventsController extends AppController
             }
             $rules = [
                 'recursive' => -1,
-                'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid', 'protected'),
+                'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid'),
                 'contain' => $contain,
             ];
         } else {
@@ -975,9 +973,16 @@ class EventsController extends AppController
         if (isset($this->paginate['conditions'])) {
             $rules['conditions'] = $this->paginate['conditions'];
         }
-        if ($skipProtected) {
-            $rules['conditions']['Event.protected'] = 0;
+        // Protected events this instance cannot sign are excluded in the query
+        // itself, so pages stay full and X-Result-Count matches what is served.
+        $visible = [['Event.protected' => null], ['Event.protected' => 0]];
+        if (!$skipProtected) {
+            $signableEventIds = $this->Event->CryptographicKey->eventIdsSignableByInstanceKey();
+            if (!empty($signableEventIds)) {
+                $visible[] = ['Event.id' => $signableEventIds];
+            }
         }
+        $rules['conditions']['AND'][] = ['OR' => $visible];
         $paginationRules = array('page', 'limit', 'sort', 'direction');
         foreach ($paginationRules as $paginationRule) {
             if (isset($passedArgs[$paginationRule])) {
@@ -1023,9 +1028,6 @@ class EventsController extends AppController
 
         $isCsvResponse = $this->response->type() === 'text/csv';
 
-        $protectedEventsByInstanceKey = $this->Event->CryptographicKey->protectedEventsByInstanceKey($events);
-        $protectedEventsByInstanceKey = array_flip($protectedEventsByInstanceKey);
-
         // Collect all tag IDs that are events
         if (!$minimal || $includeEventTagsFingerprint) {
             $tagIds = [];
@@ -1070,15 +1072,11 @@ class EventsController extends AppController
             // Fetch all org and sharing groups that are in events
             $orgIds = [];
             $sharingGroupIds = [];
-            foreach ($events as $k => $event) {
+            foreach ($events as $event) {
                 $orgIds[$event['Event']['org_id']] = true;
                 $orgIds[$event['Event']['orgc_id']] = true;
                 $sharingGroupIds[$event['Event']['sharing_group_id']] = true;
-                if ($event['Event']['protected'] && !isset($protectedEventsByInstanceKey[$event['Event']['id']])) {
-                    unset($events[$k]);
-                }
             }
-            $events = array_values($events);
             if (!empty($orgIds)) {
                 $orgs = $this->Event->Org->find('all', [
                     'conditions' => ['Org.id' => array_keys($orgIds)],
@@ -1122,18 +1120,12 @@ class EventsController extends AppController
             }
         } else { // minimal
             foreach ($events as $key => $event) {
-                if ($event['Event']['protected'] && !isset($protectedEventsByInstanceKey[$event['Event']['id']])) {
-                    unset($events[$key]);
-                    continue;
-                }
                 $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
-                unset($event['Event']['protected']);
                 if ($includeEventTagsFingerprint) {
                     $event['Event']['event_tags_fingerprint'] = $this->Event->getTagsFingerprint($event['EventTag']);
                 }
                 $events[$key] = $event['Event'];
             }
-            $events = array_values($events);
         }
 
         if ($isCsvResponse) {
@@ -2137,6 +2129,7 @@ class EventsController extends AppController
         // through getAttributesRelatedToEvent() - count the same set or the tab
         // header promises rows the tab does not have.
         $this->set('correlation_count', $this->Event->getRelatedEventCount($user, $event['Event']['id'], $sgids, true));
+        $this->set('distributionOutliers', $this->Event->distributionOutliers($user, $event));
 
         $this->set('event', $event);
         $this->set('analysisLevels',
@@ -2422,10 +2415,10 @@ class EventsController extends AppController
             }
         }
 
-        // Favorite event report (for the moment, only the most recent one).
-        // A report carries its own distribution, so seeing the event does not
-        // mean seeing every report on it: apply the report ACL, as the
-        // reports tab does, and skip soft-deleted ones.
+        // The most recently modified report the user may see. A report carries
+        // its own distribution, so seeing the event does not mean seeing every
+        // report on it: apply the report ACL, as the reports tab does, and
+        // skip soft-deleted ones.
         $reportConditions =
             $this->Event->EventReport->buildACLConditions($user);
         $reportConditions['AND'][] = [
@@ -2438,6 +2431,7 @@ class EventsController extends AppController
                 'conditions' => $reportConditions,
                 'contain' => EventReport::DEFAULT_CONTAIN,
                 'recursive' => -1,
+                'order' => ['EventReport.timestamp' => 'DESC', 'EventReport.id' => 'DESC'],
             ]
         );
         $event['EventReport'] = $result['EventReport'] ?? null;
@@ -2545,7 +2539,7 @@ class EventsController extends AppController
             'deleted', 'category', 'type', 'toIDS',
             'searchFor', 'flatten', 'proposal',
             'warninglist', 'correlation', 'feed', 'warning', 'analystData',
-            'tags', 'galaxy', 'org',
+            'tags', 'galaxy', 'org', 'distribution',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -2711,7 +2705,7 @@ class EventsController extends AppController
             'page', 'limit', 'sort', 'direction',
             'deleted', 'name', 'meta-category', 'searchFor', 'proposal',
             'category', 'type', 'tags', 'galaxy', 'org', 'toIDS',
-            'correlation', 'feed', 'warning', 'analystData',
+            'correlation', 'feed', 'warning', 'analystData', 'distribution',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -4526,11 +4520,11 @@ class EventsController extends AppController
                     } else {
                         if ($add === 'blocked') {
                             $this->Flash->error(__('A blocklist entry is blocking you from creating any events. Please contact the administration team of this instance') . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
+                        } else if ($this->theme === "Overmind") {
+                            $this->Flash->error($this->__saveFailMessage($validationErrors));
+                            $this->redirect(array('action' => 'index'));
                         } else {
                             $this->Flash->error(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
-                            if ($this->theme === "Overmind") {
-                                $this->redirect(array('action' => 'index'));
-                            }
                         }
                     }
                 }
@@ -4592,29 +4586,6 @@ class EventsController extends AppController
         if (isset($this->params['named']['extends'])) {
             $this->set('extends_uuid', $this->params['named']['extends']);
         }
-    }
-
-    public function addIOC($id)
-    {
-        $this->Event->recursive = -1;
-        $this->Event->read(null, $id);
-        if (!$this->__canModifyEvent($this->Event->data)) {
-            throw new UnauthorizedException(__('You do not have permission to do that.'));
-        }
-        if ($this->request->is('post')) {
-            if (!empty($this->data)) {
-                if (isset($this->data['Event']['submittedioc'])) {
-                    $this->_addIOCFile($id);
-                }
-
-                // redirect to the view of the newly created event
-                $this->Flash->success(__('The event has been saved'));
-            }
-        }
-        // set the id
-        $this->set('id', $id);
-        // set whether it is published or not
-        $this->set('published', $this->Event->data['Event']['published'] ?? false);
     }
 
     // Overmind-only combined import modal. Renders three accordion forms
@@ -4801,26 +4772,28 @@ class EventsController extends AppController
                         throw new BadRequestException(__('Please select a valid sharing group id.'));
                     }
                 }
-                if (isset($this->param['named']['force_contextual_data'])) {
+                if (isset($this->params['named']['force_contextual_data'])) {
                     $force_contextual_data = $this->params['named']['force_contextual_data'];
                 }
                 $clusterDistribution = $initialDistribution;
                 $clusterSharingGroupId = null;
                 if (isset($this->params['named']['galaxies_as_tags'])) {
                     $galaxies_as_tags = $this->params['named']['galaxies_as_tags'];
-                    if (isset($this->params['name']['cluster_distribution'])) {
-                        $clusterDistribution = intval($this->params['named']['cluster_distribution']);
-                        if (!array_key_exists($clusterDistribution, $distributionLevels)) {
-                            throw new BadRequestException(__('Wrong cluster distribution level'));
+                }
+                // Cluster settings apply when galaxies are not imported as
+                // tags, so they are read whether or not galaxies_as_tags is set
+                if (isset($this->params['named']['cluster_distribution'])) {
+                    $clusterDistribution = intval($this->params['named']['cluster_distribution']);
+                    if (!array_key_exists($clusterDistribution, $distributionLevels)) {
+                        throw new BadRequestException(__('Wrong cluster distribution level'));
+                    }
+                    if ($clusterDistribution == 4) {
+                        if (!isset($this->params['named']['cluster_sharing_group_id'])) {
+                            throw new BadRequestException(__('The cluster sharing group id is needed when the cluster distribution is set to 4 ("Sharing group").'));
                         }
-                        if ($clusterDistribution == 4) {
-                            if (!isset($this->params['named']['cluster_sharing_group_id'])) {
-                                throw new BadRequestException(__('The cluster sharing group id is needed when the cluster distribution is set to 4 ("Sharing group").'));
-                            }
-                            $clusterSharingGroupId = intval($this->params['named']['cluster_sharing_group_id']);
-                            if (!array_key_exists($clusterSharingGroupId, $sgs)) {
-                                throw new BadRequestException(__('Please select a valid cluster sharing group id.'));
-                            }
+                        $clusterSharingGroupId = intval($this->params['named']['cluster_sharing_group_id']);
+                        if (!array_key_exists($clusterSharingGroupId, $sgs)) {
+                            throw new BadRequestException(__('Please select a valid cluster sharing group id.'));
                         }
                     }
                 }
@@ -5197,7 +5170,7 @@ class EventsController extends AppController
      * gathering every import method, each section posting to its own legacy
      * action. Only supplies the data the inline forms need (templates list and
      * enabled import modules); the actual processing stays in the existing
-     * per-import actions (populate, freeTextImport, addIOC, …).
+     * per-import actions (populate, freeTextImport, …).
      */
     public function populateFrom($id)
     {
@@ -5365,6 +5338,8 @@ class EventsController extends AppController
                 } else {
                     $this->redirect(array('action' => 'view', $id));
                 }
+            } else if ($this->theme === "Overmind") {
+                $this->Flash->error($this->__saveFailMessage($this->Event->validationErrors));
             } else {
                 $this->Flash->error(__('The event could not be saved. Please, try again.'));
             }
@@ -5408,10 +5383,25 @@ class EventsController extends AppController
         $this->set('fieldDesc', $fieldDesc);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('event', $event);
-        if ($this->theme === "Overmind"){
+        if ($this->theme === "Overmind" && $this->request->is('ajax')) {
             $this->layout = false;
         }
         $this->render('add');
+    }
+
+    private function __saveFailMessage($validationErrors)
+    {
+        $reasons = [];
+        array_walk_recursive($validationErrors, function ($message) use (&$reasons) {
+            if (is_string($message)) {
+                $reasons[] = $message;
+            }
+        });
+        $reasons = array_unique($reasons);
+        if (empty($reasons)) {
+            return __('The event could not be saved. Please, try again.');
+        }
+        return __('The event could not be saved: %s', implode(' ', $reasons));
     }
 
     public function delete($id = null)
@@ -6015,11 +6005,9 @@ class EventsController extends AppController
                 'json' => __('MISP JSON'),
                 'netfilter' => __('Netfilter'),
                 'opendata' => __('Open data'),
-                'openioc' => __('OpenIOC'),
                 'rpz' => __('RPZ'),
                 'snort' => __('Snort rules'),
                 'stix' => __('STIX 1 XML'),
-                'stix-json' => __('STIX 1 JSON'),
                 'stix2' => __('STIX 2'),
                 'suricata' => __('Suricata rules'),
                 'text' => __('Text file'),
@@ -6156,123 +6144,6 @@ class EventsController extends AppController
         return $this->restSearch();
     }
 
-    public function _addIOCFile($id)
-    {
-        if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
-                is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
-            if (!$this->Event->checkFilename($this->data['Event']['submittedioc']['name'])) {
-                throw new Exception(__('Filename not allowed.'));
-            }
-
-            // Load event and populate the event data
-            $this->Event->id = $id;
-            $this->Event->recursive = -1;
-            if (!$this->Event->exists()) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            $this->Event->read(null, $id);
-            $saveEvent['Event'] = $this->Event->data['Event'];
-            $saveEvent['Event']['published'] = false;
-            $dist = '5';
-            if (Configure::read('MISP.default_attribute_distribution') != null) {
-                if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-                    $dist = '5';
-                } else {
-                    $dist = '';
-                    $dist .= Configure::read('MISP.default_attribute_distribution');
-                }
-            }
-            // read XML
-            App::uses('FileAccessTool', 'Tools');
-            $xmlFileData = FileAccessTool::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
-            $event = $this->IOCImport->readXML($xmlFileData, $id, $dist, $this->data['Event']['submittedioc']['name']);
-
-            // make some changes to have $saveEvent in the format that is needed to save the event together with its attributes
-            $fails = $event['Fails'];
-            $saveEvent['Attribute'] = $event['Attribute'];
-            // we've already stored these elsewhere, unset them so we can extract the event related data
-            unset($event['Attribute']);
-            unset($event['Fails']);
-
-            // add the original openIOC file as an attachment
-            $saveEvent['Attribute'][] = array(
-                'category' => 'External analysis',
-                'uuid' =>  CakeText::uuid(),
-                'type' => 'attachment',
-                'sharing_group_id' => '0',
-                'value' => $this->data['Event']['submittedioc']['name'],
-                'to_ids' => false,
-                'distribution' => $dist,
-                'data' => base64_encode($xmlFileData),
-                'comment' => 'OpenIOC import source file'
-            );
-
-            // LATER we might want to let an ioc create the event data automatically in a later version
-            // save the event related data into $saveEvent['Event']
-            //$saveEvent['Event'] = $event;
-            //$saveEvent['Event']['id'] = $id;
-
-            $fieldList = array(
-                    'Event' => array('published', 'timestamp'),
-                    'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment', 'sharing_group_id')
-            );
-            // Save it all
-            $saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
-            // set stuff for the view and render the showIOCResults view.
-            $this->set('attributes', $saveEvent['Attribute']);
-            if (isset($fails)) {
-                $this->set('fails', $fails);
-            }
-            $this->set('eventId', $id);
-            $this->set('graph', $event['Graph']);
-            $this->set('saveEvent', $saveEvent);
-            $this->render('showIOCResults');
-        }
-    }
-
-    public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
-    {
-        // return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events
-        // TODO implement mass download of all events - maybe in a zip file?
-        $this->response->type('text');  // set the content type
-        if ($eventid == null) {
-            throw new Exception(__('Not yet implemented'));
-        }
-        $this->layout = 'text/default';
-
-        if ($key != 'download') {
-            $user = $this->_checkAuthUser($key);
-            if (!$user) {
-                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-            }
-        } else {
-            if (!$this->Auth->user('id')) {
-                throw new UnauthorizedException(__('You have to be logged in to do that.'));
-            }
-        }
-
-        // get the event if it exists and load it together with its attributes
-        $this->Event->id = $eventid;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid event or not authorised.'));
-        }
-        $event = $this->Event->fetchEvent($this->Auth->user(), $options = array('eventid' => $eventid, 'to_ids' => 1, 'enforceWarninglist' => $enforceWarninglist));
-        if (empty($event)) {
-            throw new NotFoundException(__('Invalid event or not authorised.'));
-        }
-        $event = $event[0];
-
-        // send the event and the vars needed to check authorisation to the Component
-        App::uses('IOCExportTool', 'Tools');
-        $this->IOCExport = new IOCExportTool();
-        $final = $this->IOCExport->buildAll($this->Auth->user(), $event);
-        $this->response->type('xml');
-        $this->autoRender = false;
-        $this->response->body($final);
-        $this->response->download('misp.openIOC' . $eventid . '.ioc');
-        return $this->response;
-    }
-
     public function proposalEventIndex()
     {
         $this->loadModel('ShadowAttribute');
@@ -6343,19 +6214,6 @@ class EventsController extends AppController
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
-    }
-
-    public function reportValidationIssuesEvents()
-    {
-        // search for validation problems in the events
-        if (!self::_isSiteAdmin()) {
-            throw new NotFoundException();
-        }
-        $results = $this->Event->reportValidationIssuesEvents();
-        $result = $results[0];
-        $count = $results[1];
-        $this->set('result', $result);
-        $this->set('count', $count);
     }
 
     public function addTag($id = false, $tag_id = false)
@@ -7093,12 +6951,6 @@ class EventsController extends AppController
                 'checkbox_set' => $this->baseurl . '/events/restSearch/xml/eventid:' . $id . '/withAttachments:1.xml',
                 'checkbox_default' => true,
             ),
-            'openIOC' => array(
-                'url' => $this->baseurl . '/events/restSearch/openioc/to_ids:1/published:1/eventid:' . $id . '.json',
-                'text' => __('OpenIOC (all indicators marked to IDS)'),
-                'requiresPublished' => false,
-                'checkbox' => false,
-            ),
             'xlsx' => array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1/published:1/includeContext:0/eventid:' . $id,
                 'text' => __('XLSX (Excel)'),
@@ -7138,14 +6990,6 @@ class EventsController extends AppController
                 'checkbox' => true,
                 'checkbox_text' => __('Encode Attachments'),
                 'checkbox_set' => $this->baseurl . '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1',
-            ),
-            'stix_json' => array(
-                'url' => $this->baseurl . '/events/restSearch/stix-json/eventid:' . $id,
-                'text' => __('STIX 1 JSON (metadata + all attributes)'),
-                'requiresPublished' => false,
-                'checkbox' => true,
-                'checkbox_text' => __('Encode Attachments'),
-                'checkbox_set' => $this->baseurl . '/events/restSearch/stix-json/withAttachments:1/eventid:' . $id,
             ),
             'stix2_json' => array(
                 'url' => $this->baseurl . '/events/restSearch/stix2/eventid:' . $id,
@@ -7243,16 +7087,6 @@ class EventsController extends AppController
                     'text' => __('Freetext Import'),
                     'ajax' => true,
                     'target' => 'popover_form'
-                ),
-                'OpenIOC' => array(
-                    'url' => $this->baseurl . '/events/addIOC/' . $id,
-                    'text' => __('OpenIOC Import'),
-                    'ajax' => false,
-                ),
-                'ThreatConnect' => array(
-                    'url' => $this->baseurl . '/attributes/add_threatconnect/' . $id,
-                    'text' => __('ThreatConnect Import'),
-                    'ajax' => false
                 ),
                 'Forensic analysis' => array(
                     'url' => $this->baseurl . '/events/upload_analysis_file/'.$id,
@@ -9594,30 +9428,6 @@ class EventsController extends AppController
             }
         }
         return $this->RestResponse->viewData($allConflicts);
-    }
-
-    public function generateCount()
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        // do one SQL query with the counts
-        // loop over events, update in db
-        $this->loadModel('MispAttribute');
-        $events = $this->MispAttribute->find('all', array(
-            'recursive' => -1,
-            'fields' => array('event_id', 'count(event_id) as attribute_count'),
-            'group' => array('Attribute.event_id'),
-            'order' => array('Attribute.event_id ASC'),
-        ));
-        foreach ($events as $k => $event) {
-            $this->Event->updateAll(
-                array('Event.attribute_count' => (int)$event[0]['attribute_count']),
-                array('Event.id' => $event['Attribute']['event_id'])
-            );
-        }
-        $this->Flash->success(__('All done. attribute_count generated from scratch for ' . (isset($k) ? $k : 'no') . ' events.'));
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
     }
 
     /**

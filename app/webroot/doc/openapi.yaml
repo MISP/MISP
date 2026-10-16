@@ -3288,6 +3288,7 @@ components:
         - "Relationship"
         - "Organisation"
         - "SharingGroup"
+        - "AttributeValue"
 
     AnalystDataAuthors:
       type: string
@@ -3317,6 +3318,11 @@ components:
           $ref: "#/components/schemas/UUID"
         object_uuid:
           $ref: "#/components/schemas/UUID"
+        object_sha256:
+          allOf:
+            - $ref: "#/components/schemas/ValueSha256"
+          nullable: true
+          description: "Set instead of object_uuid (then null) when object_type is AttributeValue"
         object_type:
           $ref: "#/components/schemas/AnalystObjectType"
         authors:
@@ -3372,6 +3378,11 @@ components:
           properties:
             related_object_uuid:
               $ref: "#/components/schemas/UUID"
+            related_object_sha256:
+              allOf:
+                - $ref: "#/components/schemas/ValueSha256"
+              nullable: true
+              description: "Set instead of related_object_uuid (then null) when related_object_type is AttributeValue"
             related_object_type:
               $ref: "#/components/schemas/AnalystObjectType"
             relationship_type:
@@ -3641,6 +3652,13 @@ components:
       maxLength: 65535
       example: "logged source ip"
 
+    AttributeCreated:
+      description: "When this instance created the attribute, as an epoch timestamp. Set on creation and never changed by an edit; a value sent with an add or an edit is ignored. 0 for attributes created before MISP 3.0."
+      type: string
+      pattern: '^\d+$'
+      readOnly: true
+      example: "1617875568"
+
     AttributeEventUUID:
       $ref: "#/components/schemas/UUID"
 
@@ -3670,6 +3688,8 @@ components:
           $ref: "#/components/schemas/UUID"
         timestamp:
           $ref: "#/components/schemas/NullableTimestamp"
+        created:
+          $ref: "#/components/schemas/AttributeCreated"
         distribution:
           $ref: "#/components/schemas/DistributionLevelId"
         sharing_group_id:
@@ -6630,6 +6650,12 @@ components:
       format: uuid
       example: "c99506a6-1255-4b71-afa5-7b8ba48c3b1b"
 
+    ValueSha256:
+      type: string
+      description: "SHA-256 of an attribute value's stored text, lowercase hex. Addresses the value as an analyst data or collection target (type AttributeValue)."
+      pattern: "^[0-9a-f]{64}$"
+      example: "3cbad7bc936718f07fa8665bc64ce46986142bea60f86fd0c05cd2a4a8ea2bc4"
+
     ExtendsUUID:
       type: string
       nullable: true
@@ -7133,7 +7159,6 @@ components:
         - text
         - stix
         - stix2
-        - stix-json
         - attack
         - attack-sightings
         - cache
@@ -7141,7 +7166,6 @@ components:
         - hashes
         - netfilter
         - opendata
-        - openioc
         - rpz
         - snort
         - suricata
@@ -7158,13 +7182,11 @@ components:
         - text
         - stix
         - stix2
-        - stix-json
         - hashes
         - cache
         - count
         - netfilter
         - opendata
-        - openioc
         - rpz
         - snort
         - suricata
@@ -7405,9 +7427,14 @@ components:
           $ref: "#/components/schemas/CollectionId"
         element_uuid:
           $ref: "#/components/schemas/UUID"
+        element_sha256:
+          allOf:
+            - $ref: "#/components/schemas/ValueSha256"
+          nullable: true
+          description: "Set instead of element_uuid (then null) when element_type is AttributeValue"
         element_type:
           type: string
-          enum: [ "Event", "GalaxyCluster" ]
+          enum: [ "Event", "GalaxyCluster", "AttributeValue" ]
         description:
           $ref: "#/components/schemas/CollectionElementDescription"
 
@@ -7827,10 +7854,12 @@ components:
     analystDataObjectUUIDParameter:
       name: analystObjectUUID
       in: path
-      description: "Object UUID that has an analyst data"
+      description: "UUID of the object the analyst data is on, or the SHA-256 of a value (object type AttributeValue)"
       required: true
       schema:
-        $ref: "#/components/schemas/UUID"
+        oneOf:
+          - $ref: "#/components/schemas/UUID"
+          - $ref: "#/components/schemas/ValueSha256"
 
     analystDataObjectTypeParameter:
       name: analystObjectType
@@ -9889,12 +9918,15 @@ components:
                     example: "68"
                   checked_table_column:
                     type: array
+                    description: Always empty since 3.0; kept for compatibility.
                     items:
                       type: string
                       example: "column_name"
                   diagnostic:
                     type: object
+                    description: Always empty since 3.0; kept for compatibility.
                   diagnostic_index:
+                    description: Always empty since 3.0; kept for compatibility.
                     anyOf:
                       - type: object
                         example:
@@ -11444,7 +11476,6 @@ components:
           - download
           - stix
           - stix2
-          - stix-json
           - attack
           - attack-sightings
           - cache
@@ -11452,7 +11483,6 @@ components:
           - hashes
           - netfilter
           - opendata
-          - openioc
           - rpz
           - snort
           - suricata
@@ -11471,7 +11501,6 @@ components:
           - download
           - stix
           - stix2
-          - stix-json
           - attack
           - attack-sightings
           - cache
@@ -11479,7 +11508,6 @@ components:
           - hashes
           - netfilter
           - opendata
-          - openioc
           - rpz
           - snort
           - suricata

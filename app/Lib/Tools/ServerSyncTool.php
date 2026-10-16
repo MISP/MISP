@@ -17,7 +17,8 @@ class ServerSyncTool
         PERM_ANALYST_DATA = 'perm_analyst_data',
         FEATURE_SIGHTING_REST_SEARCH = 'sighting_rest',
         FEATURE_FAST_CACHING = 'fast_caching',
-        FEATURE_COLLECTION_SYNC = 'collection_sync';
+        FEATURE_COLLECTION_SYNC = 'collection_sync',
+        FEATURE_VALUE_TARGETS = 'value_targets';
 
     /** @var array */
     private $server;
@@ -572,6 +573,23 @@ class ServerSyncTool
     }
 
     /**
+     * 2.5 and 3.x sync with each other across the major version.
+     *
+     * @param string $localVersion
+     * @param string $remoteVersion
+     * @return bool
+     */
+    public static function isCrossMajorCompatible($localVersion, $remoteVersion)
+    {
+        $local = array_map('intval', explode('.', $localVersion));
+        $remote = array_map('intval', explode('.', $remoteVersion));
+        $is25 = function (array $version) {
+            return $version[0] === 2 && isset($version[1]) && $version[1] === 5;
+        };
+        return ($is25($local) && $remote[0] === 3) || ($local[0] === 3 && $is25($remote));
+    }
+
+    /**
      * @param string $flag
      * @return bool
      * @throws HttpSocketJsonException
@@ -589,17 +607,13 @@ class ServerSyncTool
             case self::FEATURE_FILTER_SIGHTINGS:
                 return isset($info['filter_sightings']) && $info['filter_sightings'];
             case self::FEATURE_ORG_RULE:
-                $version = explode('.', $info['version']);
-                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 123) || ($version[1] == 5));
+                return version_compare($info['version'], '2.4.124', '>=');
             case self::FEATURE_PROPOSALS:
-                $version = explode('.', $info['version']);
-                return $version[0] == 2 && (($version[1] == 4 && $version[2] >= 111)  || ($version[1] == 5));
+                return version_compare($info['version'], '2.4.111', '>=');
             case self::FEATURE_POST_TEST:
-                $version = explode('.', $info['version']);
-                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 68) || ($version[1] == 5));
+                return version_compare($info['version'], '2.4.69', '>=');
             case self::FEATURE_PROTECTED_EVENT:
-                $version = explode('.', $info['version']);
-                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 155) || ($version[1] == 5));
+                return version_compare($info['version'], '2.4.156', '>=');
             case self::FEATURE_EDIT_OF_GALAXY_CLUSTER:
                 return isset($info['perm_galaxy_editor']);
             case self::PERM_SYNC:
@@ -609,13 +623,14 @@ class ServerSyncTool
             case self::PERM_ANALYST_DATA:
                 return isset($info['perm_analyst_data']) && $info['perm_analyst_data'];
             case self::FEATURE_SIGHTING_REST_SEARCH:
-                $version = explode('.', $info['version']);
-                return $version[0] == 2 && (($version[1] == 4 && $version[2] > 164) || ($version[1] == 5));
+                return version_compare($info['version'], '2.4.165', '>=');
             case self::FEATURE_FAST_CACHING:
                 $version = explode('.', $info['version']);
                 return $version[0] > 2 || ($version[0] == 2 && $version[1] == 5 && $version[2] >= 33);
             case self::FEATURE_COLLECTION_SYNC:
                 return isset($info['collection_sync']) && $info['collection_sync'];
+            case self::FEATURE_VALUE_TARGETS:
+                return version_compare($info['version'], '3.0.0', '>=');
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }

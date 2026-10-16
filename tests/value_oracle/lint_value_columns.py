@@ -106,10 +106,6 @@ ALLOW = [Entry(*e) for e in [
     # Pinned sites: the rules cannot see why these are safe
     ('app/Test/SqlDialectTest.php', 'SqlDialectTest::testSha256Prefix',
      'the backfill hash expression as SQL text; never run', None, 4),
-    ('app/Controller/AttributesController.php',
-     'AttributesController::updateAttributeValues',
-     'search keys of an attribute find: plain LIKE keys the rewriter '
-     'carries', ('condition',), 2),
     ('app/Controller/ShadowAttributesController.php',
      'ShadowAttributesController::__indexOrder',
      'the sort guard: value is translated, the value columns are refused',

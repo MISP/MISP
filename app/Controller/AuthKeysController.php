@@ -295,9 +295,16 @@ class AuthKeysController extends AppController
         ]);
     }
 
-    public function pin($id, $ip) {
+    public function pin($id, $ip = null) {
         if(!$this->AuthKey->canEditAuthKey($this->Auth->user(), $id)) {
             throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
+        }
+        // An IPv6 address cannot ride in the URL: its colons are read as a named parameter.
+        if ($ip === null && isset($this->request->data['ip'])) {
+            $ip = $this->request->data['ip'];
+        }
+        if ($ip === null || filter_var($ip, FILTER_VALIDATE_IP) === false) {
+            throw new BadRequestException(__('Invalid IP address.'));
         }
         if ($this->request->is('post')) {
             // find entry, to confirm user is authorized

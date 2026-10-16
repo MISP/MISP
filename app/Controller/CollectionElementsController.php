@@ -3,6 +3,7 @@
 use PHPUnit\Framework\MockObject\InvalidMethodNameException;
 
 App::uses('AppController', 'Controller');
+App::uses('AnalystData', 'Model');
 
 class CollectionElementsController extends AppController
 {
@@ -25,71 +26,26 @@ class CollectionElementsController extends AppController
     public $uses = [
     ];
 
-    private function __normaliseElementUuids($elementUuid)
+    /**
+     * @param mixed $raw one address or a list of them
+     * @param string|null $elementType
+     * @return array trimmed, de-duplicated addresses; SHA-256s lowercased
+     */
+    private function __normaliseElementAddresses($raw, $elementType)
     {
-        if (is_array($elementUuid)) {
-            $rawUuids = $elementUuid;
-        } else {
-            $rawUuids = [$elementUuid];
-        }
-
-        $uuids = [];
-        foreach ($rawUuids as $uuid) {
-            if (!is_scalar($uuid)) {
+        $bySha256 = in_array($elementType, AnalystData::SHA256_TARGETS, true);
+        $addresses = [];
+        foreach ((array)$raw as $address) {
+            if (!is_scalar($address)) {
                 continue;
             }
-            $uuid = trim((string)$uuid);
-            if ($uuid !== '') {
-                $uuids[] = $uuid;
+            $address = trim((string)$address);
+            if ($address !== '') {
+                $addresses[] = $bySha256 ? strtolower($address) : $address;
             }
         }
 
-        return array_values(array_unique($uuids));
-    }
-
-    /**
-     * Authorise the objects a collection element points at.
-     *
-     * A collection element is a bare UUID that the model never checks against
-     * the caller's ACL, and the read side resolves those UUIDs back into real
-     * objects when the collection is rendered. Both write paths must therefore
-     * refuse a UUID the caller cannot read - otherwise a collection is a
-     * self-service handle on another organisation's private data, which is
-     * what made the beta collection view disclose org-only events (V17).
-     *
-     * @param string|null $elementType 'Event' or 'GalaxyCluster'. Empty when the
-     *      caller omitted it, in which case CollectionElement::beforeValidate()
-     *      deduces it on save - so deduce it the same way here, or the guard
-     *      could be skipped simply by leaving the field out.
-     * @param array $elementUuids
-     * @throws NotFoundException
-     */
-    private function __assertCanUseElements($elementType, array $elementUuids)
-    {
-        $user = $this->Auth->user();
-        foreach ($elementUuids as $elementUuid) {
-            $type = empty($elementType)
-                ? $this->CollectionElement->deduceType($elementUuid)
-                : $elementType;
-            if ($type === 'Event') {
-                $this->loadModel('Event');
-                $event = $this->Event->fetchSimpleEvent($user, $elementUuid, [
-                    'fields' => ['Event.id']
-                ]);
-                if (empty($event)) {
-                    throw new NotFoundException(__('Invalid event or not authorized.'));
-                }
-            } elseif ($type === 'GalaxyCluster') {
-                $this->loadModel('GalaxyCluster');
-                $clusterCount = $this->GalaxyCluster->fetchGalaxyClusters($user, [
-                    'conditions' => ['GalaxyCluster.uuid' => $elementUuid],
-                    'count' => true
-                ]);
-                if (empty($clusterCount)) {
-                    throw new NotFoundException(__('Invalid galaxy cluster or not authorized.'));
-                }
-            }
-        }
+        return array_values(array_unique($addresses));
     }
 
     public function add($collection_id)
@@ -103,9 +59,12 @@ class CollectionElementsController extends AppController
             'beforeSave' => function (array $collectionElement) use ($collection_id) {
                 // Guard the sink: this callback sees the exact row CRUD::add()
                 // is about to save, on both the form and the REST path.
-                $this->__assertCanUseElements(
-                    $collectionElement['CollectionElement']['element_type'] ?? null,
-                    $this->__normaliseElementUuids($collectionElement['CollectionElement']['element_uuid'] ?? null)
+                $type = $collectionElement['CollectionElement']['element_type'] ?? null;
+                $column = AnalystData::addressColumn($type, 'element');
+                $this->CollectionElement->assertTargetsUsable(
+                    $this->Auth->user(),
+                    $type,
+                    $this->__normaliseElementAddresses($collectionElement['CollectionElement'][$column] ?? null, $type)
                 );
                 $collectionElement['CollectionElement']['collection_id'] = intval($collection_id);
                 return $collectionElement;
@@ -188,6 +147,7 @@ class CollectionElementsController extends AppController
 
     public function addElementToCollection($element_type, $element_uuid)
     {
+        $column = AnalystData::addressColumn($element_type, 'element');
         $isOvermind = $this->theme === 'Overmind';
         if ($isOvermind && $this->request->is('ajax')) {
             $this->layout = false;
@@ -217,7 +177,7 @@ class CollectionElementsController extends AppController
                     'fields' => ['CollectionElement.id', 'CollectionElement.collection_id'],
                     'conditions' => [
                         'CollectionElement.element_type' => $element_type,
-                        'CollectionElement.element_uuid' => $element_uuid,
+                        'CollectionElement.' . $column => $this->__normaliseElementAddresses($element_uuid, $element_type),
                         'CollectionElement.collection_id' => array_keys($validCollections)
                     ]
                 ])));
@@ -241,11 +201,11 @@ class CollectionElementsController extends AppController
                 throw new NotFoundException(__('Invalid collection or not authorized.'));
             }
             $description = empty($this->request->data['CollectionElement']['description']) ? '' : $this->request->data['CollectionElement']['description'];
-            $elementUuids = $this->__normaliseElementUuids($this->request->data['CollectionElement']['element_uuid'] ?? $element_uuid);
+            $elementUuids = $this->__normaliseElementAddresses($this->request->data['CollectionElement'][$column] ?? $element_uuid, $element_type);
             if (empty($elementUuids)) {
                 throw new NotFoundException(__('No element UUID specified.'));
             }
-            $this->__assertCanUseElements($element_type, $elementUuids);
+            $this->CollectionElement->assertTargetsUsable($this->Auth->user(), $element_type, $elementUuids);
 
             $result = true;
             $duplicateCount = 0;
@@ -253,7 +213,7 @@ class CollectionElementsController extends AppController
             foreach ($elementUuids as $currentElementUuid) {
                 $dataToSave = [
                     'CollectionElement' => [
-                        'element_uuid' => $currentElementUuid,
+                        $column => $currentElementUuid,
                         'element_type' => $element_type,
                         'description' => $description,
                         'collection_id' => $collection_id
@@ -267,7 +227,7 @@ class CollectionElementsController extends AppController
                         break;
                     }
                 } catch (PDOException $e) {
-                    if (!empty($e->errorInfo[0]) && $e->errorInfo[0] == 23000) {
+                    if (CollectionElement::isDuplicate($e)) {
                         $duplicateCount++;
                     } else {
                         throw $e;

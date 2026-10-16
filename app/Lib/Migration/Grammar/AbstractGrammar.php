@@ -1,13 +1,15 @@
 <?php
 
+App::uses('Collation', 'Migration');
+
 /**
  * Turns one flavour-agnostic schema operation into the SQL a given engine wants.
  *
  * A grammar renders; it never executes. SchemaBuilder collects operations and
- * hands them here one at a time, and every method returns an array of complete
- * statements - an array rather than a string because the same operation can be
- * one statement on MySQL and three on PostgreSQL (see PostgresGrammar's
- * changeColumn).
+ * hands them here - consecutive changes to one table together, through
+ * alterTable() - and every method returns an array of complete statements: an
+ * array rather than a string because the same operation can be one statement
+ * on MySQL and two on PostgreSQL (see PostgresGrammar's renameColumn).
  *
  * ## What is borrowed and what is ours
  *
@@ -22,8 +24,8 @@
  *
  * What CakePHP has no answer for, and this class therefore owns: RENAME COLUMN,
  * RENAME TABLE, index DDL beyond the create-table clause, positional `after`,
- * prefix-length indexes, FULLTEXT, and the three column types MISP uses that
- * Cake's map is missing.
+ * prefix-length indexes, FULLTEXT, ROW_FORMAT and table options in an ALTER
+ * TABLE, and the three column types MISP uses that Cake's map is missing.
  *
  * ## The type-map extension
  *
@@ -183,13 +185,95 @@ abstract class AbstractGrammar
     // ----------------------------------------------------------------- table
 
     /**
+     * The operations that change an existing table, and so can share one
+     * ALTER TABLE - see alterTable().
+     */
+    const ALTER_OPERATIONS = array(
+        'addColumn',
+        'changeColumn',
+        'renameColumn',
+        'dropColumn',
+        'addIndex',
+        'dropIndex',
+        'dropPrimaryKey',
+        'changeOptions',
+    );
+
+    /**
+     * What changeOptions() can set. MySQL storage options, all of them, so
+     * PostgreSQL renders none.
+     */
+    const TABLE_OPTIONS = array('engine', 'row_format', 'charset', 'collate');
+
+    /**
+     * InnoDB's row formats.
+     */
+    const ROW_FORMATS = array('DYNAMIC', 'COMPACT', 'REDUNDANT', 'COMPRESSED');
+
+    /**
+     * Render several operations on one table in as few statements as the
+     * engine allows, so that a table is rebuilt once rather than once per
+     * operation.
+     *
+     * On MySQL that is a single ALTER TABLE. PostgreSQL folds the column
+     * changes into one ALTER TABLE as well, but a rename or an index is a
+     * statement of its own there: those keep their place in the sequence, and
+     * the ALTER is split around them.
+     *
+     * Which operations may share a statement is the caller's call;
+     * SchemaBuilder::toSql() decides it.
+     *
+     * @param string $table
+     * @param array $operations Each array('operation' => ..., 'arguments' => ...),
+     *   as SchemaBuilder records them, the table being the first argument.
+     * @return array Statements.
+     * @throws InvalidArgumentException On an operation that is not one of
+     *   ALTER_OPERATIONS, or one on another table.
+     */
+    public function alterTable($table, array $operations)
+    {
+        $parts = array();
+        foreach ($operations as $operation) {
+            $name = $operation['operation'];
+            $arguments = $operation['arguments'];
+            if (!in_array($name, self::ALTER_OPERATIONS, true)) {
+                throw new InvalidArgumentException(sprintf(
+                    '%s does not alter an existing table, so it cannot be part of an ALTER TABLE.',
+                    $name
+                ));
+            }
+            if ($arguments[0] !== $table) {
+                throw new InvalidArgumentException(sprintf(
+                    '%s on %s cannot be part of an ALTER TABLE on %s.',
+                    $name,
+                    $arguments[0],
+                    $table
+                ));
+            }
+            if ($name === 'changeColumn') {
+                $this->assertCompleteRedefinition($name, $table, $arguments[1], $arguments[2], $arguments[3]);
+            } elseif ($name === 'renameColumn') {
+                $this->assertCompleteRedefinition($name, $table, $arguments[2], $arguments[3], $arguments[4]);
+            }
+            $parts = array_merge(
+                $parts,
+                call_user_func_array(array($this, $name . 'Parts'), $arguments)
+            );
+        }
+        return $this->renderParts($table, $parts);
+    }
+
+    /**
      * @param string $table
      * @param string $column
      * @param string $type
      * @param array $options
      * @return array Statements.
      */
-    abstract public function addColumn($table, $column, $type, array $options = array());
+    public function addColumn($table, $column, $type, array $options = array())
+    {
+        return $this->alterOne('addColumn', array($table, $column, $type, $options));
+    }
 
     /**
      * @param string $table
@@ -200,8 +284,7 @@ abstract class AbstractGrammar
      */
     public function changeColumn($table, $column, $type, array $options = array())
     {
-        $this->assertCompleteRedefinition('changeColumn', $table, $column, $options);
-        return $this->renderChangeColumn($table, $column, $type, $options);
+        return $this->alterOne('changeColumn', array($table, $column, $type, $options));
     }
 
     /**
@@ -214,19 +297,8 @@ abstract class AbstractGrammar
      */
     public function renameColumn($table, $from, $to, $type, array $options = array())
     {
-        $this->assertCompleteRedefinition('renameColumn', $table, $to, $options);
-        return $this->renderRenameColumn($table, $from, $to, $type, $options);
+        return $this->alterOne('renameColumn', array($table, $from, $to, $type, $options));
     }
-
-    /**
-     * @return array Statements.
-     */
-    abstract protected function renderChangeColumn($table, $column, $type, array $options);
-
-    /**
-     * @return array Statements.
-     */
-    abstract protected function renderRenameColumn($table, $from, $to, $type, array $options);
 
     /**
      * @param string $table
@@ -235,11 +307,7 @@ abstract class AbstractGrammar
      */
     public function dropColumn($table, $column)
     {
-        return array(sprintf(
-            'ALTER TABLE %s DROP COLUMN %s;',
-            $this->name($table),
-            $this->name($column)
-        ));
+        return $this->alterOne('dropColumn', array($table, $column));
     }
 
     /**
@@ -250,22 +318,73 @@ abstract class AbstractGrammar
      * @param string $table
      * @return array Statements.
      */
-    abstract public function dropPrimaryKey($table);
+    public function dropPrimaryKey($table)
+    {
+        return $this->alterOne('dropPrimaryKey', array($table));
+    }
 
     /**
      * @param string $table
      * @param string|array $columns
-     * @param array $options 'unique', 'name', 'length', 'fulltext'.
+     * @param array $options 'unique', 'name', 'length', 'fulltext', and for
+     *   an index the engines spell differently: 'mysql' => false for one
+     *   PostgreSQL has alone; 'pgsql' => array('name', 'sql', 'extension'),
+     *   its PostgreSQL name and statement (%1$s the quoted index name, %2$s
+     *   the quoted table) and an extension it needs.
      * @return array Statements.
      */
-    abstract public function addIndex($table, $columns, array $options = array());
+    public function addIndex($table, $columns, array $options = array())
+    {
+        return $this->alterOne('addIndex', array($table, $columns, $options));
+    }
 
     /**
      * @param string $table
      * @param string|array $columnsOrName The column set, or the index's own name.
      * @return array Statements.
      */
-    abstract public function dropIndex($table, $columnsOrName);
+    public function dropIndex($table, $columnsOrName)
+    {
+        return $this->alterOne('dropIndex', array($table, $columnsOrName));
+    }
+
+    /**
+     * Change a table's own options: its engine, row format, and the default
+     * charset and collation its new columns take. Existing columns keep theirs.
+     *
+     * @param string $table
+     * @param array $options Any of TABLE_OPTIONS.
+     * @return array Statements.
+     */
+    public function changeOptions($table, array $options)
+    {
+        return $this->alterOne('changeOptions', array($table, $options));
+    }
+
+    /**
+     * A changeOptions() declaration as this engine reads it: the row format in
+     * upper case, a collation token resolved.
+     *
+     * @param array $options
+     * @return array
+     * @throws InvalidArgumentException On no option, an unknown one, or an
+     *   unknown row format.
+     */
+    public function tableOptions(array $options)
+    {
+        if (empty($options)) {
+            throw new InvalidArgumentException('changeOptions() needs at least one option.');
+        }
+        $unknown = array_diff(array_keys($options), self::TABLE_OPTIONS);
+        if (!empty($unknown)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unknown table option "%s". Known options are: %s.',
+                implode('", "', $unknown),
+                implode(', ', self::TABLE_OPTIONS)
+            ));
+        }
+        return $this->resolveCollation($this->resolveRowFormat($options));
+    }
 
     /**
      * The physical name this grammar gives an index.
@@ -276,6 +395,151 @@ abstract class AbstractGrammar
      * @return string
      */
     abstract public function indexName($table, $columns, array $options = array());
+
+    // -------------------------------------------------- table, as ALTER parts
+    //
+    // What each operation contributes to an ALTER TABLE: a clause() to join the
+    // statement, a statement() of its own that the ALTER is split around, or
+    // one that comes after() it.
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function addColumnParts($table, $column, $type, array $options);
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function changeColumnParts($table, $column, $type, array $options);
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function renameColumnParts($table, $from, $to, $type, array $options);
+
+    /**
+     * @return array Parts.
+     */
+    protected function dropColumnParts($table, $column)
+    {
+        return array($this->clause('DROP COLUMN ' . $this->name($column)));
+    }
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function dropPrimaryKeyParts($table);
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function addIndexParts($table, $columns, array $options);
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function dropIndexParts($table, $columnsOrName);
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function changeOptionsParts($table, array $options);
+
+    /**
+     * @param string $sql One ALTER TABLE clause, without the ALTER TABLE.
+     * @return array
+     */
+    protected function clause($sql)
+    {
+        return array('clause' => $sql);
+    }
+
+    /**
+     * @param string $sql A complete statement.
+     * @return array
+     */
+    protected function statement($sql)
+    {
+        return array('statement' => $sql);
+    }
+
+    /**
+     * A statement that has to follow the table's ALTER TABLE, wherever the
+     * operation sits among the others: placed in sequence, it would split the
+     * ALTER and cost the table a second rewrite.
+     *
+     * @param string $sql A complete statement.
+     * @return array
+     */
+    protected function after($sql)
+    {
+        return array('after' => $sql);
+    }
+
+    /**
+     * @param string $operation
+     * @param array $arguments
+     * @return array Statements.
+     */
+    private function alterOne($operation, array $arguments)
+    {
+        return $this->alterTable(
+            $arguments[0],
+            array(array('operation' => $operation, 'arguments' => $arguments))
+        );
+    }
+
+    /**
+     * Join consecutive clauses into one ALTER TABLE, splitting it around any
+     * statement of its own, and end with the statements that follow it.
+     *
+     * @param string $table
+     * @param array $parts
+     * @return array Statements.
+     */
+    private function renderParts($table, array $parts)
+    {
+        $statements = array();
+        $clauses = array();
+        $after = array();
+        foreach ($parts as $part) {
+            if (isset($part['clause'])) {
+                $clauses[] = $part['clause'];
+                continue;
+            }
+            if (isset($part['after'])) {
+                $after[] = $part['after'];
+                continue;
+            }
+            $statements = array_merge($statements, $this->alterStatement($table, $clauses));
+            $clauses = array();
+            $statements[] = $part['statement'];
+        }
+        return array_merge($statements, $this->alterStatement($table, $clauses), $after);
+    }
+
+    /**
+     * One clause stays on one line; several get one line each, which is what
+     * keeps a long ALTER readable in a dry run.
+     *
+     * @param string $table
+     * @param array $clauses
+     * @return array Statements: none, or one.
+     */
+    private function alterStatement($table, array $clauses)
+    {
+        if (empty($clauses)) {
+            return array();
+        }
+        if (count($clauses) === 1) {
+            return array(sprintf('ALTER TABLE %s %s;', $this->name($table), $clauses[0]));
+        }
+        return array(sprintf(
+            "ALTER TABLE %s\n    %s;",
+            $this->name($table),
+            implode(",\n    ", $clauses)
+        ));
+    }
 
     // --------------------------------------------------------------- helpers
 
@@ -402,12 +666,14 @@ abstract class AbstractGrammar
     /**
      * Fold the DSL's own spellings into what buildColumn() expects.
      *
-     * Only one so far: `primary_key`. Cake's map entry for it holds the trailing
-     * modifier alone ("NOT NULL AUTO_INCREMENT" / "serial NOT NULL"), never a
-     * type - passing it through verbatim would emit `id` NOT NULL AUTO_INCREMENT
-     * with no type at all. The driver expects an integer column flagged
-     * primary instead, which renders as int(11) NOT NULL AUTO_INCREMENT on MySQL
-     * and serial NOT NULL on PostgreSQL.
+     * `primary_key`: Cake's map entry for it holds the trailing modifier alone
+     * ("NOT NULL AUTO_INCREMENT" / "serial NOT NULL"), never a type - passing it
+     * through verbatim would emit `id` NOT NULL AUTO_INCREMENT with no type at
+     * all. The driver expects an integer column flagged primary instead. A key
+     * is 64-bit, so that is a biginteger: bigint NOT NULL AUTO_INCREMENT on
+     * MySQL, an identity column on PostgreSQL.
+     *
+     * A collation token, resolved by resolveCollation().
      *
      * @param array $spec
      * @return array
@@ -415,10 +681,64 @@ abstract class AbstractGrammar
     protected function normaliseColumn(array $spec)
     {
         if (isset($spec['type']) && $spec['type'] === 'primary_key') {
-            $spec['type'] = 'integer';
+            $spec['type'] = 'biginteger';
             $spec['key'] = 'primary';
         }
-        return $spec;
+        return $this->resolveCollation($spec);
+    }
+
+    /**
+     * A collation token (Collation::CI, ...) in a column spec or a table's
+     * options, made into what this engine renders. Anything else passes through.
+     *
+     * @param array $options
+     * @return array
+     * @throws InvalidArgumentException On an unknown token, or a charset the token contradicts.
+     */
+    protected function resolveCollation(array $options)
+    {
+        if (!isset($options['collate']) || !Collation::isToken($options['collate'])) {
+            return $options;
+        }
+        $charset = Collation::charset($options['collate']);
+        if (isset($options['charset']) && strtolower($options['charset']) !== $charset) {
+            throw new InvalidArgumentException(sprintf(
+                'The collation %s belongs to the charset %s, so it cannot be declared with the charset %s.',
+                $options['collate'],
+                $charset,
+                $options['charset']
+            ));
+        }
+        return $this->collationFor($options['collate'], $options);
+    }
+
+    /**
+     * @param string $token A known collation token.
+     * @param array $options The column spec or table options that carry it.
+     * @return array The same, with charset and collate as this engine has them.
+     */
+    abstract protected function collationFor($token, array $options);
+
+    /**
+     * @param array $options A table's options.
+     * @return array The same, with any row format in upper case.
+     * @throws InvalidArgumentException On a row format InnoDB does not have.
+     */
+    protected function resolveRowFormat(array $options)
+    {
+        if (!isset($options['row_format'])) {
+            return $options;
+        }
+        $format = strtoupper($options['row_format']);
+        if (!in_array($format, self::ROW_FORMATS, true)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unknown row format "%s". InnoDB has: %s.',
+                $options['row_format'],
+                implode(', ', self::ROW_FORMATS)
+            ));
+        }
+        $options['row_format'] = $format;
+        return $options;
     }
 
     /**
@@ -440,15 +760,31 @@ abstract class AbstractGrammar
      * This is a deliberate tightening of the PRD's section 6.3 signature, where
      * both options were optional.
      *
+     * The `primary_key` type is the exception: it is NOT NULL with a generated
+     * value by definition, so it needs neither, and refuses either saying
+     * otherwise.
+     *
      * @param string $operation
      * @param string $table
      * @param string $column
+     * @param string $type
      * @param array $options
      * @return void
      * @throws InvalidArgumentException
      */
-    protected function assertCompleteRedefinition($operation, $table, $column, array $options)
+    protected function assertCompleteRedefinition($operation, $table, $column, $type, array $options)
     {
+        if ($type === 'primary_key') {
+            if (!empty($options['null']) || (isset($options['default']) && $options['default'] !== null)) {
+                throw new InvalidArgumentException(sprintf(
+                    '%s(%s.%s) makes the column an auto-increment key, which is NOT NULL and generates its own values: it cannot be nullable or carry a default.',
+                    $operation,
+                    $table,
+                    $column
+                ));
+            }
+            return;
+        }
         $missing = array();
         foreach (array('null', 'default') as $option) {
             if (!array_key_exists($option, $options)) {
@@ -571,7 +907,7 @@ abstract class AbstractGrammar
      * @param array|null $options
      * @return array array($columns, $options)
      */
-    protected function normaliseIndexDeclaration($key, $options)
+    public function normaliseIndexDeclaration($key, $options)
     {
         $options = is_array($options) ? $options : array();
         $columns = isset($options['column']) ? $options['column'] : $key;
@@ -579,6 +915,15 @@ abstract class AbstractGrammar
             $options['name'] = $key;
         }
         return array($columns, $options);
+    }
+
+    /**
+     * @param array $options An index declaration.
+     * @return bool Whether the index exists on PostgreSQL alone.
+     */
+    protected static function isPostgresOnly(array $options)
+    {
+        return isset($options['mysql']) && $options['mysql'] === false;
     }
 
     /**

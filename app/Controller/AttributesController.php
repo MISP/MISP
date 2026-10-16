@@ -862,202 +862,6 @@ class AttributesController extends AppController
         return $fieldDesc;
     }
 
-    // Imports the CSV threatConnect file to multiple attributes
-    public function add_threatconnect($eventId = null)
-    {
-        if ($this->request->is('post')) {
-            $this->loadModel('Event');
-            $this->Event->id = $eventId;
-            $this->Event->recursive = -1;
-            $this->Event->read();
-            if (!$this->__canModifyEvent($this->Event->data)) {
-                throw new ForbiddenException(__('You do not have permission to do that.'));
-            }
-            //
-            // File upload
-            //
-            // Check if there were problems with the file upload
-            $tmpfile = new File($this->request->data['Attribute']['value']['tmp_name']);
-            if ((isset($this->request->data['Attribute']['value']['error']) && $this->request->data['Attribute']['value']['error'] == 0) ||
-                    (!empty($this->request->data['Attribute']['value']['tmp_name']) && $this->request->data['Attribute']['value']['tmp_name'] != 'none')
-            ) {
-                if (!is_uploaded_file($tmpfile->path)) {
-                    throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
-                }
-            } else {
-                $this->Flash->error(__('There was a problem to upload the file.', true), 'default', array(), 'error');
-                $this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
-            }
-            // verify mime type
-            $file_info = $tmpfile->info();
-            if ($file_info['mime'] != 'text/plain') {
-                $this->Flash->error('File not in CSV format.', 'default', array(), 'error');
-                $this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
-            }
-
-            // parse uploaded csv file
-            $filename = $tmpfile->path;
-            $header = null;
-            $entries = array();
-            if (($handle = fopen($filename, 'r')) !== false) {
-                while (($row = fgetcsv($handle, 0, ',', '"')) !== false) {
-                    if (!$header) {
-                        $header = $row;
-                    } else {
-                        $entries[] = array_combine($header, $row);
-                    }
-                }
-                fclose($handle);
-            }
-            // verify header of the file (first row)
-            $required_headers = array('Type', 'Value', 'Confidence', 'Description', 'Source');
-
-            // TODO i18n
-            if (count(array_intersect($header, $required_headers)) != count($required_headers)) {
-                $this->Flash->error('Incorrect ThreatConnect headers. The minimum required headers are: '.implode(',', $required_headers), 'default', array(), 'error');
-                $this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
-            }
-
-            //
-            // import attributes
-            //
-            $attributes = array();  // array with all the attributes we're going to save
-            foreach ($entries as $entry) {
-                $attribute = array();
-                // Pin to the route event that __canModifyEvent() authorised above; the
-                // body's event_id is attacker-controlled and would otherwise redirect the
-                // imported attributes into an event the user cannot modify. (Jeroen Pinoy)
-                $attribute['event_id'] = $eventId;
-                $attribute['value'] = $entry['Value'];
-                $attribute['to_ids'] = ($entry['Confidence'] > 51) ? 1 : 0; // To IDS if high confidence
-                $attribute['comment'] = $entry['Description'];
-                $attribute['distribution'] = '3'; // 'All communities'
-                if (Configure::read('MISP.default_attribute_distribution') != null) {
-                    if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-                        $attribute['distribution'] = $this->Event->data['Event']['distribution'];
-                    } else {
-                        $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-                    }
-                }
-                switch ($entry['Type']) {
-                    case 'Address':
-                        $attribute['category'] = 'Network activity';
-                        $attribute['type'] = 'ip-dst';
-                        break;
-                    case 'Host':
-                        $attribute['category'] = 'Network activity';
-                        $attribute['type'] = 'domain';
-                        break;
-                    case 'EmailAddress':
-                        $attribute['category'] = 'Payload delivery';
-                        $attribute['type'] = 'email-src';
-                        break;
-                    case 'File':
-                        $attribute['category'] = 'Artifacts dropped';
-                        $attribute['value'] = strtolower($attribute['value']);
-                        if (preg_match("#^[0-9a-f]{32}$#", $attribute['value'])) {
-                            $attribute['type'] = 'md5';
-                        } elseif (preg_match("#^[0-9a-f]{40}$#", $attribute['value'])) {
-                            $attribute['type'] = 'sha1';
-                        } elseif (preg_match("#^[0-9a-f]{64}$#", $attribute['value'])) {
-                            $attribute['type'] = 'sha256';
-                        } else {
-                            // do not keep attributes that do not have a match
-                            $attribute=null;
-                        }
-                        break;
-                    case 'URL':
-                        $attribute['category'] = 'Network activity';
-                        $attribute['type'] = 'url';
-                        break;
-                    default:
-                        // do not keep attributes that do not have a match
-                        $attribute=null;
-                }
-                // add attribute to the array that will be saved
-                if ($attribute) {
-                    $attributes[] = $attribute;
-                }
-            }
-
-            //
-            // import source info:
-            //
-            // 1/ iterate over all the sources, unique
-            // 2/ add uniques as 'Internal reference'
-            // 3/ if url format -> 'link'
-            //    else 'comment'
-            $references = array();
-            foreach ($entries as $entry) {
-                if (empty($entry['Source'])) {
-                    continue;
-                }
-                $references[$entry['Source']] = true;
-            }
-            $references = array_keys($references);
-            // generate the Attributes
-            foreach ($references as $reference) {
-                $attribute = array();
-                // route-pinned event_id (see attribute loop above) — never trust the body
-                $attribute['event_id'] = $eventId;
-                $attribute['category'] = 'Internal reference';
-                if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $reference)) {
-                    $attribute['type'] = 'link';
-                } else {
-                    $attribute['type'] = 'comment';
-                }
-                $attribute['value'] = $reference;
-                $attribute['distribution'] = 3; // 'All communities'
-                // add attribute to the array that will be saved
-                $attributes[] = $attribute;
-            }
-
-            //
-            // finally save all the attributes at once, and continue if there are validation errors
-            //
-
-            $results = array('successes' => 0, 'fails' => 0);
-            foreach ($attributes as $attribute) {
-                $this->MispAttribute->create();
-                $result = $this->MispAttribute->save($attribute);
-                if (!$result) {
-                    $results['fails']++;
-                } else {
-                    $results['successes']++;
-                }
-            }
-            // data imported (with or without errors)
-            // remove the published flag from the event
-            $this->loadModel('Event');
-            // unpublish the route event we imported into, not a body-supplied id — the
-            // latter let a user unpublish an arbitrary event they cannot modify.
-            $this->Event->id = $eventId;
-            $this->Event->saveField('published', 0);
-
-            // everything is done, now redirect to event view
-            $message = __('The ThreatConnect data has been imported.');
-            if ($results['successes'] != 0) {
-                $flashType = 'success';
-                $temp = sprintf(__('%s entries imported.'), $results['successes']);
-                $message .= ' ' . $temp;
-            }
-            if ($results['fails'] != 0) {
-                $temp = sprintf(__('%s entries could not be imported.'), $results['fails']);
-                $message .= ' ' . $temp;
-            }
-            $this->Flash->{empty($flashType) ? 'error' : $flashType}($message);
-            $this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
-        } else {
-            // set the event_id in the form
-            $this->request->data['Attribute']['event_id'] = $eventId;
-        }
-
-        // form not submitted, show page
-        $this->loadModel('Event');
-        $events = $this->Event->findById($eventId);
-        $this->set('published', $events['Event']['published']);
-    }
-
     public function edit($id = null)
     {
         if ($this->request->is('get') && $this->_isRest()) {
@@ -1416,7 +1220,7 @@ class AttributesController extends AppController
         $attribute = $this->MispAttribute->find('first', array(
                 'conditions' => $conditions,
                 'recursive' => -1,
-                'fields' => array('id', 'event_id'),
+                'fields' => array('id', 'event_id', 'deleted', 'object_id'),
         ));
         if (empty($attribute)) {
             throw new NotFoundException('Invalid attribute');
@@ -1433,6 +1237,10 @@ class AttributesController extends AppController
             } else {
                 $this->set('hard', $hard);
                 $this->set('event_id', $attribute['Attribute']['event_id']);
+                // The event view's Attributes tab counts live standalone rows.
+                $counted = empty($attribute['Attribute']['deleted'])
+                    && empty($attribute['Attribute']['object_id']);
+                $this->set('countedIds', $counted ? [(int)$attribute['Attribute']['id']] : []);
                 if ($this->theme === 'Overmind') {
                     $this->layout = false;
                     $this->render('ajax/attributeDeleteConfirmationForm');
@@ -1491,9 +1299,16 @@ class AttributesController extends AppController
             $successes = [];
             $fails     = [];
             foreach ($idList as $attrId) {
-                if ($this->MispAttribute->deleteAttribute(
-                    (int)$attrId, $user, (bool)$hard
-                )) {
+                // deleteAttribute() throws on a missing row: count it as a
+                // failure rather than abandon the rest of the selection.
+                try {
+                    $deleted = $this->MispAttribute->deleteAttribute(
+                        (int)$attrId, $user, (bool)$hard
+                    );
+                } catch (Exception $e) {
+                    $deleted = false;
+                }
+                if ($deleted) {
                     $successes[] = (int)$attrId;
                 } else {
                     $fails[] = (int)$attrId;
@@ -1534,9 +1349,27 @@ class AttributesController extends AppController
             if (empty($idList) || !is_array($idList)) {
                 throw new NotFoundException(__('Invalid attribute ID.'));
             }
+            $idList = array_map('intval', $idList);
+            $rows = $this->MispAttribute->find('all', [
+                'conditions' => ['Attribute.id' => $idList],
+                'fields' => ['Attribute.id', 'Attribute.deleted', 'Attribute.object_id'],
+                'recursive' => -1,
+            ]);
+            // The event view's Attributes tab counts live standalone rows.
+            $live = $counted = [];
+            foreach ($rows as $row) {
+                if (empty($row['Attribute']['deleted'])) {
+                    $live[] = (int)$row['Attribute']['id'];
+                    if (empty($row['Attribute']['object_id'])) {
+                        $counted[] = (int)$row['Attribute']['id'];
+                    }
+                }
+            }
             $this->layout = false;
             $this->set('idArray', $idList);
-            $this->set('hard', (bool)$hard);
+            // A selection that is already soft-deleted can only go for good.
+            $this->set('hard', (bool)$hard || (!empty($rows) && empty($live)));
+            $this->set('countedIds', $counted);
             $this->render('ajax/attributeDeleteConfirmationForm');
         }
     }
@@ -2401,12 +2234,6 @@ class AttributesController extends AppController
         return $this->response;
     }
 
-    public function reportValidationIssuesAttributes($eventId = false)
-    {
-        // search for validation problems in the attributes
-        $this->set('result', iterator_to_array($this->MispAttribute->reportValidationIssuesAttributes($eventId)));
-    }
-
     public function generateCorrelation()
     {
         if ($this->request->is('post')) {
@@ -2418,7 +2245,7 @@ class AttributesController extends AppController
                 }
 
                 $this->Flash->success($message);
-                $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+                $this->redirect(Router::url($this->referer(), true));
             } else {
                 /** @var Job $job */
                 $job = ClassRegistry::init('Job');
@@ -2838,79 +2665,6 @@ class AttributesController extends AppController
             $this->set('message', $error);
             $this->set('_serialize', array('message'));
         }
-    }
-
-    public function pruneOrphanedAttributes()
-    {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
-        $events = array_keys($this->MispAttribute->Event->find('list'));
-        $orphans = $this->MispAttribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
-        if (count($orphans) > 0) {
-            $this->MispAttribute->deleteAll(array('Attribute.event_id !=' => $events), false, true);
-        }
-        $this->Flash->success('Removed ' . count($orphans) . ' attribute(s).');
-        $this->redirect(Router::url($this->referer(), true));
-    }
-
-    public function checkOrphanedAttributes()
-    {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
-        $this->loadModel('MispAttribute');
-        $events = array_keys($this->MispAttribute->Event->find('list'));
-        $orphans = $this->MispAttribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
-        return new CakeResponse(array('body'=> count($orphans), 'status'=>200, 'type' => 'json'));
-    }
-
-    public function updateAttributeValues($script)
-    {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
-        switch ($script) {
-            case 'urlSanitisation':
-                $replaceConditions = array(
-                    array('search' => 'Attribute.value1 LIKE', 'from' => 'HXXP', 'to' => 'http', 'ci' => true, 'condition' => 'startsWith'),
-                    array('search' => 'Attribute.value1 LIKE', 'from' => '[.]', 'to' => '.', 'ci' => false, 'condition' => 'contains'),
-                );
-                break;
-            default:
-                throw new Exception(__('Invalid script.'));
-        }
-        $counter = 0;
-        foreach ($replaceConditions as $rC) {
-            $searchPattern = '';
-            if (in_array($rC['condition'], array('endsWith', 'contains'))) {
-                $searchPattern .= '%';
-            }
-            $searchPattern .= $rC['from'];
-            if (in_array($rC['condition'], array('startsWith', 'contains'))) {
-                $searchPattern .= '%';
-            }
-            $attributes = $this->MispAttribute->find('all', array('conditions' => array($rC['search'] => $searchPattern), 'recursive' => -1));
-            foreach ($attributes as $attribute) {
-                $regex = '/';
-                if (!in_array($rC['condition'], array('startsWith', 'contains'))) {
-                    $regex .= '^';
-                }
-                $regex .= $rC['from'];
-                if (!in_array($rC['condition'], array('endsWith', 'contains'))) {
-                    $regex .= '$';
-                }
-                $regex .= '/';
-                if ($rC['ci']) {
-                    $regex .= 'i';
-                }
-                $attribute['Attribute']['value'] = preg_replace($regex, $rC['to'], $attribute['Attribute']['value']);
-                $this->MispAttribute->save($attribute);
-                $counter++;
-            }
-        }
-        $this->Flash->success('Updated ' . $counter . ' attribute(s).');
-        $this->redirect('/pages/display/administration');
     }
 
     public function hoverEnrichment($id, $persistent = false)

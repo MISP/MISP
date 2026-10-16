@@ -1069,7 +1069,6 @@
     };
 
     var CHECKS = {
-        'orphan-attr': { url: '/attributes/checkOrphanedAttributes/', bad: 'recommended' },
         'bad-attachments': { url: '/attributes/checkAttachments/', bad: 'badLinks' },
     };
 

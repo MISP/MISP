@@ -141,6 +141,7 @@ if (!class_exists('AppModel', false)) {
     }
 }
 
+require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
 require_once __DIR__ . '/../Model/Collection.php';
 
 use PHPUnit\Framework\TestCase;
@@ -188,11 +189,13 @@ class StubCollectionElement
 {
     public $capturedData = null;
     public $callCount = 0;
+    public $fromPre30 = null;
 
-    public function captureElements($data)
+    public function captureElements($data, $fromPre30 = false)
     {
         $this->callCount++;
         $this->capturedData = $data;
+        $this->fromPre30 = $fromPre30;
         return $data;
     }
 }
@@ -536,6 +539,22 @@ class CollectionCaptureTest extends TestCase
         $this->assertSame(1, $this->element->callCount);
         $this->assertSame(123, $this->element->capturedData['Collection']['id'], 'elements captured against the local collection id');
         $this->assertSame($elements, $this->element->capturedData['Collection']['CollectionElement']);
+    }
+
+    public function testTheSendersVersionReachesTheElementCapture(): void
+    {
+        $incoming = $this->incoming(array('CollectionElement' => array()));
+        foreach (array(true, false) as $explicit) {
+            $this->setUp();
+            $this->collection->captureCollection($this->syncUser(), $incoming, $this->externalServer(), false, $explicit);
+            $this->assertSame($explicit, $this->element->fromPre30, 'explicit, as the pull passes it');
+        }
+        foreach (array('2.5.50' => true, '3.0.0' => false) as $requester => $expected) {
+            $this->setUp();
+            Configure::write('CurrentRequesterMispVersion', $requester);
+            $this->collection->captureCollection($this->syncUser(), $incoming, $this->externalServer());
+            $this->assertSame($expected, $this->element->fromPre30, 'from the requester, as on a push to us');
+        }
     }
 
     public function testEmptyElementSetCullsAll(): void

@@ -30,6 +30,9 @@ at 159 permanently. The consequence for monitoring:
   and the instance looked healthy.
 - `update_locked`, `remaining_lock_time` and `update_fail_number_reached` keep
   their meaning.
+- `diagnostic`, `diagnostic_index` and `checked_table_column` are always empty
+  from 3.0 on. The column-by-column comparison with `db_schema.json` is gone: it
+  mostly reported harmless differences between database server releases.
 
 The diagnostics page shows the same figures, and so does
 `Console/cake Admin schemaDiagnostics`. The full description of the fields and
@@ -70,14 +73,17 @@ Run the commands from `app/` as the web server user
    every attribute and proposal gives back its exact text from the value table
    before it drops anything. `Console/cake AttributeValue verify` runs the same
    check on its own and changes nothing.
-7. **Bring the instance back**: `Console/cake Admin live 1`.
-8. **Regenerate the lists the conversion emptied**:
+7. **Restart the background workers**: `Console/cake Admin restartWorkers`. A
+   worker that was running during the update still knows the tables as they
+   were before it, and fails on the columns the update dropped.
+8. **Bring the instance back**: `Console/cake Admin live 1`.
+9. **Regenerate the lists the conversion emptied**:
    - **Top correlations**: `Console/cake Event generateTopCorrelations`, or the
      button on the top correlations page.
    - **Over-correlation counts**: the button on the over-correlating values
      page.
-9. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
-   `misp:correlation_exclusions`, so both keys can be deleted.
+10. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
+    `misp:correlation_exclusions`, so both keys can be deleted.
 
 Make sure the database has room for the value table before you start: it is
 built while the old text columns still exist.
@@ -149,6 +155,17 @@ built while the old text columns still exist.
 - **Dashboard**: the two trending widgets differ on purpose.
   `TrendingAttributesWidget` counts case variants apart; `TrendingWidget` counts
   them together.
+
+**Analyst data and collections**
+
+- **Notes, opinions, relationships and collection elements can point at a
+  value**, addressed by the SHA-256 of its text (`object_sha256`,
+  `related_object_sha256`, `element_sha256`, type `AttributeValue`). On those
+  rows `object_uuid`, `related_object_uuid` or `element_uuid` is `null`: API
+  clients that assume a uuid there need to cope with it. Developer reference:
+  [docs/dev/value_targets.md](dev/value_targets.md).
+- **2.x peers never receive these rows.** A collection a 2.x instance sends back
+  replaces the other elements as before, but never removes the value elements.
 
 **Indexes**
 

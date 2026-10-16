@@ -111,7 +111,9 @@ $fields = [
                 'icon_on' => 'stop',
                 'icon_off' => 'play',
                 'url' => '/taxonomies/%action%/%id%',
-                'enable_path' => 'Taxonomy.enabled',
+                'state_path' => 'Taxonomy.enabled',
+                'action_on' => 'toggleEnable',
+                'action_off' => 'toggleEnable',
                 'requirement' => $isSiteAdmin
             ],
             [
@@ -121,7 +123,9 @@ $fields = [
                 'icon_on' => 'question',
                 'icon_off' => 'asterisk',
                 'url' => '/taxonomies/%action%/%id%',
-                'require_path' => 'Taxonomy.required',
+                'state_path' => 'Taxonomy.required',
+                'action_on' => 'toggleRequired',
+                'action_off' => 'toggleRequired',
                 'requirement' => $isSiteAdmin
             ],
             [
@@ -131,7 +135,9 @@ $fields = [
                 'icon_on' => 'down-long',
                 'icon_off' => 'highlighter',
                 'url' => '/taxonomies/%action%/%id%',
-                'highlight_path' => 'Taxonomy.highlighted',
+                'state_path' => 'Taxonomy.highlighted',
+                'action_on' => 'toggleHighlighted',
+                'action_off' => 'toggleHighlighted',
                 'requirement' => $isSiteAdmin
             ]
         ]

@@ -1,146 +1,161 @@
 <?php
 /**
- * What an event created from this template inherits before the reporter types
- * anything: `event_defaults` in the definition. The raw values live in the
- * Definition tab — this card spells them out.
+ * What an event created from this template starts with before the reporter
+ * types anything: `event_defaults` in the definition. Analysis and threat
+ * level use the event view's own scales, so a default reads the same as the
+ * event it produces.
  */
 $tpl = $data['EventTemplate'] ?? [];
 $definition = is_array($tpl['definition'] ?? null) ? $tpl['definition'] : [];
-$defaults = is_array($definition['event_defaults'] ?? null)
-    ? $definition['event_defaults']
-    : [];
+$defaults = is_array($definition['event_defaults'] ?? null) ? $definition['event_defaults'] : [];
 
-$analysisMap = [
-    0 => ['label' => __('Initial'), 'color' => 'secondary', 'icon' => 'fa-seedling'],
-    1 => ['label' => __('Ongoing'), 'color' => 'warning', 'icon' => 'fa-spinner'],
-    2 => ['label' => __('Completed'), 'color' => 'success', 'icon' => 'fa-check'],
+$labelClass = 'text-body-secondary text-uppercase fw-bold';
+$labelStyle = 'font-size:.7rem;';
+$tileStyle = 'width:1.75rem;height:1.75rem;';
+
+$analysisStops = [
+    ['value' => 0, 'title' => __('Initial'),   'tone' => '#0d6efd', 'sub' => __('Raw intelligence')],
+    ['value' => 1, 'title' => __('Ongoing'),   'tone' => '#fd7e14', 'sub' => __('Under investigation')],
+    ['value' => 2, 'title' => __('Completed'), 'tone' => '#198754', 'sub' => __('Verified & closed')],
 ];
-// Backend threat levels: 1=High, 2=Medium, 3=Low, 4=Undefined.
-$threatMap = [
-    1 => ['label' => __('High'), 'color' => '#dc3545', 'icon' => 'fa-exclamation-circle'],
-    2 => ['label' => __('Medium'), 'color' => '#fd7e14', 'icon' => 'fa-exclamation-triangle'],
-    3 => ['label' => __('Low'), 'color' => '#ffc107', 'icon' => 'fa-minus-circle'],
-    4 => ['label' => __('Undefined'), 'color' => '#41464b', 'icon' => 'fa-question-circle'],
+$threatStops = [
+    ['value' => 4, 'title' => __('Undefined'), 'tone' => '#41464b', 'sub' => __('No risk')],
+    ['value' => 3, 'title' => __('Low'),       'tone' => '#ffc107', 'sub' => __('Opportunistic')],
+    ['value' => 2, 'title' => __('Medium'),    'tone' => '#fd7e14', 'sub' => __('Targeted campaign')],
+    ['value' => 1, 'title' => __('High'),      'tone' => '#dc3545', 'sub' => __('Active exploitation')],
 ];
 
 $infoTemplate = (string)($defaults['info_template'] ?? '');
-$hasDistribution = array_key_exists('distribution', $defaults);
-$analysis = array_key_exists('analysis', $defaults)
-    ? ($analysisMap[(int)$defaults['analysis']] ?? null)
-    : null;
-$threat = array_key_exists('threat_level_id', $defaults)
-    ? ($threatMap[(int)$defaults['threat_level_id']] ?? null)
-    : null;
 $defaultTags = is_array($defaults['tags'] ?? null) ? $defaults['tags'] : [];
+$defaultClusters = is_array($defaults['galaxy_clusters'] ?? null) ? $defaults['galaxy_clusters'] : [];
+$instanceDefault = '<span class="small text-body-secondary fst-italic">' . __('Instance default') . '</span>';
 ?>
 <div class="card mb-3 shadow-sm">
-    <div class="card-header bg-white fw-semibold d-flex align-items-center">
-        <i class="misp-icon misp-icon-event misp-simple me-2 text-event"></i>
-        <?= __('Event defaults') ?>
+    <div class="p-3 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:36px;height:36px;background:rgba(var(--bs-event-rgb),.12);color:rgb(var(--bs-event-rgb));">
+                <i class="misp-icon misp-icon-event misp-simple"></i>
+            </div>
+            <div>
+                <div class="fw-bold lh-1"><?= __('Event defaults') ?></div>
+                <div class="small text-muted mt-1"><?= __('What an event created from this template starts with') ?></div>
+            </div>
+        </div>
     </div>
-    <div class="card-body p-4">
+    <div class="card-body py-3 d-flex flex-column gap-3">
 
         <?php if (empty($defaults)): ?>
-            <div class="text-muted fst-italic">
+            <span class="text-body-secondary fst-italic small">
                 <?= __('None — an event created from this template starts with your instance defaults.') ?>
-            </div>
+            </span>
         <?php else: ?>
 
-            <!-- INFO TEMPLATE -->
-            <div class="mb-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Event info pattern') ?></div>
+            <div>
+                <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Event info') ?></div>
                 <?php if ($infoTemplate !== ''): ?>
-                    <div class="bg-light border rounded px-3 py-2 font-monospace" style="font-size:.85rem;">
-                        <?= h($infoTemplate) ?>
-                    </div>
-                    <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                        'text' => __('%s placeholders are replaced with what the reporter fills in.', '<code>{{…}}</code>'),
-                    ]) ?>
+                    <?php
+                    /* The {{…}} placeholders stand out from the fixed text. */
+                    $pattern = preg_replace(
+                        '/\{\{(.*?)\}\}/',
+                        '<span class="badge rounded-pill bg-primary-subtle text-primary-emphasis border border-primary-subtle fw-normal">$1</span>',
+                        h($infoTemplate)
+                    );
+                    ?>
+                    <div class="border rounded-3 bg-body-tertiary px-3 py-2 d-flex flex-wrap align-items-center gap-1"><?= $pattern ?></div>
+                    <div class="small text-body-secondary mt-1"><?= __('The highlighted parts are filled from the date and what the reporter enters.') ?></div>
                 <?php else: ?>
-                    <div class="text-muted">&mdash;</div>
+                    <?= $instanceDefault ?>
                 <?php endif; ?>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-12 col-md-6">
+                    <div class="<?= $labelClass ?> mb-2" style="<?= $labelStyle ?>"><?= __('Analysis') ?></div>
+                    <?php if (array_key_exists('analysis', $defaults)): ?>
+                        <?= $this->element('genericElementsBS5/Forms/choice_slider', [
+                            'field' => 'default_analysis',
+                            'value' => (int)$defaults['analysis'],
+                            'options' => $analysisStops,
+                            'readonly' => true,
+                        ]) ?>
+                    <?php else: ?>
+                        <?= $instanceDefault ?>
+                    <?php endif; ?>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="<?= $labelClass ?> mb-2" style="<?= $labelStyle ?>"><?= __('Threat Level') ?></div>
+                    <?php if (array_key_exists('threat_level_id', $defaults)): ?>
+                        <?= $this->element('genericElementsBS5/Forms/choice_slider', [
+                            'field' => 'default_threat_level_id',
+                            'value' => (int)$defaults['threat_level_id'],
+                            'options' => $threatStops,
+                            'readonly' => true,
+                        ]) ?>
+                    <?php else: ?>
+                        <?= $instanceDefault ?>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <div class="row g-3">
-
-                <!-- DISTRIBUTION -->
-                <div class="col-md-4">
-                    <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Distribution') ?></div>
-                    <div class="py-1">
-                        <?php if ($hasDistribution): ?>
-                            <?= $this->element('genericElementsBS5/Badges/distribution', [
-                                'distribution' => (int)$defaults['distribution'],
-                                'full' => true,
-                            ]) ?>
-                        <?php else: ?>
-                            <span class="text-muted"><?= __('Instance default') ?></span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <!-- THREAT LEVEL -->
-                <div class="col-md-4">
-                    <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Threat level') ?></div>
-                    <div class="py-1">
-                        <?php if ($threat !== null): ?>
-                            <span class="badge d-inline-flex align-items-center gap-1 px-2 py-1"
-                                  style="background:<?= h($threat['color']) ?>1a;
-                                         color:<?= h($threat['color']) ?>;
-                                         border:1px solid <?= h($threat['color']) ?>40;">
-                                <i class="fas <?= h($threat['icon']) ?>"></i>
-                                <?= h($threat['label']) ?>
+                <div class="col-12 col-md-5">
+                    <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Distribution') ?></div>
+                    <?php if (array_key_exists('distribution', $defaults)): ?>
+                        <?php $level = $this->DistributionLevel->get($defaults['distribution']); ?>
+                        <div class="d-flex align-items-center gap-2 min-w-0">
+                            <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3"
+                                  style="<?= $tileStyle ?>background:<?= h($level['bg']) ?>;color:<?= h($level['color']) ?>;">
+                                <i class="<?= h($level['icon']) ?>"></i>
                             </span>
-                        <?php else: ?>
-                            <span class="text-muted"><?= __('Instance default') ?></span>
-                        <?php endif; ?>
-                    </div>
+                            <div class="min-w-0">
+                                <div class="fw-semibold lh-sm"><?= h($level['label']) ?></div>
+                                <div class="small text-body-secondary text-truncate"><?= h($level['sub']) ?></div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <?= $instanceDefault ?>
+                    <?php endif; ?>
                 </div>
-
-                <!-- ANALYSIS -->
-                <div class="col-md-4">
-                    <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Analysis') ?></div>
-                    <div class="py-1">
-                        <?php if ($analysis !== null): ?>
-                            <span class="badge bg-<?= h($analysis['color']) ?>-subtle
-                                         text-<?= h($analysis['color']) ?>-emphasis
-                                         border border-<?= h($analysis['color']) ?>-subtle
-                                         d-inline-flex align-items-center gap-1">
-                                <i class="fas <?= h($analysis['icon']) ?>"></i>
-                                <?= h($analysis['label']) ?>
-                            </span>
-                        <?php else: ?>
-                            <span class="text-muted"><?= __('Instance default') ?></span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- TAGS -->
-            <div class="mt-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1"><?= __('Tags applied to the new event') ?></div>
-                <?php if (!empty($defaultTags)): ?>
-                    <div class="d-inline-flex flex-wrap align-items-center">
-                        <?php foreach ($defaultTags as $defaultTag): ?>
-                            <?php
-                            $tagName = is_array($defaultTag)
-                                ? ($defaultTag['name'] ?? '')
-                                : (string)$defaultTag;
-                            if ($tagName === '') {
-                                continue;
-                            }
-                            echo $this->element('genericElementsBS5/Badges/tag', [
+                <div class="col-12 col-md-7">
+                    <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= h(__('Tags & clusters applied')) ?></div>
+                    <?php
+                    $tagBadges = '';
+                    foreach ($defaultTags as $defaultTag) {
+                        $tagName = is_array($defaultTag) ? ($defaultTag['name'] ?? '') : (string)$defaultTag;
+                        if ($tagName === '') {
+                            continue;
+                        }
+                        $tagBadges .= '<span class="d-inline-flex align-items-center gap-1">'
+                            . $this->element('genericElementsBS5/Badges/tag', [
                                 'tag' => ['name' => $tagName],
-                                'local' => !empty($defaultTag['local']),
+                                'local' => false,
                                 'hiddenClass' => null,
                                 'showFavourite' => false,
-                            ]);
-                            ?>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
-                    <div class="text-muted"><?= __('None') ?></div>
-                <?php endif; ?>
+                            ])
+                            . (!empty($defaultTag['locked'])
+                                ? '<i class="fas fa-lock fa-xs text-body-secondary" title="' . h(__('Locked by the template')) . '"></i>'
+                                : '')
+                            . '</span>';
+                    }
+                    foreach ($defaultClusters as $cluster) {
+                        if (empty($cluster['value'])) {
+                            continue;
+                        }
+                        $tagBadges .= '<span class="badge rounded-pill fw-normal d-inline-flex align-items-center gap-1"'
+                            . ' style="background:rgba(var(--bs-galaxy-rgb),.12);color:rgb(var(--bs-galaxy-rgb));">'
+                            . '<i class="misp-icon misp-icon-galaxy misp-simple"></i>'
+                            . '<span class="opacity-75">' . h($cluster['galaxy_type'] ?? '') . '</span> ' . h($cluster['value'])
+                            . (!empty($cluster['locked']) ? ' <i class="fas fa-lock fa-xs" title="' . h(__('Locked by the template')) . '"></i>' : '')
+                            . '</span>';
+                    }
+                    ?>
+                    <?php if ($tagBadges !== ''): ?>
+                        <div class="d-flex flex-wrap align-items-center gap-1"><?= $tagBadges ?></div>
+                    <?php else: ?>
+                        <span class="small text-body-secondary fst-italic"><?= __('None') ?></span>
+                    <?php endif; ?>
+                </div>
             </div>
 
         <?php endif; ?>

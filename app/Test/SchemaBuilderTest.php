@@ -113,15 +113,18 @@ class SchemaBuilderTest extends TestCase
     {
         $schema = $this->pgsql();
         $schema->dropTable('before');
-        $schema->table('galaxies')->changeColumn('distribution', 'tinyinteger', array('null' => false, 'default' => 0));
+        $schema->table('galaxies')->renameColumn('kind', 'type', 'tinyinteger', array('null' => false, 'default' => 0));
         $schema->dropTable('after');
 
         $this->assertSame(
             array(
                 'DROP TABLE "before";',
-                'ALTER TABLE "galaxies" ALTER COLUMN "distribution" TYPE smallint USING "distribution"::smallint;',
-                'ALTER TABLE "galaxies" ALTER COLUMN "distribution" SET NOT NULL;',
-                'ALTER TABLE "galaxies" ALTER COLUMN "distribution" SET DEFAULT 0;',
+                'ALTER TABLE "galaxies" RENAME COLUMN "kind" TO "type";',
+                "ALTER TABLE \"galaxies\"\n" .
+                "    ALTER COLUMN \"type\" DROP DEFAULT,\n" .
+                "    ALTER COLUMN \"type\" TYPE smallint USING \"type\"::smallint,\n" .
+                "    ALTER COLUMN \"type\" SET NOT NULL,\n" .
+                "    ALTER COLUMN \"type\" SET DEFAULT 0;",
                 'DROP TABLE "after";',
             ),
             $schema->toSql()
@@ -168,6 +171,645 @@ class SchemaBuilderTest extends TestCase
             array(array('operation' => 'dropColumn', 'arguments' => array('t', 'c'))),
             $schema->operations()
         );
+    }
+
+    // ------------------------------------------------- one statement per table
+
+    /**
+     * Every ALTER TABLE may rebuild the table on MySQL, so a run of changes to
+     * one table is one statement. PostgreSQL gets one ALTER TABLE for the
+     * column changes, with the index statements in their place around it.
+     */
+    public function testConsecutiveChangesToOneTableShareOneStatement()
+    {
+        $schema = $this->mysql();
+        $schema->table('events')
+            ->dropIndex('sharing_group_id')
+            ->changeColumn('org_id', 'biginteger', array('null' => false, 'default' => null))
+            ->changeColumn('timestamp', 'biginteger', array('null' => false, 'default' => 0))
+            ->addIndex(array('distribution', 'sharing_group_id'), array('name' => 'idx_evt_acl'));
+
+        $this->assertSame(
+            array(
+                "ALTER TABLE `events`\n" .
+                "    DROP INDEX `sharing_group_id`,\n" .
+                "    MODIFY `org_id` bigint(20) NOT NULL,\n" .
+                "    MODIFY `timestamp` bigint(20) DEFAULT 0 NOT NULL,\n" .
+                "    ADD INDEX `idx_evt_acl` (`distribution`, `sharing_group_id`);",
+            ),
+            $schema->toSql()
+        );
+        $this->assertSame(
+            array(
+                'DROP INDEX "idx_events_sharing_group_id";',
+                "ALTER TABLE \"events\"\n" .
+                "    ALTER COLUMN \"org_id\" DROP DEFAULT,\n" .
+                "    ALTER COLUMN \"org_id\" TYPE bigint USING \"org_id\"::bigint,\n" .
+                "    ALTER COLUMN \"org_id\" SET NOT NULL,\n" .
+                "    ALTER COLUMN \"timestamp\" DROP DEFAULT,\n" .
+                "    ALTER COLUMN \"timestamp\" TYPE bigint USING \"timestamp\"::bigint,\n" .
+                "    ALTER COLUMN \"timestamp\" SET NOT NULL,\n" .
+                "    ALTER COLUMN \"timestamp\" SET DEFAULT 0;",
+                'CREATE INDEX "idx_evt_acl" ON "events" ("distribution", "sharing_group_id");',
+            ),
+            $schema->toSql($this->pgsqlGrammar)
+        );
+    }
+
+    public function testAnotherTableOrOperationInBetweenEndsTheStatement()
+    {
+        $schema = $this->mysql();
+        $schema->table('a')->addIndex('x');
+        $schema->table('b')->addIndex('x');
+        $schema->table('a')->addIndex('y');
+        $schema->rawSql(array('mysql' => 'OPTIMIZE TABLE `a`;', 'pgsql' => 'VACUUM ANALYZE a;'));
+        $schema->table('a')->addIndex('z');
+
+        $this->assertSame(
+            array(
+                'ALTER TABLE `a` ADD INDEX `x` (`x`);',
+                'ALTER TABLE `b` ADD INDEX `x` (`x`);',
+                'ALTER TABLE `a` ADD INDEX `y` (`y`);',
+                'OPTIMIZE TABLE `a`;',
+                'ALTER TABLE `a` ADD INDEX `z` (`z`);',
+            ),
+            $schema->toSql()
+        );
+    }
+
+    /**
+     * Adding or dropping a column is instant on its own, but beside an index
+     * change the server rebuilds the table for it instead.
+     */
+    public function testColumnAdditionsAndDropsOnlyShareAStatementWithEachOther()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')
+            ->addColumn('x', 'integer', array('null' => true))
+            ->dropColumn('c')
+            ->addIndex('b')
+            ->changeColumn('a', 'biginteger', array('null' => true, 'default' => null))
+            ->dropColumn('d');
+
+        $this->assertSame(
+            array(
+                "ALTER TABLE `t`\n    ADD `x` int(11) DEFAULT NULL,\n    DROP COLUMN `c`;",
+                "ALTER TABLE `t`\n    ADD INDEX `b` (`b`),\n    MODIFY `a` bigint(20) DEFAULT NULL;",
+                'ALTER TABLE `t` DROP COLUMN `d`;',
+            ),
+            $schema->toSql()
+        );
+    }
+
+    /**
+     * Sequences that work as separate statements but not reliably as one,
+     * because MySQL resolves the column clauses of one ALTER TABLE against the
+     * table as it was before the statement. Most fail outright as one statement
+     * on MariaDB 10.11 or PostgreSQL 16; MariaDB happens to take a column
+     * dropped and added back, and one placed after a column added beside it,
+     * but they are split all the same.
+     *
+     * @dataProvider dependentSequences
+     */
+    public function testAnOperationThatDependsOnAnEarlierOneStartsANewStatement($declare)
+    {
+        $schema = $this->mysql();
+        $declare($schema->table('t'));
+        $this->assertCount(2, $schema->toSql());
+    }
+
+    public function dependentSequences()
+    {
+        $null = array('null' => true, 'default' => null);
+        return array(
+            'a column changed twice' => array(function ($t) use ($null) {
+                $t->changeColumn('a', 'biginteger', $null)->changeColumn('a', 'integer', $null);
+            }),
+            'a column changed after it was renamed' => array(function ($t) use ($null) {
+                $t->renameColumn('a', 'a2', 'integer', $null)->changeColumn('a2', 'biginteger', $null);
+            }),
+            'a column renamed after it was changed' => array(function ($t) use ($null) {
+                $t->changeColumn('a', 'biginteger', $null)->renameColumn('a', 'a2', 'integer', $null);
+            }),
+            'a column dropped and added back' => array(function ($t) use ($null) {
+                $t->dropColumn('b')->addColumn('b', 'biginteger', $null);
+            }),
+            'a column placed after one added in the statement' => array(function ($t) use ($null) {
+                $t->addColumn('x', 'integer', $null)->addColumn('y', 'integer', $null + array('after' => 'x'));
+            }),
+            'an index dropped after it was added' => array(function ($t) {
+                $t->addIndex('b', array('name' => 'ib'))->dropIndex('ib');
+            }),
+            'a column renamed under an index added in the statement' => array(function ($t) use ($null) {
+                $t->addIndex('b')->renameColumn('b', 'b2', 'integer', $null);
+            }),
+            'a table option set twice' => array(function ($t) {
+                $t->changeOptions(array('row_format' => 'COMPACT'))->changeOptions(array('row_format' => 'DYNAMIC'));
+            }),
+            // In one statement the column would take the new default.
+            'a new table default after a column that takes it' => array(function ($t) use ($null) {
+                $t->changeColumn('a', 'text', $null)->changeOptions(array('charset' => 'utf8mb4'));
+            }),
+        );
+    }
+
+    /**
+     * The counterparts that one statement handles: they stay together.
+     *
+     * @dataProvider independentSequences
+     */
+    public function testIndependentOperationsStayInOneStatement($declare)
+    {
+        $schema = $this->mysql();
+        $declare($schema->table('t'));
+        $this->assertCount(1, $schema->toSql());
+    }
+
+    public function independentSequences()
+    {
+        $null = array('null' => true, 'default' => null);
+        return array(
+            'an index dropped and added back under its name' => array(function ($t) {
+                $t->dropIndex('ia')->addIndex(array('a', 'b'), array('name' => 'ia'));
+            }),
+            'an index over a column renamed in the statement' => array(function ($t) use ($null) {
+                $t->renameColumn('a', 'a2', 'integer', $null)->addIndex('a2');
+            }),
+            'a column changed under an index added in the statement' => array(function ($t) use ($null) {
+                $t->addIndex('b')->changeColumn('b', 'biginteger', $null);
+            }),
+            'a primary key replaced' => array(function ($t) use ($null) {
+                $t->addIndex('n', array('unique' => true))->dropPrimaryKey();
+            }),
+            'different table options' => array(function ($t) {
+                $t->changeOptions(array('row_format' => 'DYNAMIC'))->changeOptions(array('engine' => 'InnoDB'));
+            }),
+            'a new table default before a column that takes it' => array(function ($t) use ($null) {
+                $t->changeOptions(array('charset' => 'utf8mb4'))->changeColumn('a', 'text', $null);
+            }),
+            'a new table default after a column with a charset of its own' => array(function ($t) use ($null) {
+                $t->changeColumn('a', 'text', $null + array('collate' => 'utf8mb4_bin'))
+                    ->changeOptions(array('charset' => 'utf8mb4'));
+            }),
+            'a new row format after a column that takes the default' => array(function ($t) use ($null) {
+                $t->changeColumn('a', 'text', $null)->changeOptions(array('row_format' => 'DYNAMIC'));
+            }),
+        );
+    }
+
+    /**
+     * A table option change rebuilds the table, so it joins the statement
+     * that rebuilds it anyway. PostgreSQL has no table options.
+     */
+    public function testTableOptionsJoinTheStatementThatRebuildsTheTable()
+    {
+        $schema = new SchemaBuilder(new MysqlGrammar(new MigrationTestMysqlExtended('10.11.14-MariaDB')));
+        $schema->table('events')
+            ->changeColumn('info', 'text', array('null' => false, 'default' => null, 'collate' => Collation::CI))
+            ->dropIndex('org_id')
+            ->addIndex(array('distribution', 'sharing_group_id'), array('name' => 'idx_evt_acl'))
+            ->changeOptions(array('row_format' => 'DYNAMIC', 'collate' => Collation::CI));
+
+        $this->assertSame(
+            array(
+                "ALTER TABLE `events`\n" .
+                "    MODIFY `info` text CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci NOT NULL,\n" .
+                "    DROP INDEX `org_id`,\n" .
+                "    ADD INDEX `idx_evt_acl` (`distribution`, `sharing_group_id`),\n" .
+                "    ROW_FORMAT=DYNAMIC,\n" .
+                "    DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;",
+            ),
+            $schema->toSql()
+        );
+        $this->assertSame(
+            array(
+                "ALTER TABLE \"events\"\n" .
+                "    ALTER COLUMN \"info\" DROP DEFAULT,\n" .
+                "    ALTER COLUMN \"info\" TYPE text USING \"info\"::text,\n" .
+                "    ALTER COLUMN \"info\" SET NOT NULL;",
+                'DROP INDEX "idx_events_org_id";',
+                'CREATE INDEX "idx_evt_acl" ON "events" ("distribution", "sharing_group_id");',
+            ),
+            $schema->toSql($this->pgsqlGrammar)
+        );
+    }
+
+    /**
+     * Column additions and drops stay instant on their own; a table option
+     * change beside them could make the server rebuild the table for them.
+     */
+    public function testTableOptionsDoNotJoinColumnAdditionsOrDrops()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')
+            ->addColumn('x', 'integer', array('null' => true))
+            ->changeOptions(array('row_format' => 'DYNAMIC'))
+            ->dropColumn('c');
+
+        $this->assertSame(
+            array(
+                'ALTER TABLE `t` ADD `x` int(11) DEFAULT NULL;',
+                'ALTER TABLE `t` ROW_FORMAT=DYNAMIC;',
+                'ALTER TABLE `t` DROP COLUMN `c`;',
+            ),
+            $schema->toSql()
+        );
+    }
+
+    // ------------------------------------------------ what is already there
+
+    /**
+     * @param string $flavour
+     * @param array $schema
+     * @return MigrationTestInspector
+     */
+    private function live($flavour, array $schema)
+    {
+        return new MigrationTestInspector($flavour, $schema);
+    }
+
+    /**
+     * A re-run after a partial apply: only what did not land is rendered, still
+     * as one statement, and nothing in it is a clause the server would refuse.
+     */
+    public function testWhatIsAlreadyThereIsLeftOutOfTheStatement()
+    {
+        $schema = $this->mysql();
+        $schema->table('events')
+            ->dropIndex('sharing_group_id')
+            ->dropIndex('org_id')
+            ->addIndex(array('distribution', 'sharing_group_id'), array('name' => 'idx_evt_acl'))
+            ->addIndex(array('timestamp', 'published'), array('name' => 'idx_evt_ts_pub'));
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            'events' => array(
+                'columns' => array('id', 'org_id', 'distribution', 'sharing_group_id', 'timestamp', 'published'),
+                'indexes' => array(
+                    'PRIMARY' => array('id'),
+                    'sharing_group_id' => array('sharing_group_id'),
+                    'idx_evt_acl' => array('distribution', 'sharing_group_id'),
+                ),
+            ),
+        )));
+
+        $this->assertSame(
+            array(
+                "ALTER TABLE `events`\n" .
+                "    DROP INDEX `sharing_group_id`,\n" .
+                "    ADD INDEX `idx_evt_ts_pub` (`timestamp`, `published`);",
+            ),
+            $schema->toSql()
+        );
+        $this->assertSame(
+            array(
+                'events: index org_id is already gone',
+                'events: index idx_evt_acl is already there',
+            ),
+            $skipped
+        );
+    }
+
+    public function testADeclarationThatHasFullyLandedRendersNothing()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')
+            ->addColumn('x', 'integer', array('null' => true))
+            ->dropColumn('gone')
+            ->addIndex('x')
+            ->dropPrimaryKey();
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('x'), 'indexes' => array('x' => array('x'))),
+        )));
+
+        $this->assertSame(array(), $schema->toSql());
+        $this->assertSame(
+            array(
+                't: column x is already there',
+                't: column gone is already gone',
+                't: index x is already there',
+                't: the primary key is already gone',
+            ),
+            $skipped
+        );
+    }
+
+    /**
+     * Each operation is checked against the table as the ones kept before it
+     * leave it, not as it was when the migration started.
+     */
+    public function testAnOperationIsCheckedAfterTheOnesBeforeIt()
+    {
+        $schema = $this->mysql();
+        $null = array('null' => true, 'default' => null);
+        $schema->table('t')
+            ->dropIndex('ia')
+            ->addIndex(array('a', 'b'), array('name' => 'ia'))
+            ->dropColumn('c')
+            ->addColumn('c', 'biginteger', $null)
+            ->addColumn('x', 'integer', $null)
+            ->dropColumn('x');
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('a', 'b', 'c'), 'indexes' => array('ia' => array('a'))),
+        )));
+
+        $this->assertSame(array(), $skipped);
+        $this->assertCount(6, $schema->operations());
+    }
+
+    /**
+     * Dropping or renaming a column changes the indexes over it differently on
+     * each engine, so an operation on one of them is kept, not guessed about.
+     */
+    public function testIndexesOverADroppedOrRenamedColumnAreNotGuessedAbout()
+    {
+        $schema = $this->mysql();
+        $null = array('null' => true, 'default' => null);
+        $schema->table('t')
+            ->dropColumn('b')
+            ->dropIndex('ib')
+            ->addIndex('ab', array('name' => 'iab'))
+            ->renameColumn('a', 'a2', 'integer', $null)
+            ->dropPrimaryKey();
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array(
+                'columns' => array('a', 'b'),
+                'indexes' => array('PRIMARY' => array('a'), 'ib' => array('b'), 'iab' => array('a', 'b')),
+            ),
+        )));
+
+        $this->assertSame(array(), $skipped);
+        $this->assertCount(5, $schema->operations());
+    }
+
+    public function testARenameThatHasLandedIsLeftOut()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')->renameColumn('a', 'a2', 'integer', array('null' => true, 'default' => null));
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array('t' => array('columns' => array('a2')))));
+
+        $this->assertSame(array('t: column a is already renamed to a2'), $skipped);
+        $this->assertSame(array(), $schema->toSql());
+    }
+
+    /**
+     * Never left out: a column change, which would need the full definition
+     * compared; anything on a table the migration creates, which is written
+     * against the declaration; anything on a table that is not there; and
+     * anything after hand-written SQL.
+     */
+    public function testWhatCannotBeKnownIsKept()
+    {
+        $schema = $this->mysql();
+        $null = array('null' => true, 'default' => null);
+        $schema->table('t')->changeColumn('a', 'biginteger', $null);
+        $schema->createTable('n', array('a' => 'integer'));
+        $schema->table('n')->addIndex('a');
+        $schema->table('missing')->dropColumn('a');
+        $schema->rawSql(array('mysql' => 'SELECT 1;', 'pgsql' => 'SELECT 1;'));
+        $schema->table('u')->addColumn('a', 'integer', $null);
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('a')),
+            'u' => array('columns' => array('a')),
+        )));
+
+        $this->assertSame(array(), $skipped);
+        $this->assertCount(6, $schema->operations());
+    }
+
+    /**
+     * On PostgreSQL a table's indexes are statements of their own, so a run
+     * that stopped after the CREATE TABLE leaves the table without some of
+     * them: the table is left out, the missing indexes are not.
+     */
+    public function testATableThatIsAlreadyThereStillGetsItsMissingIndexes()
+    {
+        $schema = $this->pgsql();
+        $schema->createTable('t', array(
+            'id' => array('type' => 'primary_key'),
+            'a' => array('type' => 'integer', 'null' => true),
+            'b' => array('type' => 'integer', 'null' => true),
+        ), array('indexes' => array('a' => array(), 'b_lookup' => array('column' => array('b', 'a')))));
+        $schema->table('t')->addIndex('id', array('name' => 'id_copy'));
+
+        $skipped = $schema->skipSatisfied($this->live('pgsql', array(
+            't' => array(
+                'columns' => array('id', 'a', 'b'),
+                'indexes' => array('PRIMARY' => array('id'), 'idx_t_a' => array('a')),
+            ),
+        )));
+
+        $this->assertSame(array('t: the table is already there'), $skipped);
+        $this->assertSame(
+            array(
+                'CREATE INDEX "idx_t_b_lookup" ON "t" ("b", "a");',
+                'CREATE INDEX "idx_t_id_copy" ON "t" ("id");',
+            ),
+            $schema->toSql()
+        );
+    }
+
+    public function testATableThatIsAlreadyCompleteRendersNothing()
+    {
+        $schema = $this->mysql();
+        $schema->createTable(
+            't',
+            array('id' => array('type' => 'primary_key'), 'a' => 'integer'),
+            array('indexes' => array('a' => array('unique' => true)))
+        );
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('id', 'a'), 'indexes' => array('PRIMARY' => array('id'), 'a' => array('a'))),
+        )));
+
+        $this->assertSame(array('t: the table is already there'), $skipped);
+        $this->assertSame(array(), $schema->toSql());
+    }
+
+    public function testTableDropsAndRenamesThatHaveLandedAreLeftOut()
+    {
+        $schema = $this->mysql();
+        $schema->dropTable('gone');
+        $schema->renameTable('old', 'new');
+        $schema->table('new')->addIndex('a');
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            'new' => array('columns' => array('a'), 'indexes' => array('a' => array('a'))),
+        )));
+
+        $this->assertSame(
+            array(
+                'gone: the table is already gone',
+                'old: the table is already renamed to new',
+                'new: index a is already there',
+            ),
+            $skipped
+        );
+        $this->assertSame(array(), $schema->toSql());
+    }
+
+    /**
+     * A table dropped and created again - emptied, in effect - is both, every
+     * time: the migration asked for a fresh table, not for one to exist.
+     */
+    public function testATableDroppedAndCreatedAgainKeepsBoth()
+    {
+        $schema = $this->mysql();
+        $schema->dropTable('t');
+        $schema->createTable('t', array('a' => 'integer'), array('indexes' => array('a' => array())));
+        $schema->table('t')->addIndex('a', array('name' => 'a_again'));
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('a'), 'indexes' => array('a' => array('a'), 'a_again' => array('a'))),
+        )));
+
+        $this->assertSame(array(), $skipped);
+        $this->assertCount(3, $schema->operations());
+
+        $retry = $this->mysql();
+        $retry->dropTable('t');
+        $retry->createTable('t', array('a' => 'integer'));
+        $this->assertSame(
+            array('t: the table is already gone'),
+            $retry->skipSatisfied($this->live('mysql', array())),
+            'after the drop landed and the create did not'
+        );
+        $this->assertCount(1, $retry->operations());
+    }
+
+    /**
+     * Setting ROW_FORMAT or ENGINE to what the table has still rebuilds it,
+     * so each option the table already has is left out on its own.
+     */
+    public function testTableOptionsTheTableHasAreLeftOutOneByOne()
+    {
+        $schema = new SchemaBuilder(new MysqlGrammar(new MigrationTestMysqlExtended('10.11.14-MariaDB')));
+        $schema->table('t')
+            ->changeOptions(array('engine' => 'innodb', 'row_format' => 'dynamic', 'collate' => Collation::CI))
+            ->changeOptions(array('collate' => Collation::CI));
+        $schema->table('u')->changeOptions(array('charset' => 'utf8mb4'));
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('id'), 'options' => array(
+                'engine' => 'InnoDB', 'row_format' => 'DYNAMIC', 'collation' => 'utf8mb3_general_ci', 'charset' => 'utf8mb3',
+            )),
+            'u' => array('columns' => array('id'), 'options' => array(
+                'collation' => 'utf8mb4_bin', 'charset' => 'utf8mb4',
+            )),
+        )));
+
+        $this->assertSame(
+            array('ALTER TABLE `t` DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;'),
+            $schema->toSql()
+        );
+        $this->assertSame(
+            array(
+                't: the table already has ENGINE=InnoDB, ROW_FORMAT=DYNAMIC',
+                't: the table already has DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci',
+                'u: the table already has DEFAULT CHARSET=utf8mb4',
+            ),
+            $skipped
+        );
+    }
+
+    /**
+     * Nothing to compare against: a table created in the same migration, and
+     * PostgreSQL, which reports no options and renders none.
+     */
+    public function testTableOptionsAreKeptWhereTheyCannotBeCompared()
+    {
+        $schema = $this->mysql();
+        $schema->createTable('n', array('id' => array('type' => 'primary_key')));
+        $schema->table('n')->changeOptions(array('row_format' => 'DYNAMIC'));
+        $this->assertSame(array(), $schema->skipSatisfied($this->live('mysql', array())));
+        $this->assertCount(2, $schema->operations());
+
+        $schema = $this->pgsql();
+        $schema->table('t')->changeOptions(array('row_format' => 'DYNAMIC'));
+        $this->assertSame(array(), $schema->skipSatisfied($this->live('pgsql', array('t' => array('columns' => array('id'))))));
+        $this->assertCount(1, $schema->operations());
+        $this->assertSame(array(), $schema->toSql());
+    }
+
+    public function testMysqlNamesAreComparedWithoutCase()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')
+            ->addColumn('Value1', 'integer', array('null' => true))
+            ->addIndex('a', array('name' => 'IDX_A'));
+
+        $skipped = $schema->skipSatisfied($this->live('mysql', array(
+            't' => array('columns' => array('value1', 'a'), 'indexes' => array('idx_a' => array('a'))),
+        )));
+
+        $this->assertCount(2, $skipped);
+    }
+
+    /**
+     * PostgreSQL index names are the grammar's own, prefixed with the table, and
+     * a quoted name is matched with its case.
+     */
+    public function testPostgresMatchesItsOwnIndexNames()
+    {
+        $schema = $this->pgsql();
+        $schema->table('t')
+            ->addIndex('a')
+            ->dropIndex('b')
+            ->addColumn('A', 'integer', array('null' => true));
+
+        $skipped = $schema->skipSatisfied($this->live('pgsql', array(
+            't' => array('columns' => array('a', 'b'), 'indexes' => array('idx_t_a' => array('a'), 'idx_t_b' => array('b'))),
+        )));
+
+        $this->assertSame(array('t: index idx_t_a is already there'), $skipped);
+        $this->assertSame(
+            array('DROP INDEX "idx_t_b";', 'ALTER TABLE "t" ADD "A" integer DEFAULT NULL;'),
+            $schema->toSql()
+        );
+    }
+
+    public function testAnIndexWithAPostgresNameOfItsOwnIsFoundByIt()
+    {
+        $schema = $this->pgsql();
+        $schema->table('t')
+            ->addIndex('a', array('name' => 'a', 'pgsql' => array('name' => 'idx_t_a_own', 'sql' => 'CREATE INDEX %1$s ON %2$s (lower("a"));')))
+            ->addIndex('b', array('name' => 'b', 'pgsql' => array('name' => 'idx_t_b_own')));
+
+        $skipped = $schema->skipSatisfied($this->live('pgsql', array(
+            't' => array('columns' => array('a', 'b'), 'indexes' => array('idx_t_a_own' => array('lower(a)'))),
+        )));
+
+        $this->assertSame(array('t: index idx_t_a_own is already there'), $skipped);
+        $this->assertSame(array('CREATE INDEX "idx_t_b_own" ON "t" ("b");'), $schema->toSql());
+    }
+
+    public function testNotesAreKeptApartFromTheStatements()
+    {
+        $schema = $this->mysql();
+        $schema->note('t: column legacy is not in the target; kept')->table('t')->dropColumn('x');
+        $this->assertSame(array('t: column legacy is not in the target; kept'), $schema->notes());
+        $this->assertSame(array('ALTER TABLE `t` DROP COLUMN `x`;'), $schema->toSql());
+    }
+
+    public function testASchemaReadFromAnotherEngineIsRefused()
+    {
+        $this->expectException('LogicException');
+        $this->mysql()->skipSatisfied($this->live('pgsql', array()));
+    }
+
+    public function testRawSqlPositionsStillCountTheOperationsLeftOut()
+    {
+        $schema = $this->mysql();
+        $schema->table('t')->addColumn('a', 'integer', array('null' => true));
+        $schema->rawSql(array('pgsql' => 'SELECT 1;'));
+        $schema->skipSatisfied($this->live('mysql', array('t' => array('columns' => array('a')))));
+
+        $this->expectExceptionMessage('position 1');
+        $schema->toSql();
     }
 
     // ---------------------------------------------------------------- rawSql

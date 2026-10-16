@@ -212,6 +212,25 @@ class CollectionPushTestServerSync extends ServerSyncTool
     }
 }
 
+/** Answers FEATURE_VALUE_TARGETS from a remote version, through the real comparison. */
+class CollectionPushVersionedServerSync extends CollectionPushTestServerSync
+{
+    public $version;
+
+    public function info()
+    {
+        return array('version' => $this->version);
+    }
+
+    public function isSupported($flag)
+    {
+        if ($flag === self::FEATURE_VALUE_TARGETS) {
+            return ServerSyncTool::isSupported($flag);
+        }
+        return parent::isSupported($flag);
+    }
+}
+
 /** Event double: checkDistributionForPush returns an injected (optionally per-uuid) verdict. */
 class CollectionPushFakeEvent
 {
@@ -695,5 +714,47 @@ class CollectionPushTest extends TestCase
         $sgOut = $out[0]['Collection']['SharingGroup'];
         $this->assertSame('sg-uuid', $sgOut['uuid'], 'SG enriched from find(first)');
         $this->assertArrayHasKey('SharingGroupServer', $sgOut, 'SG carries the full org/server struct for remote captureSG');
+    }
+
+    // ============ push() — value elements by remote version ============
+
+    public function valueVersionProvider()
+    {
+        return array(
+            'MISP 2.5' => array('2.5.50', array('mixed' => array('e-event', 'e-cluster'), 'values-only' => array())),
+            'MISP 3.0' => array('3.0.0', array('mixed' => array('e-event', 'e-value', 'e-cluster'), 'values-only' => array('e-value-2'))),
+        );
+    }
+
+    /**
+     * @dataProvider valueVersionProvider
+     */
+    public function testPushLeavesValueElementsOutForAMispOlderThan30($version, $expected): void
+    {
+        $this->sync = new CollectionPushVersionedServerSync();
+        $this->sync->version = $version;
+        $value = '3cbad7bc936718f07fa8665bc64ce46986142bea60f86fd0c05cd2a4a8ea2bc4';
+        $element = function ($uuid, $type, $uuidAddress, $sha256) {
+            return array('uuid' => $uuid, 'element_type' => $type, 'element_uuid' => $uuidAddress, 'element_sha256' => $sha256);
+        };
+        $this->collection->collectDataForPushReturn = array(
+            $this->nested('mixed', '2026-01-01 00:00:00', array('CollectionElement' => array(
+                $element('e-event', 'Event', 'b2c3d4e5-f607-4182-93a4-b5c6d7e8f922', null),
+                $element('e-value', 'AttributeValue', null, $value),
+                $element('e-cluster', 'GalaxyCluster', 'c3d4e5f6-0718-4293-a4b5-c6d7e8f90a33', null),
+            ))),
+            $this->nested('values-only', '2026-01-01 00:00:00', array('CollectionElement' => array(
+                $element('e-value-2', 'AttributeValue', null, $value),
+            ))),
+        );
+        $this->sync->wanted = array('mixed' => '2026-01-01 00:00:00', 'values-only' => '2026-01-01 00:00:00');
+        $this->collection->uploadResults = array('Success', 'Success');
+
+        $this->assertSame(2, $this->collection->push($this->user(), $this->sync));
+        $uploaded = array();
+        foreach ($this->collection->uploadCalls as $collection) {
+            $uploaded[$collection['Collection']['uuid']] = array_column($collection['Collection']['CollectionElement'], 'uuid');
+        }
+        $this->assertSame($expected, $uploaded);
     }
 }

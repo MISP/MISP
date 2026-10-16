@@ -25,6 +25,7 @@ $fields = [
     [
         'element' => 'checkbox',
         'data_path' => 'id',
+        'highlight_path' => 'highlighted',
         'card_section' => 'selector',
     ],
     [
@@ -109,7 +110,9 @@ $fields = [
                 'icon_off' => 'fas fa-highlighter text-primary',
                 'url' => '/object_relationships/%action%/%name%',
                 'url_params_data_paths' => ['name' => 'name'],
-                'highlight_path' => 'highlighted',
+                'state_path' => 'highlighted',
+                'action_on' => 'toggleHighlighted',
+                'action_off' => 'toggleHighlighted',
                 'requirement' => $isSiteAdmin
             ]
         ]
@@ -131,6 +134,22 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'name'        => 'name',
                         'mode'        => 'quickFilter',
                     ],
+                    [
+                        'type' => 'more_filters',
+                        'label' => __('More filters'),
+                        'children' => [
+                            [
+                                'type' => 'dropdown',
+                                'label' => __('Highlighted'),
+                                'name' => 'highlighted',
+                                'options' => [
+                                    '' => '',
+                                    '1' => __('Yes'),
+                                    '0' => __('No')
+                                ]
+                            ],
+                        ]
+                    ]
                 ],
                 'delete' => '/deleteSelection',
                 'highlight' => 1,

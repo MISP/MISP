@@ -1,4 +1,5 @@
 <?php
+    $this->set('headerIdentity', $event['Event']);
     $headerTitle = __('') . ($event['Event']['info'] ?? '');
     $headerDescription = '';
     $headerActions = [];
@@ -44,12 +45,38 @@
     $extensionSuffix = $extensionSuffix ?? '';
 
     $searchFor = $this->request->params['named']['searchFor'] ?? '';
+    $distributionFilter = $this->request->params['named']['distribution'] ?? '';
     $listSuffix = $extensionSuffix
-        . ($searchFor !== '' ? '/searchFor:' . rawurlencode($searchFor) : '');
+        . ($searchFor !== '' ? '/searchFor:' . rawurlencode($searchFor) : '')
+        . ($distributionFilter !== '' ? '/distribution:' . (int)$distributionFilter : '');
+
+    $outliers = [];
+    foreach (['Attribute' => 'attributes', 'Object' => 'objects'] as $scope => $tab) {
+        foreach ($distributionOutliers[$scope] ?? [] as $level => $count) {
+            $outliers[] = [
+                'level' => $level,
+                'text' => $scope === 'Attribute'
+                    ? __n('%s attribute', '%s attributes', $count, $count)
+                    : __n('%s object', '%s objects', $count, $count),
+                'url' => sprintf(
+                    '%s/events/view2/%s%s/distribution:%s#tab-%s',
+                    $baseurl, h($event['Event']['id']), $extensionSuffix, $level, $tab
+                ),
+            ];
+        }
+    }
 
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
         'data' => $event,
+        'ownership' => [
+            'orgc' => $event['Orgc'] ?? [],
+            'org' => $event['Org'] ?? [],
+            'user' => $event['User'] ?? [],
+            'distribution' => $event['Event']['distribution'] ?? null,
+            'sharingGroup' => $event['SharingGroup'] ?? [],
+            'outliers' => $outliers,
+        ],
         'report' => $event['EventReport'] ?? null,
         'tabs' => [
             [
@@ -59,12 +86,10 @@
 
                 // Content
                 'left' => [
+                    'EventReports/View/eventReport_preview',
+                    ['row' => ['Events/View/event_tags', 'Events/View/event_galaxies']],
+                    ['row' => ['Events/View/event_attachments', 'Events/View/event_analyst_data']],
                     'Events/View/event_general',
-                    //'EventReports/View/eventReport_preview',
-                    'Events/View/event_tags',
-                    'Events/View/event_galaxies',
-                    'Events/View/event_attachments',
-                    'Events/View/event_analyst_data',
                 ],
                 'right' => [
                     'Events/View/event_actions',

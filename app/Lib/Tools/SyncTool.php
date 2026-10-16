@@ -105,6 +105,32 @@ class SyncTool
     }
 
     /**
+     * @param CakeRequest $request
+     * @return string|null Version of the MISP instance making the request, null for any other client
+     */
+    public static function requesterMispVersion(CakeRequest $request)
+    {
+        // MISP sends its version in the User-Agent since 2.4.133, and in a MISP-version header up to 2.4.148
+        if (preg_match('/^MISP (\d+\.\d+\.\d+)(?: |$)/', (string)$request->header('User-Agent'), $matches)) {
+            return $matches[1];
+        }
+        $header = trim((string)$request->header('MISP-version'));
+        return preg_match('/^\d+\.\d+\.\d+$/', $header) ? $header : null;
+    }
+
+    /**
+     * A MISP older than 3.0 cannot hold analyst data or collection elements
+     * addressed by a value's SHA-256. AppController records the requester.
+     *
+     * @return bool
+     */
+    public static function valueTargetsWithheld()
+    {
+        $version = Configure::read('CurrentRequesterMispVersion');
+        return $version !== null && version_compare($version, '3.0.0', '<');
+    }
+
+    /**
      * @param array $server
      * @return array|void
      * @throws Exception

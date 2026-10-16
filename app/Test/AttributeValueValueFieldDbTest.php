@@ -16,9 +16,9 @@ use PHPUnit\Framework\TestCase;
 
 class AttributeValueValueFieldDbTest extends TestCase
 {
-    // fetchEvent's attribute and proposal columns, in the order 2.x returned them
+    // fetchEvent's attribute and proposal columns, in the order 2.x returned them; attributes add `created` (3.0)
     const EVENT_ATTRIBUTE_KEYS = [
-        'id', 'type', 'category', 'to_ids', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment',
+        'id', 'type', 'category', 'to_ids', 'uuid', 'event_id', 'distribution', 'timestamp', 'created', 'comment',
         'sharing_group_id', 'deleted', 'disable_correlation', 'object_id', 'object_relation', 'first_seen',
         'last_seen', 'value',
     ];

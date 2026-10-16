@@ -371,8 +371,6 @@ case 'dbSchema':
 <?php endif; ?>
 <?php
 /* ============================ DATABASE SCHEMA ============================ */
-$schemaTotal = ServerHealthProbes::schemaDifferences($dbSchemaDiagnostics);
-
 // The ledger figures. db_version is frozen, so the schema-version pair below
 // is the same on a healthy and on a stalled instance - these say whether
 // schema work is outstanding, and a failure outranks everything else because
@@ -385,7 +383,7 @@ $migrationsDeferredReasons = $dbSchemaDiagnostics['migrations_deferred_reasons']
 $migrationsApplied = (int)($dbSchemaDiagnostics['migrations_applied'] ?? 0);
 
 $openCard('database', '#0dcaf0', __('Schema & migrations'),
-    __('Outstanding migrations, and how the live schema compares to the expected one'),
+    __('Database version and outstanding migrations'),
     $badge);
 ?>
     <div class="row g-3 mb-3">
@@ -410,11 +408,9 @@ $openCard('database', '#0dcaf0', __('Schema & migrations'),
             <div class="d-flex align-items-center gap-2">
                 <span class="dg-version"><?= h($dbSchemaDiagnostics['actual_db_version']) ?></span>
                 <?php
-                $expected = $dbSchemaDiagnostics['expected_db_version'];
-                $actual = $dbSchemaDiagnostics['actual_db_version'];
-                echo $actual == $expected
-                    ? $pill(2, __('expected'))
-                    : $pill(1, __('expected %s', $expected));
+                echo (int)$dbSchemaDiagnostics['actual_db_version'] < (int)$dbSchemaDiagnostics['expected_db_version']
+                    ? $pill(1, __('legacy updates pending'))
+                    : $pill(2, __('current'));
                 ?>
             </div>
             <div class="dg-figures text-muted">
@@ -481,34 +477,6 @@ $openCard('database', '#0dcaf0', __('Schema & migrations'),
         </div>
     <?php endif; ?>
 
-    <?php if ($schemaTotal): ?>
-        <div class="dg-block-title"><?= __('Schema differences') ?></div>
-        <div class="dg-diffs">
-            <?php foreach (($dbSchemaDiagnostics['diagnostic'] ?? array()) as $tableName => $diffs): ?>
-                <?php foreach ($diffs as $diff): ?>
-                    <div class="dg-row dg-row-boxed">
-                        <span class="ss-setting-name"><?= h($tableName) ?></span>
-                        <span class="text-muted ms-2" style="font-size:.76rem;"><?= h($diff['description']) ?></span>
-                        <span class="ms-auto ps-2">
-                            <?= !empty($diff['is_critical']) ? $pill(0, __('critical')) : $pill(1, str_replace('_', ' ', $diff['error_type'])) ?>
-                        </span>
-                    </div>
-                <?php endforeach; ?>
-            <?php endforeach; ?>
-            <?php foreach (($dbSchemaDiagnostics['diagnostic_index'] ?? array()) as $tableName => $columns): ?>
-                <?php foreach ($columns as $column): ?>
-                    <div class="dg-row dg-row-boxed">
-                        <span class="ss-setting-name"><?= h($tableName) ?></span>
-                        <span class="text-muted ms-2" style="font-size:.76rem;"><?= h($column['message']) ?></span>
-                        <span class="ms-auto ps-2"><?= $pill(1, __('index')) ?></span>
-                    </div>
-                    <?php if (!empty($column['sql'])): ?>
-                        <pre class="dg-sql"><?= h($column['sql']) ?></pre>
-                    <?php endif; ?>
-                <?php endforeach; ?>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
 <?php $closeCard(); ?>
 <?php
     break;

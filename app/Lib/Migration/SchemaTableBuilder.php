@@ -118,6 +118,20 @@ class SchemaTableBuilder
     }
 
     /**
+     * Change the table's own options. MySQL only; PostgreSQL has none of them.
+     * A new default charset or collation applies to columns added later, not
+     * to the ones the table has: those take theirs from changeColumn().
+     *
+     * @param array $options 'engine', 'row_format' (DYNAMIC, COMPACT, REDUNDANT,
+     *   COMPRESSED), 'charset', 'collate' (a Collation token or a name).
+     * @return $this
+     */
+    public function changeOptions(array $options)
+    {
+        return $this->push('changeOptions', array($this->table, $options));
+    }
+
+    /**
      * @param string $operation
      * @param array $arguments
      * @return $this

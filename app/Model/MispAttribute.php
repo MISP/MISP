@@ -363,11 +363,9 @@ class MispAttribute extends AppModel
         'kunai' => ['json', 'KunaiExport', 'json'],
         'netfilter' => array('txt', 'NetfilterExport', 'sh'),
         'opendata' => array('txt', 'OpendataExport', 'txt'),
-        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
-        'stix-json' => array('json', 'Stix1Export', 'json'),
         'stix2' => array('json', 'Stix2Export', 'json'),
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'text' => array('txt', 'TextExport', 'txt'),
@@ -713,6 +711,12 @@ class MispAttribute extends AppModel
         $attribute = &$this->data['Attribute'];
         if (empty($attribute['uuid'])) {
             $attribute['uuid'] = CakeText::uuid();
+        }
+        // Cake fills `created` on insert but keeps a sent value, on edits too.
+        if (empty($attribute['id']) && empty($this->id)) {
+            $attribute['created'] = time();
+        } else {
+            unset($attribute['created']);
         }
         if (!$this->fast_update && !empty($attribute['id'])) {
             $this->old = $this->find('first', array(

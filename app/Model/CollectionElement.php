@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('AnalystData', 'Model');
 
 class CollectionElement extends AppModel
 {
@@ -17,10 +18,10 @@ class CollectionElement extends AppModel
         )
     );
 
-    // Make sure you also update the validation for element_type to include anything you add here.
     public $valid_types = [
         'Event',
-        'GalaxyCluster'
+        'GalaxyCluster',
+        'AttributeValue',
     ];
 
     public $validate = [
@@ -36,14 +37,18 @@ class CollectionElement extends AppModel
             ]
         ],
         'element_uuid' => [
-            'element_uuid' => [
-                'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+            'address' => [
+                'rule' => 'validAddress',
+            ]
+        ],
+        'element_sha256' => [
+            'address' => [
+                'rule' => 'validAddress',
             ]
         ],
         'element_type' => [
             'element_type' => [
-                'rule' => ['inList', ['Event', 'GalaxyCluster']],
+                'rule' => ['inList', []], // filled from $valid_types
                 'message' => 'Invalid object type.'
             ]
         ]
@@ -61,6 +66,12 @@ class CollectionElement extends AppModel
     private $deletedElementCollectionId = null;
 
 
+    public function __construct($id = false, $table = null, $ds = null)
+    {
+        parent::__construct($id, $table, $ds);
+        $this->validate['element_type']['element_type']['rule'] = ['inList', $this->valid_types];
+    }
+
     public function beforeValidate($options = array())
     {
         // Massage to a common format
@@ -72,6 +83,7 @@ class CollectionElement extends AppModel
         if (empty($this->id) && empty($this->data['CollectionElement']['uuid'])) {
             $this->data['CollectionElement']['uuid'] = CakeText::uuid();
         }
+        $this->data['CollectionElement'] = AnalystData::normaliseAddress($this->data['CollectionElement'], 'element', empty($this->id));
         if (
             empty($this->id) &&
             empty($this->data['CollectionElement']['element_type']) &&
@@ -130,9 +142,18 @@ class CollectionElement extends AppModel
         );
     }
 
+    /**
+     * @param array $check
+     * @return bool|string
+     */
+    public function validAddress($check)
+    {
+        return AnalystData::addressError($this->data['CollectionElement'], key($check)) ?? true;
+    }
+
     public function deduceType(string $uuid)
     {
-        foreach ($this->valid_types as $valid_type) {
+        foreach (array_diff($this->valid_types, AnalystData::SHA256_TARGETS) as $valid_type) {
             $this->{$valid_type} = ClassRegistry::init($valid_type);
             $result = $this->$valid_type->find('first', [
                 'conditions' => [$valid_type.'.uuid' => $uuid],
@@ -145,11 +166,67 @@ class CollectionElement extends AppModel
         throw new NotFoundException(__('Invalid UUID'));
     }
 
+    /**
+     * Refuse any target $user cannot read. The read side resolves elements back
+     * into objects, so every write path that stores one must check it first. A
+     * missing target and an invisible one get the same answer.
+     *
+     * @param array $user
+     * @param string|null $elementType When empty, deduced per address as
+     *      beforeValidate() does on save, so leaving it out skips nothing
+     * @param array $addresses uuids, or SHA-256s for AnalystData::SHA256_TARGETS
+     * @throws NotFoundException
+     */
+    public function assertTargetsUsable(array $user, $elementType, array $addresses)
+    {
+        foreach ($addresses as $address) {
+            $type = empty($elementType) ? $this->deduceType($address) : $elementType;
+            if ($type === 'Event') {
+                $event = ClassRegistry::init('Event')->fetchSimpleEvent($user, $address, [
+                    'fields' => ['Event.id']
+                ]);
+                if (empty($event)) {
+                    throw new NotFoundException(__('Invalid event or not authorized.'));
+                }
+            } elseif ($type === 'GalaxyCluster') {
+                $clusterCount = ClassRegistry::init('GalaxyCluster')->fetchGalaxyClusters($user, [
+                    'conditions' => ['GalaxyCluster.uuid' => $address],
+                    'count' => true
+                ]);
+                if (empty($clusterCount)) {
+                    throw new NotFoundException(__('Invalid galaxy cluster or not authorized.'));
+                }
+            } elseif ($type === 'AttributeValue') {
+                $found = ClassRegistry::init('AnalystData')->existingTargets($user, [
+                    ['type' => $type, 'address' => $address],
+                ]);
+                if (empty($found)) {
+                    throw new NotFoundException(__('Invalid value or not authorized.'));
+                }
+            } else {
+                throw new NotFoundException(__('Invalid element type.'));
+            }
+        }
+    }
+
+    /**
+     * SQLSTATE class 23, integrity constraint violation: MySQL reports a
+     * duplicate key as 23000, PostgreSQL as 23505.
+     *
+     * @param PDOException $e
+     * @return bool
+     */
+    public static function isDuplicate(PDOException $e)
+    {
+        return isset($e->errorInfo[0]) && strpos((string)$e->errorInfo[0], '23') === 0;
+    }
+
     /*
      *  Pass a Collection as received from another instance to this function to capture the elements
      *  The received object is authoritative, so all elements that no longer exist in the upstream will be culled.
+     *  A MISP older than 3.0 cannot hold value elements: from one ($fromPre30), they are neither taken nor culled.
      */
-    public function captureElements($data) {
+    public function captureElements($data, $fromPre30 = false) {
         // Sync capture: the parent Collection's `modified` is set authoritatively
         // from the remote by Collection::captureCollection(), so element saves/
         // deletes here must NOT bump it to the local now (D5 / D6 dedup).
@@ -160,12 +237,27 @@ class CollectionElement extends AppModel
             'conditions' => ['CollectionElement.collection_id' => $data['Collection']['id']]
         ]);
         $oldElements = [];
+        $oldByTarget = [];
         foreach ($temp as $oldElement) {
             $oldElements[$oldElement['CollectionElement']['uuid']] = $oldElement['CollectionElement'];
+            $oldByTarget[$this->targetKey($oldElement['CollectionElement'])] = $oldElement['CollectionElement']['uuid'];
         }
         if (isset($data['Collection']['CollectionElement'])) {
             $elementsToSave = [];
             foreach ($data['Collection']['CollectionElement'] as $k => $element) {
+                if ($fromPre30 && self::isValueElement($element)) {
+                    continue;
+                }
+                // Without a known uuid, a stored element with the same target is
+                // this one: a new row would hit the unique key, and the stored one
+                // would then be culled as absent
+                $key = $this->targetKey($element);
+                if (
+                    (empty($element['uuid']) || !isset($oldElements[$element['uuid']])) &&
+                    $key !== '' && isset($oldByTarget[$key]) && isset($oldElements[$oldByTarget[$key]])
+                ) {
+                    $element['uuid'] = $oldByTarget[$key];
+                }
                 if (empty($element['uuid'])) {
                     $element['uuid'] = CakeText::uuid();
                 }
@@ -180,6 +272,7 @@ class CollectionElement extends AppModel
                         'CollectionElement' => [
                             'uuid' => $element['uuid'],
                             'element_uuid' => $element['element_uuid'] ?? null,
+                            'element_sha256' => $element['element_sha256'] ?? null,
                             'element_type' => $element['element_type'] ?? null,
                             'description' => $element['description'] ?? null,
                             'collection_id' => $data['Collection']['id']
@@ -217,6 +310,9 @@ class CollectionElement extends AppModel
                 }
             }
             foreach ($oldElements as $toDelete) {
+                if ($fromPre30 && self::isValueElement($toDelete)) {
+                    continue;
+                }
                 $this->delete($toDelete['id']);
             }
             $temp = $this->find('all', [
@@ -232,5 +328,30 @@ class CollectionElement extends AppModel
             $this->skipCollectionModifiedBump = false;
         }
         return $data;
+    }
+
+    /**
+     * @param array $element
+     * @return bool Whether the element is addressed by a value's SHA-256
+     */
+    private static function isValueElement(array $element)
+    {
+        return !empty($element['element_sha256']);
+    }
+
+    /**
+     * @param array $element
+     * @return string What a unique key on the target holds, with its column,
+     *      lowercased; '' when the element names no target.
+     */
+    private function targetKey(array $element)
+    {
+        foreach (['element_sha256', 'element_uuid'] as $column) {
+            $address = $element[$column] ?? null;
+            if (is_string($address) && trim($address) !== '') {
+                return $column . ':' . strtolower(trim($address));
+            }
+        }
+        return '';
     }
 }

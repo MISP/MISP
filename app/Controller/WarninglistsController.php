@@ -458,8 +458,11 @@ class WarninglistsController extends AppController
         if (!is_numeric($id)) {
             throw new NotFoundException(__('Invalid ID.'));
         }
+        // The page pages its values through viewEntries(); only the API and the
+        // CSV export need the whole list, which can run to a million rows.
+        $withEntries = $this->IndexFilter->isCsv() || $this->_isRest();
         $warninglist = $this->Warninglist->find('first', array(
-            'contain' => array('WarninglistEntry', 'WarninglistType'),
+            'contain' => $withEntries ? array('WarninglistEntry', 'WarninglistType') : array('WarninglistType'),
             'conditions' => array('id' => $id))
         );
         if (empty($warninglist)) {
@@ -483,7 +486,51 @@ class WarninglistsController extends AppController
         }
 
         $this->set('warninglist', $warninglist);
+        $this->set('entryCount', $this->Warninglist->WarninglistEntry->find('count', [
+            'recursive' => -1,
+            'conditions' => ['WarninglistEntry.warninglist_id' => $id],
+        ]));
         $this->set('possibleCategories', $this->Warninglist->categories());
+    }
+
+    /**
+     * One page of a warninglist's values for the view's Values card, optionally
+     * narrowed to those containing ?q=. Scoped to the list's own rows, so a
+     * search costs the size of that list, not of the table.
+     *
+     * @param int $id
+     */
+    public function viewEntries($id)
+    {
+        if (!is_numeric($id)) {
+            throw new NotFoundException(__('Invalid ID.'));
+        }
+        $limit = 100;
+        $page = max(1, (int)($this->request->query['page'] ?? 1));
+        $query = trim((string)($this->request->query['q'] ?? ''));
+        $conditions = ['WarninglistEntry.warninglist_id' => $id];
+        if ($query !== '') {
+            $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $query) . '%';
+            $conditions['OR'] = [
+                'WarninglistEntry.value LIKE' => $like,
+                'WarninglistEntry.comment LIKE' => $like,
+            ];
+        }
+        $total = $this->Warninglist->WarninglistEntry->find('count', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+        ]);
+        $entries = $this->Warninglist->WarninglistEntry->find('all', [
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => ['WarninglistEntry.value', 'WarninglistEntry.comment'],
+            'order' => ['WarninglistEntry.id'],
+            'limit' => $limit,
+            'page' => $page,
+        ]);
+        $this->set(compact('entries', 'total', 'page', 'limit', 'query'));
+        $this->layout = false;
+        $this->render('ajax/view_entries');
     }
 
     public function import()

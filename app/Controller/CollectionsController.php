@@ -1,5 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('AnalystData', 'Model');
+App::uses('SyncTool', 'Tools');
 
 class CollectionsController extends AppController
 {
@@ -49,13 +51,17 @@ class CollectionsController extends AppController
                 'redirect' => $attachTarget === null
                     ? ['action' => 'index']
                     : $this->referer(['controller' => 'collections', 'action' => 'index'], true),
-                'beforeSave' => function (array $collection) use ($currentUser) {
+                'beforeSave' => function (array $collection) use ($currentUser, $attachTarget) {
                     if (isset($collection['Collection']['distribution']) && $collection['Collection']['distribution'] == 4) {
                         $canSGBeUsed = $this->Event->SharingGroup->checkIfCanBeUsed($currentUser, $this->_isRest(), $collection, 'Collection');
                         if ($canSGBeUsed !== true) {
                             throw new MethodNotAllowedException($canSGBeUsed);
                         }
                     }
+                    if ($attachTarget !== null) {
+                        $this->Collection->CollectionElement->assertTargetsUsable($currentUser, $attachTarget['type'], $attachTarget['uuids']);
+                    }
+                    $this->__assertCanUseNestedElements($collection);
                     return $collection;
                 },
                 'afterSave' => function (array $collection) use ($attachTarget) {
@@ -148,11 +154,17 @@ class CollectionsController extends AppController
         if (!in_array($attachElementType, $this->Collection->CollectionElement->valid_types, true)) {
             throw new BadRequestException(__('Invalid element type for collection attachment.'));
         }
-        foreach ($attachElementUuids as $attachElementUuid) {
-            if (!Validation::uuid($attachElementUuid)) {
-                throw new BadRequestException(__('Invalid element UUID for collection attachment.'));
+        $column = AnalystData::addressColumn($attachElementType, 'element');
+        foreach ($attachElementUuids as $i => $attachElementUuid) {
+            if ($column === 'element_sha256') {
+                $attachElementUuids[$i] = $attachElementUuid = strtolower($attachElementUuid);
+            }
+            $row = ['element_type' => $attachElementType, $column => $attachElementUuid];
+            if (AnalystData::addressError($row, $column) !== null) {
+                throw new BadRequestException(__('Invalid element address for collection attachment.'));
             }
         }
+        $attachElementUuids = array_values(array_unique($attachElementUuids));
 
         return [
             'type' => $attachElementType,
@@ -162,37 +174,72 @@ class CollectionsController extends AppController
         ];
     }
 
+    /**
+     * The caller has already checked the target, see add()'s beforeSave.
+     */
     private function __attachElementToCollection($collectionId, $elementType, $elementUuid, $description = '')
     {
-        if ($elementType === 'Event') {
-            // Mirror CollectionElementsController::addElementToCollection()'s visibility
-            // check: without it, a user could attach a UUID they cannot see to a
-            // collection they control, and probe for the existence of arbitrary event
-            // UUIDs (view() only ever renders ACL-filtered fetchSimpleEvents() output,
-            // so this does not itself grant read access to the event's content).
-            $this->loadModel('Event');
-            $event = $this->Event->fetchSimpleEvent($this->Auth->user(), $elementUuid, [
-                'fields' => ['Event.id']
-            ]);
-            if (empty($event)) {
-                throw new NotFoundException(__('Invalid event or not authorized.'));
-            }
-        }
         $this->Collection->CollectionElement->create();
         try {
             $this->Collection->CollectionElement->save([
                 'CollectionElement' => [
                     'collection_id' => $collectionId,
                     'element_type' => $elementType,
-                    'element_uuid' => $elementUuid,
+                    AnalystData::addressColumn($elementType, 'element') => $elementUuid,
                     'description' => $description
                 ]
             ]);
         } catch (PDOException $e) {
             // Collection create can be retried safely; ignore duplicate attachment rows.
-            if (empty($e->errorInfo[0]) || $e->errorInfo[0] != 23000) {
+            if (!CollectionElement::isDuplicate($e)) {
                 throw $e;
             }
+        }
+    }
+
+    /**
+     * Elements nested in a REST body are saved by captureElements(), which
+     * sync uses too and so checks nothing: check them here. One already in the
+     * collection is not checked again, so a target that has since gone away
+     * does not block the edit.
+     *
+     * @param array $collection the record about to be saved
+     * @param int|null $collectionId null on create
+     * @throws NotFoundException
+     */
+    private function __assertCanUseNestedElements(array $collection, $collectionId = null)
+    {
+        $elements = $collection['Collection']['CollectionElement'] ?? null;
+        if (!is_array($elements)) {
+            return;
+        }
+        $known = [];
+        if ($collectionId !== null) {
+            $stored = $this->Collection->CollectionElement->find('all', [
+                'recursive' => -1,
+                'conditions' => ['CollectionElement.collection_id' => $collectionId],
+                'fields' => ['element_type', 'element_uuid', 'element_sha256'],
+            ]);
+            foreach ($stored as $element) {
+                $type = $element['CollectionElement']['element_type'];
+                $address = $element['CollectionElement'][AnalystData::addressColumn($type, 'element')];
+                $known[$type . ':' . strtolower((string)$address)] = true;
+            }
+        }
+        foreach ($elements as $element) {
+            if (!is_array($element)) {
+                continue;
+            }
+            $type = $element['element_type'] ?? null;
+            $address = $element[AnalystData::addressColumn($type, 'element')] ?? null;
+            if (!is_scalar($address) || trim((string)$address) === '') {
+                continue;
+            }
+            $address = trim((string)$address);
+            if (isset($known[$type . ':' . strtolower($address)])) {
+                continue;
+            }
+            $this->Collection->CollectionElement->assertTargetsUsable($this->Auth->user(), $type, [$address]);
         }
     }
 
@@ -260,7 +307,13 @@ class CollectionsController extends AppController
                     // owner could flip locked and bypass the create-time guard in
                     // Collection::beforeValidate. Pin it to the stored value.
                     'locked' => $oldCollection['Collection']['locked'],
+                    // CRUD edit keeps the stored value, and sync only sees a newer `modified`.
+                    'modified' => date('Y-m-d H:i:s'),
                 ],
+                'beforeSave' => function (array $collection) use ($id) {
+                    $this->__assertCanUseNestedElements($collection, (int)$id);
+                    return $collection;
+                },
                 'afterSave' => function (array &$collection) use ($data) {
                     $collection = $this->Collection->CollectionElement->captureElements($collection);
                     return $collection;
@@ -341,6 +394,13 @@ class CollectionsController extends AppController
             return $this->restResponsePayload;
         }
         $data = $this->viewVars['data'];
+        $sharingGroupId = $data['Collection']['SharingGroup']['id'] ?? null;
+        if (!empty($sharingGroupId)) {
+            $data['Collection']['SharingGroup']['org_count'] = $this->Collection->SharingGroup->SharingGroupOrg->find('count', [
+                'conditions' => ['SharingGroupOrg.sharing_group_id' => $sharingGroupId],
+            ]);
+            $this->set('data', $data);
+        }
         $elements = $data['Collection']['CollectionElement'] ?? [];
 
         // Enrich elements with a human-readable reference so the elements
@@ -452,7 +512,11 @@ class CollectionsController extends AppController
             // authoritative replace (D5), so include CollectionElement for REST callers
             // only. The HTML index shows just element_count and must not eager-load every
             // element across the paginated list.
-            $params['contain'][] = 'CollectionElement';
+            if (SyncTool::valueTargetsWithheld()) {
+                $params['contain']['CollectionElement'] = ['conditions' => ['CollectionElement.element_sha256' => null]];
+            } else {
+                $params['contain'][] = 'CollectionElement';
+            }
             // The generic index filter list registers the fully-qualified 'Collection.uuid'
             // key, but harvestParameters only matches a named param whose key is literally
             // 'Collection.uuid'. The sync client sends bare uuid[] named params, so harvest
@@ -601,7 +665,7 @@ class CollectionsController extends AppController
             throw new MethodNotAllowedException(__('This endpoint is JSON only.'));
         }
         $result = $this->__getCollectionsByElementUuids($element_type, [$element_uuid]);
-        return $this->RestResponse->viewData($result[$element_uuid], $this->response->type());
+        return $this->RestResponse->viewData(current($result) ?: [], $this->response->type());
     }
 
     /**
@@ -637,8 +701,21 @@ class CollectionsController extends AppController
         return $this->RestResponse->viewData($result, $this->response->type());
     }
 
+    /**
+     * Only the collections' own ACL applies, not the elements' targets.
+     *
+     * @param string $elementType
+     * @param array $uuids uuids, or SHA-256s for AnalystData::SHA256_TARGETS
+     * @return array address => collections; a SHA-256 in lower case
+     */
     private function __getCollectionsByElementUuids($elementType, array $uuids)
     {
+        $column = AnalystData::addressColumn($elementType, 'element');
+        if ($column === 'element_sha256') {
+            $uuids = array_map(function ($hex) {
+                return is_string($hex) ? strtolower($hex) : $hex;
+            }, $uuids);
+        }
         $uuids = array_values(array_unique(array_filter($uuids)));
         if (empty($uuids)) {
             return [];
@@ -649,9 +726,9 @@ class CollectionsController extends AppController
             'recursive' => -1,
             'conditions' => [
                 'CollectionElement.element_type' => $elementType,
-                'CollectionElement.element_uuid' => $uuids
+                'CollectionElement.' . $column => $uuids
             ],
-            'fields' => ['CollectionElement.collection_id', 'CollectionElement.element_uuid']
+            'fields' => ['CollectionElement.collection_id', 'CollectionElement.' . $column]
         ]);
 
         $result = array_fill_keys($uuids, []);
@@ -678,7 +755,7 @@ class CollectionsController extends AppController
 
         foreach ($elements as $element) {
             $collectionId = $element['CollectionElement']['collection_id'];
-            $elementUuid = $element['CollectionElement']['element_uuid'];
+            $elementUuid = $element['CollectionElement'][$column];
             if (!isset($collectionsById[$collectionId])) {
                 continue;
             }

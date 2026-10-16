@@ -90,6 +90,26 @@ class DistributionLevel
     );
 
     /**
+     * The levels that reach fewer people than $level. 0-3 widen in order; a
+     * sharing group is narrower than "connected" or "all communities" but
+     * cannot be ranked against "this community only" or another group.
+     *
+     * @param mixed $level
+     * @return array
+     */
+    public static function narrowerThan($level)
+    {
+        $narrower = array(
+            0 => array(),
+            1 => array(0),
+            2 => array(0, 1, 4),
+            3 => array(0, 1, 2, 4),
+            4 => array(0),
+        );
+        return $narrower[(int)$level] ?? array();
+    }
+
+    /**
      * The whole table, keyed by level. Safe to json_encode for the templates
      * that render distribution badges client-side.
      *

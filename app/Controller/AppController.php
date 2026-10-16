@@ -5,6 +5,7 @@ App::uses('Postgres', 'Model/Datasource/Database');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
+App::uses('SyncTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 App::uses('BetterCakeEventManager', 'Tools');
 App::uses('MispTheme', 'Lib/MispTheme');
@@ -34,7 +35,10 @@ class AppController extends Controller
      */
     public $defaultModel = '';
 
-    public $helpers = array('OrgImg', 'FontAwesome', 'UserName', 'Navbar');
+    public $helpers = array(
+        'OrgImg', 'FontAwesome', 'UserName', 'Navbar',
+        'Form' => array('className' => 'MispForm'),
+    );
 
     /**
      * Width of the window Security.pre_auth_flood_filter_threshold is counted
@@ -42,7 +46,7 @@ class AppController extends Controller
      */
     const PRE_AUTH_FLOOD_WINDOW = 900;
 
-    private $__queryVersion = '234';
+    private $__queryVersion = '238';
     public $pyMispVersion = '2.5.34.2';
     public $phpmin = '8.1';
     public $phprec = '8.2';
@@ -199,6 +203,7 @@ class AppController extends Controller
         Configure::write('CurrentController', $controller);
         Configure::write('CurrentAction', $action);
         Configure::write('CurrentRequestIsRest', $this->_isRest());
+        Configure::write('CurrentRequesterMispVersion', SyncTool::requesterMispVersion($this->request));
         $versionArray = $this->User->checkMISPVersion();
         $this->mispVersion = implode('.', $versionArray);
         $this->Security->blackHoleCallback = 'blackHole';
@@ -1354,6 +1359,9 @@ class AppController extends Controller
         if (is_string($raw)) {
             $raw = ctype_digit($raw) ? [$raw] : json_decode($raw, true);
         }
+        if (is_int($raw)) {
+            $raw = [$raw];
+        }
         if (!is_array($raw)) {
             return [];
         }
@@ -1874,8 +1882,6 @@ class AppController extends Controller
             $returnFormat = $filters['returnFormat'];
             if ($returnFormat === 'download') {
                 $returnFormat = 'json';
-            } else if ($returnFormat === 'stix' && $this->IndexFilter->isJson()) {
-                $returnFormat = 'stix-json';
             }
         } else {
             $returnFormat = 'json';

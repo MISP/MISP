@@ -33,14 +33,14 @@ class AttributeValueTest extends TestCase
 
     private static function hex($value)
     {
-        return bin2hex(substr(hash('sha256', $value, true), 0, 16));
+        return hash('sha256', $value);
     }
 
-    public function testHashOfIsTheFirstSixteenBytesOfSha256()
+    public function testHashOfIsTheWholeSha256()
     {
         $hash = $this->model($this->mysql)->hashOf('a');
-        $this->assertSame(16, strlen($hash));
-        $this->assertSame('ca978112ca1bbdcafac231b39a23dc4d', bin2hex($hash));
+        $this->assertSame(32, strlen($hash));
+        $this->assertSame('ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb', bin2hex($hash));
     }
 
     public function testInternManyInsertsOnlyWhatIsMissingOnMysql()
@@ -491,7 +491,7 @@ class AttributeValueTest extends TestCase
 
         $this->assertSame('expression', $in->type);
         $this->assertSame(
-            "`Attribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%it''s%')",
+            "`Attribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%it\\'s%')",
             $in->value
         );
         $this->assertSame(
@@ -511,7 +511,7 @@ class AttributeValueTest extends TestCase
         $this->assertSame(['ids' => [3, 8], 'overflow' => false], $model->resolveSearch('google.com', 2));
         $this->assertSame(
             "SELECT `id` FROM `attribute_values` WHERE MATCH(`value`) AGAINST('+google +com*' IN BOOLEAN MODE)" .
-            " AND `value` LIKE '%google.com%' AND `value` REGEXP '(^|[^\p{L}\p{N}_])google\.com' LIMIT 3",
+            " AND `value` LIKE '%google.com%' AND `value` REGEXP '(^|[^\\\\p{L}\\\\p{N}_])google\\\\.com' LIMIT 3",
             $this->mysql->statements[0]
         );
         $this->assertSame(['ids' => [], 'overflow' => true], $model->resolveSearch('google.com', 1));
@@ -523,7 +523,7 @@ class AttributeValueTest extends TestCase
 
         $this->assertSame(
             "SELECT `id` FROM `attribute_values` WHERE MATCH(`value`) AGAINST('+com' IN BOOLEAN MODE)" .
-            " AND `value` LIKE '%.com/%' AND `value` REGEXP '\.com/' LIMIT 50001",
+            " AND `value` LIKE '%.com/%' AND `value` REGEXP '\\\\.com/' LIMIT 50001",
             $this->mysql->statements[0]
         );
     }
@@ -552,7 +552,7 @@ class AttributeValueTest extends TestCase
         $this->model($this->mysql)->resolveSearch('.ru', 10);
 
         $this->assertSame(
-            "SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%.ru%' AND `value` REGEXP '\.ru' LIMIT 11",
+            "SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%.ru%' AND `value` REGEXP '\\\\.ru' LIMIT 11",
             $this->mysql->statements[0]
         );
     }
@@ -581,7 +581,7 @@ class AttributeValueTest extends TestCase
 
         $this->assertSame(
             "SELECT `id` FROM `attribute_values` WHERE MATCH(`value`) AGAINST('+_off' IN BOOLEAN MODE)" .
-            " AND `value` LIKE '%50\%\_off\\\\x''s%' AND `value` REGEXP '(^|[^\p{L}\p{N}_])50%_off\\\\x''s' LIMIT 11",
+            " AND `value` LIKE '%50\\\\%\\\\_off\\\\\\\\x\\'s%' AND `value` REGEXP '(^|[^\\\\p{L}\\\\p{N}_])50%_off\\\\\\\\x\\'s' LIMIT 11",
             $this->mysql->statements[0]
         );
         $this->assertSame(
@@ -607,7 +607,7 @@ class AttributeValueTest extends TestCase
         // Inside the statement without the index, as a bounded find
         $this->assertSame(
             "`Attribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%broad%'" .
-            " AND `value` REGEXP '(^|[^\p{L}\p{N}_])broad')",
+            " AND `value` REGEXP '(^|[^\\\\p{L}\\\\p{N}_])broad')",
             $condition['OR'][1]->value
         );
         $this->assertSame(['Attribute.value2_id IN' => [4, 9]], $condition['OR'][2]);
@@ -628,7 +628,7 @@ class AttributeValueTest extends TestCase
         $this->assertSame([], $this->mysql->statements);
         $this->assertSame(
             "`Attribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%google.com%'" .
-            " AND `value` REGEXP '(^|[^\p{L}\p{N}_])google\.com')",
+            " AND `value` REGEXP '(^|[^\\\\p{L}\\\\p{N}_])google\\\\.com')",
             $condition['OR'][0]->value
         );
         $this->assertSame(
@@ -682,7 +682,7 @@ class AttributeValueTest extends TestCase
         $this->mysql->statements = [];
         $model->matchesEmpty(['\\%'], true);
         $this->assertSame(
-            ["SELECT 0 AS `term` FROM DUAL WHERE _utf8mb4'' COLLATE utf8mb4_uca1400_ai_ci LIKE '\\%'"],
+            ["SELECT 0 AS `term` FROM DUAL WHERE _utf8mb4'' COLLATE utf8mb4_uca1400_ai_ci LIKE '\\\\%'"],
             $this->mysql->statements
         );
     }
@@ -1400,7 +1400,7 @@ class AttributeValueTest extends TestCase
     public function testFindAddressedBySha256ChecksTheWholeHash()
     {
         $this->mysql->store('evil.com', 9);
-        // Stored under the hash prefix of another text
+        // Stored under the hash of another text
         $this->mysql->store('other', 10, 'collide.example');
         $model = $this->model($this->mysql);
 
@@ -1414,6 +1414,47 @@ class AttributeValueTest extends TestCase
             $this->assertNull($model->findAddressed(['sha256' => $bad]), var_export($bad, true));
         }
         $this->assertCount(4, $this->mysql->statements);
+    }
+
+    public function testFindBySha256AnswersOnlyForHeldValues()
+    {
+        foreach ([$this->mysql, $this->pgsql] as $db) {
+            $db->store('evil.com', 9);
+            $db->store('good.example', 11);
+            $db->store('other', 10, 'collide.example');
+            $model = $this->model($db);
+
+            $evil = self::hex('evil.com');
+            $found = $model->findBySha256([
+                strtoupper($evil),
+                $evil,
+                self::hex('good.example'),
+                self::hex('collide.example'),
+                self::hex('absent.example'),
+                substr($evil, 0, 32),
+                [$evil],
+                null,
+            ]);
+            $this->assertSame([$evil => 9, self::hex('good.example') => 11], $found, get_class($db));
+            $this->assertCount(1, $db->statements);
+
+            $this->assertSame([], $model->findBySha256(['', 'g' . substr($evil, 1)]));
+            $this->assertSame([], $model->findBySha256([]));
+            $this->assertCount(1, $db->statements);
+        }
+    }
+
+    public function testFindBySha256AsksInChunks()
+    {
+        $hexes = [];
+        for ($i = 0; $i <= AttributeValue::CHUNK; $i++) {
+            $hexes[] = self::hex("v$i.example");
+        }
+        $this->mysql->store('v1000.example', 7);
+        $model = $this->model($this->mysql);
+
+        $this->assertSame([self::hex('v1000.example') => 7], $model->findBySha256($hexes));
+        $this->assertCount(2, $this->mysql->statementsLike('/WHERE `hash` IN \(/'));
     }
 
     public function testFindAddressedByTextMatchesTheExactBytes()

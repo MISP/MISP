@@ -2369,26 +2369,12 @@
                                        'checkbox_url' => $baseurl . '/events/restSearch/stix/eventid:' . $eventId . '/withAttachments:1',
                                        'icon' => 'fa-file-alt',
                                    ],
-                                   'stix_json' => [
-                                       'label' => __('STIX 1 JSON'),
-                                       'url' => $baseurl . '/events/restSearch/stix-json/eventid:' . $eventId,
-                                       'checkbox' => true,
-                                       'checkbox_label' => __('Encode Attachments'),
-                                       'checkbox_url' => $baseurl . '/events/restSearch/stix-json/withAttachments:1/eventid:' . $eventId,
-                                       'icon' => 'fa-file-alt',
-                                   ],
                                    'stix2' => [
                                        'label' => __('STIX 2'),
                                        'url' => $baseurl . '/events/restSearch/stix2/eventid:' . $eventId,
                                        'checkbox' => true,
                                        'checkbox_label' => __('Encode Attachments'),
                                        'checkbox_url' => $baseurl . '/events/restSearch/stix2/eventid:' . $eventId . '/withAttachments:1',
-                                       'icon' => 'fa-file-alt',
-                                   ],
-                                   'openioc' => [
-                                       'label' => __('OpenIOC'),
-                                       'url' => $baseurl . '/events/restSearch/openioc/to_ids:1/published:1/eventid:' . $eventId . '.json',
-                                       'checkbox' => false,
                                        'icon' => 'fa-file-alt',
                                    ],
                                    'rpz' => [

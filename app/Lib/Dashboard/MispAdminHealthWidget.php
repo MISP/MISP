@@ -416,18 +416,35 @@ class MispAdminHealthWidget
                 'drilldown' => '/servers/serverSettings/diagnostics',
             );
         }
-        $actual   = isset($diag['actual_db_version']) ? (string)$diag['actual_db_version'] : '';
-        $expected = isset($diag['expected_db_version']) ? (string)$diag['expected_db_version'] : '';
-        if ($actual !== '' && $expected !== '' && $expected !== '?' && $actual !== $expected) {
+        $failed = (int)($diag['migrations_failed'] ?? 0);
+        $pending = (int)($diag['migrations_pending'] ?? 0);
+        if ($failed > 0) {
+            $rows[] = array(
+                'type' => 'check',
+                'check' => 'db-migrations-failed',
+                'name' => __('Database migrations failed'),
+                'detail' => implode(', ', (array)($diag['migrations_failed_ids'] ?? array())),
+                'severity_class' => 'danger',
+                'drilldown' => '/servers/serverSettings/diagnostics',
+            );
+        } elseif ($pending > 0) {
+            $rows[] = array(
+                'type' => 'check',
+                'check' => 'db-migrations-pending',
+                'name' => __('Database migrations pending'),
+                'detail' => sprintf(__('%s migration(s) not applied yet'), $pending),
+                'severity_class' => 'warning',
+                'drilldown' => '/servers/serverSettings/diagnostics',
+            );
+        }
+        $actual = isset($diag['actual_db_version']) ? (int)$diag['actual_db_version'] : null;
+        $expected = isset($diag['expected_db_version']) ? (int)$diag['expected_db_version'] : null;
+        if ($actual !== null && $expected !== null && $actual < $expected) {
             $rows[] = array(
                 'type' => 'check',
                 'check' => 'db-version-mismatch',
-                'name' => __('Database schema not up-to-date'),
-                'detail' => sprintf(
-                    __('db_version %s, expected %s'),
-                    $actual,
-                    $expected
-                ),
+                'name' => __('Legacy database updates pending'),
+                'detail' => sprintf(__('db_version %s of %s'), $actual, $expected),
                 'severity_class' => 'warning',
                 'drilldown' => '/servers/serverSettings/diagnostics',
             );

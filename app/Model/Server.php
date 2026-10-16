@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('AnalystData', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SystemSetting', 'Model');
@@ -205,6 +206,11 @@ class Server extends AppModel
             'description' => "Run a full validation of all GnuPG keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results.",
             'url' => '/users/verifyGPG/'
         ),
+        'verifyCertificates' => array(
+            'title' => 'Verify certificates',
+            'description' => "Check whether the S/MIME certificate of every user within this instance's userbase is usable, and list the users whose certificate is not.",
+            'url' => '/users/verifyCertificate/'
+        ),
         'databaseCleanupScripts' => array(
             'title' => 'Database Cleanup Scripts',
             'description' => 'If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.',
@@ -311,7 +317,8 @@ class Server extends AppModel
             $event['Event']['distribution'] = '1';
         }
         // Distribution
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || empty($remoteUser['Role']['perm_sync_internal'])) {
+        $downgrade = empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || empty($remoteUser['Role']['perm_sync_internal']);
+        if ($downgrade) {
             switch ($event['Event']['distribution']) {
                 case 1:
                     // if community only, downgrade to org only after pull
@@ -402,6 +409,21 @@ class Server extends AppModel
                         case '2':
                             $event['Event']['EventReport'][$key]['distribution'] = '1';
                             break;
+                    }
+                }
+            }
+        }
+
+        $event['Event'] = AnalystData::updatePulledNested($event['Event'], $downgrade);
+        foreach (['Attribute', 'Object', 'EventReport'] as $scope) {
+            if (empty($event['Event'][$scope])) {
+                continue;
+            }
+            foreach ($event['Event'][$scope] as $k => $element) {
+                $event['Event'][$scope][$k] = AnalystData::updatePulledNested($element, $downgrade);
+                if ($scope === 'Object' && !empty($element['Attribute'])) {
+                    foreach ($element['Attribute'] as $j => $attribute) {
+                        $event['Event']['Object'][$k]['Attribute'][$j] = AnalystData::updatePulledNested($attribute, $downgrade);
                     }
                 }
             }
@@ -908,14 +930,17 @@ class Server extends AppModel
      * @param array $pagination Optional ['page' => int, 'limit' => int]. When set,
      *                          a single ordered page is requested instead of the
      *                          whole index (see getEventIdsFromServer()).
+     * @param int|null $resultCount Set to the remote's X-Result-Count, or null
+     *                              when unknown (e.g. served from cache).
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws RedisException
      */
-    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [])
+    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [], &$resultCount = null)
     {
+        $resultCount = null;
         if (!$ignoreFilterRules) {
             $filterRules = $this->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
             if (!empty($filterRules['org']) && !$serverSync->isSupported(ServerSyncTool::FEATURE_ORG_RULE)) {
@@ -968,17 +993,23 @@ class Server extends AppModel
             }
         }
 
-        // Save to cache for 24 hours if ETag provided
+        $count = $response->getHeader('X-Result-Count');
+        if (is_numeric($count)) {
+            $resultCount = (int)$count;
+        }
+
+        $eventIndex = $response->json();
+
+        // Save to cache for 24 hours if ETag provided. Empty pages are not
+        // cached: a 304 has no X-Result-Count to tell a filtered page from the end.
         $etag = $response->getHeader('etag');
-        if ($etag) {
+        if ($etag && !empty($eventIndex)) {
             $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
             $data = RedisTool::compress($response->body);
             $redis->setex($etagCacheKey, 3600 * 24, $etag);
             $redis->setex($contentCacheKey, 3600 * 24, $data);
             unset($data);
         }
-
-        $eventIndex = $response->json();
 
         // correct $eventArray if just one event, probably this response returns old MISP
         if (isset($eventIndex['id'])) {
@@ -1140,10 +1171,18 @@ class Server extends AppModel
         $page = 1;
         $previousMaxId = null;
         while (true) {
-            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize]);
+            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize], $remoteCount);
             $fetched = count($eventArray);
+            // The remote drops protected events after paging, so a short or even
+            // empty page is not the end. X-Result-Count is counted before that
+            // filter; without it (cached page) only an empty page proves the end.
+            $lastPage = $remoteCount === null ? $fetched === 0 : $page * $pageSize >= $remoteCount;
             if ($fetched === 0) {
-                break;
+                if ($lastPage) {
+                    break;
+                }
+                $page++;
+                continue;
             }
             // A remote that does not honour the limit (older instance) returns the
             // whole index in one response. Detecting more rows than we asked for
@@ -1180,7 +1219,7 @@ class Server extends AppModel
             }
             unset($eventArray);
 
-            if ($remoteIgnoredPagination || $notAdvancing || $fetched < $pageSize) {
+            if ($remoteIgnoredPagination || $notAdvancing || $lastPage) {
                 break; // last page (or a remote that is not paginating)
             }
             $page++;
@@ -2557,83 +2596,6 @@ class Server extends AppModel
         return true;
     }
 
-    public function testNDJSONLogPath($value)
-    {
-        // Controls where the ndjson error log is written (JsonLogTool). Those log
-        // lines can contain attacker-influenced content, so an unconstrained path
-        // is an RCE primitive (e.g. writing a *.php file under the webroot). We are
-        // therefore strict about BOTH the target directory and the file name.
-
-        // Empty is allowed: the logger falls back to its built-in default under
-        // APP/tmp/logs. On the save path the value already arrives trimmed.
-        if ($value === null || !is_string($value) || trim($value) === '') {
-            return true;
-        }
-        $value = trim($value);
-
-        // No NUL bytes, line breaks or stream wrappers (phar://, php://, ...).
-        if (strpos($value, "\0") !== false || preg_match('/[\r\n]/', $value) || strpos($value, '://') !== false) {
-            return 'Invalid characters in the log path.';
-        }
-
-        // Must be an absolute path.
-        if ($value[0] !== '/') {
-            return 'The log path must be an absolute path.';
-        }
-
-        // Resolve the parent directory so that symlinks and '..' traversal are
-        // collapsed before the allow-list check. The file need not exist yet, but
-        // its directory must (JsonLogTool does not create directories).
-        $realDir = realpath(dirname($value));
-        if ($realDir === false) {
-            return 'The directory for the log file does not exist.';
-        }
-
-        // The directory must sit inside one of the two permitted roots, and
-        // nowhere else - this is what keeps the log out of the webroot.
-        $allowedRoots = array();
-        foreach (array(realpath(APP . 'tmp/logs'), realpath('/var/log')) as $root) {
-            if ($root !== false) {
-                $allowedRoots[] = $root;
-            }
-        }
-        $inAllowedRoot = false;
-        foreach ($allowedRoots as $root) {
-            if ($realDir === $root || strpos($realDir, $root . DS) === 0) {
-                $inAllowedRoot = true;
-                break;
-            }
-        }
-        if (!$inAllowedRoot) {
-            return 'The log file must be located within ' . APP . 'tmp/logs/ or /var/log/.';
-        }
-
-        // Strict file name: ASCII alphanumerics plus '_' and '-', split into
-        // dot-separated segments and ending in an allowed log extension. Each
-        // segment must be non-empty, so '..' (and path traversal) cannot occur;
-        // this also rules out path separators, unicode look-alikes, leading dots
-        // and executable extensions such as .php.
-        $fileName = basename($value);
-        if (!preg_match('/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*\.(log|ndjson|json)$/', $fileName)) {
-            return 'Invalid log file name. Use ASCII letters, digits, "_", "-" and "." only (no ".."), ending in .log, .ndjson or .json (e.g. error.log.ndjson).';
-        }
-
-        // Defence in depth: reject script/executable extensions appearing as any
-        // dotted segment (e.g. error.php.ndjson), which some web server
-        // mis-configurations would still execute.
-        $forbidden = array(
-            'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'phtml',
-            'pht', 'phar', 'cgi', 'pl', 'py', 'sh', 'asp', 'aspx', 'jsp', 'exe',
-        );
-        foreach (explode('.', strtolower($fileName)) as $segment) {
-            if (in_array($segment, $forbidden, true)) {
-                return 'The log file name must not contain an executable extension.';
-            }
-        }
-
-        return true;
-    }
-
     public function testForRdKafkaConfig($value)
     {
         // Path to the ini file parsed for rdkafka (AppModel::getKafkaPubTool ->
@@ -3381,19 +3343,20 @@ class Server extends AppModel
         }
         $localVersion = $this->checkMISPVersion();
         $protectedMode = version_compare($remoteVersionString, '2.4.156') >= 0;
+        $crossMajor = ServerSyncTool::isCrossMajorCompatible(implode('.', $localVersion), $remoteVersionString);
         $response = false;
         $success = false;
         $issueLevel = "warning";
-        if ($localVersion['major'] > $remoteVersion[0]) {
+        if (!$crossMajor && $localVersion['major'] > $remoteVersion[0]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance's MISP version is behind by a major version.";
         }
-        if ($response === false && $localVersion['major'] < $remoteVersion[0]) {
+        if ($response === false && !$crossMajor && $localVersion['major'] < $remoteVersion[0]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
         }
-        if ($response === false && $localVersion['minor'] > $remoteVersion[1]) {
+        if ($response === false && !$crossMajor && $localVersion['minor'] > $remoteVersion[1]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance's MISP version is behind by a minor version.";
         }
-        if ($response === false && $localVersion['minor'] < $remoteVersion[1]) {
+        if ($response === false && !$crossMajor && $localVersion['minor'] < $remoteVersion[1]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
         }
 
@@ -3403,13 +3366,13 @@ class Server extends AppModel
         } else {
             $issueLevel = "error";
         }
-        if ($response === false && $localVersion['hotfix'] > $remoteVersion[2]) {
+        if ($response === false && !$crossMajor && $localVersion['hotfix'] > $remoteVersion[2]) {
             $response = "Sync to Server ('{$server['Server']['id']}') initiated, but the remote instance is a few hotfixes behind.";
         }
-        if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) {
+        if ($response === false && !$crossMajor && $localVersion['hotfix'] < $remoteVersion[2]) {
             $response = "Sync to Server ('{$server['Server']['id']}') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
         }
-        if (empty($response) && $remoteVersion[1] <= 4 && $remoteVersion[2] < 111) {
+        if (empty($response) && version_compare($remoteVersionString, '2.4.111', '<')) {
             $response = "Sync to Server ('{$server['Server']['id']}') initiated, but version 2.4.111 is required in order to be able to pull proposals from the remote side.";
         }
 
@@ -3511,12 +3474,14 @@ class Server extends AppModel
             'checked_table_column' => array(),
             'diagnostic' => array(),
             'diagnostic_index' => array(),
-            'expected_db_version' => '?',
+            // The legacy corpus is frozen, so this is a constant; API callers still compare against it
+            'expected_db_version' => (string)AppModel::DB_CHANGES_FREEZE,
             'error' => '',
             'update_locked' => $this->isUpdateLocked(),
             'remaining_lock_time' => $this->getLockRemainingTime(),
             'update_fail_number_reached' => $this->UpdateFailNumberReached(),
             'indexes' => array(),
+            'columnPerTable' => array(),
             'warnings' => array(),
         );
         // A setting that validates only on MySQL can still arrive on another
@@ -3535,13 +3500,8 @@ class Server extends AppModel
         // an instance is behind on rather than just how far. A failed migration
         // is still pending - it is retried first on the next run - so its id is
         // in both lists.
-        // The expected version is the one db_schema.json was dumped at, on
-        // any engine - the file is JSON and reads the same everywhere. Only
-        // the column-by-column comparison below is MySQL-shaped.
-        $dbExpectedSchema = $this->getExpectedDBSchema();
-        if ($dbExpectedSchema !== false && isset($dbExpectedSchema['db_version'])) {
-            $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
-        }
+        // Nothing is read from db_schema.json. The column and index comparison
+        // was dropped for its false positives; its keys stay, empty, for API callers.
         $migrationManager = $this->getMigrationManager();
         $pendingMigrations = array_keys($migrationManager->pending());
         $failedMigrations = $migrationManager->failed();
@@ -3558,34 +3518,6 @@ class Server extends AppModel
         $schemaDiagnostic['migrations_deferred'] = count($deferredReasons);
         $schemaDiagnostic['migrations_deferred_reasons'] = $deferredReasons;
         $schemaDiagnostic['migrations_applied'] = count($migrationManager->applied());
-        if ($this->isMysql()) {
-            $dbActualSchema = $this->getActualDBSchema();
-            if ($dbExpectedSchema !== false) {
-                $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
-                $db_indexes_comparison = $this->compareDBIndexes($dbActualSchema['indexes'], $dbExpectedSchema['indexes'], $dbExpectedSchema);
-                $schemaDiagnostic['checked_table_column'] = $dbActualSchema['column'];
-                $schemaDiagnostic['diagnostic'] = $db_schema_comparison;
-                $schemaDiagnostic['diagnostic_index'] = $db_indexes_comparison;
-                $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
-                foreach($dbActualSchema['schema'] as $tableName => $tableMetas) {
-                    foreach($tableMetas as $tableMeta) {
-                        $schemaDiagnostic['columnPerTable'][$tableName][] = $tableMeta['column_name'];
-                    }
-                }
-                $schemaDiagnostic['indexes'] = $dbActualSchema['indexes'];
-            } else {
-                $schemaDiagnostic['error'] = 'Diagnostic not available as the expected schema file could not be loaded';
-            }
-        } else {
-            $schemaDiagnostic['error'] = sprintf('Diagnostic not available for DataSource `%s`', $dataSource);
-        }
-        if (!empty($schemaDiagnostic['diagnostic'])) {
-            foreach ($schemaDiagnostic['diagnostic'] as $table => &$fields) {
-                foreach ($fields as &$field) {
-                    $field = $this->__attachRecoveryQuery($field, $table);
-                }
-            }
-        }
         return $schemaDiagnostic;
     }
 
@@ -3619,104 +3551,6 @@ class Server extends AppModel
             ];
         }
         return $configuration;
-    }
-
-    /*
-     * Work in progress, still needs DEFAULT in the schema for it to work correctly
-     * Currently only works for missing_column and column_different
-     * Only currently supported field types are: int, tinyint, varchar, text
-     */
-    private function __attachRecoveryQuery($field, $table)
-    {
-        if (isset($field['error_type'])) {
-            $length = false;
-            if (in_array($field['error_type'], array('missing_column', 'column_different'))) {
-                preg_match('/([a-z]+)(?:\((?<dw>[0-9,]+)\))?\s*([a-z]+)?/i', $field['expected']['column_type'], $displayWidthMatches);
-                if (isset($displayWidthMatches['dw'])) {
-                    $length = $displayWidthMatches[2];
-                } elseif ($field['expected']['data_type'] === 'int') {
-                    $length = 11;
-                } elseif ($field['expected']['data_type'] === 'tinyint') {
-                    $length = 1;
-                } elseif ($field['expected']['data_type'] === 'varchar') {
-                    $length = $field['expected']['character_maximum_length'];
-                } elseif ($field['expected']['data_type'] === 'text') {
-                    $length = null;
-                }
-            }
-            if ($length !== false) {
-                switch($field['error_type']) {
-                    case 'missing_column':
-                        $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s %s %s %s;',
-                            $table,
-                            $field['column_name'],
-                            $field['expected']['data_type'],
-                            $length !== null ? sprintf('(%d)', $length) : '',
-                            strpos($field['expected']['column_type'], 'unsigned') !== false ? 'UNSIGNED' : '',
-                            isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
-                            $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
-                            empty($field['expected']['extra']) ? '' : $field['expected']['extra']
-                        );
-                        break;
-                    case 'column_different':
-                        $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` MODIFY COLUMN `%s` %s%s %s %s %s %s %s;',
-                            $table,
-                            $field['column_name'],
-                            $field['expected']['data_type'],
-                            $length !== null ? sprintf('(%d)', $length) : '',
-                            strpos($field['expected']['column_type'], 'unsigned') !== false ? 'UNSIGNED' : '',
-                            isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
-                            $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
-                            empty($field['expected']['extra']) ? '' : $field['expected']['extra']
-                        );
-                        break;
-                }
-            } elseif($field['error_type'] == 'missing_table') {
-                $allFields = array();
-                foreach ($field['expected_table'] as $expectedField) {
-                    $length = false;
-                    if ($expectedField['data_type'] === 'int') {
-                        $length = 11;
-                    } elseif ($expectedField['data_type'] === 'tinyint') {
-                        $length = 1;
-                    } elseif ($expectedField['data_type'] === 'varchar') {
-                        $length = $expectedField['character_maximum_length'];
-                    } elseif ($expectedField['data_type'] === 'text') {
-                        $length = null;
-                    }
-                    $fieldSql = sprintf('`%s` %s%s %s %s %s %s %s',
-                        $expectedField['column_name'],
-                        $expectedField['data_type'],
-                        $length !== null ? sprintf('(%d)', $length) : '',
-                        strpos($expectedField['column_type'], 'unsigned') !== false ? 'UNSIGNED' : '',
-                        isset($expectedField['column_default']) ? 'DEFAULT "' . $expectedField['column_default'] . '"' : '',
-                        $expectedField['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                        empty($expectedField['collation_name']) ? '' : 'COLLATE ' . $expectedField['collation_name'],
-                        empty($field['expected']['extra']) ? '' : $field['expected']['extra']
-                    );
-                    $allFields[] = $fieldSql;
-                }
-                $field['sql'] = __("% The command below is a suggestion and might be incorrect. Please ask if you are not sure what you are doing.") . "</br></br>" . sprintf(
-                    "CREATE TABLE IF NOT EXISTS `%s` ( %s ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;",
-                        $table,
-                        implode(', ', $allFields)
-                );
-            }
-        }
-        return $field;
-    }
-
-    public function getExpectedDBSchema()
-    {
-        try {
-            return FileAccessTool::readJsonFromFile(ROOT . DS . 'db_schema.json');
-        } catch (Exception $e) {
-            return false;
-        }
     }
 
     // TODO: Use CakePHP 3.X's Schema System
@@ -3770,214 +3604,6 @@ class Server extends AppModel
             return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
         return ['schema' => $dbActualSchema, 'column' => $tableColumnNames, 'indexes' => $dbActualIndexes];
-    }
-
-    private function compareDBSchema($dbActualSchema, $dbExpectedSchema)
-    {
-        // Column that should be ignored while performing the comparison
-        $allowedlistFields = array(
-            'users' => array('external_auth_required', 'external_auth_key'),
-        );
-        $nonCriticalColumnElements = array('collation_name');
-        $dbDiff = array();
-        // perform schema comparison for tables
-        foreach($dbExpectedSchema as $tableName => $columns) {
-            if (!array_key_exists($tableName, $dbActualSchema)) {
-                $dbDiff[$tableName][] = array(
-                    'description' => __('Table `%s` does not exist', $tableName),
-                    'error_type' => 'missing_table',
-                    'expected_table' => $columns,
-                    'column_name' => $tableName,
-                    'is_critical' => true
-                );
-            } else {
-                // perform schema comparison for table's columns
-                $expectedColumnKeys = array();
-                $keyedExpectedColumn = array();
-                foreach($columns as $column) {
-                    $expectedColumnKeys[] = $column['column_name'];
-                    $keyedExpectedColumn[$column['column_name']] = $column;
-                }
-                $existingColumnKeys = array();
-                $keyedActualColumn = array();
-                foreach($dbActualSchema[$tableName] as $column) {
-                    $existingColumnKeys[] = $column['column_name'];
-                    $keyedActualColumn[$column['column_name']] = $column;
-                }
-
-                $additionalKeysInActualSchema = array_diff($existingColumnKeys, $expectedColumnKeys);
-                foreach($additionalKeysInActualSchema as $additionalKeys) {
-                    if (isset($allowedlistFields[$tableName]) && in_array($additionalKeys, $allowedlistFields[$tableName])) {
-                        continue; // column is allowedlisted
-                    }
-                    $dbDiff[$tableName][] = array(
-                        'description' => __('Column `%s` exists but should not', $additionalKeys),
-                        'error_type' => 'additional_column',
-                        'column_name' => $additionalKeys,
-                        'is_critical' => false
-                    );
-                }
-                foreach ($keyedExpectedColumn as $columnName => $column) {
-                    if (isset($allowedlistFields[$tableName]) && in_array($columnName, $allowedlistFields[$tableName])) {
-                        continue; // column is allowedlisted
-                    }
-                    if (isset($keyedActualColumn[$columnName])) {
-                        $colDiff = array_diff_assoc($column, $keyedActualColumn[$columnName]);
-                        if (count($colDiff) > 0) {
-                            $colElementDiffs = array_keys(array_diff_assoc($column, $keyedActualColumn[$columnName]));
-                            $isCritical = false;
-                            foreach($colElementDiffs as $colElementDiff) {
-                                if(!in_array($colElementDiff, $nonCriticalColumnElements)) {
-                                    if ($colElementDiff == 'column_default') {
-                                        $expectedValue = $column['column_default'];
-                                        $actualValue = $keyedActualColumn[$columnName]['column_default'];
-                                        if (preg_match(sprintf('@(\'|")+%s(\1)+@', $expectedValue), $actualValue) || (empty($expectedValue) && $actualValue === 'NULL')) { // some version of mysql quote the default value
-                                            continue;
-                                        } else {
-                                            $isCritical = true;
-                                            break;
-                                        }
-                                    } else {
-                                        $isCritical = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            $dbDiff[$tableName][] = array(
-                                'description' => __('Column `%s` is different', $columnName),
-                                'column_name' => $column['column_name'],
-                                'error_type' => 'column_different',
-                                'actual' => $keyedActualColumn[$columnName],
-                                'expected' => $column,
-                                'is_critical' => $isCritical
-                            );
-                        }
-                    } else {
-                        $dbDiff[$tableName][] = array(
-                            'description' => __('Column `%s` does not exist but should', $columnName),
-                            'column_name' => $columnName,
-                            'error_type' => 'missing_column',
-                            'actual' => array(),
-                            'expected' => $column,
-                            'is_critical' => true
-                        );
-                    }
-                }
-            }
-        }
-        foreach (array_diff(array_keys($dbActualSchema), array_keys($dbExpectedSchema)) as $additionalTable) {
-            $dbDiff[$additionalTable][] = array(
-                'description' => __('Table `%s` is an additional table', $additionalTable),
-                'column_name' => $additionalTable,
-                'error_type' => 'additional_table',
-                'is_critical' => false
-            );
-        }
-        return $dbDiff;
-    }
-
-    /**
-     * Returns `true` if given column for given table contains just unique values.
-     *
-     * @param string $tableName
-     * @param string $columnName
-     * @return bool
-     */
-    private function checkIfColumnContainsJustUniqueValues($tableName, $columnName)
-    {
-        $db = $this->getDataSource();
-        $duplicates = $this->query(
-            sprintf('SELECT %s, COUNT(*) c FROM %s GROUP BY %s HAVING COUNT(*) > 1;',
-                $db->name($columnName), $db->name($tableName), $db->name($columnName))
-        );
-        return empty($duplicates);
-    }
-
-    private function generateSqlDropIndexQuery($tableName, $columnName)
-    {
-        return sprintf('DROP INDEX `%s` ON %s;',
-            $columnName,
-            $tableName
-        );
-    }
-
-    private function generateSqlIndexQuery(array $dbExpectedSchema, $tableName, $columnName, $shouldBeUnique = false, $defaultIndexKeylength = 255)
-    {
-        $columnData = Hash::extract($dbExpectedSchema['schema'][$tableName], "{n}[column_name=$columnName]");
-        if (empty($columnData)) {
-            throw new Exception("Index in db_schema.json is defined for `$tableName.$columnName`, but this column is not defined.");
-        }
-
-        $columnData = $columnData[0];
-        if ($columnData['data_type'] === 'varchar') {
-            $keyLength = sprintf('(%s)', $columnData['character_maximum_length'] < $defaultIndexKeylength ? $columnData['character_maximum_length'] : $defaultIndexKeylength);
-        } elseif ($columnData['data_type'] === 'text') {
-            $keyLength = sprintf('(%s)', $defaultIndexKeylength);
-        } else {
-            $keyLength = '';
-        }
-        return sprintf('CREATE%s INDEX `%s` ON `%s` (`%s`%s);',
-            $shouldBeUnique ? ' UNIQUE' : '',
-            $columnName,
-            $tableName,
-            $columnName,
-            $keyLength
-        );
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function compareDBIndexes(array $actualIndex, array $expectedIndex, array $dbExpectedSchema)
-    {
-        $indexDiff = array();
-        foreach ($expectedIndex as $tableName => $indexes) {
-            if (!array_key_exists($tableName, $actualIndex)) {
-                continue; // If table does not exist, it is covered by the schema diagnostic
-            }
-            $tableIndexDiff = array_diff(array_keys($indexes), array_keys($actualIndex[$tableName])); // check for missing indexes
-            foreach ($tableIndexDiff as $columnDiff) {
-                $shouldBeUnique = $indexes[$columnDiff];
-
-                $message = __('Column `%s` should be indexed', $columnDiff);
-                $indexDiff[$tableName][$columnDiff] = array(
-                    'message' => $message,
-                    'sql' => $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $columnDiff, $shouldBeUnique),
-                );
-            }
-            $tableIndexDiff = array_diff(array_keys($actualIndex[$tableName]), array_keys($indexes)); // check for additional indexes
-            foreach ($tableIndexDiff as $columnDiff) {
-                $message = __('Column `%s` is indexed but should not', $columnDiff);
-                $indexDiff[$tableName][$columnDiff] = array(
-                    'message' => $message,
-                    'sql' => $this->generateSqlDropIndexQuery($tableName, $columnDiff),
-                );
-            }
-            foreach ($indexes as $column => $unique) {
-                if (isset($actualIndex[$tableName][$column]) && $actualIndex[$tableName][$column] != $unique) {
-                    if ($actualIndex[$tableName][$column]) {
-                        $sql = $this->generateSqlDropIndexQuery($tableName, $column);
-                        $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, false);
-
-                        $message = __('Column `%s` has unique index, but should be non unique', $column);
-                        $indexDiff[$tableName][$column] = array(
-                            'message' => $message,
-                            'sql' => $sql,
-                        );
-                    } else {
-                        $sql = $this->generateSqlDropIndexQuery($tableName, $column);
-                        $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, true);
-
-                        $message = __('Column `%s` should be unique index', $column);
-                        $indexDiff[$tableName][$column] = array(
-                            'message' => $message,
-                            'sql' => $sql,
-                        );
-                    }
-                }
-            }
-        }
-        return $indexDiff;
     }
 
     /**
@@ -4107,7 +3733,7 @@ class Server extends AppModel
     {
         $expected = array(
             'stix' => '>=1.2.0.11', 'cybox' => '>=2.1.0.21', 'mixbox' => '>=1.0.5', 'maec' => '>=4.1.0.17',
-            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2026.9.16'
+            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2026.10.12'
         );
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';
@@ -6058,20 +5684,6 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
-                'name' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'version' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
                 'disable_cached_exports' => array(
                     'level' => 2,
                     'description' => __('Cached exports can take up a considerable amount of space and can be disabled instance wide using this setting. Even tough the feature is deprecated and will be removed in the future, you can still decide to enable it.'),
@@ -6080,21 +5692,6 @@ class Server extends AppModel
                     'test' => 'testDisableCache',
                     'type' => 'boolean',
                     'afterHook' => 'disableCacheAfterHook',
-                ),
-                'disable_threat_level' => array(
-                    'level' => 1,
-                    'description' => __('Disable displaying / modifications to the threat level altogether on the instance (deprecated field).'),
-                    'value' => false,
-                    'null' => true,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
-                ),
-                'header' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
                 ),
                 'footermidleft' => array(
                     'level' => 2,
@@ -6106,34 +5703,6 @@ class Server extends AppModel
                 'footermidright' => array(
                     'level' => 2,
                     'description' => __('Footer text following the "Powered by MISP" text.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'footerpart1' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'footerpart2' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'footer' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'footerversion' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
@@ -6184,13 +5753,6 @@ class Server extends AppModel
                     'test' => 'testUuid',
                     'type' => 'string'
                 ),
-                'logo' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
                 'showorg' => array(
                     'level' => 0,
                     'description' => __('Setting this setting to \'false\' will hide all organisation names / logos.'),
@@ -6240,20 +5802,6 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ],
-                'taxii_sync' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'taxii_client_path' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
                 'background_jobs' => array(
                     'level' => 1,
                     'description' => __('Enables the use of MISP\'s background processing.'),
@@ -6318,13 +5866,6 @@ class Server extends AppModel
                 'contact' => array(
                     'level' => 1,
                     'description' => __('The e-mail address that MISP should include as a contact address for the instance\'s support team.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                ),
-                'dns' => array(
-                    'level' => 3,
-                    'description' => __('This setting is deprecated and can be safely removed.'),
                     'value' => '',
                     'test' => 'testForEmpty',
                     'type' => 'string',
@@ -6741,22 +6282,6 @@ class Server extends AppModel
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
-                    'null' => true
-                ],
-                'log_errors_ndjson' => [
-                    'level' =>  self::SETTING_RECOMMENDED,
-                    'description' => __('Log errors in ndjson format additionally to error.log.)'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
-                ],
-                'log_errors_ndjson_path' => [
-                    'level' =>  self::SETTING_RECOMMENDED,
-                    'description' => __('Path for the ndjson error log file - defaults to ' . APP . 'tmp/logs/error.log.ndjson.'),
-                    'value' => APP . 'tmp/logs/error.log.ndjson',
-                    'test' => 'testNDJSONLogPath',
-                    'type' => 'string',
-                    'cli_only' => true,
                     'null' => true
                 ],
                 'disable_seen_ips_authkeys' => [
@@ -7241,14 +6766,6 @@ class Server extends AppModel
                     'null' => true,
                     'cli_only' => true,
                 ],
-                'fetchAttributeLegacyStrategy' => [
-                    'level' => self::SETTING_OPTIONAL,
-                    'description' => __('Enabling this setting flip the attribute fetcher into using single joined queries rather than subqueries. This should be a performance downgrade for most, but could improve performance on older mysql versions.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true,
-                ],
                 'disable_baseurl_coercion' => [
                     'level' => self::SETTING_OPTIONAL,
                     'description' => __('Disable the automatic coercion of the baseurl for the framework. This is generally recommended against as it solves some potential redirect issues, but has been reported to help when running MISP in a subdirectory.'),
@@ -7328,14 +6845,6 @@ class Server extends AppModel
                     'type' => 'boolean',
                     'null' => true
                 ],
-                'restrict_server_signing_to_host_org' => [
-                    'level' => self::SETTING_RECOMMENDED,
-                    'description' => __('Restrict server signing via /encryptionKeys/serverSign to host org only users, even for users that otherwise meet role requirements. This setting defaults to false. Site admins are exempt from this requirement, even when the setting is enabled.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true
-                ],
             ),
             'SMIME' => array(
                 'branch' => 1,
@@ -7345,13 +6854,6 @@ class Server extends AppModel
                     'value' => '',
                     'test' => 'testBool',
                     'type' => 'boolean',
-                ),
-                'email' => array(
-                    'level' => 2,
-                    'description' => __('The e-mail address that the instance\'s S/MIME key is tied to.'),
-                    'value' => '',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
                 ),
                 'cert_public_sign' => array(
                     'level' => 2,
@@ -9214,7 +8716,6 @@ class Server extends AppModel
                     'Purge correlation' => 'MISP/app/Console/cake Admin jobPurgeCorrelation [job_id]',
                     'Update MISP' => 'MISP/app/Console/cake Admin updateMISP',
                     'Update after pull' => 'MISP/app/Console/cake Admin updateAfterPull [submodule_name] [job_id] [user_id]',
-                    'Job upgrade' => 'MISP/app/Console/cake Admin jobUpgrade24 [job_id] [user_id]',
                     'Prune update logs' => 'MISP/app/Console/cake Admin prune_update_logs [job_id] [user_id]',
                     'Recover since last successful update' => 'MISP/app/Console/cake Admin recoverSinceLastSuccessfulUpdate',
                     'Reset sync authkeys' => 'MISP/app/Console/cake Admin resetSyncAuthkeys [user_id]',

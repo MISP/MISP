@@ -88,7 +88,7 @@ trait AttributeValueFakeDictionary
 
     public function store($value, $id = null, $hashOf = null)
     {
-        $hash = bin2hex(substr(hash('sha256', $hashOf === null ? $value : $hashOf, true), 0, 16));
+        $hash = hash('sha256', $hashOf === null ? $value : $hashOf);
         $this->rows[$hash] = ['id' => $id === null ? $this->nextId++ : $id, 'value' => $value];
         return $this->rows[$hash]['id'];
     }
@@ -96,7 +96,7 @@ trait AttributeValueFakeDictionary
     public function allow(array $values)
     {
         foreach ($values as $value) {
-            $this->known[bin2hex(substr(hash('sha256', $value, true), 0, 16))] = $value;
+            $this->known[hash('sha256', $value)] = $value;
         }
     }
 
@@ -107,7 +107,7 @@ trait AttributeValueFakeDictionary
 
     private function hashesIn($sql)
     {
-        preg_match_all("/(?:X'|decode\(')([0-9a-f]{32})'/", $sql, $matches);
+        preg_match_all("/(?:X'|decode\(')([0-9a-f]{64})'/", $sql, $matches);
         return $matches[1];
     }
 }

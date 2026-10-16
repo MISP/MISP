@@ -173,15 +173,15 @@ class SecurityAudit
             ];
         }
 
-        if (Configure::read('Plugins.ZeroMQ_enable')) {
-            $zeroMqPassword = Configure::read('Plugins.ZeroMQ_password');
+        if (Configure::read('Plugin.ZeroMQ_enable')) {
+            $zeroMqPassword = Configure::read('Plugin.ZeroMQ_password');
             if (empty($zeroMqPassword)) {
                 $output['ZeroMQ'][] = ['error', __('ZeroMQ password is not set.')];
             } else if (strlen($zeroMqPassword) < self::STRONG_PASSWORD_LENGTH) {
                 $output['ZeroMQ'][] = ['warning', __('ZeroMQ password is too short, should be at least %s chars long.', self::STRONG_PASSWORD_LENGTH)];
             }
 
-            $redisPassword = Configure::read('Plugins.ZeroMQ_redis_password');
+            $redisPassword = Configure::read('Plugin.ZeroMQ_redis_password');
             if (empty($redisPassword)) {
                 $output['ZeroMQ'][] = ['error', __('Redis password is not set.')];
             } else if (strlen($redisPassword) < 32) { // for Redis, password should be stronger
@@ -421,6 +421,10 @@ class SecurityAudit
             }
         }
 
+        if ($canSignSmime) {
+            $this->smimeSigningCertificate($output);
+        }
+
         if (!Configure::read('GnuPG.bodyonlyencrypted')) {
             $output['Email'][] = [
                 'hint',
@@ -443,6 +447,41 @@ class SecurityAudit
                 'warning',
                 __('STARTTLS is not enabled.'),
                 'https://en.wikipedia.org/wiki/Opportunistic_TLS',
+            ];
+        }
+    }
+
+    private function smimeSigningCertificate(array &$output)
+    {
+        $path = Configure::read('SMIME.cert_public_sign');
+        $certificate = is_file($path) && is_readable($path) ? openssl_x509_read(file_get_contents($path)) : false;
+        $parsed = $certificate ? openssl_x509_parse($certificate) : false;
+        if (!$parsed) {
+            $output['Email'][] = ['error', __('S/MIME signing certificate `%s` is not readable or not a valid X.509 certificate, so signed emails cannot be sent.', $path)];
+            return;
+        }
+
+        if ($parsed['validTo_time_t'] < time()) {
+            $output['Email'][] = ['error', __('S/MIME signing certificate expired on %s.', date('Y-m-d', $parsed['validTo_time_t']))];
+        }
+
+        $addresses = isset($parsed['subject']['emailAddress']) ? (array)$parsed['subject']['emailAddress'] : [];
+        $altNames = isset($parsed['extensions']['subjectAltName']) ? explode(',', $parsed['extensions']['subjectAltName']) : [];
+        foreach ($altNames as $altName) {
+            $altName = trim($altName);
+            if (stripos($altName, 'email:') === 0) {
+                $addresses[] = substr($altName, 6);
+            }
+        }
+        $addresses = array_unique(array_map('mb_strtolower', $addresses));
+        $mispEmail = (string)Configure::read('MISP.email');
+        if (!in_array(mb_strtolower($mispEmail), $addresses, true)) {
+            $output['Email'][] = [
+                'warning',
+                $addresses ?
+                    __('S/MIME signing certificate is issued for %s, not for `MISP.email` (%s), so mail clients will flag the signature.', implode(', ', $addresses), $mispEmail) :
+                    __('S/MIME signing certificate holds no email address, so mail clients will flag the signature on mail from `MISP.email` (%s).', $mispEmail),
+                'https://www.rfc-editor.org/rfc/rfc8550#section-3',
             ];
         }
     }

@@ -147,8 +147,8 @@ class AttributeValueBackfillToolTest extends TestCase
         $totals = $this->tool($this->mysql)->backfill('attributes', 10);
 
         $this->assertSame(['rows' => 2, 'values' => 2, 'last_id' => 3], $totals);
-        $hash1 = 'UNHEX(LEFT(SHA2(a.value1, 256), 32))';
-        $hash2 = 'UNHEX(LEFT(SHA2(a.value2, 256), 32))';
+        $hash1 = 'UNHEX(LEFT(SHA2(a.value1, 256), 64))';
+        $hash2 = 'UNHEX(LEFT(SHA2(a.value2, 256), 64))';
         $this->assertSame([
             'SELECT id, value1_id, CASE WHEN value1 IS NULL OR OCTET_LENGTH(value1) > 65535'
             . ' OR OCTET_LENGTH(value2) > 65535 THEN 1 ELSE 0 END AS refused'
@@ -184,8 +184,8 @@ class AttributeValueBackfillToolTest extends TestCase
 
         $this->tool($this->pgsql)->backfill('shadow_attributes', 10);
 
-        $hash1 = "substring(sha256(convert_to(a.value1, 'UTF8')) from 1 for 16)";
-        $hash2 = "substring(sha256(convert_to(a.value2, 'UTF8')) from 1 for 16)";
+        $hash1 = "substring(sha256(convert_to(a.value1, 'UTF8')) from 1 for 32)";
+        $hash2 = "substring(sha256(convert_to(a.value2, 'UTF8')) from 1 for 32)";
         $this->assertSame([
             'INSERT INTO "attribute_values" (value, hash) SELECT MIN(s.v), s.h FROM ('
             . "SELECT a.value1 AS v, $hash1 AS h FROM \"shadow_attributes\" a WHERE a.id IN (1)"
@@ -331,8 +331,8 @@ class AttributeValueBackfillToolTest extends TestCase
 
     public function testVerifyDictionaryComparesEachHashWithItsValue()
     {
-        foreach ([[$this->mysql, 'UNHEX(LEFT(SHA2(v.value, 256), 32))', '`attribute_values`'],
-            [$this->pgsql, "substring(sha256(convert_to(v.value, 'UTF8')) from 1 for 16)", '"attribute_values"']] as list($db, $hash, $table)) {
+        foreach ([[$this->mysql, 'UNHEX(LEFT(SHA2(v.value, 256), 64))', '`attribute_values`'],
+            [$this->pgsql, "substring(sha256(convert_to(v.value, 'UTF8')) from 1 for 32)", '"attribute_values"']] as list($db, $hash, $table)) {
             $db->responder = function ($sql) {
                 if (strpos($sql, 'SELECT MAX') === 0) {
                     return [['id' => strpos($sql, 'id > 0 ') ? '4' : null]];

@@ -352,18 +352,13 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     <h4><?php echo __('Schema status');?></h4>
     <div id="schemaStatusDiv" style="width: 70vw; padding-left: 10px;">
         <?= $this->element('/healthElements/db_schema_diagnostic', array(
-            'checkedTableColumn' => $dbSchemaDiagnostics['checked_table_column'],
-            'dbSchemaDiagnostics' => $dbSchemaDiagnostics['diagnostic'],
             'expectedDbVersion' => $dbSchemaDiagnostics['expected_db_version'],
             'actualDbVersion' => $dbSchemaDiagnostics['actual_db_version'],
-            'error' => $dbSchemaDiagnostics['error'],
             'remainingLockTime' => $dbSchemaDiagnostics['remaining_lock_time'],
             'updateFailNumberReached' => $dbSchemaDiagnostics['update_fail_number_reached'],
             'updateLocked' => $dbSchemaDiagnostics['update_locked'],
             'dataSource' => $dbSchemaDiagnostics['dataSource'],
-            'columnPerTable' => $dbSchemaDiagnostics['columnPerTable'],
-            'dbIndexDiagnostics' => $dbSchemaDiagnostics['diagnostic_index'],
-            'indexes' => $dbSchemaDiagnostics['indexes'],
+            'warnings' => $dbSchemaDiagnostics['warnings'],
             'migrationsPending' => $dbSchemaDiagnostics['migrations_pending'],
             'migrationsPendingIds' => $dbSchemaDiagnostics['migrations_pending_ids'],
             'migrationsFailed' => $dbSchemaDiagnostics['migrations_failed'],
@@ -596,21 +591,13 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
             )
         );
     ?>
-    <h3><?php echo __('Orphaned attributes');?></h3>
-    <p><?php echo __('In some rare cases attributes can remain in the database after an event is deleted becoming orphaned attributes. This means that they do not belong to any event, which can cause issues with the correlation engine (known cases include event deletion directly in the database without cleaning up the attributes and situations involving a race condition with an event deletion happening before all attributes are synchronised over).');?></p>
-    <div class="diagnostics-box">
-        <?php echo __('Orphaned attributes');?>…<span id="orphanedAttributeCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
-    </div><br />
-    <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
-    <?php echo $this->Form->postButton(__('Remove orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+    <h3><?php echo __('Clean-up');?></h3>
+    <p><?php echo __('Remove the correlations pointing at attributes that no longer exist, or the published events holding no attribute, object or report.');?></p>
     <?php echo $this->Form->postButton(__('Remove orphaned correlations'), $baseurl . '/servers/removeOrphanedCorrelations', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
     <?php echo $this->Form->postButton(__('Remove published empty events'), $baseurl . '/events/cullEmptyEvents', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
     <h3><?php echo __('Administrator On-demand Action');?></h3>
     <p><?php echo __('Click the following button to go to the Administrator On-demand Action page.');?></p>
     <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/servers/ondemandAction/';"><?php echo __('Administrator On-demand Action');?></span>
-    <h3><?php echo __('Legacy Administrative Tools');?></h3>
-    <p><?php echo __('Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions.');?></p>
-    <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';"><?php echo __('Legacy Administrative Tools');?></span>
     <h3><?php echo __('Verify bad link on attachments');?></h3>
     <p><?php echo __('Verify each attachment referenced in database is accessible on filesystem.');?></p>
     <div class="diagnostics-box">

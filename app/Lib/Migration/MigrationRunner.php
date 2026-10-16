@@ -69,9 +69,11 @@ class MigrationRunner
      * @param bool $liveOff Take the instance out of live mode for the duration of the run.
      * @param bool $exitOnError Stop at the first non-tolerated error instead of continuing.
      * @param bool $clean Flush the model cache around the run.
+     * @param bool $tolerateKnownErrors Step over a duplicate column or index, or
+     *   a drop of one that is not there (AppModel::isAcceptedDatabaseError()).
      * @return bool False if the run stopped on an error, true otherwise.
      */
-    public function run($command, array $sqlArray, array $indexArray, $liveOff = false, $exitOnError = false, $clean = true)
+    public function run($command, array $sqlArray, array $indexArray, $liveOff = false, $exitOnError = false, $clean = true, $tolerateKnownErrors = true)
     {
         $this->Log = ClassRegistry::init('Log');
         $this->errors = array();
@@ -141,7 +143,7 @@ class MigrationRunner
                         'change' => __('The executed SQL query was: ') . $sql . PHP_EOL . __(' The returned error is: ') . $errorMessage
                     );
                     $this->__setUpdateResMessages($i, __('Issues executing the SQL query for `%s`. The returned error is: ' . PHP_EOL . '%s', $command, $errorMessage));
-                    if (!$this->model->isAcceptedDatabaseError($errorMessage)) {
+                    if (!$tolerateKnownErrors || !$this->model->isAcceptedDatabaseError($errorMessage)) {
                         $this->__setUpdateError($i);
                         $this->errors[] = $errorMessage;
                         $errorCount++;

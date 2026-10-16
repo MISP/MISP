@@ -2907,6 +2907,25 @@ class UsersController extends AppController
         return $response;
     }
 
+    public function getSmimeCertificate()
+    {
+        $path = Configure::read('SMIME.cert_public_sign');
+        if (!Configure::read('SMIME.enabled') || empty($path) || !is_file($path) || !is_readable($path)) {
+            throw new NotFoundException(__('S/MIME certificate not found.'));
+        }
+        // The file may hold the private key too: never serve it as is
+        $certificate = openssl_x509_read(file_get_contents($path));
+        if (!$certificate || !openssl_x509_export($certificate, $pem)) {
+            throw new NotFoundException(__('S/MIME certificate not found.'));
+        }
+        $response = new CakeResponse(array(
+            'body' => $pem,
+            'type' => 'application/x-pem-file',
+        ));
+        $response->download('public_certificate.pem');
+        return $response;
+    }
+
     public function checkIfLoggedIn()
     {
         return new CakeResponse(array('body'=> 'OK','status' => 200));

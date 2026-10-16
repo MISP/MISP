@@ -1,6 +1,8 @@
 <?php
 
 App::uses('AbstractGrammar', 'Migration/Grammar');
+App::uses('Collation', 'Migration');
+App::uses('OfflineMysql', 'Migration/Grammar');
 App::uses('SchemaBuilder', 'Migration');
 App::uses('SchemaInspector', 'Migration');
 App::uses('SqlDialect', 'Migration');
@@ -20,8 +22,10 @@ App::uses('SqlDialect', 'Migration');
  * for that is not realistic and would drift the first time somebody forgot to
  * mirror a change, so the baseline is generated: read a MySQL database that a
  * fresh install plus the frozen corpus produced, map it onto the schema DSL,
- * render through the grammar for the engine wanted. The MySQL baseline is the
- * same tool with the other grammar.
+ * render through the grammar for the engine wanted. MariaDB and MySQL get a
+ * baseline each, because their target collations have different names (see
+ * Collation): a reference column in its server's target collation is read as
+ * the collation token and rendered for each server.
  *
  * ## Why information_schema rather than the driver
  *
@@ -35,6 +39,9 @@ App::uses('SqlDialect', 'Migration');
  * - a clean install sitting beside a working one - which is why every query
  * filters on a database name the caller chooses rather than on the
  * connection's own.
+ *
+ * The queries, and the reading of defaults and index rows, are
+ * SchemaInspector's: its tableDefinition() reads a live table the same way.
  *
  * db_schema.json is deliberately not the source: it records one boolean per
  * indexed column and cannot express a composite index, an index name or a
@@ -128,12 +135,14 @@ class BaselineGenerator
     const MYSQL_FULLTEXT_WITHOUT_STOPWORDS = array('attribute_values');
 
     /**
-     * Tables whose collation their migration picks by server version
-     * (20261003_092429_create_attribute_values). A static baseline cannot,
-     * so the MySQL rendering uses the one every supported server has rather
-     * than the reference server's.
+     * The engines a baseline is rendered for, and the server version each
+     * MySQL-family rendering assumes: the oldest supported release.
      */
-    const MYSQL_PORTABLE_COLLATIONS = array('attribute_values' => 'utf8mb4_unicode_520_ci');
+    const ENGINES = array(
+        'mariadb' => OfflineMysql::SERVER_VERSION,
+        'mysql' => '8.4.0',
+        'pgsql' => null,
+    );
 
     /**
      * The tables a fresh install starts with rows in: the ones MYSQL.sql seeds,
@@ -288,6 +297,38 @@ class BaselineGenerator
         return $this->database;
     }
 
+    /**
+     * @return string[] The engines a baseline can be rendered for.
+     */
+    public static function engines()
+    {
+        return array_keys(self::ENGINES);
+    }
+
+    /**
+     * The grammar a baseline for an engine is rendered through. Always
+     * offline: the reference is read over a MySQL-family connection, and the
+     * server it runs on says nothing about the server a baseline is for.
+     *
+     * @param string $engine One of engines().
+     * @return AbstractGrammar
+     * @throws InvalidArgumentException On an unknown engine.
+     */
+    public static function grammar($engine)
+    {
+        if (!is_string($engine) || !array_key_exists($engine, self::ENGINES)) {
+            throw new InvalidArgumentException(sprintf(
+                'No baseline for the engine %s. Known engines are: %s.',
+                var_export($engine, true),
+                implode(', ', self::engines())
+            ));
+        }
+        if (self::ENGINES[$engine] === null) {
+            return AbstractGrammar::offline(AbstractGrammar::FLAVOUR_PGSQL);
+        }
+        return AbstractGrammar::forDataSource(new OfflineMysql(self::ENGINES[$engine]));
+    }
+
     // --------------------------------------------------------------- reading
 
     /**
@@ -311,8 +352,36 @@ class BaselineGenerator
     }
 
     /**
+     * @return array The ids the reference's ledger records as applied; empty
+     *   when it has no ledger.
+     */
+    public function appliedMigrations()
+    {
+        $exists = $this->fetchRows(sprintf(
+            "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'schema_migrations';",
+            $this->db->value($this->database, 'string')
+        ));
+        if (empty($exists)) {
+            return array();
+        }
+        $rows = $this->fetchRows(sprintf(
+            'SELECT %s AS id FROM %s WHERE %s = %s;',
+            $this->db->name('migration_id'),
+            $this->qualified('schema_migrations'),
+            $this->db->name('status'),
+            $this->db->value('applied', 'string')
+        ));
+        $ids = array();
+        foreach ($rows as $row) {
+            $ids[] = (string)$row['id'];
+        }
+        return $ids;
+    }
+
+    /**
      * Every base table in the reference, with its columns, indexes and table
-     * parameters mapped onto the DSL.
+     * parameters mapped onto the DSL. A collation the reference server names
+     * a token by (see Collation) is read as that token.
      *
      * @return array table => array(
      *   'columns' => name => DSL spec,
@@ -324,16 +393,18 @@ class BaselineGenerator
      */
     public function readSchema()
     {
+        $tokens = $this->collationTokens();
         $tables = array();
-        foreach ($this->fetchRows($this->tablesSql()) as $row) {
+        foreach ($this->fetchRows(SchemaInspector::mysqlTablesSql($this->db, $this->database)) as $row) {
             $collation = isset($row['TABLE_COLLATION']) ? (string)$row['TABLE_COLLATION'] : '';
             $options = array();
             if (!empty($row['ENGINE'])) {
                 $options['engine'] = $row['ENGINE'];
             }
             if ($collation !== '') {
-                $options['charset'] = self::charsetOf($collation);
+                $options['charset'] = SchemaInspector::charsetOfCollation($collation);
                 $options['collate'] = $collation;
+                $options = self::tokenise($options, $tokens);
             }
             $tables[$row['TABLE_NAME']] = array(
                 'columns' => array(),
@@ -346,20 +417,20 @@ class BaselineGenerator
         }
 
         $quoted = $this->quotesLiteralDefaults();
-        foreach ($this->fetchRows($this->columnsSql()) as $row) {
+        foreach ($this->fetchRows(SchemaInspector::mysqlColumnsSql($this->db, $this->database)) as $row) {
             $table = $row['TABLE_NAME'];
             if (!isset($tables[$table])) {
                 continue;
             }
             list($spec, $expression) = self::columnSpec($row, $quoted, $tables[$table]['collation']);
-            $tables[$table]['columns'][$row['COLUMN_NAME']] = $spec;
+            $tables[$table]['columns'][$row['COLUMN_NAME']] = self::tokenise($spec, $tokens);
             if ($expression !== null) {
                 $tables[$table]['expressionDefaults'][$row['COLUMN_NAME']] = $expression;
             }
         }
 
         $statistics = array();
-        foreach ($this->fetchRows($this->statisticsSql()) as $row) {
+        foreach ($this->fetchRows(SchemaInspector::mysqlStatisticsSql($this->db, $this->database)) as $row) {
             $statistics[$row['TABLE_NAME']][] = $row;
         }
         foreach ($tables as $table => $definition) {
@@ -380,6 +451,30 @@ class BaselineGenerator
             unset($tables[$table]['collation']);
         }
         return $tables;
+    }
+
+    /**
+     * The reference server's own name for each collation token.
+     *
+     * @return array collation => token
+     * @throws RuntimeException When the version does not say which server the reference is on.
+     */
+    private function collationTokens()
+    {
+        $version = $this->db->getVersion();
+        $family = Collation::family($version);
+        if ($family === null) {
+            throw new RuntimeException(sprintf(
+                'The reference server reports its version as "%s", which does not say whether it is MariaDB or MySQL.',
+                $version
+            ));
+        }
+        $tokens = array();
+        foreach (array(Collation::CI, Collation::BIN, Collation::ASCII) as $token) {
+            $byFamily = Collation::byFamily($token);
+            $tokens[$byFamily[$family]] = $token;
+        }
+        return $tokens;
     }
 
     /**
@@ -436,17 +531,15 @@ class BaselineGenerator
     public static function columnSpec(array $row, $quotedDefaults = true, $tableCollation = '')
     {
         $columnType = isset($row['COLUMN_TYPE']) ? strtolower(trim($row['COLUMN_TYPE'])) : '';
-        if (!preg_match('/^([a-z]+)(?:\((\d+)(?:,\s*(\d+))?\))?(\s+unsigned)?/', $columnType, $m)) {
+        $parts = SchemaInspector::splitMysqlType($columnType);
+        if ($parts === null) {
             throw new InvalidArgumentException(sprintf(
                 'Column %s: cannot read the type "%s".',
                 isset($row['COLUMN_NAME']) ? $row['COLUMN_NAME'] : '?',
                 $columnType
             ));
         }
-        $base = $m[1];
-        $width = isset($m[2]) && $m[2] !== '' ? (int)$m[2] : null;
-        $scale = isset($m[3]) && $m[3] !== '' ? (int)$m[3] : null;
-        $unsigned = !empty($m[4]);
+        list($base, $width, $scale, $unsigned) = $parts;
 
         if ($base === 'enum' || $base === 'set') {
             throw new InvalidArgumentException(sprintf(
@@ -455,13 +548,8 @@ class BaselineGenerator
                 $columnType
             ));
         }
-        if ($base === 'tinyint') {
-            // Cake's own describe() reads tinyint(1) as boolean, and so does
-            // every flag column in MISP. Any other width is a small integer.
-            $type = $width === 1 ? 'boolean' : 'tinyinteger';
-        } elseif (isset(self::$typeMap[$base])) {
-            $type = self::$typeMap[$base];
-        } else {
+        $type = self::dslType($columnType);
+        if ($type === null) {
             throw new InvalidArgumentException(sprintf(
                 'Column %s: no DSL type for "%s".',
                 $row['COLUMN_NAME'],
@@ -487,7 +575,7 @@ class BaselineGenerator
 
         $extra = isset($row['EXTRA']) ? strtolower($row['EXTRA']) : '';
         $expression = null;
-        list($hasDefault, $default, $isExpression) = self::parseDefault(
+        list($hasDefault, $default, $isExpression) = SchemaInspector::parseMysqlDefault(
             array_key_exists('COLUMN_DEFAULT', $row) ? $row['COLUMN_DEFAULT'] : null,
             $extra,
             $quotedDefaults
@@ -511,7 +599,7 @@ class BaselineGenerator
             $spec['collate'] = $row['COLLATION_NAME'];
             $spec['charset'] = !empty($row['CHARACTER_SET_NAME'])
                 ? $row['CHARACTER_SET_NAME']
-                : self::charsetOf($row['COLLATION_NAME']);
+                : SchemaInspector::charsetOfCollation($row['COLLATION_NAME']);
         }
         if (!empty($row['COLUMN_COMMENT'])) {
             $spec['comment'] = $row['COLUMN_COMMENT'];
@@ -520,48 +608,43 @@ class BaselineGenerator
     }
 
     /**
-     * What a COLUMN_DEFAULT cell means.
+     * The DSL type a MySQL column type reads as. Several MySQL types read as
+     * one DSL type (blob and mediumblob are both binary), so this is what a
+     * column generated from the reference means, not how it renders.
      *
-     * Three servers, three spellings. MariaDB (10.2.7+) quotes literals,
-     * spells an explicit NULL as the word, and shows expressions bare. MySQL
-     * shows literals bare and flags expression defaults with
-     * DEFAULT_GENERATED in EXTRA, except CURRENT_TIMESTAMP on a datetime,
-     * which is bare and unflagged. A SQL NULL means the column has no
-     * default on both.
-     *
-     * @param string|null $default
-     * @param string $extra Lower-cased.
-     * @param bool $quotedDefaults
-     * @return array array(bool $hasDefault, mixed $value, bool $isExpression).
-     *   An explicit NULL default comes back as (false, null, false): the
-     *   grammar emits DEFAULT NULL for a nullable column on its own, and a
-     *   NOT NULL column cannot have one.
+     * @param string $columnType As information_schema.COLUMNS has it.
+     * @return string|null Null for a type the DSL has no name for.
      */
-    public static function parseDefault($default, $extra, $quotedDefaults)
+    public static function dslType($columnType)
     {
-        if ($default === null) {
-            return array(false, null, false);
+        $parts = SchemaInspector::splitMysqlType($columnType);
+        if ($parts === null) {
+            return null;
         }
-        $default = (string)$default;
-        if (strpos($extra, 'default_generated') !== false) {
-            return array(true, $default, true);
+        list($base, $width) = $parts;
+        if ($base === 'tinyint') {
+            // Cake's own describe() reads tinyint(1) as boolean, and so does
+            // every flag column in MISP. Any other width is a small integer.
+            return $width === 1 ? 'boolean' : 'tinyinteger';
         }
-        if ($quotedDefaults) {
-            if (strtoupper($default) === 'NULL') {
-                return array(false, null, false);
-            }
-            if (preg_match("/^'(.*)'$/s", $default, $m)) {
-                return array(true, str_replace("''", "'", $m[1]), false);
-            }
-            if (is_numeric($default)) {
-                return array(true, $default, false);
-            }
-            return array(true, $default, true);
+        return isset(self::$typeMap[$base]) ? self::$typeMap[$base] : null;
+    }
+
+    /**
+     * A target collation as its token, which implies the charset. Any other
+     * collation is kept as the reference names it.
+     *
+     * @param array $options A column spec or a table's options.
+     * @param array $tokens collation => token.
+     * @return array
+     */
+    public static function tokenise(array $options, array $tokens)
+    {
+        if (isset($options['collate'], $tokens[$options['collate']])) {
+            $options['collate'] = $tokens[$options['collate']];
+            unset($options['charset']);
         }
-        if (preg_match('/^current_timestamp(\(\d*\))?$/i', $default)) {
-            return array(true, 'CURRENT_TIMESTAMP', true);
-        }
-        return array(true, $default, false);
+        return $options;
     }
 
     /**
@@ -578,40 +661,21 @@ class BaselineGenerator
      */
     public static function indexDeclarations(array $rows)
     {
-        usort($rows, function ($a, $b) {
-            $byName = strcmp($a['INDEX_NAME'], $b['INDEX_NAME']);
-            if ($byName !== 0) {
-                return $byName;
-            }
-            return (int)$a['SEQ_IN_INDEX'] - (int)$b['SEQ_IN_INDEX'];
-        });
-
         $primary = array();
         $indexes = array();
-        foreach ($rows as $row) {
-            $name = $row['INDEX_NAME'];
-            if ($name === 'PRIMARY') {
-                $primary[] = $row['COLUMN_NAME'];
+        foreach (SchemaInspector::mysqlIndexes($rows) as $name => $index) {
+            if ($index['primary']) {
+                $primary = $index['column'];
                 continue;
             }
-            if (!isset($indexes[$name])) {
-                $indexes[$name] = array(
-                    'name' => $name,
-                    'column' => array(),
-                    'unique' => isset($row['NON_UNIQUE']) && (int)$row['NON_UNIQUE'] === 0,
-                );
-                if (isset($row['INDEX_TYPE']) && strtoupper($row['INDEX_TYPE']) === 'FULLTEXT') {
-                    $indexes[$name]['fulltext'] = true;
-                    $indexes[$name]['unique'] = false;
-                }
+            $declaration = array('name' => $name, 'column' => $index['column'], 'unique' => $index['unique']);
+            if ($index['type'] === 'fulltext') {
+                $declaration['fulltext'] = true;
             }
-            $indexes[$name]['column'][] = $row['COLUMN_NAME'];
-            if (isset($row['SUB_PART']) && $row['SUB_PART'] !== null && $row['SUB_PART'] !== '') {
-                if (!isset($indexes[$name]['length'])) {
-                    $indexes[$name]['length'] = array();
-                }
-                $indexes[$name]['length'][$row['COLUMN_NAME']] = (int)$row['SUB_PART'];
+            if (!empty($index['length'])) {
+                $declaration['length'] = $index['length'];
             }
+            $indexes[$name] = $declaration;
         }
         if (count($primary) > 1) {
             throw new InvalidArgumentException(sprintf(
@@ -641,7 +705,7 @@ class BaselineGenerator
         $notes = array();
         $out = array();
 
-        $out[] = $this->header($flavour, $dbVersion);
+        $out[] = $this->header($grammar, $dbVersion);
         $out[] = '';
         foreach ($this->preamble($flavour) as $statement) {
             $out[] = $statement;
@@ -732,28 +796,6 @@ class BaselineGenerator
         $schema = new SchemaBuilder($grammar);
         $options = $definition['options'];
         $options['indexes'] = $indexes;
-        if ($flavour === AbstractGrammar::FLAVOUR_MYSQL && isset(self::MYSQL_PORTABLE_COLLATIONS[$table])) {
-            $portable = self::MYSQL_PORTABLE_COLLATIONS[$table];
-            $collations = array();
-            if (isset($options['collate']) && $options['collate'] !== $portable) {
-                $collations[$options['collate']] = true;
-                $options['collate'] = $portable;
-            }
-            foreach ($columns as $name => $spec) {
-                if (isset($spec['collate']) && $spec['collate'] !== $portable) {
-                    $collations[$spec['collate']] = true;
-                    $columns[$name]['collate'] = $portable;
-                }
-            }
-            if (!empty($collations)) {
-                $notes[] = sprintf(
-                    'Collation of %s rendered as %s instead of the reference\'s %s: its migration picks the collation by server version, and every supported server has this one.',
-                    $table,
-                    $portable,
-                    implode(', ', array_keys($collations))
-                );
-            }
-        }
         $schema->createTable($table, $columns, $options);
         $statements = $schema->toSql();
 
@@ -1202,9 +1244,9 @@ class BaselineGenerator
     {
         $actualIsSet = $actual !== null && $actual !== '';
         if ($isKey) {
-            // Dropped by the rendering, so nothing is expected back - but a
-            // serial's nextval() is reported by neither driver, so only an
-            // unexpected literal is worth a line.
+            // Dropped by the rendering, so nothing is expected back - and a
+            // key's generated value, serial or identity, is reported by
+            // neither driver as a default.
             return null;
         }
         if ($isExpression) {
@@ -1290,13 +1332,17 @@ class BaselineGenerator
     }
 
     /**
-     * @param string $flavour
+     * @param AbstractGrammar $grammar
      * @param int $dbVersion
      * @return string
      */
-    private function header($flavour, $dbVersion)
+    private function header(AbstractGrammar $grammar, $dbVersion)
     {
-        $engine = $flavour === AbstractGrammar::FLAVOUR_MYSQL ? 'MySQL / MariaDB' : 'PostgreSQL';
+        $engine = 'PostgreSQL';
+        if ($grammar->flavour() === AbstractGrammar::FLAVOUR_MYSQL) {
+            $family = Collation::family($grammar->getDataSource()->getVersion());
+            $engine = $family === null ? 'MySQL / MariaDB' : $family;
+        }
         return implode(PHP_EOL, array(
             '-- MISP ' . $engine . ' install baseline, equivalent to db_version ' . $dbVersion . '.',
             '--',
@@ -1348,45 +1394,6 @@ class BaselineGenerator
     }
 
     /**
-     * @return string
-     */
-    private function tablesSql()
-    {
-        return sprintf(
-            'SELECT TABLE_NAME, ENGINE, TABLE_COLLATION FROM information_schema.TABLES'
-                . " WHERE TABLE_SCHEMA = %s AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;",
-            $this->db->value($this->database, 'string')
-        );
-    }
-
-    /**
-     * @return string
-     */
-    private function columnsSql()
-    {
-        return sprintf(
-            'SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_DEFAULT, IS_NULLABLE,'
-                . ' COLUMN_TYPE, CHARACTER_SET_NAME, COLLATION_NAME, EXTRA, COLUMN_COMMENT'
-                . ' FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s'
-                . ' ORDER BY TABLE_NAME, ORDINAL_POSITION;',
-            $this->db->value($this->database, 'string')
-        );
-    }
-
-    /**
-     * @return string
-     */
-    private function statisticsSql()
-    {
-        return sprintf(
-            'SELECT TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX, COLUMN_NAME, NON_UNIQUE, SUB_PART, INDEX_TYPE'
-                . ' FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = %s'
-                . ' ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;',
-            $this->db->value($this->database, 'string')
-        );
-    }
-
-    /**
      * MariaDB quotes literal defaults in information_schema; MySQL does not.
      *
      * @return bool
@@ -1394,22 +1401,10 @@ class BaselineGenerator
     protected function quotesLiteralDefaults()
     {
         if ($this->quotedDefaults === null) {
-            $rows = $this->fetchRows('SELECT VERSION() AS version;');
-            $version = isset($rows[0]['version']) ? $rows[0]['version'] : '';
-            $this->quotedDefaults = stripos($version, 'mariadb') !== false;
+            $inspector = new SchemaInspector($this->db);
+            $this->quotedDefaults = $inspector->isMariaDb();
         }
         return $this->quotedDefaults;
-    }
-
-    /**
-     * @param string $collation
-     * @return string The charset a collation belongs to - the part before
-     *   the first underscore, which is how MySQL names them.
-     */
-    private static function charsetOf($collation)
-    {
-        $parts = explode('_', $collation, 2);
-        return $parts[0];
     }
 
     /**

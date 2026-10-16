@@ -58,7 +58,6 @@ class Event extends AppModel
     public $fieldDescriptions = array(
         'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
         'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
-        'submittedioc' => array('desc' => '', 'formdesc' => ''),
         'analysis' => array('desc' => 'Analysis Levels: *Initial* means the event has just been created, *Ongoing* means that the event is being populated, *Complete* means that the event\'s creation is complete', 'formdesc' => 'Analysis levels: Initial: event has been started Ongoing: event population is in progress Complete: event creation has finished'),
         'distribution' => array('desc' => 'Describes who will have access to the event.')
     );
@@ -120,11 +119,9 @@ class Event extends AppModel
         'kunai' => ['json', 'KunaiExport', 'json'],
         'netfilter' => array('txt', 'NetfilterExport', 'sh'),
         'opendata' => array('txt', 'OpendataExport', 'txt'),
-        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
-        'stix-json' => array('json', 'Stix1Export', 'json'),
         'stix2' => array('json', 'Stix2Export', 'json'),
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'text' => array('text', 'TextExport', 'txt'),
@@ -235,6 +232,10 @@ class Event extends AppModel
             'valueNotEmpty' => array(
                 'rule' => array('valueNotEmpty'),
                 'required' => true
+            ),
+            'maxBytes' => array(
+                'rule' => array('maxBytes', 65535),
+                'message' => 'Event info cannot be longer than 65535 bytes.',
             ),
         ),
         'user_id' => array(
@@ -1664,7 +1665,6 @@ class Event extends AppModel
                     'object_template_version' => array('function' => 'set_filter_object_template_version')
                 ),
                 'Attribute' => array(
-                    'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_type'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
@@ -1706,9 +1706,18 @@ class Event extends AppModel
                     }
                 }
             }
-            if (!empty($params['value_cidr'])) {
-                // It reads the attributes in a subquery of its own, which a
+            if (isset($params['value']) && $params['value'] !== false) {
+                // Each reads the attributes in a subquery of its own, which a
                 // second one around it would run per event
+                $options = array(
+                    'filter' => 'value',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Event'
+                );
+                $conditions = $this->set_filter_value($params, $conditions, $options);
+            }
+            if (!empty($params['value_cidr'])) {
                 $options = array(
                     'filter' => 'value_cidr',
                     'scope' => 'Attribute',
@@ -1951,6 +1960,64 @@ class Event extends AppModel
     }
 
     /**
+     * What in an event is shared more narrowly than the event itself: the
+     * standalone attributes and the objects whose distribution is one of
+     * DistributionLevel::narrowerThan() the event's, per level, among the rows
+     * $user can see.
+     *
+     * @param array $user
+     * @param array $event ['Event' => id, distribution]
+     * @return array ['Attribute' => [level => count], 'Object' => [...]]
+     */
+    public function distributionOutliers(array $user, array $event)
+    {
+        App::uses('DistributionLevel', 'Tools');
+        $narrower = DistributionLevel::narrowerThan($event['Event']['distribution']);
+        if (empty($narrower)) {
+            return ['Attribute' => [], 'Object' => []];
+        }
+        $eventId = (int)$event['Event']['id'];
+        $isSiteAdmin = !empty($user['Role']['perm_site_admin']);
+        $sgids = $isSiteAdmin ? [] : $this->SharingGroup->authorizedIds($user);
+        $result = [];
+        foreach (['Attribute' => $this->Attribute, 'Object' => $this->Object] as $alias => $model) {
+            $conditions = [
+                $alias . '.event_id' => $eventId,
+                $alias . '.deleted' => 0,
+                $alias . '.distribution' => $narrower,
+            ];
+            if ($alias === 'Attribute') {
+                $conditions['Attribute.object_id'] = 0;
+            }
+            if (!$isSiteAdmin) {
+                $conditions['AND'][0]['OR'] = [
+                    ['AND' => [
+                        $alias . '.distribution >' => 0,
+                        $alias . '.distribution !=' => 4,
+                    ]],
+                    ['AND' => [
+                        $alias . '.distribution' => 4,
+                        $alias . '.sharing_group_id' => $sgids,
+                    ]],
+                    $this->eventOwnerSubquery($alias) . ' = ' . (int)$user['org_id'],
+                ];
+            }
+            $rows = $model->find('all', [
+                'conditions' => $conditions,
+                'fields' => [$alias . '.distribution', 'COUNT(*) AS count'],
+                'group' => [$alias . '.distribution'],
+                'recursive' => -1,
+            ]);
+            $result[$alias] = [];
+            foreach ($rows as $row) {
+                $result[$alias][(int)$row[$alias]['distribution']] = (int)$row[0]['count'];
+            }
+            ksort($result[$alias]);
+        }
+        return $result;
+    }
+
+    /**
      * Fetch paginated standalone attributes (object_id=0)
      * for a given event, with distribution-based ACL.
      *
@@ -2052,6 +2119,9 @@ class Event extends AppModel
         if (isset($options['toIDS']) && $options['toIDS'] != 0) {
             $conditions['Attribute.to_ids'] =
                 $options['toIDS'] == 2 ? 0 : 1;
+        }
+        if (isset($options['distribution']) && $options['distribution'] !== '') {
+            $conditions['Attribute.distribution'] = (int)$options['distribution'];
         }
         if (!empty($options['searchFor'])) {
             // Same reach as the classic event view's filter: a value, a UUID
@@ -3053,6 +3123,9 @@ class Event extends AppModel
         if (!empty($options['meta-category'])) {
             $conditions['Object.meta-category'] =
                 $options['meta-category'];
+        }
+        if (isset($options['distribution']) && $options['distribution'] !== '') {
+            $conditions['Object.distribution'] = (int)$options['distribution'];
         }
 
         $sgids = $this->SharingGroup->authorizedIds($user);
@@ -4945,7 +5018,7 @@ class Event extends AppModel
 
         // do not expose all the data ...
         $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.first_publication', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
-        $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value1_id', 'Attribute.value2_id', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
+        $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value1_id', 'Attribute.value2_id', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.created', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value1_id', 'ShadowAttribute.value2_id', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
         $params = array(
@@ -8493,28 +8566,6 @@ class Event extends AppModel
         }
     }
 
-    public function reportValidationIssuesEvents()
-    {
-        $this->Behaviors->detach('Regexp');
-        // get all events..
-        $events = $this->find('all', array('recursive' => -1));
-        // for all events..
-        $result = array();
-        $k = 0;
-        $i = 0;
-        foreach ($events as $k => $event) {
-            $this->set($event);
-            if (!$this->validates()) {
-                $errors = $this->validationErrors;
-                $result[$i]['id'] = $event['Event']['id'];
-                $result[$i]['error'] = $errors;
-                $result[$i]['details'] = $event;
-                $i++;
-            }
-        }
-        return array($result, $k);
-    }
-
     // check two version strings. If version 1 is older than 2, return -1, if they are the same return 0, if version 2 is older return 1
     public function compareVersions($version1, $version2)
     {
@@ -9492,6 +9543,8 @@ class Event extends AppModel
                 }
                 $objects[] = $tmp_object;
             }
+            // Read in template order
+            $this->Object->sortAttributesByTemplate($objects);
             $event['Object'] = $objects;
         }
         if (!empty($result['results']['EventReport'])) {
@@ -9742,12 +9795,6 @@ class Event extends AppModel
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
-            if ($distribution == 4) {
-                // The legacy STIX 1 script takes no sharing group;
-                // set it here so _add() and _edit() both see it.
-                // The STIX 2 script already carries the same value.
-                $data['Event']['sharing_group_id'] = $sharingGroupId;
-            }
             if (!$galaxiesAsTags) {
                 if (!isset($this->GalaxyCluster)) {
                     $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -9829,46 +9876,39 @@ class Event extends AppModel
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stixVersion === '2' || $stixVersion === '2.0' || $stixVersion === '2.1') {
             $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
-            $outputPath = $file . '.out';
-            $shellCommand = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                '-i', $file,
-                '--distribution', $distribution,
-                '--org-uuid', $orgUuid
-            ];
-            if ($distribution == 4) {
-                array_push($shellCommand, '--sharing-group-id', $sharingGroupId);
-            }
-            if ($forceContextualData) {
-                $shellCommand[] = '--force-contextual-data';
-            }
-            if ($galaxiesAsTags) {
-                $shellCommand[] = '--galaxies-as-tags';
-            } else {
-                array_push($shellCommand, '--cluster-distribution', $clusterDistribution);
-                if ($clusterDistribution == 4) {
-                    array_push($shellCommand, '--cluster-sharing-group-id', $clusterSharingGroupId);
-                }
-            }
-            if ($debug) {
-                $shellCommand[] = '--debug';
-            }
             $stixVersion = "STIX 2.1";
         } else if ($stixVersion === '1' || $stixVersion === '1.1' || $stixVersion === '1.2') {
             $scriptFile = $scriptDir . DS . 'stix2misp.py';
-            $outputPath = $file . '.json';
-            $shellCommand = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                $file,
-                $distribution,
-                Configure::read('MISP.default_attribute_distribution'),
-                $this->__getTagNamesFromSynonyms($scriptDir)
-            ];
             $stixVersion = "STIX 1.1";
         } else {
             throw new InvalidArgumentException('Invalid STIX version');
+        }
+        // Both importers are misp-stix wrappers taking the same arguments and
+        // writing the converted event next to their input
+        $outputPath = $file . '.out';
+        $shellCommand = [
+            ProcessTool::pythonBin(),
+            $scriptFile,
+            '-i', $file,
+            '--distribution', $distribution,
+            '--org-uuid', $orgUuid
+        ];
+        if ($distribution == 4) {
+            array_push($shellCommand, '--sharing-group-id', $sharingGroupId);
+        }
+        if ($forceContextualData) {
+            $shellCommand[] = '--force-contextual-data';
+        }
+        if ($galaxiesAsTags) {
+            $shellCommand[] = '--galaxies-as-tags';
+        } else {
+            array_push($shellCommand, '--cluster-distribution', $clusterDistribution);
+            if ($clusterDistribution == 4) {
+                array_push($shellCommand, '--cluster-sharing-group-id', $clusterSharingGroupId);
+            }
+        }
+        if ($debug) {
+            $shellCommand[] = '--debug';
         }
 
         try {
@@ -9905,58 +9945,6 @@ class Event extends AppModel
                 $data['Tag'][] = array('name' => $tag_name);
             }
         }
-    }
-
-    /**
-     * @param string $scriptDir
-     * @return string
-     * @throws Exception
-     */
-    private function __getTagNamesFromSynonyms($scriptDir)
-    {
-        $synonymsToTagNames = $scriptDir . DS . 'tmp' . DS . 'synonymsToTagNames.json';
-        if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
-            if (!isset($this->GalaxyCluster)) {
-                $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            }
-            // The latest version of every cluster, by tag name. This used to
-            // be a GROUP BY tag_name that also selected value and id, which
-            // MySQL tolerates (and answers with an arbitrary row per group)
-            // and PostgreSQL rejects. Ascending by version and letting the
-            // later row overwrite the earlier one is the same question asked
-            // portably, and it is what the old query was assumed to answer.
-            $clusters = array();
-            $allClusters = $this->GalaxyCluster->find('all', array(
-                'recursive' => -1,
-                'fields' => array('GalaxyCluster.value', 'GalaxyCluster.version', 'GalaxyCluster.tag_name', 'GalaxyCluster.id'),
-                'order' => array('GalaxyCluster.version ASC', 'GalaxyCluster.id ASC'),
-            ));
-            foreach ($allClusters as $cluster) {
-                $clusters[$cluster['GalaxyCluster']['tag_name']] = $cluster;
-            }
-            unset($allClusters);
-            $clusters = array_values($clusters);
-            $synonyms = $this->GalaxyCluster->GalaxyElement->find('all', array(
-                'recursive' => -1,
-                'fields' => array('galaxy_cluster_id', 'value'),
-                'conditions' => array('key' => 'synonyms')
-            ));
-            $idToSynonyms = array();
-            foreach ($synonyms as $synonym) {
-                $idToSynonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym['GalaxyElement']['value'];
-            }
-            $mapping = array();
-            foreach ($clusters as $cluster) {
-                $mapping[$cluster['GalaxyCluster']['value']][] = $cluster['GalaxyCluster']['tag_name'];
-                if (!empty($idToSynonyms[$cluster['GalaxyCluster']['id']])) {
-                    foreach ($idToSynonyms[$cluster['GalaxyCluster']['id']] as $synonym) {
-                        $mapping[$synonym][] = $cluster['GalaxyCluster']['tag_name'];
-                    }
-                }
-            }
-            FileAccessTool::writeToFile($synonymsToTagNames, JsonTool::encode($mapping));
-        }
-        return $synonymsToTagNames;
     }
 
     public function enrichmentRouter($options)
@@ -12063,7 +12051,7 @@ class Event extends AppModel
                     if (empty($analystData['object_type'])) {
                         $analystData['object_type'] = $parentObjectType;
                     }
-                    if (empty($analystData['object_uuid'])) {
+                    if (empty($analystData['object_uuid']) && $analystData['object_type'] === $parentObjectType) {
                         $analystData['object_uuid'] = $parentObjectUUID;
                     }
                     $this->{$type}->captureAnalystData($user, $analystData);

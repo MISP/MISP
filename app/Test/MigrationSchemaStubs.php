@@ -93,6 +93,32 @@ if (!class_exists('Configure', false)) {
     }
 }
 
+if (!class_exists('Cache', false)) {
+    // DboSource reads its method cache from `_cake_core_` on first use and
+    // writes it back from its destructor; the schema inspector clears both
+    // file caches. Records the clears, stores nothing.
+    class Cache
+    {
+        public static $cleared = array();
+
+        public static function read($key, $config = 'default')
+        {
+            return false;
+        }
+
+        public static function write($key, $value, $config = 'default')
+        {
+            return true;
+        }
+
+        public static function clear($check = false, $config = 'default')
+        {
+            self::$cleared[] = $config;
+            return true;
+        }
+    }
+}
+
 if (!class_exists('ConnectionManager', false)) {
     class ConnectionManager
     {
@@ -116,10 +142,13 @@ require_once CAKE . 'Model/Datasource/Database/Postgres.php';
 // MysqlExtended or a subclass of it, and MysqlExtended::value() short-circuits
 // integers rather than quoting them. Loaded so the tests can pin what the
 // driver MISP actually runs renders, not only the base contract.
+require_once __DIR__ . '/../Model/Datasource/Database/CurrentColumnListTrait.php';
 require_once __DIR__ . '/../Model/Datasource/Database/MysqlExtended.php';
 
 // -------- the classes under test --------
 
+require_once APPLIBS . 'Migration/MigrationDeferredException.php';
+require_once APPLIBS . 'Migration/Collation.php';
 require_once APPLIBS . 'Migration/Grammar/AbstractGrammar.php';
 require_once APPLIBS . 'Migration/Grammar/MysqlGrammar.php';
 require_once APPLIBS . 'Migration/Grammar/PostgresGrammar.php';
@@ -171,5 +200,93 @@ if (!class_exists('MigrationTestMysqlExtended', false)) {
 if (!class_exists('MigrationTestPostgres', false)) {
     class MigrationTestPostgres extends OfflinePostgres
     {
+    }
+}
+
+if (!class_exists('MigrationTestInspector', false)) {
+    /**
+     * A live schema with scripted contents and no connection behind it:
+     * table => array('columns' => names, 'indexes' => name => columns,
+     * 'options' => tableOptions()), the primary key being the index named
+     * PRIMARY, as both drivers report it. A table scripted as
+     * array('definition' => tableDefinition()) answers all four from that.
+     */
+    class MigrationTestInspector extends SchemaInspector
+    {
+        /** @var array */
+        public $schema;
+
+        /** @var string What serverVersion() reports. */
+        public $version = '10.11.14-MariaDB';
+
+        /** @var string */
+        private $readsFlavour;
+
+        public function __construct($flavour = self::FLAVOUR_MYSQL, array $schema = array())
+        {
+            $this->readsFlavour = $flavour;
+            $this->schema = $schema;
+        }
+
+        public function flavour()
+        {
+            return $this->readsFlavour;
+        }
+
+        public function serverVersion()
+        {
+            return $this->version;
+        }
+
+        public function tables()
+        {
+            return array_keys($this->schema);
+        }
+
+        public function tableDefinition($table)
+        {
+            return isset($this->schema[$table]['definition']) ? $this->schema[$table]['definition'] : null;
+        }
+
+        public function columns($table)
+        {
+            if (isset($this->schema[$table]['definition'])) {
+                return $this->schema[$table]['definition']['columns'];
+            }
+            if (!isset($this->schema[$table]['columns'])) {
+                return array();
+            }
+            return array_fill_keys($this->schema[$table]['columns'], array('type' => 'integer'));
+        }
+
+        public function indexes($table)
+        {
+            $indexes = array();
+            if (isset($this->schema[$table]['definition'])) {
+                foreach ($this->schema[$table]['definition']['indexes'] as $key => $index) {
+                    $indexes[$key === 'PRIMARY' ? $key : $index['name']] = array(
+                        'column' => $index['column'],
+                        'unique' => (int)$index['unique'],
+                    );
+                }
+            } elseif (isset($this->schema[$table]['indexes'])) {
+                foreach ($this->schema[$table]['indexes'] as $name => $columns) {
+                    $indexes[$name] = array('column' => $columns, 'unique' => (int)($name === 'PRIMARY'));
+                }
+            }
+            return $indexes;
+        }
+
+        public function tableOptions($table)
+        {
+            if (!isset($this->schema[$table])) {
+                return null;
+            }
+            if (isset($this->schema[$table]['definition'])) {
+                return $this->schema[$table]['definition']['options'];
+            }
+            $options = isset($this->schema[$table]['options']) ? $this->schema[$table]['options'] : array();
+            return $options + array('engine' => null, 'row_format' => null, 'collation' => null, 'charset' => null);
+        }
     }
 }

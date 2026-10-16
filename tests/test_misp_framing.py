@@ -34,7 +34,7 @@ class Stix1FramingContract(unittest.TestCase):
         # 2026.9.8 rejects it up front, earlier releases die inside mixbox.
         result = run_framing(
             'stix1', '-s', 'Event', '-v', '1.1.1',
-            '-n', '', '-o', 'MISP', '-f', 'xml',
+            '-n', '', '-o', 'MISP',
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
@@ -45,7 +45,7 @@ class Stix1FramingContract(unittest.TestCase):
     def test_valid_namespace_returns_framing(self):
         result = run_framing(
             'stix1', '-s', 'Event', '-v', '1.1.1',
-            '-n', 'https://misp.local', '-o', 'MISP', '-f', 'xml',
+            '-n', 'https://misp.local', '-o', 'MISP',
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)

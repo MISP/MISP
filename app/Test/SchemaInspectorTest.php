@@ -5,10 +5,11 @@
  * true.
  *
  * The cache contract is the part worth testing without a database, because it
- * is the part that fails silently. CakePHP keeps three caches of the schema and
- * only one of them has a public clear; the lever that actually works is the
- * `cacheSources` flag, which makes listSources()/describe()/_cacheDescription()
- * bypass all three. So these tests assert not just *what* the inspector
+ * is the part that fails silently. CakePHP keeps three caches of table
+ * descriptions and only one of them has a public clear; the lever that actually
+ * works is the `cacheSources` flag, which makes
+ * listSources()/describe()/_cacheDescription() bypass all three. The fourth
+ * cache, DboSource's method cache, is emptied after DDL instead. So these tests assert not just *what* the inspector
  * answers, but that every read was taken with that flag down and that the flag
  * came back up afterwards - including when the read threw.
  *
@@ -111,9 +112,17 @@ if (!class_exists('SchemaInspectorTestReader', false)) {
         /** @var array Canned result sets, handed back one per call. */
         public $results = array();
 
+        /** @var array SQL fragment => result set, tried before $results. */
+        public $answers = array();
+
         protected function fetchRows($sql)
         {
             $this->queries[] = $sql;
+            foreach ($this->answers as $needle => $rows) {
+                if (strpos($sql, $needle) !== false) {
+                    return $rows;
+                }
+            }
             return empty($this->results) ? array() : array_shift($this->results);
         }
     }
@@ -307,6 +316,25 @@ class SchemaInspectorTest extends TestCase
         $this->assertFalse($this->db->cacheSources);
     }
 
+    /**
+     * cacheSources does not reach DboSource's method cache, which holds the
+     * column list of a find without a field list. Left alone, this process
+     * would also write the pre-DDL lists back on exit.
+     */
+    public function testDisableSchemaCacheEmptiesTheMethodCache()
+    {
+        DboSource::$methodCache = array('fields' => array('key' => array('`Event`.`id`')));
+        $this->inspector->disableSchemaCache();
+        $this->assertSame(array(), DboSource::$methodCache);
+    }
+
+    public function testFlushSchemaCacheFilesClearsTheDescriptionsAndTheMethodCache()
+    {
+        Cache::$cleared = array();
+        $this->inspector->flushSchemaCacheFiles();
+        $this->assertSame(array('_cake_model_', '_cake_core_'), Cache::$cleared);
+    }
+
     // ------------------------------------------------------- runtime surface
 
     /**
@@ -406,8 +434,8 @@ class SchemaInspectorTest extends TestCase
         $reader = $this->mysqlReader();
         $reader->getDataSource()->config['database'] = "mi'sp";
         $reader->tableRowEstimate("att'ributes");
-        $this->assertStringContainsString("TABLE_SCHEMA = 'mi''sp'", $reader->queries[0]);
-        $this->assertStringContainsString("TABLE_NAME = 'att''ributes'", $reader->queries[0]);
+        $this->assertStringContainsString("TABLE_SCHEMA = 'mi\\'sp'", $reader->queries[0]);
+        $this->assertStringContainsString("TABLE_NAME = 'att\\'ributes'", $reader->queries[0]);
     }
 
     /**
@@ -561,5 +589,372 @@ class SchemaInspectorTest extends TestCase
         $this->assertTrue($inspector->hasIndex('events', '1_event_id'));
         $this->assertTrue($inspector->hasIndex('events', array('1_event_id', 'event_id')));
         $this->assertSame('1_event_id', $inspector->indexNameForColumn('events', '1_event_id'));
+    }
+
+    // ---------------------------------------------------- definition surface
+
+    /**
+     * @return array One information_schema.COLUMNS row of a `tags` table.
+     */
+    private static function columnRow($name, $type, array $extra = array())
+    {
+        return array_merge(array(
+            'TABLE_NAME' => 'tags', 'COLUMN_NAME' => $name, 'COLUMN_TYPE' => $type,
+            'IS_NULLABLE' => 'NO', 'COLUMN_DEFAULT' => null, 'EXTRA' => '',
+            'CHARACTER_SET_NAME' => null, 'COLLATION_NAME' => null, 'COLUMN_COMMENT' => '',
+        ), $extra);
+    }
+
+    /**
+     * @return array One information_schema.STATISTICS row of `tags`.
+     */
+    private static function statisticsRow($index, $seq, $column, $nonUnique, $subPart = null, $type = 'BTREE')
+    {
+        return array(
+            'TABLE_NAME' => 'tags', 'INDEX_NAME' => $index, 'SEQ_IN_INDEX' => (string)$seq,
+            'COLUMN_NAME' => $column, 'NON_UNIQUE' => (string)$nonUnique, 'SUB_PART' => $subPart,
+            'INDEX_TYPE' => $type,
+        );
+    }
+
+    /**
+     * @param array $columns COLUMNS rows.
+     * @param array $statistics STATISTICS rows.
+     * @param bool $mariadb
+     * @return SchemaInspectorTestReader
+     */
+    private function mysqlDefinitionReader(array $columns, array $statistics = array(), $mariadb = true)
+    {
+        $reader = $this->mysqlReader();
+        $reader->answers = array(
+            'information_schema.TABLES' => array(array(
+                'TABLE_NAME' => 'tags', 'ENGINE' => 'InnoDB',
+                'TABLE_COLLATION' => 'latin1_swedish_ci', 'ROW_FORMAT' => 'Dynamic',
+            )),
+            'VERSION()' => array(array('version' => $mariadb ? '10.11.14-MariaDB-0ubuntu0.24.04.1' : '8.4.6')),
+            'information_schema.COLUMNS' => $columns,
+            'information_schema.STATISTICS' => $statistics,
+        );
+        return $reader;
+    }
+
+    public function testADefinitionOfAMissingTableIsNull()
+    {
+        $mysql = $this->mysqlReader(array(array()));
+        $this->assertNull($mysql->tableDefinition('nothing'));
+        $this->assertCount(1, $mysql->queries);
+        $this->assertStringContainsString("TABLE_TYPE = 'BASE TABLE'", $mysql->queries[0]);
+
+        $pgsql = $this->postgresReader(array(array()));
+        $this->assertNull($pgsql->tableDefinition('nothing'));
+        $this->assertCount(1, $pgsql->queries);
+        $this->assertStringContainsString("c.relkind IN ('r', 'p')", $pgsql->queries[0]);
+    }
+
+    public function testMysqlTableOptions()
+    {
+        $definition = $this->mysqlDefinitionReader(array())->tableDefinition('tags');
+        $this->assertSame(
+            array('engine' => 'InnoDB', 'row_format' => 'DYNAMIC', 'collation' => 'latin1_swedish_ci', 'charset' => 'latin1'),
+            $definition['options']
+        );
+    }
+
+    public function testMysqlTableOptionsAloneTakeOneQuery()
+    {
+        $reader = $this->mysqlDefinitionReader(array());
+        $this->assertSame(
+            array('engine' => 'InnoDB', 'row_format' => 'DYNAMIC', 'collation' => 'latin1_swedish_ci', 'charset' => 'latin1'),
+            $reader->tableOptions('tags')
+        );
+        $this->assertCount(1, $reader->queries);
+
+        $this->assertNull($this->mysqlReader(array(array()))->tableOptions('nothing'));
+    }
+
+    /**
+     * What describe() folds away: mediumtext reads as text there, and the
+     * auto-increment flag is gone.
+     */
+    public function testMysqlColumnsAreReportedVerbatim()
+    {
+        $definition = $this->mysqlDefinitionReader(array(
+            self::columnRow('id', 'int(11)', array('EXTRA' => 'auto_increment')),
+            self::columnRow('name', 'varchar(255)', array('CHARACTER_SET_NAME' => 'utf8mb4', 'COLLATION_NAME' => 'utf8mb4_unicode_ci')),
+            self::columnRow('colour', 'varchar(7)', array('COLUMN_DEFAULT' => "'#ffffff'", 'CHARACTER_SET_NAME' => 'utf8mb3', 'COLLATION_NAME' => 'utf8mb3_bin')),
+            self::columnRow('created', 'int(10) unsigned', array('COLUMN_DEFAULT' => 'unix_timestamp()')),
+            self::columnRow('note', 'mediumtext', array('IS_NULLABLE' => 'YES', 'COLUMN_DEFAULT' => 'NULL', 'CHARACTER_SET_NAME' => 'utf8mb4', 'COLLATION_NAME' => 'utf8mb4_bin')),
+            self::columnRow('ratio', 'decimal(10,2)', array('COLUMN_DEFAULT' => '0.00')),
+        ))->tableDefinition('tags');
+
+        $this->assertSame(array('id', 'name', 'colour', 'created', 'note', 'ratio'), array_keys($definition['columns']));
+        $this->assertSame(array(
+            'type' => 'int(11)', 'base' => 'int', 'length' => 11, 'scale' => null, 'unsigned' => false,
+            'null' => false, 'default' => null, 'default_expression' => false,
+            'charset' => null, 'collation' => null, 'increment' => 'auto_increment',
+        ), $definition['columns']['id']);
+        $this->assertSame('utf8mb4', $definition['columns']['name']['charset']);
+        $this->assertSame('utf8mb4_unicode_ci', $definition['columns']['name']['collation']);
+        $this->assertNull($definition['columns']['name']['increment']);
+        $this->assertSame('#ffffff', $definition['columns']['colour']['default']);
+        $this->assertFalse($definition['columns']['colour']['default_expression']);
+        $this->assertTrue($definition['columns']['created']['unsigned']);
+        $this->assertSame('unix_timestamp()', $definition['columns']['created']['default']);
+        $this->assertTrue($definition['columns']['created']['default_expression']);
+        $this->assertSame('mediumtext', $definition['columns']['note']['type']);
+        $this->assertTrue($definition['columns']['note']['null']);
+        $this->assertNull($definition['columns']['note']['default']);
+        $this->assertSame(array(10, 2), array($definition['columns']['ratio']['length'], $definition['columns']['ratio']['scale']));
+        $this->assertSame('0.00', $definition['columns']['ratio']['default']);
+    }
+
+    /**
+     * MySQL shows literal defaults bare where MariaDB quotes them, and 8.0.19
+     * and later report integers without a display width.
+     */
+    public function testMysqlDefaultsAndWidthsAsMysqlSpellsThem()
+    {
+        $definition = $this->mysqlDefinitionReader(array(
+            self::columnRow('id', 'bigint unsigned', array('EXTRA' => 'auto_increment')),
+            self::columnRow('auth', 'varchar(64)', array('COLUMN_DEFAULT' => 'basic')),
+            self::columnRow('seen', 'datetime', array('COLUMN_DEFAULT' => 'CURRENT_TIMESTAMP', 'EXTRA' => 'DEFAULT_GENERATED')),
+        ), array(), false)->tableDefinition('tags');
+
+        $id = $definition['columns']['id'];
+        $this->assertSame(array('bigint unsigned', 'bigint', null, true), array($id['type'], $id['base'], $id['length'], $id['unsigned']));
+        $this->assertSame(array('basic', false), array($definition['columns']['auth']['default'], $definition['columns']['auth']['default_expression']));
+        $this->assertSame(array('CURRENT_TIMESTAMP', true), array($definition['columns']['seen']['default'], $definition['columns']['seen']['default_expression']));
+    }
+
+    public function testMysqlIndexesCarryPrefixesTypesAndThePrimaryKey()
+    {
+        $definition = $this->mysqlDefinitionReader(array(), array(
+            self::statisticsRow('lookup', 2, 'user_id', 1),
+            self::statisticsRow('PRIMARY', 1, 'id', 0),
+            self::statisticsRow('lookup', 1, 'org_id', 1),
+            self::statisticsRow('name', 1, 'name', 0),
+            self::statisticsRow('info', 1, 'info', 1, '255'),
+            self::statisticsRow('info_search', 1, 'info', 1, null, 'FULLTEXT'),
+        ))->tableDefinition('tags');
+
+        $indexes = $definition['indexes'];
+        $this->assertSame(array('PRIMARY', 'info', 'info_search', 'lookup', 'name'), array_keys($indexes));
+        $this->assertSame(array(
+            'name' => 'PRIMARY', 'column' => array('id'), 'unique' => true, 'primary' => true,
+            'length' => array(), 'type' => 'btree', 'expression' => false, 'definition' => null,
+        ), $indexes['PRIMARY']);
+        $this->assertSame(array('org_id', 'user_id'), $indexes['lookup']['column']);
+        $this->assertFalse($indexes['lookup']['unique']);
+        $this->assertTrue($indexes['name']['unique']);
+        $this->assertFalse($indexes['name']['primary']);
+        $this->assertSame(array('info' => 255), $indexes['info']['length']);
+        $this->assertSame('fulltext', $indexes['info_search']['type']);
+        $this->assertFalse($indexes['info_search']['unique']);
+    }
+
+    /**
+     * A MySQL 8 functional key part has no column name, and its text is in a
+     * STATISTICS column MariaDB does not have.
+     */
+    public function testAMysqlFunctionalKeyPartReadsAsAnExpression()
+    {
+        $indexes = SchemaInspector::mysqlIndexes(array(
+            self::statisticsRow('lower_name', 1, null, 0),
+            self::statisticsRow('lower_name', 2, 'org_id', 0),
+        ));
+        $this->assertSame(array(null, 'org_id'), $indexes['lower_name']['column']);
+        $this->assertTrue($indexes['lower_name']['expression']);
+    }
+
+    public function testTheMysqlDefinitionQueriesFilterOnTheTableAndQuoteIt()
+    {
+        $reader = $this->mysqlDefinitionReader(array());
+        $reader->tableDefinition("ta'gs");
+        $catalog = array_values(array_filter($reader->queries, function ($sql) {
+            return strpos($sql, 'information_schema') !== false;
+        }));
+        $this->assertCount(3, $catalog);
+        foreach ($catalog as $sql) {
+            $this->assertStringContainsString("TABLE_SCHEMA = 'misp' AND", $sql);
+            $this->assertStringContainsString("TABLE_NAME = 'ta\\'gs'", $sql);
+        }
+    }
+
+    /**
+     * Without a table, the same queries read the whole database: that is how
+     * BaselineGenerator reads its reference.
+     */
+    public function testTheMysqlCatalogQueriesCanReadAWholeDatabase()
+    {
+        $db = new MigrationTestMysqlExtended();
+        foreach (array(
+            SchemaInspector::mysqlTablesSql($db, 'reference'),
+            SchemaInspector::mysqlColumnsSql($db, 'reference'),
+            SchemaInspector::mysqlStatisticsSql($db, 'reference'),
+        ) as $sql) {
+            $this->assertStringContainsString("TABLE_SCHEMA = 'reference'", $sql);
+            $this->assertStringNotContainsString('TABLE_NAME =', $sql);
+        }
+    }
+
+    public function testMariaDbIsDetectedOnceAndNeverOnPostgres()
+    {
+        $reader = $this->mysqlReader(array(array(array('version' => '10.11.14-MariaDB'))));
+        $this->assertTrue($reader->isMariaDb());
+        $this->assertTrue($reader->isMariaDb());
+        $this->assertCount(1, $reader->queries);
+
+        $this->assertFalse($this->mysqlReader(array(array(array('version' => '8.4.6'))))->isMariaDb());
+
+        $pgsql = $this->postgresReader();
+        $this->assertFalse($pgsql->isMariaDb());
+        $this->assertSame(array(), $pgsql->queries);
+    }
+
+    /**
+     * @param array $columns pg_attribute rows.
+     * @param array $indexes pg_index rows, one per key part.
+     * @return SchemaInspectorTestReader
+     */
+    private function postgresDefinitionReader(array $columns, array $indexes = array())
+    {
+        $reader = $this->postgresReader();
+        $reader->answers = array(
+            'c.relkind IN' => array(array('oid' => '16384')),
+            'FROM pg_catalog.pg_attribute a' => $columns,
+            'FROM pg_catalog.pg_index i' => $indexes,
+        );
+        return $reader;
+    }
+
+    /**
+     * @return array One pg_attribute row as the column query shapes it.
+     */
+    private static function pgColumnRow($name, $type, $default = null, array $extra = array())
+    {
+        return array_merge(array(
+            'column_name' => $name, 'column_type' => $type, 'not_null' => true,
+            'identity' => '', 'column_default' => $default, 'collation_name' => null,
+        ), $extra);
+    }
+
+    public function testPostgresHasNoTableOptions()
+    {
+        $definition = $this->postgresDefinitionReader(array())->tableDefinition('tags');
+        $this->assertSame(
+            array('engine' => null, 'row_format' => null, 'collation' => null, 'charset' => null),
+            $definition['options']
+        );
+    }
+
+    /**
+     * Identity and serial are both auto-incrementing; a serial column's
+     * nextval() is that, not a default, as on MySQL.
+     */
+    public function testPostgresColumns()
+    {
+        $definition = $this->postgresDefinitionReader(array(
+            self::pgColumnRow('id', 'bigint', null, array('identity' => 'd')),
+            self::pgColumnRow('legacy_id', 'integer', "nextval('tags_legacy_id_seq'::regclass)"),
+            self::pgColumnRow('name', 'character varying(255)'),
+            self::pgColumnRow('code', 'character varying(64)', null, array('collation_name' => 'C')),
+            self::pgColumnRow('flag', 'boolean', 'false', array('not_null' => 't')),
+            self::pgColumnRow('colour', 'character varying(7)', "'it''s'::character varying"),
+            self::pgColumnRow('level', 'integer', "'-1'::integer"),
+            self::pgColumnRow('zero', 'integer', '0'),
+            self::pgColumnRow('seen', 'timestamp without time zone', 'now()', array('not_null' => false)),
+            self::pgColumnRow('note', 'text', 'NULL::text', array('not_null' => 'f')),
+            self::pgColumnRow('ratio', 'numeric(10,2)'),
+        ))->tableDefinition('tags');
+        $columns = $definition['columns'];
+
+        $this->assertSame(array(
+            'type' => 'bigint', 'base' => 'bigint', 'length' => null, 'scale' => null, 'unsigned' => false,
+            'null' => false, 'default' => null, 'default_expression' => false,
+            'charset' => null, 'collation' => null, 'increment' => 'identity',
+        ), $columns['id']);
+        $this->assertSame(array('serial', null), array($columns['legacy_id']['increment'], $columns['legacy_id']['default']));
+        $this->assertSame(array('character varying', 255), array($columns['name']['base'], $columns['name']['length']));
+        $this->assertNull($columns['name']['collation']);
+        $this->assertSame('C', $columns['code']['collation']);
+        $this->assertSame(array('false', false), array($columns['flag']['default'], $columns['flag']['default_expression']));
+        $this->assertFalse($columns['flag']['null']);
+        $this->assertSame("it's", $columns['colour']['default']);
+        $this->assertSame('-1', $columns['level']['default']);
+        $this->assertSame('0', $columns['zero']['default']);
+        $this->assertSame(array('now()', true), array($columns['seen']['default'], $columns['seen']['default_expression']));
+        $this->assertTrue($columns['seen']['null']);
+        $this->assertSame(array(null, false, true), array($columns['note']['default'], $columns['note']['default_expression'], $columns['note']['null']));
+        $this->assertSame(array('numeric', 10, 2), array($columns['ratio']['base'], $columns['ratio']['length'], $columns['ratio']['scale']));
+    }
+
+    public function testPostgresIndexes()
+    {
+        $row = function ($name, $column, $attnum, array $extra = array()) {
+            return array_merge(array(
+                'index_name' => $name, 'is_primary' => false, 'is_unique' => false, 'index_type' => 'btree',
+                'definition' => 'CREATE INDEX ' . $name . ' ...', 'attnum' => (string)$attnum, 'column_name' => $column,
+            ), $extra);
+        };
+        $definition = $this->postgresDefinitionReader(array(), array(
+            $row('idx_tags_lookup', 'org_id', 5),
+            $row('idx_tags_lookup', '1_event_id', 9),
+            $row('idx_tags_name_lower', 'lower(name::text)', 0, array('is_unique' => 't')),
+            $row('idx_tags_note', 'note', 4, array('index_type' => 'hash')),
+            $row('tags_pkey', 'id', 1, array('is_primary' => true, 'is_unique' => true)),
+        ))->tableDefinition('tags');
+        $indexes = $definition['indexes'];
+
+        $this->assertSame(array('PRIMARY', 'idx_tags_lookup', 'idx_tags_name_lower', 'idx_tags_note'), array_keys($indexes));
+        $this->assertSame(array(
+            'name' => 'tags_pkey', 'column' => array('id'), 'unique' => true, 'primary' => true,
+            'length' => array(), 'type' => 'btree', 'expression' => false, 'definition' => 'CREATE INDEX tags_pkey ...',
+        ), $indexes['PRIMARY']);
+        $this->assertSame(array('org_id', '1_event_id'), $indexes['idx_tags_lookup']['column']);
+        $this->assertSame(array('lower(name::text)'), $indexes['idx_tags_name_lower']['column']);
+        $this->assertTrue($indexes['idx_tags_name_lower']['expression']);
+        $this->assertTrue($indexes['idx_tags_name_lower']['unique']);
+        $this->assertSame('hash', $indexes['idx_tags_note']['type']);
+    }
+
+    public function testThePostgresDefinitionQueriesFilterOnTheSchemaAndTheTable()
+    {
+        $reader = $this->postgresDefinitionReader(array());
+        $reader->getDataSource()->config['schema'] = 'pg_temp_3';
+        $reader->tableDefinition("ta'gs");
+        $this->assertCount(3, $reader->queries);
+        $this->assertStringContainsString("n.nspname = 'pg_temp_3' AND c.relname = 'ta''gs'", $reader->queries[0]);
+        $this->assertStringContainsString('a.attrelid = 16384', $reader->queries[1]);
+        $this->assertStringContainsString('i.indrelid = 16384', $reader->queries[2]);
+    }
+
+    /**
+     * @dataProvider defaults
+     */
+    public function testDefaultsInEveryServerSpelling($default, $extra, $mariadb, array $expected)
+    {
+        $this->assertSame($expected, SchemaInspector::parseMysqlDefault($default, $extra, $mariadb));
+    }
+
+    public function defaults()
+    {
+        return array(
+            // MariaDB: literals quoted, NULL spelled out, expressions bare.
+            array(null, '', true, array(false, null, false)),
+            array('NULL', '', true, array(false, null, false)),
+            array("'basic'", '', true, array(true, 'basic', false)),
+            array("''", '', true, array(true, '', false)),
+            array("'it''s'", '', true, array(true, "it's", false)),
+            array('0', '', true, array(true, '0', false)),
+            array('-1', '', true, array(true, '-1', false)),
+            array('current_timestamp()', '', true, array(true, 'current_timestamp()', true)),
+            array('unix_timestamp()', '', true, array(true, 'unix_timestamp()', true)),
+            // MySQL: literals bare, expressions flagged, CURRENT_TIMESTAMP special.
+            array('basic', '', false, array(true, 'basic', false)),
+            array('', '', false, array(true, '', false)),
+            array('CURRENT_TIMESTAMP', '', false, array(true, 'CURRENT_TIMESTAMP', true)),
+            array('CURRENT_TIMESTAMP(6)', '', false, array(true, 'CURRENT_TIMESTAMP', true)),
+            array('unix_timestamp()', 'default_generated', false, array(true, 'unix_timestamp()', true)),
+        );
     }
 }

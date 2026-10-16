@@ -43,7 +43,7 @@
                 __('Whilst a list of parameters is provided below, it isn\'t necessarily exhaustive, specific export formats could have additional parameters.')
             ),
             'parameters' => array(
-                "returnFormat" => __('Set the return format of the search (Currently supported: json, xml, openioc, suricata, snort - more formats are being moved to restSearch with the goal being that all searches happen through this API). Can be passed as the first parameter after restSearch or via the JSON payload.'),
+                "returnFormat" => __('Set the return format of the search (Currently supported: json, xml, suricata, snort - more formats are being moved to restSearch with the goal being that all searches happen through this API). Can be passed as the first parameter after restSearch or via the JSON payload.'),
                 "limit" => __('Limit the number of results returned, depending on the scope (for example 10 attributes or 10 full events).'),
                 "page" => __('If a limit is set, sets the page to be returned. page 3, limit 100 will return records 201->300).'),
                 "value" => __('Search for the given value in the attributes\' value field.'),

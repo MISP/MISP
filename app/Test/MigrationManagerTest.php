@@ -322,7 +322,104 @@ class MigrationManagerTest extends TestCase
         $this->assertFalse($this->manager()->waiting($id, $at));
     }
 
+    /**
+     * A collation token refuses a server older than the floor while the
+     * migration is rendered, before any statement is sent: a deferral, like
+     * any other precondition only the administrator can meet.
+     */
+    public function testAServerBelowTheFloorDefersAtRendering()
+    {
+        $id = '20260108_000000_collated_table';
+        $manager = new ExecutingMigrationManager(
+            array('Migration_20260108_000000_collated_table.php'),
+            array(),
+            '10.6.18-MariaDB'
+        );
+
+        $this->assertFalse($manager->apply($id));
+        $this->assertSame(MigrationManager::STATUS_DEFERRED, $manager->lastStatus());
+        $this->assertStringContainsString('This database server is MariaDB 10.6.', $manager->lastError());
+        $this->assertStringContainsString('MISP 3.0 needs MariaDB 10.11 or later, or MySQL 8.4 or later.', $manager->lastError());
+        $this->assertSame(array($id), $manager->deferred());
+        $this->assertSame(array(), $manager->failed());
+    }
+
+    /**
+     * Checking what an existing table already has resolves the token too, and
+     * defers the same way.
+     */
+    public function testAServerBelowTheFloorDefersWhileCheckingTableOptions()
+    {
+        $id = '20260109_000000_table_options';
+        $manager = new ExecutingMigrationManager(
+            array('Migration_20260109_000000_table_options.php'),
+            array(),
+            '10.6.18-MariaDB'
+        );
+        $manager->liveSchema = new MigrationTestInspector('mysql', array(
+            'collated' => array('columns' => array('id'), 'options' => array('row_format' => 'COMPACT')),
+        ));
+
+        $this->assertFalse($manager->apply($id));
+        $this->assertSame(MigrationManager::STATUS_DEFERRED, $manager->lastStatus());
+        $this->assertStringContainsString('This database server is MariaDB 10.6.', $manager->lastError());
+        $this->assertSame(array($id), $manager->deferred());
+    }
+
     // ------------------------------------------------------------- rendering
+
+    /**
+     * A re-run renders only the options the table does not have yet, and the
+     * dry run says which ones it left out.
+     */
+    public function testTableOptionsTheTableHasAreLeftOut()
+    {
+        $id = '20260109_000000_table_options';
+        $manager = new SchemaRenderingMigrationManager(array('Migration_20260109_000000_table_options.php'));
+        $manager->liveSchema = new MigrationTestInspector('mysql', array(
+            'collated' => array('columns' => array('id'), 'options' => array(
+                'row_format' => 'DYNAMIC', 'collation' => 'utf8mb3_general_ci', 'charset' => 'utf8mb3',
+            )),
+        ));
+
+        $this->assertSame(
+            array('ALTER TABLE `collated` DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;'),
+            $manager->toSql($id)
+        );
+        $this->assertSame(array('collated: the table already has ROW_FORMAT=DYNAMIC'), $manager->lastSkipped());
+
+        $manager->liveSchema->schema['collated']['options']['collation'] = 'utf8mb4_uca1400_ai_ci';
+        $manager->liveSchema->schema['collated']['options']['charset'] = 'utf8mb4';
+        $this->assertSame(array(), $manager->toSql($id));
+        $this->assertSame(
+            array('collated: the table already has ROW_FORMAT=DYNAMIC, DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci'),
+            $manager->lastSkipped()
+        );
+    }
+
+    public function testATokenRendersForTheServer()
+    {
+        $id = '20260108_000000_collated_table';
+        $files = array('Migration_20260108_000000_collated_table.php');
+        $expected = function ($collation, $key) {
+            return array(
+                "CREATE TABLE `collated` (\n"
+                . "    `id` $key NOT NULL AUTO_INCREMENT,\n"
+                . "    `name` varchar(255) CHARACTER SET utf8mb4 COLLATE $collation NOT NULL,\n"
+                . "    PRIMARY KEY (`id`)\n"
+                . ");",
+            );
+        };
+
+        $manager = new SchemaRenderingMigrationManager($files);
+        $this->assertSame($expected('utf8mb4_uca1400_ai_ci', 'bigint(20)'), $manager->toSql($id));
+        $manager = new SchemaRenderingMigrationManager($files, array(), '8.4.6');
+        $this->assertSame($expected('utf8mb4_unicode_520_ci', 'bigint'), $manager->toSql($id));
+
+        $manager = new SchemaRenderingMigrationManager($files, array(), '8.0.43');
+        $this->expectException('MigrationDeferredException');
+        $manager->toSql($id);
+    }
 
     public function testUpIsRenderedThroughTheGrammarWithoutExecutingAnything()
     {
@@ -333,6 +430,19 @@ class MigrationManagerTest extends TestCase
             $manager->toSql('20260101_000000_add_column')
         );
         $this->assertSame(array(), $manager->executed);
+    }
+
+    public function testWhatTheDatabaseAlreadyHasIsNotRendered()
+    {
+        $manager = new SchemaRenderingMigrationManager(self::$allFiles);
+        $manager->liveSchema->schema = array('events' => array('columns' => array('id', 'replacement')));
+
+        $this->assertSame(array(), $manager->toSql('20260101_000000_add_column'));
+        $this->assertSame(array('events: column replacement is already there'), $manager->lastSkipped());
+
+        $manager->liveSchema->schema = array('events' => array('columns' => array('id')));
+        $this->assertCount(1, $manager->toSql('20260101_000000_add_column'));
+        $this->assertSame(array(), $manager->lastSkipped());
     }
 
     public function testAMigrationWithNoUpRendersNothing()
@@ -366,9 +476,10 @@ class MigrationManagerTest extends TestCase
         $manager->inspector->tables = array('schema_migrations' => array('id', 'applied_at', 'duration_ms', 'status', 'error'));
         $this->assertSame(
             array(
-                'ALTER TABLE `schema_migrations` CHANGE `id` `migration_id` varchar(191) NOT NULL;',
-                'ALTER TABLE `schema_migrations` ADD UNIQUE INDEX `migration_id` (`migration_id`);',
-                'ALTER TABLE `schema_migrations` DROP PRIMARY KEY;',
+                "ALTER TABLE `schema_migrations`\n" .
+                "    CHANGE `id` `migration_id` varchar(191) NOT NULL,\n" .
+                "    ADD UNIQUE INDEX `migration_id` (`migration_id`),\n" .
+                "    DROP PRIMARY KEY;",
                 'ALTER TABLE `schema_migrations` ADD `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;',
             ),
             $manager->ledgerSchema()->toSql(),

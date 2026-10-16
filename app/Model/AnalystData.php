@@ -1,6 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('SyncTool', 'Tools');
+App::uses('Validation', 'Utility');
 
 class AnalystData extends AppModel
 {
@@ -23,7 +25,17 @@ class AnalystData extends AppModel
         'Opinion',
         'Relationship',
         'Organisation',
-        'SharingGroup'
+        'SharingGroup',
+        'AttributeValue',
+    ];
+
+    // Addressed by the SHA-256 of their text instead of a uuid
+    const SHA256_TARGETS = [
+        'AttributeValue',
+    ];
+
+    const ADDRESS_ENDS = [
+        'object',
     ];
 
     const NOTE = 0,
@@ -86,9 +98,13 @@ class AnalystData extends AppModel
             ],
         ],
         'object_uuid' => [
-            'uuid' => [
-                'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+            'address' => [
+                'rule' => 'validAddress',
+            ],
+        ],
+        'object_sha256' => [
+            'address' => [
+                'rule' => 'validAddress',
             ],
         ],
         'org_uuid' => [
@@ -197,6 +213,9 @@ class AnalystData extends AppModel
                 $this->data[$this->current_type]['authors'] = $this->current_user['email'];
             }
         }
+        foreach (static::ADDRESS_ENDS as $end) {
+            $this->data[$this->current_type] = self::normaliseAddress($this->data[$this->current_type] ?? [], $end, empty($this->id));
+        }
         if (isset($this->data[$this->current_type]['distribution'])) {
             if (
                 $this->data[$this->current_type]['distribution'] != 4 &&
@@ -209,6 +228,90 @@ class AnalystData extends AppModel
             }
         }
         return true;
+    }
+
+    /**
+     * @param string|null $type
+     * @param string $end 'object', 'related_object' or 'element'
+     * @return string The column that addresses a target of this type.
+     */
+    public static function addressColumn($type, $end)
+    {
+        return $end . (in_array($type, self::SHA256_TARGETS, true) ? '_sha256' : '_uuid');
+    }
+
+    /**
+     * A SHA-256 is lowercased: PostgreSQL compares case-sensitively, so the
+     * unique keys over these columns depend on it. On create, a column left
+     * out is added as NULL so that its validation rule runs.
+     *
+     * @param array $row
+     * @param string $end
+     * @param bool $creating
+     * @return array
+     */
+    public static function normaliseAddress(array $row, $end, $creating)
+    {
+        foreach (['_uuid', '_sha256'] as $suffix) {
+            $column = $end . $suffix;
+            if (!array_key_exists($column, $row)) {
+                if ($creating) {
+                    $row[$column] = null;
+                }
+                continue;
+            }
+            if ($suffix === '_sha256' && is_string($row[$column])) {
+                $row[$column] = strtolower(trim($row[$column]));
+            }
+            if ($row[$column] === '') {
+                $row[$column] = null;
+            }
+        }
+        return $row;
+    }
+
+    /**
+     * @param array $row
+     * @param string $column An address column, such as 'object_uuid'.
+     * @return string|null Why the column does not fit the row's target type.
+     */
+    public static function addressError(array $row, $column)
+    {
+        $end = preg_replace('/_(uuid|sha256)$/', '', $column);
+        $expected = self::addressColumn($row[$end . '_type'] ?? null, $end);
+        $value = $row[$column] ?? null;
+        if ($column !== $expected) {
+            return $value === null ? null : __('Must be empty: this target type is addressed by %s.', $expected);
+        }
+        if ($column === $end . '_sha256') {
+            return is_string($value) && preg_match('/^[0-9a-f]{64}$/', $value) ? null : __('Please provide a SHA-256 as 64 hexadecimal characters');
+        }
+        return Validation::uuid($value) ? null : __('Please provide a valid RFC 4122 UUID');
+    }
+
+    /**
+     * @param array $check
+     * @return bool|string
+     */
+    public function validAddress($check)
+    {
+        return self::addressError($this->data[$this->current_type], key($check)) ?? true;
+    }
+
+    public function beforeFind($query)
+    {
+        if (!SyncTool::valueTargetsWithheld()) {
+            return $query;
+        }
+        $conditions = [];
+        foreach (static::ADDRESS_ENDS as $end) {
+            $conditions[$this->alias . '.' . $end . '_sha256'] = null;
+        }
+        if (!empty($query['conditions'])) {
+            $conditions[] = $query['conditions'];
+        }
+        $query['conditions'] = $conditions;
+        return $query;
     }
 
     public function beforeSave($options = [])
@@ -405,26 +508,34 @@ class AnalystData extends AppModel
      * One lookup per distinct type, so a page of rows costs a handful of
      * queries rather than one per row.
      *
+     * A value is missing whether the dictionary lacks it or no attribute
+     * the user can see holds it.
+     *
      * @param array $user
-     * @param array $targets list of ['type' => string, 'uuid' => string]
-     * @return array uuid => true for every target that resolves
+     * @param array $targets list of ['type' => string, 'address' => string],
+     *                       a SHA-256 for the SHA256_TARGETS, else a uuid
+     * @return array address => true for every target that resolves; a
+     *               SHA-256 in lower case
      */
     public function existingTargets(array $user, array $targets): array
     {
         $byType = [];
         foreach ($targets as $target) {
             $type = $target['type'] ?? '';
-            $uuid = $target['uuid'] ?? '';
-            if ($uuid === '' || !in_array($type, self::valid_targets, true)) {
+            $address = (string)($target['address'] ?? '');
+            if ($address === '' || !in_array($type, self::valid_targets, true)) {
                 continue;
             }
-            $byType[$type][$uuid] = $uuid;
+            if (in_array($type, self::SHA256_TARGETS, true)) {
+                $address = strtolower($address);
+            }
+            $byType[$type][$address] = $address;
         }
 
         $found = [];
-        foreach ($byType as $type => $uuids) {
-            foreach ($this->__resolveTargetsOfType($user, $type, array_values($uuids)) as $uuid) {
-                $found[$uuid] = true;
+        foreach ($byType as $type => $addresses) {
+            foreach ($this->__resolveTargetsOfType($user, $type, array_values($addresses)) as $address) {
+                $found[$address] = true;
             }
         }
         return $found;
@@ -432,12 +543,35 @@ class AnalystData extends AppModel
 
     /**
      * @param array $user
-     * @param string $type one of self::valid_targets
-     * @param array $uuids
-     * @return array the subset of $uuids that exists and is visible to $user
+     * @param array $hexes
+     * @return array [lowercase hex => value id] for the values an attribute
+     *               the user can see holds; any attribute for a site admin
      */
-    private function __resolveTargetsOfType(array $user, string $type, array $uuids): array
+    protected function visibleValuesBySha256(array $user, array $hexes): array
     {
+        $attribute = ClassRegistry::init('MispAttribute');
+        $ids = $attribute->loadAttributeValue()->findBySha256($hexes);
+        if (empty($ids)) {
+            return [];
+        }
+        $visible = array_flip($attribute->visibleValueIds($user, $ids, count($ids)));
+        return array_filter($ids, function ($id) use ($visible) {
+            return isset($visible[$id]);
+        });
+    }
+
+    /**
+     * @param array $user
+     * @param string $type one of self::valid_targets
+     * @param array $addresses
+     * @return array the subset of $addresses that exists and is visible to $user
+     */
+    private function __resolveTargetsOfType(array $user, string $type, array $addresses): array
+    {
+        if ($type === 'AttributeValue') {
+            return array_keys($this->visibleValuesBySha256($user, $addresses));
+        }
+        $uuids = $addresses;
         if ($type === 'Attribute') {
             $model = ClassRegistry::init('MispAttribute');
             $rows = $model->fetchAttributesSimple($user, [
@@ -473,6 +607,80 @@ class AnalystData extends AppModel
             // organisations, sharing groups and edit rights per row.
             'callbacks' => false,
         ]);
+    }
+
+    /**
+     * A readable line for each target $user can open, so a view can name what
+     * a note is about instead of printing its UUID. Visibility is decided by
+     * existingTargets(); the label is then read without callbacks.
+     *
+     * @param array $user
+     * @param array $targets list of ['type' => string, 'uuid' => string]
+     * @return array uuid => ['label' => string, 'meta' => string[]]
+     */
+    public function describeTargets(array $user, array $targets): array
+    {
+        $models = [
+            'Event' => ['Event', ['id', 'info', 'date'], 'info'],
+            'Attribute' => ['MispAttribute', ['type', 'value', 'event_id'], 'value'],
+            'Object' => ['MispObject', ['name', 'meta-category', 'event_id'], 'name'],
+            'EventReport' => ['EventReport', ['name', 'event_id'], 'name'],
+            'GalaxyCluster' => ['GalaxyCluster', ['value', 'type'], 'value'],
+            'Galaxy' => ['Galaxy', ['name', 'type'], 'name'],
+            'Note' => ['Note', ['note', 'language'], 'note'],
+            'Opinion' => ['Opinion', ['opinion', 'comment'], 'comment'],
+            'Relationship' => ['Relationship', ['relationship_type', 'related_object_type'], 'relationship_type'],
+            'Organisation' => ['Organisation', ['name', 'type'], 'name'],
+            'SharingGroup' => ['SharingGroup', ['name'], 'name'],
+        ];
+        $visible = $this->existingTargets($user, array_map(function ($target) {
+            return ['type' => $target['type'] ?? '', 'address' => $target['uuid'] ?? ''];
+        }, $targets));
+        $described = [];
+        foreach ($targets as $target) {
+            $type = $target['type'] ?? '';
+            $uuid = $target['uuid'] ?? '';
+            if (empty($visible[$uuid]) || !isset($models[$type])) {
+                continue;
+            }
+            list($modelName, $fields, $labelField) = $models[$type];
+            $model = ClassRegistry::init($modelName);
+            $alias = $model->alias;
+            $row = $model->find('first', [
+                'conditions' => ["{$alias}.uuid" => $uuid],
+                'fields' => array_map(function ($field) use ($alias) {
+                    return "{$alias}.{$field}";
+                }, $fields),
+                'recursive' => -1,
+                // An attribute's value is read through the value dictionary, in its callbacks
+                'callbacks' => $modelName === 'MispAttribute',
+            ]);
+            if (empty($row[$alias])) {
+                continue;
+            }
+            $row = $row[$alias];
+            $label = (string)($row[$labelField] ?? '');
+            $meta = [];
+            foreach ($fields as $field) {
+                if ($field === $labelField || !isset($row[$field]) || $row[$field] === '') {
+                    continue;
+                }
+                if ($field === 'id') {
+                    $meta[] = '#' . $row[$field];
+                } elseif ($field === 'event_id') {
+                    $meta[] = __('Event #%s', $row[$field]);
+                } elseif ($field === 'opinion') {
+                    $meta[] = __('%s/100', $row[$field]);
+                } else {
+                    $meta[] = (string)$row[$field];
+                }
+            }
+            $described[$uuid] = [
+                'label' => mb_strimwidth($label, 0, 160, '…'),
+                'meta' => $meta,
+            ];
+        }
+        return $described;
     }
 
     public function getAnalystDataTypeFromUUID($uuid)
@@ -691,16 +899,21 @@ class AnalystData extends AppModel
      * Total analyst data attached to an object, counted RECURSIVELY: the object's 
      * (direct notes/opinions/relationships, plus analyst data at any depth
      */
-    public function countForObjectRecursive(array $user, string $objectUuid): int
+    public function countForObjectRecursive(array $user, string $address, $objectType = null): int
     {
         $models = [
             'Note' => ClassRegistry::init('Note'),
             'Opinion' => ClassRegistry::init('Opinion'),
             'Relationship' => ClassRegistry::init('Relationship'),
         ];
+        if (in_array($objectType, self::SHA256_TARGETS, true)) {
+            $address = strtolower($address);
+        }
         $total = 0;
-        $frontier = [$objectUuid];
-        $seen = [$objectUuid => true];
+        $frontier = [$address];
+        $seen = [$address => true];
+        // Only the object itself may be SHA-256-addressed, its analyst data never is
+        $column = self::addressColumn($objectType, 'object');
         // Walk the tree level by level
         while (!empty($frontier)) {
             $next = [];
@@ -708,7 +921,7 @@ class AnalystData extends AppModel
                 $rows = $model->find('all', [
                     'recursive' => -1,
                     'fields' => [$alias . '.uuid'],
-                    'conditions' => array_merge(['object_uuid' => $frontier], $model->buildConditions($user)),
+                    'conditions' => array_merge([$column => $frontier], $model->buildConditions($user)),
                     'callbacks' => false,
                 ]);
                 foreach ($rows as $row) {
@@ -721,11 +934,12 @@ class AnalystData extends AppModel
                 }
             }
             $frontier = $next;
+            $column = 'object_uuid';
         }
         // Inbound relationships (they point to this object; shown flat in the card).
         $total += (int)$models['Relationship']->find('count', [
             'recursive' => -1,
-            'conditions' => array_merge(['related_object_uuid' => $objectUuid], $models['Relationship']->buildConditions($user)),
+            'conditions' => array_merge([self::addressColumn($objectType, 'related_object') => $address], $models['Relationship']->buildConditions($user)),
             'callbacks' => false,
         ]);
 
@@ -753,9 +967,10 @@ class AnalystData extends AppModel
      * @param bool  $fromPull If the current capture is performed from a PULL sync
      * @param int   $orgId The organisation id that should own the analyst data
      * @param array $server The server for which to capture is ongoing
+     * @param bool|null $fromPre30 The data comes from a MISP older than 3.0; null: the requester decides
      * @return array Result of the capture including successes, fails and errors
      */
-    public function captureAnalystData(array $user, array $analystData, $fromPull=false, $orgUUId=false, $server=false): array
+    public function captureAnalystData(array $user, array $analystData, $fromPull=false, $orgUUId=false, $server=false, $fromPre30=null): array
     {
         $this->Note = ClassRegistry::init('Note');
         $this->Opinion = ClassRegistry::init('Opinion');
@@ -766,6 +981,15 @@ class AnalystData extends AppModel
             $analystData = [$type => $analystData];
         }
         $analystModel = ClassRegistry::init($type);
+
+        if ($fromPre30 === null) {
+            $fromPre30 = SyncTool::valueTargetsWithheld();
+        }
+        if ($fromPre30 && self::isValueAddressed($analystData[$type])) {
+            $results['errors'][] = __('Analyst data on attribute values is not accepted from a MISP older than 3.0');
+            $results['ignored']++;
+            return $results;
+        }
 
         if ($fromPull && !empty($orgUUId)) {
             $analystData[$type]['org_uuid'] = $orgUUId;
@@ -817,7 +1041,7 @@ class AnalystData extends AppModel
         foreach (self::ANALYST_DATA_TYPES as $childType) {
             if (!empty($analystData[$type][$childType])) {
                 foreach ($analystData[$type][$childType] as $childAnalystData) {
-                    $captureResult = $this->{$childType}->captureAnalystData($user, $childAnalystData, $fromPull, $orgUUId, $server);
+                    $captureResult = $this->{$childType}->captureAnalystData($user, $childAnalystData, $fromPull, $orgUUId, $server, $fromPre30);
                     $results['imported'] += $captureResult['imported'];
                     $results['ignored'] += $captureResult['ignored'];
                     $results['failed'] += $captureResult['failed'];
@@ -833,7 +1057,6 @@ class AnalystData extends AppModel
             unset($analystData[$type]['id']);
             $analystModel->create();
             $saveSuccess = $analystModel->save($analystData);
-            $saveSuccess = true;
         } else {
             // DPT-4: a regular (non-sync, non-site-admin) caller - the web
             // add/edit afterSave, or analyst data nested in an object/
@@ -916,6 +1139,9 @@ class AnalystData extends AppModel
         $serverSync->debug("Starting Analyst Data sync");
 
         $analystData = $this->collectDataForPush($serverSync->server());
+        if (!$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS)) {
+            $analystData = self::withoutValueTargets($analystData);
+        }
         $keyedAnalystData = [];
         foreach ($analystData as $type => $entries) {
             foreach ($entries as $entry) {
@@ -1035,6 +1261,36 @@ class AnalystData extends AppModel
             $dataForPush[$type] = array_values($dataForPush[$type]);
         }
         return $dataForPush;
+    }
+
+    /**
+     * A MISP older than 3.0 cannot hold rows addressed by a value's SHA-256.
+     *
+     * @param array $dataForPush [type => [[type => row], ...]], as collectDataForPush returns it
+     * @return array The same, without the rows addressing a value at either end
+     */
+    public static function withoutValueTargets(array $dataForPush): array
+    {
+        foreach ($dataForPush as $type => $entries) {
+            $dataForPush[$type] = array_values(array_filter($entries, function ($entry) use ($type) {
+                return !self::isValueAddressed($entry[$type]);
+            }));
+        }
+        return $dataForPush;
+    }
+
+    /**
+     * @param array $row A note, opinion or relationship
+     * @return bool Whether either end is addressed by a value's SHA-256
+     */
+    public static function isValueAddressed(array $row): bool
+    {
+        foreach (['object', 'related_object'] as $end) {
+            if (!empty($row[$end . '_sha256']) || in_array($row[$end . '_type'] ?? null, self::SHA256_TARGETS, true)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function collectValidSharingGroupIDs(array $server): array
@@ -1341,6 +1597,7 @@ class AnalystData extends AppModel
 
         $remoteUser = $serverSync->cachedUserInfo();
         $remotePermSyncInternal = !empty($remoteUser['Role']['perm_sync_internal']);
+        $fromPre30 = !$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS);
 
         foreach ($analystDataUuids as $type => $entries) {
             $uuids = array_keys($entries);
@@ -1358,7 +1615,7 @@ class AnalystData extends AppModel
     
                 foreach ($chunkedAnalystData as $analystData) {
                     $analystData = $this->updatePulledBeforeInsert($analystData, $type, $serverSync->server(), $user, $serverSync->pullRules(), $remotePermSyncInternal);
-                    $savedResult = $this->captureAnalystData($user, $analystData, true, $serverOrgUUID, $serverSync->server());
+                    $savedResult = $this->captureAnalystData($user, $analystData, true, $serverOrgUUID, $serverSync->server(), $fromPre30);
                     if ($savedResult['success']) {
                         $saved += $savedResult['imported'];
                     }
@@ -1371,21 +1628,54 @@ class AnalystData extends AppModel
 
     private function updatePulledBeforeInsert(array $analystData, $type, array $server, array $user, array $pullRules, $remotePermSyncInternal = false): array
     {
-        $analystData[$type]['locked'] = true;
+        $downgrade = empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || !$remotePermSyncInternal;
+        $analystData[$type] = self::updatePulledAnalystData($analystData[$type], $downgrade);
+        return $analystData;
+    }
 
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || !$remotePermSyncInternal) {
-            switch ($analystData[$type]['distribution']) {
-                case 1:
-                    // if community only, downgrade to org only after pull
-                    $analystData[$type]['distribution'] = '0';
-                    break;
-                case 2:
-                    // if connected communities downgrade to community only
-                    $analystData[$type]['distribution'] = '1';
-                    break;
+    /**
+     * A pulled analyst data row is locked and, over a non-internal link, downgraded
+     * (community only to org only, connected communities to community only).
+     * Its nested children get the same.
+     *
+     * @param array $analystData A single Note, Opinion or Relationship row
+     * @param bool $downgrade
+     * @return array
+     */
+    public static function updatePulledAnalystData(array $analystData, $downgrade): array
+    {
+        $analystData['locked'] = true;
+        if ($downgrade && isset($analystData['distribution'])) {
+            if ($analystData['distribution'] == 1) {
+                $analystData['distribution'] = '0';
+            } elseif ($analystData['distribution'] == 2) {
+                $analystData['distribution'] = '1';
             }
         }
-        return $analystData;
+        return self::updatePulledNested($analystData, $downgrade);
+    }
+
+    /**
+     * Apply updatePulledAnalystData() to the analyst data nested in a pulled element
+     * (an event, attribute, object, report or another analyst data row).
+     *
+     * @param array $element
+     * @param bool $downgrade
+     * @return array
+     */
+    public static function updatePulledNested(array $element, $downgrade): array
+    {
+        foreach (self::ANALYST_DATA_TYPES as $type) {
+            if (empty($element[$type]) || !is_array($element[$type])) {
+                continue;
+            }
+            foreach ($element[$type] as $k => $analystData) {
+                if (is_array($analystData)) {
+                    $element[$type][$k] = self::updatePulledAnalystData($analystData, $downgrade);
+                }
+            }
+        }
+        return $element;
     }
 
     private function buildPullFilterRules(array $server): array

@@ -3,11 +3,12 @@
 App::uses('AbstractMigration', 'Migration');
 
 /**
- * Add nullable value id columns and their indexes to attributes and shadow_attributes
+ * Add nullable value id columns and their indexes to attributes and shadow_attributes,
+ * and the attribute creation time
  */
 class Migration_20261004_093749_attribute_value_ids extends AbstractMigration
 {
-    public $description = 'Add nullable value id columns and their indexes to attributes and shadow_attributes';
+    public $description = 'Add nullable value id columns and their indexes to attributes and shadow_attributes, and the attribute creation time';
 
     public $requiresLogout = false;
 
@@ -47,6 +48,15 @@ class Migration_20261004_093749_attribute_value_ids extends AbstractMigration
                 }
                 $after = $column;
             }
+            // Declared here so it joins the value id columns' statement and the
+            // index pass below, instead of costing a pass over attributes of its own.
+            if ($tableName === 'attributes' && !$inspector->hasColumn('attributes', 'created')) {
+                $table->addColumn('created', 'biginteger', array(
+                    'null' => false,
+                    'default' => 0,
+                    'after' => 'timestamp',
+                ));
+            }
         }
 
         $shadowAttributes = $schema->table('shadow_attributes');
@@ -60,6 +70,9 @@ class Migration_20261004_093749_attribute_value_ids extends AbstractMigration
             if (!$inspector->hasIndex('attributes', $columns)) {
                 $attributes->addIndex($columns, array('name' => $name));
             }
+        }
+        if (!$inspector->hasIndex('attributes', array('created'))) {
+            $attributes->addIndex('created');
         }
     }
 }

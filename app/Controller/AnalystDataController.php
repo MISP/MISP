@@ -41,18 +41,27 @@ class AnalystDataController extends AppController
         $this->set('languageRFC5646', ['' => __('- No language -'), LanguageRFC5646Tool::getLanguages()]);
     }
 
-    public function add($type = 'Note', $object_uuid = null, $object_type = null)
+    public function add($type = 'Note', $object_address = null, $object_type = null)
     {
         $this->__typeSelector($type);
-        if (!empty($object_uuid)) {
-            $this->request->data[$this->modelSelection]['object_uuid'] = $object_uuid;
-        }
+        $model = $this->modelSelection;
         if (!empty($object_type)) {
-            $this->request->data[$this->modelSelection]['object_type'] = $object_type;
+            $this->request->data[$model]['object_type'] = $object_type;
+        }
+        if (empty($this->request->data[$model]['object_type'])) {
+            // A SHA-256 only ever addresses a value; deduceType() knows uuids only
+            $hash = $object_address ?? $this->request->data[$model]['object_sha256'] ?? null;
+            if (is_string($hash) && preg_match('/^[0-9a-f]{64}$/i', trim($hash))) {
+                $this->request->data[$model]['object_type'] = 'AttributeValue';
+            }
+        }
+        if (!empty($object_address)) {
+            $column = AnalystData::addressColumn($this->request->data[$model]['object_type'] ?? null, 'object');
+            $this->request->data[$model][$column] = $object_address;
         }
 
-        if (empty($this->request->data[$this->modelSelection]['object_type']) && !empty($this->request->data[$this->modelSelection]['object_uuid'])) {
-            $this->request->data[$this->modelSelection]['object_type'] = $this->AnalystData->deduceType($object_uuid);
+        if (empty($this->request->data[$model]['object_type']) && !empty($this->request->data[$model]['object_uuid'])) {
+            $this->request->data[$model]['object_type'] = $this->AnalystData->deduceType($object_address);
         }
         $this->loadModel('Event');
         $currentUser = $this->Auth->user();
@@ -329,6 +338,14 @@ class AnalystDataController extends AppController
             return $this->restResponsePayload;
         }
         $this->set('id', $id);
+        $record = $this->viewVars['data'][$this->modelSelection] ?? [];
+        $targets = [];
+        foreach ([['object_type', 'object_uuid'], ['related_object_type', 'related_object_uuid']] as list($typeKey, $uuidKey)) {
+            if (!empty($record[$uuidKey])) {
+                $targets[] = ['type' => $record[$typeKey] ?? '', 'uuid' => $record[$uuidKey]];
+            }
+        }
+        $this->set('analystTargets', $this->AnalystData->describeTargets($this->Auth->user(), $targets));
         $this->loadModel('Event');
         $this->_setViewElements();
         $this->set('distributionLevels', $this->Event->distributionLevels);
@@ -352,9 +369,20 @@ class AnalystDataController extends AppController
         if (isset($this->request->data[$type])) {
             $this->request->data = $this->request->data[$type];
         }
+        // PostgreSQL compares the SHA-256 columns case-sensitively
+        $lower = function ($hex) {
+            return is_string($hex) ? strtolower($hex) : $hex;
+        };
+        if (isset($this->request->data['object_sha256'])) {
+            $hexes = $this->request->data['object_sha256'];
+            $this->request->data['object_sha256'] = is_array($hexes) ? array_map($lower, $hexes) : $lower($hexes);
+        }
+        if (isset($this->request->params['named']['object_sha256'])) {
+            $this->request->params['named']['object_sha256'] = $lower($this->request->params['named']['object_sha256']);
+        }
         $conditions = $this->AnalystData->buildConditions($this->Auth->user());
         $params = [
-            'filters' => array_merge(['uuid', 'target_object'], $this->AnalystData::SEARCHABLE_FIELDS),
+            'filters' => array_merge(['uuid', 'target_object', 'object_sha256'], $this->AnalystData::SEARCHABLE_FIELDS),
             'quickFilters' => $this->AnalystData::SEARCHABLE_FIELDS,
             'conditions' => $conditions,
             'afterFind' => function(array $data) {
@@ -391,17 +419,15 @@ class AnalystDataController extends AppController
     private function __setTargetExistence(array $rows)
     {
         $model = $this->modelSelection;
-        $pairs = [
-            ['object_type', 'object_uuid'],
-            ['related_object_type', 'related_object_uuid'],
-        ];
         $targets = [];
         foreach ($rows as $row) {
-            foreach ($pairs as list($typeKey, $uuidKey)) {
-                if (!empty($row[$model][$uuidKey])) {
+            foreach (['object', 'related_object'] as $end) {
+                $type = $row[$model][$end . '_type'] ?? '';
+                $address = $row[$model][AnalystData::addressColumn($type, $end)] ?? '';
+                if (!empty($address)) {
                     $targets[] = [
-                        'type' => $row[$model][$typeKey] ?? '',
-                        'uuid' => $row[$model][$uuidKey],
+                        'type' => $type,
+                        'address' => $address,
                     ];
                 }
             }
@@ -441,7 +467,7 @@ class AnalystDataController extends AppController
      * Rendered as a body-only modal fragment for the Overmind theme,
      * opened via openModal from the analyst-data count badges in the index tables.
      */
-    public function viewForObject($object_type, $object_uuid)
+    public function viewForObject($object_type, $object_address)
     {
         // The type never selects a model here, it is only matched and rendered,
         // so anything outside the parent types analyst data can hang off is a
@@ -449,21 +475,33 @@ class AnalystDataController extends AppController
         if (!in_array($object_type, AnalystData::valid_targets, true)) {
             throw new NotFoundException(__('Invalid object type.'));
         }
+        // Only the analyst data's own ACL applies, not the target's: a value
+        // the user cannot see is deliberately not checked for, as with uuids
+        $bySha256 = in_array($object_type, AnalystData::SHA256_TARGETS, true);
+        if ($bySha256) {
+            $object_address = strtolower(trim($object_address));
+        }
         $user = $this->Auth->user();
         $analystData = ['Note' => [], 'Opinion' => [], 'Relationship' => [], 'RelationshipInbound' => []];
         foreach (['Note', 'Opinion', 'Relationship'] as $type) {
             $this->loadModel($type);
             $this->{$type}->current_user = $user;
-            // fetchRecursive → afterFind nests each item's own child notes/opinions
-            // (analyst data attached to analyst data), so the card can show the thread.
-            $this->{$type}->fetchRecursive = true;
-            $fetched = $this->{$type}->fetchForUuids([$object_uuid], $user);
-            $analystData[$type] = $fetched[$object_uuid][$type] ?? [];
+            $this->{$type}->fetchRecursive = false;
+        }
+        // afterFind's own recursion stops two levels down; walk the thread
+        // explicitly so replies to replies are shown too.
+        foreach (['Note', 'Opinion', 'Relationship'] as $type) {
+            $fetched = $bySha256
+                ? $this->{$type}->fetchForSha256s([$object_address], $user)
+                : $this->{$type}->fetchForUuids([$object_address], $user);
+            foreach ($fetched[$object_address][$type] ?? [] as $item) {
+                $analystData[$type][] = $this->{$type}->fetchChildNotesAndOpinions($user, $item, false, 4);
+            }
         }
         $this->loadModel('Relationship');
         $this->Relationship->current_user = $user;
         $analystData['RelationshipInbound'] = Hash::extract(
-            $this->Relationship->getInboundRelationships($user, $object_type, $object_uuid),
+            $this->Relationship->getInboundRelationships($user, $object_type, $object_address),
             '{n}.Relationship'
         );
         if ($this->_isRest()) {
@@ -471,7 +509,7 @@ class AnalystDataController extends AppController
         }
         $this->set('analystData', $analystData);
         $this->set('objectType', $object_type);
-        $this->set('objectUuid', $object_uuid);
+        $this->set('objectUuid', $object_address);
         $this->layout = false;
         $this->render('ajax/object_thread');
     }

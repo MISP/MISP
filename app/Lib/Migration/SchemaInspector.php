@@ -29,13 +29,20 @@ App::uses('ConnectionManager', 'Model');
  * the genuinely structural ones go, so that a call site gets one method rather
  * than a branch.
  *
+ * tableDefinition() reads the catalog too: the driver folds mediumtext into
+ * text, drops auto-increment, and cannot read a PostgreSQL expression index.
+ * Its MySQL queries are the ones BaselineGenerator reads a reference with.
+ *
  * ## The cache contract
  *
  * This is the part that is easy to get wrong, so it is spelled out.
  *
- * CakePHP keeps three caches of the schema: the `_cake_model_` file cache, and
- * the datasource's in-memory `DataSource::$_descriptions` and `$_sources`.
- * AppModel::cleanCacheFiles() clears only the first. `$_sources` is nulled by
+ * CakePHP keeps four caches of the schema: the `_cake_model_` file cache, the
+ * datasource's in-memory `DataSource::$_descriptions` and `$_sources`, and
+ * DboSource's method cache, which holds the column list of a find without a
+ * field list. The method cache is loaded from `_cake_core_` on first use and
+ * written back whole by every process that added to it, on exit.
+ * AppModel::cleanCacheFiles() clears the two file caches. `$_sources` is nulled by
  * DboSource::reconnect(); nothing in the framework ever clears `$_descriptions`.
  * So within one request, a model whose schema() was already read keeps its
  * pre-DDL description - and because Model::save() filters fields against
@@ -55,7 +62,10 @@ App::uses('ConnectionManager', 'Model');
  * where DDL has just been applied and PHP data work is about to run against the
  * altered table. It is deliberately not undone: correctness beats the cost of
  * re-running SHOW FULL COLUMNS for the rest of a request that applied a
- * migration.
+ * migration. It also empties the method cache, which `cacheSources` does not
+ * reach: a cleared file alone is refilled with the old column lists when this
+ * process exits. MISP's datasources key those lists by the columns besides
+ * (CurrentColumnListTrait), which covers the processes a migration never sees.
  */
 class SchemaInspector
 {
@@ -63,9 +73,21 @@ class SchemaInspector
     const FLAVOUR_PGSQL = 'pgsql';
 
     /**
+     * A table's options on PostgreSQL, which has none of them.
+     *
+     * @var array
+     */
+    private static $noOptions = array('engine' => null, 'row_format' => null, 'collation' => null, 'charset' => null);
+
+    /**
      * @var DboSource
      */
     private $db;
+
+    /**
+     * @var bool|null Detected lazily; the server does not change under us.
+     */
+    private $mariaDb;
 
     /**
      * @param DboSource|null $db Defaults to the 'default' connection.
@@ -280,6 +302,456 @@ class SchemaInspector
         return array_key_exists($indexName, $this->indexes($table));
     }
 
+    // ----------------------------------------------------- definition surface
+
+    /**
+     * A table as the catalog defines it, with what describe() and index() fold
+     * away or cannot read.
+     *
+     * - `options`: `engine`, `row_format` (the format the table has, upper
+     *   case), `collation`, `charset`. All null on PostgreSQL.
+     * - `columns`, by name, in table order:
+     *   - `type` verbatim in lower case (`int(11) unsigned`; PostgreSQL's
+     *     format_type(), `character varying(255)`), split into `base`,
+     *     `length` and `scale`. MySQL 8 reports integers without a width.
+     *   - `unsigned`, `null`.
+     *   - `default`: the literal as a string, or null for none;
+     *     `default_expression` when it is an expression. PostgreSQL booleans
+     *     read `true`/`false`.
+     *   - `charset`, `collation`: null for a non-string column. On PostgreSQL
+     *     charset is always null, and collation is null unless the column
+     *     sets one of its own.
+     *   - `increment`: null, `auto_increment`, `identity` or `serial`. A
+     *     serial column's nextval() is reported here, not as its default.
+     * - `indexes`, by name, the primary key as `PRIMARY` on both engines:
+     *   - `name`: the physical name (PostgreSQL: `<table>_pkey`).
+     *   - `column`: in key order, always a list. An expression key part reads
+     *     as PostgreSQL prints it, e.g. `lower(name::text)`, and as null on
+     *     MySQL 8, whose STATISTICS MariaDB cannot be asked for the text.
+     *   - `unique`, `primary`, `expression`.
+     *   - `length`: column => prefix length, for prefixed parts only.
+     *   - `type`: `btree`, `fulltext`, `hash`, `gin`, ...
+     *   - `definition`: pg_get_indexdef(), which carries what the parts above
+     *     do not (operator class, predicate). Null on MySQL.
+     *
+     * @param string $table
+     * @return array|null Null when there is no such table.
+     */
+    public function tableDefinition($table)
+    {
+        return $this->isMysql() ? $this->mysqlDefinition($table) : $this->postgresDefinition($table);
+    }
+
+    /**
+     * tableDefinition()'s `options` alone, for one catalog query.
+     *
+     * @param string $table
+     * @return array|null Null when there is no such table.
+     */
+    public function tableOptions($table)
+    {
+        if (!$this->isMysql()) {
+            return $this->hasTable($table) ? self::$noOptions : null;
+        }
+        $tables = $this->fetchRows(self::mysqlTablesSql($this->db, $this->databaseName(), $table));
+        if (empty($tables)) {
+            return null;
+        }
+        $collation = empty($tables[0]['TABLE_COLLATION']) ? null : $tables[0]['TABLE_COLLATION'];
+        return array(
+            'engine' => empty($tables[0]['ENGINE']) ? null : $tables[0]['ENGINE'],
+            'row_format' => empty($tables[0]['ROW_FORMAT']) ? null : strtoupper($tables[0]['ROW_FORMAT']),
+            'collation' => $collation,
+            'charset' => $collation === null ? null : self::charsetOfCollation($collation),
+        );
+    }
+
+    /**
+     * @return string The server's version, as the driver reports it.
+     */
+    public function serverVersion()
+    {
+        return (string)$this->db->getVersion();
+    }
+
+    /**
+     * @return bool Whether the server is MariaDB; false on PostgreSQL.
+     */
+    public function isMariaDb()
+    {
+        if ($this->mariaDb === null) {
+            $this->mariaDb = false;
+            if ($this->isMysql()) {
+                $rows = $this->fetchRows('SELECT VERSION() AS version;');
+                $version = isset($rows[0]['version']) ? $rows[0]['version'] : '';
+                $this->mariaDb = stripos($version, 'mariadb') !== false;
+            }
+        }
+        return $this->mariaDb;
+    }
+
+    /**
+     * The base tables of a MySQL database: name, engine, collation, row format.
+     *
+     * The MySQL catalog queries take the database by name because
+     * BaselineGenerator reads a reference beside the connection's own.
+     *
+     * @param DboSource $db Quotes the values.
+     * @param string $database
+     * @param string|null $table Only this one; all of them when null.
+     * @return string
+     */
+    public static function mysqlTablesSql(DboSource $db, $database, $table = null)
+    {
+        return sprintf(
+            'SELECT TABLE_NAME, ENGINE, TABLE_COLLATION, ROW_FORMAT FROM information_schema.TABLES'
+                . " WHERE TABLE_SCHEMA = %s AND TABLE_TYPE = 'BASE TABLE'%s ORDER BY TABLE_NAME;",
+            $db->value($database, 'string'),
+            self::tableFilter($db, $table)
+        );
+    }
+
+    /**
+     * @param DboSource $db
+     * @param string $database
+     * @param string|null $table
+     * @return string
+     */
+    public static function mysqlColumnsSql(DboSource $db, $database, $table = null)
+    {
+        return sprintf(
+            'SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_DEFAULT, IS_NULLABLE,'
+                . ' COLUMN_TYPE, CHARACTER_SET_NAME, COLLATION_NAME, EXTRA, COLUMN_COMMENT'
+                . ' FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s%s'
+                . ' ORDER BY TABLE_NAME, ORDINAL_POSITION;',
+            $db->value($database, 'string'),
+            self::tableFilter($db, $table)
+        );
+    }
+
+    /**
+     * @param DboSource $db
+     * @param string $database
+     * @param string|null $table
+     * @return string
+     */
+    public static function mysqlStatisticsSql(DboSource $db, $database, $table = null)
+    {
+        return sprintf(
+            'SELECT TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX, COLUMN_NAME, NON_UNIQUE, SUB_PART, INDEX_TYPE'
+                . ' FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = %s%s'
+                . ' ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX;',
+            $db->value($database, 'string'),
+            self::tableFilter($db, $table)
+        );
+    }
+
+    /**
+     * What a COLUMN_DEFAULT cell means.
+     *
+     * Three servers, three spellings. MariaDB (10.2.7+) quotes literals,
+     * spells an explicit NULL as the word, and shows expressions bare. MySQL
+     * shows literals bare and flags expression defaults with
+     * DEFAULT_GENERATED in EXTRA, except CURRENT_TIMESTAMP on a datetime,
+     * which is bare and unflagged. A SQL NULL means the column has no
+     * default on both.
+     *
+     * @param string|null $default
+     * @param string $extra Lower-cased.
+     * @param bool $quotedDefaults Whether the server is MariaDB.
+     * @return array array(bool $hasDefault, mixed $value, bool $isExpression).
+     *   An explicit NULL default comes back as (false, null, false).
+     */
+    public static function parseMysqlDefault($default, $extra, $quotedDefaults)
+    {
+        if ($default === null) {
+            return array(false, null, false);
+        }
+        $default = (string)$default;
+        if (strpos($extra, 'default_generated') !== false) {
+            return array(true, $default, true);
+        }
+        if ($quotedDefaults) {
+            if (strtoupper($default) === 'NULL') {
+                return array(false, null, false);
+            }
+            if (preg_match("/^'(.*)'$/s", $default, $m)) {
+                return array(true, str_replace("''", "'", $m[1]), false);
+            }
+            if (is_numeric($default)) {
+                return array(true, $default, false);
+            }
+            return array(true, $default, true);
+        }
+        if (preg_match('/^current_timestamp(\(\d*\))?$/i', $default)) {
+            return array(true, 'CURRENT_TIMESTAMP', true);
+        }
+        return array(true, $default, false);
+    }
+
+    /**
+     * A MySQL COLUMN_TYPE in parts.
+     *
+     * @param string $columnType
+     * @return array|null array($base, $width|null, $scale|null, $unsigned),
+     *   or null when it is not a type.
+     */
+    public static function splitMysqlType($columnType)
+    {
+        if (!preg_match('/^([a-z]+)(?:\((\d+)(?:,\s*(\d+))?\))?(\s+unsigned)?/', strtolower(trim($columnType)), $m)) {
+            return null;
+        }
+        return array(
+            $m[1],
+            isset($m[2]) && $m[2] !== '' ? (int)$m[2] : null,
+            isset($m[3]) && $m[3] !== '' ? (int)$m[3] : null,
+            !empty($m[4]),
+        );
+    }
+
+    /**
+     * One table's information_schema.STATISTICS rows as index definitions,
+     * the primary key included, in the shape tableDefinition() reports.
+     *
+     * @param array $rows INDEX_NAME, SEQ_IN_INDEX, COLUMN_NAME, NON_UNIQUE,
+     *   SUB_PART, INDEX_TYPE - any order.
+     * @return array name => definition, by name.
+     */
+    public static function mysqlIndexes(array $rows)
+    {
+        usort($rows, function ($a, $b) {
+            $byName = strcmp($a['INDEX_NAME'], $b['INDEX_NAME']);
+            if ($byName !== 0) {
+                return $byName;
+            }
+            return (int)$a['SEQ_IN_INDEX'] - (int)$b['SEQ_IN_INDEX'];
+        });
+
+        $indexes = array();
+        foreach ($rows as $row) {
+            $name = $row['INDEX_NAME'];
+            if (!isset($indexes[$name])) {
+                $type = isset($row['INDEX_TYPE']) ? strtolower($row['INDEX_TYPE']) : 'btree';
+                $indexes[$name] = array(
+                    'name' => $name,
+                    'column' => array(),
+                    'unique' => $type !== 'fulltext' && isset($row['NON_UNIQUE']) && (int)$row['NON_UNIQUE'] === 0,
+                    'primary' => $name === 'PRIMARY',
+                    'length' => array(),
+                    'type' => $type,
+                    'expression' => false,
+                    'definition' => null,
+                );
+            }
+            $column = isset($row['COLUMN_NAME']) ? $row['COLUMN_NAME'] : null;
+            $indexes[$name]['column'][] = $column;
+            if ($column === null) {
+                $indexes[$name]['expression'] = true;
+            } elseif (isset($row['SUB_PART']) && $row['SUB_PART'] !== '') {
+                $indexes[$name]['length'][$column] = (int)$row['SUB_PART'];
+            }
+        }
+        return $indexes;
+    }
+
+    /**
+     * @param string $collation
+     * @return string The charset a MySQL collation belongs to - the part
+     *   before the first underscore, which is how MySQL names them.
+     */
+    public static function charsetOfCollation($collation)
+    {
+        $parts = explode('_', $collation, 2);
+        return $parts[0];
+    }
+
+    /**
+     * @param string $table
+     * @return array|null
+     */
+    private function mysqlDefinition($table)
+    {
+        $options = $this->tableOptions($table);
+        if ($options === null) {
+            return null;
+        }
+        $database = $this->databaseName();
+
+        $quoted = $this->isMariaDb();
+        $columns = array();
+        foreach ($this->fetchRows(self::mysqlColumnsSql($this->db, $database, $table)) as $row) {
+            $type = strtolower(trim($row['COLUMN_TYPE']));
+            $parts = self::splitMysqlType($type);
+            $extra = isset($row['EXTRA']) ? strtolower($row['EXTRA']) : '';
+            list($hasDefault, $default, $isExpression) = self::parseMysqlDefault(
+                array_key_exists('COLUMN_DEFAULT', $row) ? $row['COLUMN_DEFAULT'] : null,
+                $extra,
+                $quoted
+            );
+            $columns[$row['COLUMN_NAME']] = array(
+                'type' => $type,
+                'base' => $parts === null ? $type : $parts[0],
+                'length' => $parts === null ? null : $parts[1],
+                'scale' => $parts === null ? null : $parts[2],
+                'unsigned' => $parts !== null && $parts[3],
+                'null' => isset($row['IS_NULLABLE']) && strtoupper($row['IS_NULLABLE']) === 'YES',
+                'default' => $hasDefault ? (string)$default : null,
+                'default_expression' => $hasDefault && $isExpression,
+                'charset' => empty($row['CHARACTER_SET_NAME']) ? null : $row['CHARACTER_SET_NAME'],
+                'collation' => empty($row['COLLATION_NAME']) ? null : $row['COLLATION_NAME'],
+                'increment' => strpos($extra, 'auto_increment') !== false ? 'auto_increment' : null,
+            );
+        }
+
+        $indexes = self::mysqlIndexes($this->fetchRows(self::mysqlStatisticsSql($this->db, $database, $table)));
+        return array('options' => $options, 'columns' => $columns, 'indexes' => $indexes);
+    }
+
+    /**
+     * @param string $table
+     * @return array|null
+     */
+    private function postgresDefinition($table)
+    {
+        $found = $this->fetchRows(sprintf(
+            'SELECT c.oid AS oid FROM pg_catalog.pg_class c'
+                . ' JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace'
+                . " WHERE n.nspname = %s AND c.relname = %s AND c.relkind IN ('r', 'p');",
+            $this->db->value($this->schemaName(), 'string'),
+            $this->db->value($table, 'string')
+        ));
+        if (empty($found)) {
+            return null;
+        }
+        $oid = (int)$found[0]['oid'];
+
+        $columns = array();
+        $rows = $this->fetchRows(
+            'SELECT a.attname AS column_name, pg_catalog.format_type(a.atttypid, a.atttypmod) AS column_type,'
+                . ' a.attnotnull AS not_null, a.attidentity AS identity,'
+                . ' pg_catalog.pg_get_expr(d.adbin, d.adrelid) AS column_default,'
+                . " CASE WHEN co.collname <> 'default' THEN co.collname END AS collation_name"
+                . ' FROM pg_catalog.pg_attribute a'
+                . ' LEFT JOIN pg_catalog.pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum'
+                . ' LEFT JOIN pg_catalog.pg_collation co ON co.oid = a.attcollation'
+                . ' WHERE a.attrelid = ' . $oid . ' AND a.attnum > 0 AND NOT a.attisdropped'
+                . ' ORDER BY a.attnum;'
+        );
+        foreach ($rows as $row) {
+            $type = strtolower($row['column_type']);
+            $length = $scale = null;
+            $base = $type;
+            if (preg_match('/\((\d+)(?:,(\d+))?\)/', $type, $m)) {
+                $length = (int)$m[1];
+                $scale = isset($m[2]) ? (int)$m[2] : null;
+                $base = trim(preg_replace('/\s+/', ' ', str_replace($m[0], '', $type)));
+            }
+            $increment = null;
+            $default = $row['column_default'];
+            if (!empty($row['identity'])) {
+                $increment = 'identity';
+            } elseif ($default !== null && stripos($default, 'nextval(') === 0) {
+                $increment = 'serial';
+                $default = null;
+            }
+            list($default, $isExpression) = self::parsePostgresDefault($default);
+            $columns[$row['column_name']] = array(
+                'type' => $type,
+                'base' => $base,
+                'length' => $length,
+                'scale' => $scale,
+                'unsigned' => false,
+                'null' => !self::pgBool($row['not_null']),
+                'default' => $default,
+                'default_expression' => $isExpression,
+                'charset' => null,
+                'collation' => $row['collation_name'],
+                'increment' => $increment,
+            );
+        }
+
+        $indexes = array();
+        $rows = $this->fetchRows(
+            'SELECT ic.relname AS index_name, i.indisprimary AS is_primary, i.indisunique AS is_unique,'
+                . ' am.amname AS index_type, pg_catalog.pg_get_indexdef(i.indexrelid) AS definition,'
+                . ' i.indkey[k.n - 1] AS attnum,'
+                . ' CASE WHEN i.indkey[k.n - 1] = 0 THEN pg_catalog.pg_get_indexdef(i.indexrelid, k.n, true)'
+                . ' ELSE a.attname END AS column_name'
+                . ' FROM pg_catalog.pg_index i'
+                . ' JOIN pg_catalog.pg_class ic ON ic.oid = i.indexrelid'
+                . ' JOIN pg_catalog.pg_am am ON am.oid = ic.relam'
+                . ' CROSS JOIN LATERAL generate_series(1, i.indnkeyatts) AS k(n)'
+                . ' LEFT JOIN pg_catalog.pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = i.indkey[k.n - 1]'
+                . ' WHERE i.indrelid = ' . $oid
+                . ' ORDER BY ic.relname, k.n;'
+        );
+        foreach ($rows as $row) {
+            $primary = self::pgBool($row['is_primary']);
+            $key = $primary ? 'PRIMARY' : $row['index_name'];
+            if (!isset($indexes[$key])) {
+                $indexes[$key] = array(
+                    'name' => $row['index_name'],
+                    'column' => array(),
+                    'unique' => self::pgBool($row['is_unique']),
+                    'primary' => $primary,
+                    'length' => array(),
+                    'type' => $row['index_type'],
+                    'expression' => false,
+                    'definition' => $row['definition'],
+                );
+            }
+            $indexes[$key]['column'][] = $row['column_name'];
+            if ((int)$row['attnum'] === 0) {
+                $indexes[$key]['expression'] = true;
+            }
+        }
+        ksort($indexes, SORT_STRING);
+        return array(
+            'options' => self::$noOptions,
+            'columns' => $columns,
+            'indexes' => $indexes,
+        );
+    }
+
+    /**
+     * What pg_get_expr() prints for a column default.
+     *
+     * @param string|null $default
+     * @return array array($value|null, bool $isExpression).
+     */
+    private static function parsePostgresDefault($default)
+    {
+        if ($default === null || preg_match('/^NULL(::[a-z ]+)?$/i', $default)) {
+            return array(null, false);
+        }
+        if (preg_match("/^'((?:[^']|'')*)'(?:::[a-z_ ]+(?:\(\d+(?:,\d+)?\))?(?:\[\])?)?$/is", $default, $m)) {
+            return array(str_replace("''", "'", $m[1]), false);
+        }
+        if (is_numeric($default) || $default === 'true' || $default === 'false') {
+            return array($default, false);
+        }
+        return array($default, true);
+    }
+
+    /**
+     * @param mixed $value A PostgreSQL boolean as PDO hands it over.
+     * @return bool
+     */
+    private static function pgBool($value)
+    {
+        return $value === true || $value === 1 || in_array($value, array('t', 'true', '1'), true);
+    }
+
+    /**
+     * @param DboSource $db
+     * @param string|null $table
+     * @return string
+     */
+    private static function tableFilter(DboSource $db, $table)
+    {
+        return $table === null ? '' : ' AND TABLE_NAME = ' . $db->value($table, 'string');
+    }
+
     // -------------------------------------------------------- runtime surface
 
     /**
@@ -489,15 +961,19 @@ class SchemaInspector
      * request it means Model::schema() re-reads the table until the request
      * ends, and only on requests that actually applied a migration.
      *
+     * The method cache is emptied rather than disabled: what fills it after
+     * the DDL is current, and is what this process writes back on exit.
+     *
      * @return void
      */
     public function disableSchemaCache()
     {
         $this->db->cacheSources = false;
+        $this->db->flushMethodCache();
     }
 
     /**
-     * Drop the `_cake_model_` file cache.
+     * Drop the `_cake_model_` and `_cake_core_` file caches.
      *
      * Partial on its own - it does not touch the datasource's in-memory
      * descriptions - so it is the companion to disableSchemaCache(), not a
@@ -510,6 +986,7 @@ class SchemaInspector
     public function flushSchemaCacheFiles()
     {
         Cache::clear(false, '_cake_model_');
+        Cache::clear(false, '_cake_core_');
     }
 
     /**
