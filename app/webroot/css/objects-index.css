@@ -1,0 +1,158 @@
+/* Objects index (Overmind) */
+
+/* Takes the width the other columns leave, and truncates inside it. */
+.oi-table td.oi-col-object {
+    width: 100%;
+    max-width: 0;
+    min-width: 22rem;
+    cursor: pointer;
+}
+.oi-object {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+}
+.oi-object .ov-obj-head {
+    margin-right: 0;
+}
+/* Modified has a column of its own here. */
+.oi-object .ov-obj-date {
+    display: none;
+}
+.oi-expand {
+    flex-shrink: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: .4rem;
+    color: var(--bs-secondary-color);
+    background: transparent;
+}
+.oi-expand:hover,
+.oi-expand:focus-visible {
+    color: var(--bs-emphasis-color);
+    background: var(--bs-tertiary-bg);
+}
+.oi-expand i {
+    transition: transform .15s ease;
+}
+.oi-expand[aria-expanded="true"] i {
+    transform: rotate(90deg);
+}
+.oi-comment {
+    margin: .25rem 0 0 2.25rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 40rem;
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+.oi-comment i {
+    margin-right: .25rem;
+    opacity: .7;
+}
+
+.oi-refs {
+    display: inline-flex;
+    gap: .6rem;
+    font-size: .8rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--bs-body-color);
+}
+.oi-refs i {
+    font-size: .65rem;
+    color: var(--bs-secondary-color);
+}
+.oi-refs.is-empty {
+    color: var(--bs-tertiary-color);
+}
+
+.oi-event {
+    max-width: 18rem;
+    display: flex;
+    align-items: baseline;
+    gap: .4rem;
+    min-width: 0;
+    text-decoration: none;
+}
+.oi-event-id {
+    flex-shrink: 0;
+    font-family: var(--bs-font-monospace);
+    font-size: .78rem;
+}
+.oi-event-info {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--bs-body-color);
+}
+.oi-event:hover .oi-event-info {
+    text-decoration: underline;
+}
+
+.oi-seen,
+.oi-modified {
+    font-size: .78rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--bs-secondary-color);
+}
+.oi-seen-dash {
+    margin: 0 .25rem;
+    opacity: .6;
+}
+.oi-none {
+    color: var(--bs-tertiary-color);
+}
+
+.oi-table tr.oi-open > td {
+    border-bottom-color: transparent;
+}
+.oi-detail > td {
+    padding: 0 .75rem .75rem 2.75rem;
+    background: var(--bs-tertiary-bg);
+}
+.oi-detail-box {
+    min-height: 3rem;
+}
+.oi-detail-box > .misp-loader {
+    margin: .75rem auto;
+}
+.oi-card {
+    overflow: hidden;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    background: var(--bs-body-bg);
+}
+.oi-card > .list-group {
+    border-top: 0 !important;
+}
+.oi-card-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem;
+    padding: .5rem .75rem;
+    border-top: 1px solid var(--bs-border-color);
+    font-size: .78rem;
+    color: var(--bs-secondary-color);
+}
+.oi-card-foot .dropdown {
+    padding-right: 0 !important;
+}
+.oi-card-uuid {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+}
+.oi-card-uuid .btn-link {
+    color: var(--bs-secondary-color);
+}

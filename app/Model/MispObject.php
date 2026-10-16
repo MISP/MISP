@@ -937,7 +937,7 @@ class MispObject extends AppModel
      * The template picker of the objects index: every installed template,
      * newest revision, with its meta-category.
      *
-     * @return array [['value' => name, 'label' => name, 'meta' => meta-category]]
+     * @return array [['value' => name, 'label' => name, 'note' => meta-category]]
      */
     public function indexTemplateOptions()
     {
@@ -953,7 +953,7 @@ class MispObject extends AppModel
             $options[$name] = [
                 'value' => $name,
                 'label' => $name,
-                'meta' => $template['ObjectTemplate']['meta-category'],
+                'note' => $template['ObjectTemplate']['meta-category'],
             ];
         }
         return array_values($options);

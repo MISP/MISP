@@ -52,13 +52,15 @@ class ObjectsController extends AppController
         $result = $this->MispObject->fetchIndexPage($user, $filters, $page, $sort, $direction);
 
         $page = max(1, $page);
+        $shown = count($result['rows']);
+        // Only the last page knows the total: everything before it plus what it shows.
         $this->params->params['paging'] = ['MispObject' => [
             'page' => $page,
-            'current' => count($result['rows']),
-            'count' => null,
+            'current' => $shown,
+            'count' => $result['nextPage'] ? null : ($page - 1) * MispObject::INDEX_LIMIT + $shown,
             'prevPage' => $page > 1,
             'nextPage' => $result['nextPage'],
-            'pageCount' => null,
+            'pageCount' => $page,
             'order' => null,
             'limit' => MispObject::INDEX_LIMIT,
             'options' => ['sort' => $sort, 'direction' => $direction, 'page' => $page],

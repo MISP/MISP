@@ -86,7 +86,8 @@ foreach ($state->filters() as $name => $value) {
         continue;
     }
     if (in_array($name, $searchKeys, true)) {
-        $label = $name === ($searchChild['id_field'] ?? null) ? __('ID') : __('Search');
+        $label = $name === ($searchChild['id_field'] ?? null)
+            ? __('ID') : ($searchChild['chip_label'] ?? __('Search'));
     } else {
         $label = $labels[$name] ?? $name;
     }
