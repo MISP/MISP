@@ -1772,11 +1772,6 @@ class UsersController extends AppController
         return $this->response;
     }
 
-    public function checkAndCorrectPgps()
-    {
-        $this->set('fails', $this->User->checkAndCorrectPgps());
-    }
-
     public function admin_quickEmail($user_id)
     {
         $user = $this->User->find('first', array(

@@ -71,7 +71,6 @@ class ACLComponent extends Component
             'attributeStatistics' => array('*'),
             'bro' => array('*'),
             'checkAttachments' => array(),
-            'checkComposites' => array('perm_site_admin'),
             'delete' => array('perm_add'),
             'deleteSelection' => array('AND' => ['theming_enabled', 'perm_add']),
             'deleteSelected' => array('perm_add'),
@@ -628,7 +627,6 @@ class ACLComponent extends Component
             'search' => array('perm_audit'),
             'event_index' => array('*'),
             'returnDates' => array('*'),
-            'testForStolenAttributes' => array(),
             'index' => array('perm_audit')
         ),
         'auditLogs' => [
@@ -1020,7 +1018,6 @@ class ACLComponent extends Component
             'admin_quickEmail' => array('perm_admin'),
             'admin_view' => array('perm_admin'),
             'change_pw' => ['AND' => ['self_management_enabled', 'password_change_enabled', 'not_read_only_authkey']],
-            'checkAndCorrectPgps' => array(),
             'checkIfLoggedIn' => array('*'),
             'discardRegistrations' => array(),
             'downloadTerms' => array('*'),

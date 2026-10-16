@@ -1446,20 +1446,6 @@ class MispAttribute extends AppModel
         }
     }
 
-    public function checkComposites()
-    {
-        $compositeTypes = $this->getCompositeTypes();
-        $fails = array();
-        $attributes = $this->find('all', array('recursive' => 0));
-
-        foreach ($attributes as $attribute) {
-            if ((in_array($attribute['Attribute']['type'], $compositeTypes)) && (!strlen($attribute['Attribute']['value1']) || !strlen($attribute['Attribute']['value2']))) {
-                $fails[] = $attribute['Attribute']['event_id'] . ':' . $attribute['Attribute']['id'];
-            }
-        }
-        return $fails;
-    }
-
     public function ISODatetimeToUTC($data, $alias)
     {
         // convert into utc and micro sec
