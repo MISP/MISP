@@ -611,7 +611,8 @@
             } : null,
             pivots: function (kit) {
                 var p = kit.pivots;
-                return [p.tags(), p.taggedEvents(), p.relatedClusters(), p.surroundings(),
+                return [p.tags(), p.taggedEvents(), p.relatedClusters(), p.relatingClusters(),
+                        p.surroundings(),
                         p.cardElements('ids'), p.cardElements('network'), p.cardElements('all'),
                         p.enrich()].filter(Boolean);
             },
