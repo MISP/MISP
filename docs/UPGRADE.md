@@ -73,14 +73,17 @@ Run the commands from `app/` as the web server user
    every attribute and proposal gives back its exact text from the value table
    before it drops anything. `Console/cake AttributeValue verify` runs the same
    check on its own and changes nothing.
-7. **Bring the instance back**: `Console/cake Admin live 1`.
-8. **Regenerate the lists the conversion emptied**:
+7. **Restart the background workers**: `Console/cake Admin restartWorkers`. A
+   worker that was running during the update still knows the tables as they
+   were before it, and fails on the columns the update dropped.
+8. **Bring the instance back**: `Console/cake Admin live 1`.
+9. **Regenerate the lists the conversion emptied**:
    - **Top correlations**: `Console/cake Event generateTopCorrelations`, or the
      button on the top correlations page.
    - **Over-correlation counts**: the button on the over-correlating values
      page.
-9. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
-   `misp:correlation_exclusions`, so both keys can be deleted.
+10. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
+    `misp:correlation_exclusions`, so both keys can be deleted.
 
 Make sure the database has room for the value table before you start: it is
 built while the old text columns still exist.

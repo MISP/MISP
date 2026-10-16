@@ -37,9 +37,12 @@ App::uses('ConnectionManager', 'Model');
  *
  * This is the part that is easy to get wrong, so it is spelled out.
  *
- * CakePHP keeps three caches of the schema: the `_cake_model_` file cache, and
- * the datasource's in-memory `DataSource::$_descriptions` and `$_sources`.
- * AppModel::cleanCacheFiles() clears only the first. `$_sources` is nulled by
+ * CakePHP keeps four caches of the schema: the `_cake_model_` file cache, the
+ * datasource's in-memory `DataSource::$_descriptions` and `$_sources`, and
+ * DboSource's method cache, which holds the column list of a find without a
+ * field list. The method cache is loaded from `_cake_core_` on first use and
+ * written back whole by every process that added to it, on exit.
+ * AppModel::cleanCacheFiles() clears the two file caches. `$_sources` is nulled by
  * DboSource::reconnect(); nothing in the framework ever clears `$_descriptions`.
  * So within one request, a model whose schema() was already read keeps its
  * pre-DDL description - and because Model::save() filters fields against
@@ -59,7 +62,10 @@ App::uses('ConnectionManager', 'Model');
  * where DDL has just been applied and PHP data work is about to run against the
  * altered table. It is deliberately not undone: correctness beats the cost of
  * re-running SHOW FULL COLUMNS for the rest of a request that applied a
- * migration.
+ * migration. It also empties the method cache, which `cacheSources` does not
+ * reach: a cleared file alone is refilled with the old column lists when this
+ * process exits. MISP's datasources key those lists by the columns besides
+ * (CurrentColumnListTrait), which covers the processes a migration never sees.
  */
 class SchemaInspector
 {
@@ -947,15 +953,19 @@ class SchemaInspector
      * request it means Model::schema() re-reads the table until the request
      * ends, and only on requests that actually applied a migration.
      *
+     * The method cache is emptied rather than disabled: what fills it after
+     * the DDL is current, and is what this process writes back on exit.
+     *
      * @return void
      */
     public function disableSchemaCache()
     {
         $this->db->cacheSources = false;
+        $this->db->flushMethodCache();
     }
 
     /**
-     * Drop the `_cake_model_` file cache.
+     * Drop the `_cake_model_` and `_cake_core_` file caches.
      *
      * Partial on its own - it does not touch the datasource's in-memory
      * descriptions - so it is the companion to disableSchemaCache(), not a
@@ -968,6 +978,7 @@ class SchemaInspector
     public function flushSchemaCacheFiles()
     {
         Cache::clear(false, '_cake_model_');
+        Cache::clear(false, '_cake_core_');
     }
 
     /**

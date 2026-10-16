@@ -93,6 +93,32 @@ if (!class_exists('Configure', false)) {
     }
 }
 
+if (!class_exists('Cache', false)) {
+    // DboSource reads its method cache from `_cake_core_` on first use and
+    // writes it back from its destructor; the schema inspector clears both
+    // file caches. Records the clears, stores nothing.
+    class Cache
+    {
+        public static $cleared = array();
+
+        public static function read($key, $config = 'default')
+        {
+            return false;
+        }
+
+        public static function write($key, $value, $config = 'default')
+        {
+            return true;
+        }
+
+        public static function clear($check = false, $config = 'default')
+        {
+            self::$cleared[] = $config;
+            return true;
+        }
+    }
+}
+
 if (!class_exists('ConnectionManager', false)) {
     class ConnectionManager
     {
@@ -116,6 +142,7 @@ require_once CAKE . 'Model/Datasource/Database/Postgres.php';
 // MysqlExtended or a subclass of it, and MysqlExtended::value() short-circuits
 // integers rather than quoting them. Loaded so the tests can pin what the
 // driver MISP actually runs renders, not only the base contract.
+require_once __DIR__ . '/../Model/Datasource/Database/CurrentColumnListTrait.php';
 require_once __DIR__ . '/../Model/Datasource/Database/MysqlExtended.php';
 
 // -------- the classes under test --------
