@@ -4,13 +4,6 @@
 
 /* page header metadata */
 .eo-meta { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .35rem 1rem; }
-.eo-uuid {
-    display: inline-flex; align-items: center; gap: .3rem; font-size: .8rem;
-    padding: .05rem .4rem; border: 1px solid var(--bs-border-color); border-radius: .35rem;
-    background: var(--bs-tertiary-bg);
-}
-.eo-copy { border: 0; background: none; padding: 0; color: var(--bs-secondary-color); font-size: .72rem; }
-.eo-copy:hover { color: var(--bs-emphasis-color); }
 .eo-flag {
     display: inline-flex; align-items: center; gap: .3rem; font-size: .78rem; font-weight: 600;
     padding: .05rem .45rem; border-radius: 999px; border: 1px solid var(--bs-border-color);

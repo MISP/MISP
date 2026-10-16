@@ -7,16 +7,6 @@ $distribution = (int)($event['distribution'] ?? 0);
 $markings = $overviewMarkings ?? ['declared' => [], 'present' => [], 'absent' => []];
 
 $meta = [];
-$meta[] = sprintf(
-    '<span class="eo-uuid font-monospace" title="%s">%s'
-    . '<button type="button" class="eo-copy" onclick="copyToClipboard(this, \'%s\')" title="%s" aria-label="%s">'
-    . '<i class="fas fa-copy"></i></button></span>',
-    h($event['uuid'] ?? ''),
-    h(substr($event['uuid'] ?? '', 0, 8)),
-    h($event['uuid'] ?? ''),
-    __('Copy UUID'),
-    __('Copy UUID')
-);
 if (!empty($event['date'])) {
     $meta[] = '<span title="' . __('Event date') . '"><i class="fas fa-calendar-day me-1 opacity-50"></i>' . h($event['date']) . '</span>';
 }
