@@ -606,12 +606,12 @@ class SchemaTargetGeneratorTest extends TestCase
         foreach (SchemaTargetGenerator::ASCII_COLUMNS as $columns) {
             $ascii += count($columns);
         }
-        $this->assertSame(68, $ascii);
+        $this->assertSame(76, $ascii);
         $epochs = 0;
         foreach (SchemaTargetGenerator::EPOCH_COLUMNS as $columns) {
             $epochs += count($columns);
         }
-        $this->assertSame(34, $epochs);
+        $this->assertSame(35, $epochs);
         foreach (SchemaTargetGenerator::INDEX_ADDITIONS as $table => $indexes) {
             foreach ($indexes as $name => $index) {
                 $this->assertSame(array('column'), array_values(array_diff(array_keys($index), array('length'))), "$table.$name");

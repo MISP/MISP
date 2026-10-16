@@ -394,6 +394,44 @@ abstract class AbstractGrammar
     }
 
     /**
+     * What alterDatabase() can set.
+     */
+    const DATABASE_OPTIONS = array('charset', 'collate');
+
+    /**
+     * Change the connected database's default charset and collation, which a
+     * table created without its own takes.
+     *
+     * @param array $options Any of DATABASE_OPTIONS.
+     * @return array Statements.
+     */
+    abstract public function alterDatabase(array $options);
+
+    /**
+     * An alterDatabase() declaration as this engine reads it: a collation
+     * token resolved.
+     *
+     * @param array $options
+     * @return array
+     * @throws InvalidArgumentException On no option or an unknown one.
+     */
+    public function databaseOptions(array $options)
+    {
+        if (empty($options)) {
+            throw new InvalidArgumentException('alterDatabase() needs at least one option.');
+        }
+        $unknown = array_diff(array_keys($options), self::DATABASE_OPTIONS);
+        if (!empty($unknown)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unknown database option "%s". Known options are: %s.',
+                implode('", "', $unknown),
+                implode(', ', self::DATABASE_OPTIONS)
+            ));
+        }
+        return $this->resolveCollation($options);
+    }
+
+    /**
      * The physical name this grammar gives an index.
      *
      * @param string $table

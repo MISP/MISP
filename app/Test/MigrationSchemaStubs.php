@@ -236,6 +236,9 @@ if (!class_exists('MigrationTestInspector', false)) {
         /** @var array|null What storage() reports. */
         public $storage;
 
+        /** @var array|null What databaseDefaults() reports. */
+        public $database;
+
         /** @var string */
         private $readsFlavour;
 
@@ -331,6 +334,11 @@ if (!class_exists('MigrationTestInspector', false)) {
         public function storage()
         {
             return $this->storage;
+        }
+
+        public function databaseDefaults()
+        {
+            return $this->database;
         }
 
         public function disableSchemaCache()

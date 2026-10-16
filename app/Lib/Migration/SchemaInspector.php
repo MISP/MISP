@@ -367,6 +367,29 @@ class SchemaInspector
     }
 
     /**
+     * The connected database's default charset and collation, which a table
+     * created without its own takes.
+     *
+     * @return array|null 'charset' and 'collation'; null on PostgreSQL, which
+     *   has no such default to change.
+     */
+    public function databaseDefaults()
+    {
+        if (!$this->isMysql()) {
+            return null;
+        }
+        $rows = $this->fetchRows(sprintf(
+            'SELECT DEFAULT_CHARACTER_SET_NAME AS charset, DEFAULT_COLLATION_NAME AS collation'
+                . ' FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = %s;',
+            $this->db->value($this->databaseName(), 'string')
+        ));
+        if (empty($rows) || !isset($rows[0]['collation'])) {
+            return null;
+        }
+        return array('charset' => $rows[0]['charset'], 'collation' => $rows[0]['collation']);
+    }
+
+    /**
      * @return string The server's version, as the driver reports it.
      */
     public function serverVersion()

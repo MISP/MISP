@@ -70,6 +70,7 @@ class SchemaTargetGenerator
         'sightingdbs' => array('timestamp'),
         'user_settings' => array('timestamp'),
         'users' => array('current_login', 'last_login', 'last_api_access', 'newsread'),
+        'value_enrichment_runs' => array('last_run'),
         'workflow_blueprints' => array('timestamp'),
         'workflows' => array('timestamp'),
     );
@@ -101,6 +102,9 @@ class SchemaTargetGenerator
      */
     const ASCII_COLUMNS = array(
         'analyst_data_blocklists' => array('analyst_data_uuid'),
+        'analyst_graphs' => array('uuid', 'object_uuid', 'org_uuid', 'orgc_uuid', 'forked_from_uuid'),
+        'analyst_profile_selections' => array('uuid'),
+        'analyst_profiles' => array('uuid'),
         'attributes' => array('uuid'),
         'auth_keys' => array('uuid', 'authkey', 'authkey_start', 'authkey_end'),
         'collection_elements' => array('uuid', 'element_uuid', 'element_sha256'),
@@ -139,6 +143,7 @@ class SchemaTargetGenerator
         'taxii_servers' => array('uuid'),
         'user_login_profiles' => array('hash'),
         'users' => array('authkey'),
+        'value_enrichment_runs' => array('value_hash'),
         'workflow_blueprints' => array('uuid'),
         'workflows' => array('uuid'),
     );
@@ -148,6 +153,7 @@ class SchemaTargetGenerator
 
     /** Type names compared case-insensitively, kept in the collation they have. */
     const KEPT_COLLATIONS = array(
+        'analyst_graphs' => array('object_type' => 'ascii_general_ci'),
         'collection_elements' => array('element_type' => 'ascii_general_ci'),
         'collections' => array('type' => 'ascii_general_ci'),
         'notes' => array('object_type' => 'ascii_general_ci'),

@@ -1039,6 +1039,43 @@ class MigrationGrammarTest extends TestCase
         }
     }
 
+    public function testAlterDatabaseSetsTheConnectedDatabasesDefaults()
+    {
+        $this->assertSame(
+            array('ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci;'),
+            (new MysqlGrammar(new CollationTestMysql('10.11.14-MariaDB')))->alterDatabase(array('collate' => Collation::CI))
+        );
+        $this->assertSame(
+            array('ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci;'),
+            (new MysqlGrammar(new CollationTestMysql('8.4.6')))->alterDatabase(array('collate' => Collation::CI))
+        );
+        $this->assertSame(
+            array('ALTER DATABASE CHARACTER SET latin1;'),
+            $this->mysql->alterDatabase(array('charset' => 'latin1'))
+        );
+        $this->assertSame(array(), $this->pgsql->alterDatabase(array('collate' => Collation::CI)));
+        $this->assertSame(array(), $this->pgsql->takeDroppedHints());
+    }
+
+    public function testAlterDatabaseRefusesWhatItCannotRenderOnBothEngines()
+    {
+        $attempts = array(
+            'alterDatabase() needs at least one option.' => array(),
+            'Unknown database option "engine". Known options are: charset, collate.' => array('engine' => 'InnoDB'),
+            'The collation <CI> belongs to the charset utf8mb4, so it cannot be declared with the charset ascii.' => array('charset' => 'ascii', 'collate' => Collation::CI),
+        );
+        foreach (array(new MysqlGrammar(new CollationTestMysql('10.11.14-MariaDB')), $this->pgsql) as $grammar) {
+            foreach ($attempts as $message => $options) {
+                try {
+                    $grammar->alterDatabase($options);
+                    $this->fail(json_encode($options) . ' was accepted on ' . $grammar->flavour());
+                } catch (InvalidArgumentException $e) {
+                    $this->assertStringContainsString($message, $e->getMessage());
+                }
+            }
+        }
+    }
+
     public function testATableOptionTokenDefersBelowTheFloor()
     {
         $grammar = new MysqlGrammar(new CollationTestMysql('10.6.18-MariaDB'));

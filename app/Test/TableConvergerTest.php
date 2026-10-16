@@ -673,13 +673,15 @@ class TableConvergerTest extends TestCase
                 : (strpos($name, 'idx_') === 0 ? $name : 'idx_' . $table . '_' . $name);
             $method = 'btree';
             $indexColumns = isset($index['column']) ? $index['column'] : array();
+            $unique = !empty($index['unique']);
             if (isset($index['pgsql']['sql'])) {
                 $method = preg_match('/USING (\w+)/', $index['pgsql']['sql'], $m) ? $m[1] : 'btree';
                 $indexColumns = array('(expression)');
-            } elseif (isset($index['length']) && empty($index['unique'])) {
+                $unique = (bool)preg_match('/^CREATE UNIQUE /i', $index['pgsql']['sql']);
+            } elseif (BaselineGenerator::needsHashRewrite($index, $target['columns'])) {
                 $method = 'hash';
             }
-            $indexes[$physical] = self::liveIndex($physical, $indexColumns, !empty($index['unique']), array(), $method);
+            $indexes[$physical] = self::liveIndex($physical, $indexColumns, $unique, array(), $method);
         }
         $indexes['PRIMARY']['primary'] = true;
         return array(

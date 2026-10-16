@@ -128,7 +128,10 @@ $schema->table('event_templates')
 | `dropPrimaryKey()` | Drops the constraint, keeps the columns. Add a unique index over the old key column first |
 | `changeOptions($options)` | MySQL table options: `engine`, `row_format`, `charset`, `collate` (a token works). A new default charset applies to columns added later; existing ones keep theirs. PostgreSQL renders nothing |
 
-Schema-scoped: `createTable()`, `dropTable()`, `renameTable()`, `rawSql()`.
+Schema-scoped: `createTable()`, `dropTable()`, `renameTable()`, `rawSql()`,
+and `alterDatabase($options)`: the connected database's default `charset` and
+`collate` (a token works), which a table created without its own takes; left
+out when the database already has them, nothing on PostgreSQL.
 
 ```php
 $schema->createTable('collection_shares', [

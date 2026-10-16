@@ -548,6 +548,23 @@ class SchemaInspectorTest extends TestCase
         $this->assertStringContainsString('pg_catalog.pg_settings', $pgsql->queries[0]);
     }
 
+    public function testDatabaseDefaultsAreReadFromTheCatalogOnMysqlOnly()
+    {
+        $mysql = $this->mysqlReader(array(array(
+            array('charset' => 'utf8mb4', 'collation' => 'utf8mb4_general_ci'),
+        )));
+        $this->assertSame(
+            array('charset' => 'utf8mb4', 'collation' => 'utf8mb4_general_ci'),
+            $mysql->databaseDefaults()
+        );
+        $this->assertStringContainsString('information_schema.SCHEMATA WHERE SCHEMA_NAME = ', $mysql->queries[0]);
+        $this->assertNull($this->mysqlReader(array(array()))->databaseDefaults());
+
+        $pgsql = $this->postgresReader();
+        $this->assertNull($pgsql->databaseDefaults());
+        $this->assertSame(array(), $pgsql->queries);
+    }
+
     /**
      * MariaDB's STAGE / MAX_STAGE / PROGRESS are what the update-progress screen
      * reads, and there is nothing engine-neutral to rename them to, so the
