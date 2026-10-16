@@ -6692,7 +6692,7 @@ class EventsController extends AppController
             }
         }
         if (
-            Configure::read('MISP.block_publishing_for_same_creator', false) &&
+            Configure::read('MISP.block_publishing_for_same_creator') &&
             $this->Auth->user()['id'] == $event['Event']['user_id']
         ) {
             $message = __('Could not publish the event, the publishing user cannot be the same as the event creator as per this instance\'s configuration.');

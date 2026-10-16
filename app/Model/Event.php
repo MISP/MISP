@@ -5952,7 +5952,7 @@ class Event extends AppModel
         }
         if (
             $options['includeServerCorrelations'] &&
-            (!$isSiteAdmin && $user['org_id'] != Configure::read('MISP.host_org_id') && !Configure::read('MISP.show_server_correlations_for_all_users', false))
+            (!$isSiteAdmin && $user['org_id'] != Configure::read('MISP.host_org_id') && !Configure::read('MISP.show_server_correlations_for_all_users'))
         ) {
             $options['includeServerCorrelations'] = false; // not permission to see server correlations
         }
@@ -6289,7 +6289,7 @@ class Event extends AppModel
 
     private function __pruneUnknownClusters(array &$event, array $user)
     {
-        if (!Configure::read('MISP.hide_unknown_cluster', true) || $user['Role']['perm_sync']) {
+        if (!(Configure::read('MISP.hide_unknown_cluster') ?? true) || $user['Role']['perm_sync']) {
             return;
         }
         foreach ($event['EventTag'] as $i => $eventTag) {
@@ -8608,7 +8608,7 @@ class Event extends AppModel
             return array('error' => 'Event could not be saved: Could not find the local event.');
         }
         if (
-            (Configure::read('MISP.block_publishing_for_same_creator', false) && !$user['Role']['perm_sync'] && $user['id'] == $existingEvent['Event']['user_id']) ||
+            (Configure::read('MISP.block_publishing_for_same_creator') && !$user['Role']['perm_sync'] && $user['id'] == $existingEvent['Event']['user_id']) ||
             (!empty($data['Event']['published']) && !$user['Role']['perm_publish'])
         ) {
             $data['Event']['published'] = 0;
@@ -10657,7 +10657,7 @@ class Event extends AppModel
                     $this->add_original_file($decoded['original'], $originalFile, $created_id, $stixVersion);
                 }
                 if ($publish && $user['Role']['perm_publish']) {
-                    if (!Configure::read('MISP.block_publishing_for_same_creator', false) || $user['Role']['perm_sync']) {
+                    if (!Configure::read('MISP.block_publishing_for_same_creator') || $user['Role']['perm_sync']) {
                         $this->publish($created_id);
                     }
                 }
