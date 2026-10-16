@@ -727,29 +727,6 @@ class MispObject extends AppModel
             }
             $params['contain'] = array_merge_recursive($params['contain'], $tempOptions['contain']);
         }
-        if (
-            empty($options['metadata']) &&
-            Configure::read('MISP.proposals_block_attributes') &&
-            isset($options['conditions']['AND']['Attribute.to_ids']) &&
-            $options['conditions']['AND']['Attribute.to_ids'] == 1
-        ) {
-            $this->Attribute->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
-            $proposalRestriction =  array(
-                    'ShadowAttribute' => array(
-                            'conditions' => array(
-                                    'AND' => array(
-                                            'ShadowAttribute.deleted' => 0,
-                                            'OR' => array(
-                                                    'ShadowAttribute.proposal_to_delete' => 1,
-                                                    'ShadowAttribute.to_ids' => 0
-                                            )
-                                    )
-                            ),
-                            'fields' => array('ShadowAttribute.id')
-                    )
-            );
-            $params['contain'] = array_merge($params['contain']['Attribute'], $proposalRestriction);
-        }
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
         }
@@ -783,20 +760,12 @@ class MispObject extends AppModel
                 $results[$key]['Object']['event_uuid'] = $object['Event']['uuid'];
             }
         }
-        $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
         if (empty($options['metadata'])) {
             foreach ($results as $key => $object) {
                 foreach ($object['Attribute'] as $key2 => $attribute) {
-                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
-                        unset($results[$key][$key2]);
+                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute)) {
+                        unset($results[$key]['Attribute'][$key2]);
                         continue;
-                    }
-                    if ($proposals_block_attributes) {
-                        if (!empty($attribute['ShadowAttribute'])) {
-                            unset($results[$key][$key2]);
-                        } else {
-                            unset($results[$key][$key2]['ShadowAttribute']);
-                        }
                     }
                     if ($options['withAttachments']) {
                         if ($this->Attribute->typeIsAttachment($attribute['type'])) {
@@ -805,6 +774,7 @@ class MispObject extends AppModel
                         }
                     }
                 }
+                $results[$key]['Attribute'] = array_values($results[$key]['Attribute']);
             }
         }
         return $results;
