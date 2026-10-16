@@ -93,6 +93,32 @@ if (!class_exists('Configure', false)) {
     }
 }
 
+if (!class_exists('Cache', false)) {
+    // DboSource reads its method cache from `_cake_core_` on first use and
+    // writes it back from its destructor; the schema inspector clears both
+    // file caches. Records the clears, stores nothing.
+    class Cache
+    {
+        public static $cleared = array();
+
+        public static function read($key, $config = 'default')
+        {
+            return false;
+        }
+
+        public static function write($key, $value, $config = 'default')
+        {
+            return true;
+        }
+
+        public static function clear($check = false, $config = 'default')
+        {
+            self::$cleared[] = $config;
+            return true;
+        }
+    }
+}
+
 if (!class_exists('ConnectionManager', false)) {
     class ConnectionManager
     {
@@ -116,10 +142,13 @@ require_once CAKE . 'Model/Datasource/Database/Postgres.php';
 // MysqlExtended or a subclass of it, and MysqlExtended::value() short-circuits
 // integers rather than quoting them. Loaded so the tests can pin what the
 // driver MISP actually runs renders, not only the base contract.
+require_once __DIR__ . '/../Model/Datasource/Database/CurrentColumnListTrait.php';
 require_once __DIR__ . '/../Model/Datasource/Database/MysqlExtended.php';
 
 // -------- the classes under test --------
 
+require_once APPLIBS . 'Migration/MigrationDeferredException.php';
+require_once APPLIBS . 'Migration/Collation.php';
 require_once APPLIBS . 'Migration/Grammar/AbstractGrammar.php';
 require_once APPLIBS . 'Migration/Grammar/MysqlGrammar.php';
 require_once APPLIBS . 'Migration/Grammar/PostgresGrammar.php';
@@ -177,8 +206,9 @@ if (!class_exists('MigrationTestPostgres', false)) {
 if (!class_exists('MigrationTestInspector', false)) {
     /**
      * A live schema with scripted contents and no connection behind it:
-     * table => array('columns' => names, 'indexes' => name => columns), the
-     * primary key being the index named PRIMARY, as both drivers report it.
+     * table => array('columns' => names, 'indexes' => name => columns,
+     * 'options' => tableOptions()), the primary key being the index named
+     * PRIMARY, as both drivers report it.
      */
     class MigrationTestInspector extends SchemaInspector
     {
@@ -221,6 +251,15 @@ if (!class_exists('MigrationTestInspector', false)) {
                 }
             }
             return $indexes;
+        }
+
+        public function tableOptions($table)
+        {
+            if (!isset($this->schema[$table])) {
+                return null;
+            }
+            $options = isset($this->schema[$table]['options']) ? $this->schema[$table]['options'] : array();
+            return $options + array('engine' => null, 'row_format' => null, 'collation' => null, 'charset' => null);
         }
     }
 }

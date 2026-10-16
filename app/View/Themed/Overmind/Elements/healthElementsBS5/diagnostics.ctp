@@ -456,16 +456,6 @@ usort($tables, function ($a, $b) {
 });
 $topTables = array_slice($tables, 0, 10);
 
-$schemaDiffs = 0;
-foreach (($dbSchemaDiagnostics['diagnostic'] ?? array()) as $diffs) {
-    $schemaDiffs += count($diffs);
-}
-$indexDiffs = 0;
-foreach (($dbSchemaDiagnostics['diagnostic_index'] ?? array()) as $columns) {
-    $indexDiffs += count($columns);
-}
-$schemaTotal = $schemaDiffs + $indexDiffs;
-
 // The ledger figures. db_version is frozen, so the schema-version pair below
 // is the same on a healthy and on a stalled instance - these say whether
 // schema work is outstanding, and a failure outranks everything else because
@@ -483,14 +473,14 @@ if ($migrationsFailed > 0) {
     $databaseBadge = array('level' => 1, 'label' => __('%s migration(s) deferred', count($migrationsDeferredReasons)));
 } elseif ($migrationsPending > 0) {
     $databaseBadge = array('level' => 1, 'label' => __('%s migration(s) pending', $migrationsPending));
-} elseif ($schemaTotal) {
-    $databaseBadge = array('level' => 1, 'label' => __('%s schema difference(s)', $schemaTotal));
+} elseif ((int)$dbSchemaDiagnostics['actual_db_version'] < (int)$dbSchemaDiagnostics['expected_db_version']) {
+    $databaseBadge = array('level' => 1, 'label' => __('Legacy updates pending'));
 } else {
-    $databaseBadge = array('level' => 2, 'label' => __('Schema matches'));
+    $databaseBadge = array('level' => 2, 'label' => __('Migrations up to date'));
 }
 
 $openCard('database', '#0dcaf0', __('Database status'),
-    __('Disk usage per table, outstanding migrations, and how the live schema compares to the expected one'),
+    __('Disk usage per table and outstanding migrations'),
     $databaseBadge);
 ?>
     <div class="row g-3 mb-3">
@@ -529,11 +519,9 @@ $openCard('database', '#0dcaf0', __('Database status'),
             <div class="d-flex align-items-center gap-2">
                 <span class="dg-version"><?= h($dbSchemaDiagnostics['actual_db_version']) ?></span>
                 <?php
-                $expected = $dbSchemaDiagnostics['expected_db_version'];
-                $actual = $dbSchemaDiagnostics['actual_db_version'];
-                echo $actual == $expected
-                    ? $pill(2, __('expected'))
-                    : $pill(1, __('expected %s', $expected));
+                echo (int)$dbSchemaDiagnostics['actual_db_version'] < (int)$dbSchemaDiagnostics['expected_db_version']
+                    ? $pill(1, __('legacy updates pending'))
+                    : $pill(2, __('current'));
                 ?>
             </div>
             <div class="dg-figures text-muted">
@@ -632,34 +620,6 @@ $openCard('database', '#0dcaf0', __('Database status'),
         <?= __('Keep at least 3× the size of the largest table free on disk, so the update scripts can work as expected.') ?>
     </p>
 
-    <?php if ($schemaTotal): ?>
-        <div class="dg-block-title"><?= __('Schema differences') ?></div>
-        <div class="dg-diffs">
-            <?php foreach (($dbSchemaDiagnostics['diagnostic'] ?? array()) as $tableName => $diffs): ?>
-                <?php foreach ($diffs as $diff): ?>
-                    <div class="dg-row dg-row-boxed">
-                        <span class="ss-setting-name"><?= h($tableName) ?></span>
-                        <span class="text-muted ms-2" style="font-size:.76rem;"><?= h($diff['description']) ?></span>
-                        <span class="ms-auto ps-2">
-                            <?= !empty($diff['is_critical']) ? $pill(0, __('critical')) : $pill(1, str_replace('_', ' ', $diff['error_type'])) ?>
-                        </span>
-                    </div>
-                <?php endforeach; ?>
-            <?php endforeach; ?>
-            <?php foreach (($dbSchemaDiagnostics['diagnostic_index'] ?? array()) as $tableName => $columns): ?>
-                <?php foreach ($columns as $column): ?>
-                    <div class="dg-row dg-row-boxed">
-                        <span class="ss-setting-name"><?= h($tableName) ?></span>
-                        <span class="text-muted ms-2" style="font-size:.76rem;"><?= h($column['message']) ?></span>
-                        <span class="ms-auto ps-2"><?= $pill(1, __('index')) ?></span>
-                    </div>
-                    <?php if (!empty($column['sql'])): ?>
-                        <pre class="dg-sql"><?= h($column['sql']) ?></pre>
-                    <?php endif; ?>
-                <?php endforeach; ?>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
 <?php $closeCard(); ?>
 
 <?php
@@ -914,11 +874,6 @@ $confirmations[$uid . '-authkeys'] = array(
     'body' => '<p class="mb-0 text-muted small">' . h(__('Every existing plaintext API key is converted into a hashed advanced authkey so users do not lose access when the advanced format is enabled.')) . '</p>',
     'label' => __('Upgrade authkeys'), 'cls' => 'btn-primary',
 );
-$confirmations[$uid . '-orphan-attr'] = array(
-    'title' => __('Remove orphaned attributes'),
-    'body' => '<p class="mb-0 text-muted small">' . h(__('Attributes that no longer belong to any event are deleted. Run the check first to see how many there are.')) . '</p>',
-    'label' => __('Remove them'), 'cls' => 'btn-danger',
-);
 $confirmations[$uid . '-orphan-corr'] = array(
     'title' => __('Remove orphaned correlations'),
     'body' => '<p class="mb-0 text-muted small">' . h(__('Correlations pointing at attributes that no longer exist are deleted.')) . '</p>',
@@ -934,15 +889,6 @@ $openCard('screwdriver-wrench', '#495057', __('Maintenance & tools'),
     __('One-off checks and clean-up routines for this instance'));
 ?>
     <div class="dg-block-title"><?= __('Consistency checks') ?></div>
-
-    <div class="dg-row">
-        <span class="dg-row-label"><?= __('Orphaned attributes') ?></span>
-        <span class="ms-auto d-flex align-items-center gap-2">
-            <span class="dg-figures text-muted" data-dg-out="orphan-attr"><?= __('not checked') ?></span>
-            <button type="button" class="btn btn-sm btn-outline-secondary"
-                    data-dg-check="orphan-attr"><?= __('Check') ?></button>
-        </span>
-    </div>
 
     <div class="dg-row">
         <span class="dg-row-label"><?= __('Attachments referenced but missing on disk') ?></span>
@@ -970,9 +916,6 @@ $openCard('screwdriver-wrench', '#495057', __('Maintenance & tools'),
         <button type="button" class="btn btn-sm btn-outline-primary" onclick="dgConfirm('<?= h($uid) ?>-authkeys')">
             <i class="fas fa-key me-1"></i><?= __('Upgrade authkeys') ?>
         </button>
-        <button type="button" class="btn btn-sm btn-outline-danger" onclick="dgConfirm('<?= h($uid) ?>-orphan-attr')">
-            <i class="fas fa-trash me-1"></i><?= __('Remove orphaned attributes') ?>
-        </button>
         <button type="button" class="btn btn-sm btn-outline-danger" onclick="dgConfirm('<?= h($uid) ?>-orphan-corr')">
             <i class="fas fa-trash me-1"></i><?= __('Remove orphaned correlations') ?>
         </button>
@@ -985,8 +928,6 @@ $openCard('screwdriver-wrench', '#495057', __('Maintenance & tools'),
         array('id' => $uid . '-cache', 'class' => 'd-none', 'escape' => false)) ?>
     <?= $this->Form->postLink('', $baseurl . '/users/updateToAdvancedAuthKeys',
         array('id' => $uid . '-authkeys', 'class' => 'd-none', 'escape' => false)) ?>
-    <?= $this->Form->postLink('', $baseurl . '/attributes/pruneOrphanedAttributes',
-        array('id' => $uid . '-orphan-attr', 'class' => 'd-none', 'escape' => false)) ?>
     <?= $this->Form->postLink('', $baseurl . '/servers/removeOrphanedCorrelations',
         array('id' => $uid . '-orphan-corr', 'class' => 'd-none', 'escape' => false)) ?>
     <?= $this->Form->postLink('', $baseurl . '/events/cullEmptyEvents',
@@ -999,9 +940,6 @@ $openCard('screwdriver-wrench', '#495057', __('Maintenance & tools'),
         </a>
         <a href="<?= h($baseurl . '/events/restoreDeletedEvents') ?>" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-trash-arrow-up me-1"></i><?= __('Recover deleted events') ?>
-        </a>
-        <a href="<?= h($baseurl . '/pages/display/administration') ?>" class="btn btn-sm btn-outline-secondary">
-            <i class="fas fa-clock-rotate-left me-1"></i><?= __('Legacy administrative tools') ?>
         </a>
     </div>
 <?php $closeCard(); ?>
@@ -1018,7 +956,6 @@ $openCard('screwdriver-wrench', '#495057', __('Maintenance & tools'),
     var L = <?= json_encode(array(
         'cancel' => __('Cancel'),
         'ok' => __('OK'),
-        'recommended' => __('removal recommended'),
         'badLinks' => __('bad links detected'),
         'failed' => __('The check could not be run.'),
         'zmqFailed' => __('The ZeroMQ action failed.'),
@@ -1041,15 +978,6 @@ $openCard('screwdriver-wrench', '#495057', __('Maintenance & tools'),
     function out(name) { return root.querySelector('[data-dg-out="' + name + '"]'); }
 
     var CHECKS = {
-        'orphan-attr': {
-            url: baseurl + '/attributes/checkOrphanedAttributes/',
-            render: function (text) {
-                var zero = text.trim() === '0';
-                return '<span class="ss-prio ss-lvl-' + (zero ? 2 : 0) + '">'
-                    + '<i class="fas fa-' + (zero ? 'circle-check' : 'circle-xmark') + '"></i>'
-                    + text.trim() + (zero ? '' : ' — ' + L.recommended) + '</span>';
-            }
-        },
         'bad-attachments': {
             url: baseurl + '/attributes/checkAttachments/',
             render: function (text) {

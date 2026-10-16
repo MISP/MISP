@@ -12,10 +12,9 @@ Normalisation of every body:
   random and their traces carry line numbers.
 - Date-times inside the request's own time window are generation timestamps;
   the frozen data predates every recording.
-- Random ids (openioc root and top indicator, STIX 1 package, STIX 2 bundle,
-  multi-attribute YARA rule names, converter temp file names in error
-  messages) and day-granular stamps (suricata updated_at, the RPZ serial,
-  openioc's 12-hour header dates) are masked.
+- Random ids (STIX 1 package, STIX 2 bundle, multi-attribute YARA rule
+  names, converter temp file names in error messages) and day-granular
+  stamps (suricata updated_at, the RPZ serial) are masked.
 - xlsx bodies are unzipped and recorded per member.
 
 Bodies are compared without their row order (core.unordered_form): the event
@@ -40,7 +39,7 @@ from suites.restsearch import load_fixtures
 EVENT_FORMATS = (
     'attack', 'attack-sightings', 'cache', 'context', 'context-markdown',
     'count', 'csv', 'hashes', 'hosts', 'json', 'kunai', 'netfilter',
-    'openioc', 'rpz', 'snort', 'stix', 'stix-json', 'stix2', 'suricata',
+    'rpz', 'snort', 'stix', 'stix2', 'suricata',
     'text', 'xlsx', 'xml', 'yara', 'yara-json',
 )
 ATTRIBUTE_FORMATS = tuple(
@@ -55,13 +54,11 @@ SAMPLE = (
     'small', 'composite', 'objects', 'object_acl', 'object_distribution',
     'proposals', 'proposal_delete', 'largest',
 )
-# stix-json is what the API answers for stix under a JSON Accept header.
+# 2.x answers stix under a JSON Accept header with STIX 1 JSON.
 ACCEPT = {'stix': 'application/xml'}
 HANGS = {
     ('attr', 'objects', 'stix'),
-    ('attr', 'objects', 'stix-json'),
     ('attr', 'largest', 'stix'),
-    ('attr', 'largest', 'stix-json'),
 }
 WINDOW_SLACK = 5
 
@@ -75,17 +72,8 @@ DATETIME = re.compile(
     r'(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d)(\.\d+)?'
     r'(Z|[+-]\d\d:?\d\d| [+-]\d{4})?')
 SUBSTITUTIONS = {
-    'openioc': [
-        (r'(<ioc [^>]*\bid=")[^"]*(" last-modified=")[^"]*"',
-         r'\1<random>\2<generated>"'),
-        (r'<authored_date>[^<]*</authored_date>',
-         '<authored_date><generated></authored_date>'),
-        (r'(<definition>\s*<Indicator operator="OR" id=")[^"]*"',
-         r'\1<random>"'),
-    ],
     'rpz': [(r'(SOA \S+ \S+ \()\d+', r'\1<serial>')],
     'stix': [(r'STIXPackage-[0-9a-f-]{36}', 'STIXPackage-<random>', 1)],
-    'stix-json': [(r'STIXPackage-[0-9a-f-]{36}', 'STIXPackage-<random>', 1)],
     'stix2': [(r'"bundle--[0-9a-f-]{36}"', '"bundle--<random>"')],
     'suricata': [(r'updated_at \d{4}_\d\d_\d\d', 'updated_at <today>')],
     'yara': [(r'MISP_MULTI_ATTRIBUTES_[0-9a-f]{32}',

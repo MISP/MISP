@@ -174,7 +174,7 @@ class AdminShell extends AppShell
             'help' => __('Run the pre-release tasks (for developers).'),
         ]);
         $parser->addSubcommand('schemaDiagnostics', [
-            'help' => __('Check differences between current and expected database schema')
+            'help' => __('Show the database update state: applied, pending, failed and deferred migrations')
         ]);
         $parser->addSubcommand('migrationStatus', [
             'help' => __('Report the database migrations: which have been applied, which are still pending, and which failed.'),
@@ -225,8 +225,8 @@ class AdminShell extends AppShell
             'parser' => [
                 'options' => [
                     'engine' => [
-                        'help' => __('Which engine to render for: mysql or pgsql.'),
-                        'choices' => ['mysql', 'pgsql'],
+                        'help' => __('Which engine to render for: mariadb (MariaDB 10.11 or later), mysql (MySQL 8.4 or later) or pgsql.'),
+                        'choices' => ['mariadb', 'mysql', 'pgsql'],
                         'required' => true,
                     ],
                     'database' => [
@@ -234,6 +234,20 @@ class AdminShell extends AppShell
                     ],
                     'output' => [
                         'help' => __('Write the baseline here instead of printing it. The notes on what could not be rendered as-is always go to stderr.'),
+                    ],
+                ],
+            ],
+        ]);
+        $parser->addSubcommand('dumpSchemaTargets', [
+            'help' => __('Derive the 3.0 schema target of every table from a reference database: a fresh install with every migration applied. Writes targets.php and targets.notes. For developers.'),
+            'parser' => [
+                'options' => [
+                    'database' => [
+                        'help' => __('The reference database on the connected MySQL server. Default: the connected database.'),
+                    ],
+                    'output' => [
+                        'help' => __('The directory to write targets.php and targets.notes into.'),
+                        'required' => true,
                     ],
                 ],
             ],
@@ -694,23 +708,6 @@ class AdminShell extends AppShell
                 $this->Job->saveStatus($jobId, true, $message);
             }
         }
-    }
-
-    public function jobUpgrade24()
-    {
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Job upgrade']);
-        }
-
-        $jobId = $this->args[0];
-        $user_id = $this->args[1];
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('Server');
-        $this->Server->upgrade2324($user_id, $jobId);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done.');
-        $this->Job->saveField('status', 4);
     }
 
     public function prune_update_logs()
@@ -1645,21 +1642,19 @@ class AdminShell extends AppShell
      * corpus produced - what CI builds from INSTALL/MYSQL.sql and runUpdates -
      * and it may sit beside the working database on the same server. The
      * connected datasource is only the reader; the engine rendered for is
-     * whatever --engine asks, through the offline grammar when the host
-     * cannot connect to it.
+     * whatever --engine asks, always through an offline grammar.
      *
      * @return void
      */
     public function dumpInstallBaseline()
     {
         App::uses('BaselineGenerator', 'Migration');
-        App::uses('AbstractGrammar', 'Migration/Grammar');
 
         $engine = isset($this->params['engine']) ? (string)$this->params['engine'] : '';
-        if (!in_array($engine, AbstractGrammar::flavours(), true)) {
+        if (!in_array($engine, BaselineGenerator::engines(), true)) {
             $this->error(
                 __('"%s" is not an engine this can render for.', $engine),
-                __('Use --engine %s.', implode(' or --engine ', AbstractGrammar::flavours()))
+                __('Use --engine %s.', implode(' or --engine ', BaselineGenerator::engines()))
             );
         }
 
@@ -1687,10 +1682,8 @@ class AdminShell extends AppShell
             );
         }
 
-        $live = AbstractGrammar::forDataSource($db);
-        $grammar = $live->flavour() === $engine ? $live : AbstractGrammar::offline($engine);
-
         try {
+            $grammar = BaselineGenerator::grammar($engine);
             $schema = $generator->readSchema();
             $seeds = $generator->readSeedRows($schema);
             $rendered = $generator->render($grammar, $schema, $seeds, $version);
@@ -1717,6 +1710,67 @@ class AdminShell extends AppShell
             return;
         }
         $this->out($rendered['sql'], 0);
+    }
+
+    public function dumpSchemaTargets()
+    {
+        App::uses('BaselineGenerator', 'Migration');
+        App::uses('MigrationManager', 'Migration');
+        App::uses('SchemaTargetGenerator', 'Migration');
+
+        $directory = rtrim((string)$this->params['output'], DS);
+        if (!is_dir($directory) || !is_writable($directory)) {
+            $this->error(__('%s is not a writable directory.', $directory));
+        }
+        try {
+            $reader = new BaselineGenerator(
+                $this->Server->getDataSource(),
+                empty($this->params['database']) ? null : (string)$this->params['database']
+            );
+        } catch (InvalidArgumentException $e) {
+            $this->error(__('The reference cannot be read through this connection.'), $e->getMessage());
+        }
+
+        $version = $reader->databaseVersion();
+        if ($version !== AppModel::DB_CHANGES_FREEZE) {
+            $this->error(__(
+                'The reference database "%s" is at db_version %s, not %s.',
+                $reader->database(),
+                $version === null ? 'none' : $version,
+                AppModel::DB_CHANGES_FREEZE
+            ));
+        }
+        $manager = new MigrationManager($this->AdminSetting);
+        $missing = array_diff($manager->ids(), $reader->appliedMigrations());
+        if (!empty($missing)) {
+            $this->error(
+                __('The reference database "%s" has not applied every migration.', $reader->database()),
+                __('Missing: %s', implode(', ', $missing))
+            );
+        }
+
+        $generator = new SchemaTargetGenerator();
+        try {
+            $targets = $generator->generate($reader->readSchema());
+        } catch (Exception $e) {
+            $this->error(__('No targets were written.'), $e->getMessage());
+        }
+
+        FileAccessTool::writeToFile($directory . DS . 'targets.php', SchemaTargetGenerator::exportAll($targets));
+        FileAccessTool::writeToFile(
+            $directory . DS . 'targets.notes',
+            $generator->report($targets, $reader->database() . ' (' . $this->Server->getDataSource()->getVersion() . ')')
+        );
+        foreach ($generator->warnings() as $warning) {
+            $this->err('-- ' . $warning);
+        }
+        $this->out(__(
+            '%s targets from %s, %s warnings, written to %s.',
+            count($targets),
+            $reader->database(),
+            count($generator->warnings()),
+            $directory
+        ));
     }
 
     /**
@@ -1947,8 +2001,16 @@ class AdminShell extends AppShell
     {
         $dbSchemaDiagnostics = $this->Server->dbSchemaDiagnostic();
 
-        // db_version is frozen, so the version pair no longer says whether
-        // schema work is outstanding - the ledger does.
+        $line = ' db_version: ' . $dbSchemaDiagnostics['actual_db_version'];
+        if ((int)$dbSchemaDiagnostics['actual_db_version'] < (int)$dbSchemaDiagnostics['expected_db_version']) {
+            $line .= ' <warning>' . __('(legacy updates pending, up to %s)', $dbSchemaDiagnostics['expected_db_version']) . '</warning>';
+        }
+        $this->out('# Database');
+        $this->out($line);
+        $this->out();
+
+        // db_version is frozen, so it no longer says whether schema work is
+        // outstanding - the ledger does.
         $this->out('# Migrations');
         $this->out(' Applied: ' . $dbSchemaDiagnostics['migrations_applied']);
         $this->out(' Failed:  ' . $dbSchemaDiagnostics['migrations_failed']);
@@ -1971,39 +2033,6 @@ class AdminShell extends AppShell
                 $this->out(' - ' . $warning);
             }
             $this->out();
-        }
-
-        $this->out('# Columns diagnostics');
-        foreach ($dbSchemaDiagnostics['diagnostic'] as $tableName => $diagnostics) {
-            $diagnostics = array_filter($diagnostics, function ($c) {
-                return $c['is_critical'];
-            });
-            if (empty($diagnostics)) {
-                continue;
-            }
-            $this->out();
-            $this->out("Table `$tableName`:");
-            foreach ($diagnostics as $diagnostic) {
-                $this->out(' - ' . $diagnostic['description']);
-                if (!empty($diagnostic['expected'])) {
-                    $this->out('   Expected: ' . implode(' ', $diagnostic['expected']));
-                }
-                if (!empty($diagnostic['actual'])) {
-                    $this->out('   Actual:   ' . implode(' ', $diagnostic['actual']));
-                }
-            }
-        }
-
-        if (!empty($dbSchemaDiagnostics['diagnostic_index'])) {
-            $this->out();
-            $this->out('# Index diagnostics');
-            foreach ($dbSchemaDiagnostics['diagnostic_index'] as $tableName => $diagnostics) {
-                $this->out();
-                $this->out('Table ' . $tableName . ':');
-                foreach ($diagnostics as $info) {
-                    $this->out(' - ' . $info['message']);
-                }
-            }
         }
     }
 

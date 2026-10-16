@@ -64,7 +64,6 @@ class Event extends AppModel
     public $fieldDescriptions = array(
         'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
         'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
-        'submittedioc' => array('desc' => '', 'formdesc' => ''),
         'analysis' => array('desc' => 'Analysis Levels: *Initial* means the event has just been created, *Ongoing* means that the event is being populated, *Complete* means that the event\'s creation is complete', 'formdesc' => 'Analysis levels: Initial: event has been started Ongoing: event population is in progress Complete: event creation has finished'),
         'distribution' => array('desc' => 'Describes who will have access to the event.')
     );
@@ -126,11 +125,9 @@ class Event extends AppModel
         'kunai' => ['json', 'KunaiExport', 'json'],
         'netfilter' => array('txt', 'NetfilterExport', 'sh'),
         'opendata' => array('txt', 'OpendataExport', 'txt'),
-        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
-        'stix-json' => array('json', 'Stix1Export', 'json'),
         'stix2' => array('json', 'Stix2Export', 'json'),
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'text' => array('text', 'TextExport', 'txt'),
@@ -5834,7 +5831,7 @@ class Event extends AppModel
 
         // do not expose all the data ...
         $fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.first_publication', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid', 'Event.protected');
-        $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value1_id', 'Attribute.value2_id', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
+        $fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value1_id', 'Attribute.value2_id', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.created', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation', 'Attribute.first_seen', 'Attribute.last_seen');
         $fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value1_id', 'ShadowAttribute.value2_id', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp', 'ShadowAttribute.first_seen', 'ShadowAttribute.last_seen');
         $fieldsOrg = array('id', 'name', 'uuid', 'local');
         $params = array(
@@ -9386,28 +9383,6 @@ class Event extends AppModel
         }
     }
 
-    public function reportValidationIssuesEvents()
-    {
-        $this->Behaviors->detach('Regexp');
-        // get all events..
-        $events = $this->find('all', array('recursive' => -1));
-        // for all events..
-        $result = array();
-        $k = 0;
-        $i = 0;
-        foreach ($events as $k => $event) {
-            $this->set($event);
-            if (!$this->validates()) {
-                $errors = $this->validationErrors;
-                $result[$i]['id'] = $event['Event']['id'];
-                $result[$i]['error'] = $errors;
-                $result[$i]['details'] = $event;
-                $i++;
-            }
-        }
-        return array($result, $k);
-    }
-
     // check two version strings. If version 1 is older than 2, return -1, if they are the same return 0, if version 2 is older return 1
     public function compareVersions($version1, $version2)
     {
@@ -10787,58 +10762,6 @@ class Event extends AppModel
                 $data['Tag'][] = array('name' => $tag_name);
             }
         }
-    }
-
-    /**
-     * @param string $scriptDir
-     * @return string
-     * @throws Exception
-     */
-    private function __getTagNamesFromSynonyms($scriptDir)
-    {
-        $synonymsToTagNames = $scriptDir . DS . 'tmp' . DS . 'synonymsToTagNames.json';
-        if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
-            if (!isset($this->GalaxyCluster)) {
-                $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            }
-            // The latest version of every cluster, by tag name. This used to
-            // be a GROUP BY tag_name that also selected value and id, which
-            // MySQL tolerates (and answers with an arbitrary row per group)
-            // and PostgreSQL rejects. Ascending by version and letting the
-            // later row overwrite the earlier one is the same question asked
-            // portably, and it is what the old query was assumed to answer.
-            $clusters = array();
-            $allClusters = $this->GalaxyCluster->find('all', array(
-                'recursive' => -1,
-                'fields' => array('GalaxyCluster.value', 'GalaxyCluster.version', 'GalaxyCluster.tag_name', 'GalaxyCluster.id'),
-                'order' => array('GalaxyCluster.version ASC', 'GalaxyCluster.id ASC'),
-            ));
-            foreach ($allClusters as $cluster) {
-                $clusters[$cluster['GalaxyCluster']['tag_name']] = $cluster;
-            }
-            unset($allClusters);
-            $clusters = array_values($clusters);
-            $synonyms = $this->GalaxyCluster->GalaxyElement->find('all', array(
-                'recursive' => -1,
-                'fields' => array('galaxy_cluster_id', 'value'),
-                'conditions' => array('key' => 'synonyms')
-            ));
-            $idToSynonyms = array();
-            foreach ($synonyms as $synonym) {
-                $idToSynonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym['GalaxyElement']['value'];
-            }
-            $mapping = array();
-            foreach ($clusters as $cluster) {
-                $mapping[$cluster['GalaxyCluster']['value']][] = $cluster['GalaxyCluster']['tag_name'];
-                if (!empty($idToSynonyms[$cluster['GalaxyCluster']['id']])) {
-                    foreach ($idToSynonyms[$cluster['GalaxyCluster']['id']] as $synonym) {
-                        $mapping[$synonym][] = $cluster['GalaxyCluster']['tag_name'];
-                    }
-                }
-            }
-            FileAccessTool::writeToFile($synonymsToTagNames, JsonTool::encode($mapping));
-        }
-        return $synonymsToTagNames;
     }
 
     public function enrichmentRouter($options)

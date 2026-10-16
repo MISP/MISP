@@ -491,7 +491,7 @@ class AttributeValueTest extends TestCase
 
         $this->assertSame('expression', $in->type);
         $this->assertSame(
-            "`Attribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%it''s%')",
+            "`Attribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%it\\'s%')",
             $in->value
         );
         $this->assertSame(
@@ -511,7 +511,7 @@ class AttributeValueTest extends TestCase
         $this->assertSame(['ids' => [3, 8], 'overflow' => false], $model->resolveSearch('google.com', 2));
         $this->assertSame(
             "SELECT `id` FROM `attribute_values` WHERE MATCH(`value`) AGAINST('+google +com*' IN BOOLEAN MODE)" .
-            " AND `value` LIKE '%google.com%' AND `value` REGEXP '(^|[^\p{L}\p{N}_])google\.com' LIMIT 3",
+            " AND `value` LIKE '%google.com%' AND `value` REGEXP '(^|[^\\\\p{L}\\\\p{N}_])google\\\\.com' LIMIT 3",
             $this->mysql->statements[0]
         );
         $this->assertSame(['ids' => [], 'overflow' => true], $model->resolveSearch('google.com', 1));
@@ -523,7 +523,7 @@ class AttributeValueTest extends TestCase
 
         $this->assertSame(
             "SELECT `id` FROM `attribute_values` WHERE MATCH(`value`) AGAINST('+com' IN BOOLEAN MODE)" .
-            " AND `value` LIKE '%.com/%' AND `value` REGEXP '\.com/' LIMIT 50001",
+            " AND `value` LIKE '%.com/%' AND `value` REGEXP '\\\\.com/' LIMIT 50001",
             $this->mysql->statements[0]
         );
     }
@@ -552,7 +552,7 @@ class AttributeValueTest extends TestCase
         $this->model($this->mysql)->resolveSearch('.ru', 10);
 
         $this->assertSame(
-            "SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%.ru%' AND `value` REGEXP '\.ru' LIMIT 11",
+            "SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%.ru%' AND `value` REGEXP '\\\\.ru' LIMIT 11",
             $this->mysql->statements[0]
         );
     }
@@ -581,7 +581,7 @@ class AttributeValueTest extends TestCase
 
         $this->assertSame(
             "SELECT `id` FROM `attribute_values` WHERE MATCH(`value`) AGAINST('+_off' IN BOOLEAN MODE)" .
-            " AND `value` LIKE '%50\%\_off\\\\x''s%' AND `value` REGEXP '(^|[^\p{L}\p{N}_])50%_off\\\\x''s' LIMIT 11",
+            " AND `value` LIKE '%50\\\\%\\\\_off\\\\\\\\x\\'s%' AND `value` REGEXP '(^|[^\\\\p{L}\\\\p{N}_])50%_off\\\\\\\\x\\'s' LIMIT 11",
             $this->mysql->statements[0]
         );
         $this->assertSame(
@@ -607,7 +607,7 @@ class AttributeValueTest extends TestCase
         // Inside the statement without the index, as a bounded find
         $this->assertSame(
             "`Attribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%broad%'" .
-            " AND `value` REGEXP '(^|[^\p{L}\p{N}_])broad')",
+            " AND `value` REGEXP '(^|[^\\\\p{L}\\\\p{N}_])broad')",
             $condition['OR'][1]->value
         );
         $this->assertSame(['Attribute.value2_id IN' => [4, 9]], $condition['OR'][2]);
@@ -628,7 +628,7 @@ class AttributeValueTest extends TestCase
         $this->assertSame([], $this->mysql->statements);
         $this->assertSame(
             "`Attribute`.`value1_id` IN (SELECT `id` FROM `attribute_values` WHERE `value` LIKE '%google.com%'" .
-            " AND `value` REGEXP '(^|[^\p{L}\p{N}_])google\.com')",
+            " AND `value` REGEXP '(^|[^\\\\p{L}\\\\p{N}_])google\\\\.com')",
             $condition['OR'][0]->value
         );
         $this->assertSame(
@@ -682,7 +682,7 @@ class AttributeValueTest extends TestCase
         $this->mysql->statements = [];
         $model->matchesEmpty(['\\%'], true);
         $this->assertSame(
-            ["SELECT 0 AS `term` FROM DUAL WHERE _utf8mb4'' COLLATE utf8mb4_uca1400_ai_ci LIKE '\\%'"],
+            ["SELECT 0 AS `term` FROM DUAL WHERE _utf8mb4'' COLLATE utf8mb4_uca1400_ai_ci LIKE '\\\\%'"],
             $this->mysql->statements
         );
     }

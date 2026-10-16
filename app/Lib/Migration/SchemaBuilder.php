@@ -46,8 +46,11 @@ App::uses('SchemaTableBuilder', 'Migration');
  *   so a few sequences that work as separate statements fail as one: naming a
  *   column an earlier operation already named, dropping or renaming a column
  *   an index added in the statement covers, dropping an index added in the
- *   statement. Splitting costs at most a second rebuild, so the rule splits
- *   whenever it is in doubt.
+ *   statement. Setting a table option twice splits the same way, and so does
+ *   a new default charset after a column redefined without one of its own:
+ *   in one statement that column takes the new default, not the old one.
+ *   Splitting costs at most a second rebuild, so the rule splits whenever it
+ *   is in doubt.
  *
  * ## What is already there is left out
  *
@@ -56,7 +59,9 @@ App::uses('SchemaTableBuilder', 'Migration');
  * that is already gone is not dropped again. A migration that stopped halfway
  * then re-runs as just the part that did not land, and no statement carries a
  * clause the server would refuse - which matters, because when one clause of
- * an ALTER TABLE fails, none of them is made.
+ * an ALTER TABLE fails, none of them is made. A table option the table already
+ * has is left out too: setting ROW_FORMAT or ENGINE to what it already is
+ * still rebuilds the table.
  *
  * ## The escape hatch
  *
@@ -99,7 +104,27 @@ class SchemaBuilder
         'addIndex',
         'dropIndex',
         'dropPrimaryKey',
+        'changeOptions',
         'rawSql',
+    );
+
+    /**
+     * Column types with a charset: declared without one, a column takes the
+     * table's default.
+     *
+     * @var array
+     */
+    private static $characterTypes = array('string', 'text', 'mediumtext', 'longtext');
+
+    /**
+     * changeOptions() keys by the clause they render in.
+     *
+     * @var array
+     */
+    private static $optionClauses = array(
+        'engine' => array('engine'),
+        'row_format' => array('row_format'),
+        'default' => array('charset', 'collate'),
     );
 
     /**
@@ -243,11 +268,14 @@ class SchemaBuilder
      * A table that is already there still gets whichever of its declared
      * indexes it lacks: on PostgreSQL those are statements of their own, so a
      * run that stopped after the CREATE TABLE leaves the table without them.
+     * A table option change likewise keeps only the options the table lacks.
      *
      * @param SchemaInspector $inspector The live schema. It must read the engine
      *   this builder's grammar names indexes for.
-     * @return array One line per operation left out.
+     * @return array One line per operation, or part of one, left out.
      * @throws LogicException When the inspector reads another engine.
+     * @throws MigrationDeferredException When a collation token cannot be
+     *   resolved for this server.
      */
     public function skipSatisfied(SchemaInspector $inspector)
     {
@@ -265,11 +293,15 @@ class SchemaBuilder
         foreach ($this->operations as $index => $operation) {
             $opaque = $opaque || $operation['operation'] === 'rawSql';
             $note = $opaque ? null : $this->satisfied($inspector, $tables, $operation);
-            if ($note === null) {
+            if ($note !== null) {
+                $skipped[] = $note;
+            }
+            // satisfied() narrows a changeOptions() to the options still missing.
+            $partly = $operation['operation'] === 'changeOptions' && !empty($operation['arguments'][1]);
+            if ($note === null || $partly) {
                 $kept[$index] = $operation;
                 continue;
             }
-            $skipped[] = $note;
             if ($operation['operation'] === 'createTable') {
                 foreach ($this->declaredIndexes($operation) as $n => $addIndex) {
                     if ($this->satisfied($inspector, $tables, $addIndex) === null) {
@@ -370,8 +402,9 @@ class SchemaBuilder
     /**
      * What an operation on an existing table touches: whether it adds or drops
      * a column, and the names it involves - the columns it names, the columns
-     * it removes, the indexes it adds or drops, and the columns the added ones
-     * cover.
+     * it removes, the indexes it adds or drops, the columns the added ones
+     * cover, the table options it sets, and the columns it defines without a
+     * charset of their own.
      *
      * @param AbstractGrammar $grammar
      * @param array $operation
@@ -387,17 +420,22 @@ class SchemaBuilder
             'indexedColumns' => array(),
             'addsIndexes' => array(),
             'dropsIndexes' => array(),
+            'options' => array(),
+            'takesDefault' => array(),
         );
         $options = array();
+        $defined = null;
         switch ($operation['operation']) {
             case 'addColumn':
             case 'changeColumn':
                 $names['columns'][] = $arguments[1];
+                $defined = array($arguments[1], $arguments[2]);
                 $options = $arguments[3];
                 break;
             case 'renameColumn':
                 $names['columns'] = array($arguments[1], $arguments[2]);
                 $names['removes'][] = $arguments[1];
+                $defined = array($arguments[2], $arguments[3]);
                 $options = $arguments[4];
                 break;
             case 'dropColumn':
@@ -411,9 +449,24 @@ class SchemaBuilder
             case 'dropIndex':
                 $names['dropsIndexes'][] = $grammar->indexName($table, $arguments[1]);
                 break;
+            case 'changeOptions':
+                foreach (self::$optionClauses as $clause => $keys) {
+                    if (array_intersect_key($arguments[1], array_flip($keys))) {
+                        $names['options'][] = $clause;
+                    }
+                }
+                break;
         }
         if (!empty($options['after'])) {
             $names['columns'][] = $options['after'];
+        }
+        if (
+            $defined !== null &&
+            in_array($defined[1], self::$characterTypes, true) &&
+            !isset($options['charset']) &&
+            !isset($options['collate'])
+        ) {
+            $names['takesDefault'][] = $defined[0];
         }
         $addsOrDrops = in_array($operation['operation'], array('addColumn', 'dropColumn'), true);
         return array('addsOrDropsColumn' => $addsOrDrops, 'names' => $names);
@@ -435,7 +488,9 @@ class SchemaBuilder
         return $batch['addsOrDropsColumn'] === $next['addsOrDropsColumn']
             && !array_intersect($names['columns'], $joined['columns'])
             && !array_intersect($names['removes'], $joined['indexedColumns'])
-            && !array_intersect($names['dropsIndexes'], $joined['addsIndexes']);
+            && !array_intersect($names['dropsIndexes'], $joined['addsIndexes'])
+            && !array_intersect($names['options'], $joined['options'])
+            && !(in_array('default', $names['options'], true) && !empty($joined['takesDefault']));
     }
 
     /**
@@ -444,10 +499,12 @@ class SchemaBuilder
      *
      * @param SchemaInspector $inspector
      * @param array $tables Table => tableState().
-     * @param array $operation
-     * @return string|null Why the operation can be left out; null to keep it.
+     * @param array $operation A changeOptions() is narrowed to the options the
+     *   table does not have yet.
+     * @return string|null Why the operation, or for a changeOptions() part of
+     *   it, can be left out; null to keep it.
      */
-    private function satisfied(SchemaInspector $inspector, array &$tables, array $operation)
+    private function satisfied(SchemaInspector $inspector, array &$tables, array &$operation)
     {
         $arguments = $operation['arguments'];
         $table = $arguments[0];
@@ -538,9 +595,85 @@ class SchemaBuilder
                 }
                 $state['primary'] = array();
                 break;
+            case 'changeOptions':
+                $note = $this->presentOptions($inspector, $state, $operation);
+                $tables[$table] = $state;
+                return $note;
         }
         $tables[$table] = $state;
         return null;
+    }
+
+    /**
+     * Take out of a changeOptions() the options the table already has.
+     *
+     * The default charset and collation are one clause, there or not as a
+     * pair; a charset declared alone is there when the table has it. Nothing
+     * is compared on PostgreSQL, which renders none of them.
+     *
+     * @param SchemaInspector $inspector
+     * @param array $state The table, which then has the options set.
+     * @param array $operation
+     * @return string|null The options left out, if any.
+     */
+    private function presentOptions(SchemaInspector $inspector, array &$state, array &$operation)
+    {
+        if ($this->grammar->flavour() !== AbstractGrammar::FLAVOUR_MYSQL) {
+            return null;
+        }
+        list($table, $declared) = $operation['arguments'];
+        if (!array_key_exists('options', $state)) {
+            $state['options'] = (array)$inspector->tableOptions($table);
+        }
+        $live = $state['options'] + array_fill_keys(array('engine', 'row_format', 'collation', 'charset'), null);
+        $wanted = $this->grammar->tableOptions($declared);
+
+        $present = array();
+        if (isset($wanted['engine'], $live['engine']) && strcasecmp($wanted['engine'], $live['engine']) === 0) {
+            $present['engine'] = 'ENGINE=' . $live['engine'];
+        }
+        if (isset($wanted['row_format']) && $wanted['row_format'] === $live['row_format']) {
+            $present['row_format'] = 'ROW_FORMAT=' . $wanted['row_format'];
+        }
+        if (isset($wanted['collate'])) {
+            if (isset($live['collation']) && strcasecmp($wanted['collate'], $live['collation']) === 0) {
+                $present['default'] = sprintf(
+                    'DEFAULT CHARSET=%s COLLATE=%s',
+                    $live['charset'],
+                    $live['collation']
+                );
+            }
+        } elseif (
+            isset($wanted['charset'], $live['charset']) &&
+            strcasecmp($wanted['charset'], $live['charset']) === 0
+        ) {
+            $present['default'] = 'DEFAULT CHARSET=' . $live['charset'];
+        }
+
+        if (isset($wanted['engine'])) {
+            $state['options']['engine'] = $wanted['engine'];
+        }
+        if (isset($wanted['row_format'])) {
+            $state['options']['row_format'] = $wanted['row_format'];
+        }
+        if (isset($wanted['collate'])) {
+            $state['options']['collation'] = $wanted['collate'];
+            $state['options']['charset'] = SchemaInspector::charsetOfCollation($wanted['collate']);
+        } elseif (isset($wanted['charset']) && !isset($present['default'])) {
+            $state['options']['collation'] = null;
+            $state['options']['charset'] = $wanted['charset'];
+        }
+
+        if (empty($present)) {
+            return null;
+        }
+        foreach (array_keys($present) as $clause) {
+            foreach (self::$optionClauses[$clause] as $key) {
+                unset($declared[$key]);
+            }
+        }
+        $operation['arguments'][1] = $declared;
+        return sprintf('%s: the table already has %s', $table, implode(', ', $present));
     }
 
     /**

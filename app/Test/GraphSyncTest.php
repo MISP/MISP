@@ -397,7 +397,7 @@ class GraphSyncTestAnalystData extends AnalystData
         return json_decode($json, true);
     }
 
-    public function captureAnalystData(array $user, array $analystData, $fromPull = false, $orgUUId = false, $server = false): array
+    public function captureAnalystData(array $user, array $analystData, $fromPull = false, $orgUUId = false, $server = false, $fromPre30 = null): array
     {
         $this->captured[] = $analystData;
         $record = reset($analystData);

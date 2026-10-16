@@ -271,23 +271,4 @@ class RegexpController extends AppController
         $this->Flash->info(__('All done! Number of changed attributes: ' . $modifications . ' Number of deletions: ' . count($deletable)));
         $this->redirect(array('action' => 'index'));
     }
-
-
-    public function cleanRegexModifiers()
-    {
-        $this->request->allowMethod(['post']);
-
-        $entries = $this->Regexp->find('all', array());
-        $changes = 0;
-        foreach ($entries as $entry) {
-            $length = strlen($entry['Regexp']['regexp']);
-            $this->Regexp->sanitizeModifiers($entry['Regexp']['regexp']);
-            if (strlen($entry['Regexp']['regexp']) < $length) {
-                $this->Regexp->save($entry);
-                $changes++;
-            }
-        }
-        $this->Flash->info(__('All done! Found and cleaned ' . $changes . ' potentially malicious regexes.'));
-        $this->redirect('/pages/display/administration');
-    }
 }

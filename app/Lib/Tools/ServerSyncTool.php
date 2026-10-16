@@ -19,7 +19,8 @@ class ServerSyncTool
         FEATURE_FAST_CACHING = 'fast_caching',
         FEATURE_COLLECTION_SYNC = 'collection_sync',
         FEATURE_ANALYST_GRAPH = 'analyst_graph',
-        FEATURE_ANALYST_DATA_BATCH = 'analyst_data_batch_push';
+        FEATURE_ANALYST_DATA_BATCH = 'analyst_data_batch_push',
+        FEATURE_VALUE_TARGETS = 'value_targets';
 
     /** @var array */
     private $server;
@@ -646,6 +647,8 @@ class ServerSyncTool
                 return isset($info['analyst_graph']) && $info['analyst_graph'];
             case self::FEATURE_ANALYST_DATA_BATCH:
                 return isset($info['analyst_data_batch_push']) && $info['analyst_data_batch_push'];
+            case self::FEATURE_VALUE_TARGETS:
+                return version_compare($info['version'], '3.0.0', '>=');
             default:
                 throw new InvalidArgumentException("Invalid flag `$flag` provided");
         }

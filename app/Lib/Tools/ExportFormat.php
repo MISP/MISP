@@ -3,9 +3,8 @@
  * Canonical presentation of an export format.
  *
  * The theme shows the list of export formats on three surfaces, and each one
- * received its keys from a different place, spelling the same format three
- * ways: `openIOC` in the per-event download list, `openioc` in the restSearch
- * export modal, `stix_xml` here and `stix` there, `csv_sig` / `csv_all` /
+ * received its keys from a different place, spelling the same format
+ * several ways: `stix_xml` here and `stix` there, `csv_sig` / `csv_all` /
  * `csv_with_context` / `csv` for what is one CSV glyph. `Events/export.ctp`
  * carried its own `$formatStyles` hash for the thirteen it knew, and the other
  * two surfaces drew the same download arrow for every row.
@@ -56,11 +55,9 @@ class ExportFormat
         'bro'             => array('icon' => 'network-wired',   'hue' => 55),
         'yara'            => array('icon' => 'bug',             'hue' => 85),
         'yarajson'        => array('icon' => 'bug',             'hue' => 105),
-        'openioc'         => array('icon' => 'file-shield',     'hue' => 250),
 
         // ── Structured threat intel ──
         'stix'            => array('icon' => 'share-nodes',     'hue' => 300),
-        'stixjson'        => array('icon' => 'share-nodes',     'hue' => 310),
         'stix2'           => array('icon' => 'share-nodes',     'hue' => 320),
 
         // ── Network plumbing ──
@@ -87,7 +84,6 @@ class ExportFormat
         'stixxml'    => 'stix',
         'stix1'      => 'stix',
         'stix1xml'   => 'stix',
-        'stix1json'  => 'stixjson',
         'stix2json'  => 'stix2',
         'csvsig'     => 'csv',
         'mispjson'   => 'json',

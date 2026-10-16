@@ -1,5 +1,7 @@
 <?php
 
+App::uses('Collation', 'Migration');
+
 /**
  * Turns one flavour-agnostic schema operation into the SQL a given engine wants.
  *
@@ -22,8 +24,8 @@
  *
  * What CakePHP has no answer for, and this class therefore owns: RENAME COLUMN,
  * RENAME TABLE, index DDL beyond the create-table clause, positional `after`,
- * prefix-length indexes, FULLTEXT, and the three column types MISP uses that
- * Cake's map is missing.
+ * prefix-length indexes, FULLTEXT, ROW_FORMAT and table options in an ALTER
+ * TABLE, and the three column types MISP uses that Cake's map is missing.
  *
  * ## The type-map extension
  *
@@ -194,7 +196,19 @@ abstract class AbstractGrammar
         'addIndex',
         'dropIndex',
         'dropPrimaryKey',
+        'changeOptions',
     );
+
+    /**
+     * What changeOptions() can set. MySQL storage options, all of them, so
+     * PostgreSQL renders none.
+     */
+    const TABLE_OPTIONS = array('engine', 'row_format', 'charset', 'collate');
+
+    /**
+     * InnoDB's row formats.
+     */
+    const ROW_FORMATS = array('DYNAMIC', 'COMPACT', 'REDUNDANT', 'COMPRESSED');
 
     /**
      * Render several operations on one table in as few statements as the
@@ -331,6 +345,44 @@ abstract class AbstractGrammar
     }
 
     /**
+     * Change a table's own options: its engine, row format, and the default
+     * charset and collation its new columns take. Existing columns keep theirs.
+     *
+     * @param string $table
+     * @param array $options Any of TABLE_OPTIONS.
+     * @return array Statements.
+     */
+    public function changeOptions($table, array $options)
+    {
+        return $this->alterOne('changeOptions', array($table, $options));
+    }
+
+    /**
+     * A changeOptions() declaration as this engine reads it: the row format in
+     * upper case, a collation token resolved.
+     *
+     * @param array $options
+     * @return array
+     * @throws InvalidArgumentException On no option, an unknown one, or an
+     *   unknown row format.
+     */
+    public function tableOptions(array $options)
+    {
+        if (empty($options)) {
+            throw new InvalidArgumentException('changeOptions() needs at least one option.');
+        }
+        $unknown = array_diff(array_keys($options), self::TABLE_OPTIONS);
+        if (!empty($unknown)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unknown table option "%s". Known options are: %s.',
+                implode('", "', $unknown),
+                implode(', ', self::TABLE_OPTIONS)
+            ));
+        }
+        return $this->resolveCollation($this->resolveRowFormat($options));
+    }
+
+    /**
      * The physical name this grammar gives an index.
      *
      * @param string $table
@@ -383,6 +435,11 @@ abstract class AbstractGrammar
      * @return array Parts.
      */
     abstract protected function dropIndexParts($table, $columnsOrName);
+
+    /**
+     * @return array Parts.
+     */
+    abstract protected function changeOptionsParts($table, array $options);
 
     /**
      * @param string $sql One ALTER TABLE clause, without the ALTER TABLE.
@@ -605,12 +662,14 @@ abstract class AbstractGrammar
     /**
      * Fold the DSL's own spellings into what buildColumn() expects.
      *
-     * Only one so far: `primary_key`. Cake's map entry for it holds the trailing
-     * modifier alone ("NOT NULL AUTO_INCREMENT" / "serial NOT NULL"), never a
-     * type - passing it through verbatim would emit `id` NOT NULL AUTO_INCREMENT
-     * with no type at all. The driver expects an integer column flagged
-     * primary instead. A key is 64-bit, so that is a biginteger: bigint NOT
-     * NULL AUTO_INCREMENT on MySQL, an identity column on PostgreSQL.
+     * `primary_key`: Cake's map entry for it holds the trailing modifier alone
+     * ("NOT NULL AUTO_INCREMENT" / "serial NOT NULL"), never a type - passing it
+     * through verbatim would emit `id` NOT NULL AUTO_INCREMENT with no type at
+     * all. The driver expects an integer column flagged primary instead. A key
+     * is 64-bit, so that is a biginteger: bigint NOT NULL AUTO_INCREMENT on
+     * MySQL, an identity column on PostgreSQL.
+     *
+     * A collation token, resolved by resolveCollation().
      *
      * @param array $spec
      * @return array
@@ -621,7 +680,61 @@ abstract class AbstractGrammar
             $spec['type'] = 'biginteger';
             $spec['key'] = 'primary';
         }
-        return $spec;
+        return $this->resolveCollation($spec);
+    }
+
+    /**
+     * A collation token (Collation::CI, ...) in a column spec or a table's
+     * options, made into what this engine renders. Anything else passes through.
+     *
+     * @param array $options
+     * @return array
+     * @throws InvalidArgumentException On an unknown token, or a charset the token contradicts.
+     */
+    protected function resolveCollation(array $options)
+    {
+        if (!isset($options['collate']) || !Collation::isToken($options['collate'])) {
+            return $options;
+        }
+        $charset = Collation::charset($options['collate']);
+        if (isset($options['charset']) && strtolower($options['charset']) !== $charset) {
+            throw new InvalidArgumentException(sprintf(
+                'The collation %s belongs to the charset %s, so it cannot be declared with the charset %s.',
+                $options['collate'],
+                $charset,
+                $options['charset']
+            ));
+        }
+        return $this->collationFor($options['collate'], $options);
+    }
+
+    /**
+     * @param string $token A known collation token.
+     * @param array $options The column spec or table options that carry it.
+     * @return array The same, with charset and collate as this engine has them.
+     */
+    abstract protected function collationFor($token, array $options);
+
+    /**
+     * @param array $options A table's options.
+     * @return array The same, with any row format in upper case.
+     * @throws InvalidArgumentException On a row format InnoDB does not have.
+     */
+    protected function resolveRowFormat(array $options)
+    {
+        if (!isset($options['row_format'])) {
+            return $options;
+        }
+        $format = strtoupper($options['row_format']);
+        if (!in_array($format, self::ROW_FORMATS, true)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unknown row format "%s". InnoDB has: %s.',
+                $options['row_format'],
+                implode(', ', self::ROW_FORMATS)
+            ));
+        }
+        $options['row_format'] = $format;
+        return $options;
     }
 
     /**

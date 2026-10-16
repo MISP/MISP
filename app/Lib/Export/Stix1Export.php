@@ -66,7 +66,6 @@ class Stix1Export extends StixExport
             '-v', $this->__version,
             '-n', $namespace,
             '-o', Configure::read('MISP.org'),
-            '-f', $this->__return_format,
         ];
     }
 
@@ -77,7 +76,6 @@ class Stix1Export extends StixExport
             self::SCRIPTS_DIR . 'misp2stix.py',
             '-s', $this->__scope,
             '-v', $this->__version,
-            '-f', $this->__return_format,
             '-o', Configure::read('MISP.org'),
             '-i',
         ];

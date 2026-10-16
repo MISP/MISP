@@ -126,6 +126,7 @@ $schema->table('event_templates')
 | `addIndex($columns, $options)` | `unique`, `name`, `length`, `fulltext` |
 | `dropIndex($columnsOrName)` | The column set, or the index's own name |
 | `dropPrimaryKey()` | Drops the constraint, keeps the columns. Add a unique index over the old key column first |
+| `changeOptions($options)` | MySQL table options: `engine`, `row_format`, `charset`, `collate` (a token works). A new default charset applies to columns added later; existing ones keep theirs. PostgreSQL renders nothing |
 
 Schema-scoped: `createTable()`, `dropTable()`, `renameTable()`, `rawSql()`.
 
@@ -140,6 +141,9 @@ $schema->createTable('collection_shares', [
     'charset' => 'utf8mb4',
 ]);
 ```
+
+`createTable()` takes `row_format` as well; PostgreSQL drops it with the
+other storage options.
 
 Order is declaration order across the whole builder, so a migration that adds a
 column, creates a table and then indexes the column gets exactly that sequence.
@@ -175,7 +179,10 @@ else:
   the column clauses of one `ALTER TABLE` against the table as it was, so naming
   a column twice, renaming or dropping a column an index added in the same
   statement covers, or dropping an index added in the same statement would fail
-  as one statement.
+  as one statement. Setting a table option twice splits the same way, and so
+  does a new default charset after a column redefined without a charset of its
+  own: in one statement that column would take the new default, not the old
+  one.
 
 **`changeColumn` is stricter than the rest.** MySQL's `MODIFY` restates the whole
 definition, so anything you leave out is silently dropped — a `MODIFY` that omits
@@ -189,6 +196,33 @@ cosmetic ordering PostgreSQL has no equivalent for, so it goes quietly. `charset
 free — CakePHP's Postgres driver simply declares no such parameters. An index
 **prefix length** is different in kind: dropping it changes what the index
 indexes, so it is logged rather than vanishing. `--dry-run` prints all of these.
+Rendered for MySQL (not MariaDB), an integer loses its display width, as MySQL
+8.0.19 and later report it; `tinyint(1)` keeps it, being how a flag is read.
+
+**Collations are named by class, not by name.** Put `Collation::CI`,
+`Collation::BIN` or `Collation::ASCII` in `collate`, on a column or in
+`createTable()`'s options, and the grammar resolves it for the server it renders
+for:
+
+| Token | MariaDB ≥ 10.11 | MySQL ≥ 8.4 |
+|---|---|---|
+| `Collation::CI` | `utf8mb4_uca1400_ai_ci` | `utf8mb4_unicode_520_ci` |
+| `Collation::BIN` | `utf8mb4_bin` | `utf8mb4_bin` |
+| `Collation::ASCII` | `ascii_bin` | `ascii_bin` |
+
+```php
+'uuid' => ['type' => 'string', 'length' => 40, 'null' => false, 'collate' => Collation::ASCII],
+```
+
+The token brings its charset, so `charset` can be left out; a charset that
+contradicts it, or a misspelt token, is an error on both engines. PostgreSQL
+drops it, as it drops every collation. On an older server, or one whose version
+cannot be read, rendering defers the migration (§7). `--dry-run` on a host with
+no MySQL-family server renders the MySQL half for MariaDB 10.11 and says what
+MySQL would get. A literal collation name is right on one family at most:
+MariaDB's UCA 14 collations do not exist on MySQL, and MySQL's `0900` ones do
+not ignore trailing spaces, so a lookup for `Quasar RAT` stops finding a stored
+`Quasar RAT `.
 
 **Data changes go through models, in `beforeUp()` and `afterUp()`, never as
 DML.** A
@@ -201,7 +235,12 @@ altered.** CakePHP caches a table's description and `Model::save()` filters
 fields against it, so without that a write to a column added moments earlier is
 silently dropped. The migration runner turns the datasource's schema cache off
 before `afterUp()`, which handles the common case, but a model already
-initialised earlier in the process keeps its own copy.
+initialised earlier in the process keeps its own copy. A `find()` without a
+field list follows the columns as well: the runner also empties CakePHP's method
+cache, where that column list is cached, and MISP's datasources key the list by
+the columns (`CurrentColumnListTrait`), so no other process brings back one from
+before the change. Long-running workers keep their own descriptions until they
+restart.
 
 ## 5. Check before you run
 
@@ -245,8 +284,8 @@ to end.
 
 An explicit empty list is not a missing flavour. `'pgsql' => []` says, in so many
 words, that PostgreSQL has nothing to run at this point — the spelling for a MySQL
-storage option (`ROW_FORMAT`, an `ENGINE` change) that the other engine has no
-counterpart to, or the mirror image — and it renders as no statement at all.
+statement (`OPTIMIZE TABLE`, say) that the other engine has no counterpart to,
+or the mirror image — and it renders as no statement at all.
 
 Reach for it when the DSL genuinely cannot express the change — not when
 expressing it is inconvenient. Every `rawSql()` is a place a future engine has to
@@ -291,6 +330,8 @@ may be costly, so automatic runs leave a deferred migration alone for an hour
 by hand and `migrationApply` try it again at once, which is what the reason
 should tell the administrator to do once they have met it. Only `beforeUp()` may
 defer: from `up()` or `afterUp()` it is a failure, since work has run by then.
+Rendering defers too, before any statement is sent: a collation token (§4) on a
+server below MariaDB 10.11 or MySQL 8.4.
 
 **A migration is not transactional.** MySQL DDL commits implicitly, so a
 migration whose third statement fails leaves the first two applied and the ledger
@@ -301,6 +342,8 @@ database already has is left out:
 - a table, column or index that is already there is not created or added again;
 - one that is already gone is not dropped again, nor is a primary key;
 - a table or column rename that has landed is left out;
+- a table option the table already has is left out, each one on its own: setting
+  `ROW_FORMAT` or `ENGINE` to the value the table has still rebuilds it;
 - a table that is already there still gets whichever of its declared indexes it
   lacks: on PostgreSQL those are statements of their own, so a run can stop
   between the `CREATE TABLE` and them.
@@ -351,20 +394,19 @@ delete its `schema_migrations` row first, and be sure its `afterUp()` can take i
 
 ## 8. `db_schema.json`, and why you do not touch it
 
-`db_schema.json` at the repo root is the **canonical expected schema** —
-`Console/cake Admin schemaDiagnostics` compares a live database against it — and
-it is **not** maintained migration by migration. Before a release it is
-regenerated wholesale from a freshly built, clean MISP database:
+`db_schema.json` at the repo root is the **canonical expected schema**, and it
+is **not** maintained migration by migration. Nothing compares a live database
+against it column by column any more (that diagnostic reported harmless
+differences between server releases as errors); the diagnostics read only its
+`db_version`. Before a release it is regenerated wholesale from a freshly built,
+clean MISP database:
 
 ```bash
 # on a clean build, not on your working instance
 Console/cake Admin dumpCurrentDatabaseSchema
 ```
 
-So as a migration author you do nothing here. Between that regeneration and the
-next one, `schemaDiagnostics` will report your change as a difference on every
-instance that has applied it. That is expected and it clears itself at the next
-release.
+So as a migration author you do nothing here.
 
 **The one rule: regenerate only from a clean build.**
 `dumpCurrentDatabaseSchema` rewrites the file from whatever database it is
@@ -412,16 +454,13 @@ It may hold ids with no file behind them, if a migration was reverted out of the
 tree after running somewhere. `migrationStatus` reports those under **Recorded
 but no longer on disk**; nothing else cares.
 
-`schema_migrations` is absent from `db_schema.json` on purpose, and causes no
-`schemaDiagnostics` noise: the diagnostic iterates the *expected* schema, so a
-table it does not know about yields no diff.
-
 ## 10. Checklist: regenerating the install baselines
 
-Two baselines, one generator, one reference. `INSTALL/MYSQL.sql` and
-`INSTALL/POSTGRESQL.sql` are both rendered by `dumpInstallBaseline` from a
-MySQL/MariaDB database that has applied everything — the frozen legacy corpus
-to 159 and every migration on disk — so a fresh install on either engine
+Three baselines, one generator, one reference. `INSTALL/MARIADB.sql`,
+`INSTALL/MYSQL.sql` and `INSTALL/POSTGRESQL.sql` are all rendered by
+`dumpInstallBaseline` from a MySQL/MariaDB database that has applied
+everything — the frozen legacy corpus to 159 and every migration on disk — so
+a fresh install on any of the three
 starts at the current schema, with `db_version` 159 and every migration
 recorded in `schema_migrations`, and runs no legacy update and no migration.
 Existing instances are untouched by this: they climb the legacy corpus to 159
@@ -460,6 +499,7 @@ PostgreSQL has to restore that backup afterwards.
 ### 2. Render
 
 ```bash
+Console/cake Admin dumpInstallBaseline --engine mariadb --database misp_ref --output INSTALL/MARIADB.sql
 Console/cake Admin dumpInstallBaseline --engine mysql --database misp_ref --output INSTALL/MYSQL.sql
 Console/cake Admin dumpInstallBaseline --engine pgsql --database misp_ref --output INSTALL/POSTGRESQL.sql
 Console/cake Admin dumpCurrentDatabaseSchema          # db_schema.json, from the same reference
@@ -487,10 +527,14 @@ not the reference's shape and are the review list, not noise:
 
 On MySQL, `attribute_values` is created with `innodb_ft_enable_stopword` off,
 as the migration that rebuilt its FULLTEXT index did: InnoDB takes the session's
-stopword setting when it builds the index. Its collation is rendered as
-`utf8mb4_unicode_520_ci` whatever the reference server used (noted when it
-differs): the migration picks the collation by server version, which a static
-baseline cannot, and every supported MySQL and MariaDB server has this one.
+stopword setting when it builds the index.
+
+MariaDB and MySQL get a baseline each because their target collations have
+different names (§4): a reference column in its server's spelling of a
+collation token is read as that token and rendered for each server, so
+`MARIADB.sql` carries `utf8mb4_uca1400_ai_ci` where `MYSQL.sql` carries
+`utf8mb4_unicode_520_ci`. Any other collation is copied as the reference names
+it. Each MySQL-family baseline is rendered for the oldest supported release.
 
 The ledger is seeded automatically: `schema_migrations` is a seed table, so
 whatever the reference recorded as applied is carried across. So are the
@@ -569,6 +613,7 @@ curl -s -H "Authorization: $AUTHKEY" -H "Accept: application/json" \
 | `migrations_deferred_reasons` | object | Deferred id => the reason, which names what to run. Each deferred id is also pending. |
 | `migrations_applied` | int | Drift between peers on the same release: two instances on the same code should agree. |
 | `update_locked`, `remaining_lock_time`, `update_fail_number_reached` | as before | Unchanged, still meaningful. |
+| `actual_db_version`, `expected_db_version` | string | `actual < expected` only: the legacy updates have not all run (an instance coming from before the freeze). `expected_db_version` is the constant `"159"`, no longer read from `db_schema.json`. |
 
 The fields are present on every engine, and they are present whether or not the
 `schema_migrations` table exists yet — an instance that has never applied a

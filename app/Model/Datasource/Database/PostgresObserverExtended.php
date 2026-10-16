@@ -1,5 +1,6 @@
 <?php
 App::uses('Postgres', 'Model/Datasource/Database');
+App::uses('CurrentColumnListTrait', 'Model/Datasource/Database');
 App::uses('RedisTool', 'Tools');
 
 /**
@@ -88,6 +89,8 @@ App::uses('RedisTool', 'Tools');
  */
 class PostgresObserverExtended extends Postgres
 {
+    use CurrentColumnListTrait;
+
     /**
      * @var array What this driver can be asked to do. Same vocabulary as
      *   MysqlExtended, answered for PostgreSQL.
@@ -265,7 +268,8 @@ class PostgresObserverExtended extends Postgres
 
     /**
      * Cake's field list, with expression objects unwrapped first. See the
-     * class docblock.
+     * class docblock. Without a field list, cached by the columns
+     * (CurrentColumnListTrait).
      *
      * @param Model $model
      * @param string|null $alias
@@ -282,7 +286,12 @@ class PostgresObserverExtended extends Postgres
                 }
             }
         }
-        return parent::fields($model, $alias, $fields, $quote);
+        if (!empty($fields) || $this->cacheMethods === false) {
+            return parent::fields($model, $alias, $fields, $quote);
+        }
+        return $this->currentColumnList($model, $alias, $quote, function () use ($model, $alias, $fields, $quote) {
+            return parent::fields($model, $alias, $fields, $quote);
+        });
     }
 
     /**

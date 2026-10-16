@@ -89,9 +89,11 @@ class PostgresGrammar extends AbstractGrammar
             $lines[] = '    PRIMARY KEY (' . $this->name($primaryKey) . ')';
         }
 
-        // ENGINE and the table charset are MySQL storage parameters with no
-        // PostgreSQL counterpart; the driver's empty $tableParameters drops them
-        // for us, so no branch here is needed.
+        // ENGINE, ROW_FORMAT and the table charset are MySQL storage parameters
+        // with no PostgreSQL counterpart; the driver's empty $tableParameters
+        // drops them for us. A collation token and a row format are still
+        // checked, so a misspelt one fails on both engines.
+        $this->resolveRowFormat($this->resolveCollation($options));
         $statements = array(sprintf(
             "CREATE TABLE %s (\n%s\n);",
             $this->name($table),
@@ -211,6 +213,16 @@ class PostgresGrammar extends AbstractGrammar
     }
 
     /**
+     * Every table option is a MySQL storage option, so nothing renders. They
+     * are still checked, so a misspelt one fails on both engines.
+     */
+    protected function changeOptionsParts($table, array $options)
+    {
+        $this->tableOptions($options);
+        return array();
+    }
+
+    /**
      * idx_<table>_<columns>, because index names share one namespace per schema.
      *
      * An explicit name is honoured but still prefixed, unless the caller already
@@ -231,6 +243,16 @@ class PostgresGrammar extends AbstractGrammar
     }
 
     // --------------------------------------------------------------- helpers
+
+    /**
+     * Columns compare under the database's collation, so a token has nothing
+     * to render here.
+     */
+    protected function collationFor($token, array $options)
+    {
+        unset($options['charset'], $options['collate']);
+        return $options;
+    }
 
     /**
      * Cake's Postgres map carries length modifiers PostgreSQL does not accept -

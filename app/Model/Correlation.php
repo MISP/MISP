@@ -27,6 +27,9 @@ class Correlation extends AppModel
     // The types whose CIDR correlates with the addresses it holds
     const CIDR_TYPES = ['ip-src', 'ip-dst'];
 
+    // Every correlation table's id is a signed BIGINT once 3.0's schema upgrade has run
+    const ID_LIMIT = 9223372036854775807;
+
     public $belongsTo = array(
         'Attribute' => [
             'className' => 'MispAttribute',
@@ -1332,7 +1335,7 @@ class Correlation extends AppModel
                     'name' => __('Default correlation engine'),
                     'tables' => [
                         'default_correlations' => [
-                            'id_limit' => 4294967295
+                            'id_limit' => self::ID_LIMIT
                         ]
                     ]
                 ],
@@ -1340,7 +1343,7 @@ class Correlation extends AppModel
                     'name' => __('No ACL correlation engine'),
                     'tables' => [
                         'no_acl_correlations' => [
-                            'id_limit' => 4294967295
+                            'id_limit' => self::ID_LIMIT
                         ]
                     ]
                 ],
@@ -1353,7 +1356,7 @@ class Correlation extends AppModel
                     'name' => __('Legacy correlation engine (< 2.4.160)'),
                     'tables' => [
                         'correlations' => [
-                            'id_limit' => 2147483647
+                            'id_limit' => self::ID_LIMIT
                         ]
                     ]
                 ]

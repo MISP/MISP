@@ -1,18 +1,21 @@
 <?php
 
 App::uses('AbstractGrammar', 'Migration/Grammar');
+App::uses('OfflineConnection', 'Migration/Grammar');
 
 /**
  * MySQL/MariaDB rendering.
  *
  * The easy engine, because it is the one the historic corpus was written
  * against - every hint the DSL offers has a native spelling here, so nothing is
- * ever dropped and takeDroppedHints() stays empty.
+ * ever dropped. takeDroppedHints() only says which server an offline rendering
+ * resolved a collation token for.
  *
  * Charset, collate, comment, unsigned, ENGINE and the table charset all arrive
  * from Cake's own $fieldParameters/$tableParameters. This class adds what Cake
- * has no notion of: positional `after`, prefix-length index parts, FULLTEXT, and
- * the mediumtext/longtext/varbinary types the MISP schema uses.
+ * has no notion of: positional `after`, prefix-length index parts, FULLTEXT,
+ * the mediumtext/longtext/varbinary types the MISP schema uses, and collation
+ * tokens, resolved for the server the datasource reports.
  *
  * Statement shapes follow the ones the legacy corpus and AppModel::__addIndex()
  * already emit (ADD INDEX / DROP INDEX rather than Cake's ADD KEY), so a reader
@@ -30,6 +33,13 @@ class MysqlGrammar extends AbstractGrammar
         'longtext' => array('name' => 'longtext'),
         'varbinary' => array('name' => 'varbinary'),
     );
+
+    /**
+     * The types whose display width MySQL no longer renders.
+     *
+     * @var array
+     */
+    private static $integerTypes = array('integer', 'biginteger', 'smallinteger', 'tinyinteger');
 
     public function flavour()
     {
@@ -55,7 +65,11 @@ class MysqlGrammar extends AbstractGrammar
             $lines[] = '    ' . $this->indexClause($table, $indexColumns, $indexOptions);
         }
 
+        $options = $this->resolveRowFormat($this->resolveCollation($options));
         $tableParameters = $this->db->buildTableParameters($options);
+        if (isset($options['row_format'])) {
+            $tableParameters[] = 'ROW_FORMAT=' . $options['row_format'];
+        }
         $suffix = empty($tableParameters) ? '' : ' ' . implode(' ', $tableParameters);
 
         return array(sprintf(
@@ -129,6 +143,32 @@ class MysqlGrammar extends AbstractGrammar
     }
 
     /**
+     * One clause per option, the default charset and collation together.
+     */
+    protected function changeOptionsParts($table, array $options)
+    {
+        $options = $this->tableOptions($options);
+        $parts = array();
+        if (isset($options['engine'])) {
+            $parts[] = $this->clause('ENGINE=' . $options['engine']);
+        }
+        if (isset($options['row_format'])) {
+            $parts[] = $this->clause('ROW_FORMAT=' . $options['row_format']);
+        }
+        $default = array();
+        if (isset($options['charset'])) {
+            $default[] = 'DEFAULT CHARSET=' . $options['charset'];
+        }
+        if (isset($options['collate'])) {
+            $default[] = 'COLLATE=' . $options['collate'];
+        }
+        if (!empty($default)) {
+            $parts[] = $this->clause(implode(' ', $default));
+        }
+        return $parts;
+    }
+
+    /**
      * An index is named after its column, or after its columns joined with an
      * underscore - the same convention AppModel::__addIndex() has always used.
      */
@@ -141,6 +181,92 @@ class MysqlGrammar extends AbstractGrammar
     }
 
     // --------------------------------------------------------------- helpers
+
+    /**
+     * MySQL 8.0.17 deprecated integer display widths and has dropped them
+     * from what it reports since 8.0.19, except tinyint(1), which connectors
+     * (Cake among them) read as a boolean. MariaDB still renders them.
+     */
+    protected function mergedColumns()
+    {
+        $columns = parent::mergedColumns();
+        if ($this->rendersForMysql()) {
+            foreach (self::$integerTypes as $type) {
+                unset($columns[$type]['limit']);
+            }
+        }
+        return $columns;
+    }
+
+    protected function normaliseColumn(array $spec)
+    {
+        $spec = parent::normaliseColumn($spec);
+        if (isset($spec['type']) && in_array($spec['type'], self::$integerTypes, true)
+            && $this->rendersForMysql()
+        ) {
+            $width = isset($spec['length']) ? $spec['length'] : (isset($spec['limit']) ? $spec['limit'] : null);
+            if (!($spec['type'] === 'tinyinteger' && (int)$width === 1)) {
+                unset($spec['length'], $spec['limit']);
+            }
+        }
+        return $spec;
+    }
+
+    /**
+     * @return bool Whether the server rendered for is MySQL rather than MariaDB.
+     */
+    private function rendersForMysql()
+    {
+        return Collation::family($this->db->getVersion()) === Collation::MYSQL;
+    }
+
+    /**
+     * Charset before collate, the order buildTableParameters() renders them in.
+     */
+    protected function collationFor($token, array $options)
+    {
+        $version = $this->db->getVersion();
+        $resolved = Collation::forServer($token, $version);
+        unset($options['charset'], $options['collate']);
+        if ($this->db->getConnection() instanceof OfflineConnection) {
+            $this->noteAssumedServer($token, $version);
+        }
+        return $options + $resolved;
+    }
+
+    /**
+     * With no server to ask, say what a token was resolved for whenever the
+     * other family names it differently.
+     *
+     * @param string $token
+     * @param string $version
+     * @return void
+     */
+    private function noteAssumedServer($token, $version)
+    {
+        $byFamily = Collation::byFamily($token);
+        if (count(array_unique($byFamily)) === 1) {
+            return;
+        }
+        list($family, $release) = Collation::server($version);
+        $others = array();
+        foreach ($byFamily as $other => $collation) {
+            if ($other !== $family) {
+                $others[] = sprintf('%s takes %s', $other, $collation);
+            }
+        }
+        $note = sprintf(
+            'No MySQL-family server is connected, so %s is rendered for %s %s as %s; %s.',
+            $token,
+            $family,
+            $release,
+            $byFamily[$family],
+            implode(', ', $others)
+        );
+        if (!in_array($note, $this->droppedHints, true)) {
+            $this->noteDroppedHint($note);
+        }
+    }
 
     /**
      * The shared part of ADD INDEX and the create-table index clause.

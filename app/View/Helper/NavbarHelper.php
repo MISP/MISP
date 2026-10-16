@@ -881,6 +881,7 @@ class NavbarHelper extends AppHelper {
     {
         extract($context);
 
+        $smimeCertificate = (string)Configure::read('SMIME.cert_public_sign');
         $resourcesChildren = [
             [
                 'label' => __('User Guide'),
@@ -906,10 +907,11 @@ class NavbarHelper extends AppHelper {
             ],
             [
                 'label' => __('Server S/MIME certificate'),
-                'url' => $baseurl . '/public_certificate.pem',
+                'url' => $baseurl . '/users/getSmimeCertificate',
                 'icon' => 'fas fa-certificate',
                 'requirement' => Configure::read('SMIME.enabled')
-                    && is_file(WWW_ROOT . 'public_certificate.pem'),
+                    && is_file($smimeCertificate)
+                    && is_readable($smimeCertificate),
             ],
             ['divider' => true],
             [

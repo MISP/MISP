@@ -700,8 +700,6 @@ class RestResponseComponent extends Component
                 $response = $response->asXML();
             }
             $type = 'xml';
-        } elseif ($format === 'openioc') {
-            $type = 'xml';
         } elseif ($format === 'csv' || $format === 'text/csv') {
             $type = 'csv';
         } else {
@@ -1813,7 +1811,7 @@ class RestResponseComponent extends Component
                 'input' => 'select',
                 'type' => 'string',
                 'operators' => array('equal'),
-                'values' => array('json', 'openioc', 'xml', 'suricata', 'snort', 'text', 'rpz', 'csv', 'cache', 'stix', 'stix2'),
+                'values' => array('json', 'xml', 'suricata', 'snort', 'text', 'rpz', 'csv', 'cache', 'stix', 'stix2'),
             ),
             'roaming' => array(
                 'input' => 'radio',

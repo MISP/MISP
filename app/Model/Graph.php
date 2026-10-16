@@ -80,6 +80,15 @@ class Graph extends AnalystData
         return array_values(array_diff(parent::getEditableFields(), ['language']));
     }
 
+    /**
+     * A graph only points at uuid-addressed records: its table has no
+     * SHA-256 address column to withhold rows by.
+     */
+    public function beforeFind($query)
+    {
+        return $query;
+    }
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate($options);

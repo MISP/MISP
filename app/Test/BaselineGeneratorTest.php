@@ -551,7 +551,8 @@ class BaselineGeneratorTest extends TestCase
                     'value_search' => array('name' => 'value_search', 'column' => array('value'), 'unique' => false, 'fulltext' => true),
                 ),
                 'primary' => 'id',
-                'options' => array('engine' => 'InnoDB', 'charset' => 'utf8mb4', 'collate' => 'utf8mb4_uca1400_ai_ci'),
+                // As readSchema() reads a MariaDB reference's utf8mb4_uca1400_ai_ci
+                'options' => array('engine' => 'InnoDB', 'collate' => Collation::CI),
                 'expressionDefaults' => array(),
             ),
         );
@@ -573,8 +574,8 @@ class BaselineGeneratorTest extends TestCase
         $this->assertStringContainsString('Index value on attribute_values rendered as idx_attribute_values_value', $pgsql['notes'][1]);
         $this->assertStringContainsString('Index value_search on attribute_values rendered as idx_attribute_values_value_search', $pgsql['notes'][2]);
 
-        $mysql = $this->generator()->render($this->mysql, $this->valueDictionarySchema(), array(), 159);
-        $sql = $mysql['sql'];
+        $mariadb = $this->generator()->render(BaselineGenerator::grammar('mariadb'), $this->valueDictionarySchema(), array(), 159);
+        $sql = $mariadb['sql'];
         $this->assertStringNotContainsString('pg_trgm', $sql);
         $this->assertStringContainsString('INDEX `value` (`value`(128))', $sql);
         $this->assertStringContainsString('FULLTEXT INDEX `value_search` (`value`)', $sql);
@@ -583,25 +584,16 @@ class BaselineGeneratorTest extends TestCase
         $this->assertNotFalse($off);
         $this->assertLessThan(strpos($sql, 'CREATE TABLE `attribute_values`'), $off);
         $this->assertGreaterThan(strpos($sql, 'FULLTEXT INDEX'), $back);
-        // Its migration picks the collation by server version; the baseline takes the portable one
+        // Each MySQL-family baseline carries its own server's name for the token
+        $this->assertStringContainsString('`id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT', $sql);
+        $this->assertStringContainsString(') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;', $sql);
+
+        $mysql = $this->generator()->render(BaselineGenerator::grammar('mysql'), $this->valueDictionarySchema(), array(), 159);
+        $sql = $mysql['sql'];
+        $this->assertStringContainsString('FULLTEXT INDEX `value_search` (`value`)', $sql);
+        $this->assertStringContainsString('`id` bigint UNSIGNED NOT NULL AUTO_INCREMENT', $sql);
         $this->assertStringContainsString(') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;', $sql);
         $this->assertStringNotContainsString('uca1400', $sql);
-        $this->assertCount(1, $mysql['notes']);
-        $this->assertStringContainsString(
-            "Collation of attribute_values rendered as utf8mb4_unicode_520_ci instead of the reference's utf8mb4_uca1400_ai_ci",
-            $mysql['notes'][0]
-        );
-
-        $schema = $this->valueDictionarySchema();
-        $schema['attribute_values']['columns']['value']['collate'] = 'utf8mb4_0900_ai_ci';
-        $column = $this->generator()->render($this->mysql, $schema, array(), 159);
-        $this->assertStringContainsString('`value` text COLLATE utf8mb4_unicode_520_ci NOT NULL', $column['sql']);
-        $this->assertStringNotContainsString('0900', $column['sql']);
-        $this->assertStringContainsString('utf8mb4_uca1400_ai_ci, utf8mb4_0900_ai_ci', $column['notes'][0]);
-
-        $schema = $this->valueDictionarySchema();
-        $schema['attribute_values']['options']['collate'] = 'utf8mb4_unicode_520_ci';
-        $this->assertSame(array(), $this->generator()->render($this->mysql, $schema, array(), 159)['notes']);
 
         $other = $this->generator()->render($this->mysql, $this->fixtureSchema(), array(), 159);
         $this->assertStringNotContainsString('innodb_ft_enable_stopword', $other['sql']);
@@ -661,7 +653,7 @@ class BaselineGeneratorTest extends TestCase
         );
         $this->assertStringContainsString(
             "INSERT IGNORE INTO `roles` (`id`, `name`, `created`, `perm_add`) VALUES\n"
-                . "(1, 'admin''s', NOW(), '1'),\n"
+                . "(1, 'admin\\'s', NOW(), '1'),\n"
                 . "(2, 'user', NULL, '0');",
             $sql
         );
@@ -688,6 +680,50 @@ class BaselineGeneratorTest extends TestCase
         $this->assertStringNotContainsString('USING hash', $rendered['sql']);
         $this->assertCount(1, $rendered['notes']);
         $this->assertStringContainsString('Prefix length dropped', $rendered['notes'][0]);
+    }
+
+    /**
+     * One reference, three baselines, each named for and rendered for its
+     * server; a legacy collation goes through as the reference names it.
+     */
+    public function testEachEngineGetsItsOwnBaseline()
+    {
+        $this->assertSame(array('mariadb', 'mysql', 'pgsql'), BaselineGenerator::engines());
+        $schema = $this->fixtureSchema();
+        $schema['roles']['columns']['name']['collate'] = Collation::CI;
+        $schema['roles']['columns']['name']['default'] = '';
+        $seeds = array('roles' => array(
+            array('id' => '1', 'name' => '%ALLUSERSPROFILE%\\\\', 'created' => null, 'perm_add' => '1'),
+        ));
+        $rendered = array();
+        foreach (BaselineGenerator::engines() as $engine) {
+            $rendered[$engine] = $this->generator()->render(BaselineGenerator::grammar($engine), $schema, $seeds, 159)['sql'];
+        }
+
+        $this->assertStringStartsWith('-- MISP MariaDB install baseline, equivalent to db_version 159.', $rendered['mariadb']);
+        $this->assertStringStartsWith('-- MISP MySQL install baseline, equivalent to db_version 159.', $rendered['mysql']);
+        $this->assertStringStartsWith('-- MISP PostgreSQL install baseline, equivalent to db_version 159.', $rendered['pgsql']);
+
+        $this->assertStringContainsString("`name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci DEFAULT '' NOT NULL", $rendered['mariadb']);
+        $this->assertStringContainsString("`name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci DEFAULT '' NOT NULL", $rendered['mysql']);
+        $this->assertStringContainsString("\"name\" varchar(100) DEFAULT '' NOT NULL", $rendered['pgsql']);
+
+        $this->assertStringContainsString('`1_event_id` int(11) NOT NULL', $rendered['mariadb']);
+        $this->assertStringContainsString('`1_event_id` int NOT NULL', $rendered['mysql']);
+        $this->assertStringContainsString("`deleted` tinyint(1) DEFAULT '0' NOT NULL", $rendered['mysql']);
+        foreach (array('mariadb', 'mysql') as $engine) {
+            $this->assertStringContainsString(') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;', $rendered[$engine]);
+            // The value holds two backslashes; MySQL reads each escaped
+            $this->assertStringContainsString("(1, '%ALLUSERSPROFILE%\\\\\\\\', NULL, '1')", $rendered[$engine]);
+        }
+        $this->assertStringContainsString("(1, '%ALLUSERSPROFILE%\\\\', NULL, 'TRUE')", $rendered['pgsql']);
+    }
+
+    public function testAnUnknownEngineHasNoBaseline()
+    {
+        $this->expectException('InvalidArgumentException');
+        $this->expectExceptionMessage('Known engines are: mariadb, mysql, pgsql.');
+        BaselineGenerator::grammar('mssql');
     }
 
     // -------------------------------------------------------------- reading
@@ -745,6 +781,87 @@ class BaselineGeneratorTest extends TestCase
         }
     }
 
+    private static function collationRows($table, array $collations)
+    {
+        $rows = array();
+        $position = 0;
+        foreach ($collations as $column => $collation) {
+            $rows[] = array(
+                'TABLE_NAME' => $table, 'COLUMN_NAME' => $column, 'ORDINAL_POSITION' => ++$position,
+                'COLUMN_DEFAULT' => null, 'IS_NULLABLE' => 'NO', 'COLUMN_TYPE' => 'varchar(40)',
+                'CHARACTER_SET_NAME' => strstr($collation, '_', true), 'COLLATION_NAME' => $collation,
+                'EXTRA' => '', 'COLUMN_COMMENT' => '',
+            );
+        }
+        return $rows;
+    }
+
+    /**
+     * Only a collation in its server's target form is read as the token;
+     * everything else stays as the reference names it.
+     */
+    public function testATargetCollationIsReadAsItsToken()
+    {
+        $collations = array(
+            'ci' => 'utf8mb4_uca1400_ai_ci',
+            'bin' => 'utf8mb4_bin',
+            'uuid' => 'ascii_bin',
+            'mysql_ci' => 'utf8mb4_unicode_520_ci',
+            'legacy' => 'utf8mb3_bin',
+            'legacy_ascii' => 'ascii_general_ci',
+        );
+
+        $generator = $this->generator();
+        $generator->answers = array(
+            'information_schema.TABLES' => array(
+                array('TABLE_NAME' => 't', 'ENGINE' => 'InnoDB', 'TABLE_COLLATION' => 'utf8mb4_uca1400_ai_ci'),
+                array('TABLE_NAME' => 'old', 'ENGINE' => 'InnoDB', 'TABLE_COLLATION' => 'utf8mb3_general_ci'),
+            ),
+            'information_schema.COLUMNS' => self::collationRows('t', $collations),
+        );
+        $schema = $generator->readSchema();
+        $this->assertSame(array('engine' => 'InnoDB', 'collate' => Collation::CI), $schema['t']['options']);
+        $this->assertSame(
+            array('engine' => 'InnoDB', 'charset' => 'utf8mb3', 'collate' => 'utf8mb3_general_ci'),
+            $schema['old']['options']
+        );
+        $read = array();
+        foreach ($schema['t']['columns'] as $name => $spec) {
+            $read[$name] = isset($spec['collate']) ? array($spec['collate'], isset($spec['charset']) ? $spec['charset'] : null) : null;
+        }
+        $this->assertSame(array(
+            // the table's own collation, so the column inherits it
+            'ci' => null,
+            'bin' => array(Collation::BIN, null),
+            'uuid' => array(Collation::ASCII, null),
+            'mysql_ci' => array('utf8mb4_unicode_520_ci', 'utf8mb4'),
+            'legacy' => array('utf8mb3_bin', 'utf8mb3'),
+            'legacy_ascii' => array('ascii_general_ci', 'ascii'),
+        ), $read);
+
+        // On a MySQL reference, its own name is the token's
+        $generator = new BaselineGeneratorTestStub(new MigrationTestMysqlExtended('8.4.6'), 'reference');
+        $generator->mariadb = false;
+        $generator->answers = array(
+            'information_schema.TABLES' => array(
+                array('TABLE_NAME' => 't', 'ENGINE' => 'InnoDB', 'TABLE_COLLATION' => 'utf8mb4_bin'),
+            ),
+            'information_schema.COLUMNS' => self::collationRows('t', $collations),
+        );
+        $columns = $generator->readSchema()['t']['columns'];
+        $this->assertSame(Collation::CI, $columns['mysql_ci']['collate']);
+        $this->assertSame('utf8mb4_uca1400_ai_ci', $columns['ci']['collate']);
+        $this->assertSame(array('engine' => 'InnoDB', 'collate' => Collation::BIN), $generator->readSchema()['t']['options']);
+    }
+
+    public function testTheReferenceServerHasToBeKnown()
+    {
+        $generator = new BaselineGeneratorTestStub(new MigrationTestMysql(), 'reference');
+        $this->expectException('RuntimeException');
+        $this->expectExceptionMessage('does not say whether it is MariaDB or MySQL');
+        $generator->readSchema();
+    }
+
     public function testSeedRowsComeOnlyFromSeedTablesAndOnlyTheSettingsAFreshInstallNeeds()
     {
         $generator = $this->generator();
@@ -774,6 +891,20 @@ class BaselineGeneratorTest extends TestCase
         $this->assertNull($generator->databaseVersion());
         $generator->answers = array('db_version' => array(array('value' => '159')));
         $this->assertSame(159, $generator->databaseVersion());
+    }
+
+    public function testTheReferencesAppliedMigrationsAreRead()
+    {
+        $generator = $this->generator();
+        $this->assertSame(array(), $generator->appliedMigrations(), 'no ledger table');
+        $this->assertCount(1, $generator->asked, 'the ledger is not read when it does not exist');
+
+        $generator->answers = array(
+            'information_schema.TABLES' => array(array('1' => '1')),
+            '`schema_migrations`' => array(array('id' => '20261003_092429_create_attribute_values')),
+        );
+        $this->assertSame(array('20261003_092429_create_attribute_values'), $generator->appliedMigrations());
+        $this->assertStringContainsString("WHERE `status` = 'applied'", end($generator->asked));
     }
 
     // ---------------------------------------------------------- verification

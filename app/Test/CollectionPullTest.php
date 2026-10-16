@@ -184,6 +184,7 @@ class CollectionPullTestServerSync extends ServerSyncTool
     public $throwOnFetch = false;
     public $fetchCallCount = 0;
     public $fetchedChunks = array();
+    public $flags = array();             // flag => bool, over $supported
 
     public function __construct()
     {
@@ -192,7 +193,7 @@ class CollectionPullTestServerSync extends ServerSyncTool
 
     public function isSupported($flag)
     {
-        return $this->supported;
+        return isset($this->flags[$flag]) ? $this->flags[$flag] : $this->supported;
     }
 
     public function server()
@@ -250,13 +251,14 @@ class CollectionPullTestable extends Collection
         return $this->localRows;
     }
 
-    public function captureCollection(array $user, array $collection, $server = false, $remotePermSyncInternal = false): array
+    public function captureCollection(array $user, array $collection, $server = false, $remotePermSyncInternal = false, $fromPre30 = null): array
     {
         $this->captureCalls[] = array(
             'user' => $user,
             'collection' => $collection,
             'server' => $server,
             'permSyncInternal' => $remotePermSyncInternal,
+            'fromPre30' => $fromPre30,
         );
         if (is_array($this->captureResults) && !empty($this->captureResults)) {
             return array_shift($this->captureResults);
@@ -432,6 +434,18 @@ class CollectionPullTest extends TestCase
         $this->assertSame($this->sync->serverData, $call['server'], 'server context forwarded');
         $this->assertTrue($call['permSyncInternal'], 'remotePermSyncInternal read from cachedUserInfo');
         $this->assertSame(5, $call['user']['id']);
+    }
+
+    public function testThePeersVersionIsPassedToCapture(): void
+    {
+        $this->sync->indexData = array('u1' => '2026-01-01 00:00:00');
+        $this->sync->fetchMap = array('u1' => $this->remoteCollection('u1', '2026-01-01 00:00:00'));
+        foreach (array(false => true, true => false) as $valueTargets => $fromPre30) {
+            $this->collection->captureCalls = array();
+            $this->sync->flags[ServerSyncTool::FEATURE_VALUE_TARGETS] = (bool)$valueTargets;
+            $this->collection->pull($this->user(), $this->sync);
+            $this->assertSame($fromPre30, $this->collection->captureCalls[0]['fromPre30']);
+        }
     }
 
     public function testPermSyncInternalFalseWhenRemoteLacksIt(): void

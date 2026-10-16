@@ -1,5 +1,6 @@
 <?php
 App::uses('Mysql', 'Model/Datasource/Database');
+App::uses('CurrentColumnListTrait', 'Model/Datasource/Database');
 
 /**
  * Overrides the default MySQL database implementation to support the following features:
@@ -7,6 +8,8 @@ App::uses('Mysql', 'Model/Datasource/Database');
  */
 class MysqlExtended extends Mysql
 {
+    use CurrentColumnListTrait;
+
     /**
      * What this driver can be asked to do, read through
      * AppModel::checkDbSupport().
@@ -94,6 +97,25 @@ class MysqlExtended extends Mysql
     public function cacheMethodHasher($value)
     {
         return sha1($value, true);
+    }
+
+    /**
+     * Cake's field list; without one, cached by the columns (CurrentColumnListTrait).
+     *
+     * @param Model $Model
+     * @param string|null $alias
+     * @param array|string $fields
+     * @param bool $quote
+     * @return array
+     */
+    public function fields(Model $Model, $alias = null, $fields = array(), $quote = true)
+    {
+        if (!empty($fields) || $this->cacheMethods === false) {
+            return parent::fields($Model, $alias, $fields, $quote);
+        }
+        return $this->currentColumnList($Model, $alias, $quote, function () use ($Model, $alias, $fields, $quote) {
+            return parent::fields($Model, $alias, $fields, $quote);
+        });
     }
 
         /**

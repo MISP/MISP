@@ -243,28 +243,12 @@ class ServerHealthProbes
             : self::make(2, __('All accessible'), $summary);
     }
 
-    /**
-     * @param array $diagnostics Server::dbSchemaDiagnostic()
-     * @return int Column and index differences with the expected schema
-     */
-    public static function schemaDifferences(array $diagnostics)
-    {
-        $total = 0;
-        foreach (array('diagnostic', 'diagnostic_index') as $key) {
-            foreach ((isset($diagnostics[$key]) ? $diagnostics[$key] : array()) as $diffs) {
-                $total += count($diffs);
-            }
-        }
-        return $total;
-    }
-
     private static function verdictDbSchema(array $data)
     {
         $schema = $data['dbSchemaDiagnostics'];
         $failed = (int)(isset($schema['migrations_failed']) ? $schema['migrations_failed'] : 0);
         $pending = (int)(isset($schema['migrations_pending']) ? $schema['migrations_pending'] : 0);
         $deferred = isset($schema['migrations_deferred_reasons']) ? (array)$schema['migrations_deferred_reasons'] : array();
-        $diffs = self::schemaDifferences($schema);
         $summary = __('db_version %s', isset($schema['actual_db_version']) ? $schema['actual_db_version'] : '?');
 
         if (!$data['dbEncodingStatus']) {
@@ -282,10 +266,12 @@ class ServerHealthProbes
         if ($pending > 0) {
             return self::make(1, __('%s migration(s) pending', $pending), $summary);
         }
-        if ($diffs > 0) {
-            return self::make(1, __('%s schema difference(s)', $diffs), $summary);
+        if (isset($schema['actual_db_version'], $schema['expected_db_version'])
+            && (int)$schema['actual_db_version'] < (int)$schema['expected_db_version']
+        ) {
+            return self::make(1, __('Legacy updates pending'), $summary);
         }
-        return self::make(2, __('Schema matches'), $summary);
+        return self::make(2, __('Migrations up to date'), $summary);
     }
 
     /**

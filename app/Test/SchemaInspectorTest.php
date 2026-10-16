@@ -5,10 +5,11 @@
  * true.
  *
  * The cache contract is the part worth testing without a database, because it
- * is the part that fails silently. CakePHP keeps three caches of the schema and
- * only one of them has a public clear; the lever that actually works is the
- * `cacheSources` flag, which makes listSources()/describe()/_cacheDescription()
- * bypass all three. So these tests assert not just *what* the inspector
+ * is the part that fails silently. CakePHP keeps three caches of table
+ * descriptions and only one of them has a public clear; the lever that actually
+ * works is the `cacheSources` flag, which makes
+ * listSources()/describe()/_cacheDescription() bypass all three. The fourth
+ * cache, DboSource's method cache, is emptied after DDL instead. So these tests assert not just *what* the inspector
  * answers, but that every read was taken with that flag down and that the flag
  * came back up afterwards - including when the read threw.
  *
@@ -315,6 +316,25 @@ class SchemaInspectorTest extends TestCase
         $this->assertFalse($this->db->cacheSources);
     }
 
+    /**
+     * cacheSources does not reach DboSource's method cache, which holds the
+     * column list of a find without a field list. Left alone, this process
+     * would also write the pre-DDL lists back on exit.
+     */
+    public function testDisableSchemaCacheEmptiesTheMethodCache()
+    {
+        DboSource::$methodCache = array('fields' => array('key' => array('`Event`.`id`')));
+        $this->inspector->disableSchemaCache();
+        $this->assertSame(array(), DboSource::$methodCache);
+    }
+
+    public function testFlushSchemaCacheFilesClearsTheDescriptionsAndTheMethodCache()
+    {
+        Cache::$cleared = array();
+        $this->inspector->flushSchemaCacheFiles();
+        $this->assertSame(array('_cake_model_', '_cake_core_'), Cache::$cleared);
+    }
+
     // ------------------------------------------------------- runtime surface
 
     /**
@@ -414,8 +434,8 @@ class SchemaInspectorTest extends TestCase
         $reader = $this->mysqlReader();
         $reader->getDataSource()->config['database'] = "mi'sp";
         $reader->tableRowEstimate("att'ributes");
-        $this->assertStringContainsString("TABLE_SCHEMA = 'mi''sp'", $reader->queries[0]);
-        $this->assertStringContainsString("TABLE_NAME = 'att''ributes'", $reader->queries[0]);
+        $this->assertStringContainsString("TABLE_SCHEMA = 'mi\\'sp'", $reader->queries[0]);
+        $this->assertStringContainsString("TABLE_NAME = 'att\\'ributes'", $reader->queries[0]);
     }
 
     /**
@@ -640,6 +660,18 @@ class SchemaInspectorTest extends TestCase
         );
     }
 
+    public function testMysqlTableOptionsAloneTakeOneQuery()
+    {
+        $reader = $this->mysqlDefinitionReader(array());
+        $this->assertSame(
+            array('engine' => 'InnoDB', 'row_format' => 'DYNAMIC', 'collation' => 'latin1_swedish_ci', 'charset' => 'latin1'),
+            $reader->tableOptions('tags')
+        );
+        $this->assertCount(1, $reader->queries);
+
+        $this->assertNull($this->mysqlReader(array(array()))->tableOptions('nothing'));
+    }
+
     /**
      * What describe() folds away: mediumtext reads as text there, and the
      * auto-increment flag is gone.
@@ -744,7 +776,7 @@ class SchemaInspectorTest extends TestCase
         $this->assertCount(3, $catalog);
         foreach ($catalog as $sql) {
             $this->assertStringContainsString("TABLE_SCHEMA = 'misp' AND", $sql);
-            $this->assertStringContainsString("TABLE_NAME = 'ta''gs'", $sql);
+            $this->assertStringContainsString("TABLE_NAME = 'ta\\'gs'", $sql);
         }
     }
 

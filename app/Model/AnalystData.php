@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('SyncTool', 'Tools');
 App::uses('Validation', 'Utility');
 
 class AnalystData extends AppModel
@@ -314,6 +315,22 @@ class AnalystData extends AppModel
     public function validAddress($check)
     {
         return self::addressError($this->data[$this->current_type], key($check)) ?? true;
+    }
+
+    public function beforeFind($query)
+    {
+        if (!SyncTool::valueTargetsWithheld()) {
+            return $query;
+        }
+        $conditions = [];
+        foreach (static::ADDRESS_ENDS as $end) {
+            $conditions[$this->alias . '.' . $end . '_sha256'] = null;
+        }
+        if (!empty($query['conditions'])) {
+            $conditions[] = $query['conditions'];
+        }
+        $query['conditions'] = $conditions;
+        return $query;
     }
 
     public function beforeSave($options = [])
@@ -693,6 +710,7 @@ class AnalystData extends AppModel
                     return "{$alias}.{$field}";
                 }, $fields),
                 'recursive' => -1,
+                // An attribute's value is read through the value dictionary, in its callbacks
                 'callbacks' => $modelName === 'MispAttribute',
             ]);
             if (empty($row[$alias])) {
@@ -1037,9 +1055,10 @@ class AnalystData extends AppModel
      * @param bool  $fromPull If the current capture is performed from a PULL sync
      * @param int   $orgId The organisation id that should own the analyst data
      * @param array $server The server for which to capture is ongoing
+     * @param bool|null $fromPre30 The data comes from a MISP older than 3.0; null: the requester decides
      * @return array Result of the capture including successes, fails and errors
      */
-    public function captureAnalystData(array $user, array $analystData, $fromPull=false, $orgUUId=false, $server=false): array
+    public function captureAnalystData(array $user, array $analystData, $fromPull=false, $orgUUId=false, $server=false, $fromPre30=null): array
     {
         $this->Note = ClassRegistry::init('Note');
         $this->Opinion = ClassRegistry::init('Opinion');
@@ -1050,6 +1069,15 @@ class AnalystData extends AppModel
             $analystData = [$type => $analystData];
         }
         $analystModel = ClassRegistry::init($type);
+
+        if ($fromPre30 === null) {
+            $fromPre30 = SyncTool::valueTargetsWithheld();
+        }
+        if ($fromPre30 && self::isValueAddressed($analystData[$type])) {
+            $results['errors'][] = __('Analyst data on attribute values is not accepted from a MISP older than 3.0');
+            $results['ignored']++;
+            return $results;
+        }
 
         if ($fromPull && !empty($orgUUId)) {
             $analystData[$type]['org_uuid'] = $orgUUId;
@@ -1101,7 +1129,7 @@ class AnalystData extends AppModel
         foreach (self::ANALYST_DATA_TYPES as $childType) {
             if (!empty($analystData[$type][$childType])) {
                 foreach ($analystData[$type][$childType] as $childAnalystData) {
-                    $captureResult = $this->{$childType}->captureAnalystData($user, $childAnalystData, $fromPull, $orgUUId, $server);
+                    $captureResult = $this->{$childType}->captureAnalystData($user, $childAnalystData, $fromPull, $orgUUId, $server, $fromPre30);
                     $results['imported'] += $captureResult['imported'];
                     $results['ignored'] += $captureResult['ignored'];
                     $results['failed'] += $captureResult['failed'];
@@ -1251,6 +1279,9 @@ class AnalystData extends AppModel
             $types[] = 'Graph';
         }
         $analystData = $this->collectDataForPush($serverSync->server(), $types);
+        if (!$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS)) {
+            $analystData = self::withoutValueTargets($analystData);
+        }
         $keyedAnalystData = [];
         foreach ($analystData as $type => $entries) {
             foreach ($entries as $entry) {
@@ -1379,6 +1410,36 @@ class AnalystData extends AppModel
             $dataForPush[$type] = array_values($dataForPush[$type]);
         }
         return $dataForPush;
+    }
+
+    /**
+     * A MISP older than 3.0 cannot hold rows addressed by a value's SHA-256.
+     *
+     * @param array $dataForPush [type => [[type => row], ...]], as collectDataForPush returns it
+     * @return array The same, without the rows addressing a value at either end
+     */
+    public static function withoutValueTargets(array $dataForPush): array
+    {
+        foreach ($dataForPush as $type => $entries) {
+            $dataForPush[$type] = array_values(array_filter($entries, function ($entry) use ($type) {
+                return !self::isValueAddressed($entry[$type]);
+            }));
+        }
+        return $dataForPush;
+    }
+
+    /**
+     * @param array $row A note, opinion or relationship
+     * @return bool Whether either end is addressed by a value's SHA-256
+     */
+    public static function isValueAddressed(array $row): bool
+    {
+        foreach (['object', 'related_object'] as $end) {
+            if (!empty($row[$end . '_sha256']) || in_array($row[$end . '_type'] ?? null, self::SHA256_TARGETS, true)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function collectValidSharingGroupIDs(array $server): array
@@ -1904,6 +1965,7 @@ class AnalystData extends AppModel
 
         $remoteUser = $serverSync->cachedUserInfo();
         $remotePermSyncInternal = !empty($remoteUser['Role']['perm_sync_internal']);
+        $fromPre30 = !$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS);
 
         foreach ($analystDataUuids as $type => $entries) {
             if (empty($entries)) {
@@ -1925,7 +1987,7 @@ class AnalystData extends AppModel
     
                 foreach ($chunkedAnalystData as $analystData) {
                     $analystData = $this->updatePulledBeforeInsert($analystData, $type, $serverSync->server(), $user, $serverSync->pullRules(), $remotePermSyncInternal);
-                    $savedResult = $this->captureAnalystData($user, $analystData, true, $serverOrgUUID, $serverSync->server());
+                    $savedResult = $this->captureAnalystData($user, $analystData, true, $serverOrgUUID, $serverSync->server(), $fromPre30);
                     if ($savedResult['success']) {
                         $saved += $savedResult['imported'];
                     }
@@ -1938,21 +2000,54 @@ class AnalystData extends AppModel
 
     private function updatePulledBeforeInsert(array $analystData, $type, array $server, array $user, array $pullRules, $remotePermSyncInternal = false): array
     {
-        $analystData[$type]['locked'] = true;
+        $downgrade = empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || !$remotePermSyncInternal;
+        $analystData[$type] = self::updatePulledAnalystData($analystData[$type], $downgrade);
+        return $analystData;
+    }
 
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || !$remotePermSyncInternal) {
-            switch ($analystData[$type]['distribution']) {
-                case 1:
-                    // if community only, downgrade to org only after pull
-                    $analystData[$type]['distribution'] = '0';
-                    break;
-                case 2:
-                    // if connected communities downgrade to community only
-                    $analystData[$type]['distribution'] = '1';
-                    break;
+    /**
+     * A pulled analyst data row is locked and, over a non-internal link, downgraded
+     * (community only to org only, connected communities to community only).
+     * Its nested children get the same.
+     *
+     * @param array $analystData A single Note, Opinion or Relationship row
+     * @param bool $downgrade
+     * @return array
+     */
+    public static function updatePulledAnalystData(array $analystData, $downgrade): array
+    {
+        $analystData['locked'] = true;
+        if ($downgrade && isset($analystData['distribution'])) {
+            if ($analystData['distribution'] == 1) {
+                $analystData['distribution'] = '0';
+            } elseif ($analystData['distribution'] == 2) {
+                $analystData['distribution'] = '1';
             }
         }
-        return $analystData;
+        return self::updatePulledNested($analystData, $downgrade);
+    }
+
+    /**
+     * Apply updatePulledAnalystData() to the analyst data nested in a pulled element
+     * (an event, attribute, object, report or another analyst data row).
+     *
+     * @param array $element
+     * @param bool $downgrade
+     * @return array
+     */
+    public static function updatePulledNested(array $element, $downgrade): array
+    {
+        foreach (self::ANALYST_DATA_TYPES as $type) {
+            if (empty($element[$type]) || !is_array($element[$type])) {
+                continue;
+            }
+            foreach ($element[$type] as $k => $analystData) {
+                if (is_array($analystData)) {
+                    $element[$type][$k] = self::updatePulledAnalystData($analystData, $downgrade);
+                }
+            }
+        }
+        return $element;
     }
 
     private function buildPullFilterRules(array $server): array

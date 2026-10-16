@@ -68,4 +68,14 @@ class ServerSyncVersionCompatibilityTest extends TestCase
         $this->assertTrue((new VersionedServerSync('2.5.0'))->isSupported($feature));
         $this->assertTrue((new VersionedServerSync('3.0.0'))->isSupported($feature));
     }
+
+    public function testValueTargetsNeedThreeZero()
+    {
+        foreach (['2.4.200', '2.5.0', '2.5.50'] as $version) {
+            $this->assertFalse((new VersionedServerSync($version))->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS), $version);
+        }
+        foreach (['3.0.0', '3.1.2'] as $version) {
+            $this->assertTrue((new VersionedServerSync($version))->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS), $version);
+        }
+    }
 }
