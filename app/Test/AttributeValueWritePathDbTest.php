@@ -377,7 +377,6 @@ class AttributeValueWritePathDbTest extends TestCase
 
     public function testAPerAliasFieldListKeepsTheIds()
     {
-        // The list saveAssociated hands the attributes of an OpenIOC import
         $fieldList = [
             'Event' => ['published', 'timestamp'],
             'Attribute' => [

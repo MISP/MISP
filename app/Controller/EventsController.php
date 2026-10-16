@@ -15,7 +15,6 @@ class EventsController extends AppController
 
     public $components = array(
         'RequestHandler',
-        'IOCImport',
     );
 
     public $paginate = array(
@@ -4580,29 +4579,6 @@ class EventsController extends AppController
         }
     }
 
-    public function addIOC($id)
-    {
-        $this->Event->recursive = -1;
-        $this->Event->read(null, $id);
-        if (!$this->__canModifyEvent($this->Event->data)) {
-            throw new UnauthorizedException(__('You do not have permission to do that.'));
-        }
-        if ($this->request->is('post')) {
-            if (!empty($this->data)) {
-                if (isset($this->data['Event']['submittedioc'])) {
-                    $this->_addIOCFile($id);
-                }
-
-                // redirect to the view of the newly created event
-                $this->Flash->success(__('The event has been saved'));
-            }
-        }
-        // set the id
-        $this->set('id', $id);
-        // set whether it is published or not
-        $this->set('published', $this->Event->data['Event']['published'] ?? false);
-    }
-
     // Overmind-only combined import modal. Renders three accordion forms
     public function importEvent()
     {
@@ -5185,7 +5161,7 @@ class EventsController extends AppController
      * gathering every import method, each section posting to its own legacy
      * action. Only supplies the data the inline forms need (templates list and
      * enabled import modules); the actual processing stays in the existing
-     * per-import actions (populate, freeTextImport, addIOC, …).
+     * per-import actions (populate, freeTextImport, …).
      */
     public function populateFrom($id)
     {
@@ -6159,80 +6135,6 @@ class EventsController extends AppController
             )
         ));
         return $this->restSearch();
-    }
-
-    public function _addIOCFile($id)
-    {
-        if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
-                is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
-            if (!$this->Event->checkFilename($this->data['Event']['submittedioc']['name'])) {
-                throw new Exception(__('Filename not allowed.'));
-            }
-
-            // Load event and populate the event data
-            $this->Event->id = $id;
-            $this->Event->recursive = -1;
-            if (!$this->Event->exists()) {
-                throw new NotFoundException(__('Invalid event'));
-            }
-            $this->Event->read(null, $id);
-            $saveEvent['Event'] = $this->Event->data['Event'];
-            $saveEvent['Event']['published'] = false;
-            $dist = '5';
-            if (Configure::read('MISP.default_attribute_distribution') != null) {
-                if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-                    $dist = '5';
-                } else {
-                    $dist = '';
-                    $dist .= Configure::read('MISP.default_attribute_distribution');
-                }
-            }
-            // read XML
-            App::uses('FileAccessTool', 'Tools');
-            $xmlFileData = FileAccessTool::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
-            $event = $this->IOCImport->readXML($xmlFileData, $id, $dist, $this->data['Event']['submittedioc']['name']);
-
-            // make some changes to have $saveEvent in the format that is needed to save the event together with its attributes
-            $fails = $event['Fails'];
-            $saveEvent['Attribute'] = $event['Attribute'];
-            // we've already stored these elsewhere, unset them so we can extract the event related data
-            unset($event['Attribute']);
-            unset($event['Fails']);
-
-            // add the original openIOC file as an attachment
-            $saveEvent['Attribute'][] = array(
-                'category' => 'External analysis',
-                'uuid' =>  CakeText::uuid(),
-                'type' => 'attachment',
-                'sharing_group_id' => '0',
-                'value' => $this->data['Event']['submittedioc']['name'],
-                'to_ids' => false,
-                'distribution' => $dist,
-                'data' => base64_encode($xmlFileData),
-                'comment' => 'OpenIOC import source file'
-            );
-
-            // LATER we might want to let an ioc create the event data automatically in a later version
-            // save the event related data into $saveEvent['Event']
-            //$saveEvent['Event'] = $event;
-            //$saveEvent['Event']['id'] = $id;
-
-            $fieldList = array(
-                    'Event' => array('published', 'timestamp'),
-                    'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment', 'sharing_group_id')
-            );
-            // Save it all
-            $saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
-            // set stuff for the view and render the showIOCResults view.
-            $this->set('attributes', $saveEvent['Attribute']);
-            if (isset($fails)) {
-                $this->set('fails', $fails);
-            }
-            $this->set('eventId', $id);
-            $this->set('graph', $event['Graph']);
-            $this->set('saveEvent', $saveEvent);
-            $this->render('showIOCResults');
-        }
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
@@ -7248,11 +7150,6 @@ class EventsController extends AppController
                     'text' => __('Freetext Import'),
                     'ajax' => true,
                     'target' => 'popover_form'
-                ),
-                'OpenIOC' => array(
-                    'url' => $this->baseurl . '/events/addIOC/' . $id,
-                    'text' => __('OpenIOC Import'),
-                    'ajax' => false,
                 ),
                 'Forensic analysis' => array(
                     'url' => $this->baseurl . '/events/upload_analysis_file/'.$id,

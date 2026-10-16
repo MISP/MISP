@@ -351,7 +351,6 @@ class ACLComponent extends Component
         ),
         'events' => array(
             'add' => array('perm_add'),
-            'addIOC' => array('perm_add'),
             'addTag' => array('perm_tagger'),
             'add_misp_export' => array('perm_modify'),
             'aiActions' => array('perm_ai_tools'),

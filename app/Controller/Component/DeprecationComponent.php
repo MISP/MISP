@@ -16,7 +16,6 @@ class DeprecationComponent extends Component
                 'text' => __('Use /attributes/restSearch to export flat indicator lists.')
             ),
             'events' => array(
-                'addIOC' => __('Use MISP modules to import in OpenIOC format.'),
                 'csv' => __('Use /events/restSearch to export in CSV format.'),
                 'export' => __('Use the REST client to refine your search conditions and export in any of the given formats with much more control.'),
                 'hids' => __('Use /events/restSearch to export hashes.'),
