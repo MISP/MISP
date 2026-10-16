@@ -260,6 +260,8 @@ class CollectionsController extends AppController
                     // owner could flip locked and bypass the create-time guard in
                     // Collection::beforeValidate. Pin it to the stored value.
                     'locked' => $oldCollection['Collection']['locked'],
+                    // CRUD edit keeps the stored value, and sync only sees a newer `modified`.
+                    'modified' => date('Y-m-d H:i:s'),
                 ],
                 'afterSave' => function (array &$collection) use ($data) {
                     $collection = $this->Collection->CollectionElement->captureElements($collection);
