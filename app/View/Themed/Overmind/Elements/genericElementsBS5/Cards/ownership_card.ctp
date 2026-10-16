@@ -87,7 +87,7 @@ if (!empty($user['email'])) {
 }
 ?>
 
-<div class="card mb-3 shadow-sm">
+<div class="card mb-3 shadow-sm" data-tour="ownership">
     <div class="card-body py-2 d-flex flex-column flex-md-row gap-2 gap-md-3">
 
         <div class="min-w-0 d-flex flex-column" style="flex:1 3 100%;">

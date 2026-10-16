@@ -144,8 +144,9 @@ class AttributesController extends AppController
         // A galaxy is not a filter of its own, it stands for the tags its clusters carry.
         $filters = $this->__massageGalaxyFilter($filters);
         // The index filter bar searches for a substring.
-        // Only a value that came in through the URL gets the implicit wildcards - 
+        // Only a value that came in through the URL gets the implicit wildcards -
         // the search form (POST) and the API keep matching the value they were handed.
+        // A value in double quotes is matched exactly, quotes stripped.
         $urlValue = $this->request->params['named']['value']
             ?? ($this->request->query['value'] ?? null);
         if (
@@ -153,10 +154,13 @@ class AttributesController extends AppController
             $urlValue !== null &&
             isset($filters['value']) &&
             is_string($filters['value']) &&
-            $filters['value'] !== '' &&
-            !str_contains($filters['value'], '%')
+            $filters['value'] !== ''
         ) {
-            $filters['value'] = '%' . $filters['value'] . '%';
+            if (preg_match('/^"(.+)"$/s', $filters['value'], $quoted)) {
+                $filters['value'] = $quoted[1];
+            } elseif (!str_contains($filters['value'], '%')) {
+                $filters['value'] = '%' . $filters['value'] . '%';
+            }
         }
         if (!$this->_isRest()) {
             $search_filters = $this->request->data;

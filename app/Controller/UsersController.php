@@ -2957,7 +2957,7 @@ class UsersController extends AppController
         };
         return $this->RestResponse->viewData(
             array(
-                'sections' => OnboardingTour::sections($canAccess),
+                'sections' => OnboardingTour::sections($canAccess, $user['org_id']),
                 'strings' => OnboardingTour::uiStrings(),
             ),
             'json'

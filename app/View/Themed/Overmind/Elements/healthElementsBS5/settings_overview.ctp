@@ -23,7 +23,7 @@ $essentialColumns = array(array_slice($essentials, 0, $half), array_slice($essen
 ?>
 <div class="ss-settings" data-ss-settings>
 
-    <div class="card shadow-sm mb-4 ss-section" style="--ss-accent: var(--bs-danger);">
+    <div class="card shadow-sm mb-4 ss-section" data-tour="settings-attention" style="--ss-accent: var(--bs-danger);">
         <div class="card-header ss-section-header flex-wrap" style="cursor: default;">
             <span class="ss-section-icon"><i class="fas fa-triangle-exclamation"></i></span>
             <div class="flex-grow-1 min-w-0">
@@ -82,7 +82,7 @@ $essentialColumns = array(array_slice($essentials, 0, $half), array_slice($essen
         </div>
     </div>
 
-    <div class="card shadow-sm mb-4 ss-section" style="--ss-accent: #20c997;">
+    <div class="card shadow-sm mb-4 ss-section" data-tour="settings-health" style="--ss-accent: #20c997;">
         <div class="card-header ss-section-header flex-wrap" style="cursor: default;">
             <span class="ss-section-icon"><i class="fas fa-heart-pulse"></i></span>
             <div class="flex-grow-1 min-w-0">
@@ -121,7 +121,7 @@ $essentialColumns = array(array_slice($essentials, 0, $half), array_slice($essen
         </div>
     </div>
 
-    <div class="card shadow-sm mb-4 ss-section" style="--ss-accent: var(--primary);">
+    <div class="card shadow-sm mb-4 ss-section" data-tour="settings-essentials" style="--ss-accent: var(--primary);">
         <div class="card-header ss-section-header" style="cursor: default;">
             <span class="ss-section-icon"><i class="fas fa-star"></i></span>
             <div class="flex-grow-1 min-w-0">
