@@ -108,6 +108,23 @@ class GalaxiesController extends AppController
                 ],
             ]);
             $this->set('clusterCount', $clusterCount);
+            $this->set('clusterPreview', $this->Galaxy->GalaxyCluster->find('all', [
+                'recursive' => -1,
+                'fields' => [
+                    'GalaxyCluster.id', 'GalaxyCluster.value', 'GalaxyCluster.default',
+                    'GalaxyCluster.distribution',
+                    'LEFT(GalaxyCluster.description, 120) AS short_description',
+                ],
+                'conditions' => [
+                    'AND' => [
+                        $this->Galaxy->GalaxyCluster->buildConditions($this->Auth->user()),
+                        'GalaxyCluster.galaxy_id' => $id,
+                        'GalaxyCluster.deleted' => false,
+                    ],
+                ],
+                'order' => ['GalaxyCluster.value'],
+                'callbacks' => false,
+            ]));
         }
     }
 

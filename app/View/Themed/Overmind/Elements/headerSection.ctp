@@ -87,6 +87,21 @@ $headerDescriptions = is_array($headerDescription ?? null)
 $headerDescriptions = array_filter($headerDescriptions, function ($text) {
     return $text !== null && $text !== '';
 });
+
+// `$headerIdentity` is the page's record; its id/uuid pill leads every description line.
+$identityHtml = empty($headerIdentity) ? '' : trim($this->element(
+    'genericElementsBS5/Badges/identity_pill',
+    ['id' => $headerIdentity['id'] ?? null, 'uuid' => $headerIdentity['uuid'] ?? null]
+));
+if ($identityHtml !== '') {
+    foreach ($headerDescriptions as $tabId => $text) {
+        $headerDescriptions[$tabId] = '<span class="d-inline-flex align-items-center gap-3 flex-wrap">'
+            . $identityHtml . '<span>' . $text . '</span></span>';
+    }
+    if (!isset($headerDescriptions[''])) {
+        $headerDescriptions[''] = $identityHtml;
+    }
+}
 $headerDescriptionTabbed = count(array_diff_key($headerDescriptions, ['' => true])) > 0;
 
 /*
@@ -371,9 +386,9 @@ if (!empty($headerActions)) {
 
     <div class="d-flex justify-content-between align-items-center">
 
-        <div class="d-flex flex-column align-items-start" data-tour="page-title">
+        <div class="d-flex flex-column align-items-start gap-1" data-tour="page-title">
             <?php if ($breadcrumb): ?>
-                <span class="text-muted text-uppercase fw-semibold mb-1"
+                <span class="text-muted text-uppercase fw-semibold"
                         style="font-size:0.68rem; letter-spacing:0.07em;">
                     <?= $breadcrumb ?>
                 </span>
@@ -391,9 +406,9 @@ if (!empty($headerActions)) {
             </div>
 
             <?php if (!$headerDescriptionTabbed && !empty($headerDescriptions[''])): ?>
-                <p class="text-muted mt-1" style="font-size:0.85rem;">
+                <span class="text-mute mt-1" style="font-size:0.85rem;">
                     <?= $headerDescriptions[''] ?>
-                </p>
+                </span>
             <?php elseif ($headerDescriptionTabbed): ?>
                 <div>
                     <?php foreach ($headerDescriptions as $tabId => $text): ?>
