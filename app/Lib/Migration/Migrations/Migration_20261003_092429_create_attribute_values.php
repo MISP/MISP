@@ -1,7 +1,8 @@
 <?php
 
 App::uses('AbstractMigration', 'Migration');
-App::uses('Collation', 'Migration');
+App::uses('TableConverger', 'Migration');
+require_once __DIR__ . '/Migration_20261016_180337_schema_v3_attribute_values.php';
 
 /**
  * Create the attribute_values dictionary
@@ -13,15 +14,6 @@ class Migration_20261003_092429_create_attribute_values extends AbstractMigratio
     public $requiresLogout = false;
 
     const TABLE = 'attribute_values';
-
-    /**
-     * Characters of the value covered by the case-insensitive lookup index.
-     */
-    const VALUE_PREFIX = 128;
-
-    const PGSQL_VALUE_INDEX = 'idx_attribute_values_value';
-
-    const PGSQL_SEARCH_INDEX = 'idx_attribute_values_value_search';
 
     /**
      * On PostgreSQL, refuse with instructions when pg_trgm cannot be created,
@@ -54,8 +46,9 @@ class Migration_20261003_092429_create_attribute_values extends AbstractMigratio
     }
 
     /**
-     * Each step is guarded, so a retry after a partial failure declares only
-     * what is still missing.
+     * Created at the 3.0 target, which its schema v3 migration then finds
+     * met. Converged, so a retry after a partial failure declares only what
+     * is still missing.
      *
      * @param SchemaBuilder $schema
      * @return void
@@ -63,53 +56,13 @@ class Migration_20261003_092429_create_attribute_values extends AbstractMigratio
     public function up(SchemaBuilder $schema)
     {
         $inspector = $this->inspector();
-        $pgsql = $inspector->flavour() === SchemaInspector::FLAVOUR_PGSQL;
-
-        if (!$inspector->hasTable(self::TABLE)) {
-            $schema->createTable(self::TABLE, array(
-                'id' => array('type' => 'biginteger', 'key' => 'primary', 'unsigned' => true, 'null' => false),
-                'value' => array('type' => 'text', 'null' => false, 'collate' => Collation::CI),
-                'hash' => array('type' => 'varbinary', 'length' => 32, 'null' => false),
-            ), array(
-                'indexes' => array('hash' => array('unique' => true)),
-                'engine' => 'InnoDB',
-                'collate' => Collation::CI,
-            ));
-        }
-        if (!$inspector->hasNamedIndex(self::TABLE, $pgsql ? self::PGSQL_VALUE_INDEX : 'value')) {
-            $schema->rawSql(array(
-                'mysql' => sprintf(
-                    'ALTER TABLE `%s` ADD INDEX `value` (`value`(%d));',
-                    self::TABLE,
-                    self::VALUE_PREFIX
-                ),
-                'pgsql' => sprintf(
-                    'CREATE INDEX "%s" ON "%s" (lower(left("value", %d)));',
-                    self::PGSQL_VALUE_INDEX,
-                    self::TABLE,
-                    self::VALUE_PREFIX
-                ),
-            ));
-        }
-        if (!$inspector->hasNamedIndex(self::TABLE, $pgsql ? self::PGSQL_SEARCH_INDEX : 'value_search')) {
-            // InnoDB keeps the session's stopword list with the index, and
-            // one built with it can never find `com`, `www` or `the`.
-            $schema->rawSql(array(
-                'mysql' => array(
-                    'SET SESSION innodb_ft_enable_stopword = 0;',
-                    sprintf('ALTER TABLE `%s` ADD FULLTEXT INDEX `value_search` (`value`);', self::TABLE),
-                    'SET SESSION innodb_ft_enable_stopword = DEFAULT;',
-                ),
-                'pgsql' => array(
-                    'CREATE EXTENSION IF NOT EXISTS pg_trgm;',
-                    sprintf(
-                        'CREATE INDEX "%s" ON "%s" USING gin ("value" gin_trgm_ops);',
-                        self::PGSQL_SEARCH_INDEX,
-                        self::TABLE
-                    ),
-                ),
-            ));
-        }
+        TableConverger::converge(
+            $inspector,
+            $schema,
+            self::TABLE,
+            Migration_20261016_180337_schema_v3_attribute_values::TARGET,
+            TableConverger::session($inspector)
+        );
     }
 
     /**
