@@ -39,7 +39,7 @@ if (empty($id)) {
         return;
     }
 }
-$isCreator = $data_path === 'Orgc';
+$isCreator = $field['data_path'] === 'Orgc';
 $isCard = isset($viewMode) && $viewMode === 'card';
 
 // Optionally surface the organisation description below the name

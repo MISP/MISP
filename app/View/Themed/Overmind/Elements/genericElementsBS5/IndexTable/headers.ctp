@@ -59,7 +59,7 @@
                         empty($header['select_all_function']) ? 'onclick="toggleAllAttributeCheckboxes(this);"' : 'onclick="' . $header['select_all_function'] . '"'
                     );
                 } else {
-                    $header_data = $header['name'];
+                    $header_data = $header['name'] ?? '';
                 }
             }
             $classes = [];
