@@ -714,6 +714,12 @@ class MispAttribute extends AppModel
         if (empty($attribute['uuid'])) {
             $attribute['uuid'] = CakeText::uuid();
         }
+        // Cake fills `created` on insert but keeps a sent value, on edits too.
+        if (empty($attribute['id']) && empty($this->id)) {
+            $attribute['created'] = time();
+        } else {
+            unset($attribute['created']);
+        }
         if (!$this->fast_update && !empty($attribute['id'])) {
             $this->old = $this->find('first', array(
                 'recursive' => -1,

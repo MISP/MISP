@@ -3641,6 +3641,13 @@ components:
       maxLength: 65535
       example: "logged source ip"
 
+    AttributeCreated:
+      description: "When this instance created the attribute, as an epoch timestamp. Set on creation and never changed by an edit; a value sent with an add or an edit is ignored. 0 for attributes created before MISP 3.0."
+      type: string
+      pattern: '^\d+$'
+      readOnly: true
+      example: "1617875568"
+
     AttributeEventUUID:
       $ref: "#/components/schemas/UUID"
 
@@ -3670,6 +3677,8 @@ components:
           $ref: "#/components/schemas/UUID"
         timestamp:
           $ref: "#/components/schemas/NullableTimestamp"
+        created:
+          $ref: "#/components/schemas/AttributeCreated"
         distribution:
           $ref: "#/components/schemas/DistributionLevelId"
         sharing_group_id:

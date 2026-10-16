@@ -275,10 +275,13 @@ class AttributeValuesMigrationTest extends TestCase
             '`idx_vid1_target` (`value1_id`, `event_id`, `deleted`, `disable_correlation`, `type`, `id`)',
             '`idx_vid2_source` (`event_id`, `value2_id`, `deleted`, `disable_correlation`, `type`, `id`)',
             '`idx_vid2_target` (`value2_id`, `event_id`, `deleted`, `disable_correlation`, `type`, `id`)',
+            '`created` (`created`)',
         );
         $expected = array(
             'ALTER TABLE `attributes` ADD `value1_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value2`;',
-            'ALTER TABLE `attributes` ADD `value2_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value1_id`;',
+            "ALTER TABLE `attributes`\n" .
+            "    ADD `value2_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value1_id`,\n" .
+            "    ADD `created` bigint(20) DEFAULT 0 NOT NULL AFTER `timestamp`;",
             'ALTER TABLE `shadow_attributes` ADD `value1_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value2`;',
             'ALTER TABLE `shadow_attributes` ADD `value2_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value1_id`;',
             "ALTER TABLE `shadow_attributes`\n" .
@@ -290,19 +293,25 @@ class AttributeValuesMigrationTest extends TestCase
 
         $pgsql = $this->render(new MigrationTestPostgres(), array(), self::VALUE_IDS);
         $this->assertSame('ALTER TABLE "attributes" ADD "value1_id" bigint DEFAULT NULL;', $pgsql[0]);
+        $this->assertSame(
+            "ALTER TABLE \"attributes\"\n    ADD \"value2_id\" bigint DEFAULT NULL,\n    ADD \"created\" bigint DEFAULT 0 NOT NULL;",
+            $pgsql[1]
+        );
         $this->assertSame('CREATE INDEX "idx_shadow_attributes_value1_id" ON "shadow_attributes" ("value1_id");', $pgsql[4]);
         $this->assertSame('CREATE INDEX "idx_vid2_target" ON "attributes" ("value2_id", "event_id", "deleted", "disable_correlation", "type", "id");', $pgsql[10]);
-        $this->assertCount(11, $pgsql);
+        $this->assertSame('CREATE INDEX "idx_attributes_created" ON "attributes" ("created");', $pgsql[11]);
+        $this->assertCount(12, $pgsql);
     }
 
     public function testAValueIdsRetryDeclaresOnlyWhatIsMissing()
     {
         $columns = array(
-            'attributes' => array('value1_id', 'value2_id'),
+            'attributes' => array('value1_id', 'value2_id', 'created'),
             'shadow_attributes' => array('value1_id'),
         );
         $existing = array(
             'attributes' => array(
+                'created' => array('column' => 'created', 'unique' => 0),
                 'idx_attr_vid_combo' => array('column' => array('value1_id', 'value2_id'), 'unique' => 0),
                 'idx_vid1_source' => array('column' => array('event_id', 'value1_id', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
                 'idx_vid1_target' => array('column' => array('value1_id', 'event_id', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
@@ -321,6 +330,14 @@ class AttributeValuesMigrationTest extends TestCase
         $columns['shadow_attributes'][] = 'value2_id';
         $existing['shadow_attributes']['value2_id'] = array('column' => 'value2_id', 'unique' => 0);
         $this->assertSame(array(), $this->render(new MigrationTestMysqlExtended(), $existing, self::VALUE_IDS, $columns));
+
+        // A database that ran this migration before it carried the creation time.
+        unset($existing['attributes']['created']);
+        $columns['attributes'] = array('value1_id', 'value2_id');
+        $this->assertSame(array(
+            'ALTER TABLE `attributes` ADD `created` bigint(20) DEFAULT 0 NOT NULL AFTER `timestamp`;',
+            'ALTER TABLE `attributes` ADD INDEX `created` (`created`);',
+        ), $this->render(new MigrationTestMysqlExtended(), $existing, self::VALUE_IDS, $columns));
     }
 
     public function testTheTextPrefixPackDoesNotSatisfyTheIdIndexes()
