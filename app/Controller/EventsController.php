@@ -2500,16 +2500,18 @@ class EventsController extends AppController
      * Lightweight event view endpoint that only loads the
      * event shell (metadata, org, tags, galaxies). Attributes
      * and objects are NOT loaded — they are fetched via
-     * dedicated paginated endpoints.
+     * dedicated paginated endpoints. API clients get that shell as JSON.
      *
      * @param int|string $id Event ID or UUID
      */
     public function view2($id = null)
     {
-        if ($this->__viewTarget() !== 'view2') {
+        $target = $this->__viewTarget();
+        if ($target !== 'view2' && $target !== 'view1') {
             return $this->view($id);
         }
-        $user = $this->__viewAsUser(true);
+        $isRest = $target === 'view1';
+        $user = $this->__viewAsUser(!$isRest);
 
         // Fetch event metadata only — no attributes, no objects
         $event = $this->Event->fetchSimpleEvent($user, $id, [
@@ -2526,6 +2528,13 @@ class EventsController extends AppController
         }
 
         $event = $this->__enrichEvent($event, $user);
+
+        if ($isRest) {
+            return $this->RestResponse->viewData(
+                $event,
+                $this->response->type()
+            );
+        }
 
         // Extended / extending view: the tabs below span several events, so
         // resolve the set first and count over all of it.

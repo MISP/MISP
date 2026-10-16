@@ -63,7 +63,7 @@ The entry point. `/events/view` dispatches browsers on a theme shipping `Events/
 - Extension chain: `Event.Extends` (parent) and `Event.ExtendedBy[]` (children)
 - Analyst data: Note, Opinion, Relationship
 
-**REST response:** none — API requests are handled by `view1`.
+**REST response:** Full enriched event object as JSON, from `/events/view2/{id}` (`/events/view/{id}` returns the full event instead).
 
 **HTML rendering:** Uses `single_view` generic element with:
 - Metadata fields (ID, UUID, creator org, owner org, tags, date, threat level, analysis, distribution, published status, timestamps, extends/extended-by, correlation toggle)
