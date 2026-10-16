@@ -217,6 +217,10 @@ class SchemaInspector
         // spelled here the way the DSL and the MySQL driver spell it and
         // hasIndex() can find it.
         foreach ($indexes as $name => $index) {
+            // Mysql::index() leaves the flag off a FULLTEXT index.
+            if (!isset($index['unique'])) {
+                $indexes[$name]['unique'] = 0;
+            }
             if (!isset($index['column'])) {
                 continue;
             }

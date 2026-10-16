@@ -255,6 +255,19 @@ class SchemaInspectorTest extends TestCase
         $this->assertFalse($this->inspector->hasNamedIndex('events', 'idx_events_lookup'));
     }
 
+    public function testAFulltextIndexIsReportedAsNotUnique()
+    {
+        $this->db->tables[] = 'attribute_values';
+        $this->db->indexData['attribute_values'] = array(
+            'PRIMARY' => array('column' => 'id', 'unique' => 1),
+            'value_search' => array('column' => 'value', 'type' => 'fulltext'),
+        );
+        $indexes = $this->inspector->indexes('attribute_values');
+        $this->assertSame(0, $indexes['value_search']['unique']);
+        $this->assertTrue($this->inspector->hasIndex('attribute_values', 'value', false));
+        $this->assertFalse($this->inspector->hasIndex('attribute_values', 'value', true));
+    }
+
     public function testIndexesOfAMissingTableAreEmpty()
     {
         $this->assertSame(array(), $this->inspector->indexes('collections'));
