@@ -132,7 +132,7 @@ class AdminShell extends AppShell
             'help' => __('Remove orphaned correlations.'),
         ]);
         $parser->addSubcommand('valueDictionaryStats', [
-            'help' => __('Count the attribute value dictionary for the values index. Counts only what was added since the last run, and everything once a week.'),
+            'help' => __('Count the attribute value dictionary for the values index. Counts only what was added since the last run, and everything once a week. The values index queues it once a day when background workers run; without them, run it daily from cron.'),
             'parser' => [
                 'arguments' => [
                     'jobId' => ['help' => __('Job ID'), 'required' => false],
