@@ -6847,6 +6847,9 @@ function initIndexFilterDraft(root, opts) {
     let applied = Object.assign({}, opts.applied || {});
     let appliedQuick = opts.appliedQuick || '';
     let inFlight = null;
+    // The page URL the results belong to, so a popstate that leaves it
+    // unchanged is not taken for a filter change.
+    let shownUrl = window.location.pathname + window.location.search;
 
     /* ── draft state ─────────────────────────────────────────────────── */
 
@@ -7077,7 +7080,10 @@ function initIndexFilterDraft(root, opts) {
                 results.innerHTML = fresh.innerHTML;
                 (opts.swap || []).forEach(function (selector) { swap(doc, selector); });
 
-                if (push) { history.pushState({ indexFilter: true }, '', url); }
+                if (push) {
+                    history.pushState({ indexFilter: true }, '', url);
+                    shownUrl = window.location.pathname + window.location.search;
+                }
                 if (opts.syncFromUrl) { opts.syncFromUrl(url); }
                 applied = draft();
                 appliedQuick = draftQuick();
@@ -7176,9 +7182,13 @@ function initIndexFilterDraft(root, opts) {
     // `base` is an absolute URL, `location.pathname` is not — compare paths.
     const basePath = opts.base ? opts.base.replace(/^[a-z]+:\/\/[^/]+/i, '') : null;
     window.addEventListener('popstate', function () {
-        // Another page's history entry is none of this bar's business.
+        // Another page's history entry is none of this bar's business, and
+        // neither is one that only moves the hash (a view_layout tab switch).
         if (basePath && window.location.pathname.indexOf(basePath) !== 0) { return; }
-        load(window.location.pathname + window.location.search, false);
+        const url = window.location.pathname + window.location.search;
+        if (url === shownUrl) { return; }
+        shownUrl = url;
+        load(url, false);
     });
 
     renderSummary();

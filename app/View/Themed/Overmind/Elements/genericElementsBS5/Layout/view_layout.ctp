@@ -305,10 +305,14 @@ $tabIconColour = function (array $tab) use ($entityIconColours) {
 </div>
 
 <script>
+// The tab the server opened, which a history entry without a hash goes back to.
+var defaultViewTab = document.querySelector('.nav-view.active[href^="#tab-"]');
+
 function activateTabFromHash() {
     var hash = window.location.hash;
-    if (!hash) return;
-    var target = document.querySelector('.nav-link[href="' + hash + '"]');
+    var target = hash
+        ? document.querySelector('.nav-link[href="' + hash + '"]')
+        : defaultViewTab;
     if (target) bootstrap.Tab.getOrCreateInstance(target).show();
 }
 
@@ -362,9 +366,14 @@ function scrollToPaneTop(strip) {
 window.addEventListener('scroll', syncViewTabsChrome, { passive: true });
 window.addEventListener('resize', syncViewTabsChrome);
 
-// A link to #tab-<id> from inside a panel has to switch tabs, not just move
-// the hash. Bootstrap does not watch the hash, so neither did this.
-window.addEventListener('hashchange', activateTabFromHash);
+// A link to #tab-<id> from inside a panel, or Back/Forward over tab switches,
+// has to switch tabs, not just move the hash. Bootstrap does not watch it.
+function syncTabFromUrl() {
+    activateTabFromHash();
+    syncHeaderActions(currentTabId());
+}
+window.addEventListener('hashchange', syncTabFromUrl);
+window.addEventListener('popstate', syncTabFromUrl);
 
 document.addEventListener('DOMContentLoaded', function () {
     // Restore active tab from URL hash on load
@@ -383,12 +392,17 @@ document.addEventListener('DOMContentLoaded', function () {
         syncViewTabsChrome();
     }
 
-    // Keep URL hash + header actions in sync when switching tabs
+    // Keep URL hash + header actions in sync when switching tabs. Each switch
+    // is its own history entry, so Back returns to the previous tab.
     document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(function (tab) {
         tab.addEventListener('shown.bs.tab', function (e) {
             var href = e.target.getAttribute('href');
-            if (href) {
-                history.replaceState(null, '', href);
+            if (href && href.indexOf('#tab-') === 0) {
+                var current = window.location.hash
+                    || (defaultViewTab && defaultViewTab.getAttribute('href'));
+                if (href !== current) {
+                    history.pushState(null, '', href);
+                }
                 syncHeaderActions(href.replace('#tab-', ''));
             }
         });
@@ -398,11 +412,5 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     });
-});
-
-// Activate tab when hash changes without page reload (same-page anchor links)
-window.addEventListener('hashchange', function () {
-    activateTabFromHash();
-    syncHeaderActions(currentTabId());
 });
 </script>
