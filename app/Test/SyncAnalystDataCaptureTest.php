@@ -208,4 +208,35 @@ class SyncAnalystDataCaptureTest extends TestCase
         $this->assertSame(0, $result['failed']);
         $this->assertCount(1, $this->note->saved);
     }
+
+    private function pulledAttribute()
+    {
+        return [
+            'uuid' => 'a1b2c3d4-0000-4000-8000-000000000001',
+            'distribution' => 1,
+            'Note' => [['uuid' => 'n1', 'distribution' => 1, 'Opinion' => [['uuid' => 'o1', 'distribution' => 2]]]],
+            'Relationship' => [['uuid' => 'r1', 'distribution' => 3, 'locked' => false]],
+        ];
+    }
+
+    public function testPulledNestedAnalystDataIsLockedAndDowngraded()
+    {
+        $attribute = AnalystData::updatePulledNested($this->pulledAttribute(), true);
+        $this->assertSame(1, $attribute['distribution']);
+        $this->assertSame('0', $attribute['Note'][0]['distribution']);
+        $this->assertTrue($attribute['Note'][0]['locked']);
+        $this->assertSame('1', $attribute['Note'][0]['Opinion'][0]['distribution']);
+        $this->assertTrue($attribute['Note'][0]['Opinion'][0]['locked']);
+        $this->assertSame(3, $attribute['Relationship'][0]['distribution']);
+        $this->assertTrue($attribute['Relationship'][0]['locked']);
+    }
+
+    public function testPulledNestedAnalystDataKeepsDistributionOverAnInternalLink()
+    {
+        $attribute = AnalystData::updatePulledNested($this->pulledAttribute(), false);
+        $this->assertSame(1, $attribute['Note'][0]['distribution']);
+        $this->assertSame(2, $attribute['Note'][0]['Opinion'][0]['distribution']);
+        $this->assertTrue($attribute['Note'][0]['locked']);
+        $this->assertTrue($attribute['Note'][0]['Opinion'][0]['locked']);
+    }
 }
