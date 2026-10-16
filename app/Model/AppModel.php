@@ -1412,11 +1412,6 @@ class AppModel extends Model
         return $val / (1024 * 1024);
     }
 
-    public function generateRandomFileName()
-    {
-        return RandomTool::random_str(false, 12);
-    }
-
     /**
      * @param string|int $delta
      * @return int Timestamp

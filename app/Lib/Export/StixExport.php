@@ -95,7 +95,7 @@ abstract class StixExport
         $decoded = JsonTool::decode($result);
         if (!isset($decoded['success']) || !$decoded['success']) {
             if (!empty($decoded['filenames'])) {
-                $this->__delete_temporary_files(false, $decoded['filename']);
+                $this->__delete_temporary_files(false, $decoded['filenames']);
             } else {
                 $this->__delete_temporary_files(true);
             }
@@ -402,6 +402,9 @@ abstract class StixExport
         $stix_content = FileAccessTool::readAndDelete($filename);
         if ($this->__return_type === 'stix2') {
             $stix_content = substr($stix_content, 1, -1);
+            if ($stix_content === '') {
+                return;
+            }
         }
         $this->stixFile->writeWithSeparator($stix_content, $separator);
     }

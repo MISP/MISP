@@ -9947,58 +9947,6 @@ class Event extends AppModel
         }
     }
 
-    /**
-     * @param string $scriptDir
-     * @return string
-     * @throws Exception
-     */
-    private function __getTagNamesFromSynonyms($scriptDir)
-    {
-        $synonymsToTagNames = $scriptDir . DS . 'tmp' . DS . 'synonymsToTagNames.json';
-        if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
-            if (!isset($this->GalaxyCluster)) {
-                $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            }
-            // The latest version of every cluster, by tag name. This used to
-            // be a GROUP BY tag_name that also selected value and id, which
-            // MySQL tolerates (and answers with an arbitrary row per group)
-            // and PostgreSQL rejects. Ascending by version and letting the
-            // later row overwrite the earlier one is the same question asked
-            // portably, and it is what the old query was assumed to answer.
-            $clusters = array();
-            $allClusters = $this->GalaxyCluster->find('all', array(
-                'recursive' => -1,
-                'fields' => array('GalaxyCluster.value', 'GalaxyCluster.version', 'GalaxyCluster.tag_name', 'GalaxyCluster.id'),
-                'order' => array('GalaxyCluster.version ASC', 'GalaxyCluster.id ASC'),
-            ));
-            foreach ($allClusters as $cluster) {
-                $clusters[$cluster['GalaxyCluster']['tag_name']] = $cluster;
-            }
-            unset($allClusters);
-            $clusters = array_values($clusters);
-            $synonyms = $this->GalaxyCluster->GalaxyElement->find('all', array(
-                'recursive' => -1,
-                'fields' => array('galaxy_cluster_id', 'value'),
-                'conditions' => array('key' => 'synonyms')
-            ));
-            $idToSynonyms = array();
-            foreach ($synonyms as $synonym) {
-                $idToSynonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym['GalaxyElement']['value'];
-            }
-            $mapping = array();
-            foreach ($clusters as $cluster) {
-                $mapping[$cluster['GalaxyCluster']['value']][] = $cluster['GalaxyCluster']['tag_name'];
-                if (!empty($idToSynonyms[$cluster['GalaxyCluster']['id']])) {
-                    foreach ($idToSynonyms[$cluster['GalaxyCluster']['id']] as $synonym) {
-                        $mapping[$synonym][] = $cluster['GalaxyCluster']['tag_name'];
-                    }
-                }
-            }
-            FileAccessTool::writeToFile($synonymsToTagNames, JsonTool::encode($mapping));
-        }
-        return $synonymsToTagNames;
-    }
-
     public function enrichmentRouter($options)
     {
         if (Configure::read('MISP.background_jobs')) {
