@@ -9889,12 +9889,15 @@ components:
                     example: "68"
                   checked_table_column:
                     type: array
+                    description: Always empty since 3.0; kept for compatibility.
                     items:
                       type: string
                       example: "column_name"
                   diagnostic:
                     type: object
+                    description: Always empty since 3.0; kept for compatibility.
                   diagnostic_index:
+                    description: Always empty since 3.0; kept for compatibility.
                     anyOf:
                       - type: object
                         example:

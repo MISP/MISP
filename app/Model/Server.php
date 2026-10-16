@@ -3535,6 +3535,7 @@ class Server extends AppModel
             'remaining_lock_time' => $this->getLockRemainingTime(),
             'update_fail_number_reached' => $this->UpdateFailNumberReached(),
             'indexes' => array(),
+            'columnPerTable' => array(),
             'warnings' => array(),
         );
         // A setting that validates only on MySQL can still arrive on another
@@ -3553,9 +3554,8 @@ class Server extends AppModel
         // an instance is behind on rather than just how far. A failed migration
         // is still pending - it is retried first on the next run - so its id is
         // in both lists.
-        // The expected version is the one db_schema.json was dumped at, on
-        // any engine - the file is JSON and reads the same everywhere. Only
-        // the column-by-column comparison below is MySQL-shaped.
+        // Only db_version is read from db_schema.json. The column and index
+        // comparison was dropped for its false positives; its keys stay, empty, for API callers.
         $dbExpectedSchema = $this->getExpectedDBSchema();
         if ($dbExpectedSchema !== false && isset($dbExpectedSchema['db_version'])) {
             $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
@@ -3576,34 +3576,6 @@ class Server extends AppModel
         $schemaDiagnostic['migrations_deferred'] = count($deferredReasons);
         $schemaDiagnostic['migrations_deferred_reasons'] = $deferredReasons;
         $schemaDiagnostic['migrations_applied'] = count($migrationManager->applied());
-        if ($this->isMysql()) {
-            $dbActualSchema = $this->getActualDBSchema();
-            if ($dbExpectedSchema !== false) {
-                $db_schema_comparison = $this->compareDBSchema($dbActualSchema['schema'], $dbExpectedSchema['schema']);
-                $db_indexes_comparison = $this->compareDBIndexes($dbActualSchema['indexes'], $dbExpectedSchema['indexes'], $dbExpectedSchema);
-                $schemaDiagnostic['checked_table_column'] = $dbActualSchema['column'];
-                $schemaDiagnostic['diagnostic'] = $db_schema_comparison;
-                $schemaDiagnostic['diagnostic_index'] = $db_indexes_comparison;
-                $schemaDiagnostic['expected_db_version'] = $dbExpectedSchema['db_version'];
-                foreach($dbActualSchema['schema'] as $tableName => $tableMetas) {
-                    foreach($tableMetas as $tableMeta) {
-                        $schemaDiagnostic['columnPerTable'][$tableName][] = $tableMeta['column_name'];
-                    }
-                }
-                $schemaDiagnostic['indexes'] = $dbActualSchema['indexes'];
-            } else {
-                $schemaDiagnostic['error'] = 'Diagnostic not available as the expected schema file could not be loaded';
-            }
-        } else {
-            $schemaDiagnostic['error'] = sprintf('Diagnostic not available for DataSource `%s`', $dataSource);
-        }
-        if (!empty($schemaDiagnostic['diagnostic'])) {
-            foreach ($schemaDiagnostic['diagnostic'] as $table => &$fields) {
-                foreach ($fields as &$field) {
-                    $field = $this->__attachRecoveryQuery($field, $table);
-                }
-            }
-        }
         return $schemaDiagnostic;
     }
 
@@ -3637,95 +3609,6 @@ class Server extends AppModel
             ];
         }
         return $configuration;
-    }
-
-    /*
-     * Work in progress, still needs DEFAULT in the schema for it to work correctly
-     * Currently only works for missing_column and column_different
-     * Only currently supported field types are: int, tinyint, varchar, text
-     */
-    private function __attachRecoveryQuery($field, $table)
-    {
-        if (isset($field['error_type'])) {
-            $length = false;
-            if (in_array($field['error_type'], array('missing_column', 'column_different'))) {
-                preg_match('/([a-z]+)(?:\((?<dw>[0-9,]+)\))?\s*([a-z]+)?/i', $field['expected']['column_type'], $displayWidthMatches);
-                if (isset($displayWidthMatches['dw'])) {
-                    $length = $displayWidthMatches[2];
-                } elseif ($field['expected']['data_type'] === 'int') {
-                    $length = 11;
-                } elseif ($field['expected']['data_type'] === 'tinyint') {
-                    $length = 1;
-                } elseif ($field['expected']['data_type'] === 'varchar') {
-                    $length = $field['expected']['character_maximum_length'];
-                } elseif ($field['expected']['data_type'] === 'text') {
-                    $length = null;
-                }
-            }
-            if ($length !== false) {
-                switch($field['error_type']) {
-                    case 'missing_column':
-                        $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` ADD COLUMN `%s` %s%s %s %s %s %s %s;',
-                            $table,
-                            $field['column_name'],
-                            $field['expected']['data_type'],
-                            $length !== null ? sprintf('(%d)', $length) : '',
-                            strpos($field['expected']['column_type'], 'unsigned') !== false ? 'UNSIGNED' : '',
-                            isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
-                            $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
-                            empty($field['expected']['extra']) ? '' : $field['expected']['extra']
-                        );
-                        break;
-                    case 'column_different':
-                        $field['sql'] = sprintf(
-                            'ALTER TABLE `%s` MODIFY COLUMN `%s` %s%s %s %s %s %s %s;',
-                            $table,
-                            $field['column_name'],
-                            $field['expected']['data_type'],
-                            $length !== null ? sprintf('(%d)', $length) : '',
-                            strpos($field['expected']['column_type'], 'unsigned') !== false ? 'UNSIGNED' : '',
-                            isset($field['expected']['column_default']) ? 'DEFAULT "' . $field['expected']['column_default'] . '"' : '',
-                            $field['expected']['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                            empty($field['expected']['collation_name']) ? '' : 'COLLATE ' . $field['expected']['collation_name'],
-                            empty($field['expected']['extra']) ? '' : $field['expected']['extra']
-                        );
-                        break;
-                }
-            } elseif($field['error_type'] == 'missing_table') {
-                $allFields = array();
-                foreach ($field['expected_table'] as $expectedField) {
-                    $length = false;
-                    if ($expectedField['data_type'] === 'int') {
-                        $length = 11;
-                    } elseif ($expectedField['data_type'] === 'tinyint') {
-                        $length = 1;
-                    } elseif ($expectedField['data_type'] === 'varchar') {
-                        $length = $expectedField['character_maximum_length'];
-                    } elseif ($expectedField['data_type'] === 'text') {
-                        $length = null;
-                    }
-                    $fieldSql = sprintf('`%s` %s%s %s %s %s %s %s',
-                        $expectedField['column_name'],
-                        $expectedField['data_type'],
-                        $length !== null ? sprintf('(%d)', $length) : '',
-                        strpos($expectedField['column_type'], 'unsigned') !== false ? 'UNSIGNED' : '',
-                        isset($expectedField['column_default']) ? 'DEFAULT "' . $expectedField['column_default'] . '"' : '',
-                        $expectedField['is_nullable'] === 'NO' ? 'NOT NULL' : 'NULL',
-                        empty($expectedField['collation_name']) ? '' : 'COLLATE ' . $expectedField['collation_name'],
-                        empty($field['expected']['extra']) ? '' : $field['expected']['extra']
-                    );
-                    $allFields[] = $fieldSql;
-                }
-                $field['sql'] = __("% The command below is a suggestion and might be incorrect. Please ask if you are not sure what you are doing.") . "</br></br>" . sprintf(
-                    "CREATE TABLE IF NOT EXISTS `%s` ( %s ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;",
-                        $table,
-                        implode(', ', $allFields)
-                );
-            }
-        }
-        return $field;
     }
 
     public function getExpectedDBSchema()
@@ -3788,214 +3671,6 @@ class Server extends AppModel
             return array('Database/Postgres' => array('description' => __('Can\'t check database schema for Postgres database type')));
         }
         return ['schema' => $dbActualSchema, 'column' => $tableColumnNames, 'indexes' => $dbActualIndexes];
-    }
-
-    private function compareDBSchema($dbActualSchema, $dbExpectedSchema)
-    {
-        // Column that should be ignored while performing the comparison
-        $allowedlistFields = array(
-            'users' => array('external_auth_required', 'external_auth_key'),
-        );
-        $nonCriticalColumnElements = array('collation_name');
-        $dbDiff = array();
-        // perform schema comparison for tables
-        foreach($dbExpectedSchema as $tableName => $columns) {
-            if (!array_key_exists($tableName, $dbActualSchema)) {
-                $dbDiff[$tableName][] = array(
-                    'description' => __('Table `%s` does not exist', $tableName),
-                    'error_type' => 'missing_table',
-                    'expected_table' => $columns,
-                    'column_name' => $tableName,
-                    'is_critical' => true
-                );
-            } else {
-                // perform schema comparison for table's columns
-                $expectedColumnKeys = array();
-                $keyedExpectedColumn = array();
-                foreach($columns as $column) {
-                    $expectedColumnKeys[] = $column['column_name'];
-                    $keyedExpectedColumn[$column['column_name']] = $column;
-                }
-                $existingColumnKeys = array();
-                $keyedActualColumn = array();
-                foreach($dbActualSchema[$tableName] as $column) {
-                    $existingColumnKeys[] = $column['column_name'];
-                    $keyedActualColumn[$column['column_name']] = $column;
-                }
-
-                $additionalKeysInActualSchema = array_diff($existingColumnKeys, $expectedColumnKeys);
-                foreach($additionalKeysInActualSchema as $additionalKeys) {
-                    if (isset($allowedlistFields[$tableName]) && in_array($additionalKeys, $allowedlistFields[$tableName])) {
-                        continue; // column is allowedlisted
-                    }
-                    $dbDiff[$tableName][] = array(
-                        'description' => __('Column `%s` exists but should not', $additionalKeys),
-                        'error_type' => 'additional_column',
-                        'column_name' => $additionalKeys,
-                        'is_critical' => false
-                    );
-                }
-                foreach ($keyedExpectedColumn as $columnName => $column) {
-                    if (isset($allowedlistFields[$tableName]) && in_array($columnName, $allowedlistFields[$tableName])) {
-                        continue; // column is allowedlisted
-                    }
-                    if (isset($keyedActualColumn[$columnName])) {
-                        $colDiff = array_diff_assoc($column, $keyedActualColumn[$columnName]);
-                        if (count($colDiff) > 0) {
-                            $colElementDiffs = array_keys(array_diff_assoc($column, $keyedActualColumn[$columnName]));
-                            $isCritical = false;
-                            foreach($colElementDiffs as $colElementDiff) {
-                                if(!in_array($colElementDiff, $nonCriticalColumnElements)) {
-                                    if ($colElementDiff == 'column_default') {
-                                        $expectedValue = $column['column_default'];
-                                        $actualValue = $keyedActualColumn[$columnName]['column_default'];
-                                        if (preg_match(sprintf('@(\'|")+%s(\1)+@', $expectedValue), $actualValue) || (empty($expectedValue) && $actualValue === 'NULL')) { // some version of mysql quote the default value
-                                            continue;
-                                        } else {
-                                            $isCritical = true;
-                                            break;
-                                        }
-                                    } else {
-                                        $isCritical = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            $dbDiff[$tableName][] = array(
-                                'description' => __('Column `%s` is different', $columnName),
-                                'column_name' => $column['column_name'],
-                                'error_type' => 'column_different',
-                                'actual' => $keyedActualColumn[$columnName],
-                                'expected' => $column,
-                                'is_critical' => $isCritical
-                            );
-                        }
-                    } else {
-                        $dbDiff[$tableName][] = array(
-                            'description' => __('Column `%s` does not exist but should', $columnName),
-                            'column_name' => $columnName,
-                            'error_type' => 'missing_column',
-                            'actual' => array(),
-                            'expected' => $column,
-                            'is_critical' => true
-                        );
-                    }
-                }
-            }
-        }
-        foreach (array_diff(array_keys($dbActualSchema), array_keys($dbExpectedSchema)) as $additionalTable) {
-            $dbDiff[$additionalTable][] = array(
-                'description' => __('Table `%s` is an additional table', $additionalTable),
-                'column_name' => $additionalTable,
-                'error_type' => 'additional_table',
-                'is_critical' => false
-            );
-        }
-        return $dbDiff;
-    }
-
-    /**
-     * Returns `true` if given column for given table contains just unique values.
-     *
-     * @param string $tableName
-     * @param string $columnName
-     * @return bool
-     */
-    private function checkIfColumnContainsJustUniqueValues($tableName, $columnName)
-    {
-        $db = $this->getDataSource();
-        $duplicates = $this->query(
-            sprintf('SELECT %s, COUNT(*) c FROM %s GROUP BY %s HAVING COUNT(*) > 1;',
-                $db->name($columnName), $db->name($tableName), $db->name($columnName))
-        );
-        return empty($duplicates);
-    }
-
-    private function generateSqlDropIndexQuery($tableName, $columnName)
-    {
-        return sprintf('DROP INDEX `%s` ON %s;',
-            $columnName,
-            $tableName
-        );
-    }
-
-    private function generateSqlIndexQuery(array $dbExpectedSchema, $tableName, $columnName, $shouldBeUnique = false, $defaultIndexKeylength = 255)
-    {
-        $columnData = Hash::extract($dbExpectedSchema['schema'][$tableName], "{n}[column_name=$columnName]");
-        if (empty($columnData)) {
-            throw new Exception("Index in db_schema.json is defined for `$tableName.$columnName`, but this column is not defined.");
-        }
-
-        $columnData = $columnData[0];
-        if ($columnData['data_type'] === 'varchar') {
-            $keyLength = sprintf('(%s)', $columnData['character_maximum_length'] < $defaultIndexKeylength ? $columnData['character_maximum_length'] : $defaultIndexKeylength);
-        } elseif ($columnData['data_type'] === 'text') {
-            $keyLength = sprintf('(%s)', $defaultIndexKeylength);
-        } else {
-            $keyLength = '';
-        }
-        return sprintf('CREATE%s INDEX `%s` ON `%s` (`%s`%s);',
-            $shouldBeUnique ? ' UNIQUE' : '',
-            $columnName,
-            $tableName,
-            $columnName,
-            $keyLength
-        );
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function compareDBIndexes(array $actualIndex, array $expectedIndex, array $dbExpectedSchema)
-    {
-        $indexDiff = array();
-        foreach ($expectedIndex as $tableName => $indexes) {
-            if (!array_key_exists($tableName, $actualIndex)) {
-                continue; // If table does not exist, it is covered by the schema diagnostic
-            }
-            $tableIndexDiff = array_diff(array_keys($indexes), array_keys($actualIndex[$tableName])); // check for missing indexes
-            foreach ($tableIndexDiff as $columnDiff) {
-                $shouldBeUnique = $indexes[$columnDiff];
-
-                $message = __('Column `%s` should be indexed', $columnDiff);
-                $indexDiff[$tableName][$columnDiff] = array(
-                    'message' => $message,
-                    'sql' => $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $columnDiff, $shouldBeUnique),
-                );
-            }
-            $tableIndexDiff = array_diff(array_keys($actualIndex[$tableName]), array_keys($indexes)); // check for additional indexes
-            foreach ($tableIndexDiff as $columnDiff) {
-                $message = __('Column `%s` is indexed but should not', $columnDiff);
-                $indexDiff[$tableName][$columnDiff] = array(
-                    'message' => $message,
-                    'sql' => $this->generateSqlDropIndexQuery($tableName, $columnDiff),
-                );
-            }
-            foreach ($indexes as $column => $unique) {
-                if (isset($actualIndex[$tableName][$column]) && $actualIndex[$tableName][$column] != $unique) {
-                    if ($actualIndex[$tableName][$column]) {
-                        $sql = $this->generateSqlDropIndexQuery($tableName, $column);
-                        $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, false);
-
-                        $message = __('Column `%s` has unique index, but should be non unique', $column);
-                        $indexDiff[$tableName][$column] = array(
-                            'message' => $message,
-                            'sql' => $sql,
-                        );
-                    } else {
-                        $sql = $this->generateSqlDropIndexQuery($tableName, $column);
-                        $sql .= '<br>' . $this->generateSqlIndexQuery($dbExpectedSchema, $tableName, $column, true);
-
-                        $message = __('Column `%s` should be unique index', $column);
-                        $indexDiff[$tableName][$column] = array(
-                            'message' => $message,
-                            'sql' => $sql,
-                        );
-                    }
-                }
-            }
-        }
-        return $indexDiff;
     }
 
     /**

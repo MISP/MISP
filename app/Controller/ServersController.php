@@ -3027,18 +3027,12 @@ public function updateJSON()
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($dbSchemaDiagnostics, $this->response->type());
         } else {
-            $this->set('checkedTableColumn', $dbSchemaDiagnostics['checked_table_column']);
-            $this->set('dbSchemaDiagnostics', $dbSchemaDiagnostics['diagnostic']);
-            $this->set('dbIndexDiagnostics', $dbSchemaDiagnostics['diagnostic_index']);
             $this->set('expectedDbVersion', $dbSchemaDiagnostics['expected_db_version']);
             $this->set('actualDbVersion', $dbSchemaDiagnostics['actual_db_version']);
-            $this->set('error', $dbSchemaDiagnostics['error']);
             $this->set('remainingLockTime', $dbSchemaDiagnostics['remaining_lock_time']);
             $this->set('updateFailNumberReached', $dbSchemaDiagnostics['update_fail_number_reached']);
             $this->set('updateLocked', $dbSchemaDiagnostics['update_locked']);
             $this->set('dataSource', $dbSchemaDiagnostics['dataSource']);
-            $this->set('columnPerTable', $dbSchemaDiagnostics['columnPerTable']);
-            $this->set('indexes', $dbSchemaDiagnostics['indexes']);
             $this->set('migrationsPending', $dbSchemaDiagnostics['migrations_pending']);
             $this->set('migrationsPendingIds', $dbSchemaDiagnostics['migrations_pending_ids']);
             $this->set('migrationsFailed', $dbSchemaDiagnostics['migrations_failed']);

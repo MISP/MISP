@@ -174,7 +174,7 @@ class AdminShell extends AppShell
             'help' => __('Run the pre-release tasks (for developers).'),
         ]);
         $parser->addSubcommand('schemaDiagnostics', [
-            'help' => __('Check differences between current and expected database schema')
+            'help' => __('Show the database update state: applied, pending, failed and deferred migrations')
         ]);
         $parser->addSubcommand('migrationStatus', [
             'help' => __('Report the database migrations: which have been applied, which are still pending, and which failed.'),
@@ -1932,39 +1932,6 @@ class AdminShell extends AppShell
                 $this->out(' - ' . $warning);
             }
             $this->out();
-        }
-
-        $this->out('# Columns diagnostics');
-        foreach ($dbSchemaDiagnostics['diagnostic'] as $tableName => $diagnostics) {
-            $diagnostics = array_filter($diagnostics, function ($c) {
-                return $c['is_critical'];
-            });
-            if (empty($diagnostics)) {
-                continue;
-            }
-            $this->out();
-            $this->out("Table `$tableName`:");
-            foreach ($diagnostics as $diagnostic) {
-                $this->out(' - ' . $diagnostic['description']);
-                if (!empty($diagnostic['expected'])) {
-                    $this->out('   Expected: ' . implode(' ', $diagnostic['expected']));
-                }
-                if (!empty($diagnostic['actual'])) {
-                    $this->out('   Actual:   ' . implode(' ', $diagnostic['actual']));
-                }
-            }
-        }
-
-        if (!empty($dbSchemaDiagnostics['diagnostic_index'])) {
-            $this->out();
-            $this->out('# Index diagnostics');
-            foreach ($dbSchemaDiagnostics['diagnostic_index'] as $tableName => $diagnostics) {
-                $this->out();
-                $this->out('Table ' . $tableName . ':');
-                foreach ($diagnostics as $info) {
-                    $this->out(' - ' . $info['message']);
-                }
-            }
         }
     }
 

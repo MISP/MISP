@@ -389,20 +389,19 @@ delete its `schema_migrations` row first, and be sure its `afterUp()` can take i
 
 ## 8. `db_schema.json`, and why you do not touch it
 
-`db_schema.json` at the repo root is the **canonical expected schema** —
-`Console/cake Admin schemaDiagnostics` compares a live database against it — and
-it is **not** maintained migration by migration. Before a release it is
-regenerated wholesale from a freshly built, clean MISP database:
+`db_schema.json` at the repo root is the **canonical expected schema**, and it
+is **not** maintained migration by migration. Nothing compares a live database
+against it column by column any more (that diagnostic reported harmless
+differences between server releases as errors); the diagnostics read only its
+`db_version`. Before a release it is regenerated wholesale from a freshly built,
+clean MISP database:
 
 ```bash
 # on a clean build, not on your working instance
 Console/cake Admin dumpCurrentDatabaseSchema
 ```
 
-So as a migration author you do nothing here. Between that regeneration and the
-next one, `schemaDiagnostics` will report your change as a difference on every
-instance that has applied it. That is expected and it clears itself at the next
-release.
+So as a migration author you do nothing here.
 
 **The one rule: regenerate only from a clean build.**
 `dumpCurrentDatabaseSchema` rewrites the file from whatever database it is
@@ -449,10 +448,6 @@ another process applies migrations. Asking what is pending never creates it.
 It may hold ids with no file behind them, if a migration was reverted out of the
 tree after running somewhere. `migrationStatus` reports those under **Recorded
 but no longer on disk**; nothing else cares.
-
-`schema_migrations` is absent from `db_schema.json` on purpose, and causes no
-`schemaDiagnostics` noise: the diagnostic iterates the *expected* schema, so a
-table it does not know about yields no diff.
 
 ## 10. Checklist: regenerating the install baselines
 

@@ -456,16 +456,6 @@ usort($tables, function ($a, $b) {
 });
 $topTables = array_slice($tables, 0, 10);
 
-$schemaDiffs = 0;
-foreach (($dbSchemaDiagnostics['diagnostic'] ?? array()) as $diffs) {
-    $schemaDiffs += count($diffs);
-}
-$indexDiffs = 0;
-foreach (($dbSchemaDiagnostics['diagnostic_index'] ?? array()) as $columns) {
-    $indexDiffs += count($columns);
-}
-$schemaTotal = $schemaDiffs + $indexDiffs;
-
 // The ledger figures. db_version is frozen, so the schema-version pair below
 // is the same on a healthy and on a stalled instance - these say whether
 // schema work is outstanding, and a failure outranks everything else because
@@ -481,14 +471,12 @@ if ($migrationsFailed > 0) {
     $databaseBadge = array('level' => 0, 'label' => __('%s migration(s) failed', $migrationsFailed));
 } elseif ($migrationsPending > 0) {
     $databaseBadge = array('level' => 1, 'label' => __('%s migration(s) pending', $migrationsPending));
-} elseif ($schemaTotal) {
-    $databaseBadge = array('level' => 1, 'label' => __('%s schema difference(s)', $schemaTotal));
 } else {
-    $databaseBadge = array('level' => 2, 'label' => __('Schema matches'));
+    $databaseBadge = array('level' => 2, 'label' => __('Migrations up to date'));
 }
 
 $openCard('database', '#0dcaf0', __('Database status'),
-    __('Disk usage per table, outstanding migrations, and how the live schema compares to the expected one'),
+    __('Disk usage per table and outstanding migrations'),
     $databaseBadge);
 ?>
     <div class="row g-3 mb-3">
@@ -628,34 +616,6 @@ $openCard('database', '#0dcaf0', __('Database status'),
         <?= __('Keep at least 3× the size of the largest table free on disk, so the update scripts can work as expected.') ?>
     </p>
 
-    <?php if ($schemaTotal): ?>
-        <div class="dg-block-title"><?= __('Schema differences') ?></div>
-        <div class="dg-diffs">
-            <?php foreach (($dbSchemaDiagnostics['diagnostic'] ?? array()) as $tableName => $diffs): ?>
-                <?php foreach ($diffs as $diff): ?>
-                    <div class="dg-row dg-row-boxed">
-                        <span class="ss-setting-name"><?= h($tableName) ?></span>
-                        <span class="text-muted ms-2" style="font-size:.76rem;"><?= h($diff['description']) ?></span>
-                        <span class="ms-auto ps-2">
-                            <?= !empty($diff['is_critical']) ? $pill(0, __('critical')) : $pill(1, str_replace('_', ' ', $diff['error_type'])) ?>
-                        </span>
-                    </div>
-                <?php endforeach; ?>
-            <?php endforeach; ?>
-            <?php foreach (($dbSchemaDiagnostics['diagnostic_index'] ?? array()) as $tableName => $columns): ?>
-                <?php foreach ($columns as $column): ?>
-                    <div class="dg-row dg-row-boxed">
-                        <span class="ss-setting-name"><?= h($tableName) ?></span>
-                        <span class="text-muted ms-2" style="font-size:.76rem;"><?= h($column['message']) ?></span>
-                        <span class="ms-auto ps-2"><?= $pill(1, __('index')) ?></span>
-                    </div>
-                    <?php if (!empty($column['sql'])): ?>
-                        <pre class="dg-sql"><?= h($column['sql']) ?></pre>
-                    <?php endif; ?>
-                <?php endforeach; ?>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
 <?php $closeCard(); ?>
 
 <?php

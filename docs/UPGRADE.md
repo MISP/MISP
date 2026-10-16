@@ -30,6 +30,9 @@ at 159 permanently. The consequence for monitoring:
   and the instance looked healthy.
 - `update_locked`, `remaining_lock_time` and `update_fail_number_reached` keep
   their meaning.
+- `diagnostic`, `diagnostic_index` and `checked_table_column` are always empty
+  from 3.0 on. The column-by-column comparison with `db_schema.json` is gone: it
+  mostly reported harmless differences between database server releases.
 
 The diagnostics page shows the same figures, and so does
 `Console/cake Admin schemaDiagnostics`. The full description of the fields and
