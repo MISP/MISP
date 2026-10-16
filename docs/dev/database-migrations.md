@@ -269,8 +269,8 @@ Before any of it runs, `beforeUp()` checks what the rebuild needs, and defers
   through a binary type first, so the bytes are read as utf8mb4 rather than
   converted twice; a column mixing them with real latin1 text defers;
 - a missing NOT NULL column without a default: PostgreSQL gets the value MySQL
-  fills with as a default, dropped again; a temporal or binary one, which has
-  none, defers on a table with rows;
+  fills with as a default, dropped again; a temporal one, which has none,
+  defers on a table with rows;
 - PostgreSQL can create an extension an added index needs.
 
 A check reads an index where one covers the column and otherwise shares one

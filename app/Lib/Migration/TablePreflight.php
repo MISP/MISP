@@ -36,7 +36,7 @@ class TablePreflight
     const PGSQL_FLOOR = 16;
 
     /** Types PostgreSQL gets no value for in the rows of an added NOT NULL column. */
-    const UNFILLED_TYPES = array('datetime', 'timestamp', 'date', 'time', 'binary', 'varbinary');
+    const UNFILLED_TYPES = array('datetime', 'timestamp', 'date', 'time');
 
     /** InnoDB's key limit under ROW_FORMAT=DYNAMIC on pages under 16 KB; 3,072 bytes otherwise. */
     const KEY_LIMITS = array(4096 => 768, 8192 => 1536);

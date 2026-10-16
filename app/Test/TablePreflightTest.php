@@ -449,14 +449,17 @@ class TablePreflightTest extends TestCase
                 $engine
             );
         }
-        // The driver cannot state an empty bytea as a default.
+        // A bytea gets the empty value too.
         $target = self::TAGS;
         $target['columns']['hash'] = array('type' => 'varbinary', 'length' => 32, 'null' => false);
         $inspector = $this->pgsqlInspector('tags', TableConvergerTest::pgsqlLive('tags', self::TAGS));
         $inspector->probes = array('/LIMIT 1;/' => array(array('present' => '1')));
         $checked = TableConverger::preflight($inspector, 'tags', $target);
-        $this->assertStringStartsWith('tags: hash is missing, NOT NULL without a default', $checked['defer'][0]);
-        $this->assertArrayNotHasKey('fill', $checked['plan']['add']['hash']);
+        $this->assertSame(array(), $checked['defer']);
+        $schema = new SchemaBuilder(AbstractGrammar::forDataSource(new MigrationTestPostgres()));
+        TableConverger::emit($schema, $checked['plan']);
+        $this->assertSame('ALTER TABLE "tags" ADD "hash" bytea DEFAULT \'\' NOT NULL;', $schema->toSql()[0]);
+        $this->assertSame(array(), $inspector->asked);
 
         // MariaDB's default sql_mode takes the zero date.
         $target['columns']['seen'] = array('type' => 'datetime', 'null' => false);

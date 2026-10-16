@@ -477,9 +477,8 @@ class TableConverger
      * What MySQL writes into the rows of a NOT NULL column added without a
      * default. PostgreSQL refuses such a column on a table with rows, so it
      * gets this as its default, dropped again once the column is there.
-     * Temporal columns have no such value (MySQL's zero date), and the driver
-     * cannot state an empty bytea; TablePreflight defers those where the
-     * table has rows.
+     * Temporal columns have no such value (MySQL's zero date); TablePreflight
+     * defers those where the table has rows.
      *
      * @param array $spec
      * @return string|null
@@ -492,7 +491,7 @@ class TableConverger
         ) {
             return null;
         }
-        return in_array($spec['type'], self::STRING_TYPES, true) ? '' : '0';
+        return in_array($spec['type'], array_merge(self::STRING_TYPES, array('binary', 'varbinary')), true) ? '' : '0';
     }
 
     /**
