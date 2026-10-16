@@ -324,7 +324,6 @@ jobs:
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" ""
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1
           app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1
-          app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 1
           app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_host" "127.0.0.1"
           app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_port" 6379
           app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_password" ""

@@ -30,9 +30,6 @@ class JobsController extends AppController
         if (!Configure::read('MISP.background_jobs')) {
             throw new NotFoundException('Background jobs are not enabled on this instance.');
         }
-        $this->loadModel('Server');
-        $issueCount = 0;
-        $workers = $this->Server->workerDiagnostics($issueCount);
         $queues = ['email', 'default', 'cache', 'prio', 'update'];
         $queue = $this->passedArgs['worker'] ?? $queue;
         $conditions = [];
@@ -42,7 +39,7 @@ class JobsController extends AppController
         // Enrich every row with its live status (Redis / BackgroundJobsTool) and
         // the worker health — the same post-processing the legacy index did, now
         // hung off CRUD->index's afterFind hook.
-        $enrich = function (array $data) use ($workers) {
+        $enrich = function (array $data) {
             foreach ($data as &$job) {
                 if (!empty($job['Job']['process_id'])) {
                     $job['Job']['job_status'] = $this->__getJobStatus($job['Job']['process_id']);
@@ -51,11 +48,7 @@ class JobsController extends AppController
                     $job['Job']['job_status'] = 'Unknown';
                     $job['Job']['failed'] = null;
                 }
-                if (Configure::read('SimpleBackgroundJobs.enabled')) {
-                    $job['Job']['worker_status'] = true;
-                } else {
-                    $job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'];
-                }
+                $job['Job']['worker_status'] = true;
             }
             unset($job);
             return $data;
@@ -152,8 +145,6 @@ class JobsController extends AppController
     public function getError($id)
     {
         $fields = array(
-            'Failed at' => 'failed_at',
-            'Exception' => 'exception',
             'Error' => 'error'
         );
         $this->set('fields', $fields);
@@ -257,10 +248,6 @@ class JobsController extends AppController
 
     private function __getJobStatus($id): string
     {
-        if (!Configure::read('SimpleBackgroundJobs.enabled')) {
-            return $this->__jobStatusConverter(CakeResque::getJobStatus($id));
-        }
-
         $status = null;
         if (!empty($id)) {
             $job = $this->Job->getBackgroundJobsTool()->getJob($id);
@@ -272,10 +259,6 @@ class JobsController extends AppController
 
     private function __getFailedJobLog(string $id): array
     {
-        if (!Configure::read('SimpleBackgroundJobs.enabled')) {
-            return CakeResque::getFailedJobLog($id);
-        }
-
         $job = $this->Job->getBackgroundJobsTool()->getJob($id);
         $output = $job ? $job->output() : __('Job status not found.');
         $backtrace = $job ? explode("\n", $job->error()) : [];

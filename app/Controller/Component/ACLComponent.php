@@ -835,7 +835,6 @@ class ACLComponent extends Component
             'updateProgress' => array(),
             'updateSubmodule' => array(),
             'uploadFile' => array(),
-            'killAllWorkers' => [],
             'cspReport' => ['*'],
             'cleanModelCaches' => array(),
             'rest' => ['perm_auth'],

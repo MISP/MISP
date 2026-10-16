@@ -4070,13 +4070,11 @@ class Server extends AppModel
             $worker_array['controls'] = Configure::read('MISP.manage_workers');
         }
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            try {
-                $worker_array['supervisord_status'] = $this->getBackgroundJobsTool()->getSupervisorStatus();
-            } catch (Exception $exception) {
-                $this->logException('Error getting supervisor status.', $exception);
-                $worker_array['supervisord_status'] = false;
-            }
+        try {
+            $worker_array['supervisord_status'] = $this->getBackgroundJobsTool()->getSupervisorStatus();
+        } catch (Exception $exception) {
+            $this->logException('Error getting supervisor status.', $exception);
+            $worker_array['supervisord_status'] = false;
         }
 
         return $worker_array;
@@ -4084,6 +4082,10 @@ class Server extends AppModel
 
     public function backgroundJobsDiagnostics(&$diagnostic_errors)
     {
+        if (!Configure::read('MISP.background_jobs')) {
+            App::uses('BackgroundJobsTool', 'Tools');
+            return BackgroundJobsTool::STATUS_NOT_ENABLED;
+        }
         $backgroundJobsStatus = $this->getBackgroundJobsTool()->getStatus();
 
         if ($backgroundJobsStatus > 0) {
@@ -4133,109 +4135,6 @@ class Server extends AppModel
             default:
                 return $value;
         }
-    }
-
-    public function killWorker($pid, $user)
-    {
-        if (!is_numeric($pid)) {
-            throw new MethodNotAllowedException('Non numeric PID found!');
-        }
-        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-        $workers = $this->ResqueStatus->getWorkers();
-        $this->Log = ClassRegistry::init('Log');
-        if (isset($workers[$pid])) {
-            $worker = $workers[$pid];
-            if (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false) {
-                shell_exec('kill ' . $pid . ' > /dev/null 2>&1 &');
-                $this->__logRemoveWorker($user, $pid, $worker['queue'], false);
-            } else {
-                $this->ResqueStatus->removeWorker($pid);
-                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
-            }
-            $this->ResqueStatus->removeWorker($pid);
-        }
-    }
-
-    public function killAllWorkers($user = false, $force = false)
-    {
-        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-        $workers = $this->ResqueStatus->getWorkers();
-        $killed = array();
-        foreach ($workers as $pid => $worker) {
-            if (!is_numeric($pid)) {
-                continue;
-            }
-            if (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0) {
-                shell_exec('kill ' . ($force ? ' -9 ' : '') . $pid . ' > /dev/null 2>&1 &');
-                $this->ResqueStatus->removeWorker($pid);
-                $this->__logRemoveWorker($user, $pid, $worker['queue'], false);
-            } else {
-                $this->ResqueStatus->removeWorker($pid);
-                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
-            }
-        }
-        return $killed;
-    }
-
-    public function workerRemoveDead($user = false)
-    {
-        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-        $workers = $this->ResqueStatus->getWorkers();
-        $killed = array();
-        foreach ($workers as $pid => $worker) {
-            if (!is_numeric($pid)) {
-                throw new MethodNotAllowedException('Non numeric PID found!');
-            }
-            $pidTest = file_exists('/proc/' . addslashes($pid));
-            if (!$pidTest) {
-                $this->ResqueStatus->removeWorker($pid);
-                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
-                if (empty($killed[$worker['queue']])) {
-                    $killed[$worker['queue']] = 1;
-                } else {
-                    $killed[$worker['queue']] += 1;
-                }
-            }
-        }
-        return $killed;
-    }
-
-    private function __logRemoveWorker($user, $pid, $queue, $dead = false)
-    {
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        if (empty($user)) {
-            $user = array(
-                'id' => 0,
-                'Organisation' => array(
-                    'name' => 'SYSTEM'
-                ),
-                'email' => 'SYSTEM'
-            );
-        }
-        $type = $dead ? 'dead' : 'kill';
-        $text = array(
-            'dead' => array(
-                'action' => 'remove_dead_workers',
-                'title' => __('Removing a dead worker.'),
-                'change' => sprintf(__('Removing dead worker data. Worker was of type %s with pid %s'), $queue, $pid)
-            ),
-            'kill' => array(
-                'action' => 'stop_worker',
-                'title' => __('Stopping a worker.'),
-                'change' => sprintf(__('Stopping a worker. Worker was of type %s with pid %s'), $queue, $pid)
-            )
-        );
-        $this->Log->saveOrFailSilently(array(
-            'org' => $user['Organisation']['name'],
-            'model' => 'User',
-            'model_id' => $user['id'],
-            'email' => $user['email'],
-            'action' => $text[$type]['action'],
-            'user_id' => $user['id'],
-            'title' => $text[$type]['title'],
-            'change' => $text[$type]['change']
-        ));
     }
 
     /**
@@ -4868,56 +4767,15 @@ class Server extends AppModel
         return (empty($server)) ? false : $server;
     }
 
-    public function restartWorkers($user=false)
+    // Only caller: legacy update 8 in the frozen LegacyMigrationsTrait.
+    public function restartWorkers()
     {
         if (Configure::read('MISP.background_jobs')) {
-            $this->workerRemoveDead($user);
-            $prepend = '';
-            shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
-        }
-        return true;
-    }
-
-    public function restartDeadWorkers($user=false)
-    {
-        if (Configure::read('MISP.background_jobs')) {
-            $killed = $this->workerRemoveDead($user);
-            foreach ($killed as $queue => $count) {
-                for ($i = 0; $i < $count; $i++) {
-                    $this->startWorker($queue);
-                }
+            try {
+                $this->getBackgroundJobsTool()->restartWorkers();
+            } catch (Exception $e) {
+                $this->logException('Could not restart the workers.', $e);
             }
-        }
-        return true;
-    }
-
-    public function restartWorker($pid)
-    {
-        if (Configure::read('MISP.background_jobs')) {
-            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-            $workers = $this->ResqueStatus->getWorkers();
-            $pid = intval($pid);
-            if (!isset($workers[$pid])) {
-                return __('Invalid worker.');
-            }
-            $currentWorker = $workers[$pid];
-            $this->killWorker($pid, false);
-            $this->startWorker($currentWorker['queue']);
-            return true;
-        }
-        return __('Background workers not enabled.');
-    }
-
-    public function startWorker($queue)
-    {
-        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
-        if (!in_array($queue, $validTypes)) {
-            return __('Invalid worker type.');
-        }
-        if ($queue != 'scheduler') {
-            shell_exec(APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $queue .' > /dev/null 2>&1 &');
-        } else {
-            shell_exec(APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
         }
         return true;
     }
@@ -8630,13 +8488,6 @@ class Server extends AppModel
             ),
             'SimpleBackgroundJobs' => [
                 'branch' => 1,
-                'enabled' => [
-                    'level' => self::SETTING_CRITICAL,
-                    'description' => __('Enables or disables background jobs with Supervisor backend. <span class="red bold">Please read %s before setting this to `true`.</span>', '<a href="https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md" target="_blank">' . __('this guide') . '</a>'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
-                ],
                 'redis_host' => [
                     'level' => self::SETTING_CRITICAL,
                     'description' => __('The host running the redis server to be used for background jobs.'),
@@ -8889,24 +8740,13 @@ class Server extends AppModel
      */
     private function getWorkers(): array
     {
-        if (!Configure::read('SimpleBackgroundJobs.enabled')) {
-            try {
-                $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-            } catch (Exception $e) {
-                // redis connection failed
-                $this->logException("Failed to get Resque workers status.", $e);
-                return [];
-            }
-            return $this->ResqueStatus->getWorkers();
-        }
-
         $worker_array = [];
         $workers = $this->getBackgroundJobsTool()->getWorkers();
 
         foreach ($workers as $worker) {
             $worker_array[$worker->pid()] = [
                 'queue' => $worker->queue(),
-                'type' => 'regular', // for compatibility with Resque response
+                'type' => 'regular',
                 'user' => $worker->user()
             ];
         }

@@ -45,11 +45,10 @@ class ServerSettingGroups
             array(
                 'id' => 'jobs',
                 'title' => 'Background processing',
-                'description' => 'Whether jobs run in the background, and how long their history is kept',
+                'description' => 'How long the history of background jobs is kept',
                 'icon' => 'gears',
                 'accent' => '#198754',
                 'settings' => array(
-                    'SimpleBackgroundJobs.enabled',
                     'SimpleBackgroundJobs.max_job_history_ttl',
                 ),
             ),

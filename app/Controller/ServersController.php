@@ -1998,42 +1998,9 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $message = __('Worker start signal sent');
-            $this->Server->getBackgroundJobsTool()->startWorkerByQueue($type);
-
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'startWorker', $type, $this->response->type(), $message);
-            } else {
-                $this->Flash->info($message);
-                $this->redirect('/servers/serverSettings/workers');
-            }
-        }
-
-        // CakeResque
-        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
-        if (!in_array($type, $validTypes)) {
-            throw new MethodNotAllowedException('Invalid worker type.');
-        }
-
-        $prepend = '';
-        if ($type != 'scheduler') {
-            $workerIssueCount = 0;
-            $workerDiagnostic = $this->Server->workerDiagnostics($workerIssueCount);
-            if ($type == 'update' && isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
-                $message = __('Only one `update` worker can run at a time');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Servers', 'startWorker', false, $message, $this->response->type());
-                } else {
-                    $this->Flash->error($message);
-                    $this->redirect('/servers/serverSettings/workers');
-                }
-            }
-            shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null 2>&1 &');
-        } else {
-            shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
-        }
         $message = __('Worker start signal sent');
+        $this->Server->getBackgroundJobsTool()->startWorkerByQueue($type);
+
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Servers', 'startWorker', $type, $this->response->type(), $message);
         } else {
@@ -2049,19 +2016,8 @@ class ServersController extends AppController
         }
 
         $message = __('Worker stop signal sent');
+        $this->Server->getBackgroundJobsTool()->stopWorker($pid);
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $this->Server->getBackgroundJobsTool()->stopWorker($pid);
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'stopWorker', $pid, $this->response->type(), $message);
-            } else {
-                $this->Flash->info($message);
-                $this->redirect('/servers/serverSettings/workers');
-            }
-        }
-
-        // CakeResque
-        $this->Server->killWorker($pid, $this->Auth->user());
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Servers', 'stopWorker', $pid, $this->response->type(), $message);
         } else {
@@ -2297,30 +2253,13 @@ class ServersController extends AppController
         }
     }
 
-    public function killAllWorkers($force = false)
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->Server->killAllWorkers($this->Auth->user(), $force);
-        if ($this->_isRest()) {
-            return $this->RestResponse->saveSuccessResponse('Server', 'killAllWorkers', false, $this->response->type(), __('Killing workers.'));
-        }
-        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
-    }
-
     public function restartWorkers()
     {
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $this->Server->getBackgroundJobsTool()->restartWorkers();
-        } else {
-            // CakeResque
-            $this->Server->restartWorkers($this->Auth->user());
-        }
+        $this->Server->getBackgroundJobsTool()->restartWorkers();
 
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'restartWorkers', false, $this->response->type(), __('Restarting workers.'));
@@ -2334,12 +2273,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $this->Server->getBackgroundJobsTool()->restartDeadWorkers();
-        } else {
-            // CakeResque
-            $this->Server->restartDeadWorkers($this->Auth->user());
-        }
+        $this->Server->getBackgroundJobsTool()->restartDeadWorkers();
 
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'restartDeadWorkers', false, $this->response->type(), __('Restarting workers.'));
@@ -2615,17 +2549,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $this->Server->getBackgroundJobsTool()->clearQueue($worker);
-        } else {
-            // CakeResque
-            $worker_array = array('cache', 'default', 'email', 'prio');
-            if (!in_array($worker, $worker_array)) {
-                throw new MethodNotAllowedException('Invalid worker');
-            }
-            $redis = Resque::redis();
-            $redis->del('queue:' . $worker);
-        }
+        $this->Server->getBackgroundJobsTool()->clearQueue($worker);
 
         $this->Flash->success('Queue cleared.');
         $this->redirect($this->referer());

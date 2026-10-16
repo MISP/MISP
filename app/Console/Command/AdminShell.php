@@ -355,48 +355,32 @@ class AdminShell extends AppShell
 
     public function restartWorkers()
     {
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            try {
-                $this->getBackgroundJobsTool()->restartWorkers(true);
-            } catch (Throwable $e) {
-                $this->error(__('Could not restart the workers'), $e->getMessage());
-            }
-        } else {
-            $this->Server->restartWorkers();
+        try {
+            $this->getBackgroundJobsTool()->restartWorkers(true);
+        } catch (Throwable $e) {
+            $this->error(__('Could not restart the workers'), $e->getMessage());
         }
         echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
     }
 
     public function restartWorker()
     {
-        $simpleBackgroundJobs = (bool)Configure::read('SimpleBackgroundJobs.enabled');
-
-        // Supervisor identifies its programs by name, CakeResque by PID.
-        if (empty($this->args[0]) || (!$simpleBackgroundJobs && !is_numeric($this->args[0]))) {
+        if (empty($this->args[0])) {
             $this->error('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Restart a worker']);
         }
 
         $worker = $this->args[0];
-        if ($simpleBackgroundJobs) {
-            try {
-                $tool = $this->getBackgroundJobsTool();
-                $tool->stopWorker($worker, true);
-                if (is_numeric($worker)) {
-                    $tool->restartDeadWorkers(true);
-                } else {
-                    $tool->startWorker($worker, true);
-                }
-                $response = __('Worker restarted.');
-            } catch (Throwable $e) {
-                $response = __('Could not restart the worker. Reason: %s', $e->getMessage());
-            }
-        } else {
-            $result = $this->Server->restartWorker($worker);
-            if ($result === true) {
-                $response = __('Worker restarted.');
+        try {
+            $tool = $this->getBackgroundJobsTool();
+            $tool->stopWorker($worker, true);
+            if (is_numeric($worker)) {
+                $tool->restartDeadWorkers(true);
             } else {
-                $response = __('Could not restart the worker. Reason: %s', $result);
+                $tool->startWorker($worker, true);
             }
+            $response = __('Worker restarted.');
+        } catch (Throwable $e) {
+            $response = __('Could not restart the worker. Reason: %s', $e->getMessage());
         }
         echo sprintf(
             '%s%s%s',
@@ -408,21 +392,15 @@ class AdminShell extends AppShell
 
     public function killWorker()
     {
-        $simpleBackgroundJobs = (bool)Configure::read('SimpleBackgroundJobs.enabled');
-
-        if (empty($this->args[0]) || (!$simpleBackgroundJobs && !is_numeric($this->args[0]))) {
+        if (empty($this->args[0])) {
             $this->error('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Kill a worker']);
         }
 
         $worker = $this->args[0];
-        if ($simpleBackgroundJobs) {
-            try {
-                $this->getBackgroundJobsTool()->stopWorker($worker, true);
-            } catch (Throwable $e) {
-                $this->error(__('Could not kill the worker'), $e->getMessage());
-            }
-        } else {
-            $this->Server->killWorker($worker, false);
+        try {
+            $this->getBackgroundJobsTool()->stopWorker($worker, true);
+        } catch (Throwable $e) {
+            $this->error(__('Could not kill the worker'), $e->getMessage());
         }
         echo sprintf(
             '%s%s%s',
@@ -439,16 +417,12 @@ class AdminShell extends AppShell
         }
 
         $queue = $this->args[0];
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            try {
-                if (!$this->getBackgroundJobsTool()->startWorkerByQueue($queue)) {
-                    $this->error(__('Could not start a worker for queue %s', $queue), __('No stopped worker found for that queue.'));
-                }
-            } catch (Throwable $e) {
-                $this->error(__('Could not start the worker'), $e->getMessage());
+        try {
+            if (!$this->getBackgroundJobsTool()->startWorkerByQueue($queue)) {
+                $this->error(__('Could not start a worker for queue %s', $queue), __('No stopped worker found for that queue.'));
             }
-        } else {
-            $this->Server->startWorker($queue);
+        } catch (Throwable $e) {
+            $this->error(__('Could not start the worker'), $e->getMessage());
         }
         echo sprintf(
             '%s%s%s',

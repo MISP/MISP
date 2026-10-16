@@ -138,7 +138,6 @@ $config = array(
         'expire' => 300,
     ),
     'SimpleBackgroundJobs' => array(
-        'enabled' => false,
         'redis_host' => 'localhost',
         'redis_port' => 6379,
         'redis_password' => '',

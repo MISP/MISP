@@ -113,11 +113,7 @@ abstract class AppShell extends Shell
     protected function getBackgroundJobsTool()
     {
         if (!isset($this->BackgroundJobsTool)) {
-            $settings = ['enabled' => false];
-            if (!empty(Configure::read('SimpleBackgroundJobs.enabled'))) {
-                $settings = Configure::read('SimpleBackgroundJobs');
-            }
-            $this->BackgroundJobsTool = new BackgroundJobsTool($settings);
+            $this->BackgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs') ?: []);
         }
         return $this->BackgroundJobsTool;
     }
