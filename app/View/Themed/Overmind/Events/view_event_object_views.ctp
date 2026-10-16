@@ -93,7 +93,7 @@ $strings = $this->element('TileDrawer/strings', array('extra' => array(
          aria-labelledby="eov-title">
     <div class="eov-head">
         <div class="misp-icon-tile eov-head-tile"
-             style="--tile:var(--td-accent);--tile-bg:var(--td-accent-soft);">
+             style="--tile:var(--object);--tile-bg:color-mix(in srgb, var(--object) 12%, transparent);">
             <i class="fas fa-shapes" aria-hidden="true"></i>
         </div>
         <div class="eov-head-text">
