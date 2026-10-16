@@ -1230,8 +1230,6 @@
 
         var MOOD_COLOR = { disputed: '#b94a48', endorsed: '#6fbe80', neutral: '#999', none: '#999' };
 
-        var FEED_COLOR = '#5bc0de';
-
         function nodeBadges(node) {
             return analystBadges(node).concat(feedHitBadges(node), tagBadges(node), enrichmentBadges(node), originBadges(node));
         }
@@ -1276,7 +1274,7 @@
             return [{
                 position:  'sw',
                 iconClass: 'fas fa-rss',
-                color:     FEED_COLOR,
+                color:     window.MispPivotNodes.palette().feed.core,
                 title:     'Seen in a feed — too many hits in this event to name which'
             }];
         }
