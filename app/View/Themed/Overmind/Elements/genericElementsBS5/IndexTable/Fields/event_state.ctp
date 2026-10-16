@@ -6,7 +6,7 @@ if ($card === null) {
 }
 $glyphs = [
     'published' => ['is-pub', 'fa-circle-check'],
-    'unpublished' => ['is-unpub', 'fa-file-pen'],
+    'unpublished' => ['is-unpub', 'fa-floppy-disk'],
     'pending' => ['is-pending', 'fa-clock-rotate-left'],
 ];
 [$class, $icon] = $glyphs[$card['state']];
