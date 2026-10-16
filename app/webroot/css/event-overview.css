@@ -290,6 +290,14 @@
     grid-column: 1 / -1; border-left-style: dashed; border-left-color: var(--bs-attribute); border-radius: 0 .3rem .3rem 0;
     background: color-mix(in srgb, var(--bs-attribute) 8%, transparent);
 }
+.eo-tech-group + .eo-tech-group { margin-top: .55rem; }
+.eo-tech-galaxy {
+    display: flex; align-items: center; gap: .35rem; margin: 0 0 .2rem; font-size: .72rem; font-weight: 600;
+    color: var(--bs-secondary-color); text-transform: uppercase; letter-spacing: .03em;
+}
+.eo-tech-galaxy a { color: inherit; text-decoration: none; }
+.eo-tech-galaxy a:hover { text-decoration: underline; }
+.eo-tech-galaxy small { font-weight: 400; font-variant-numeric: tabular-nums; }
 #eo-context-card { container: eo-context / inline-size; }
 @container eo-context (max-width: 560px) {
     .eo-techniques { grid-template-columns: minmax(0, 1fr); }

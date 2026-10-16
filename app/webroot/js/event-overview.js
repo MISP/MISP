@@ -108,6 +108,9 @@
         card.querySelectorAll('.eo-rows .hg-group').forEach(function (group) {
             group.classList.toggle('d-none', q !== '' && !group.querySelector('.hg-unit:not(.d-none)'));
         });
+        card.querySelectorAll('.eo-rows .eo-tech-group').forEach(function (group) {
+            group.classList.toggle('d-none', q !== '' && !group.querySelector('li:not(.d-none)'));
+        });
     }
 
     function reloadCards() {

@@ -229,7 +229,25 @@ foreach ($rows as $items) {
 
         <?php if (!empty($rows['behaviour'])): ?>
             <dt><?= __('Behaviour') ?><small><?= h(__n('%s technique', '%s techniques', count($rows['behaviour']), count($rows['behaviour']))) ?></small></dt>
-            <dd><?= $techniques($rows['behaviour']) ?></dd>
+            <dd>
+                <?php foreach (EventContextTool::byGalaxy($rows['behaviour']) as $group): ?>
+                    <?php $galaxy = $group['galaxy']; ?>
+                    <section class="eo-tech-group">
+                        <h6 class="eo-tech-galaxy">
+                            <?php if (!empty($galaxy['icon'])): ?>
+                                <i class="<?= h(FontAwesomeHelper::findNamespace($galaxy['icon'])) ?> fa-<?= h($galaxy['icon']) ?>" aria-hidden="true"></i>
+                            <?php endif; ?>
+                            <?php if (!empty($galaxy['id'])): ?>
+                                <a href="<?= h($baseurl . '/galaxies/view/' . (int)$galaxy['id']) ?>"><?= h($galaxy['name']) ?></a>
+                            <?php else: ?>
+                                <span><?= h($galaxy['name']) ?></span>
+                            <?php endif; ?>
+                            <small><?= h(count($group['items'])) ?></small>
+                        </h6>
+                        <?= $techniques($group['items']) ?>
+                    </section>
+                <?php endforeach; ?>
+            </dd>
         <?php endif; ?>
 
         <?php if (!empty($rows['classification']) || !empty($rows['clusters'])): ?>

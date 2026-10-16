@@ -123,6 +123,29 @@ class EventOverviewToolTest extends TestCase
         );
     }
 
+    public function testBehaviourSplitsByParentGalaxyLargestFirst(): void
+    {
+        $mobile = ['id' => 7, 'type' => 'mitre-mobile-attack-pattern', 'name' => 'Mobile Attack - Attack Pattern'];
+        $enterprise = ['id' => 3, 'type' => 'mitre-attack-pattern', 'name' => 'Attack Pattern'];
+        $clusters = [
+            ['tag_id' => 1, 'value' => 'Input Capture - T1417', 'Galaxy' => $mobile],
+            ['tag_id' => 2, 'value' => 'Malicious File - T1204.002', 'Galaxy' => $enterprise],
+            ['tag_id' => 3, 'value' => 'Phishing - T1566', 'Galaxy' => $enterprise],
+            $this->cluster(4, 'Legacy - T1566', 'stix-2.1-attack-pattern'),
+        ];
+        $rows = EventContextTool::rows([], $clusters, null, [], [], $this->profile());
+        $groups = EventContextTool::byGalaxy($rows['behaviour']);
+
+        $this->assertSame(
+            ['Attack Pattern', 'Mobile Attack - Attack Pattern', 'stix-2.1-attack-pattern'],
+            array_column(array_column($groups, 'galaxy'), 'name')
+        );
+        $this->assertSame(
+            ['cluster:event:Malicious File - T1204.002', 'cluster:event:Phishing - T1566'],
+            $this->keys($groups[0]['items'])
+        );
+    }
+
     public function testIndicatorOnlyLabelsJoinTheirRowAfterEventOnes(): void
     {
         $tags = [$this->eventTag(3, 'phishing:techniques="fake-website"')];

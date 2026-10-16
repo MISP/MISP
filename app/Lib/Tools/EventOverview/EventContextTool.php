@@ -243,6 +243,37 @@ class EventContextTool
     }
 
     /**
+     * A row's cluster items split by parent galaxy, largest group first,
+     * each group keeping the order its items were given.
+     *
+     * @param array $items
+     * @return array list of ['galaxy' => Galaxy row, 'items' => [...]]
+     */
+    public static function byGalaxy(array $items)
+    {
+        $groups = [];
+        foreach ($items as $item) {
+            $galaxy = $item['cluster']['Galaxy'] ?? [];
+            $key = !empty($galaxy['id']) ? 'id:' . $galaxy['id'] : 'type:' . $item['key'];
+            if (!isset($groups[$key])) {
+                $groups[$key] = [
+                    'galaxy' => $galaxy + ['name' => $item['key']],
+                    'items' => [],
+                ];
+            }
+            $groups[$key]['items'][] = $item;
+        }
+        $groups = array_values($groups);
+        $order = array_keys($groups);
+        usort($order, function ($a, $b) use ($groups) {
+            return count($groups[$b]['items']) <=> count($groups[$a]['items']) ?: $a <=> $b;
+        });
+        return array_map(function ($index) use ($groups) {
+            return $groups[$index];
+        }, $order);
+    }
+
+    /**
      * An ATT&CK cluster's id, from its meta or from the "Name - T1234" value.
      *
      * @param array $cluster
