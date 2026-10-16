@@ -24,6 +24,9 @@ class SchemaV3MigrationsTest extends TestCase
     /** The biggest tables, last. */
     const TAIL = array('sightings', 'object_references', 'objects', 'attribute_values', 'attribute_tags', 'attributes');
 
+    /** Dropped by the migration that once converged them, which keeps its place. */
+    const DROPPED = array('correlations');
+
     /** @var array|null id => migration, everything on disk, in id order */
     private static $migrations;
 
@@ -101,6 +104,12 @@ class SchemaV3MigrationsTest extends TestCase
         $this->assertSame(self::LEAD, array_map(array(self::class, 'slug'), array_slice($ids, 0, count(self::LEAD))));
         $tables = array();
         foreach (array_slice($set, count(self::LEAD)) as $id => $migration) {
+            $table = substr(self::slug($id), strlen(self::SLUG));
+            if (in_array($table, self::DROPPED, true)) {
+                $this->assertNotInstanceOf('TableMigration', $migration, $id);
+                $this->assertSame('Schema modernisation: drop ' . $table, $migration->description);
+                continue;
+            }
             $this->assertInstanceOf('TableMigration', $migration, $id);
             $this->assertSame(self::SLUG . $migration::TABLE, self::slug($id));
             $this->assertSame('Schema modernisation: ' . $migration::TABLE, $migration->description);
@@ -150,6 +159,33 @@ class SchemaV3MigrationsTest extends TestCase
         $covered = array_keys(self::tableMigrations());
         sort($covered);
         $this->assertSame($expected, $covered);
+    }
+
+    /**
+     * A dropped table goes where it is there, and its migration is a no-op
+     * where it is not, so a re-run or a fresh 3.0 install finds nothing to do.
+     */
+    public function testEveryDroppedTableIsDroppedOnlyWhereItIsThere()
+    {
+        $dropped = array();
+        foreach (self::set() as $id => $migration) {
+            $table = substr(self::slug($id), strlen(self::SLUG));
+            if (!in_array($table, self::DROPPED, true)) {
+                continue;
+            }
+            $this->assertContains($table, SchemaTargetGenerator::EXCLUDED_TABLES);
+            foreach (array(true, false) as $present) {
+                $migration->setSchemaInspector(new MigrationTestInspector(
+                    SchemaInspector::FLAVOUR_MYSQL,
+                    $present ? array($table => array('columns' => array())) : array()
+                ));
+                $builder = new SchemaBuilder(new MysqlGrammar(new MigrationTestMysqlExtended(TableConvergerTest::MARIADB)));
+                $migration->up($builder);
+                $this->assertSame($present ? array("DROP TABLE `$table`;") : array(), $builder->toSql(), "$table, present: " . json_encode($present));
+            }
+            $dropped[] = $table;
+        }
+        $this->assertSame(self::DROPPED, $dropped);
     }
 
     /**

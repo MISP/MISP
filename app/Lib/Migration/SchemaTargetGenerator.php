@@ -33,10 +33,10 @@ App::uses('SchemaInspector', 'Migration');
 class SchemaTargetGenerator
 {
     /**
-     * tasks is dropped rather than converged; the log tables are not
-     * converged.
+     * tasks and correlations are dropped rather than converged; the log
+     * tables are not converged.
      */
-    const EXCLUDED_TABLES = array('tasks', 'logs', 'audit_logs');
+    const EXCLUDED_TABLES = array('tasks', 'correlations', 'logs', 'audit_logs');
 
     /** References to another table's id that are not named *_id. */
     const HIDDEN_ID_COLUMNS = array(

@@ -78,7 +78,6 @@ class Organisation extends AppModel
     const ORGANISATION_ASSOCIATIONS = array(
         'AccessLog' => array('table' => 'access_logs', 'fields' => array('org_id')),
         'AuditLog' => array('table' => 'audit_logs', 'fields' => array('org_id')),
-        'Correlation' => array('table' => 'correlations', 'fields' => array('org_id')),
         'Cerebrate' => array('table' => 'cerebrates', 'fields' => array('org_id')),
         'Dashboard' => array('table' => 'dashboards', 'fields' => array('restrict_to_org_id')),
         'Event' => array('table' => 'events', 'fields' => array('org_id', 'orgc_id')),
