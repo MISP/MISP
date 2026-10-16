@@ -396,7 +396,8 @@ class AppModel extends Model
 
     /**
      * Whether the database still has the MISP 2.x layout, which only the
-     * command line upgrade converts. MISP 3 widens events.id to a bigint.
+     * command line upgrade converts. MISP 3 moves attribute values into their
+     * own table.
      *
      * @return bool
      */
@@ -412,8 +413,7 @@ class AppModel extends Model
             $redis = null;
         }
         $inspector = new SchemaInspector($this->getDataSource());
-        $id = $inspector->column('events', 'id');
-        if ($id === null || $id['type'] !== 'biginteger') {
+        if (!$inspector->hasTable('attribute_values')) {
             return true;
         }
         if ($redis) {

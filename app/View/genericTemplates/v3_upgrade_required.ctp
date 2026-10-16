@@ -138,7 +138,11 @@ $steps = [
                 <img src="<?= $baseurl ?>/img/misp-logo-horizontal.png" alt="MISP">
             </picture>
         </div>
-        <h1><?= __('Database upgrade required') ?></h1>
+        <h1><?= h($title_for_layout) ?></h1>
+        <?php if (!$isSiteAdmin): ?>
+        <p class="lead"><?= h($message) ?></p>
+        <p class="footer"><a href="<?= $baseurl ?>/users/logout"><?= __('Log out') ?></a></p>
+        <?php else: ?>
         <p class="lead"><?= __('This instance runs MISP 3, but its database still has the MISP 2.5 layout. MISP stays unavailable until an administrator upgrades the database from the command line: the web interface never starts the upgrade itself.') ?></p>
 
         <div class="warning" role="alert">
@@ -160,7 +164,8 @@ $steps = [
             <?php endforeach; ?>
         </ol>
 
-        <p class="footer"><?= __('This page goes away by itself once the upgrade has finished.') ?></p>
+        <p class="footer"><?= __('This page goes away by itself once the upgrade has finished.') ?> <a href="<?= $baseurl ?>/users/logout"><?= __('Log out') ?></a></p>
+        <?php endif; ?>
     </main>
 </body>
 </html>

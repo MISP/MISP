@@ -184,10 +184,6 @@ class AppController extends Controller
 
         $this->_setupDatabaseConnection();
 
-        if ($this->User->awaitsV3Upgrade()) {
-            $this->__v3UpgradeRequired();
-        }
-
         $this->set('debugMode', Configure::read('debug') >= 1 ? 'debugOn' : 'debugOff');
         $isAjax = $this->request->is('ajax');
         $this->set('ajax', $isAjax);
@@ -391,6 +387,10 @@ class AppController extends Controller
             Configure::write('CurrentUserEmail', $user['email']);
             Configure::write('CurrentUserIP', $this->User->_remoteIp());
             $this->__logAccess($user);
+
+            if (!$this->_isControllerAction(['users' => ['logout']]) && $this->User->awaitsV3Upgrade()) {
+                $this->__v3UpgradeRequired($user);
+            }
 
             // Try to run updates
             if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && !$isAjax && $this->_isLive())) {
@@ -1142,14 +1142,21 @@ class AppController extends Controller
      * Stops every request while the database has the 2.x layout: the upgrade
      * is one-way, so it is left to an administrator on the command line.
      */
-    private function __v3UpgradeRequired()
+    private function __v3UpgradeRequired(array $user)
     {
-        $message = __('This MISP instance runs MISP 3, but its database has not been upgraded yet. An administrator has to run the upgrade from the command line.');
+        $isSiteAdmin = !empty($user['Role']['perm_site_admin']);
+        if ($isSiteAdmin) {
+            $message = __('This MISP instance runs MISP 3, but its database has not been upgraded yet. Run the upgrade from the command line, after backing up the database: it is one-way.');
+        } else {
+            $message = __('This MISP instance is being upgraded and is unavailable until the upgrade is done. Please try again later.');
+        }
         if ($this->_isRest() || $this->request->is('ajax')) {
             $response = $this->RestResponse->throwException(503, $message);
         } else {
             $this->layout = false;
-            $this->set('title_for_layout', __('Database upgrade required'));
+            $this->set('title_for_layout', $isSiteAdmin ? __('Database upgrade required') : __('Upgrade in progress'));
+            $this->set('isSiteAdmin', $isSiteAdmin);
+            $this->set('message', $message);
             $response = $this->render('/genericTemplates/v3_upgrade_required');
             $response->statusCode(503);
         }
