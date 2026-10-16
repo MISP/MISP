@@ -241,16 +241,11 @@ class UsageDataWidget
         $hash = hash('sha256', json_encode($orgIdList));
         $count = $this->redis->get('misp:dashboard:attribute_count:' . $hash);
         if (empty($count)) {
-            $params = [
+            $count = $this->Event->Attribute->find('count', [
                 'conditions' => $conditions,
                 'contain' => ['Event'],
                 'recursive' => -1,
-            ];
-            // The index is gone once the 3.0 schema has converged.
-            if ($this->Event->Attribute->checkNamedIndexExists('attributes', 'deleted')) {
-                $params['ignoreIndexHint'] = 'deleted';
-            }
-            $count = $this->Event->Attribute->find('count', $params);
+            ]);
             $this->redis->setEx('misp:dashboard:attribute_count:' . $hash, 3600, $count);
         }
         return $count;

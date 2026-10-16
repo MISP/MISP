@@ -47,9 +47,6 @@ class MispAttribute extends AppModel
 
     private $orgs_cache = [];
 
-    /** @var bool|null Cached result of checking if 'deleted' index exists on attributes table */
-    private static $hasDeletedIndex = null;
-
     /** @var bool|null Cached result of checking if 'idx_event_deleted_object' exists on attributes table */
     private static $hasLooseAttributeIndex = null;
 
@@ -2583,13 +2580,6 @@ class MispAttribute extends AppModel
                 $params['order'] = [];
             }
 
-            if (self::$hasDeletedIndex === null) {
-                self::$hasDeletedIndex = $this->getSchemaInspector()->hasNamedIndex('attributes', 'deleted');
-            }
-            if (self::$hasDeletedIndex) {
-                $params['ignoreIndexHint'] = 'deleted';
-            }
-        
             $loop = empty($params['limit']);
             if ($loop) {
                 $params['limit'] = 50000;
