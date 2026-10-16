@@ -119,7 +119,6 @@ class Event extends AppModel
         'kunai' => ['json', 'KunaiExport', 'json'],
         'netfilter' => array('txt', 'NetfilterExport', 'sh'),
         'opendata' => array('txt', 'OpendataExport', 'txt'),
-        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
         'stix' => array('xml', 'Stix1Export', 'xml'),

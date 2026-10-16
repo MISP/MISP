@@ -22,7 +22,7 @@ class IndexFilterComponent extends Component
     // Used for isApiFunction(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
     // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
     const AUTOMATION_ARRAY = array(
-        'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
+        'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph'),
         'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
         'objects' => array('restSearch'),
     );

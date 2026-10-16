@@ -5996,7 +5996,6 @@ class EventsController extends AppController
                 'json' => __('MISP JSON'),
                 'netfilter' => __('Netfilter'),
                 'opendata' => __('Open data'),
-                'openioc' => __('OpenIOC'),
                 'rpz' => __('RPZ'),
                 'snort' => __('Snort rules'),
                 'stix' => __('STIX 1 XML'),
@@ -6135,49 +6134,6 @@ class EventsController extends AppController
             )
         ));
         return $this->restSearch();
-    }
-
-    public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
-    {
-        // return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events
-        // TODO implement mass download of all events - maybe in a zip file?
-        $this->response->type('text');  // set the content type
-        if ($eventid == null) {
-            throw new Exception(__('Not yet implemented'));
-        }
-        $this->layout = 'text/default';
-
-        if ($key != 'download') {
-            $user = $this->_checkAuthUser($key);
-            if (!$user) {
-                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-            }
-        } else {
-            if (!$this->Auth->user('id')) {
-                throw new UnauthorizedException(__('You have to be logged in to do that.'));
-            }
-        }
-
-        // get the event if it exists and load it together with its attributes
-        $this->Event->id = $eventid;
-        if (!$this->Event->exists()) {
-            throw new NotFoundException(__('Invalid event or not authorised.'));
-        }
-        $event = $this->Event->fetchEvent($this->Auth->user(), $options = array('eventid' => $eventid, 'to_ids' => 1, 'enforceWarninglist' => $enforceWarninglist));
-        if (empty($event)) {
-            throw new NotFoundException(__('Invalid event or not authorised.'));
-        }
-        $event = $event[0];
-
-        // send the event and the vars needed to check authorisation to the Component
-        App::uses('IOCExportTool', 'Tools');
-        $this->IOCExport = new IOCExportTool();
-        $final = $this->IOCExport->buildAll($this->Auth->user(), $event);
-        $this->response->type('xml');
-        $this->autoRender = false;
-        $this->response->body($final);
-        $this->response->download('misp.openIOC' . $eventid . '.ioc');
-        return $this->response;
     }
 
     public function proposalEventIndex()
@@ -6999,12 +6955,6 @@ class EventsController extends AppController
                 'checkbox_text' => __('Encode Attachments'),
                 'checkbox_set' => $this->baseurl . '/events/restSearch/xml/eventid:' . $id . '/withAttachments:1.xml',
                 'checkbox_default' => true,
-            ),
-            'openIOC' => array(
-                'url' => $this->baseurl . '/events/restSearch/openioc/to_ids:1/published:1/eventid:' . $id . '.json',
-                'text' => __('OpenIOC (all indicators marked to IDS)'),
-                'requiresPublished' => false,
-                'checkbox' => false,
             ),
             'xlsx' => array(
                 'url' => $this->baseurl . '/events/restSearch/returnFormat:xlsx/to_ids:1/published:1/includeContext:0/eventid:' . $id,

@@ -370,7 +370,6 @@ class ACLComponent extends Component
             'deleteNode' => array('*'),
             'dot' => array(),
             'downloadExport' => array('*'),
-            'downloadOpenIOCEvent' => array('*'),
             'edit' => array('perm_add'),
             'editEventTags' => array('AND' => ['perm_tagger', 'theming_enabled']),
             'editEventTagRelationships' => array('AND' => ['perm_tagger', 'theming_enabled']),

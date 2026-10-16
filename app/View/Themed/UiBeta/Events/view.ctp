@@ -2385,12 +2385,6 @@
                                        'checkbox_url' => $baseurl . '/events/restSearch/stix2/eventid:' . $eventId . '/withAttachments:1',
                                        'icon' => 'fa-file-alt',
                                    ],
-                                   'openioc' => [
-                                       'label' => __('OpenIOC'),
-                                       'url' => $baseurl . '/events/restSearch/openioc/to_ids:1/published:1/eventid:' . $eventId . '.json',
-                                       'checkbox' => false,
-                                       'icon' => 'fa-file-alt',
-                                   ],
                                    'rpz' => [
                                        'label' => __('RPZ Zone file'),
                                        'url' => $baseurl . '/attributes/restSearch/returnFormat:rpz/published:1||0/eventid:' . $eventId,

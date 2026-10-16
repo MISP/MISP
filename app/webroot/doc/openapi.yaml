@@ -7141,7 +7141,6 @@ components:
         - hashes
         - netfilter
         - opendata
-        - openioc
         - rpz
         - snort
         - suricata
@@ -7164,7 +7163,6 @@ components:
         - count
         - netfilter
         - opendata
-        - openioc
         - rpz
         - snort
         - suricata
@@ -11452,7 +11450,6 @@ components:
           - hashes
           - netfilter
           - opendata
-          - openioc
           - rpz
           - snort
           - suricata
@@ -11479,7 +11476,6 @@ components:
           - hashes
           - netfilter
           - opendata
-          - openioc
           - rpz
           - snort
           - suricata
