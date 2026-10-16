@@ -30,7 +30,7 @@ $defaultTags = is_array($defaults['tags'] ?? null) ? $defaults['tags'] : [];
 $defaultClusters = is_array($defaults['galaxy_clusters'] ?? null) ? $defaults['galaxy_clusters'] : [];
 $instanceDefault = '<span class="small text-body-secondary fst-italic">' . __('Instance default') . '</span>';
 ?>
-<div class="card mb-3 shadow-sm">
+<div class="card mb-3 shadow-sm" data-tour="event-template-defaults">
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
             <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"

@@ -62,7 +62,7 @@ $type = $item['type'] ?? null;
         </button>
     </li>
 <?php elseif (!empty($item['children'])): ?>
-    <li class="rail-sub">
+    <li class="rail-sub"<?= empty($item['id']) ? '' : ' data-tour="nav-' . h($item['id']) . '"' ?>>
         <span class="rail-subhead" id="<?= h($subId) ?>">
             <?= $this->element('navbar_rail_glyph', ['item' => $item]) ?>
             <span><?= h($item['label']) ?></span>

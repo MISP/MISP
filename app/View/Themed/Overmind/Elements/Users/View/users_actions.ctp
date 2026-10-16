@@ -18,6 +18,7 @@ if ($adminView) {
         'url'     => "$baseurl/users/edit",
         'onclick' => "event.preventDefault(); openModal('$baseurl/users/edit');",
         'icon'    => 'fas fa-pen',
+        'tour'    => 'action-edit-profile',
         'label'   => __('Edit profile'),
         'short'   => __('Edit'),
     ];

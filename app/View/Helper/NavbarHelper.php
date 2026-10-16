@@ -519,6 +519,7 @@ class NavbarHelper extends AppHelper {
             ['divider' => true],
             [
                 'type' => 'group',
+                'id' => 'integrations',
                 'label' => __('Integrations'),
                 'icon' => 'fas fa-plug',
                 'children' => [
@@ -697,6 +698,7 @@ class NavbarHelper extends AppHelper {
             ['divider' => true],
             [
                 'type' => 'group',
+                'id' => 'blocklisting',
                 'label' => __('Blocklisting'),
                 'icon' => 'fas fa-ban',
                 'children' => [
@@ -728,6 +730,7 @@ class NavbarHelper extends AppHelper {
             ],
             [
                 'type' => 'group',
+                'id' => 'correlations',
                 'label' => __('Correlations'),
                 'icon' => 'fas fa-circle-nodes',
                 'children' => [
