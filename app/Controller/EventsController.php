@@ -4280,21 +4280,25 @@ class EventsController extends AppController
 
         $tool = new EventOverviewTool();
         $force = !empty($this->request->params['named']['rollup']);
-        $rollup = $tool->rollup($user, $event['Event'], $force);
+        $split = $tool->rollupSplit($user, $event['Event'], $force);
         foreach (array_slice($setIds ?? [], 1) as $relativeId) {
-            if ($rollup === null) {
+            if ($split === null) {
                 break;
             }
             $relative = $this->__overviewEvent($relativeId);
-            $part = $tool->rollup($user, $relative['Event'], $force);
+            $part = $tool->rollupSplit($user, $relative['Event'], $force);
             if ($part === null) {
-                $rollup = null;
+                $split = null;
                 break;
             }
-            foreach ($part as $tagId => $count) {
-                $rollup[$tagId] = ($rollup[$tagId] ?? 0) + $count;
+            foreach ($part as $tagId => $counts) {
+                $split[$tagId] = [
+                    ($split[$tagId][0] ?? 0) + $counts[0],
+                    ($split[$tagId][1] ?? 0) + $counts[1],
+                ];
             }
         }
+        $rollup = $split === null ? null : array_map('array_sum', $split);
 
         list($rollupTags, $rollupClusters) = $this->__rollupLabels(array_keys($rollup ?? []), $user);
 
@@ -4316,6 +4320,9 @@ class EventsController extends AppController
         $this->set('tagConflicts', $this->Taxonomy->checkIfTagInconsistencies($ownTags));
         $this->set('missingTaxonomies', $this->Event->missingTaxonomies(['EventTag' => $ownTags]));
         $this->set('rows', $rows);
+        $this->set('inObjects', array_map(function ($counts) {
+            return $counts[1];
+        }, $split ?? []));
         $this->set('rolledUp', $rollup !== null);
         $this->set('profileName', $profile['name'] ?? null);
         $this->set('profileId', $profile['id'] ?? null);

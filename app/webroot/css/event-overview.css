@@ -306,6 +306,9 @@
     border: 1px solid color-mix(in srgb, var(--eo-ind) 55%, transparent);
 }
 .eo-on.is-only .misp-icon { color: var(--eo-ind); }
+button.eo-on { padding: 0 .2rem; border: 1px solid transparent; border-radius: 3px; background: none; font-family: inherit; cursor: pointer; }
+button.eo-on:hover, button.eo-on:focus-visible { color: var(--bs-emphasis-color); border-color: color-mix(in srgb, var(--eo-ind) 70%, transparent); }
+button.eo-on.is-only:hover, button.eo-on.is-only:focus-visible { background: color-mix(in srgb, var(--eo-ind) 34%, transparent); }
 .hg-unit.eo-ind > .hg-chip { outline: 1px dashed color-mix(in srgb, var(--bs-attribute) 70%, transparent); outline-offset: 1px; }
 .eo-rollup { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; padding: .5rem 1rem; border-top: 1px solid var(--bs-border-color); }
 .eo-tag-warnings { margin: .25rem 1rem .5rem; padding: .5rem .75rem; display: grid; gap: .5rem;

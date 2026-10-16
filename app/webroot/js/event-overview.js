@@ -162,6 +162,12 @@
             keepTab.href = keepTab.href.split('#')[0] + (tabId ? '#open-tab-' + tabId : '');
             return;
         }
+        var tagFilter = e.target.closest('[data-eo-filter-tags]');
+        if (tagFilter) {
+            e.preventDefault();
+            openFiltered(tagFilter.getAttribute('data-eo-filter-tab') || 'attributes', { tags: tagFilter.getAttribute('data-eo-filter-tags') });
+            return;
+        }
         var filter = e.target.closest('[data-eo-filter-types]');
         if (filter) {
             e.preventDefault();
