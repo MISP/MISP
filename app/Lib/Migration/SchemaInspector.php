@@ -950,6 +950,82 @@ class SchemaInspector
     }
 
     /**
+     * Other connections to this database that are running something.
+     * Empty on PostgreSQL, as runningQueries() is.
+     *
+     * @return array Rows with id, user, command, seconds and state.
+     */
+    public function otherActiveSessions()
+    {
+        if (!$this->isMysql()) {
+            return array();
+        }
+        return $this->fetchRows(
+            'SELECT ID AS id, USER AS user, COMMAND AS command, TIME AS seconds, STATE AS state'
+            . ' FROM information_schema.PROCESSLIST'
+            . " WHERE ID <> CONNECTION_ID() AND DB = DATABASE() AND COMMAND NOT IN ('Sleep', 'Daemon', 'Binlog Dump');"
+        );
+    }
+
+    /**
+     * Rows of one read-only query over a table's data, for the checks a
+     * migration makes before it changes the table (TablePreflight). Not
+     * cached, as every catalog read here.
+     *
+     * @param string $sql
+     * @return array
+     */
+    public function probeRows($sql)
+    {
+        return $this->fetchRows($sql);
+    }
+
+    /**
+     * Where the database server keeps its files, and how much room is left
+     * there, when the server runs on this host.
+     *
+     * A server counts as local when it names this host (MySQL's `hostname`;
+     * a container reports its own) and its directories exist here.
+     * PostgreSQL shows `data_directory` to superusers and members of
+     * pg_read_all_settings only.
+     *
+     * @return array|null 'datadir' and 'tmpdir' => array('path', 'free' =>
+     *   bytes, 'device'); null when the server is elsewhere or its directories
+     *   cannot be read from here.
+     */
+    public function storage()
+    {
+        $variables = $this->serverVariables();
+        if ($this->isMysql()) {
+            if (!isset($variables['hostname']) || $variables['hostname'] !== gethostname()) {
+                return null;
+            }
+            $datadir = isset($variables['datadir']) ? $variables['datadir'] : null;
+            $tmpdir = empty($variables['innodb_tmpdir'])
+                ? (isset($variables['tmpdir']) ? $variables['tmpdir'] : null)
+                : $variables['innodb_tmpdir'];
+        } else {
+            $host = isset($this->db->config['host']) ? (string)$this->db->config['host'] : '';
+            if (!in_array($host, array('', 'localhost', '127.0.0.1', '::1'), true) && $host[0] !== '/') {
+                return null;
+            }
+            $datadir = $tmpdir = isset($variables['data_directory']) ? $variables['data_directory'] : null;
+        }
+        $storage = array();
+        foreach (array('datadir' => $datadir, 'tmpdir' => $tmpdir) as $key => $path) {
+            // MySQL's tmpdir may list several directories, used in turn.
+            $path = $path === null ? false : strtok($path, PATH_SEPARATOR);
+            $free = $path === false ? false : @disk_free_space($path);
+            $stat = $free === false ? false : @stat($path);
+            if ($stat === false) {
+                return null;
+            }
+            $storage[$key] = array('path' => $path, 'free' => (float)$free, 'device' => $stat['dev']);
+        }
+        return $storage;
+    }
+
+    /**
      * Stop the datasource caching schema reads for the rest of the process.
      *
      * Call this after DDL and before any PHP that touches the altered table

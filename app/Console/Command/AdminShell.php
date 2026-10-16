@@ -1109,6 +1109,11 @@ class AdminShell extends AppShell
             return;
         }
         $this->__assertOsUserMayWrite();
+        $refusal = $manager->refusal($id === '' ? null : array($id));
+        if ($refusal !== null) {
+            $this->error($refusal);
+        }
+        $manager->setReporter(array($this, 'reportMigration'));
 
         if ($id !== '') {
             if (in_array($id, $manager->applied(), true)) {
@@ -1142,23 +1147,14 @@ class AdminShell extends AppShell
         $failures = 0;
         foreach ($results as $migrationId => $success) {
             $row = isset($ledger[$migrationId]) ? $ledger[$migrationId] : [];
-            $duration = isset($row['duration_ms']) ? sprintf(' (%s ms)', (int)$row['duration_ms']) : '';
             if ($success) {
-                $this->out('<info>' . __('applied') . '</info> ' . $migrationId . $duration);
                 foreach ($manager->notes($migrationId) as $note) {
                     $this->out('  ' . $note);
                 }
                 continue;
             }
-            if (isset($row['status']) && $row['status'] === MigrationManager::STATUS_DEFERRED) {
-                $this->out('<warning>' . __('deferred') . '</warning> ' . $migrationId . $duration);
-                $this->out('  ' . $row['error']);
-                continue;
-            }
-            $failures++;
-            $this->out('<error>' . __('FAILED') . '</error>  ' . $migrationId . $duration);
-            if (!empty($row['error'])) {
-                $this->out('  ' . $row['error']);
+            if (!isset($row['status']) || $row['status'] !== MigrationManager::STATUS_DEFERRED) {
+                $failures++;
             }
         }
 
@@ -1179,6 +1175,39 @@ class AdminShell extends AppShell
                 __('Fix it and run this again - a failed migration is retried before the ones behind it.')
             );
         }
+    }
+
+    /**
+     * The manager's reporter: a line at the start and at the end of each
+     * migration, and what a long one expects to do, as the run goes.
+     *
+     * @param string $event
+     * @param string $id
+     * @param array $lines
+     * @return void
+     */
+    public function reportMigration($event, $id, array $lines)
+    {
+        $indent = function (array $lines) {
+            foreach ($lines as $line) {
+                foreach (explode(PHP_EOL, $line) as $each) {
+                    $this->out('  ' . $each);
+                }
+            }
+        };
+        if ($event === 'start') {
+            $this->out(__('Applying %s', $id) . (empty($lines[0]) ? '' : ': ' . $lines[0]));
+            return;
+        }
+        if ($event === 'forecast') {
+            $indent($lines);
+            return;
+        }
+        $duration = sprintf(' (%.1f s)', array_shift($lines) / 1000);
+        $style = array('applied' => 'info', 'deferred' => 'warning', 'failed' => 'error');
+        $label = $event === 'failed' ? __('FAILED') : __($event);
+        $this->out('<' . $style[$event] . '>' . $label . '</' . $style[$event] . '> ' . $id . $duration);
+        $indent($lines);
     }
 
     /**
@@ -1253,6 +1282,9 @@ class AdminShell extends AppShell
             if ($this->__hasDataStep($migration, 'beforeUp')) {
                 $this->out();
                 $this->out('  <comment>' . __('This migration also has a beforeUp() data step, run before any of the SQL above and described by none of it.') . '</comment>');
+            } elseif ($migration instanceof TableMigration) {
+                $this->out();
+                $this->out('  <comment>' . __('Applied, this migration first checks the server, the disk and the rows, and defers on what the rebuild could not get past. A dry run reads no rows, so a latin1 column holding UTF-8 shows here as a plain conversion.') . '</comment>');
             }
             if ($this->__hasDataStep($migration, 'afterUp')) {
                 $this->out();
@@ -1278,7 +1310,8 @@ class AdminShell extends AppShell
     private function __hasDataStep(AbstractMigration $migration, $method)
     {
         $declaring = (new ReflectionMethod($migration, $method))->getDeclaringClass();
-        return $declaring->getName() !== 'AbstractMigration';
+        // TableMigration's own beforeUp() checks; it changes no data.
+        return !in_array($declaring->getName(), array('AbstractMigration', 'TableMigration'), true);
     }
 
     /**

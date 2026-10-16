@@ -335,6 +335,32 @@ class MigrationGrammarTest extends TestCase
     }
 
     /**
+     * Cake quotes only its own types; an empty default of the other three
+     * would otherwise render as DEFAULT NULL, which a NOT NULL column refuses.
+     */
+    public function testAnEmptyDefaultOfAnExtendedTypeStaysEmpty()
+    {
+        foreach (array('mediumtext' => array(), 'longtext' => array(), 'varbinary' => array('length' => 16)) as $type => $options) {
+            $options += array('null' => false, 'default' => '');
+            $this->assertSame(
+                array(sprintf("ALTER TABLE `t` ADD `c` %s DEFAULT '' NOT NULL;", $type === 'varbinary' ? 'varbinary(16)' : $type)),
+                $this->mysql->addColumn('t', 'c', $type, $options),
+                $type
+            );
+            $this->assertSame(
+                array(sprintf("ALTER TABLE \"t\" ADD \"c\" %s DEFAULT '' NOT NULL;", $type === 'varbinary' ? 'bytea' : 'text')),
+                $this->pgsql->addColumn('t', 'c', $type, $options),
+                $type
+            );
+            $this->assertStringEndsWith(
+                "ALTER COLUMN \"c\" SET DEFAULT '';",
+                $this->pgsql->changeColumn('t', 'c', $type, $options)[0],
+                $type
+            );
+        }
+    }
+
+    /**
      * Cake's Postgres map declares biginteger with limit 20, which renders as
      * bigint(20) - a PostgreSQL syntax error. PostgresGrammar corrects the map
      * rather than passing the error through. MySQL keeps its display width.

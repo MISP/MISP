@@ -462,6 +462,14 @@ class AppModel extends Model
                 $job = null;
             }
             if (!empty($updates)) {
+                $refusal = $this->getMigrationManager()->refusal(array_keys($updates));
+                if ($refusal !== null) {
+                    // A page load leaves it for the command line, quietly.
+                    if ($avoidSilentFail) {
+                        throw new Exception($refusal);
+                    }
+                    return true;
+                }
                 $this->Log = ClassRegistry::init('Log');
                 $this->Server = ClassRegistry::init('Server');
                 // Exit if updates are locked.
