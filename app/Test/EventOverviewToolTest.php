@@ -146,6 +146,13 @@ class EventOverviewToolTest extends TestCase
         );
     }
 
+    public function testIcsTechniquesReadTheirIdFromTheirOwnKey(): void
+    {
+        $ics = ['value' => 'Masquerading', 'meta' => ['Technique ID' => ['T849'], 'Tactic' => ['Evasion']]];
+        $this->assertSame('T849', EventContextTool::techniqueId($ics));
+        $this->assertNull(EventContextTool::techniqueId(['value' => 'Masquerading', 'meta' => []]));
+    }
+
     public function testIndicatorOnlyLabelsJoinTheirRowAfterEventOnes(): void
     {
         $tags = [$this->eventTag(3, 'phishing:techniques="fake-website"')];

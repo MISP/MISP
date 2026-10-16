@@ -281,12 +281,15 @@ class EventContextTool
      */
     public static function techniqueId(array $cluster)
     {
-        $external = $cluster['meta']['external_id'] ?? null;
-        if (is_array($external)) {
-            $external = reset($external);
-        }
-        if (is_string($external) && $external !== '') {
-            return $external;
+        // ATT&CK for ICS keeps its id under its own key.
+        foreach (['external_id', 'Technique ID'] as $key) {
+            $external = $cluster['meta'][$key] ?? null;
+            if (is_array($external)) {
+                $external = reset($external);
+            }
+            if (is_string($external) && $external !== '') {
+                return $external;
+            }
         }
         if (preg_match('/ - ([A-Z]{1,3}\d{4}(?:\.\d{3})?)$/', (string)($cluster['value'] ?? ''), $m)) {
             return $m[1];
