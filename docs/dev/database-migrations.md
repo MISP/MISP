@@ -123,7 +123,7 @@ $schema->table('event_templates')
 | `changeColumn($name, $type, $options)` | `null` and `default` are **required**, except for type `primary_key` |
 | `renameColumn($from, $to, $type, $options)` | type restated; same requirement |
 | `dropColumn($name)` | |
-| `addIndex($columns, $options)` | `unique`, `name`, `length`, `fulltext` |
+| `addIndex($columns, $options)` | `unique`, `name`, `length`, `fulltext`; where the engines differ, `mysql => false` (PostgreSQL only) and `pgsql => [name, sql, extension]`: PostgreSQL's own name and statement (`%1$s` the index, `%2$s` the table), created after the extension. `createTable()`'s `indexes` take the same |
 | `dropIndex($columnsOrName)` | The column set, or the index's own name |
 | `dropPrimaryKey()` | Drops the constraint, keeps the columns. Add a unique index over the old key column first |
 | `changeOptions($options)` | MySQL table options: `engine`, `row_format`, `charset`, `collate` (a token works). A new default charset applies to columns added later; existing ones keep theirs. PostgreSQL renders nothing |
@@ -188,7 +188,9 @@ else:
 definition, so anything you leave out is silently dropped — a `MODIFY` that omits
 `NOT NULL` makes the column nullable. Both `null` and `default` are therefore
 required rather than defaulted, because guessing either one is a data-loss bug
-wearing a convenience feature's clothes.
+wearing a convenience feature's clothes. On PostgreSQL a new default comes with
+a `DROP DEFAULT`, which runs before the type change, so an old default the new
+type cannot take does not fail the statement.
 
 **Hints that one engine cannot express are dropped, and reported.** `after` is
 cosmetic ordering PostgreSQL has no equivalent for, so it goes quietly. `charset`,
@@ -224,6 +226,30 @@ MariaDB's UCA 14 collations do not exist on MySQL, and MySQL's `0900` ones do
 not ignore trailing spaces, so a lookup for `Quasar RAT` stops finding a stored
 `Quasar RAT `.
 
+**A table can be brought to a target instead of changed step by step.** A
+`TableMigration` holds the table's complete definition, as `Admin
+dumpSchemaTargets` writes it, and declares only what the live table lacks:
+
+```php
+class Migration_20261101_000012_schema_v3_events extends TableMigration
+{
+    const TABLE = 'events';
+    const TARGET = [/* options, columns, indexes, retired */];
+}
+```
+
+Missing columns are added; a column that differs in type, length, sign,
+nullability, default or (MySQL) collation is redefined in full, the key first;
+retired indexes, and live ones that duplicate a target index, are dropped; an
+index under a target name with another definition is rebuilt; missing indexes
+are added, and the table options follow. MySQL gets the column additions, then
+one rebuilding `ALTER TABLE`. Columns and indexes the target does not know are
+kept. A table already at its target renders nothing, so a re-run does only what
+is left. A primary key over other columns is not moved: the migration stops
+with that as the reason. `const RECREATE = true` drops the table and creates it
+empty at the target instead, for a table whose rows are rebuilt afterwards. The
+logic is `TableConverger`, which the migrations of other tables can call too.
+
 **Data changes go through models, in `beforeUp()` and `afterUp()`, never as
 DML.** A
 `save()`/`updateAll()` is portable by construction where a hand-written `INSERT`
@@ -258,6 +284,9 @@ dry run also prints:
 
 - dropped hints, as SQL comments under the flavour that dropped them;
 - the operations left out because this database already has them (§7);
+- notes on this database: what a converging migration keeps, drops as a
+  duplicate or rebuilds. An apply writes them to the update log, and
+  `migrationApply` prints them under the migration;
 - `No schema changes.` for a data-only migration;
 - a note when the migration carries a `beforeUp()` or an `afterUp()`, because
   otherwise "no schema changes" reads as "does nothing";
@@ -648,6 +677,7 @@ place alongside the new one — it will simply never fire again.
 | `app/Lib/Migration/Migration.stub` | Scaffold template. Not `.php`, and not in `Migrations/`, so it is neither discovered nor linted |
 | `app/Lib/Migration/AbstractMigration.php` | The contract, and the id rules |
 | `app/Lib/Migration/SchemaBuilder.php` | The DSL |
+| `app/Lib/Migration/TableMigration.php`, `TableConverger.php` | A table brought to a target definition |
 | `app/Lib/Migration/Grammar/` | Per-engine rendering, and the connectionless datasources `--dry-run` uses |
 | `app/Lib/Migration/MigrationManager.php` | Discovery, the ledger, applying |
 | `app/Lib/Migration/MigrationRunner.php` | Statement execution, logging, progress — shared with the legacy path |

@@ -161,6 +161,9 @@ class MigrationManager
     /** @var array What the most recent toSql() left out as already there. */
     private $lastSkipped = array();
 
+    /** @var array id => what the migration's most recent rendering noted. */
+    private $notes = array();
+
     /**
      * @param Model $model Supplies the datasource and carries the statements.
      * @param string|null $directory Defaults to app/Lib/Migration/Migrations.
@@ -477,6 +480,7 @@ class MigrationManager
         // declaration renders what would actually run now.
         $migration->setSchemaInspector($this->inspector());
         $migration->up($schema);
+        $this->notes[$id] = $schema->notes();
         $this->lastSkipped = $schema->skipSatisfied($this->inspector());
         return $schema->toSql($grammar);
     }
@@ -488,6 +492,18 @@ class MigrationManager
     public function lastSkipped()
     {
         return $this->lastSkipped;
+    }
+
+    /**
+     * What a migration's up() noted for the administrator, such as what a
+     * converging migration keeps, the last time it was rendered or applied.
+     *
+     * @param string $id
+     * @return array
+     */
+    public function notes($id)
+    {
+        return isset($this->notes[$id]) ? $this->notes[$id] : array();
     }
 
     /**
@@ -594,6 +610,7 @@ class MigrationManager
             return false;
         }
         $migration->up($schema);
+        $this->notes[$id] = $schema->notes();
         // Checking and rendering defer too, before anything is sent: a
         // collation token refuses a server older than the oldest one it
         // resolves for.
@@ -605,6 +622,9 @@ class MigrationManager
             return false;
         }
         $this->reportDroppedHints($id, $schema->getGrammar()->takeDroppedHints());
+        if (!empty($this->notes[$id])) {
+            $this->logUpdate(__('Notes on the migration %s', $id), $this->notes[$id]);
+        }
 
         if (!empty($statements)) {
             // exitOnError, unlike the legacy path: the statements of one
@@ -761,6 +781,18 @@ class MigrationManager
         if (empty($hints)) {
             return;
         }
+        $this->logUpdate(__('Schema hints dropped while rendering the migration %s', $id), $hints);
+    }
+
+    /**
+     * One entry in the update log.
+     *
+     * @param string $title
+     * @param array $lines
+     * @return void
+     */
+    protected function logUpdate($title, array $lines)
+    {
         if ($this->Log === null) {
             $this->Log = ClassRegistry::init('Log');
         }
@@ -772,8 +804,8 @@ class MigrationManager
             'email' => 'SYSTEM',
             'action' => 'update_database',
             'user_id' => 0,
-            'title' => __('Schema hints dropped while rendering the migration %s', $id),
-            'change' => implode(PHP_EOL, $hints),
+            'title' => $title,
+            'change' => implode(PHP_EOL, $lines),
         ));
     }
 

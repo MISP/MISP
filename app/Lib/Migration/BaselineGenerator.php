@@ -548,13 +548,8 @@ class BaselineGenerator
                 $columnType
             ));
         }
-        if ($base === 'tinyint') {
-            // Cake's own describe() reads tinyint(1) as boolean, and so does
-            // every flag column in MISP. Any other width is a small integer.
-            $type = $width === 1 ? 'boolean' : 'tinyinteger';
-        } elseif (isset(self::$typeMap[$base])) {
-            $type = self::$typeMap[$base];
-        } else {
+        $type = self::dslType($columnType);
+        if ($type === null) {
             throw new InvalidArgumentException(sprintf(
                 'Column %s: no DSL type for "%s".',
                 $row['COLUMN_NAME'],
@@ -610,6 +605,29 @@ class BaselineGenerator
             $spec['comment'] = $row['COLUMN_COMMENT'];
         }
         return array($spec, $expression);
+    }
+
+    /**
+     * The DSL type a MySQL column type reads as. Several MySQL types read as
+     * one DSL type (blob and mediumblob are both binary), so this is what a
+     * column generated from the reference means, not how it renders.
+     *
+     * @param string $columnType As information_schema.COLUMNS has it.
+     * @return string|null Null for a type the DSL has no name for.
+     */
+    public static function dslType($columnType)
+    {
+        $parts = SchemaInspector::splitMysqlType($columnType);
+        if ($parts === null) {
+            return null;
+        }
+        list($base, $width) = $parts;
+        if ($base === 'tinyint') {
+            // Cake's own describe() reads tinyint(1) as boolean, and so does
+            // every flag column in MISP. Any other width is a small integer.
+            return $width === 1 ? 'boolean' : 'tinyinteger';
+        }
+        return isset(self::$typeMap[$base]) ? self::$typeMap[$base] : null;
     }
 
     /**

@@ -121,6 +121,7 @@ class SchemaBuilderTest extends TestCase
                 'DROP TABLE "before";',
                 'ALTER TABLE "galaxies" RENAME COLUMN "kind" TO "type";',
                 "ALTER TABLE \"galaxies\"\n" .
+                "    ALTER COLUMN \"type\" DROP DEFAULT,\n" .
                 "    ALTER COLUMN \"type\" TYPE smallint USING \"type\"::smallint,\n" .
                 "    ALTER COLUMN \"type\" SET NOT NULL,\n" .
                 "    ALTER COLUMN \"type\" SET DEFAULT 0;",
@@ -202,9 +203,10 @@ class SchemaBuilderTest extends TestCase
             array(
                 'DROP INDEX "idx_events_sharing_group_id";',
                 "ALTER TABLE \"events\"\n" .
+                "    ALTER COLUMN \"org_id\" DROP DEFAULT,\n" .
                 "    ALTER COLUMN \"org_id\" TYPE bigint USING \"org_id\"::bigint,\n" .
                 "    ALTER COLUMN \"org_id\" SET NOT NULL,\n" .
-                "    ALTER COLUMN \"org_id\" DROP DEFAULT,\n" .
+                "    ALTER COLUMN \"timestamp\" DROP DEFAULT,\n" .
                 "    ALTER COLUMN \"timestamp\" TYPE bigint USING \"timestamp\"::bigint,\n" .
                 "    ALTER COLUMN \"timestamp\" SET NOT NULL,\n" .
                 "    ALTER COLUMN \"timestamp\" SET DEFAULT 0;",
@@ -382,9 +384,9 @@ class SchemaBuilderTest extends TestCase
         $this->assertSame(
             array(
                 "ALTER TABLE \"events\"\n" .
+                "    ALTER COLUMN \"info\" DROP DEFAULT,\n" .
                 "    ALTER COLUMN \"info\" TYPE text USING \"info\"::text,\n" .
-                "    ALTER COLUMN \"info\" SET NOT NULL,\n" .
-                "    ALTER COLUMN \"info\" DROP DEFAULT;",
+                "    ALTER COLUMN \"info\" SET NOT NULL;",
                 'DROP INDEX "idx_events_org_id";',
                 'CREATE INDEX "idx_evt_acl" ON "events" ("distribution", "sharing_group_id");',
             ),
@@ -768,6 +770,29 @@ class SchemaBuilderTest extends TestCase
             array('DROP INDEX "idx_t_b";', 'ALTER TABLE "t" ADD "A" integer DEFAULT NULL;'),
             $schema->toSql()
         );
+    }
+
+    public function testAnIndexWithAPostgresNameOfItsOwnIsFoundByIt()
+    {
+        $schema = $this->pgsql();
+        $schema->table('t')
+            ->addIndex('a', array('name' => 'a', 'pgsql' => array('name' => 'idx_t_a_own', 'sql' => 'CREATE INDEX %1$s ON %2$s (lower("a"));')))
+            ->addIndex('b', array('name' => 'b', 'pgsql' => array('name' => 'idx_t_b_own')));
+
+        $skipped = $schema->skipSatisfied($this->live('pgsql', array(
+            't' => array('columns' => array('a', 'b'), 'indexes' => array('idx_t_a_own' => array('lower(a)'))),
+        )));
+
+        $this->assertSame(array('t: index idx_t_a_own is already there'), $skipped);
+        $this->assertSame(array('CREATE INDEX "idx_t_b_own" ON "t" ("b");'), $schema->toSql());
+    }
+
+    public function testNotesAreKeptApartFromTheStatements()
+    {
+        $schema = $this->mysql();
+        $schema->note('t: column legacy is not in the target; kept')->table('t')->dropColumn('x');
+        $this->assertSame(array('t: column legacy is not in the target; kept'), $schema->notes());
+        $this->assertSame(array('ALTER TABLE `t` DROP COLUMN `x`;'), $schema->toSql());
     }
 
     public function testASchemaReadFromAnotherEngineIsRefused()

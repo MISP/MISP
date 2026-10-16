@@ -208,12 +208,16 @@ if (!class_exists('MigrationTestInspector', false)) {
      * A live schema with scripted contents and no connection behind it:
      * table => array('columns' => names, 'indexes' => name => columns,
      * 'options' => tableOptions()), the primary key being the index named
-     * PRIMARY, as both drivers report it.
+     * PRIMARY, as both drivers report it. A table scripted as
+     * array('definition' => tableDefinition()) answers all four from that.
      */
     class MigrationTestInspector extends SchemaInspector
     {
         /** @var array */
         public $schema;
+
+        /** @var string What serverVersion() reports. */
+        public $version = '10.11.14-MariaDB';
 
         /** @var string */
         private $readsFlavour;
@@ -229,13 +233,26 @@ if (!class_exists('MigrationTestInspector', false)) {
             return $this->readsFlavour;
         }
 
+        public function serverVersion()
+        {
+            return $this->version;
+        }
+
         public function tables()
         {
             return array_keys($this->schema);
         }
 
+        public function tableDefinition($table)
+        {
+            return isset($this->schema[$table]['definition']) ? $this->schema[$table]['definition'] : null;
+        }
+
         public function columns($table)
         {
+            if (isset($this->schema[$table]['definition'])) {
+                return $this->schema[$table]['definition']['columns'];
+            }
             if (!isset($this->schema[$table]['columns'])) {
                 return array();
             }
@@ -245,7 +262,14 @@ if (!class_exists('MigrationTestInspector', false)) {
         public function indexes($table)
         {
             $indexes = array();
-            if (isset($this->schema[$table]['indexes'])) {
+            if (isset($this->schema[$table]['definition'])) {
+                foreach ($this->schema[$table]['definition']['indexes'] as $key => $index) {
+                    $indexes[$key === 'PRIMARY' ? $key : $index['name']] = array(
+                        'column' => $index['column'],
+                        'unique' => (int)$index['unique'],
+                    );
+                }
+            } elseif (isset($this->schema[$table]['indexes'])) {
                 foreach ($this->schema[$table]['indexes'] as $name => $columns) {
                     $indexes[$name] = array('column' => $columns, 'unique' => (int)($name === 'PRIMARY'));
                 }
@@ -257,6 +281,9 @@ if (!class_exists('MigrationTestInspector', false)) {
         {
             if (!isset($this->schema[$table])) {
                 return null;
+            }
+            if (isset($this->schema[$table]['definition'])) {
+                return $this->schema[$table]['definition']['options'];
             }
             $options = isset($this->schema[$table]['options']) ? $this->schema[$table]['options'] : array();
             return $options + array('engine' => null, 'row_format' => null, 'collation' => null, 'charset' => null);

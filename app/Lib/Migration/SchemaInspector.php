@@ -367,6 +367,14 @@ class SchemaInspector
     }
 
     /**
+     * @return string The server's version, as the driver reports it.
+     */
+    public function serverVersion()
+    {
+        return (string)$this->db->getVersion();
+    }
+
+    /**
      * @return bool Whether the server is MariaDB; false on PostgreSQL.
      */
     public function isMariaDb()

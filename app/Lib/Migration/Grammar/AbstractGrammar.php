@@ -326,7 +326,11 @@ abstract class AbstractGrammar
     /**
      * @param string $table
      * @param string|array $columns
-     * @param array $options 'unique', 'name', 'length', 'fulltext'.
+     * @param array $options 'unique', 'name', 'length', 'fulltext', and for
+     *   an index the engines spell differently: 'mysql' => false for one
+     *   PostgreSQL has alone; 'pgsql' => array('name', 'sql', 'extension'),
+     *   its PostgreSQL name and statement (%1$s the quoted index name, %2$s
+     *   the quoted table) and an extension it needs.
      * @return array Statements.
      */
     public function addIndex($table, $columns, array $options = array())
@@ -911,6 +915,15 @@ abstract class AbstractGrammar
             $options['name'] = $key;
         }
         return array($columns, $options);
+    }
+
+    /**
+     * @param array $options An index declaration.
+     * @return bool Whether the index exists on PostgreSQL alone.
+     */
+    protected static function isPostgresOnly(array $options)
+    {
+        return isset($options['mysql']) && $options['mysql'] === false;
     }
 
     /**

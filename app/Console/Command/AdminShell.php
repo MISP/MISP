@@ -1129,6 +1129,9 @@ class AdminShell extends AppShell
             $duration = isset($row['duration_ms']) ? sprintf(' (%s ms)', (int)$row['duration_ms']) : '';
             if ($success) {
                 $this->out('<info>' . __('applied') . '</info> ' . $migrationId . $duration);
+                foreach ($manager->notes($migrationId) as $note) {
+                    $this->out('  ' . $note);
+                }
                 continue;
             }
             if (isset($row['status']) && $row['status'] === MigrationManager::STATUS_DEFERRED) {
@@ -1220,6 +1223,14 @@ class AdminShell extends AppShell
                 $this->out();
                 $this->out('  <comment>' . __('Left out, because this database already has it:') . '</comment>');
                 foreach ($skipped as $note) {
+                    $this->out('  <comment>- ' . $note . '</comment>');
+                }
+            }
+            $notes = $manager->notes($each);
+            if (!empty($notes)) {
+                $this->out();
+                $this->out('  <comment>' . __('Notes on this database:') . '</comment>');
+                foreach ($notes as $note) {
                     $this->out('  <comment>- ' . $note . '</comment>');
                 }
             }

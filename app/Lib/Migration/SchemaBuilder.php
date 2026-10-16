@@ -139,6 +139,11 @@ class SchemaBuilder
      */
     private $operations = array();
 
+    /**
+     * @var array Lines for the administrator that no statement shows.
+     */
+    private $notes = array();
+
     public function __construct(AbstractGrammar $grammar)
     {
         $this->grammar = $grammar;
@@ -312,6 +317,28 @@ class SchemaBuilder
         }
         $this->operations = $kept;
         return $skipped;
+    }
+
+    /**
+     * Tell the administrator something the statements do not show, such as
+     * what a converging migration found and left as it was. The dry run
+     * prints it and an apply logs it.
+     *
+     * @param string $note
+     * @return $this
+     */
+    public function note($note)
+    {
+        $this->notes[] = $note;
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function notes()
+    {
+        return $this->notes;
     }
 
     /**

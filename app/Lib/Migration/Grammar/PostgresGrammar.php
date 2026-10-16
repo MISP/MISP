@@ -172,8 +172,25 @@ class PostgresGrammar extends AbstractGrammar
         return array_merge(array($rename), $this->alterColumn($table, $to, $type, $options));
     }
 
+    /**
+     * An index declared with its own PostgreSQL statement renders that
+     * statement, after the extension it needs.
+     */
     protected function addIndexParts($table, $columns, array $options)
     {
+        $pgsql = isset($options['pgsql']) ? $options['pgsql'] : array();
+        $parts = array();
+        if (!empty($pgsql['extension'])) {
+            $parts[] = $this->statement(sprintf('CREATE EXTENSION IF NOT EXISTS %s;', $pgsql['extension']));
+        }
+        if (!empty($pgsql['sql'])) {
+            $parts[] = $this->statement(sprintf(
+                $pgsql['sql'],
+                $this->name($this->indexName($table, $columns, $options)),
+                $this->name($table)
+            ));
+            return $parts;
+        }
         if (!empty($options['fulltext'])) {
             throw new InvalidArgumentException(sprintf(
                 'FULLTEXT has no PostgreSQL equivalent (index on %s.%s). Declare it with rawSql(), giving a MySQL FULLTEXT index and a PostgreSQL GIN index over to_tsvector().',
@@ -190,18 +207,19 @@ class PostgresGrammar extends AbstractGrammar
             ));
         }
 
-        $parts = array();
+        $quoted = array();
         foreach ($this->columnList($columns) as $column) {
-            $parts[] = $this->name($column);
+            $quoted[] = $this->name($column);
         }
 
-        return array($this->statement(sprintf(
+        $parts[] = $this->statement(sprintf(
             'CREATE %sINDEX %s ON %s (%s);',
             empty($options['unique']) ? '' : 'UNIQUE ',
             $this->name($this->indexName($table, $columns, $options)),
             $this->name($table),
-            implode(', ', $parts)
-        )));
+            implode(', ', $quoted)
+        ));
+        return $parts;
     }
 
     protected function dropIndexParts($table, $columnsOrName)
@@ -227,10 +245,13 @@ class PostgresGrammar extends AbstractGrammar
      *
      * An explicit name is honoured but still prefixed, unless the caller already
      * prefixed it - so dropIndex() finds what addIndex() created whichever form
-     * the migration used.
+     * the migration used. A PostgreSQL name of the index's own is taken as it is.
      */
     public function indexName($table, $columns, array $options = array())
     {
+        if (!empty($options['pgsql']['name'])) {
+            return $options['pgsql']['name'];
+        }
         $name = !empty($options['name'])
             ? $options['name']
             : implode('_', $this->columnList($columns));
@@ -309,7 +330,9 @@ class PostgresGrammar extends AbstractGrammar
      *
      * Nullability and default are only touched when the caller actually said
      * something about them - restating a type should not silently drop a default
-     * the column already had.
+     * the column already had. A new default comes with a DROP DEFAULT, which
+     * PostgreSQL runs before the type change whatever the clause order: an old
+     * default the new type cannot take would otherwise fail the statement.
      *
      * @param string $table
      * @param string $column
@@ -326,13 +349,17 @@ class PostgresGrammar extends AbstractGrammar
         $renderedType = $this->renderType($spec);
         $quotedColumn = $this->name($column);
 
-        $parts = array($this->clause(sprintf(
+        $parts = array();
+        if (array_key_exists('default', $options)) {
+            $parts[] = $this->clause(sprintf('ALTER COLUMN %s DROP DEFAULT', $quotedColumn));
+        }
+        $parts[] = $this->clause(sprintf(
             'ALTER COLUMN %s TYPE %s USING %s::%s',
             $quotedColumn,
             $renderedType,
             $quotedColumn,
             $renderedType
-        )));
+        ));
 
         if (array_key_exists('null', $options)) {
             $parts[] = $this->clause(sprintf(
@@ -341,14 +368,12 @@ class PostgresGrammar extends AbstractGrammar
                 $options['null'] ? 'DROP' : 'SET'
             ));
         }
-        if (array_key_exists('default', $options)) {
-            $parts[] = $this->clause($options['default'] === null
-                ? sprintf('ALTER COLUMN %s DROP DEFAULT', $quotedColumn)
-                : sprintf(
-                    'ALTER COLUMN %s SET DEFAULT %s',
-                    $quotedColumn,
-                    $this->value($options['default'], $type)
-                ));
+        if (array_key_exists('default', $options) && $options['default'] !== null) {
+            $parts[] = $this->clause(sprintf(
+                'ALTER COLUMN %s SET DEFAULT %s',
+                $quotedColumn,
+                $this->value($options['default'], $type)
+            ));
         }
         return $parts;
     }

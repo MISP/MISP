@@ -389,6 +389,7 @@ class MigrationGrammarTest extends TestCase
         $this->assertSame(
             array(
                 "ALTER TABLE \"galaxies\"\n" .
+                "    ALTER COLUMN \"distribution\" DROP DEFAULT,\n" .
                 "    ALTER COLUMN \"distribution\" TYPE smallint USING \"distribution\"::smallint,\n" .
                 "    ALTER COLUMN \"distribution\" SET NOT NULL,\n" .
                 "    ALTER COLUMN \"distribution\" SET DEFAULT 0;",
@@ -403,9 +404,9 @@ class MigrationGrammarTest extends TestCase
         $this->assertSame(
             array(
                 "ALTER TABLE \"galaxies\"\n" .
+                "    ALTER COLUMN \"x\" DROP DEFAULT,\n" .
                 "    ALTER COLUMN \"x\" TYPE varchar(255) USING \"x\"::varchar(255),\n" .
-                "    ALTER COLUMN \"x\" DROP NOT NULL,\n" .
-                "    ALTER COLUMN \"x\" DROP DEFAULT;",
+                "    ALTER COLUMN \"x\" DROP NOT NULL;",
             ),
             $this->pgsql->changeColumn('galaxies', 'x', 'string', $options)
         );
@@ -468,9 +469,9 @@ class MigrationGrammarTest extends TestCase
             array(
                 'ALTER TABLE "servers" RENAME COLUMN "old_name" TO "new_name";',
                 "ALTER TABLE \"servers\"\n" .
+                "    ALTER COLUMN \"new_name\" DROP DEFAULT,\n" .
                 "    ALTER COLUMN \"new_name\" TYPE varchar(255) USING \"new_name\"::varchar(255),\n" .
-                "    ALTER COLUMN \"new_name\" SET NOT NULL,\n" .
-                "    ALTER COLUMN \"new_name\" DROP DEFAULT;",
+                "    ALTER COLUMN \"new_name\" SET NOT NULL;",
             ),
             $this->pgsql->renameColumn('servers', 'old_name', 'new_name', 'string', $options)
         );
@@ -597,8 +598,65 @@ class MigrationGrammarTest extends TestCase
 
         $this->assertSame('idx_event_templates_exposed', $this->pgsql->indexName('event_templates', 'exposed'));
         $this->assertSame('idx_t_a_b', $this->pgsql->indexName('t', array('a', 'b')));
-        $this->assertSame('idx_t_custom', $this->pgsql->indexName('t', 'a', array('name' => 'custom')));
         $this->assertSame('idx_t_custom', $this->pgsql->indexName('t', 'a', array('name' => 'idx_t_custom')));
+        $this->assertSame('pg_own', $this->pgsql->indexName('t', 'a', array('name' => 'custom', 'pgsql' => array('name' => 'pg_own'))));
+        $this->assertSame('custom', $this->mysql->indexName('t', 'a', array('name' => 'custom', 'pgsql' => array('name' => 'pg_own'))));
+    }
+
+    /**
+     * The index vocabulary of a schema target: an index PostgreSQL has alone,
+     * and one it spells with a statement of its own, after its extension.
+     */
+    public function testAnIndexTheEnginesSpellDifferently()
+    {
+        $only = array('name' => 'idx_tags_name_lower', 'mysql' => false, 'pgsql' => array(
+            'sql' => 'CREATE UNIQUE INDEX %1$s ON %2$s (lower("name"));',
+        ));
+        $this->assertSame(array(), $this->mysql->addIndex('tags', 'idx_tags_name_lower', $only));
+        $this->assertSame(
+            array('CREATE UNIQUE INDEX "idx_tags_name_lower" ON "tags" (lower("name"));'),
+            $this->pgsql->addIndex('tags', 'idx_tags_name_lower', $only)
+        );
+
+        $own = array('name' => 'value_search', 'fulltext' => true, 'pgsql' => array(
+            'name' => 'idx_attribute_values_value_search',
+            'sql' => 'CREATE INDEX %1$s ON %2$s USING gin ("value" gin_trgm_ops);',
+            'extension' => 'pg_trgm',
+        ));
+        $this->assertSame(
+            array('ALTER TABLE `attribute_values` ADD FULLTEXT INDEX `value_search` (`value`);'),
+            $this->mysql->addIndex('attribute_values', 'value', $own)
+        );
+        $this->assertSame(
+            array(
+                'CREATE EXTENSION IF NOT EXISTS pg_trgm;',
+                'CREATE INDEX "idx_attribute_values_value_search" ON "attribute_values" USING gin ("value" gin_trgm_ops);',
+            ),
+            $this->pgsql->addIndex('attribute_values', 'value', $own)
+        );
+        $this->assertSame(
+            array('DROP INDEX "idx_attribute_values_value_search";'),
+            $this->pgsql->dropIndex('attribute_values', 'idx_attribute_values_value_search')
+        );
+
+        $named = array('name' => 'info', 'pgsql' => array('name' => 'idx_events_info_btree'));
+        $this->assertSame(
+            array('CREATE INDEX "idx_events_info_btree" ON "events" ("info");'),
+            $this->pgsql->addIndex('events', 'info', $named)
+        );
+
+        $columns = array('id' => array('type' => 'primary_key'), 'name' => array('type' => 'string', 'length' => 255));
+        $indexes = array('indexes' => array('idx_tags_name_lower' => $only, 'name' => array('unique' => true)));
+        $mysql = $this->mysql->createTable('tags', $columns, $indexes);
+        $this->assertStringNotContainsString('lower', $mysql[0]);
+        $this->assertStringContainsString('UNIQUE INDEX `name` (`name`)', $mysql[0]);
+        $this->assertSame(
+            array(
+                'CREATE UNIQUE INDEX "idx_tags_name_lower" ON "tags" (lower("name"));',
+                'CREATE UNIQUE INDEX "idx_tags_name" ON "tags" ("name");',
+            ),
+            array_slice($this->pgsql->createTable('tags', $columns, $indexes), 1)
+        );
     }
 
     public function testFulltextRendersOnMysqlAndIsRejectedOnPostgres()
@@ -641,14 +699,14 @@ class MigrationGrammarTest extends TestCase
         $this->assertSame(
             array(
                 "ALTER TABLE \"t\"\n" .
+                "    ALTER COLUMN \"a\" DROP DEFAULT,\n" .
                 "    ALTER COLUMN \"a\" TYPE bigint USING \"a\"::bigint,\n" .
-                "    ALTER COLUMN \"a\" DROP NOT NULL,\n" .
-                "    ALTER COLUMN \"a\" DROP DEFAULT;",
+                "    ALTER COLUMN \"a\" DROP NOT NULL;",
                 'ALTER TABLE "t" RENAME COLUMN "b" TO "b2";',
                 "ALTER TABLE \"t\"\n" .
+                "    ALTER COLUMN \"b2\" DROP DEFAULT,\n" .
                 "    ALTER COLUMN \"b2\" TYPE integer USING \"b2\"::integer,\n" .
                 "    ALTER COLUMN \"b2\" DROP NOT NULL,\n" .
-                "    ALTER COLUMN \"b2\" DROP DEFAULT,\n" .
                 "    DROP CONSTRAINT \"t_pkey\";",
             ),
             $this->pgsql->alterTable('t', $operations)
@@ -796,7 +854,7 @@ class MigrationGrammarTest extends TestCase
             $this->pgsql->addColumn('t', 'c', 'string', $options)
         );
         $this->assertSame(
-            array("ALTER TABLE \"t\"\n    ALTER COLUMN \"c\" TYPE varchar(40) USING \"c\"::varchar(40),\n    ALTER COLUMN \"c\" SET NOT NULL,\n    ALTER COLUMN \"c\" DROP DEFAULT;"),
+            array("ALTER TABLE \"t\"\n    ALTER COLUMN \"c\" DROP DEFAULT,\n    ALTER COLUMN \"c\" TYPE varchar(40) USING \"c\"::varchar(40),\n    ALTER COLUMN \"c\" SET NOT NULL;"),
             $this->pgsql->changeColumn('t', 'c', 'string', $options)
         );
         $this->assertSame(array(), $this->pgsql->takeDroppedHints());
@@ -1113,6 +1171,7 @@ class MigrationGrammarTest extends TestCase
         $this->assertStringContainsString(
             "    ALTER COLUMN \"id\" TYPE bigint USING \"id\"::bigint,\n" .
             "    ALTER COLUMN \"id\" SET NOT NULL,\n" .
+            "    ALTER COLUMN \"user_id\" DROP DEFAULT,\n" .
             "    ALTER COLUMN \"user_id\" TYPE bigint",
             $pgsql[0]
         );

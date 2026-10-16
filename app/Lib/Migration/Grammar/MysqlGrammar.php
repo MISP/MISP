@@ -62,7 +62,9 @@ class MysqlGrammar extends AbstractGrammar
         $indexes = isset($options['indexes']) ? $options['indexes'] : array();
         foreach ($indexes as $key => $indexOptions) {
             list($indexColumns, $indexOptions) = $this->normaliseIndexDeclaration($key, $indexOptions);
-            $lines[] = '    ' . $this->indexClause($table, $indexColumns, $indexOptions);
+            if (!self::isPostgresOnly($indexOptions)) {
+                $lines[] = '    ' . $this->indexClause($table, $indexColumns, $indexOptions);
+            }
         }
 
         $options = $this->resolveRowFormat($this->resolveCollation($options));
@@ -132,6 +134,9 @@ class MysqlGrammar extends AbstractGrammar
 
     protected function addIndexParts($table, $columns, array $options)
     {
+        if (self::isPostgresOnly($options)) {
+            return array();
+        }
         return array($this->clause('ADD ' . $this->indexClause($table, $columns, $options)));
     }
 
