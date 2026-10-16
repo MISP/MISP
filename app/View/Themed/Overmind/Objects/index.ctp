@@ -310,7 +310,6 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'filter_bar' => [
                 'pull' => 'right',
                 'children' => $children,
-                'apply' => 'draft',
                 'transport' => 'query',
                 'hide_view_toggle' => true,
                 'chips' => [
