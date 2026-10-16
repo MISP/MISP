@@ -1233,15 +1233,13 @@ $lanes = array(
         'key' => 'edits',
         'label' => __('Edits'),
         /*
-         * Which of the lane's two shapes it is in. `latest per
-         * occurrence` is the fallback's description — one point from
-         * `attributes.timestamp` — and it was printed over the audit
-         * branch too, where the lane draws one mark per logged change
-         * and the phrase is simply false.
+         * Which of the lane's two shapes it is in: the fallback draws
+         * each occurrence's `created` and `timestamp`, the audit branch
+         * one mark per logged change.
          */
         'sub' => $auditRecorded
             ? __('every logged change')
-            : __('latest per occurrence'),
+            : __('added & latest edit per occurrence'),
         'sources' => array('edit'),
         'draw' => 'marks',
         /*
@@ -1250,8 +1248,8 @@ $lanes = array(
          * behind it names the setting that would fill in the rest.
          */
         'hatch' => $auditRecorded ? null : __(
-            'Nothing before each occurrence\'s latest edit is recorded'
-            . ' — MISP.log_new_audit is off.'
+            'Only when each occurrence was added and last edited is'
+            . ' recorded — MISP.log_new_audit is off.'
         ),
     ),
     /*
@@ -1948,9 +1946,10 @@ $timelineBase = $baseurl . '/values/viewTimeline/' . $valueB64;
                      * in a position to be precise about.
                      *
                      * One sentence in two prepositions, and they are the
-                     * whole point: *since* is a date the audit log
-                     * holds, *by* is a bound the records support. The
-                     * clause after it says which row it came from, so
+                     * whole point: *since* is a date a creation time or
+                     * the audit log holds, *by* is a bound the records
+                     * support. The clause after it says which row it
+                     * came from, so
                      * the distinction is never left to the preposition
                      * alone.
                      *
@@ -1960,18 +1959,20 @@ $timelineBase = $baseurl . '/values/viewTimeline/' . $valueB64;
                      * than anything about this instance.
                      */
                     $firstDay = substr($firstHere['at'], 0, 10);
-                    if ($firstHere['exact']) {
+                    if ($firstHere['from'] === 'created') {
+                        $firstWhy = __('When this instance created the'
+                            . ' oldest of these occurrences.');
+                    } elseif ($firstHere['exact']) {
                         $firstWhy = __('The oldest creation the audit'
                             . ' log holds for these records.');
                     } elseif ($firstHere['from'] === 'timestamp') {
                         $firstWhy = __('From an occurrence\'s'
-                            . ' last-modified stamp — MISP records no'
-                            . ' creation date for an attribute, so it'
-                            . ' may be older.');
+                            . ' last-modified stamp — it predates MISP'
+                            . ' recording creation times, so it may be'
+                            . ' older.');
                     } else {
-                        $firstWhy = __('The oldest dated thing here.'
-                            . ' MISP records no creation date for an'
-                            . ' attribute, so it may be older.');
+                        $firstWhy = __('The oldest dated thing here,'
+                            . ' so it may be older.');
                     }
                     ?>
                     <div class="vp-tl-firsthere">

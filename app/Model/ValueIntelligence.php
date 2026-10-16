@@ -8846,12 +8846,12 @@ class ValueIntelligence extends AppModel
      * The edit lane, and which of its two shapes it takes.
      *
      * With `MISP.log_new_audit` on, one row per logged change over the
-     * value's own occurrences, objects and events. With it off, one point per
-     * occurrence from `attributes.timestamp`, which says *when* an
-     * occurrence last changed and never *what* or *how many times*: the
-     * title names the occurrence and stops, because an edit row claiming
-     * a field and a value would be inventing the record this tab exists
-     * to be honest about.
+     * value's own occurrences, objects and events. With it off, each
+     * occurrence's `attributes.created` and `attributes.timestamp`, which
+     * say *when* it was added and last changed and never *what* or *how
+     * many times*: the title names the occurrence and stops, because an
+     * edit row claiming a field and a value would be inventing the record
+     * this tab exists to be honest about.
      *
      * **Both branches ship and both are verified.** The hatched one is
      * what a default MISP shows, so it is the more common state in the
@@ -8870,6 +8870,37 @@ class ValueIntelligence extends AppModel
                 $event = isset($context['events'][$occurrence['event_id']])
                     ? $context['events'][$occurrence['event_id']]
                     : null;
+                $entry = array(
+                    'org' => $event === null ? null : $event['org'],
+                    'ref' => array(
+                        'kind' => 'attribute',
+                        'attribute' => (int)$id,
+                        'event' => (int)$occurrence['event_id'],
+                    ),
+                    'span_to' => null,
+                );
+                $created = (int)($occurrence['created'] ?? 0);
+                if ($created > 0) {
+                    $entries[] = array(
+                        'at' => gmdate('Y-m-d H:i:s', $created),
+                        'source' => 'edit',
+                        'precision' => 'exact',
+                        'title' => sprintf(
+                            __('attribute %1$s in event %2$s — added'),
+                            $id,
+                            $occurrence['event_id']
+                        ),
+                        'note' => __(
+                            'attributes.created. When this instance'
+                            . ' created the attribute.'
+                        ),
+                    ) + $entry;
+                }
+                // A pulled row keeps the origin's older timestamp, which
+                // is no edit made here.
+                if ($created > 0 && $occurrence['timestamp'] <= $created) {
+                    continue;
+                }
                 $entries[] = array(
                     'at' => gmdate('Y-m-d H:i:s', $occurrence['timestamp']),
                     'source' => 'edit',
@@ -8883,14 +8914,7 @@ class ValueIntelligence extends AppModel
                         'attributes.timestamp. What changed, and every'
                         . ' earlier edit, is not recorded.'
                     ),
-                    'org' => $event === null ? null : $event['org'],
-                    'ref' => array(
-                        'kind' => 'attribute',
-                        'attribute' => (int)$id,
-                        'event' => (int)$occurrence['event_id'],
-                    ),
-                    'span_to' => null,
-                );
+                ) + $entry;
             }
             return $this->timelineLane(
                 $entries,
@@ -9210,23 +9234,24 @@ class ValueIntelligence extends AppModel
      * When this value was first recorded on this instance — and
      * whether that is a date or only a bound.
      *
-     * **MISP stores no creation date for an attribute.** `timestamp` is
-     * the last modification, `first_seen` is an analyst's claim about
-     * when the threat was seen in the wild — a different fact, which
-     * this tab already draws in a lane of its own — and an event's
-     * `date` is the intel's date rather than the record's. So the
-     * honest answer comes in two shapes and says which it is:
+     * `first_seen` is an analyst's claim about when the threat was seen
+     * in the wild — a different fact, which this tab already draws in a
+     * lane of its own — and an event's `date` is the intel's date
+     * rather than the record's. So the honest answer comes in two
+     * shapes and says which it is:
      *
-     * - An `add` row in `audit_logs` over these occurrences, objects or
-     *   events dates the creation exactly. It is usable only where it
-     *   is no later than every other trace of the value: the audit log
-     *   has a start, and a record created before it began leaves the
-     *   oldest `add` row describing some *later* arrival.
+     * - An occurrence's `created`, or an `add` row in `audit_logs` over
+     *   these occurrences, objects or events, dates an arrival exactly.
+     *   Either is usable only where it is no later than every other
+     *   trace of the value: rows from before MISP 3.0 carry no
+     *   `created`, and the audit log has a start.
      * - Otherwise the oldest trace of any kind is a bound — the value
      *   was here by then. That is every dated entry the tab found *that
-     *   the instance itself left*, and every occurrence's last-modified
-     *   stamp, which is the older of the two on a record nobody has
-     *   touched since.
+     *   the instance itself left*, and the last-modified stamp of every
+     *   occurrence with no `created`.
+     *
+     * `created` and not `Value::recordedAt()`: a pulled occurrence's
+     * `timestamp` is the origin's, older than its arrival here.
      *
      * **A claim is not a trace**, and the second bullet is where that
      * distinction has to be enforced rather than merely stated. The
@@ -9261,26 +9286,38 @@ class ValueIntelligence extends AppModel
             : null;
         $from = $bound === null ? null : 'record';
         foreach ($context['occurrences'] as $occurrence) {
-            if (empty($occurrence['timestamp'])) {
+            $created = (int)($occurrence['created'] ?? 0);
+            $stamp = $created > 0
+                ? $created
+                : (int)($occurrence['timestamp'] ?? 0);
+            if ($stamp <= 0) {
                 continue;
             }
-            $at = gmdate('Y-m-d H:i:s', (int)$occurrence['timestamp']);
-            if ($bound === null || $at < $bound) {
+            $at = gmdate('Y-m-d H:i:s', $stamp);
+            if ($bound === null || $at < $bound
+                || ($at === $bound && $created > 0)
+            ) {
                 $bound = $at;
-                $from = 'timestamp';
+                $from = $created > 0 ? 'created' : 'timestamp';
             }
         }
         if ($bound === null) {
             return null;
         }
-        if ($firstAdd !== null && $firstAdd <= $bound) {
+        if ($firstAdd !== null && ($firstAdd < $bound
+            || ($firstAdd === $bound && $from !== 'created'))
+        ) {
             return array(
                 'at' => $firstAdd,
                 'exact' => true,
                 'from' => 'audit',
             );
         }
-        return array('at' => $bound, 'exact' => false, 'from' => $from);
+        return array(
+            'at' => $bound,
+            'exact' => $from === 'created',
+            'from' => $from,
+        );
     }
 
     /**
@@ -11233,10 +11270,19 @@ class ValueIntelligence extends AppModel
             return $shell;
         }
         $edited = null;
+        $added = null;
+        $withCreated = 0;
         foreach ($context['occurrences'] as $occurrence) {
             $stamp = (int)$occurrence['timestamp'];
             if ($stamp > 0 && ($edited === null || $stamp > $edited)) {
                 $edited = $stamp;
+            }
+            $created = (int)($occurrence['created'] ?? 0);
+            if ($created > 0) {
+                $withCreated++;
+                if ($added === null || $created < $added) {
+                    $added = $created;
+                }
             }
         }
         $publications = array();
@@ -11254,6 +11300,8 @@ class ValueIntelligence extends AppModel
         $shell['knowable'] = array(
             'occurrences' => count($context['occurrences']),
             'edited' => $edited,
+            'added' => $added,
+            'with_created' => $withCreated,
             'publications' => $publications,
             'sightings' => count($sightings['sightings']),
         );

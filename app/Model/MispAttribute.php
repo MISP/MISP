@@ -535,6 +535,12 @@ class MispAttribute extends AppModel
 
     public $fast_update = false;
 
+    /**
+     * @var int|null The `created` the next insert keeps instead of now, for a
+     *     row that replaces another; a property so no request can set it.
+     */
+    public $carryCreated = null;
+
     // The paginator sorts only by fields and virtual fields; beforeFind sorts by the value
     public function hasField($name, $checkVirtual = false)
     {
@@ -715,20 +721,23 @@ class MispAttribute extends AppModel
         if (empty($attribute['uuid'])) {
             $attribute['uuid'] = CakeText::uuid();
         }
-        // Cake fills `created` on insert but keeps a sent value, on edits too.
-        if (empty($attribute['id']) && empty($this->id)) {
-            $attribute['created'] = time();
-        } else {
-            unset($attribute['created']);
-        }
+        $insert = empty($attribute['id']) && empty($this->id);
         if (!$this->fast_update && !empty($attribute['id'])) {
             $this->old = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Attribute.id' => $attribute['id']),
                 'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id'],
             ));
+            // An id with no row behind it is an insert, as a log recovery does.
+            $insert = empty($this->old);
         } else {
             $this->old = null;
+        }
+        // Cake fills `created` on insert but keeps a sent value, on edits too.
+        if ($insert) {
+            $attribute['created'] = $this->carryCreated ?? time();
+        } else {
+            unset($attribute['created']);
         }
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
@@ -1534,7 +1543,7 @@ class MispAttribute extends AppModel
     $selectiveFields = [
         'value', 'value1', 'value2', 'type',
         'category', 'object_relation', 'uuid',
-        'timestamp', 'attribute_timestamp',
+        'timestamp', 'attribute_timestamp', 'attribute_created',
         'first_seen', 'last_seen', 'to_ids',
     ];
     foreach ($selectiveFields as $f) {
@@ -3933,6 +3942,7 @@ class MispAttribute extends AppModel
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'attribute_created' => array('function' => 'set_filter_timestamp'),
                     'first_seen' => array('function' => 'set_filter_seen'),
                     'last_seen' => array('function' => 'set_filter_seen'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),

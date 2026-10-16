@@ -34,7 +34,10 @@ class NidsSuricataExport extends NidsExport
             $ruleMeta = $this->convertTagsToMeta($tagsArray);
             $ruleMeta[] = 'misp_event_uuid ' . $item['Event']['uuid'];
             $ruleMeta[] = 'misp_ioc ' . str_replace(' ', '_', $item['Attribute']['value']);
-            $ruleMeta[] = 'created_at ' . date('Y_m_d', $item['Attribute']['timestamp']);
+            // A pulled attribute's own creation is its arrival, after the origin's timestamp.
+            $created = (int)($item['Attribute']['created'] ?? 0);
+            $timestamp = (int)$item['Attribute']['timestamp'];
+            $ruleMeta[] = 'created_at ' . date('Y_m_d', $created > 0 && $created < $timestamp ? $created : $timestamp);
             $ruleMeta[] = 'updated_at ' . date('Y_m_d', time());
             $ruleMeta = implode(',', $ruleMeta);
             $ruleMeta = str_replace('%', '%%', $ruleMeta); // escape % for sprintf

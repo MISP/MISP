@@ -2195,7 +2195,15 @@ class MispObject extends AppModel
                 if (!empty($sightings)) {
                     $created_attribute['Sighting'] = $sightings;
                 }
-                $saved_attribute = $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object_id);
+                // The copy is the same record, so it keeps the original's creation time.
+                $this->Attribute->carryCreated = isset($existing_attribute['Attribute']['created'])
+                    ? (int)$existing_attribute['Attribute']['created']
+                    : null;
+                try {
+                    $saved_attribute = $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object_id);
+                } finally {
+                    $this->Attribute->carryCreated = null;
+                }
                 if (!empty($saved_attribute)) {
                     $new_id = $this->Attribute->id;
                     $this->loadAttachmentTool()->changeID($saved_attribute['event_id'], $original_id, $new_id);
