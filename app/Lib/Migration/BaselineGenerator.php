@@ -128,7 +128,7 @@ class BaselineGenerator
 
     /**
      * Tables whose FULLTEXT index is built without stopwords
-     * (20261010_172929_value_search_without_stopwords). InnoDB takes the
+     * (20261003_092429_create_attribute_values). InnoDB takes the
      * session's stopword setting when it builds the index, so the MySQL
      * rendering turns it off around the CREATE TABLE.
      */
