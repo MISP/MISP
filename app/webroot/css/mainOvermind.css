@@ -1640,6 +1640,44 @@ tr.evt-extension-row td:first-child { position: relative; }
     fill: var(--misp-graph-label, #26313d);
 }
 
+/* Period brush: misp-timeline.css's strip, in the graph's colours */
+.sankey-overview {
+    --misp-timeline-overview: var(--misp-graph-node-target, #8fbfe8);
+}
+
+.sankey-overview-key {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    margin-left: auto;
+}
+
+.sankey-overview-star {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--misp-graph-current, #6fbe80);
+    color: var(--misp-graph-current-on, #fff);
+    font: 700 9px/12px sans-serif;
+    text-align: center;
+}
+
+.sankey-overview-current {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-left: 2px solid var(--misp-graph-current, #6fbe80);
+    pointer-events: none;
+}
+
+/* centred on the 2px line, which sits outside the padding box */
+.sankey-overview-current > .sankey-overview-star {
+    position: absolute;
+    top: -1px;
+    left: -7px;
+}
+
 /* Overmind emits no --misp-* tokens, so its dark mode supplies them here */
 [data-misp-theme="overmind"][data-misp-mode="dark"] .corr-graph {
     --misp-surface: var(--bs-body-bg);
@@ -1712,6 +1750,63 @@ tr.evt-extension-row td:first-child { position: relative; }
 /* the filters drawer's IOC and event lists scroll on their own */
 .sankey-filter-list {
     max-height: 16rem;
+}
+
+/* Type and object toggles: a ticked option is tinted, an unticked one struck out */
+.sankey-facet-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    max-width: 100%;
+    padding: .1rem .3rem .1rem .55rem;
+    border: 1px solid color-mix(in srgb, var(--bs-correlation) 40%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bs-correlation) 12%, transparent);
+    color: var(--bs-body-color);
+    font-size: .75rem;
+    line-height: 1.4;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.sankey-facet-chip:hover {
+    background: color-mix(in srgb, var(--bs-correlation) 20%, transparent);
+}
+
+.sankey-facet-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sankey-facet-count {
+    padding: 0 .4rem;
+    border-radius: 999px;
+    background: var(--bs-body-bg);
+    color: var(--bs-secondary-color);
+    font-size: .68rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.btn-check:not(:checked) + .sankey-facet-chip {
+    border-style: dashed;
+    border-color: var(--bs-border-color);
+    background: transparent;
+    color: var(--bs-secondary-color);
+}
+
+.btn-check:not(:checked) + .sankey-facet-chip .sankey-facet-name {
+    text-decoration: line-through;
+}
+
+.btn-check:not(:checked) + .sankey-facet-chip .sankey-facet-count {
+    background: var(--bs-secondary-bg);
+}
+
+.btn-check:focus-visible + .sankey-facet-chip {
+    outline: 2px solid var(--bs-correlation);
+    outline-offset: 1px;
 }
 
 /* ═══════════════════════════════════════════════════════════

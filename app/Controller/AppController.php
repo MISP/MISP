@@ -338,31 +338,22 @@ class AppController extends Controller
         $currentTheme = 'Default';
         $this->set('theme', $currentTheme);
         if (!$this->_isRest()) {
+            // MISP.enable_themes only unlocks choosing another theme.
+            $currentTheme = null;
             if ($themesEnabled) {
                 if ($this->Auth->user()) {
-                    $currentTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id')) ?? null;
-
-                    if ($currentTheme) {
-                        $this->theme = $currentTheme;
-                        $this->viewClass = 'Theme';
-                    } else {
-                        $currentTheme = Configure::read('MISP.default_theme');
-                        if ($currentTheme) {
-                            $this->theme = $currentTheme;
-                            $this->viewClass = 'Theme';
-                        }
-                    }
-                } else {
-                    $currentTheme = Configure::read('MISP.default_theme');
-                    if ($currentTheme) {
-                        $this->theme = $currentTheme;
-                        $this->viewClass = 'Theme';
-                    }
+                    $currentTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id'));
                 }
-                $this->set('theme', $currentTheme);
-                if ($currentTheme === 'Overmind') {
-                    $this->set('bootstrapTheme', MispTheme::bootstrapTheme($this->Auth->user()));
-                }
+                $currentTheme = $currentTheme ?: Configure::read('MISP.default_theme');
+            }
+            $currentTheme = $currentTheme ?: MispTheme::DEFAULT_THEME;
+            $this->theme = $currentTheme;
+            $this->viewClass = 'Theme';
+            $this->set('theme', $currentTheme);
+            if ($currentTheme === 'Overmind') {
+                $this->set('bootstrapTheme', MispTheme::bootstrapTheme($this->Auth->user()));
+            }
+            if ($themesEnabled) {
                 $availableThemes = MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug'));
                 $this->set('themes', $availableThemes);
 

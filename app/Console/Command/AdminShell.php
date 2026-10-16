@@ -3,6 +3,7 @@ App::uses('AppShell', 'Console/Command');
 App::uses('ProcessTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('ValueDictionaryStatsTool', 'Tools/ValueIntelligence');
 App::uses('AbstractMigration', 'Migration');
 App::uses('MigrationManager', 'Migration');
 App::uses('AbstractGrammar', 'Migration/Grammar');
@@ -128,6 +129,21 @@ class AdminShell extends AppShell
         ]);
         $parser->addSubcommand('removeOrphanedCorrelations', [
             'help' => __('Remove orphaned correlations.'),
+        ]);
+        $parser->addSubcommand('valueDictionaryStats', [
+            'help' => __('Count the attribute value dictionary for the values index. Counts only what was added since the last run, and everything once a week. The values index queues it once a day when background workers run; without them, run it daily from cron.'),
+            'parser' => [
+                'arguments' => [
+                    'jobId' => ['help' => __('Job ID'), 'required' => false],
+                ],
+                'options' => [
+                    'full' => [
+                        'help' => __('Recount every value instead of only the new ones.'),
+                        'default' => false,
+                        'boolean' => true,
+                    ],
+                ],
+            ],
         ]);
         $parser->addSubcommand('optimiseTables', [
             'help' => __('Optimise database tables.'),
@@ -1950,6 +1966,25 @@ class AdminShell extends AppShell
     {
         $count = $this->Server->removeOrphanedCorrelations();
         $this->out(__('%s orphaned correlation removed', $count));
+    }
+
+    public function valueDictionaryStats()
+    {
+        $jobId = $this->args[0] ?? null;
+        $tool = new ValueDictionaryStatsTool($this->MispAttribute);
+        try {
+            $state = $tool->snapshot(!empty($this->params['full']));
+        } catch (Exception $e) {
+            if ($jobId) {
+                $this->Job->saveStatus($jobId, false, $e->getMessage());
+            }
+            throw $e;
+        }
+        $message = __('%s distinct values counted.', number_format($state['total']));
+        if ($jobId) {
+            $this->Job->saveStatus($jobId, true, $message);
+        }
+        $this->out($message);
     }
 
     public function optimiseTables()

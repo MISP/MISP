@@ -1094,7 +1094,6 @@ class ACLComponent extends Component
             'triage' => array('theming_enabled'),
             'assess' => array('theming_enabled'),
             'matches' => array('theming_enabled'),
-            // JSON for any role; the page checks MISP.enable_themes
             'view' => array('*'),
             'viewOccurrences' => array('theming_enabled'),
             'viewReporting' => array('theming_enabled'),
@@ -1280,8 +1279,9 @@ class ACLComponent extends Component
         $this->dynamicChecks['not_read_only_authkey'] = function (array $user) {
             return !isset($user['authkey_read_only']) || !$user['authkey_read_only'];
         };
+        // Overmind is always available, whatever MISP.enable_themes says.
         $this->dynamicChecks['theming_enabled'] = function (array $user) {
-            return (bool)Configure::read('MISP.enable_themes');
+            return true;
         };
         // The ACL evaluator does not nest, so an OR-ed pair used inside an AND has to be a dynamic check
         $this->dynamicChecks['perm_decaying_or_admin'] = function (array $user) {

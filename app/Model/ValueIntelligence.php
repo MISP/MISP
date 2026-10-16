@@ -13,6 +13,7 @@ App::uses('ValueWarninglistTool', 'Tools/ValueIntelligence');
 App::uses('ValueTrustTool', 'Tools/ValueIntelligence');
 App::uses('ValueStatementTool', 'Tools/ValueIntelligence');
 App::uses('ValueEnrichmentTool', 'Tools/ValueIntelligence');
+App::uses('ValueDictionaryStatsTool', 'Tools/ValueIntelligence');
 App::uses('ValueTypeGuessTool', 'Tools/ValueIntelligence');
 App::uses('ValueRendererTool', 'Tools/ValueIntelligence');
 App::uses('ValueSignalLoader', 'Tools/ValueIntelligence');
@@ -1477,105 +1478,29 @@ class ValueIntelligence extends AppModel
     }
 
     /**
-     * Everything the tile row above the box draws.
+     * Everything the tile row above the box draws: the value dictionary's
+     * size and growth, the values too common to correlate, the enabled
+     * warninglists and this organisation's enrichment cache.
      *
-     * Five standing facts about the reader's own situation, read once
-     * on arrival: what weighs a record, where the bands sit, how many
-     * lists a value is checked against, how many modules the profile
-     * declares, and what the enrichment store already holds.
-     *
-     * **Four of the five cost nothing.** The Analyst Profile in force
-     * is resolved once per request and memoised — phase 7's strip has
-     * already asked for it by the time this runs — so the signal,
-     * exclusion, conflict-rule, threshold and module counts are reads
-     * of an array already in memory. The whole region is **two**
-     * statements: the enrichment store's `COUNT(*)` and the
-     * warninglist one.
-     *
-     * **What is not here, and why.** Nothing counts values or
-     * attributes. `Value::$useTable` is false because the subject of
-     * this feature is a string rather than a row, so an *instance
-     * holds N values* tile is a `GROUP BY value1` over 3.9M rows that
-     * no `LIMIT` bounds (§1.1). The cheap approximation is worse than
-     * nothing rather than merely imprecise: `tableRows()` answered
-     * 3,034,901 against a measured 3,915,429 on the development
-     * instance — 23% low — and the honest `COUNT(*)` took 285 ms,
-     * which is the whole page's budget spent on a figure nobody asked
-     * for. Nothing here reports activity either: what an organisation
-     * recently enriched or sighted is what it is currently
-     * investigating, which is the disclosure D27 refuses.
-     *
-     * **Three of the tiles describe a profile, so they are null when
-     * none is in force.** A site admin can disable the default, and a
-     * *0 signals* tile beside a strip already saying assessments carry
-     * no signal strength is a second, worse way of saying the same thing. The
-     * template draws what it is given and omits what it is not — the
-     * page's rule that a block with nothing to say is absent rather
-     * than drawn empty.
+     * The dictionary figures come from a Redis snapshot plus a capped read
+     * of the rows added since (`ValueDictionaryStatsTool`), so no statement
+     * here grows with the instance. They are instance totals, the same
+     * kind `/users/statistics` shows every user, and name no value.
      *
      * @param array $user
-     * @return array{store: array, weighs: array|null, bands: array|null,
-     *               modules: int|null, warninglists: int}
+     * @return array{store: array, warninglists: int,
+     *               dictionary: array|null, dictionaryPending: bool,
+     *               overCorrelating: array|null}
      */
     public function forTiles(array $user)
     {
-        $profile = ClassRegistry::init('AnalystProfile')->resolveFor($user);
-        $parameters = (!empty($profile) && isset($profile['parameters'])
-            && is_array($profile['parameters']))
-            ? $profile['parameters']
-            : null;
-
-        $weighs = null;
-        $bands = null;
-        $modules = null;
-        if ($parameters !== null) {
-            $weighs = array(
-                'signals' => $this->tileCount($parameters, 'signals'),
-                'exclusions' => $this->tileCount($parameters, 'exclusions'),
-                'escalations' => $this->tileCount($parameters, 'escalations'),
-            );
-            $thresholds = isset($parameters['thresholds'])
-                && is_array($parameters['thresholds'])
-                ? $parameters['thresholds']
-                : array();
-            $declared = isset($thresholds['signal_strength_bands'])
-                && is_array($thresholds['signal_strength_bands'])
-                ? $thresholds['signal_strength_bands']
-                : array();
-            /*
-             * The fallbacks are `ValueVerdictTool::signalStrengthBand()`'s
-             * own, so a profile that declares no bands is described by
-             * the numbers the engine would actually use rather than by
-             * a blank.
-             */
-            $bands = array(
-                'high' => isset($declared['high'])
-                    ? (int)$declared['high']
-                    : 60,
-                'medium' => isset($declared['medium'])
-                    ? (int)$declared['medium']
-                    : 30,
-                'min_signals' => isset(
-                    $thresholds['signal_strength_high_min_signals']
-                )
-                    ? (int)$thresholds['signal_strength_high_min_signals']
-                    : 4,
-            );
-            $plan = ValueEnrichmentTool::planFor($profile);
-            $modules = count($plan['declared']);
-        }
-
+        $dictionary = (new ValueDictionaryStatsTool($this))->forPage();
         return array(
+            'dictionary' => $dictionary,
+            'dictionaryPending' => $dictionary === null
+                && (bool)Configure::read('MISP.background_jobs'),
+            'overCorrelating' => $this->forOverCorrelating($user),
             'store' => $this->forEnrichmentStore($user),
-            'weighs' => $weighs,
-            'bands' => $bands,
-            'modules' => $modules,
-            /*
-             * Instance policy rather than anybody's activity, and the
-             * set every value on this instance is checked against —
-             * which is what makes the warninglist chip on a profile
-             * mean something. One statement over 97 rows.
-             */
             'warninglists' => (int)$this->model('Warninglist')->find(
                 'count',
                 array(
@@ -1587,17 +1512,26 @@ class ValueIntelligence extends AppModel
     }
 
     /**
-     * How many entries a profile section declares.
+     * How many values MISP has stopped correlating for exceeding the
+     * correlation limit. Null when correlation is switched off.
      *
-     * @param array $parameters
-     * @param string $section
-     * @return int
+     * @param array $user
+     * @return array{count: int, limit: int, review: bool}|null
      */
-    private function tileCount(array $parameters, $section)
+    private function forOverCorrelating(array $user)
     {
-        return isset($parameters[$section]) && is_array($parameters[$section])
-            ? count($parameters[$section])
-            : 0;
+        if (Configure::read('MISP.completely_disable_correlation')) {
+            return null;
+        }
+        $overCorrelating = $this->model('OverCorrelatingValue');
+        return array(
+            'count' => (int)$overCorrelating->find(
+                'count',
+                array('recursive' => -1)
+            ),
+            'limit' => (int)$overCorrelating->getLimit(),
+            'review' => !empty($user['Role']['perm_site_admin']),
+        );
     }
 
     /**
@@ -8912,12 +8846,12 @@ class ValueIntelligence extends AppModel
      * The edit lane, and which of its two shapes it takes.
      *
      * With `MISP.log_new_audit` on, one row per logged change over the
-     * value's own occurrences, objects and events. With it off, one point per
-     * occurrence from `attributes.timestamp`, which says *when* an
-     * occurrence last changed and never *what* or *how many times*: the
-     * title names the occurrence and stops, because an edit row claiming
-     * a field and a value would be inventing the record this tab exists
-     * to be honest about.
+     * value's own occurrences, objects and events. With it off, each
+     * occurrence's `attributes.created` and `attributes.timestamp`, which
+     * say *when* it was added and last changed and never *what* or *how
+     * many times*: the title names the occurrence and stops, because an
+     * edit row claiming a field and a value would be inventing the record
+     * this tab exists to be honest about.
      *
      * **Both branches ship and both are verified.** The hatched one is
      * what a default MISP shows, so it is the more common state in the
@@ -8936,6 +8870,37 @@ class ValueIntelligence extends AppModel
                 $event = isset($context['events'][$occurrence['event_id']])
                     ? $context['events'][$occurrence['event_id']]
                     : null;
+                $entry = array(
+                    'org' => $event === null ? null : $event['org'],
+                    'ref' => array(
+                        'kind' => 'attribute',
+                        'attribute' => (int)$id,
+                        'event' => (int)$occurrence['event_id'],
+                    ),
+                    'span_to' => null,
+                );
+                $created = (int)($occurrence['created'] ?? 0);
+                if ($created > 0) {
+                    $entries[] = array(
+                        'at' => gmdate('Y-m-d H:i:s', $created),
+                        'source' => 'edit',
+                        'precision' => 'exact',
+                        'title' => sprintf(
+                            __('attribute %1$s in event %2$s — added'),
+                            $id,
+                            $occurrence['event_id']
+                        ),
+                        'note' => __(
+                            'attributes.created. When this instance'
+                            . ' created the attribute.'
+                        ),
+                    ) + $entry;
+                }
+                // A pulled row keeps the origin's older timestamp, which
+                // is no edit made here.
+                if ($created > 0 && $occurrence['timestamp'] <= $created) {
+                    continue;
+                }
                 $entries[] = array(
                     'at' => gmdate('Y-m-d H:i:s', $occurrence['timestamp']),
                     'source' => 'edit',
@@ -8949,14 +8914,7 @@ class ValueIntelligence extends AppModel
                         'attributes.timestamp. What changed, and every'
                         . ' earlier edit, is not recorded.'
                     ),
-                    'org' => $event === null ? null : $event['org'],
-                    'ref' => array(
-                        'kind' => 'attribute',
-                        'attribute' => (int)$id,
-                        'event' => (int)$occurrence['event_id'],
-                    ),
-                    'span_to' => null,
-                );
+                ) + $entry;
             }
             return $this->timelineLane(
                 $entries,
@@ -9276,23 +9234,24 @@ class ValueIntelligence extends AppModel
      * When this value was first recorded on this instance — and
      * whether that is a date or only a bound.
      *
-     * **MISP stores no creation date for an attribute.** `timestamp` is
-     * the last modification, `first_seen` is an analyst's claim about
-     * when the threat was seen in the wild — a different fact, which
-     * this tab already draws in a lane of its own — and an event's
-     * `date` is the intel's date rather than the record's. So the
-     * honest answer comes in two shapes and says which it is:
+     * `first_seen` is an analyst's claim about when the threat was seen
+     * in the wild — a different fact, which this tab already draws in a
+     * lane of its own — and an event's `date` is the intel's date
+     * rather than the record's. So the honest answer comes in two
+     * shapes and says which it is:
      *
-     * - An `add` row in `audit_logs` over these occurrences, objects or
-     *   events dates the creation exactly. It is usable only where it
-     *   is no later than every other trace of the value: the audit log
-     *   has a start, and a record created before it began leaves the
-     *   oldest `add` row describing some *later* arrival.
+     * - An occurrence's `created`, or an `add` row in `audit_logs` over
+     *   these occurrences, objects or events, dates an arrival exactly.
+     *   Either is usable only where it is no later than every other
+     *   trace of the value: rows from before MISP 3.0 carry no
+     *   `created`, and the audit log has a start.
      * - Otherwise the oldest trace of any kind is a bound — the value
      *   was here by then. That is every dated entry the tab found *that
-     *   the instance itself left*, and every occurrence's last-modified
-     *   stamp, which is the older of the two on a record nobody has
-     *   touched since.
+     *   the instance itself left*, and the last-modified stamp of every
+     *   occurrence with no `created`.
+     *
+     * `created` and not `Value::recordedAt()`: a pulled occurrence's
+     * `timestamp` is the origin's, older than its arrival here.
      *
      * **A claim is not a trace**, and the second bullet is where that
      * distinction has to be enforced rather than merely stated. The
@@ -9327,26 +9286,38 @@ class ValueIntelligence extends AppModel
             : null;
         $from = $bound === null ? null : 'record';
         foreach ($context['occurrences'] as $occurrence) {
-            if (empty($occurrence['timestamp'])) {
+            $created = (int)($occurrence['created'] ?? 0);
+            $stamp = $created > 0
+                ? $created
+                : (int)($occurrence['timestamp'] ?? 0);
+            if ($stamp <= 0) {
                 continue;
             }
-            $at = gmdate('Y-m-d H:i:s', (int)$occurrence['timestamp']);
-            if ($bound === null || $at < $bound) {
+            $at = gmdate('Y-m-d H:i:s', $stamp);
+            if ($bound === null || $at < $bound
+                || ($at === $bound && $created > 0)
+            ) {
                 $bound = $at;
-                $from = 'timestamp';
+                $from = $created > 0 ? 'created' : 'timestamp';
             }
         }
         if ($bound === null) {
             return null;
         }
-        if ($firstAdd !== null && $firstAdd <= $bound) {
+        if ($firstAdd !== null && ($firstAdd < $bound
+            || ($firstAdd === $bound && $from !== 'created'))
+        ) {
             return array(
                 'at' => $firstAdd,
                 'exact' => true,
                 'from' => 'audit',
             );
         }
-        return array('at' => $bound, 'exact' => false, 'from' => $from);
+        return array(
+            'at' => $bound,
+            'exact' => $from === 'created',
+            'from' => $from,
+        );
     }
 
     /**
@@ -11299,10 +11270,19 @@ class ValueIntelligence extends AppModel
             return $shell;
         }
         $edited = null;
+        $added = null;
+        $withCreated = 0;
         foreach ($context['occurrences'] as $occurrence) {
             $stamp = (int)$occurrence['timestamp'];
             if ($stamp > 0 && ($edited === null || $stamp > $edited)) {
                 $edited = $stamp;
+            }
+            $created = (int)($occurrence['created'] ?? 0);
+            if ($created > 0) {
+                $withCreated++;
+                if ($added === null || $created < $added) {
+                    $added = $created;
+                }
             }
         }
         $publications = array();
@@ -11320,6 +11300,8 @@ class ValueIntelligence extends AppModel
         $shell['knowable'] = array(
             'occurrences' => count($context['occurrences']),
             'edited' => $edited,
+            'added' => $added,
+            'with_created' => $withCreated,
             'publications' => $publications,
             'sightings' => count($sightings['sightings']),
         );

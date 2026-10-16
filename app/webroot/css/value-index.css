@@ -2095,7 +2095,7 @@
  * Above the card, not inside it: standing facts about the reader's own
  * situation, read once on arrival. The strip inside the card says what
  * rules the box's answers were worked under; these are measurements of
- * the instance and the profile, and they belong to the page's
+ * the instance and the organisation, and they belong to the page's
  * introduction rather than to the control.
  *
  * It carries no chrome of its own — no ground, no border, no padding.
@@ -2105,8 +2105,7 @@
  *
  * `auto-fit` rather than a column count, so adding a tile is one line
  * of markup and no layout decision: five sit abreast down to a ~1000px
- * viewport, three stretch across when no profile is in force, and a
- * phone stacks them without a media query.
+ * viewport and a phone stacks them without a media query.
  * ================================================================== */
 
 .vi-tiles {
@@ -2160,70 +2159,59 @@
 
 
 /* ==================================================================
- * The band scale
+ * The new-values sparkline
  * ------------------------------------------------------------------
- * The one micro-visual in the row, on the one tile whose value is a
- * position rather than a quantity: *60* means nothing without the
- * 0-100 it sits on. The three segments are the three bands at their
- * real widths, so a profile that moves `high` to 80 draws a visibly
- * narrower one.
- *
- * **No hue, and that is the rule rather than a preference.** Signal strength
- * is a magnitude; `value-palette.css` reserves colour for the lean,
- * and a three-colour scale here would teach a reader that a band has a
- * colour — which is exactly what the worklist spent three phases not
- * saying. The bands separate by ink weight instead: the same
- * `--vi-carries` against `--vi-lacks` pairing the row's signal-strength bar
- * uses for filled against unfilled, with one step between them.
- *
- * The 2px gap is the surface showing through, which is what keeps
- * three adjacent fills reading as three rather than as a gradient.
- *
- * It sits beside the figure rather than under it, so *60* and the
- * caption's *and above is rated high* stay one sentence.
+ * One bar per day for thirty days, in ink weight rather than a hue:
+ * colour on these pages means assessment. The seven days the figure
+ * counts are darker than the rest and today is the full ink; a day from
+ * before the first count draws only a faint baseline, so it reads as
+ * unknown rather than as zero.
  * ================================================================== */
 
-.vi-tile__figure {
+.vi-spark {
     display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.vi-bandbar {
-    flex: 1;
-    display: flex;
+    align-items: flex-end;
     gap: 2px;
-    height: 6px;
-    margin-top: 4px;
+    height: 24px;
+    margin: 2px 0 6px;
 }
 
-.vi-bandbar__seg {
-    border-radius: 2px;
-    /*
-     * `flex-grow` carries the width and the basis is zero, so the
-     * three segments divide the track in the thresholds' own
-     * proportions rather than in those proportions plus their content
-     * — which, being empty, would otherwise still claim `auto`.
-     */
-    flex-basis: 0;
+.vi-spark__bar {
+    flex: 1 1 0;
     min-width: 0;
+    height: max(2px, var(--h));
+    border-radius: 1px 1px 0 0;
+    background: color-mix(in srgb, var(--vi-carries) 22%, transparent);
 }
 
-/*
- * The faintest ink, because *low* is the band a record lands in when
- * nothing carried it further — the same reading the row's signal-strength bar
- * gives an unfilled segment.
- */
-.vi-bandbar__seg--low {
-    background: color-mix(in srgb, var(--vi-lacks) 22%, transparent);
+.vi-spark__bar--window {
+    background: color-mix(in srgb, var(--vi-carries) 55%, transparent);
 }
 
-.vi-bandbar__seg--medium {
-    background: color-mix(in srgb, var(--vi-carries) 45%, transparent);
+.vi-spark__bar:hover {
+    background: color-mix(in srgb, var(--vi-carries) 80%, transparent);
 }
 
-.vi-bandbar__seg--high {
+.vi-spark__bar--today,
+.vi-spark__bar--today:hover {
     background: var(--vi-carries);
+}
+
+.vi-spark__bar--uncounted,
+.vi-spark__bar--uncounted:hover {
+    height: 2px;
+    background: color-mix(in srgb, var(--vi-lacks) 20%, transparent);
+}
+
+.vi-tile__link {
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.vi-tile__link:hover,
+.vi-tile__link:focus-visible {
+    text-decoration: underline;
 }
 
 /*

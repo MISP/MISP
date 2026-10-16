@@ -7348,12 +7348,19 @@ class Event extends AppModel
                 'attribute_timestamp' => array(
                     'Attribute.timestamp'
                 ),
+                'attribute_created' => array(
+                    'Attribute.created'
+                ),
             );
             foreach ($filters[$options['filter']] as $f) {
                 $conditions = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, $f);
                 if (!empty($options['pop'])) {
                     unset($params[$options['filter']]);
                 }
+            }
+            // Attributes from before MISP 3.0 hold 0: no creation time to match.
+            if ($options['filter'] === 'attribute_created') {
+                $conditions['AND'][] = array('Attribute.created >' => 0);
             }
         }
         return $conditions;
