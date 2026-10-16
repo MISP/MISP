@@ -32,7 +32,7 @@
             '<hr /><h2 class="overflow label">%s</h2><div style="width:800px;">%s<div>%s %s</div></div>',
             __('Dormant engine: %s', $engineData['name']),
             $this->element('/healthElements/correlations_table', ['currentEngineData' => $engineData]),
-            $engine === 'Legacy' ? '' : sprintf(
+            sprintf(
                 '<div class="btn btn-primary" onClick="simplePopup(\'%s\');">%s</div>',
                 $baseurl . '/correlations/switchEngine/' . h($engine),
                 __('Activate engine')

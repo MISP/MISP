@@ -122,7 +122,8 @@ trait LegacyMigrationsTrait
                 $dbUpdateSuccess = $this->__generateCorrelations();
                 break;
             case 89:
-                $this->__retireOldCorrelationEngine();
+                // The 3.0 upgrade drops the old engine's table and queues the full
+                // recorrelation once every table is converted; doing it here is undone.
                 $dbUpdateSuccess = true;
                 break;
             case 90:
@@ -3009,72 +3010,6 @@ trait LegacyMigrationsTrait
             if ($changed) {
                 $this->Server->save($server);
             }
-        }
-    }
-
-    /**
-     * Optimised version of CakePHP _findList method when just one or two fields are set from same model
-     * @param string $state
-     * @param array $query
-     * @param array $results
-     * @return array
-     */
-
-    private function __retireOldCorrelationEngine($user = null)
-    {
-        if ($user === null) {
-            $user = [
-                'id' => 0,
-                'email' => 'SYSTEM',
-                'Organisation' => [
-                    'name' => 'SYSTEM'
-                ]
-            ];
-        }
-        $this->Correlation = ClassRegistry::init('Correlation');
-        $this->Attribute = ClassRegistry::init('MispAttribute');
-        if (!Configure::read('MISP.background_jobs')) {
-            $this->Correlation->truncate($user, 'Legacy');
-            $this->Attribute->generateCorrelation();
-        } else {
-            $job = ClassRegistry::init('Job');
-            $jobId = $job->createJob(
-                'SYSTEM',
-                Job::WORKER_DEFAULT,
-                'truncate table',
-                $this->Correlation->validEngines['Legacy'],
-                'Job created.'
-            );
-            $this->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_ADMIN,
-                [
-                    'truncateTable',
-                    0,
-                    'Legacy',
-                    $jobId
-                ],
-                true,
-                $jobId
-            );
-            $jobId = $job->createJob(
-                'SYSTEM',
-                Job::WORKER_DEFAULT,
-                'generate correlation',
-                'All attributes',
-                'Job created.'
-            );
-
-            $this->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_ADMIN,
-                [
-                    'jobGenerateCorrelation',
-                    $jobId
-                ],
-                true,
-                $jobId
-            );
         }
     }
 

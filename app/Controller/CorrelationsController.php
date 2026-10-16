@@ -124,7 +124,7 @@ class CorrelationsController extends AppController
     {
         $this->loadModel('Server');
         if (!isset($this->Correlation->validEngines[$engine])) {
-            throw new MethodNotAllowedException(__('Not a valid engine choice. Please make sure you pass one of the following: ', implode(', ', array_keys($this->Correlation->validEngines))));
+            throw new MethodNotAllowedException(__('Not a valid engine choice. Please make sure you pass one of the following: %s', implode(', ', array_keys($this->Correlation->validEngines))));
         }
         if ($this->request->is('post')) {
             $setting = $this->Server->getSettingData('MISP.correlation_engine');
@@ -155,7 +155,7 @@ class CorrelationsController extends AppController
     public function truncate(string $engine)
     {
         if (!isset($this->Correlation->validEngines[$engine])) {
-            throw new MethodNotAllowedException(__('Not a valid engine choice. Please make sure you pass one of the following: ', implode(', ', array_keys($this->Correlation->validEngines))));
+            throw new MethodNotAllowedException(__('Not a valid engine choice. Please make sure you pass one of the following: %s', implode(', ', array_keys($this->Correlation->validEngines))));
         }
         if ($this->request->is('post')) {
             if (!Configure::read('MISP.background_jobs')) {

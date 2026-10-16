@@ -2100,7 +2100,7 @@ class Server extends AppModel
         $defaults = $this->generateServerSettings();
         $options = $defaults['MISP']['correlation_engine']['options'];
         if (!empty($value) && !in_array($value, array_keys($options))) {
-            return __('Please select a valid option from the list of available engines: ', implode(', ', array_keys($options)));
+            return __('Please select a valid option from the list of available engines: %s', implode(', ', array_keys($options)));
         }
         if ($value === 'OnDemand' && !$this->isMysql()) {
             return $this->onDemandEngineUnsupportedMessage();
