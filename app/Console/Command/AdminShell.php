@@ -26,7 +26,6 @@ class AdminShell extends AppShell
         'MispAttribute',
         'Job',
         'User',
-        'Task',
         'Server',
         'Organisation',
         'AdminSetting',
