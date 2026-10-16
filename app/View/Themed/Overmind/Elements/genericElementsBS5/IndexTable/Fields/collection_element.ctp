@@ -93,7 +93,11 @@ $isCard = isset($viewMode) && $viewMode === 'card';
                         h($element['AttributeValue']['value'])
                     );
                 } else {
-                    printf('<span class="fst-italic text-muted text-break">%s</span>', h($element['element_sha256']));
+                    printf(
+                        '<span class="fst-italic text-muted text-break" title="%s">%s</span>',
+                        h(__('This value could not be resolved, so it is shown by the SHA-256 of its text.')),
+                        h($element['element_sha256'])
+                    );
                 }
             }
         ?>
