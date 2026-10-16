@@ -173,15 +173,15 @@ class SecurityAudit
             ];
         }
 
-        if (Configure::read('Plugins.ZeroMQ_enable')) {
-            $zeroMqPassword = Configure::read('Plugins.ZeroMQ_password');
+        if (Configure::read('Plugin.ZeroMQ_enable')) {
+            $zeroMqPassword = Configure::read('Plugin.ZeroMQ_password');
             if (empty($zeroMqPassword)) {
                 $output['ZeroMQ'][] = ['error', __('ZeroMQ password is not set.')];
             } else if (strlen($zeroMqPassword) < self::STRONG_PASSWORD_LENGTH) {
                 $output['ZeroMQ'][] = ['warning', __('ZeroMQ password is too short, should be at least %s chars long.', self::STRONG_PASSWORD_LENGTH)];
             }
 
-            $redisPassword = Configure::read('Plugins.ZeroMQ_redis_password');
+            $redisPassword = Configure::read('Plugin.ZeroMQ_redis_password');
             if (empty($redisPassword)) {
                 $output['ZeroMQ'][] = ['error', __('Redis password is not set.')];
             } else if (strlen($redisPassword) < 32) { // for Redis, password should be stronger
