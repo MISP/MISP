@@ -6208,19 +6208,6 @@ class EventsController extends AppController
         $this->set('distributionLevels', $this->Event->distributionLevels);
     }
 
-    public function reportValidationIssuesEvents()
-    {
-        // search for validation problems in the events
-        if (!self::_isSiteAdmin()) {
-            throw new NotFoundException();
-        }
-        $results = $this->Event->reportValidationIssuesEvents();
-        $result = $results[0];
-        $count = $results[1];
-        $this->set('result', $result);
-        $this->set('count', $count);
-    }
-
     public function addTag($id = false, $tag_id = false)
     {
         $rearrangeRules = array(
@@ -9441,30 +9428,6 @@ class EventsController extends AppController
             }
         }
         return $this->RestResponse->viewData($allConflicts);
-    }
-
-    public function generateCount()
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        // do one SQL query with the counts
-        // loop over events, update in db
-        $this->loadModel('MispAttribute');
-        $events = $this->MispAttribute->find('all', array(
-            'recursive' => -1,
-            'fields' => array('event_id', 'count(event_id) as attribute_count'),
-            'group' => array('Attribute.event_id'),
-            'order' => array('Attribute.event_id ASC'),
-        ));
-        foreach ($events as $k => $event) {
-            $this->Event->updateAll(
-                array('Event.attribute_count' => (int)$event[0]['attribute_count']),
-                array('Event.id' => $event['Attribute']['event_id'])
-            );
-        }
-        $this->Flash->success(__('All done. attribute_count generated from scratch for ' . (isset($k) ? $k : 'no') . ' events.'));
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
     }
 
     /**

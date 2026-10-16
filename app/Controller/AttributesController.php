@@ -2234,12 +2234,6 @@ class AttributesController extends AppController
         return $this->response;
     }
 
-    public function reportValidationIssuesAttributes($eventId = false)
-    {
-        // search for validation problems in the attributes
-        $this->set('result', iterator_to_array($this->MispAttribute->reportValidationIssuesAttributes($eventId)));
-    }
-
     public function generateCorrelation()
     {
         if ($this->request->is('post')) {
@@ -2251,7 +2245,7 @@ class AttributesController extends AppController
                 }
 
                 $this->Flash->success($message);
-                $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+                $this->redirect(Router::url($this->referer(), true));
             } else {
                 /** @var Job $job */
                 $job = ClassRegistry::init('Job');
@@ -2696,54 +2690,6 @@ class AttributesController extends AppController
         $events = array_keys($this->MispAttribute->Event->find('list'));
         $orphans = $this->MispAttribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
         return new CakeResponse(array('body'=> count($orphans), 'status'=>200, 'type' => 'json'));
-    }
-
-    public function updateAttributeValues($script)
-    {
-        if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
-            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
-        }
-        switch ($script) {
-            case 'urlSanitisation':
-                $replaceConditions = array(
-                    array('search' => 'Attribute.value1 LIKE', 'from' => 'HXXP', 'to' => 'http', 'ci' => true, 'condition' => 'startsWith'),
-                    array('search' => 'Attribute.value1 LIKE', 'from' => '[.]', 'to' => '.', 'ci' => false, 'condition' => 'contains'),
-                );
-                break;
-            default:
-                throw new Exception(__('Invalid script.'));
-        }
-        $counter = 0;
-        foreach ($replaceConditions as $rC) {
-            $searchPattern = '';
-            if (in_array($rC['condition'], array('endsWith', 'contains'))) {
-                $searchPattern .= '%';
-            }
-            $searchPattern .= $rC['from'];
-            if (in_array($rC['condition'], array('startsWith', 'contains'))) {
-                $searchPattern .= '%';
-            }
-            $attributes = $this->MispAttribute->find('all', array('conditions' => array($rC['search'] => $searchPattern), 'recursive' => -1));
-            foreach ($attributes as $attribute) {
-                $regex = '/';
-                if (!in_array($rC['condition'], array('startsWith', 'contains'))) {
-                    $regex .= '^';
-                }
-                $regex .= $rC['from'];
-                if (!in_array($rC['condition'], array('endsWith', 'contains'))) {
-                    $regex .= '$';
-                }
-                $regex .= '/';
-                if ($rC['ci']) {
-                    $regex .= 'i';
-                }
-                $attribute['Attribute']['value'] = preg_replace($regex, $rC['to'], $attribute['Attribute']['value']);
-                $this->MispAttribute->save($attribute);
-                $counter++;
-            }
-        }
-        $this->Flash->success('Updated ' . $counter . ' attribute(s).');
-        $this->redirect('/pages/display/administration');
     }
 
     public function hoverEnrichment($id, $persistent = false)

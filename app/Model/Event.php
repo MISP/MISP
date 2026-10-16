@@ -8567,28 +8567,6 @@ class Event extends AppModel
         }
     }
 
-    public function reportValidationIssuesEvents()
-    {
-        $this->Behaviors->detach('Regexp');
-        // get all events..
-        $events = $this->find('all', array('recursive' => -1));
-        // for all events..
-        $result = array();
-        $k = 0;
-        $i = 0;
-        foreach ($events as $k => $event) {
-            $this->set($event);
-            if (!$this->validates()) {
-                $errors = $this->validationErrors;
-                $result[$i]['id'] = $event['Event']['id'];
-                $result[$i]['error'] = $errors;
-                $result[$i]['details'] = $event;
-                $i++;
-            }
-        }
-        return array($result, $k);
-    }
-
     // check two version strings. If version 1 is older than 2, return -1, if they are the same return 0, if version 2 is older return 1
     public function compareVersions($version1, $version2)
     {

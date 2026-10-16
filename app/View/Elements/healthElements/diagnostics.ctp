@@ -608,9 +608,6 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     <h3><?php echo __('Administrator On-demand Action');?></h3>
     <p><?php echo __('Click the following button to go to the Administrator On-demand Action page.');?></p>
     <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/servers/ondemandAction/';"><?php echo __('Administrator On-demand Action');?></span>
-    <h3><?php echo __('Legacy Administrative Tools');?></h3>
-    <p><?php echo __('Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions.');?></p>
-    <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';"><?php echo __('Legacy Administrative Tools');?></span>
     <h3><?php echo __('Verify bad link on attachments');?></h3>
     <p><?php echo __('Verify each attachment referenced in database is accessible on filesystem.');?></p>
     <div class="diagnostics-box">

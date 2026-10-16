@@ -696,23 +696,6 @@ class AdminShell extends AppShell
         }
     }
 
-    public function jobUpgrade24()
-    {
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Job upgrade']);
-        }
-
-        $jobId = $this->args[0];
-        $user_id = $this->args[1];
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('Server');
-        $this->Server->upgrade2324($user_id, $jobId);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done.');
-        $this->Job->saveField('status', 4);
-    }
-
     public function prune_update_logs()
     {
         if (empty($this->args[0]) || empty($this->args[1])) {

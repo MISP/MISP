@@ -781,7 +781,7 @@ class AttributeValueFilterDbTest extends TestCase
         $this->assertSame(['uuid' => $uuid], $found);
     }
 
-    public function testTheHashAndUrlSearchesMatchOnTheIds()
+    public function testTheHashSearchesMatchOnTheIds()
     {
         $t = $this->token;
         $md5 = md5($t);
@@ -789,15 +789,7 @@ class AttributeValueFilterDbTest extends TestCase
         $this->addFixtures([
             'md5' => [$first, 'md5', $md5],
             'file' => [$first, 'filename|md5', "$t.exe|$md5"],
-            'hxxp' => [$first, 'url', "http://$t.example/a"],
-            'dot' => [$first, 'url', "http://$t.example.org/"],
         ]);
-        // A save refangs both, so these are rows stored before it did
-        $fanged = ['hxxp' => "hxxp://$t.example/a", 'dot' => "http://$t.example[.]org/"];
-        $ids = $this->attribute->loadAttributeValue()->internMany(array_values($fanged));
-        foreach ($fanged as $name => $value) {
-            $this->exec(sprintf('UPDATE attributes SET value1_id = %d WHERE id = %d', $ids[$value], $this->ids[$name]));
-        }
 
         // downloadSample: every sample of a hash, then the samples alone
         $this->assertSame($this->ids('md5', 'file'), $this->select(['OR' => [
@@ -805,9 +797,6 @@ class AttributeValueFilterDbTest extends TestCase
             'Attribute.value2 LIKE' => $md5,
         ]]));
         $this->assertSame($this->ids('file'), $this->select(['AND' => ['Attribute.value2 LIKE' => $md5]]));
-        // updateAttributeValues: url sanitisation
-        $this->assertSame($this->ids('hxxp'), $this->select(['Attribute.value1 LIKE' => 'HXXP%']));
-        $this->assertSame($this->ids('dot'), $this->select(['Attribute.value1 LIKE' => '%[.]%']));
     }
 
     public function testAProposalSearchDeclaredBoundedChecksItsPatternPerRow()
