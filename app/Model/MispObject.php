@@ -154,12 +154,15 @@ class MispObject extends AppModel
      * The index to pin a read of some events' live objects to: (event_id,
      * deleted, name) once its migration has run; null before, so no hint
      * names an index the table may not have (the 3.0 schema has none called
-     * event_id).
+     * event_id), and null on a driver without index hints.
      *
      * @return string|null
      */
     public function liveObjectIndex()
     {
+        if (!$this->checkDbSupport('indexHints')) {
+            return null;
+        }
         if (self::$hasLiveObjectIndex === null) {
             self::$hasLiveObjectIndex = $this->getSchemaInspector()->hasNamedIndex('objects', 'idx_event_deleted_name');
         }

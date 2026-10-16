@@ -2353,13 +2353,17 @@ class MispAttribute extends AppModel
     /**
      * The index to pin a read of some events' live loose attributes to:
      * (event_id, deleted, object_id) once its migration has run, event_id
-     * before. Left alone, the optimiser intersects event_id with object_id,
-     * whose 0 range holds every loose attribute of the instance.
+     * before; null on a driver without index hints. Left alone, the optimiser
+     * intersects event_id with object_id, whose 0 range holds every loose
+     * attribute of the instance.
      *
-     * @return string
+     * @return string|null
      */
     public function looseAttributeIndex()
     {
+        if (!$this->checkDbSupport('indexHints')) {
+            return null;
+        }
         if (self::$hasLooseAttributeIndex === null) {
             self::$hasLooseAttributeIndex = $this->getSchemaInspector()->hasNamedIndex('attributes', 'idx_event_deleted_object');
         }
