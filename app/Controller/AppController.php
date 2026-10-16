@@ -1681,7 +1681,7 @@ class AppController extends Controller
                         0,
                         'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ')',
                         json_encode($change));
-                    if (Configure::read('CustomAuth_required')) {
+                    if (Configure::read('Plugin.CustomAuth_required')) {
                         $this->Session->destroy();
                         $this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
                     }
