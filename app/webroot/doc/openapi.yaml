@@ -4446,20 +4446,12 @@ components:
           $ref: "#/components/schemas/IncludeAllTagsRestSearchFilter"
         includeEventUuid:
           $ref: "#/components/schemas/IncludeEventUUIDRestSearchFlag"
-        includeEventTags:
-          $ref: "#/components/schemas/IncludeEventTagsRestSearchFlag"
-        includeProposals:
-          $ref: "#/components/schemas/IncludeProposalsRestSearchFlag"
         includeWarninglistHits:
           $ref: "#/components/schemas/IncludeWarninglistHitsRestSearchFlag"
-        includeContext:
-          $ref: "#/components/schemas/IncludeContextRestSearchFlag"
         includeSightingdb:
           $ref: "#/components/schemas/IncludeSightingDbRestSearchFlag"
         metadata:
           $ref: "#/components/schemas/MetadataRestSearchFilter"
-        attackGalaxy:
-          $ref: "#/components/schemas/AttackGalaxyRestSearchFilter"
         returnFormat:
           $ref: "#/components/schemas/ObjectsRestSearchReturnFormat"
 

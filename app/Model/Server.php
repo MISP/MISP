@@ -8044,6 +8044,14 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
                 ],
+                'Benchmarking_retention' => [
+                    'level' => 2,
+                    'description' => __('The number of days benchmark data is kept, today included. Default: 0 (kept forever)'),
+                    'value' => 0,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
                 'Enrichment_services_enable' => array(
                     'level' => 0,
                     'description' => __('Enable/disable the enrichment services'),

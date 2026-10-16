@@ -2405,10 +2405,7 @@ class MispObject extends AppModel
             'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
             'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
             'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
-            'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
-            'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
             'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
-            'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
             'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
             'includeSightingdb' => !empty($filters['includeSightingdb']) ? $filters['includeSightingdb'] : 0,
             'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
@@ -2417,9 +2414,6 @@ class MispObject extends AppModel
             'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0,
             'metadata' => !empty($filters['metadata']) ? $filters['metadata'] : 0,
         );
-        if (!empty($filters['attackGalaxy'])) {
-            $params['attackGalaxy'] = $filters['attackGalaxy'];
-        }
         if (isset($filters['include_event_uuid'])) {
             $params['includeEventUuid'] = $filters['include_event_uuid'];
         }
@@ -2501,7 +2495,7 @@ class MispObject extends AppModel
         $continue = true;
         while ($continue) {
             $temp = '';
-            $results = $this->fetchObjects($user, $params, $continue);
+            $results = $this->fetchObjects($user, $params);
             if (empty($results)) {
                 $loop = false;
                 return true;
@@ -2527,7 +2521,7 @@ class MispObject extends AppModel
                 }
                 $i++;
             }
-            if (!$loop) {
+            if (!$loop || count($results) < $params['limit']) {
                 $continue = false;
             }
             $tmpfile->write($temp);
