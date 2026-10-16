@@ -4645,7 +4645,7 @@ class Server extends AppModel
 
     public function checkoutMain()
     {
-        $mainBranch = '2.5';
+        $mainBranch = '3.0';
         return exec('git checkout ' . $mainBranch);
     }
 

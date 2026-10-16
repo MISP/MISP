@@ -2663,7 +2663,12 @@ class ServersController extends AppController
 
     public function checkout()
     {
+        $this->request->allowMethod(['post']);
         $result = $this->Server->checkoutMain();
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(array('results' => $result), $this->response->type());
+        }
+        return new CakeResponse(array('body' => $result, 'type' => 'txt'));
     }
 
     public function update($branch = false)
