@@ -147,6 +147,16 @@ class Sightingdb extends AppModel
     }
 
     /*
+     * Same for a list of objects as returned by MispObject::fetchObjects(),
+     * which carry their attributes the way an event's Object list does
+     */
+    public function attachToObjects($objects, $user)
+    {
+        $event = $this->attachToEvent(['Object' => $objects], $user);
+        return $event['Object'];
+    }
+
+    /*
      * Extract all attribute values from an event.
      * Also accepts the meta format from after pagination
      */

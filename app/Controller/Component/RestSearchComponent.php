@@ -206,6 +206,7 @@ class RestSearchComponent extends Component
             'object_relation',
             'metadata',
             'includeAllTags',
+            'includeSightingdb',
             'object_name',
             'object_template_uuid',
             'object_template_version'
