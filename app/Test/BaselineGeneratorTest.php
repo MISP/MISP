@@ -893,6 +893,20 @@ class BaselineGeneratorTest extends TestCase
         $this->assertSame(159, $generator->databaseVersion());
     }
 
+    public function testTheReferencesAppliedMigrationsAreRead()
+    {
+        $generator = $this->generator();
+        $this->assertSame(array(), $generator->appliedMigrations(), 'no ledger table');
+        $this->assertCount(1, $generator->asked, 'the ledger is not read when it does not exist');
+
+        $generator->answers = array(
+            'information_schema.TABLES' => array(array('1' => '1')),
+            '`schema_migrations`' => array(array('id' => '20261003_092429_create_attribute_values')),
+        );
+        $this->assertSame(array('20261003_092429_create_attribute_values'), $generator->appliedMigrations());
+        $this->assertStringContainsString("WHERE `status` = 'applied'", end($generator->asked));
+    }
+
     // ---------------------------------------------------------- verification
 
     /**

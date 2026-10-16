@@ -238,6 +238,20 @@ class AdminShell extends AppShell
                 ],
             ],
         ]);
+        $parser->addSubcommand('dumpSchemaTargets', [
+            'help' => __('Derive the 3.0 schema target of every table from a reference database: a fresh install with every migration applied. Writes targets.php and targets.notes. For developers.'),
+            'parser' => [
+                'options' => [
+                    'database' => [
+                        'help' => __('The reference database on the connected MySQL server. Default: the connected database.'),
+                    ],
+                    'output' => [
+                        'help' => __('The directory to write targets.php and targets.notes into.'),
+                        'required' => true,
+                    ],
+                ],
+            ],
+        ]);
         $parser->addSubcommand('verifyInstallBaseline', [
             'help' => __('Read a database an install baseline was loaded into back through its own driver, and diff it against the reference the baseline was generated from. For developers.'),
             'parser' => [
@@ -1678,6 +1692,67 @@ class AdminShell extends AppShell
             return;
         }
         $this->out($rendered['sql'], 0);
+    }
+
+    public function dumpSchemaTargets()
+    {
+        App::uses('BaselineGenerator', 'Migration');
+        App::uses('MigrationManager', 'Migration');
+        App::uses('SchemaTargetGenerator', 'Migration');
+
+        $directory = rtrim((string)$this->params['output'], DS);
+        if (!is_dir($directory) || !is_writable($directory)) {
+            $this->error(__('%s is not a writable directory.', $directory));
+        }
+        try {
+            $reader = new BaselineGenerator(
+                $this->Server->getDataSource(),
+                empty($this->params['database']) ? null : (string)$this->params['database']
+            );
+        } catch (InvalidArgumentException $e) {
+            $this->error(__('The reference cannot be read through this connection.'), $e->getMessage());
+        }
+
+        $version = $reader->databaseVersion();
+        if ($version !== AppModel::DB_CHANGES_FREEZE) {
+            $this->error(__(
+                'The reference database "%s" is at db_version %s, not %s.',
+                $reader->database(),
+                $version === null ? 'none' : $version,
+                AppModel::DB_CHANGES_FREEZE
+            ));
+        }
+        $manager = new MigrationManager($this->AdminSetting);
+        $missing = array_diff($manager->ids(), $reader->appliedMigrations());
+        if (!empty($missing)) {
+            $this->error(
+                __('The reference database "%s" has not applied every migration.', $reader->database()),
+                __('Missing: %s', implode(', ', $missing))
+            );
+        }
+
+        $generator = new SchemaTargetGenerator();
+        try {
+            $targets = $generator->generate($reader->readSchema());
+        } catch (Exception $e) {
+            $this->error(__('No targets were written.'), $e->getMessage());
+        }
+
+        FileAccessTool::writeToFile($directory . DS . 'targets.php', SchemaTargetGenerator::exportAll($targets));
+        FileAccessTool::writeToFile(
+            $directory . DS . 'targets.notes',
+            $generator->report($targets, $reader->database() . ' (' . $this->Server->getDataSource()->getVersion() . ')')
+        );
+        foreach ($generator->warnings() as $warning) {
+            $this->err('-- ' . $warning);
+        }
+        $this->out(__(
+            '%s targets from %s, %s warnings, written to %s.',
+            count($targets),
+            $reader->database(),
+            count($generator->warnings()),
+            $directory
+        ));
     }
 
     /**

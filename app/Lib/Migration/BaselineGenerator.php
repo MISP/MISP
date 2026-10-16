@@ -352,6 +352,33 @@ class BaselineGenerator
     }
 
     /**
+     * @return array The ids the reference's ledger records as applied; empty
+     *   when it has no ledger.
+     */
+    public function appliedMigrations()
+    {
+        $exists = $this->fetchRows(sprintf(
+            "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'schema_migrations';",
+            $this->db->value($this->database, 'string')
+        ));
+        if (empty($exists)) {
+            return array();
+        }
+        $rows = $this->fetchRows(sprintf(
+            'SELECT %s AS id FROM %s WHERE %s = %s;',
+            $this->db->name('migration_id'),
+            $this->qualified('schema_migrations'),
+            $this->db->name('status'),
+            $this->db->value('applied', 'string')
+        ));
+        $ids = array();
+        foreach ($rows as $row) {
+            $ids[] = (string)$row['id'];
+        }
+        return $ids;
+    }
+
+    /**
      * Every base table in the reference, with its columns, indexes and table
      * parameters mapped onto the DSL. A collation the reference server names
      * a token by (see Collation) is read as that token.
