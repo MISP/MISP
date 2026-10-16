@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('ServerSyncTool', 'Tools');
+App::uses('SyncTool', 'Tools');
 App::uses('Validation', 'Utility');
 
 class AnalystData extends AppModel
@@ -295,6 +296,22 @@ class AnalystData extends AppModel
     public function validAddress($check)
     {
         return self::addressError($this->data[$this->current_type], key($check)) ?? true;
+    }
+
+    public function beforeFind($query)
+    {
+        if (!SyncTool::valueTargetsWithheld()) {
+            return $query;
+        }
+        $conditions = [];
+        foreach (static::ADDRESS_ENDS as $end) {
+            $conditions[$this->alias . '.' . $end . '_sha256'] = null;
+        }
+        if (!empty($query['conditions'])) {
+            $conditions[] = $query['conditions'];
+        }
+        $query['conditions'] = $conditions;
+        return $query;
     }
 
     public function beforeSave($options = [])

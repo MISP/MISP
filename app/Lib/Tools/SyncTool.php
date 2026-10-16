@@ -119,6 +119,18 @@ class SyncTool
     }
 
     /**
+     * A MISP older than 3.0 cannot hold analyst data or collection elements
+     * addressed by a value's SHA-256. AppController records the requester.
+     *
+     * @return bool
+     */
+    public static function valueTargetsWithheld()
+    {
+        $version = Configure::read('CurrentRequesterMispVersion');
+        return $version !== null && version_compare($version, '3.0.0', '<');
+    }
+
+    /**
      * @param array $server
      * @return array|void
      * @throws Exception

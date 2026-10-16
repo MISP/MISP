@@ -5,6 +5,7 @@ App::uses('Postgres', 'Model/Datasource/Database');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
+App::uses('SyncTool', 'Tools');
 App::uses('BlowfishConstantPasswordHasher', 'Controller/Component/Auth');
 App::uses('BetterCakeEventManager', 'Tools');
 App::uses('MispTheme', 'Lib/MispTheme');
@@ -202,6 +203,7 @@ class AppController extends Controller
         Configure::write('CurrentController', $controller);
         Configure::write('CurrentAction', $action);
         Configure::write('CurrentRequestIsRest', $this->_isRest());
+        Configure::write('CurrentRequesterMispVersion', SyncTool::requesterMispVersion($this->request));
         $versionArray = $this->User->checkMISPVersion();
         $this->mispVersion = implode('.', $versionArray);
         $this->Security->blackHoleCallback = 'blackHole';
