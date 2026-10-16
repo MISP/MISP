@@ -67,8 +67,6 @@ class CasesTest(unittest.TestCase):
         by_name = {c.name: c for c in build(FIXTURES)}
         self.assertEqual('application/xml',
                          by_name['event.small.stix.admin'].accept)
-        self.assertEqual('application/json',
-                         by_name['event.small.stix-json.admin'].accept)
         self.assertEqual({'eventid': '11', 'returnFormat': 'stix'},
                          by_name['event.small.stix.admin'].body)
 
@@ -118,22 +116,6 @@ class NormaliseTest(unittest.TestCase):
             self.stamp(-3600) + 'Z')
         self.assertEqual(text, exports.mask_generated(text, *self.window()))
 
-    def test_openioc_header_in_twelve_hour_time(self):
-        text = (
-            '<ioc xmlns:xsd="x" id="2e2c399e-70bb-42d8-8120-0d010451fa0e" '
-            'last-modified="2026-10-02T03:34:07" xmlns="y">\n'
-            '  <authored_date>2026-10-02T03:34:07</authored_date>\n'
-            '  <definition>\n'
-            '    <Indicator operator="OR" id="ab7dabe8-cb9a-4795-a8be-593aa6ac'
-            '6cd7">\n'
-            '     <Indicator operator="AND" id="5ab4fce9-205c-49ba-b027-04b2ac'
-            '1b880d">\n')
-        out = exports.normalise('openioc', text, *self.window())
-        self.assertIn('id="<random>" last-modified="<generated>"', out)
-        self.assertIn('<authored_date><generated></authored_date>', out)
-        self.assertIn('<Indicator operator="OR" id="<random>">', out)
-        self.assertIn('5ab4fce9-205c-49ba-b027-04b2ac1b880d', out)
-
     def test_day_granular_stamps(self):
         rpz = exports.normalise(
             'rpz', '@ SOA localhost. root.localhost (2026100200 2h 30m)',
@@ -149,7 +131,7 @@ class NormaliseTest(unittest.TestCase):
     def test_stix_package_and_bundle_ids(self):
         root = 'ORGNAME:STIXPackage-8b040d6d-4255-4b13-93c8-7b1859ed1d1b'
         inner = 'ORGNAME:STIXPackage-5ab4fbe3-3c98-4cf9-9a80-04b3ac1b880d'
-        out = exports.normalise('stix-json', root + ' ' + inner,
+        out = exports.normalise('stix', root + ' ' + inner,
                                 *self.window())
         self.assertEqual('ORGNAME:STIXPackage-<random> ' + inner, out)
         bundle = '{"id": "bundle--ff5b9700-e5f5-4944-97b6-984f1e3e10a0"}'

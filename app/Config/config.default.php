@@ -122,7 +122,6 @@ $config = array(
     ),
     'SMIME' => array(
         'enabled'          => false,
-        'email'            => '',
         'cert_public_sign' => '',
         'key_sign'         => '',
         'password'         => '',

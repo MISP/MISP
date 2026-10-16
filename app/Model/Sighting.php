@@ -1722,7 +1722,7 @@ class Sighting extends AppModel
      */
     public function getMaximumRange()
     {
-        $rangeInDays = Configure::read('MISP.Sightings_range');
+        $rangeInDays = Configure::read('Plugin.Sightings_range');
         $rangeInDays = (!empty($rangeInDays) && is_numeric($rangeInDays)) ? $rangeInDays : 365;
         return strtotime("-$rangeInDays days");
     }

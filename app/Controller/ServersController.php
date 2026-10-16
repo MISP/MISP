@@ -3148,113 +3148,6 @@ public function updateJSON()
         return $this->RestResponse->viewData($syncFilteringRules);
     }
 
-    public function pruneDuplicateUUIDs()
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->loadModel('MispAttribute');
-        $duplicates = $this->MispAttribute->find('all', array(
-            'fields' => array('Attribute.uuid', 'count(*) as occurrence'),
-            'recursive' => -1,
-            'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
-        ));
-        $counter = 0;
-        foreach ($duplicates as $duplicate) {
-            $attributes = $this->MispAttribute->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('uuid' => $duplicate['Attribute']['uuid'])
-            ));
-            foreach ($attributes as $k => $attribute) {
-                if ($k > 0) {
-                    $this->MispAttribute->delete($attribute['Attribute']['id']);
-                    $counter++;
-                }
-            }
-        }
-        $this->Server->updateDatabase('makeAttributeUUIDsUnique');
-        $this->Flash->success('Done. Deleted ' . $counter . ' duplicate attribute(s).');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-    }
-
-    public function removeDuplicateEvents()
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->loadModel('Event');
-        $duplicates = $this->Event->find('all', array(
-            'fields' => array('Event.uuid', 'count(*) as occurrence'),
-            'recursive' => -1,
-            'group' => array('Event.uuid HAVING COUNT(*) > 1'),
-        ));
-        $counter = 0;
-
-        // load this so we can remove the blocklist item that will be created, this is the one case when we do not want it.
-        if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-            $this->EventBlocklist = ClassRegistry::init('EventBlocklist');
-        }
-
-        foreach ($duplicates as $duplicate) {
-            $events = $this->Event->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('uuid' => $duplicate['Event']['uuid'])
-            ));
-            foreach ($events as $k => $event) {
-                if ($k > 0) {
-                    $uuid = $event['Event']['uuid'];
-                    $this->Event->delete($event['Event']['id']);
-                    $counter++;
-                    // remove the blocklist entry that we just created with the event deletion, if the feature is enabled
-                    // We do not want to block the UUID, since we just deleted a copy
-                    if (Configure::read('MISP.enableEventBlocklisting') !== false) {
-                        $this->EventBlocklist->deleteAll(array('EventBlocklist.event_uuid' => $uuid));
-                    }
-                }
-            }
-        }
-        $this->Server->updateDatabase('makeEventUUIDsUnique');
-        $this->Flash->success('Done. Removed ' . $counter . ' duplicate events.');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-    }
-
-    public function upgrade2324()
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        if (!Configure::read('MISP.background_jobs')) {
-            $this->Server->upgrade2324($this->Auth->user('id'));
-            $this->Flash->success('Done. For more details check the audit logs.');
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        } else {
-
-            $this->loadModel('Job');
-            $jobId = $this->Job->createJob(
-                $this->Auth->user(),
-                Job::WORKER_DEFAULT,
-                'upgrade_24',
-                'Old database',
-                __('Job created.')
-            );
-
-            $this->Server->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_ADMIN,
-                [
-                    'jobUpgrade24',
-                    $jobId,
-                    $this->Auth->user('id'),
-                ],
-                true,
-                $jobId
-            );
-
-            $this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        }
-    }
-
     public function cleanModelCaches()
     {
         if (!$this->request->is('post')) {
@@ -3263,23 +3156,6 @@ public function updateJSON()
         $this->Server->cleanCacheFiles();
         $this->Flash->success('Caches cleared.');
         $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
-    }
-
-    public function updateDatabase($command)
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        if (is_numeric($command)) {
-            $command = intval($command);
-        }
-        $this->Server->updateDatabase($command);
-        $this->Flash->success('Done.');
-        if ($liveOff) {
-            $this->redirect(array('controller' => 'servers', 'action' => 'updateProgress'));
-        } else {
-            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
-        }
     }
 
     public function ipUser($input = false)

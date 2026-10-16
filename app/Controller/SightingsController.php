@@ -78,7 +78,7 @@ class SightingsController extends AppController
                 }
             }
             if (!$error) {
-                $publish_sighting = !empty(Configure::read('Sightings_enable_realtime_publish'));
+                $publish_sighting = !empty(Configure::read('Plugin.Sightings_enable_realtime_publish'));
                 $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source, false, $publish_sighting, false, $filters);
             }
             if (!$error && !is_numeric($result)) {

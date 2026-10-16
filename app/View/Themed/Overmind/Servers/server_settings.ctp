@@ -62,7 +62,6 @@ $config = array(
         'showAdvanced' => __('Advanced settings shown'),
         'cancel' => __('Cancel'),
         'ok' => __('OK'),
-        'recommended' => __('removal recommended'),
         'badLinks' => __('bad links detected'),
         'checkFailed' => __('The check could not be run.'),
         'zmqFailed' => __('The ZeroMQ action failed.'),

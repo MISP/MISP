@@ -13,7 +13,6 @@ abstract class StixExport
         'includeEventTags' => 1,
         'includeGalaxy' => 1
     ];
-    protected $__return_format = 'json';
     protected $__return_type = null;
 
     /** @var array Full paths to files to convert */
@@ -65,11 +64,6 @@ abstract class StixExport
     {
         $this->__scope = $options['scope'];
         $this->__return_type = $options['returnFormat'];
-        if ($this->__return_type === 'stix-json') {
-            $this->__return_type = 'stix';
-        } else if ($this->__return_type === 'stix') {
-            $this->__return_format = 'xml';
-        }
         $this->__initialize_misp_file();
         return '';
     }

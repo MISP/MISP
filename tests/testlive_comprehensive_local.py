@@ -8,7 +8,6 @@ import subprocess
 import unittest
 import requests
 import time
-from xml.etree import ElementTree as ET
 from io import BytesIO
 import urllib3  # type: ignore
 from datetime import datetime, timedelta
@@ -742,10 +741,6 @@ class TestComprehensive(unittest.TestCase):
         event = create_simple_event()
         event.add_attribute("ip-src", "1.2.4.5", to_ids=True)
         event = check_response(self.admin_misp_connector.add_event(event))
-
-        result = self._search_event({'returnFormat': "openioc", 'eventid': event.id, "published": [0, 1]})
-        ET.fromstring(result)  # check if result is valid XML
-        self.assertTrue("1.2.4.5" in result, result)
 
         result = self._search_event({'returnFormat': "yara", 'eventid': event.id, "published": [0, 1]})
         self.assertTrue("1.2.4.5" in result, result)

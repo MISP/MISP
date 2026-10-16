@@ -56,17 +56,12 @@ from misp_stix_converter.tools import (
 
 
 class StixExport:
-    def __init__(self, format: str, debug: bool):
-        self.__return_format = format
+    def __init__(self, debug: bool):
         self.__debug = debug
 
     @property
     def debug(self) -> bool:
         return self.__debug
-
-    @property
-    def return_format(self) -> str:
-        return self.__return_format
 
     def _handle_errors(self):
         for identifier, values in self._parser.errors.items():
@@ -84,7 +79,7 @@ class StixExport:
             if hasattr(self, '_output_files'):
                 for feature, filename in self._output_files.items():
                     with open(filename, 'at', encoding='utf-8') as f:
-                        f.write(globals()[f'write_{feature}_footer'](self.return_format))
+                        f.write(globals()[f'write_{feature}_footer']())
                 results['filenames'] = tuple(self._output_files.values())
             errors = self._parser.errors
             if self._parser.errors:
@@ -100,8 +95,8 @@ class StixExport:
 
 
 class StixAttributesExport(StixExport):
-    def __init__(self, orgname: str, format: str, version: str, debug: bool):
-        super().__init__(format, debug)
+    def __init__(self, orgname: str, version: str, debug: bool):
+        super().__init__(debug)
         self._parser = MISPtoSTIX1AttributesParser(orgname, version)
         self.__features = (
             'observables', 'indicators', 'ttps', 'exploit_targets',
@@ -148,34 +143,29 @@ class StixAttributesExport(StixExport):
                 if feature not in self._output_files:
                     output_file = f'{filename}_{feature}'
                     with open(output_file, 'wt', encoding='utf-8') as f:
-                        f.write(globals()[f'write_{feature}_header'](self.return_format))
+                        f.write(globals()[f'write_{feature}_header']())
                     self._output_files[feature] = output_file
                     with open(self._output_files[feature], 'at', encoding='utf-8') as f:
-                        f.write(globals()[f'write_{feature}'](values, self.return_format))
+                        f.write(globals()[f'write_{feature}'](values))
                     continue
                 with open(self._output_files[feature], 'at', encoding='utf-8') as f:
-                    values = globals()[f'write_{feature}'](values, self.return_format)
-                    if self.return_format == 'json':
-                        values = f', {values}'
-                    f.write(values)
+                    f.write(globals()[f'write_{feature}'](values))
 
 
 class StixEventsExport(StixExport):
-    def __init__(self, orgname: str, format: str, version: str, debug: bool):
-        super().__init__(format, debug)
+    def __init__(self, orgname: str, version: str, debug: bool):
+        super().__init__(debug)
         self._parser = MISPtoSTIX1EventsParser(orgname, version)
 
     def _handle_stix_output(self, filename: str):
         with open(f'{filename}.out', 'wt', encoding='utf-8') as f:
-            package = write_events(self._parser.stix_package, self.return_format)
-            f.write(package if self.return_format == 'xml' else package.replace('stix:STIX_Package', 'stix:Package'))
+            f.write(write_events(self._parser.stix_package))
 
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description='Export MISP into STIX1.')
     argparser.add_argument('-s', '--scope', default='Event', choices=('Attribute', 'Event'), help='Scope: which kind of data is exported.')
     argparser.add_argument('-v', '--version', default='1.1.1', choices=('1.1.1', '1.2'), help='STIX version (1.1.1 or 1.2).')
-    argparser.add_argument('-f', '--format', default='xml', choices=('json', 'xml'), help='Output format (xml or json).')
     argparser.add_argument('-i', '--input', nargs='+', help='Input file(s) containing MISP standard format.')
     argparser.add_argument('-o', '--orgname', default='MISP', help='Default Org name to use if no Orgc value is provided.')
     argparser.add_argument('-d', '--debug', action='store_true', help='Allow debug mode with warnings.')
@@ -189,7 +179,7 @@ if __name__ == "__main__":
         print(json.dumps({'error': 'No input file provided.'}))
         sys.exit(1)
 
-    arguments = (args.orgname, args.format, args.version, args.debug)
+    arguments = (args.orgname, args.version, args.debug)
     exporter = globals()[f'Stix{args.scope}sExport'](*arguments)
     exporter.parse_misp_files(args.input)
     sys.exit(0)

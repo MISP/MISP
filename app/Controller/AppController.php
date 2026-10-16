@@ -1882,8 +1882,6 @@ class AppController extends Controller
             $returnFormat = $filters['returnFormat'];
             if ($returnFormat === 'download') {
                 $returnFormat = 'json';
-            } else if ($returnFormat === 'stix' && $this->IndexFilter->isJson()) {
-                $returnFormat = 'stix-json';
             }
         } else {
             $returnFormat = 'json';

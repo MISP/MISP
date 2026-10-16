@@ -7159,7 +7159,6 @@ components:
         - text
         - stix
         - stix2
-        - stix-json
         - attack
         - attack-sightings
         - cache
@@ -7167,7 +7166,6 @@ components:
         - hashes
         - netfilter
         - opendata
-        - openioc
         - rpz
         - snort
         - suricata
@@ -7184,13 +7182,11 @@ components:
         - text
         - stix
         - stix2
-        - stix-json
         - hashes
         - cache
         - count
         - netfilter
         - opendata
-        - openioc
         - rpz
         - snort
         - suricata
@@ -11480,7 +11476,6 @@ components:
           - download
           - stix
           - stix2
-          - stix-json
           - attack
           - attack-sightings
           - cache
@@ -11488,7 +11483,6 @@ components:
           - hashes
           - netfilter
           - opendata
-          - openioc
           - rpz
           - snort
           - suricata
@@ -11507,7 +11501,6 @@ components:
           - download
           - stix
           - stix2
-          - stix-json
           - attack
           - attack-sightings
           - cache
@@ -11515,7 +11508,6 @@ components:
           - hashes
           - netfilter
           - opendata
-          - openioc
           - rpz
           - snort
           - suricata

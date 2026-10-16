@@ -58,7 +58,6 @@ class Event extends AppModel
     public $fieldDescriptions = array(
         'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
         'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
-        'submittedioc' => array('desc' => '', 'formdesc' => ''),
         'analysis' => array('desc' => 'Analysis Levels: *Initial* means the event has just been created, *Ongoing* means that the event is being populated, *Complete* means that the event\'s creation is complete', 'formdesc' => 'Analysis levels: Initial: event has been started Ongoing: event population is in progress Complete: event creation has finished'),
         'distribution' => array('desc' => 'Describes who will have access to the event.')
     );
@@ -120,11 +119,9 @@ class Event extends AppModel
         'kunai' => ['json', 'KunaiExport', 'json'],
         'netfilter' => array('txt', 'NetfilterExport', 'sh'),
         'opendata' => array('txt', 'OpendataExport', 'txt'),
-        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),
         'snort' => array('txt', 'NidsSnortExport', 'rules'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
-        'stix-json' => array('json', 'Stix1Export', 'json'),
         'stix2' => array('json', 'Stix2Export', 'json'),
         'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
         'text' => array('text', 'TextExport', 'txt'),
@@ -8567,28 +8564,6 @@ class Event extends AppModel
         } else {
             return $this->sendContactEmail($id, $message, $creator_only, $user);
         }
-    }
-
-    public function reportValidationIssuesEvents()
-    {
-        $this->Behaviors->detach('Regexp');
-        // get all events..
-        $events = $this->find('all', array('recursive' => -1));
-        // for all events..
-        $result = array();
-        $k = 0;
-        $i = 0;
-        foreach ($events as $k => $event) {
-            $this->set($event);
-            if (!$this->validates()) {
-                $errors = $this->validationErrors;
-                $result[$i]['id'] = $event['Event']['id'];
-                $result[$i]['error'] = $errors;
-                $result[$i]['details'] = $event;
-                $i++;
-            }
-        }
-        return array($result, $k);
     }
 
     // check two version strings. If version 1 is older than 2, return -1, if they are the same return 0, if version 2 is older return 1

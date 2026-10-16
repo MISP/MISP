@@ -27,7 +27,7 @@ from misp_stix_converter.tools import (
 
 
 def stix_framing(args: argparse.Namespace) -> dict:
-    arguments = (args.namespace, args.orgname, args.format, args.version)
+    arguments = (args.namespace, args.orgname, 'xml', args.version)
     header, separator, footer = stix1_framing(*arguments) if args.scope == 'Event' else stix1_attributes_framing(*arguments)
     return {'header': header, 'separator': separator, 'footer': footer}
 
@@ -44,7 +44,6 @@ if __name__ == "__main__":
     stix1_parser = subparsers.add_parser('stix1', help='STIX1 framing.')
     stix1_parser.add_argument('-s', '--scope', default='Event', choices=['Attribute', 'Event'], help='Scope: which kind of data is exported.')
     stix1_parser.add_argument('-v', '--version', default='1.1.1', choices=['1.1.1', '1.2'], help='STIX1 version (1.1.1 or 1.2).')
-    stix1_parser.add_argument('-f', '--format', default='xml', choices=['json', 'xml'], help='Return format (xml or json).')
     stix1_parser.add_argument('-n', '--namespace', default='https://misp-project.org', help='Default namespace to include in the namespaces defined in the STIX header.')
     stix1_parser.add_argument('-o', '--orgname', default='MISP', help='Default Org name associated with the namespace.')
     stix1_parser.set_defaults(func=stix_framing)

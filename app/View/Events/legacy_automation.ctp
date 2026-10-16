@@ -260,11 +260,11 @@
     <p><?php echo __('For example, to retrieve all attributes for event #5, including non IDS marked attributes too, use the following line');?>:</p>
     <pre><?php echo $baseurl.'/attributes/text/download/all/null/5/true'; ?></pre>
 
-    <h3><?php echo __('Searches with JSON/XML/OpenIOC results');?></h3>
+    <h3><?php echo __('Searches with JSON/XML results');?></h3>
     <p><?php echo __('It is possible to search the database for attributes based on a list of criteria.');?></p>
     <p><?php echo __('To return an event or a list of events in a desired format, use the following syntax');?>:</p>
     <pre><?php echo $baseurl.'/events/restSearch/[format]/[value]/[type]/[category]/[org]/[tag]/[quickfilter]/[from]/[to]/[last]/[event_id]/[withAttachments]/[metadata]/[uuid]/[publish_timestamp]/[timestamp]/[published]/[enforceWarninglist]'; ?></pre>
-    <b>format</b>: <?php echo __('Set the return format of the search (Currently supported: json, xml, openioc - more formats coming soon).');?><br />
+    <b>format</b>: <?php echo __('Set the return format of the search (Currently supported: json, xml - more formats coming soon).');?><br />
     <b>value</b>: <?php echo __('Search for the given value in the attributes\' value field.');?><br />
     <b>type</b>: <?php echo __('The attribute type, any valid MISP attribute type is accepted.');?><br />
     <b>category</b>: <?php echo __('The attribute category, any valid MISP attribute category is accepted.');?><br />
@@ -325,7 +325,7 @@
     For example, in order to search for all attributes created by your organisation that contain 192.168 or 127.0 but not 0.1 and are of the type ip-src, excluding the events that were tagged tag1 use the following syntax');?>:</p>
     <pre><?php echo $baseurl.'/attributes/restSearch/download/192.168&&127.0&&!0.1/ip-src/false/' . $me['Organisation']['name'] . '/!tag1';?></pre>
     <p><?php echo __('You can also use search for IP addresses using CIDR. Make sure that you use \'|\' (pipe) instead of \'/\' (slashes). Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). See below for an example');?>: </p>
-    <pre><?php  echo $baseurl.'/attributes/restSearch/openioc/192.168.1.1|16/ip-src/null/' . $me['Organisation']['name']; ?></pre>
+    <pre><?php  echo $baseurl.'/attributes/restSearch/json/192.168.1.1|16/ip-src/null/' . $me['Organisation']['name']; ?></pre>
     <h3><?php echo __('Export attributes of event with specified type as XML');?></h3>
     <p><?php echo __('If you want to export all attributes of a pre-defined type that belong to an event, use the following syntax');?>:</p>
     <pre><?php echo $baseurl.'/attributes/returnAttributes/json/[id]/[type]/[sigOnly]'; ?></pre>
