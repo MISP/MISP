@@ -59,21 +59,29 @@ Run the commands from `app/` as the web server user
    offline, stops the background workers, applies every pending update and
    converts the attribute values: it fills the value table
    (`Console/cake AttributeValue backfill`), builds the IP index used by CIDR
-   correlation and the `value_cidr` filter (`rebuildFacets`), re-keys the
-   existing correlations (`remapCorrelations`), and checks that every attribute
-   and proposal gives back its exact text from the value table before the last
-   migration drops the old text columns. Then it starts the background workers
-   again and brings the instance back. It shows its progress as it goes.
+   correlation and the `value_cidr` filter (`rebuildFacets`), and checks that
+   every attribute and proposal gives back its exact text from the value table
+   before the last migration drops the old text columns. Then it starts the
+   background workers again and brings the instance back. It shows its
+   progress as it goes.
    If anything fails, it stops and leaves the instance offline; fix what it
    names and run it again, and it carries on where it stopped.
    `Console/cake AttributeValue verify` runs the same check on its own and
    changes nothing.
-2. **Regenerate the lists the conversion emptied**:
+2. **Let the correlations fill in.** The upgrade recreates the correlation
+   tables empty instead of converting them, and its last step queues a full
+   recorrelation: the background workers start it once they are back, and the
+   correlations appear while the instance is already live. Without background
+   jobs it only prints the command; run `Console/cake Admin
+   jobGenerateCorrelation` once the instance is back. On a large instance
+   either takes hours.
+3. **Regenerate the lists the conversion emptied**, once the recorrelation
+   has finished:
    - **Top correlations**: `Console/cake Event generateTopCorrelations`, or the
      button on the top correlations page.
    - **Over-correlation counts**: the button on the over-correlating values
      page.
-3. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
+4. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
    `misp:correlation_exclusions`, so both keys can be deleted.
 
 Make sure the database has room for the value table before you start: it is
