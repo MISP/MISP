@@ -425,18 +425,6 @@ class LogsController extends AppController
         $this->set('_serialize', 'data');
     }
 
-    public function pruneUpdateLogs()
-    {
-        $this->request->allowMethod(['post']);
-        $this->Log->pruneUpdateLogsRouter($this->Auth->user());
-        if (Configure::read('MISP.background_jobs')) {
-            $this->Flash->success('The pruning job is queued.');
-        } else {
-            $this->Flash->success('The pruning is complete.');
-        }
-        $this->redirect($this->referer());
-    }
-
     public function testForStolenAttributes()
     {
         $logs = $this->Log->find('list', array(

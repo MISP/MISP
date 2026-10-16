@@ -211,11 +211,6 @@ class Server extends AppModel
             'description' => "Check whether the S/MIME certificate of every user within this instance's userbase is usable, and list the users whose certificate is not.",
             'url' => '/users/verifyCertificate/'
         ),
-        'databaseCleanupScripts' => array(
-            'title' => 'Database Cleanup Scripts',
-            'description' => 'If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.',
-            'url' => '/logs/pruneUpdateLogs/'
-        ),
         'releaseUpdateLock' => array(
             'title' => 'Release update lock',
             'description' => 'If your database is locked and is not updating, unlock it here.',
@@ -8828,7 +8823,6 @@ class Server extends AppModel
                     'Purge correlation' => 'MISP/app/Console/cake Admin jobPurgeCorrelation [job_id]',
                     'Update MISP' => 'MISP/app/Console/cake Admin updateMISP',
                     'Update after pull' => 'MISP/app/Console/cake Admin updateAfterPull [submodule_name] [job_id] [user_id]',
-                    'Prune update logs' => 'MISP/app/Console/cake Admin prune_update_logs [job_id] [user_id]',
                     'Recover since last successful update' => 'MISP/app/Console/cake Admin recoverSinceLastSuccessfulUpdate',
                     'Reset sync authkeys' => 'MISP/app/Console/cake Admin resetSyncAuthkeys [user_id]',
                     'Purge feed events' => 'MISP/app/Console/cake Admin purgeFeedEvents [user_id] [feed_id]',

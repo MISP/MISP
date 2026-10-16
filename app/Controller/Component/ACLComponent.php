@@ -631,7 +631,6 @@ class ACLComponent extends Component
             'event_index' => array('*'),
             'returnDates' => array('*'),
             'testForStolenAttributes' => array(),
-            'pruneUpdateLogs' => array(),
             'index' => array('perm_audit')
         ),
         'auditLogs' => [

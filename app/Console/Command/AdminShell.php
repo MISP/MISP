@@ -710,24 +710,6 @@ class AdminShell extends AppShell
         }
     }
 
-    public function prune_update_logs()
-    {
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Prune update logs']);
-        }
-
-        $jobId = $this->args[0];
-        $user_id = $this->args[1];
-        $user = $this->User->getAuthUser($user_id);
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('Log');
-        $this->Log->pruneUpdateLogs($jobId, $user);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done.');
-        $this->Job->saveField('status', 4);
-    }
-
     public function getWorkers()
     {
         $result = $this->Server->workerDiagnostics($workerIssueCount);
