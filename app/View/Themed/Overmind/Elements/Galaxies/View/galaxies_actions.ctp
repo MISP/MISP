@@ -22,6 +22,7 @@ if ($this->Acl->canAccess('galaxies', 'add')) {
         'icon' => 'misp-icon misp-icon-galaxy misp-simple',
         'entity' => 'galaxy',
         'add' => true,
+        'tour' => 'action-add-cluster',
         'label' => __('Add Galaxy Cluster'),
         'short' => __('Add cluster'),
     ];

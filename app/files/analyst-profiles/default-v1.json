@@ -1,8 +1,8 @@
 {
     "uuid": "6e2679bc-ebb0-417f-90d8-16cb1d0144ba",
-    "name": "default-v1",
+    "name": "default",
     "description": "The Analyst Profile MISP ships with, and the one every value page is scored by until somebody enables another. Take a copy rather than editing it - the profile nearest the reader wins.",
-    "version": 26,
+    "version": 27,
     "parameters": {
         "format": 1,
         "signals": [

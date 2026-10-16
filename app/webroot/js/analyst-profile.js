@@ -426,9 +426,9 @@ function boot() {
      * ------------------------------------------------------------ */
 
     /*
-     * The URL-safe base64 `ValueUrlTool` mints, so a value holding a
-     * slash survives the trip. `btoa` takes bytes, not characters, and
-     * a value can hold any of them.
+     * The URL-safe base64 `ValueUrlTool` mints, for the hidden field: a
+     * form post would rewrite a bare LF as CRLF. `btoa` takes bytes, not
+     * characters, and a value can hold any of them.
      */
     function encodeValue(value) {
         var bytes = new TextEncoder().encode(value);
@@ -458,17 +458,17 @@ function boot() {
             if (target) {
                 window.location.href = target
                     + (target.indexOf('?') === -1 ? '?' : '&')
-                    + 'value=' + encodeURIComponent(encodeValue(value));
+                    + 'value=' + encodeURIComponent(value);
             }
             return;
         }
         carried.value = value === '' ? '' : encodeValue(value);
         if (window.history && window.history.replaceState) {
             var url = new URL(window.location.href);
-            if (carried.value === '') {
+            if (value === '') {
                 url.searchParams.delete('value');
             } else {
-                url.searchParams.set('value', carried.value);
+                url.searchParams.set('value', value);
             }
             window.history.replaceState(null, '', url.toString());
         }

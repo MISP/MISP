@@ -17,8 +17,6 @@
  * @var bool $may_share A site admin's own profile, which they may share
  * @var array $bench
  */
-App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
-
 echo $this->element('genericElements/assetLoader', array(
     'css' => array('value-palette', 'analyst-profile'),
     'js' => array('analyst-profile', 'analyst-profile-help'),
@@ -27,7 +25,7 @@ echo $this->element('genericElements/assetLoader', array(
 $focus = $bench['focus'];
 $query = $focus === null
     ? array()
-    : array('value' => ValueUrlTool::encode($focus));
+    : array('value' => $focus);
 
 $actions = array(
     array(

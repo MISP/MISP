@@ -1254,14 +1254,9 @@
     // A record's own page; an attribute's and an object's redirect to their
     // event's tab.
     var PAGE = { Event: '/events/view/', Attribute: '/attributes/view/', Object: '/objects/view/', GalaxyCluster: '/galaxy_clusters/view/' };
-    function b64url(s) {
-        var bin = '';
-        new TextEncoder().encode(s).forEach(function (b) { bin += String.fromCharCode(b); });
-        return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_');
-    }
     function hrefOf(type, uuid, value) {
         if (PAGE[type] && uuid) return baseurl() + PAGE[type] + encodeURIComponent(uuid);
-        if (type === 'Value' && value != null) return baseurl() + '/values/view/' + b64url(String(value));
+        if (type === 'Value' && value != null) return baseurl() + '/values/view/' + window.MispValueAddress.address(value);
         return null;
     }
     // A Value's key is a digest of the literal, which its label carries.

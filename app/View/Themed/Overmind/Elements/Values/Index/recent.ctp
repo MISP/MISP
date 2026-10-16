@@ -55,10 +55,10 @@ $hoverCard = (bool)Configure::read('MISP.value_hover_card');
            href="<?= h($this->Html->url(array(
                'controller' => 'values',
                'action' => 'view',
-               ValueUrlTool::encode($entry['value']),
+               ValueUrlTool::address($entry['value']),
            ))) ?>"
 <?php       if ($hoverCard): ?>
-           data-vp-hc-value="<?= h(ValueUrlTool::encode($entry['value'])) ?>"
+           data-vp-hc-value="<?= h(ValueUrlTool::address($entry['value'])) ?>"
 <?php       endif; ?>
            ><span class="vi-chip__value"><?= h($entry['value']) ?></span>
             <span class="vi-chip__at"><?= h(

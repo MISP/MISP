@@ -49,17 +49,9 @@
             return '<code' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(text) + '</code>';
         }
 
-        function b64url(value) {
-            var bytes = new TextEncoder().encode(value);
-            var bin = '';
-            for (var i = 0; i < bytes.length; i++) {
-                bin += String.fromCharCode(bytes[i]);
-            }
-            return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_');
-        }
-
         function pageOf(value) {
-            return base + '/values/view/' + b64url(value);
+            return base + '/values/view/'
+                + window.MispValueAddress.address(value);
         }
 
         function token() {

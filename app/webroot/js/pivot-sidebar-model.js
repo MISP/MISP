@@ -259,12 +259,9 @@
         return list.filter(Boolean);
     }
 
-    // A value as ValueUrlTool::encode() puts it in a /values/* path segment.
+    // A value as ValueUrlTool::address() puts it in a /values/* path segment.
     function valueKey(value) {
-        var bytes = new TextEncoder().encode(String(value));
-        var binary = '';
-        for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_');
+        return (root.MispValueAddress || require('./value-address.js')).address(value);
     }
 
     function enumLabel(table, v) {

@@ -62,7 +62,7 @@ class ValueGraph extends AppModel
         return array(
             'value' => array(
                 'value' => $value,
-                'b64' => ValueUrlTool::encode($value),
+                'b64' => ValueUrlTool::address($value),
                 'types' => array_values(array_map(function ($t) {
                     return is_array($t) ? $t['type'] : $t;
                 }, Value::asTypes($types))),
@@ -734,7 +734,7 @@ class ValueGraph extends AppModel
                 $seen[$near] = true;
                 $out[] = array(
                     'value' => $near,
-                    'b64' => ValueUrlTool::encode($near),
+                    'b64' => ValueUrlTool::address($near),
                     'engine' => $engine['id'],
                     'closeness' => isset($row['prefix'])
                         ? (int)$row['prefix']

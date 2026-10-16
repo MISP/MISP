@@ -91,7 +91,7 @@ $types = [
 
     <!-- BODY -->
     <div id="<?= $uid ?>-body"
-         data-collapse-tall="400">
+         data-collapse-tall="400" data-collapse-peek="[data-collapse-peek-label]">
         <div class="text-center py-4 text-muted">
             <div class="misp-loader misp-loader-sm" role="status"></div>
         </div>
@@ -113,6 +113,7 @@ $types = [
         })
         .then(function (html) {
             body.innerHTML = html;
+            if (window.AnalystRail) { window.AnalystRail.refresh(body); }
             wireSearch();
         })
         .catch(function () {
@@ -137,14 +138,14 @@ $types = [
         function apply() {
             var q = search.value.toLowerCase().trim();
             var shown = 0;
-            body.querySelectorAll('[data-ad-section]').forEach(function (section) {
+            body.querySelectorAll('.adr-list').forEach(function (list) {
                 var visible = 0;
-                section.querySelectorAll('[data-ad-entry]').forEach(function (entry) {
+                list.querySelectorAll(':scope > [data-ad-entry]').forEach(function (entry) {
                     var match = q === '' || entry.textContent.toLowerCase().indexOf(q) !== -1;
-                    entry.classList.toggle('d-none', !match);
+                    entry.hidden = !match;
                     if (match) { visible++; }
                 });
-                section.classList.toggle('d-none', visible === 0);
+                list.hidden = visible === 0;
                 shown += visible;
             });
             noResult.classList.toggle('d-none', shown !== 0 || q === '');

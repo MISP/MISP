@@ -225,7 +225,7 @@ $attachChip = function ($target) use ($baseurl) {
             );
         }
         return $chip(
-            $baseurl . '/values/view/' . ValueUrlTool::encode($target['spelled']),
+            $baseurl . '/values/view/' . ValueUrlTool::address($target['spelled']),
             __('Written on this value in another spelling. Opens that spelling.'),
             '<i class="fas fa-fingerprint" aria-hidden="true"></i>'
                 . h(__('this value'))

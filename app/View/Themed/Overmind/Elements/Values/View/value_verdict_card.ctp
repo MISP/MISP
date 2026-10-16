@@ -12,7 +12,6 @@
  * ValuesController::viewVerdictCard.
  *
  * @var array $valueIntelligence
- * @var string $valueB64
  */
 App::uses('ValueLean', 'Tools/ValueIntelligence');
 
@@ -52,7 +51,7 @@ if (!empty($verdict['profile_id'])) {
             'controller' => 'analystProfiles',
             'action' => 'view',
             $verdict['profile_id'],
-            '?' => empty($valueB64) ? array() : array('value' => $valueB64),
+            '?' => array('value' => $valueIntelligence['value']),
         ),
         array('escape' => false)
     );

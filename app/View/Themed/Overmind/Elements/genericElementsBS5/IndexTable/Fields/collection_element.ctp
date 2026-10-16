@@ -89,7 +89,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
                         '<a class="text-decoration-none text-break" href="%s">'
                             . '<span class="text-body font-monospace">%s</span>'
                         . '</a>',
-                        h($baseurl . '/values/view/' . ValueUrlTool::encode($element['AttributeValue']['value'])),
+                        h($baseurl . '/values/view/' . ValueUrlTool::address($element['AttributeValue']['value'])),
                         h($element['AttributeValue']['value'])
                     );
                 } else {

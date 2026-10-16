@@ -57,7 +57,7 @@ $target = function ($type, $end) use ($baseurl, $record, $analystTargets, $style
     $isValue = in_array($type, AnalystData::SHA256_TARGETS, true);
     $known = $analystTargets[$isValue ? strtolower($uuid) : $uuid] ?? null;
     if ($isValue) {
-        $url = isset($known['value']) ? $baseurl . '/values/view/' . ValueUrlTool::encode($known['value']) : '';
+        $url = isset($known['value']) ? $baseurl . '/values/view/' . ValueUrlTool::address($known['value']) : '';
         $glyph = $targetGlyphs[$type];
     } elseif (isset($styles[$type])) {
         $url = $baseurl . '/analystData/view/' . $type . '/' . $uuid;

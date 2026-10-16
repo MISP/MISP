@@ -52,7 +52,7 @@ class AnalystGraphData extends AppModel
                 $values[] = [
                     'sha256' => $node['sha256'],
                     'value' => $node['value'],
-                    'b64' => ValueUrlTool::encode($node['value']),
+                    'b64' => ValueUrlTool::address($node['value']),
                 ];
             }
         }
