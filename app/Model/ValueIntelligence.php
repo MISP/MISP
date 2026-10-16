@@ -13,6 +13,7 @@ App::uses('ValueWarninglistTool', 'Tools/ValueIntelligence');
 App::uses('ValueTrustTool', 'Tools/ValueIntelligence');
 App::uses('ValueStatementTool', 'Tools/ValueIntelligence');
 App::uses('ValueEnrichmentTool', 'Tools/ValueIntelligence');
+App::uses('ValueDictionaryStatsTool', 'Tools/ValueIntelligence');
 App::uses('ValueTypeGuessTool', 'Tools/ValueIntelligence');
 App::uses('ValueRendererTool', 'Tools/ValueIntelligence');
 App::uses('ValueSignalLoader', 'Tools/ValueIntelligence');
@@ -1477,105 +1478,29 @@ class ValueIntelligence extends AppModel
     }
 
     /**
-     * Everything the tile row above the box draws.
+     * Everything the tile row above the box draws: the value dictionary's
+     * size and growth, the values too common to correlate, the enabled
+     * warninglists and this organisation's enrichment cache.
      *
-     * Five standing facts about the reader's own situation, read once
-     * on arrival: what weighs a record, where the bands sit, how many
-     * lists a value is checked against, how many modules the profile
-     * declares, and what the enrichment store already holds.
-     *
-     * **Four of the five cost nothing.** The Analyst Profile in force
-     * is resolved once per request and memoised — phase 7's strip has
-     * already asked for it by the time this runs — so the signal,
-     * exclusion, conflict-rule, threshold and module counts are reads
-     * of an array already in memory. The whole region is **two**
-     * statements: the enrichment store's `COUNT(*)` and the
-     * warninglist one.
-     *
-     * **What is not here, and why.** Nothing counts values or
-     * attributes. `Value::$useTable` is false because the subject of
-     * this feature is a string rather than a row, so an *instance
-     * holds N values* tile is a `GROUP BY value1` over 3.9M rows that
-     * no `LIMIT` bounds (§1.1). The cheap approximation is worse than
-     * nothing rather than merely imprecise: `tableRows()` answered
-     * 3,034,901 against a measured 3,915,429 on the development
-     * instance — 23% low — and the honest `COUNT(*)` took 285 ms,
-     * which is the whole page's budget spent on a figure nobody asked
-     * for. Nothing here reports activity either: what an organisation
-     * recently enriched or sighted is what it is currently
-     * investigating, which is the disclosure D27 refuses.
-     *
-     * **Three of the tiles describe a profile, so they are null when
-     * none is in force.** A site admin can disable the default, and a
-     * *0 signals* tile beside a strip already saying assessments carry
-     * no signal strength is a second, worse way of saying the same thing. The
-     * template draws what it is given and omits what it is not — the
-     * page's rule that a block with nothing to say is absent rather
-     * than drawn empty.
+     * The dictionary figures come from a Redis snapshot plus a capped read
+     * of the rows added since (`ValueDictionaryStatsTool`), so no statement
+     * here grows with the instance. They are instance totals, the same
+     * kind `/users/statistics` shows every user, and name no value.
      *
      * @param array $user
-     * @return array{store: array, weighs: array|null, bands: array|null,
-     *               modules: int|null, warninglists: int}
+     * @return array{store: array, warninglists: int,
+     *               dictionary: array|null, dictionaryPending: bool,
+     *               overCorrelating: array|null}
      */
     public function forTiles(array $user)
     {
-        $profile = ClassRegistry::init('AnalystProfile')->resolveFor($user);
-        $parameters = (!empty($profile) && isset($profile['parameters'])
-            && is_array($profile['parameters']))
-            ? $profile['parameters']
-            : null;
-
-        $weighs = null;
-        $bands = null;
-        $modules = null;
-        if ($parameters !== null) {
-            $weighs = array(
-                'signals' => $this->tileCount($parameters, 'signals'),
-                'exclusions' => $this->tileCount($parameters, 'exclusions'),
-                'escalations' => $this->tileCount($parameters, 'escalations'),
-            );
-            $thresholds = isset($parameters['thresholds'])
-                && is_array($parameters['thresholds'])
-                ? $parameters['thresholds']
-                : array();
-            $declared = isset($thresholds['signal_strength_bands'])
-                && is_array($thresholds['signal_strength_bands'])
-                ? $thresholds['signal_strength_bands']
-                : array();
-            /*
-             * The fallbacks are `ValueVerdictTool::signalStrengthBand()`'s
-             * own, so a profile that declares no bands is described by
-             * the numbers the engine would actually use rather than by
-             * a blank.
-             */
-            $bands = array(
-                'high' => isset($declared['high'])
-                    ? (int)$declared['high']
-                    : 60,
-                'medium' => isset($declared['medium'])
-                    ? (int)$declared['medium']
-                    : 30,
-                'min_signals' => isset(
-                    $thresholds['signal_strength_high_min_signals']
-                )
-                    ? (int)$thresholds['signal_strength_high_min_signals']
-                    : 4,
-            );
-            $plan = ValueEnrichmentTool::planFor($profile);
-            $modules = count($plan['declared']);
-        }
-
+        $dictionary = (new ValueDictionaryStatsTool($this))->forPage();
         return array(
+            'dictionary' => $dictionary,
+            'dictionaryPending' => $dictionary === null
+                && (bool)Configure::read('MISP.background_jobs'),
+            'overCorrelating' => $this->forOverCorrelating($user),
             'store' => $this->forEnrichmentStore($user),
-            'weighs' => $weighs,
-            'bands' => $bands,
-            'modules' => $modules,
-            /*
-             * Instance policy rather than anybody's activity, and the
-             * set every value on this instance is checked against —
-             * which is what makes the warninglist chip on a profile
-             * mean something. One statement over 97 rows.
-             */
             'warninglists' => (int)$this->model('Warninglist')->find(
                 'count',
                 array(
@@ -1587,17 +1512,26 @@ class ValueIntelligence extends AppModel
     }
 
     /**
-     * How many entries a profile section declares.
+     * How many values MISP has stopped correlating for exceeding the
+     * correlation limit. Null when correlation is switched off.
      *
-     * @param array $parameters
-     * @param string $section
-     * @return int
+     * @param array $user
+     * @return array{count: int, limit: int, review: bool}|null
      */
-    private function tileCount(array $parameters, $section)
+    private function forOverCorrelating(array $user)
     {
-        return isset($parameters[$section]) && is_array($parameters[$section])
-            ? count($parameters[$section])
-            : 0;
+        if (Configure::read('MISP.completely_disable_correlation')) {
+            return null;
+        }
+        $overCorrelating = $this->model('OverCorrelatingValue');
+        return array(
+            'count' => (int)$overCorrelating->find(
+                'count',
+                array('recursive' => -1)
+            ),
+            'limit' => (int)$overCorrelating->getLimit(),
+            'review' => !empty($user['Role']['perm_site_admin']),
+        );
     }
 
     /**
