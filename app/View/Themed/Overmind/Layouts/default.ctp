@@ -110,6 +110,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             $js = [
                 ['tom-select.complete.min', ['preload' => true]],
                 ['tag-chips', ['preload' => true]],
+                ['value-address', ['preload' => true]],
             ];
         } else {
             $css = [

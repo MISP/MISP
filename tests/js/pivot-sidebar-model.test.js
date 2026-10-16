@@ -316,9 +316,13 @@ suite('an attribute another event\'s card brought says which of its slices match
        .facts.filter(f => f.key === 'matched'), []);
 });
 
-suite('a value in the sidebar: keyed as ValueUrlTool::encode(), opening its card where the instance has it on', () => {
+suite('a value in the sidebar: keyed as ValueUrlTool::address(), opening its card where the instance has it on', () => {
     eq('url-safe alphabet, bytes not characters', ['\u00ff>?/', '\u00e9vil.example', 'http://x.y/?q=~~'].map(M.valueKey),
        ['w78-Py8=', 'w6l2aWwuZXhhbXBsZQ==', 'aHR0cDovL3gueS8_cT1-fg==']);
+    const sha = v => 'sha256:' + require('crypto').createHash('sha256').update(v, 'utf8').digest('hex');
+    eq('base64 that reads as an id goes by its sha256', M.valueKey('\u3374'), sha('\u3374'));
+    eq('base64 up to 7800 characters', M.valueKey('x'.repeat(5850)).length, 7800);
+    eq('then its sha256', M.valueKey('x'.repeat(5851)), sha('x'.repeat(5851)));
     const attr = node({ type: 'attribute', uuid: 'a-ip', scope: 'self', event_id: '5' });
     eq('an attribute: its own value', M.build(attr, env()).profile, { value: '8.8.8.8', b64: 'OC44LjguOA==' });
     eq('an attribute with no value: none', M.build(node({ type: 'attribute', uuid: 'nope' }), env()).profile, null);

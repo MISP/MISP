@@ -43,7 +43,7 @@ $relevance = $card['relevance'];
 $profileUrl = $this->Html->url(array(
     'controller' => 'values',
     'action' => 'view',
-    ValueUrlTool::encode($assessment['value']),
+    ValueUrlTool::address($assessment['value']),
 ));
 
 /*

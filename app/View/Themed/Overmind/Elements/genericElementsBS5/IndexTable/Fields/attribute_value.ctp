@@ -43,7 +43,7 @@ $hoverClickOnly = (bool)Configure::read('Plugin.Enrichment_hover_popover_only');
  */
 $vpHoverValue = (Configure::read('MISP.value_hover_card')
     && !empty($attribute['value']))
-    ? ValueUrlTool::encode($attribute['value'])
+    ? ValueUrlTool::address($attribute['value'])
     : null;
 if ($vpHoverValue !== null && $hoverEnrichId && !$hoverClickOnly) {
     $hoverEnrichId = null;

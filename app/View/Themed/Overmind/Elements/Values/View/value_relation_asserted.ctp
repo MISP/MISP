@@ -81,7 +81,7 @@ $targetUrl = function ($target) use ($baseurl) {
         return $baseurl . '/galaxy_clusters/view/' . $target['id'];
     }
     if ($target['kind'] === 'AttributeValue') {
-        return $baseurl . '/values/view/' . ValueUrlTool::encode($target['label']);
+        return $baseurl . '/values/view/' . ValueUrlTool::address($target['label']);
     }
     if (empty($target['event'])) {
         return null;

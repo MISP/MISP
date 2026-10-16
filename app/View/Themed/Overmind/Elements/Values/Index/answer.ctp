@@ -35,7 +35,7 @@ $profileUrl = function ($value) {
     return $this->Html->url(array(
         'controller' => 'values',
         'action' => 'view',
-        ValueUrlTool::encode($value),
+        ValueUrlTool::address($value),
     ));
 };
 ?>

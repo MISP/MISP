@@ -5,8 +5,9 @@
  *
  * The Value Intelligence page's subject is an arbitrary string — a hash, a
  * domain, a URL with slashes in it — so in a path segment it travels
- * base64-encoded. Two controllers need the same encoding: `ValuesController`
- * mints it and `AnalystProfilesController` takes it in `pin`/`unpin`. A
+ * base64-encoded, or as its SHA-256 when too long for a URL. Two
+ * controllers need the same encoding: `ValuesController` mints `address()`
+ * and `AnalystProfilesController` takes plain base64 in `pin`/`unpin`. A
  * `?value=` query parameter is raw text on both.
  *
  * It lives here rather than on either of them for two reasons. One is
@@ -27,6 +28,56 @@
  */
 class ValueUrlTool
 {
+    const SHA256_PREFIX = 'sha256:';
+
+    /** Apache caps a request line at 8190 bytes by default. */
+    const MAX_BASE64 = 7800;
+
+    /**
+     * The value page's address for a value: its base64, which gives the
+     * value back, or `sha256:<hex>` only where base64 cannot be used — too
+     * long for a request line, or all digits, which `parse()` reads as a
+     * dictionary id.
+     *
+     * @param string $value
+     * @return string
+     */
+    public static function address($value)
+    {
+        $encoded = self::encode($value);
+        if (strlen($encoded) > self::MAX_BASE64 || ctype_digit($encoded)) {
+            return self::SHA256_PREFIX . hash('sha256', (string)$value);
+        }
+        return $encoded;
+    }
+
+    /**
+     * What an address names: `['value' => text]`, `['sha256' => hex]` or
+     * `['id' => int]`, the last two for the caller to look up.
+     *
+     * @param string|null $address
+     * @return array|null Null when it names nothing
+     */
+    public static function parse($address)
+    {
+        if (!is_string($address) || $address === '') {
+            return null;
+        }
+        if (strpos($address, self::SHA256_PREFIX) === 0) {
+            $hex = strtolower(substr($address, strlen(self::SHA256_PREFIX)));
+            return preg_match('/^[0-9a-f]{64}$/', $hex)
+                ? array('sha256' => $hex)
+                : null;
+        }
+        if (ctype_digit($address)) {
+            $id = filter_var($address, FILTER_VALIDATE_INT,
+                array('options' => array('min_range' => 1)));
+            return $id === false ? null : array('id' => $id);
+        }
+        $value = self::decode($address);
+        return $value === null ? null : array('value' => $value);
+    }
+
     /**
      * @param string $value
      * @return string URL-safe base64, so a value containing `/`

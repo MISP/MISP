@@ -70,7 +70,7 @@ class AnalystDataRailCards
                 $text = (string)$value['AttributeValue']['value'];
                 return [
                     'label' => mb_strimwidth($text, 0, 160, '…'),
-                    'href' => '/values/view/' . ValueUrlTool::encode($text),
+                    'href' => '/values/view/' . ValueUrlTool::address($text),
                     'items' => [['label' => __('SHA-256'), 'value' => $value['AttributeValue']['sha256']]],
                 ];
             case 'Event':

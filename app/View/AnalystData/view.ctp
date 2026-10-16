@@ -16,7 +16,7 @@ $valueTarget = function ($hex) use ($baseurl, $analystTargets) {
         '<span class="bold">%s</span>: <a href="%s/values/view/%s">%s</a>',
         __('Value'),
         h($baseurl),
-        h(ValueUrlTool::encode($known['value'])),
+        h(ValueUrlTool::address($known['value'])),
         h($known['label'])
     );
 };

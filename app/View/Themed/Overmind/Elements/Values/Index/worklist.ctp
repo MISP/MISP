@@ -441,7 +441,7 @@ $offerExtract = !$extracted && $wordy >= 2;
                            href="<?= h($this->Html->url(array(
                                'controller' => 'values',
                                'action' => 'view',
-                               ValueUrlTool::encode($asked),
+                               ValueUrlTool::address($asked),
                            ))) ?>"><?= h(__('Open')) ?><span
                            class="vi-cardonly"> <?= h(__('intelligence')) ?></span></a>
                     </div>

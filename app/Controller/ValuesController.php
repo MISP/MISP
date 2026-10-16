@@ -73,6 +73,7 @@ class ValuesController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
+        $this->__unnameSha256();
         $json = in_array(
             $this->request->params['action'] ?? null,
             array('graph', 'graphOccurrences', 'enrichmentTypes',
@@ -146,6 +147,27 @@ class ValuesController extends AppController
          * Scoped to this controller, which posts exactly one thing.
          */
         $this->Security->csrfUseOnce = false;
+    }
+
+    /**
+     * Cake reads `sha256:<hex>` as a named parameter and drops it from the
+     * positional ones, which would shift `$galaxyId`, `$from` and `$to`.
+     * Every action but the REST `view` takes it back as its first argument.
+     *
+     * @return void
+     */
+    private function __unnameSha256()
+    {
+        $named = $this->request->params['named'] ?? array();
+        if (!isset($named['sha256']) || !is_string($named['sha256'])
+            || ($this->request->params['action'] === 'view'
+                && $this->_isRest())
+        ) {
+            return;
+        }
+        array_unshift($this->request->params['pass'],
+            ValueUrlTool::SHA256_PREFIX . $named['sha256']);
+        unset($this->request->params['named']['sha256']);
     }
 
     /**
@@ -367,7 +389,7 @@ class ValuesController extends AppController
              */
             $this->__sayWhatChanged($one, $answer['stored']);
             return $this->redirect(
-                array('action' => 'view', ValueUrlTool::encode(
+                array('action' => 'view', ValueUrlTool::address(
                     $answer['stored']
                 )),
                 303
@@ -755,7 +777,7 @@ class ValuesController extends AppController
         $this->set('valueIntelligence', $profile);
         // Re-encoded rather than passed through, so the panel URLs the page
         // builds are well-formed whichever alphabet the caller arrived with.
-        $this->set('valueB64', ValueUrlTool::encode($profile['value']));
+        $this->set('valueB64', ValueUrlTool::address($profile['value']));
         $this->__setOrgGrading();
         /*
          * And the one write this page makes: `/values/index` carries
@@ -1987,7 +2009,7 @@ class ValuesController extends AppController
     private function __renderPanel(array $profile, $element)
     {
         $this->set('valueIntelligence', $profile);
-        $this->set('valueB64', ValueUrlTool::encode($profile['value']));
+        $this->set('valueB64', ValueUrlTool::address($profile['value']));
         $this->layout = false;
         $this->render('/Elements/Values/View/' . $element);
     }
@@ -2009,11 +2031,35 @@ class ValuesController extends AppController
         if ($b64value === null || $b64value === '') {
             throw new NotFoundException(__('No value supplied.'));
         }
-        $value = ValueUrlTool::decode($b64value);
-        if ($value === null) {
+        $address = ValueUrlTool::parse($b64value);
+        if ($address === null) {
             throw new NotFoundException(__('Invalid base64 encoding.'));
         }
-        return $value;
+        if (isset($address['value'])) {
+            return $address['value'];
+        }
+        $found = $this->AttributeValue->findAddressed($address);
+        if ($found === null || !$this->__mayRead($found['id'])) {
+            throw new NotFoundException(__('Invalid value.'));
+        }
+        return $found['value'];
+    }
+
+    /**
+     * An id or a sha256 makes the dictionary supply the text, so it is
+     * answered only for a value the reader could have read elsewhere.
+     *
+     * @param int $id
+     * @return bool
+     */
+    private function __mayRead($id)
+    {
+        $user = $this->Auth->user();
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        $this->loadModel('MispAttribute');
+        return !empty($this->MispAttribute->visibleValueIds($user, [$id], 1));
     }
 
     /**

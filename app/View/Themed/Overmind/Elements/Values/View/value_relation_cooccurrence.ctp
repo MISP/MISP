@@ -397,7 +397,7 @@ $listedMark = function ($lists) use ($view) {
 $hoverCardOn = (bool)Configure::read('MISP.value_hover_card');
 $hoverCard = function ($value) use ($hoverCardOn) {
     return $hoverCardOn
-        ? ' data-vp-hc-value="' . h(ValueUrlTool::encode($value)) . '"'
+        ? ' data-vp-hc-value="' . h(ValueUrlTool::address($value)) . '"'
         : '';
 };
 $hoverClass = $hoverCardOn ? ' vp-hc-trigger' : '';

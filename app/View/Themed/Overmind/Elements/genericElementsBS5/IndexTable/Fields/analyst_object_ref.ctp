@@ -26,7 +26,7 @@ if ($uuid === '') {
 $described = $isValue ? ($analystTargets[strtolower($uuid)] ?? null) : null;
 $valueText = $described['value'] ?? null;
 if ($isValue) {
-    $url = $valueText === null ? '' : $baseurl . '/values/view/' . ValueUrlTool::encode($valueText);
+    $url = $valueText === null ? '' : $baseurl . '/values/view/' . ValueUrlTool::address($valueText);
 } elseif (in_array($type, ['Note', 'Opinion', 'Relationship'], true)) {
     $url = $baseurl . '/analystData/view/' . $type . '/' . $uuid;
 } elseif ($type === 'Event') {

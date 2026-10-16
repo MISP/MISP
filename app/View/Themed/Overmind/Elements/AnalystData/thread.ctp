@@ -110,7 +110,7 @@ $objLink = function (array $rel, $end) use ($baseurl) {
             '<span class="badge bg-secondary-subtle text-secondary-emphasis me-1">%s</span>'
             . '<a class="text-decoration-none font-monospace small text-break" href="%s" title="%s">%s</a>',
             h(__('Value')),
-            h($baseurl . '/values/view/' . ValueUrlTool::encode($text)),
+            h($baseurl . '/values/view/' . ValueUrlTool::address($text)),
             h($uuid),
             h($text)
         );
