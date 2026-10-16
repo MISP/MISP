@@ -715,20 +715,23 @@ class MispAttribute extends AppModel
         if (empty($attribute['uuid'])) {
             $attribute['uuid'] = CakeText::uuid();
         }
-        // Cake fills `created` on insert but keeps a sent value, on edits too.
-        if (empty($attribute['id']) && empty($this->id)) {
-            $attribute['created'] = time();
-        } else {
-            unset($attribute['created']);
-        }
+        $insert = empty($attribute['id']) && empty($this->id);
         if (!$this->fast_update && !empty($attribute['id'])) {
             $this->old = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Attribute.id' => $attribute['id']),
                 'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id'],
             ));
+            // An id with no row behind it is an insert, as a log recovery does.
+            $insert = empty($this->old);
         } else {
             $this->old = null;
+        }
+        // Cake fills `created` on insert but keeps a sent value, on edits too.
+        if ($insert) {
+            $attribute['created'] = time();
+        } else {
+            unset($attribute['created']);
         }
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
