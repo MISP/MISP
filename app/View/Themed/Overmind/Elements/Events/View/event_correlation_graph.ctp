@@ -70,6 +70,9 @@ echo $this->element('genericElements/assetLoader', [
                     </button>
                 </div>
 
+                <!-- Period brush: every correlated event, its window is the period the graph draws -->
+                <div id="sankey-overview" class="sankey-overview" hidden></div>
+
                 <!-- Empty state (no correlation, or everything filtered out) -->
                 <div id="sankey-empty"
                      class="d-none d-flex flex-column align-items-center text-muted pt-2 small"></div>
@@ -216,6 +219,10 @@ echo $this->element('genericElements/assetLoader', [
     var _pan = null;                 // drag-to-pan in progress
     var _suppressClick = false;      // a pan must not open the node it started on
     var _dateZone = null;            // the graph's date column, in svg pixels
+    var _overview     = null;        // the period brush strip
+    var _overviewBars = [];          // its bars: {from, to, count}, in ms
+    var _brushing     = false;       // a brush drag is changing the period
+    var _brushBars    = null;        // bar indices under the brush
     var updateTargetPositionsOnly = function () {};   // set inside renderSankey
     var rescaleDateLane = function () {};             // set inside renderSankey
 
@@ -223,6 +230,8 @@ echo $this->element('genericElements/assetLoader', [
     var MONTH_MS = 2629746000;
     var YEAR_MS  = 31556952000;
     var MIN_ZOOM_SPAN_MS = 7 * DAY_MS;
+    var OVERVIEW_MAX_BARS = 120;
+    var OVERVIEW_UNITS = ['day', 'week', 'month', 'quarter', 'year'];
 
     /* ── helpers ───────────────────────────────────────────── */
     function formatTimelineDateUtc(ts) {
@@ -381,6 +390,7 @@ echo $this->element('genericElements/assetLoader', [
         _rangeMaxTs = hi;
         _rangeIsFull = lo <= _domainMinTs && hi >= _domainMaxTs;
         _syncZoomBadge();
+        _syncOverview();
     }
 
     /* a drag follows the pointer exactly, so it skips the glide */
@@ -453,7 +463,7 @@ echo $this->element('genericElements/assetLoader', [
     function _scheduleGraphUpdate() {
         _graphUpdatePending = true;
         clearTimeout(_graphUpdateTimer);
-        if (_pan) return;   // the release redraws
+        if (_pan || _brushing) return;   // the release redraws
         _graphUpdateTimer = setTimeout(_flushGraphUpdate, 250);
     }
 
@@ -625,6 +635,170 @@ echo $this->element('genericElements/assetLoader', [
                 _resetZoom();
             });
         }
+    }
+
+    /* ── period brush ──────────────────────────────────────── */
+    /* the strip always spans the whole domain, its window is the drawn period */
+    var _overviewTitle = <?= json_encode(h(__('Correlated events over time'))) ?>;
+    var _overviewHint  = <?= json_encode(h(__('Drag to choose the period drawn below, click to show it all.'))) ?>;
+    var _overviewUnits = <?= json_encode([
+        'day' => h(__('One bar per day.')),
+        'week' => h(__('One bar per week.')),
+        'month' => h(__('One bar per month.')),
+        'quarter' => h(__('One bar per quarter.')),
+        'year' => h(__('One bar per year.')),
+    ]) ?>;
+    var _overviewThisEvent = <?= json_encode(h(__('This event'))) ?>;
+
+    function _nextBar(ts, unit) {
+        if (unit === 'day')     return ts + DAY_MS;
+        if (unit === 'week')    return ts + 7 * DAY_MS;
+        if (unit === 'month')   return addUtcMonths(ts, 1);
+        if (unit === 'quarter') return addUtcMonths(ts, 3);
+        return addUtcYears(ts, 1);
+    }
+
+    /* the finest calendar unit that keeps the bars readable */
+    function _overviewBuckets(minTs, maxTs) {
+        var unit, bars;
+        for (var u = 0; u < OVERVIEW_UNITS.length; u++) {
+            var cap = u === OVERVIEW_UNITS.length - 1 ? Infinity : OVERVIEW_MAX_BARS;
+            unit = OVERVIEW_UNITS[u];
+            bars = [];
+            for (var t = minTs; t < maxTs && bars.length <= cap; t = _nextBar(t, unit)) {
+                bars.push({from: t, to: Math.min(maxTs, _nextBar(t, unit)), count: 0});
+            }
+            if (bars.length <= cap) break;
+        }
+        return {unit: unit, bars: bars};
+    }
+
+    function _barIndexAt(ts) {
+        var lo = 0, hi = _overviewBars.length - 1;
+        while (lo < hi) {
+            var mid = (lo + hi + 1) >> 1;
+            if (_overviewBars[mid].from <= ts) lo = mid;
+            else hi = mid - 1;
+        }
+        return lo;
+    }
+
+    /* 0..bar count along the strip */
+    function _barPosition(ts) {
+        var n = _overviewBars.length;
+        if (ts >= _overviewBars[n - 1].to) return n;
+        var i = _barIndexAt(ts), bar = _overviewBars[i];
+        return i + Math.max(0, (ts - bar.from) / (bar.to - bar.from));
+    }
+
+    /* the date lane's tick picker, so both axes read alike */
+    function _overviewLabels(widthPx) {
+        var n = _overviewBars.length, labels = {};
+        var step = _pickTickStep(_domainMaxTs - _domainMinTs, widthPx);
+        _tickTimes(_domainMinTs, _domainMaxTs, step).forEach(function (ts) {
+            var i = _barIndexAt(ts);
+            if (ts >= _domainMaxTs || (i / n) * widthPx + _tickLabelWidth(step.unit) > widthPx) return;
+            labels[i] = {
+                text: formatSankeyGridDate(ts, step.unit),
+                major: ts === startOfUtcYear(ts)
+            };
+        });
+        return labels;
+    }
+
+    function _buildOverview(eventDetails) {
+        var host = document.getElementById('sankey-overview');
+        _overview  = null;
+        _brushing  = false;
+        _brushBars = null;
+        if (!host) return;
+        host.innerHTML = '';
+        if (!window.MispTimeline || !(_domainMaxTs > _domainMinTs)) {
+            _syncOverview();
+            return;
+        }
+        var buckets = _overviewBuckets(_domainMinTs, _domainMaxTs);
+        _overviewBars = buckets.bars;
+        var max = 0;
+        Object.keys(eventDetails).forEach(function (eid) {
+            var date = (eventDetails[eid] || {}).date || '';
+            var ts   = date ? Date.parse(date + 'T00:00:00Z') : NaN;
+            if (!isFinite(ts)) return;
+            max = Math.max(max, ++_overviewBars[_barIndexAt(ts)].count);
+        });
+        var contentEl = document.getElementById('correlations-content');
+        var labels = _overviewLabels((contentEl && contentEl.clientWidth) || 800);
+        var dated  = isFinite(_currentEventDateTs);
+
+        _overview = window.MispTimeline.overview({
+            bars: _overviewBars,
+            max: max,
+            maxLabels: _overviewBars.length,
+            tickLabel: function (i) { return labels[i] || null; },
+            head: '<strong>' + _overviewTitle + '</strong>'
+                + '<span>' + _overviewUnits[buckets.unit] + ' ' + _overviewHint + '</span>'
+                + (dated
+                    ? '<span class="sankey-overview-key"><span class="sankey-overview-star">★</span>'
+                      + _overviewThisEvent + '</span>'
+                    : ''),
+            onRange: function (from, to) {
+                _brushBars = {from: from, to: to};
+                /* a press still inside its bar may yet be a click */
+                if (!_brushing && from === to) return;
+                _brushing = true;
+                _brushTo(from, to);
+            },
+            onSettle: function () {
+                if (_brushBars) _brushTo(_brushBars.from, _brushBars.to);
+                _endBrush();
+            },
+            onClear: function () {
+                _brushing  = false;
+                _brushBars = null;
+                _resetZoom();
+            }
+        });
+        _overview.el.addEventListener('pointercancel', _endBrush);
+        host.appendChild(_overview.el);
+
+        if (dated) {
+            var plot = _overview.el.querySelector('.tl-ov-plot');
+            var mark = document.createElement('div');
+            mark.className = 'sankey-overview-current';
+            mark.style.left = (100 * _barPosition(_currentEventDateTs + DAY_MS / 2)
+                / _overviewBars.length) + '%';
+            mark.innerHTML = '<span class="sankey-overview-star">★</span>';
+            plot.insertBefore(mark, plot.querySelector('[data-misp-brush]'));
+        }
+        _syncOverview();
+    }
+
+    /* a run reaching the last bar runs to the domain's end, so a full sweep is "everything" */
+    function _brushTo(from, to) {
+        var last = to === _overviewBars.length - 1;
+        _setRange(_overviewBars[from].from, last ? _domainMaxTs : _overviewBars[to].to - 1);
+        _syncOverview();
+    }
+
+    function _endBrush() {
+        if (!_brushing && !_brushBars) return;
+        _brushing  = false;
+        _brushBars = null;
+        _syncOverview();
+        _flushGraphUpdate();
+    }
+
+    function _syncOverview() {
+        var host    = document.getElementById('sankey-overview');
+        var alignEl = document.getElementById('sankey-date-align');
+        if (!host) return;
+        host.hidden = !_overview || !(alignEl && alignEl.checked);
+        if (host.hidden) return;
+        if (_rangeIsFull && !_brushing) {
+            _overview.set(null);
+            return;
+        }
+        _overview.set({from: _barPosition(_rangeMinTs), to: _barPosition(_rangeMaxTs) - 1});
     }
 
     /* ── fetch ─────────────────────────────────────────────── */
@@ -941,6 +1115,8 @@ echo $this->element('genericElements/assetLoader', [
 
         if (stageEl)  stageEl.style.display  = '';
         _dateZone = null;
+        _overview = null;
+        _syncOverview();
         _hideExcludeButton(0);
         if (zoomEl)   zoomEl.classList.add('d-none');
         if (listEl)   listEl.style.display   = 'none';
@@ -1076,6 +1252,7 @@ echo $this->element('genericElements/assetLoader', [
 
         _computeDateDomain(eventDetails);
         _syncZoomBadge();
+        _buildOverview(eventDetails);
         renderSankey(data, eventDetails, null,
             options.morph ? {morph: true} : (options.animateToggle ? {animateToggle: true} : {}));
         renderCorrelationsList(eventDetails, eventCounts, attributeMap);
@@ -1336,6 +1513,7 @@ echo $this->element('genericElements/assetLoader', [
 
         document.getElementById('sankey-date-align').addEventListener('change', function () {
             _syncZoomBadge();
+            _syncOverview();
             /* the period filter follows the axis, and a graph drawn without
                the axis has no date column to slide into */
             if (!_rangeIsFull || (this.checked && !_dateZone)) {
