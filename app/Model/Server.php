@@ -5569,7 +5569,7 @@ class Server extends AppModel
                 ),
                 'enable_themes' => array(
                     'level' => 0,
-                    'description' => __('Enable themes for users of the instance. Currently this is used to allow users to opt-in to a the various preview/beta modes.'),
+                    'description' => __('Let users choose a theme other than Overmind, and MISP.default_theme set one for the instance. The classic interface (Default) is only reachable this way, and is deprecated. Overmind is always available, whatever this setting says.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -5578,8 +5578,8 @@ class Server extends AppModel
                 ),
                 'default_theme' => array(
                     'level' => 2,
-                    'description' => __('Set a default theme for the instance. This is mostly used for developer purposes for now, but will be more interesting in the future.'),
-                    'value' => false,
+                    'description' => __('The theme pages render with for users who have not chosen one. Only applies when MISP.enable_themes is on; Overmind otherwise, or when unset. Default, the classic interface, is deprecated and will be removed in a future release.'),
+                    'value' => 'Overmind',
                     'test' => 'testTheme',
                     'type' => 'string',
                     'optionsSource' => function () {

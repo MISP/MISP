@@ -1,6 +1,8 @@
 <?php
 class MispTheme
 {
+    const DEFAULT_THEME = 'Overmind';
+
     public $name;
     public $label;
     public $description;
@@ -64,7 +66,7 @@ class MispTheme
      * @param bool $showHiddenThemes Whether to include hidden themes (e.g. for developers)
      * @return MispTheme[]
      */
-    public static function getAvailableThemes($currentActiveTheme = 'Default', $showHiddenThemes = false)
+    public static function getAvailableThemes($currentActiveTheme = self::DEFAULT_THEME, $showHiddenThemes = false)
     {
         $userSetting = ClassRegistry::init('UserSetting');
         $themeNames = $userSetting::VALID_SETTINGS['ui_theme']['options'];
@@ -76,8 +78,8 @@ class MispTheme
             $hideFromUsers = false;
 
             if ($name === 'Default') {
-                $label = __('Default UI');
-                $description = __('The classic MISP interface.');
+                $label = __('Classic UI (deprecated)');
+                $description = __('The classic MISP interface. Deprecated: it will be removed in a future release.');
             } else {
                 $themeFile = APP . 'View' . DS . 'Themed' . DS . $name . DS . 'theme.php';
                 if (file_exists($themeFile)) {

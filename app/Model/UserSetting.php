@@ -158,8 +158,8 @@ class UserSetting extends AppModel
             'validation' => 'validate_json',
         ],
         'ui_theme' => [
-            'placeholder' => 'Default, Overmind, UiBeta, EventTest',
-            'options' => ['Default', 'Overmind', 'UiBeta', 'EventTest'],
+            'placeholder' => 'Overmind, UiBeta, EventTest, Default',
+            'options' => ['Overmind', 'UiBeta', 'EventTest', 'Default'],
             'validation' => 'validate_theme',
         ],
         // No static options: themes are discovered from the build output.
