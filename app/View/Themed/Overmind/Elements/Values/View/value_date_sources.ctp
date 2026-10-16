@@ -50,7 +50,9 @@ $held = $clockKind;
  *
  * Each chain then falls through to the row that is
  * actually populated: naming a column nothing set would
- * point the badge at an empty cell.
+ * point the badge at an empty cell. Below the seen dates
+ * each occurrence reads its creation time or its last
+ * write, so a mixed set marks both.
  */
 $chain = $held === 'org_joined'
     ? array('first_seen', 'last_seen')
@@ -59,15 +61,22 @@ $declared = array(
     'first_seen' => $facts['with_first_seen'] > 0,
     'last_seen' => $facts['with_last_seen'] > 0,
 );
-$usedRow = empty($facts['created_at']) ? 'written' : 'created';
+$recordedCreated = (int)($facts['recorded_created'] ?? 0);
+$usedRows = array();
+if ($recordedCreated > 0) {
+    $usedRows[] = 'created';
+}
+if ($recordedCreated < $facts['occurrences']) {
+    $usedRows[] = 'written';
+}
 if (in_array($held, array('sighting', 'foreign_sighting'),
     true)
 ) {
-    $usedRow = 'sighting';
+    $usedRows = array('sighting');
 } else {
     foreach ($chain as $candidate) {
         if (!empty($declared[$candidate])) {
-            $usedRow = $candidate;
+            $usedRows = array($candidate);
             break;
         }
     }
@@ -118,11 +127,18 @@ $rows = array(
     ),
     array(
         'key' => 'created',
-        'what' => __('Recorded'),
-        'from' => array('Attribute', 'creation_datetime'),
-        'value' => $day($facts['created_at'] ?? null),
-        'absent' => __('MISP stores no creation date for'
-            . ' an attribute yet'),
+        'what' => __('Recorded here'),
+        'from' => array('Attribute', 'created'),
+        'value' => $day($facts['created_first'] ?? null),
+        'note' => $facts['occurrences'] > 0
+            && !empty($facts['created_first'])
+            ? sprintf(
+                __('%1$s of %2$s occurrences'),
+                $facts['with_created'],
+                $facts['occurrences']
+            )
+            : null,
+        'absent' => __('not recorded before MISP 3.0'),
     ),
     array(
         'key' => 'written',
@@ -169,14 +185,14 @@ $rows = array(
         </thead>
         <tbody>
             <?php foreach ($rows as $row): ?>
-                <tr class="<?= $row['key'] === $usedRow
+                <tr class="<?= in_array($row['key'], $usedRows, true)
                     ? 'is-held'
                     : '' ?><?= $row['value'] === null
                         ? ' is-absent'
                         : '' ?>">
                     <td>
                         <?= h($row['what']) ?>
-                        <?php if ($row['key'] === $usedRow): ?>
+                        <?php if (in_array($row['key'], $usedRows, true)): ?>
                             <span class="vp-dates-held"
                                   title="<?= h(__('The'
                                       . ' date the clock'
@@ -224,8 +240,9 @@ $rows = array(
     <p class="vp-dates-foot">
         <?= h(__('Only the first three are observations.'
             . ' The rest record when MISP was written'
-            . ' to, which is always later and moves'
-            . ' again on every edit — so the clock takes'
-            . ' them only when nothing better exists.')) ?>
+            . ' to, which is always later — so the clock'
+            . ' takes them only when nothing better'
+            . ' exists, and the creation time before the'
+            . ' last write, which moves on every edit.')) ?>
     </p>
 </details>

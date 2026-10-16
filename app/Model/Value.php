@@ -137,24 +137,16 @@ class Value extends AppModel
      * that the clock, the recency signal, the continuity months and the
      * registration age cannot disagree about what a date means.
      *
-     * `Attribute.timestamp` is **last-modified**: an edit, a tag, a
-     * sync update or a delete bumps it, and it is what sync compares to
-     * decide which copy is newer. It stays as the last resort because
-     * every row has one, and it is the last resort because a row write
-     * is not an observation. `first_seen` and `last_seen` are `bigint`
-     * **microseconds**, hence the divisor.
+     * The last resort is `recordedAt()`, when the row was recorded,
+     * because every row has one and a recording is not an observation.
+     * `first_seen` and `last_seen` are `bigint` **microseconds**, hence
+     * the divisor.
      *
      * **`_AT` is the recency end, `_FROM` the earliest.** The same
      * declared window answers two questions — *how recently was this
      * observed* wants `last_seen`, *when did this organisation first
      * report it* wants `first_seen` — so the two orders are the same
      * chain read from opposite ends.
-     *
-     * **`Attribute.creation_datetime` goes immediately before
-     * `Attribute.timestamp` in both, once the table has it**: a real
-     * creation date beats a row write, and a declared observation still
-     * beats a creation date. The chain asks the schema for it rather
-     * than naming it unconditionally, and converts it by its type.
      *
      * Measured on 2.92M live attributes: `last_seen` is set on 16.2%
      * against `first_seen`'s 6.2%, and 295,924 `last_seen` values carry
@@ -169,9 +161,9 @@ class Value extends AppModel
     {
         return 'COALESCE('
             . 'FLOOR(Attribute.last_seen / 1000000),'
-            . ' FLOOR(Attribute.first_seen / 1000000),'
-            . $this->createdIn()
-            . ' Attribute.timestamp)';
+            . ' FLOOR(Attribute.first_seen / 1000000), '
+            . self::recordedAt()
+            . ')';
     }
 
     /**
@@ -183,45 +175,44 @@ class Value extends AppModel
     {
         return 'COALESCE('
             . 'FLOOR(Attribute.first_seen / 1000000),'
-            . ' FLOOR(Attribute.last_seen / 1000000),'
-            . $this->createdIn()
-            . ' Attribute.timestamp)';
+            . ' FLOOR(Attribute.last_seen / 1000000), '
+            . self::recordedAt()
+            . ')';
     }
 
     /**
-     * `Attribute.creation_datetime` as a link of the chain, in seconds,
-     * or an empty string while the table has no such column.
+     * When this instance recorded the attribute, in seconds, as SQL:
+     * `created`, unless `timestamp` is earlier.
      *
-     * A `datetime` column is converted, in the connection's time zone;
-     * an integer one is read the way its neighbours are — `biginteger`
-     * as microseconds like `first_seen`, `integer` as seconds like
-     * `timestamp`.
+     * `created` is when this instance created the row, so on a pulled
+     * attribute it is the pull, later than the origin's own `timestamp`
+     * — read bare, a newly joined instance would date every value
+     * today. Rows from before MISP 3.0 have no `created` (0). Either
+     * way the answer is never later than `timestamp`.
      *
+     * @param string $alias
      * @return string
      */
-    private function createdIn()
+    public static function recordedAt($alias = 'Attribute')
     {
-        if ($this->createdLink !== null) {
-            return $this->createdLink;
-        }
-        $field = $this->attributes()->schema('creation_datetime');
-        $type = is_array($field) && isset($field['type'])
-            ? $field['type']
-            : null;
-        switch ($type) {
-            case null:
-                $link = '';
-                break;
-            case 'biginteger':
-                $link = ' FLOOR(Attribute.creation_datetime / 1000000),';
-                break;
-            case 'integer':
-                $link = ' Attribute.creation_datetime,';
-                break;
-            default:
-                $link = ' UNIX_TIMESTAMP(Attribute.creation_datetime),';
-        }
-        return $this->createdLink = $link;
+        return "CASE WHEN $alias.created > 0"
+            . " AND $alias.created <= $alias.timestamp"
+            . " THEN $alias.created ELSE $alias.timestamp END";
+    }
+
+    /**
+     * `recordedAt()` for one row already fetched.
+     *
+     * @param array $attribute With `timestamp` and, optionally, `created`
+     * @return int 0 when the row has neither
+     */
+    public static function recordedStamp(array $attribute)
+    {
+        $timestamp = (int)($attribute['timestamp'] ?? 0);
+        $created = (int)($attribute['created'] ?? 0);
+        return $created > 0 && $created <= $timestamp
+            ? $created
+            : $timestamp;
     }
 
     const DATE_TYPE = 'datetime';
@@ -253,9 +244,6 @@ class Value extends AppModel
      * @var MispAttribute
      */
     private $attributeModel = null;
-
-    /** @var string|null `createdIn()`'s answer, once asked */
-    private $createdLink = null;
 
     /**
      * @return MispAttribute
@@ -1009,38 +997,6 @@ class Value extends AppModel
     }
 
     /**
-     * Everything the assessment's aggregate class needs about the
-     * record, in one query.
-     *
-     * `occurrenceSummaryFor`'s five numbers plus the three the signal strength
-     * ledger reads — how much of the reporting is published, how many
-     * occurrences date their own observation, and the worst
-     * encoding-against-event lag — because they are all single-row
-     * aggregates over the same join and a second query for them would
-     * buy nothing. The summary keeps its own contract; five panels
-     * already read it and none of them wants these three.
-     *
-     * **Soft-deleted occurrences are excluded, and that is a
-     * judgement rather than tidying.** A withdrawn attribute is a
-     * claim its organisation took back; scoring it would let a
-     * retracted report keep arguing. `occurrenceSummaryFor` counts
-     * them because the Occurrences tab *shows* them — a row a reader
-     * can see has to be in the total above it (§14.6) — and an
-     * assessment has the opposite obligation.
-     *
-     * The lag is `Event.date` against the attribute's own timestamp:
-     * the encoding date against the date the event says the thing
-     * happened. `06-staleness.md` §3.6 makes it one of the two inputs
-     * that put the relevance axis into *timeline uncertain*, and
-     * `record.temporal_precision` reads the same fact as a signal strength
-     * signal.
-     *
-     * @param array $user
-     * @param string $value
-     * @param array $options As conditionsFor
-     * @return array
-     */
-    /**
      * Every date MISP holds for this value, side by side, in one row.
      *
      * The relevance card's provenance table. Its point is that the axis
@@ -1057,10 +1013,9 @@ class Value extends AppModel
      * its string, because a day is all it holds and rendering it as a
      * timestamp would invent an hour.
      *
-     * **`created_at` is the earliest `Attribute.creation_datetime`**,
-     * and null while the table has no such column. The card draws the
-     * row either way, so the gap is visible rather than merely
-     * unmentioned.
+     * `created_first`/`created_last` span the occurrences that carry a
+     * creation time, `with_created` counts them, and `recorded_created`
+     * counts those whose `recordedAt()` reads it.
      *
      * @param array $user
      * @param string $value
@@ -1083,6 +1038,13 @@ class Value extends AppModel
                 'SUM(Attribute.last_seen IS NOT NULL) AS with_last_seen',
                 'MIN(Attribute.timestamp) AS written_first',
                 'MAX(Attribute.timestamp) AS written_last',
+                'MIN(NULLIF(Attribute.created, 0)) AS created_first',
+                'MAX(Attribute.created) AS created_last',
+                'SUM(CASE WHEN Attribute.created > 0'
+                    . ' THEN 1 ELSE 0 END) AS with_created',
+                'SUM(CASE WHEN Attribute.created > 0'
+                    . ' AND Attribute.created <= Attribute.timestamp'
+                    . ' THEN 1 ELSE 0 END) AS recorded_created',
                 'MIN(Event.date) AS event_date_first',
                 'MAX(Event.date) AS event_date_last',
                 'MAX(Event.publish_timestamp) AS published_last',
@@ -1094,10 +1056,6 @@ class Value extends AppModel
             'recursive' => -1,
             'contain' => array('Event', 'Object'),
         );
-        $created = rtrim(trim($this->createdIn()), ',');
-        if ($created !== '') {
-            $params['fields'][] = 'MIN(' . $created . ') AS created_first';
-        }
         $row = $attributes->find('first', $params);
         $found = empty($row[0]) ? array() : $row[0];
         $stamp = function ($key) use ($found) {
@@ -1123,88 +1081,35 @@ class Value extends AppModel
                 : (string)$found['event_date_last'],
             'published_last' => $stamp('published_last'),
             'published_events' => (int)($found['published_events'] ?? 0),
-            'created_at' => $stamp('created_first'),
+            'created_first' => $stamp('created_first'),
+            'created_last' => $stamp('created_last'),
+            'with_created' => (int)($found['with_created'] ?? 0),
+            'recorded_created' => (int)($found['recorded_created'] ?? 0),
         );
     }
 
     /**
-     * **Which column is "when this was reported" — the open question.**
+     * Everything the assessment's aggregate class needs about the
+     * record, in one query.
      *
-     * Every aggregate on this model that means *when* currently reads
-     * `Attribute.timestamp`, and that column is **last-modified**: an
-     * edit, a tag, a sync update or a delete bumps it, and it is what
-     * sync compares to decide which copy is newer. MISP stores **no
-     * creation date for an attribute**, so there is nothing to swap it
-     * for today.
+     * `occurrenceSummaryFor`'s numbers plus the two the signal strength
+     * ledger reads — how much of the reporting is published and how
+     * many occurrences date their own observation. `oldest` and
+     * `newest` go through `observedFrom()`/`observedAt()`, so an edit
+     * does not move them.
      *
-     * What that costs, measured on this instance:
+     * **Soft-deleted occurrences are excluded, and that is a
+     * judgement rather than tidying.** A withdrawn attribute is a
+     * claim its organisation took back; scoring it would let a
+     * retracted report keep arguing. `occurrenceSummaryFor` counts
+     * them because the Occurrences tab *shows* them — a row a reader
+     * can see has to be in the total above it — and an assessment has
+     * the opposite obligation.
      *
-     *   - the relevance clock's occurrence half is `MIN(timestamp)` per
-     *     organisation, so **editing an old occurrence moves that
-     *     organisation's "join" date forward** and the value reads as
-     *     freshly corroborated. `8.8.8.8` shows 223 days of drift
-     *     between DECEA's earliest event date and its computed join
-     *     date, and 5 of its 26 occurrences were written after their
-     *     event was published. Nothing in the data separates *reported
-     *     later* from *edited later*;
-     *   - `lifecycle.recency` says *"Last reported N days ago"* off
-     *     `MAX(timestamp)`, and `lifecycle.continuity` counts a month
-     *     of activity for a month that only contains an edit. Both
-     *     score, so this reaches the verdict.
-     *
-     * **The agreed chain, for when the columns exist.** Prefer a
-     * declared observation over a row write, and fall through:
-     *
-     * ```
-     * recency   ← Sighting.date_sighting        (already its own clock event)
-     *           ← Attribute.last_seen
-     *           ← Attribute.first_seen
-     *           ← Attribute.creation_datetime   (when it lands)
-     *           ← Attribute.timestamp           (last resort)
-     *
-     * earliest  ← Attribute.first_seen
-     *           ← Attribute.last_seen
-     *           ← Attribute.creation_datetime   (when it lands)
-     *           ← Attribute.timestamp           (last resort)
-     * ```
-     *
-     * Two directions rather than one list, because the same window
-     * answers two questions: *when did this organisation first report
-     * it* wants the start, and *how recently was it recorded* wants the
-     * end.
-     *
-     * **`creation_datetime` slots in above `timestamp` and below the
-     * seen dates** — it is a real creation date, so it beats a row
-     * write, and it is still a recording date, so a declared observation
-     * beats it. `observedAt()`/`observedFrom()` include it as soon as
-     * the table has the column. §3.6's uncertainty rule then gains a
-     * fourth answer: a value with a creation date and no seen dates is
-     * datable to its record, which is not the same as datable to its
-     * observation.
-     *
-     * **Units differ and the comparison must convert.** `first_seen`
-     * and `last_seen` are `bigint` **microseconds**; `timestamp` and
-     * `date_sighting` are seconds. So `last_seen / 1000000`.
-     *
-     * **Availability, and why `last_seen` leads the recency chain**
-     * (2.92M live attributes on the dev instance):
-     *
-     * | column | set | note |
-     * |---|---|---|
-     * | `last_seen` | 473,327 (16.2%) | 295,924 of them carry **no** `first_seen` |
-     * | `first_seen` | 179,878 (6.2%) | only 2,475 without a `last_seen` |
-     *
-     * **And the substitution is safe in the conservative direction.**
-     * 472,749 of 473,327 `last_seen` values (99.88%) precede the row
-     * write, by 4 days on average and 226 at most; 578 follow it and
-     * **none** is in the future. So reading the observation instead of
-     * the write moves the clock *earlier* — values read staler, never
-     * fresher, which is the direction §3.5's asymmetry asks for.
-     *
-     * Recorded rather than built: the chain changes what every value on
-     * an instance reads, and `06-staleness.md` §7.11 is the standing
-     * example of why a date this load-bearing gets decided before it
-     * gets written.
+     * @param array $user
+     * @param string $value
+     * @param array $options As conditionsFor
+     * @return array
      */
     public function recordSummaryFor(array $user, $value,
         array $options = array()
@@ -1222,29 +1127,6 @@ class Value extends AppModel
                 'MAX(' . $this->observedAt() . ') AS newest',
                 'COUNT(DISTINCT CASE WHEN Event.published = 1'
                     . ' THEN Event.id END) AS published',
-                /*
-                 * `max_lag_days` was here, as
-                 * `MAX(TIMESTAMPDIFF(DAY, Event.date,
-                 * FROM_UNIXTIME(Attribute.timestamp)))`, and it is
-                 * gone rather than fixed because there is nothing to
-                 * fix it to. **The attributes table has no created
-                 * column** — `timestamp` is last-modified, bumped by
-                 * an edit, a tag, a sync update or a delete, and it is
-                 * what sync compares to decide which copy is newer. So
-                 * the expression measured *analyst-assigned event date
-                 * → whenever somebody last touched this row*, which is
-                 * neither an encoding delay nor anything else with a
-                 * name. On `8.8.8.8` its 302-day maximum came from an
-                 * attribute last written the day after its event was
-                 * published.
-                 *
-                 * `Event.date` is the other half of the objection: it
-                 * is a date an analyst types, so it carries the same
-                 * delay the measurement was trying to detect.
-                 *
-                 * What replaces it is not a measurement at all — see
-                 * `ValueRelevanceTool`'s `undated_assumed_days`.
-                 */
                 'SUM(CASE WHEN Attribute.first_seen IS NOT NULL'
                     . ' THEN 1 ELSE 0 END) AS dated',
             ),
@@ -1718,6 +1600,7 @@ class Value extends AppModel
                 'Attribute.event_id',
                 'Attribute.type',
                 'Attribute.timestamp',
+                'Attribute.created',
                 // Both ends of the span, because the Timeline's seen
                 // lane is the one consumer that needs the low end and
                 // it needs it for the same rows this already reads.
@@ -1783,6 +1666,7 @@ class Value extends AppModel
                 'Attribute.event_id',
                 'Attribute.type',
                 'Attribute.timestamp',
+                'Attribute.created',
                 // Both ends of the span, because the Timeline's seen
                 // lane is the one consumer that needs the low end and
                 // it needs it for the same rows this already reads.
@@ -1843,6 +1727,7 @@ class Value extends AppModel
                 'event_id' => (int)$row['Attribute']['event_id'],
                 'type' => $row['Attribute']['type'],
                 'timestamp' => (int)$row['Attribute']['timestamp'],
+                'created' => (int)($row['Attribute']['created'] ?? 0),
                 'first_seen' => $row['Attribute']['first_seen'] ?? null,
                 'last_seen' => $row['Attribute']['last_seen'] ?? null,
                 'deleted' => !empty($row['Attribute']['deleted']),

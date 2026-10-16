@@ -206,7 +206,7 @@ $state = $relevance['state'];
             ?>
             <div class="vp-shelf-why">
                 <?= h(__('No occurrence says when this value was seen,'
-                    . ' only when it was last edited.')) ?>
+                    . ' only when it was recorded.')) ?>
                 <?php if ($assumed > 0): ?>
                     <?= h(sprintf(
                         __n(
