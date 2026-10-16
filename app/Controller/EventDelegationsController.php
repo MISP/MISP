@@ -119,7 +119,7 @@ class EventDelegationsController extends AppController
                 $this->Flash->success('Delegation request created.');
                 $this->redirect([
                     'controller' => 'events',
-                    'action' => $this->theme === 'Overmind' ? 'view2' : 'view',
+                    'action' => 'view',
                     $id
                 ]);
             } else {

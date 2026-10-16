@@ -2,6 +2,7 @@
 
 App::uses('AppController', 'Controller');
 App::uses('JsonTool', 'Tools');
+App::uses('IndexPicker', 'Tools');
 
 /**
  * @property MispObject $MispObject
@@ -25,10 +26,193 @@ class ObjectsController extends AppController
         if (!$this->_isRest()) {
             $this->Security->unlockedActions = array('revise_object', 'get_row', 'similar_objects');
         }
-        // The delete confirmations post a hand-built body through fetch(), so
-        // there is no field hash for _validatePost() to compare and it can only
-        // blackhole. CSRF is still enforced, through the X-CSRF-Token header.
-        $this->_csrfTokenHeaderOnly(['delete', 'deleteSelection']);
+        // The delete confirmations post a hand-built body through fetch(), and the
+        // event Timeline posts editField as JSON, so there is no field hash for
+        // _validatePost() to compare and it can only blackhole.
+        // CSRF is still enforced, through the X-CSRF-Token header.
+        $this->_csrfTokenHeaderOnly(['delete', 'deleteSelection', 'editField']);
+    }
+
+    /**
+     * Objects from every event the user can see. An Overmind page with no
+     * API form: /objects/restSearch is the API.
+     */
+    public function index()
+    {
+        $this->__htmlOnly();
+        if (!MispTheme::carriesView($this->theme, 'Objects', 'index')) {
+            $this->Flash->info(__('The objects index needs the Overmind theme.'));
+            return $this->redirect(['controller' => 'attributes', 'action' => 'index']);
+        }
+        $user = $this->Auth->user();
+        $filters = $this->__indexFilters();
+        $page = (int)($this->request->params['named']['page'] ?? ($this->request->query['page'] ?? 1));
+        $sort = $this->request->params['named']['sort'] ?? 'timestamp';
+        $direction = $this->request->params['named']['direction'] ?? 'desc';
+        $result = $this->MispObject->fetchIndexPage($user, $filters, $page, $sort, $direction);
+
+        $page = max(1, $page);
+        $this->params->params['paging'] = ['MispObject' => [
+            'page' => $page,
+            'current' => count($result['rows']),
+            'count' => null,
+            'prevPage' => $page > 1,
+            'nextPage' => $result['nextPage'],
+            'pageCount' => $page,
+            'order' => null,
+            'limit' => MispObject::INDEX_LIMIT,
+            'options' => ['sort' => $sort, 'direction' => $direction, 'page' => $page],
+            'paramType' => 'named',
+        ]];
+
+        $this->set('objects', $result['rows']);
+        $this->set('valueTruncated', $result['valueTruncated']);
+        $this->set('indexFilters', $filters);
+        $this->set('valueRowCap', MispObject::INDEX_VALUE_ROWS);
+        $this->set('templateOptions', $this->MispObject->indexTemplateOptions());
+        $this->set('relationOptions', $this->__indexRelationOptions($filters));
+        $this->set('canPickOrgs', IndexPicker::canPickOrgs($user));
+        $this->set('filterLabels', IndexPicker::resolve($user, [
+            'org' => array_merge($filters['org']['in'], $filters['org']['out']),
+            'sharinggroup' => array_merge($filters['sharinggroup']['in'], $filters['sharinggroup']['out']),
+        ]));
+        $this->set('title_for_layout', __('Objects'));
+        $this->set('menuData', ['menuList' => 'event-collection', 'menuItem' => 'listObjects']);
+    }
+
+    /**
+     * One object of the index, expanded: the card the event's Objects tab
+     * draws, read-only.
+     *
+     * @param int $id
+     */
+    public function indexCard($id)
+    {
+        $this->__htmlOnly();
+        $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
+        $object = $this->MispObject->fetchObjectSimple($user, [
+            'conditions' => ['Object.id' => (int)$id, 'Object.deleted' => 0],
+            'fields' => ['Object.id', 'Object.event_id'],
+        ]);
+        if (empty($object)) {
+            throw new NotFoundException(__('Invalid object.'));
+        }
+        $eventId = (int)$object[0]['Object']['event_id'];
+        $page = $this->MispObject->Event->fetchPaginatedObjects($user, $eventId, [
+            'object' => (int)$id,
+            'limit' => 1,
+        ]);
+        if (empty($page['Object'])) {
+            throw new NotFoundException(__('Invalid object.'));
+        }
+        $this->set('object', $page['Object'][0]);
+        $this->set('eventId', $eventId);
+        $this->layout = false;
+        $this->render('ajax/index_card');
+    }
+
+    /**
+     * The index and its card are HTML only; a REST or extension request
+     * would reach a render with no theme and no view.
+     */
+    private function __htmlOnly()
+    {
+        $ext = $this->request->params['ext'] ?? null;
+        if ($this->_isRest() || ($ext !== null && $ext !== 'html')) {
+            throw new NotFoundException(__('The objects index has no API form; use /objects/restSearch.'));
+        }
+    }
+
+    /**
+     * The index filters, from the query string (or named parameters), in the
+     * shape MispObject::indexConditions() takes. A list takes `|` between
+     * values and `!` before one to exclude it.
+     *
+     * @return array
+     */
+    private function __indexFilters()
+    {
+        $raw = function ($key) {
+            $value = $this->request->query[$key] ?? ($this->request->params['named'][$key] ?? null);
+            if (is_array($value)) {
+                return array_map('strval', array_values($value));
+            }
+            return $value === null ? null : trim((string)$value);
+        };
+        $pieces = function ($key) use ($raw) {
+            $value = $raw($key);
+            $list = is_array($value) ? $value : explode('|', (string)$value);
+            return array_values(array_filter(array_map('trim', $list), 'strlen'));
+        };
+        $inOut = function ($key, $cast = null) use ($pieces) {
+            $out = ['in' => [], 'out' => []];
+            foreach ($pieces($key) as $piece) {
+                $side = $piece[0] === '!' ? 'out' : 'in';
+                $piece = ltrim($piece, '!');
+                if ($piece === '' || ($cast === 'int' && !ctype_digit($piece))) {
+                    continue;
+                }
+                $out[$side][] = $cast === 'int' ? (int)$piece : $piece;
+            }
+            return $out;
+        };
+        $time = function ($key) use ($raw) {
+            $value = $raw($key);
+            if ($value === null || $value === '' || $value === []) {
+                return null;
+            }
+            $resolve = function ($v, $end) {
+                $v = trim((string)$v);
+                if ($v === '') {
+                    return null;
+                }
+                $ts = $this->MispObject->resolveTimeDelta($v);
+                // A day given as a bound covers the whole day.
+                return $end && preg_match('/^\d{4}-\d{2}-\d{2}$/', $v) ? $ts + 86399 : $ts;
+            };
+            if (is_array($value)) {
+                return [$resolve($value[0] ?? '', false), $resolve($value[1] ?? '', true)];
+            }
+            return [$resolve($value, false), null];
+        };
+
+        $event = $raw('event');
+        $filters = [
+            'template' => $inOut('template'),
+            'template_uuid' => array_values(array_filter(
+                array_map('strtolower', $pieces('template_uuid')),
+                [Validation::class, 'uuid']
+            )),
+            'value' => is_string($raw('value')) && $raw('value') !== '' ? $raw('value') : null,
+            'relation' => is_string($raw('relation')) && $raw('relation') !== '' ? $raw('relation') : null,
+            'org' => Configure::read('MISP.showorg') ? $inOut('org', 'int') : ['in' => [], 'out' => []],
+            'my_org' => $raw('my_org') === '1',
+            'event' => is_string($event) && (ctype_digit($event) || Validation::uuid($event)) ? $event : null,
+            'timestamp' => $time('timestamp'),
+            'first_seen' => $time('first_seen'),
+            'last_seen' => $time('last_seen'),
+            'distribution' => $inOut('distribution', 'int'),
+            'sharinggroup' => $inOut('sharinggroup', 'int'),
+        ];
+        return $filters;
+    }
+
+    /**
+     * The relation picker's options: only once exactly one template is
+     * picked, from that template's definition.
+     *
+     * @param array $filters
+     * @return string[]
+     */
+    private function __indexRelationOptions(array $filters)
+    {
+        $names = $filters['template']['in'];
+        $uuids = $filters['template_uuid'];
+        if (count($names) + count($uuids) !== 1) {
+            return [];
+        }
+        return $this->MispObject->indexRelationOptions($names[0] ?? null, $uuids[0] ?? null);
     }
 
     public function revise_object($action, $event_id, $template_id, $object_id = false, $update_template_available = false, $similar_objects_display_threshold=15)
@@ -302,7 +486,7 @@ class ObjectsController extends AppController
                     if (is_numeric($result)) {
                         $this->Flash->success($groupMessage ?? 'Object saved.');
                         if ($this->theme === 'Overmind') {
-                            $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId, '#' => 'tab-objects'));
+                            $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, '#' => 'tab-objects'));
                         } else {
                             $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                         }
@@ -732,7 +916,7 @@ class ObjectsController extends AppController
         if (empty($template) && !$this->_isRest() && !$update_template_available) {
             $this->Flash->error('Object cannot be edited, no valid template found. ', ['params' => ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')]]);
             if($this->theme === "Overmind"){
-                $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id'], '#' => 'tab-objects'));
+                $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id'], '#' => 'tab-objects'));
             } else {
                 $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
             }
@@ -847,7 +1031,7 @@ class ObjectsController extends AppController
                         $this->Flash->error($error_message);
                     }
                     if ($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $object['Object']['event_id'], '#' => 'tab-objects'));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id'], '#' => 'tab-objects'));
                     } else {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
                     }
@@ -892,7 +1076,7 @@ class ObjectsController extends AppController
         $this->set('templateList', []);
         // The relationship step lists what the object already points at, so that
         // an edit can drop one.
-        $this->set('existingReferences', $this->MispObject->ObjectReference->find('all', [
+        $existingReferences = $this->MispObject->ObjectReference->find('all', [
             'recursive' => -1,
             'conditions' => [
                 'ObjectReference.object_id' => $object['Object']['id'],
@@ -904,7 +1088,11 @@ class ObjectsController extends AppController
                 'ObjectReference.relationship_type', 'ObjectReference.comment',
             ],
             'order' => ['ObjectReference.id' => 'ASC'],
-        ]));
+        ]);
+        $this->set('existingReferences', $existingReferences);
+        $this->set('referenceTargets', $this->MispObject->ObjectReference->describeTargets(
+            $this->Auth->user(), array_column($existingReferences, 'ObjectReference')
+        ));
         $this->render('add');
     }
 
@@ -1470,18 +1658,94 @@ class ObjectsController extends AppController
                 $object['Object']['Attribute'] = $object['Attribute'];
             }
             return $this->RestResponse->viewData(array('Object' => $object['Object']), $this->response->type());
+        } else if (($this->theme ?? null) === 'Overmind') {
+            $this->redirect([
+                'controller' => 'events',
+                'action' => 'view',
+                $object['Object']['event_id'],
+                'object' => $object['Object']['id'],
+                '#' => 'tab-objects',
+            ]);
         } else {
-            if ($this->theme === 'Overmind') {
-                $this->redirect([
-                    'controller' => 'events',
-                    'action' => 'view2',
-                    $object['Object']['event_id'],
-                    'searchFor' => $object['Object']['uuid'],
-                    '#' => 'tab-objects',
-                ]);
-            }
             $this->redirect('/events/view/' . $object['Object']['event_id']);
         }
+    }
+
+    /**
+     * The objects one reference away from this one, either direction, in its
+     * own event, and the references between all of them.
+     */
+    public function surroundings($uuid)
+    {
+        $this->request->allowMethod(['get']);
+        if (!Validation::uuid($uuid)) {
+            throw new NotFoundException(__('Invalid object.'));
+        }
+        $user = $this->Auth->user();
+        $center = $this->MispObject->fetchObjectSimple($user, [
+            'conditions' => ['Object.uuid' => $uuid, 'Object.deleted' => 0],
+            'fields' => ['Object.id', 'Object.event_id'],
+        ]);
+        if (empty($center)) {
+            throw new NotFoundException(__('Invalid object.'));
+        }
+        $centerId = $center[0]['Object']['id'];
+        $eventId = $center[0]['Object']['event_id'];
+        $live = [
+            'ObjectReference.event_id' => $eventId,
+            'ObjectReference.referenced_type' => 1,
+            'ObjectReference.deleted' => 0,
+        ];
+        $touching = $this->MispObject->ObjectReference->find('all', [
+            'conditions' => $live + ['OR' => [
+                'ObjectReference.object_id' => $centerId,
+                'ObjectReference.referenced_id' => $centerId,
+            ]],
+            'fields' => ['ObjectReference.object_id', 'ObjectReference.referenced_id'],
+            'recursive' => -1,
+        ]);
+        $ids = [$centerId => true];
+        foreach ($touching as $reference) {
+            $ids[$reference['ObjectReference']['object_id']] = true;
+            $ids[$reference['ObjectReference']['referenced_id']] = true;
+        }
+        $objects = $this->MispObject->fetchGraphObjects($user, [
+            'Object.id' => array_map('strval', array_keys($ids)),
+            'Object.event_id' => $eventId,
+        ]);
+        $uuidById = array_column($objects, 'uuid', 'id');
+        $references = [];
+        if (count($uuidById) > 1) {
+            $visible = array_map('strval', array_keys($uuidById));
+            $rows = $this->MispObject->ObjectReference->find('all', [
+                'conditions' => $live + [
+                    'ObjectReference.object_id' => $visible,
+                    'ObjectReference.referenced_id' => $visible,
+                ],
+                'fields' => [
+                    'ObjectReference.uuid', 'ObjectReference.object_id',
+                    'ObjectReference.referenced_id', 'ObjectReference.relationship_type',
+                ],
+                'recursive' => -1,
+            ]);
+            foreach ($rows as $row) {
+                $reference = $row['ObjectReference'];
+                $references[] = [
+                    'uuid' => $reference['uuid'],
+                    'object_uuid' => $uuidById[$reference['object_id']],
+                    'referenced_uuid' => $uuidById[$reference['referenced_id']],
+                    'relationship_type' => $reference['relationship_type'],
+                ];
+            }
+        }
+        unset($objects[$uuid]);
+        $cards = $this->MispObject->Event->correlatedEventCards($user, [$eventId]);
+        return $this->RestResponse->viewData([
+            'objects' => array_values($objects),
+            'references' => $references,
+            'event' => $cards[$eventId] ?? null,
+            'ui_priorities' => $this->MispObject->ObjectTemplate->uiPrioritiesFor(array_values($objects)) ?: new stdClass(),
+        ], 'json');
     }
 
     public function orphanedObjectDiagnostics()

@@ -89,7 +89,7 @@ echo $this->Form->create('Warninglist', [
             <?= $this->Form->text('name', [
                 'id' => 'WarninglistName',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important;'
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                     . ' outline:none;',
                 'maxlength' => 60,
                 'placeholder' => __('e.g. Known public DNS resolvers'),
@@ -116,7 +116,7 @@ echo $this->Form->create('Warninglist', [
                 'id' => 'WarninglistDescription',
                 'class' => 'form-control',
                 'rows' => 2,
-                'style' => 'border-color:#d8dde3;',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                 'placeholder' => __('What this list contains and why a hit matters…'),
             ]) ?>
         </div>
@@ -147,7 +147,7 @@ echo $this->Form->create('Warninglist', [
                                     <?= $selected
                                         ? 'border-color:var(--warninglist) !important;'
                                             . ' background:var(--warninglist-soft);'
-                                        : 'border-color:#d8dde3;' ?>">
+                                        : 'border-color:var(--misp-field-line, #d8dde3);' ?>">
                             <i class="<?= h($meta['icon']) ?>"
                                style="font-size:1rem; color:var(--warninglist);
                                       opacity:<?= $selected ? '1' : '.45' ?>;"></i>
@@ -224,7 +224,7 @@ echo $this->Form->create('Warninglist', [
                 'id' => 'WarninglistEntries',
                 'class' => 'w-100 rounded-2 p-3',
                 'style' => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                    . ' border:1px solid #d8dde3; resize:vertical;'
+                    . ' border:1px solid var(--misp-field-line, #d8dde3); resize:vertical;'
                     . ' outline:none; font-size:.875rem; min-height:200px;'
                     . ' color:inherit; font-family:monospace;',
                 'rows' => 8,
@@ -314,7 +314,7 @@ echo $this->Form->create('Warninglist', [
                 var box = other.querySelector('div');
                 var icon = other.querySelector('i');
                 var on = (other === card);
-                box.style.borderColor = on ? 'var(--warninglist)' : '#d8dde3';
+                box.style.borderColor = on ? 'var(--warninglist)' : 'var(--misp-field-line, #d8dde3)';
                 box.style.background = on ? 'var(--warninglist-soft)' : '';
                 if (icon) { icon.style.opacity = on ? '1' : '.45'; }
             });
@@ -355,17 +355,17 @@ echo $this->Form->create('Warninglist', [
             var underlined = el.tagName === 'INPUT';
             if (!show) {
                 if (underlined) {
-                    el.style.setProperty('border-bottom-color', '#d8dde3', 'important');
+                    el.style.setProperty('border-bottom-color', 'var(--misp-field-line, #d8dde3)', 'important');
                 } else {
-                    el.style.setProperty('border-color', '#d8dde3', 'important');
+                    el.style.setProperty('border-color', 'var(--misp-field-line, #d8dde3)', 'important');
                 }
                 if (existing) { existing.remove(); }
                 return;
             }
             if (underlined) {
-                el.style.setProperty('border-bottom-color', '#dc3545', 'important');
+                el.style.setProperty('border-bottom-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
             } else {
-                el.style.setProperty('border-color', '#dc3545', 'important');
+                el.style.setProperty('border-color', 'var(--misp-tone-red-solid, #dc3545)', 'important');
             }
             if (existing) { return; }
             var msg = document.createElement('div');

@@ -62,6 +62,9 @@ class AttributesController extends AppController
         $this->Security->unlockedActions[] = 'search';
         $this->Security->unlockedActions[] = 'index';
         $this->Security->unlockedActions[] = 'validateValue';
+        // The event pivot explorer's sidebar reads another event's attribute
+        // with hand-built JSON, sending the CSRF token as a header.
+        $this->_csrfTokenHeaderOnly(['restSearch']);
 
         if ($this->request->action === 'add_attachment') {
             $this->Security->unlockedFields = array('values');
@@ -118,7 +121,7 @@ class AttributesController extends AppController
         }
         $params['conditions']['AND'][] = $this->MispAttribute->buildConditions($user);
         $paramArray = [
-            'value' , 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation', 'email', 'galaxy'
+            'value' , 'value_search', 'type', 'category', 'org', 'tags', 'to_ids', 'first_seen', 'last_seen', 'search_token', 'uuid', 'page', 'limit', 'sort', 'direction', 'object_relation', 'email', 'galaxy'
         ];
         $filterData = array(
             'request' => $this->request,
@@ -141,8 +144,8 @@ class AttributesController extends AppController
         }
         $excludeWarninglistHits = (int)($this->request->params['named']['warning']
             ?? ($this->request->query['warning'] ?? 0)) === 2;
-        // A galaxy is not a filter of its own, it stands for the tags its clusters carry.
-        $filters = $this->__massageGalaxyFilter($filters);
+        $galaxyFilter = $filters['galaxy'] ?? null;
+        unset($filters['galaxy']);
         // The index filter bar searches for a substring.
         // Only a value that came in through the URL gets the implicit wildcards - 
         // the search form (POST) and the API keep matching the value they were handed.
@@ -198,7 +201,11 @@ class AttributesController extends AppController
             $params['deleted'] = 1;
         }
         $this->set('params', $params);
+        $galaxyParams = empty($galaxyFilter) ? null : ['tags' => $galaxyFilter] + $filters;
         $conditions = $this->MispAttribute->buildFilterConditions($user, $filters, false);
+        if ($galaxyParams !== null) {
+            $conditions = $this->__addGalaxyConditions($conditions, $galaxyParams);
+        }
         if (!empty($filters['email'])) {
             $conditions = $this->__addCreatorConditions($conditions, $filters['email']);
         }
@@ -319,39 +326,39 @@ class AttributesController extends AppController
         $this->set('export_filters', $export_filters);
         $this->set('sightingsData', $sightingsData);
         $this->set('orgTable', array_column($orgTable, 'name', 'id'));
+        App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
+        $this->set('labelPlan', ValueLabelPriority::planFor(
+            ClassRegistry::init('AnalystProfile')->resolveFor($user)
+        ));
         $this->set('shortDist', $this->MispAttribute->shortDist);
         $this->set('attributes', $attributes);
         $this->set('attrDescriptions', $this->MispAttribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->MispAttribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
         $this->set('distributionLevels', $this->MispAttribute->distributionLevels);
-        $this->__setIndexFilterOptions($orgTable);
+        $this->__setIndexFilterOptions();
         $this->set('menuData',  ['menuList' => 'event-collection', 'menuItem' => 'listAttributes']);
     }
 
     /**
-     * A galaxy has no filter of its own: narrowing down to one means asking for
-     * the tags its clusters carry (`misp-galaxy:<type>="<uuid>"`).
+     * Clusters, named by their tag, as a filter of their own: an attribute must
+     * match it and the tag filter both, as on the events index.
      *
-     * @param array $filters
+     * @param array $conditions
+     * @param array $params the filters, with the clusters as `tags`
      * @return array
      */
-    private function __massageGalaxyFilter(array $filters): array
+    private function __addGalaxyConditions(array $conditions, array $params): array
     {
-        if (empty($filters['galaxy'])) {
-            unset($filters['galaxy']);
-            return $filters;
+        foreach (['Attribute' => true, 'Event' => false] as $scope => $pop) {
+            $conditions = $this->MispAttribute->Event->set_filter_tags($params, $conditions, [
+                'filter' => 'tags',
+                'scope' => $scope,
+                'pop' => $pop,
+                'context' => 'Attribute',
+            ]);
         }
-        $tags = [];
-        foreach ((array)$filters['galaxy'] as $galaxyType) {
-            $tags[] = 'misp-galaxy:' . $galaxyType . '="%"';
-        }
-        if (!empty($filters['tags'])) {
-            $tags = array_merge((array)$filters['tags'], $tags);
-        }
-        $filters['tags'] = $tags;
-        unset($filters['galaxy']);
-        return $filters;
+        return $conditions;
     }
 
     /**
@@ -382,19 +389,28 @@ class AttributesController extends AppController
     }
 
     /**
-     * Option lists for the index filter bar. Galaxy tags are left out of the
-     * tag list, the galaxy dropdown covers them and there are thousands.
+     * Option lists for the index filter bar, and the labels of the
+     * organisations, tags and clusters the URL asks for (they are searched as
+     * you type).
      *
-     * @param array $orgTable Orgc rows keyed by id, as fetched by index()
      * @return void
      */
-    private function __setIndexFilterOptions(array $orgTable)
+    private function __setIndexFilterOptions()
     {
         $this->set($this->MispAttribute->indexFilterOptions());
 
-        $orgNames = array_column($orgTable, 'name');
-        sort($orgNames);
-        $this->set('orgOptions', ['' => ''] + array_combine($orgNames, $orgNames));
+        $values = [];
+        foreach (['org' => 'org', 'tags' => 'tag', 'galaxy' => 'galaxy'] as $param => $kind) {
+            $raw = $this->request->query[$param] ?? ($this->request->params['named'][$param] ?? null);
+            foreach (is_string($raw) ? explode('||', $raw) : [] as $piece) {
+                $piece = ltrim(trim($piece), '!');
+                if ($piece !== '') {
+                    $values[$kind][] = $piece;
+                }
+            }
+        }
+        App::uses('IndexPicker', 'Tools');
+        $this->set('filterLabels', IndexPicker::resolve($this->Auth->user(), $values));
     }
 
     /**
@@ -587,17 +603,17 @@ class AttributesController extends AppController
                 if (empty($fails)) {
                     $this->Flash->success($message);
                     if($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '#' => 'tab-attributes'));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id'], '#' => 'tab-attributes'));
                     }
                 } else {
                     $this->Flash->error($message);
                     if($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id']));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
                     }
                 }
                 if ($successes > 0) {
                     if($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id'], '#' => 'tab-attributes'));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id'], '#' => 'tab-attributes'));
                     } else {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
                     }
@@ -780,11 +796,7 @@ class AttributesController extends AppController
             if (!$this->_isRest()) {
                 $this->MispAttribute->Event->insertLock($this->Auth->user(), $event['Event']['id']);
             }
-            if ($this->theme === "Overmind") {
-                $this->redirect(array('controller' => 'events', 'action' => 'view2', $event['Event']['id']));
-            } else {
-                $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
-            }
+            $this->redirect(array('controller' => 'events', 'action' => 'view', $event['Event']['id']));
         } else {
             // set the event_id in the form
             $this->request->data['Attribute']['event_id'] = $event['Event']['id'];
@@ -985,11 +997,7 @@ class AttributesController extends AppController
                   $saved_attribute = $converter->convertAttribute($saved_attribute, true);
                   return $this->RestResponse->viewData($saved_attribute, $type);
                 } else {
-                    if($this->theme === "Overmind") {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId));
-                    } else {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
-                    }
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                 }
             } else {
                 if ($this->_isRest()) {
@@ -998,7 +1006,7 @@ class AttributesController extends AppController
                     if (!CakeSession::read('Message.flash')) {
                         $this->Flash->error(__('The attribute could not be saved. Please, try again.'));
                         if($this->theme === "Overmind") {
-                            $this->redirect(array('controller' => 'events', 'action' => 'view2', $eventId));
+                            $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                         }
                     } else {
                         $this->request->data = $this->MispAttribute->read(null, $id);
@@ -1133,17 +1141,10 @@ class AttributesController extends AppController
             unset($attribute['Attribute']['value2']);
             $this->set('Attribute', $attribute['Attribute']);
             $this->set('_serialize', array('Attribute'));
+        } else if (($this->theme ?? null) === 'Overmind') {
+            $tab = empty($attribute['Attribute']['object_id']) ? 'attributes' : 'objects';
+            $this->redirect('/events/view/' . $attribute['Attribute']['event_id'] . '#tab-' . $tab);
         } else {
-            if ($this->theme === 'Overmind') {
-                $inObject = !empty($attribute['Attribute']['object_id']);
-                $this->redirect([
-                    'controller' => 'events',
-                    'action' => 'view2',
-                    $attribute['Attribute']['event_id'],
-                    'searchFor' => $attribute['Attribute']['uuid'],
-                    '#' => $inObject ? 'tab-objects' : 'tab-attributes',
-                ]);
-            }
             $this->redirect('/events/view/' . $attribute['Attribute']['event_id']);
         }
     }

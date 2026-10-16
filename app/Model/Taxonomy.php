@@ -602,6 +602,80 @@ class Taxonomy extends AppModel
     }
 
     /**
+     * Lowercased namespaces whose declared colours tell their values apart
+     * (TLP, PAP, ...), as opposed to a generated ramp on a single hue. Tags
+     * of these keep their own colour; every other namespace gets a hue
+     * derived from its name.
+     *
+     * @return string[]
+     */
+    public function semanticPaletteNamespaces()
+    {
+        $key = 'misp:taxonomies_cache:semantic_palettes';
+        try {
+            $redis = RedisTool::init();
+            $cached = $redis->get($key);
+            if (is_string($cached)) {
+                return JsonTool::decode($cached);
+            }
+        } catch (Exception $e) {
+            // ignore
+        }
+
+        $namespaces = $this->find('list', [
+            'fields' => ['Taxonomy.id', 'Taxonomy.namespace'],
+        ]);
+        $predicates = $this->TaxonomyPredicate->find('all', [
+            'fields' => ['id', 'taxonomy_id', 'colour'],
+            'recursive' => -1,
+        ]);
+        $predicateTaxonomy = [];
+        $palettes = [];
+        foreach ($predicates as $predicate) {
+            $predicate = $predicate['TaxonomyPredicate'];
+            $predicateTaxonomy[$predicate['id']] = $predicate['taxonomy_id'];
+            if (!empty($predicate['colour'])) {
+                $palettes[$predicate['taxonomy_id']][] = $predicate['colour'];
+            }
+        }
+        $entries = $this->TaxonomyPredicate->TaxonomyEntry->find('all', [
+            'fields' => ['taxonomy_predicate_id', 'colour'],
+            'conditions' => ['colour !=' => '', 'colour IS NOT NULL'],
+            'recursive' => -1,
+        ]);
+        foreach ($entries as $entry) {
+            $entry = $entry['TaxonomyEntry'];
+            $taxonomyId = $predicateTaxonomy[$entry['taxonomy_predicate_id']] ?? null;
+            if ($taxonomyId !== null) {
+                $palettes[$taxonomyId][] = $entry['colour'];
+            }
+        }
+
+        App::uses('TagChipTool', 'Tools');
+        $semantic = [];
+        foreach ($palettes as $taxonomyId => $colours) {
+            $palette = [];
+            foreach (array_count_values(array_map('strtolower', $colours)) as $hex => $count) {
+                $palette[] = [$hex, $count];
+            }
+            if (isset($namespaces[$taxonomyId]) && TagChipTool::isSemantic($palette)) {
+                $semantic[] = mb_strtolower($namespaces[$taxonomyId]);
+            }
+        }
+        $semantic = array_values(array_unique($semantic));
+        sort($semantic);
+
+        if (isset($redis)) {
+            try {
+                $redis->setex($key, 3600, JsonTool::encode($semantic));
+            } catch (Exception $e) {
+                // ignore
+            }
+        }
+        return $semantic;
+    }
+
+    /**
      * @param string $tagName
      * @param bool $fullTaxonomy
      * @return array|false

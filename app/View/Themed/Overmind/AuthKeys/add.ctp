@@ -56,7 +56,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
             <?= $this->Form->textarea('comment', [
                 'id' => 'AuthKeyComment',
                 'class' => 'form-control',
-                'style' => 'border-color:#d8dde3;',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                 'rows' => 3,
                 'placeholder' => __('A short description to identify this key'),
             ]) ?>
@@ -80,7 +80,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
                     <?= $this->Form->textarea('allowed_ips', [
                         'id' => 'AuthKeyAllowedIps',
                         'class' => 'form-control font-monospace',
-                        'style' => 'border-color:#d8dde3; resize:vertical;',
+                        'style' => 'border-color:var(--misp-field-line, #d8dde3); resize:vertical;',
                         'rows' => 3,
                         'spellcheck' => 'false',
                         'placeholder' => "192.0.2.10\n198.51.100.0/24",
@@ -98,7 +98,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
                     <?= $this->Form->text('expiration', [
                         'id' => 'AuthKeyExpiration',
                         'class' => 'form-control font-monospace',
-                        'style' => 'border-color:#d8dde3;',
+                        'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                         'placeholder' => 'YYYY-MM-DD',
                         'autocomplete' => 'off',
                     ]) ?>

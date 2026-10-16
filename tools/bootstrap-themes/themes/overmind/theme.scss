@@ -1,0 +1,8 @@
+@import "../../scss/misp-functions";
+@import "overmind-variables";
+// The templates' own values are Overmind's palette.
+$misp-surface-tokens: ();
+// Tag chips and the sign-in card keep their own dark look.
+$misp-surface-skip-dark: ("chip-", "login-");
+@import "../../scss/misp-bootstrap";
+@import "overmind";

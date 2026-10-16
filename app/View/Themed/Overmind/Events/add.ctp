@@ -144,14 +144,14 @@ echo $this->Form->create('Event', ['id' => 'EventForm', 'novalidate' => true]);
             ]) ?>
             <?php
             $analysisMeta = [
-                0 => ['tone' => '#0d6efd', 'sub' => __('Raw intelligence')],
-                1 => ['tone' => '#fd7e14', 'sub' => __('Under investigation')],
-                2 => ['tone' => '#198754', 'sub' => __('Verified & closed')],
+                0 => ['tone' => 'var(--misp-tone-blue-solid, #0d6efd)', 'sub' => __('Raw intelligence')],
+                1 => ['tone' => 'var(--misp-tone-orange-solid, #fd7e14)', 'sub' => __('Under investigation')],
+                2 => ['tone' => 'var(--misp-tone-green-solid, #198754)', 'sub' => __('Verified & closed')],
             ];
             $analysisOptions = [];
             foreach ($analysisLevels as $analysisId => $analysisName) {
                 $analysisOptions[] = ($analysisMeta[$analysisId] ?? [
-                    'tone' => '#6c757d',
+                    'tone' => 'var(--misp-tone-gray-solid, #6c757d)',
                 ]) + ['value' => $analysisId, 'title' => $analysisName];
             }
             ?>
@@ -173,10 +173,10 @@ echo $this->Form->create('Event', ['id' => 'EventForm', 'novalidate' => true]);
             ]) ?>
             <?php
             $threatMeta = [
-                4 => ['tone' => '#41464b', 'sub' => __('No risk')],
-                3 => ['tone' => '#ffc107', 'sub' => __('Opportunistic')],
-                2 => ['tone' => '#fd7e14', 'sub' => __('Targeted campaign')],
-                1 => ['tone' => '#dc3545', 'sub' => __('Active exploitation')],
+                4 => ['tone' => 'var(--misp-tone-gray-solid, #41464b)', 'sub' => __('No risk')],
+                3 => ['tone' => 'var(--misp-tone-yellow-solid, #ffc107)', 'sub' => __('Opportunistic')],
+                2 => ['tone' => 'var(--misp-tone-orange-solid, #fd7e14)', 'sub' => __('Targeted campaign')],
+                1 => ['tone' => 'var(--misp-tone-red-solid, #dc3545)', 'sub' => __('Active exploitation')],
             ];
             $threatOptions = [];
             foreach ($threatMeta as $threatId => $meta) {
@@ -192,7 +192,7 @@ echo $this->Form->create('Event', ['id' => 'EventForm', 'novalidate' => true]);
                     $threatOptions[] = [
                         'value' => $threatId,
                         'title' => $threatName,
-                        'tone' => '#6c757d',
+                        'tone' => 'var(--misp-tone-gray-solid, #6c757d)',
                     ];
                 }
             }

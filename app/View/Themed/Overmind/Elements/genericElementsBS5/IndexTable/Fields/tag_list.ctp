@@ -72,13 +72,11 @@ if (empty($data) && empty($tagCollection) && empty($addUrl)) {
     return;
 }
 
-$maxVisible = 4;
 // Count only real tags, not galaxy-tags
 $realTags = array_filter($data, function($t) {
     return !empty($t['Tag']) && empty($t['Tag']['is_galaxy']);
 });
 $totalTags   = count($realTags);
-$hiddenCount = max(0, $totalTags - $maxVisible);
 
 // Nothing attached, nothing to relate
 if ($totalTags === 0) {
@@ -87,7 +85,7 @@ if ($totalTags === 0) {
 
 ?>
 
-<div class="tag-container d-inline-flex flex-wrap align-items-center">
+<div class="tag-container d-inline-flex flex-wrap align-items-center gap-1">
 
 <?php if (!empty($tagCollection)): ?>
     <a
@@ -100,39 +98,28 @@ if ($totalTags === 0) {
 <?php endif; ?>
 
 <?php
-$visibleIndex = 0;
-
-foreach ($data as $tagWrapper) {
-    if (empty($tagWrapper['Tag'])) {
-        continue;
+$realTags = array_values($realTags);
+// Optional reader's label priority; absent or undeclared keeps arrival order
+if (!empty($field['plan'])) {
+    App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
+    foreach ($realTags as $at => $tag) {
+        $realTags[$at]['name'] = $tag['Tag']['name'] ?? null;
+        $realTags[$at]['key'] = ValueLabelPriority::namespaceOf(
+            $realTags[$at]['name']
+        );
     }
-    // Galaxy-tags live in AttributeTag too
-    if (!empty($tagWrapper['Tag']['is_galaxy'])) {
-        continue;
-    }
-
-    $hiddenClass = ($visibleIndex >= $maxVisible) ? 'd-none extra-tag' : '';
-
-    echo $this->element('genericElementsBS5/Badges/tag', [
-        'tag' => $tagWrapper['Tag'],
-        'local' => $tagWrapper['local'] ?? false,
-        'hiddenClass' => $hiddenClass,
-        'showFavourite' => false
-    ]);
-
-    $visibleIndex++;
+    $realTags = ValueLabelPriority::labels(
+        $realTags,
+        $field['plan'],
+        ValueLabelPriority::TAXONOMIES
+    );
 }
+echo $this->TagChip->collection($realTags, [
+    'searchUrl' => '',
+    'fold' => 5,
+    'limit' => 4,
+]);
 ?>
-
-<?php if ($hiddenCount > 0): ?>
-    <span
-        class="badge bg-secondary text-white me-1 mb-1 tag-expand"
-        style="cursor:pointer;"
-        onclick="toggleTags(this)"
-    >
-        +<?= $hiddenCount ?>
-    </span>
-<?php endif; ?>
 
 <?php if (!empty($addUrl)): ?>
     <button

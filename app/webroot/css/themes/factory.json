@@ -1,0 +1,10 @@
+{
+    "label": "Factory",
+    "description": "Gunmetal panels and bevelled steel controls that glow orange, on a factory floor.",
+    "mode": "dark",
+    "fonts": [
+        "Titillium Web"
+    ],
+    "hide_from_users": true,
+    "navbar": "rail"
+}

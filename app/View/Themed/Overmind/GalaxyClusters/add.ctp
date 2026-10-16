@@ -89,7 +89,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
             <?= $this->Form->text('value', [
                 'id' => 'GalaxyClusterValue',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important; outline:none;',
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important; outline:none;',
                 'placeholder' => __('e.g. APT28'),
                 'autocomplete' => 'off',
                 'data-om-required' => 'true',
@@ -110,7 +110,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
             ]) ?>
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
-                'style' => 'border-color:#d8dde3;',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                 'rows' => 3,
                 'placeholder' => __('Briefly describe what this cluster stands for…'),
             ]) ?>
@@ -125,7 +125,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
                 ]) ?>
                 <?= $this->Form->text('source', [
                     'class' => 'form-control',
-                    'style' => 'border-color:#d8dde3;',
+                    'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                     'placeholder' => __('e.g. the report this cluster comes from'),
                 ]) ?>
             </div>
@@ -137,7 +137,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
                 <?= $this->Form->text('authors', [
                     'id' => 'GalaxyClusterAuthors',
                     'class' => 'form-control',
-                    'style' => 'border-color:#d8dde3;',
+                    'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                     'placeholder' => __('e.g. Jane Doe, John Doe'),
                 ]) ?>
             </div>

@@ -184,6 +184,11 @@ class ServersController extends AppController
             $customPagination->truncateByPagination($events, $params);
         }
         $this->set('events', $events);
+        App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
+        $this->set('labelPlan', ValueLabelPriority::planFor(
+            ClassRegistry::init('AnalystProfile')
+                ->resolveFor($this->Auth->user())
+        ));
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
@@ -2641,6 +2646,8 @@ class ServersController extends AppController
             'request_encoding' => $this->CompressedRequestHandler->supportedEncodings(),
             'filter_sightings' => true, // check if Sightings::filterSightingUuidsForPush method is supported
             'collection_sync' => true, // check if Collection sync (indexMinimal/fetch/capture) is supported
+            'analyst_graph' => true, // analyst data sync carries the Graph type
+            'analyst_data_batch_push' => true, // analyst_data/pushAnalystDataBatch takes a list of records
         ];
         return $this->RestResponse->viewData($response, 'json');
     }

@@ -55,9 +55,9 @@ $renderBucket = function ($rows, $emptyText) {
         <?php $renderBucket($buckets['install'], __('Nothing to install — every library template already exists locally.')); ?>
 
         <h6 class="fw-semibold mb-1 mt-2">
-            <i class="fas fa-sync text-primary me-1"></i>
+            <i class="fas fa-sync text-accent me-1"></i>
             <?= __('May update') ?>
-            <span class="badge bg-primary-subtle text-primary ms-1"><?= count($buckets['managed']) ?></span>
+            <span class="badge bg-primary-subtle text-primary-emphasis ms-1"><?= count($buckets['managed']) ?></span>
         </h6>
         <?php $renderBucket($buckets['managed'], __('No library-managed rows installed yet.')); ?>
 

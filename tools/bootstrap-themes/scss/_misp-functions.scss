@@ -1,0 +1,43 @@
+// First import of every theme entry file, before the theme's own variables.
+// $misp-theme-mode is set by build.mjs from the theme's theme.json.
+$misp-theme-mode: "light" !default;
+
+// Never fetch fonts from a third party: bundled @font-face partials instead.
+$web-font-path: false;
+
+// Only themes with both palettes ship Bootstrap's [data-bs-theme=dark] block.
+$enable-dark-mode: $misp-theme-mode == "both";
+
+@import "bootstrap/scss/functions";
+
+// The smallest shade of $color, in 5% steps, that white text reaches
+// $min-ratio against.
+@function misp-shade-for-white($color, $min-ratio: 4.5) {
+  $shade: 0%;
+  $result: $color;
+  @while contrast-ratio($result, #fff) < $min-ratio and $shade < 100% {
+    $shade: $shade + 5%;
+    $result: shade-color($color, $shade);
+  }
+  @return $result;
+}
+
+// A colour that already reads at 3:1 is kept. One that doesn't is tinted, or
+// shaded on a light page, to 4.5:1, since it is also used as text.
+@function misp-readable-for($color, $background) {
+  @if contrast-ratio($color, $background) >= 3 {
+    @return $color;
+  }
+  $lighten: luminance($background) < .5;
+  $step: 0%;
+  $result: $color;
+  @while contrast-ratio($result, $background) < 4.5 and $step < 100% {
+    $step: $step + 5%;
+    @if $lighten {
+      $result: tint-color($color, $step);
+    } @else {
+      $result: shade-color($color, $step);
+    }
+  }
+  @return $result;
+}

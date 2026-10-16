@@ -27,9 +27,9 @@ $uid = 'preview-tags-' . h($data['Event']['id'] ?? $data['Event']['uuid'] ?? '0'
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-3 flex-wrap">
             <div class="d-flex align-items-center gap-2 me-auto">
-                <div class="rounded-2 d-flex align-items-center justify-content-center"
-                     style="width:36px;height:36px;background:#DB6A4718;">
-                    <span class="misp-icon misp-icon-tag misp-simple" style="color:#DB6A47;font-size:1rem;"></span>
+                <div class="misp-icon-tile rounded-2 d-flex align-items-center justify-content-center"
+                     style="width:36px;height:36px;--tile:#DB6A47;--tile-bg:#DB6A4718;">
+                    <span class="misp-icon misp-icon-tag misp-simple" style="font-size:1rem;"></span>
                 </div>
                 <div>
                     <div class="fw-bold lh-1"><?= __('Tags') ?></div>
@@ -62,32 +62,19 @@ $uid = 'preview-tags-' . h($data['Event']['id'] ?? $data['Event']['uuid'] ?? '0'
                 <?= __('This event has no tags') ?>
             </div>
         <?php else: ?>
-            <div class="d-flex flex-wrap align-items-center" data-tag-list>
-                <?php foreach ($tags as $tag):
-                    $badge = $this->element('genericElementsBS5/Badges/tag', [
-                        'tag' => $tag,
-                        'local' => !empty($tag['local']),
-                        'hiddenClass' => '',
-                        'showFavourite' => false
-                    ]);
-                    // Without the key the remote index cannot be filtered on this
-                    // tag, so render the badge on its own rather than a dead link.
-                    $filterKey = $tag[$tagFilterKey] ?? null;
-                    ?>
-                    <?php if ($filterKey === null || $filterKey === ''): ?>
-                        <span data-tag-item data-tag-name="<?= h(strtolower($tag['name'])) ?>">
-                            <?= $badge ?>
-                        </span>
-                    <?php else: ?>
-                        <a href="<?= h(str_replace('%tag%', rawurlencode((string)$filterKey), $tagFilterUrl)) ?>"
-                           class="text-decoration-none"
-                           data-tag-item
-                           data-tag-name="<?= h(strtolower($tag['name'])) ?>"
-                           title="<?= __('Filter the remote instance on the tag: %s', h($tag['name'])) ?>">
-                            <?= $badge ?>
-                        </a>
-                    <?php endif; ?>
-                <?php endforeach; ?>
+            <div data-tag-list>
+                <?= $this->TagChip->collection($tags, [
+                    'searchUrl' => '',
+                    // Without the key the remote index cannot be filtered on
+                    // this tag, so the chip stays a plain label.
+                    'href' => function ($row) use ($tagFilterKey, $tagFilterUrl) {
+                        $filterKey = $row['Tag'][$tagFilterKey] ?? null;
+                        if ($filterKey === null || $filterKey === '') {
+                            return null;
+                        }
+                        return str_replace('%tag%', rawurlencode((string)$filterKey), $tagFilterUrl);
+                    },
+                ]) ?>
             </div>
             <div class="text-center text-muted py-3 small d-none" data-tag-noresult>
                 <?= __('No tag matches your search') ?>
@@ -117,6 +104,9 @@ $uid = 'preview-tags-' . h($data['Event']['id'] ?? $data['Event']['uuid'] ?? '0'
             var show = q === '' || name.indexOf(q) !== -1;
             item.classList.toggle('d-none', !show);
             if (show) { visible++; }
+        });
+        body.querySelectorAll('.hg-group').forEach(function (group) {
+            group.classList.toggle('d-none', !group.querySelector('[data-tag-item]:not(.d-none)'));
         });
         if (noResult) { noResult.classList.toggle('d-none', visible !== 0); }
         if (countEl) {

@@ -35,7 +35,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
             echo $this->Form->text('name', [
                 'id' => 'ObjectRelationshipName',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important; outline:none;',
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important; outline:none;',
                 'placeholder' => __('e.g. downloaded-from'),
                 'autocomplete' => 'off',
                 'required' => true,
@@ -55,7 +55,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
             <?= $this->Form->textarea('description', [
                 'id' => 'ObjectRelationshipDescription',
                 'class' => 'form-control',
-                'style' => 'border-color:#d8dde3;',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                 'rows' => 5,
                 'placeholder' => __('What this relationship means between two objects'),
             ]) ?>

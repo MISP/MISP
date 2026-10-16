@@ -491,6 +491,8 @@ class UsersController extends AppController
                                     $this->paginate['conditions']['AND'][] = array('LOWER(User.' . $searchTerm . ') NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
                                 } elseif ($searchTerm === 'org') {
                                     $this->paginate['conditions']['AND'][] = array('User.org_id !=' => substr($piece, 1));
+                                } elseif ($searchTerm === 'role_id') {
+                                    $this->paginate['conditions']['AND'][] = array('User.role_id !=' => substr($piece, 1));
                                 } else {
                                     $this->paginate['conditions']['AND'][] = array('User.' . $searchTerm => substr($piece, 1));
                                 }

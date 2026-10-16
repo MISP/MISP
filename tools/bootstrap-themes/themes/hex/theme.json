@@ -1,0 +1,12 @@
+{
+    "label": "Hex",
+    "description": "The MISP mark's blues and facets, in light and dark, with the Hex Rail navbar.",
+    "mode": "both",
+    "fonts": [],
+    "hide_from_users": false,
+    "navbar": "rail",
+    "contrast_accepted": {
+        "light": ["attribute", "correlation", "type"],
+        "dark": ["object", "sighting", "analystData", "enrichment"]
+    }
+}

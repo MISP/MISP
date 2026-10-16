@@ -1,7 +1,4 @@
 <?php
-
-use PHPUnit\Framework\MockObject\InvalidMethodNameException;
-
 App::uses('AppController', 'Controller');
 App::uses('AnalystData', 'Model');
 
@@ -61,6 +58,12 @@ class CollectionElementsController extends AppController
                 // is about to save, on both the form and the REST path.
                 $type = $collectionElement['CollectionElement']['element_type'] ?? null;
                 $column = AnalystData::addressColumn($type, 'element');
+                // The form names a value by its text
+                $text = $collectionElement['CollectionElement']['value'] ?? null;
+                if ($column === 'element_sha256' && empty($collectionElement['CollectionElement'][$column]) && is_string($text) && trim($text) !== '') {
+                    $collectionElement['CollectionElement'][$column] = hash('sha256', trim($text));
+                }
+                unset($collectionElement['CollectionElement']['value']);
                 $this->CollectionElement->assertTargetsUsable(
                     $this->Auth->user(),
                     $type,
@@ -145,8 +148,15 @@ class CollectionElementsController extends AppController
         }
     }
 
+    /**
+     * For an AttributeValue element the second segment is the SHA-256 of the
+     * value's text; for every other type it is the element's UUID.
+     */
     public function addElementToCollection($element_type, $element_uuid)
     {
+        if (!in_array($element_type, $this->CollectionElement->valid_types, true)) {
+            throw new NotFoundException(__('Invalid element type.'));
+        }
         $column = AnalystData::addressColumn($element_type, 'element');
         $isOvermind = $this->theme === 'Overmind';
         if ($isOvermind && $this->request->is('ajax')) {
@@ -189,6 +199,10 @@ class CollectionElementsController extends AppController
             $this->set('alreadyInCollectionIds', $alreadyIn);
             $this->set('elementType', $element_type);
             $this->set('elementUuid', $element_uuid);
+            $target = $this->CollectionElement->attachTargets($this->Auth->user(), [
+                ['element_type' => $element_type, $column => current($this->__normaliseElementAddresses($element_uuid, $element_type))],
+            ]);
+            $this->set('elementValue', $target[0]['AttributeValue']['value'] ?? null);
         } else if ($this->request->is('post')) {
             if (!isset($this->request->data['CollectionElement'])) {
                 $this->request->data = ['CollectionElement' => $this->request->data];
@@ -209,7 +223,6 @@ class CollectionElementsController extends AppController
 
             $result = true;
             $duplicateCount = 0;
-            $error = '';
             foreach ($elementUuids as $currentElementUuid) {
                 $dataToSave = [
                     'CollectionElement' => [
@@ -234,16 +247,18 @@ class CollectionElementsController extends AppController
                     }
                 }
             }
-            if ($duplicateCount > 0) {
-                $error = ' ' . __n('%s selected event was already in the Collection.', '%s selected events were already in the Collection.', $duplicateCount, $duplicateCount);
-            }
 
             if ($result) {
-                $message = count($elementUuids) > 1
-                    ? __n('%s event added to the Collection.', '%s events added to the Collection.', count($elementUuids), count($elementUuids))
-                    : __('Element added to the Collection.');
-                if ($duplicateCount > 0) {
-                    $message .= $error;
+                $added = count($elementUuids) - $duplicateCount;
+                if (count($elementUuids) === 1) {
+                    $message = $duplicateCount
+                        ? __('Element already in the Collection.')
+                        : __('Element added to the Collection.');
+                } else {
+                    $message = __n('%s element added to the Collection.', '%s elements added to the Collection.', $added, $added);
+                    if ($duplicateCount > 0) {
+                        $message .= ' ' . __n('%s was already in it.', '%s were already in it.', $duplicateCount, $duplicateCount);
+                    }
                 }
                 if ($this->IndexFilter->isRest()) {
                     return $this->RestResponse->saveSuccessResponse('CollectionElements', 'addElementToCollection', false, $this->response->type(), $message);
@@ -252,9 +267,9 @@ class CollectionElementsController extends AppController
                     $this->redirect(Router::url($this->referer(), true));
                 }
             } else {
-                $message = __('Element could not be added to the Collection.%s', $error);
+                $message = __('Element could not be added to the Collection.');
                 if ($this->IndexFilter->isRest()) {
-                    return $this->RestResponse->saveFailResponse('CollectionElements', 'addElementToCollection', false, $message, $this->response->type());
+                    return $this->RestResponse->saveFailResponse('CollectionElements', 'addElementToCollection', false, $this->CollectionElement->validationErrors ?: $message, $this->response->type());
                 } else {
                     $this->Flash->error($message);
                     $this->redirect(Router::url($this->referer(), true));

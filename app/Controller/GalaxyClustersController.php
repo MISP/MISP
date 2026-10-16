@@ -1,5 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('GalaxyClusterRailCards', 'Tools/RailCards');
+App::uses('GalaxyElementFacets', 'Tools');
 
 /**
  * @property GalaxyCluster $GalaxyCluster
@@ -106,6 +108,26 @@ class GalaxyClustersController extends AppController
         }
         $searchConditions['GalaxyCluster.galaxy_id'] = $galaxyId;
 
+        $posted = is_array($this->request->data) ? ($this->request->data['request'] ?? $this->request->data) : [];
+        $metaParams = [];
+        foreach ($this->params['named'] as $name => $value) {
+            if (strpos($name, GalaxyElementFacets::PARAM_PREFIX) === 0) {
+                $metaParams[$name] = is_array($value) ? implode(GalaxyElementFacets::SEPARATOR, $value) : (string)$value;
+            }
+        }
+        foreach (GalaxyElementFacets::filtersFromParams(array_merge($posted, $metaParams)) as $key => $filter) {
+            if ($filter['include']) {
+                $ids = $this->GalaxyCluster->GalaxyElement->clusterIdsWithValue($galaxyId, $key, $filter['include']);
+                $searchConditions['AND'][] = ['GalaxyCluster.id' => $ids ?: [-1]];
+            }
+            if ($filter['exclude']) {
+                $ids = $this->GalaxyCluster->GalaxyElement->clusterIdsWithValue($galaxyId, $key, $filter['exclude']);
+                if ($ids) {
+                    $searchConditions['AND'][] = ['NOT' => ['GalaxyCluster.id' => $ids]];
+                }
+            }
+        }
+
         if ($this->_isRest()) {
             $clusters = $this->GalaxyCluster->find(
                 'all',
@@ -195,6 +217,8 @@ class GalaxyClustersController extends AppController
         $this->set('list', $clusters);
         $this->set('galaxy_id', $galaxyId);
         $this->set('custom_cluster_count', $customClusterCount);
+        $this->set('metaFacets', $this->GalaxyCluster->GalaxyElement->filterFacets($this->Auth->user(), $galaxyId));
+        $this->set('metaParams', $metaParams);
 
         if ($this->request->is('ajax')) {
             $this->layout = false;
@@ -229,6 +253,16 @@ class GalaxyClustersController extends AppController
         $this->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
         $cluster = $clusters[0];
         $cluster = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $cluster);
+        if ($this->theme === 'Overmind') {
+            $railCards = new GalaxyClusterRailCards();
+            $clusterId = $cluster['GalaxyCluster']['id'];
+            $this->set('railCards', RailCard::byId([
+                $railCards->facts($cluster),
+                $railCards->relations($this->Auth->user(), $cluster),
+                $railCards->slot('cluster-activity', $clusterId),
+                $railCards->slot('cluster-latest', $clusterId),
+            ]));
+        }
         $this->set('id', $cluster['GalaxyCluster']['id']);
         $this->set('galaxy', ['Galaxy' => $cluster['GalaxyCluster']['Galaxy']]);
         $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
@@ -248,6 +282,47 @@ class GalaxyClustersController extends AppController
             $this->Flash->warning(__('This cluster is not published. Users will not be able to use it'));
         }
         $this->set('title_for_layout', __('Galaxy cluster %s', $cluster['GalaxyCluster']['value']));
+    }
+
+    /**
+     * Galaxy clusters for an index filter picker, valued by tag name:
+     * GET ?q=<term>, or by UUID with &value=uuid. Narrowed with
+     * &galaxy=<type> (an empty term then lists it), &kill_chain=<tactic>,
+     * &in_use=1; &limit= up to 200.
+     */
+    public function pickerSearch()
+    {
+        $this->request->allowMethod(['get']);
+        App::uses('IndexPicker', 'Tools');
+        $valueField = $this->request->query('value') === 'uuid' ? 'uuid' : 'tag_name';
+        return $this->RestResponse->viewData(
+            IndexPicker::clusters($this->Auth->user(), $this->request->query('q'), $valueField, [
+                'galaxy' => $this->request->query('galaxy'),
+                'kill_chain' => $this->request->query('kill_chain'),
+                'in_use' => $this->request->query('in_use') === '1',
+                'limit' => $this->request->query('limit'),
+            ]),
+            'json'
+        );
+    }
+
+    /**
+     * One of the cluster page's lazy rail cards.
+     *
+     * @param mixed $id ID or UUID of the cluster
+     * @param string $cardId
+     */
+    public function railCard($id, $cardId)
+    {
+        $user = $this->Auth->user();
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($user, $id, 'view', true, false);
+        $tag = $this->GalaxyCluster->Tag->find('first', [
+            'conditions' => $this->GalaxyCluster->Tag->nameCondition($cluster['GalaxyCluster']['tag_name']),
+            'fields' => ['id'],
+            'recursive' => -1,
+        ]);
+        $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'] ?? null;
+        $this->_renderRailCard((new GalaxyClusterRailCards())->lazy($cardId, $user, $cluster));
     }
 
     /**
@@ -1099,6 +1174,29 @@ class GalaxyClustersController extends AppController
 
     /**
      * @param  mixed $id ID or UUID of the cluster
+     * @param  string $direction 'inbound' for the relations other clusters hold towards it
+     */
+    public function relatedClusters($id, $direction = 'outbound')
+    {
+        $this->request->allowMethod(['get']);
+        $relations = $this->GalaxyCluster->clusterRelations($this->Auth->user(), $id, $direction === 'inbound');
+        return $this->RestResponse->viewData(['relations' => $relations], 'json');
+    }
+
+    /**
+     * The Pivot Explorer's seed for one cluster.
+     *
+     * @param  mixed $id ID or UUID of the cluster
+     */
+    public function graph($id)
+    {
+        $this->request->allowMethod(['get']);
+        $seed = $this->GalaxyCluster->graphSeed($this->Auth->user(), $id);
+        return $this->RestResponse->viewData($seed, 'json');
+    }
+
+    /**
+     * @param  mixed $id ID or UUID of the cluster
      */
     public function viewRelationTree($id, $includeInbound=1)
     {
@@ -1145,7 +1243,7 @@ class GalaxyClustersController extends AppController
         $galaxy = $this->GalaxyCluster->Galaxy->find('first', array(
             'recursive' => -1,
             'conditions' => array('Galaxy.type' => $galaxyType),
-            'fields' => array('Galaxy.id', 'Galaxy.type', 'Galaxy.name'),
+            'fields' => array('Galaxy.id', 'Galaxy.type', 'Galaxy.name', 'Galaxy.icon'),
         ));
         if (empty($galaxy)) {
             // Unknown galaxy type — empty result rather than 404 so the
@@ -1186,6 +1284,11 @@ class GalaxyClustersController extends AppController
             'limit' => 50,
         ));
 
+        App::uses('FontAwesomeHelper', 'View/Helper');
+        $icon = $galaxy['Galaxy']['icon'];
+        $iconClass = empty($icon)
+            ? null
+            : FontAwesomeHelper::findNamespace($icon) . ' fa-' . $icon;
         $payload = array();
         foreach ($rows as $row) {
             $cluster = $row['GalaxyCluster'];
@@ -1196,6 +1299,9 @@ class GalaxyClustersController extends AppController
                     ? (string)$cluster['description']
                     : '',
                 'uuid' => $cluster['uuid'],
+                'galaxy' => $galaxy['Galaxy']['name'],
+                'galaxy_id' => (int)$galaxy['Galaxy']['id'],
+                'icon_class' => $iconClass,
             );
         }
         return $this->RestResponse->viewData($payload, 'json');

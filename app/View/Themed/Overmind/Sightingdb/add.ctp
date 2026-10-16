@@ -8,19 +8,19 @@ $options = [
         'field' => 'enabled', 'id' => 'SightingdbEnabled',
         'label' => __('Enabled'),
         'hint' => __('Query this database on attribute lookups'),
-        'icon' => 'fas fa-power-off', 'accent' => '#198754',
+        'icon' => 'fas fa-power-off', 'accent' => 'var(--misp-tone-green-solid, #198754)',
     ],
     [
         'field' => 'skip_proxy', 'id' => 'SightingdbSkipProxy',
         'label' => __('Skip proxy'),
         'hint' => __('Reach it directly, ignoring the configured proxy'),
-        'icon' => 'fas fa-diagram-project', 'accent' => '#6c757d',
+        'icon' => 'fas fa-diagram-project', 'accent' => 'var(--misp-tone-gray-solid, #6c757d)',
     ],
     [
         'field' => 'ssl_skip_verification', 'id' => 'SightingdbSslSkipVerification',
         'label' => __('Skip SSL verification'),
         'hint' => __('Accept a certificate that does not validate'),
-        'icon' => 'fas fa-shield-halved', 'accent' => '#dc3545',
+        'icon' => 'fas fa-shield-halved', 'accent' => 'var(--misp-tone-red-solid, #dc3545)',
     ],
 ];
 
@@ -192,7 +192,7 @@ echo $this->Form->create('Sightingdb', [
                                data-option-card
                                data-accent="<?= h($option['accent']) ?>"
                                style="cursor:pointer; transition:border-color .15s;
-                                      border:1px solid #dee2e6;">
+                                      border:1px solid var(--misp-check-off-line, #dee2e6);">
                             <?= $this->Form->checkbox($option['field'], [
                                 'id' => $option['id'],
                                 'class' => 'form-check-input flex-shrink-0',
@@ -212,7 +212,7 @@ echo $this->Form->create('Sightingdb', [
                             </div>
                             <i class="<?= h($option['icon']) ?>" data-option-icon
                                style="font-size:.95rem; transition:color .15s;
-                                      color:#adb5bd;"></i>
+                                      color:var(--misp-check-off-icon, #adb5bd);"></i>
                         </label>
                     </div>
                 <?php endforeach; ?>
@@ -241,10 +241,10 @@ echo $this->Form->create('Sightingdb', [
     function paintCard(card) {
         var box = card.querySelector('input[type="checkbox"]');
         var icon = card.querySelector('[data-option-icon]');
-        var accent = card.dataset.accent || '#0d6efd';
+        var accent = card.dataset.accent || 'var(--misp-tone-blue-solid, #0d6efd)';
         if (!box) { return; }
-        card.style.borderColor = box.checked ? accent : '#dee2e6';
-        if (icon) { icon.style.color = box.checked ? accent : '#adb5bd'; }
+        card.style.borderColor = box.checked ? accent : 'var(--misp-check-off-line, #dee2e6)';
+        if (icon) { icon.style.color = box.checked ? accent : 'var(--misp-check-off-icon, #adb5bd)'; }
     }
     document.querySelectorAll('[data-option-card]').forEach(function (card) {
         var box = card.querySelector('input[type="checkbox"]');

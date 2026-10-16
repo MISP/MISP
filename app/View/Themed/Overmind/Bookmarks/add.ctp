@@ -29,7 +29,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
             <?= $this->Form->text('name', [
                 'id' => 'BookmarkName',
                 'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important; outline:none;',
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important; outline:none;',
                 'placeholder' => __('e.g. My org\'s open events'),
                 'autocomplete' => 'off',
                 'required' => true,
@@ -47,13 +47,13 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
             ]) ?>
             <div class="input-group">
                 <span class="input-group-text bg-transparent"
-                      style="border-color:#d8dde3;">
+                      style="border-color:var(--misp-field-line, #d8dde3);">
                     <i class="fas fa-link text-muted" style="font-size:.8rem;"></i>
                 </span>
                 <?= $this->Form->textarea('url', [
                     'id' => 'BookmarkUrl',
                     'class' => 'form-control font-monospace',
-                    'style' => 'border-color:#d8dde3; resize:vertical;',
+                    'style' => 'border-color:var(--misp-field-line, #d8dde3); resize:vertical;',
                     'rows' => 2,
                     'spellcheck' => 'false',
                     'placeholder' => '/events/index/searchpublished:0',
@@ -73,7 +73,7 @@ echo $this->element('genericElementsBS5/Forms/modal_header', [
             <?= $this->Form->textarea('comment', [
                 'id' => 'BookmarkComment',
                 'class' => 'form-control',
-                'style' => 'border-color:#d8dde3;',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3);',
                 'rows' => 3,
                 'placeholder' => __('What this bookmark is for'),
             ]) ?>

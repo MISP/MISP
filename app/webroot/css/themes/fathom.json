@@ -1,0 +1,12 @@
+{
+    "label": "Fathom",
+    "description": "A hydrographic chart: chart paper, sounding blues and navigation magenta.",
+    "mode": "light",
+    "fonts": [
+        "IBM Plex Sans",
+        "IBM Plex Mono",
+        "Source Serif 4"
+    ],
+    "hide_from_users": false,
+    "navbar": "theme"
+}

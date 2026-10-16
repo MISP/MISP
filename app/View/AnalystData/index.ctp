@@ -1,4 +1,5 @@
 <?php
+    App::uses('AnalystData', 'Model');
     $fields = [
         [
             'name' => __('Id'),
@@ -22,7 +23,11 @@
         [
             'name' => __('Target Object'),
             'sort' => $modelSelection . '.object_type',
-            'data_path' => $modelSelection . '.object_uuid'
+            'element' => 'custom',
+            'function' => function (array $row) use ($modelSelection) {
+                $type = $row[$modelSelection]['object_type'] ?? null;
+                return h($row[$modelSelection][AnalystData::addressColumn($type, 'object')] ?? '');
+            }
         ],
         [
             'name' => __('Creator org'),
@@ -85,6 +90,13 @@
                     'name' => __('Related Object'),
                     'element' => 'custom',
                     'function' => function (array $row) use ($baseurl, $modelSelection) {
+                        if (in_array($row[$modelSelection]['related_object_type'], AnalystData::SHA256_TARGETS, true)) {
+                            return sprintf(
+                                '<span class="bold">%s</span>: %s',
+                                __('Value'),
+                                h($row[$modelSelection]['related_object_sha256'])
+                            );
+                        }
                         $path = Inflector::pluralize(strtolower($row[$modelSelection]['related_object_type']));
                         return sprintf(
                             '<span class="bold">%s</span>: <a href="%s/%s/view/%s">%s</a>',

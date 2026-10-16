@@ -28,7 +28,7 @@
                     <?= $disabled ? 'disabled aria-disabled="true"' : 'data-url="' . h($action['url']) . '"' ?>>
                 <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
                       style="width:2.2rem;height:2.2rem;background:rgba(13,110,253,.1);">
-                    <i class="<?= h($action['icon']) ?> text-primary"></i>
+                    <i class="<?= h($action['icon']) ?> text-accent"></i>
                 </span>
                 <span class="flex-grow-1">
                     <span class="fw-bold d-block"><?= h($action['text']) ?></span>

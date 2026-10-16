@@ -213,7 +213,7 @@ $renderElement = function (array $element) use ($typeMeta, $baseurl) {
                     <?php $section = $group['section']; ?>
                     <div>
                         <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
-                            <span class="text-primary fw-bold text-uppercase"
+                            <span class="text-accent fw-bold text-uppercase"
                                   style="font-size:.65rem; letter-spacing:.1em;">
                                 <i class="fas fa-folder me-1"></i>
                                 <?= h($section['label'] ?? __('(untitled section)')) ?>

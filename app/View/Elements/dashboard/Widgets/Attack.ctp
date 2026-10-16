@@ -64,30 +64,7 @@ $colOrder = isset($columnOrders[$defaultTab]) && is_array($columnOrders[$default
     ? $columnOrders[$defaultTab]
     : array_keys($tabCols);
 
-/**
- * Derive a clean technique label. We hold the authoritative T-ID
- * (`external_id`), and matrix cell values are formatted "Name - <id>", so
- * strip a trailing " - <external_id>" suffix (exact; works for techniques,
- * sub-techniques, and legacy non-T clusters alike). If the value doesn't end
- * with its id (e.g. external_id missing), return it unchanged rather than
- * risk chopping real words.
- */
-$cellLabel = function ($value, $ext) {
-    $value = (string)$value;
-    if ($ext !== '' && $value !== '' && strlen($value) >= strlen($ext)
-        && substr($value, -strlen($ext)) === $ext) {
-        $label = rtrim(rtrim(substr($value, 0, -strlen($ext))), " -");
-        if ($label !== '') {
-            return $label;
-        }
-    }
-    return $value;
-};
-
-/** "defense-evasion" → "Defense Evasion". */
-$formatTactic = function ($key) {
-    return ucwords(str_replace('-', ' ', (string)$key));
-};
+App::uses('GalaxyMatrixLayout', 'Tools');
 
 /**
  * Single-hue red ramp. $t in [0,1] → [#rrggbb background, #rrggbb text].
@@ -118,62 +95,34 @@ $intensity = function ($score, $max) {
 
 // ── Pass 0: global parent-technique name map (resolves orphan sub-techniques
 //    whose parent cell isn't in the same tactic column — ~7/195 on the dev corpus).
-$parentNames = array();
+$orderedCols = array();
 foreach ($colOrder as $colKey) {
-    if (!isset($tabCols[$colKey]) || !is_array($tabCols[$colKey])) {
-        continue;
-    }
-    foreach ($tabCols[$colKey] as $cell) {
-        if (!is_array($cell)) {
-            continue;
-        }
-        $ext = isset($cell['external_id']) ? (string)$cell['external_id'] : '';
-        if (preg_match('/^T\d+$/', $ext)) {
-            $parentNames[$ext] = $cellLabel($cell['value'] ?? '', $ext);
-        }
+    if (isset($tabCols[$colKey]) && is_array($tabCols[$colKey])) {
+        $orderedCols[$colKey] = $tabCols[$colKey];
     }
 }
+$parentNames = GalaxyMatrixLayout::parentNames($orderedCols);
+
+$scoreOf = function ($cell) use ($scores) {
+    $tag = isset($cell['tag_name']) ? (string)$cell['tag_name'] : '';
+    return ($tag !== '' && isset($scores[$tag])) ? (int)$scores[$tag] : 0;
+};
 
 // ── Pass 1: build active groups per column (aggregate, hide inactive) + global max.
 $renderCols = array();
 $maxAgg = 0;
-foreach ($colOrder as $colKey) {
-    if (!isset($tabCols[$colKey]) || !is_array($tabCols[$colKey])) {
-        continue;
-    }
-    $groups = array();   // parentTid => ['own'=>int, 'ownLabel'=>?string, 'subs'=>[]]
-    foreach ($tabCols[$colKey] as $cell) {
-        if (!is_array($cell)) {
-            continue;
+foreach ($orderedCols as $colKey => $cells) {
+    $groups = array();   // parentTid => ['own'=>int, 'label'=>string, 'subs'=>[]]
+    foreach (GalaxyMatrixLayout::groupColumn($cells) as $pt => $group) {
+        $subs = array();
+        foreach ($group['subs'] as $sub) {
+            $subs[] = array('label' => $sub['label'], 'tid' => $sub['tid'], 'score' => $scoreOf($sub['cell']));
         }
-        $ext   = isset($cell['external_id']) ? (string)$cell['external_id'] : '';
-        $tag   = isset($cell['tag_name']) ? (string)$cell['tag_name'] : '';
-        $score = ($tag !== '' && isset($scores[$tag])) ? (int)$scores[$tag] : 0;
-        $label = $cellLabel($cell['value'] ?? '', $ext);
-
-        if (preg_match('/^(T\d+)\.\d+$/', $ext, $m)) {
-            // sub-technique → roll up under its parent T-ID
-            $pt = $m[1];
-            if (!isset($groups[$pt])) {
-                $groups[$pt] = array('own' => 0, 'ownLabel' => null, 'subs' => array());
-            }
-            $groups[$pt]['subs'][] = array('label' => $label, 'tid' => $ext, 'score' => $score);
-        } elseif (preg_match('/^T\d+$/', $ext)) {
-            // parent technique cell
-            if (!isset($groups[$ext])) {
-                $groups[$ext] = array('own' => 0, 'ownLabel' => null, 'subs' => array());
-            }
-            $groups[$ext]['own'] = $score;
-            $groups[$ext]['ownLabel'] = $label;
-        } else {
-            // non-T external_id (legacy / pre-attack) → standalone leaf group
-            $key = $ext !== '' ? $ext : ('_' . $label);
-            if (!isset($groups[$key])) {
-                $groups[$key] = array('own' => 0, 'ownLabel' => null, 'subs' => array());
-            }
-            $groups[$key]['own'] = $score;
-            $groups[$key]['ownLabel'] = $label;
-        }
+        $groups[$pt] = array(
+            'own' => $group['cell'] === null ? 0 : $scoreOf($group['cell']),
+            'label' => GalaxyMatrixLayout::groupLabel($group, $parentNames),
+            'subs' => $subs,
+        );
     }
 
     $active = array();
@@ -187,13 +136,7 @@ foreach ($colOrder as $colKey) {
         if ($agg <= 0) {
             continue;   // hide inactive technique group
         }
-        if (!empty($g['ownLabel'])) {
-            $label = $g['ownLabel'];
-        } elseif (isset($parentNames[$pt])) {
-            $label = $parentNames[$pt];
-        } else {
-            $label = $pt;   // orphan fallback: the parent T-ID itself
-        }
+        $label = $g['label'];
         $asubs = array();
         foreach ($subs as $s) {
             if ((int)$s['score'] > 0) {
@@ -258,7 +201,7 @@ echo '<div class="misp-attack-grid">';
 foreach ($renderCols as $colKey => $groups) {
     echo '<div class="misp-attack-col">';
     echo '<div class="misp-attack-col-header">';
-    echo '<span class="misp-attack-col-name" title="' . h($colKey) . '">' . h($formatTactic($colKey)) . '</span>';
+    echo '<span class="misp-attack-col-name" title="' . h($colKey) . '">' . h(GalaxyMatrixLayout::formatTactic($colKey)) . '</span>';
     echo '<span class="misp-attack-col-count">' . count($groups) . '</span>';
     echo '</div>';
 

@@ -684,22 +684,14 @@ class AuditLogsController extends AppController
             switch ($auditLog['model']) {
                 case 'Event':
                     if (isset($events[$modelId])) {
-                        if ($this->theme === 'Overmind'){
-                            $url = '/events/view2/' . $modelId;
-                        } else {
-                            $url = '/events/view/' . $modelId;
-                        }
+                        $url = '/events/view/' . $modelId;
 
                         $eventInfo = $events[$modelId];
                     }
                     break;
                 case 'ObjectReference':
                     if (isset($objectReferences[$modelId]) && isset($objects[$objectReferences[$modelId]])) {
-                        if ($this->theme === 'Overmind'){
-                            $url = '/events/view2/' . $objects[$objectReferences[$modelId]]['event_id'] . '/focus:' . $objects[$objectReferences[$modelId]]['uuid'];
-                        } else {
-                            $url = '/events/view/' . $objects[$objectReferences[$modelId]]['event_id'] . '/focus:' . $objects[$objectReferences[$modelId]]['uuid'];
-                        }
+                        $url = '/events/view/' . $objects[$objectReferences[$modelId]]['event_id'] . '/focus:' . $objects[$objectReferences[$modelId]]['uuid'];
                         if ($objects[$objectReferences[$modelId]]['deleted']) {
                             $url .= '/deleted:2';
                         }
@@ -710,11 +702,7 @@ class AuditLogsController extends AppController
                     break;
                 case 'Object':
                     if (isset($objects[$modelId])) {
-                        if ($this->theme === 'Overmind'){
-                            $url = '/events/view2/' . $objects[$modelId]['event_id'] . '/focus:' . $objects[$modelId]['uuid'];
-                        } else {
-                            $url = '/events/view/' . $objects[$modelId]['event_id'] . '/focus:' . $objects[$modelId]['uuid'];
-                        }
+                        $url = '/events/view/' . $objects[$modelId]['event_id'] . '/focus:' . $objects[$modelId]['uuid'];
                         if ($objects[$modelId]['deleted']) {
                             $url .= '/deleted:2';
                         }
@@ -725,11 +713,7 @@ class AuditLogsController extends AppController
                     break;
                 case 'Attribute':
                     if (isset($attributes[$modelId])) {
-                        if ($this->theme === 'Overmind'){
-                            $url = '/events/view2/' . $attributes[$modelId]['event_id'] . '/focus:' . $attributes[$modelId]['uuid'];
-                        } else {
-                            $url = '/events/view/' . $attributes[$modelId]['event_id'] . '/focus:' . $attributes[$modelId]['uuid'];
-                        }
+                        $url = '/events/view/' . $attributes[$modelId]['event_id'] . '/focus:' . $attributes[$modelId]['uuid'];
                         if ($attributes[$modelId]['deleted']) {
                             $url .= '/deleted:2';
                         }
@@ -740,11 +724,7 @@ class AuditLogsController extends AppController
                     break;
                 case 'ShadowAttribute':
                     if (isset($shadowAttributes[$modelId])) {
-                        if ($this->theme === 'Overmind'){
-                            $url = '/events/view2/' . $shadowAttributes[$modelId]['event_id'] . '/focus:' . $shadowAttributes[$modelId]['uuid'];
-                        } else {
-                            $url = '/events/view/' . $shadowAttributes[$modelId]['event_id'] . '/focus:' . $shadowAttributes[$modelId]['uuid'];
-                        }
+                        $url = '/events/view/' . $shadowAttributes[$modelId]['event_id'] . '/focus:' . $shadowAttributes[$modelId]['uuid'];
                         if (isset($events[$shadowAttributes[$modelId]['event_id']])) {
                             $eventInfo = $events[$shadowAttributes[$modelId]['event_id']];
                         }

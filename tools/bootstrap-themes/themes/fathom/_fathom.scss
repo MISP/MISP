@@ -1,0 +1,414 @@
+// Fathom component layer: the chart's frame (neatline, graduated border,
+// margin lettering) on the chrome; the water, where the data is, stays plain.
+
+:root {
+  --fathom-ink: #{$fathom-ink};
+  --fathom-ink-soft: #{$fathom-ink-soft};
+  --fathom-paper: #{$fathom-paper};
+  --fathom-margin: #{$fathom-margin};
+  --fathom-water: #{$fathom-water};
+  --fathom-shoal: #{$fathom-shoal};
+  --fathom-navy: #{$fathom-navy};
+  --fathom-magenta: #{$fathom-magenta};
+  --fathom-rule: #{$fathom-rule};
+  --fathom-serif: #{inspect($fathom-font-serif)};
+  --fathom-label-tracking: .07em;
+}
+
+// Margin lettering: small spaced capitals, as in "SOUNDINGS IN FATHOMS"
+@mixin fathom-label($size: .72rem) {
+  font-family: $font-family-sans-serif;
+  font-size: $size;
+  font-weight: 600;
+  font-style: normal;
+  letter-spacing: var(--fathom-label-tracking);
+  text-transform: uppercase;
+}
+
+// The graduated border: a heavy rule, then a boxed ladder of minute blocks
+@mixin fathom-graduated($ink: $fathom-ink, $ground: $fathom-margin, $step: 24px) {
+  background:
+    linear-gradient($ink, $ink) 0 0 / 100% 2px no-repeat,
+    linear-gradient($ink, $ink) 0 4px / 100% 1px no-repeat,
+    repeating-linear-gradient(90deg, $ink 0 $step, transparent $step ($step * 2)) 0 5px / 100% 3px no-repeat,
+    repeating-linear-gradient(90deg, rgba($ink, .5) 0 1px, transparent 1px ($step * .2)) 0 6px / 100% 2px no-repeat,
+    linear-gradient($ink, $ink) 0 8px / 100% 1px no-repeat,
+    $ground;
+}
+
+// ---------- page ----------
+
+// The sheet: chart paper ruled with a faint graticule. Tables and cards sit
+// on the water colour, so the grid never runs under data.
+html[data-misp-mode] body {
+  background-image:
+    linear-gradient(rgba($fathom-navy, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba($fathom-navy, .045) 1px, transparent 1px);
+  background-size: 144px 144px;
+  background-position: -1px 55px;
+}
+
+h1, .h1, h2, .h2 {
+  font-style: italic;
+  letter-spacing: -.005em;
+}
+
+h6, .h6 {
+  @include fathom-label(.75rem);
+}
+
+code, kbd, pre, samp {
+  font-family: $font-family-monospace;
+}
+
+::selection {
+  background: rgba($fathom-magenta, .2);
+}
+
+// ---------- navbar: the white margin above the neatline ----------
+
+html[data-misp-mode] .rc-nav {
+  --rc-bar-shadow: none;
+  --rc-bar-shadow-up: 0 10px 18px -12px rgba(#{to-rgb($fathom-ink)}, .45);
+  --rc-bar-edge: transparent;
+  --rc-bar-fg: #{$fathom-ink};
+  --rc-bar-fg-strong: #{$black};
+  --rc-bar-icon: #{$fathom-navy};
+  --rc-bar-icon-strong: #{$fathom-navy};
+  --rc-bar-hover: #{rgba($fathom-navy, .07)};
+  --rc-bar-open: #{$fathom-shoal};
+  --rc-bar-line: #{rgba($fathom-ink, .3)};
+  --rc-bar-rule: #{rgba($fathom-ink, .18)};
+  --rc-accent: #{$fathom-magenta};
+  --rc-active-fg: #{$black};
+  --rc-active-icon: #{$fathom-magenta};
+  --rc-ring-bar: #{$fathom-magenta};
+  --rc-chip-bg: #{$fathom-water};
+  --rc-chip-line-hover: #{$fathom-navy};
+  --rc-chip-icon: #{$fathom-magenta};
+  --rc-chip-empty-fg: #{$fathom-ink-soft};
+  --rc-chip-empty-line: #{rgba($fathom-ink, .35)};
+  --rc-chip-empty-icon: #{$fathom-ink-soft};
+  --rc-count-bg: #{$fathom-magenta};
+  --rc-count-fg: #{$white};
+  --rc-avatar-ring: 0 0 0 1px #{rgba($fathom-ink, .3)};
+  --rc-drawer-edge: #{rgba($fathom-ink, .12)};
+  --rc-inset: #{rgba($fathom-navy, .05)};
+  --rc-scrim: rgba(13, 26, 38, .38);
+}
+
+html[data-misp-mode] .rc-bar {
+  font-weight: 500;
+}
+
+html[data-misp-mode] .rc-nav a:hover {
+  text-decoration: none;
+}
+
+// The neatline and its ladder hang under the bar
+html[data-misp-mode] .rc-bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 9px;
+  pointer-events: none;
+  @include fathom-graduated();
+}
+
+html[data-misp-mode] .rc-trigger,
+html[data-misp-mode] .rc-chip {
+  font-weight: 500;
+}
+
+html[data-misp-mode] .rc-group.is-active::after {
+  height: 3px;
+  bottom: 0;
+  border-radius: 0;
+}
+
+html[data-misp-mode] .rc-chip {
+  border-radius: $border-radius;
+}
+
+html[data-misp-mode] .rc-panel {
+  border-radius: $border-radius;
+}
+
+// ---------- page header: the chart's title block ----------
+
+html[data-misp-mode] [data-tour="page-title"] > .text-uppercase,
+html[data-misp-mode] [data-tour="page-title"] > .text-uppercase a {
+  color: var(--fathom-magenta) !important;
+  letter-spacing: .12em !important;
+}
+
+html[data-misp-mode] [data-tour="page-title"] h1 {
+  font-family: var(--fathom-serif);
+  font-style: italic;
+  font-weight: 600 !important;
+  letter-spacing: -.01em;
+  color: var(--fathom-ink);
+}
+
+// ---------- view tabs: a margin band ruled top and bottom ----------
+
+html[data-misp-mode] .ov-view-tabs {
+  background: var(--fathom-margin);
+  border-top-color: rgba($fathom-ink, .22);
+  border-bottom: 1px solid $fathom-ink;
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view {
+  @include fathom-label(.75rem);
+  color: var(--fathom-ink-soft);
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view.active {
+  color: var(--fathom-ink);
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view::after {
+  border-radius: 0;
+}
+
+html[data-misp-mode] .ov-view-tabs .nav-view.active::after {
+  background: var(--fathom-magenta);
+}
+
+html[data-misp-mode] .ov-view-tabs .ov-tab-count {
+  border-radius: $border-radius;
+  letter-spacing: 0;
+}
+
+// ---------- cards: water inside a ruled frame ----------
+
+// A chart inset: hairline frame, the neatline drawn heavier along the top
+.card {
+  border-top: 2px solid $fathom-ink;
+}
+
+.card-header {
+  border-bottom-color: rgba($fathom-ink, .16);
+}
+
+.card-title {
+  font-family: var(--fathom-serif);
+}
+
+.card-footer {
+  background: var(--fathom-margin);
+}
+
+// ---------- login: a chart sheet with its compass rose ----------
+
+html[data-misp-mode] body[data-controller="users"][data-action="login"],
+html[data-misp-mode] body[data-controller="users"][data-action="register"],
+html[data-misp-mode] body[data-controller="users"][data-action="forgot"] {
+  background:
+    url($fathom-rose-svg) center / min(1040px, 135vh) no-repeat,
+    url($fathom-contours-svg) left -12vw bottom -30vh / min(1100px, 120vh) no-repeat,
+    linear-gradient(rgba($fathom-navy, .05) 1px, transparent 1px) 0 0 / 144px 144px,
+    linear-gradient(90deg, rgba($fathom-navy, .05) 1px, transparent 1px) 0 0 / 144px 144px,
+    $fathom-paper;
+}
+
+// The title block: a ruled box inside the double neatline
+html[data-misp-mode] body[data-action="login"] .card,
+html[data-misp-mode] body[data-action="register"] .card,
+html[data-misp-mode] body[data-action="forgot"] .card {
+  border: 1px solid $fathom-ink;
+  border-radius: 0;
+  outline: 3px solid $fathom-ink;
+  outline-offset: 5px;
+}
+
+html[data-misp-mode] body[data-action="login"] .card h4 {
+  font-style: italic;
+  font-size: 1.6rem;
+}
+
+// ---------- dashboard ----------
+
+html[data-misp-mode="light"]:not([data-theme="midnight"]) {
+  --misp-dash-surface: #{$fathom-paper};
+  --misp-dash-surface-raised: #{$fathom-water};
+  --misp-dash-surface-sunken: #{$fathom-margin};
+  --misp-dash-border: #{$fathom-rule};
+  --misp-dash-border-strong: #{$fathom-rule-strong};
+  --misp-dash-text: #{$fathom-ink};
+  --misp-dash-text-muted: #{$fathom-ink-soft};
+  --misp-dash-accent: #{$fathom-navy};
+  --misp-dash-accent-hover: #{shade-color($fathom-navy, 20%)};
+  --misp-dash-accent-muted: #{rgba($fathom-navy, .1)};
+  --misp-dash-success: #{$success};
+  --misp-dash-danger: #{$danger};
+  --misp-dash-warning: #{$warning};
+  --misp-dash-info: #{$info};
+  --misp-dash-radius-sm: 2px;
+  --misp-dash-radius-md: 2px;
+  --misp-dash-radius-lg: 3px;
+}
+
+html[data-misp-mode] .misp-dashboard-header {
+  border-bottom: 1px solid $fathom-ink;
+  padding-top: calc(var(--misp-dash-space-2) + 9px);
+}
+
+html[data-misp-mode] .misp-dashboard-title {
+  font-family: var(--fathom-serif);
+  font-style: italic;
+  font-size: 1.375rem;
+}
+
+html[data-misp-mode] .misp-widget--overmind .card-title {
+  @include fathom-label(.75rem);
+}
+
+// ---------- tables ----------
+
+.table > thead > tr > th,
+.table > thead > tr > td {
+  @include fathom-label(.7rem);
+  color: var(--fathom-ink-soft);
+  border-bottom: 2px solid rgba($fathom-ink, .7);
+  vertical-align: bottom;
+}
+
+.table > :not(caption) > * > * {
+  font-variant-numeric: tabular-nums;
+}
+
+// ---------- buttons ----------
+
+.btn {
+  letter-spacing: .01em;
+}
+
+// Solid buttons are printed labels: a darker under-rule, pressed in when on
+@each $name, $color in $theme-colors {
+  @if $name != "light" {
+    .btn-#{$name} {
+      box-shadow: inset 0 -2px 0 rgba($black, .22);
+    }
+
+    .btn-#{$name}:active,
+    .btn-#{$name}.active,
+    .btn-check:checked + .btn-#{$name} {
+      box-shadow: inset 0 2px 3px rgba($black, .3);
+    }
+  }
+}
+
+// Toolbar buttons on paper: a ruled box like a chart note
+.btn-light {
+  --#{$prefix}btn-bg: #{$fathom-water};
+  --#{$prefix}btn-border-color: #{rgba($fathom-ink, .3)};
+  --#{$prefix}btn-color: #{$fathom-ink};
+  --#{$prefix}btn-hover-bg: #{$fathom-shoal};
+  --#{$prefix}btn-hover-border-color: #{$fathom-navy};
+  --#{$prefix}btn-hover-color: #{$fathom-ink};
+  --#{$prefix}btn-active-bg: #{$fathom-shoal-deep};
+  --#{$prefix}btn-active-border-color: #{$fathom-navy};
+}
+
+.btn-outline-secondary {
+  --#{$prefix}btn-color: #{$fathom-ink};
+  --#{$prefix}btn-border-color: #{rgba($fathom-ink, .4)};
+  --#{$prefix}btn-hover-bg: #{$fathom-ink};
+  --#{$prefix}btn-hover-border-color: #{$fathom-ink};
+}
+
+.btn-link {
+  font-weight: 500;
+}
+
+// Light-on-paper would vanish: keep a ruled edge
+.btn-outline-light {
+  --#{$prefix}btn-color: #{$fathom-ink-soft};
+  --#{$prefix}btn-border-color: #{rgba($fathom-ink, .28)};
+}
+
+.badge.text-bg-light,
+.badge.bg-light {
+  box-shadow: inset 0 0 0 1px rgba($fathom-ink, .22);
+}
+
+// ---------- forms ----------
+
+.form-label,
+.col-form-label {
+  font-size: .875rem;
+}
+
+.input-group-text {
+  font-weight: 500;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: #fff;
+}
+
+.form-check-input {
+  border-radius: $border-radius;
+}
+
+.form-switch .form-check-input {
+  border-radius: 2em;
+}
+
+.invalid-feedback,
+.valid-feedback {
+  font-weight: 500;
+}
+
+// ---------- navs, badges, misc ----------
+
+.nav-tabs .nav-link {
+  border-radius: 0;
+}
+
+.nav-tabs .nav-link.active {
+  box-shadow: inset 0 3px 0 $fathom-magenta;
+}
+
+.nav-pills .nav-link {
+  border-radius: $border-radius;
+}
+
+.nav-underline .nav-link.active {
+  border-bottom-color: $fathom-magenta;
+}
+
+.dropdown-header {
+  @include fathom-label(.68rem);
+}
+
+.modal-header {
+  background: var(--fathom-margin);
+  border-top: 3px solid $fathom-ink;
+  border-top-left-radius: $border-radius-lg;
+  border-top-right-radius: $border-radius-lg;
+}
+
+.modal-title {
+  font-style: italic;
+}
+
+.accordion-button {
+  font-weight: 600;
+}
+
+.alert {
+  border-left-width: 4px;
+}
+
+.progress-bar {
+  background-image: none;
+}
+
+.tooltip-inner {
+  font-size: .8125rem;
+}

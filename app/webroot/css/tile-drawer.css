@@ -1,0 +1,296 @@
+/* Tiles that open in place (js/tile-drawer.js): the panel under the open
+ * tile's line, its head, the drawing, the aside beside it. The host that
+ * holds the tiles carries `td-host`, where the panel's colours are set. */
+
+.td-host {
+    --td-accent: #6f5fb5;
+    --td-accent-ink: #4f3f99;
+    --td-accent-soft: color-mix(in srgb, var(--td-accent) 9%, var(--bs-body-bg));
+    --td-quiet: var(--bs-secondary-color);
+    --td-ring: var(--bs-primary);
+}
+
+[data-misp-mode="dark"] .td-host {
+    --td-accent: #a698e8;
+    --td-accent-ink: #c9c0f5;
+    --td-accent-soft: color-mix(in srgb, var(--td-accent) 12%, var(--bs-body-bg));
+}
+
+.td-panel {
+    position: relative;
+    grid-column: 1 / -1;
+    min-width: 0;
+    margin: 2px 0 4px;
+    border: 1px solid var(--td-accent);
+    border-radius: 10px;
+    background: var(--bs-body-bg);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 10px 24px -14px rgba(0, 0, 0, .3);
+    animation: td-open .16s ease-out;
+    container-type: inline-size;
+}
+
+/* The notch points back up at the tile that opened, wherever it sits on
+   the line above (the script sets --td-notch). */
+.td-panel::before,
+.td-panel::after {
+    content: "";
+    position: absolute;
+    left: var(--td-notch, 48px);
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-color: transparent;
+    border-top-width: 0;
+}
+
+.td-panel::before {
+    top: -9px;
+    margin-left: -9px;
+    border-width: 0 9px 9px;
+    border-bottom-color: var(--td-accent);
+}
+
+.td-panel::after {
+    top: -7px;
+    margin-left: -8px;
+    border-width: 0 8px 8px;
+    border-bottom-color: var(--td-accent-soft);
+}
+
+@keyframes td-open {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .td-panel { animation: none; }
+}
+
+/* ── head ────────────────────────────────────────────────────── */
+
+.td-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px 10px 16px;
+    border-bottom: 1px solid var(--bs-border-color);
+    border-radius: 10px 10px 0 0;
+    background: var(--td-accent-soft);
+}
+
+.td-titles {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.td-kicker {
+    color: var(--td-quiet);
+    font-size: .72rem;
+    line-height: 1.35;
+}
+
+.td-kicker b {
+    color: var(--td-accent-ink);
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.td-title {
+    margin: 1px 0 0;
+    color: var(--bs-emphasis-color);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.td-title:focus {
+    outline: none;
+}
+
+.td-title:focus-visible {
+    outline: 2px solid var(--td-ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.td-title-kind {
+    margin-right: 6px;
+    white-space: nowrap;
+    color: var(--td-quiet);
+    font-family: var(--bs-body-font-family);
+    font-size: .78rem;
+    font-style: normal;
+    font-weight: 600;
+}
+
+.td-step {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 8px;
+    background: var(--bs-body-bg);
+}
+
+.td-step-btn,
+.td-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--td-quiet);
+    font-size: .74rem;
+    transition: background-color .1s, color .1s;
+}
+
+.td-step-btn:hover:not(:disabled),
+.td-close:hover {
+    background: color-mix(in srgb, var(--td-accent) 12%, transparent);
+    color: var(--bs-emphasis-color);
+}
+
+.td-step-btn:focus-visible,
+.td-close:focus-visible {
+    outline: 2px solid var(--td-ring);
+    outline-offset: -2px;
+}
+
+.td-step-btn:disabled {
+    opacity: .35;
+}
+
+.td-step-pos {
+    min-width: 6.5rem;
+    padding: 0 6px;
+    color: var(--bs-body-color);
+    font-size: .74rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.td-close {
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-size: .9rem;
+}
+
+/* ── body: the drawing, and the aside beside it ──────────────── */
+
+.td-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 17rem;
+}
+
+.td-draw {
+    min-width: 0;
+    padding: 12px 16px 6px;
+}
+
+.td-draw .vp-rf {
+    margin-bottom: 8px;
+}
+
+.td-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+    padding: 12px 14px 14px;
+    border-left: 1px solid var(--bs-border-color);
+    border-radius: 0 0 10px 0;
+    background: color-mix(in srgb, var(--bs-body-color) 2%, var(--bs-body-bg));
+    font-size: .78rem;
+}
+
+.td-aside h4 {
+    margin: 0 0 5px;
+    color: var(--td-quiet);
+    font-size: .66rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.td-aside p {
+    margin: 0;
+    color: var(--td-quiet);
+    font-size: .74rem;
+    line-height: 1.45;
+}
+
+.td-aside p b {
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+
+/* a long table shown in part, with the way to the rest under it */
+.td-draw tr.td-folded {
+    display: none;
+}
+
+.td-rows {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: -4px 0 10px;
+    color: var(--td-quiet);
+    font-size: .74rem;
+}
+
+.td-rows .btn-link {
+    padding: 0;
+    font-size: .74rem;
+    text-decoration: none;
+}
+
+.td-body.is-wide {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.td-body.is-wide .td-aside {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px 32px;
+    border-top: 1px solid var(--bs-border-color);
+    border-left: 0;
+    border-radius: 0 0 10px 10px;
+}
+
+.td-body.is-wide .td-aside > section {
+    flex: 0 1 auto;
+    min-width: 14rem;
+    max-width: 100%;
+}
+
+@container (max-width: 760px) {
+    .td-body {
+        grid-template-columns: minmax(0, 1fr) 15rem;
+    }
+}
+
+@container (max-width: 560px) {
+    .td-step-pos {
+        min-width: 0;
+    }
+
+    .td-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .td-aside {
+        border-top: 1px solid var(--bs-border-color);
+        border-left: 0;
+        border-radius: 0 0 10px 10px;
+    }
+}

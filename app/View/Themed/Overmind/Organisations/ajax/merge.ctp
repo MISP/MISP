@@ -64,7 +64,7 @@ $identityCard = function ($side, $accent) {
                 <?= __('At least two organisations are required to perform a merge.') ?>
             </div>
         </div>
-        <div class="d-flex justify-content-end mt-4 pt-3" style="border-top:1px solid #d8dde3;">
+        <div class="d-flex justify-content-end mt-4 pt-3" style="border-top:1px solid var(--misp-field-line, #d8dde3);">
             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
                 <i class="fas fa-times me-1"></i><?= __('Close') ?>
             </button>

@@ -10,15 +10,15 @@ $confirmBody = __('This will fetch the event from the remote instance and save i
 $actions = [
     [
         'url' => '#',
-        'icon' => 'fas fa-arrow-circle-down',
+        'icon' => 'fas fa-circle-arrow-down',
+        'entity' => 'event',
         'label' => __('Fetch this event'),
-        'success' => $isPublished,
-        'warning' => !$isPublished,
+        'short' => __('Fetch'),
         'onclick' => 'event.preventDefault(); previewFetchEvent();',
     ],
 ];
 
-echo $this->element('genericElementsBS5/Cards/card_actions', [
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions
 ]);
 
@@ -34,7 +34,7 @@ echo $this->Form->postLink('', $pullUrl, [
 function previewFetchEvent() {
     var body =
         '<div class="d-flex align-items-start gap-3">'
-        + '<i class="fas fa-arrow-circle-down fa-2x mt-1 text-primary"></i>'
+        + '<i class="fas fa-arrow-circle-down fa-2x mt-1 text-accent"></i>'
         + '<p class="mb-0 text-muted small">' + <?= json_encode($confirmBody) ?> + '</p>'
         + '</div>'
         <?php if (!$isPublished): ?>

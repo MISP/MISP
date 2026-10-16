@@ -1,0 +1,50 @@
+{
+    "uuid": "a556ee9d-eb23-43df-8cdc-4b4995135797",
+    "name": "Incident Response & Investigation",
+    "description": "For an analyst who arrives from a case rather than from a queue, and for whom an old indicator is evidence rather than noise. It keeps the shipped default's numbers and changes what the page shows first, with a longer shelf life at the far end.",
+    "version": 9,
+    "extends": "default-v1",
+    "parameters": {
+        "relevance": {
+            "ttl_buckets": {
+                "long": 730,
+                "very_long": 1825
+            }
+        },
+        "reference": {
+            "module_trust": {
+                "circl_passivedns": "A",
+                "circl_passivessl": "A",
+                "hashlookup": "A",
+                "virustotal": "B",
+                "censys_enrich": "B"
+            }
+        },
+        "enrichment": {
+            "shapes": [
+                "resolution-timeline",
+                "certificate-set",
+                "network-ownership",
+                "port-service-set",
+                "file-verdict"
+            ]
+        },
+        "context": {
+            "taxonomies": {
+                "pinned": [
+                    "tlp",
+                    "PAP",
+                    "admiralty-scale"
+                ]
+            },
+            "galaxies": {
+                "preferred": [
+                    "threat-actor",
+                    "mitre-intrusion-set",
+                    "veris-framework",
+                    "rsit"
+                ]
+            }
+        }
+    }
+}

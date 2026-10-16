@@ -40,8 +40,8 @@ function sparkline(elemId, data) {
 
 function sightingsGraph(elemId, data) {
     var colours = {
-        'Sighting': 'blue',
-        'False-positive': 'red'
+        'Sighting': 'var(--misp-tone-blue-solid, blue)',
+        'False-positive': 'var(--misp-tone-red-solid, red)'
     }
 
     var margin = {
@@ -143,6 +143,7 @@ function sightingsGraph(elemId, data) {
         });
 
     legend.append('text')
+        .attr('class', 'sightingsLegendLabel')
         .attr('x', width - 8)
         .attr('y', function(d, i) {
             return (i * 20) + 9;
@@ -160,6 +161,7 @@ function sightingsGraph(elemId, data) {
         .attr("class", "y axis")
         .call(yAxis)
         .append("text")
+        .attr("class", "sightingsCountLabel")
         .attr("transform", "rotate(-90)")
         .attr("y", 6)
         .attr("dy", ".71em")

@@ -29,7 +29,7 @@ echo $this->Form->create('Role', [
 
         <!-- ── IDENTITY ────────────────────────────────────────── -->
         <div class="w-100">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold text-uppercase mb-2 role-section-label">
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold text-uppercase mb-2 role-section-label">
                 <?= __('Identity') ?>
                 <span class="badge bg-primary" style="font-size:.55rem; opacity:.8; font-weight:700;">
                     <?= __('REQUIRED') ?>
@@ -68,7 +68,7 @@ echo $this->Form->create('Role', [
 
         <!-- ── RESOURCE LIMITS ─────────────────────────────────── -->
         <div class="w-100">
-            <div class="text-primary fw-bold text-uppercase mb-2 role-section-label">
+            <div class="text-accent fw-bold text-uppercase mb-2 role-section-label">
                 <?= __('Resource Limits') ?>
             </div>
             <div class="row g-3">
@@ -117,7 +117,7 @@ echo $this->Form->create('Role', [
 
         <!-- ── PERMISSION FLAGS ────────────────────────────────── -->
         <div class="w-100">
-            <div class="d-flex align-items-center gap-2 text-primary fw-bold text-uppercase mb-2 role-section-label">
+            <div class="d-flex align-items-center gap-2 text-accent fw-bold text-uppercase mb-2 role-section-label">
                 <?= __('Permission Flags') ?>
                 <span class="fw-normal text-muted text-lowercase" style="letter-spacing:normal; font-size:.7rem;">
                     (<?= __('click to grant or deny') ?>)

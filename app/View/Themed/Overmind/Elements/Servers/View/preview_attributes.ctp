@@ -216,6 +216,8 @@ $children = [
                 'fields' => $fields,
                 'skip_pagination' => true,
                 'filter_bar' => [
+                    // The rows are filtered in the page, off the bar's own controls.
+                    'picker_bar' => false,
                     // Paging belongs to the preview request, not to this bar; the
                     // "view all" link below is the way out of the first page.
                     'skip_pagination' => true,

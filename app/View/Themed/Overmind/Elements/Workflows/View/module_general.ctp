@@ -146,7 +146,7 @@ $filters = $data['trigger_filters'] ?? null;
                     </span>
                     <?php if (!empty($data['version'])): ?>
                         <?php // Badges/version casts to int, which turns 0.4 into v0 ?>
-                        <span class="badge bg-primary-subtle text-primary fw-semibold">v<?= h($data['version']) ?></span>
+                        <span class="badge bg-primary-subtle text-primary-emphasis fw-semibold">v<?= h($data['version']) ?></span>
                     <?php endif; ?>
                 </div>
                 <div class="d-flex align-items-center gap-2 mt-1">

@@ -658,8 +658,7 @@ class ShadowAttributesController extends AppController
                     $this->set('_serialize', array('ShadowAttribute'));
                 } else {
                     $this->Flash->success(__('The proposed Attribute has been saved' . $emailResult));
-                    $viewAction = ($this->theme === 'Overmind') ? 'view2' : 'view';
-                    $this->redirect(array('controller' => 'events', 'action' => $viewAction, $existingAttribute['Attribute']['event_id']));
+                    $this->redirect(array('controller' => 'events', 'action' => 'view', $existingAttribute['Attribute']['event_id']));
                 }
             } else {
                 if ($this->_isRest()) {
@@ -671,7 +670,7 @@ class ShadowAttributesController extends AppController
                 } else {
                     $this->Flash->error(__('The proposed Attribute could not be saved. Please, try again.'));
                     if ($this->theme === 'Overmind') {
-                        $this->redirect(array('controller' => 'events', 'action' => 'view2', $existingAttribute['Attribute']['event_id']));
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $existingAttribute['Attribute']['event_id']));
                     }
                 }
             }

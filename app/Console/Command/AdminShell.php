@@ -1616,6 +1616,41 @@ class AdminShell extends AppShell
     }
 
     /**
+     * Empty the Value Intelligence's enrichment run store, or age it out.
+     *
+     * `value_enrichment_runs` keeps what a module last said about a
+     * value so the tab can show it rather than ask again
+     * (prd/analyst-profile/13-auto-run.md §4.4). It sweeps itself on
+     * one write in two hundred, which is enough to bound it and is
+     * not a way to get rid of it now — this is.
+     *
+     *   cake Admin purgeValueEnrichment        # everything
+     *   cake Admin purgeValueEnrichment 30     # older than 30 days
+     *
+     * With no argument this discards answers that are still inside
+     * their reuse window, so the next visit re-asks the modules. That
+     * is the point of the command and worth knowing before running it
+     * on an instance that pays per query.
+     *
+     * @return void
+     */
+    public function purgeValueEnrichment()
+    {
+        $store = ClassRegistry::init('ValueEnrichmentRun');
+        if (empty($this->args[0])) {
+            echo __("%s stored enrichment runs purged.\n",
+                $store->purgeAll());
+            return;
+        }
+        if (!is_numeric($this->args[0]) || (int)$this->args[0] < 1) {
+            die('Usage: cake Admin purgeValueEnrichment [days]'
+                . PHP_EOL);
+        }
+        echo __("%s stored enrichment runs purged.\n",
+            $store->purgeOlderThan((int)$this->args[0]));
+    }
+
+    /**
      * Render an install baseline from a reference database.
      *
      * The reference is a MySQL database a fresh install plus the frozen legacy

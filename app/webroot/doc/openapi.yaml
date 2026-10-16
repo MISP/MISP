@@ -7434,7 +7434,12 @@ components:
           description: "Set instead of element_uuid (then null) when element_type is AttributeValue"
         element_type:
           type: string
-          enum: [ "Event", "GalaxyCluster", "AttributeValue" ]
+          enum: [ "Event", "GalaxyCluster", "Attribute", "Object", "AttributeValue" ]
+        value:
+          type: string
+          writeOnly: true
+          description: "On add only: an AttributeValue element's text, in place of element_sha256, which the server sets to the SHA-256 of the trimmed text"
+          example: "8.8.8.8"
         description:
           $ref: "#/components/schemas/CollectionElementDescription"
 

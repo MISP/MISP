@@ -67,6 +67,7 @@ class UserLoginProfilesController extends AppController
         }
         $this->CRUD->index([
             'conditions' => $conditions,
+            'quickFilters' => ['UserLoginProfile.ip', 'UserLoginProfile.user_agent', 'UserLoginProfile.geoip', 'UserLoginProfile.ua_platform', 'UserLoginProfile.ua_browser'],
             'afterFind' => function(array $userLoginProfiles) {
                 foreach ($userLoginProfiles as $i => $userLoginProfile) {
                     foreach ($userLoginProfile['User'] as $field => $value) {

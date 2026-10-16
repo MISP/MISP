@@ -65,17 +65,20 @@ class GalaxyColour
     public static function paletteFromHue($hue)
     {
         $hue = ((int)$hue % 360 + 360) % 360;
+        // Lightness and opacity come from --galaxy-* custom properties, so
+        // dark mode can retune every palette at once; the fallbacks are the
+        // light-mode values.
         return array(
             'hue'           => $hue,
             'badgeBg'       => "hsla($hue,65%,55%,var(--galaxy-alpha,0.12))",
-            'badgeText'     => "hsl($hue,65%,28%)",
-            'badgeBorder'   => "hsl($hue,55%,65%)",
-            'headerText'    => "hsl($hue,65%,26%)",
-            'subText'       => "hsl($hue,45%,38%)",
-            'sectionBg'     => "hsla($hue,55%,55%,0.08)",
-            'sectionBorder' => "hsl($hue,55%,70%)",
-            'tintBg'        => "hsla($hue,65%,55%,0.14)",
-            'tintIcon'      => "hsl($hue,60%,34%)",
+            'badgeText'     => "hsl($hue,65%,var(--galaxy-text-l,28%))",
+            'badgeBorder'   => "hsl($hue,55%,var(--galaxy-border-l,65%))",
+            'headerText'    => "hsl($hue,65%,var(--galaxy-header-l,26%))",
+            'subText'       => "hsl($hue,45%,var(--galaxy-sub-l,38%))",
+            'sectionBg'     => "hsla($hue,55%,55%,var(--galaxy-section-alpha,0.08))",
+            'sectionBorder' => "hsl($hue,55%,var(--galaxy-section-border-l,70%))",
+            'tintBg'        => "hsla($hue,65%,55%,var(--galaxy-tint-alpha,0.14))",
+            'tintIcon'      => "hsl($hue,60%,var(--galaxy-tint-icon-l,34%))",
             'solidBg'       => "hsl($hue,58%,46%)",
             'solidText'     => self::solidText($hue, 58, 46),
         );
@@ -88,7 +91,7 @@ class GalaxyColour
      */
     public static function metallic()
     {
-        return 'linear-gradient(145deg,rgba(255,255,255,0.15) 0%,'
+        return 'linear-gradient(145deg,rgba(255,255,255,var(--galaxy-sheen,0.15)) 0%,'
              . 'rgba(255,255,255,0.04) 40%,rgba(0,0,0,0.04) 100%)';
     }
 

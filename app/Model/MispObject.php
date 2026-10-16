@@ -13,6 +13,13 @@ App::uses('FileAccessTool', 'Tools');
  */
 class MispObject extends AppModel
 {
+    const INDEX_LIMIT = 60;
+
+    // Attribute rows read to resolve the objects index's exact value.
+    const INDEX_VALUE_ROWS = 10000;
+
+    const INDEX_SORTS = ['timestamp', 'id', 'name', 'first_seen', 'last_seen'];
+
     public $name = 'Object';
     public $alias = 'Object';
 
@@ -650,6 +657,367 @@ class MispObject extends AppModel
         return $results;
     }
 
+    /**
+     * The conditions of the cross-event objects index.
+     *
+     * @param array $user
+     * @param array $filters as ObjectsController::__indexFilters() builds them
+     * @return array [conditions or null when nothing can match, value cap hit]
+     */
+    public function indexConditions(array $user, array $filters)
+    {
+        $conditions = $this->buildConditions($user);
+        $and = ['Object.deleted' => 0];
+        $truncated = false;
+
+        $names = $filters['template'] ?? ['in' => [], 'out' => []];
+        if (!empty($names['in'])) {
+            $and['Object.name'] = $names['in'];
+        }
+        if (!empty($names['out'])) {
+            $and['Object.name NOT IN'] = $names['out'];
+        }
+        if (!empty($filters['template_uuid'])) {
+            $and['Object.template_uuid'] = $filters['template_uuid'];
+        }
+
+        if (isset($filters['value']) && $filters['value'] !== '') {
+            $value = $filters['value'];
+            $held = ClassRegistry::init('Value')->objectIdsHolding($user, $value, [
+                'relation' => $filters['relation'] ?? null,
+                'limit' => self::INDEX_VALUE_ROWS,
+            ]);
+            $ids = $held['ids'];
+            $truncated = $held['truncated'];
+            if (Validation::uuid($value)) {
+                $byUuid = $this->find('column', [
+                    'conditions' => ['Object.uuid' => strtolower($value)],
+                    'fields' => ['Object.id'],
+                ]);
+                $ids = array_merge($ids, array_map('intval', $byUuid));
+            }
+            if (empty($ids)) {
+                return [null, false];
+            }
+            $and['Object.id'] = array_values(array_unique($ids));
+        }
+
+        $orgs = $filters['org'] ?? ['in' => [], 'out' => []];
+        if (!empty($orgs['in'])) {
+            $and['Event.orgc_id'] = $orgs['in'];
+        }
+        if (!empty($orgs['out'])) {
+            $and['Event.orgc_id NOT IN'] = $orgs['out'];
+        }
+        if (!empty($filters['my_org'])) {
+            $and[] = ['Event.orgc_id' => (int)$user['org_id']];
+        }
+
+        if (!empty($filters['event'])) {
+            $event = $filters['event'];
+            if (Validation::uuid($event)) {
+                $event = $this->Event->find('first', [
+                    'conditions' => ['Event.uuid' => strtolower($event)],
+                    'fields' => ['Event.id'],
+                    'recursive' => -1,
+                ]);
+                if (empty($event)) {
+                    return [null, false];
+                }
+                $event = $event['Event']['id'];
+            }
+            $and['Object.event_id'] = (int)$event;
+        }
+
+        foreach (['timestamp' => 1, 'first_seen' => 1000000, 'last_seen' => 1000000] as $field => $scale) {
+            if (empty($filters[$field])) {
+                continue;
+            }
+            list($from, $to) = $filters[$field];
+            if ($from !== null) {
+                $and[] = ['Object.' . $field . ' >=' => $from * $scale];
+            }
+            if ($to !== null) {
+                $and[] = ['Object.' . $field . ' <=' => $to * $scale];
+            }
+        }
+
+        $levels = $filters['distribution'] ?? ['in' => [], 'out' => []];
+        if (!empty($levels['in'])) {
+            $and['Object.distribution'] = $levels['in'];
+        }
+        if (!empty($levels['out'])) {
+            $and['Object.distribution NOT IN'] = $levels['out'];
+        }
+        $groups = $filters['sharinggroup'] ?? ['in' => [], 'out' => []];
+        if (!empty($groups['in'])) {
+            $and[] = [
+                'Object.distribution' => 4,
+                'Object.sharing_group_id' => $groups['in'],
+            ];
+        }
+        if (!empty($groups['out'])) {
+            $and[] = ['NOT' => [
+                'Object.distribution' => 4,
+                'Object.sharing_group_id' => $groups['out'],
+            ]];
+        }
+
+        $conditions['AND'][] = $and;
+        return [$conditions, $truncated];
+    }
+
+    /**
+     * One page of the cross-event objects index, with what each row shows
+     * fetched in one query per kind for the whole page.
+     *
+     * Paging is open-ended: one row past the page says whether there is a
+     * next one, and nothing is counted.
+     *
+     * @param array $user
+     * @param array $filters as indexConditions()
+     * @param int $page
+     * @param string $sort one of INDEX_SORTS
+     * @param string $direction asc|desc
+     * @return array ['rows' => [...], 'nextPage' => bool, 'valueTruncated' => bool]
+     */
+    public function fetchIndexPage(array $user, array $filters, $page = 1,
+        $sort = 'timestamp', $direction = 'desc'
+    ) {
+        $empty = ['rows' => [], 'nextPage' => false, 'valueTruncated' => false];
+        list($conditions, $truncated) = $this->indexConditions($user, $filters);
+        if ($conditions === null) {
+            return $empty;
+        }
+        $page = max(1, (int)$page);
+        $sort = in_array($sort, self::INDEX_SORTS, true) ? $sort : 'timestamp';
+        $direction = strtolower((string)$direction) === 'asc' ? 'ASC' : 'DESC';
+
+        $rows = $this->find('all', [
+            'conditions' => $conditions,
+            'fields' => [
+                'Object.id', 'Object.uuid', 'Object.name', 'Object.meta-category',
+                'Object.template_uuid', 'Object.template_version',
+                'Object.event_id', 'Object.timestamp', 'Object.distribution',
+                'Object.sharing_group_id', 'Object.comment',
+                'Object.first_seen', 'Object.last_seen',
+                'Event.id', 'Event.uuid', 'Event.info', 'Event.orgc_id',
+            ],
+            'joins' => [[
+                'table' => 'events',
+                'alias' => 'Event',
+                'type' => 'INNER',
+                'conditions' => ['Event.id = Object.event_id'],
+            ]],
+            'recursive' => -1,
+            'order' => ['Object.' . $sort => $direction, 'Object.id' => $direction],
+            'limit' => self::INDEX_LIMIT + 1,
+            'offset' => ($page - 1) * self::INDEX_LIMIT,
+        ]);
+        $nextPage = count($rows) > self::INDEX_LIMIT;
+        $rows = array_slice($rows, 0, self::INDEX_LIMIT);
+        if (empty($rows)) {
+            return ['valueTruncated' => $truncated] + $empty;
+        }
+
+        $ids = array_map('intval', Hash::extract($rows, '{n}.Object.id'));
+        $headlines = $this->__indexHeadlines($user, $rows, $ids);
+        list($out, $in) = $this->__indexReferenceCounts($user, $ids);
+
+        $orgIds = array_unique(Hash::extract($rows, '{n}.Event.orgc_id'));
+        $orgs = $this->Event->Orgc->find('all', [
+            'conditions' => ['Orgc.id' => $orgIds],
+            'fields' => ['Orgc.id', 'Orgc.name', 'Orgc.uuid'],
+            'recursive' => -1,
+        ]);
+        $orgs = Hash::combine($orgs, '{n}.Orgc.id', '{n}.Orgc');
+
+        $sgIds = [];
+        foreach ($rows as $row) {
+            if ((int)$row['Object']['distribution'] === 4) {
+                $sgIds[] = (int)$row['Object']['sharing_group_id'];
+            }
+        }
+        $sgNames = empty($sgIds) ? [] : $this->SharingGroup->find('list', [
+            'conditions' => ['SharingGroup.id' => array_unique($sgIds)],
+            'fields' => ['SharingGroup.id', 'SharingGroup.name'],
+        ]);
+
+        $objects = $this->attachAnalystDataBulk(array_column($rows, 'Object'));
+        foreach ($rows as $k => &$row) {
+            $id = (int)$row['Object']['id'];
+            $row['Object'] = $objects[$k];
+            $row['Object']['attribute_count'] = $headlines[$id]['count'] ?? 0;
+            $row['Object']['headline'] = $headlines[$id]['headline'] ?? null;
+            $row['Object']['references_out'] = $out[$id] ?? 0;
+            $row['Object']['references_in'] = $in[$id] ?? 0;
+            $sgId = (int)$row['Object']['sharing_group_id'];
+            if ((int)$row['Object']['distribution'] === 4 && isset($sgNames[$sgId])) {
+                $row['SharingGroup'] = ['id' => $sgId, 'name' => $sgNames[$sgId]];
+            }
+            $row['Orgc'] = $orgs[$row['Event']['orgc_id']] ?? null;
+        }
+        unset($row);
+
+        return ['rows' => $rows, 'nextPage' => $nextPage, 'valueTruncated' => $truncated];
+    }
+
+    /**
+     * Each object's visible attribute count and the attribute it leads
+     * with: the highest ui-priority, as the event's Objects tab orders them.
+     *
+     * @param array $user
+     * @param array $rows
+     * @param int[] $ids
+     * @return array object id => ['count' => int, 'headline' => array|null]
+     */
+    private function __indexHeadlines(array $user, array $rows, array $ids)
+    {
+        $attributes = $this->Attribute->fetchAttributesSimple($user, [
+            'conditions' => [
+                'Attribute.object_id' => $ids,
+                'Attribute.deleted' => 0,
+            ],
+            'fields' => [
+                'Attribute.id', 'Attribute.object_id', 'Attribute.object_relation',
+                'Attribute.type', 'Attribute.value',
+            ],
+            'order' => ['Attribute.object_relation' => 'ASC', 'Attribute.id' => 'ASC'],
+        ]);
+        $templateOf = Hash::combine($rows, '{n}.Object.id', '{n}.Object.template_uuid');
+        $rank = $this->fieldOrderByTemplate(array_values($templateOf));
+
+        $out = [];
+        foreach ($attributes as $attribute) {
+            $a = $attribute['Attribute'];
+            $id = (int)$a['object_id'];
+            $order = $rank[$templateOf[$id] ?? ''] ?? [];
+            $score = $order[$a['object_relation']] ?? PHP_INT_MAX;
+            if (!isset($out[$id])) {
+                $out[$id] = ['count' => 0, 'headline' => null, 'score' => PHP_INT_MAX];
+            }
+            $out[$id]['count']++;
+            if ($out[$id]['headline'] === null || $score < $out[$id]['score']) {
+                $out[$id]['score'] = $score;
+                $out[$id]['headline'] = [
+                    'id' => (int)$a['id'],
+                    'relation' => (string)$a['object_relation'],
+                    'type' => $a['type'],
+                    'value' => $a['value'],
+                ];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * How many live references leave each object, and how many reach it
+     * from objects this user may see.
+     *
+     * @param array $user
+     * @param int[] $ids
+     * @return array [object id => outgoing, object id => incoming]
+     */
+    private function __indexReferenceCounts(array $user, array $ids)
+    {
+        $outgoing = $this->ObjectReference->find('all', [
+            'conditions' => [
+                'ObjectReference.object_id' => $ids,
+                'ObjectReference.deleted' => 0,
+            ],
+            'fields' => ['ObjectReference.object_id', 'COUNT(*) AS n'],
+            'group' => ['ObjectReference.object_id'],
+            'recursive' => -1,
+        ]);
+        $conditions = $this->buildConditions($user);
+        $conditions['AND'][] = [
+            'ObjectReference.referenced_id' => $ids,
+            'ObjectReference.referenced_type' => 1,
+            'ObjectReference.deleted' => 0,
+            'Object.deleted' => 0,
+        ];
+        $incoming = $this->ObjectReference->find('all', [
+            'conditions' => $conditions,
+            'fields' => ['ObjectReference.referenced_id', 'COUNT(*) AS n'],
+            'joins' => [
+                [
+                    'table' => 'objects',
+                    'alias' => 'Object',
+                    'type' => 'INNER',
+                    'conditions' => ['Object.id = ObjectReference.object_id'],
+                ],
+                [
+                    'table' => 'events',
+                    'alias' => 'Event',
+                    'type' => 'INNER',
+                    'conditions' => ['Event.id = Object.event_id'],
+                ],
+            ],
+            'group' => ['ObjectReference.referenced_id'],
+            'recursive' => -1,
+        ]);
+        $out = [];
+        foreach ($outgoing as $row) {
+            $out[(int)$row['ObjectReference']['object_id']] = (int)$row[0]['n'];
+        }
+        $in = [];
+        foreach ($incoming as $row) {
+            $in[(int)$row['ObjectReference']['referenced_id']] = (int)$row[0]['n'];
+        }
+        return [$out, $in];
+    }
+
+    /**
+     * The template picker of the objects index: every installed template,
+     * newest revision, with its meta-category.
+     *
+     * @return array [['value' => name, 'label' => name, 'note' => meta-category]]
+     */
+    public function indexTemplateOptions()
+    {
+        $templates = $this->ObjectTemplate->find('all', [
+            'conditions' => ['ObjectTemplate.active' => 1],
+            'fields' => ['ObjectTemplate.name', 'ObjectTemplate.meta-category'],
+            'order' => ['ObjectTemplate.name' => 'ASC'],
+            'recursive' => -1,
+        ]);
+        $options = [];
+        foreach ($templates as $template) {
+            $name = $template['ObjectTemplate']['name'];
+            $options[$name] = [
+                'value' => $name,
+                'label' => $name,
+                'note' => $template['ObjectTemplate']['meta-category'],
+            ];
+        }
+        return array_values($options);
+    }
+
+    /**
+     * The relations one installed template defines, in its ui-priority
+     * order, for the objects index's relation picker.
+     *
+     * @param string|null $name template name
+     * @param string|null $uuid template uuid, preferred when given
+     * @return string[]
+     */
+    public function indexRelationOptions($name, $uuid = null)
+    {
+        $template = $this->ObjectTemplate->find('first', [
+            'conditions' => $uuid !== null
+                ? ['ObjectTemplate.uuid' => $uuid]
+                : ['ObjectTemplate.name' => $name],
+            'fields' => ['ObjectTemplate.uuid'],
+            'order' => ['ObjectTemplate.version' => 'DESC'],
+            'recursive' => -1,
+        ]);
+        if (empty($template)) {
+            return [];
+        }
+        $uuid = $template['ObjectTemplate']['uuid'];
+        return array_keys($this->fieldOrderByTemplate([$uuid])[$uuid] ?? []);
+    }
+
     // Method that fetches all objects
     // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
     // options:
@@ -842,6 +1210,60 @@ class MispObject extends AppModel
             }
         }
         return $results;
+    }
+
+    /**
+     * Live objects the user may read, as an event payload shapes them: each
+     * with its readable attributes, their tags and warninglist hits.
+     * Local tags are only the owning organisation's to see.
+     *
+     * @param array $user
+     * @param array $conditions
+     * @return array keyed by object uuid
+     */
+    public function fetchGraphObjects(array $user, array $conditions)
+    {
+        $conditions['Object.deleted'] = 0;
+        $rows = $this->fetchObjects($user, ['conditions' => $conditions]);
+        $objects = [];
+        foreach ($rows as $row) {
+            $object = $row['Object'];
+            $object['Attribute'] = $this->graphAttributes($user, $row['Attribute'] ?? [], $row['Event']['org_id'] ?? null);
+            $objects[$object['uuid']] = $object;
+        }
+        return $objects;
+    }
+
+    /**
+     * Attributes of one event, each with its AttributeTag, as
+     * fetchGraphObjects() shapes them.
+     *
+     * @param array $user
+     * @param array $attributes
+     * @param int|string|null $eventOrgId the owner of the event they are in
+     * @return array
+     */
+    public function graphAttributes(array $user, array $attributes, $eventOrgId)
+    {
+        $seesLocal = !empty($user['Role']['perm_site_admin']) || (string)$eventOrgId === (string)$user['org_id'];
+        $out = [];
+        foreach ($attributes as $attribute) {
+            $tags = [];
+            foreach ($attribute['AttributeTag'] ?? [] as $attributeTag) {
+                if (empty($attributeTag['Tag']) || (!empty($attributeTag['local']) && !$seesLocal)) {
+                    continue;
+                }
+                $tags[] = $attributeTag['Tag'] + [
+                    'local' => !empty($attributeTag['local']),
+                    'relationship_type' => $attributeTag['relationship_type'] ?? null,
+                ];
+            }
+            unset($attribute['AttributeTag']);
+            $attribute['Tag'] = $tags;
+            $out[] = $attribute;
+        }
+        ClassRegistry::init('Warninglist')->attachWarninglistToAttributes($out);
+        return $out;
     }
 
     /**
@@ -1243,7 +1665,8 @@ class MispObject extends AppModel
                     if ($attribute['object_relation'] == 'first-seen') {
                         $attributes[$i]['value'] = $forcedSeenOnElements['first_seen'];
                     }
-                } elseif (isset($forcedSeenOnElements['last_seen'])) {
+                }
+                if (isset($forcedSeenOnElements['last_seen'])) {
                     $attributes[$i]['last_seen'] = $forcedSeenOnElements['last_seen'];
                     if ($attribute['object_relation'] == 'last-seen') {
                         $attributes[$i]['value'] = $forcedSeenOnElements['last_seen'];
@@ -1496,6 +1919,19 @@ class MispObject extends AppModel
         }
         $this->Event->captureAnalystData($user, $object['Object'], 'Object', $object['Object']['uuid']);
         return true;
+    }
+
+    /**
+     * @param array $object An object with its `template_uuid` and `Attribute`s
+     * @param int $eventId
+     * @return string|null The uuid of the object the event already holds with
+     *   the same template and attributes
+     */
+    public function duplicateObjectUuid(array $object, $eventId)
+    {
+        $duplicatedObjectId = $duplicateObjectUuid = null;
+        $duplicate = $this->checkForDuplicateObjects(['Object' => $object], $eventId, $duplicatedObjectId, $duplicateObjectUuid);
+        return $duplicate ? $duplicateObjectUuid : null;
     }
 
     /**

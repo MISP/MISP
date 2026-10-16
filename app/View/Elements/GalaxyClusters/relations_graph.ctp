@@ -468,7 +468,13 @@ function generateTooltip(d, type) {
                 row['html'] = '';
             }
             var $tagDiv = $('<div></div>');
+            if (window.TagChips) {
+                $tagDiv.append(TagChips.collection(d.tag, {searchUrl: ''}));
+            }
             d.tag.forEach(function(tag) {
+                if (window.TagChips) {
+                    return;
+                }
                 $tagDiv.append(
                     $('<span></span>')
                         .addClass('tag')

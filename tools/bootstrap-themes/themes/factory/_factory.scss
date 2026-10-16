@@ -1,0 +1,934 @@
+// Factory component layer: bevels, frames and the floor texture, which
+// Bootstrap's variables can't express. Nothing here is repeated per table
+// row except flat colours.
+
+// ---------------------------------------------------------------- bevels
+
+// A raised steel control: lit top edge, dark bottom edge, soft drop.
+@mixin fac-raised($hi: $fac-steel-hi, $lo: rgba(0, 0, 0, .7)) {
+  box-shadow:
+    inset 0 2px 1px -1px $hi,
+    inset 0 -2px 1px -1px $lo,
+    inset 0 0 0 1px rgba(0, 0, 0, .18),
+    0 0 3px 0 #000;
+}
+
+// Lit under the cursor: the glow sits outside the button.
+@mixin fac-hot($hi: #fff, $glow: $fac-hot-glow) {
+  box-shadow:
+    inset 0 2px 1px -1px $hi,
+    inset 0 -2px 1px -1px #432400,
+    0 0 0 1px rgba(0, 0, 0, .6),
+    0 0 6px 1px rgba($glow, .55);
+}
+
+// Pushed in: shadow along the top, a dark rim, the face drops a pixel.
+@mixin fac-pressed($rim: $fac-pressed-lo) {
+  box-shadow:
+    inset 0 3px 2px -1px rgba(0, 0, 0, .75),
+    inset 0 0 0 1px $rim,
+    0 0 3px 0 #000;
+}
+
+// A panel's frame: dark outer edge, a lit rim along the top.
+@mixin fac-panel-frame {
+  box-shadow:
+    inset 0 2px 1px -1px $fac-rim,
+    inset 2px 0 1px -1px #201815,
+    inset -2px 0 1px -1px #201815,
+    inset 0 -2px 2px -1px #000,
+    0 0 0 3px #2a2320,
+    0 0 5px 3px rgba(0, 0, 0, .55);
+}
+
+// A well sunk into a panel.
+@mixin fac-inset {
+  box-shadow:
+    inset 0 0 3px 0 #000,
+    inset 0 2px 2px -1px rgba(0, 0, 0, .8),
+    0 1px 0 0 rgba(235, 230, 228, .12);
+}
+
+// ---------------------------------------------------------------- page
+
+// The factory floor: worn plates with grooves and rivets, drawn in SVG.
+$fac-floor-tile: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cpath fill='%23201a15' d='M0 0h48v48H0zM48 48h48v48H48z'/%3E%3Cpath d='M0 .5h96M.5 0v96M0 48.5h96M48.5 0v96' stroke='%23000' stroke-opacity='.45'/%3E%3Cpath d='M0 1.5h96M1.5 0v96M0 49.5h96M49.5 0v96' stroke='%23fff' stroke-opacity='.03'/%3E%3Cg fill='%23000' fill-opacity='.5'%3E%3Ccircle cx='5' cy='5' r='1.2'/%3E%3Ccircle cx='44' cy='5' r='1.2'/%3E%3Ccircle cx='5' cy='44' r='1.2'/%3E%3Ccircle cx='44' cy='44' r='1.2'/%3E%3Ccircle cx='53' cy='53' r='1.2'/%3E%3Ccircle cx='92' cy='53' r='1.2'/%3E%3Ccircle cx='53' cy='92' r='1.2'/%3E%3Ccircle cx='92' cy='92' r='1.2'/%3E%3C/g%3E%3Cg fill='%23fff' fill-opacity='.06'%3E%3Ccircle cx='5' cy='4.4' r='.7'/%3E%3Ccircle cx='44' cy='4.4' r='.7'/%3E%3Ccircle cx='5' cy='43.4' r='.7'/%3E%3Ccircle cx='44' cy='43.4' r='.7'/%3E%3Ccircle cx='53' cy='52.4' r='.7'/%3E%3Ccircle cx='92' cy='52.4' r='.7'/%3E%3Ccircle cx='53' cy='91.4' r='.7'/%3E%3Ccircle cx='92' cy='91.4' r='.7'/%3E%3C/g%3E%3C/svg%3E";
+
+html {
+  scrollbar-color: $fac-steel $fac-floor;
+}
+
+html[data-misp-mode] body {
+  background-image:
+    radial-gradient(ellipse at 50% 0, rgba(255, 170, 70, .05), transparent 60%),
+    url($fac-floor-tile);
+  background-size: auto, 96px 96px;
+}
+
+::selection {
+  background: $fac-hot;
+  color: $fac-ink;
+}
+
+h1, h2, h3, .h1, .h2, .h3 {
+  font-weight: 900;
+}
+
+// ---------------------------------------------------------------- buttons
+
+$fac-band: #322925;
+
+.btn {
+  --#{$prefix}btn-focus-box-shadow: 0 0 0 2px #{rgba($fac-hot-glow, .8)};
+  border-radius: 0;
+  letter-spacing: .01em;
+  @include fac-raised;
+
+  &:focus-visible {
+    outline: 2px solid $fac-hot-glow;
+    outline-offset: 1px;
+  }
+  &:hover {
+    @include fac-hot;
+  }
+  &:active,
+  &.active {
+    @include fac-pressed;
+  }
+}
+
+// A variant's colours, set under html[data-misp-mode] so they also beat
+// mainOvermind's dark-mode .btn-light/.btn-dark/.btn-outline-* blocks.
+@mixin fac-button-vars($color, $face, $hover, $pressed) {
+  --#{$prefix}btn-color: #{$color};
+  --#{$prefix}btn-bg: #{$face};
+  --#{$prefix}btn-border-color: transparent;
+  --#{$prefix}btn-hover-color: #{$fac-ink};
+  --#{$prefix}btn-hover-bg: #{$hover};
+  --#{$prefix}btn-hover-border-color: transparent;
+  --#{$prefix}btn-active-color: #{$fac-ink};
+  --#{$prefix}btn-active-bg: #{$pressed};
+  --#{$prefix}btn-active-border-color: transparent;
+  --#{$prefix}btn-disabled-color: #{$fac-disabled-fg};
+  --#{$prefix}btn-disabled-bg: #{$fac-disabled-bg};
+  --#{$prefix}btn-disabled-border-color: transparent;
+}
+
+// A variant's bevel in each state.
+@mixin fac-button-states($hi, $lo, $glow, $rim) {
+  @include fac-raised($hi, $lo);
+
+  &:hover,
+  &:focus-visible {
+    @include fac-hot(#fff, $glow);
+  }
+  &:active,
+  &.active,
+  &.show,
+  .btn-check:checked + &,
+  :not(.btn-check) + &:active {
+    @include fac-pressed($rim);
+    transform: translateY(1px);
+  }
+  &:disabled,
+  &.disabled,
+  fieldset:disabled & {
+    box-shadow:
+      inset 0 3px 3px -2px #000,
+      inset 0 -2px 2px -2px rgba(255, 255, 255, .2),
+      0 0 3px 0 #000;
+  }
+}
+
+$fac-disabled-bg: #3d3d3d;
+$fac-steel-light: #a4a2a0;
+$fac-disabled-fg: #8f8a84;
+$fac-steel-lo-edge: rgba(0, 0, 0, .7);
+$fac-plate-hi: #6e6a68;
+
+// name: text, face, hover, pressed, top edge, bottom edge, glow, pressed rim
+$fac-buttons: (
+  "primary":           ($fac-ink, $fac-go, $fac-go-hover, $fac-go-pressed, $fac-go-hi, $fac-steel-lo-edge, #34be3c, #3f5024),
+  "success":           ($fac-ink, $success, $fac-go-hover, $fac-go-pressed, $fac-go-hi, $fac-steel-lo-edge, #34be3c, #3f5024),
+  "secondary":         ($fac-ink, $fac-steel, $fac-hot, $fac-pressed, $fac-steel-hi, $fac-steel-lo-edge, $fac-hot-glow, $fac-pressed-lo),
+  "light":             ($fac-ink, $fac-steel-light, $fac-hot, $fac-pressed, #fff, $fac-steel-lo-edge, $fac-hot-glow, $fac-pressed-lo),
+  "danger":            ($fac-ink, $fac-stop, $fac-stop-hover, #fca8a8, $fac-stop-hi, $fac-steel-lo-edge, #c35353, #642323),
+  "warning":           ($fac-ink, $warning, #ffd970, #ffe7a1, #fff0b8, $fac-steel-lo-edge, $fac-hot-glow, #5a4a10),
+  "info":              ($fac-ink, $info, #a6dcf3, #c9ecfb, #d4f1ff, $fac-steel-lo-edge, #7dcaed, #1e4a5c),
+  "dark":              ($fac-text, $fac-plate, $fac-hot, $fac-pressed, $fac-plate-hi, rgba(0, 0, 0, .8), $fac-hot-glow, $fac-pressed-lo),
+  // Outline buttons have no counterpart in the reference: they become dark
+  // plates whose text carries the variant, lighting up the same way.
+  "outline-primary":   (#8fd694, $fac-plate, $fac-go-hover, $fac-go-pressed, $fac-plate-hi, rgba(0, 0, 0, .8), #34be3c, #3f5024),
+  "outline-success":   (#8fd694, $fac-plate, $fac-go-hover, $fac-go-pressed, $fac-plate-hi, rgba(0, 0, 0, .8), #34be3c, #3f5024),
+  "outline-secondary": ($fac-text, $fac-plate, $fac-hot, $fac-pressed, $fac-plate-hi, rgba(0, 0, 0, .8), $fac-hot-glow, $fac-pressed-lo),
+  "outline-light":     ($fac-text, $fac-plate, $fac-hot, $fac-pressed, $fac-plate-hi, rgba(0, 0, 0, .8), $fac-hot-glow, $fac-pressed-lo),
+  "outline-dark":      ($fac-text, $fac-plate, $fac-hot, $fac-pressed, $fac-plate-hi, rgba(0, 0, 0, .8), $fac-hot-glow, $fac-pressed-lo),
+  "outline-danger":    (#ff8c8c, $fac-plate, $fac-stop-hover, #fca8a8, $fac-plate-hi, rgba(0, 0, 0, .8), #c35353, #642323),
+  "outline-warning":   ($warning, $fac-plate, #ffd970, #ffe7a1, $fac-plate-hi, rgba(0, 0, 0, .8), $fac-hot-glow, #5a4a10),
+  "outline-info":      ($info, $fac-plate, #a6dcf3, #c9ecfb, $fac-plate-hi, rgba(0, 0, 0, .8), #7dcaed, #1e4a5c),
+);
+
+@each $name, $v in $fac-buttons {
+  html[data-misp-mode] .btn-#{$name} {
+    @include fac-button-vars(nth($v, 1), nth($v, 2), nth($v, 3), nth($v, 4));
+  }
+  .btn-#{$name} {
+    @include fac-button-states(nth($v, 5), nth($v, 6), nth($v, 7), nth($v, 8));
+  }
+}
+
+// Icon-only buttons drawn without a face keep no bevel either.
+.btn.bg-transparent,
+.btn-link {
+  box-shadow: none;
+  &:hover,
+  &:focus-visible,
+  &:active {
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+.btn-group > .btn {
+  border-radius: 0;
+}
+.btn-group > .btn + .btn,
+.btn-group > .btn-group + .btn-group {
+  margin-left: 2px;
+}
+
+// Buttons inside table rows stay flat: one edge, no drop or glow.
+.table .btn,
+.table .btn:hover,
+.table .btn:focus-visible,
+.table .btn:active {
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .55);
+  transform: none;
+}
+
+.btn-close {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+// ---------------------------------------------------------------- forms
+
+.form-control,
+.form-select {
+  box-shadow:
+    inset 0 3px 1px -2px #000,
+    inset 0 -2px 1px -1px #b9b9b9;
+
+  &:focus {
+    box-shadow:
+      inset 0 3px 2px -2px #000,
+      inset 0 -2px 1px -1px #e0e0e0,
+      0 0 0 2px rgba($fac-hot-glow, .55);
+  }
+  &:disabled {
+    box-shadow: inset 0 2px 2px -1px rgba(0, 0, 0, .6);
+  }
+}
+.form-control::file-selector-button {
+  background: $fac-plate;
+  color: $fac-text;
+}
+.form-floating > label {
+  color: #1f1d1c;
+}
+.form-floating > .form-control:focus ~ label::after,
+.form-floating > .form-control:not(:placeholder-shown) ~ label::after,
+.form-floating > .form-select ~ label::after {
+  background-color: transparent;
+}
+.form-control-plaintext {
+  color: $fac-text;
+}
+
+.form-label,
+.col-form-label {
+  color: $fac-cream;
+}
+
+.form-check-input {
+  box-shadow: inset 0 3px 2px -2px #111;
+
+  &:hover:not(:disabled) {
+    background-color: $fac-hot;
+    border-color: #5a3c10;
+  }
+  &:checked:hover:not(:disabled) {
+    background-color: $fac-pressed;
+  }
+}
+.form-switch .form-check-input {
+  box-shadow: inset 0 2px 2px -1px #111;
+}
+
+.input-group-text {
+  font-weight: 600;
+}
+
+// ---------------------------------------------------------------- panels
+
+// The frame is drawn with borders and an outline, not box-shadows, so it
+// survives the .shadow-sm utility MISP puts on most cards: a lit top edge,
+// dark sides and bottom, and a 3px dark band around it.
+.card {
+  border-color: #2b2523 #1c1816 #050404;
+  border-top-color: $fac-rim;
+  outline: 3px solid $fac-band;
+  outline-offset: 0;
+  box-shadow: $box-shadow-sm;
+}
+.card > .card-header {
+  border-bottom: 1px solid $fac-groove;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .05);
+  font-weight: 700;
+}
+.card > .card-footer {
+  background: $fac-well;
+  border-top: 1px solid #000;
+}
+
+// A panel inside a panel is a sunken well, as in the reference.
+.card .card,
+.modal .card,
+html[data-misp-mode] .ov-mini-card {
+  background-color: $fac-well;
+  border-color: #050404 #1c1816 #4a4644;
+  outline: 0;
+  box-shadow: inset 0 2px 3px -1px rgba(0, 0, 0, .8);
+}
+.card .card .card {
+  background-color: $fac-plate;
+  border-color: #6a6664 #1c1816 #050404;
+  box-shadow: none;
+}
+
+.list-group-item {
+  color: $fac-text;
+}
+
+// ---------------------------------------------------------------- tables
+
+html[data-misp-mode] .table {
+  --#{$prefix}table-hover-bg: #{rgba($fac-hot, .09)};
+  --#{$prefix}table-hover-color: #{$fac-text};
+}
+.table > thead > tr > th,
+.table > thead > tr > td {
+  background-color: $fac-well;
+  color: $fac-cream;
+  border-bottom: 2px solid #000;
+}
+html[data-misp-mode] .table-light {
+  --#{$prefix}table-bg: #{$fac-well};
+  --#{$prefix}table-color: #{$fac-cream};
+  --#{$prefix}table-border-color: #{$fac-groove};
+}
+
+// ---------------------------------------------------------------- tabs
+
+.nav-tabs {
+  gap: 4px;
+  border-bottom: 3px solid $fac-panel;
+  box-shadow: 0 1px 0 #000;
+
+  .nav-link {
+    margin-bottom: 0;
+    background: $fac-steel;
+    color: $fac-ink;
+    @include fac-raised;
+
+    &:hover,
+    &:focus-visible {
+      background: $fac-hot;
+      color: $fac-ink;
+      @include fac-hot;
+    }
+    &.disabled,
+    &:disabled {
+      background: #3d3d3d;
+      color: #7c7874;
+      box-shadow: inset 0 2px 3px -1px #000;
+    }
+  }
+  .nav-link.active,
+  .nav-item.show .nav-link {
+    background: $fac-panel;
+    color: $fac-cream;
+    box-shadow:
+      inset 0 2px 1px -1px $fac-rim,
+      inset 2px 0 1px -1px #201815,
+      inset -2px 0 1px -1px #201815;
+  }
+}
+
+.nav-pills .nav-link {
+  &:hover {
+    background: rgba($fac-hot, .14);
+  }
+  &.active {
+    box-shadow: inset 0 3px 2px -1px rgba(0, 0, 0, .55), inset 0 0 0 1px $fac-pressed-lo;
+  }
+}
+
+// ---------------------------------------------------------------- menus
+
+.dropdown-menu {
+  .dropdown-item {
+    font-weight: 600;
+  }
+}
+.dropdown-header {
+  font-weight: 700;
+}
+
+// ---------------------------------------------------------------- pagination
+
+.page-link {
+  font-weight: 700;
+  @include fac-raised;
+
+  &:hover,
+  &:focus {
+    @include fac-hot;
+  }
+}
+.page-item.active .page-link,
+.page-link.active {
+  @include fac-pressed;
+}
+.page-item.disabled .page-link,
+.page-link.disabled {
+  box-shadow: inset 0 2px 3px -1px #000;
+}
+
+// ---------------------------------------------------------------- feedback
+
+.alert {
+  border-color: #000;
+  box-shadow:
+    inset 0 2px 1px -1px rgba(255, 255, 255, .22),
+    inset 0 -2px 1px -1px rgba(0, 0, 0, .55),
+    0 0 0 2px var(--#{$prefix}alert-border-color);
+}
+.alert-heading {
+  color: inherit;
+}
+
+.badge {
+  letter-spacing: .02em;
+}
+
+.progress,
+.progress-stacked {
+  box-shadow: inset 0 2px 2px rgba(0, 0, 0, .7), 0 1px 0 rgba(255, 255, 255, .08);
+}
+.progress-bar {
+  box-shadow: inset 0 2px 1px -1px rgba(255, 255, 255, .45), inset 0 -2px 1px -1px rgba(0, 0, 0, .35);
+  color: $fac-ink;
+  font-weight: 700;
+}
+
+.modal-content {
+  .modal-title {
+    color: $fac-cream;
+    font-weight: 900;
+  }
+}
+.modal-footer {
+  @include fac-inset;
+}
+
+.toast-header {
+  font-weight: 700;
+}
+
+.popover-header {
+  font-weight: 700;
+  border-bottom: 0;
+}
+.tooltip-inner {
+  font-weight: 600;
+  box-shadow: 0 0 0 1px #000, 0 2px 6px rgba(0, 0, 0, .6);
+}
+
+.accordion-button {
+  font-weight: 700;
+}
+.accordion-button:not(.collapsed) {
+  box-shadow: inset 0 3px 3px -2px #000;
+}
+
+hr {
+  border-top-width: 2px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+// ---------------------------------------------------------------- navbar
+
+// The rail, in this theme's language: a dark top strip whose main groups are
+// segmented steel buttons, and mega-panels that are framed gunmetal panels
+// with a cream title and a sunken content well. Everything square.
+$fac-square: inset(0);
+$fac-square-ring: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0,
+  1px 1px, 1px calc(100% - 1px), calc(100% - 1px) calc(100% - 1px),
+  calc(100% - 1px) 1px, 1px 1px);
+
+.rail-nav {
+  --misp-rail-height: 48px;
+  --misp-rail-bg: linear-gradient(180deg, rgba(255, 255, 255, .04), transparent 45%) #141110;
+  --misp-rail-shadow: inset 0 -1px 0 #3a332f, 0 2px 0 #000, 0 4px 10px rgba(0, 0, 0, .55);
+  --misp-rail-fg: #{$fac-sky};
+  --misp-rail-fg-current: #{$fac-sky};
+  --misp-rail-icon: #{$fac-sky};
+  --misp-rail-hover: rgba(255, 255, 255, .06);
+  --misp-rail-open: rgba(255, 255, 255, .1);
+  --misp-rail-ring: #{$fac-hot-glow};
+  --misp-rail-mark: #{$fac-orange};
+  --misp-rail-mark-fg: #{$fac-ink};
+  --misp-rail-texture: none;
+  --misp-rail-brand-bg: #0b0908;
+  --misp-rail-brand-shape: #{$fac-square};
+  --misp-rail-brand-width: 60px;
+  --misp-rail-chip-fill: #0b0908;
+  --misp-rail-chip-line: #3a332f;
+
+  --misp-rail-shape-pill: #{$fac-square};
+  --misp-rail-shape-ring: #{$fac-square-ring};
+  --misp-rail-shape-hex: #{$fac-square};
+  --misp-rail-shape-bar: none;
+  --misp-rail-shape-count: inset(0 round 9px);
+
+  --misp-rail-font: #{$font-family-sans-serif};
+  --misp-rail-font-size: 14px;
+  --misp-rail-weight: 600;
+  --misp-rail-weight-strong: 700;
+
+  --misp-rail-surface: #{$fac-panel};
+  --misp-rail-surface-2: #{$fac-panel};
+  --misp-rail-border: #000;
+  --misp-rail-rule: #3a3736;
+  --misp-rail-guide: #4a4644;
+  --misp-rail-text: #{$fac-text};
+  --misp-rail-muted: #{$fac-muted};
+  --misp-rail-icon-panel: #{$fac-muted};
+  --misp-rail-head: #{$fac-cream};
+  --misp-rail-badge-bg: #{$fac-steel};
+  --misp-rail-badge-fg: #{$fac-ink};
+  --misp-rail-hover-bg: #{$fac-hot};
+  --misp-rail-hover-fg: #{$fac-ink};
+  --misp-rail-sel-bg: #{rgba($fac-hot, .16)};
+  --misp-rail-focus: #{$fac-hot-glow};
+  --misp-rail-on: #{$fac-hot};
+  --misp-rail-off: #{$fac-steel};
+  --misp-rail-knob: #282728;
+  --misp-rail-warn: #ff8c8c;
+  --misp-rail-warn-bg: #{rgba($fac-stop, .12)};
+  --misp-rail-panel-shadow: 0 0 0 3px #{$fac-band}, 0 14px 30px rgba(0, 0, 0, .75);
+  --misp-rail-panel-radius: 0;
+  --misp-rail-panel-edge: 1px;
+  --misp-rail-item-radius: 0;
+  --misp-rail-current-bg: #{$fac-panel};
+  --misp-rail-current-fg: #{$fac-orange};
+}
+
+.rail-nav .rail-brand img {
+  filter: $fac-brand-filter;
+}
+.rail-nav .rail-brand::before {
+  box-shadow: inset 0 0 3px #000, inset 0 2px 2px -1px rgba(0, 0, 0, .8);
+}
+
+// The main groups are always-lit steel buttons; the account side keeps the
+// strip's plain sky links.
+.rail-nav .rail-groups--start .rail-trigger {
+  color: $fac-ink;
+
+  .rail-ico {
+    color: $fac-ink;
+  }
+  &::before {
+    inset: 8px 2px;
+    opacity: 1;
+    background: $fac-steel;
+    @include fac-raised;
+  }
+  &:hover::before {
+    background: $fac-hot;
+    @include fac-hot;
+  }
+  &[aria-expanded="true"]::before {
+    background: $fac-pressed;
+    @include fac-pressed;
+  }
+  &[aria-current] {
+    color: $fac-ink;
+
+    .rail-ico {
+      color: $fac-ink;
+    }
+  }
+}
+.rail-nav .rail-trigger[aria-current]::after {
+  left: 2px;
+  right: 2px;
+  bottom: 3px;
+  height: 3px;
+  box-shadow: 0 0 6px rgba($fac-orange, .7);
+}
+
+// Mega-panels: the frame's lit top rim, a cream title bar on the panel face,
+// the entries in a sunken well.
+.rail-nav .rail-panel {
+  padding-bottom: 8px;
+  border-top-color: $fac-rim;
+}
+.rail-nav .rail-phead {
+  padding: 9px 14px 8px;
+  color: $fac-cream;
+  font-size: 15px;
+  font-weight: 900;
+  border-bottom: 0;
+}
+.rail-nav .rail-hex {
+  width: 26px;
+  height: 26px;
+  box-shadow: inset 0 2px 1px -1px $fac-steel-hi, inset 0 -2px 1px -1px rgba(0, 0, 0, .7);
+}
+.rail-nav .rail-panel--current .rail-hex {
+  box-shadow: inset 0 2px 1px -1px #fff, inset 0 -2px 1px -1px #432400;
+}
+.rail-nav .rail-cols {
+  margin: 0 8px;
+  background: $fac-well;
+  @include fac-inset;
+}
+.rail-nav .rail-item:hover .rail-ico,
+.rail-nav .rail-item:focus-visible .rail-ico {
+  color: $fac-ink;
+}
+.rail-nav .rail-subhead {
+  font-weight: 700;
+}
+.rail-nav .rail-radio::before {
+  background: $fac-well;
+}
+.rail-nav .rail-switch {
+  border-radius: 0;
+  box-shadow: inset 0 2px 2px -1px #111;
+}
+.rail-nav .rail-msg {
+  border-radius: 0;
+}
+.rail-nav .rail-avatar::after {
+  inset: 1px;
+}
+
+// The phone drawer: a gunmetal panel of stacked steel buttons, an open group
+// sunk into a well beneath its button.
+@media (max-width: 1099.98px) {
+  .rail-nav .rail-toggle {
+    color: $fac-ink;
+
+    &::before {
+      inset: 8px 4px;
+      opacity: 1;
+      background: $fac-steel;
+      @include fac-raised;
+    }
+    &[aria-expanded="true"]::before {
+      background: $fac-pressed;
+      @include fac-pressed;
+    }
+  }
+  .rail-nav .rail-menu {
+    border-top-color: $fac-rim;
+  }
+  .rail-nav .rail-groups--start {
+    gap: 6px;
+  }
+  .rail-nav .rail-groups--start .rail-trigger {
+    color: $fac-ink;
+
+    &::before {
+      inset: 2px 0;
+      border-radius: 0;
+    }
+  }
+  .rail-nav .rail-groups--end .rail-trigger {
+    color: $fac-sky;
+
+    .rail-ico {
+      color: $fac-sky;
+    }
+  }
+  .rail-nav .rail-trigger[aria-current]::after {
+    left: -8px;
+    right: auto;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    height: auto;
+    clip-path: none;
+  }
+  .rail-nav .rail-cols,
+  .rail-nav .rail-panel--compact .rail-cols {
+    margin: 2px 0 8px;
+    padding: 4px 8px;
+    border-left: 0;
+  }
+}
+
+// ---------------------------------------------------------------- MISP chrome
+
+// Page header: cream, heavy, stamped onto the floor.
+[data-tour="page-title"] h1 {
+  color: $fac-cream;
+  font-weight: 900;
+  text-shadow: 0 2px 0 #000, 0 0 12px rgba(0, 0, 0, .8);
+}
+
+// The view tabs band: a dark rail of raised plates, the open one pressed in.
+html[data-misp-mode] .ov-view-tabs {
+  gap: 6px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  background: $fac-panel;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 2px 4px rgba(0, 0, 0, .5);
+
+  .nav-view {
+    padding: .3rem .7rem;
+    background: $fac-plate;
+    color: $fac-text;
+    font-weight: 600;
+    @include fac-raised(#6e6a68, rgba(0, 0, 0, .8));
+
+    &::after {
+      display: none;
+    }
+    &:hover {
+      background: $fac-hot;
+      color: $fac-ink;
+      @include fac-hot;
+
+      i {
+        color: $fac-ink;
+      }
+    }
+  }
+  .nav-view.active {
+    background: $fac-pressed;
+    color: $fac-ink;
+    @include fac-pressed;
+
+    i,
+    &[style] i {
+      color: $fac-ink;
+    }
+  }
+  .nav-view:hover[style] i {
+    color: $fac-ink;
+  }
+  .ov-tab-count {
+    background: #1b1817;
+    color: $fac-cream;
+  }
+  .nav-view.active .ov-tab-count,
+  .nav-view:hover .ov-tab-count {
+    background: rgba(0, 0, 0, .78);
+    color: $fac-cream;
+  }
+}
+
+// The event view's launch bar: a sunken status strip, square inventory
+// slots for the quick actions, and a steel command field.
+html[data-misp-mode] .lb-card {
+  .lb-seg {
+    border: 0;
+    border-radius: 0;
+    background: $fac-well;
+    @include fac-inset;
+  }
+  .lb-pri {
+    border-left: 1px solid #000;
+  }
+  .lb-pri.is-undo {
+    background: $fac-plate;
+    color: $fac-text;
+    box-shadow: inset 0 2px 1px -1px $fac-plate-hi, inset 0 -2px 1px -1px rgba(0, 0, 0, .8);
+
+    &:hover {
+      background: $fac-hot;
+      color: $fac-ink;
+    }
+  }
+  .lb-pri.is-go {
+    background: $fac-go;
+    color: $fac-ink;
+    box-shadow: inset 0 2px 1px -1px $fac-go-hi, inset 0 -2px 1px -1px rgba(0, 0, 0, .7);
+
+    &:hover {
+      background: $fac-go-hover;
+      color: $fac-ink;
+    }
+  }
+  .lb-tile {
+    border-radius: 0;
+
+    &:hover,
+    &:focus-visible {
+      background: $fac-well;
+      border-color: #000;
+    }
+    .lb-well {
+      border-radius: 0;
+      box-shadow: inset 0 2px 3px -1px rgba(0, 0, 0, .75), 0 1px 0 rgba(255, 255, 255, .08);
+    }
+    &:hover .lb-well {
+      transform: none;
+      box-shadow: inset 0 0 0 2px $fac-hot, 0 0 6px rgba($fac-hot-glow, .5);
+    }
+  }
+  .lb-field {
+    border: 1px solid $fac-steel-lo;
+    border-radius: 4px;
+    background: $fac-steel;
+    box-shadow: inset 0 3px 1px -2px #000, inset 0 -2px 1px -1px #b9b9b9;
+  }
+  .lb-cmd.is-open .lb-field,
+  .lb-field:focus-within {
+    border-color: #a6885c;
+    background: $fac-focus;
+    box-shadow: inset 0 3px 2px -2px #000, 0 0 0 2px rgba($fac-hot-glow, .55);
+  }
+  .lb-bolt {
+    border-radius: 2px;
+    background: rgba(0, 0, 0, .14);
+    color: $fac-ink;
+  }
+  .lb-input {
+    color: $fac-ink;
+
+    &::placeholder {
+      color: #2d2b2a;
+    }
+  }
+  .lb-count {
+    background: rgba(0, 0, 0, .78);
+    color: $fac-cream;
+  }
+  .lb-tog {
+    border-radius: 0;
+    color: $fac-ink;
+
+    &:hover {
+      background: rgba(0, 0, 0, .14);
+      color: $fac-ink;
+    }
+  }
+  .lb-menu {
+    border-color: $fac-frame;
+    border-radius: 0;
+    box-shadow: 0 0 0 3px $fac-band, 0 12px 28px rgba(0, 0, 0, .75);
+  }
+}
+
+// ---------------------------------------------------------------- fixes for MISP's own rules
+
+:root {
+  color-scheme: dark;
+  accent-color: $fac-hot;
+}
+
+// mainOvermind gives every .btn.active a near-white text and .btn-light the
+// primary as text; both sit on this theme's light faces.
+html[data-misp-mode] .btn-light {
+  color: var(--#{$prefix}btn-color);
+}
+html[data-misp-mode] .btn.active {
+  color: var(--#{$prefix}btn-active-color);
+}
+
+// Badges carry the reference's black-on-colour text wherever it reads better.
+@each $name, $value in $theme-colors {
+  .badge.bg-#{$name} {
+    color: color-contrast($value);
+  }
+}
+
+// MISP's own outline buttons become plates too, their colour as the text.
+@each $name, $value in $misp-colors {
+  html[data-misp-mode] .btn-outline-#{$name} {
+    @include fac-button-vars(misp-readable-for($value, $fac-plate), $fac-plate, $value, tint-color($value, 30%));
+    --#{$prefix}btn-hover-color: #{color-contrast($value)};
+    --#{$prefix}btn-active-color: #{color-contrast(tint-color($value, 30%))};
+  }
+  .btn-outline-#{$name} {
+    @include fac-button-states($fac-plate-hi, rgba(0, 0, 0, .8), $value, shade-color($value, 50%));
+  }
+}
+
+.page-link a {
+  color: inherit;
+}
+
+// The index tables' row checkboxes: steel squares that turn orange.
+html[data-misp-mode] .checkbox-index input[type="checkbox"] {
+  background: $fac-steel;
+  border: 1px solid #262424;
+  border-radius: 1px;
+  box-shadow: inset 0 3px 2px -2px #111;
+
+  &::after {
+    border-color: #282728;
+  }
+  &:checked,
+  &.select_all:checked {
+    background: $fac-hot;
+    border-color: #5a3c10;
+  }
+}
+
+// The sign-in page stands on the factory floor instead of MISP's gradient.
+html[data-misp-mode] body[data-controller="users"][data-action] {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 170, 70, .08), transparent 60%),
+    url($fac-floor-tile) $fac-floor;
+  background-size: auto, 96px 96px;
+}
+
+// Dashboard v2 reads its own tokens; point them at the theme.
+html:root[data-misp-mode] {
+  --misp-dash-surface:        #{$fac-floor};
+  --misp-dash-surface-raised: #{$fac-panel};
+  --misp-dash-surface-sunken: #{$fac-well};
+  --misp-dash-border:         #{$fac-frame};
+  --misp-dash-border-strong:  #{$fac-rim};
+  --misp-dash-text:           #{$fac-text};
+  --misp-dash-text-muted:     #{$fac-muted};
+  --misp-dash-text-on-accent: #{$fac-ink};
+  --misp-dash-accent:         #{$fac-hot};
+  --misp-dash-accent-hover:   #{$fac-hot-glow};
+  --misp-dash-accent-muted:   #{rgba($fac-hot, .16)};
+  --misp-dash-success:        #{$fac-go};
+  --misp-dash-danger:         #{$fac-stop};
+  --misp-dash-warning:        #{$warning};
+  --misp-dash-info:           #{$fac-sky};
+  --misp-dash-success-muted:  #{rgba($fac-go, .16)};
+  --misp-dash-danger-muted:   #{rgba($fac-stop, .16)};
+  --misp-dash-warning-muted:  #{rgba($warning, .16)};
+  --misp-dash-info-muted:     #{rgba($fac-sky, .16)};
+  --misp-dash-radius-sm: 0;
+  --misp-dash-radius-md: 0;
+  --misp-dash-radius-lg: 0;
+  --misp-dash-shadow-sm: 0 0 3px rgba(0, 0, 0, .8);
+  --misp-dash-shadow-md: 0 0 0 3px #{$fac-band}, 0 0 6px 3px rgba(0, 0, 0, .6);
+  --misp-dash-shadow-lg: 0 0 0 3px #{$fac-band}, 0 10px 24px rgba(0, 0, 0, .7);
+  --misp-dash-fw-medium: 600;
+  --misp-dash-fw-bold:   700;
+}

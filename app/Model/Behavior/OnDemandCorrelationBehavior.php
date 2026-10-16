@@ -620,6 +620,19 @@ class OnDemandCorrelationBehavior extends ModelBehavior
      * @param Model $Model
      * @param array $user
      * @param int $eventId
+     * @param array $sgids
+     * @param int $limit Not used
+     * @return array [int $count, bool $more]
+     */
+    public function fetchRelatedEventCount(Model $Model, array $user, int $eventId, array $sgids, int $limit)
+    {
+        return [count($this->fetchRelatedEventIds($Model, $user, $eventId, $sgids, true)), false];
+    }
+
+    /**
+     * @param Model $Model
+     * @param array $user
+     * @param int $eventId
      * @param array $sgids Not used
      * @param bool $primary Not used
      * @return array|int[]

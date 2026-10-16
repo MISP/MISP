@@ -15,7 +15,6 @@ class ACLComponent extends Component
     const ACL_LIST = array(
         '*' => array(
             'blackhole' => array(),
-            'debugACL' => array(),
             'queryACL' => array(),
             'restSearch' => array('*'),
         ),
@@ -30,6 +29,7 @@ class ACLComponent extends Component
             'index' => ['*'],
             'indexMinimal' => ['*'],
             'pushAnalystData' => ['perm_sync'],
+            'pushAnalystDataBatch' => ['perm_sync'],
             'view' => ['*'],
             'viewForObject' => ['theming_enabled'],
         ],
@@ -41,6 +41,21 @@ class ACLComponent extends Component
             'index' => array(),
             'massDelete' => array(),
         ),
+        'analystGraphs' => [
+            'active' => ['AND' => ['perm_add', 'perm_analyst_data']],
+            'addNodes' => ['AND' => ['perm_add', 'perm_analyst_data']],
+            'data' => ['*'],
+            'edges' => ['*'],
+            'editable' => ['AND' => ['perm_add', 'perm_analyst_data']],
+            'export' => ['*'],
+            'fork' => ['AND' => ['perm_add', 'perm_analyst_data']],
+            'forTarget' => ['*'],
+            'import' => ['AND' => ['perm_add', 'perm_analyst_data']],
+            'removeNodes' => ['AND' => ['perm_add', 'perm_analyst_data']],
+            'save' => ['AND' => ['perm_add', 'perm_analyst_data']],
+            'thumbnail' => ['*'],
+            'view' => ['*'],
+        ],
         'api' => [
             'rest' => ['perm_auth'],
             'viewDeprecatedFunctionUse' => [],
@@ -57,7 +72,6 @@ class ACLComponent extends Component
             'bro' => array('*'),
             'checkAttachments' => array(),
             'checkComposites' => array('perm_site_admin'),
-            'cleanDefaultFormValues' => ['*'],
             'delete' => array('perm_add'),
             'deleteSelection' => array('AND' => ['theming_enabled', 'perm_add']),
             'deleteSelected' => array('perm_add'),
@@ -174,7 +188,6 @@ class ACLComponent extends Component
             'executeRule' => [],
             'delete' => [],
             'deleteSelection' => [],
-            'view' => []
         ],
         'correlations' => [
             'eventCorrelations' => ['*'],
@@ -188,7 +201,6 @@ class ACLComponent extends Component
         'cryptographicKeys' => [
             'add' => ['perm_add'],
             'delete' => ['perm_add'],
-            'index' => ['*'],
             'serverSign' => ['perm_server_sign'],
             'view' => ['*']
         ],
@@ -212,6 +224,43 @@ class ACLComponent extends Component
             'searchOrganisations' => array('*'),
             'updateTheme' => ['*'],
             'resetFromTemplate' => ['*']
+        ),
+        /*
+         * The Analyst Profile editor (prd/analyst-profile/09-editor.md,
+         * phase 8a). D13: **no new permission flag.** A profile a user
+         * owns changes only their own pages, so it needs no grant —
+         * the same reasoning that leaves `user_settings` ungated. An
+         * organisation profile changes what colleagues read and the
+         * shipped default changes what everybody reads, so both are
+         * narrower than the ACL can express: the model's
+         * `isEditableByCurrentUser()` decides, on every write.
+         *
+         * Which is why `edit`, `fork`, `delete`, `enable` and `disable`
+         * are `*` rather than `perm_admin`. An ACL entry naming a
+         * permission here would be a second opinion about the same
+         * question, and two of those is how the looser one becomes the
+         * answer. `update` is the exception, because loading the
+         * shipped defaults is not about any one profile's owner.
+         */
+        'analystProfiles' => array(
+            'index' => array('*'),
+            'view' => array('*'),
+            'edit' => array('*'),
+            'fork' => array('*'),
+            'delete' => array('*'),
+            'enable' => array('*'),
+            'disable' => array('*'),
+            'select' => array('*'),
+            'deselect' => array('*'),
+            'share' => array(),
+            'unshare' => array(),
+            'export' => array('*'),
+            'import' => array('*'),
+            'simulate' => array('*'),
+            'pin' => array('*'),
+            'unpin' => array('*'),
+            'grade' => array('*'),
+            'update' => array(),
         ),
         'decayingModel' => array(
             "update" => array(),
@@ -306,7 +355,6 @@ class ACLComponent extends Component
             'extractFromReport' => array('perm_add'),
             'replaceSuggestionInReport' => array('perm_add'),
             'importReportFromUrl' => array('perm_add'),
-            'configureTemplateVariable' => ['perm_add'],
             'downloadAsPDF' => ['*'],
             'addTag' => ['perm_tagger'],
             'removeTag' => ['perm_tagger'],
@@ -355,16 +403,17 @@ class ACLComponent extends Component
             'aiSummarize' => array('perm_ai_tools'),
             'alert' => array('perm_publish'),
             'automation' => array('perm_auth'),
+            'cardElements' => array('*'),
             'checkLocks' => array('perm_add'),
             'checkPublishedStatus' => array('*'),
             'checkuuid' => array('perm_sync'),
             'contact' => array('*'),
+            'correlatedAttributes' => array('*'),
+            'correlationCounts' => array('*'),
             'csv' => array('*'),
             'cullEmptyEvents' => array(),
             'delegation_index' => array('*'),
             'delete' => array('perm_add'),
-            'deleteNode' => array('*'),
-            'dot' => array(),
             'downloadExport' => array('*'),
             'edit' => array('perm_add'),
             'editEventTags' => array('AND' => ['perm_tagger', 'theming_enabled']),
@@ -386,15 +435,14 @@ class ACLComponent extends Component
             'getEventTimeline' => array('*'),
             'getDistributionGraph' => array('*'),
             'getReferenceData' => array('*'),
-            'getReferences' => array('*'),
             'getObjectTemplate' => array('*'),
+            'graph' => array('*'),
             'handleModuleResults' => array('*'),
             'hids' => array('*'),
             'index' => array('*'),
             'importChoice' => array('*'),
             'importEvent' => array('AND' => ['perm_modify', 'theming_enabled']),
             'importModule' => array('*'),
-            'massDelete' => array(),
             'merge' => array('perm_modify'),
             'nids' => array('*'),
             'populate' => array('perm_add'),
@@ -416,11 +464,16 @@ class ACLComponent extends Component
             'restSearchExport' => array('*'),
             'runTaxonomyExclusivityCheck' => array('*'),
             'runWorkflow' => array(),
+            // The Pivot Explorer's Save of enrichment results; the event
+            // itself is checked in the action.
+            'saveEnrichment' => array(
+                'AND' => array('perm_add', 'theming_enabled')
+            ),
             'saveFreeText' => array('perm_add'),
             'searchGalaxyClusters' => array('theming_enabled'),
             'stix' => array('*'),
             'stix2' => array('*'),
-            'strposarray' => array(),
+            'taggedEvents' => array('*'),
             'toggleCorrelation' => array('perm_add'),
             'unprotect' => ['perm_add'],
             'unpublish' => array('perm_modify'),
@@ -429,14 +482,23 @@ class ACLComponent extends Component
             'upload_sample' => array('AND' => array('perm_auth', 'perm_add')),
             'upload_stix' => array('perm_modify'),
             'view' => array('*'),
-            'view2' => array('theming_enabled'),
+            'view1' => array('*'),
+            'view2' => array('*'),
+            'viewLegacy' => array('*'),
             'viewAttributes' => array('theming_enabled'),
             'viewClusterRelations' => array('*'),
             'viewObjects' => array('theming_enabled'),
             'viewEventReports' => array('theming_enabled'),
             'viewEventTags' => array('theming_enabled'),
             'viewEventGalaxies' => array('theming_enabled'),
-            'viewEventStats' => array('theming_enabled'),
+            'viewEventInventory' => array('theming_enabled'),
+            'viewEventObjectViews' => array('theming_enabled'),
+            'viewEventContext' => array('theming_enabled'),
+            'viewEventMatrix' => array('theming_enabled'),
+            'viewEventGalaxyMatrix' => array('theming_enabled'),
+            'viewEventOverviewGraph' => array('theming_enabled'),
+            'viewEventActivity' => array('theming_enabled'),
+            'viewEventTimeline' => array('theming_enabled'),
             'viewAttachments' => array('theming_enabled'),
             'viewEventSightings' => array('theming_enabled'),
             'viewRelatedEvents' => array('theming_enabled'),
@@ -471,10 +533,12 @@ class ACLComponent extends Component
             'importFeeds' => ['AND' => ['perm_site_admin', 'theming_enabled']],
             'index' => ['*'],
             'loadDefaultFeeds' => array(),
+            'manifestEvents' => ['*'],
             'previewEvent' => ['*'],
             'previewEventAttributes' => ['theming_enabled'],
             'previewEventObjects' => ['theming_enabled'],
             'previewIndex' => ['*'],
+            'railCard' => ['host_org_user'],
             'searchCaches' => ['*'],
             'toggleSelected' => array(),
             'view' => ['host_org_user'],
@@ -495,6 +559,7 @@ class ACLComponent extends Component
             'forkTree' => array('*'),
             'index' => array('*'),
             'import' => array('perm_galaxy_editor'),
+            'pickerScopes' => array('*'),
             'pushCluster' => array('perm_sync'),
             'relationsGraph' => array('*'),
             'selectGalaxy' => array('perm_tagger'),
@@ -503,8 +568,10 @@ class ACLComponent extends Component
             'showGalaxies' => array('*'),
             'toggle' => array(),
             'update' => array(),
+            'railCard' => array('*'),
             'view' => array('*'),
             'viewGraph' => array('*'),
+            'viewMatrix' => array('*'),
             'wipe_default' => array(),
         ),
         'galaxyClusterBlocklists' => array(
@@ -522,9 +589,13 @@ class ACLComponent extends Component
             'detach' => array('perm_tagger'),
             'edit' => array('perm_galaxy_editor'),
             'export_for_misp_galaxy' => array('*'),
+            'graph' => array('*'),
             'index' => array('*'),
+            'pickerSearch' => array('*'),
             'publish' => array('AND' => ['perm_galaxy_editor', 'perm_publish']),
+            'railCard' => array('*'),
             'restore' => array('perm_galaxy_editor'),
+            'relatedClusters' => array('*'),
             'restSearch' => array('*'),
             'search' => array('*'),
             'unpublish' => array('perm_galaxy_editor'),
@@ -592,7 +663,6 @@ class ACLComponent extends Component
         ),
         'noticelists' => array(
             'delete' => array(),
-            'deleteSelection' => array('AND' => ['perm_site_admin', 'theming_enabled']),
             'enableNoticelist' => array(),
             'massEnable' => array('AND' => ['perm_site_admin', 'theming_enabled']),
             'massDisable' => array('AND' => ['perm_site_admin', 'theming_enabled']),
@@ -605,11 +675,12 @@ class ACLComponent extends Component
         ),
         'objects' => array(
             'add' => array('perm_add'),
-            'addValueField' => array('perm_add'),
             'delete' => array('perm_add'),
             'deleteSelection' => array('AND' => ['perm_add', 'theming_enabled']),
             'edit' => array('perm_add'),
             'get_row' => array('perm_add'),
+            'index' => array('*'),
+            'indexCard' => array('*'),
             'orphanedObjectDiagnostics' => array(),
             'editField' => array('perm_add'),
             'fetchEditForm' => array('perm_add'),
@@ -617,6 +688,7 @@ class ACLComponent extends Component
             'quickAddAttributeForm' => array('perm_add'),
             'quickFetchTemplateWithValidObjectAttributes' => array('perm_add'),
             'restSearch' => array('*'),
+            'surroundings' => ['*'],
             'proposeObjectsFromAttributes' => array('*'),
             'groupAttributesIntoObject' => array('perm_add'),
             'revise_object' => array('perm_add'),
@@ -641,6 +713,7 @@ class ACLComponent extends Component
             'getRaw' => array('perm_object_template'),
             'objectChoice' => array('*'),
             'objectMetaChoice' => array('perm_add'),
+            'railCard' => array('*'),
             'view' => array('*'),
             'index' => array('*'),
             'update' => array(),
@@ -678,6 +751,8 @@ class ACLComponent extends Component
             'getOrgLogo' => array('*'),
             'getUUIDs' => array('perm_sync'),
             'index' => ['organisation_index'],
+            'pickerSearch' => array('*'),
+            'railCard' => array('*'),
             'view' => array('*'),
         ),
         'pages' => array(
@@ -757,7 +832,6 @@ class ACLComponent extends Component
             'serverSettings' => array(),
             'serverSettingsEdit' => array(),
             'serverSettingsReloadSetting' => array(),
-            'serverSign' => ['perm_server_sign'],
             'startWorker' => array(),
             'startZeroMQServer' => array(),
             'statusZeroMQServer' => array(),
@@ -799,6 +873,7 @@ class ACLComponent extends Component
             'execute' => array('perm_sharing_group'),
             'generateUuidList' => ['perm_sharing_group'],
             'index' => array('perm_sharing_group'),
+            'railCard' => array('perm_sharing_group'),
             'view' => array('perm_sharing_group'),
             'viewOrgs' => array('perm_sharing_group'),
         ),
@@ -810,6 +885,8 @@ class ACLComponent extends Component
             'deleteSelection' => ['AND'=> ['perm_sharing_group', 'theming_enabled']],
             'edit' => array('perm_sharing_group'),
             'index' => array('*'),
+            'pickerSearch' => array('*'),
+            'railCard' => array('*'),
             'removeServer' => array('perm_sharing_group'),
             'removeOrg' => array('perm_sharing_group'),
             'view' => array('*'),
@@ -826,7 +903,6 @@ class ACLComponent extends Component
             'restSearch' => array('*'),
             'advanced' => array('perm_sighting'),
             'delete' => ['AND' => ['perm_sighting', 'perm_modify_org']],
-            'deleteSelection' => ['AND'=> ['perm_site_admin', 'theming_enabled']],
             'index' => array('*'),
             'view' => array('*'),
             'listSightings' => array('*'),
@@ -867,6 +943,9 @@ class ACLComponent extends Component
             'edit' => array(),
             'index' => array('*'),
             'modifyTagRelationship' => ['perm_tagger'],
+            'pickerScopes' => array('*'),
+            'pickerSearch' => array('*'),
+            'pickerTree' => array('*'),
             'quickAdd' => array('perm_tag_editor'),
             'removeTagFromObject' => array('perm_tagger'),
             'search' => array('*'),
@@ -913,6 +992,7 @@ class ACLComponent extends Component
             'update' => array(),
             'import' => [],
             'export' => ['*'],
+            'railCard' => array('*'),
             'view' => array('*'),
             'unhideTag' => array('perm_tag_editor'),
             'hideTag' => array('perm_tag_editor'),
@@ -945,11 +1025,9 @@ class ACLComponent extends Component
             'admin_monitor' => array(),
             'admin_quickEmail' => array('perm_admin'),
             'admin_view' => array('perm_admin'),
-            'attributehistogram' => array('*'),
             'change_pw' => ['AND' => ['self_management_enabled', 'password_change_enabled', 'not_read_only_authkey']],
             'checkAndCorrectPgps' => array(),
             'checkIfLoggedIn' => array('*'),
-            'dashboard' => array('*'),
             'discardRegistrations' => array(),
             'downloadTerms' => array('*'),
             'edit' => array('self_management_enabled'),
@@ -1009,26 +1087,112 @@ class ACLComponent extends Component
             'setHomePage' => array('not_read_only_authkey'),
             'eventIndexColumnToggle' => ['*'],
             'setTheme' => ['*'],
+            'setBootstrapTheme' => ['*'],
             'setEventTemplateUserFormMode' => ['*']
         ),
-        'values' => [
-            'delete' => [],
-            'search' => ['*'],
-            'view' => ['*'],
-        ],
+        // Value Intelligence. Read-only and aggregate-only, so any role may
+        // look; per-row ACL is enforced by the model calls behind each
+        // panel. Gated on theming so a themes-disabled instance answers
+        // 403 rather than 500 on a missing themed view.
+        'values' => array(
+            // The page in front of the profile, and the box on it. Same
+            // reasoning as the rest of this block: read-only, and every
+            // per-row ACL is enforced by the model call behind it — the
+            // resolver's existence probe is `buildConditions`-scoped,
+            // so it can only answer about records the reader may see.
+            'index' => array('theming_enabled'),
+            'resolve' => array('theming_enabled'),
+            'triage' => array('theming_enabled'),
+            'assess' => array('theming_enabled'),
+            'matches' => array('theming_enabled'),
+            // JSON for any role; the page checks MISP.enable_themes
+            'view' => array('*'),
+            'viewOccurrences' => array('theming_enabled'),
+            'viewReporting' => array('theming_enabled'),
+            'viewContext' => array('theming_enabled'),
+            'viewAnalystPreview' => array('theming_enabled'),
+            'viewVerdictCard' => array('theming_enabled'),
+            'viewHoverCard' => array('theming_enabled'),
+            'viewHoverEnrichment' => array('theming_enabled'),
+            'viewSightings' => array('theming_enabled'),
+            'viewLifecycle' => array('theming_enabled'),
+            'viewMatrix' => array('theming_enabled'),
+            'viewGalaxyMatrix' => array('theming_enabled'),
+            'viewExternal' => array('theming_enabled'),
+            'viewVerdict' => array('theming_enabled'),
+            'viewVerdictAside' => array('theming_enabled'),
+            // The five content tabs. Listed here rather than per tab phase
+            // so a tab lands as one controller-plus-element change: an
+            // action missing from this list is a 403 behind a spinner that
+            // never resolves, and a site admin never sees it.
+            'viewOccurrenceTable' => array('theming_enabled'),
+            'viewSightingChart' => array('theming_enabled'),
+            'viewSightingList' => array('theming_enabled'),
+            'viewRelevance' => array('theming_enabled'),
+            'viewSightingReporters' => array('theming_enabled'),
+            'viewSightingAdd' => array('theming_enabled'),
+            'viewRelationCooccurrence' => array('theming_enabled'),
+            'viewRelationDated' => array('theming_enabled'),
+            'viewRelationNearMatch' => array('theming_enabled'),
+            'viewRelationAsserted' => array('theming_enabled'),
+            'viewRelationExternal' => array('theming_enabled'),
+            'viewRelationReferences' => array('theming_enabled'),
+            'viewRelationGraph' => array('theming_enabled'),
+            'graph' => array('theming_enabled'),
+            'graphOccurrences' => array('theming_enabled'),
+            'viewRelationThreats' => array('theming_enabled'),
+            'viewRelationSettings' => array('theming_enabled'),
+            'viewEnrichment' => array('theming_enabled'),
+            // Running a module is the one action on this page that
+            // leaves the building, and MISP's own bar for querying one
+            // at all is `perm_add` — both `attributes/hoverEnrichment`
+            // and `events/queryEnrichment` carry it. The catalogue
+            // above it stays readable to everyone: what *could* be
+            // asked is not a secret, and the control renders disabled.
+            'viewEnrichmentPanel' => array('theming_enabled'),
+            'viewEnrichmentRun' => array(
+                'AND' => array('perm_add', 'theming_enabled')
+            ),
+            // Same bar as the run it is: the Overview's chips are one
+            // module query each, at the same endpoint's price.
+            'viewEnrichmentBadge' => array(
+                'AND' => array('perm_add', 'theming_enabled')
+            ),
+            // The Pivot Explorer's Enrich pivot: offered only to readers
+            // who may run a module, stored answers included.
+            'enrichmentTypes' => array(
+                'AND' => array('perm_add', 'theming_enabled')
+            ),
+            'enrichmentStored' => array(
+                'AND' => array('perm_add', 'theming_enabled')
+            ),
+            'enrichmentRun' => array(
+                'AND' => array('perm_add', 'theming_enabled')
+            ),
+            'viewAnalystStanding' => array('theming_enabled'),
+            'viewAnalystThread' => array('theming_enabled'),
+            'viewAnalystReports' => array('theming_enabled'),
+            'viewAnalystComments' => array('theming_enabled'),
+            'viewTimeline' => array('theming_enabled'),
+            'viewHistory' => array('theming_enabled'),
+            'search' => array('*'),
+            'delete' => array(),
+        ),
         'warninglists' => array(
             'checkValue' => ['*'],
             'delete' => ['perm_warninglist'],
+            'entries' => ['*'],
             'deleteSelection' => ['AND'=> ['perm_warninglist', 'theming_enabled']],
             'enableWarninglist' => ['perm_warninglist'],
             'massEnable' => ['AND'=> ['perm_warninglist', 'theming_enabled']],
             'massDisable' => ['AND'=> ['perm_warninglist', 'theming_enabled']],
             'getToggleField' => ['perm_warninglist'],
             'index' => array('*'),
+            'railCard' => ['*'],
+            'testValue' => ['*'],
             'toggleEnable' => ['AND'=> ['perm_warninglist', 'theming_enabled']],
             'update' => array(),
             'view' => array('*'),
-            'viewEntries' => ['AND'=> ['perm_warninglist', 'theming_enabled']],
             'edit' => ['perm_warninglist'],
             'add' => ['perm_warninglist'],
             'export' => ['*'],

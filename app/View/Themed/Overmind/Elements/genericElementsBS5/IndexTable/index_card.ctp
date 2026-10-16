@@ -11,6 +11,8 @@
  *
  * `meta` section pinned bottom: card-body.d-flex.flex-column > .row.flex-grow-1 > .col
  * gives full height; mt-auto on meta eats leftover space. All classes load-bearing.
+ *
+ * `body` sits under the title, full width, for content rather than fields.
  */
 $data = $scaffold_data['data'];
 
@@ -51,7 +53,7 @@ foreach ($cardTiers as $bp) {
 
 <div class="d-flex flex-column align-items-center text-secondary py-5">
     <i class="fas fa-inbox fa-2x d-block mb-2"></i>
-    <?= __('No items to display') ?>
+    <?= h($data['empty_message'] ?? __('No items to display')) ?>
 </div>
 
 <?php else: ?>
@@ -65,6 +67,7 @@ $sections = [
     'selector' => [],
     'meta' => [],
     'title' => [],
+    'body' => [],
     'links' => [],
     'extra' => []
 ];
@@ -141,9 +144,14 @@ $cardStyle = '';
 if (!empty($data['row_style_callable']) && is_callable($data['row_style_callable'])) {
     $cardStyle = call_user_func($data['row_style_callable'], $row);
 }
+$cardMarker = '';
+if (!empty($data['row_marker_callable']) && is_callable($data['row_marker_callable'])) {
+    $cardMarker = (string)call_user_func($data['row_marker_callable'], $row);
+}
 ?>
 <div class="idx-card-col px-2">
     <div class="card shadow-sm idx-card h-100 <?= h($cardClass) ?>"<?= $cardStyle === '' ? '' : ' style="' . h($cardStyle) . '"' ?>>
+        <?= $cardMarker ?>
 
         <?php if ($cardElement): ?>
 
@@ -194,6 +202,12 @@ if (!empty($data['row_style_callable']) && is_callable($data['row_style_callable
                             <?php foreach ($sections['title'] as $item): ?>
                                 <?= $item ?>
                             <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($sections['body'])): ?>
+                        <div class="idx-card-body">
+                            <?= implode('', $sections['body']) ?>
                         </div>
                     <?php endif; ?>
 

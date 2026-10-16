@@ -13,6 +13,12 @@ $fields = [
         'type' => 'dropdown'
     ],
     [
+        'field' => 'value',
+        'class' => 'input span6',
+        'label' => __('Value'),
+        'placeholder' => __('For a Value element, in place of the UUID')
+    ],
+    [
         'field' => 'description',
         'class' => 'span6',
         'type' => 'textarea'

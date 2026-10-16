@@ -6,72 +6,48 @@ $uploadUrl = h($baseurl . '/attributes/add_attachment/' . $eventId);
 $mayModify = $this->Acl->canModifyEvent($data);
 ?>
 
-<div class="card shadow-sm mb-3 flex-grow-1" id="attachment-card">
+<div class="card shadow-sm eo-card eo-attachments" id="attachment-card">
 
-    <!-- HEADER -->
-    <div class="p-3 border-bottom">
-        <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div class="eo-card-head eo-attach-head">
+        <div class="misp-icon-tile eo-tile" style="--tile:#F59E0B;--tile-bg:#fff3cd;">
+            <i class="fas fa-paperclip"></i>
+        </div>
+        <div class="min-w-0 me-auto">
+            <div class="eo-card-title"><?= __('Attachments') ?></div>
+            <div class="eo-card-sub" id="<?= $uid ?>-count">…</div>
+        </div>
 
-            <!-- Icon + title + count -->
-            <div class="d-flex align-items-center gap-2 me-auto">
-                <div class="rounded-2 d-flex align-items-center justify-content-center"
-                     style="width:36px;height:36px;background:#fff3cd;">
-                    <i class="fas fa-paperclip" style="color:#F59E0B; font-size:1rem;"></i>
-                </div>
-                <div>
-                    <div class="fw-bold lh-1">
-                        <?= __('Event Attachments') ?>
-                    </div>
-                    <div class="small text-muted mt-1" id="<?= $uid ?>-count">
-                        …
-                    </div>
-                </div>
-            </div>
+        <div class="input-group input-group-sm eo-attach-search d-none" id="<?= $uid ?>-filter">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="search"
+                   id="<?= $uid ?>-search"
+                   class="form-control"
+                   placeholder="<?= __('Filter files, hashes…') ?>"
+                   autocomplete="off"
+                   aria-label="<?= __('Filter attachments') ?>">
+        </div>
 
-            <!-- Search -->
-            <div class="input-group input-group-sm" style="max-width:300px;">
-                <span class="input-group-text border-end-0 bg-white">
-                    <i class="fas fa-search text-muted small"></i>
-                </span>
-                <input type="search"
-                       id="<?= $uid ?>-search"
-                       class="form-control border-start-0 ps-0"
-                       placeholder="<?= __('Filter files, hashes, MIME…') ?>"
-                       autocomplete="off"
-                       aria-label="<?= __('Filter attachments') ?>">
-            </div>
-
-            <div class="d-flex align-items-center gap-2 flex-shrink-0" data-card-actions>
-                <!-- Upload -->
-                <?php if ($mayModify || $isSiteAdmin): ?>
+        <span class="d-inline-flex gap-1 flex-shrink-0">
+            <?php if ($mayModify || $isSiteAdmin): ?>
                 <a href="<?= $uploadUrl ?>"
                    onclick="event.preventDefault(); openModal('<?= $uploadUrl ?>')"
-                   class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
-                    <i class="fas fa-upload"></i>
-                    <?= __('Upload') ?>
+                   class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                    <i class="fas fa-upload"></i><?= __('Upload') ?>
                 </a>
-                <?php endif; ?>
-
-                <!-- Download All -->
-                <button type="button"
-                        id="<?= $uid ?>-dl-all"
-                        class="btn btn-sm btn-primary d-flex align-items-center gap-1"
-                        onclick="eaDownloadAll('<?= $uid ?>')"
-                        disabled>
-                    <i class="fas fa-download"></i>
-                    <?= __('Download All') ?>
-                </button>
-            </div>
-            <?= $this->element('genericElementsBS5/Cards/actions_overflow_menu') ?>
-
-        </div>
+            <?php endif; ?>
+            <button type="button"
+                    id="<?= $uid ?>-dl-all"
+                    class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1 d-none"
+                    onclick="eaDownloadAll('<?= $uid ?>')"
+                    title="<?= __('Download every file shown') ?>">
+                <i class="fas fa-download"></i><?= __('Download all') ?>
+            </button>
+        </span>
     </div>
 
-    <!-- BODY -->
-    <div class="card-body p-0" id="<?= $uid ?>-body"
-         data-collapse-tall="400">
+    <div id="<?= $uid ?>-body" data-collapse-tall="300">
         <div class="text-center py-5 text-muted" id="<?= $uid ?>-spinner">
-            <div class="spinner-border spinner-border-sm" role="status"></div>
+            <div class="misp-loader misp-loader-sm" role="status"></div>
         </div>
     </div>
 
@@ -96,9 +72,10 @@ $mayModify = $this->Acl->canModifyEvent($data);
             var total = root ? parseInt(root.getAttribute('data-attachment-count'), 10) : 0;
             setCount(total, total);
             bindSearch(total);
-            /* enable Download All only when there's something to download */
+            var filter = document.getElementById(uid + '-filter');
             var dlBtn = document.getElementById(uid + '-dl-all');
-            if (dlBtn && total > 0) { dlBtn.disabled = false; }
+            if (filter) { filter.classList.toggle('d-none', total <= 3); }
+            if (dlBtn) { dlBtn.classList.toggle('d-none', total <= 1); }
         })
         .catch(function () {
             body.innerHTML =
@@ -111,14 +88,16 @@ $mayModify = $this->Acl->canModifyEvent($data);
 
     function setCount(total, visible) {
         if (!countEl) { return; }
+        var files = total === 1
+            ? <?= json_encode(__('1 file')) ?>
+            : total + ' ' + <?= json_encode(__('files')) ?>;
         if (total === 0) {
             countEl.textContent = <?= json_encode(__('No files')) ?>;
         } else if (visible === total) {
-            countEl.textContent = total + ' ' + <?= json_encode(__('files')) ?>;
+            countEl.textContent = files;
         } else {
             countEl.textContent =
-                total + ' ' + <?= json_encode(__('files')) ?>
-                + ' · ' + visible + ' ' + <?= json_encode(__('visible')) ?>;
+                files + ' · ' + visible + ' ' + <?= json_encode(__('visible')) ?>;
         }
     }
 

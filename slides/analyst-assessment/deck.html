@@ -1,0 +1,1220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Analyst Assessment · MISP</title>
+
+<!--
+  ============================================================
+  HOW TO EDIT THIS DECK
+  ============================================================
+
+  One slide is one <section class="slide">. Add one, delete one,
+  reorder them. The navigation, the slide numbers and the
+  Markdown export all read the document.
+
+  The vocabulary each slide may use:
+
+    <p class="kicker">    small label above the heading
+    <h2>                  the slide heading
+    <p class="lead">      one large opening sentence
+    <ul> <ol> <p>         ordinary prose
+    <p class="note">      small muted line, usually last
+    <blockquote>          a pull quote
+    <table>               first row in <thead> is the header
+    <pre><code>           code, kept verbatim
+    <figure> <img> <figcaption>   a screenshot and its caption
+    <div class="cols">    two side-by-side columns (any content)
+    <div class="cols narrow-left">  same, with a narrower first column
+    <div class="tiles">   a row of small equal boxes
+    <span class="up">     green / <span class="down">  red
+    <code class="t">      inline monospace
+
+  Slide variants, as a second class on the section:
+
+    class="slide title"   the opening slide
+    class="slide big"     one statement, set large
+    class="slide shot"    a screenshot is the slide; heading stays small
+
+  Keys: → ← space PgDn PgUp Home End, f for fullscreen,
+        p to toggle the printable stacked view.
+  Print: use the browser's Print to PDF, landscape.
+
+  Markdown: run `node to-markdown.mjs` in this folder.
+  ============================================================
+-->
+
+<style>
+/* ---- palette, taken from MISP's own dark theme ------------------ */
+:root {
+  --bg:      #212529;   /* page                    */
+  --panel:   #2b3035;   /* raised surface          */
+  --line:    #495057;   /* borders                 */
+  --ink:     #dee2e6;   /* body text               */
+  --dim:     #9aa0a6;   /* secondary text          */
+  --amber:   #f39a1f;   /* MISP's assessment amber */
+  --cyan:    #1892b1;   /* MISP's link cyan        */
+  --green:   #4f9d69;
+  --red:     #d2596a;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue",
+          Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- the deck ---------------------------------------------------
+   Each slide is a 16:9 box sized to the viewport. Everything inside
+   is measured in cqw, hundredths of the slide's own width, so the
+   whole slide scales as one piece and never needs a magic number. */
+
+#deck { position: relative; }
+
+.slide {
+  container-type: size;
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  padding: 5.5cqw 6cqw 6cqw;
+  overflow: hidden;
+}
+.slide.on { display: flex; }
+
+/* ---- type ------------------------------------------------------- */
+
+.slide h1 {
+  font-size: 6.4cqw;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  margin: 0 0 1.4cqw;
+  font-weight: 650;
+}
+.slide h2 {
+  font-size: 3.5cqw;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  margin: 0 0 2.6cqw;
+  font-weight: 620;
+}
+.slide.shot h2 { font-size: 2.5cqw; margin-bottom: 1.6cqw; }
+
+.kicker {
+  font-size: 1.15cqw;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin: 0 0 1.6cqw;
+  font-weight: 620;
+}
+
+.slide p, .slide li {
+  font-size: 1.72cqw;
+  line-height: 1.5;
+  margin: 0 0 1.1cqw;
+  max-width: 62ch;
+}
+.slide .lead {
+  font-size: 2.4cqw;
+  line-height: 1.35;
+  color: #fff;
+  max-width: 44ch;
+  margin-bottom: 2.2cqw;
+}
+.slide.big p { font-size: 3.2cqw; line-height: 1.28; max-width: 30ch; }
+
+.slide ul, .slide ol { margin: 0 0 1.2cqw; padding-left: 2.2cqw; }
+.slide li { margin-bottom: 0.85cqw; }
+.slide li::marker { color: var(--amber); }
+
+.note {
+  font-size: 1.32cqw !important;
+  color: var(--dim);
+  margin-top: auto;
+  padding-top: 1.6cqw;
+  max-width: 78ch;
+}
+
+blockquote {
+  margin: 0 0 1.8cqw;
+  padding: 0 0 0 1.8cqw;
+  border-left: 0.35cqw solid var(--amber);
+  font-size: 2.1cqw;
+  line-height: 1.38;
+  color: #fff;
+  max-width: 48ch;
+}
+blockquote cite {
+  display: block;
+  margin-top: 0.9cqw;
+  font-size: 1.25cqw;
+  font-style: normal;
+  color: var(--dim);
+}
+
+strong { color: #fff; font-weight: 640; }
+em { color: var(--ink); }
+.up { color: var(--green); font-weight: 640; }
+.down { color: var(--red); font-weight: 640; }
+code, .t { font-family: var(--mono); font-size: 0.92em; color: var(--amber); }
+
+/* ---- code block -------------------------------------------------- */
+
+pre {
+  margin: 0;
+  background: #1a1d21;
+  border: 1px solid var(--line);
+  border-radius: 0.5cqw;
+  padding: 1.4cqw 1.6cqw;
+  overflow: hidden;
+}
+pre code {
+  display: block;
+  font-size: 1.12cqw;
+  line-height: 1.5;
+  color: #c9d1d9;
+  white-space: pre;
+}
+pre code b { color: var(--amber); font-weight: 600; }
+pre code i { color: var(--dim); font-style: normal; }
+
+/* ---- tables ------------------------------------------------------ */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1.32cqw;
+  line-height: 1.34;
+}
+thead th {
+  text-align: left;
+  font-size: 1.02cqw;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--dim);
+  font-weight: 620;
+  padding: 0 1.1cqw 0.7cqw 0;
+  border-bottom: 1px solid var(--line);
+}
+tbody td {
+  padding: 0.62cqw 1.1cqw 0.62cqw 0;
+  border-bottom: 1px solid #343a40;
+  vertical-align: top;
+}
+tbody tr:last-child td { border-bottom: 0; }
+td code { font-size: 0.95em; }
+
+/* ---- layout helpers ---------------------------------------------- */
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3.4cqw;
+  align-items: start;
+}
+.cols.narrow-left { grid-template-columns: 0.72fr 1fr; }
+.cols > * { min-width: 0; }
+.cols p, .cols li { max-width: none; }
+
+.tiles {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 1.6cqw;
+  margin-bottom: 1.6cqw;
+}
+.tile {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0.5cqw;
+  padding: 1.4cqw 1.5cqw;
+}
+.tile h3 {
+  margin: 0 0 0.7cqw;
+  font-size: 1.62cqw;
+  color: #fff;
+  font-weight: 640;
+}
+.tile p { font-size: 1.28cqw !important; margin: 0; color: var(--dim); }
+
+/* ---- figures ----------------------------------------------------- */
+
+figure { margin: 0; min-width: 0; }
+figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 62cqh;
+  object-fit: contain;
+  object-position: left top;
+  border: 1px solid var(--line);
+  border-radius: 0.4cqw;
+  background: var(--bg);
+}
+.slide.shot figure img { max-height: 70cqh; }
+figcaption {
+  margin-top: 0.9cqw;
+  font-size: 1.22cqw;
+  color: var(--dim);
+  line-height: 1.4;
+}
+figure.tall img { max-height: 74cqh; width: auto; margin: 0 auto; }
+
+/* ---- title slide -------------------------------------------------- */
+
+.slide.title { justify-content: flex-end; }
+.slide.title h1 { max-width: 16ch; }
+.slide.title .lead { color: var(--dim); max-width: 50ch; }
+.rule {
+  width: 9cqw;
+  height: 0.42cqw;
+  background: var(--amber);
+  margin: 0 0 2.6cqw;
+  border-radius: 0.2cqw;
+}
+
+/* ---- density variants ---------------------------------------------
+   `dense` for a slide carrying a full table; `code` for the one that
+   carries a listing. Both only tighten the spacing. */
+
+.slide.dense, .slide.code { padding: 4.3cqw 6cqw 4.8cqw; }
+.slide.dense h2 { font-size: 3cqw; margin-bottom: 1.7cqw; }
+.slide.dense tbody td { padding: 0.48cqw 1.1cqw 0.48cqw 0; }
+.slide.dense table { font-size: 1.24cqw; }
+.slide.dense .note { padding-top: 1.1cqw; font-size: 1.24cqw !important; }
+.slide.dense figcaption { font-size: 1.14cqw; margin-top: 0.7cqw; }
+.slide.dense.shot figure img { max-height: 58cqh; }
+.slide.shot:has(figure + figure) figure img { max-height: 30cqh; }
+.slide.shot:has(figure + figure + figure) figure img { max-height: 19cqh; }
+
+.slide.code .cols { grid-template-columns: 0.62fr 1fr; gap: 2.6cqw; }
+.slide.code pre { padding: 1.1cqw 1.3cqw; }
+.slide.code pre code { font-size: 0.86cqw; line-height: 1.46; }
+.slide.code p { font-size: 1.5cqw; }
+
+/* ---- chrome ------------------------------------------------------- */
+
+#bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 0.3vh;
+  background: var(--amber);
+  width: 0;
+  transition: width .18s ease;
+  z-index: 10;
+}
+#num {
+  position: fixed;
+  right: 1.6vw; bottom: 1.4vh;
+  font-size: 1.35vh;
+  font-family: var(--mono);
+  color: var(--dim);
+  z-index: 10;
+}
+#help {
+  position: fixed;
+  left: 1.6vw; bottom: 1.4vh;
+  font-size: 1.35vh;
+  color: #5a6067;
+  z-index: 10;
+}
+
+/* ---- printable / stacked view (key: p, and printing) --------------- */
+
+@media print { @page { size: 297mm 167mm; margin: 0; } }
+
+body.stack #bar, body.stack #num, body.stack #help { display: none; }
+body.stack .slide {
+  position: relative;
+  display: flex;
+  inset: auto;
+  width: 100%;
+  height: 100vh;
+  page-break-after: always;
+  break-after: page;
+  border-bottom: 1px solid var(--line);
+}
+@media print {
+  #bar, #num, #help { display: none; }
+  .slide {
+    position: relative !important;
+    display: flex !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100vh !important;
+    page-break-after: always;
+    break-after: page;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- 1 ============================================================ -->
+<section class="slide title">
+  <p class="kicker">MISP · Value Intelligence</p>
+  <div class="rule"></div>
+  <h1>The Analyst Assessment</h1>
+  <p class="lead">What MISP makes of a value, and whose judgement that
+    is.</p>
+</section>
+
+<!-- 2 ============================================================ -->
+<section class="slide">
+  <p class="kicker">The problem</p>
+  <h2>The record does not add itself up</h2>
+  <div class="cols">
+    <div>
+      <p>Eight organisations reported this IP. It carries 53 sightings,
+        four of them filed as false positives. It hits a warninglist. No
+        galaxy is attached to it.</p>
+      <p>So is it a threat?</p>
+      <p>Every analyst does this arithmetic in their head. No two of them
+        do it the same way.</p>
+    </div>
+    <div>
+      <blockquote>Four independent organisations reported it is worth
+        +28 to one analyst and +12 to another, and neither is wrong.
+        <cite>Why MISP could not simply ship weights</cite>
+      </blockquote>
+    </div>
+  </div>
+  <p class="note">An engine with the weights baked in would be a hidden
+    editorial position shipped as arithmetic.</p>
+</section>
+
+<!-- 3 ============================================================ -->
+<section class="slide big">
+  <p class="kicker">The move</p>
+  <p>MISP owns the arithmetic.<br>You own the weights it runs on.</p>
+  <p class="note">Today, two analysts who read the same value differently
+    have nowhere to put the disagreement. One of them writes a note. A
+    profile turns it into something the system holds: the same evidence,
+    two profiles, two scores, and a ledger each showing which row
+    diverged.</p>
+</section>
+
+<!-- 4 ============================================================ -->
+<section class="slide shot">
+  <p class="kicker">What an assessment is</p>
+  <h2>An assessment is three readings</h2>
+  <figure>
+    <img src="img/three-readings.png"
+         alt="Three cards: lean contested, relevance current, signal strength 57">
+  </figure>
+  <table style="margin-top:1.4cqw">
+    <thead><tr><th>Axis</th><th>The question it answers</th>
+      <th>Rendered as</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Lean</strong></td>
+        <td>What does the record assert this value is?</td>
+        <td><code>threat</code> · <code>benign</code> ·
+            <code>contested</code> · <code>none</code></td></tr>
+      <tr><td><strong>Relevance</strong></td>
+        <td>Does that assertion still matter today?</td>
+        <td><code>current</code> · <code>aging</code> ·
+            <code>expired</code> · <code>timeline uncertain</code></td></tr>
+      <tr><td><strong>Signal strength</strong></td>
+        <td>How much can the record be trusted?</td>
+        <td>a number, with the ledger as its audit trail</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 5 ============================================================ -->
+<section class="slide">
+  <p class="kicker">Axis one</p>
+  <h2>Lean: what the record asserts</h2>
+  <div class="cols">
+    <div>
+      <p><code>to_ids</code> is a per-occurrence vote that a value is an
+        actionable indicator. It is already in the database, and IDS
+        exports already filter on it.</p>
+      <p>So the lean reports what the community said about the value,
+        and MISP is never asked to form an opinion of its own.</p>
+      <p>Lean is categorical, and it does not age. A malware hash leans
+        <code>threat</code> forever. Only new assertions can move it.</p>
+    </div>
+    <div>
+      <table>
+        <thead><tr><th>Lean</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td><code>none</code></td><td>no occurrences</td></tr>
+          <tr><td><code>threat</code></td>
+            <td>threat assertions dominate</td></tr>
+          <tr><td><code>benign</code></td>
+            <td>no threat assertion, or false-positive evidence
+              dominates, or a <code>false_positive</code> warninglist
+              hit carries it</td></tr>
+          <tr><td><code>contested</code></td>
+            <td>a conflict rule fires, or the <code>to_ids</code> stance
+              splits beyond tolerance</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="note"><code>to_ids</code> is noisy in practice: MISP sets
+    per-type defaults, feed imports set it wholesale, and plenty of
+    organisations never curate it. Splitting the axes is what absorbs
+    that. Lean reports the assertion; signal strength grades how well it was
+    made. One uncurated org's <code>to_ids = 1</code> is a threat lean
+    with low signal strength. Four organisations deliberately confirming is the
+    same lean with high signal strength.</p>
+</section>
+
+<!-- 6 ============================================================ -->
+<section class="slide shot">
+  <p class="kicker">Axis two</p>
+  <h2>Relevance: whether it still holds</h2>
+  <figure>
+    <img src="img/clock.png"
+         alt="How long this reading holds: current, 60 days left">
+    <figcaption>The per-type TTL, the last-independent-corroboration
+      clock, expiry and the runway all live on this axis. None of them
+      touches the lean.</figcaption>
+  </figure>
+  <div class="cols" style="margin-top:1.4cqw">
+    <div>
+      <p>Fresh corroboration makes the reading more current and expiry
+        makes it less. The page lists which corroborations reset the
+        clock, with dates and the organisation that filed each.</p>
+    </div>
+    <div>
+      <p>Temporal precision feeds in here too. A missing
+        <code>first_seen</code>, a long created-to-published lag, or a
+        timestamp standing in for an observation date will each degrade
+        relevance to <code>timeline uncertain</code> and deduct from
+        signal strength.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7 ============================================================ -->
+<section class="slide shot">
+  <p class="kicker">Axis three</p>
+  <h2>Signal strength: how well evidenced</h2>
+  <div class="cols narrow-left">
+    <figure class="tall">
+      <img src="img/how-reached.png"
+           alt="How 57 was reached: Reporting +30, Sightings +24,
+                Lifecycle +16, signals against -13, total 57 of 100">
+    </figure>
+    <div>
+      <p class="lead">Contributions sum to the score, exactly.</p>
+      <p>Nothing is normalised, calibrated or post-processed. The sum is
+        the number, by construction, so there is no second code path
+        that could ever disagree with the ledger.</p>
+      <p>That is what makes a profile diff renderable, and what lets a
+        reader argue with a single row.</p>
+      <p>The claim it makes is a narrow one. It measures how much
+        corroborated, attributed, temporally precise weight stands
+        behind the record, which is a different question from how
+        malicious the value is.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 8 ============================================================ -->
+<section class="slide shot">
+  <p class="kicker">A real value · this instance, today</p>
+  <h2>8.8.8.8</h2>
+  <figure>
+    <img src="img/hero-contested.png"
+         alt="Contested. Signal strength medium, 57 of 100. Analyst profile
+              Incident Response &amp; Investigation. Conflict rule: a
+              warninglist marks this as a false positive and 8 of 8
+              organisations report it as a threat regardless.">
+    <figcaption>The banner names the reading, the number, the band and
+      the profile that weighted them. On this value it also names the
+      rule that decided the reading.</figcaption>
+  </figure>
+  <p class="note">“Both judgements are deliberate; the page will not pick
+    one.” A warninglist standing against eight reporting organisations
+    is the finding here, and arithmetic that quietly cancelled one off
+    against the other would bury it.</p>
+</section>
+
+<!-- 9 ============================================================ -->
+<section class="slide shot">
+  <p class="kicker">8.8.8.8</p>
+  <h2>How the reading was decided</h2>
+  <figure>
+    <img src="img/lean-band.png"
+         alt="8 organisations assert a threat, 0 report it as harmless.
+              What else reads the value: -58, four false-positive
+              sightings from 3 orgs, hits a known-benign warninglist">
+  </figure>
+  <figure style="margin-top:1.2cqw">
+    <img src="img/warninglist.png"
+         alt="List of known IPv4 public DNS resolvers, category
+              false_positive, matched by CIDR">
+    <figcaption>Category <code>false_positive</code> means reports about
+      this value are usually collateral: the sample really did touch it,
+      and it still is not the indicator. That says nothing about whether
+      the reporting organisations were right about their
+      incidents.</figcaption>
+  </figure>
+</section>
+
+<!-- 10 =========================================================== -->
+<section class="slide shot dense">
+  <p class="kicker">8.8.8.8</p>
+  <h2>Every row, and where to go and check it</h2>
+  <figure>
+    <img src="img/ledger.png"
+         alt="The signal ledger: reporting, sightings, attribution and
+              lifecycle groups, each row with its claim, evidence,
+              contribution, source panel and as-of date">
+  </figure>
+  <p class="note">Each row carries its claim, the evidence behind it,
+    what it contributed, the panel to go and argue with it in, and the
+    date it was read. The last group is the page's own heading,
+    <em>settled by rule, not by evidence</em>. It holds contradictions no
+    signal owns, so no row quietly cancels them.</p>
+</section>
+
+<!-- 11 =========================================================== -->
+<section class="slide shot">
+  <p class="kicker">8.8.8.8</p>
+  <h2>What would change the reading</h2>
+  <div class="cols narrow-left">
+    <figure>
+      <img src="img/what-would-change.png"
+           alt="What would change this: removal from every false_positive
+                list; no independent corroboration for 60 more days; a
+                galaxy cluster on any occurrence">
+    </figure>
+    <div>
+      <p>An assessment that cannot be falsified is an opinion.</p>
+      <p>The score is a sum of declared weights over declared evidence,
+        so the engine can run it backwards and name the evidence that
+        would move the reading, and by how much.</p>
+      <p>A signal that is linear in something countable says so, which
+        is how the card can offer “two more organisations reporting it”
+        where it would otherwise print a bare points gap.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 12 =========================================================== -->
+<section class="slide shot">
+  <p class="kicker">Same engine, same instance</p>
+  <h2>Three more values</h2>
+  <figure>
+    <img src="img/hero-benign.png" alt="google.com, asserted benign, 37">
+    <figcaption><code>google.com</code>, asserted benign. Four
+      organisations, three sightings, and no threat assertion left
+      standing.</figcaption>
+  </figure>
+  <figure style="margin-top:1.1cqw">
+    <img src="img/hero-fp.png" alt="45.155.205.233, contested, 11">
+    <figcaption><code>45.155.205.233</code>, contested by a different
+      route: three false-positive sightings filed against a threat
+      assertion, with no warninglist involved.</figcaption>
+  </figure>
+  <figure style="margin-top:1.1cqw">
+    <img src="img/hero-threat.png" alt="An md5, asserted threat, 19">
+    <figcaption>An md5, asserted threat. Three organisations and galaxy
+      attribution, but a thin sighting history. A confident lean with a
+      low number behind it is an honest pair of readings.</figcaption>
+  </figure>
+</section>
+
+<!-- 13 =========================================================== -->
+<section class="slide dense">
+  <p class="kicker">The signals</p>
+  <h2>Twelve shipped, five groups</h2>
+  <table>
+    <thead><tr><th>Signal</th><th>Group</th><th>What it reads</th>
+      <th>Default points</th></tr></thead>
+    <tbody>
+      <tr><td><code>reporting.independent_orgs</code></td><td>Reporting</td>
+        <td>distinct organisations holding an occurrence</td>
+        <td><code>per_org 7</code>, <code>cap 28</code></td></tr>
+      <tr><td><code>reporting.published_ratio</code></td><td>Reporting</td>
+        <td>published events versus drafts</td>
+        <td><code>scale 9</code>, <code>none −2</code></td></tr>
+      <tr><td><code>sightings.volume_recency</code></td><td>Sightings</td>
+        <td>sighting count, org spread, recency</td>
+        <td><code>cap 24</code>, <code>none_recent −4</code></td></tr>
+      <tr><td><code>sightings.false_positive</code> <span class="t"
+        style="color:var(--red)">lean</span></td><td>Sightings</td>
+        <td>false-positive sightings and their org spread</td>
+        <td><code>per −3</code>, <code>per_extra_org −4</code>,
+            <code>cap −26</code></td></tr>
+      <tr><td><code>attribution.galaxy</code></td><td>Attribution</td>
+        <td>galaxy clusters on this value's own occurrences</td>
+        <td><code>per_cluster 7</code>, <code>cap 21</code>,
+            <code>absent −7</code></td></tr>
+      <tr><td><code>attribution.technique</code></td><td>Attribution</td>
+        <td>ATT&amp;CK techniques</td>
+        <td><code>per_technique 3</code>, <code>cap 9</code></td></tr>
+      <tr><td><code>lifecycle.warninglist</code> <span class="t"
+        style="color:var(--red)">lean</span></td><td>Lifecycle</td>
+        <td>a warninglist hit and its category</td>
+        <td><code>no_hit 6</code>, <code>false_positive_hit −38</code>,
+            <code>known_hit 0</code></td></tr>
+      <tr><td><code>lifecycle.feeds</code></td><td>Lifecycle</td>
+        <td>presence in enabled feeds</td>
+        <td><code>per_feed 4</code>, <code>cap 8</code>,
+            <code>no_feed −2</code></td></tr>
+      <tr><td><code>lifecycle.continuity</code></td><td>Lifecycle</td>
+        <td>months without a gap in activity</td>
+        <td><code>per_month 1</code>, <code>cap 12</code></td></tr>
+      <tr><td><code>lifecycle.recency</code></td><td>Lifecycle</td>
+        <td>how recently it was reported</td>
+        <td><code>recent 8</code>, <code>old −4</code></td></tr>
+      <tr><td><code>record.temporal_precision</code></td><td>Lifecycle</td>
+        <td><code>first_seen</code> presence, encoding lag</td>
+        <td><code>dated 4</code>, <code>undated −6</code></td></tr>
+      <tr><td><code>enrichment.answer</code> <span class="t"
+        style="color:var(--red)">lean</span></td><td>Enrichment</td>
+        <td>stored answers from enrichment modules</td>
+        <td><code>per_verdict 12</code>, <code>cap 24</code></td></tr>
+    </tbody>
+  </table>
+  <p class="note"><code>known_hit</code> is zero by design. A
+    <code>known</code>-category hit says the value is shared
+    infrastructure, which is a different claim from harmless. The row
+    belongs on the page and counts for neither side, and a conflict rule
+    is what names its contradiction with wide reporting.</p>
+</section>
+
+<!-- 14 =========================================================== -->
+<section class="slide">
+  <p class="kicker">The contract</p>
+  <h2>What a signal hands back</h2>
+  <div class="cols">
+    <div>
+      <p>Only the signal knows how to say <em>“53 sightings from 6 orgs,
+        last 27 days ago”</em> and put <em>“3 in the last 30 days”</em>
+        underneath it. So a signal returns a whole ledger row.</p>
+      <p>The implementation owns the sentence. The profile owns the
+        points.</p>
+      <p>Points are declared threat-signed: does this evidence point at a
+        threat, and how hard. Which way the arrow renders is the engine's
+        problem, and it anchors the lean rows to the lean's polarity at
+        assembly.</p>
+      <p>Signal-strength rows keep their declared sign whatever the lean, because
+        how much record there is stays the same question whatever the
+        record concluded.</p>
+    </div>
+    <div>
+      <pre data-lang="json"><code>{ <b>"id"</b>: "reporting.independent_orgs",
+  <b>"group"</b>: "Reporting",
+  <b>"enabled"</b>: true,
+  <b>"trust_weighted"</b>: true,
+  <b>"points"</b>: { "per_org": 7, "cap": 28 },
+  <b>"config"</b>: { "named": 4 } }</code></pre>
+      <p class="note" style="margin-top:1.2cqw">
+        <code>points</code> is what evidence is worth,
+        <code>config</code> is the implementation's thresholds. Neither
+        has a fixed schema: each class declares its own keys, and
+        validation runs per implementation on save.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 15 =========================================================== -->
+<section class="slide">
+  <p class="kicker">Honest states</p>
+  <h2>Four outcomes, and a word for each</h2>
+  <div class="tiles">
+    <div class="tile">
+      <h3>Fired</h3>
+      <p>A ledger row. The normal case.</p>
+    </div>
+    <div class="tile">
+      <h3>Silent</h3>
+      <p>Evaluated, with nothing to say. A ledger that listed everything
+        which did not happen would be unreadable.</p>
+    </div>
+    <div class="tile">
+      <h3>Could not run</h3>
+      <p>Named in <code>not counted</code>, with the reason: excluded by
+        policy, blocked by permissions, or simply no data.</p>
+    </div>
+    <div class="tile">
+      <h3>Unknown id</h3>
+      <p>A profile naming a signal this instance does not have. It is
+        named on the page rather than dropped.</p>
+    </div>
+  </div>
+  <p>Absence and exclusion are different things. A signal whose input set
+    was emptied by an exclusion stays silent instead of firing its
+    absence key: zero sightings because <code>sightings.self</code>
+    removed them all is a very different value from one nobody has
+    sighted.</p>
+  <p class="note">A score computed from eight of nine configured signals
+    and presented as though nine had run would be the kind of quiet lie
+    this feature exists to avoid. The banner still names the profile,
+    because the profile is what weighted the assessment, imperfectly or
+    not.</p>
+</section>
+
+<!-- 16 =========================================================== -->
+<section class="slide">
+  <p class="kicker">Cost</p>
+  <h2>The budget is measured in evidence time</h2>
+  <div class="cols">
+    <div>
+      <p>Every signal reads one shared context, built once per
+        assessment: the occurrence tally, the sighting rows, the tag and
+        galaxy sets, the warninglist result, the corroboration dates.
+        That is one query pass for twelve signals.</p>
+      <p>Each signal declares its evidence class:</p>
+      <ul>
+        <li><strong>Aggregate.</strong> Counts and dates. Index
+          aggregates, cheap at any cardinality, and always computed over
+          the whole history.</li>
+        <li><strong>Row.</strong> The material a signal quotes in its
+          prose. Rows were the cost, so rows are what a window
+          bounds.</li>
+      </ul>
+    </div>
+    <div>
+      <table>
+        <thead><tr><th>Value</th><th>What happens</th></tr></thead>
+        <tbody>
+          <tr><td>Normal</td><td>Everything. No budget in play, and no
+            note on the page.</td></tr>
+          <tr><td>Long history</td><td>Row evidence fetched for the last
+            90 days, and the page says so, as profile policy, linked to
+            the editor.</td></tr>
+          <tr><td>Too hot</td><td>Row-hungry signals are not evaluated
+            and land in <code>not counted</code>. The assessment is
+            computed from the signals that can still run.</td></tr>
+        </tbody>
+      </table>
+      <p class="note" style="margin-top:1.4cqw">Row caps and wall-clock
+        budgets were rejected on determinism. The page, the simulator and
+        the export worker all compute this, and they have to agree. A row
+        cap scores whichever rows the query happened to return, and a
+        stopwatch scores by server load.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 17 =========================================================== -->
+<section class="slide shot">
+  <p class="kicker">Configuration</p>
+  <h2>Which profile is scoring you</h2>
+  <div class="cols narrow-left">
+    <figure class="tall">
+      <img src="img/resolution-order.png"
+           alt="Resolution order: 1 yours, 2 your organisation, 3 instance
+                default">
+    </figure>
+    <div>
+      <p class="lead">Nearest owner wins.</p>
+      <p>MISP asks three questions in order and takes the first answer:
+        your own profile, then your organisation's, then the instance
+        default. Exactly one profile is in force for any reader and
+        value, which is what lets the page name it.</p>
+      <p>A fork is a full copy, with a fresh uuid and no memory of its
+        parent, so an improved default never reaches one. That is why
+        every map in a profile is an override set: a fork that overrides
+        nothing keeps tracking what it came from.</p>
+      <p>Editing the instance default is a site-admin act. For an
+        ordinary analyst the path is to fork, and that takes one
+        click.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 18 =========================================================== -->
+<section class="slide dense">
+  <p class="kicker">Configuration</p>
+  <h2>What a profile contains</h2>
+  <table>
+    <thead><tr><th>Section</th><th>What the analyst decides</th>
+      <th>Axis</th></tr></thead>
+    <tbody>
+      <tr><td><code>signals</code></td>
+        <td>which signals run, and what each contributes</td>
+        <td>lean + signal strength</td></tr>
+      <tr><td><code>thresholds</code></td>
+        <td>where the bands sit, and the lean's supermajority</td>
+        <td>lean + signal strength</td></tr>
+      <tr><td><code>escalations</code></td>
+        <td>named rules that emit <code>contested</code> instead of
+          contributing points</td><td>lean</td></tr>
+      <tr><td><code>exclusions</code></td>
+        <td>evidence set aside <em>before</em> scoring: self-sightings,
+          mirrored feeds, the long-history window</td><td>signal strength</td></tr>
+      <tr><td><code>relevance</code></td>
+        <td>the clock, the per-type TTLs, the precision tripwires</td>
+        <td>relevance</td></tr>
+      <tr><td><code>reference</code></td>
+        <td>what you believe about your sources: org trust, and which
+          warninglists mean <em>shared infrastructure</em> rather than
+          <em>false positive</em></td><td>signal strength</td></tr>
+      <tr><td><code>enrichment</code></td>
+        <td>which modules this profile cares about, per type, and whether
+          it will contact third parties</td><td>context</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:1.2cqw">Empty means “as before”. Every map is an
+    override set, so an empty org-trust map weights all organisations
+    equally, and the feature changes no behaviour until somebody edits
+    something.</p>
+  <p class="note">A profile cannot widen instance policy; it picks
+    enrichment modules from the set the instance already enabled.
+    Presentation stays out of it as well, because a version bump on the
+    object that explains a score should never mean somebody changed
+    their default tab.</p>
+</section>
+
+<!-- 19 =========================================================== -->
+<section class="slide shot dense">
+  <p class="kicker">Configuration</p>
+  <h2>Five profiles ship, for five ways of working</h2>
+  <figure>
+    <img src="img/profiles-index.png"
+         alt="The Analyst Profiles index listing Incident Response &amp;
+              Investigation, default-v1, Disinformation &amp; Influence,
+              Fraud &amp; Abuse, Risk &amp; Reporting and SOC Triage">
+  </figure>
+  <p class="note">They are deliberately conservative. All five keep the
+    shipped default's weights and bands, and what moves instead is shelf
+    life and what the page shows first. Fraud &amp; Abuse expires an IP
+    in 14 days where Incident Response gives a hash five years, and Risk
+    &amp; Reporting changes no number at all. Choosing one MISP ships
+    keeps it corrected upstream; forking freezes a copy you own.</p>
+</section>
+
+<!-- 20 =========================================================== -->
+<section class="slide shot">
+  <p class="kicker">Configuration</p>
+  <h2>The editor: every weight in one place</h2>
+  <figure>
+    <img src="img/editor-signals.png"
+         alt="The profile editor's Signals section, each signal with its
+              points and tuning fields, and a value bench on the right">
+    <figcaption>Ten sections down the left side. Each signal shows its
+      points and its tuning, whether it is trust-weighted, which panel it
+      reads, and whether it reads the value or weighs the
+      record.</figcaption>
+  </figure>
+</section>
+
+<!-- 21 =========================================================== -->
+<section class="slide shot dense">
+  <p class="kicker">Configuration</p>
+  <h2>Change a weight; see every row that moved</h2>
+  <div class="cols">
+    <figure>
+      <img src="img/bench-score.png"
+           alt="Signal strength 59, 57 under the profile in force, plus 2. The band
+                ruler moves from 57 to 59; 11 signals fired of 153
+                reachable.">
+    </figure>
+    <figure>
+      <img src="img/bench-moved.png"
+           alt="What moved, 2 of 11 rows: reporting.independent_orgs 28 to
+                24, minus 4, changed; lifecycle.longevity dash to 6, plus 6,
+                appeared. Nine rows did not move: 57 to 59, plus 2.">
+    </figure>
+  </div>
+  <p style="margin-top:1.2cqw">Put a value on the bench and it is
+    rescored as you type, against the profile in force. Here
+    <code>independent_orgs</code> went from 7 points an organisation to
+    3, worth <span class="down">−4</span>, and a signal the profile did
+    not use was switched on, worth <span class="up">+6</span>.</p>
+  <p>Two of eleven rows moved. The page says which ones and by how much,
+    before anything is saved.</p>
+  <p class="note">Pin a value and it follows you between profiles, so
+    every change is judged on the same evidence.</p>
+</section>
+
+<!-- 22 =========================================================== -->
+<section class="slide dense">
+  <p class="kicker">Extending</p>
+  <h2>A new signal is a file you drop in</h2>
+  <div class="cols">
+    <div>
+      <p>Nothing about the catalogue is hardcoded. The twelve shipped
+        signals are twelve files, and a thirteenth is a thirteenth file.
+        The code that would have held a list of them was never
+        written.</p>
+      <table style="margin-top:1.4cqw">
+        <thead><tr><th>Directory</th><th>Holds</th>
+          <th>On upgrade</th></tr></thead>
+        <tbody>
+          <tr><td><code>app/Model/ValueSignals/</code></td>
+            <td>the shipped catalogue</td><td>replaced</td></tr>
+          <tr><td><code>app/Lib/ValueSignals/</code></td>
+            <td>what you drop in</td><td>never touched</td></tr>
+        </tbody>
+      </table>
+      <p class="note" style="margin-top:1cqw">The same shape MISP already
+        uses twice, for <code>Workflow</code>'s two module roots and the
+        decaying-model formula directory.</p>
+    </div>
+    <div>
+      <ol>
+        <li><strong>Discovery is not activation.</strong> A dropped file
+          changes no score until a profile names its id. Otherwise
+          copying a file would move every number on the instance with
+          nobody having edited a profile.</li>
+        <li><strong>A colliding id is refused.</strong> The shipped
+          signal keeps it. The alternative is two instances rendering
+          the same ledger row from two different computations, with
+          nothing on screen saying so.</li>
+        <li><strong>A broken file is an honest state.</strong> Does not
+          parse, wrong base class, <code>evaluate()</code> throws, row
+          malformed: each is logged, skipped, and named in
+          <code>not counted</code>. None of them takes the page
+          down.</li>
+        <li><strong>One scan per request, and no cache.</strong> An
+          admin who drops a file expects the next page load to see
+          it.</li>
+        <li><strong>Nothing in the UI ever writes one of these
+          files.</strong> There is no upload and no in-browser editor;
+          signals arrive the way you already deploy code.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- 23 =========================================================== -->
+<section class="slide code">
+  <p class="kicker">Extending</p>
+  <h2>Writing one</h2>
+  <div class="cols">
+    <div>
+      <p>The judgement it encodes: a value first reported nine years ago
+        and still being reported is a different thing from one that
+        appeared last week.</p>
+      <p>The catalogue scores how <em>recently</em> a value was reported
+        and how <em>continuously</em>. Nothing scores how long it has
+        stood.</p>
+      <p>The two schemas are what let the editor render a form for a
+        signal it has never seen. Without them a drop-in is only half
+        usable, and the admin has to hand-edit JSON to configure the file
+        they just wrote.</p>
+      <p class="note">Whole file:
+        <code>example/LifecycleLongevity.php</code></p>
+    </div>
+    <pre data-lang="php"><code>class <b>LifecycleLongevity</b> extends ValueSignalBase
+{
+    public $id    = <b>'lifecycle.longevity'</b>;
+    public $group = 'Lifecycle';
+    public $reads = array('occurrences');
+
+    public function __construct()
+    {
+        $this-&gt;description = __('How long this has been on record.');
+
+        <i>// The editor builds a form from these two.</i>
+        $this-&gt;<b>points_schema</b> = array(
+            'established' =&gt; array('type' =&gt; 'int', 'default' =&gt; 6),
+            'brief'       =&gt; array('type' =&gt; 'int', 'default' =&gt; -2));
+        $this-&gt;<b>config_schema</b> = array(
+            'established_days' =&gt; array('type' =&gt; 'int',
+                                        'default' =&gt; 365));
+    }
+
+    public function <b>evaluate</b>(array $context, array $config)
+    {
+        $oldest = (int)($context['occurrences']['oldest'] ?? 0);
+        <i>if ($oldest === 0) { return null; }        // silent</i>
+
+        $days = (int)floor(($context['now'] - $oldest) / 86400);
+        $up   = $days &gt;= $this-&gt;setting($config, 'established_days');
+
+        return $this-&gt;<b>row</b>(
+            $this-&gt;points($config, $up ? 'established' : 'brief'),
+            sprintf(__('On record for %s'), $this-&gt;span($days)),
+            __('Established once it has stood for 365 days'),
+            $context,
+            $this-&gt;stampAsOf($oldest, $context));
+    }
+}</code></pre>
+  </div>
+</section>
+
+<!-- 24 =========================================================== -->
+<section class="slide shot dense">
+  <p class="kicker">Extending</p>
+  <h2>Two page loads later</h2>
+  <figure>
+    <img src="img/custom-row.png"
+         alt="The editor's signal row for lifecycle.longevity, tagged
+              custom and available, with number fields for established,
+              brief and established_days">
+    <figcaption>The editor discovered it and built the form itself.
+      <em>custom</em> means it was added on this instance, so a colleague
+      reading the profile elsewhere cannot reproduce the number it
+      contributes. <em>available</em> means this instance has it and this
+      profile does not use it yet.</figcaption>
+  </figure>
+  <figure style="margin-top:1.3cqw">
+    <img src="img/ledger-custom.png"
+         alt="The ledger's Lifecycle group now carrying a row: On record
+              for 4 years, established once it has stood for 365 days,
+              plus 6, Occurrences, 2022-06-28">
+    <figcaption>Tick it in a profile and it scores real values in its own
+      prose, sitting in the ledger beside the twelve MISP
+      ships.</figcaption>
+  </figure>
+</section>
+
+<!-- 25 =========================================================== -->
+<section class="slide dense">
+  <p class="kicker">Where this stands</p>
+  <h2>The gate that is still landing</h2>
+  <div class="cols">
+    <div>
+      <p><code>restSearch</code> does not filter on the assessment yet,
+        and it cannot do it the way <code>excludeDecayed</code> filters
+        on decay. A decay score is a formula over the attribute's own row
+        and its last sighting, cheap enough to run per request. An
+        assessment is eleven database statements per distinct value.</p>
+      <table>
+        <thead><tr><th>A 10,000-attribute export</th>
+          <th>Warm</th></tr></thead>
+        <tbody>
+          <tr><td>as MISP ships it</td>
+            <td><strong>136 ms</strong></td></tr>
+          <tr><td>with an assessment on every value</td>
+            <td><strong>74.9 s</strong></td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:1.2cqw">550×, measured on a 3.9M-attribute
+        instance, and linear: 100k extrapolates to about twelve minutes.
+        Ninety-four per cent of it is fetching context, not arithmetic,
+        so there is no hot spot to optimise away.</p>
+      <p class="note">Nobody else computes aging per request at export
+        time either. Every TIP surveyed ages its indicators in the
+        background, by a TTL that flips a status or by a decay curve
+        crossing a threshold, and the exports filter on the result.</p>
+    </div>
+    <div>
+      <p>So the gate has to be a stored row, filled in by a worker under
+        the instance default profile. Precomputing the whole value space
+        is the expensive half: 4.8 hours for the two million values on
+        the test instance, and 23 to 93 days on a billion-attribute one.
+        Keeping them current afterwards is not, at roughly 1.4 hours a
+        day.</p>
+      <p><strong>Which leaves a door open.</strong> If the backfill is
+        the problem and the steady state is not, the shape worth
+        exploring is precomputing a <strong>time slice</strong>: the
+        values active in a window, with everything else computed the
+        first time something asks for it. The backfill becomes optional
+        warming rather than a precondition.</p>
+      <p class="note">Two more questions decide it, and both are one
+        probe each: what a relevance-only context costs, since
+        <code>excludeStale</code> is the gate people will actually use,
+        and whether a batched aggregate over 500 values costs like one
+        statement or like 500.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 26 =========================================================== -->
+<section class="slide">
+  <p class="kicker">Closing</p>
+  <h2>Try it on your own instance</h2>
+  <div class="cols">
+    <div>
+      <ul>
+        <li>Open any value's <em>Assessment</em> tab and read the ledger
+          before you trust the number.</li>
+        <li>Go to <em>Analyst Profiles</em> and pick the one that matches
+          how you work, or fork it and argue with a weight.</li>
+        <li>Pin the values you always end up explaining, and judge every
+          change against them.</li>
+        <li>If the twelve do not say what your team means, the thirteenth
+          is a file.</li>
+      </ul>
+    </div>
+    <div>
+      <blockquote>Two analysts can now read the same value differently,
+        and the system can show exactly where they parted.
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+</div><!-- /#deck -->
+
+<div id="bar"></div>
+<div id="num"></div>
+<div id="help">← → to move · f fullscreen · p print view</div>
+
+<script>
+/* ------------------------------------------------------------------
+   Navigation. Reads the document, so adding or removing a <section>
+   needs no change here. The slide number lives in the URL hash, so a
+   reload keeps your place and you can link to a slide.
+   ------------------------------------------------------------------ */
+(function () {
+  var slides = Array.prototype.slice.call(
+    document.querySelectorAll('.slide'));
+  var bar = document.getElementById('bar');
+  var num = document.getElementById('num');
+  var at = 0;
+
+  function show(i) {
+    at = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach(function (s, n) { s.classList.toggle('on', n === at); });
+    bar.style.width = ((at + 1) / slides.length * 100) + '%';
+    num.textContent = (at + 1) + ' / ' + slides.length;
+    if (location.hash !== '#' + (at + 1)) {
+      history.replaceState(null, '', '#' + (at + 1));
+    }
+  }
+
+  function fromHash() {
+    var n = parseInt((location.hash || '').slice(1), 10);
+    show(isNaN(n) ? 0 : n - 1);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    switch (e.key) {
+      case 'ArrowRight': case 'ArrowDown': case ' ': case 'PageDown':
+        show(at + 1); e.preventDefault(); break;
+      case 'ArrowLeft': case 'ArrowUp': case 'PageUp':
+        show(at - 1); e.preventDefault(); break;
+      case 'Home': show(0); e.preventDefault(); break;
+      case 'End': show(slides.length - 1); e.preventDefault(); break;
+      case 'f': case 'F':
+        if (document.fullscreenElement) { document.exitFullscreen(); }
+        else { document.documentElement.requestFullscreen(); }
+        break;
+      case 'p': case 'P':
+        document.body.classList.toggle('stack');
+        break;
+    }
+  });
+
+  /* Tap or click the right half to advance, the left half to go back. */
+  document.addEventListener('click', function (e) {
+    if (document.body.classList.contains('stack')) { return; }
+    if (e.target.closest('a')) { return; }
+    show(e.clientX > window.innerWidth / 2 ? at + 1 : at - 1);
+  });
+
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+}());
+</script>
+</body>
+</html>

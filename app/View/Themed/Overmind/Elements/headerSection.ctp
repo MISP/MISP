@@ -1,6 +1,6 @@
 <?php
 $breadcrumb = '';
-$unclickableControllers = ['pages', 'values'];
+$unclickableControllers = ['pages'];
 if (!empty($currentController)) {
     if ($currentController === 'galaxy_clusters') {
         $currentController = 'galaxies';
@@ -26,6 +26,37 @@ if (!empty($currentController)) {
         } else {
             $breadcrumb .= ' > ' . ucfirst(h($middle)) .  ' > ' . ucfirst(h($currentAction));
         }
+    }
+}
+
+// `headerBreadcrumb` lets a page state its own crumb, for pages whose
+// controller/action pair does not name what the page is about. A string is
+// plain text and points nowhere; an array is one segment per trail step,
+// either a bare label or `['label' => ..., 'url' => ...]`, and a segment
+// carrying a url becomes the way back to it.
+$renderBreadcrumbSegment = function ($segment) {
+    if (!is_array($segment)) {
+        return h($segment);
+    }
+    $label = h(isset($segment['label']) ? $segment['label'] : '');
+    if ($label === '' || empty($segment['url'])) {
+        return $label;
+    }
+    return '<a href="' . h($this->Html->url($segment['url'])) . '" '
+        . 'class="text-muted text-decoration-none breadcrumb-controller-link">'
+        . $label . '</a>';
+};
+if (!empty($headerBreadcrumb)) {
+    if (is_array($headerBreadcrumb)) {
+        $segments = array_filter(
+            array_map($renderBreadcrumbSegment, $headerBreadcrumb),
+            function ($rendered) {
+                return $rendered !== '';
+            }
+        );
+        $breadcrumb = implode(' > ', $segments);
+    } else {
+        $breadcrumb = h($headerBreadcrumb);
     }
 }
 
@@ -126,6 +157,7 @@ $headerDescriptionTabbed = count(array_diff_key($headerDescriptions, ['' => true
  *   'primary'    this one keeps a button when its type is grouped
  *   'standalone' never folded into its type's group
  *   'children'   type dropdown only, same shape + ['type' => 'divider']
+ *   'attributes' more attributes of the rendered control, name => value
  *
  * Several actions sharing a behaviour (and a tab) collapse into a single
  * split button carrying that behaviour's style, so the strip never grows
@@ -261,7 +293,7 @@ $renderHeaderAction = function (array $action, array $options = []) use (
         'title' => $action['title'] ?? null,
         'data-header-tab' => $tab,
         'onclick' => $headerActionOnClick($action + ['type' => $type]),
-    ]) . '>' . $icon . $label . '</a>';
+    ] + ($action['attributes'] ?? [])) . '>' . $icon . $label . '</a>';
 };
 
 $renderHeaderMenu = function (array $entries) use ($renderHeaderAction) {
@@ -391,6 +423,11 @@ if (!empty($headerActions)) {
                 <span class="text-muted text-uppercase fw-semibold"
                         style="font-size:0.68rem; letter-spacing:0.07em;">
                     <?= $breadcrumb ?>
+                    <?php if (!empty($headerBreadcrumbSuffix)): ?>
+                        <span class="ms-1 border rounded px-1 font-monospace text-body">
+                            <?= h($headerBreadcrumbSuffix) ?>
+                        </span>
+                    <?php endif; ?>
                 </span>
             <?php endif; ?>
             <div class="d-flex align-items-center gap-2 ">
@@ -406,20 +443,20 @@ if (!empty($headerActions)) {
             </div>
 
             <?php if (!$headerDescriptionTabbed && !empty($headerDescriptions[''])): ?>
-                <span class="text-mute mt-1" style="font-size:0.85rem;">
+                <span class="text-muted mt-1 mb-2" style="font-size:0.85rem;">
                     <?= $headerDescriptions[''] ?>
                 </span>
             <?php elseif ($headerDescriptionTabbed): ?>
                 <div>
                     <?php foreach ($headerDescriptions as $tabId => $text): ?>
                         <?php if ($tabId === ''): continue; endif; ?>
-                        <p class="text-muted mt-1 d-none" style="font-size:0.85rem;"
+                        <p class="text-muted mt-1 mb-2 d-none" style="font-size:0.85rem;"
                            data-header-tab="<?= h($tabId) ?>">
                             <?= $text ?>
                         </p>
                     <?php endforeach; ?>
                     <?php if (!empty($headerDescriptions[''])): ?>
-                        <p class="text-muted mt-1" style="font-size:0.85rem;"
+                        <p class="text-muted mt-1 mb-2" style="font-size:0.85rem;"
                            data-header-tab-fallback>
                             <?= $headerDescriptions[''] ?>
                         </p>

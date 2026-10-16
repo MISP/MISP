@@ -1,0 +1,43 @@
+{
+    "uuid": "7701d271-fd42-45fd-b680-b5b137a96fe3",
+    "name": "Risk & Reporting",
+    "description": "For an analyst who will be asked to explain the number. It changes no number at all - only what the page shows first - so a band read here is the instance's band and not this profile's opinion of it.",
+    "version": 9,
+    "extends": "default-v1",
+    "parameters": {
+        "reference": {
+            "module_trust": {
+                "vulnerability_lookup": "A",
+                "cve": "A",
+                "greynoise": "B",
+                "mmdb_lookup": "B"
+            }
+        },
+        "enrichment": {
+            "shapes": [
+                "vulnerability",
+                "reputation",
+                "geolocation",
+                "network-ownership",
+                "resolution-timeline"
+            ]
+        },
+        "context": {
+            "taxonomies": {
+                "pinned": [
+                    "tlp",
+                    "admiralty-scale",
+                    "estimative-language"
+                ]
+            },
+            "galaxies": {
+                "preferred": [
+                    "sector",
+                    "country",
+                    "branded-vulnerability",
+                    "threat-actor"
+                ]
+            }
+        }
+    }
+}

@@ -43,7 +43,7 @@
                     class="list-group-item list-group-item-action d-flex align-items-center gap-3 text-start"
                     data-pgp-fingerprint="<?= h($key['fingerprint']) ?>"
                     title="<?= h(__('Use this key')) ?>">
-                <i class="fas fa-key text-primary flex-shrink-0"></i>
+                <i class="fas fa-key text-accent flex-shrink-0"></i>
                 <span class="flex-grow-1" style="min-width:0;">
                     <code class="text-body d-block" style="font-size:.75rem;"><?= h(chunk_split($key['fingerprint'], 4, ' ')) ?></code>
                     <span class="text-muted d-block text-truncate" style="font-size:.7rem;"><?= h(implode(' · ', $meta)) ?></span>

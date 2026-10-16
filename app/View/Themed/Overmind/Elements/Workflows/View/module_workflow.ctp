@@ -11,7 +11,7 @@ $timestamp = (int)($workflow['timestamp'] ?? 0);
 <div class="card shadow-sm mb-3">
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
-            <div class="rounded-2 d-flex align-items-center justify-content-center bg-primary-subtle text-primary"
+            <div class="rounded-2 d-flex align-items-center justify-content-center bg-primary-subtle text-primary-emphasis"
                  style="width:36px;height:36px;">
                 <i class="fas fa-diagram-project"></i>
             </div>

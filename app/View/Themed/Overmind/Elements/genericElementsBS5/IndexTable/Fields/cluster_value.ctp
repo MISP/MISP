@@ -10,6 +10,8 @@
  *                              'SourceCluster', 'TargetCluster').
  * $field['url']             => optional link template for the value (supports %id%).
  * $field['hide_description'] => optional bool, hide the description line.
+ * $field['chip']            => optional bool, the value as a cluster chip, for a
+ *                              column referencing another cluster.
  */
 $basePath = $field['data_path'];
 $cluster = Hash::extract($row, $basePath);
@@ -29,6 +31,10 @@ if (!empty($field['url']) && !empty($cluster['id'])) {
 
 // A "forked from" parent is only available when the controller attaches it.
 $parent = $cluster['extended_from']['GalaxyCluster'] ?? null;
+
+if (!empty($field['chip'])) {
+    $valueHtml = $this->TagChip->cluster($cluster);
+}
 ?>
 
 <div class="d-flex flex-column">
@@ -53,9 +59,13 @@ $parent = $cluster['extended_from']['GalaxyCluster'] ?? null;
             );
         endif; ?>
 
-        <p class="mb-0 fw-semibold" style ="font-size: 1.2em;">
+        <?php if (!empty($field['chip'])): ?>
             <?= $valueHtml ?>
-        </p>
+        <?php else: ?>
+            <p class="mb-0 fw-semibold" style ="font-size: 1.2em;">
+                <?= $valueHtml ?>
+            </p>
+        <?php endif; ?>
     </div>
     <!-- Description: compact, single-line, truncated (full text on hover) -->
     <?php if (empty($field['hide_description']) && !empty($cluster['description'])):
@@ -70,15 +80,11 @@ $parent = $cluster['extended_from']['GalaxyCluster'] ?? null;
 
     <!-- Fork indicator: shown when the parent cluster info is attached -->
     <?php if (!empty($parent['id'])): ?>
-        <div class="mt-1">
-            <span class="badge d-inline-flex align-items-center gap-1 fw-semibold"
-                  style="background:transparent;color:var(--bs-galaxy);border:1px dashed var(--bs-galaxy);"
-                  title="<?= __('This cluster is forked from another cluster') ?>">
-                <i class="fas fa-code-branch"></i>
-                <?= __('Forked from') ?>
-                <a href="<?= $baseurl ?>/galaxy_clusters/view/<?= h($parent['id']) ?>"
-                   class="text-galaxy text-decoration-none"><?= h($parent['value'] ?? '') ?></a>
-            </span>
+        <div class="mt-1 d-flex align-items-center gap-1 small text-muted"
+             title="<?= __('This cluster is forked from another cluster') ?>">
+            <i class="fas fa-code-branch"></i>
+            <?= __('Forked from') ?>
+            <?= $this->TagChip->cluster($cluster['extended_from']) ?>
         </div>
     <?php endif; ?>
 </div>

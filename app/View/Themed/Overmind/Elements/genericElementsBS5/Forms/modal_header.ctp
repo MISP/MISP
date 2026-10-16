@@ -61,7 +61,7 @@ $glyph = function ($classes, $size, $extra = '') use ($accent) {
 };
 ?>
 <div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:<?= $accent['tint'] ?>; border-bottom:2px solid <?= $accent['line'] ?>;">
+     style="background:var(--misp-modal-header-bg, <?= $accent['tint'] ?>); border-bottom:2px solid var(--misp-modal-header-line, <?= $accent['line'] ?>);">
     <div>
         <?php if ($eyebrow !== ''): ?>
             <div class="<?= h(trim('text-uppercase fw-semibold mb-1 ' . $accent['textClass'])) ?>"

@@ -490,7 +490,8 @@
         var known = this.tagData[name]
             || (this.proxy && this.proxy.tagname ? {Tag: this.proxy.tagname[name]} : null);
         var body = this._tagBody(name, known && known.Tag ? known : null);
-        return '<span class="ov-md-tag" data-scope="tag" data-md-pop="1" tabindex="0"'
+        return '<span class="ov-md-tag' + (body.chip ? ' is-chip' : '') + '"'
+            + ' data-scope="tag" data-md-pop="1" tabindex="0"'
             + ' data-tagname="' + esc(name) + '"'
             + (body.resolved ? '' : ' data-md-tag-pending="1"')
             + ' style="' + body.style + '">' + body.html + '</span>';
@@ -505,8 +506,10 @@
         var colour = GREY;
         var resolved = false;
         var html = esc(name);
+        var numericalValue = null;
 
         if (data) {
+            if (data.Tag) { numericalValue = data.Tag.numerical_value; }
             if (data.Tag && data.Tag.colour) { colour = data.Tag.colour; }
             else if (data.TaxonomyPredicate && data.TaxonomyPredicate.colour) {
                 colour = data.TaxonomyPredicate.colour;
@@ -521,10 +524,35 @@
                 resolved = true;
             }
         }
+        if (window.TagChips && data && data.GalaxyCluster) {
+            var gc = data.GalaxyCluster;
+            return {
+                html: window.TagChips.cluster({
+                    value: gc.value,
+                    galaxy: gc.Galaxy && gc.Galaxy.name ? gc.Galaxy.name : gc.type,
+                    iconClass: faClass(gc.Galaxy ? gc.Galaxy.icon : null),
+                    description: gc.description
+                }, {href: function () { return null; }}),
+                style: '',
+                resolved: resolved,
+                chip: true
+            };
+        }
+        if (window.TagChips) {
+            return {
+                html: window.TagChips.chip({
+                    name: name, colour: colour, numerical_value: numericalValue
+                }, {searchUrl: ''}),
+                style: '',
+                resolved: resolved,
+                chip: true
+            };
+        }
         return {
             html: html,
             style: 'background-color:' + esc(colour) + ';color:' + textColour(colour) + ';',
-            resolved: resolved
+            resolved: resolved,
+            chip: false
         };
     };
 
@@ -587,6 +615,7 @@
         var body = this._tagBody(name, data && data.Tag ? data : null);
         node.innerHTML = body.html;
         node.setAttribute('style', body.style);
+        node.classList.toggle('is-chip', body.chip);
         node.removeAttribute('data-md-tag-pending');
     };
 
@@ -778,6 +807,13 @@
             var tags = this.proxy.tagname || {};
             Object.keys(tags).forEach(function (name) {
                 push(name, '', name, [name]);
+                if (window.TagChips) {
+                    list[list.length - 1].html = window.TagChips.chip({
+                        name: name,
+                        colour: tags[name] ? tags[name].colour : null,
+                        numerical_value: tags[name] ? tags[name].numerical_value : null
+                    }, {searchUrl: ''});
+                }
             });
         }
 
@@ -1225,7 +1261,9 @@
             popup.innerHTML = items.map(function (hint, index) {
                 return '<div class="ov-raw-hint' + (index === active ? ' is-active' : '') + '"'
                     + ' role="option" data-index="' + index + '">'
-                    + '<span class="ov-raw-hint-label">' + esc(hint.label) + '</span>'
+                    + (hint.html
+                        ? '<span class="ov-raw-hint-label is-chip">' + hint.html + '</span>'
+                        : '<span class="ov-raw-hint-label">' + esc(hint.label) + '</span>')
                     + (hint.detail ? '<span class="ov-raw-hint-detail">' + esc(hint.detail) + '</span>' : '')
                     + '</div>';
             }).join('');

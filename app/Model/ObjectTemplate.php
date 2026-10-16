@@ -45,6 +45,69 @@ class ObjectTemplate extends AppModel
         return $results;
     }
 
+    /**
+     * The ui-priority of each relation, for every template the event's
+     * visible objects use: ['uuid.version' => [object_relation => priority]].
+     * Zero priorities are left out. A version the instance does not carry
+     * resolves to its newest installed version.
+     *
+     * @param array $user
+     * @param int $eventId
+     * @return array
+     */
+    public function uiPrioritiesForEvent(array $user, $eventId)
+    {
+        $pairs = ClassRegistry::init('MispObject')->fetchObjectSimple($user, [
+            'conditions' => ['Object.event_id' => $eventId, 'Object.deleted' => 0],
+            'fields' => ['DISTINCT Object.template_uuid', 'Object.template_version'],
+        ]);
+        return $this->uiPrioritiesFor(Hash::extract($pairs, '{n}.Object'));
+    }
+
+    /**
+     * The same map as uiPrioritiesForEvent(), for these objects.
+     *
+     * @param array $objects each with template_uuid and template_version
+     * @return array
+     */
+    public function uiPrioritiesFor(array $objects)
+    {
+        $uuids = array_values(array_unique(array_filter(array_column($objects, 'template_uuid'))));
+        if (empty($uuids)) {
+            return [];
+        }
+        $templates = $this->find('all', [
+            'conditions' => ['ObjectTemplate.uuid' => $uuids],
+            'fields' => ['ObjectTemplate.id', 'ObjectTemplate.uuid', 'ObjectTemplate.version'],
+            'recursive' => -1,
+            'contain' => ['ObjectTemplateElement' => ['fields' => ['object_relation', 'ui-priority']]],
+        ]);
+        $byUuid = [];
+        foreach ($templates as $template) {
+            $priorities = [];
+            foreach ($template['ObjectTemplateElement'] as $element) {
+                if ((int)$element['ui-priority'] !== 0) {
+                    $priorities[$element['object_relation']] = (int)$element['ui-priority'];
+                }
+            }
+            $byUuid[$template['ObjectTemplate']['uuid']][(int)$template['ObjectTemplate']['version']] = $priorities;
+        }
+        $result = [];
+        foreach ($objects as $object) {
+            $uuid = $object['template_uuid'] ?? null;
+            $version = (int)($object['template_version'] ?? 0);
+            if (empty($byUuid[$uuid])) {
+                continue;
+            }
+            $versions = $byUuid[$uuid];
+            $priorities = isset($versions[$version]) ? $versions[$version] : $versions[max(array_keys($versions))];
+            if (!empty($priorities)) {
+                $result[$uuid . '.' . $version] = $priorities;
+            }
+        }
+        return $result;
+    }
+
     public function beforeSave($options = array())
     {
         $this->data['ObjectTemplate']['requirements'] = empty($this->data['ObjectTemplate']['requirements']) ? '[]' : json_encode($this->data['ObjectTemplate']['requirements']);

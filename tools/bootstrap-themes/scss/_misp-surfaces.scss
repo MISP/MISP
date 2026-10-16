@@ -1,0 +1,342 @@
+// Surfaces MISP templates paint inline, emitted as --misp-<name>. Templates
+// read them as var(--misp-<name>, <Overmind's value>), so a theme that leaves
+// them out (Overmind) renders exactly as the template was written.
+//
+//   tone-<hue>-bg / -fg / -border   pastel tile, its glyph or text, its edge;
+//                                   <hue> is blue, indigo, purple, pink, red,
+//                                   orange, yellow, green, teal, cyan or gray
+//   tone-<hue>-solid                the hue itself, for dots, tracks and rings
+//   surface, surface-sunken, surface-hover
+//                                   a panel, a well inside one, a hovered row
+//   line, line-strong               rules and edges; a switch's off track
+//   field-line                      a form field's edge, as .form-control draws it
+//   check-off-line, check-off-icon  a checkbox card's edge and glyph when off
+//   ink, ink-muted                  text on those surfaces
+//   dist-<level>-bg / -fg / -border distribution badge, <level> 0-5 or unknown
+//   chip-surface, chip-raised, chip-raised-border, chip-text, chip-muted,
+//   chip-faint, chip-border, chip-border-strong
+//                                   tag and galaxy cluster chips (tag-chips.css)
+//   index-check-bg, index-check-border, index-check-all, index-actions-bg
+//                                   the index tables' row checkboxes
+//   login-bg, login-card-bg, login-heading, login-logo-filter
+//                                   the sign-in page; the filter is applied to
+//                                   MISP's own logo, whose lettering is dark
+//   graph-*                         the event's correlation graph and its
+//                                   timeline: node-<kind> and link-<kind> for
+//                                   source, attribute, target and org; label,
+//                                   label-source, label-halo, label-org(-linked);
+//                                   lane, lane-line, axis, grid, grid-label,
+//                                   leader; accent and accent-ink for the
+//                                   period handles; marker(-hover); current,
+//                                   current-ink, current-on for this event;
+//                                   font and font-display
+//
+// Read by templates but not emitted here, for a theme to set if it wants:
+//   modal-header-bg, modal-header-line  the accented strip atop add/edit forms
+//
+// Each value is derived from the theme's Bootstrap palette. To change one, set
+// it in $misp-surface-overrides (or -dark) before misp-bootstrap, or declare
+// the custom property in the theme's own CSS. A theme that wants none of them
+// sets $misp-surface-tokens and $misp-surface-tokens-dark to (). One that
+// wants only some lists the others' name prefixes in $misp-surface-skip-dark.
+
+$misp-surface-overrides: () !default;
+$misp-surface-overrides-dark: () !default;
+$misp-surface-skip-dark: () !default;
+
+$misp-dist-connected: #8b5e3c !default;
+
+// A dark-only theme's dark palette is its base one.
+$_dark-only: $misp-theme-mode == "dark";
+$_d-body-bg: $body-bg-dark;
+$_d-emphasis: $body-emphasis-color-dark;
+$_d-secondary-color: $body-secondary-color-dark;
+$_d-tertiary-color: $body-tertiary-color-dark;
+$_d-secondary-bg: $body-secondary-bg-dark;
+$_d-tertiary-bg: $body-tertiary-bg-dark;
+@if $_dark-only {
+  $_d-body-bg: $body-bg;
+  $_d-emphasis: $body-emphasis-color;
+  $_d-secondary-color: $body-secondary-color;
+  $_d-tertiary-color: $body-tertiary-color;
+  $_d-secondary-bg: $body-secondary-bg;
+  $_d-tertiary-bg: $body-tertiary-bg;
+}
+
+// Bootstrap's own subtle formulas, for hues it has no theme colour for.
+@function _misp-tone($color, $dark) {
+  @if $dark {
+    @return (
+      "bg": shade-color($color, 80%),
+      "fg": tint-color($color, 40%),
+      "border": shade-color($color, 40%)
+    );
+  }
+  @return (
+    "bg": tint-color($color, 80%),
+    "fg": shade-color($color, 60%),
+    "border": tint-color($color, 60%)
+  );
+}
+
+// The theme colour's own subtle trio, as the theme tuned it.
+@function _misp-theme-tone($name, $dark) {
+  $tones: (
+    "primary":   ($primary-bg-subtle, $primary-text-emphasis, $primary-border-subtle,
+                  $primary-bg-subtle-dark, $primary-text-emphasis-dark, $primary-border-subtle-dark),
+    "secondary": ($secondary-bg-subtle, $secondary-text-emphasis, $secondary-border-subtle,
+                  $secondary-bg-subtle-dark, $secondary-text-emphasis-dark, $secondary-border-subtle-dark),
+    "success":   ($success-bg-subtle, $success-text-emphasis, $success-border-subtle,
+                  $success-bg-subtle-dark, $success-text-emphasis-dark, $success-border-subtle-dark),
+    "info":      ($info-bg-subtle, $info-text-emphasis, $info-border-subtle,
+                  $info-bg-subtle-dark, $info-text-emphasis-dark, $info-border-subtle-dark),
+    "warning":   ($warning-bg-subtle, $warning-text-emphasis, $warning-border-subtle,
+                  $warning-bg-subtle-dark, $warning-text-emphasis-dark, $warning-border-subtle-dark),
+    "danger":    ($danger-bg-subtle, $danger-text-emphasis, $danger-border-subtle,
+                  $danger-bg-subtle-dark, $danger-text-emphasis-dark, $danger-border-subtle-dark)
+  );
+  $t: map-get($tones, $name);
+  $offset: 0;
+  @if $dark {
+    $offset: 3;
+  }
+  @return (
+    "bg": nth($t, 1 + $offset),
+    "fg": nth($t, 2 + $offset),
+    "border": nth($t, 3 + $offset)
+  );
+}
+
+// $color as it shows over $bg, its alpha resolved.
+@function _misp-over($color, $bg) {
+  @if alpha($color) >= 1 {
+    @return $color;
+  }
+  @return mix(rgba($color, 1), $bg, alpha($color) * 100%);
+}
+
+// Text that already reads at 4.5:1 on every surface is kept. Otherwise it is
+// resolved over the first surface and tinted, or shaded, until it does.
+@function _misp-text-on($color, $surfaces) {
+  $ok: true;
+  @each $bg in $surfaces {
+    @if contrast-ratio(_misp-over($color, $bg), $bg) < 4.5 {
+      $ok: false;
+    }
+  }
+  @if $ok {
+    @return $color;
+  }
+  $base: _misp-over($color, nth($surfaces, 1));
+  $lighten: luminance(nth($surfaces, 1)) < .5;
+  $step: 0%;
+  $result: $base;
+  @while $step < 100% {
+    $worst: 21;
+    @each $bg in $surfaces {
+      $worst: min($worst, contrast-ratio($result, $bg));
+    }
+    @if $worst >= 4.5 {
+      @return $result;
+    }
+    $step: $step + 5%;
+    @if $lighten {
+      $result: tint-color($base, $step);
+    } @else {
+      $result: shade-color($base, $step);
+    }
+  }
+  @return $result;
+}
+
+// A hue backed by a theme colour takes that colour's tuned trio. Its solid is
+// the colour, lifted to 3:1 against each surface it falls short on.
+@function _misp-hue-tone($hue, $dark, $surfaces) {
+  $themed: ("red": "danger", "yellow": "warning", "green": "success",
+            "cyan": "info", "gray": "secondary");
+  $solids: ("red": $danger, "yellow": $warning, "green": $success,
+            "cyan": $info, "gray": $secondary, "blue": $blue,
+            "indigo": $indigo, "purple": $purple, "pink": $pink,
+            "orange": $orange, "teal": $teal);
+  $solid: map-get($solids, $hue);
+  @each $bg in $surfaces {
+    $solid: misp-readable-for($solid, $bg);
+  }
+  @if map-has-key($themed, $hue) {
+    @return map-merge(_misp-theme-tone(map-get($themed, $hue), $dark), ("solid": $solid));
+  }
+  @return map-merge(_misp-tone(map-get($solids, $hue), $dark), ("solid": $solid));
+}
+
+@function _misp-surface-tokens($dark) {
+  $page: $body-bg;
+  $sunken: $body-tertiary-bg;
+  $raised: $body-secondary-bg;
+  $text: $body-emphasis-color;
+  $muted: $body-secondary-color;
+  $faint: $body-tertiary-color;
+  $logo-filter: none;
+  @if $dark {
+    $page: $_d-body-bg;
+    $sunken: $_d-tertiary-bg;
+    $raised: $_d-secondary-bg;
+    $text: $_d-emphasis;
+    $muted: $_d-secondary-color;
+    $faint: $_d-tertiary-color;
+    // The lettering is near-black: flip lightness, keep the hues.
+    $logo-filter: invert(1) hue-rotate(180deg);
+  }
+
+  // What tokens are painted on: the page, its wells and panels, and a modal
+  // when the theme gives this mode one of its own.
+  $surfaces: ($page,);
+  @each $bg in ($sunken, $raised) {
+    @if type-of($bg) == color {
+      $surfaces: append($surfaces, _misp-over($bg, $page));
+    }
+  }
+  @if type-of($modal-content-bg) == color and $dark == $_dark-only {
+    $surfaces: append($surfaces, _misp-over($modal-content-bg, $page));
+  }
+
+  $tokens: ();
+  $hues: "blue", "indigo", "purple", "pink", "red", "orange", "yellow",
+         "green", "teal", "cyan", "gray";
+  @each $hue in $hues {
+    @each $role, $value in _misp-hue-tone($hue, $dark, $surfaces) {
+      $tokens: map-merge($tokens, ("tone-#{$hue}-#{$role}": $value));
+    }
+  }
+
+  $levels: (
+    "0": _misp-theme-tone("danger", $dark),
+    "1": _misp-tone($orange, $dark),
+    "2": _misp-tone($misp-dist-connected, $dark),
+    "3": _misp-theme-tone("success", $dark),
+    "4": _misp-tone($blue, $dark),
+    "5": _misp-tone($purple, $dark),
+    "unknown": _misp-theme-tone("secondary", $dark)
+  );
+  @each $level, $tone in $levels {
+    @each $role, $value in $tone {
+      $tokens: map-merge($tokens, ("dist-#{$level}-#{$role}": $value));
+    }
+  }
+
+  $login-top: $primary;
+  $login-mid: shade-color($primary, 25%);
+  $login-end: shade-color($primary, 65%);
+  @if $dark {
+    $login-top: mix($primary, $page, 45%);
+    $login-mid: mix($primary, $page, 15%);
+    $login-end: shade-color($page, 30%);
+  }
+
+  $g-current: $success;
+  $g-accent: misp-readable-for($primary, $page);
+  $g-target: tint-color(misp-readable-for($blue, $page), 45%);
+  $g-org: mix($text, $page, 35%);
+  $g-link-attribute: tint-color($yellow, 65%);
+  $g-link-target: tint-color($blue, 50%);
+  $g-accent-ink: shade-color($g-accent, 30%);
+  $g-current-ink: shade-color($g-current, 70%);
+  @if contrast-ratio($g-current, #fff) >= 4.5 {
+    $g-current-ink: #fff;
+  }
+  @if $dark {
+    $g-target: tint-color(misp-readable-for($blue, $page), 20%);
+    $g-org: mix($text, $page, 50%);
+    $g-link-attribute: mix($yellow, $page, 60%);
+    $g-link-target: mix($blue, $page, 65%);
+    $g-accent-ink: tint-color($g-accent, 35%);
+  }
+  $tokens: map-merge($tokens, (
+    "graph-node-source":       $g-current,
+    "graph-node-attribute":    $orange,
+    "graph-node-target":       $g-target,
+    "graph-node-org":          $g-org,
+    "graph-link":              $g-accent,
+    "graph-link-attribute":    $g-link-attribute,
+    "graph-link-target":       $g-link-target,
+    "graph-link-org":          rgba($muted, .22),
+    "graph-label":             $text,
+    "graph-label-source":      $text,
+    "graph-label-halo":        rgba($page, .96),
+    "graph-label-org":         rgba($muted, .65),
+    "graph-label-org-linked":  $text,
+    "graph-lane":              rgba($g-current, .05),
+    "graph-lane-line":         rgba($text, .1),
+    "graph-axis":              rgba($text, .32),
+    "graph-grid":              rgba($text, .12),
+    "graph-grid-label":        mix($text, $page, 70%),
+    "graph-leader":            rgba($text, .35),
+    "graph-accent":            $g-accent,
+    "graph-accent-ink":        $g-accent-ink,
+    "graph-marker":            mix($text, $page, 40%),
+    "graph-marker-hover":      mix($text, $page, 80%),
+    "graph-current":           $g-current,
+    "graph-current-ink":       $g-current-ink,
+    "graph-current-on":        color-contrast($g-current),
+    "graph-font":              var(--bs-body-font-family)
+  ));
+
+  @return map-merge($tokens, (
+    "surface":            $page,
+    "surface-sunken":     $sunken,
+    "surface-hover":      $raised,
+    "line":               mix($text, $page, 16%),
+    "line-strong":        mix($text, $page, 30%),
+    "field-line":         $input-border-color,
+    "check-off-line":     mix($text, $page, 30%),
+    "check-off-icon":     misp-readable-for(mix($text, $page, 55%), $page),
+    "ink":                $text,
+    "ink-muted":          _misp-text-on($muted, $surfaces),
+    "chip-surface":       $page,
+    "chip-raised":        $raised,
+    "chip-raised-border": mix($text, $page, 26%),
+    "chip-text":          $text,
+    "chip-muted":         $muted,
+    "chip-faint":         $faint,
+    "chip-border":        mix($text, $page, 16%),
+    "chip-border-strong": mix($text, $page, 30%),
+    "index-check-bg":     $page,
+    "index-check-border": $muted,
+    "index-check-all":    $orange,
+    "index-actions-bg":   $page,
+    "login-bg":           linear-gradient(180deg, $login-top 0%, $login-mid 50%, $login-end 100%),
+    "login-card-bg":      $page,
+    "login-heading":      $text,
+    "login-logo-filter":  $logo-filter
+  ));
+}
+
+$misp-surface-tokens: map-merge(_misp-surface-tokens($_dark-only), $misp-surface-overrides) !default;
+@function _misp-skip-tokens($tokens, $prefixes) {
+  @each $name, $value in $tokens {
+    @each $prefix in $prefixes {
+      @if str-index($name, $prefix) == 1 {
+        $tokens: map-remove($tokens, $name);
+      }
+    }
+  }
+  @return $tokens;
+}
+
+$misp-surface-tokens-dark: _misp-skip-tokens(map-merge(_misp-surface-tokens(true), $misp-surface-overrides-dark), $misp-surface-skip-dark) !default;
+
+@if length($misp-surface-tokens) > 0 {
+  :root,
+  [data-bs-theme="light"] {
+    @each $name, $value in $misp-surface-tokens {
+      --misp-#{$name}: #{$value};
+    }
+  }
+}
+
+@if $enable-dark-mode and length($misp-surface-tokens-dark) > 0 {
+  @include color-mode(dark, true) {
+    @each $name, $value in $misp-surface-tokens-dark {
+      --misp-#{$name}: #{$value};
+    }
+  }
+}

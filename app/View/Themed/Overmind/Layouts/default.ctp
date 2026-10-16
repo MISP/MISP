@@ -6,6 +6,15 @@
 // Load the Overmind page registry in order to decide which asset stack to emit.
 App::uses('OvermindPages', 'Tools');
 App::uses('I18n', 'I18n');
+App::uses('MispTheme', 'Lib/MispTheme');
+
+// Set by AppController; resolved here too for pages rendered without it,
+// such as error pages.
+$bootstrapTheme = $bootstrapTheme ?? MispTheme::bootstrapTheme($me ?? null);
+// A theme with both palettes starts light and the boot script below may
+// switch it; a single-mode theme is that mode, with no dark-mode toggle.
+$hasDarkToggle = $bootstrapTheme['mode'] === 'both';
+$initialMode = $hasDarkToggle ? 'light' : $bootstrapTheme['mode'];
 
 $currentController = $this->params['controller'];
 $currentAction = $this->params['action'];
@@ -15,6 +24,8 @@ $useBootstrap5 = OvermindPages::isMigrated($currentController, $currentAction);
 
 // Overmind pages which own the whole viewport (no navbar, no footer, no header strip)
 $isAuthPage  = $useBootstrap5 && OvermindPages::isAuthPage($currentController, $currentAction);
+
+$useRail = $useBootstrap5 && $bootstrapTheme['navbar'] === 'rail';
 
 
 $isLegacyFullViewportPage = !$useBootstrap5
@@ -61,27 +72,42 @@ if (substr($currentAction, 0, 6) === 'admin_') {
 
 
 <!DOCTYPE html>
-<html lang="<?= h($htmlLang) ?>">
+<html lang="<?= h($htmlLang) ?>"<?= $useRail && !$isAuthPage ? ' class="misp-railed"' : '' ?> data-misp-mode="<?= h($initialMode) ?>" data-misp-theme="<?= h($bootstrapTheme['name']) ?>">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="misp-tag-palettes" content="<?= h(implode(' ', $this->TagChip->semanticNamespaces())) ?>">
     <link rel="shortcut icon" href="<?= $baseurl ?>/img/faviconOvermind.png">
     <title><?= h($title_for_layout) .  ' - ' . h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php
         if ($useBootstrap5) {
             // Order matters: more specific stylesheets must come after more generic ones, so that they can override them.
             $css = [
-                ['bootstrap5-custom.min', ['preload' => true]],
+                [$bootstrapTheme['css'], ['preload' => true]],
                 ['tom-select.bootstrap5.min', ['preload' => true]],
                 ['mainOvermind', ['preload' => true]],
+                ['index-table', ['preload' => true]],
+                // The rail's styles come with the theme.
+                $useRail ? null : ['overmind-navbar', ['preload' => true]],
                 ['fontawesome7.min', ['preload' => true]],
                 ['print', ['media' => 'print']],
                 ['misp-iconify', ['preload' => true]],
                 ['onboarding', ['preload' => true]],
+                /*
+                 * Site-wide, and deliberately not on the Value
+                 * Profile's own asset list: the hover card exists to
+                 * appear where the reader already is, and `/values/*`
+                 * is the one page they do not need it on.
+                 */
+                ['value-palette', ['preload' => true]],
+                ['value-hover-card', ['preload' => true]],
+                ['tag-chips', ['preload' => true]],
             ];
+            $css = array_values(array_filter($css));
             $js = [
                 ['tom-select.complete.min', ['preload' => true]],
+                ['tag-chips', ['preload' => true]],
             ];
         } else {
             $css = [
@@ -91,11 +117,13 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 ['font-awesome', ['preload' => true]],
                 ['chosen.min', ['preload' => true]],
                 ['main', ['preload' => true]],
+                ['tag-chips', ['preload' => true]],
                 ['print', ['media' => 'print']],
             ];
             $js = [
                 ['jquery', ['preload' => true]],
                 ['chosen.jquery.min', ['preload' => true]],
+                ['tag-chips', ['preload' => true]],
             ];
         }
         if (Configure::read('MISP.custom_css')) {
@@ -121,7 +149,11 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             }
         </style>
     <?php endif; ?>
+    <?php if (!$useBootstrap5): ?>
     <script>(function(){if(localStorage.getItem('darkMode')==='true'){document.documentElement.setAttribute('data-bs-theme','dark');}})()</script>
+    <?php elseif ($hasDarkToggle): ?>
+    <script>(function(){if(localStorage.getItem('darkMode')==='true'){var r=document.documentElement;r.setAttribute('data-bs-theme','dark');r.setAttribute('data-misp-mode','dark');}})()</script>
+    <?php endif; ?>
 </head>
 <body class="bg-light" data-controller="<?= h($currentController) ?>" data-action="<?= h($currentAction) ?>">
     <div class="main-wrapper">
@@ -146,11 +178,16 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                         'themes' => $themes ?? [],
                         'theme' => $theme ?? null,
                         'themesEnabled' => $themesEnabled ?? false,
+                        'intelGraph' => $intelGraph ?? null,
+                        'darkModeToggle' => $hasDarkToggle,
+                        'bootstrapTheme' => $bootstrapTheme['name'],
+                        'bootstrapThemeChosen' => !empty($bootstrapTheme['userChoice']),
                     ];
-                    echo $this->element('navbar', [
+                    echo $this->element($useRail ? 'navbar_rail' : 'navbar', [
                         'menus' => $this->Navbar->build($context),
                         'baseurl' => $baseurl,
                         'me' => $me ?? null,
+                        'builtinPalette' => $bootstrapTheme['navbar'] === 'builtin',
                     ]);
                 }
             ?>
@@ -209,7 +246,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
         <!-- Flash & Content -->
         <main role="main" class="content"<?= $mainStyle ?>>
             <div id="flashOverlay">
-                <div id="flashContainer">
+                <div id="flashContainer" class="ov-toast-stack">
                     <?= $this->Flash->render(); ?>
                 </div>
             </div>
@@ -260,14 +297,20 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             $bs5Js = [
                 'bootstrap.bundle.min',
                 'mispOvermind',
+                // After `mispOvermind`, which is where `baseurl` is set.
+                'value-hover-card',
             ];
             if (!$isAuthPage) {
+                $bs5Js[] = $useRail ? 'overmind-rail' : 'overmind-navbar';
                 $bs5Js[] = 'onboarding';
                 $bs5Js[] = 'overmind-invaders';
             }
             echo $this->element('genericElements/assetLoader', [
                 'js' => $bs5Js,
             ]);
+            if (!$isAuthPage && !empty($intelGraph)) {
+                echo $this->element('intel_graph_boot');
+            }
         } else {
             // Bootstrap 2 JS
             echo $this->element('genericElements/assetLoader', [

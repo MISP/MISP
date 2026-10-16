@@ -1,4 +1,5 @@
 import os
+import uuid
 from pymisp import PyMISP, MISPEvent, MISPGalaxyCluster
 
 
@@ -21,6 +22,8 @@ remote_server = pymisp.add_server({
     "push_galaxy_clusters": True,
     "push": True,
     "push_sightings": True,
+    "pull_analyst_data": True,
+    "push_analyst_data": True,
     "caching_enabled": True,
     "remote_org_id": 1,
     "name": "Localhost",
@@ -72,6 +75,56 @@ check_response(galaxy_cluster)
 # Publish that galaxy cluster
 check_response(pymisp.publish_galaxy_cluster(galaxy_cluster))
 
+# Analyst graphs. A loopback cannot show one crossing, so a peer's push is
+# replayed by hand; the pull and push below run with the graph present.
+version = pymisp._check_response(pymisp._prepare_request('GET', 'servers/getVersion'))
+assert version.get("analyst_graph") is True, version
+
+graph = pymisp._check_response(pymisp._prepare_request('POST', f'analyst_data/add/Graph/{event.uuid}/Event', data={
+    "name": "Graph from testlive_sync.py",
+    "distribution": 2,
+    "content": {"nodes": [{"type": "Event", "uuid": event.uuid}, {"type": "Value", "value": "8.8.8.8"}]},
+}))
+check_response(graph)
+graph = pymisp._check_response(pymisp._prepare_request('GET', f'analyst_data/view/Graph/{graph["Graph"]["uuid"]}'))
+check_response(graph)
+graph = graph["Graph"]
+
+# A puller that does not name the types it understands never sees a graph
+index = pymisp._check_response(pymisp._prepare_request('POST', 'analyst_data/indexMinimal', data={}))
+assert "Graph" not in index, index
+index = pymisp._check_response(pymisp._prepare_request('POST', 'analyst_data/indexMinimal', data={
+    "types": ["Note", "Opinion", "Relationship", "Graph"],
+}))
+assert index["Graph"][graph["uuid"]] == {"modified": graph["modified"], "size": int(graph["content_size"])}, index["Graph"]
+
+peer_graph = {key: graph[key] for key in (
+    "object_uuid", "object_type", "orgc_uuid", "name", "created", "modified", "content",
+)}
+peer_graph.update({"uuid": str(uuid.uuid4()), "distribution": 1, "locked": True, "revision": 9, "Orgc": graph["Orgc"]})
+check_response(pymisp._check_response(pymisp._prepare_request('POST', 'analyst_data/pushAnalystData', data={"Graph": peer_graph})))
+pushed_graph = pymisp._check_response(pymisp._prepare_request('GET', f'analyst_data/view/Graph/{peer_graph["uuid"]}'))
+check_response(pushed_graph)
+pushed_graph = pushed_graph["Graph"]
+assert pushed_graph["locked"] in (True, 1, "1"), pushed_graph["locked"]
+assert int(pushed_graph["revision"]) == 1, pushed_graph["revision"]
+assert int(pushed_graph["node_count"]) == 2, pushed_graph["node_count"]
+
+# An invalid document is refused, not acknowledged
+invalid_graph = dict(peer_graph, uuid=str(uuid.uuid4()), content={"nodes": [{"type": "Tag", "uuid": str(uuid.uuid4())}]})
+refused = pymisp._check_response(pymisp._prepare_request('POST', 'analyst_data/pushAnalystData', data={"Graph": invalid_graph}))
+assert isinstance(refused, dict) and "errors" in refused, refused
+
+# A batched push reports on each record, in order
+assert version.get("analyst_data_batch_push") is True, version
+batch = [{"Graph": dict(peer_graph, uuid=str(uuid.uuid4()))}, {"Graph": peer_graph}, {"Graph": invalid_graph}]
+report = pymisp._check_response(pymisp._prepare_request('POST', 'analyst_data/pushAnalystDataBatch', data=batch))
+assert [r["result"] for r in report["results"]] == ["imported", "ignored", "failed"], report
+assert report["results"][0]["uuid"] == batch[0]["Graph"]["uuid"], report
+batch_graph = pymisp._check_response(pymisp._prepare_request('GET', f'analyst_data/view/Graph/{batch[0]["Graph"]["uuid"]}'))
+check_response(batch_graph)
+batch_graph = batch_graph["Graph"]
+
 # Preview index
 url = f'servers/previewIndex/{remote_server["id"]}'
 index_preview = pymisp._check_response(pymisp._prepare_request('GET', url))
@@ -114,8 +167,11 @@ url = f'servers/queryAvailableSyncFilteringRules/{remote_server["id"]}'
 rules_response = pymisp._check_response(pymisp._prepare_request('GET', url))
 check_response(rules_response)
 
-# Delete server and test event
+# Delete server, graphs and test event
 check_response(pymisp.delete_server(remote_server))
+for graph_id in (graph["id"], pushed_graph["id"], batch_graph["id"]):
+    url = f'analyst_data/delete/Graph/{graph_id}/0'
+    check_response(pymisp._check_response(pymisp._prepare_request('POST', url)))
 check_response(pymisp.delete_event(event))
 check_response(pymisp.delete_event_blocklist(event))
 check_response(pymisp.delete_galaxy_cluster(galaxy_cluster))

@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('MispTheme', 'Lib/MispTheme');
 
 /**
  * @property User $User
@@ -26,6 +27,24 @@ class UserSetting extends AppModel
     public $belongsTo = array(
         'User'
     );
+
+    // Column names `event_index_hide_columns` may hold
+    const EVENT_INDEX_HIDEABLE_COLUMNS = [
+        'owner_org',
+        'is_extension',
+        'clusters',
+        'tags',
+        'highlights',
+        'attribute_count',
+        'correlations',
+        'report_count',
+        'sightings',
+        'proposals',
+        'discussion',
+        'creator_user',
+        'timestamp',
+        'publish_timestamp',
+    ];
 
     // private
     const VALID_SETTINGS = array(
@@ -108,6 +127,22 @@ class UserSetting extends AppModel
             'internal' => true,
             'validation' => 'validate_json',
         ],
+        /*
+         * The values an analyst has pinned to the Analyst Profile
+         * simulator, so a candidate profile can be scored against the
+         * handful they actually argue about
+         * (prd/analyst-profile/09-editor.md §2.2).
+         *
+         * `internal`, following `oidc`: it is written by one feature's
+         * own UI rather than typed into the generic settings form, and
+         * a JSON list of raw indicator values is not something to offer
+         * for hand-editing there. It also keeps the audit log free of an
+         * entry per pin, which is what `setSettingInternal` skips.
+         */
+        'analyst_profile_comparison_set' => [
+            'internal' => true,
+            'validation' => 'validate_json',
+        ],
         'periodic_notification_filters' => [
             'placeholder' => [
                 'orgc_id' => '1',
@@ -126,6 +161,11 @@ class UserSetting extends AppModel
             'placeholder' => 'Default, Overmind, UiBeta, EventTest',
             'options' => ['Default', 'Overmind', 'UiBeta', 'EventTest'],
             'validation' => 'validate_theme',
+        ],
+        // No static options: themes are discovered from the build output.
+        'ui_bootstrap_theme' => [
+            'placeholder' => 'overmind',
+            'validation' => 'validate_bootstrap_theme',
         ],
         'event_template_user_form_mode' => [
             'placeholder' => 'all',
@@ -152,7 +192,78 @@ class UserSetting extends AppModel
             'placeholder' => true,
             'validation' => 'validate_json',
         ],
+        // The last few values a reader opened on the Value Intelligence, as
+        // `/values/index` carries them over — `{value, at}`, newest
+        // first, capped at `ValueIntelligence::RECENT_CAP`. Internal for the
+        // same reason as `onboarding_pending` and one more: a list of
+        // which values a colleague is looking at is precisely the
+        // disclosure that feature refuses elsewhere, so it is kept out
+        // of the audit log as well as out of the settings list.
+        'value_intelligence_recent' => [
+            'internal' => true,
+            'placeholder' => [],
+            'validation' => 'validate_json',
+        ],
+        // The analyst graph "Add to graph" feeds, `{graph_uuid}`. Internal
+        // for the reason `value_intelligence_recent` is: which graph a
+        // colleague is working on is a per-viewer convenience, not an
+        // audited choice.
+        'intelligence_graph_active' => [
+            'internal' => true,
+            'placeholder' => ['graph_uuid' => null],
+            'validation' => 'validate_json',
+        ],
+        /*
+         * The uuid of the Analyst Profile this user has selected
+         * (prd/personas/03-profiles.md §5, D45). The way to *use* a
+         * shipped profile rather than fork it: `resolveFor()`
+         * dereferences this before it falls through to the
+         * organisation's selection and then to the instance setting.
+         *
+         * Not internal. D13 needs no grant for a user to choose their
+         * own profile - the same reasoning that leaves user settings
+         * ungated at all - and it is a preference a reader may want to
+         * read, clear or set from the settings form as well as from the
+         * profile index. Stored as a bare uuid string, not JSON.
+         *
+         * Clearing it is writing an empty value, which is why the
+         * validator accepts one: a user with no selection resolves the
+         * next scope, and that is a supported state rather than a hole.
+         */
+        'analyst_profile' => [
+            'placeholder' => '6e2679bc-ebb0-417f-90d8-16cb1d0144ba',
+            'validation' => 'validate_analyst_profile',
+        ],
     );
+
+    /**
+     * A selection names a profile this reader may actually read.
+     *
+     * Checked here rather than only in the controller because the
+     * generic settings form writes this field too, and a uuid nobody can
+     * resolve would leave a reader silently scored by the next scope with
+     * nothing on screen saying why. `fetchProfile()` applies the same
+     * readability rule the index does.
+     *
+     * @param string $value
+     * @param array $user
+     * @return bool
+     */
+    public static function validate_analyst_profile($value, $user)
+    {
+        if (is_array($value)) {
+            return false;
+        }
+        $value = trim((string)$value);
+        if ($value === '') {
+            return true;
+        }
+        if (!Validation::uuid($value)) {
+            return false;
+        }
+        $AnalystProfile = ClassRegistry::init('AnalystProfile');
+        return $AnalystProfile->fetchProfile($user, $value) !== null;
+    }
 
     public static function validate_homepage($value, $user)
     {
@@ -205,25 +316,16 @@ class UserSetting extends AppModel
         return true;
     }
 
+    public static function validate_bootstrap_theme($value, $user)
+    {
+        if (empty($value)) {
+            return true;
+        }
+        return MispTheme::isBootstrapTheme($value);
+    }
+
         public static function validate_event_index_hide_columns($value, $user)
         {
-            // Valid column names that can be hidden in the event index
-            $validColumns = [
-                'owner_org',
-                'is_extension',
-                'clusters',
-                'tags',
-                'highlights',
-                'attribute_count',
-                'correlations',
-                'report_count',
-                'sightings',
-                'proposals',
-                'creator_user',
-                'timestamp',
-                'publish_timestamp'
-            ];
-
             // Decode if it's a JSON string
             if (is_string($value)) {
                 $decoded = json_decode($value, true);
@@ -244,7 +346,7 @@ class UserSetting extends AppModel
 
             // All column names must be valid
             foreach ($value as $column) {
-                if (!in_array($column, $validColumns, true)) {
+                if (!in_array($column, self::EVENT_INDEX_HIDEABLE_COLUMNS, true)) {
                     return false;
                 }
             }

@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('AnalystDataRailCards', 'Tools/RailCards');
 App::uses('AnalystData', 'Model');
 
 class AnalystDataController extends AppController
@@ -15,16 +16,27 @@ class AnalystDataController extends AppController
     public $uses = [
         'Opinion',
         'Note',
-        'Relationship'
+        'Relationship',
+        'Graph'
     ];
 
     private $__valid_types = [
         'Opinion',
         'Note',
-        'Relationship'
+        'Relationship',
+        'Graph'
     ];
 
     // public $modelSelection = 'Note';
+
+    public function beforeFilter()
+    {
+        parent::beforeFilter();
+        // The event pivot explorer posts hand-built JSON to add() and delete(),
+        // and the graph page's settings to edit(), so they send the CSRF token
+        // as the X-CSRF-Token header.
+        $this->_csrfTokenHeaderOnly(['add', 'edit', 'delete']);
+    }
 
     private function _setViewElements()
     {
@@ -56,12 +68,18 @@ class AnalystDataController extends AppController
             }
         }
         if (!empty($object_address)) {
-            $column = AnalystData::addressColumn($this->request->data[$model]['object_type'] ?? null, 'object');
-            $this->request->data[$model][$column] = $object_address;
+            $objectType = $this->request->data[$model]['object_type'] ?? null;
+            $this->request->data[$model][AnalystData::addressColumn($objectType, 'object')] = $object_address;
+            if (in_array($objectType, AnalystData::SHA256_TARGETS, true) && !$this->request->is('post')) {
+                $this->set('analystTargets', $this->AnalystData->describeTargets(
+                    $this->Auth->user(),
+                    [['type' => $objectType, 'address' => $object_address]]
+                ));
+            }
         }
 
         if (empty($this->request->data[$model]['object_type']) && !empty($this->request->data[$model]['object_uuid'])) {
-            $this->request->data[$model]['object_type'] = $this->AnalystData->deduceType($object_address);
+            throw new BadRequestException(__('object_type is required.'));
         }
         $this->loadModel('Event');
         $currentUser = $this->Auth->user();
@@ -75,11 +93,21 @@ class AnalystDataController extends AppController
                         throw new MethodNotAllowedException($canSGBeUsed);
                     }
                 }
+                if ($this->modelSelection === 'Graph') {
+                    // Only a fork records what it was forked from
+                    unset($analystData['Graph']['forked_from_uuid']);
+                    if (isset($analystData['Graph']['content'])) {
+                        $analystData['Graph']['content'] = $this->AnalystData->contentForWrite($currentUser, $analystData['Graph']['content']);
+                    }
+                }
                 return $analystData;
             },
             'afterSave' => function (array $analystData) use ($currentUser) {
                 $this->Event->captureAnalystData($currentUser, $this->request->data[$this->modelSelection], $this->modelSelection, $analystData[$this->modelSelection]['uuid']);
-            }
+            },
+            'afterFind' => function (array $analystData) {
+                return $this->__decodeGraphContent($analystData);
+            },
         ];
         $this->CRUD->add($params);
         if ($this->restResponsePayload) {
@@ -105,7 +133,7 @@ class AnalystDataController extends AppController
     {
         if ($type === 'all' && Validation::uuid($id)) {
             $this->loadModel('AnalystData');
-            $type = $this->AnalystData->deduceType($id);
+            $type = $this->AnalystData->deduceType($this->Auth->user(), $id);
         }
         $this->__typeSelector($type);
         if (!is_numeric($id) && Validation::uuid($id)) {
@@ -135,6 +163,11 @@ class AnalystDataController extends AppController
                     }
                 }
                 $analystData[$this->modelSelection]['modified'] = date('Y-m-d H:i:s');
+                if ($this->modelSelection === 'Graph') {
+                    // The document is written by a revision-checked save only:
+                    // writing back the copy loaded here would undo one made since
+                    unset($analystData['Graph']['content'], $analystData['Graph']['content_size'], $analystData['Graph']['node_count']);
+                }
                 return $analystData;
             },
             'afterSave' => function (array $analystData) use ($currentUser) {
@@ -143,7 +176,9 @@ class AnalystDataController extends AppController
         ];
         $this->CRUD->edit($id, $params);
         if ($this->IndexFilter->isRest()) {
-            return $this->restResponsePayload;
+            // A GET answers with the record it would edit
+            return $this->restResponsePayload
+                ?? $this->RestResponse->viewData($this->__decodeGraphContent($this->viewVars['entity']), 'json');
         }
 
         if (($this->theme ?? null) === 'Overmind' && $this->request->is('post')) {
@@ -165,7 +200,7 @@ class AnalystDataController extends AppController
     {
         if ($type === 'all' && Validation::uuid($id)) {
             $this->loadModel('AnalystData');
-            $type = $this->AnalystData->deduceType($id);
+            $type = $this->AnalystData->deduceType($this->Auth->user(), $id);
         }
         $this->__typeSelector($type);
         if (!is_numeric($id) && Validation::uuid($id)) {
@@ -278,6 +313,8 @@ class AnalystDataController extends AppController
             $info = sprintf('%s/100 :: %s', $deletedAnalystData[$type]['opinion'], $deletedAnalystData[$type]['comment']);
         } else if ($type === 'Relationship') {
             $info = sprintf('-- %s --> %s :: %s', $deletedAnalystData[$type]['relationship_type'] ?? '[undefined]', $deletedAnalystData[$type]['related_object_type'], $deletedAnalystData[$type]['related_object_uuid']);
+        } else if ($type === 'Graph') {
+            $info = $deletedAnalystData[$type]['name'];
         }
         $blocklist = ClassRegistry::init('AnalystDataBlocklist');
         $blocklist->create();
@@ -301,11 +338,24 @@ class AnalystDataController extends AppController
     {
         if ($type === 'all' && Validation::uuid($id)) {
             $this->loadModel('AnalystData');
-            $type = $this->AnalystData->getAnalystDataTypeFromUUID($id);
+            $type = $this->AnalystData->deduceType($this->Auth->user(), $id);
         }
         $this->__typeSelector($type);
         if (!is_numeric($id) && Validation::uuid($id)) {
             $id = $this->AnalystData->getIDFromUUID($type, $id);
+        }
+
+        if ($this->modelSelection === 'Graph' && !$this->_isRest() && !$this->request->is('ajax')) {
+            $graph = $this->AnalystData->find('first', [
+                'conditions' => ['AND' => [[$this->AnalystData->alias . '.id' => $id], $this->AnalystData->buildConditions($this->Auth->user())]],
+                'fields' => [$this->AnalystData->alias . '.uuid'],
+                'recursive' => -1,
+                'callbacks' => false,
+            ]);
+            if (empty($graph)) {
+                throw new NotFoundException(__('Invalid graph.'));
+            }
+            return $this->redirect('/analyst_graphs/view/' . $graph[$this->AnalystData->alias]['uuid']);
         }
 
         $this->AnalystData->fetchRecursive = false;
@@ -318,6 +368,7 @@ class AnalystDataController extends AppController
                     unset($analystData[$this->modelSelection]['_canEdit']);
                 }
                 if ($this->_isRest()) {
+                    $analystData = $this->__decodeGraphContent($analystData);
                     $children = $this->AnalystData->fetchChildNotesAndOpinions($this->Auth->user(), $analystData[$this->modelSelection], true, 5);
                     if (!empty($children)) {
                         foreach ($children as $child) {
@@ -337,12 +388,25 @@ class AnalystDataController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
+        if ($this->theme === 'Overmind') {
+            $user = $this->Auth->user();
+            $record = $this->viewVars['data'][$this->modelSelection];
+            $railCards = new AnalystDataRailCards();
+            $this->set('railCards', RailCard::byId([
+                $railCards->target($user, $record),
+                $railCards->thread($record),
+            ]));
+            $this->set('mayModify', $this->ACL->canUserAccess($user, 'analystData', 'edit')
+                && $this->AnalystData->canEditAnalystData($user, $this->viewVars['data'], $this->modelSelection));
+        }
         $this->set('id', $id);
         $record = $this->viewVars['data'][$this->modelSelection] ?? [];
         $targets = [];
-        foreach ([['object_type', 'object_uuid'], ['related_object_type', 'related_object_uuid']] as list($typeKey, $uuidKey)) {
-            if (!empty($record[$uuidKey])) {
-                $targets[] = ['type' => $record[$typeKey] ?? '', 'uuid' => $record[$uuidKey]];
+        foreach (['object', 'related_object'] as $end) {
+            $type = $record[$end . '_type'] ?? '';
+            $address = $record[AnalystData::addressColumn($type, $end)] ?? '';
+            if (!empty($address)) {
+                $targets[] = ['type' => $type, 'address' => $address];
             }
         }
         $this->set('analystTargets', $this->AnalystData->describeTargets($this->Auth->user(), $targets));
@@ -390,6 +454,15 @@ class AnalystDataController extends AppController
                     if (!$this->request->is('ajax')) {
                         unset($analystData[$this->modelSelection]['_canEdit']);
                     }
+                    if ($this->_isRest()) {
+                        $data[$i] = $analystData;
+                    }
+                }
+                if ($this->_isRest()) {
+                    $data = $this->__decodeGraphContents($data);
+                }
+                if ($this->modelSelection === 'Graph' && !$this->_isRest()) {
+                    $data = $this->__countGraphNodes($data);
                 }
                 return $data;
             }
@@ -410,9 +483,35 @@ class AnalystDataController extends AppController
     }
 
     /**
+     * Each graph's node count as the user sees it, in place of the stored one
+     * (G6), its original when it is a fork, and no document.
+     *
+     * @param array $data Graph rows
+     * @return array
+     */
+    private function __countGraphNodes(array $data)
+    {
+        $contents = $graphs = [];
+        foreach ($data as $i => $row) {
+            $contents[$i] = $row['Graph']['content'] ?? null;
+            $graphs[$i] = $row['Graph'];
+        }
+        $user = $this->Auth->user();
+        $counts = ClassRegistry::init('AnalystGraphData')->visibleCounts($user, $contents);
+        $parents = $this->AnalystData->withParents($user, $graphs);
+        foreach ($data as $i => $row) {
+            $data[$i]['Graph']['node_count'] = $counts[$i];
+            $data[$i]['Graph']['forked_from'] = $parents[$i]['forked_from'];
+            unset($data[$i]['Graph']['content'], $data[$i]['Graph']['content_size']);
+        }
+        return $data;
+    }
+
+    /**
      * Tell the index which of the rendered targets still resolve, so a UUID
      * pointing at something this instance no longer holds is rendered as text
-     * instead of a link into a "not found" page.
+     * instead of a link into a "not found" page. A value target is described
+     * too, as its SHA-256 alone says nothing.
      *
      * @param array $rows the page of analyst data about to be rendered
      */
@@ -420,21 +519,28 @@ class AnalystDataController extends AppController
     {
         $model = $this->modelSelection;
         $targets = [];
+        $values = [];
         foreach ($rows as $row) {
             foreach (['object', 'related_object'] as $end) {
                 $type = $row[$model][$end . '_type'] ?? '';
                 $address = $row[$model][AnalystData::addressColumn($type, $end)] ?? '';
-                if (!empty($address)) {
-                    $targets[] = [
-                        'type' => $type,
-                        'address' => $address,
-                    ];
+                if (empty($address)) {
+                    continue;
+                }
+                $target = ['type' => $type, 'address' => $address];
+                if (in_array($type, AnalystData::SHA256_TARGETS, true)) {
+                    $values[] = $target;
+                } else {
+                    $targets[] = $target;
                 }
             }
         }
+        $user = $this->Auth->user();
+        $described = empty($values) ? [] : $this->AnalystData->describeTargets($user, $values);
+        $this->set('analystTargets', $described);
         $this->set(
             'analystTargetExists',
-            $this->AnalystData->existingTargets($this->Auth->user(), $targets)
+            $this->AnalystData->existingTargets($user, $targets) + array_fill_keys(array_keys($described), true)
         );
     }
 
@@ -477,33 +583,11 @@ class AnalystDataController extends AppController
         }
         // Only the analyst data's own ACL applies, not the target's: a value
         // the user cannot see is deliberately not checked for, as with uuids
-        $bySha256 = in_array($object_type, AnalystData::SHA256_TARGETS, true);
-        if ($bySha256) {
+        if (in_array($object_type, AnalystData::SHA256_TARGETS, true)) {
             $object_address = strtolower(trim($object_address));
         }
-        $user = $this->Auth->user();
-        $analystData = ['Note' => [], 'Opinion' => [], 'Relationship' => [], 'RelationshipInbound' => []];
-        foreach (['Note', 'Opinion', 'Relationship'] as $type) {
-            $this->loadModel($type);
-            $this->{$type}->current_user = $user;
-            $this->{$type}->fetchRecursive = false;
-        }
-        // afterFind's own recursion stops two levels down; walk the thread
-        // explicitly so replies to replies are shown too.
-        foreach (['Note', 'Opinion', 'Relationship'] as $type) {
-            $fetched = $bySha256
-                ? $this->{$type}->fetchForSha256s([$object_address], $user)
-                : $this->{$type}->fetchForUuids([$object_address], $user);
-            foreach ($fetched[$object_address][$type] ?? [] as $item) {
-                $analystData[$type][] = $this->{$type}->fetchChildNotesAndOpinions($user, $item, false, 4);
-            }
-        }
-        $this->loadModel('Relationship');
-        $this->Relationship->current_user = $user;
-        $analystData['RelationshipInbound'] = Hash::extract(
-            $this->Relationship->getInboundRelationships($user, $object_type, $object_address),
-            '{n}.Relationship'
-        );
+        $this->loadModel('Note');
+        $analystData = $this->Note->fetchThreadForObject($this->Auth->user(), $object_type, $object_address);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($analystData, 'json');
         }
@@ -585,7 +669,8 @@ class AnalystDataController extends AppController
                 return $this->RestResponse->viewData([], $this->response->type());
             }
         }
-        $allData = $this->AnalystData->indexMinimal($this->Auth->user(), $options);
+        $types = AnalystData::syncTypes($filters['types'] ?? null);
+        $allData = $this->AnalystData->indexMinimal($this->Auth->user(), $options, $types);
 
         return $this->RestResponse->viewData($allData, $this->response->type());
     }
@@ -611,6 +696,69 @@ class AnalystDataController extends AppController
                 return $this->RestResponse->saveFailResponse('AnalystData', 'pushAnalystData', false, $message);
             }
         }
+    }
+
+    /**
+     * A batched push: a list of {Type: record}, each captured on its own and
+     * reported in order (AnalystData::captureBatch).
+     */
+    public function pushAnalystDataBatch()
+    {
+        if (!$this->Auth->user()['Role']['perm_sync'] || !$this->Auth->user()['Role']['perm_analyst_data']) {
+            throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
+        }
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only accessible via a REST request.'));
+        }
+        if (!$this->request->is('post')) {
+            throw new MethodNotAllowedException(__('This action expects a POST request.'));
+        }
+        $records = $this->request->data;
+        if (!is_array($records) || empty($records) || !array_is_list($records)) {
+            throw new BadRequestException(__('Expected a non-empty list of analyst data records.'));
+        }
+        if (count($records) > AnalystData::PUSH_BATCH_COUNT) {
+            throw new BadRequestException(__('At most %s records per request.', AnalystData::PUSH_BATCH_COUNT));
+        }
+        $this->loadModel('AnalystData');
+        $report = $this->AnalystData->captureBatch($this->Auth->user(), $records);
+        return $this->RestResponse->viewData($report, 'json');
+    }
+
+    /**
+     * A graph's document is stored as JSON text; REST returns it as an object.
+     */
+    private function __decodeGraphContent(array $analystData): array
+    {
+        return $this->__decodeGraphContents([$analystData])[0];
+    }
+
+    /**
+     * Graph documents as REST returns them: records as stored, module answers
+     * only as the requester may see them.
+     *
+     * @param array $rows
+     * @return array
+     */
+    private function __decodeGraphContents(array $rows): array
+    {
+        if ($this->modelSelection !== 'Graph') {
+            return $rows;
+        }
+        App::uses('AnalystGraphDocumentTool', 'Tools');
+        $documents = [];
+        foreach ($rows as $i => $row) {
+            if (isset($row['Graph']['content'])) {
+                $documents[$i] = AnalystGraphDocumentTool::decode($row['Graph']['content']);
+            }
+        }
+        $documents = ClassRegistry::init('AnalystGraphData')->documentsFor($this->Auth->user(), array_filter($documents), true);
+        foreach ($rows as $i => $row) {
+            if (isset($row['Graph']['content'])) {
+                $rows[$i]['Graph']['content'] = $documents[$i] ?? null;
+            }
+        }
+        return $rows;
     }
 
     private function __typeSelector($type) {

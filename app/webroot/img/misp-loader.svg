@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 1300"><style>.p{opacity:0;transform-box:fill-box;transform-origin:center;animation:b 2.4s ease-out infinite both}@keyframes b{0%{opacity:0;transform:scale(.8)}13%,65%{opacity:1;transform:none}78%,100%{opacity:0;transform:scale(.8)}}.g{transform-box:fill-box;transform-origin:center;animation:g 2.4s ease-in-out infinite}@keyframes g{0%,47%,60%,100%{transform:none;filter:none}53%{transform:scale(1.05);filter:brightness(1.18)}}@media (prefers-reduced-motion:reduce){.p{animation:none;opacity:1}.g{animation:none}}</style>
+<g class="g">
+<polygon points="1069.9 271.5 1069.9 235.2 1031.9 213.3 993.9 235.2 993.9 271.5 1031.9 293.5 1069.9 271.5" class="p" fill="#86c8f2" style="animation-delay:0.735s"></polygon>
+<polygon points="306.1 271.5 306.1 235.2 268.1 213.3 230.1 235.2 230.1 271.5 268.1 293.5 306.1 271.5" class="p" fill="#1f6fb2" style="animation-delay:0.77s"></polygon>
+<polygon points="919.3 191.5 919.7 191.2 650 35.5 650 219.7 760 283.2 919.3 191.2 919.3 191.5" class="p" fill="#4fa3e0" style="animation-delay:0.49s"></polygon>
+<polygon points="380.3 191.2 539.8 283.3 650 219.7 650 35.5 380.3 191.2" class="p" fill="#86c8f2" style="animation-delay:0.455s"></polygon>
+<polygon points="380.3 315.4 539.8 407.5 539.8 283.3 380.3 191.2 380.3 315.4" class="p" fill="#4fa3e0" style="animation-delay:0.35s"></polygon>
+<polygon points="919.2 553.1 919.3 553.1 919.7 368.7 919.3 369 919.3 191.5 760.2 283.3 760 283.2 759.8 283.3 759.8 480.1 919.3 553 919.2 553.1" class="p" fill="#0f3f73" style="animation-delay:0.245s"></polygon>
+<polygon points="195.9 605.9 36.4 513.8 36.4 825.2 195.9 733.2 195.9 605.9" class="p" fill="#4fa3e0" style="animation-delay:0.665s"></polygon>
+<polygon points="993.9 317.3 993.4 317.6 993 501.9 993.9 501.5 1104.1 565.1 1263.6 473 993.9 317.3" class="p" fill="#1f6fb2" style="animation-delay:0.56s"></polygon>
+<polygon points="1104.1 565.1 1104.1 694.4 1263.6 786.5 1263.6 473 1104.1 565.1" class="p" fill="#4fa3e0" style="animation-delay:0.7s"></polygon>
+<polygon points="993.5 755.9 993.5 940 1263.6 786.5 1104.1 694.4 993.5 755.9" class="p" fill="#86c8f2" style="animation-delay:0.385s"></polygon>
+<polygon points="306.1 796.8 306.1 980.9 396.3 918.1 396.3 734 306.1 796.8" class="p" fill="#1f6fb2" style="animation-delay:0.315s"></polygon>
+<polygon points="533.9 822.3 580.1 790.1 533.9 763.3 533.9 822.3" class="p" fill="#1f6fb2" style="animation-delay:0.105s"></polygon>
+<polygon points="195.9 733.2 36.4 825.2 306.1 980.9 306.1 796.8 195.9 733.2" class="p" fill="#0f3f73" style="animation-delay:0.525s"></polygon>
+<polygon points="306.1 542.3 306.1 358.1 36.4 513.8 195.9 605.9 306.1 542.3" class="p" fill="#86c8f2" style="animation-delay:0.42s"></polygon>
+<polygon points="650 557 793.9 640.6 919.2 553.1 759.8 480.2 759.8 480.1 759.8 480.1 650 556.7 650.2 556.8 650 557" class="p" fill="#1f6fb2" style="animation-delay:0.07s"></polygon>
+<polygon points="581.2 1096.2 718.8 1097.5 718.8 870.3 581.2 790.7 581.2 1096.2" class="p" fill="#1f6fb2" style="animation-delay:0.175s"></polygon>
+<polygon points="581.2 1225.2 650 1264.5 718.8 1225.2 718.8 1172.1 581.2 1170.8 581.2 1225.2" class="p" fill="#1f6fb2" style="animation-delay:0.805s"></polygon>
+<polygon points="765.6 1197.4 903.2 1118.3 903.2 1095.8 765.6 1094.6 765.6 1197.4" class="p" fill="#2b87d1" style="animation-delay:0.595s"></polygon>
+<polygon points="765.6 897.4 765.6 1019.9 903.2 1021.2 903.1 976.9 765.6 897.4" class="p" fill="#2b87d1" style="animation-delay:0.28s"></polygon>
+<path d="M795.1,641.3l-145.1-84.6l-343.5-198.5v184.2l199.3,115.4l123.8,71.7l20.5,11.9l115.5,66.8l137.6,79.6l90.2,52.2v-184.2l-198.4-114.6Z" class="p" fill="#2b87d1" style="animation-delay:0s"></path>
+<polygon points="435.8 706.5 396.3 734 396.3 918.1 396.3 1019.9 533.9 1021.2 533.9 822.3 533.9 763.3 435.8 706.5" class="p" fill="#4fa3e0" style="animation-delay:0.14s"></polygon>
+<polygon points="396.3 1118.3 533.9 1197.4 533.9 1095.8 396.3 1094.6 396.3 1118.3" class="p" fill="#4fa3e0" style="animation-delay:0.63s"></polygon>
+<polygon points="765.6 897.4 903.1 976.9 903.2 887.8 765.6 808.2 765.6 897.4" class="p" fill="#0a2848" style="animation-delay:0.21s"></polygon>
+<polygon points="650.1 741.4 505.7 657.8 440 703.4 435.8 706.5 718.8 870.3 718.8 784.4 718.8 781.1 650.1 741.4" class="p" fill="#0a2848" style="animation-delay:0.035s"></polygon>
+</g>
+</svg>

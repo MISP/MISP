@@ -15,15 +15,15 @@ $submitId = $isEdit
 $toIdsChecked        = !empty($attrData['to_ids']);
 $disableCorrelChecked = !empty($attrData['disable_correlation']);
 
-$idsBorder    = $toIdsChecked        ? '#ffc107' : '#dee2e6';
-$correlBorder = $disableCorrelChecked ? '#dee2e6'  : '#198754';
+$idsBorder    = $toIdsChecked        ? 'var(--misp-tone-yellow-solid, #ffc107)' : 'var(--misp-check-off-line, #dee2e6)';
+$correlBorder = $disableCorrelChecked ? 'var(--misp-check-off-line, #dee2e6)'  : 'var(--misp-tone-green-solid, #198754)';
 
 $idsIconStyle    = $toIdsChecked
-    ? 'color:#ffc107;opacity:1;'
-    : 'color:#adb5bd;opacity:.7;';
+    ? 'color:var(--misp-tone-yellow-solid, #ffc107);opacity:1;'
+    : 'color:var(--misp-check-off-icon, #adb5bd);opacity:.7;';
 $correlIconStyle = $disableCorrelChecked
-    ? 'color:#adb5bd;opacity:.7;'
-    : 'color:#198754;opacity:1;';
+    ? 'color:var(--misp-check-off-icon, #adb5bd);opacity:.7;'
+    : 'color:var(--misp-tone-green-solid, #198754);opacity:1;';
 
 /*
  * An attribute inside an object takes its category and type from the object's
@@ -112,7 +112,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                 'id'          => 'AttributeValue',
                 'class'       => 'w-100 rounded-2 p-3',
                 'style'       => 'background:var(--bs-tertiary-bg, #f8f9fa);'
-                    . ' border:1px solid #d8dde3; resize:vertical;'
+                    . ' border:1px solid var(--misp-field-line, #d8dde3); resize:vertical;'
                     . ' outline:none; font-size:.9rem; min-height:88px;'
                     . ' color:inherit; font-family:inherit;',
                 'rows'        => 4,
@@ -132,7 +132,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
             <?= $this->Form->text('comment', [
                 'id'          => 'AttributeComment',
                 'class'       => 'w-100 border-0 bg-transparent py-1',
-                'style'       => 'border-bottom:1px solid #d8dde3 !important;'
+                'style'       => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important;'
                     . ' outline:none; font-size:.925rem;',
                 'placeholder' => __('Add a contextual comment…'),
             ]) ?>
@@ -166,7 +166,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                     <label id="card-batch"
                            class="d-flex align-items-center gap-3 rounded-2 p-3
                                   h-100 w-100 user-select-none mb-0"
-                           style="cursor:pointer; border:1px solid #dee2e6;">
+                           style="cursor:pointer; border:1px solid var(--misp-check-off-line, #dee2e6);">
                         <?= $this->Form->checkbox('batch_import', [
                             'id'    => 'AttributeBatchImport',
                             'class' => 'form-check-input flex-shrink-0',
@@ -184,7 +184,7 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                         </div>
                         <i id="icon-batch"
                            class="fas fa-layer-group"
-                           style="font-size:.95rem; color:#adb5bd; opacity:.7;"></i>
+                           style="font-size:.95rem; color:var(--misp-check-off-icon, #adb5bd); opacity:.7;"></i>
                     </label>
                 </div>
                 <?php endif; ?>

@@ -731,6 +731,10 @@ class TagCollectionsController extends AppController
             }
             $list = $this->TagCollection->find('all', $params);
         } else {
+            $term = $this->request->params['named']['quickFilter'] ?? '';
+            if ($term !== '') {
+                $conditions = ['AND' => [$conditions, ['LOWER(TagCollection.name) LIKE' => '%' . mb_strtolower($term) . '%']]];
+            }
             $this->paginate['conditions'] = $conditions;
             $list = $this->paginate();
         }

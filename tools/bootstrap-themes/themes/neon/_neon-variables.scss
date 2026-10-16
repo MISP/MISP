@@ -1,0 +1,411 @@
+// Neon: a synthwave console after Bootswatch Vapor. Electric indigo marks
+// action and selection, cyan marks focus and links, on a blue-black ground;
+// magenta survives only as an accent. The glow is reserved for the chrome;
+// tables and their rows stay flat.
+
+$neon-void:     #090718;
+$neon-surface:  #120e2a;
+$neon-raised:   #1b1638;
+$neon-well:     #0c0a20;
+$neon-line:     #2e2a5e;
+$neon-ink:      #e4e2f8;
+$neon-dim:      #a7a3cc;
+$neon-faint:    #8783ad;
+
+$neon-primary:  #6b72ff;
+$neon-pink:     #ff4fd8;
+$neon-cyan:     #2de2e6;
+$neon-violet:   #b18cff;
+$neon-mint:     #3df5a6;
+$neon-amber:    #ffc23d;
+$neon-red:      #ff5a6e;
+
+$neon-font-display: "Oxanium", "IBM Plex Sans", system-ui, sans-serif;
+$neon-font-hud:     "Orbitron", "Oxanium", system-ui, sans-serif;
+
+// Colour system
+
+$white:    #fff;
+$gray-100: #f3f2fb;
+$gray-200: #e5e3f4;
+$gray-300: #cfcde6;
+$gray-400: #b0add0;
+$gray-500: #908cb3;
+$gray-600: #6c6894;
+$gray-700: #4a4672;
+$gray-800: #262248;
+$gray-900: #16132b;
+$black:    #000;
+
+$blue:    #4d8dff;
+$indigo:  #7c4dff;
+$purple:  $neon-violet;
+$pink:    $neon-pink;
+$red:     $neon-red;
+$orange:  #ff8a3d;
+$yellow:  $neon-amber;
+$green:   $neon-mint;
+$teal:    #1fd1b9;
+$cyan:    $neon-cyan;
+
+$primary:   $neon-primary;
+$secondary: #8a87b8;
+$success:   $neon-mint;
+$info:      $neon-cyan;
+$warning:   $neon-amber;
+$danger:    $neon-red;
+$light:     #d8d6f2;
+$dark:      $neon-void;
+
+// Fills are bright, so their text is the ground colour, not white.
+$min-contrast-ratio:   4.5;
+$color-contrast-dark:  $neon-void;
+$color-contrast-light: $white;
+
+// MISP colours that sink into the purple ground, lifted in their own hue.
+$misp-object:      #9c8a85;
+$misp-sighting:    #c43ad6;
+$misp-analystData: #c75a8a;
+$misp-enrichment:  #857ea6;
+
+// Subtle fills for alerts and list-group variants: dark tints, not pastels.
+$primary-bg-subtle:       mix($primary, $neon-surface, 16%);
+$secondary-bg-subtle:     mix($secondary, $neon-surface, 14%);
+$success-bg-subtle:       mix($success, $neon-surface, 12%);
+$info-bg-subtle:          mix($info, $neon-surface, 12%);
+$warning-bg-subtle:       mix($warning, $neon-surface, 12%);
+$danger-bg-subtle:        mix($danger, $neon-surface, 16%);
+$light-bg-subtle:         $neon-raised;
+$dark-bg-subtle:          $neon-void;
+
+$primary-border-subtle:   mix($primary, $neon-surface, 50%);
+$secondary-border-subtle: mix($secondary, $neon-surface, 45%);
+$success-border-subtle:   mix($success, $neon-surface, 45%);
+$info-border-subtle:      mix($info, $neon-surface, 45%);
+$warning-border-subtle:   mix($warning, $neon-surface, 45%);
+$danger-border-subtle:    mix($danger, $neon-surface, 50%);
+$light-border-subtle:     $neon-line;
+$dark-border-subtle:      $neon-line;
+
+$primary-text-emphasis:   tint-color($primary, 45%);
+$secondary-text-emphasis: tint-color($secondary, 50%);
+$success-text-emphasis:   tint-color($success, 40%);
+$info-text-emphasis:      tint-color($info, 40%);
+$warning-text-emphasis:   tint-color($warning, 40%);
+$danger-text-emphasis:    tint-color($danger, 45%);
+$light-text-emphasis:     $neon-ink;
+$dark-text-emphasis:      $neon-ink;
+
+// Body. Cards, tables and inputs sit on $body-bg; the page itself is
+// .bg-light, which MISP maps to the tertiary background.
+
+$body-bg:                $neon-surface;
+$body-color:             $neon-ink;
+$body-secondary-color:   $neon-dim;
+$body-secondary-bg:      $neon-raised;
+$body-tertiary-color:    $neon-faint;
+$body-tertiary-bg:       $neon-void;
+$body-emphasis-color:    $white;
+
+$link-color:             $neon-cyan;
+$link-hover-color:       tint-color($neon-cyan, 55%);
+$link-decoration:        none;
+$link-hover-decoration:  null;
+
+$border-color:             $neon-line;
+$border-color-translucent: rgba(#a5a0ff, .18);
+
+$border-radius:     .25rem;
+$border-radius-sm:  .1875rem;
+$border-radius-lg:  .375rem;
+$border-radius-xl:  .5rem;
+$border-radius-xxl: .75rem;
+
+$box-shadow:    0 .5rem 1.25rem rgba($black, .5);
+$box-shadow-sm: 0 .125rem .375rem rgba($black, .4);
+$box-shadow-lg: 0 1rem 2.5rem rgba($black, .6);
+
+$component-active-color: $neon-void;
+$component-active-bg:    $neon-primary;
+
+$focus-ring-width:   .2rem;
+$focus-ring-opacity: .35;
+$focus-ring-color:   rgba($neon-cyan, .35);
+
+// Typography
+
+$font-family-sans-serif: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+$font-family-monospace:  "IBM Plex Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+$font-size-base:         .9375rem;
+$font-weight-semibold:   600;
+$font-weight-bold:       700;
+
+$headings-font-family: $neon-font-display;
+$headings-font-weight: 600;
+$headings-color:       #f3f2ff;
+$display-font-family:  $neon-font-display;
+
+$text-muted: $neon-dim;
+$hr-color:   $neon-primary;
+$hr-opacity: .5;
+
+$mark-bg:    rgba($neon-amber, .3);
+$mark-color: $white;
+
+// Tables: flat, quiet rules, a faint hover. Coloured rows are dark tints.
+
+$table-color:              $neon-ink;
+$table-bg:                 transparent;
+$table-border-color:       rgba(#a5a0ff, .12);
+$table-striped-bg-factor:  .035;
+$table-striped-bg:         rgba(#a5a0ff, .035);
+$table-hover-bg-factor:    .06;
+$table-hover-bg:           rgba($neon-primary, .06);
+$table-active-bg-factor:   .1;
+$table-active-bg:          rgba($neon-primary, .1);
+$table-th-font-weight:     600;
+$table-group-separator-color: rgba($neon-primary, .45);
+$table-bg-scale:           75%;
+
+// Forms: dark wells with a violet rim, cyan when focused.
+
+$input-bg:                  $neon-well;
+$input-color:               $neon-ink;
+$input-border-color:        #36336f;
+$input-placeholder-color:   $neon-faint;
+$input-disabled-bg:         #16132f;
+$input-disabled-color:      $neon-faint;
+$input-disabled-border-color: $neon-line;
+$input-focus-bg:            $neon-well;
+$input-focus-color:         $white;
+$input-focus-border-color:  $neon-cyan;
+$input-focus-box-shadow:    0 0 0 .2rem rgba($neon-cyan, .2), 0 0 .9rem rgba($neon-cyan, .3);
+$input-group-addon-bg:      $neon-raised;
+$input-group-addon-color:   $neon-dim;
+$input-group-addon-border-color: #36336f;
+
+$form-label-font-weight:    600;
+$form-label-color:          $neon-ink;
+$form-text-color:           $neon-dim;
+
+$form-select-indicator-color: $neon-cyan;
+$form-select-disabled-bg:     $input-disabled-bg;
+$form-select-disabled-color:  $neon-faint;
+
+$form-check-input-bg:                 $neon-well;
+$form-check-input-border:             1px solid #4f4a96;
+$form-check-input-checked-color:      $neon-void;
+$form-check-input-checked-bg-color:   $neon-primary;
+$form-check-input-checked-border-color: $neon-primary;
+$form-check-input-indeterminate-bg-color: $neon-primary;
+$form-check-input-indeterminate-border-color: $neon-primary;
+$form-check-input-focus-border:       $neon-cyan;
+$form-switch-color:                   rgba(#b8b4ff, .45);
+$form-switch-focus-color:             $neon-cyan;
+$form-switch-checked-color:           $neon-void;
+
+$form-range-track-bg:         $neon-raised;
+$form-file-button-bg:         $neon-raised;
+$form-file-button-color:      $neon-ink;
+$form-file-button-hover-bg:   #23204f;
+
+$form-feedback-valid-color:   $neon-mint;
+$form-feedback-invalid-color: $neon-red;
+
+// Buttons
+
+$btn-font-family:   $neon-font-display;
+$btn-font-weight:   600;
+$btn-padding-y:     .375rem;
+$btn-padding-x:     .875rem;
+$btn-border-width:  1px;
+$btn-link-color:    $neon-cyan;
+$btn-link-hover-color: tint-color($neon-cyan, 55%);
+$btn-link-disabled-color: $neon-faint;
+$btn-disabled-opacity: .45;
+
+$btn-close-color:   $white;
+$btn-close-opacity: .7;
+$btn-close-hover-opacity: 1;
+
+// Dropdowns, which also feed the navbar's menus
+
+$dropdown-bg:              #15122f;
+$dropdown-color:           $neon-ink;
+$dropdown-border-color:    rgba($neon-primary, .35);
+$dropdown-divider-bg:      $neon-line;
+$dropdown-link-color:      $neon-ink;
+$dropdown-link-hover-color: $white;
+$dropdown-link-hover-bg:   rgba($neon-primary, .14);
+$dropdown-link-active-color: $neon-void;
+$dropdown-link-active-bg:  $neon-primary;
+$dropdown-link-disabled-color: $neon-faint;
+$dropdown-header-color:    $neon-cyan;
+$dropdown-box-shadow:      0 0 0 1px rgba($neon-primary, .08), 0 .75rem 2rem rgba($black, .6), 0 0 1.5rem rgba($neon-primary, .12);
+
+// The navbar: a near-black bar edged in indigo.
+
+$misp-navbar-bg:     #0d0a22;
+$misp-navbar-accent: $neon-primary;
+$misp-navbar-brand-filter: brightness(0) invert(1) drop-shadow(0 0 4px rgba($neon-primary, .8));
+
+// Navs
+
+$nav-link-color:                   $neon-dim;
+$nav-link-hover-color:             $white;
+$nav-link-disabled-color:          rgba($neon-faint, .7);
+$nav-tabs-border-color:            $neon-line;
+$nav-tabs-link-hover-border-color: transparent transparent $neon-line;
+$nav-tabs-link-active-color:       $white;
+$nav-tabs-link-active-bg:          $neon-surface;
+$nav-tabs-link-active-border-color: $neon-line $neon-line $neon-surface;
+$nav-pills-link-active-color:      $neon-void;
+$nav-pills-link-active-bg:         $neon-primary;
+$nav-underline-link-active-color:  $white;
+
+// Pagination
+
+$pagination-color:              $neon-cyan;
+$pagination-bg:                 transparent;
+$pagination-border-color:       $neon-line;
+$pagination-hover-color:        $white;
+$pagination-hover-bg:           rgba($neon-primary, .12);
+$pagination-hover-border-color: rgba($neon-primary, .5);
+$pagination-focus-color:        $white;
+$pagination-focus-bg:           rgba($neon-cyan, .1);
+$pagination-active-color:       $neon-void;
+$pagination-active-bg:          $neon-primary;
+$pagination-active-border-color: $neon-primary;
+$pagination-disabled-color:     $neon-faint;
+$pagination-disabled-bg:        transparent;
+$pagination-disabled-border-color: $neon-line;
+
+// Cards
+
+$card-bg:            $neon-surface;
+$card-color:         $neon-ink;
+$card-border-color:  rgba(#a5a0ff, .24);
+$card-border-radius: .375rem;
+$card-cap-bg:        rgba(#a5a0ff, .06);
+$card-cap-color:     $white;
+$card-cap-padding-y: .625rem;
+
+// Accordion
+
+$accordion-bg:                  $neon-surface;
+$accordion-color:               $neon-ink;
+$accordion-border-color:        rgba(#a5a0ff, .24);
+$accordion-button-color:        $neon-ink;
+$accordion-button-bg:           $neon-surface;
+$accordion-button-active-bg:    rgba($neon-primary, .1);
+$accordion-button-active-color: $white;
+$accordion-button-focus-border-color: $neon-cyan;
+$accordion-icon-color:          $neon-dim;
+$accordion-icon-active-color:   $neon-primary;
+
+// Breadcrumbs
+
+$breadcrumb-divider-color: $neon-faint;
+$breadcrumb-active-color:  $neon-primary;
+
+// Badges and alerts
+
+$badge-color:         $neon-void;
+$badge-font-weight:   600;
+$badge-border-radius: .2rem;
+$alert-border-width:  1px;
+$alert-link-font-weight: 600;
+
+// Progress
+
+$progress-bg:        $neon-well;
+$progress-bar-bg:    $neon-primary;
+$progress-border-radius: 999px;
+
+// List group
+
+$list-group-color:              $neon-ink;
+$list-group-bg:                 $neon-surface;
+$list-group-border-color:       rgba(#a5a0ff, .2);
+$list-group-hover-bg:           rgba($neon-primary, .07);
+$list-group-active-color:       $white;
+$list-group-active-bg:          mix($neon-primary, $neon-surface, 26%);
+$list-group-active-border-color: $neon-primary;
+$list-group-disabled-color:     $neon-faint;
+$list-group-action-color:       $neon-ink;
+$list-group-action-hover-color: $white;
+$list-group-action-active-color: $white;
+$list-group-action-active-bg:   rgba($neon-primary, .14);
+
+// Overlays: modals, popovers, tooltips, toasts
+
+$modal-content-bg:           #130f2c;
+$modal-content-color:        $neon-ink;
+$modal-content-border-color: rgba($neon-primary, .45);
+$modal-content-box-shadow-xs: 0 0 0 1px rgba($neon-primary, .2), 0 1rem 3rem rgba($black, .7);
+$modal-content-box-shadow-sm-up: $modal-content-box-shadow-xs;
+$modal-header-border-color:  $neon-line;
+$modal-footer-border-color:  $neon-line;
+$modal-backdrop-bg:          #04030d;
+$modal-backdrop-opacity:     .72;
+
+$popover-bg:                 $neon-raised;
+$popover-border-color:       rgba($neon-cyan, .45);
+$popover-header-bg:          rgba($neon-cyan, .08);
+$popover-header-color:       $white;
+$popover-body-color:         $neon-ink;
+$popover-box-shadow:         0 .5rem 1.5rem rgba($black, .6);
+
+$tooltip-bg:      #04030d;
+$tooltip-color:   $white;
+$tooltip-opacity: 1;
+
+$toast-background-color:        rgba($neon-raised, .97);
+$toast-color:                   $neon-ink;
+$toast-border-color:            rgba($neon-primary, .4);
+$toast-header-background-color: rgba($neon-primary, .08);
+$toast-header-color:            $white;
+$toast-header-border-color:     $neon-line;
+
+$offcanvas-bg-color: $neon-surface;
+$offcanvas-color:    $neon-ink;
+
+$kbd-bg:    $neon-raised;
+$kbd-color: $neon-cyan;
+$code-color: $neon-pink;
+
+$thumbnail-bg:           $neon-surface;
+$thumbnail-border-color: $neon-line;
+
+$placeholder-opacity-max: .3;
+$placeholder-opacity-min: .12;
+
+// Correlation graph: this event in mint, its values in the magenta accent,
+// the events they reach in cyan, on an indigo-ruled lane.
+$misp-surface-overrides: (
+  "graph-node-source":      $neon-mint,
+  "graph-node-attribute":   $neon-pink,
+  "graph-node-target":      $neon-cyan,
+  "graph-node-org":         $neon-dim,
+  "graph-link-attribute":   mix($neon-pink, $neon-surface, 40%),
+  "graph-link-target":      mix($neon-cyan, $neon-surface, 45%),
+  "graph-link-org":         rgba($neon-violet, .18),
+  "graph-label":            $neon-ink,
+  "graph-label-source":     $neon-mint,
+  "graph-label-org":        rgba($neon-dim, .75),
+  "graph-label-org-linked": $neon-ink,
+  "graph-lane":             rgba($neon-primary, .06),
+  "graph-lane-line":        rgba($neon-primary, .35),
+  "graph-axis":             rgba($neon-primary, .8),
+  "graph-grid":             rgba($neon-primary, .22),
+  "graph-grid-label":       $neon-violet,
+  "graph-leader":           rgba($neon-dim, .4),
+  "graph-accent":           $neon-primary,
+  "graph-accent-ink":       tint-color($neon-primary, 45%),
+  "graph-marker":           $gray-700,
+  "graph-marker-hover":     $neon-cyan,
+  "graph-current":          $neon-mint,
+  "graph-current-ink":      $neon-void,
+  "graph-current-on":       $neon-void,
+  "graph-font-display":     inspect($neon-font-hud)
+);

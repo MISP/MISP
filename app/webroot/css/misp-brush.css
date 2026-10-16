@@ -1,0 +1,38 @@
+/* The range brush (misp-brush.js), a layer laid over a chart inside a
+ * `position: relative` box. A caller tunes it with two properties:
+ * --misp-brush-floor, how far above the bottom it stops (to leave an
+ * axis undimmed), and --misp-brush-dim, how hard the outside is dimmed. */
+
+.misp-brush {
+    position: absolute;
+    inset: 0 0 var(--misp-brush-floor, 0) 0;
+    display: flex;
+    cursor: ew-resize;
+    touch-action: none;
+}
+
+.misp-brush-mask {
+    width: 0;
+    background: color-mix(in srgb,
+        var(--bs-body-bg) var(--misp-brush-dim, 62%), transparent);
+    pointer-events: none;
+}
+
+/* The window is absolute, so the masks would otherwise both pack left. */
+.misp-brush-mask[data-misp-brush-mask-right] {
+    margin-left: auto;
+}
+
+.misp-brush-window {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-left: 2px solid var(--primary);
+    border-right: 2px solid var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+    pointer-events: none;
+}
+
+.misp-brush-empty .misp-brush-window {
+    display: none;
+}

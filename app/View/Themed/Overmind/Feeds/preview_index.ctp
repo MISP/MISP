@@ -73,6 +73,7 @@ $fields = [
         'requirement' => Configure::read('MISP.tagging'),
         'data_path' => 'Event.Tag',
         'element' => 'tag_list',
+        'plan' => $labelPlan ?? null,
         'card_section' => 'tag',
         'display_in' => ['table', 'card']
     ],

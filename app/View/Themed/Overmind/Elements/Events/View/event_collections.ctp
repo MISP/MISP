@@ -13,9 +13,9 @@ $mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection
     <!-- HEADER -->
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
-            <div class="rounded-2 d-flex align-items-center justify-content-center"
-                 style="width:36px;height:36px;background:#0d6efd40;">
-                <i class="fas fa-folder-open" style="color:#0d6efd;font-size:1rem;"></i>
+            <div class="misp-icon-tile rounded-2 d-flex align-items-center justify-content-center"
+                 style="width:36px;height:36px;--tile:#0d6efd;--tile-bg:#0d6efd40;">
+                <i class="fas fa-folder-open" style="font-size:1rem;"></i>
             </div>
             <div class="me-auto">
                 <div class="fw-bold lh-1"><?= __('Collections') ?></div>
@@ -38,7 +38,7 @@ $mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection
     <!-- BODY -->
     <div id="<?= $uid ?>-body">
         <div class="text-center py-4 text-muted">
-            <div class="spinner-border spinner-border-sm" role="status"></div>
+            <div class="misp-loader misp-loader-sm" role="status"></div>
         </div>
     </div>
 
@@ -51,75 +51,85 @@ $mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection
     var viewBase = <?= json_encode($viewBase) ?>;
     var countEl  = document.getElementById(uid + '-count');
     var bodyEl   = document.getElementById(uid + '-body');
+    var eventUuid = <?= json_encode($data['Event']['uuid'] ?? '') ?>;
 
-    fetch(fetchUrl, {
-        credentials: 'same-origin',
-        headers: { 'Accept': 'application/json' }
-    })
-        .then(function (r) {
-            if (!r.ok) { throw new Error(r.status); }
-            return r.json();
+    // The picker saves in place, so the card follows an add of this event.
+    document.addEventListener('misp:collection-element-added', function (e) {
+        var d = e.detail || {};
+        if (d.type === 'Event' && String(d.uuid).toLowerCase() === eventUuid.toLowerCase()) { load(); }
+    });
+    load();
+
+    function load() {
+        fetch(fetchUrl, {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
         })
-        .then(function (collections) {
-            if (!Array.isArray(collections)) { collections = []; }
+            .then(function (r) {
+                if (!r.ok) { throw new Error(r.status); }
+                return r.json();
+            })
+            .then(function (collections) {
+                if (!Array.isArray(collections)) { collections = []; }
 
-            var total = collections.length;
-            if (countEl) {
-                countEl.textContent = total === 0
-                    ? <?= json_encode(__('Not part of any collection')) ?>
-                    : total + ' ' + (
-                        total === 1
-                            ? <?= json_encode(__('collection')) ?>
-                            : <?= json_encode(__('collections')) ?>
-                    );
-            }
-
-            if (total === 0) {
-                bodyEl.innerHTML =
-                    '<div class="d-flex flex-column align-items-center justify-content-center text-muted py-4">'
-                    + '<i class="fas fa-folder fa-2x mb-2 opacity-50"></i>'
-                    + '<p class="mb-0 small fw-semibold">'
-                    + <?= json_encode(__('This event is not part of any collection.')) ?>
-                    + '</p>'
-                    + '</div>';
-                return;
-            }
-
-            bodyEl.innerHTML = '';
-            collections.forEach(function (collection) {
-                var row = document.createElement('a');
-                row.href = viewBase + encodeURIComponent(collection.id);
-                row.className = 'd-flex align-items-center gap-2 px-3 py-2 '
-                    + 'text-decoration-none text-body border-bottom collection-row';
-                if (collection.description) {
-                    row.title = String(collection.description);
+                var total = collections.length;
+                if (countEl) {
+                    countEl.textContent = total === 0
+                        ? <?= json_encode(__('Not part of any collection')) ?>
+                        : total + ' ' + (
+                            total === 1
+                                ? <?= json_encode(__('collection')) ?>
+                                : <?= json_encode(__('collections')) ?>
+                        );
                 }
 
-                var icon = document.createElement('i');
-                icon.className = 'fas fa-folder text-primary flex-shrink-0';
-                row.appendChild(icon);
+                if (total === 0) {
+                    bodyEl.innerHTML =
+                        '<div class="d-flex flex-column align-items-center justify-content-center text-muted py-4">'
+                        + '<i class="fas fa-folder fa-2x mb-2 opacity-50"></i>'
+                        + '<p class="mb-0 small fw-semibold">'
+                        + <?= json_encode(__('This event is not part of any collection.')) ?>
+                        + '</p>'
+                        + '</div>';
+                    return;
+                }
 
-                var name = document.createElement('span');
-                name.className = 'text-truncate';
-                name.textContent = collection.name
-                    ? String(collection.name)
-                    : <?= json_encode(__('Unnamed collection')) ?>;
-                row.appendChild(name);
+                bodyEl.innerHTML = '';
+                collections.forEach(function (collection) {
+                    var row = document.createElement('a');
+                    row.href = viewBase + encodeURIComponent(collection.id);
+                    row.className = 'd-flex align-items-center gap-2 px-3 py-2 '
+                        + 'text-decoration-none text-body border-bottom collection-row';
+                    if (collection.description) {
+                        row.title = String(collection.description);
+                    }
 
-                var chevron = document.createElement('i');
-                chevron.className = 'fas fa-chevron-right text-muted small ms-auto';
-                row.appendChild(chevron);
+                    var icon = document.createElement('i');
+                    icon.className = 'fas fa-folder text-accent flex-shrink-0';
+                    row.appendChild(icon);
 
-                bodyEl.appendChild(row);
+                    var name = document.createElement('span');
+                    name.className = 'text-truncate';
+                    name.textContent = collection.name
+                        ? String(collection.name)
+                        : <?= json_encode(__('Unnamed collection')) ?>;
+                    row.appendChild(name);
+
+                    var chevron = document.createElement('i');
+                    chevron.className = 'fas fa-chevron-right text-muted small ms-auto';
+                    row.appendChild(chevron);
+
+                    bodyEl.appendChild(row);
+                });
+            })
+            .catch(function () {
+                bodyEl.innerHTML =
+                    '<div class="text-center text-muted py-4 small">'
+                    + '<i class="fas fa-exclamation-triangle me-2"></i>'
+                    + <?= json_encode(__('Could not load collections.')) ?>
+                    + '</div>';
+                if (countEl) { countEl.textContent = ''; }
             });
-        })
-        .catch(function () {
-            bodyEl.innerHTML =
-                '<div class="text-center text-muted py-4 small">'
-                + '<i class="fas fa-exclamation-triangle me-2"></i>'
-                + <?= json_encode(__('Could not load collections.')) ?>
-                + '</div>';
-            if (countEl) { countEl.textContent = ''; }
-        });
+    }
 }());
 </script>

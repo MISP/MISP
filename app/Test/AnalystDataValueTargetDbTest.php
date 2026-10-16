@@ -452,7 +452,7 @@ class AnalystDataValueTargetDbTest extends TestCase
         $this->assertCount(1, $this->relationship->getInboundRelationships($outsider, 'AttributeValue', $hex));
     }
 
-    public function testOnlyAValueTheUserCanSeeGoesIntoACollection()
+    public function testAnyValueGoesIntoACollection()
     {
         $elements = ClassRegistry::init('CollectionElement');
         $refusal = function ($user, $type, $address) use ($elements) {
@@ -465,8 +465,7 @@ class AnalystDataValueTargetDbTest extends TestCase
         };
         foreach ($this->users() as $name => $user) {
             foreach (self::KINDS as $kind) {
-                $expected = in_array($kind, $this->resolving($name), true) ? null : 'Invalid value or not authorized.';
-                $this->assertSame($expected, $refusal($user, 'AttributeValue', strtoupper($this->hex[$kind])), "$name $kind");
+                $this->assertNull($refusal($user, 'AttributeValue', strtoupper($this->hex[$kind])), "$name $kind");
             }
         }
         // A hash is never deduced to be a value, and an unknown type is refused

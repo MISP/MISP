@@ -8,7 +8,7 @@ $status = (int) $status ?? 0;
 // Color for HTTP method
 $methodClass = [
     'GET' => 'bg-success-subtle text-success',
-    'POST' => 'bg-primary-subtle text-primary',
+    'POST' => 'bg-primary-subtle text-primary-emphasis',
     'PUT' => 'bg-warning-subtle text-warning',
     'DELETE' => 'bg-danger-subtle text-danger',
 ][$method] ?? 'bg-secondary-subtle text-secondary';
@@ -58,7 +58,7 @@ $payloadAttr = isset($payload) ? 'data-payload="' . $payload . '"' : '';
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                     <?php else: ?>
-                        <button class="btn btn-link text-primary p-0 shadow-none hover-scale"
+                        <button class="btn btn-link p-0 shadow-none hover-scale"
                                 onclick="event.stopPropagation(); showQueryInfo(this)"
                                 onmouseenter="<?= $onMouseEnterAction ?>"
                                 onmouseleave="<?= $onMouseLeaveAction ?>">

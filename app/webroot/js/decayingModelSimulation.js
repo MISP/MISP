@@ -529,6 +529,9 @@
                 }
             },
             _create_tag_html: function(tag) {
+                if (tag !== false && window.TagChips) {
+                    return TagChips.chip(tag, {searchUrl: ''});
+                }
                 if (tag !== false) {
                     var $span = $('<span></span>');
                     $span.addClass('tag')

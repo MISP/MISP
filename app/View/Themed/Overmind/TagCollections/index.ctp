@@ -137,22 +137,6 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'name'          => 'quickFilter',
                         'mode'      => 'quickFilter',
                     ],
-                    [
-                        'type' => 'more_filters',
-                        'label' => __('More filters'),
-                        'children' => [
-                            [
-                                'type' => 'dropdown',
-                                'label' => __('Favourite'),
-                                'name' => 'favouritesOnly',
-                                'options' => [
-                                    '' => '',
-                                    '1' => 'Favourite only',
-                                    '0' => 'Not favourite'
-                                ]
-                            ],
-                        ]
-                    ]
                 ],
                 'delete' => '/deleteSelection'
             ],

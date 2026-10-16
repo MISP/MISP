@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('AuthKeyRailCards', 'Tools/RailCards');
 
 /**
  * @property AuthKey $AuthKey
@@ -281,11 +282,33 @@ class AuthKeysController extends AppController
             return $this->restResponsePayload;
         }
 
+        $usageByIp = [];
+        $lastUsed = null;
         if (Configure::read('MISP.log_user_ips') && Configure::read('MISP.log_user_ips_authkeys')) {
-            list($keyUsage, $lastUsed, $uniqueIps) = $this->AuthKey->getKeyUsage($id);
+            list($usageByIp, $lastUsed) = $this->AuthKey->getKeyUsageByIp($id);
+            list($keyUsage, $uniqueIps) = AuthKey::summariseKeyUsage($usageByIp);
             $this->set('keyUsage', $keyUsage);
             $this->set('lastUsed', $lastUsed);
             $this->set('uniqueIps', $uniqueIps);
+        }
+
+        if ($this->theme === 'Overmind') {
+            $authKey = $this->viewVars['data'];
+            $user = $this->Auth->user();
+            $owner = $this->AuthKey->User->find('first', [
+                'recursive' => -1,
+                'conditions' => ['User.id' => $authKey['AuthKey']['user_id']],
+                'fields' => ['User.id', 'User.disabled'],
+                'contain' => ['Role' => ['fields' => ['Role.perm_auth']]],
+            ]);
+            $mayPin = $this->ACL->canUserAccess($user, 'authKeys', 'pin')
+                && $this->AuthKey->canEditAuthKey($user, $authKey['AuthKey']['id']);
+            $railCards = new AuthKeyRailCards($usageByIp, $lastUsed);
+            $this->set('railCards', RailCard::byId([
+                $railCards->lifecycle($authKey, $owner),
+                $railCards->activity($authKey),
+                $railCards->addresses($authKey, $mayPin),
+            ]));
         }
 
         $this->set('title_for_layout', __('Auth key'));
@@ -300,9 +323,7 @@ class AuthKeysController extends AppController
             throw new MethodNotAllowedException(__('Invalid user or insufficient privileges to interact with an authkey for the given user.'));
         }
         // An IPv6 address cannot ride in the URL: its colons are read as a named parameter.
-        if ($ip === null && isset($this->request->data['ip'])) {
-            $ip = $this->request->data['ip'];
-        }
+        $ip = $ip ?? $this->request->query('ip') ?? $this->request->data['ip'] ?? null;
         if ($ip === null || filter_var($ip, FILTER_VALIDATE_IP) === false) {
             throw new BadRequestException(__('Invalid IP address.'));
         }

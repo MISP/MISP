@@ -94,6 +94,111 @@ class GalaxyElement extends AppModel
         return $elements;
     }
 
+    /**
+     * The element keys a galaxy's clusters can be filtered on, with the values
+     * offered for each, most used first. Only clusters the user can see count.
+     *
+     * @param array $user
+     * @param int $galaxyId
+     * @return array key => ['label' => string, 'values' => string[]]
+     */
+    public function filterFacets(array $user, $galaxyId)
+    {
+        App::uses('GalaxyElementFacets', 'Tools');
+        $query = [
+            'recursive' => -1,
+            'joins' => [[
+                'table' => 'galaxy_clusters',
+                'alias' => 'GalaxyCluster',
+                'type' => 'INNER',
+                'conditions' => ['GalaxyCluster.id = GalaxyElement.galaxy_cluster_id'],
+            ]],
+            'conditions' => [
+                'AND' => [
+                    $this->GalaxyCluster->buildConditions($user),
+                    'GalaxyCluster.galaxy_id' => $galaxyId,
+                    'GalaxyCluster.deleted' => 0,
+                ],
+            ],
+        ];
+        $rows = $this->find('all', $query + [
+            'fields' => [
+                'GalaxyElement.key',
+                'COUNT(*) AS n',
+                'COUNT(DISTINCT GalaxyElement.galaxy_cluster_id) AS clusters',
+                'COUNT(DISTINCT LEFT(GalaxyElement.value, ' . GalaxyElementFacets::MAX_VALUE_LENGTH . ')) AS distinct_values',
+            ],
+            'group' => ['GalaxyElement.key'],
+        ]);
+        $summaries = [];
+        foreach ($rows as $row) {
+            $summaries[$row['GalaxyElement']['key']] = [
+                'rows' => (int)$row[0]['n'],
+                'clusters' => (int)$row[0]['clusters'],
+                'values' => (int)$row[0]['distinct_values'],
+            ];
+        }
+        $keys = GalaxyElementFacets::selectKeys($summaries);
+        if (empty($keys)) {
+            return [];
+        }
+
+        $query['conditions']['AND']['GalaxyElement.key'] = $keys;
+        $query['conditions']['AND']['CHAR_LENGTH(GalaxyElement.value) <='] = GalaxyElementFacets::MAX_VALUE_LENGTH;
+        $valueField = 'LEFT(GalaxyElement.value, ' . GalaxyElementFacets::MAX_VALUE_LENGTH . ')';
+        $rows = $this->find('all', $query + [
+            'fields' => ['GalaxyElement.key', $valueField . ' AS value', 'COUNT(*) AS n'],
+            'group' => ['GalaxyElement.key', $valueField],
+        ]);
+        $counts = array_fill_keys($keys, []);
+        foreach ($rows as $row) {
+            $value = (string)$row[0]['value'];
+            if (GalaxyElementFacets::isUsableValue($value)) {
+                $counts[$row['GalaxyElement']['key']][$value] = (int)$row[0]['n'];
+            }
+        }
+        $facets = [];
+        foreach ($counts as $key => $values) {
+            if (count($values) < 2) {
+                continue;
+            }
+            uksort($values, function ($a, $b) use ($values) {
+                return [$values[$b], $a] <=> [$values[$a], $b];
+            });
+            $facets[$key] = [
+                'label' => GalaxyElementFacets::label($key),
+                'values' => array_map('strval', array_keys($values)),
+            ];
+        }
+        return $facets;
+    }
+
+    /**
+     * @param int $galaxyId
+     * @param string $key
+     * @param string[] $values
+     * @return int[] the galaxy's clusters carrying any of the values under that key
+     */
+    public function clusterIdsWithValue($galaxyId, $key, array $values)
+    {
+        return $this->find('column', [
+            'recursive' => -1,
+            'fields' => ['GalaxyElement.galaxy_cluster_id'],
+            'joins' => [[
+                'table' => 'galaxy_clusters',
+                'alias' => 'GalaxyCluster',
+                'type' => 'INNER',
+                'conditions' => ['GalaxyCluster.id = GalaxyElement.galaxy_cluster_id'],
+            ]],
+            'conditions' => [
+                'GalaxyCluster.galaxy_id' => $galaxyId,
+                'GalaxyElement.key' => $key,
+                'GalaxyElement.value' => array_values($values),
+            ],
+            'unique' => true,
+        ]);
+    }
+
     public function getExpandedJSONFromElements($elements)
     {
         $keyedValue = [];

@@ -10,6 +10,7 @@ $actions[] = [
     'url' => "$baseurl/feeds/previewIndex/$feedId",
     'icon' => 'fas fa-magnifying-glass',
     'label' => __('Explore the events remotely'),
+    'short' => __('Explore'),
 ];
 
 if ($siteAdmin && $isEnabled) {
@@ -17,8 +18,9 @@ if ($siteAdmin && $isEnabled) {
         'url' => "$baseurl/feeds/fetchSelectedFeeds/$feedId",
         'onclick' => "event.preventDefault(); openModal('$baseurl/feeds/fetchSelectedFeeds/$feedId', 'md');",
         'icon' => 'fas fa-circle-arrow-down',
+        'entity' => 'event',
         'label' => __('Fetch all events'),
-        'success' => true,
+        'short' => __('Fetch all'),
     ];
 }
 
@@ -27,30 +29,32 @@ if ($siteAdmin) {
         ? [
             'url' => "$baseurl/feeds/disable/$feedId",
             'type' => 'post',
-            'icon' => 'fas fa-stop',
+            'icon' => 'fas fa-toggle-off',
             'label' => __('Disable feed'),
-            'warning' => true,
+            'short' => __('Disable'),
         ]
         : [
             'url' => "$baseurl/feeds/enable/$feedId",
             'type' => 'post',
-            'icon' => 'fas fa-play',
+            'icon' => 'fas fa-toggle-on',
             'label' => __('Enable feed'),
-            'success' => true,
+            'short' => __('Enable'),
         ];
 
     $actions[] = [
         'url' => "$baseurl/feeds/edit/$feedId",
         'onclick' => "event.preventDefault(); openModal('$baseurl/feeds/edit/$feedId');",
-        'icon' => 'fas fa-pen-to-square',
+        'icon' => 'fas fa-pen',
         'label' => __('Edit feed'),
+        'short' => __('Edit'),
     ];
 }
 
 $actions[] = [
     'url' => "$baseurl/feeds/view/$feedId.json",
-    'icon' => 'fas fa-cloud-arrow-down',
+    'icon' => 'fas fa-download',
     'label' => __('Download metadata as JSON'),
+    'short' => __('Download'),
 ];
 
 if ($siteAdmin) {
@@ -63,6 +67,6 @@ if ($siteAdmin) {
     ];
 }
 
-echo $this->element('genericElementsBS5/Cards/card_actions', [
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions
 ]);

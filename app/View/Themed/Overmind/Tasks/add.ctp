@@ -51,7 +51,7 @@ $sectionTitle = function ($label, $required = false) {
     $badge = $required
         ? ' <span class="badge bg-primary" style="font-size:.55rem; opacity:.85; font-weight:700;">' . __('REQUIRED') . '</span>'
         : '';
-    return '<div class="d-flex align-items-center gap-2 text-primary fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">'
+    return '<div class="d-flex align-items-center gap-2 text-accent fw-bold text-uppercase mb-2" style="font-size:.65rem; letter-spacing:.1em;">'
         . h($label) . $badge . '</div>';
 };
 
@@ -89,7 +89,7 @@ echo $this->Form->create('Task', array_merge(
                     $sel = ($tName === $typeSel);
                     $bdr = $sel
                         ? 'border-color:var(--bs-primary) !important;background:rgba(24,146,177,.08);'
-                        : 'border-color:#d8dde3;';
+                        : 'border-color:var(--misp-field-line, #d8dde3);';
                 ?>
                 <div class="col type-card-col" style="cursor:pointer;" data-value="<?= h($tName) ?>">
                     <div class="border rounded p-2 d-flex align-items-center gap-2 h-100"
@@ -192,7 +192,7 @@ echo $this->Form->create('Task', array_merge(
                 <!-- PERIODIC SUMMARY (no extra parameters) -->
                 <div class="col-12 optionalField" id="PeriodicSummaryInfo" style="display:none;">
                     <div class="alert alert-light border d-flex align-items-center gap-2 mb-0" role="alert">
-                        <i class="fas fa-circle-info text-primary"></i>
+                        <i class="fas fa-circle-info text-accent"></i>
                         <span class="small text-muted">
                             <?= __('This task sends the periodic summary for the selected user. No additional parameters are required.') ?>
                         </span>
@@ -217,7 +217,7 @@ echo $this->Form->create('Task', array_merge(
                 <div class="d-flex align-items-center gap-3">
                     <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
                           style="width:2.25rem;height:2.25rem;background:rgba(24,146,177,.12);">
-                        <i class="fas fa-power-off text-primary"></i>
+                        <i class="fas fa-power-off text-accent"></i>
                     </span>
                     <div>
                         <span class="fw-semibold d-block"><?= __('Enabled') ?></span>
@@ -363,7 +363,7 @@ echo $this->Form->create('Task', array_merge(
         cardRow.querySelectorAll('.type-card-col').forEach(function (card) {
             card.addEventListener('click', function () {
                 cardRow.querySelectorAll('.type-card-col > div').forEach(function (d) {
-                    d.style.borderColor = '#d8dde3';
+                    d.style.borderColor = 'var(--misp-field-line, #d8dde3)';
                     d.style.background = '';
                 });
                 var inner = card.querySelector('div');

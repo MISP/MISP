@@ -11,7 +11,7 @@
  * opacities.
  *
  * An accent key is a *scope* name, not a colour: 'tag', 'galaxy', 'event'. The
- * solid colour of a scope lives in CSS (bootstrap5-custom.min.css builds the
+ * solid colour of a scope lives in CSS (each css/themes/ stylesheet builds the
  * `$theme-colors` map; mainOvermind.css adds the rest), so this table points at
  * the CSS custom property rather than restating the hash. `hex` is only the
  * fallback for the accents CSS has no variable for, and the value to hand to

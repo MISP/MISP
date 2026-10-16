@@ -1,0 +1,6 @@
+/* An analyst graph's own page (AnalystGraphs/view.ctp, intel-graph-page.js). */
+.ig-page-bar { min-height: 2.25rem; }
+.ig-page-hidden-menu { width: min(32rem, calc(100vw - 2rem)); max-height: 22rem; overflow-y: auto; }
+.ig-page-size-menu { width: min(26rem, calc(100vw - 2rem)); max-height: 26rem; overflow-y: auto; }
+.ig-page-size-menu .progress { height: 0.5rem; }
+.ig-page-size-group { min-width: 0; }

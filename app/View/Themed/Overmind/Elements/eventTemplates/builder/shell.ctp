@@ -122,15 +122,17 @@
     padding: 8px 10px;
     margin-bottom: 6px;
     cursor: pointer;
-    background: var(--bs-light);
+    background: var(--misp-surface-sunken, var(--bs-light));
 }
 .eventTemplates.builder .et-drag-handle {
-    color: #aaa;
+    color: var(--misp-ink-muted, #aaa);
     cursor: grab;
     padding: 0 4px;
     user-select: none;
 }
-.eventTemplates.builder .et-drag-handle:hover { color: #555; }
+.eventTemplates.builder .et-drag-handle:hover {
+    color: var(--misp-ink, #555);
+}
 .eventTemplates.builder .et-drag-handle:active { cursor: grabbing; }
 .eventTemplates.builder .et-canvas-element.selected {
     border-color: var(--bs-primary);
@@ -154,17 +156,20 @@
                 0 0 0 3px rgba(var(--bs-primary-rgb), 0.25);
 }
 .eventTemplates.builder .et-element-type-badge {
-    background: #eee;
+    background: var(--misp-surface-hover, #eee);
     padding: 2px 6px;
     border-radius: 2px;
     font-size: 11px;
     text-transform: uppercase;
-    color: #555;
+    color: var(--misp-ink-muted, #555);
 }
 .eventTemplates.builder .et-element-summary { flex: 1; font-weight: 500; }
-.eventTemplates.builder .et-element-id { color: #888; font-size: 11px; }
+.eventTemplates.builder .et-element-id {
+    color: var(--misp-ink-muted, #888);
+    font-size: 11px;
+}
 .eventTemplates.builder .et-empty {
-    color: #888;
+    color: var(--misp-ink-muted, #888);
     padding: 20px 0;
     font-style: italic;
     text-align: center;
@@ -173,17 +178,19 @@
     display: block;
     padding: 3px 8px;
     margin: 0;
-    border-bottom: 1px solid #f3f3f3;
+    border-bottom: 1px solid var(--misp-line, #f3f3f3);
     cursor: pointer;
     font-size: 12px;
 }
-.eventTemplates.builder .et-relations-list label:hover { background: #f0f8ff; }
+.eventTemplates.builder .et-relations-list label:hover {
+    background: var(--misp-tone-blue-bg, #f0f8ff);
+}
 .eventTemplates.builder .et-relations-list input[type=checkbox] {
     margin-right: 6px;
 }
 .eventTemplates.builder .et-relations-list .et-rel-name { font-weight: 500; }
 .eventTemplates.builder .et-relations-list .et-rel-type {
-    color: #888; font-size: 11px; margin-left: 6px;
+    color: var(--misp-ink-muted, #888); font-size: 11px; margin-left: 6px;
 }
 </style>
 
@@ -228,7 +235,7 @@
 
             <!-- Template name -->
             <div class="w-100">
-                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                <div class="d-flex align-items-center gap-2 text-accent fw-bold
                             text-uppercase mb-2"
                     style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Template Name') ?>
@@ -239,7 +246,7 @@
                 </div>
                 <input type="text" id="et-envelope-name"
                     class="w-100 border-0 bg-transparent fs-5 py-1"
-                    style="border-bottom:1px solid #d8dde3 !important; outline:none;"
+                    style="border-bottom:1px solid var(--misp-field-line, #d8dde3) !important; outline:none;"
                     placeholder="<?= __('Spearphishing email triage') ?>"
                     x-model="envelope.name">
             </div>
@@ -251,7 +258,7 @@
                     'label' => __('Description (Markdown)'),
                 ]) ?>
                 <div class="border rounded p-2"
-                    style="border-color:#d8dde3;">
+                    style="border-color:var(--misp-field-line, #d8dde3);">
                     <textarea id="et-envelope-description" rows="2"
                             class="w-100 border-0 bg-transparent p-0"
                             style="outline:none; font-size:.925rem; resize:vertical;"
@@ -285,7 +292,7 @@
                         'label' => __('Options'),
                     ]) ?>
                     <div class="border rounded px-3 py-2 d-flex flex-wrap gap-3"
-                        style="border-color:#d8dde3;">
+                        style="border-color:var(--misp-field-line, #d8dde3);">
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox"
                                 id="et-envelope-active"
@@ -325,7 +332,7 @@
 
             <!-- PALETTE -->
             <div class="col-lg-2 col-md-3">
-                <div class="text-primary fw-bold text-uppercase mb-2"
+                <div class="text-accent fw-bold text-uppercase mb-2"
                     style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Add Element') ?>
                 </div>
@@ -345,7 +352,7 @@
 
             <!-- CANVAS -->
             <div class="col-lg-5 col-md-4">
-                <div class="d-flex align-items-center gap-2 text-primary fw-bold
+                <div class="d-flex align-items-center gap-2 text-accent fw-bold
                             text-uppercase mb-2"
                     style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Structure') ?>
@@ -405,7 +412,7 @@
 
             <!-- PROPERTIES -->
             <div class="col-lg-5 col-md-5">
-                <div class="text-primary fw-bold text-uppercase mb-2"
+                <div class="text-accent fw-bold text-uppercase mb-2"
                     style="font-size:.65rem; letter-spacing:.1em;">
                     <?= __('Properties') ?>
                 </div>

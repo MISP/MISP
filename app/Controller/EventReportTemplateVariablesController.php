@@ -45,7 +45,9 @@ class EventReportTemplateVariablesController extends AppController
 
     public function index()
     {
-        $params = [];
+        $params = [
+            'quickFilters' => ['EventReportTemplateVariable.name', 'EventReportTemplateVariable.value'],
+        ];
         $this->CRUD->index($params);
         if ($this->restResponsePayload) {
             return $this->restResponsePayload;

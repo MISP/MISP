@@ -1,5 +1,6 @@
 <?php
 $group = $sg['SharingGroup'] ?? [];
+$railCards = $railCards ?? [];
 
 $this->set('headerIdentity', $group);
 $this->set('headerTitle', $group['name'] ?? '');
@@ -26,10 +27,12 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
                 'SharingGroups/View/sharingGroups_general',
                 'SharingGroups/View/sharingGroups_members',
             ],
-            'right' => [
+            'right' => array_merge([
                 'SharingGroups/View/sharingGroups_actions',
                 'SharingGroups/View/sharingGroups_analyst_data',
-            ],
+            ], $this->RailCard->rail($railCards, [
+                'sg-inventory', 'sg-reach', 'sg-blueprint',
+            ], 'general')),
         ],
     ],
 ]);

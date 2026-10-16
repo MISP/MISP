@@ -1671,7 +1671,9 @@ function constructAttributeRow(attribute, fromObject) {
         )
     })
     var $tags = $('<div/>')
-    if (attribute.AttributeTag !== undefined) {
+    if (attribute.AttributeTag !== undefined && window.TagChips) {
+        $tags.append(TagChips.collection(attribute.AttributeTag, {searchUrl: ''}))
+    } else if (attribute.AttributeTag !== undefined) {
         attribute.AttributeTag.forEach(function(attributeTag) {
             var tag = attributeTag.Tag
             var $tag = $('<div/>').append(
@@ -1685,7 +1687,20 @@ function constructAttributeRow(attribute, fromObject) {
     }
     $tr.append($('<td/>').append($tags))
     var $galaxies = $('<div/>')
-    if (attribute.Galaxy !== undefined) {
+    if (window.TagChips && attribute.Galaxy !== undefined) {
+        var clusters = []
+        attribute.Galaxy.forEach(function(galaxy) {
+            (galaxy.GalaxyCluster || []).forEach(function(cluster) {
+                clusters.push({
+                    value: cluster.value,
+                    galaxy: galaxy.name,
+                    iconClass: galaxy.icon ? getFontAwesomeNamespace(galaxy.icon) + ' fa-' + galaxy.icon : null,
+                    description: cluster.description
+                })
+            })
+        })
+        $galaxies.append(TagChips.clusters(clusters, {href: function() { return null }}))
+    } else if (attribute.Galaxy !== undefined) {
         attribute.Galaxy.forEach(function(galaxy) {
             var $galaxy = $('<div/>').append(
                 $('<span/>')
@@ -1796,6 +1811,9 @@ function getTagRepresentation(tagData) {
 }
 
 function constructTagHtml(tagName, tagColour, additionalCSS) {
+    if (window.TagChips) {
+        return $(TagChips.chip({name: tagName, colour: tagColour}, {searchUrl: ''}))
+    }
     additionalCSS = additionalCSS === undefined ? {} : additionalCSS
     var $tag = $('<span/>').text(tagName)
         .addClass('tag')
@@ -1809,6 +1827,16 @@ function constructTagHtml(tagName, tagColour, additionalCSS) {
 }
 
 function constructClusterTagHtml(tagData) {
+    if (window.TagChips) {
+        var cluster = tagData.GalaxyCluster
+        var icon = cluster.Galaxy ? cluster.Galaxy.icon : null
+        return $(TagChips.cluster({
+            value: cluster.value,
+            galaxy: cluster.Galaxy && cluster.Galaxy.name ? cluster.Galaxy.name : cluster.type,
+            iconClass: icon ? getFontAwesomeNamespace(icon) + ' fa-' + icon : null,
+            description: cluster.description
+        }, {href: function() { return null }}))
+    }
     var addBorder = false
     if (tagData.Tag.colour === undefined) {
         tagData.Tag.colour = '#ffffff'

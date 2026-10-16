@@ -53,11 +53,17 @@ class GalaxyClusterRelationsController extends AppController
         }
 
         $user = $this->Auth->user();
+        $sourceContain = ['Org', 'Orgc'];
+        $targetContain = [];
+        if (!$this->_isRest()) {
+            $sourceContain[] = 'Galaxy';
+            $targetContain[] = 'Galaxy';
+        }
         $this->CRUD->index([
             'conditions' => array(
                 'AND' => array($contextConditions, $searchConditions, $aclConditions)
             ),
-            'contain' => array('SharingGroup', 'SourceCluster' => ['Org', 'Orgc'], 'TargetCluster', 'GalaxyClusterRelationTag' => array('Tag')),
+            'contain' => array('SharingGroup', 'SourceCluster' => $sourceContain, 'TargetCluster' => $targetContain, 'GalaxyClusterRelationTag' => array('Tag')),
             // Post-fetch ACL scrub — the same pruning the legacy index applied.
             'afterFind' => function (array $data) use ($user) {
                 return $this->GalaxyClusterRelation->removeNonAccessibleTargetCluster($user, $data);
@@ -98,8 +104,22 @@ class GalaxyClusterRelationsController extends AppController
         }
     }
 
-    public function add()
+    /**
+     * @param mixed $sourceId ID or UUID of the cluster the relationship starts from, fixing the source
+     */
+    public function add($sourceId = null)
     {
+        $sourceCluster = null;
+        if ($sourceId !== null) {
+            $sourceCluster = $this->GalaxyClusterRelation->SourceCluster->fetchIfAuthorized($this->Auth->user(), $sourceId, array('edit', 'publish'), true, false);
+            $sourceCluster = $sourceCluster['GalaxyCluster'];
+            $sourceCluster['Galaxy'] = $this->GalaxyClusterRelation->SourceCluster->Galaxy->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Galaxy.id' => $sourceCluster['galaxy_id']),
+                'fields' => array('Galaxy.id', 'Galaxy.name', 'Galaxy.icon'),
+            ))['Galaxy'] ?? [];
+            $this->set('sourceCluster', $sourceCluster);
+        }
         $this->loadModel('MispAttribute');
         $distributionLevels = $this->MispAttribute->distributionLevels;
         unset($distributionLevels[5]);
@@ -115,6 +135,9 @@ class GalaxyClusterRelationsController extends AppController
             $errors = array();
             if (empty($this->request->data['GalaxyClusterRelation'])) {
                 $this->request->data = array('GalaxyClusterRelation' => $this->request->data);
+            }
+            if ($sourceCluster !== null) {
+                $this->request->data['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $sourceCluster['uuid'];
             }
             $relation = $this->request->data;
             if ($relation['GalaxyClusterRelation']['distribution'] != 4) {
@@ -134,13 +157,7 @@ class GalaxyClusterRelationsController extends AppController
                 $errors[] = __('Galaxy Cluster Relation could not be saved: The user has to have access to the sharing group in order to be able to use it.');
             }
 
-            if (!empty($relation['GalaxyClusterRelation']['tags'])) {
-                $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
-                $tags = array_map('trim', $tags);
-                $relation['GalaxyClusterRelation' ]['tags'] = $tags;
-            } else {
-                $relation['GalaxyClusterRelation' ]['tags'] = array();
-            }
+            $relation['GalaxyClusterRelation']['tags'] = $this->__postedTagNames($relation['GalaxyClusterRelation']['tags'] ?? '');
 
             if (empty($errors)) {
                 $errors = $this->GalaxyClusterRelation->saveRelation($this->Auth->user(), $clusterSource['GalaxyCluster'], $relation);
@@ -171,13 +188,16 @@ class GalaxyClusterRelationsController extends AppController
             } else {
                 if (empty($errors)) {
                     $this->Flash->success($message);
-                    $this->redirect(array('action' => 'index'));
+                    return $this->__redirectAfterSave();
                 } else {
                     $message .= __(' Reason: %s', json_encode(array_merge($errors, $this->GalaxyClusterRelation->validationErrors)));
                     $this->Flash->error($message);
                 }
             }
+        } elseif ($sourceCluster !== null) {
+            $this->request->data['GalaxyClusterRelation']['galaxy_cluster_uuid'] = $sourceCluster['uuid'];
         }
+        $this->__setTagPicker(isset($relation) ? $relation['GalaxyClusterRelation']['tags'] : []);
         $this->set('existingRelations', $this->GalaxyClusterRelation->getExistingRelationships());
         $this->set('distributionLevels', $distributionLevels);
         $this->set('initialDistribution', $initialDistribution);
@@ -243,13 +263,7 @@ class GalaxyClusterRelationsController extends AppController
                 $relation['GalaxyClusterRelation']['galaxy_cluster_id'] = $clusterSource['GalaxyCluster']['id'];
             }
 
-            if (!empty($relation['GalaxyClusterRelation']['tags'])) {
-                $tags = explode(',', $relation['GalaxyClusterRelation']['tags']);
-                $tags = array_map('trim', $tags);
-                $relation['GalaxyClusterRelation' ]['tags'] = $tags;
-            } else {
-                $relation['GalaxyClusterRelation' ]['tags'] = array();
-            }
+            $relation['GalaxyClusterRelation']['tags'] = $this->__postedTagNames($relation['GalaxyClusterRelation']['tags'] ?? '');
 
             if (empty($errors)) {
                 $errors = $this->GalaxyClusterRelation->editRelation($this->Auth->user(), $relation);
@@ -274,7 +288,7 @@ class GalaxyClusterRelationsController extends AppController
             } else {
                 if (empty($errors)) {
                     $this->Flash->success($message);
-                    $this->redirect(array('action' => 'index'));
+                    return $this->__redirectAfterSave();
                 } else {
                     $message .= __(' Reason: %s', json_encode(array_merge($errors, $this->GalaxyClusterRelation->validationErrors), true));
                     $this->Flash->error($message);
@@ -282,6 +296,11 @@ class GalaxyClusterRelationsController extends AppController
             }
         }
         $this->request->data = $existingRelation;
+        $targetCluster = $this->GalaxyClusterRelation->SourceCluster->fetchIfAuthorized($this->Auth->user(), $existingRelation['GalaxyClusterRelation']['referenced_galaxy_cluster_uuid'], 'view', false, false);
+        if (isset($targetCluster['GalaxyCluster'])) {
+            $this->set('targetCluster', $targetCluster['GalaxyCluster']);
+        }
+        $this->__setTagPicker(Hash::extract($existingRelation, 'GalaxyClusterRelationTag.{n}.Tag.name'));
         $this->set('existingRelations', $this->GalaxyClusterRelation->getExistingRelationships());
         $this->set('distributionLevels', $distributionLevels);
         $this->set('initialDistribution', $initialDistribution);
@@ -291,6 +310,73 @@ class GalaxyClusterRelationsController extends AppController
             $this->layout = false;
         }
         $this->render('add');
+    }
+
+    /**
+     * Tag names from a posted `tags`: a comma separated string, or a list of
+     * tag ids (the tag picker) and names.
+     *
+     * @param mixed $posted
+     * @return string[]
+     */
+    private function __postedTagNames($posted)
+    {
+        if (!is_array($posted)) {
+            return array_values(array_filter(array_map('trim', explode(',', (string)$posted)), 'strlen'));
+        }
+        $posted = array_filter(array_map('trim', $posted), 'strlen');
+        $ids = array_filter($posted, 'ctype_digit');
+        $names = array_values(array_diff($posted, $ids));
+        if (!empty($ids)) {
+            $this->loadModel('Tag');
+            $names = array_merge($names, $this->Tag->find('column', [
+                'conditions' => ['AND' => [$this->Tag->createConditions($this->Auth->user()), ['Tag.id' => array_values($ids)]]],
+                'fields' => ['Tag.name'],
+            ]));
+        }
+        return array_values(array_unique($names));
+    }
+
+    /**
+     * @param string[] $selectedNames tags shown as already picked
+     */
+    private function __setTagPicker(array $selectedNames)
+    {
+        if ($this->theme !== 'Overmind') {
+            return;
+        }
+        $this->loadModel('Tag');
+        $user = $this->Auth->user();
+        $selected = [];
+        if (!empty($selectedNames)) {
+            $rows = $this->Tag->find('all', [
+                'conditions' => ['AND' => [$this->Tag->createConditions($user), ['Tag.name' => $selectedNames]]],
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour'],
+                'recursive' => -1,
+            ]);
+            foreach ($rows as $row) {
+                $selected[] = ['id' => (int)$row['Tag']['id'], 'name' => $row['Tag']['name'], 'colour' => $row['Tag']['colour']];
+            }
+        }
+        $this->set('pickerAllTags', $this->Tag->getAllTagsForPicker($user));
+        $this->set('pickerCustomTags', $this->Tag->getCustomTagsForPicker($user));
+        $this->set('currentTags', $selected);
+    }
+
+    /**
+     * Back to the cluster page the form was opened from, else the index.
+     */
+    private function __redirectAfterSave()
+    {
+        $path = (string)parse_url((string)env('HTTP_REFERER'), PHP_URL_PATH);
+        $base = (string)$this->request->base;
+        if ($base !== '' && strpos($path, $base . '/') === 0) {
+            $path = substr($path, strlen($base));
+        }
+        if (preg_match('#^/galaxy_?clusters/view/([\w-]+)$#i', $path, $matches)) {
+            return $this->redirect(array('controller' => 'galaxy_clusters', 'action' => 'view', $matches[1]));
+        }
+        return $this->redirect(array('action' => 'index'));
     }
 
     public function delete($id)

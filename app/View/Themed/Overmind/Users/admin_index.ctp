@@ -190,6 +190,8 @@ if (!empty($isSiteAdmin)) {
         'name' => 'org',
         'label' => __('Organisation'),
         'options' => $orgOptions ?? [],
+        'separator' => '|',
+        'exclude' => true,
     ];
 }
 
@@ -198,6 +200,8 @@ $moreFilters[] = [
     'name' => 'role',
     'label' => __('Role'),
     'options' => $roleOptions ?? [],
+    'separator' => '|',
+    'exclude' => true,
 ];
 
 

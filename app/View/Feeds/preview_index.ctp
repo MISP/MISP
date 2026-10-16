@@ -44,7 +44,17 @@
         <tr>
             <td class="short dblclickElement"><?php echo h($event['Orgc']['name']); ?></td>
             <td style="max-width: 200px;width:10px;">
-                <?php foreach ($event['Tag'] as $tag): ?>
+                <?php
+                $tags = $event['Tag'];
+                if (!empty($labelPlan)) {
+                    App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
+                    foreach ($tags as $at => $tag) {
+                        $tags[$at]['key'] = ValueLabelPriority::namespaceOf($tag['name']);
+                    }
+                    $tags = ValueLabelPriority::labels($tags, $labelPlan, ValueLabelPriority::TAXONOMIES);
+                }
+                ?>
+                <?php foreach ($tags as $tag): ?>
                     <span class=tag style="margin-bottom:3px;background-color:<?php echo isset($tag['colour']) ? h($tag['colour']) : 'red';?>;color:<?php echo $this->TextColour->getTextColour(isset($tag['colour']) ? h($tag['colour']) : 'red');?>;" title="<?php echo h($tag['name']); ?>"><?php echo h($tag['name']); ?></span>
                 <?php endforeach; ?>
             </td>

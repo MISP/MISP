@@ -56,6 +56,7 @@ if (!class_exists('Configure', false)) {
 require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
 require_once __DIR__ . '/../Model/Relationship.php';
+require_once __DIR__ . '/../Model/Graph.php';
 
 class SyncWithheldNoteProbe extends AnalystData
 {
@@ -69,6 +70,15 @@ class SyncWithheldNoteProbe extends AnalystData
 class SyncWithheldRelationshipProbe extends Relationship
 {
     public $alias = 'Relationship';
+
+    public function __construct()
+    {
+    }
+}
+
+class SyncWithheldGraphProbe extends Graph
+{
+    public $alias = 'Graph';
 
     public function __construct()
     {
@@ -129,5 +139,12 @@ class SyncAnalystDataWithheldTest extends TestCase
 
         $stringConditions = (new SyncWithheldNoteProbe())->beforeFind(['conditions' => 'Note.id > 5']);
         $this->assertSame(['Note.object_sha256' => null, 'Note.id > 5'], $stringConditions['conditions']);
+    }
+
+    public function testGraphQueriesUnchangedForAMispOlderThan30()
+    {
+        $this->requester('2.5.50');
+        $query = ['conditions' => ['Graph.object_uuid' => [self::EVENT]], 'recursive' => -1];
+        $this->assertSame($query, (new SyncWithheldGraphProbe())->beforeFind($query));
     }
 }

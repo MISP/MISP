@@ -2,7 +2,6 @@
 $sharingGroup = $sg['SharingGroup'] ?? [];
 $creator = $sg['Organisation'] ?? [];
 $syncOrg = is_array($sharingGroup['sync_org'] ?? null) ? $sharingGroup['sync_org'] : [];
-$eventCount = (int)($sharingGroup['event_count'] ?? 0);
 
 $labelClass = 'text-body-secondary text-uppercase fw-bold';
 $labelStyle = 'font-size:.7rem;';
@@ -54,7 +53,7 @@ $orgRow = function (array $organisation, $role) use ($baseurl, $tileStyle) {
 
         <div>
             <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>">
-                <i class="misp-icon misp-icon-sharing-group misp-simple text-primary me-1"></i><?= __('Sharing group') ?>
+                <i class="misp-icon misp-icon-sharing-group misp-simple text-accent me-1"></i><?= __('Sharing group') ?>
             </div>
             <?php if (trim($sharingGroup['description'] ?? '') !== ''): ?>
                 <div class="border-start border-3 border-primary bg-primary-subtle bg-opacity-25 rounded-end px-3 py-2 text-break">
@@ -93,21 +92,10 @@ $orgRow = function (array $organisation, $role) use ($baseurl, $tileStyle) {
         </div>
 
         <div>
-            <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Provenance & usage') ?></div>
+            <div class="<?= $labelClass ?> mb-1" style="<?= $labelStyle ?>"><?= __('Provenance') ?></div>
             <div class="d-flex flex-wrap row-gap-2 column-gap-3">
                 <?= $orgRow($creator, __('Creator')) ?>
                 <?= $orgRow($syncOrg, __('Synchronised by')) ?>
-                <<?= $eventCount > 0 ? 'a href="' . h($baseurl . '/events/index/searchsharinggroup:' . (int)$sharingGroup['id']) . '" title="' . h(__('Show them')) . '"' : 'div' ?>
-                    class="d-flex align-items-center gap-2 min-w-0 text-decoration-none link-body-emphasis<?= $eventCount > 0 ? '' : ' opacity-75' ?>" style="flex:1 1 13rem;">
-                    <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0 rounded-3<?= $eventCount > 0 ? '' : ' bg-body-secondary text-body-secondary' ?>"
-                          style="<?= $tileStyle ?><?= $eventCount > 0 ? 'background:rgba(var(--bs-event-rgb),.12);color:rgb(var(--bs-event-rgb));' : '' ?>">
-                        <i class="misp-icon misp-icon-event misp-simple"></i>
-                    </span>
-                    <div class="min-w-0">
-                        <div class="fw-semibold lh-sm"><?= h(__n('%s event', '%s events', $eventCount, number_format($eventCount, 0, ',', ' '))) ?></div>
-                        <div class="small text-body-secondary text-truncate"><?= __('Shared with this group') ?></div>
-                    </div>
-                </<?= $eventCount > 0 ? 'a' : 'div' ?>>
             </div>
         </div>
 

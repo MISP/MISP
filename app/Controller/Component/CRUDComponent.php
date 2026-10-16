@@ -27,19 +27,11 @@ class CRUDComponent extends Component
             $options['filters'][] = $options[$quickFilterParameter];
         }
         $this->Controller->{$this->Controller->modelClass}->includeAnalystData = true;
-        $foundQuickFilter = false;
-        if (!empty($options['filters'])) {
-            foreach ($options['filters'] as $filter) {
-                if ($filter === $quickFilterParameter) {
-                    $foundQuickFilter = true;
-                    continue;
-                }
-            }
-            if (!$foundQuickFilter && !empty($options['quickFilters'])) {
-                $options['filters'][] = $quickFilterParameter;
-            }
+        if (!empty($options['quickFilters']) && !in_array($quickFilterParameter, $options['filters'] ?? [], true)) {
+            $options['filters'][] = $quickFilterParameter;
         }
-        $params = $this->Controller->IndexFilter->harvestParameters(empty($options['filters']) ? [] : $options['filters']);
+        // harvestParameters() answers false to an empty POST body: for an index that is no filter
+        $params = $this->Controller->IndexFilter->harvestParameters(empty($options['filters']) ? [] : $options['filters']) ?: [];
         $query = [];
         $query = $this->setFilters($params, $query, $quickFilterParameter);
         $query = $this->setQuickFilters($params, $query, empty($options['quickFilters']) ? [] : $options['quickFilters'], $quickFilterParameter);
@@ -327,6 +319,7 @@ class CRUDComponent extends Component
                 $validationError = $e->getMessage();
                 if ($this->Controller->IndexFilter->isRest()) {
                     $this->Controller->restResponsePayload = $this->Controller->RestResponse->saveFailResponse($modelName, 'delete', $id, $validationError);
+                    return;
                 }
             }
         }

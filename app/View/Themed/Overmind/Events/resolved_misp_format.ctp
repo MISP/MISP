@@ -118,15 +118,11 @@ $tagChips = function ($tags) {
     if (empty($tags)) {
         return '';
     }
-    $out = '<span class="d-inline-flex flex-wrap gap-1 ms-1 align-middle">';
-    foreach ($tags as $tag) {
-        $colour = !empty($tag['colour']) ? $tag['colour'] : '#0088cc';
-        $text = explode('=', $tag['name']);
-        $text = trim(end($text), '"');
-        $out .= '<span class="badge" style="background-color:' . h($colour) . ';font-size:.65rem;" title="' . h($tag['name']) . '">' . h($text) . '</span>';
-    }
-    $out .= '</span>';
-    return $out;
+    return ' ' . $this->TagChip->collection($tags, [
+        'searchUrl' => '',
+        'display' => 'leaf',
+        'class' => 'align-middle',
+    ]);
 };
 
 $valueDisplay = function ($attribute) {
@@ -503,8 +499,11 @@ $accent = $isAi ? 'primary' : 'enrichment';
     // Rebuild the coloured index badge
     function distBadgeHtml(level, full) {
         var m = distMeta[level] || distFallback;
+        var tone = function (role, value) {
+            return m.token ? 'var(--misp-' + m.token + '-' + role + ', ' + value + ')' : value;
+        };
         return '<span class="badge d-inline-flex align-items-center px-2 py-1" '
-             + 'style="background-color:' + m.bg + ';color:' + m.color + ';border:1px solid ' + m.color + '20;font-weight:500;" '
+             + 'style="background-color:' + tone('bg', m.bg) + ';color:' + tone('fg', m.color) + ';border:1px solid ' + tone('border', m.color + '20') + ';font-weight:500;" '
              + 'title="' + m.label + '"><i class="' + m.icon + '"></i>'
              + (full ? '<span class="ms-1">' + m.label + '</span>' : '') + '</span>';
     }

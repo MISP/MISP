@@ -21,7 +21,7 @@ class JSONConverterTool
 
     public static function convertObject($object, $isSiteAdmin = false, $raw = false)
     {
-        $toRearrange = array('SharingGroup', 'Attribute', 'ShadowAttribute', 'Event', 'CryptographicKey', 'Note', 'Opinion', 'Relationship');
+        $toRearrange = array('SharingGroup', 'Attribute', 'ShadowAttribute', 'Event', 'CryptographicKey', 'Note', 'Opinion', 'Relationship', 'RelationshipInbound');
         foreach ($toRearrange as $element) {
             if (isset($object[$element])) {
                 $object['Object'][$element] = $object[$element];
@@ -40,7 +40,7 @@ class JSONConverterTool
 
     public static function convert($event, $isSiteAdmin=false, $raw = false)
     {
-        $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object', 'EventReport', 'CryptographicKey', 'Note', 'Opinion', 'Relationship');
+        $toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object', 'EventReport', 'CryptographicKey', 'Note', 'Opinion', 'Relationship', 'RelationshipInbound');
         foreach ($toRearrange as $object) {
             if (isset($event[$object])) {
                 $event['Event'][$object] = $event[$object];
@@ -77,6 +77,9 @@ class JSONConverterTool
         }
         if (isset($event['Event']['Relationship'])) {
             $event['Event']['Relationship'] = self::__cleanAnalystData($event['Event']['Relationship']);
+        }
+        if (isset($event['Event']['RelationshipInbound'])) {
+            $event['Event']['RelationshipInbound'] = self::__cleanAnalystData($event['Event']['RelationshipInbound']);
         }
 
         // cleanup the array from things we do not want to expose

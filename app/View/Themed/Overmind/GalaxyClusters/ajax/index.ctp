@@ -20,7 +20,26 @@ if (!empty($context) && $context !== 'all') {
 if (!empty($searchall)) {
     $paginatorUrl['searchall'] = $searchall;
 }
+$paginatorUrl += $metaParams ?? [];
 $this->Paginator->options(['url' => $paginatorUrl]);
+
+$clustersUrl = $baseurl . '/galaxy_clusters/index/' . h($galaxy_id);
+$myClustersUrl = $clustersUrl . '/context:' . ($context === 'orgc' ? 'all' : 'orgc');
+foreach (array_diff_key($paginatorUrl, [0 => true, 'context' => true]) as $name => $value) {
+    $myClustersUrl .= '/' . $name . ':' . rawurlencode($value);
+}
+
+$metaPickers = [];
+foreach (($metaFacets ?? []) as $key => $facet) {
+    $metaPickers[] = [
+        'type' => 'dropdown',
+        'label' => $facet['label'],
+        'name' => GalaxyElementFacets::PARAM_PREFIX . $key,
+        'options' => array_combine($facet['values'], $facet['values']),
+        'separator' => GalaxyElementFacets::SEPARATOR,
+        'exclude' => true,
+    ];
+}
 
 $showOwnerOrg = $isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'));
 $showCreatorOrg = $isSiteAdmin || Configure::read('MISP.showorg') || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'));
@@ -194,8 +213,6 @@ $fields = [
 ];
 ?>
 
-<input type="hidden" id="clusterGalaxyId" value="<?= h($galaxy_id) ?>">
-
 <?php
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
@@ -203,6 +220,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'data' => $list,
             'cards_per_row' => 4,
             'filter_bar' => [
+                'base_url' => $clustersUrl,
                 'pull' => 'right',
                 'children' => [
                     [
@@ -217,7 +235,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                         'label' => __('My Clusters'),
                         'icon' => 'fas fa-user',
                         'class' => 'btn ' . ($context === 'orgc' ? 'btn-primary' : 'btn-outline-primary'),
-                        'url' => $baseurl . '/galaxy_clusters/index/' . $galaxy_id . '/context:' . ($context === 'orgc' ? 'all' : 'orgc'),
+                        'url' => $myClustersUrl,
                     ],
                     [
                         'type' => 'button',
@@ -229,7 +247,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     [
                         'type' => 'more_filters',
                         'label' => __('More filters'),
-                        'children' => [
+                        'children' => array_merge([
                             [
                                 'type' => 'dropdown',
                                 'label' => __('Context'),
@@ -244,7 +262,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                                     'deleted' => __('Deleted'),
                                 ],
                             ],
-                        ],
+                        ], $metaPickers),
                     ],
                 ],
                 // Mass delete (soft/hard) via deleteSelection. delete_url is absolute because item_url carries the galaxy id.
@@ -259,106 +277,3 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'item_url' => '/galaxy_clusters/index/' . $galaxy_id,
 ]);
 ?>
-
-<script>
-/*
- * In-tab reload: this index lives inside the Galaxy view "Clusters" tab, so
- * every filter/pagination/sort interaction reloads THIS fragment in place
- * instead of navigating the whole page away to /galaxy_clusters/index.
- */
-(function () {
-    function clustersContainer() {
-        return document.querySelector('.ajax-tab-content[data-url*="galaxy_clusters/index"]');
-    }
-
-    function loadClusters(url) {
-        var c = clustersContainer();
-        if (!c) return;
-        c.style.opacity = '0.5';
-        c.style.pointerEvents = 'none';
-        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function (r) { return r.text(); })
-            .then(function (html) {
-                c.innerHTML = html;
-                c.style.opacity = '';
-                c.style.pointerEvents = '';
-                c.querySelectorAll('script').forEach(function (o) {
-                    var s = document.createElement('script');
-                    if (o.src) { s.src = o.src; } else { s.textContent = o.textContent; }
-                    document.head.appendChild(s);
-                    document.head.removeChild(s);
-                });
-                if (typeof initTopbarFilterSelects === 'function') {
-                    initTopbarFilterSelects(c);
-                }
-                registerFilterOverride(c);
-            })
-            .catch(function () {
-                c.style.opacity = '';
-                c.style.pointerEvents = '';
-            });
-    }
-
-    /*
-     * This tab's URL shape: /galaxy_clusters/index/<id> plus named segments,
-     * not the /galaxy_clusters/index the shared bar would build. The values
-     * are read off the bar's own controls — the draft in filter_bar.ctp owns
-     * them, and keeping a private copy is how a tab drifts out of sync with
-     * what is on screen.
-     */
-    function buildClusterUrl() {
-        var c = clustersContainer();
-        if (!c) return '#';
-        var gidEl = c.querySelector('#clusterGalaxyId');
-        var url = baseurl + '/galaxy_clusters/index/' + (gidEl ? gidEl.value : '');
-
-        var sel = c.querySelector('select.filter-draft-input[name="context"]');
-        var ctx = sel ? (sel.value || '').trim() : '';
-        if (ctx && ctx !== 'all') url += '/context:' + encodeURIComponent(ctx);
-
-        var field = c.querySelector('#filterField');
-        var term = field ? field.value.trim() : '';
-        if (term) url += '/searchall:' + encodeURIComponent(term);
-        return url;
-    }
-
-    /*
-     * All the bar has to be told is "the URLs are mine". The draft then owns
-     * the search box, the Context control, Apply and Clear all — where this
-     * tab used to bind capture-phase listeners that beat the bar's own and
-     * ran a query on every change.
-     */
-    function registerFilterOverride(container) {
-        if (!container) return;
-        container.__indexFilterOverride = {
-            buildUrl: buildClusterUrl,
-            reload: function (url) { loadClusters(url); return true; },
-        };
-    }
-
-    // Wire the persistent container ONCE
-    var c = clustersContainer();
-    if (c && !c.dataset.clustersWired) {
-        c.dataset.clustersWired = '1';
-
-        /*
-         * "My Clusters" is a plain link, so it still needs intercepting to
-         * stay in the tab. Pagination and sort links do NOT: the draft binds
-         * those and calls preventDefault, which is the signal to stand back —
-         * without this guard both would fire and the fragment loaded twice.
-         */
-        c.addEventListener('click', function (e) {
-            if (e.defaultPrevented) return;
-            var a = e.target.closest('a[href]');
-            if (!a) return;
-            var href = a.getAttribute('href');
-            if (href && href.indexOf('/galaxy_clusters/index') !== -1) {
-                e.preventDefault();
-                loadClusters(href);
-            }
-        });
-    }
-
-    registerFilterOverride(c);
-})();
-</script>

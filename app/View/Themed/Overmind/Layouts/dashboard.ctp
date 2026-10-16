@@ -30,21 +30,34 @@
  * midnight overlay) is loaded after mainOvermind so its tokens
  * and selectors win where they overlap.
  */
+App::uses('MispTheme', 'Lib/MispTheme');
+$bootstrapTheme = $bootstrapTheme ?? MispTheme::bootstrapTheme($me ?? null);
+// The global dark mode drives the dashboard's midnight overlay, so its
+// charts and globe go dark with the rest of the page.
+$hasDarkToggle = $bootstrapTheme['mode'] === 'both';
+$initialMode = $hasDarkToggle ? 'light' : $bootstrapTheme['mode'];
+$useRail = $bootstrapTheme['navbar'] === 'rail';
 ?>
 <!DOCTYPE html>
-<html lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
+<html lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>"<?= $useRail ? ' class="misp-railed"' : '' ?> data-misp-mode="<?= h($initialMode) ?>" data-misp-theme="<?= h($bootstrapTheme['name']) ?>"<?= $initialMode === 'dark' ? ' data-theme="midnight"' : '' ?>>
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="misp-tag-palettes" content="<?= h(implode(' ', $this->TagChip->semanticNamespaces())) ?>">
     <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
     <title><?= h($title_for_layout) . ' - ' . h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
-    <?php echo $this->element('dashboard/theme_boot'); /* DD-51 no-FOUC light/dark boot */ ?>
+    <?php if ($hasDarkToggle): ?>
+    <script>(function(){if(localStorage.getItem('darkMode')==='true'){var r=document.documentElement;r.setAttribute('data-bs-theme','dark');r.setAttribute('data-misp-mode','dark');r.setAttribute('data-theme','midnight');}})()</script>
+    <?php endif; ?>
     <?php
         $css = [
-            ['bootstrap5-custom.min', ['preload' => true]],
+            [$bootstrapTheme['css'], ['preload' => true]],
             ['tom-select.bootstrap5.min', ['preload' => true]],
             ['mainOvermind', ['preload' => true]],
+            ['tag-chips', ['preload' => true]],
+            // The rail's styles come with the theme.
+            $useRail ? null : ['overmind-navbar', ['preload' => true]],
             ['fontawesome7.min', ['preload' => true]],
             ['dashboard/dashboard.default', ['preload' => true]],
             ['dashboard/dashboard.midnight'],
@@ -62,11 +75,13 @@
             ['dashboard/overmind', ['preload' => true]],
             ['print', ['media' => 'print']],
         ];
+        $css = array_values(array_filter($css));
         if (Configure::read('MISP.custom_css')) {
             $css[] = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
         }
         $js = [
             ['tom-select.complete.min', ['preload' => true]],
+            ['tag-chips', ['preload' => true]],
         ];
         if (!empty($additionalCss)) {
             $css = array_merge($css, $additionalCss);
@@ -101,18 +116,23 @@
                     'themes' => $themes,
                     'theme' => $theme,
                     'themesEnabled' => $themesEnabled,
+                    'intelGraph' => $intelGraph ?? null,
+                    'darkModeToggle' => $hasDarkToggle,
+                    'bootstrapTheme' => $bootstrapTheme['name'],
+                    'bootstrapThemeChosen' => !empty($bootstrapTheme['userChoice']),
                 ];
                 $menus = $this->Navbar->build($context);
-                echo $this->element('navbar', [
+                echo $this->element($useRail ? 'navbar_rail' : 'navbar', [
                     'menus' => $menus,
                     'baseurl' => $baseurl,
                     'me' => $me ?? null,
+                    'builtinPalette' => $bootstrapTheme['navbar'] === 'builtin',
                 ]);
             ?>
         </header>
         <main role="main" class="content" style="padding-top:0;">
             <div id="flashOverlay">
-                <div id="flashContainer">
+                <div id="flashContainer" class="ov-toast-stack">
                     <?= $this->Flash->render() ?>
                 </div>
             </div>
@@ -135,8 +155,12 @@
         'js' => [
             'bootstrap.bundle.min',
             'mispOvermind',
+            $useRail ? 'overmind-rail' : 'overmind-navbar',
         ],
     ]);
+    if (!empty($intelGraph)) {
+        echo $this->element('intel_graph_boot');
+    }
     ?>
 
     <script>

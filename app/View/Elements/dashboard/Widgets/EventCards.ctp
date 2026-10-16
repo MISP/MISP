@@ -199,17 +199,22 @@ foreach ($rows as $ev) {
         }
     }
     $chips = [];
-    foreach (array_slice($validTags, 0, $tagCap) as $tag) {
-        $name = (string)$tag['name'];
-        $colour = isset($tag['colour']) ? (string)$tag['colour'] : '';
-        $style = '';
-        if ($colour !== '' && preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $colour)) {
-            $style = sprintf(' style="background:%s;color:%s"',
-                h($colour), _idxContrastColour($colour));
+    $shownTags = array_slice($validTags, 0, $tagCap);
+    if ($this->theme === 'Overmind') {
+        $chips[] = $this->TagChip->collection($shownTags, ['searchUrl' => '']);
+    } else {
+        foreach ($shownTags as $tag) {
+            $name = (string)$tag['name'];
+            $colour = isset($tag['colour']) ? (string)$tag['colour'] : '';
+            $style = '';
+            if ($colour !== '' && preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $colour)) {
+                $style = sprintf(' style="background:%s;color:%s"',
+                    h($colour), _idxContrastColour($colour));
+            }
+            $chips[] = sprintf('<span class="misp-eventcards-tag"%s>%s</span>', $style, h($name));
         }
-        $chips[] = sprintf('<span class="misp-eventcards-tag"%s>%s</span>', $style, h($name));
     }
-    $overflow = count($validTags) - count($chips);
+    $overflow = count($validTags) - count($shownTags);
     if ($overflow > 0) {
         $chips[] = sprintf('<span class="misp-eventcards-more">%s</span>',
             h(sprintf(__('+%d more'), $overflow)));

@@ -82,7 +82,7 @@ address = hashlib.sha256(attribute['value'].encode('utf-8')).hexdigest()
 | Call | Notes |
 |---|---|
 | `POST /collectionElements/addElementToCollection/AttributeValue/<hex>` `{"collection_id"}` | Attach. A second attach of the same value answers that it is already in the collection |
-| `POST /collectionElements/add/<collection_id>` `{"element_type": "AttributeValue", "element_sha256"}` | The same, by body |
+| `POST /collectionElements/add/<collection_id>` `{"element_type": "AttributeValue", "element_sha256"}` | The same, by body. `value` (the text) may stand in for `element_sha256`: the server hashes it and keeps only the hash |
 | `Collection.CollectionElement[]` on `/collections/add` and `/collections/edit` | Nested elements with `element_sha256` |
 | `GET /collections/getCollectionsForElement/AttributeValue/<hex>`, `POST /collections/getCollectionsForElements/AttributeValue` `{"uuids": [<hex>, …]}` | The collections holding a value, under each collection's own ACL |
 
@@ -92,11 +92,14 @@ address = hashlib.sha256(attribute['value'].encode('utf-8')).hexdigest()
   at least one attribute holding it is visible to that user
   (`AnalystData::visibleValuesBySha256()`). Site admins need a holder too: a
   value held only by deleted attributes, or by none, is unresolved for everyone.
-- **Missing, unheld and invisible are one answer.** Attaching a value to a
-  collection, and resolving the far end of a relationship, cannot tell them
-  apart, so a guessed hash reveals nothing.
-- **Notes, opinions and relationships accept any well-formed hash**, as they
-  accept any uuid: annotating a value the instance does not hold yet is allowed.
+- **Missing, unheld and invisible are one answer.** Resolving a collection
+  element or the far end of a relationship cannot tell them apart, so a guessed
+  hash reveals nothing.
+- **Notes, opinions, relationships and collection elements accept any
+  well-formed hash**, as they accept any uuid: annotating or collecting a value
+  the instance does not hold yet is allowed. A collection element shows the
+  value's text to readers who can see the value, and its SHA-256 to everyone
+  else.
 - **The analyst data's own ACL decides who sees it**, as for uuid targets:
   `viewForObject` and the index list rows by their distribution and sharing
   group, whatever the value's visibility. A relationship's resolved end

@@ -43,15 +43,23 @@ $fields = [
         'sort' => 'EventReport.name',
         'data_path' => 'EventReport.name',
         'element' => 'report_value',
+        'reader' => !empty($eventView),
         'card_section' => 'title',
         'display_in' => ['table', 'card']
+    ],
+    [
+        'name' => __('Preview'),
+        'element' => 'report_preview',
+        'card_section' => 'body',
+        'display_in' => ['card'],
+        'requirement' => !empty($eventView),
     ],
     [
         'name' => __('Event'),
         'sort' => 'Event.id',
         'data_path' => 'Event.id, Event.info',
         'element' => 'event',
-        'url' => $baseurl . '/events/view2/%event_id%',
+        'url' => $baseurl . '/events/view/%event_id%',
         'card_section' => 'links',
         'display_in' => ['table', 'card']
     ],
@@ -90,9 +98,16 @@ $fields = [
         'display_in' => ['table', 'card'],
         'actions' => [
             [
+                'type' => 'js',
+                'label' => __('Read'),
+                'icon' => 'book-open',
+                'onclick' => 'MispReportReader.open(%id%)',
+                'requirement' => !empty($eventView),
+            ],
+            [
                 'type' => 'navigate',
-                'label' => __('View'),
-                'icon' => 'eye',
+                'label' => empty($eventView) ? __('View') : __('Open report page'),
+                'icon' => empty($eventView) ? 'eye' : 'arrow-up-right-from-square',
                 'url' => $baseurl . '/event_reports/view/%id%',
             ],
             [
@@ -126,7 +141,7 @@ $fields = [
             [
                 'type' => 'modal',
                 'label' => __('Add note'),
-                'icon' => 'text-primary misp-icon misp-icon-analyst-note misp-simple',
+                'icon' => 'text-accent misp-icon misp-icon-analyst-note misp-simple',
                 'url' => $baseurl . '/analystData/add/Note/%uuid%/EventReport',
                 'url_params_data_paths' => ['uuid' => 'EventReport.uuid'],
                 'requirement' => !empty($me['Role']['perm_analyst_data'])
@@ -186,12 +201,16 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
             'filter_bar' => [
                 'pull' => 'right',
+                // The event's Reports tab reloads itself and searches with `searchFor:`.
+                'base_url' => empty($eventView)
+                    ? null
+                    : $baseurl . '/events/viewEventReports/' . $eventId . ($extensionSuffix ?? ''),
                 'children' => [
                     [
                         'type' => 'search',
                         'button' => 'Search',
                         'placeholder' => 'Search by name or by content',
-                        'name'        => 'value',
+                        'name'        => empty($eventView) ? 'value' : 'searchFor',
                         'mode'        => 'legacy',
                     ],
                     [
@@ -220,6 +239,14 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     $origin['palette']['sectionBg'],
                     $origin['palette']['badgeBorder']
                 );
+            },
+            'row_marker_callable' => function ($row) use ($inExtensionView) {
+                if (!$inExtensionView) {
+                    return '';
+                }
+                return $this->element('Events/View/extension_band', [
+                    'event_id' => $row['EventReport']['event_id'] ?? 0,
+                ]);
             },
             'row_dblclick_url' => $baseurl . '/event_reports/view/%id%',
         ]

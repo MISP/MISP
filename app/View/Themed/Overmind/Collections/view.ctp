@@ -1,5 +1,6 @@
 <?php
 $collection = $data['Collection'];
+$railCards = $railCards ?? [];
 
 App::uses('CollectionType', 'Tools');
 
@@ -57,9 +58,13 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
                 'Collections/View/collection_general',
                 'Collections/View/collection_elements_card',
             ],
-            'right' => [
+            'right' => array_merge([
                 'Collections/View/collection_actions',
-            ]
+                'Collections/View/collection_analyst_data',
+                'Collections/View/collection_graphs',
+            ], $this->RailCard->rail($railCards, [
+                'collection-inventory', 'collection-sources',
+            ], 'general')),
         ],
         [
             'id' => 'elements',
@@ -68,6 +73,7 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             'left' => [
                 'Collections/View/collection_elements',
             ],
+            'right' => $this->RailCard->rail($railCards, ['collection-inventory'], 'elements'),
         ]
     ]
 ]);

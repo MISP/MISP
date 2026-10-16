@@ -35,7 +35,7 @@ $isCard = isset($viewMode) && $viewMode === 'card';
             Extends:
             <?php foreach ($extendedEvents as $extendedEvent): ?>
                 <?php if ($extendedEvent['uuid'] === $event['extends_uuid']): ?>
-                    <a href="/events/view/<?= h($extendedEvent['uuid']); ?>" class="text-decoration-none text-primary">
+                    <a href="/events/view/<?= h($extendedEvent['uuid']); ?>" class="text-decoration-none">
                         <?= h($extendedEvent['info']); ?>
                     </a>
                     <?php break; ?>

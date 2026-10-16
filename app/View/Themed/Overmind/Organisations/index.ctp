@@ -55,6 +55,7 @@ $fields = [
         'data_path' => 'Organisation',
         'element' => 'organisation',
         'show_description' => true,
+        'grading' => $orgGrading ?? null,
         'card_section' => 'title',
         'display_in' => ['table', 'card'],
     ],
@@ -214,6 +215,8 @@ if ($isSiteAdmin) {
     $scaffoldFilterBar['delete'] = '/deleteSelection';
     $scaffoldFilterBar['delete_url'] = '/admin/organisations/deleteSelection';
 }
+
+echo $this->OrgGrade->config($orgGrading ?? null);
 
 echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [

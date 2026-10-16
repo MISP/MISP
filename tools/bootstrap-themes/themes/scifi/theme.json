@@ -1,0 +1,8 @@
+{
+    "label": "Sci-Fi",
+    "description": "A command console: navy hull, blue framed controls, gold commands.",
+    "mode": "dark",
+    "fonts": ["Orbitron", "Source Sans Pro"],
+    "hide_from_users": true,
+    "navbar": "rail"
+}

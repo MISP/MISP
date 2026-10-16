@@ -92,8 +92,14 @@ class Migration_20261003_092429_create_attribute_values extends AbstractMigratio
             ));
         }
         if (!$inspector->hasNamedIndex(self::TABLE, $pgsql ? self::PGSQL_SEARCH_INDEX : 'value_search')) {
+            // InnoDB keeps the session's stopword list with the index, and
+            // one built with it can never find `com`, `www` or `the`.
             $schema->rawSql(array(
-                'mysql' => sprintf('ALTER TABLE `%s` ADD FULLTEXT INDEX `value_search` (`value`);', self::TABLE),
+                'mysql' => array(
+                    'SET SESSION innodb_ft_enable_stopword = 0;',
+                    sprintf('ALTER TABLE `%s` ADD FULLTEXT INDEX `value_search` (`value`);', self::TABLE),
+                    'SET SESSION innodb_ft_enable_stopword = DEFAULT;',
+                ),
                 'pgsql' => array(
                     'CREATE EXTENSION IF NOT EXISTS pg_trgm;',
                     sprintf(

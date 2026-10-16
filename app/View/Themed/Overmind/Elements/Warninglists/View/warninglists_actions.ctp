@@ -12,7 +12,8 @@ if (!$default && $mayModify) {
         'url' => "$baseurl/warninglists/edit/$warninglistId",
         'onclick' => "event.preventDefault(); openModal('$baseurl/warninglists/edit/$warninglistId');",
         'icon' => 'fas fa-pen',
-        'label' => __('Edit Warninglist')
+        'label' => __('Edit Warninglist'),
+        'short' => __('Edit')
     ];
 }
 
@@ -22,8 +23,9 @@ if ($isSiteAdmin) {
             'type' => 'post',
             'url' => "$baseurl/warninglists/toggleEnable/$warninglistId",
             'id' => $warninglistId,
-            'icon' => 'fas fa-play',
+            'icon' => 'fas fa-toggle-on',
             'label' => __('Enable Warninglist'),
+            'short' => __('Enable'),
             'class' => 'text-success'
         ];
     } else {
@@ -31,8 +33,9 @@ if ($isSiteAdmin) {
             'type' => 'post',
             'url' => "$baseurl/warninglists/toggleEnable/$warninglistId",
             'id' => $warninglistId,
-            'icon' => 'fas fa-stop',
+            'icon' => 'fas fa-toggle-off',
             'label' => __('Disable Warninglist'),
+            'short' => __('Disable'),
             'class' => 'text-warning'
         ];
     }
@@ -48,7 +51,7 @@ if ($isSiteAdmin) {
     ];
 }
 
-echo $this->element('genericElementsBS5/Cards/card_actions', [
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
     'actions' => $actions
 ]);
 ?>
