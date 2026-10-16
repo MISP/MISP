@@ -1752,6 +1752,63 @@ tr.evt-extension-row td:first-child { position: relative; }
     max-height: 16rem;
 }
 
+/* Type and object toggles: a ticked option is tinted, an unticked one struck out */
+.sankey-facet-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    max-width: 100%;
+    padding: .1rem .3rem .1rem .55rem;
+    border: 1px solid color-mix(in srgb, var(--bs-correlation) 40%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bs-correlation) 12%, transparent);
+    color: var(--bs-body-color);
+    font-size: .75rem;
+    line-height: 1.4;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.sankey-facet-chip:hover {
+    background: color-mix(in srgb, var(--bs-correlation) 20%, transparent);
+}
+
+.sankey-facet-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sankey-facet-count {
+    padding: 0 .4rem;
+    border-radius: 999px;
+    background: var(--bs-body-bg);
+    color: var(--bs-secondary-color);
+    font-size: .68rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.btn-check:not(:checked) + .sankey-facet-chip {
+    border-style: dashed;
+    border-color: var(--bs-border-color);
+    background: transparent;
+    color: var(--bs-secondary-color);
+}
+
+.btn-check:not(:checked) + .sankey-facet-chip .sankey-facet-name {
+    text-decoration: line-through;
+}
+
+.btn-check:not(:checked) + .sankey-facet-chip .sankey-facet-count {
+    background: var(--bs-secondary-bg);
+}
+
+.btn-check:focus-visible + .sankey-facet-chip {
+    outline: 2px solid var(--bs-correlation);
+    outline-offset: 1px;
+}
+
 /* ═══════════════════════════════════════════════════════════
    Correlation — Related events list
    ═══════════════════════════════════════════════════════════ */
