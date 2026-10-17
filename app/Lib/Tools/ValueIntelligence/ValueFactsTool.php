@@ -55,7 +55,7 @@ class ValueFactsTool
      * @return array
      */
     public static function strip(array $summary, array $types,
-        array $sightings, $now = null, array $proposed = null
+        array $sightings, $now = null, ?array $proposed = null
     ) {
         $now = $now === null ? time() : $now;
         $occurrencesSub = empty($types)

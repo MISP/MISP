@@ -5078,8 +5078,8 @@ class ValueIntelligence extends AppModel
      * @return void
      */
     private function addThreat(array &$rows, array $cluster,
-        $attachment, $label, array $eventTitles, array $attribution = null,
-        array $claim = null
+        $attachment, $label, array $eventTitles, ?array $attribution = null,
+        ?array $claim = null
     ) {
         $row = $cluster['GalaxyCluster'];
         $counted = $attribution === null
@@ -8657,7 +8657,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private function timelineSightingEntries(array $user, $value,
-        array $options, array $window = null
+        array $options, ?array $window = null
     ) {
         $context = $this->sightingContext($user, $value, $options);
         $rows = ValueStatsTool::sightingList(
@@ -8750,7 +8750,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private function timelinePublicationEntries(array $context,
-        array $window = null
+        ?array $window = null
     ) {
         $entries = array();
         foreach ($context['events'] as $event) {
@@ -8862,7 +8862,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private function timelineEditEntries(array $context,
-        array $window = null
+        ?array $window = null
     ) {
         if (!Configure::read('MISP.log_new_audit')) {
             $entries = array();
@@ -8996,7 +8996,7 @@ class ValueIntelligence extends AppModel
      * @return array Two lane payloads, edits first
      */
     private function timelineAuditLanes(array $context,
-        array $window = null
+        ?array $window = null
     ) {
         $edits = $this->timelineEditEntries($context, $window);
         $recorded = !empty($edits['recorded']);
@@ -9439,7 +9439,7 @@ class ValueIntelligence extends AppModel
      * @return array One lane, in `forTimeline`'s shape
      */
     private function timelineObjectDateEntries(array $user, array $context,
-        array $window = null
+        ?array $window = null
     ) {
         $valueModel = $this->model('Value');
         $objectIds = $context['scope']['objects'];
@@ -10239,7 +10239,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private function timelineLane(array $entries, array $sources,
-        array $extra = array(), array $window = null
+        array $extra = array(), ?array $window = null
     ) {
         $byDay = array();
         $first = null;
@@ -10305,7 +10305,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private static function timelineWindowed(array $entries,
-        array $window = null
+        ?array $window = null
     ) {
         if ($window === null) {
             return $entries;
@@ -10446,7 +10446,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private function timelineAnalystEntries(array $user, $value,
-        array $context, array $window = null
+        array $context, ?array $window = null
     ) {
         $targets = array();
         foreach ($context['events'] as $event) {
@@ -10625,7 +10625,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private function timelineProposalEntries(array $user, $value,
-        array $window = null
+        ?array $window = null
     ) {
         $rows = $this->model('Value')->proposalsFor($user, $value);
         $entries = array();
@@ -10771,7 +10771,7 @@ class ValueIntelligence extends AppModel
      * @return array
      */
     private function timelineReportEntries(array $user, array $context,
-        array $window = null
+        ?array $window = null
     ) {
         if (empty($context['scope']['events'])) {
             return $this->timelineLane(array(), array('report'), array(),

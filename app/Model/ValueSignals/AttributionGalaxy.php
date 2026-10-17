@@ -385,7 +385,7 @@ class AttributionGalaxy extends ValueSignalBase
      * @return array The subset that attributes
      */
     private function eligible(array $galaxies, array $clusters,
-        array $types = null
+        ?array $types = null
     ) {
         if (empty($galaxies['attribution'])
             || !is_array($galaxies['attribution'])

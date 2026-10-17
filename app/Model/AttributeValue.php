@@ -737,7 +737,7 @@ class AttributeValue extends AppModel
      * @return void
      * @throws RuntimeException When an id is missing from the dictionary.
      */
-    public function attachValues(array &$rows, $alias, array $keys = null)
+    public function attachValues(array &$rows, $alias, ?array $keys = null)
     {
         $ids = [];
         foreach ($rows as $row) {
@@ -803,7 +803,7 @@ class AttributeValue extends AppModel
      * @return void
      * @throws RuntimeException When an id is missing from the dictionary.
      */
-    public function attachNested(&$data, array $keys = null)
+    public function attachNested(&$data, ?array $keys = null)
     {
         if (!is_array($data)) {
             return;

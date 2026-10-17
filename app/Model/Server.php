@@ -3281,7 +3281,7 @@ class Server extends AppModel
      * @return array|string
      * @throws JsonException
      */
-    public function checkVersionCompatibility(array $server, $user = [], ServerSyncTool $serverSync = null)
+    public function checkVersionCompatibility(array $server, $user = [], ?ServerSyncTool $serverSync = null)
     {
         // for event publishing when we don't have a user.
         if (empty($user)) {

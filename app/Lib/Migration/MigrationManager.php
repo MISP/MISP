@@ -423,7 +423,7 @@ class MigrationManager
      * @param array|null $ids Defaults to everything pending.
      * @return string|null
      */
-    public function refusal(array $ids = null)
+    public function refusal(?array $ids = null)
     {
         $ids = $ids === null ? array_keys($this->pending()) : $ids;
         $offline = array();
@@ -524,7 +524,7 @@ class MigrationManager
      *   connected one - what a two-flavour dry run needs.
      * @return array
      */
-    public function toSql($id, AbstractGrammar $grammar = null)
+    public function toSql($id, ?AbstractGrammar $grammar = null)
     {
         $this->lastSkipped = array();
         $schema = SchemaBuilder::forDataSource($this->dataSource());

@@ -1956,7 +1956,7 @@ class AdminShell extends AppShell
                 empty($this->params['database']) ? null : (string)$this->params['database']
             );
             $schema = $generator->readSchema();
-            $findings = $generator->compare(new SchemaInspector($loaded), $schema);
+            $findings = $generator->compare(new SchemaInspector($loaded), $schema, $generator->readDatabaseDefaults());
         } catch (Exception $e) {
             $this->error(__('The comparison could not be run.'), $e->getMessage());
         }

@@ -34,7 +34,7 @@ class GpgTool
         return new CryptGpgExtended($options);
     }
 
-    public function __construct(CryptGpgExtended $gpg = null)
+    public function __construct(?CryptGpgExtended $gpg = null)
     {
         $this->gpg = $gpg;
     }
