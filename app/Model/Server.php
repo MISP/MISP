@@ -4368,7 +4368,7 @@ class Server extends AppModel
                 $tagname = explode('.', $tagname);
                 if (!isset($latest_versions[$tagname[0]][$tagname[1]])) {
                     $latest_versions[$tagname[0]][$tagname[1]] = $tagname[2];
-                } elseif (version_compare($tag['name'], $latest_versions[$tagname[0]][$tagname[1]]) === 1) {
+                } elseif ((int)$tagname[2] > (int)$latest_versions[$tagname[0]][$tagname[1]]) {
                     $latest_versions[$tagname[0]][$tagname[1]] = $tagname[2];
                 }    
             }
