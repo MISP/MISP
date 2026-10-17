@@ -855,6 +855,7 @@ class SchemaTargetGenerator
             }
             $mysql = self::keyBytes($columns, $index, AbstractGrammar::FLAVOUR_MYSQL);
             $pgsql = isset($index['pgsql']) || BaselineGenerator::needsHashRewrite($index, $columns)
+                || BaselineGenerator::isMysqlOnly($index, $columns)
                 ? false
                 : self::keyBytes($columns, $index, AbstractGrammar::FLAVOUR_PGSQL);
             $this->keyLengths[$table . '.' . $name] = array('mysql' => $mysql, 'pgsql' => $pgsql);

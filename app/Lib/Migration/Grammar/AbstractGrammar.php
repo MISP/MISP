@@ -335,7 +335,8 @@ abstract class AbstractGrammar
      * @param string|array $columns
      * @param array $options 'unique', 'name', 'length', 'fulltext', and for
      *   an index the engines spell differently: 'mysql' => false for one
-     *   PostgreSQL has alone; 'pgsql' => array('name', 'sql', 'extension'),
+     *   PostgreSQL has alone, 'pgsql' => false for one MySQL has alone;
+     *   'pgsql' => array('name', 'sql', 'extension'),
      *   its PostgreSQL name and statement (%1$s the quoted index name, %2$s
      *   the quoted table) and an extension it needs.
      * @return array Statements.
@@ -974,6 +975,15 @@ abstract class AbstractGrammar
     protected static function isPostgresOnly(array $options)
     {
         return isset($options['mysql']) && $options['mysql'] === false;
+    }
+
+    /**
+     * @param array $options An index declaration.
+     * @return bool Whether the index exists on MySQL alone.
+     */
+    protected static function isMysqlOnly(array $options)
+    {
+        return isset($options['pgsql']) && $options['pgsql'] === false;
     }
 
     /**

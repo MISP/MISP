@@ -188,6 +188,9 @@ class PostgresGrammar extends AbstractGrammar
      */
     protected function addIndexParts($table, $columns, array $options)
     {
+        if (self::isMysqlOnly($options)) {
+            return array();
+        }
         $pgsql = isset($options['pgsql']) ? $options['pgsql'] : array();
         $parts = array();
         if (!empty($pgsql['extension'])) {

@@ -1268,6 +1268,13 @@ class MigrationGrammarTest extends TestCase
         }
     }
 
+    public function testAnIndexMysqlHasAloneIsNotRenderedOnPostgres()
+    {
+        $options = array('name' => 'idx_list_value', 'length' => array('value' => 191), 'pgsql' => false);
+        $this->assertSame(array(), $this->pgsql->addIndex('t', array('list_id', 'value'), $options));
+        $this->assertCount(1, $this->mysql->addIndex('t', array('list_id', 'value'), $options));
+    }
+
     public function testRenameAndDropTable()
     {
         $this->assertSame(
