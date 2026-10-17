@@ -4373,26 +4373,26 @@ class Server extends AppModel
                 }    
             }
         }
+        if (empty($latest_versions)) {
+            return false;
+        }
         $version_array = $this->checkMISPVersion();
-        $current = implode('.', $version_array);
-        $latest_version_string = sprintf('v%s.%s.%s', $version_array['major'], $version_array['minor'], $latest_versions[$version_array['major']][$version_array['minor']]);
-        $latest_major = 0;
-        $latest_minor = 0;
-        foreach ($latest_versions as $major => $minor) {
-            if ($major > $latest_major) {
-                $latest_major = $major;
-            }
+        $major = $version_array['major'];
+        $minor = $version_array['minor'];
+        $latest_major = max(array_keys($latest_versions));
+        // A line with no release yet (a new major or minor before its first tag)
+        // compares against the newest release overall
+        if (isset($latest_versions[$major][$minor])) {
+            $newest = [$major, $minor, $latest_versions[$major][$minor]];
+        } else {
+            $newestMinor = max(array_keys($latest_versions[$latest_major]));
+            $newest = [$latest_major, $newestMinor, $latest_versions[$latest_major][$newestMinor]];
         }
-        foreach ($latest_versions[$major] as $minor => $hotfix) {
-            if ($minor > $latest_minor) {
-                $latest_minor = $minor;
-            }
-        }
-        $result = $this->checkVersion($latest_version_string);
-        if ($latest_major > $version_array['major']) {
+        $result = $this->checkVersion(vsprintf('v%s.%s.%s', $newest));
+        if ($latest_major > $major) {
             $result['new_major'] = $latest_major;
-        } else if ($latest_minor > $version_array['minor']) {
-            $result['new_minor'] = $latest_major . '.' . $latest_minor;
+        } else if (isset($latest_versions[$major]) && max(array_keys($latest_versions[$major])) > $minor) {
+            $result['new_minor'] = $major . '.' . max(array_keys($latest_versions[$major]));
         }
         return $result;
     }
