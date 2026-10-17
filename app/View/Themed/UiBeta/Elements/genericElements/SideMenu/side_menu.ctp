@@ -835,10 +835,6 @@ $divider = '<li class="divider"></li>';
                             'text' => __('New Servers')
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/servers/compareServers',
-                            'text' => __('Server overlap analysis matrix'),
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/communities/index',
                             'text' => __('List Communities'),
                             'element_id' => 'list_communities'

@@ -1223,56 +1223,6 @@ class Server extends AppModel
         return array_keys($eventUuids);
     }
 
-    public function serverEventsOverlap()
-    {
-        $servers = $this->find('all', [
-            'conditions' => ['Server.pull' => 1],
-            'order' => ['Server.id ASC'],
-            'recursive' => -1,
-        ]);
-
-        if (count($servers) < 2) {
-            return [$servers, []];
-        }
-
-        $serverUuids = [];
-        foreach ($servers as &$server) {
-            try {
-                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-                $uuids = array_column($this->getEventIndexFromServer($serverSync, true), 'uuid');
-                $serverUuids[$server['Server']['id']] = array_flip($uuids);
-                $server['Server']['events_count'] = count($uuids);
-            } catch (Exception $e) {
-                $this->logException("Could not get event UUIDs for server {$server['Server']['id']}", $e);
-            }
-        }
-        unset($server);
-
-        $compared = [];
-        foreach ($servers as $server) {
-            if (!isset($serverUuids[$server['Server']['id']])) {
-                continue;
-            }
-
-            foreach ($servers as $server2) {
-                if ($server['Server']['id'] == $server2['Server']['id']) {
-                    continue;
-                }
-                if (!isset($serverUuids[$server2['Server']['id']])) {
-                    continue;
-                }
-
-                $intersect = count(array_intersect_key($serverUuids[$server['Server']['id']], $serverUuids[$server2['Server']['id']]));
-                $percentage = round(100 * $intersect / $server['Server']['events_count']);
-                $compared[$server['Server']['id']][$server2['Server']['id']] = [
-                    'percentage' => $percentage,
-                    'events' => $intersect,
-                ];
-            }
-        }
-        return [$servers, $compared];
-    }
-
     /**
      * @param int $id Server ID
      * @param string|int $technique Can be 'full', 'incremental' or event ID
