@@ -4252,9 +4252,8 @@ class MispAttribute extends AppModel
             }
             if ($tags !== false) {
                 // If we sent any tags along, load the associated tag names for each attribute
-                $tag = ClassRegistry::init('Tag');
                 $args = $this->dissectArgs($tags);
-                $tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+                $tagArray = $this->Event->EventTag->fetchEventTagIds($args[0], $args[1]);
                 $temp = array();
                 foreach ($tagArray[0] as $accepted) {
                     $temp['OR'][] = array('Event.id' => $accepted);
