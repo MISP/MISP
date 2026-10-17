@@ -762,18 +762,6 @@ $divider = '<li class="divider"></li>';
                     break;
 
                 case 'sync':
-                    if ($me['Role']['perm_sync']) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/servers/createSync',
-                            'text' => __('Create Sync Config')
-                        ));
-                    }
-                    if ($menuItem === 'import' && ($me['Role']['perm_site_admin'])) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/servers/import',
-                            'text' => __('Import Server Settings')
-                        ));
-                    }
                     if ($menuItem === 'previewEvent' && ($isSiteAdmin || $hostOrg)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => sprintf(
@@ -845,10 +833,6 @@ $divider = '<li class="divider"></li>';
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/servers/add',
                             'text' => __('New Servers')
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/servers/compareServers',
-                            'text' => __('Server overlap analysis matrix'),
                         ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => $baseurl . '/communities/index',
@@ -1141,12 +1125,6 @@ $divider = '<li class="divider"></li>';
                             'element_id' => 'listAccessLogs',
                             'url' => $baseurl . '/admin/access_logs/index',
                             'text' => __('Access Logs'),
-                        ));
-                    }
-                    if ($me['Role']['perm_audit']) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/logs/search',
-                            'text' => __('Search Logs')
                         ));
                     }
                     break;

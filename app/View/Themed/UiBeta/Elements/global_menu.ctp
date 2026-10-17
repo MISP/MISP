@@ -306,11 +306,6 @@ if (!empty($me)) {
                     'html' => '<i class="fas fa-server fa-fw"></i> ' . __('Servers & Feeds'),
                     'children' => array(
                         array(
-                            'html' => '<i class="fas fa-sync fa-fw"></i> ' . __('Create Sync Config'),
-                            'url' => $baseurl . '/servers/createSync',
-                            'requirement' => $isAclSync && !$isSiteAdmin
-                        ),
-                        array(
                             'html' => '<i class="fas fa-server fa-fw"></i> ' . __('Remote Servers'),
                             'url' => $baseurl . '/servers/index',
                             'requirement' => $this->Acl->canAccess('servers', 'index'),
@@ -590,11 +585,6 @@ if (!empty($me)) {
                     'url' => $baseurl . '/admin/access_logs/index',
                     'requirement' => $isSiteAdmin
                 ),
-                array(
-                    'html' => '<i class="fas fa-search fa-fw"></i> ' . __('Search Logs'),
-                    'url' => $baseurl . '/logs/search',
-                    'requirement' => $this->Acl->canAccess('logs', 'search')
-                )
             )
         ),
         // 7. Automation

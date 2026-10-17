@@ -83,20 +83,6 @@
                 'children' => [
                     [
                         'type' => 'simple',
-                        'children' => [[
-                            'text' => __('Search'),
-                            'title' => __('Set search filters'),
-                            'onClick' => 'openGenericModal',
-                            'onClickParams' => [
-                                sprintf(
-                                    '%s/logs/search',
-                                    $baseurl
-                                )
-                            ]
-                        ]]
-                    ],
-                    [
-                        'type' => 'simple',
                         'children' => $children
                     ]
                     ]
