@@ -966,44 +966,72 @@ class ServersController extends AppController
     public function eventBlockRule()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $setting = $this->AdminSetting->find('first', [
-            'conditions' => ['setting' => 'eventBlockRule'],
-            'recursive' => -1
-        ]);
-        if (empty($setting)) {
-            $setting = ['setting' => 'eventBlockRule'];
-            if ($this->request->is('post')) {
-                $this->AdminSetting->create();
-            }
-        }
+        $value = $this->AdminSetting->getSetting('eventBlockRule') ?: '';
         if ($this->request->is('post')) {
-            if (!empty($this->request->data['Server'])) {
-                $this->request->data = $this->request->data['Server'];
-            }
-            $setting['AdminSetting']['setting'] = 'eventBlockRule';
-            $setting['AdminSetting']['value'] = $this->request->data['value'];
-            $result = $this->AdminSetting->save($setting);
-            if ($result) {
-                $message = __('Settings saved');
-            } else {
-                $message = __('Could not save the settings. Invalid input.');
+            $data = $this->request->data['Server'] ?? $this->request->data;
+            $value = $data['value'] ?? null;
+            $message = $this->__eventBlockRuleError($value);
+            $result = false;
+            if ($message === null) {
+                $result = $this->AdminSetting->changeSetting('eventBlockRule', $value) === true;
+                $message = $result ? __('Settings saved') : __('Could not save the settings.');
             }
             if ($this->_isRest()) {
                 if ($result) {
-                    return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', $message, $this->response->type());
+                    return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', false, $this->response->type(), $message);
                 } else {
                     return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
                 }
             } else {
                 if ($result) {
                     $this->Flash->success($message);
-                    $this->redirect('/');
+                    return $this->redirect(['action' => 'eventBlockRule']);
                 } else {
                     $this->Flash->error($message);
                 }
             }
+        } elseif ($this->_isRest()) {
+            return $this->RestResponse->viewData(['value' => $value], $this->response->type());
         }
-        $this->set('setting', $setting);
+        $this->set('setting', ['AdminSetting' => ['setting' => 'eventBlockRule', 'value' => is_string($value) ? $value : '']]);
+    }
+
+    /**
+     * The rule set Event::checkEventBlockRules() understands: empty for none,
+     * or a JSON object whose only key, "tags", holds a tag name or a list of them.
+     *
+     * @param mixed $value
+     * @return string|null Why the rule set is refused, null when it is valid
+     */
+    private function __eventBlockRuleError($value)
+    {
+        if (!is_string($value)) {
+            return __('The rule set has to be given as a JSON string in "value".');
+        }
+        if (trim($value) === '') {
+            return null;
+        }
+        try {
+            $rules = json_decode($value, false, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            return __('The rule set is not valid JSON: %s', $e->getMessage());
+        }
+        if (!$rules instanceof stdClass) {
+            return __('The rule set has to be a JSON object, such as {"tags": ["tlp:red"]}.');
+        }
+        $unknown = array_diff(array_keys((array)$rules), ['tags']);
+        if (!empty($unknown)) {
+            return __('Unknown key(s) in the rule set: %s. Only "tags" is supported.', implode(', ', $unknown));
+        }
+        if (isset($rules->tags)) {
+            $tags = is_array($rules->tags) ? $rules->tags : [$rules->tags];
+            foreach ($tags as $tag) {
+                if (!is_string($tag)) {
+                    return __('"tags" has to be a tag name or a list of tag names.');
+                }
+            }
+        }
+        return null;
     }
 
     /**
