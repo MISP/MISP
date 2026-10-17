@@ -585,11 +585,6 @@ if (!empty($me)) {
                     'url' => $baseurl . '/admin/access_logs/index',
                     'requirement' => $isSiteAdmin
                 ),
-                array(
-                    'html' => '<i class="fas fa-search fa-fw"></i> ' . __('Search Logs'),
-                    'url' => $baseurl . '/logs/search',
-                    'requirement' => $this->Acl->canAccess('logs', 'search')
-                )
             )
         ),
         // 7. Automation

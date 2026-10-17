@@ -549,11 +549,6 @@ if (!empty($me)) {
                     'url' => $baseurl . '/admin/access_logs/index',
                     'requirement' => $isSiteAdmin
                 ),
-                array(
-                    'text' => __('Search Logs'),
-                    'url' => $baseurl . '/logs/search',
-                    'requirement' => $this->Acl->canAccess('logs', 'search')
-                )
             )
         ),
         array(
