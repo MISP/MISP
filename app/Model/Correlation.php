@@ -829,8 +829,14 @@ class Correlation extends AppModel
                 'limit' => empty($correlationLimit) ? null : ($correlationLimit+1)
             ]);
             if (!empty($extraConditions)) {
+                $advancedConditions = $conditions;
+                if ($full && $a['Attribute']['type'] === 'ssdeep') {
+                    // A full run's chunk table holds only the attributes processed before this one,
+                    // so each ssdeep pair is found once anyway, whatever the ids.
+                    unset($advancedConditions['Attribute.id >']);
+                }
                 $correlatingAttributes3 = $this->Attribute->find('all', [
-                    'conditions' => [$conditions, $extraConditions],
+                    'conditions' => [$advancedConditions, $extraConditions],
                     'recursive' => -1,
                     'fields' => $this->getFieldRules(),
                     'contain' => $this->getContainRules(),
