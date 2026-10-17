@@ -8420,22 +8420,6 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true
                 ),
-                'CyCat_enable' => [
-                    'level' => 1,
-                    'description' => __('Enable lookups for additional relations via CyCat.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true
-                ],
-                'CyCat_url' => [
-                    'level' => 2,
-                    'description' => __('URL to use for CyCat lookups, if enabled.'),
-                    'value' => 'https://api.cycat.org',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                    'null' => true
-                ],
             ),
             'SimpleBackgroundJobs' => [
                 'branch' => 1,
