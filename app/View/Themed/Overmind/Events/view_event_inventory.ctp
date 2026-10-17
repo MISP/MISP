@@ -39,6 +39,7 @@ $tabFor = function (array $group) {
         </div>
     </div>
 
+    <div data-collapse-tall="350">
     <?php if ($total === 0): ?>
         <div class="eo-empty"><span><?= __('No attributes on this event yet.') ?></span></div>
     <?php else: ?>
@@ -123,5 +124,6 @@ $tabFor = function (array $group) {
             </div>
         <?php endif; ?>
     <?php endif; ?>
+    </div>
 
 </div>
