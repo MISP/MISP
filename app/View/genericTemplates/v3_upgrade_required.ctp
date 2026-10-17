@@ -115,6 +115,7 @@ $steps = [
         p code { padding: 1px 4px; background: var(--code-bg); border-radius: 3px; font-size: 13px; }
         .note { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
         .note.intro { margin: -6px 0 16px; }
+        a { color: var(--accent); }
         .footer { margin: 8px 0 0; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
         @media (max-width: 560px) {
             body { padding: 16px; }
