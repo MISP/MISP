@@ -114,7 +114,7 @@ class OvermindPages
         'servers' => array(
             'index', 'add', 'edit', 'delete', 'previewIndex',
             'previewEvent', 'pullSelectedEvents', 'idTranslator',
-            'serverSettings'
+            'serverSettings', 'eventBlockRule'
         ),
         'feeds' => array(
             'index', 'add', 'edit', 'view', 'importFeeds',

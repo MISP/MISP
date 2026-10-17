@@ -46,7 +46,7 @@ class NavbarHelper extends AppHelper {
         'cerebrates'             => 'sync',
         'taxiiservers'           => 'sync',
         'sightingdb'             => 'sync',
-        'servers'                => ['default' => 'sync', 'serversettings' => 'administration'],
+        'servers'                => ['default' => 'sync', 'serversettings' => 'administration', 'eventblockrule' => 'administration'],
         // Administration
         'organisations'      => 'administration',
         'roles'              => 'administration',
@@ -702,6 +702,14 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Blocklisting'),
                 'icon' => 'fas fa-ban',
                 'children' => [
+                    [
+                        'label' => __('Event Block Rules'),
+                        'url' => $baseurl . '/servers/eventBlockRule',
+                        'controller' => 'servers',
+                        'action' => 'eventBlockRule',
+                        'requirement' => $this->Acl->canAccess('servers', 'eventBlockRule'),
+                        'icon' => 'fas fa-filter-circle-xmark'
+                    ],
                     [
                         'label' => __('Blocklist Event'),
                         'url' => $baseurl . '/eventBlocklists',
