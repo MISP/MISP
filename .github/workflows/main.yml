@@ -399,7 +399,8 @@ jobs:
           pushd PyMISP
           cp tests/keys.py .
           python -m pytest -v --durations=0 tests/test_mispevent.py
-          python -m pytest -v --durations=0 tests/testlive_comprehensive.py
+          # 3.0 has no STIX 1 JSON export
+          python -m pytest -v --durations=0 tests/testlive_comprehensive.py --deselect tests/testlive_comprehensive.py::TestComprehensive::test_search_stix1
           popd
           python tests/testlive_comprehensive_local.py -v
           python tests/testlive_sync.py -v
