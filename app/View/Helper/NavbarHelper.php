@@ -77,7 +77,7 @@ class NavbarHelper extends AppHelper {
         // API
         'api' => 'api',
         // Resources
-        'news'  => 'resources',
+        'news'  => ['default' => 'administration', 'index' => 'resources'],
         'doc'   => 'resources',
         'pages' => 'resources',
         // Bookmarks
@@ -592,6 +592,15 @@ class NavbarHelper extends AppHelper {
                 'requirement' => $this->Acl->canAccess('servers', 'serverSettings'),
                 'icon' => 'fas fa-gears',
             ],
+            [
+                'type' => 'group',
+                'label' => __('News'),
+                'url' => $baseurl . '/admin/news/index',
+                'controller' => 'news',
+                'action' => 'admin_index',
+                'requirement' => $this->Acl->canAccess('news', 'admin_index'),
+                'icon' => 'fas fa-newspaper',
+            ],
             ['divider' => true],
             [
                 'type' => 'group',
@@ -865,6 +874,13 @@ class NavbarHelper extends AppHelper {
 
         $smimeCertificate = (string)Configure::read('SMIME.cert_public_sign');
         $resourcesChildren = [
+            [
+                'label' => __('News'),
+                'url' => $baseurl . '/news/index',
+                'controller' => 'news',
+                'action' => 'index',
+                'icon' => 'fas fa-newspaper'
+            ],
             [
                 'label' => __('User Guide'),
                 'url' => 'https://www.circl.lu/doc/misp/',
