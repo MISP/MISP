@@ -1112,46 +1112,4 @@ class GalaxiesController extends AppController
         $this->set('object', $object);
         $this->render('/Events/ajax/ajaxGalaxies');
     }
-
-    public function forkTree($galaxyId, $pruneRootLeaves=true)
-    {
-        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full=true);
-        if (empty($clusters)) {
-            throw new MethodNotAllowedException('Invalid Galaxy.');
-        }
-        $this->Galaxy->GalaxyCluster->attachExtendByInfo($this->Auth->user(), $clusters);
-        foreach ($clusters as $k => $cluster) {
-            $clusters[$k] = $this->Galaxy->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $clusters[$k]);
-        }
-        $galaxy = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $galaxyId, 'view', true);
-        $tree = $this->Galaxy->generateForkTree($clusters, $galaxy, $pruneRootLeaves=$pruneRootLeaves);
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($tree, $this->response->type());
-        }
-        $this->set('tree', $tree);
-        $this->set('galaxy', $galaxy);
-        $this->set('galaxy_id', $galaxyId);
-    }
-
-    public function relationsGraph($galaxyId, $includeInbound=0)
-    {
-        $clusters = $this->Galaxy->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.galaxy_id' => $galaxyId)), $full=true);
-        if (empty($clusters)) {
-            throw new MethodNotAllowedException('Invalid Galaxy.');
-        }
-        $galaxy = $this->Galaxy->fetchIfAuthorized($this->Auth->user(), $galaxyId, 'view', true);
-        App::uses('ClusterRelationsGraphTool', 'Tools');
-        $grapher = new ClusterRelationsGraphTool($this->Auth->user(), $this->Galaxy->GalaxyCluster);
-        $relations = $grapher->getNetwork($clusters, $includeInbound, $includeInbound);
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($relations, $this->response->type());
-        }
-        $this->set('relations', $relations);
-        $this->set('galaxy', $galaxy);
-        $this->set('galaxy_id', $galaxyId);
-        $this->set('includeInbound', $includeInbound);
-        $this->loadModel('MispAttribute');
-        $distributionLevels = $this->MispAttribute->distributionLevels;
-        $this->set('distributionLevels', $distributionLevels);
-    }
 }
