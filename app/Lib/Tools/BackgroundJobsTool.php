@@ -221,7 +221,7 @@ class BackgroundJobsTool
         string $command,
         array $args = [],
         $trackStatus = null,
-        int $jobId = null,
+        ?int $jobId = null,
         array $metadata = []
     ): string {
 

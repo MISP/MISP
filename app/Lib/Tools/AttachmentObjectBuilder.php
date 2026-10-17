@@ -283,7 +283,7 @@ class AttachmentObjectBuilder
 
     // ------------------------------------------------------- default paths
 
-    private function buildMaliciousFileDefault($eventId, array $attributeSettings, $filename, $tmpfile, array $entry = null)
+    private function buildMaliciousFileDefault($eventId, array $attributeSettings, $filename, $tmpfile, ?array $entry = null)
     {
         $advanced = !empty($attributeSettings['advanced']);
         $result = $advanced

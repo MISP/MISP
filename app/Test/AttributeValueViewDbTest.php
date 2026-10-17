@@ -272,7 +272,7 @@ class AttributeValueViewDbTest extends TestCase
      * @param array|null $post
      * @return ValuesController
      */
-    private function controller(array $user, array $query = [], array $named = [], array $post = null)
+    private function controller(array $user, array $query = [], array $named = [], ?array $post = null)
     {
         $request = new CakeRequest(null, false);
         $request->query = $query;
@@ -330,7 +330,7 @@ class AttributeValueViewDbTest extends TestCase
         return $controller;
     }
 
-    private function view(array $user, $id = null, array $query = [], array $named = [], array $post = null)
+    private function view(array $user, $id = null, array $query = [], array $named = [], ?array $post = null)
     {
         return $this->controller($user, $query, $named, $post)->view($id);
     }
@@ -338,7 +338,7 @@ class AttributeValueViewDbTest extends TestCase
     /**
      * @return string|null The message of the 404, null when the view answered.
      */
-    private function missing(array $user, $id = null, array $query = [], array $named = [], array $post = null)
+    private function missing(array $user, $id = null, array $query = [], array $named = [], ?array $post = null)
     {
         try {
             $this->view($user, $id, $query, $named, $post);

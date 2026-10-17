@@ -624,7 +624,7 @@ class ValuesController extends AppController
      * @param array|null $report The parser's report, where there was one
      * @return array
      */
-    private function __nothing(array $report = null)
+    private function __nothing(?array $report = null)
     {
         return array(
             'kind' => 'empty',

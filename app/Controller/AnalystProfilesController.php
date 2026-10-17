@@ -2364,7 +2364,7 @@ class AnalystProfilesController extends AppController
      * @return CakeResponse
      */
     private function __refuse(array $errors, array $extra = array(),
-        array $html = null
+        ?array $html = null
     ) {
         if (!$this->_isRest()) {
             foreach ($errors as $error) {

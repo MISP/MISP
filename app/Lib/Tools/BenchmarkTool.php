@@ -199,7 +199,7 @@ class BenchmarkTool
         return $results;
     }
 
-    public function getAllTopLists(array $days = null, $limit = 10, $average = false, $aggregate = false, $scope_filter = [])
+    public function getAllTopLists(?array $days = null, $limit = 10, $average = false, $aggregate = false, $scope_filter = [])
     {
         if ($days === null) {
             $days = $this->liveDays();
