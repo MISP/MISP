@@ -708,6 +708,15 @@ class TableConverger
         foreach (isset($target['retired']) ? $target['retired'] : array() as $name) {
             $retired[self::fold($grammar->indexName($table, $name), $mysql)] = $name;
         }
+        if (!$mysql) {
+            // Converged before it was MySQL-only, a PostgreSQL box has it as a btree over whole values.
+            foreach ($target['indexes'] as $key => $index) {
+                $columnList = isset($index['column']) ? array_values($index['column']) : array($key);
+                if (BaselineGenerator::isMysqlOnly(array('column' => $columnList) + $index, $target['columns'])) {
+                    $retired[self::fold($grammar->indexName($table, $key), $mysql)] = $key;
+                }
+            }
+        }
 
         $present = array();
         foreach ($live['indexes'] as $key => $index) {
@@ -783,6 +792,9 @@ class TableConverger
                 continue;
             }
             $declaration = self::declaration($key, $index, $target['columns']);
+            if (!$mysql && isset($declaration['options']['pgsql']) && $declaration['options']['pgsql'] === false) {
+                continue;
+            }
             $name = $grammar->indexName($table, $declaration['column'], $declaration['options']);
             $indexes[self::fold($name, $mysql)] = array(
                 'key' => $key,
@@ -797,7 +809,8 @@ class TableConverger
     /**
      * A target index as addIndex() takes it. A non-unique prefix index on one
      * text column becomes a hash index on PostgreSQL, which has no prefixes
-     * and would otherwise index whole values past its btree entry limit.
+     * and would otherwise index whole values past its btree entry limit; over
+     * several columns it is left out there (BaselineGenerator::isMysqlOnly()).
      *
      * @param string $key
      * @param array $index
@@ -813,7 +826,9 @@ class TableConverger
                 $options[$option] = $index[$option];
             }
         }
-        if (!isset($options['pgsql']['sql'])
+        if (BaselineGenerator::isMysqlOnly(array('column' => $columnList) + $index, $columns)) {
+            $options['pgsql'] = false;
+        } elseif (!isset($options['pgsql']['sql'])
             && BaselineGenerator::needsHashRewrite(array('column' => $columnList) + $index, $columns)
         ) {
             $options['pgsql']['sql'] = sprintf(

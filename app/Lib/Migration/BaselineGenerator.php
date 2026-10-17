@@ -771,6 +771,16 @@ class BaselineGenerator
                 unset($indexes[$name]);
             }
             foreach ($indexes as $name => $options) {
+                if (self::isMysqlOnly($options, $columns)) {
+                    unset($indexes[$name]);
+                    $notes[] = sprintf(
+                        'Index %s on %s(%s) left out: a prefix over text in a composite index has no PostgreSQL equivalent.',
+                        $name,
+                        $table,
+                        implode(', ', $options['column'])
+                    );
+                    continue;
+                }
                 if (!self::needsHashRewrite($options, $columns)) {
                     continue;
                 }
@@ -994,9 +1004,8 @@ class BaselineGenerator
             return false;
         }
         if (count($options['column']) !== 1) {
-            // Hash indexes are single-column. A composite prefix index falls
-            // through to the grammar, which renders a btree and notes the
-            // dropped prefix.
+            // Hash indexes are single-column: see isMysqlOnly() for a
+            // composite one over text.
             return false;
         }
         $column = $options['column'][0];
@@ -1004,6 +1013,31 @@ class BaselineGenerator
             return false;
         }
         return in_array($columns[$column]['type'], self::$textTypes, true);
+    }
+
+    /**
+     * A prefix index PostgreSQL leaves out: over several columns, with a
+     * prefix on a text one, and not unique. A hash index takes one column, and
+     * a btree indexes whole values, so it would refuse any row whose value
+     * passes its entry limit.
+     *
+     * @param array $options One index declaration.
+     * @param array $columns The table's column specs.
+     * @return bool
+     */
+    public static function isMysqlOnly(array $options, array $columns)
+    {
+        if (empty($options['length']) || !empty($options['unique']) || !empty($options['fulltext'])
+            || count($options['column']) < 2
+        ) {
+            return false;
+        }
+        foreach (array_keys($options['length']) as $column) {
+            if (isset($columns[$column]['type']) && in_array($columns[$column]['type'], self::$textTypes, true)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1189,7 +1223,9 @@ class BaselineGenerator
                 unset($indexes[$physical]);
             }
             foreach ($definition['indexes'] as $name => $options) {
-                if (isset($replaced[$name])) {
+                if (isset($replaced[$name])
+                    || ($flavour === AbstractGrammar::FLAVOUR_PGSQL && self::isMysqlOnly($options, $definition['columns']))
+                ) {
                     continue;
                 }
                 $physical = $grammar->indexName($table, $options['column'], $options);
