@@ -8739,39 +8739,6 @@ class EventsController extends AppController
         $this->render('/Elements/view_galaxy_matrix');
     }
 
-    // Displays all the cluster relations for the provided event
-    public function viewClusterRelations($eventId)
-    {
-        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId, 'flatten' => true));
-        if (empty($event)) {
-            throw new NotFoundException(__('Invalid Event.'));
-        }
-        $event = $event[0];
-        $clusterIds = array();
-        foreach ($event['Galaxy'] as $galaxy) {
-            foreach ($galaxy['GalaxyCluster'] as $cluster) {
-                $clusterIds[$cluster['id']] = $cluster['id'];
-            }
-        }
-        foreach ($event['Attribute'] as $attribute) {
-            foreach ($attribute['Galaxy'] as $galaxy) {
-                foreach ($galaxy['GalaxyCluster'] as $cluster) {
-                    $clusterIds[$cluster['id']] = $cluster['id'];
-                }
-            }
-        }
-        $this->loadModel('GalaxyCluster');
-        $clusters = $this->GalaxyCluster->fetchGalaxyClusters($this->Auth->user(), array('conditions' => array('GalaxyCluster.id' => $clusterIds)), $full=true);
-        App::uses('ClusterRelationsGraphTool', 'Tools');
-        $grapher = new ClusterRelationsGraphTool($this->Auth->user(), $this->GalaxyCluster);
-        $relations = $grapher->getNetwork($clusters, $keepNotLinkedClusters=true, $includeReferencingRelation=true);
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($relations, $this->response->type());
-        }
-        $this->set('relations', $relations);
-        $this->set('distributionLevels', $this->Event->distributionLevels);
-    }
-
     public function delegation_index()
     {
         $this->loadModel('EventDelegation');

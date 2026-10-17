@@ -480,7 +480,6 @@ class ACLComponent extends Component
             'view2' => array('*'),
             'viewLegacy' => array('*'),
             'viewAttributes' => array('theming_enabled'),
-            'viewClusterRelations' => array('*'),
             'viewObjects' => array('theming_enabled'),
             'viewEventReports' => array('theming_enabled'),
             'viewEventTags' => array('theming_enabled'),
