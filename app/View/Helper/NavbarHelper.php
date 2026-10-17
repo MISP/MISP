@@ -454,9 +454,9 @@ class NavbarHelper extends AppHelper {
                 'children' => [
                     [
                         'label' => __('Create Sync Config'),
-                        'url' => $baseurl . '/syncConfigs/add',
-                        'controller' => 'syncConfigs',
-                        'action' => 'add',
+                        'url' => $baseurl . '/servers/createSync',
+                        'controller' => 'servers',
+                        'action' => 'createSync',
                         'requirement' => $isAclSync && !$isSiteAdmin,
                         'icon' => 'fas fa-rotate'
                     ],
