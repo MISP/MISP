@@ -306,11 +306,6 @@ if (!empty($me)) {
                     'html' => '<i class="fas fa-server fa-fw"></i> ' . __('Servers & Feeds'),
                     'children' => array(
                         array(
-                            'html' => '<i class="fas fa-sync fa-fw"></i> ' . __('Create Sync Config'),
-                            'url' => $baseurl . '/servers/createSync',
-                            'requirement' => $isAclSync && !$isSiteAdmin
-                        ),
-                        array(
                             'html' => '<i class="fas fa-server fa-fw"></i> ' . __('Remote Servers'),
                             'url' => $baseurl . '/servers/index',
                             'requirement' => $this->Acl->canAccess('servers', 'index'),

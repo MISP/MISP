@@ -39,7 +39,6 @@ class NavbarHelper extends AppHelper {
         'regexp'                   => 'datamodels',
         'correlation_exclusions'   => 'datamodels',
         // Sync
-        'syncconfigs'            => 'sync',
         'feeds'                  => 'sync',
         'sharinggroups'          => 'sync',
         'sharinggroupblueprints' => 'sync',
@@ -452,14 +451,6 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Servers & Feeds'),
                 'icon' => 'fas fa-server',
                 'children' => [
-                    [
-                        'label' => __('Create Sync Config'),
-                        'url' => $baseurl . '/servers/createSync',
-                        'controller' => 'servers',
-                        'action' => 'createSync',
-                        'requirement' => $isAclSync && !$isSiteAdmin,
-                        'icon' => 'fas fa-rotate'
-                    ],
                     [
                         'label' => __('Remote Servers'),
                         'url' => $baseurl . '/servers/index',

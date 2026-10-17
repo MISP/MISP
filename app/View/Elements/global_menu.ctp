@@ -355,11 +355,6 @@ if (!empty($me)) {
             'requirement' =>  $isAclSync || $isAdmin || $hostOrgUser,
             'children' => array(
                 array(
-                    'text' => __('Create Sync Config'),
-                    'url' => $baseurl . '/servers/createSync',
-                    'requirement' => $isAclSync && !$isSiteAdmin
-                ),
-                array(
                     'text' => __('Remote Servers'),
                     'url' => $baseurl . '/servers/index',
                     'requirement' => $this->Acl->canAccess('servers', 'index'),

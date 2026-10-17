@@ -762,18 +762,6 @@ $divider = '<li class="divider"></li>';
                     break;
 
                 case 'sync':
-                    if ($me['Role']['perm_sync']) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/servers/createSync',
-                            'text' => __('Create Sync Config')
-                        ));
-                    }
-                    if ($menuItem === 'import' && ($me['Role']['perm_site_admin'])) {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'url' => $baseurl . '/servers/import',
-                            'text' => __('Import Server Settings')
-                        ));
-                    }
                     if ($menuItem === 'previewEvent' && ($isSiteAdmin || $hostOrg)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => sprintf(
