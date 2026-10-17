@@ -382,6 +382,31 @@ class TablePreflightTest extends TestCase
         );
     }
 
+    public function testRowsSharingAnIdentifierAreToldToKeepOne()
+    {
+        $target = self::TAGS;
+        $target['columns']['uuid'] = array('type' => 'string', 'length' => 40, 'null' => false, 'collate' => Collation::ASCII);
+        $target['indexes']['uuid'] = array('column' => array('uuid'), 'unique' => true);
+        $target['indexes']['org_uuid'] = array('column' => array('org_id', 'uuid'), 'unique' => true);
+        $live = TableConvergerTest::mysqlLive($target);
+        unset($live['indexes']['name'], $live['indexes']['uuid'], $live['indexes']['org_uuid']);
+        $inspector = $this->mysqlInspector('tags', $live);
+        $inspector->probes = array(
+            '/GROUP BY `name`/' => array(array('k0' => 'tlp:red', 'n' => '2', 'ids' => '5, 8')),
+            '/GROUP BY `uuid`/' => array(array('k0' => 'c99c4e4e-0000-4000-8000-000000000001', 'n' => '2', 'ids' => '3, 4')),
+            '/GROUP BY `org_id`, `uuid`/' => array(array('k0' => '1', 'k1' => 'c99c4e4e-0000-4000-8000-000000000001', 'n' => '2', 'ids' => '3, 4')),
+        );
+        $checked = TableConverger::preflight($inspector, 'tags', $target);
+        $this->assertSame(
+            array(
+                'tags: the run adds the unique key name, and rows share a value of it: "tlp:red" in rows id 5, 8. Merge or rename those rows, then run the update again.',
+                'tags: the run adds the unique key uuid, and rows share a value of it: "c99c4e4e-0000-4000-8000-000000000001" in rows id 3, 4. Those rows stand for the same thing: keep one of them and delete the others, then run the update again.',
+                'tags: the run adds the unique key org_uuid, and rows share a value of it: ("1", "c99c4e4e-0000-4000-8000-000000000001") in rows id 3, 4. Those rows stand for the same thing: keep one of them and delete the others, then run the update again.',
+            ),
+            $checked['defer']
+        );
+    }
+
     /**
      * A column the run adds holds one value in every row, so a unique key
      * over it alone holds only for a table of one row.
