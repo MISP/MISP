@@ -91,9 +91,6 @@ $confirmations[$uid . '-cull'] = array(
         <a href="<?= h($baseurl . '/servers/ondemandAction/') ?>" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-bolt me-1"></i><?= __('On-demand actions') ?>
         </a>
-        <a href="<?= h($baseurl . '/events/restoreDeletedEvents') ?>" class="btn btn-sm btn-outline-secondary">
-            <i class="fas fa-trash-arrow-up me-1"></i><?= __('Recover deleted events') ?>
-        </a>
     </div>
     </div>
 </div>

@@ -361,7 +361,7 @@ class ServerHealthProbes
         if (empty($data['worker_array'])) {
             return self::make(3, __('Background jobs disabled'));
         }
-        if (Configure::read('SimpleBackgroundJobs.enabled') && empty($data['worker_array']['supervisord_status'])) {
+        if (empty($data['worker_array']['supervisord_status'])) {
             return self::make(0, __('Supervisor unreachable'));
         }
         list($queues, $down) = self::queueState($data['worker_array']);

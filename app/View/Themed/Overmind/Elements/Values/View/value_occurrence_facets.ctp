@@ -210,7 +210,7 @@ $hasState = !empty($groups['state']) || !empty($facets['deleted']);
          * — and the group used to sit ninth, under eight lists that a
          * long tag or galaxy tail can push a screen apart.
          *
-         * One control because the three dates are alternatives, not
+         * One control because the dates are alternatives, not
          * conjuncts. `timestamp` is when somebody last touched the
          * attribute, `publish_timestamp` when its event was last
          * released, `Event.timestamp` when the event itself last moved;
@@ -243,6 +243,22 @@ $hasState = !empty($groups['state']) || !empty($facets['deleted']);
                 'absent' => __('No occurrence here carries a'
                     . ' modification time.'),
                 'note' => null,
+            ),
+            array(
+                'key' => 'created',
+                'label' => __('Attribute created'),
+                'absent' => __('No occurrence here carries a creation'
+                    . ' time. Those added before MISP 3.0 have none.'),
+                'note' => empty($facets['created_unset'])
+                    ? null
+                    : sprintf(
+                        __(
+                            '%d occurrences were added before MISP 3.0'
+                            . ' and carry no creation time, and a date'
+                            . ' cut here removes them.'
+                        ),
+                        $facets['created_unset']
+                    ),
             ),
             array(
                 'key' => 'published',

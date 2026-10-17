@@ -141,10 +141,32 @@ class MispObject extends AppModel
 
     private $__objectDuplicationCheckCache = [];
 
+    /** @var bool|null Cached result of checking if 'idx_event_deleted_name' exists on objects table */
+    private static $hasLiveObjectIndex = null;
+
     public function __construct($id = false, $table = null, $ds = null) {
         parent::__construct();
         $this->schema();
         $this->_schema['distribution']['default'] = Configure::read('MISP.default_object_distribution') ?? 5;
+    }
+
+    /**
+     * The index to pin a read of some events' live objects to: (event_id,
+     * deleted, name) once its migration has run; null before, so no hint
+     * names an index the table may not have (the 3.0 schema has none called
+     * event_id), and null on a driver without index hints.
+     *
+     * @return string|null
+     */
+    public function liveObjectIndex()
+    {
+        if (!$this->checkDbSupport('indexHints')) {
+            return null;
+        }
+        if (self::$hasLiveObjectIndex === null) {
+            self::$hasLiveObjectIndex = $this->getSchemaInspector()->hasNamedIndex('objects', 'idx_event_deleted_name');
+        }
+        return self::$hasLiveObjectIndex ? 'idx_event_deleted_name' : null;
     }
 
     public function buildFilterConditions(&$params)
@@ -1129,29 +1151,6 @@ class MispObject extends AppModel
             }
             $params['contain'] = array_merge_recursive($params['contain'], $tempOptions['contain']);
         }
-        if (
-            empty($options['metadata']) &&
-            Configure::read('MISP.proposals_block_attributes') &&
-            isset($options['conditions']['AND']['Attribute.to_ids']) &&
-            $options['conditions']['AND']['Attribute.to_ids'] == 1
-        ) {
-            $this->Attribute->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
-            $proposalRestriction =  array(
-                    'ShadowAttribute' => array(
-                            'conditions' => array(
-                                    'AND' => array(
-                                            'ShadowAttribute.deleted' => 0,
-                                            'OR' => array(
-                                                    'ShadowAttribute.proposal_to_delete' => 1,
-                                                    'ShadowAttribute.to_ids' => 0
-                                            )
-                                    )
-                            ),
-                            'fields' => array('ShadowAttribute.id')
-                    )
-            );
-            $params['contain'] = array_merge($params['contain']['Attribute'], $proposalRestriction);
-        }
         if (isset($options['conditions'])) {
             $params['conditions']['AND'][] = $options['conditions'];
         }
@@ -1185,20 +1184,12 @@ class MispObject extends AppModel
                 $results[$key]['Object']['event_uuid'] = $object['Event']['uuid'];
             }
         }
-        $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
         if (empty($options['metadata'])) {
             foreach ($results as $key => $object) {
                 foreach ($object['Attribute'] as $key2 => $attribute) {
-                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute['Attribute'])) {
-                        unset($results[$key][$key2]);
+                    if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttribute($attribute)) {
+                        unset($results[$key]['Attribute'][$key2]);
                         continue;
-                    }
-                    if ($proposals_block_attributes) {
-                        if (!empty($attribute['ShadowAttribute'])) {
-                            unset($results[$key][$key2]);
-                        } else {
-                            unset($results[$key][$key2]['ShadowAttribute']);
-                        }
                     }
                     if ($options['withAttachments']) {
                         if ($this->Attribute->typeIsAttachment($attribute['type'])) {
@@ -1207,6 +1198,7 @@ class MispObject extends AppModel
                         }
                     }
                 }
+                $results[$key]['Attribute'] = array_values($results[$key]['Attribute']);
             }
         }
         return $results;
@@ -2195,7 +2187,15 @@ class MispObject extends AppModel
                 if (!empty($sightings)) {
                     $created_attribute['Sighting'] = $sightings;
                 }
-                $saved_attribute = $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object_id);
+                // The copy is the same record, so it keeps the original's creation time.
+                $this->Attribute->carryCreated = isset($existing_attribute['Attribute']['created'])
+                    ? (int)$existing_attribute['Attribute']['created']
+                    : null;
+                try {
+                    $saved_attribute = $this->Attribute->captureAttribute($created_attribute, $event_id, $user, $saved_object_id);
+                } finally {
+                    $this->Attribute->carryCreated = null;
+                }
                 if (!empty($saved_attribute)) {
                     $new_id = $this->Attribute->id;
                     $this->loadAttachmentTool()->changeID($saved_attribute['event_id'], $original_id, $new_id);
@@ -2398,6 +2398,16 @@ class MispObject extends AppModel
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
         $conditions = $this->buildFilterConditions($filters);
+        // Same rules as fetchAttributes(); fetchObjects() itself keeps
+        // returning soft-deleted objects to its other callers
+        if (isset($filters['deleted']) && $filters['deleted'] === 'only') {
+            $conditions['AND'][] = ['Object.deleted' => 1];
+            if (!$user['Role']['perm_sync']) {
+                $conditions['AND'][] = ['Event.org_id' => $user['org_id']];
+            }
+        } elseif (!$user['Role']['perm_sync'] || empty($filters['deleted'])) {
+            $conditions['AND'][] = ['Object.deleted' => 0];
+        }
         $params = array(
             'conditions' => $conditions,
             'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Object.*'),
@@ -2405,10 +2415,7 @@ class MispObject extends AppModel
             'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
             'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
             'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
-            'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
-            'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0,
             'includeWarninglistHits' => !empty($filters['includeWarninglistHits']) ? $filters['includeWarninglistHits'] : 0,
-            'includeContext' => !empty($filters['includeContext']) ? $filters['includeContext'] : 0,
             'includeSightings' => !empty($filters['includeSightings']) ? $filters['includeSightings'] : 0,
             'includeSightingdb' => !empty($filters['includeSightingdb']) ? $filters['includeSightingdb'] : 0,
             'includeCorrelations' => !empty($filters['includeCorrelations']) ? $filters['includeCorrelations'] : 0,
@@ -2417,9 +2424,6 @@ class MispObject extends AppModel
             'allow_proposal_blocking' => !empty($filters['allow_proposal_blocking']) ? $filters['allow_proposal_blocking'] : 0,
             'metadata' => !empty($filters['metadata']) ? $filters['metadata'] : 0,
         );
-        if (!empty($filters['attackGalaxy'])) {
-            $params['attackGalaxy'] = $filters['attackGalaxy'];
-        }
         if (isset($filters['include_event_uuid'])) {
             $params['includeEventUuid'] = $filters['include_event_uuid'];
         }
@@ -2501,7 +2505,7 @@ class MispObject extends AppModel
         $continue = true;
         while ($continue) {
             $temp = '';
-            $results = $this->fetchObjects($user, $params, $continue);
+            $results = $this->fetchObjects($user, $params);
             if (empty($results)) {
                 $loop = false;
                 return true;
@@ -2527,7 +2531,7 @@ class MispObject extends AppModel
                 }
                 $i++;
             }
-            if (!$loop) {
+            if (!$loop || count($results) < $params['limit']) {
                 $continue = false;
             }
             $tmpfile->write($temp);

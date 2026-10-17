@@ -1,21 +1,30 @@
 <?php
 
 App::uses('AbstractMigration', 'Migration');
-App::uses('CorrelationRemapTool', 'Tools');
+App::uses('TableConverger', 'Migration');
+require_once __DIR__ . '/Migration_20261016_180202_schema_v3_default_correlations.php';
+require_once __DIR__ . '/Migration_20261016_180203_schema_v3_no_acl_correlations.php';
 
 /**
- * Key correlations by attribute value group; cake AttributeValue remapCorrelations moves the existing rows
+ * Key correlations by attribute value group, the tables emptied for the recorrelation after the upgrade
  */
 class Migration_20261009_074646_value_group_correlations extends AbstractMigration
 {
-    public $description = 'Key correlations by attribute value group; cake AttributeValue remapCorrelations moves the existing rows';
+    public $description = 'Key correlations by attribute value group, the tables emptied for the recorrelation after the upgrade';
 
     public $requiresLogout = false;
 
+    const TARGETS = array(
+        'default_correlations' => Migration_20261016_180202_schema_v3_default_correlations::TARGET,
+        'no_acl_correlations' => Migration_20261016_180203_schema_v3_no_acl_correlations::TARGET,
+    );
+
     /**
-     * correlation_values and the over-correlation text key stay until the
-     * remap has read them; the gated text drop removes them. Guarded, so a
-     * retry after a partial failure declares only what is still missing.
+     * Both are emptied and created at their 3.0 targets, keyed by value
+     * group from the start, so the remap finds nothing to rewrite and the
+     * full recorrelation after the upgrade refills them. correlation_values
+     * stays until the gated text drop removes it. A table already at its
+     * target is left alone, so a retry declares only what is left.
      *
      * @param SchemaBuilder $schema
      * @return void
@@ -23,30 +32,8 @@ class Migration_20261009_074646_value_group_correlations extends AbstractMigrati
     public function up(SchemaBuilder $schema)
     {
         $inspector = $this->inspector();
-        foreach (CorrelationRemapTool::TABLES as $table) {
-            $column = $inspector->columns($table);
-            if (isset($column['value_id']) && $column['value_id']['type'] !== 'biginteger') {
-                $schema->table($table)->changeColumn('value_id', 'biginteger', array(
-                    'unsigned' => true,
-                    'null' => false,
-                    'default' => null,
-                ));
-            }
+        foreach (self::TARGETS as $table => $target) {
+            TableConverger::recreate($inspector, $schema, $table, $target, TableConverger::session($inspector));
         }
-    }
-
-    /**
-     * The rows the tables hold now are the ones the remap rewrites; rows
-     * written from here on are keyed by value group already.
-     *
-     * @return bool
-     */
-    public function afterUp()
-    {
-        $tool = new CorrelationRemapTool(ClassRegistry::init('AttributeValue'));
-        foreach (CorrelationRemapTool::TABLES as $table) {
-            $tool->recordBound($table);
-        }
-        return true;
     }
 }

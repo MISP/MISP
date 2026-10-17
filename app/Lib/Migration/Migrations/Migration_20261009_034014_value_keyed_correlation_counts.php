@@ -1,6 +1,9 @@
 <?php
 
 App::uses('AbstractMigration', 'Migration');
+App::uses('TableConverger', 'Migration');
+require_once __DIR__ . '/Migration_20261016_180204_schema_v3_over_correlating_values.php';
+require_once __DIR__ . '/Migration_20261016_180332_schema_v3_attr_value_counts.php';
 
 /**
  * Key over_correlating_values and attr_value_counts by attribute value id
@@ -11,12 +14,16 @@ class Migration_20261009_034014_value_keyed_correlation_counts extends AbstractM
 
     public $requiresLogout = false;
 
+    const TARGETS = array(
+        'over_correlating_values' => Migration_20261016_180204_schema_v3_over_correlating_values::TARGET,
+        'attr_value_counts' => Migration_20261016_180332_schema_v3_attr_value_counts::TARGET,
+    );
+
     /**
-     * over_correlating_values keeps its text key beside the id for now: the
-     * Default and NoAcl engines still compare it with correlation_values.
-     * attr_value_counts is a cache the OnDemand top list regenerates, so it
-     * is recreated empty in its new shape. Guarded, so a retry after a
-     * partial failure declares only what is still missing.
+     * Both are emptied and created at their 3.0 targets: the full
+     * recorrelation after the upgrade refills over_correlating_values, and
+     * the OnDemand top list regenerates attr_value_counts. A table already
+     * at its target is left alone, so a retry declares only what is left.
      *
      * @param SchemaBuilder $schema
      * @return void
@@ -24,50 +31,19 @@ class Migration_20261009_034014_value_keyed_correlation_counts extends AbstractM
     public function up(SchemaBuilder $schema)
     {
         $inspector = $this->inspector();
-        $overCorrelating = $schema->table('over_correlating_values');
-        if (!$inspector->hasColumn('over_correlating_values', 'value_id')) {
-            $overCorrelating->addColumn('value_id', 'biginteger', array(
-                'unsigned' => true,
-                'null' => true,
-                'default' => null,
-                'after' => 'id',
-            ));
+        foreach (self::TARGETS as $table => $target) {
+            TableConverger::recreate($inspector, $schema, $table, $target, TableConverger::session($inspector));
         }
-        if (!$inspector->hasIndex('over_correlating_values', 'value_id', true)) {
-            $overCorrelating->addIndex('value_id', array('unique' => true));
-        }
-
-        if ($inspector->hasTable('attr_value_counts')) {
-            if ($inspector->hasColumn('attr_value_counts', 'value_id')) {
-                return;
-            }
-            $schema->dropTable('attr_value_counts');
-        }
-        $schema->createTable('attr_value_counts', array(
-            'id' => array('type' => 'biginteger', 'key' => 'primary', 'unsigned' => true, 'null' => false),
-            'value_id' => array('type' => 'biginteger', 'unsigned' => true, 'null' => false),
-            'cnt_v1' => array('type' => 'biginteger', 'unsigned' => true, 'null' => false, 'default' => 0),
-            'cnt_v2' => array('type' => 'biginteger', 'unsigned' => true, 'null' => false, 'default' => 0),
-        ), array(
-            'indexes' => array(
-                'value_id' => array('unique' => true),
-            ),
-            'engine' => 'InnoDB',
-            'charset' => 'utf8mb4',
-        ));
     }
 
     /**
-     * A stored over-correlating value the dictionary does not hold yet keeps
-     * a null id until a later remap finds it.
+     * The remap step runUpgrade runs next reads the table through the model.
      *
      * @return bool
      */
     public function afterUp()
     {
-        $OverCorrelatingValue = ClassRegistry::init('OverCorrelatingValue');
-        $OverCorrelatingValue->schema(true);
-        $OverCorrelatingValue->remapValueIds();
+        ClassRegistry::init('OverCorrelatingValue')->schema(true);
         return true;
     }
 }

@@ -1988,14 +1988,6 @@ class AttributesController extends AppController
         return [$attributes, $sightingsData];
     }
 
-    public function checkComposites()
-    {
-        if (!self::_isAdmin()) {
-            throw new NotFoundException();
-        }
-        $this->set('fails', $this->MispAttribute->checkComposites());
-    }
-
     /**
      * Lightweight AJAX endpoint used by the add/edit attribute form to give the
      * user immediate feedback on whether the entered value matches the format
@@ -2692,11 +2684,7 @@ class AttributesController extends AppController
                 if ($temp['name'] === $type) {
                     $found = true;
                     $format = isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
-                    if (isset($temp['meta']['config'])) {
-                        foreach ($temp['meta']['config'] as $conf) {
-                            $options[$conf] = Configure::read('Plugin.Enrichment_' . $type . '_' . $conf);
-                        }
-                    }
+                    $options = Module::moduleConfig($temp);
                     break;
                 }
             }

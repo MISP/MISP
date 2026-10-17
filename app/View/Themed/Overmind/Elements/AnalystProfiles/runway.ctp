@@ -74,9 +74,10 @@ $recorded = isset($runway['recorded_days'])
          */
         ?>
         <span class="ax-runway-t wb-sub"
-              title="<?= h(__('MISP records no creation date for an'
-                  . ' attribute, so with no first-seen date there is'
-                  . ' nothing to measure the real age with.')) ?>">
+              title="<?= h(__('MISP records when an attribute was'
+                  . ' written, not when it was seen, so with no'
+                  . ' first-seen date there is nothing to measure the'
+                  . ' real age with.')) ?>">
             <?= h($assumed > 0 && $recorded !== null
                 ? sprintf(
                     __n(

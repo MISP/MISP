@@ -4,7 +4,7 @@
             <?php $class_score = $dc['decayed'] ? 'alert-error' : 'alert-success'; ?>
             <?php echo(isset($uselink) && $uselink ? '<a' : '<div') ?>
                 target="_blank"
-                href="/decayingModel/decayingToolSimulation/<?php echo h($dc['DecayingModel']['id']); ?>/attribute_id:<?php echo h($object['id']); ?>"
+                href="<?= $baseurl ?>/decayingModel/decayingToolSimulation/<?php echo h($dc['DecayingModel']['id']); ?>/attribute_id:<?php echo h($object['id']); ?>"
                 style="display: block; margin-bottom: 3px;"
                 class="input-prepend input-append"
             >

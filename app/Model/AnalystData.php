@@ -201,10 +201,12 @@ class AnalystData extends AppModel
             $v[$this->alias]['note_type'] = $this->current_type_id;
             $v[$this->alias]['note_type_name'] = $this->current_type;
             $v = $this->rearrangeOrganisation($v);
-            $v = $this->rearrangeSharingGroup($v, $this->current_user);
+            // Without a user (CLI or a job that set no CurrentUserId), nothing user-dependent is attached
+            $user = empty($this->current_user) ? null : $this->current_user;
+            $v = $this->rearrangeSharingGroup($v, $user);
 
-            $v[$this->alias]['_canEdit'] = $this->canEditAnalystData($this->current_user, $v, $this->alias);
-            if (!empty($this->fetchRecursive) && !empty($v[$this->alias]['uuid'])) {
+            $v[$this->alias]['_canEdit'] = $user !== null && $this->canEditAnalystData($user, $v, $this->alias);
+            if ($user !== null && !empty($this->fetchRecursive) && !empty($v[$this->alias]['uuid'])) {
                 $this->Note = ClassRegistry::init('Note');
                 $this->Opinion = ClassRegistry::init('Opinion');
                 $this->Note->fetchRecursive = false;
@@ -482,11 +484,11 @@ class AnalystData extends AppModel
         return $analystData;
     }
 
-    private function rearrangeSharingGroup(array $analystData, array $user): array
+    private function rearrangeSharingGroup(array $analystData, ?array $user): array
     {
         if (isset($analystData[$this->alias]['distribution'])) {
             if ($analystData[$this->alias]['distribution'] == 4) {
-                if (!isset($analystData['SharingGroup'])) {
+                if (!isset($analystData['SharingGroup']) && $user !== null) {
                     $this->SharingGroup = ClassRegistry::init('SharingGroup');
                     $sg = $this->SharingGroup->fetchSG($analystData[$this->alias]['sharing_group_id'], $user, true);
                     if (!empty($sg)) {

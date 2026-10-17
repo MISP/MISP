@@ -56,7 +56,7 @@ class RestResponseComponent extends Component
                 'operationId' => 'restSearchAttributes',
                 'method' => 'POST',
                 'mandatory' => array('returnFormat'),
-                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'sharinggroup', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
+                'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'sharinggroup', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen', 'attribute_created'),
                 'params' => array()
             ),
             'addTag' => array(
@@ -1299,6 +1299,13 @@ class RestResponseComponent extends Component
                 'operators' => array('equal', 'not_equal'),
                 'validation' => array('min' => 0, 'step' => 1),
                 'help' => __('The timestamp at which the attribute was last modified')
+            ),
+            'attribute_created' => array(
+                'input' => 'number',
+                'type' => 'integer',
+                'operators' => array('equal', 'not_equal'),
+                'validation' => array('min' => 0, 'step' => 1),
+                'help' => __('When this instance created the attribute; attributes from before MISP 3.0 never match')
             ),
             'eventid' => array(
                 'input' => 'number',

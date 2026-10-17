@@ -45,11 +45,10 @@ class ServerSettingGroups
             array(
                 'id' => 'jobs',
                 'title' => 'Background processing',
-                'description' => 'Whether jobs run in the background, and how long their history is kept',
+                'description' => 'How long the history of background jobs is kept',
                 'icon' => 'gears',
                 'accent' => '#198754',
                 'settings' => array(
-                    'SimpleBackgroundJobs.enabled',
                     'SimpleBackgroundJobs.max_job_history_ttl',
                 ),
             ),
@@ -372,7 +371,6 @@ class ServerSettingGroups
                     'MISP.disable_sighting_loading',
                     'MISP.disable_event_locks',
                     'MISP.enable_automatic_garbage_collection',
-                    'MISP.disable_cached_exports',
                     'MISP.deadlock_avoidance',
                     'MISP.updateTimeThreshold',
                     'MISP.default_restsearch_limit',

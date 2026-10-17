@@ -34,53 +34,6 @@ class Job extends AppModel
         $this->data['Job']['date_modified'] = $date;
     }
 
-    public function cache($type, $user)
-    {
-        $jobId = $this->createJob(
-            $user,
-            Job::WORKER_CACHE,
-            'cache_' . $type,
-            $user['Role']['perm_site_admin'] ? 'All events.' : 'Events visible to: ' . $user['Organisation']['name'],
-            'Fetching events.'
-        );
-
-        $this->Event = ClassRegistry::init('Event');
-
-        if (in_array($type, array_keys($this->Event->exportTypes())) && $type !== 'bro') {
-
-            $this->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::CACHE_QUEUE,
-                BackgroundJobsTool::CMD_EVENT,
-                [
-                    'cache',
-                    $user['id'],
-                    $jobId,
-                    $type
-                ],
-                true,
-                $jobId
-            );
-        } elseif ($type === 'bro') {
-
-            $this->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::CACHE_QUEUE,
-                BackgroundJobsTool::CMD_EVENT,
-                [
-                    'cachebro',
-                    $user['id'],
-                    $jobId,
-                    $type
-                ],
-                true,
-                $jobId
-            );
-        } else {
-            throw new MethodNotAllowedException('Invalid export type.');
-        }
-
-        return $jobId;
-    }
-
     /**
      * @param array|string $user
      * @param string $worker

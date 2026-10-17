@@ -193,13 +193,12 @@ class ValuesController extends AppController
     /**
      * Render under the theme the panels live in, whoever is asking.
      *
-     * `AppController` sets a theme only for a non-REST request, and
-     * only when `MISP.enable_themes` is on and a theme resolves — so an
-     * instance with themes disabled reaches `render()` with none, and
-     * every panel throws `MissingViewException` exactly as the REST
-     * path did. This page has one implementation and it is under
-     * `Overmind`, so naming it here is a statement of where the files
-     * are rather than a preference overriding the reader's.
+     * `AppController` sets a theme only for a non-REST request, so a
+     * REST call reaches `render()` with none, and every panel would
+     * throw `MissingViewException`. This page has one implementation
+     * and it is under `Overmind`, so naming it here is a statement of
+     * where the files are rather than a preference overriding the
+     * reader's.
      *
      * A theme the user did choose is left alone **only if it carries
      * these views**. It is a floor, not a ceiling — but the first
@@ -744,11 +743,6 @@ class ValuesController extends AppController
      */
     private function __valuePage($b64value)
     {
-        if (!Configure::read('MISP.enable_themes')) {
-            throw new ForbiddenException(
-                'You do not have permission to use this functionality.'
-            );
-        }
         /*
          * The frame, live since phase 29 — the banner's type and
          * warninglist chips, the `value2` note, the fact strip and the

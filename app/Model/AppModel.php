@@ -433,7 +433,11 @@ class AppModel extends Model
         return false;
     }
 
-    public function runUpdates($verbose = false, $useWorker = true, $processId = false, $avoidSilentFail = false, $retryDeferred = false)
+    /**
+     * @param string|null $stopBefore An update to stop in front of, leaving it
+     *   and everything after it pending; Admin runUpgrade runs steps in between.
+     */
+    public function runUpdates($verbose = false, $useWorker = true, $processId = false, $avoidSilentFail = false, $retryDeferred = false, $stopBefore = null)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->Job = ClassRegistry::init('Job');
@@ -571,6 +575,9 @@ class AppModel extends Model
                 $deferred = false;
                 $migrationManager = $this->getMigrationManager();
                 foreach ($updates as $update => $temp) {
+                    if ($stopBefore !== null && $update === $stopBefore) {
+                        break;
+                    }
                     if ($verbose) {
                         echo str_pad('Executing ' . $update, 30, '.');
                     }
@@ -898,6 +905,15 @@ class AppModel extends Model
     }
 
     /**
+     * @return array What runUpdates() would apply now, in its order.
+     */
+    public function pendingUpdates()
+    {
+        $version = ClassRegistry::init('AdminSetting')->getSetting('db_version');
+        return $this->findUpgrades($version === false ? '0' : $version);
+    }
+
+    /**
      * Everything runUpdates() still has to apply, in the order it must apply it.
      *
      * Two sources, one map. The legacy corpus is frozen at DB_CHANGES_FREEZE and
@@ -1053,13 +1069,7 @@ class AppModel extends Model
         if (!self::$loadedBackgroundJobsTool) {
             App::uses('BackgroundJobsTool', 'Tools');
 
-            // TODO: remove after CakeResque is deprecated
-            $settings = ['enabled' => false];
-            if (Configure::read('SimpleBackgroundJobs.enabled')) {
-                $settings = Configure::read('SimpleBackgroundJobs');
-            }
-
-            $backgroundJobsTool = new BackgroundJobsTool($settings);
+            $backgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs') ?: []);
             self::$loadedBackgroundJobsTool = $backgroundJobsTool;
         }
         return self::$loadedBackgroundJobsTool;

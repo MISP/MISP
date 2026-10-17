@@ -265,16 +265,6 @@ class Tag extends AppModel
         return $this->find('all', array('conditions' => $conditions, 'recursive' => -1));
     }
 
-    /**
-     * @param array $accept
-     * @param array $reject
-     * @deprecated Use EventTag::fetchEventTagIds instead
-     */
-    public function fetchEventTagIds($accept, $reject)
-    {
-        $this->EventTag->fetchEventTagIds($accept, $reject);
-    }
-
     // find all of the tag Ids that belong to the accepted tags and the rejected tags
     public function fetchTagIdsSimple($tags = array())
     {

@@ -129,7 +129,7 @@ echo $this->element('/genericElements/IndexTable/index_table', [
                 'data_path' => 'Organisation.user_count',
             ],
             [
-                'name' => __('Restrictions'),
+                'name' => __('Email restrictions'),
                 'sort' => 'restricted_to_domain',
                 'data_path' => 'Organisation.restricted_to_domain',
                 'array_implode_glue' => "\n",

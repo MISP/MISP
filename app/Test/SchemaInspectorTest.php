@@ -255,6 +255,19 @@ class SchemaInspectorTest extends TestCase
         $this->assertFalse($this->inspector->hasNamedIndex('events', 'idx_events_lookup'));
     }
 
+    public function testAFulltextIndexIsReportedAsNotUnique()
+    {
+        $this->db->tables[] = 'attribute_values';
+        $this->db->indexData['attribute_values'] = array(
+            'PRIMARY' => array('column' => 'id', 'unique' => 1),
+            'value_search' => array('column' => 'value', 'type' => 'fulltext'),
+        );
+        $indexes = $this->inspector->indexes('attribute_values');
+        $this->assertSame(0, $indexes['value_search']['unique']);
+        $this->assertTrue($this->inspector->hasIndex('attribute_values', 'value', false));
+        $this->assertFalse($this->inspector->hasIndex('attribute_values', 'value', true));
+    }
+
     public function testIndexesOfAMissingTableAreEmpty()
     {
         $this->assertSame(array(), $this->inspector->indexes('collections'));
@@ -546,6 +559,23 @@ class SchemaInspectorTest extends TestCase
         )));
         $this->assertSame(array('shared_buffers' => '16384'), $pgsql->serverVariables());
         $this->assertStringContainsString('pg_catalog.pg_settings', $pgsql->queries[0]);
+    }
+
+    public function testDatabaseDefaultsAreReadFromTheCatalogOnMysqlOnly()
+    {
+        $mysql = $this->mysqlReader(array(array(
+            array('charset' => 'utf8mb4', 'collation' => 'utf8mb4_general_ci'),
+        )));
+        $this->assertSame(
+            array('charset' => 'utf8mb4', 'collation' => 'utf8mb4_general_ci'),
+            $mysql->databaseDefaults()
+        );
+        $this->assertStringContainsString('information_schema.SCHEMATA WHERE SCHEMA_NAME = ', $mysql->queries[0]);
+        $this->assertNull($this->mysqlReader(array(array()))->databaseDefaults());
+
+        $pgsql = $this->postgresReader();
+        $this->assertNull($pgsql->databaseDefaults());
+        $this->assertSame(array(), $pgsql->queries);
     }
 
     /**

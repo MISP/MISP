@@ -176,6 +176,37 @@ $deletedBadge = function () {
                         . ' of them are affected by the setting.'
                     ) ?>
                 </div>
+                <?php if (!empty($knowable['with_created'])): ?>
+                    <div class="vp-fact-line">
+                        <i class="fas fa-circle-plus"></i>
+                        <span>
+                            <?= h($knowable['with_created']
+                                === $knowable['occurrences']
+                                ? sprintf(
+                                    __n(
+                                        'When its occurrence was added',
+                                        'When each of %d occurrences was'
+                                        . ' added',
+                                        $knowable['occurrences']
+                                    ),
+                                    $knowable['occurrences']
+                                )
+                                : sprintf(
+                                    __('When %1$s of %2$s occurrences were'
+                                        . ' added — the rest predate'
+                                        . ' MISP 3.0'),
+                                    $knowable['with_created'],
+                                    $knowable['occurrences']
+                                )) ?>
+                            <span class="vp-fact-line-sub">
+                                <?= h(sprintf(
+                                    __('first %s'),
+                                    date('j M Y', $knowable['added'])
+                                )) ?>
+                            </span>
+                        </span>
+                    </div>
+                <?php endif; ?>
                 <div class="vp-fact-line">
                     <i class="fas fa-pencil"></i>
                     <span>

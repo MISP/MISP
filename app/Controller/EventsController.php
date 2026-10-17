@@ -6692,7 +6692,7 @@ class EventsController extends AppController
             }
         }
         if (
-            Configure::read('MISP.block_publishing_for_same_creator', false) &&
+            Configure::read('MISP.block_publishing_for_same_creator') &&
             $this->Auth->user()['id'] == $event['Event']['user_id']
         ) {
             $message = __('Could not publish the event, the publishing user cannot be the same as the event creator as per this instance\'s configuration.');
@@ -6804,133 +6804,6 @@ class EventsController extends AppController
         if ($legacy) {
             $this->render('legacy_automation');
         }
-    }
-
-    public function export()
-    {
-        $filesize_units = array('B', 'KB', 'MB', 'GB', 'TB');
-        if ($this->_isSiteAdmin()) {
-            $this->Flash->info(__('Warning, you are logged in as a site admin, any export that you generate will contain the FULL UNRESTRICTED data-set. If you would like to generate an export for your own organisation, please log in with a different user.'));
-        }
-        // Check if the background jobs are enabled - if not, fall back to old export page.
-        if (Configure::read('MISP.background_jobs') && !Configure::read('MISP.disable_cached_exports', true)) {
-            $now = time();
-
-            // as a site admin we'll use the ADMIN identifier, not to overwrite the cached files of our own org with a file that includes too much data.
-            $org_name = $this->_isSiteAdmin() ? 'ADMIN' : $this->Auth->user('Organisation')['name'];
-            $conditions = $this->Event->createEventConditions($this->Auth->user());
-            $this->Event->recursive = -1;
-            $newestEvent = $this->Event->find('first', array(
-                'conditions' => $conditions,
-                'fields' => 'timestamp',
-                'order' => 'Event.timestamp DESC',
-            ));
-            $newestEventPublished = $this->Event->find('first', array(
-                'conditions' => array('AND' => array($conditions, array('published' => 1))),
-                'fields' => 'timestamp',
-                'order' => 'Event.timestamp DESC',
-            ));
-            $this->loadModel('Job');
-            $exportTypes = $this->Event->exportTypes();
-            foreach ($exportTypes as $k => $type) {
-                if ($type['requiresPublished']) {
-                    $tempNewestEvent = $newestEventPublished;
-                } else {
-                    $tempNewestEvent = $newestEvent;
-                }
-                $job = $this->Job->find('first', array(
-                        'fields' => array('id', 'progress'),
-                        'conditions' => array(
-                                'job_type' => 'cache_' . $k,
-                                'org_id' => $this->_isSiteAdmin() ? 0 : $this->Auth->user('org_id')
-                            ),
-                        'order' => array('Job.id' => 'desc')
-                ));
-                $dir = new Folder(APP . 'tmp/cached_exports/' . $k, true);
-                if ($k === 'text') {
-                    // Since all of the text export files are generated together, we might as well just check for a single one md5.
-                    $file = new File($dir->pwd() . DS . 'misp.text_md5.' . $org_name . $type['extension']);
-                } else {
-                    $file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $org_name . $type['extension']);
-                }
-                if (!$file->readable()) {
-                    if (empty($tempNewestEvent)) {
-                        $lastModified = 'No valid events';
-                        $exportTypes[$k]['recommendation'] = 0;
-                    } else {
-                        $lastModified = 'N/A';
-                        $exportTypes[$k]['recommendation'] = 1;
-                    }
-                } else {
-                    $filesize = $file->size();
-                    $filesize_unit_index = 0;
-                    while ($filesize > 1024) {
-                        $filesize_unit_index++;
-                        $filesize = $filesize / 1024;
-                    }
-                    $exportTypes[$k]['filesize'] = round($filesize, 1) . $filesize_units[$filesize_unit_index];
-                    $fileChange = $file->lastChange();
-                    $lastModified = $this->__timeDifference($now, $fileChange);
-                    if (empty($tempNewestEvent) || $fileChange > $tempNewestEvent['Event']['timestamp']) {
-                        if (empty($tempNewestEvent)) {
-                            $lastModified = 'No valid events';
-                        }
-                        $exportTypes[$k]['recommendation'] = 0;
-                    } else {
-                        $exportTypes[$k]['recommendation'] = 1;
-                    }
-                }
-
-                $exportTypes[$k]['lastModified'] = $lastModified;
-                if (!empty($job)) {
-                    $exportTypes[$k]['job_id'] = $job['Job']['id'];
-                    $exportTypes[$k]['progress'] = $job['Job']['progress'];
-                } else {
-                    $exportTypes[$k]['job_id'] = -1;
-                    $exportTypes[$k]['progress'] = 0;
-                }
-            }
-        } else {
-            $exportTypes = [];
-        }
-
-        $this->set('sigTypes', array_keys($this->Event->Attribute->typeDefinitions));
-        $this->set('export_types', $exportTypes);
-    }
-
-    public function downloadExport($type, $extra = null)
-    {
-        if (Configure::read('MISP.disable_cached_exports', true)) {
-            throw new MethodNotAllowedException(__('This feature is currently disabled'));
-        }
-        if ($this->_isSiteAdmin()) {
-            $org = 'ADMIN';
-        } else {
-            $org = $this->Auth->user('Organisation')['name'];
-        }
-        $this->autoRender = false;
-        if ($extra != null) {
-            $extra = '_' . $extra;
-        }
-        $exportType = $this->Event->exportTypes()[$type];
-        $this->response->type($exportType['extension']);
-        $path = 'tmp/cached_exports/' . $type . DS . 'misp.' . strtolower($exportType['type']) . $extra . '.' . $org . $exportType['extension'];
-        $this->response->file($path, array('download' => true));
-    }
-
-    private function __timeDifference($now, $then)
-    {
-        $periods = array("second", "minute", "hour", "day", "week", "month", "year");
-        $lengths = array("60","60","24","7","4.35","12");
-        $difference = $now - $then;
-        for ($j = 0; $difference >= $lengths[$j] && $j < count($lengths)-1; $j++) {
-            $difference /= $lengths[$j];
-        }
-        $difference = round($difference);
-        if ($difference != 1) {
-            $periods[$j].= "s";
-        }
-        return $difference . " " . $periods[$j] . " ago";
     }
 
     public function restSearchExport($id = null, $returnFormat = null)
@@ -7784,19 +7657,6 @@ class EventsController extends AppController
             }
         }
         return $this->RestResponse->viewData(array_keys($incomingEvents), $this->response->type());
-    }
-
-    public function checkuuid($uuid)
-    {
-        if (!$this->userRole['perm_sync']) {
-            throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
-        }
-        $events = $this->Event->find('first', array(
-                'conditions' => array('Event.uuid' => $uuid),
-                'recursive' => -1,
-                'fields' => array('Event.uuid'),
-        ));
-        $this->set('result', array('result' => empty($events)));
     }
 
     public function pushProposals($uuid)
@@ -9067,11 +8927,7 @@ class EventsController extends AppController
                 if ($temp['name'] == $module) {
                     $moduleFound = true;
                     $format = !empty($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
-                    if (isset($temp['meta']['config'])) {
-                        foreach ($temp['meta']['config'] as $conf) {
-                            $options[$conf] = Configure::read('Plugin.' . $type . '_' . $module . '_' . $conf);
-                        }
-                    }
+                    $options = Module::moduleConfig($temp, $type);
                     break;
                 }
             }
@@ -9360,10 +9216,9 @@ class EventsController extends AppController
                 'module' => $module['name'],
                 'event_id' => $eventId,
             );
-            if (isset($module['meta']['config'])) {
-                foreach ($module['meta']['config'] as $conf) {
-                    $modulePayload['config'][$conf] = Configure::read('Plugin.Import_' . $moduleName . '_' . $conf);
-                }
+            $moduleConfig = Module::moduleConfig($module, 'Import');
+            if (!empty($moduleConfig)) {
+                $modulePayload['config'] = $moduleConfig;
             }
             if ($moduleName === 'csvimport') {
                 if (empty($requestData['config']['header']) && $requestData['config']['has_header'] === '1') {
@@ -10428,114 +10283,6 @@ class EventsController extends AppController
         } else {
             $this->Flash->success($message);
             $this->redirect($this->referer());
-        }
-    }
-
-    public function restoreDeletedEvents($force = false)
-    {
-        $startDate = '2020-07-31 00:00:00';
-        $this->loadModel('AdminSetting');
-        $endDate = date('Y-m-d H:i:s', $this->AdminSetting->getSetting('fix_login'));
-        if (empty($endDate)) {
-            $endDate = date('Y-m-d H:i:s', time());
-        }
-        $this->loadModel('Log');
-        $redis = $this->Event->setupRedis();
-        if ($force || ($redis && !$redis->exists('misp:event_recovery'))) {
-            $deleted_events = $this->Log->findDeletedEvents(['created BETWEEN ? AND ?' => [$startDate, $endDate]]);
-            $redis->set('misp:event_recovery', json_encode($deleted_events));
-            $redis->expire('misp:event_recovery', 600);
-        } else {
-            $deleted_events = json_decode($redis->get('misp:event_recovery'), true);
-        }
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($deleted_events, 'json');
-        } else {
-            $this->set('data', $deleted_events);
-        }
-    }
-
-    public function recoverEvent($id, $mock = false)
-    {
-        if ($mock || !Configure::read('MISP.background_jobs')) {
-            if ($this->request->is('post')) {
-                $this->loadModel('Log');
-                $result = $this->Log->recoverDeletedEvent($id, $mock);
-                if ($mock) {
-                    $message = __('Recovery simulation complete. Event #%s can be recovered using %s log entries.', $id, $result);
-                } else {
-                    $message = __('Recovery complete. Event #%s recovered, using %s log entries.', $id, $result);
-                }
-                if ($this->_isRest()) {
-                    if ($mock) {
-                        $results = $this->Log->mockLog;
-                    } else {
-                        $results = $this->Event->fetchEvent($this->Auth->user(), ['eventid' => $id]);
-                    }
-                    return $this->RestResponse->viewData($results, $this->response->type());
-                } else {
-                    $this->Flash->success($message);
-                    if (!$mock) {
-                        $this->redirect(['action' => 'restoreDeletedEvents']);
-                    }
-                }
-            } else {
-                $message = __('This action is only accessible via POST requests.');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->viewData(array('message' => $message, 'error' => true), $this->response->type());
-                } else {
-                    $this->Flash->error($message);
-                }
-                $this->redirect(['action' => 'restoreDeletedEvents']);
-            }
-            $this->set('data', $this->Log->mockLog);
-        } else {
-            if ($this->request->is('post')) {
-                $job_type = 'recover_event';
-                $function = 'recoverEvent';
-                $message = __('Bootstrapping recovering of event %s', $id);
-                $job = ClassRegistry::init('Job');
-                $job->create();
-                $data = array(
-                    'worker' => 'prio',
-                    'job_type' => $job_type,
-                    'job_input' => sprintf('Event ID: %s', $id),
-                    'status' => 0,
-                    'retries' => 0,
-                    'org_id' => 0,
-                    'org' => 'ADMIN',
-                    'message' => $message
-                );
-                $job->save($data);
-                $jobId = $job->id;
-
-                $this->Event->getBackgroundJobsTool()->enqueue(
-                    BackgroundJobsTool::PRIO_QUEUE,
-                    BackgroundJobsTool::CMD_EVENT,
-                    [
-                        $function,
-                        $jobId,
-                        $id
-                    ],
-                    true,
-                    $jobId
-                );
-
-                $message = __('Recover event job queued. Job ID: %s', $jobId);
-                if ($this->_isRest()) {
-                    return $this->RestResponse->viewData(array('message' => $message), $this->response->type());
-                } else {
-                    $this->Flash->success($message);
-                }
-            } else {
-                $message = __('This action is only accessible via POST requests.');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->viewData(array('message' => $message, 'error' => true), $this->response->type());
-                } else {
-                    $this->Flash->error($message);
-                }
-            }
-            $this->redirect(['action' => 'restoreDeletedEvents']);
         }
     }
 

@@ -19,8 +19,6 @@ class EventObjectViewsTool
     /** Subjects drawn per `each` shape. */
     const SUBJECT_CAP = 50;
 
-    const INDEX = 'idx_event_deleted_name';
-
     /** Files the map opens: template => the relation holding them. */
     const MAP_FILES = array(
         'gpx' => 'attachment',
@@ -374,19 +372,23 @@ class EventObjectViewsTool
      */
     private function objectRows(array $user, $eventId, $template)
     {
+        list(, $o, $e) = $this->overview->aliases();
+        $category = $this->Object->getDataSource()->name('meta-category');
         $rows = $this->Object->query(
-            'SELECT Object.id, Object.uuid, Object.event_id, Object.name, Object.`meta-category`,'
-            . ' Object.description, Object.comment, Object.timestamp'
-            . ' FROM objects Object ' . $this->indexHint() . ' JOIN events Event ON Event.id = Object.event_id'
-            . ' WHERE Object.event_id = ? AND Object.deleted = 0 AND Object.name = ?'
+            "SELECT $o.id, $o.uuid, $o.event_id, $o.name, $o.$category,"
+            . " $o.description, $o.comment, $o.timestamp"
+            . " FROM objects $o " . $this->indexHint() . " JOIN events $e ON $e.id = $o.event_id"
+            . " WHERE $o.event_id = ? AND $o.deleted = FALSE AND $o.name = ?"
             . ' AND ' . $this->overview->aclSql($user, 'Object')
-            . ' ORDER BY Object.id DESC LIMIT ' . self::OBJECT_CAP,
+            . " ORDER BY $o.id DESC LIMIT " . self::OBJECT_CAP,
             array($eventId, $template),
             false
         );
         $out = array();
         foreach ($rows as $row) {
-            $out[(int)$row['Object']['id']] = $row['Object'];
+            // The PostgreSQL driver files a raw query's columns under 0, not the alias
+            $object = $row['Object'] ?? $row[0];
+            $out[(int)$object['id']] = $object;
         }
         return $out;
     }
@@ -398,9 +400,8 @@ class EventObjectViewsTool
     private function indexHint()
     {
         if ($this->hint === null) {
-            $indexes = $this->Object->getDataSource()->index($this->Object);
-            $index = isset($indexes[self::INDEX]) ? self::INDEX : 'event_id';
-            $this->hint = 'FORCE INDEX (' . $index . ')';
+            $index = $this->Object->liveObjectIndex();
+            $this->hint = $index === null ? '' : 'FORCE INDEX (' . $index . ')';
         }
         return $this->hint;
     }

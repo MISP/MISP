@@ -6,7 +6,7 @@
 <?php
     endif;
 
-    if(Configure::read('SimpleBackgroundJobs.enabled') && !$worker_array['supervisord_status']):
+    if (empty($worker_array['supervisord_status'])):
     ?>
         <div style="background-color:red !important;color:white;"><b><?php echo __('Warning');?></b>: <?php echo __('MISP cannot connect to the Supervisord API, check the following settings are correct: [`supervisor_host`, `supervisor_port`, `supervisor_user`, `supervisor_password`] and restart the service. For details check the MISP error logs.');?></div>
     <?php
@@ -159,23 +159,6 @@ if ($worker_array['controls']) {
         [
             'class' => 'btn btn-primary',
             'style' => 'margin-right:5px;'
-        ]
-    );
-    echo $this->Form->postLink(
-        __('Kill all workers'),
-        $baseurl . '/servers/killAllWorkers',
-        [
-            'class' => 'btn btn-primary',
-            'style' => 'margin-right:5px;'
-        ]
-    );
-    echo $this->Form->postLink(
-        __('Force kill all workers'),
-        $baseurl . '/servers/killAllWorkers/1',
-        [
-            'class' => 'btn btn-primary',
-            'style' => 'margin-right:5px;',
-            'confirm' => __('Are you sure you want to force kill all workers? This will issue a kill -9 and terminate any processing underway.')
         ]
     );
 }

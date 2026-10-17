@@ -15,6 +15,10 @@ class Relationship extends AnalystData
     public $current_type = 'Relationship';
     public $current_type_id = 2;
 
+    // Targets resolve one level deep: a related relationship comes back without its own
+    // target, so relationships pointing at each other cannot recurse
+    private static $resolvingTarget = false;
+
     public const EDITABLE_FIELDS = [
         'relationship_type',
     ];
@@ -117,7 +121,7 @@ class Relationship extends AnalystData
         foreach ($results as $i => $v) {
             $type = $v[$this->alias]['related_object_type'] ?? null;
             $address = $v[$this->alias][self::addressColumn($type, 'related_object')] ?? null;
-            if (!empty($type) && !empty($address) && empty($results[$i][$this->alias]['related_object'])) {
+            if (!self::$resolvingTarget && !empty($this->__currentUser) && !empty($type) && !empty($address) && empty($results[$i][$this->alias]['related_object'])) {
                 $results[$i][$this->alias]['related_object'] = $this->getRelatedElement($this->__currentUser, $type, $address);
             }
         }
@@ -199,33 +203,17 @@ class Relationship extends AnalystData
                     'Galaxy' => $cluster['Galaxy'] ?? [],
                 ]];
             }
-        } else if ($type == 'Note') {
-            $this->Note = ClassRegistry::init('Note');
-            $params = [
-
-            ];
-            $backup = $this->Note->includeAnalystData;
-            $this->Note->includeAnalystData = false;
-            $data = $this->Note->fetchNote();
-            $this->Note->includeAnalystData = $backup;
-        } else if ($type == 'Opinion') {
-            $this->Opinion = ClassRegistry::init('Opinion');
-            $params = [
-
-            ];
-            $backup = $this->Opinion->includeAnalystData;
-            $this->Opinion->includeAnalystData = false;
-            $data = $this->Opinion->fetchOpinion();
-            $this->Opinion->includeAnalystData = $backup;
-        } else if ($type == 'Relationship') {
-            $this->Relationship = ClassRegistry::init('Relationship');
-            $params = [
-
-            ];
-            $backup = $this->Relationship->includeAnalystData;
-            $this->Relationship->includeAnalystData = false;
-            $data = $this->Relationship->fetchRelationship();
-            $this->Relationship->includeAnalystData = $backup;
+        } else if (in_array($type, ['Note', 'Opinion', 'Relationship'], true)) {
+            $model = ClassRegistry::init($type);
+            $fetchRecursive = $model->fetchRecursive ?? null;
+            $model->fetchRecursive = false;
+            self::$resolvingTarget = true;
+            try {
+                $data = $model->fetchSimple($user, $address);
+            } finally {
+                self::$resolvingTarget = false;
+                $model->fetchRecursive = $fetchRecursive;
+            }
         }
         return $data;
     }

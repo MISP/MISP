@@ -20,11 +20,10 @@ All endpoints:
 - Return JSON when called via REST (API key / `Accept: application/json`)
 - Return layout-free HTML fragments when called from the browser (suitable for injecting into the DOM via AJAX)
 - Enforce distribution-based ACL at the database query level
-- Require `MISP.enable_themes` to be enabled (see ACL section below)
 
 ## ACL Requirements
 
-All five endpoints are gated behind the `theming_enabled` dynamic check in `app/Controller/Component/ACLComponent.php`. This check reads `MISP.enable_themes` from the server configuration — if theming is disabled, the endpoints return a 403.
+All five endpoints are gated behind the `theming_enabled` dynamic check in `app/Controller/Component/ACLComponent.php`. Overmind is always available, so the check passes whatever `MISP.enable_themes` says; that setting only lets users pick another theme.
 
 The ACL entries are defined in the `$__aclList['events']` array:
 
@@ -40,7 +39,7 @@ The `theming_enabled` dynamic check is registered in `ACLComponent::initialize()
 
 ```php
 $this->dynamicChecks['theming_enabled'] = function (array $user) {
-    return (bool)Configure::read('MISP.enable_themes');
+    return true;
 };
 ```
 

@@ -752,7 +752,7 @@ class PivotGraphTool
         if (
             !empty($user['Role']['perm_site_admin']) ||
             $user['org_id'] == Configure::read('MISP.host_org_id') ||
-            Configure::read('MISP.show_server_correlations_for_all_users', false)
+            Configure::read('MISP.show_server_correlations_for_all_users')
         ) {
             $scopes[] = 'Server';
         }

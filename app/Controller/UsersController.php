@@ -838,7 +838,7 @@ class UsersController extends AppController
             if (!isset($this->request->data['User']['disabled'])) {
                 $this->request->data['User']['disabled'] = false;
             }
-            if (Configure::read('CustomAuth_enable') && Configure::read('CustomAuth_required')) {
+            if (Configure::read('Plugin.CustomAuth_enable') && Configure::read('Plugin.CustomAuth_required')) {
                 $this->request->data['User']['change_pw'] = 0;
             }
             if (Configure::read('MISP.disable_user_password_change')) {
@@ -1389,6 +1389,11 @@ class UsersController extends AppController
 
     public function login()
     {
+        // A header-authenticated user still reaches _postlogin() below
+        if (Configure::read('Plugin.CustomAuth_enable') && Configure::read('Plugin.CustomAuth_required') && !$this->Auth->user()) {
+            $authName = Configure::read('Plugin.CustomAuth_name') ?: __('External authentication');
+            throw new ForbiddenException(__('%s is the only way to log in to this instance. Contact your MISP support for additional information at: %s', $authName, Configure::read('MISP.contact')));
+        }
         $oldHash = false;
         if (!$this->request->is(['get'])) {
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
@@ -1765,11 +1770,6 @@ class UsersController extends AppController
         $termsFilePath = APP . 'files' . DS . 'terms' . DS . basename($termsFile);
         $this->response->file($termsFilePath, ['download' => true, 'name' => $termsFile]);
         return $this->response;
-    }
-
-    public function checkAndCorrectPgps()
-    {
-        $this->set('fails', $this->User->checkAndCorrectPgps());
     }
 
     public function admin_quickEmail($user_id)

@@ -1,7 +1,8 @@
 // The event page's Timeline tab: events/viewEventTimeline drawn with
 // MispTimeline, built the first time the tab is shown. Filters and the
 // brushed window are asked of the server, which caps what it returns.
-// Rows are placed by their seen dates or by their timestamp, the basis.
+// Rows are placed by their seen dates, their timestamp or when the attribute
+// was created, the basis.
 (function () {
     'use strict';
 
@@ -37,13 +38,32 @@
             emptyText: 'Attributes and objects appear here at the time they'
                 + ' were last modified.',
             undated: ' no modification time'
+        },
+        created: {
+            button: 'Created',
+            icon: 'fa-circle-plus',
+            title: 'Place attributes by when this instance created them',
+            item: ['item', 'items'],
+            datesHead: 'Created, UTC',
+            perBar: 'rows created per ',
+            order: 'by creation time',
+            emptyTitle: ' has a creation time',
+            emptyText: 'Attributes appear here at the time this instance'
+                + ' created them, objects with their attributes. Those'
+                + ' added before MISP 3.0 have no creation time.',
+            undated: ' no creation time'
         }
     };
 
+    // Under these bases a row is one instant.
+    function pointBasis(basis) {
+        return basis === 'timestamp' || basis === 'created';
+    }
+
     function storedBasis() {
         try {
-            return window.localStorage.getItem(BASIS_KEY) === 'timestamp'
-                ? 'timestamp' : 'seen';
+            var basis = window.localStorage.getItem(BASIS_KEY);
+            return BASES[basis] ? basis : 'seen';
         } catch (e) {
             return 'seen';
         }
@@ -171,7 +191,7 @@
     }
 
     function attrShape(a, basis) {
-        if (basis === 'timestamp') {
+        if (pointBasis(basis)) {
             return 'point';
         }
         if (a.first_seen != null && a.last_seen != null) {
@@ -181,7 +201,7 @@
     }
 
     function objShape(o, children, basis) {
-        if (basis === 'timestamp') {
+        if (pointBasis(basis)) {
             return o.end > o.start ? 'range' : 'point';
         }
         if (o.end > o.start) {
@@ -203,6 +223,9 @@
     }
 
     function ownDates(o, basis) {
+        if (basis === 'created') {
+            return null;
+        }
         if (basis === 'timestamp') {
             var ts = ms(o.timestamp);
             return ts == null ? null : { start: ts, end: ts, shape: 'point' };
@@ -432,7 +455,7 @@
         });
 
         if (!dated) {
-            var other = this.state.basis === 'seen' && this.counts.undated
+            var other = this.state.basis !== 'timestamp' && this.counts.undated
                 ? '<button type="button" class="btn btn-sm etl-empty-switch"'
                     + ' data-etl-basis="timestamp"><i class="fas '
                     + BASES.timestamp.icon + '"></i>Place them by when they'
@@ -1300,7 +1323,7 @@
         var it = r.data;
         var a;
         var b;
-        if (this.state.basis === 'timestamp') {
+        if (pointBasis(this.state.basis)) {
             var at;
             if (this.shortWindow) {
                 at = hms(r.start) + (r.end > r.start ? ' – ' + hms(r.end) : '');
@@ -1312,7 +1335,7 @@
                 return '<span class="tl-d-at">' + at + '</span>';
             }
         }
-        if (r.envelope || this.state.basis === 'timestamp') {
+        if (r.envelope || pointBasis(this.state.basis)) {
             a = r.shape === 'last' ? null : r.start;
             b = r.shape === 'first' ? null : r.end;
         } else {
@@ -1361,13 +1384,21 @@
             + '</dd><dt>Last seen</dt><dd>' + seen(it.last_seen) + '</dd>';
         var modified = '<dt>Last modified</dt><dd>' + seen(it.timestamp)
             + '</dd>';
-        var byTimestamp = this.state.basis === 'timestamp';
+        var created = r.envelope ? ''
+            : '<dt>Created</dt><dd>' + (it.created == null
+                ? '<span class="tl-d-none">before MISP 3.0</span>'
+                : full(ms(it.created)) + ' UTC') + '</dd>';
+        var basis = this.state.basis;
+        var rows = basis === 'timestamp' ? modified + seenRows + created
+            : (basis === 'created' ? created + seenRows + modified
+                : seenRows + modified + created);
         var out = '<div class="tl-tip-title">' + esc(it.label) + '</div>'
-            + '<div class="tl-tip-sub">' + sub + '</div><dl>'
-            + (byTimestamp ? modified + seenRows : seenRows + modified);
+            + '<div class="tl-tip-sub">' + sub + '</div><dl>' + rows;
         if (r.envelope) {
-            out += '<dt>' + (byTimestamp ? 'Modified, with its attributes'
-                : 'With its attributes') + '</dt><dd>' + full(r.start)
+            out += '<dt>' + ({
+                timestamp: 'Modified, with its attributes',
+                created: 'Its attributes created'
+            }[basis] || 'With its attributes') + '</dt><dd>' + full(r.start)
                 + ' → ' + full(r.end) + '</dd>';
         }
         if (this.extended && e) {

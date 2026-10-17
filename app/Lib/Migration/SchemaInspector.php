@@ -217,6 +217,10 @@ class SchemaInspector
         // spelled here the way the DSL and the MySQL driver spell it and
         // hasIndex() can find it.
         foreach ($indexes as $name => $index) {
+            // Mysql::index() leaves the flag off a FULLTEXT index.
+            if (!isset($index['unique'])) {
+                $indexes[$name]['unique'] = 0;
+            }
             if (!isset($index['column'])) {
                 continue;
             }
@@ -364,6 +368,29 @@ class SchemaInspector
             'collation' => $collation,
             'charset' => $collation === null ? null : self::charsetOfCollation($collation),
         );
+    }
+
+    /**
+     * The connected database's default charset and collation, which a table
+     * created without its own takes.
+     *
+     * @return array|null 'charset' and 'collation'; null on PostgreSQL, which
+     *   has no such default to change.
+     */
+    public function databaseDefaults()
+    {
+        if (!$this->isMysql()) {
+            return null;
+        }
+        $rows = $this->fetchRows(sprintf(
+            'SELECT DEFAULT_CHARACTER_SET_NAME AS charset, DEFAULT_COLLATION_NAME AS collation'
+                . ' FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = %s;',
+            $this->db->value($this->databaseName(), 'string')
+        ));
+        if (empty($rows) || !isset($rows[0]['collation'])) {
+            return null;
+        }
+        return array('charset' => $rows[0]['charset'], 'collation' => $rows[0]['collation']);
     }
 
     /**

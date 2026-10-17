@@ -613,10 +613,6 @@ if (!empty($me)) {
                     'requirement' => $this->Acl->canAccess('api', 'rest')
                 ),
                 array(
-                    'html' => '<i class="fas fa-file-export fa-fw"></i> ' . __('Export'),
-                    'url' => $baseurl . '/events/export'
-                ),
-                array(
                     'html' => '<i class="fas fa-robot fa-fw"></i> ' . __('Automation'),
                     'url' => $baseurl . '/events/automation',
                     'requirement' => $this->Acl->canAccess('events', 'automation'),

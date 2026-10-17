@@ -454,9 +454,9 @@ class NavbarHelper extends AppHelper {
                 'children' => [
                     [
                         'label' => __('Create Sync Config'),
-                        'url' => $baseurl . '/syncConfigs/add',
-                        'controller' => 'syncConfigs',
-                        'action' => 'add',
+                        'url' => $baseurl . '/servers/createSync',
+                        'controller' => 'servers',
+                        'action' => 'createSync',
                         'requirement' => $isAclSync && !$isSiteAdmin,
                         'icon' => 'fas fa-rotate'
                     ],
@@ -848,14 +848,6 @@ class NavbarHelper extends AppHelper {
                 'requirement' => $this->Acl->canAccess('events', 'automation'),
                 'icon' => 'fas fa-robot',
             ],
-            [
-                'type' => 'group',
-                'label' => __('Export'),
-                'url' => $baseurl . '/events/export',
-                'controller' => 'events',
-                'action' => 'export',
-                'icon' => 'fas fa-file-export',
-            ]
         ];
 
         return [
@@ -908,6 +900,7 @@ class NavbarHelper extends AppHelper {
                 'type' => 'group',
                 'label' => __('Themes'),
                 'icon' => 'fas fa-palette',
+                'requirement' => !empty($context['themesEnabled']),
                 'children' => $this->buildThemesMenu($context)
             ]
         ];
@@ -926,17 +919,8 @@ class NavbarHelper extends AppHelper {
 
         $themes = $context['themes'] ?? [];
         $theme = $context['theme'] ?? null;
-        $themesEnabled = $context['themesEnabled'] ?? false;
 
         $items = [];
-
-        if (!$themesEnabled) {
-            $items[] = [
-                'type' => 'message',
-                'label' => __('Themes are not yet enabled.'),
-                'description' => __('Contact your MISP administrator to set MISP.enable_themes to 1.')
-            ];
-        }
 
         foreach ($themes as $tObj) {
 

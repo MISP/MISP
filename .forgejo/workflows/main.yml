@@ -147,7 +147,6 @@ jobs:
           composer config --no-plugins allow-plugins.composer/installers true
           composer install --no-progress
           popd
-          cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
           echo "Custom dependencies installed"
 
 
@@ -205,7 +204,6 @@ jobs:
           chown -R www-data:www-data $WORKSPACE/.gnupg
           chmod -R 700 $WORKSPACE/.gnupg
           usermod -a -G www-data $USER
-          chmod -R 777 $WORKSPACE/app/Plugin/CakeResque/tmp/
 
           # Ensure the perms of config files
           chown -R $USER:www-data $WORKSPACE/app/Config
@@ -238,7 +236,7 @@ jobs:
       - name: DB Update
         run: |
           app/Console/cake Admin setSetting "MISP.osuser" $USER
-          app/Console/cake Admin runUpdates
+          app/Console/cake Admin runUpgrade
           app/Console/cake Admin schemaDiagnostics
           # A fresh install starts at the current schema: the legacy corpus had nothing
           # to do, and no migration is pending.
@@ -255,7 +253,7 @@ jobs:
           git fetch --depth 1 origin tag v2.5.45
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "create database misp_legacy; grant all privileges on misp_legacy.* to misp@'%';"
           git show v2.5.45:INSTALL/MYSQL.sql | mysql -h 127.0.0.1 --port 3306 -u misp -pblah misp_legacy
-          MISP_DB_NAME=misp_legacy app/Console/cake Admin runUpdates
+          MISP_DB_NAME=misp_legacy app/Console/cake Admin runUpgrade
           MISP_DB_NAME=misp_legacy app/Console/cake Admin schemaDiagnostics
           MISP_DB_NAME=misp_legacy app/Console/cake Admin migrationStatus | grep -q "Everything on disk has been applied."
           app/Console/cake Admin verifyInstallBaseline --connection legacy --database misp
@@ -293,7 +291,6 @@ jobs:
             && app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_password" "" \
             && app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" 1 \
             && app/Console/cake Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" 1 \
-            && app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" 1 \
             && app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_host" "127.0.0.1" \
             && app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_port" 6379 \
             && app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_password" "" \

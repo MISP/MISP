@@ -12,7 +12,7 @@ class OvermindPages
         'events' => array(
             'index', 'add', 'edit', 'delete', 'view', 'view1', 'view2',
             'viewLegacy',
-            'importChoice', 'automation', 'export', 'downloadExport', 'getEventInfoById',
+            'importChoice', 'automation', 'getEventInfoById',
             'freeTextImport', 'proposalEventIndex',
             'merge'
         ),
@@ -48,7 +48,7 @@ class OvermindPages
             'export_for_misp_galaxy'
         ),
         'galaxy_cluster_relations' => array('index'),
-        'objectTemplates' => array('index', 'delete', 'add', 'view'),
+        'objectTemplates' => array('index', 'delete', 'view'),
         'object_relationships' => array('index', 'delete', 'add', 'edit'),
         'event_templates' => array(
             'index', 'view', 'import', 'instantiate', 'add', 'edit',

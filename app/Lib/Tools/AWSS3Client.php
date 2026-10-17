@@ -11,7 +11,6 @@ class AWSS3Client
     private function __getSetSettings()
     {
         $settings = array(
-                'enable' => false,
                 'bucket_name' => 'my-malware-bucket',
                 'region' => 'eu-west-1',
                 'aws_access_key' => '',
@@ -22,19 +21,9 @@ class AWSS3Client
                 'aws_validate_ca' => true
         );
 
-        // We have 2 situations
-        // Either we're running on EC2 and we can assume an IAM role
-        // Or we're not and need explicitly set AWS key
-        if (strlen($settings['aws_access_key']) > 0) {
-            putenv('AWS_ACCESS_KEY_ID='.$settings['aws_access_key']);
-        }
-        if (strlen($settings['aws_secret_key']) > 0) {
-            putenv('AWS_SECRET_ACCESS_KEY='.$settings['aws_secret_key']);
-        }
-
         foreach ($settings as $key => $setting) {
             $temp = Configure::read('Plugin.S3_' . $key);
-            if ($temp) {
+            if ($temp !== null && $temp !== '') {
                 $settings[$key] = $temp;
             }
         }
@@ -61,6 +50,12 @@ class AWSS3Client
                     'secret' => $settings['aws_secret_key'],
                  ],
             );
+        } else if ($settings['aws_access_key'] !== '' && $settings['aws_secret_key'] !== '') {
+            // Without keys, the SDK's default chain applies (e.g. an EC2 IAM role)
+            $s3Config['credentials'] = [
+                'key' => $settings['aws_access_key'],
+                'secret' => $settings['aws_secret_key'],
+            ];
         }
         // This line should points to server certificate
         // Generically, this verify is set to false so that any certificate is valid

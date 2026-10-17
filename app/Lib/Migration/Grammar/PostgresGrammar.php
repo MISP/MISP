@@ -121,6 +121,16 @@ class PostgresGrammar extends AbstractGrammar
         ));
     }
 
+    /**
+     * Nothing: a database's encoding is fixed when it is created, and
+     * collations are set per column.
+     */
+    public function alterDatabase(array $options)
+    {
+        $this->databaseOptions($options);
+        return array();
+    }
+
     // ----------------------------------------------------------------- table
 
     protected function addColumnParts($table, $column, $type, array $options)
@@ -178,6 +188,9 @@ class PostgresGrammar extends AbstractGrammar
      */
     protected function addIndexParts($table, $columns, array $options)
     {
+        if (self::isMysqlOnly($options)) {
+            return array();
+        }
         $pgsql = isset($options['pgsql']) ? $options['pgsql'] : array();
         $parts = array();
         if (!empty($pgsql['extension'])) {
@@ -386,7 +399,9 @@ class PostgresGrammar extends AbstractGrammar
      * refuses a column that already is one and DROP DEFAULT refuses an
      * identity, so unguarded, a migration that stopped after this could not
      * run again. The serial's sequence is dropped so the identity's takes its
-     * name, and counting resumes after the highest id.
+     * name. Counting resumes after the serial's last value or the highest id,
+     * whichever is greater: MySQL keeps its counter through a rebuild too, and
+     * an id a deleted row had must not be handed out again.
      *
      * @param string $table
      * @param string $column
@@ -406,6 +421,7 @@ class PostgresGrammar extends AbstractGrammar
                 'DO $$',
                 'DECLARE',
                 sprintf('    serial_sequence text := %s;', $sequence),
+                '    serial_last bigint := 0;',
                 'BEGIN',
                 sprintf(
                     "    IF EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = %s::regclass AND attname = %s AND attidentity <> '') THEN",
@@ -416,11 +432,12 @@ class PostgresGrammar extends AbstractGrammar
                 '    END IF;',
                 sprintf('    ALTER TABLE %s ALTER COLUMN %s DROP DEFAULT;', $quotedTable, $quotedColumn),
                 '    IF serial_sequence IS NOT NULL THEN',
+                "        EXECUTE 'SELECT CASE WHEN is_called THEN last_value ELSE last_value - 1 END FROM ' || serial_sequence INTO serial_last;",
                 "        EXECUTE 'DROP SEQUENCE ' || serial_sequence;",
                 '    END IF;',
                 sprintf('    ALTER TABLE %s ALTER COLUMN %s ADD %s;', $quotedTable, $quotedColumn, self::IDENTITY),
                 sprintf(
-                    '    PERFORM setval(%s, COALESCE(MAX(%s), 1), MAX(%s) IS NOT NULL) FROM %s;',
+                    '    PERFORM setval(%s, GREATEST(COALESCE(MAX(%s), 0), serial_last, 1), GREATEST(COALESCE(MAX(%s), 0), serial_last) > 0) FROM %s;',
                     $sequence,
                     $quotedColumn,
                     $quotedColumn,

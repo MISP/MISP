@@ -311,6 +311,46 @@ class BaselineGeneratorTest extends TestCase
         $this->assertFalse(BaselineGenerator::needsHashRewrite($plain, $columns), 'no prefix, nothing to rewrite');
     }
 
+    /**
+     * PostgreSQL leaves out a non-unique prefix index over several columns
+     * with a text one among them: the rendering notes it, and the comparison
+     * does not ask a loaded PostgreSQL database for it.
+     */
+    public function testACompositeTextPrefixIndexIsLeftOutOnPostgres()
+    {
+        $columns = array('value1' => array('type' => 'text'), 'name' => array('type' => 'string', 'length' => 255));
+        $composite = array('column' => array('name', 'value1'), 'unique' => false, 'length' => array('value1' => 191));
+        $this->assertTrue(BaselineGenerator::isMysqlOnly($composite, $columns));
+        $unique = array_merge($composite, array('unique' => true));
+        $this->assertFalse(BaselineGenerator::isMysqlOnly($unique, $columns), 'a unique key is never left out');
+        $varchar = array('column' => array('value1', 'name'), 'unique' => false, 'length' => array('name' => 191));
+        $this->assertFalse(BaselineGenerator::isMysqlOnly($varchar, $columns), 'a varchar prefix fits a btree entry');
+        $single = array('column' => array('value1'), 'unique' => false, 'length' => array('value1' => 191));
+        $this->assertFalse(BaselineGenerator::isMysqlOnly($single, $columns), 'one text column becomes a hash index');
+
+        $schema = $this->fixtureSchema();
+        $schema['correlations']['indexes']['idx_corr_evt_value'] = array(
+            'name' => 'idx_corr_evt_value',
+            'column' => array('1_event_id', 'value1'),
+            'unique' => false,
+            'length' => array('value1' => 191),
+        );
+        $mysql = $this->generator()->render($this->mysql, $schema, array(), 159);
+        $this->assertStringContainsString('`idx_corr_evt_value` (`1_event_id`, `value1`(191))', $mysql['sql']);
+        $pgsql = $this->generator()->render($this->pgsql, $schema, array(), 159);
+        $this->assertStringNotContainsString('idx_corr_evt_value', $pgsql['sql']);
+        $this->assertContains(
+            'Index idx_corr_evt_value on correlations(1_event_id, value1) left out: a prefix over text in a composite index has no PostgreSQL equivalent.',
+            $pgsql['notes']
+        );
+
+        $inspector = new SchemaInspector(new BaselineGeneratorTestLoadedPostgres());
+        $this->assertSame(
+            $this->generator()->compare($inspector, $this->fixtureSchema()),
+            $this->generator()->compare($inspector, $schema)
+        );
+    }
+
     public function testExpressionDefaultsAreTranslatedOrRefused()
     {
         $this->assertSame('UNIX_TIMESTAMP()', BaselineGenerator::expressionDefault('unix_timestamp()', 'mysql', 't', 'c'));

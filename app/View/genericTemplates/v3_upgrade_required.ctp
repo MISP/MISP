@@ -9,21 +9,13 @@ $steps = [
         'note' => __('On PostgreSQL: %s. Replace %s with the name of your MISP database, and check that the backup restores before you go on.', '<code>pg_dump -Fc misp &gt; misp-backup.dump</code>', '<code>misp</code>'),
     ],
     [
-        'title' => __('Take MISP offline'),
-        'commands' => [$cake . ' Admin live 0'],
-    ],
-    [
         'title' => __('Review what will run'),
         'commands' => [$cake . ' Admin migrationStatus'],
     ],
     [
         'title' => __('Run the upgrade'),
-        'commands' => [$cake . ' Admin runUpdates'],
-        'note' => __('On a large instance this can take hours. Run it in a session that survives a disconnect, such as tmux or screen, and let it finish.'),
-    ],
-    [
-        'title' => __('Bring MISP back online'),
-        'commands' => [$cake . ' Admin live 1'],
+        'commands' => [$cake . ' Admin runUpgrade'],
+        'note' => __('It takes MISP offline and stops the background workers, applies every pending update, then brings both back. On a large instance this can take hours: run it in a session that survives a disconnect, such as tmux or screen. If it stops, MISP stays offline; fix the cause it reports and run it again, it carries on from there.'),
     ],
 ];
 ?>

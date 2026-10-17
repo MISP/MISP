@@ -124,7 +124,7 @@ class CorrelationsController extends AppController
     {
         $this->loadModel('Server');
         if (!isset($this->Correlation->validEngines[$engine])) {
-            throw new MethodNotAllowedException(__('Not a valid engine choice. Please make sure you pass one of the following: ', implode(', ', array_keys($this->Correlation->validEngines))));
+            throw new MethodNotAllowedException(__('Not a valid engine choice. Please make sure you pass one of the following: %s', implode(', ', array_keys($this->Correlation->validEngines))));
         }
         if ($this->request->is('post')) {
             $setting = $this->Server->getSettingData('MISP.correlation_engine');
@@ -155,7 +155,7 @@ class CorrelationsController extends AppController
     public function truncate(string $engine)
     {
         if (!isset($this->Correlation->validEngines[$engine])) {
-            throw new MethodNotAllowedException(__('Not a valid engine choice. Please make sure you pass one of the following: ', implode(', ', array_keys($this->Correlation->validEngines))));
+            throw new MethodNotAllowedException(__('Not a valid engine choice. Please make sure you pass one of the following: %s', implode(', ', array_keys($this->Correlation->validEngines))));
         }
         if ($this->request->is('post')) {
             if (!Configure::read('MISP.background_jobs')) {
@@ -237,6 +237,7 @@ class CorrelationsController extends AppController
         $includeAttributes = $extended || filter_var($this->request->query('include_attributes'), FILTER_VALIDATE_BOOLEAN);
         $includeOrgNames = $extended || filter_var($this->request->query('include_org_names'), FILTER_VALIDATE_BOOLEAN);
         $includeWarninglistHits = filter_var($this->request->query('include_warninglist_hits'), FILTER_VALIDATE_BOOLEAN);
+        $includeParentAttributes = filter_var($this->request->query('include_parent_attributes'), FILTER_VALIDATE_BOOLEAN);
         if ($includeAttributes || $includeOrgNames) {
             $attributeIds = [];
             $orgIds = [];
@@ -294,14 +295,45 @@ class CorrelationsController extends AppController
                 unset($relations, $rel);
             }
         }
-        if (!$includeWarninglistHits) {
+        if (!$includeWarninglistHits && !$includeParentAttributes) {
             return $this->RestResponse->viewData($correlations, 'json');
         }
         // Opt-in envelope - the bare map is kept for every other caller
-        return $this->RestResponse->viewData([
-            'correlations' => $correlations,
-            'warninglist_hits' => $this->__warninglistHits(array_keys($correlations)),
-        ], 'json');
+        $envelope = ['correlations' => $correlations];
+        if ($includeWarninglistHits) {
+            $envelope['warninglist_hits'] = $this->__warninglistHits(array_keys($correlations));
+        }
+        if ($includeParentAttributes) {
+            $envelope['parent_attributes'] = $this->__parentAttributes(array_keys($correlations));
+        }
+        return $this->RestResponse->viewData($envelope, 'json');
+    }
+
+    /**
+     * Type and object template of the event's own correlating attributes,
+     * keyed by attribute ID. An attribute the user cannot see is left out.
+     *
+     * @param array $attributeIds
+     * @return array
+     */
+    private function __parentAttributes(array $attributeIds)
+    {
+        if (empty($attributeIds)) {
+            return [];
+        }
+        $this->loadModel('MispAttribute');
+        $attributes = $this->MispAttribute->fetchAttributesSimple($this->Auth->user(), [
+            'conditions' => ['Attribute.id' => $attributeIds],
+            'fields' => ['Attribute.id', 'Attribute.type', 'Object.name'],
+        ]);
+        $details = [];
+        foreach ($attributes as $attribute) {
+            $details[$attribute['Attribute']['id']] = [
+                'type' => $attribute['Attribute']['type'],
+                'object' => $attribute['Object']['name'] ?? null,
+            ];
+        }
+        return $details;
     }
 
     /**

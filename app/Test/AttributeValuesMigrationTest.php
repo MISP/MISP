@@ -1,78 +1,90 @@
 <?php
 /**
- * The attribute_values collation follows the server it is rendered for, so
- * a dry run only ever shows one server's. These render all
- * of them, the PostgreSQL half, and the value table migrations' retries,
- * without a database.
+ * The attribute-values migrations that create or empty a table do so at its
+ * 3.0 target, read from the table's schema v3 migration, so that migration
+ * finds nothing left to do. The value id columns arrive in their target form
+ * and without indexes, which the schema v3 rebuild of their table builds.
+ * These render every server's version, without a database.
  */
 
-require_once __DIR__ . '/MigrationSchemaStubs.php';
-require_once APPLIBS . 'Migration/AbstractMigration.php';
+require_once __DIR__ . '/TableConvergerTest.php';
+require_once APPLIBS . 'Migration/Migrations/Migration_20260930_131928_warninglist_entries_list_value_index.php';
 require_once APPLIBS . 'Migration/Migrations/Migration_20261003_092429_create_attribute_values.php';
 require_once APPLIBS . 'Migration/Migrations/Migration_20261004_093106_create_value_ip_ranges.php';
 require_once APPLIBS . 'Migration/Migrations/Migration_20261004_093749_attribute_value_ids.php';
+require_once APPLIBS . 'Migration/Migrations/Migration_20261009_034014_value_keyed_correlation_counts.php';
+require_once APPLIBS . 'Migration/Migrations/Migration_20261009_074646_value_group_correlations.php';
+require_once APPLIBS . 'Migration/Migrations/Migration_20261013_070812_attributes_event_deleted_object.php';
+require_once APPLIBS . 'Migration/Migrations/Migration_20261013_154619_objects_event_deleted_name.php';
 
 use PHPUnit\Framework\TestCase;
-
-if (!class_exists('AttributeValuesMigrationTestInspector', false)) {
-    class AttributeValuesMigrationTestInspector extends SchemaInspector
-    {
-        /** @var array table => index name => array('column' => ..., 'unique' => ...) */
-        public $existing = array();
-
-        /** @var array table => column names */
-        public $columns = array();
-
-        public function hasTable($table)
-        {
-            return isset($this->existing[$table]);
-        }
-
-        public function hasColumn($table, $column)
-        {
-            return isset($this->columns[$table]) && in_array($column, $this->columns[$table], true);
-        }
-
-        public function indexes($table)
-        {
-            if (!isset($this->existing[$table])) {
-                return array();
-            }
-            return $this->existing[$table];
-        }
-    }
-}
 
 class AttributeValuesMigrationTest extends TestCase
 {
     const MIGRATION = 'Migration_20261003_092429_create_attribute_values';
 
-    const IP_RANGES = 'Migration_20261004_093106_create_value_ip_ranges';
-
     const VALUE_IDS = 'Migration_20261004_093749_attribute_value_ids';
 
-    const MYSQL_SEARCH_INDEX = array(
-        'SET SESSION innodb_ft_enable_stopword = 0;',
-        'ALTER TABLE `attribute_values` ADD FULLTEXT INDEX `value_search` (`value`);',
-        'SET SESSION innodb_ft_enable_stopword = DEFAULT;',
+    /** migration => the tables it creates or empties, in its order */
+    const CREATED = array(
+        'Migration_20261003_092429_create_attribute_values' => array('attribute_values'),
+        'Migration_20261004_093106_create_value_ip_ranges' => array('value_ip_ranges'),
+        'Migration_20261009_034014_value_keyed_correlation_counts' => array('over_correlating_values', 'attr_value_counts'),
+        'Migration_20261009_074646_value_group_correlations' => array('default_correlations', 'no_acl_correlations'),
+    );
+
+    /** table => the schema v3 migration holding its target */
+    const TARGETS = array(
+        'attribute_values' => 'Migration_20261016_180337_schema_v3_attribute_values',
+        'value_ip_ranges' => 'Migration_20261016_180329_schema_v3_value_ip_ranges',
+        'over_correlating_values' => 'Migration_20261016_180204_schema_v3_over_correlating_values',
+        'attr_value_counts' => 'Migration_20261016_180332_schema_v3_attr_value_counts',
+        'default_correlations' => 'Migration_20261016_180202_schema_v3_default_correlations',
+        'no_acl_correlations' => 'Migration_20261016_180203_schema_v3_no_acl_correlations',
+    );
+
+    /** Their index comes with their table's target. */
+    const INDEX_ONLY = array(
+        'Migration_20260930_131928_warninglist_entries_list_value_index',
+        'Migration_20261013_070812_attributes_event_deleted_object',
+        'Migration_20261013_154619_objects_event_deleted_name',
     );
 
     /**
-     * @param DboSource $db
-     * @param array $existing
      * @param string $class
+     * @param SchemaInspector $inspector
+     * @param DboSource $db
      * @return array
      */
-    private function render(DboSource $db, array $existing = array(), $class = self::MIGRATION, array $columns = array())
+    private function render($class, SchemaInspector $inspector, DboSource $db)
     {
-        $inspector = new AttributeValuesMigrationTestInspector($db);
-        $inspector->existing = $existing;
-        $inspector->columns = $columns;
         $migration = new $class();
         $migration->setSchemaInspector($inspector);
         $schema = new SchemaBuilder(AbstractGrammar::forDataSource($db));
         $migration->up($schema);
         return $schema->toSql();
+    }
+
+    /**
+     * @param string $version
+     * @param array $schema
+     * @return MigrationTestInspector
+     */
+    private static function mysqlInspector($version, array $schema = array())
+    {
+        $inspector = new MigrationTestInspector(SchemaInspector::FLAVOUR_MYSQL, $schema);
+        $inspector->version = $version;
+        return $inspector;
+    }
+
+    /**
+     * @param string $table
+     * @return array
+     */
+    private static function target($table)
+    {
+        $class = self::TARGETS[$table];
+        return $class::TARGET;
     }
 
     public static function supportedServers()
@@ -90,16 +102,26 @@ class AttributeValuesMigrationTest extends TestCase
      */
     public function testTheMysqlRenderingCarriesTheServersCollation($version, $collation, $key)
     {
-        $this->assertSame(array_merge(array(
+        $algorithm = stripos($version, 'mariadb') !== false
+            ? "SET SESSION alter_algorithm = 'DEFAULT';"
+            : 'SET SESSION old_alter_table = OFF;';
+        $this->assertSame(array(
+            $algorithm,
+            'SET SESSION lock_wait_timeout = 300;',
+            'SET SESSION innodb_ft_enable_stopword = 0;',
             "CREATE TABLE `attribute_values` (\n" .
-            "    `id` $key UNSIGNED NOT NULL AUTO_INCREMENT,\n" .
+            "    `id` $key NOT NULL AUTO_INCREMENT,\n" .
             "    `value` text CHARACTER SET utf8mb4 COLLATE $collation NOT NULL,\n" .
             "    `hash` varbinary(32) NOT NULL,\n" .
-            "    PRIMARY KEY (`id`),\n" .
-            "    UNIQUE INDEX `hash` (`hash`)\n" .
-            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=$collation;",
-            'ALTER TABLE `attribute_values` ADD INDEX `value` (`value`(128));',
-        ), self::MYSQL_SEARCH_INDEX), $this->render(new MigrationTestMysqlExtended($version)));
+            "    PRIMARY KEY (`id`)\n" .
+            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=$collation ROW_FORMAT=DYNAMIC;",
+            "ALTER TABLE `attribute_values`\n" .
+            "    ADD UNIQUE INDEX `hash` (`hash`),\n" .
+            "    ADD INDEX `value` (`value`(128)),\n" .
+            "    ADD FULLTEXT INDEX `value_search` (`value`);",
+            'SET SESSION innodb_ft_enable_stopword = DEFAULT;',
+            'SET SESSION lock_wait_timeout = DEFAULT;',
+        ), $this->render(self::MIGRATION, self::mysqlInspector($version), new MigrationTestMysqlExtended($version)));
     }
 
     public static function unsupportedServers()
@@ -119,21 +141,7 @@ class AttributeValuesMigrationTest extends TestCase
     {
         $this->expectException('MigrationDeferredException');
         $this->expectExceptionMessage('MISP 3.0 needs MariaDB 10.11 or later, or MySQL 8.4 or later.');
-        $this->render(new MigrationTestMysqlExtended($version));
-    }
-
-    /**
-     * Only the create carries a collation, so a retry that adds a missing
-     * index never asks which server it is on.
-     */
-    public function testARetryRendersOnAnyServer()
-    {
-        $this->assertSame(
-            self::MYSQL_SEARCH_INDEX,
-            $this->render(new MigrationTestMysqlExtended('10.5.22-MariaDB'), array(
-                'attribute_values' => self::indexes(array('PRIMARY', 'hash', 'value')),
-            ))
-        );
+        $this->render(self::MIGRATION, self::mysqlInspector($version), new MigrationTestMysqlExtended($version));
     }
 
     public function testThePostgresRendering()
@@ -149,88 +157,96 @@ class AttributeValuesMigrationTest extends TestCase
             'CREATE INDEX "idx_attribute_values_value" ON "attribute_values" (lower(left("value", 128)));',
             'CREATE EXTENSION IF NOT EXISTS pg_trgm;',
             'CREATE INDEX "idx_attribute_values_value_search" ON "attribute_values" USING gin ("value" gin_trgm_ops);',
-        ), $this->render(new MigrationTestPostgres()));
-    }
-
-    public function testARetryDeclaresOnlyWhatIsMissing()
-    {
-        $this->assertSame(
-            self::MYSQL_SEARCH_INDEX,
-            $this->render(new MigrationTestMysqlExtended(), array(
-                'attribute_values' => self::indexes(array('PRIMARY', 'hash', 'value')),
-            ))
-        );
-        $this->assertSame(array(), $this->render(new MigrationTestMysqlExtended(), array(
-            'attribute_values' => self::indexes(array('PRIMARY', 'hash', 'value', 'value_search')),
-        )));
-        $this->assertSame(array(), $this->render(new MigrationTestPostgres(), array(
-            'attribute_values' => self::indexes(array(
-                'PRIMARY',
-                'idx_attribute_values_hash',
-                'idx_attribute_values_value',
-                'idx_attribute_values_value_search',
-            )),
-        )));
+        ), $this->render(self::MIGRATION, new MigrationTestInspector(SchemaInspector::FLAVOUR_PGSQL), new MigrationTestPostgres()));
     }
 
     /**
-     * @param array $names
-     * @return array Index definitions the migrations only look up by name.
+     * Where the table is missing, each migration declares exactly the
+     * creation of its schema v3 target.
      */
-    private static function indexes(array $names)
+    public function testEachTableIsCreatedAtItsSchemaV3Target()
     {
-        return array_fill_keys($names, array('column' => 'value', 'unique' => 0));
+        $version = TableConvergerTest::MARIADB;
+        $session = TableConverger::session(self::mysqlInspector($version));
+        foreach (self::CREATED as $class => $tables) {
+            $expected = new SchemaBuilder(AbstractGrammar::forDataSource(new MigrationTestMysqlExtended($version)));
+            foreach ($tables as $table) {
+                TableConverger::converge(new MigrationTestInspector(), $expected, $table, self::target($table), $session);
+            }
+            $this->assertSame(
+                $expected->toSql(),
+                $this->render($class, self::mysqlInspector($version), new MigrationTestMysqlExtended($version)),
+                $class
+            );
+        }
     }
 
-    public function testTheIpRangesRendering()
+    /**
+     * So a retry, or a database that ran the migration once, declares nothing,
+     * and neither does the table's schema v3 migration afterwards.
+     */
+    public function testATableAtItsTargetIsLeftAlone()
     {
-        $this->assertSame(array(
-            "CREATE TABLE `value_ip_ranges` (\n" .
-            "    `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,\n" .
-            "    `value_id` bigint(20) UNSIGNED NOT NULL,\n" .
-            "    `ip_start` varbinary(16) NOT NULL,\n" .
-            "    `ip_end` varbinary(16) NOT NULL,\n" .
-            "    `prefix` tinyint(4) UNSIGNED NOT NULL,\n" .
-            "    PRIMARY KEY (`id`),\n" .
-            "    UNIQUE INDEX `value_id` (`value_id`),\n" .
-            "    INDEX `start_end` (`ip_start`, `ip_end`, `value_id`)\n" .
-            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
-        ), $this->render(new MigrationTestMysqlExtended(), array(), self::IP_RANGES));
-        $this->assertSame(array(
-            "CREATE TABLE \"value_ip_ranges\" (\n" .
-            "    \"id\" bigint GENERATED BY DEFAULT AS IDENTITY,\n" .
-            "    \"value_id\" bigint NOT NULL,\n" .
-            "    \"ip_start\" bytea NOT NULL,\n" .
-            "    \"ip_end\" bytea NOT NULL,\n" .
-            "    \"prefix\" smallint NOT NULL,\n" .
-            "    PRIMARY KEY (\"id\")\n" .
-            ");",
-            'CREATE UNIQUE INDEX "idx_value_ip_ranges_value_id" ON "value_ip_ranges" ("value_id");',
-            'CREATE INDEX "idx_value_ip_ranges_start_end" ON "value_ip_ranges" ("ip_start", "ip_end", "value_id");',
-        ), $this->render(new MigrationTestPostgres(), array(), self::IP_RANGES));
+        foreach (self::CREATED as $class => $tables) {
+            foreach (array(TableConvergerTest::MARIADB, TableConvergerTest::MYSQL) as $version) {
+                $schema = array();
+                foreach ($tables as $table) {
+                    $schema[$table] = array('definition' => TableConvergerTest::mysqlLive(self::target($table), $version));
+                }
+                $inspector = self::mysqlInspector($version, $schema);
+                $this->assertSame(array(), $this->render($class, $inspector, new MigrationTestMysqlExtended($version)), "$class on $version");
+            }
+            $schema = array();
+            foreach ($tables as $table) {
+                $schema[$table] = array('definition' => TableConvergerTest::pgsqlLive($table, self::target($table)));
+            }
+            $inspector = new MigrationTestInspector(SchemaInspector::FLAVOUR_PGSQL, $schema);
+            $this->assertSame(array(), $this->render($class, $inspector, new MigrationTestPostgres()), "$class on PostgreSQL");
+        }
     }
 
-    public function testAnIpRangesRetryDeclaresOnlyWhatIsMissing()
+    /**
+     * A 2.x correlation or count table is dropped and created anew, never
+     * converted row by row.
+     */
+    public function testAnOlderTableIsEmptiedAndCreatedAtItsTarget()
     {
-        $primary = array('PRIMARY' => array('column' => 'id', 'unique' => 1));
-        $valueId = array('idx_value_ip_ranges_value_id' => array('column' => 'value_id', 'unique' => 1));
-        $startEnd = array('idx_value_ip_ranges_start_end' => array('column' => array('ip_start', 'ip_end', 'value_id'), 'unique' => 0));
+        foreach (array_slice(self::CREATED, 2) as $class => $tables) {
+            $schema = array();
+            foreach ($tables as $table) {
+                $old = self::target($table);
+                $old['columns']['value_id'] = array('type' => 'integer', 'unsigned' => true, 'null' => false);
+                $schema[$table] = array('definition' => TableConvergerTest::mysqlLive($old));
+            }
+            $sql = $this->render(
+                $class,
+                self::mysqlInspector(TableConvergerTest::MARIADB, $schema),
+                new MigrationTestMysqlExtended(TableConvergerTest::MARIADB)
+            );
+            foreach ($tables as $table) {
+                $drop = array_search("DROP TABLE `$table`;", $sql, true);
+                $this->assertNotFalse($drop, "$class: $table");
+                $this->assertStringStartsWith("CREATE TABLE `$table` (", $sql[$drop + 1]);
+            }
+            $this->assertEmpty(preg_grep('/\bMODIFY\b/', $sql), $class);
+        }
+    }
 
-        $this->assertSame(
-            array(
-                'CREATE UNIQUE INDEX "idx_value_ip_ranges_value_id" ON "value_ip_ranges" ("value_id");',
-                'CREATE INDEX "idx_value_ip_ranges_start_end" ON "value_ip_ranges" ("ip_start", "ip_end", "value_id");',
-            ),
-            $this->render(new MigrationTestPostgres(), array('value_ip_ranges' => $primary), self::IP_RANGES)
-        );
-        $this->assertSame(
-            array('CREATE INDEX "idx_value_ip_ranges_start_end" ON "value_ip_ranges" ("ip_start", "ip_end", "value_id");'),
-            $this->render(new MigrationTestPostgres(), array('value_ip_ranges' => $primary + $valueId), self::IP_RANGES)
-        );
-        $this->assertSame(
-            array(),
-            $this->render(new MigrationTestPostgres(), array('value_ip_ranges' => $primary + $valueId + $startEnd), self::IP_RANGES)
-        );
+    public function testARetryAddsWhatIsMissing()
+    {
+        $partial = self::target('attribute_values');
+        unset($partial['indexes']['value_search']);
+        $inspector = self::mysqlInspector(TableConvergerTest::MARIADB, array(
+            'attribute_values' => array('definition' => TableConvergerTest::mysqlLive($partial)),
+        ));
+        $this->assertSame(array(
+            "SET SESSION alter_algorithm = 'DEFAULT';",
+            'SET SESSION lock_wait_timeout = 300;',
+            'SET SESSION innodb_ft_enable_stopword = 0;',
+            'ALTER TABLE `attribute_values` ADD FULLTEXT INDEX `value_search` (`value`);',
+            'SET SESSION innodb_ft_enable_stopword = DEFAULT;',
+            'SET SESSION lock_wait_timeout = DEFAULT;',
+        ), $this->render(self::MIGRATION, $inspector, new MigrationTestMysqlExtended(TableConvergerTest::MARIADB)));
     }
 
     public function testPgTrgmPrecheck()
@@ -244,96 +260,79 @@ class AttributeValuesMigrationTest extends TestCase
 
     public function testBeforeUpDoesNothingOnMysql()
     {
-        $inspector = new AttributeValuesMigrationTestInspector(new MigrationTestMysqlExtended());
         $class = self::MIGRATION;
         $migration = new $class();
-        $migration->setSchemaInspector($inspector);
+        $migration->setSchemaInspector(new MigrationTestInspector());
         $this->assertTrue($migration->beforeUp());
     }
 
+    /**
+     * Signed, as the targets have them, and no index: the schema v3 rebuild
+     * of each table builds those.
+     */
     public function testTheValueIdsRendering()
     {
-        $indexes = array(
-            '`idx_attr_vid_combo` (`value1_id`, `value2_id`)',
-            '`idx_vid1_source` (`event_id`, `value1_id`, `deleted`, `disable_correlation`, `type`, `id`)',
-            '`idx_vid1_target` (`value1_id`, `event_id`, `deleted`, `disable_correlation`, `type`, `id`)',
-            '`idx_vid2_source` (`event_id`, `value2_id`, `deleted`, `disable_correlation`, `type`, `id`)',
-            '`idx_vid2_target` (`value2_id`, `event_id`, `deleted`, `disable_correlation`, `type`, `id`)',
-            '`created` (`created`)',
+        $schema = array(
+            'attributes' => array('columns' => array('id', 'value1', 'value2', 'timestamp')),
+            'shadow_attributes' => array('columns' => array('id', 'value1', 'value2')),
         );
-        $expected = array(
-            'ALTER TABLE `attributes` ADD `value1_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value2`;',
+        $this->assertSame(array(
+            'ALTER TABLE `attributes` ADD `value1_id` bigint(20) DEFAULT NULL AFTER `value2`;',
             "ALTER TABLE `attributes`\n" .
-            "    ADD `value2_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value1_id`,\n" .
+            "    ADD `value2_id` bigint(20) DEFAULT NULL AFTER `value1_id`,\n" .
             "    ADD `created` bigint(20) DEFAULT 0 NOT NULL AFTER `timestamp`;",
-            'ALTER TABLE `shadow_attributes` ADD `value1_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value2`;',
-            'ALTER TABLE `shadow_attributes` ADD `value2_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value1_id`;',
-            "ALTER TABLE `shadow_attributes`\n" .
-            "    ADD INDEX `value1_id` (`value1_id`),\n" .
-            "    ADD INDEX `value2_id` (`value2_id`);",
-            "ALTER TABLE `attributes`\n    ADD INDEX " . implode(",\n    ADD INDEX ", $indexes) . ';',
-        );
-        $this->assertSame($expected, $this->render(new MigrationTestMysqlExtended(), array(), self::VALUE_IDS));
-
-        $pgsql = $this->render(new MigrationTestPostgres(), array(), self::VALUE_IDS);
-        $this->assertSame('ALTER TABLE "attributes" ADD "value1_id" bigint DEFAULT NULL;', $pgsql[0]);
-        $this->assertSame(
+            'ALTER TABLE `shadow_attributes` ADD `value1_id` bigint(20) DEFAULT NULL AFTER `value2`;',
+            'ALTER TABLE `shadow_attributes` ADD `value2_id` bigint(20) DEFAULT NULL AFTER `value1_id`;',
+        ), $this->render(
+            self::VALUE_IDS,
+            new MigrationTestInspector(SchemaInspector::FLAVOUR_MYSQL, $schema),
+            new MigrationTestMysqlExtended()
+        ));
+        $this->assertSame(array(
+            'ALTER TABLE "attributes" ADD "value1_id" bigint DEFAULT NULL;',
             "ALTER TABLE \"attributes\"\n    ADD \"value2_id\" bigint DEFAULT NULL,\n    ADD \"created\" bigint DEFAULT 0 NOT NULL;",
-            $pgsql[1]
-        );
-        $this->assertSame('CREATE INDEX "idx_shadow_attributes_value1_id" ON "shadow_attributes" ("value1_id");', $pgsql[4]);
-        $this->assertSame('CREATE INDEX "idx_vid2_target" ON "attributes" ("value2_id", "event_id", "deleted", "disable_correlation", "type", "id");', $pgsql[10]);
-        $this->assertSame('CREATE INDEX "idx_attributes_created" ON "attributes" ("created");', $pgsql[11]);
-        $this->assertCount(12, $pgsql);
+            'ALTER TABLE "shadow_attributes" ADD "value1_id" bigint DEFAULT NULL;',
+            'ALTER TABLE "shadow_attributes" ADD "value2_id" bigint DEFAULT NULL;',
+        ), $this->render(
+            self::VALUE_IDS,
+            new MigrationTestInspector(SchemaInspector::FLAVOUR_PGSQL, $schema),
+            new MigrationTestPostgres()
+        ));
     }
 
     public function testAValueIdsRetryDeclaresOnlyWhatIsMissing()
     {
-        $columns = array(
-            'attributes' => array('value1_id', 'value2_id', 'created'),
-            'shadow_attributes' => array('value1_id'),
+        $schema = array(
+            'attributes' => array('columns' => array('id', 'value1', 'value2', 'value1_id', 'value2_id', 'timestamp')),
+            'shadow_attributes' => array('columns' => array('id', 'value1', 'value2', 'value1_id')),
         );
-        $existing = array(
-            'attributes' => array(
-                'created' => array('column' => 'created', 'unique' => 0),
-                'idx_attr_vid_combo' => array('column' => array('value1_id', 'value2_id'), 'unique' => 0),
-                'idx_vid1_source' => array('column' => array('event_id', 'value1_id', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
-                'idx_vid1_target' => array('column' => array('value1_id', 'event_id', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
-                'idx_vid2_source' => array('column' => array('event_id', 'value2_id', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
-                'idx_vid2_target' => array('column' => array('value2_id', 'event_id', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
-            ),
-            'shadow_attributes' => array(
-                'value1_id' => array('column' => 'value1_id', 'unique' => 0),
-            ),
-        );
-        $this->assertSame(array(
-            'ALTER TABLE `shadow_attributes` ADD `value2_id` bigint(20) UNSIGNED DEFAULT NULL AFTER `value1_id`;',
-            'ALTER TABLE `shadow_attributes` ADD INDEX `value2_id` (`value2_id`);',
-        ), $this->render(new MigrationTestMysqlExtended(), $existing, self::VALUE_IDS, $columns));
-
-        $columns['shadow_attributes'][] = 'value2_id';
-        $existing['shadow_attributes']['value2_id'] = array('column' => 'value2_id', 'unique' => 0);
-        $this->assertSame(array(), $this->render(new MigrationTestMysqlExtended(), $existing, self::VALUE_IDS, $columns));
-
-        // A database that ran this migration before it carried the creation time.
-        unset($existing['attributes']['created']);
-        $columns['attributes'] = array('value1_id', 'value2_id');
         $this->assertSame(array(
             'ALTER TABLE `attributes` ADD `created` bigint(20) DEFAULT 0 NOT NULL AFTER `timestamp`;',
-            'ALTER TABLE `attributes` ADD INDEX `created` (`created`);',
-        ), $this->render(new MigrationTestMysqlExtended(), $existing, self::VALUE_IDS, $columns));
+            'ALTER TABLE `shadow_attributes` ADD `value2_id` bigint(20) DEFAULT NULL AFTER `value1_id`;',
+        ), $this->render(
+            self::VALUE_IDS,
+            new MigrationTestInspector(SchemaInspector::FLAVOUR_MYSQL, $schema),
+            new MigrationTestMysqlExtended()
+        ));
+
+        $schema['attributes']['columns'][] = 'created';
+        $schema['shadow_attributes']['columns'][] = 'value2_id';
+        $this->assertSame(array(), $this->render(
+            self::VALUE_IDS,
+            new MigrationTestInspector(SchemaInspector::FLAVOUR_MYSQL, $schema),
+            new MigrationTestMysqlExtended()
+        ));
     }
 
-    public function testTheTextPrefixPackDoesNotSatisfyTheIdIndexes()
+    public function testTheIndexOnlyMigrationsDeclareNothing()
     {
-        $existing = array('attributes' => array(
-            'idx_val1_source' => array('column' => array('event_id', 'value1', 'deleted', 'disable_correlation', 'type', 'id'), 'unique' => 0),
-        ));
-        $columns = array('attributes' => array('value1_id', 'value2_id'), 'shadow_attributes' => array('value1_id', 'value2_id'));
-        $sql = $this->render(new MigrationTestMysqlExtended(), $existing, self::VALUE_IDS, $columns);
-        $this->assertStringContainsString(
-            'ADD INDEX `idx_vid1_source` (`event_id`, `value1_id`, `deleted`, `disable_correlation`, `type`, `id`)',
-            implode("\n", $sql)
-        );
+        foreach (self::INDEX_ONLY as $class) {
+            $this->assertSame(array(), $this->render($class, new MigrationTestInspector(), new MigrationTestMysqlExtended()), $class);
+            $this->assertSame(
+                array(),
+                $this->render($class, new MigrationTestInspector(SchemaInspector::FLAVOUR_PGSQL), new MigrationTestPostgres()),
+                $class
+            );
+        }
     }
 }
