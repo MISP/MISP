@@ -388,7 +388,8 @@ class MispObject extends AppModel
                 $attribute_to_delete['Attribute']['deleted'] = 1;
                 unset($attribute_to_delete['Attribute']['timestamp']);
             }
-            if (!$this->Attribute->saveMany($attributes_to_delete) && !empty($attributes_to_delete)) {
+            // saveMany() on an empty list falls back to the model's leftover $data
+            if (!empty($attributes_to_delete) && !$this->Attribute->saveMany($attributes_to_delete)) {
                 $this->log(
                     sprintf(
                         'Could not cascade delete to all Attributes of Object %s: some attributes may remain visible (not deleted).',
