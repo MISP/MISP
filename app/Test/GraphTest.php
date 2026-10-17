@@ -754,6 +754,8 @@ class GraphTest extends TestCase
 
     public function testAuditLogRecordsTheSummaryInPlaceOfTheDocument()
     {
+        // AuditLogBehavior::changedFields() calls AttributeValue statically
+        require_once __DIR__ . '/AttributeValueClassSupport.php';
         Configure::write('MISP.log_new_audit', true);
         $recorder = new GraphTestRecorder();
         ClassRegistry::$instances['AuditLog'] = $recorder;
