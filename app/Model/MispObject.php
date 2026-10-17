@@ -1905,6 +1905,16 @@ class MispObject extends AppModel
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
         $conditions = $this->buildFilterConditions($filters);
+        // Same rules as fetchAttributes(); fetchObjects() itself keeps
+        // returning soft-deleted objects to its other callers
+        if (isset($filters['deleted']) && $filters['deleted'] === 'only') {
+            $conditions['AND'][] = ['Object.deleted' => 1];
+            if (!$user['Role']['perm_sync']) {
+                $conditions['AND'][] = ['Event.org_id' => $user['org_id']];
+            }
+        } elseif (!$user['Role']['perm_sync'] || empty($filters['deleted'])) {
+            $conditions['AND'][] = ['Object.deleted' => 0];
+        }
         $params = array(
             'conditions' => $conditions,
             'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Object.*'),
