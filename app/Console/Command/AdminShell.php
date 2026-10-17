@@ -160,6 +160,22 @@ class AdminShell extends AppShell
         $parser->addSubcommand('redisReady', [
             'help' => __('Check if it is possible connect to Redis.'),
         ]);
+        $parser->addSubcommand('redisRepairSerialization', [
+            'help' => __('Rewrite the values in Redis that were stored PHP-serialized back to their raw form.'),
+            'parser' => [
+                'arguments' => [
+                    'jobId' => ['help' => __('Job to report progress to.'), 'required' => false],
+                ],
+                'options' => [
+                    'dry-run' => [
+                        'short' => 'd',
+                        'help' => __('Count what would be repaired, without changing anything.'),
+                        'default' => false,
+                        'boolean' => true,
+                    ],
+                ],
+            ],
+        ]);
         $parser->addSubcommand('securityAudit', [
             'help' => __('Run security audit.'),
         ]);
@@ -1587,6 +1603,34 @@ class AdminShell extends AppShell
         } catch (Exception $e) {
             $this->error('Redis connection is not available', $e->getMessage());
         }
+    }
+
+    public function redisRepairSerialization()
+    {
+        App::uses('RedisSerializerRepairTool', 'Tools');
+        $jobId = $this->args[0] ?? null;
+        $dryRun = !empty($this->params['dry-run']);
+        try {
+            $repairTool = new RedisSerializerRepairTool(RedisTool::connect(), $dryRun);
+            $lastPercent = -1;
+            $stats = $repairTool->run(function ($checked, $total) use ($jobId, &$lastPercent) {
+                $percent = $total ? min(99, intdiv(100 * $checked, $total)) : 0;
+                if ($percent !== $lastPercent) {
+                    $lastPercent = $percent;
+                    $this->Job->saveProgress($jobId, __('%s of about %s keys checked.', $checked, $total), $percent);
+                }
+            });
+        } catch (Exception $e) {
+            $this->Job->saveStatus($jobId, false, __('Redis repair failed: %s', $e->getMessage()));
+            $this->error(__('Redis repair failed.'), $e->getMessage());
+        }
+        if ($dryRun) {
+            $message = __('%s keys checked, %s values in %s keys would be repaired.', $stats['checked'], $stats['values'], $stats['keys']);
+        } else {
+            $message = __('%s keys checked, %s values repaired in %s keys.', $stats['checked'], $stats['values'], $stats['keys']);
+        }
+        $this->Job->saveStatus($jobId, true, $message);
+        $this->out($message);
     }
 
     public function clearBruteforce()
