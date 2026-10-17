@@ -18,6 +18,17 @@ $steps = [
         'note' => __('It takes MISP offline and stops the background workers, applies every pending update, then brings both back. On a large instance this can take hours: run it in a session that survives a disconnect, such as tmux or screen. If it stops, MISP stays offline; fix the cause it reports and run it again, it carries on from there.'),
     ],
 ];
+$guideUrl = 'https://github.com/MISP/MISP/blob/3.0_wip/docs/UPGRADE.md#attribute-values-move-to-a-value-table-misp-30';
+$started = $isSiteAdmin && ($progress['running'] || $progress['stopped'] || !$isLive);
+$duration = function ($seconds) {
+    if ($seconds < 120) {
+        return __('%s s', $seconds);
+    }
+    if ($seconds < 7200) {
+        return __('%s min', floor($seconds / 60));
+    }
+    return __('%s h %s min', floor($seconds / 3600), floor($seconds % 3600 / 60));
+};
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -26,6 +37,9 @@ $steps = [
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
     <title><?= h($title_for_layout), ' - ', h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
+    <?php if ($started && ($progress['running'] || !$isLive)): ?>
+    <meta http-equiv="refresh" content="15">
+    <?php endif; ?>
     <style>
         :root {
             --bg: #f4f6f8;
@@ -116,6 +130,12 @@ $steps = [
         .note { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
         .note.intro { margin: -6px 0 16px; }
         a { color: var(--accent); }
+        .progress { margin: 0 0 28px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 6px; }
+        .progress h2 { margin-bottom: 10px; }
+        .progress p { margin: 8px 0 0; }
+        .bar { height: 8px; overflow: hidden; background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; }
+        .bar span { display: block; height: 100%; background: var(--accent); }
+        .progress pre { margin-top: 8px; }
         .footer { margin: 8px 0 0; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
         @media (max-width: 560px) {
             body { padding: 16px; }
@@ -136,7 +156,40 @@ $steps = [
         <p class="lead"><?= h($message) ?></p>
         <p class="footer"><a href="<?= $baseurl ?>/users/logout"><?= __('Log out') ?></a></p>
         <?php else: ?>
-        <p class="lead"><?= __('The MISP code on this instance is newer than its database. The rest of the upgrade can take hours, so it only runs from the command line, never from the web interface. MISP stays unavailable until it is done.') ?></p>
+        <p class="lead"><?= __('The MISP code on this instance is newer than its database. The rest of the upgrade can take hours, so it only runs from the command line. MISP stays unavailable until it is done.') ?></p>
+
+        <?php if ($started): ?>
+        <section class="progress" aria-live="polite">
+            <h2><?php
+                if ($progress['running']) {
+                    echo __('Upgrade in progress');
+                } elseif ($progress['stopped']) {
+                    echo __('The upgrade stopped');
+                } else {
+                    echo __('MISP is offline');
+                }
+            ?></h2>
+            <div class="bar"><span style="width: <?= $progress['total'] ? round(100 * $progress['applied'] / $progress['total'], 1) : 0 ?>%"></span></div>
+            <p><?= __('%s of %s migrations applied.', $progress['applied'], $progress['total']) ?></p>
+            <?php if ($progress['running'] && $progress['next']): ?>
+            <p><?= __('Now applying %s: %s', '<code>' . h($progress['next']['id']) . '</code>', h($progress['next']['description'])) ?></p>
+            <p class="note"><?= __('This pass started %s ago.', $duration(time() - $progress['since'])) ?></p>
+            <?php if ($progress['statement']): ?>
+            <p class="note"><?= __('Database: stage %s of %s, %s%% done, running for %s.', $progress['statement']['stage'], $progress['statement']['maxStage'], round($progress['statement']['percent'], 1), $duration($progress['statement']['seconds'])) ?></p>
+            <?php endif; ?>
+            <?php elseif ($progress['stopped']): ?>
+            <p><?= __('It stopped at %s (%s). Fix the cause, then run %s again: it carries on from there.', '<code>' . h($progress['next']['id']) . '</code>', h($progress['stopped']['status']), '<code>Admin runUpgrade</code>') ?></p>
+            <?php if ($progress['stopped']['error'] !== ''): ?>
+            <pre><code><?= h($progress['stopped']['error']) ?></code></pre>
+            <?php endif; ?>
+            <?php else: ?>
+            <p class="note"><?= __('No update is being applied right now. The upgrade may be between two steps.') ?></p>
+            <?php endif; ?>
+            <?php if ($progress['running'] || !$isLive): ?>
+            <p class="note"><?= __('This page refreshes itself every 15 seconds.') ?></p>
+            <?php endif; ?>
+        </section>
+        <?php endif; ?>
 
         <div class="warning" role="alert">
             <strong><?= __('This is a one-way process. Make a database backup first.') ?></strong>
@@ -144,7 +197,7 @@ $steps = [
         </div>
 
         <h2><?= __('Upgrade steps') ?></h2>
-        <p class="note intro"><?= __('Run these from the MISP installation directory (for example %s), as the user your web server runs as.', '<code>/var/www/MISP</code>') ?></p>
+        <p class="note intro"><?= __('Run these from the MISP installation directory (for example %s), as the user your web server runs as. The %s explains each step and what changes; it is also in %s in that directory.', '<code>/var/www/MISP</code>', '<a href="' . h($guideUrl) . '" target="_blank" rel="noopener">' . __('upgrade guide') . '</a>', '<code>docs/UPGRADE.md</code>') ?></p>
         <ol>
             <?php foreach ($steps as $step): ?>
             <li>

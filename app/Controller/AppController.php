@@ -1148,6 +1148,10 @@ class AppController extends Controller
             $this->set('title_for_layout', $isSiteAdmin ? __('Database upgrade required') : __('Upgrade in progress'));
             $this->set('isSiteAdmin', $isSiteAdmin);
             $this->set('message', $message);
+            if ($isSiteAdmin) {
+                $this->set('progress', $this->User->v3UpgradeProgress());
+                $this->set('isLive', $this->_isLive());
+            }
             $response = $this->render('/genericTemplates/v3_upgrade_required');
             $response->statusCode(503);
         }

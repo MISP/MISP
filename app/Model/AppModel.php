@@ -434,6 +434,58 @@ class AppModel extends Model
     }
 
     /**
+     * How far the command line upgrade has got.
+     *
+     * @return array 'applied' and 'total' migrations; 'running' while a run
+     *   holds the update lock, with 'since' its start time; 'next', the
+     *   first pending migration's id and
+     *   description; 'stopped', its status and error when it failed or
+     *   deferred; 'statement', MariaDB's stage and progress of the statement
+     *   a running upgrade waits on.
+     */
+    public function v3UpgradeProgress()
+    {
+        $manager = $this->getMigrationManager();
+        $pending = array_keys($manager->pending());
+        $total = count($manager->ids());
+        // The lock holds the run's start time, '0' once released.
+        $lock = (int)ClassRegistry::init('AdminSetting')->getSetting('update_locked');
+        $progress = [
+            'applied' => $total - count($pending),
+            'total' => $total,
+            'running' => $lock > 0,
+            'since' => $lock > 0 ? $lock : null,
+            'next' => null,
+            'stopped' => null,
+            'statement' => null,
+        ];
+        if (empty($pending)) {
+            return $progress;
+        }
+        $next = $pending[0];
+        $progress['next'] = ['id' => $next, 'description' => $manager->migration($next)->description];
+        $ledger = $manager->ledger();
+        $status = isset($ledger[$next]['status']) ? $ledger[$next]['status'] : null;
+        if (!$progress['running'] && in_array($status, [MigrationManager::STATUS_FAILED, MigrationManager::STATUS_DEFERRED], true)) {
+            $progress['stopped'] = ['status' => $status, 'error' => (string)$ledger[$next]['error']];
+        }
+        if ($progress['running']) {
+            foreach ($manager->inspector()->runningQueries() as $row) {
+                if (!empty($row['MAX_STAGE']) && preg_match('/^\s*(ALTER|CREATE|OPTIMIZE)\b/i', (string)($row['INFO'] ?? ''))) {
+                    $progress['statement'] = [
+                        'stage' => (int)$row['STAGE'],
+                        'maxStage' => (int)$row['MAX_STAGE'],
+                        'percent' => (float)$row['PROGRESS'],
+                        'seconds' => (int)$row['TIME'],
+                    ];
+                    break;
+                }
+            }
+        }
+        return $progress;
+    }
+
+    /**
      * @param string|null $stopBefore An update to stop in front of, leaving it
      *   and everything after it pending; Admin runUpgrade runs steps in between.
      */
