@@ -930,7 +930,7 @@ class ServersController extends AppController
         if ($this->Server->delete()) {
             $message = __('Server deleted');
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $id, $this->response->type(), $message);
             } else {
                 $this->Flash->success($message);
                 $this->redirect(array('controller' => 'servers', 'action' => 'index'));
@@ -1194,7 +1194,7 @@ class ServersController extends AppController
             $message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
 
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->type(), $message);
             }
             $this->Flash->success($message);
             $this->redirect(array('action' => 'index'));
@@ -2842,7 +2842,7 @@ public function updateJSON()
                 $this->Flash->error($result);
                 $this->redirect(array('action' => 'index'));
             } else {
-                return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $message, $this->response->type());
+                return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $result, $this->response->type());
             }
         } else {
             $message = __('API key updated.');
@@ -2850,7 +2850,7 @@ public function updateJSON()
                 $this->Flash->success($message);
                 $this->redirect(array('action' => 'index'));
             } else {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $id, $this->response->type(), $message);
             }
         }
     }
@@ -2867,7 +2867,7 @@ public function updateJSON()
         $success = $this->Server->reprioritise($id, $direction);
         if ($success) {
             $message = __('Priority changed.');
-            return $this->RestResponse->saveSuccessResponse('Servers', 'changePriority', $message, $this->response->type());
+            return $this->RestResponse->saveSuccessResponse('Servers', 'changePriority', $id, $this->response->type(), $message);
         } else {
             $message = __('Priority could not be changed.');
             return $this->RestResponse->saveFailResponse('Servers', 'changePriority', $id, $message, $this->response->type());
