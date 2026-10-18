@@ -952,6 +952,7 @@ class AdminShell extends AppShell
         }
         $this->__clearUpgradeMarker();
         $this->out(__('Upgrade complete.'));
+        $this->__adviseWebRestart();
     }
 
     /**
