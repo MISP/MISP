@@ -3316,7 +3316,8 @@ public function updateJSON()
 
     public function ipUser($input = false)
     {
-        $params = $this->IndexFilter->harvestParameters(['ip']);
+        $exception = null;
+        $params = $this->IndexFilter->harvestParameters(['ip'], $exception, ['fromQuery' => true]);
         if (!empty($params['ip'])) {
             $input = $params['ip'];
         }
