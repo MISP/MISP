@@ -3010,7 +3010,8 @@ public function updateJSON()
 
     public function ipUser($input = false)
     {
-        $params = $this->IndexFilter->harvestParameters(['ip']);
+        $exception = null;
+        $params = $this->IndexFilter->harvestParameters(['ip'], $exception, ['fromQuery' => true]);
         if (!empty($params['ip'])) {
             $input = $params['ip'];
         }
@@ -3042,14 +3043,5 @@ public function updateJSON()
             ];
         }
         return $this->RestResponse->viewData($users, $this->response->type());
-    }
-
-    /**
-     * @deprecated
-     * @return void
-     */
-    public function rest()
-    {
-        $this->redirect(['controller' => 'api', 'action' => 'rest']);
     }
 }

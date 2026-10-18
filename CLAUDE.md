@@ -55,8 +55,8 @@ make check-cpd        # PHP Copy/Paste Detector
 ```bash
 # User management
 app/Console/cake User init                    # Initialize first admin user
-app/Console/cake User add                     # Add new user
-app/Console/cake Password resetPassword       # Reset password
+app/Console/cake User create                  # Add new user
+app/Console/cake User change_pw EMAIL PASS    # Reset password
 
 # Server configuration
 app/Console/cake Admin setSetting KEY VALUE   # Set configuration value

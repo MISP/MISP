@@ -3861,15 +3861,23 @@ class UsersController extends AppController
         return $this->RestResponse->viewData($payload, 'json');
     }
 
-    public function userIp($user)
+    public function userIp($user = null)
     {
-        $result = $this->User->userIP($user);
-        return $this->RestResponse->viewData($result['User'], 'json');
+        if (empty($user)) {
+            throw new BadRequestException(__('No user ID or e-mail address given.'));
+        }
+        return $this->RestResponse->viewData($this->User->userIP($user), 'json');
     }
 
-    public function ipUser($ip)
+    public function ipUser($ip = null)
     {
-        $result = $this->User->ipUser($ip);
-        return $this->RestResponse->viewData($result, 'json');
+        // An IPv6 address can't be passed in the URL path (Cake reads it as a named parameter)
+        $exception = null;
+        $params = $this->IndexFilter->harvestParameters(['ip'], $exception, ['fromQuery' => true]);
+        $ip = $params['ip'] ?? $ip;
+        if (!is_string($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
+            throw new BadRequestException(__('Invalid IP address.'));
+        }
+        return $this->RestResponse->viewData($this->User->IPUser($ip), 'json');
     }
 }
