@@ -4113,25 +4113,6 @@ class AttributesController extends AppController
         return new CakeResponse(array('body' => $counter, 'status' => 200));
     }
 
-    public function exportSearch($type = false)
-    {
-        $filters = $this->Session->read('search_attributes_filters');
-        if ($filters === null) {
-            throw new NotFoundException('No search to export.');
-        }
-
-        if (empty($type)) {
-            $exports = array_keys($this->MispAttribute->validFormats);
-            $this->set('exports', $exports);
-            $this->render('ajax/exportSearch');
-        } else {
-            $filters = $this->_jsonDecode($filters);
-            $final = $this->MispAttribute->restSearch($this->Auth->user(), $type, $filters);
-            $responseType = $this->MispAttribute->validFormats[$type][0];
-            return $this->RestResponse->viewData($final, $responseType, false, true, 'search.' . $type . '.' . $responseType);
-        }
-    }
-
     /**
      * @param int|string $id Attribute ID or UUID
      * @return array

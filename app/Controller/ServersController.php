@@ -3043,13 +3043,4 @@ public function updateJSON()
         }
         return $this->RestResponse->viewData($users, $this->response->type());
     }
-
-    /**
-     * @deprecated
-     * @return void
-     */
-    public function rest()
-    {
-        $this->redirect(['controller' => 'api', 'action' => 'rest']);
-    }
 }
