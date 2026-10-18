@@ -1650,39 +1650,45 @@ class UsersController extends AppController
             'conditions' => array('Organisation.id' => $org_ids)
         ));
         $orgs = array(0 => 'All organisations') + $orgs_temp;
-        $data = array();
-        $max = 1;
-        foreach ($orgs as $org_id => $org_name) {
-            $conditions = array('Attribute.deleted' => 0);
-            if ($selected) {
-                $conditions['Attribute.type'] = $selectedTypes;
-            }
-            if ($org_id != 0) {
-                $conditions['Event.orgc_id'] = $org_id;
-            }
-            $params = array(
+        $conditions = array('Attribute.deleted' => 0);
+        if ($selected) {
+            $conditions['Attribute.type'] = $selectedTypes;
+        }
+        $allTypes = $this->User->Event->Attribute->find('all', array(
+            'recursive' => -1,
+            'fields' => array('Attribute.type', 'COUNT(*) as num_types'),
+            'group' => array('Attribute.type'),
+            'conditions' => $conditions,
+            'order' => false
+        ));
+        $counts = array(0 => Hash::combine($allTypes, '{n}.Attribute.type', '{n}.0.num_types'));
+        if (!empty($orgs_temp)) {
+            $conditions['Event.orgc_id'] = array_keys($orgs_temp);
+            $orgTypes = $this->User->Event->Attribute->find('all', array(
                 'recursive' => -1,
-                'fields' => array('Attribute.type', 'COUNT(*) as num_types'),
-                'group' => array('Attribute.type'),
+                'fields' => array('Event.orgc_id', 'Attribute.type', 'COUNT(*) as num_types'),
+                'group' => array('Event.orgc_id', 'Attribute.type'),
                 'joins' => array(
                     array(
                         'table' => 'events',
                         'alias' => 'Event',
-                        'type' => 'LEFT',
+                        'type' => 'INNER',
                         'conditions' => array(
                             'Attribute.event_id = Event.id'
                         )
                     )
                 ),
-                //'order' => array('num_types DESC'),
                 'conditions' => $conditions,
                 'order' => false
-            );
-            if ($org_id == 0) {
-                unset($params['joins']);
+            ));
+            foreach ($orgTypes as $row) {
+                $counts[$row['Event']['orgc_id']][$row['Attribute']['type']] = $row[0]['num_types'];
             }
-            $temp = $this->User->Event->Attribute->find('all', $params);
-            $temp = Hash::combine($temp, '{n}.Attribute.type', '{n}.0.num_types');
+        }
+        $data = array();
+        $max = 1;
+        foreach ($orgs as $org_id => $org_name) {
+            $temp = $counts[$org_id] ?? array();
             $total = 0;
             foreach ($temp as $v) {
                 $v = (int) $v;
