@@ -1723,7 +1723,9 @@ class AnalystProfile extends AppModel
         }
         $profiles = array();
         foreach ($this->__loadShippedProfiles() as $file) {
-            $row = isset($byUuid[$file['uuid']]) ? $byUuid[$file['uuid']] : null;
+            $row = isset($byUuid[$file['uuid']])
+                ? $byUuid[$file['uuid']]
+                : null;
             unset($byUuid[$file['uuid']]);
             $state = 'current';
             if ($row === null) {
@@ -1790,9 +1792,10 @@ class AnalystProfile extends AppModel
             if (!$same) {
                 continue;
             }
-            // updateAll(), so `modified` keeps saying when somebody last edited.
+            // updateAll(), so `modified` still says when it was last edited.
             if ($this->updateAll(
-                array('AnalystProfile.shipped_revision' => (int)$row['revision']),
+                array('AnalystProfile.shipped_revision' =>
+                    (int)$row['revision']),
                 array('AnalystProfile.id' => (int)$row['id'])
             )) {
                 $marked++;

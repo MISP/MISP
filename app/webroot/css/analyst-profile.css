@@ -2268,3 +2268,230 @@ input.num[type="number"]::-webkit-inner-spin-button {
 }
 .mod-row .form-select { flex: 1 1 auto; max-width: 15rem; }
 .mod-bulk .wb-id { font-style: normal; color: var(--bs-secondary-color); }
+
+/* ==================================================================
+ * The index's card row: enrichment, this instance, shipped profiles.
+ *
+ * The frame is the Values index tile's; the type is this page's. The
+ * enrichment card is the widest because it is the one that lists.
+ * ================================================================== */
+.ap-cards {
+    display: grid;
+    gap: 12px;
+    margin: .25rem 0 14px;
+    align-items: stretch;
+}
+.ap-cards-admin { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.ap-cards-reader { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+/* The short cards share one column beside the list, so neither is
+ * stretched to the list's height on its own. */
+.ap-cards-side {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+.ap-cards-side > .ap-card { flex: 1 1 auto; }
+
+.ap-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 12px 14px 12px;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+    box-shadow: var(--bs-box-shadow-sm);
+}
+.ap-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: .6rem;
+}
+.ap-card-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    font-size: .78rem;
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.ap-card-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--bs-secondary-color);
+}
+.ap-card-fig {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: .15rem .45rem;
+    margin-bottom: .55rem;
+}
+.ap-card-n {
+    font-size: 1.6rem;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.ap-card-of {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+.ap-card-line {
+    margin: 0 0 .45rem;
+    font-size: .75rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
+}
+.ap-card-ok { color: var(--vp-ben, var(--bs-success)); margin-right: .2rem; }
+.ap-card-alert {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: .55rem;
+    padding: .45rem .6rem;
+    border-left: 3px solid var(--vp-conflict);
+    border-radius: 0 .25rem .25rem 0;
+    background: color-mix(in srgb, var(--vp-conflict) 10%, transparent);
+    font-size: .75rem;
+    line-height: 1.5;
+}
+.ap-card-alert p { flex: 1 1 auto; min-width: 0; }
+.ap-card-alert .ap-fix { flex: none; }
+.ap-card-foot {
+    margin-top: auto;
+    padding-top: .6rem;
+    font-size: .6875rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
+}
+.ap-card-foot a:not(.btn) { color: inherit; }
+.ap-card-foot .btn { margin-top: .1rem; }
+.ap-card-wait {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 7rem;
+}
+
+/* ---- groups: one per fix, flowing into columns on a wide card ---- */
+.ap-grps {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(15.5rem, 100%), 1fr));
+    gap: .7rem 1.4rem;
+}
+.ap-grp { min-width: 0; }
+.ap-grp-h {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 .45rem;
+    padding-bottom: .2rem;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ap-grp-why {
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    font-size: .6875rem;
+}
+.ap-items {
+    list-style: none;
+    margin: .2rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .1rem;
+}
+.ap-item {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    min-height: 1.85rem;
+    font-size: .75rem;
+    line-height: 1.4;
+}
+.ap-item-main { flex: 1 1 auto; min-width: 0; }
+.ap-item-name {
+    font-family: var(--bs-font-monospace, ui-monospace, monospace);
+    font-size: .75rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.ap-item-label { font-weight: 600; }
+a.ap-item-label { color: inherit; text-decoration: none; }
+a.ap-item-label:hover { text-decoration: underline; }
+.ap-item-main .pill { margin-left: .3rem; vertical-align: 1px; }
+.ap-item-meta {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+}
+.ap-item-act { flex: none; }
+.btn.ap-fix {
+    --bs-btn-padding-y: .05rem;
+    --bs-btn-padding-x: .5rem;
+    --bs-btn-font-size: .6875rem;
+    white-space: nowrap;
+}
+/* A link to the settings page is a quieter action than a switch, not a
+ * disabled one. */
+.btn.ap-fix.btn-outline-secondary {
+    --bs-btn-color: var(--bs-body-color);
+    --bs-btn-border-color: var(--bs-border-color);
+    --bs-btn-hover-color: var(--bs-body-color);
+    --bs-btn-hover-bg: var(--bs-tertiary-bg);
+    --bs-btn-hover-border-color: var(--bs-secondary-color);
+}
+.ap-card-of b { font-weight: 600; color: var(--bs-body-color); }
+
+/* ---- the reader's card: a reason per line ---- */
+.ap-reasons {
+    display: grid;
+    gap: .3rem;
+    margin: 0 0 .45rem;
+    font-size: .75rem;
+    line-height: 1.45;
+}
+.ap-reasons > div {
+    display: grid;
+    grid-template-columns: minmax(8rem, auto) minmax(0, 1fr);
+    gap: .6rem;
+}
+.ap-reasons dt { font-weight: 400; color: var(--bs-secondary-color); }
+.ap-reasons dd { margin: 0; }
+
+.ap-items + .ap-card-line { margin-top: .5rem; }
+
+/* ---- the instance card keeps the bench's key/value lines ---- */
+.ap-card-instance .ap-caps { margin-bottom: 0; }
+
+@container wb (max-width: 1180px) {
+    .ap-cards-admin,
+    .ap-cards-reader { grid-template-columns: minmax(0, 1fr); }
+    .ap-cards-side { flex-direction: row; }
+    .ap-cards-side > .ap-card { flex: 1 1 0; }
+}
+@container wb (max-width: 720px) {
+    .ap-cards-side { flex-direction: column; }
+    .ap-reasons > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
