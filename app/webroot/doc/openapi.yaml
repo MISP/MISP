@@ -4983,28 +4983,29 @@ components:
     DashboardUserSetting:
       type: object
       properties:
+        instance_id:
+          type: string
+          example: "w_1"
         widget:
           type: string
           example: "MispStatusWidget"
+        config:
+          type: object
         position:
           type: object
           properties:
             x:
-              type: string
-              pattern: '^\d+$'
-              example: "0"
+              type: integer
+              example: 0
             y:
-              type: string
-              pattern: '^\d+$'
-              example: "0"
-            width:
-              type: string
-              pattern: '^\d+$'
-              example: "2"
-            height:
-              type: string
-              pattern: '^\d+$'
-              example: "2"
+              type: integer
+              example: 0
+            w:
+              type: integer
+              example: 2
+            h:
+              type: integer
+              example: 2
 
     PublishAlertFilterUserSetting:
       type: object
@@ -5019,9 +5020,6 @@ components:
                     - "tlp:amber"
                     - "tlp:red"
                     - "%privint%"
-
-    DashboardAccessUserSetting:
-      type: boolean
 
     HomepageUserSetting:
       type: object
@@ -5065,7 +5063,6 @@ components:
       type: string
       enum:
         - "publish_alert_filter"
-        - "dashboard_access"
         - "dashboard"
         - "homepage"
         - "default_restsearch_parameters"
@@ -5083,7 +5080,6 @@ components:
           anyOf:
             - $ref: "#/components/schemas/DashboardUserSetting"
             - $ref: "#/components/schemas/PublishAlertFilterUserSetting"
-            - $ref: "#/components/schemas/DashboardAccessUserSetting"
             - $ref: "#/components/schemas/HomepageUserSetting"
             - $ref: "#/components/schemas/DefaultRestSearchParametersUserSetting"
             - $ref: "#/components/schemas/TagNumericalValueOverrideUserSetting"
@@ -5098,8 +5094,6 @@ components:
       properties:
         publish_alert_filter:
           $ref: "#/components/schemas/PublishAlertFilterUserSetting"
-        dashboard_access:
-          $ref: "#/components/schemas/DashboardAccessUserSetting"
         dashboard:
           type: array
           items:
@@ -8721,7 +8715,6 @@ components:
             anyOf:
               - $ref: "#/components/schemas/DashboardUserSetting"
               - $ref: "#/components/schemas/PublishAlertFilterUserSetting"
-              - $ref: "#/components/schemas/DashboardAccessUserSetting"
               - $ref: "#/components/schemas/HomepageUserSetting"
               - $ref: "#/components/schemas/DefaultRestSearchParametersUserSetting"
               - $ref: "#/components/schemas/TagNumericalValueOverrideUserSetting"

@@ -1957,10 +1957,6 @@ a.discrete {
     height: 100%;
 }
 
-.dashboard_container {
-    margin-right:15px;
-}
-
 .warning_container {
     border-radius: 7px;
     padding: 0 10px 10px 10px;
@@ -2579,33 +2575,6 @@ ul.correlations li .popover span {
     right: 0px;
     top: 100px;
     max-width: 400px;
-}
-
-/* GridStack widget structure fix */
-.widget-wrapper {
-    height: calc(100% - 2px) !important;
-    display: flex !important;
-    flex-direction: column !important;
-}
-
-.widgetTitle {
-    font-weight: bold;
-    color: #0088cc;
-    width: 100%;
-    font-size: 125%;
-    margin:5px;
-}
-
-.widgetContent {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-}
-
-.widgetContentInner {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
 }
 
 /* Threat levels */

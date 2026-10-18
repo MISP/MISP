@@ -1375,18 +1375,6 @@ class UsersController extends AppController
         }
     }
 
-    public function updateLoginTime()
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException('This feature is only accessible via POST requests');
-        }
-        $this->User->id = $this->Auth->user('id');
-        $this->User->saveField('last_login', time());
-        $this->User->saveField('current_login', time());
-        $this->_refreshAuth();
-        $this->redirect(array('Controller' => 'User', 'action' => 'dashboard'));
-    }
-
     public function login()
     {
         // A header-authenticated user still reaches _postlogin() below

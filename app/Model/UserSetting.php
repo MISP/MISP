@@ -68,22 +68,18 @@ class UserSetting extends AppModel
             ),
             'validation' => 'validate_json',
         ),
-        'dashboard_access' => array(
-            'placeholder' => 1,
-            'restricted' => 'perm_site_admin',
-            'validation' => 'validate_json',
-        ),
         'dashboard' => array(
             'placeholder' => array(
                 array(
+                    'instance_id' => 'w_1',
                     'widget' => 'MispStatusWidget',
                     'config' => array(
                     ),
                     'position' => array(
                         'x' => 0,
                         'y' => 0,
-                        'width' => 2,
-                        'height' => 2
+                        'w' => 2,
+                        'h' => 2
                     )
                 )
             ),
@@ -459,8 +455,7 @@ class UserSetting extends AppModel
     {
         return [
             'publish_alert_filter' => __('Filters which published events send you an email alert. Matched against the event, its tags and its organisations.'),
-            'dashboard_access' => __('Legacy flag that granted access to the dashboard. Kept for compatibility, it no longer gates anything.'),
-            'dashboard' => __('Layout of your legacy dashboard: the widgets shown, their configuration and their position on the grid.'),
+            'dashboard' => __('Layout of your dashboard: the widgets shown, their configuration and their position on the grid.'),
             'homepage' => __('The page you land on after logging in and when clicking the MISP logo.'),
             'default_restsearch_parameters' => __('Parameters merged into every restSearch query you run, unless the query overrides them.'),
             'tag_numerical_value_override' => __('Replaces the numerical value of the listed tags with your own, for the scores computed on your behalf (e.g. decaying models).'),
