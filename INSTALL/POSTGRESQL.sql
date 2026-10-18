@@ -96,6 +96,7 @@ CREATE TABLE "analyst_profiles" (
     "enabled" boolean DEFAULT 'TRUE' NOT NULL,
     "version" integer DEFAULT 1 NOT NULL,
     "revision" integer DEFAULT 1 NOT NULL,
+    "shipped_revision" integer DEFAULT NULL,
     "parameters" text DEFAULT NULL,
     "created" timestamp NOT NULL,
     "modified" timestamp NOT NULL,
@@ -1910,7 +1911,8 @@ INSERT INTO "schema_migrations" ("id", "migration_id", "applied_at", "duration_m
 (123, '20261016_180338_schema_v3_attribute_tags', NOW(), 187, 'applied', NULL),
 (124, '20261016_180339_schema_v3_attributes', NOW(), 377, 'applied', NULL),
 (125, '20261016_204637_queue_full_recorrelation', NOW(), 15, 'applied', NULL),
-(126, '20261017_094559_repair_redis_serialization', NOW(), 11, 'applied', NULL)
+(126, '20261017_094559_repair_redis_serialization', NOW(), 11, 'applied', NULL),
+(127, '20261018_174227_analyst_profiles_shipped_revision', NOW(), 127, 'applied', NULL)
 ON CONFLICT DO NOTHING;
 
 -- The rows above carry explicit ids; bring each sequence past them.

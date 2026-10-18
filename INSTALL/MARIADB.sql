@@ -94,6 +94,7 @@ CREATE TABLE `analyst_profiles` (
     `enabled` tinyint(1) DEFAULT '1' NOT NULL,
     `version` int(11) DEFAULT 1 NOT NULL,
     `revision` int(11) DEFAULT 1 NOT NULL,
+    `shipped_revision` int(11) DEFAULT NULL,
     `parameters` longtext DEFAULT NULL,
     `created` datetime NOT NULL,
     `modified` datetime NOT NULL,
@@ -1904,5 +1905,6 @@ INSERT IGNORE INTO `schema_migrations` (`id`, `migration_id`, `applied_at`, `dur
 (123, '20261016_180338_schema_v3_attribute_tags', NOW(), 187, 'applied', NULL),
 (124, '20261016_180339_schema_v3_attributes', NOW(), 377, 'applied', NULL),
 (125, '20261016_204637_queue_full_recorrelation', NOW(), 15, 'applied', NULL),
-(126, '20261017_094559_repair_redis_serialization', NOW(), 11, 'applied', NULL);
+(126, '20261017_094559_repair_redis_serialization', NOW(), 11, 'applied', NULL),
+(127, '20261018_174227_analyst_profiles_shipped_revision', NOW(), 127, 'applied', NULL);
 

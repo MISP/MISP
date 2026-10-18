@@ -637,6 +637,17 @@
                 "extra": ""
             },
             {
+                "column_name": "shipped_revision",
+                "is_nullable": "YES",
+                "data_type": "int",
+                "character_maximum_length": null,
+                "numeric_precision": "10",
+                "collation_name": null,
+                "column_type": "int(11)",
+                "column_default": "NULL",
+                "extra": ""
+            },
+            {
                 "column_name": "parameters",
                 "is_nullable": "YES",
                 "data_type": "longtext",
