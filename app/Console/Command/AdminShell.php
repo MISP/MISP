@@ -859,6 +859,10 @@ class AdminShell extends AppShell
     public function runUpgrade()
     {
         $this->__assertOsUserMayWrite();
+        // A killed run can leave a table list cached from before its DDL, and
+        // this process has read it already.
+        $this->Server->cleanCacheFiles();
+        $this->Server->getMigrationManager()->inspector()->disableSchemaCache();
         $this->__clearUpdateLock();
         $pending = array_keys($this->Server->pendingUpdates());
         if (empty($pending)) {
