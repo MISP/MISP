@@ -174,6 +174,9 @@ $headerExtra = !$hasTab ? null : '<a href="#tab-analyst"'
 <div class="card shadow-sm mb-3 vp-panel"
      style="--vp-panel-color: var(--analystData);"
      data-vp-analyst-preview>
+    <?= $this->element('Values/View/value_analyst_tab_badge', array(
+        'counts' => $counts,
+    )) ?>
 
     <?= $this->element('Values/View/value_panel_header', array(
         'panelTitle' => __('Analyst data'),

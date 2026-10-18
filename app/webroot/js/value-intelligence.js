@@ -6618,6 +6618,23 @@
         panels.forEach(function (panel) {
             refreshAnalyst(panel);
         });
+        initAnalystBadge(root);
+    }
+
+    // The preview card and the thread read the same union, so whichever
+    // arrives first sets the Collaboration tab's pill.
+    function initAnalystBadge(root) {
+        var source = root.querySelector
+            ? root.querySelector('[data-vp-analyst-badge]')
+            : null;
+        if (!source || typeof setTabBadge !== 'function') {
+            return;
+        }
+        setTabBadge(
+            'analyst',
+            source.dataset.vpAnalystBadge,
+            source.dataset.vpAnalystBadgeTitle
+        );
     }
 
     /**

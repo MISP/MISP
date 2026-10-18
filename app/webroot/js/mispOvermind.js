@@ -304,6 +304,25 @@ function getTabCount(tabId) {
 }
 
 /**
+ * Write a label into a view_layout tab's state pill, hiding the pill when the
+ * label is empty. The tab must have been rendered with a badge, a `deferred`
+ * one at least, or there is no pill to write into.
+ *
+ * @param {string} tabId
+ * @param {string} label
+ * @param {string} [title] tooltip
+ */
+function setTabBadge(tabId, label, title) {
+    const el = document.querySelector('.nav-view-badge[data-tab-badge="' + tabId + '"]');
+    if (!el) { return; }
+    const dot = el.querySelector('.nav-view-badge-dot');
+    el.textContent = label;
+    if (dot) { el.prepend(dot); }
+    el.title = label === '' ? '' : (title || '');
+    el.classList.toggle('d-none', label === '');
+}
+
+/**
  * Reload whichever event-view index tab is currently shown.
  *
  * Where the tag, galaxy and relationship modals are opened from an attribute
