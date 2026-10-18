@@ -1483,11 +1483,7 @@ class User extends AppModel
         $sparklineData = array();
         foreach ($events as $event) {
             $date = date("Y-m-d", $event['Event']['timestamp']);
-            if (!isset($sparklineData[$event['Event']['attribute_count']][$date])) {
-                $sparklineData[$date] = $event['Event']['attribute_count'];
-            } else {
-                $sparklineData[$date] += $event['Event']['attribute_count'];
-            }
+            $sparklineData[$date] = ($sparklineData[$date] ?? 0) + (int)$event['Event']['attribute_count'];
         }
 
         // get first and last timestamp

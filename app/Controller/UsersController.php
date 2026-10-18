@@ -1657,39 +1657,45 @@ class UsersController extends AppController
             'conditions' => array('Organisation.id' => $org_ids)
         ));
         $orgs = array(0 => 'All organisations') + $orgs_temp;
-        $data = array();
-        $max = 1;
-        foreach ($orgs as $org_id => $org_name) {
-            $conditions = array('Attribute.deleted' => 0);
-            if ($selected) {
-                $conditions['Attribute.type'] = $selectedTypes;
-            }
-            if ($org_id != 0) {
-                $conditions['Event.orgc_id'] = $org_id;
-            }
-            $params = array(
+        $conditions = array('Attribute.deleted' => 0);
+        if ($selected) {
+            $conditions['Attribute.type'] = $selectedTypes;
+        }
+        $allTypes = $this->User->Event->Attribute->find('all', array(
+            'recursive' => -1,
+            'fields' => array('Attribute.type', 'COUNT(*) as num_types'),
+            'group' => array('Attribute.type'),
+            'conditions' => $conditions,
+            'order' => false
+        ));
+        $counts = array(0 => Hash::combine($allTypes, '{n}.Attribute.type', '{n}.0.num_types'));
+        if (!empty($orgs_temp)) {
+            $conditions['Event.orgc_id'] = array_keys($orgs_temp);
+            $orgTypes = $this->User->Event->Attribute->find('all', array(
                 'recursive' => -1,
-                'fields' => array('Attribute.type', 'COUNT(*) as num_types'),
-                'group' => array('Attribute.type'),
+                'fields' => array('Event.orgc_id', 'Attribute.type', 'COUNT(*) as num_types'),
+                'group' => array('Event.orgc_id', 'Attribute.type'),
                 'joins' => array(
                     array(
                         'table' => 'events',
                         'alias' => 'Event',
-                        'type' => 'LEFT',
+                        'type' => 'INNER',
                         'conditions' => array(
                             'Attribute.event_id = Event.id'
                         )
                     )
                 ),
-                //'order' => array('num_types DESC'),
                 'conditions' => $conditions,
                 'order' => false
-            );
-            if ($org_id == 0) {
-                unset($params['joins']);
+            ));
+            foreach ($orgTypes as $row) {
+                $counts[$row['Event']['orgc_id']][$row['Attribute']['type']] = $row[0]['num_types'];
             }
-            $temp = $this->User->Event->Attribute->find('all', $params);
-            $temp = Hash::combine($temp, '{n}.Attribute.type', '{n}.0.num_types');
+        }
+        $data = array();
+        $max = 1;
+        foreach ($orgs as $org_id => $org_name) {
+            $temp = $counts[$org_id] ?? array();
             $total = 0;
             foreach ($temp as $v) {
                 $v = (int) $v;
@@ -2384,7 +2390,8 @@ class UsersController extends AppController
             'recursive' => -1,
             'order' => ['name'],
         );
-        if (!$user['Role']['perm_site_admin'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+        $hideOrgs = !$user['Role']['perm_site_admin'] && !empty(Configure::read('Security.hide_organisation_index_from_users'));
+        if ($hideOrgs) {
             $params['conditions'] = array('Organisation.id' => $user['org_id']);
         }
         $orgs = $this->User->Organisation->find('list', $params);
@@ -2451,6 +2458,7 @@ class UsersController extends AppController
 
         $this->set('stats', $stats);
         $this->set('orgs', $orgs);
+        $this->set('showActivity', !$hideOrgs);
         $this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
         $this->set('end', strtotime(date('Y-m-d H:i:s')));
         $this->set('startDateCal', $year . ', ' . $month . ', 01');
