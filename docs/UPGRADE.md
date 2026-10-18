@@ -77,20 +77,25 @@ Run the commands from `app/` as the web server user
    on the table it is about to change stops and names it.
    `Console/cake AttributeValue verify` runs the same check on its own and
    changes nothing.
-2. **Let the correlations fill in.** The upgrade recreates the correlation
+2. **Restart the web server** once the upgrade has finished:
+   `sudo systemctl restart apache2` with mod_php, or restart PHP-FPM
+   (`sudo systemctl restart php8.2-fpm`, named after your PHP version). This
+   clears the PHP caches that still hold the old database layout; until then,
+   pages can fail and some changes are not saved.
+3. **Let the correlations fill in.** The upgrade recreates the correlation
    tables empty instead of converting them, and its last step queues a full
    recorrelation: the background workers start it once they are back, and the
    correlations appear while the instance is already live. Without background
    jobs it only prints the command; run `Console/cake Admin
    jobGenerateCorrelation` once the instance is back. On a large instance
    either takes hours.
-3. **Regenerate the lists the conversion emptied**, once the recorrelation
+4. **Regenerate the lists the conversion emptied**, once the recorrelation
    has finished:
    - **Top correlations**: `Console/cake Event generateTopCorrelations`, or the
      button on the top correlations page.
    - **Over-correlation counts**: the button on the over-correlating values
      page.
-4. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
+5. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
    `misp:correlation_exclusions`, so both keys can be deleted.
 
 Make sure the database has room for the value table before you start: it is
