@@ -49,6 +49,9 @@ class AdminShell extends AppShell
     /** The conversion, as `Console/cake AttributeValue <step>`, in order. */
     const UPGRADE_VALUE_STEPS = array('backfill', 'rebuildFacets', 'remapCorrelations');
 
+    /** The admin setting runUpgrade holds from going offline until it is live again. */
+    const UPGRADE_MARKER = 'upgrade_in_progress';
+
     public function getOptionParser()
     {
         $parser = parent::getOptionParser();
@@ -848,17 +851,26 @@ class AdminShell extends AppShell
 
     /**
      * The whole upgrade in one offline run. A run that stops leaves the
-     * instance offline, its schema possibly half converted; a re-run carries on.
+     * instance offline, its schema possibly half converted; a re-run carries on,
+     * down to bringing the instance back after the last update.
      *
      * @return void
      */
     public function runUpgrade()
     {
         $this->__assertOsUserMayWrite();
+        $this->__clearUpdateLock();
         $pending = array_keys($this->Server->pendingUpdates());
         if (empty($pending)) {
             $this->out(__('Nothing to upgrade: every update has been applied.'));
-            if (!Configure::read('MISP.live')) {
+            $unfinished = $this->AdminSetting->getSetting(self::UPGRADE_MARKER) !== false;
+            if ($unfinished && !Configure::read('MISP.live')) {
+                $this->out(__('An earlier runUpgrade stopped after its last update; finishing it.'));
+                $this->__finishUpgrade();
+            } elseif ($unfinished) {
+                // Brought back by hand: restarting the workers now could kill a job they run.
+                $this->__clearUpgradeMarker();
+            } elseif (!Configure::read('MISP.live')) {
                 $this->out(__('The instance is offline; Console/cake Admin live 1 brings it back.'));
             }
             return;
@@ -868,9 +880,9 @@ class AdminShell extends AppShell
             return is_string($update) && $manager->has($update);
         }));
         $this->AdminSetting->resetUpdateFailNumber();
-        $this->__clearUpdateLock();
         $manager->setReporter(array($this, 'reportMigration'));
 
+        $this->AdminSetting->changeSetting(self::UPGRADE_MARKER, time());
         $this->out(__('Taking the instance offline.'));
         if (!$this->__setLive(false)) {
             $this->error(__('Could not take the instance offline: MISP.live could not be saved in Redis or in the PHP config file.'));
@@ -897,8 +909,19 @@ class AdminShell extends AppShell
         }
         $this->__upgradeUntil(null, false);
         $this->__upgradeUntil(null, true);
+        $this->__finishUpgrade();
+    }
+
+    /**
+     * The end of a run, after its last update: the marker goes once the
+     * instance is live.
+     *
+     * @return void
+     */
+    private function __finishUpgrade()
+    {
         $this->Server->cleanCacheFiles();
-        $manager->inspector()->flushSchemaCacheFiles();
+        $this->Server->getMigrationManager()->inspector()->flushSchemaCacheFiles();
 
         // A worker started before the run still knows the tables as they were.
         if (Configure::read('MISP.background_jobs')) {
@@ -913,7 +936,16 @@ class AdminShell extends AppShell
         if (!$this->__setLive(true)) {
             $this->error(__('The upgrade is complete, but MISP.live could not be saved: Console/cake Admin live 1'));
         }
+        $this->__clearUpgradeMarker();
         $this->out(__('Upgrade complete.'));
+    }
+
+    /**
+     * @return void
+     */
+    private function __clearUpgradeMarker()
+    {
+        $this->AdminSetting->deleteAll(array('AdminSetting.setting' => self::UPGRADE_MARKER), false);
     }
 
     /**
