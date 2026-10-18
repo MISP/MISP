@@ -9,6 +9,7 @@ App::uses('ValueSignalLoader', 'Tools/ValueIntelligence');
 App::uses('ValueVerdictTool', 'Tools/ValueIntelligence');
 App::uses('ValueVerdictDiffTool', 'Tools/ValueIntelligence');
 App::uses('ValueExclusionTool', 'Tools/ValueIntelligence');
+App::uses('ValueEnrichmentTool', 'Tools/ValueIntelligence');
 
 /**
  * The UI for owning an Analyst Profile: an index that names the profile
@@ -244,8 +245,9 @@ class AnalystProfilesController extends AppController
             'enrichment_auto_run' => array(
                 'setting' => 'Plugin.ValueIntelligence_enrichment_auto_run',
                 'tab' => 'Plugin',
-                'state' => (string)Configure::read(
-                    'Plugin.ValueIntelligence_enrichment_auto_run'),
+                'state' => ValueEnrichmentTool::normaliseGate(
+                    Configure::read(
+                        'Plugin.ValueIntelligence_enrichment_auto_run')),
             ),
             'instance_profile' => array(
                 'setting' => 'Plugin.ValueIntelligence_instance_profile',
