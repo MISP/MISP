@@ -172,13 +172,29 @@ $this->set('headerDescription', __('A profile decides what MISP makes of'
     . ' a value: which evidence counts and for how long, which labels'
     . ' come first, and which enrichment modules may run. One is in'
     . ' force for you at a time.'));
-$this->set('headerActions', array(array(
+$headerActions = array();
+if ($this->Acl->canAccess('analystProfiles', 'update')) {
+    $headerActions[] = array(
+        'type' => 'action',
+        'label' => __('Update shipped profiles'),
+        'icon' => 'sync',
+        'class' => 'btn btn-outline-dark',
+        'url' => array('action' => 'update'),
+        'title' => __('Load the profiles MISP ships: add the missing ones'
+            . ' and update those MISP has since corrected.'),
+        'confirm' => __('Load the profiles MISP ships? A shipped profile'
+            . ' edited on this instance is overwritten when MISP ships a'
+            . ' newer version of it. Forks are never touched.'),
+    );
+}
+$headerActions[] = array(
     'type' => 'dropdown',
     'label' => __('New profile'),
     'icon' => 'plus',
     'class' => 'btn btn-outline-primary',
     'children' => $create,
-)));
+);
+$this->set('headerActions', $headerActions);
 ?>
 
 <div class="ap-page">
