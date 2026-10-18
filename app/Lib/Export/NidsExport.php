@@ -700,35 +700,6 @@ abstract class NidsExport
     }
 
     /**
-     * Converts a DNS name to a MS DNS log format.
-     * Practical usage is to use these strings to search in logfiles
-     *   example: foobar.com becomes (6)foobar(3)com(0)
-     * @param string $name dns name to be converted
-     * @return string raw snort compatible format of the dns name
-     */
-    protected static function dnsNameToMSDNSLogFormat($name)
-    {
-        $rawName = "";
-        // in MS DNS log format we can't use (0) to distinguish between hostname and domain (including subdomains)
-        // explode using the dot
-        $explodedNames = explode('.', $name);
-        // for each part
-        foreach ($explodedNames as $explodedName) {
-            // count the length of the part, and add |length| before
-            $length = strlen($explodedName);
-            if ($length > 255) {
-                CakeLog::notice('WARNING: DNS name is too long for RFC: '.$name);
-            }
-            $hexLength = dechex($length);
-            $rawName .= '(' . $hexLength . ')' . $explodedName;
-        }
-        // put all together
-        $rawName .= '(0)';
-        // and append (0) to terminate the name
-        return $rawName;
-    }
-
-    /**
      * Replaces characters that are not allowed in a signature.
      *   example: " is converted to |22|
      * @param string $value
