@@ -128,7 +128,7 @@ class SchemaV3MigrationsTest extends TestCase
      */
     public function testEveryTableOfTheSchemaHasOneMigration()
     {
-        preg_match_all('/CREATE TABLE (?:IF NOT EXISTS )?`(\w+)`/', file_get_contents(APPLIBS . '../../INSTALL/MYSQL.sql'), $m);
+        preg_match_all('/CREATE TABLE (?:IF NOT EXISTS )?`(\w+)`/', file_get_contents(APPLIBS . '../../INSTALL/MARIADB.sql'), $m);
         $tables = array_fill_keys($m[1], true);
         $first = key(self::set());
         foreach (self::migrations() as $id => $migration) {

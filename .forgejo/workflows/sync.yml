@@ -183,7 +183,7 @@ jobs:
               GRANT ALL PRIVILEGES ON $DB.* TO '$DB'@'localhost';
               FLUSH PRIVILEGES;"
     
-            mysql -uroot -pbar $DB < $WORKSPACE/INSTALL/MYSQL.sql
+            mysql -uroot -pbar $DB < $WORKSPACE/INSTALL/MARIADB.sql
             
             # Apache site configuration with different ports
             mkdir -p /etc/apache2/sites-available

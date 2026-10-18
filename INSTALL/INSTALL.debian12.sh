@@ -358,7 +358,7 @@ sudo mysql $DBCONN_ADMIN_STRING -e "CREATE USER '${DBUSER_MISP}'@'localhost' IDE
 sudo mysql $DBCONN_ADMIN_STRING -e "GRANT USAGE ON *.* to '${DBUSER_MISP}'@'localhost';"  &>> $logfile
 sudo mysql $DBCONN_ADMIN_STRING -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${DBUSER_MISP}'@'localhost';"  &>> $logfile
 sudo mysql $DBCONN_ADMIN_STRING -e "FLUSH PRIVILEGES;"  &>> $logfile
-mysql $DBCONN_MISP_STRING $DBNAME < "${MISP_PATH}/INSTALL/MYSQL.sql"  &>> $logfile
+mysql $DBCONN_MISP_STRING $DBNAME < "${MISP_PATH}/INSTALL/MARIADB.sql"  &>> $logfile
 error_check "MISP database schema import"
 
 print_status "Moving and configuring MISP php config files.."
