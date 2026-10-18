@@ -368,16 +368,19 @@ $this->set('headerActions', $headerActions);
                                             <span class="wb-id"
                                                   title="<?= h(sprintf(
                                                       __('Shipped document'
-                                                          . ' version %1$s,'
-                                                          . ' edited %2$s'
-                                                          . ' times here'),
-                                                      $profile['version'],
-                                                      $profile['revision']
+                                                          . ' version %s'),
+                                                      $profile['version']
                                                   )) ?>">v<?= h(
                                                 $profile['version']) ?></span>
-                                            <?php if ($profile['revision'] > 1): ?>
-                                                &middot; <?= h(
-                                                    __('edited here')) ?>
+                                            <?php if ($profile['edited_here']): ?>
+                                                &middot; <span title="<?= h(
+                                                    __('Changed on this'
+                                                        . ' instance since MISP'
+                                                        . ' last wrote it. The'
+                                                        . ' next shipped update'
+                                                        . ' replaces the'
+                                                        . ' change.')) ?>"><?= h(
+                                                    __('edited here')) ?></span>
                                             <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
