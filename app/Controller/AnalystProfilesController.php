@@ -1146,11 +1146,46 @@ class AnalystProfilesController extends AppController
         $outcome = $this->AnalystProfile->updateDefaults(
             $force === true || $force === 'true' || $force === '1'
         );
-        return $this->__wrote(
-            array('outcomes' => $outcome),
-            __('The shipped defaults were loaded.'),
-            array('action' => 'index')
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(
+                array('outcomes' => $outcome),
+                'application/json'
+            );
+        }
+        $counts = array_count_values($outcome) + array(
+            'created' => 0,
+            'updated' => 0,
+            'overwrote_edits' => 0,
+            'skipped' => 0,
+            'failed' => 0,
         );
+        if (empty($outcome)) {
+            $this->Flash->error(__('No shipped profile could be read.'
+                . ' The error log says why.'));
+        } else {
+            $message = __(
+                'Shipped profiles: %s added, %s updated,'
+                    . ' %s already up to date.',
+                $counts['created'],
+                $counts['updated'] + $counts['overwrote_edits'],
+                $counts['skipped']
+            );
+            if ($counts['overwrote_edits'] > 0) {
+                $message .= ' ' . __(
+                    'Local edits to %s of them were replaced.',
+                    $counts['overwrote_edits']
+                );
+            }
+            if ($counts['failed'] > 0) {
+                $this->Flash->error($message . ' ' . __(
+                    '%s could not be saved; the error log says why.',
+                    $counts['failed']
+                ));
+            } else {
+                $this->Flash->success($message);
+            }
+        }
+        return $this->redirect(array('action' => 'index'));
     }
 
     /**
