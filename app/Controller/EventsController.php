@@ -9216,12 +9216,10 @@ class EventsController extends AppController
 
     public function getEditStrategy($id)
     {
-        // find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
-        $event = $this->Event->find('first', array(
-            'recursive' => -1,
-            'conditions' => Validation::uuid($id) ? ['Event.uuid' => $id] : ['Event.id' => $id],
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id')
-        ));
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent($user, $id, [
+            'fields' => ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id']
+        ]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
         }
@@ -9231,13 +9229,15 @@ class EventsController extends AppController
         } else {
             $response['strategy'] = 'extend';
         }
+        $conditions = $this->Event->createEventConditions($user);
+        $conditions['AND'][] = [
+            'Event.extends_uuid' => $event['Event']['uuid'],
+            'Event.orgc_id' => $user['org_id']
+        ];
         $extendedEvents = $this->Event->find('all', array(
             'recursive' => -1,
             'fields' => array('Event.id', 'Event.info', 'Event.uuid'),
-            'conditions' => array(
-                'Event.extends_uuid' => $event['Event']['uuid'],
-                'Event.orgc_id' => $this->Auth->user('org_id')
-            )
+            'conditions' => $conditions
         ));
         foreach ($extendedEvents as $extendedEvent) {
             $response['extensions'][] = $extendedEvent['Event'];
