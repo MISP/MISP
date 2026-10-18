@@ -2906,27 +2906,30 @@ class UsersController extends AppController
         }
 
         $skeleton = $this->Galaxy->matrixSkeleton($user, $galaxy['Galaxy']);
-        if ($organisation !== 0 || $dates['dateFrom'] !== '' || $dates['dateTo'] !== '') {
-            $filters = array_filter([
-                'attackGalaxy' => $galaxy['Galaxy']['type'],
-                'org' => $organisation,
-                'from' => $dates['dateFrom'],
-                'to' => $dates['dateTo'],
-            ]);
-            $elementCounter = 0;
-            $renderView = '';
-            $export = JsonTool::decode($this->User->Event->restSearch($user, 'attack', $filters, false, false, $elementCounter, $renderView));
-            $scores = $export['scores'] ?? [];
-        } else {
-            $tagNames = [];
-            foreach ($skeleton['tabs'] as $columns) {
-                foreach ($columns as $cells) {
-                    foreach ($cells as $cell) {
-                        $tagNames[$cell['tag_name']] = true;
-                    }
+        $tagNames = [];
+        foreach ($skeleton['tabs'] as $columns) {
+            foreach ($columns as $cells) {
+                foreach ($cells as $cell) {
+                    $tagNames[mb_strtolower($cell['tag_name'])] = $cell['tag_name'];
                 }
             }
-            $scores = $this->User->Event->EventTag->getTagScoresUniform(0, array_keys($tagNames))['scores'];
+        }
+        $tagIds = empty($tagNames) ? [] : ClassRegistry::init('Tag')->find('column', [
+            'conditions' => ['LOWER(Tag.name)' => array_keys($tagNames)],
+            'fields' => ['Tag.id'],
+        ]);
+        $eventConditions = array_filter([
+            'Event.orgc_id' => $organisation,
+            'Event.date >=' => $dates['dateFrom'],
+            'Event.date <=' => $dates['dateTo'],
+        ]);
+        // Unfiltered, the classic statistics count every event on the instance
+        $counts = $this->User->Event->EventTag->countEventsCarrying($tagIds, empty($eventConditions) ? null : $user, $eventConditions);
+        $scores = [];
+        foreach ($counts as $name => $events) {
+            if (isset($tagNames[$name])) {
+                $scores[$tagNames[$name]] = $events;
+            }
         }
         $tab = $this->request->query('tab');
         $matrix = EventMatrixTool::usage($skeleton, $galaxy['Galaxy'], $scores, is_string($tab) ? $tab : null);
