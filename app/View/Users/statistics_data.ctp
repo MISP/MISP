@@ -37,7 +37,7 @@
         </dd>
         <dt><?php echo __('Analyst Data'); ?></dt>
         <dd><?php echo h($stats['analyst_data_count']);
-            if ($stats['analyst_data_count_month']) echo ' <span style="color:green">(+' . h($stats['analyst_data_count']) . ')</span>&nbsp;';
+            if ($stats['analyst_data_count_month']) echo ' <span style="color:green">(+' . h($stats['analyst_data_count_month']) . ')</span>&nbsp;';
             else echo ' <span style="color:red">(0)</span>&nbsp;';?>
         </dd>
         <dt><?php echo __('Correlations found'); ?></dt>
