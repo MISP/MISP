@@ -374,7 +374,7 @@ mysql "${DBCONN_ADMIN_STRING[@]}" -e "GRANT ALL PRIVILEGES on ${DBNAME}.* to '${
 mysql "${DBCONN_ADMIN_STRING[@]}" -e "FLUSH PRIVILEGES;" &>>$logfile
 
 if [ "$(mysql -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$DBNAME';")" -eq 0 ]; then
-    mysql "${DBCONN_MISP_STRING[@]}" "$DBNAME" <"${MISP_PATH}/INSTALL/MYSQL.sql" &>>$logfile
+    mysql "${DBCONN_MISP_STRING[@]}" "$DBNAME" <"${MISP_PATH}/INSTALL/MARIADB.sql" &>>$logfile
     error_check "MISP database schema import"
 fi
 

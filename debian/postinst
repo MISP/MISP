@@ -55,7 +55,7 @@ if [ "$1" = "configure" ] ; then
    mysql -h$HOST -uroot -p$ROOTPWD -e "GRANT ALL PRIVILEGES ON misp.* TO '$MISPDBUSER'@'%';"
    mysql -h$HOST -uroot -p$ROOTPWD -e "FLUSH PRIVILEGES;"
    echo "Creating MISP Database..."
-   mysql -h$HOST -uroot -p$ROOTPWD -e "CREATE DATABASE $MISPDB;" && gunzip < /usr/share/doc/misp/MYSQL.sql.gz | mysql -h$HOST -u$MISPDBUSER -p$MISPDBUSERPWD $MISPDB || true
+   mysql -h$HOST -uroot -p$ROOTPWD -e "CREATE DATABASE $MISPDB;" && gunzip < /usr/share/doc/misp/MARIADB.sql.gz | mysql -h$HOST -u$MISPDBUSER -p$MISPDBUSERPWD $MISPDB || true
 
    #   /usr/share/misp/app/Config/database.php
    echo "Updating salt..."

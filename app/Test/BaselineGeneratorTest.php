@@ -695,6 +695,16 @@ class BaselineGeneratorTest extends TestCase
         $this->assertStringNotContainsString('innodb_ft_enable_stopword', $other['sql']);
     }
 
+    public function testTheBaselineSetsTheDatabaseDefaultCollation()
+    {
+        $mariadb = $this->generator()->render(BaselineGenerator::grammar('mariadb'), $this->fixtureSchema(), array(), 159);
+        $this->assertStringContainsString('ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci;', $mariadb['sql']);
+        $mysql = $this->generator()->render(BaselineGenerator::grammar('mysql'), $this->fixtureSchema(), array(), 159);
+        $this->assertStringContainsString('ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci;', $mysql['sql']);
+        $pgsql = $this->generator()->render($this->pgsql, $this->fixtureSchema(), array(), 159);
+        $this->assertStringNotContainsString('ALTER DATABASE', $pgsql['sql']);
+    }
+
     public function testTheRoundTripReadsTheShapeOfAReplacedIndex()
     {
         $db = new BaselineGeneratorTestLoadedPostgres();

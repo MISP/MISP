@@ -281,7 +281,7 @@
 - name: MySQL | Initialize MISP database
   shell: "{{ item }}"
   with_items:
-    - mysql -D misp < /opt/misp-server/misp/INSTALL/MYSQL.sql
+    - mysql -D misp < /opt/misp-server/misp/INSTALL/MARIADB.sql
   when: mysql_init.changed
   
 ######### PERMISSIONS #########
