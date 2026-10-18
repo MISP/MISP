@@ -222,7 +222,7 @@ class BaselineGenerator
         'blob' => 'binary',
         'tinyblob' => 'binary',
         'mediumblob' => 'binary',
-        'longblob' => 'binary',
+        'longblob' => 'longblob',
         'varbinary' => 'varbinary',
         'datetime' => 'datetime',
         'timestamp' => 'timestamp',
@@ -253,6 +253,14 @@ class BaselineGenerator
      * @var array
      */
     private static $textTypes = array('text', 'mediumtext', 'longtext');
+
+    /**
+     * DSL types Mysql::describe() folds into text or binary, which only the
+     * catalog tells apart.
+     *
+     * @var array
+     */
+    private static $tieredTypes = array('mediumtext', 'longtext', 'longblob');
 
     /**
      * @var DboSource The MySQL connection the reference is read through.
@@ -1111,7 +1119,7 @@ class BaselineGenerator
             'integer' => 'integer', 'biginteger' => 'biginteger',
             'smallinteger' => 'smallinteger', 'tinyinteger' => 'tinyinteger',
             'boolean' => 'boolean', 'string' => 'string', 'text' => 'text',
-            'mediumtext' => 'text', 'longtext' => 'text', 'binary' => 'binary',
+            'mediumtext' => 'text', 'longtext' => 'text', 'binary' => 'binary', 'longblob' => 'binary',
             'varbinary' => 'text', 'datetime' => 'datetime', 'timestamp' => 'timestamp',
             'date' => 'date', 'time' => 'time', 'float' => 'float', 'decimal' => 'decimal',
         ),
@@ -1119,7 +1127,7 @@ class BaselineGenerator
             'integer' => 'integer', 'biginteger' => 'biginteger',
             'smallinteger' => 'smallinteger', 'tinyinteger' => 'smallinteger',
             'boolean' => 'boolean', 'string' => 'string', 'text' => 'text',
-            'mediumtext' => 'text', 'longtext' => 'text', 'binary' => 'binary',
+            'mediumtext' => 'text', 'longtext' => 'text', 'binary' => 'binary', 'longblob' => 'binary',
             'varbinary' => 'binary', 'datetime' => 'datetime', 'timestamp' => 'datetime',
             'date' => 'date', 'time' => 'time', 'float' => 'float', 'decimal' => 'decimal',
         ),
@@ -1413,6 +1421,13 @@ class BaselineGenerator
                 continue;
             }
             $column = $catalog['columns'][$name];
+            if (isset($column['type'])) {
+                $tier = self::dslType($column['type']);
+                $tiered = in_array($tier, self::$tieredTypes, true) || in_array($spec['type'], self::$tieredTypes, true);
+                if ($tiered && $tier !== $spec['type']) {
+                    $findings[] = sprintf('%s.%s: %s, expected %s', $table, $name, $column['type'], $spec['type']);
+                }
+            }
             if (!empty($spec['unsigned']) !== (bool)$column['unsigned']) {
                 $findings[] = sprintf(
                     '%s.%s: %s, expected %s',

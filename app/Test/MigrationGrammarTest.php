@@ -300,9 +300,9 @@ class MigrationGrammarTest extends TestCase
     }
 
     /**
-     * The three types the MISP schema uses that Cake's maps do not define.
+     * The types the MISP schema uses that Cake's maps do not define.
      * mediumtext and longtext are MySQL storage tiers of one logical type, so
-     * both collapse to text on PostgreSQL; varbinary becomes bytea.
+     * both collapse to text on PostgreSQL; longblob and varbinary become bytea.
      */
     public function testExtendedTypesRenderOnBothEngines()
     {
@@ -322,6 +322,15 @@ class MigrationGrammarTest extends TestCase
         $this->assertSame(
             array('ALTER TABLE "logs" ADD "payload" text DEFAULT NULL;'),
             $this->pgsql->addColumn('logs', 'payload', 'longtext', array('null' => true))
+        );
+
+        $this->assertSame(
+            array('ALTER TABLE `value_enrichment_runs` ADD `result` longblob DEFAULT NULL;'),
+            $this->mysql->addColumn('value_enrichment_runs', 'result', 'longblob', array('null' => true))
+        );
+        $this->assertSame(
+            array('ALTER TABLE "value_enrichment_runs" ADD "result" bytea DEFAULT NULL;'),
+            $this->pgsql->addColumn('value_enrichment_runs', 'result', 'longblob', array('null' => true))
         );
 
         $this->assertSame(

@@ -25,7 +25,8 @@ App::uses('TablePreflight', 'Migration');
  * - A column: its type as the reference's generator reads it (so mediumblob
  *   is binary, and an integer's display width is no difference), its length,
  *   sign, nullability, default and, on MySQL, its collation. An expression
- *   default the target does not have is a difference.
+ *   default the target does not have is a difference. A longblob target needs
+ *   a LONGBLOB; a binary target takes a wider blob as it is, never narrowing it.
  * - An index: its columns, prefixes, uniqueness and kind, under the name the
  *   engine gives it. An index the target declares with its own PostgreSQL
  *   statement is compared there by name, uniqueness and method only.
@@ -60,6 +61,7 @@ class TableConverger
         'mediumtext' => 'text',
         'longtext' => 'text',
         'binary' => 'bytea',
+        'longblob' => 'bytea',
         'varbinary' => 'bytea',
         'datetime' => 'timestamp without time zone',
         'timestamp' => 'timestamp without time zone',
@@ -480,10 +482,14 @@ class TableConverger
             if (empty($differs)) {
                 continue;
             }
+            $type = $spec['type'];
+            if ($mysql && $type === 'binary' && BaselineGenerator::dslType($from['type']) === 'longblob') {
+                $type = 'longblob';
+            }
             $change = self::isKey($spec) && $spec['type'] === 'biginteger'
                 ? array('type' => 'primary_key', 'options' => array())
                 : array(
-                    'type' => $spec['type'],
+                    'type' => $type,
                     'options' => self::columnOptions($spec) + array('null' => true, 'default' => null),
                 );
             $changes[$column] = $change + array('differs' => $differs, 'from' => $from);
@@ -530,7 +536,7 @@ class TableConverger
         ) {
             return null;
         }
-        return in_array($spec['type'], array_merge(self::STRING_TYPES, array('binary', 'varbinary')), true) ? '' : '0';
+        return in_array($spec['type'], array_merge(self::STRING_TYPES, array('binary', 'longblob', 'varbinary')), true) ? '' : '0';
     }
 
     /**
@@ -595,7 +601,8 @@ class TableConverger
     private static function sameType($type, array $live, $mysql)
     {
         if ($mysql) {
-            return BaselineGenerator::dslType($live['type']) === $type;
+            $liveType = BaselineGenerator::dslType($live['type']);
+            return $liveType === $type || ($type === 'binary' && $liveType === 'longblob');
         }
         return isset(self::PGSQL_TYPES[$type]) && self::PGSQL_TYPES[$type] === $live['base'];
     }

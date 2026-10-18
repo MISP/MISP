@@ -242,6 +242,33 @@ class TableConvergerTest extends TestCase
         $this->assertSame(array('type'), $plan['change']['request']['differs']);
     }
 
+    /**
+     * A longblob target widens a BLOB; a binary target keeps a LONGBLOB, also
+     * when something else about the column changes.
+     */
+    public function testBlobSizesAreComparedOneWay()
+    {
+        $target = self::TARGET;
+        $target['columns']['request'] = array('type' => 'longblob', 'null' => true);
+        $live = self::mysqlLive($target);
+        $this->assertTrue(TableConverger::isEmpty(TableConverger::plan($this->mysqlInspector($live), 'events', $target)));
+        $this->assertTrue(TableConverger::isEmpty(TableConverger::plan($this->pgsqlInspector(self::pgsqlLive('events', $target)), 'events', $target)));
+
+        $live['columns']['request'] = self::mysqlColumn('blob', array('null' => true));
+        $plan = TableConverger::plan($this->mysqlInspector($live), 'events', $target);
+        $this->assertSame(array('type'), $plan['change']['request']['differs']);
+        $this->assertSame('longblob', $plan['change']['request']['type']);
+
+        $target['columns']['request'] = array('type' => 'binary', 'null' => true);
+        $live['columns']['request'] = self::mysqlColumn('longblob', array('null' => true));
+        $this->assertTrue(TableConverger::isEmpty(TableConverger::plan($this->mysqlInspector($live), 'events', $target)));
+
+        $live['columns']['request'] = self::mysqlColumn('longblob', array('null' => false));
+        $plan = TableConverger::plan($this->mysqlInspector($live), 'events', $target);
+        $this->assertSame(array('null'), $plan['change']['request']['differs']);
+        $this->assertSame('longblob', $plan['change']['request']['type']);
+    }
+
     // ---------------------------------------------------------------- indexes
 
     /**

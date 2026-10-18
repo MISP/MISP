@@ -166,6 +166,9 @@ class BaselineGeneratorTestLoadedInspector extends SchemaInspector
     /** @var array|null */
     public $database;
 
+    /** @var BaselineGeneratorTestLoadedMysql|null What describe() and index() read. */
+    public $loadedDb;
+
     public function tableDefinition($table)
     {
         return isset($this->definitions[$table]) ? $this->definitions[$table] : null;
@@ -225,6 +228,8 @@ class BaselineGeneratorTest extends TestCase
             array('mediumtext', array('type' => 'mediumtext')),
             array('longtext', array('type' => 'longtext')),
             array('blob', array('type' => 'binary')),
+            array('mediumblob', array('type' => 'binary')),
+            array('longblob', array('type' => 'longblob')),
             array('varbinary(16)', array('type' => 'varbinary', 'length' => 16)),
             array('datetime', array('type' => 'datetime')),
             array('datetime(4)', array('type' => 'datetime', 'length' => 4)),
@@ -1116,6 +1121,7 @@ class BaselineGeneratorTest extends TestCase
             ),
         );
         $inspector->database = array('charset' => 'utf8mb4', 'collation' => $ci);
+        $inspector->loadedDb = $db;
         return $inspector;
     }
 
@@ -1159,6 +1165,30 @@ class BaselineGeneratorTest extends TestCase
             'database: default collation latin1_swedish_ci, expected utf8mb4_unicode_520_ci (<CI>)',
             $this->generator()->compare($inspector, $schema)
         );
+    }
+
+    /**
+     * describe() reads every text and blob size as text or binary; the
+     * catalog tells them apart, a longblob from a blob among them.
+     */
+    public function testTheCatalogComparisonNamesTheTextAndBlobTiers()
+    {
+        $schema = $this->catalogSchema();
+        $schema['events']['columns']['payload'] = array('type' => 'longblob', 'null' => true);
+        $database = array('collate' => Collation::CI);
+        $inspector = $this->loadedMysql('8.4.6', 'utf8mb4_unicode_520_ci');
+        $inspector->loadedDb->descriptions['events']['payload'] = array('type' => 'binary', 'null' => true, 'default' => null, 'length' => null);
+        $events = &$inspector->definitions['events'];
+        $events['columns']['payload'] = array('type' => 'longblob', 'unsigned' => false, 'collation' => null, 'charset' => null);
+        $events['columns']['info']['type'] = 'text';
+        $this->assertSame(array(), $this->generator()->compare($inspector, $schema, $database));
+
+        $events['columns']['payload']['type'] = 'blob';
+        $events['columns']['info']['type'] = 'mediumtext';
+        $this->assertSame(array(
+            'events.info: mediumtext, expected text',
+            'events.payload: blob, expected longblob',
+        ), $this->generator()->compare($inspector, $schema, $database));
     }
 
     /**

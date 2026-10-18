@@ -89,11 +89,13 @@ class SchemaTargetGenerator
      * correlation_rules.created defaulted to UNIX_TIMESTAMP(), which MySQL 8.4
      * refuses unparenthesised; CorrelationRule::beforeValidate() sets it on
      * every new rule. created_at is the schema's only TIMESTAMP column, which
-     * ends in 2038 on MySQL.
+     * ends in 2038 on MySQL. value_enrichment_runs.result holds compressed
+     * payloads past BLOB's 64 KB.
      */
     const COLUMN_OVERRIDES = array(
         'correlation_rules' => array('created' => array('default' => '0')),
         'user_login_profiles' => array('created_at' => array('type' => 'datetime')),
+        'value_enrichment_runs' => array('result' => array('type' => 'longblob')),
     );
 
     /**

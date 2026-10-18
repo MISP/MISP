@@ -254,12 +254,12 @@ class TablePreflight
         if (isset(self::WIDTHS[$type])) {
             return self::WIDTHS[$type];
         }
-        if ($type === 'string' || $type === 'varbinary' || $type === 'binary' || isset(self::TEXT_BYTES[$type])) {
+        if (in_array($type, array('string', 'varbinary', 'binary', 'longblob'), true) || isset(self::TEXT_BYTES[$type])) {
             $chars = $prefix !== null ? $prefix : $shape['length'];
             if ($chars === null) {
                 return $cap;
             }
-            $bytes = $chars * ($type === 'varbinary' || $type === 'binary' ? 1 : $shape['bytesPerChar']);
+            $bytes = $chars * (in_array($type, array('varbinary', 'binary', 'longblob'), true) ? 1 : $shape['bytesPerChar']);
             return $cap === null ? $bytes : min($bytes, $cap);
         }
         return $cap === null ? 0 : $cap;
