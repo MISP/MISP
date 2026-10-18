@@ -3,8 +3,9 @@
  * One module's answer.
  *
  * The fragment `viewEnrichmentRun` returns, injected into the pane the
- * run came from. **Nothing here is written into MISP** — no attribute,
- * no object, no event. The answer itself is kept for the organisation
+ * run came from. **Nothing here is written into MISP**: a finding reaches
+ * an event only when the reader picks it and creates one from the page's
+ * new event dialog. The answer itself is kept for the organisation
  * since phase 11, which is what lets this same fragment be served
  * without asking anybody anything.
  *
@@ -41,6 +42,7 @@
  * @var string $valueB64
  */
 App::uses('ValueRendererTool', 'Tools/ValueIntelligence');
+App::uses('ValueNewEventTool', 'Tools/ValueIntelligence');
 
 $run = $valueIntelligence['run'];
 $state = $run['state'];
@@ -163,15 +165,60 @@ $noDismiss = __(
     . ' rejected part of what it returned.'
 );
 
+$canPick = $this->Acl->canAccess('values', 'newEvent');
+
+/**
+ * What a finding offers the new event dialog: its fingerprint, or nothing
+ * when it is the value itself, which every event made here holds anyway.
+ *
+ * @param array $item
+ * @param string $kind attribute|object|element
+ * @return array|null
+ */
+$pickFor = function (array $item, $kind) use ($canPick, $run, $valueIntelligence) {
+    if (!$canPick) {
+        return null;
+    }
+    if (ValueNewEventTool::isValueItself($item, $kind, $valueIntelligence['value'])) {
+        return array('self' => true);
+    }
+    return array('fp' => ValueNewEventTool::fingerprint($item, $kind, $run['module']));
+};
+
+// On the row itself, so the copies the All results pane makes still say where they came from.
+$pickAttr = function ($pick) use ($run) {
+    return empty($pick['fp']) ? '' : ' data-vp-ne-fp="' . h($pick['fp']) . '"'
+        . ' data-vp-ne-module="' . h($run['module']) . '"'
+        . ' data-vp-ne-type="' . h($run['type']) . '"';
+};
+
+$pickControl = function ($pick) {
+    if ($pick === null) {
+        return '';
+    }
+    if (!empty($pick['self'])) {
+        $note = __('This is the value itself — it is always in the event.');
+        return '<span class="vp-ne-self" title="' . h($note) . '">'
+            . '<i class="fas fa-lock" aria-hidden="true"></i>'
+            . '<span class="visually-hidden">' . h($note) . '</span></span>';
+    }
+    return '<button type="button" class="btn btn-sm btn-outline-primary vp-ne-pick"'
+        . ' data-vp-ne-pick aria-pressed="false"'
+        . ' title="' . h(__('Pick this finding for a new event')) . '">'
+        . '<i class="fas fa-plus" aria-hidden="true"></i>'
+        . '<span data-vp-ne-pick-label>' . h(__('Pick')) . '</span></button>';
+};
+
 /**
  * The per-element action, drawn once and reused on every row. An object
  * takes it whole; the attribute rows inside it carry none.
  *
  * @param bool $wide Whether the label is spelled out
+ * @param array|null $pick From $pickFor; an object draws its own in its head
  * @return string
  */
-$actions = function ($wide = false) use ($noDismiss) {
-    $out = '<span class="vp-e-el-acts">';
+$actions = function ($wide = false, $pick = null) use ($noDismiss, $pickControl) {
+    $out = '<span class="vp-e-el-acts">' . $pickControl($pick);
     $buttons = array(
         array(__('Dismiss'), 'fa-xmark', $noDismiss),
     );
@@ -552,6 +599,7 @@ $manyObjects = count($run['objects']) > 1;
         </div>
         <div class="vp-e-list">
             <?php foreach ($run['attributes'] as $attribute): ?>
+                <?php $pick = $pickFor($attribute, 'attribute'); ?>
                 <?php
                 /*
                  * Two lines, not one wrapped one. The value is what a
@@ -562,7 +610,7 @@ $manyObjects = count($run['objects']) > 1;
                  * same place on every row.
                  */
                 ?>
-                <div class="vp-e-el" data-vp-e-item>
+                <div class="vp-e-el" data-vp-e-item<?= $pickAttr($pick) ?>>
                     <div class="vp-e-el-body">
                         <div class="vp-e-el-top">
                             <span class="vp-e-val"><?= h(
@@ -595,7 +643,7 @@ $manyObjects = count($run['objects']) > 1;
                             <?php endif; ?>
                         </div>
                     </div>
-                    <?= $actions() ?>
+                    <?= $actions(false, $pick) ?>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -700,7 +748,8 @@ $manyObjects = count($run['objects']) > 1;
                 $peek[] = array_shift($spare);
             }
             ?>
-            <div class="vp-e-obj" data-vp-e-item data-vp-e-obj>
+            <?php $pick = $pickFor($object, 'object'); ?>
+            <div class="vp-e-obj" data-vp-e-item data-vp-e-obj<?= $pickAttr($pick) ?>>
 
                 <?php
                 /*
@@ -711,6 +760,7 @@ $manyObjects = count($run['objects']) > 1;
                  * else in the head to click.
                  */
                 ?>
+                <div class="vp-e-obj-top">
                 <button type="button"
                         class="vp-e-obj-head"
                         data-vp-e-disc
@@ -756,6 +806,10 @@ $manyObjects = count($run['objects']) > 1;
                         $rows
                     )) ?></span>
                 </button>
+                <?php if ($pick !== null): ?>
+                    <span class="vp-e-obj-pick"><?= $pickControl($pick) ?></span>
+                <?php endif; ?>
+                </div>
 
                 <div class="<?= $open ? '' : 'd-none' ?>"
                      data-vp-e-fold>
@@ -883,7 +937,8 @@ $manyObjects = count($run['objects']) > 1;
         </div>
         <div class="vp-e-list">
             <?php foreach ($run['elements'] as $element): ?>
-                <div class="vp-e-el" data-vp-e-item>
+                <?php $pick = $pickFor($element, 'element'); ?>
+                <div class="vp-e-el" data-vp-e-item<?= $pickAttr($pick) ?>>
                     <div class="vp-e-el-body">
                         <div class="vp-e-el-top">
                             <span class="vp-e-val"><?= h(
@@ -903,7 +958,7 @@ $manyObjects = count($run['objects']) > 1;
                             </div>
                         <?php endif; ?>
                     </div>
-                    <?= $actions() ?>
+                    <?= $actions(false, $pick) ?>
                 </div>
             <?php endforeach; ?>
         </div>
