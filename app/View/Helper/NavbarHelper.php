@@ -240,14 +240,14 @@ class NavbarHelper extends AppHelper {
                 'action' => '',
                 'icon' => 'fas fa-chalkboard-user',
             ],
-            // [
-            //     'type' => 'group',
-            //     'label' => __('Statistics'),
-            //     'url' => $baseurl . '/users/statistics',
-            //     'controller' => 'users',
-            //     'action' => 'statistics',
-            //     'icon' => 'fas fa-pie-chart',
-            // ]
+            [
+                'type' => 'group',
+                'label' => __('Statistics'),
+                'url' => $baseurl . '/users/statistics',
+                'controller' => 'users',
+                'action' => 'statistics',
+                'icon' => 'fas fa-chart-pie',
+            ],
         ];
 
         return [

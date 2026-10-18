@@ -20,40 +20,9 @@
             <tr>
                 <td style="width:20%;"><?php echo empty($source) ? __('Undefined') : h($source);?></td>
                 <td style="width:20%;"><?php echo h($total);?></td>
-                <td style="width:20%;">
-                    <?php
-                        if (isset($data[$source]['sighting'])):
-                    ?>
-                            <a href="<?php echo $baseurl; ?>/events/index/searcheventid:<?php echo h(implode('|', $eventids[$source]['sighting'])); ?>"><?php echo h($data[$source]['sighting']); ?></a>
-                    <?php
-                        else:
-                            echo '0';
-                        endif;
-                    ?>
-                </td>
-                <td style="width:20%;">
-                    <?php
-                        if (isset($data[$source]['false-positive'])):
-                    ?>
-                            <a href="<?php echo $baseurl; ?>/events/index/searcheventid:<?php echo h(implode('|', $eventids[$source]['false-positive'])); ?>"><?php echo h($data[$source]['false-positive']); ?></a>
-                    <?php
-                        else:
-                            echo '0';
-                        endif;
-                    ?>
-                </td>
-                <td style="width:20%;">
-                    <?php
-                        if (isset($data[$source]['expiration'])):
-                    ?>
-                            <a href="<?php echo $baseurl; ?>/events/index/searcheventid:<?php echo h(implode('|', $eventids[$source]['expiration'])); ?>"><?php echo h($data[$source]['expiration']); ?></a>
-                    <?php
-                        else:
-                            echo '0';
-                        endif;
-                    ?>
-                </td>
-
+                <?php foreach (array('sighting', 'false-positive', 'expiration') as $type): ?>
+                <td style="width:20%;"><?php echo isset($data[$source][$type]) ? h($data[$source][$type]) : '0'; ?></td>
+                <?php endforeach; ?>
             </tr>
     <?php
             $count++;

@@ -87,7 +87,7 @@ class OvermindPages
             'login', 'register', 'forgot', 'change_pw',
             'view', 'admin_view', 'admin_index', 'edit', 'admin_edit',
             'admin_add', 'admin_quickEmail', 'admin_email', 'totp_new',
-            'view_login_history', 'registrations'
+            'view_login_history', 'registrations', 'statistics'
         ),
         'auth_keys' => array('index', 'add', 'edit', 'view'),
         'user_settings' => array('index', 'setSetting', 'deleteSelection'),
