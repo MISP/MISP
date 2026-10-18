@@ -740,6 +740,10 @@ class BaselineGenerator
         foreach ($this->preamble($flavour) as $statement) {
             $out[] = $statement;
         }
+        foreach ($grammar->alterDatabase(array('collate' => Collation::CI)) as $statement) {
+            $out[] = $statement;
+        }
+        $grammar->takeDroppedHints();
         if ($flavour === AbstractGrammar::FLAVOUR_PGSQL) {
             foreach (self::pgsqlExtensions($schema) as $extension) {
                 $out[] = sprintf('CREATE EXTENSION IF NOT EXISTS %s;', $extension);
