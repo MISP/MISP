@@ -1147,6 +1147,12 @@ class ACLComponent extends Component
             'enrichmentRun' => array(
                 'AND' => array('perm_add', 'theming_enabled')
             ),
+            'newEvent' => array(
+                'AND' => array('perm_add', 'theming_enabled')
+            ),
+            'createEvent' => array(
+                'AND' => array('perm_add', 'theming_enabled')
+            ),
             'viewAnalystStanding' => array('theming_enabled'),
             'viewAnalystThread' => array('theming_enabled'),
             'viewAnalystReports' => array('theming_enabled'),

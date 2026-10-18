@@ -17,11 +17,11 @@ App::uses('ValueLean', 'Tools/ValueIntelligence');
 echo $this->element('genericElements/assetLoader', array(
     'css' => array(
         'value-palette', 'value-widgets', 'misp-brush', 'misp-matrix',
-        'org-tile', 'tile-drawer', 'value-intelligence',
+        'org-tile', 'tile-drawer', 'value-intelligence', 'value-new-event',
     ),
     'js' => array(
         'Chart.min', 'misp-brush', 'misp-matrix', 'tile-drawer',
-        'value-intelligence',
+        'value-intelligence', 'value-new-event',
     ),
 ));
 
@@ -133,6 +133,15 @@ $headerActions = array(
             'attributes' => array('data-intel-graph-add' => json_encode(array(array(
                 'type' => 'Value', 'value' => $profile['value'], 'label' => $profile['value'],
             )))),
+        )
+        : null,
+    $this->Acl->canAccess('values', 'newEvent')
+        ? array(
+            'type' => 'navigate',
+            'label' => __('New event'),
+            'icon' => 'calendar-plus',
+            'class' => 'btn btn-outline-dark',
+            'attributes' => array('data-vp-ne-open' => '1'),
         )
         : null,
 );
@@ -961,3 +970,10 @@ echo $this->element('genericElementsBS5/Layout/view_layout', array(
     'data' => $profile,
     'tabs' => $tabs,
 ));
+
+if ($this->Acl->canAccess('values', 'newEvent')) {
+    echo $this->element('Values/View/value_new_event_bar', array(
+        'value' => $profile['value'],
+        'valueB64' => $valueB64,
+    ));
+}
