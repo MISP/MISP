@@ -300,7 +300,7 @@ class ServerShell extends AppShell
     public function viewFeed()
     {
         if (empty($this->args[0])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['View Feed']);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['View feed']);
         }
         $feed = $this->Feed->find('first', [
             'conditions' => [

@@ -315,7 +315,7 @@ class AdminShell extends AppShell
     public function jobForgot()
     {
         if (empty($this->args[0])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Forgot']);
+            $this->error('Usage: MISP/app/Console/cake Admin jobForgot [email] [ip] [job_id]');
         }
 
         $email = $this->args[0];
@@ -2625,7 +2625,7 @@ class AdminShell extends AppShell
     public function truncateTable()
     {
         if (!isset($this->args[0])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation']);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate correlation table']);
         }
         $userId = $this->args[0];
         if ($userId) {
@@ -2640,7 +2640,7 @@ class AdminShell extends AppShell
             ];
         }
         if (empty($this->args[1])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation']);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate correlation table']);
         }
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];
