@@ -2388,7 +2388,8 @@ class UsersController extends AppController
             'recursive' => -1,
             'order' => ['name'],
         );
-        if (!$user['Role']['perm_site_admin'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+        $hideOrgs = !$user['Role']['perm_site_admin'] && !empty(Configure::read('Security.hide_organisation_index_from_users'));
+        if ($hideOrgs) {
             $params['conditions'] = array('Organisation.id' => $user['org_id']);
         }
         $orgs = $this->User->Organisation->find('list', $params);
@@ -2455,6 +2456,7 @@ class UsersController extends AppController
 
         $this->set('stats', $stats);
         $this->set('orgs', $orgs);
+        $this->set('showActivity', !$hideOrgs);
         $this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
         $this->set('end', strtotime(date('Y-m-d H:i:s')));
         $this->set('startDateCal', $year . ', ' . $month . ', 01');

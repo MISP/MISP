@@ -58,6 +58,7 @@
         <dd><?php echo h($stats['average_user_per_org']); ?>&nbsp;</dd>
     </dl>
 </div>
+<?php if ($showActivity): ?>
 <br />
 <h3><?php echo __('Activity Heatmap');?></h3>
 <p><?php echo __('A heatmap showing user activity for each day during this month and the 4 months that preceded it. Use the buttons below to only show the heatmap of a specific organisation.');?></p>
@@ -134,6 +135,7 @@ if (preg_match('/(?i)msie [2-9]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERV
         <?php
     }
 }
+endif;
 ?>
 </div>
 <?= $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
