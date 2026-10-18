@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 App::uses('MispTheme', 'MispTheme');
 App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 App::uses('ValueLean', 'Tools/ValueIntelligence');
+App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
 App::uses('ValueInputTool', 'Tools/ValueIntelligence');
 App::uses('ValueConditionRewriter', 'Tools');
 App::uses('Value', 'Model');
@@ -267,6 +268,7 @@ class ValuesController extends AppController
             $this->ValueIntelligence->forProfileInForce($user)
         );
         $this->set('tiles', $this->ValueIntelligence->forTiles($user));
+        $this->set('showsAssessment', $this->__showsAssessment());
         return $this->render('index');
     }
 
@@ -447,6 +449,7 @@ class ValuesController extends AppController
             return $this->render('/Elements/Values/Index/answer');
         }
         $this->set('triage', $this->__triage($many));
+        $this->set('showsAssessment', $this->__showsAssessment());
         return $this->render('/Elements/Values/Index/worklist');
     }
 
@@ -767,7 +770,9 @@ class ValuesController extends AppController
          * the honest price of a badge that cannot be caught lying, and
          * it is measured on the conversion board rather than assumed.
          */
-        $profile['verdict'] = $this->__verdictFor($b64value)['verdict'];
+        $profile['verdict'] = $this->__showsAssessment()
+            ? $this->__verdictFor($b64value)['verdict']
+            : null;
         $this->set('valueIntelligence', $profile);
         // Re-encoded rather than passed through, so the panel URLs the page
         // builds are well-formed whichever alphabet the caller arrived with.
@@ -939,6 +944,7 @@ class ValuesController extends AppController
      */
     public function viewLifecycle($b64value = null)
     {
+        $this->set('showsAssessment', $this->__showsAssessment());
         $this->__renderLivePanel($b64value, 'forLifecycle', 'value_lifecycle');
     }
 
@@ -1043,6 +1049,7 @@ class ValuesController extends AppController
      */
     public function viewSightingChart($b64value = null)
     {
+        $this->set('showsAssessment', $this->__showsAssessment());
         $this->__renderSightingPanel(
             $b64value,
             'forSightingChart',
@@ -1076,6 +1083,7 @@ class ValuesController extends AppController
      */
     public function viewRelevance($b64value = null)
     {
+        $this->__requireAssessment();
         $this->__renderSightingPanel(
             $b64value,
             'forRelevance',
@@ -1971,12 +1979,40 @@ class ValuesController extends AppController
      */
     private function __verdictFor($b64value, array $options = array())
     {
+        $this->__requireAssessment();
         $this->loadModel('ValueIntelligence');
         return $this->ValueIntelligence->forVerdict(
             $this->Auth->user(),
             $this->__decodeValue($b64value),
             $options
         );
+    }
+
+    /**
+     * Whether the reader's profile in force wants the assessment drawn.
+     *
+     * @return bool
+     */
+    private function __showsAssessment()
+    {
+        $this->loadModel('AnalystProfile');
+        return ValueLabelPriority::showsAssessment(
+            $this->AnalystProfile->resolveFor($this->Auth->user())
+        );
+    }
+
+    /**
+     * @return void
+     * @throws NotFoundException When the reader's profile switches the
+     *                           assessment off
+     */
+    private function __requireAssessment()
+    {
+        if (!$this->__showsAssessment()) {
+            throw new NotFoundException(__(
+                'The assessment is switched off in your analyst profile.'
+            ));
+        }
     }
 
     /**

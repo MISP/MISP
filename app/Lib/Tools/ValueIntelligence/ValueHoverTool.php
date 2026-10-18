@@ -89,7 +89,10 @@ class ValueHoverTool
     /**
      * The card, from one assessment.
      *
-     * @param array $verdict The `verdict` half of `forVerdict()`
+     * @param array|null $verdict The `verdict` half of `forVerdict()`, or
+     *                            null when the reader's profile switches
+     *                            the assessment off: the assessment keys
+     *                            are then null and the facts remain
      * @param array $context The context that verdict scored
      * @param int|null $now Unix time; the caller's, so a render and the
      *                      clock it prints cannot drift apart
@@ -97,7 +100,7 @@ class ValueHoverTool
      *                         cluster this card has room to name
      * @return array The payload `value_hover_card.ctp` reads
      */
-    public static function cardFor(array $verdict, array $context,
+    public static function cardFor($verdict, array $context,
         $now = null, $plan = null
     ) {
         $now = $now === null ? time() : (int)$now;
@@ -112,14 +115,18 @@ class ValueHoverTool
          * read*, and the template says so.
          */
         $hot = !empty($context['budget']['hot']);
+        $assessed = $verdict !== null;
 
         return array(
             'value' => $context['value'],
             'types' => self::types($context),
-            'lean' => $verdict['lean'],
-            'signal_strength' => $verdict['signal_strength'],
-            'band' => $verdict['band'],
-            'relevance' => self::relevance($verdict),
+            'assessed' => $assessed,
+            'lean' => $assessed ? $verdict['lean'] : null,
+            'signal_strength' => $assessed
+                ? $verdict['signal_strength']
+                : null,
+            'band' => $assessed ? $verdict['band'] : null,
+            'relevance' => $assessed ? self::relevance($verdict) : null,
             'counts' => array(
                 'orgs' => (int)($occurrences['orgs'] ?? 0),
                 'events' => (int)($occurrences['events'] ?? 0),
@@ -129,9 +136,9 @@ class ValueHoverTool
             'sightings' => $hot ? null : self::sightings($sightings, $now),
             'seen' => self::seen($occurrences, $now),
             'warninglist' => self::warninglist($context),
-            'signals' => self::signals($verdict),
+            'signals' => $assessed ? self::signals($verdict) : array(),
             'galaxy' => $hot ? null : self::galaxy($context, $plan),
-            'summary' => $verdict['summary'] ?? null,
+            'summary' => $assessed ? ($verdict['summary'] ?? null) : null,
             'hot' => $hot,
         );
     }

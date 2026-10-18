@@ -33,13 +33,14 @@
  * @var array $comparison_set
  * @var int $comparison_limit
  * @var array $capabilities
+ * @var array|null $shipped Site admins only
  */
 App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 App::uses('CakeTime', 'Utility');
 
 echo $this->element('genericElements/assetLoader', array(
     'css' => array('value-palette', 'analyst-profile'),
-    'js' => array('analyst-profile'),
+    'js' => array('analyst-profile', 'analyst-profile-cards'),
 ));
 
 /*
@@ -173,20 +174,6 @@ $this->set('headerDescription', __('A profile decides what MISP makes of'
     . ' come first, and which enrichment modules may run. One is in'
     . ' force for you at a time.'));
 $headerActions = array();
-if ($this->Acl->canAccess('analystProfiles', 'update')) {
-    $headerActions[] = array(
-        'type' => 'action',
-        'label' => __('Update shipped profiles'),
-        'icon' => 'sync',
-        'class' => 'btn btn-outline-dark',
-        'url' => array('action' => 'update'),
-        'title' => __('Load the profiles MISP ships: add the missing ones'
-            . ' and update those MISP has since corrected.'),
-        'confirm' => __('Load the profiles MISP ships? A shipped profile'
-            . ' edited on this instance is overwritten when MISP ships a'
-            . ' newer version of it. Forks are never touched.'),
-    );
-}
 $headerActions[] = array(
     'type' => 'dropdown',
     'label' => __('New profile'),
@@ -202,6 +189,29 @@ $this->set('headerActions', $headerActions);
         <?= $this->element('AnalystProfiles/loader_errors', array(
             'loader_errors' => $loader_errors,
         )) ?>
+
+        <div class="ap-cards <?= $shipped === null ? 'ap-cards-reader' : 'ap-cards-admin' ?>"
+             data-tour="ap-cards"
+             data-ap-fix-url="<?= h($this->Html->url(array('action' => 'fix'))) ?>"
+             data-ap-load-failed="<?= h(__('This card could not be loaded.'
+                 . ' Reload the page to try again.')) ?>"
+             data-ap-fix-failed="<?= h(__('That could not be switched on.'
+                 . ' The settings page says why.')) ?>">
+            <?= $this->element('AnalystProfiles/cards/enrichment_slot', array(
+                'site_admin' => $may_select_for_instance,
+            )) ?>
+            <div class="ap-cards-side">
+                <?= $this->element('AnalystProfiles/instance_state', array(
+                    'capabilities' => $capabilities,
+                    'may_select_for_instance' => $may_select_for_instance,
+                )) ?>
+                <?php if ($shipped !== null): ?>
+                    <?= $this->element('AnalystProfiles/cards/shipped', array(
+                        'shipped' => $shipped,
+                    )) ?>
+                <?php endif; ?>
+            </div>
+        </div>
 
         <div class="wb wb-index">
             <div class="wb-panehead wb-panehead-left">
@@ -368,16 +378,19 @@ $this->set('headerActions', $headerActions);
                                             <span class="wb-id"
                                                   title="<?= h(sprintf(
                                                       __('Shipped document'
-                                                          . ' version %1$s,'
-                                                          . ' edited %2$s'
-                                                          . ' times here'),
-                                                      $profile['version'],
-                                                      $profile['revision']
+                                                          . ' version %s'),
+                                                      $profile['version']
                                                   )) ?>">v<?= h(
                                                 $profile['version']) ?></span>
-                                            <?php if ($profile['revision'] > 1): ?>
-                                                &middot; <?= h(
-                                                    __('edited here')) ?>
+                                            <?php if ($profile['edited_here']): ?>
+                                                &middot; <span title="<?= h(
+                                                    __('Changed on this'
+                                                        . ' instance since MISP'
+                                                        . ' last wrote it. The'
+                                                        . ' next shipped update'
+                                                        . ' replaces the'
+                                                        . ' change.')) ?>"><?= h(
+                                                    __('edited here')) ?></span>
                                             <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
@@ -534,11 +547,6 @@ $this->set('headerActions', $headerActions);
                                 . ' you choose or enable another.')) ?>
                         </p>
                     <?php endif; ?>
-
-                    <?= $this->element('AnalystProfiles/instance_state', array(
-                        'capabilities' => $capabilities,
-                        'may_select_for_instance' => $may_select_for_instance,
-                    )) ?>
 
                     <div class="bench-sec">
                         <span><?= h(__('Values you pinned')) ?></span>

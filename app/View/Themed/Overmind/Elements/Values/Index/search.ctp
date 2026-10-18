@@ -106,4 +106,5 @@ $strings = array(
     'whole' => __('Whole value'),
 );
 ?>
-<script type="application/json" id="vsr-strings"><?= json_encode($strings, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?></script>
+<script type="application/json" id="vsr-strings"
+        data-vsr-assessed="<?= ($showsAssessment ?? true) ? '1' : '0' ?>"><?= json_encode($strings, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?></script>
