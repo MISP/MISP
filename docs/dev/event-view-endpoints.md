@@ -1,8 +1,8 @@
-# EventTest Theme - AJAX Endpoints Guide
+# Event view AJAX endpoints
 
-This document describes the decomposed event view endpoints introduced by the EventTest theme. The original monolithic `view()` action has been split into a lightweight metadata shell (`view2`) and several AJAX-loaded endpoints for attributes, objects, related events, and warninglist hits.
+This document describes the decomposed event view endpoints. The original monolithic `view()` action has been split into a lightweight metadata shell (`view2`) and several AJAX-loaded endpoints for attributes, objects, related events, and warninglist hits.
 
-The view templates in this theme are **reference implementations** that demonstrate how to consume these endpoints. The new UX should call the same backend endpoints and can render the responses however it sees fit.
+Overmind consumes them (`Themed/Overmind/Elements/Attributes/index.ctp`, `Elements/Objects/index.ctp`, `Elements/Events/View/event_related.ctp`, `Elements/Events/View/event_warninglists.ctp`, `webroot/js/mispOvermind.js`). Another consumer calls the same backend endpoints and renders the responses however it sees fit. The "reference template" notes below were written for the EventTest developer theme's templates, removed in 3.0; Overmind ships its own `Events/view_*.ctp` for each endpoint.
 
 ## Architecture Overview
 
@@ -280,9 +280,9 @@ The enrichment steps in order:
 5. **Sightings** — `Sighting->attachToAttributes()` with CSV output
 6. **Analyst data** — `Attribute->attachAnalystDataBulk()`
 
-## How the Reference Templates Load Data
+## Loading the data
 
-In `view2.ctp`, the AJAX calls are fired on page load:
+A consumer fires the AJAX calls on page load, for example:
 
 ```javascript
 // Side panels — fire immediately

@@ -154,8 +154,8 @@ class UserSetting extends AppModel
             'validation' => 'validate_json',
         ],
         'ui_theme' => [
-            'placeholder' => 'Overmind, UiBeta, EventTest, Default',
-            'options' => ['Overmind', 'UiBeta', 'EventTest', 'Default'],
+            'placeholder' => 'Overmind, UiBeta, Default',
+            'options' => ['Overmind', 'UiBeta', 'Default'],
             'validation' => 'validate_theme',
         ],
         // No static options: themes are discovered from the build output.
@@ -601,14 +601,13 @@ class UserSetting extends AppModel
      }
 
     /**
-     * Check if a user has opted into the beta UI
      * @param int $userId
-     * @return bool
+     * @return string|null null when unset or no longer shipped, so the default applies
      */
     public function getUserTheme($userId)
     {
         $value = $this->getValueForUser($userId, 'ui_theme');
-        return $value ?: null;
+        return in_array($value, self::VALID_SETTINGS['ui_theme']['options'], true) ? $value : null;
     }
 
     /**
