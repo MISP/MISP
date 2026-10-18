@@ -436,7 +436,9 @@ $panel = function ($action, $anchor = null) use ($baseurl, $valueB64,
  * there is one to carry.
  */
 $verdict = $profile['verdict'];
-$verdictBadge = array(
+// Null when the reader's analyst profile switches the assessment off.
+$showsAssessment = $verdict !== null;
+$verdictBadge = !$showsAssessment ? null : array(
     'label' => $verdict['signal_strength'] === null
         ? ValueLean::label($verdict['lean'])
         : ValueLean::label($verdict['lean']) . ' '
@@ -452,7 +454,7 @@ $verdictBadge = array(
  * cards that would each render their own nothing. `value_verdict_aside`
  * holds the matching decision about which cards apply.
  */
-$hasVerdictAside = $verdict['lean'] !== 'none';
+$hasVerdictAside = $showsAssessment && $verdict['lean'] !== 'none';
 
 /*
  * The Relationships pill: one notion, named, and only when it is there.
@@ -600,13 +602,13 @@ $tabRegistry = array(
          * 3-wide rail runs past 300px.
          */
         'left' => $overviewLeft,
-        'right' => array(
-            $panel('viewVerdictCard'),
+        'right' => array_values(array_filter(array(
+            $showsAssessment ? $panel('viewVerdictCard') : null,
             $panel('viewLifecycle'),
             $panel('viewMatrix'),
             $panel('viewSightings'),
             $panel('viewExternal'),
-        ),
+        ))),
     ),
     array(
         'id' => 'assessment',
@@ -674,11 +676,11 @@ $tabRegistry = array(
             $panel('viewSightingChart'),
             $panel('viewSightingList'),
         ),
-        'right' => array(
-            $panel('viewRelevance'),
+        'right' => array_values(array_filter(array(
+            $showsAssessment ? $panel('viewRelevance') : null,
             $panel('viewSightingReporters'),
             $panel('viewSightingAdd'),
-        ),
+        ))),
     ),
     array(
         'id' => 'relationships',
@@ -942,6 +944,9 @@ $tabRegistry = array(
 
 $tabs = array();
 foreach ($tabRegistry as $tab) {
+    if ($tab['id'] === 'assessment' && !$showsAssessment) {
+        continue;
+    }
     $tabs[] = array(
         'id' => $tab['id'],
         'title' => $tab['title'],

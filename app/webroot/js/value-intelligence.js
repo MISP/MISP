@@ -3767,6 +3767,7 @@
                         },
                     },
                     score: {
+                        display: range.curves.length > 0,
                         position: 'right',
                         min: scoreFloor,
                         max: 100,

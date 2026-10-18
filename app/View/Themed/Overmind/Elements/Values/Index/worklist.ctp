@@ -35,6 +35,8 @@ App::uses('ValueInputTool', 'Tools/ValueIntelligence');
 
 $report = $triage['report'];
 $rows = $triage['rows'];
+// False when the reader's analyst profile switches the assessment off.
+$showsAssessment = $showsAssessment ?? true;
 
 /*
  * The tape and its legend are a picture of a batch's progress, and
@@ -301,10 +303,12 @@ $offerExtract = !$extracted && $wordy >= 2;
                 <button class="vi-seg" type="button" data-vi-f="cleared"
                         aria-pressed="false"><?= h(__('Dismissed')) ?> <b></b></button>
             </span>
+<?php if ($showsAssessment): ?>
             <span class="vi-segs">
                 <button class="vi-seg" type="button" data-vi-sort
                         aria-pressed="false"><?= h(__('Worst first')) ?></button>
             </span>
+<?php endif; ?>
             <span class="vi-segs" data-vi-views>
                 <button class="vi-seg" type="button" data-vi-view="cards"
                         aria-pressed="true"><?= h(__('Cards')) ?></button>
@@ -347,7 +351,7 @@ $offerExtract = !$extracted && $wordy >= 2;
              data-vi-settled="<?= h(__('Sorted by assessment.')) ?>"
              data-vi-back="<?= h(__('Back to paste order')) ?>"></div>
     </div>
-    <div class="vi-listwrap">
+    <div class="vi-listwrap<?= $showsAssessment ? '' : ' is-unassessed' ?>">
         <div class="vi-thead" aria-hidden="true">
             <span></span>
             <span><?= h(__('value')) ?></span>

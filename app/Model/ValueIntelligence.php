@@ -16498,12 +16498,15 @@ class ValueIntelligence extends AppModel
             $profile,
             array_merge($options, array('now' => $now))
         );
-        $envelope = $this->forVerdict($user, $value, array_merge(
-            $options,
-            array('profile' => $profile, 'context' => $context)
-        ));
+        $verdict = null;
+        if (ValueLabelPriority::showsAssessment($profile)) {
+            $verdict = $this->forVerdict($user, $value, array_merge(
+                $options,
+                array('profile' => $profile, 'context' => $context)
+            ))['verdict'];
+        }
         $card = ValueHoverTool::cardFor(
-            $envelope['verdict'],
+            $verdict,
             $context,
             $now,
             ValueLabelPriority::planFor($profile)
