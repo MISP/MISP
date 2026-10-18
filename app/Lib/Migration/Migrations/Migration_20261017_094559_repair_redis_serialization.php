@@ -47,20 +47,19 @@ class Migration_20261017_094559_repair_redis_serialization extends AbstractMigra
             $this->logLine(__('Background jobs are off: run %s once to repair the values in Redis stored PHP-serialized.', self::COMMAND));
             return true;
         }
-        $Job = ClassRegistry::init('Job');
-        $jobId = $Job->createJob('SYSTEM', Job::WORKER_DEFAULT, self::JOB_TYPE, $this->id(), 'Queued by the upgrade.');
         try {
-            $Job->getBackgroundJobsTool()->enqueue(
+            ClassRegistry::init('Job')->enqueueOnce(
+                'SYSTEM',
+                Job::WORKER_DEFAULT,
+                self::JOB_TYPE,
+                $this->id(),
+                'Queued by the upgrade.',
                 BackgroundJobsTool::DEFAULT_QUEUE,
                 BackgroundJobsTool::CMD_ADMIN,
-                array('redisRepairSerialization', $jobId),
-                true,
-                $jobId
+                array('redisRepairSerialization')
             );
         } catch (Exception $e) {
-            $message = __('Could not be queued (%s): run %s once.', $e->getMessage(), self::COMMAND);
-            $Job->saveStatus($jobId, false, $message);
-            $this->logLine(__('Redis repair: %s', $message));
+            $this->logLine(__('Redis repair: could not be queued (%s): run %s once.', $e->getMessage(), self::COMMAND));
         }
         return true;
     }

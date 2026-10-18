@@ -352,6 +352,38 @@ class BackgroundJobsTool
     }
 
     /**
+     * The job of a `jobs` row that is waiting in the queue or running, found
+     * by the row id enqueue() puts in its metadata.
+     *
+     * @param string $queue Queue name, e.g. 'default'.
+     * @param int $jobId Id of the relational database record representing the job.
+     * @return BackgroundJob|null
+     * @throws RedisException
+     */
+    public function findQueuedJob(string $queue, int $jobId)
+    {
+        $this->validateQueue($queue);
+
+        $jobs = [];
+        foreach ($this->RedisConnection->lRange($queue, 0, -1) ?: [] as $rawJob) {
+            $jobs[] = $rawJob instanceof BackgroundJob ? $rawJob : new BackgroundJob($rawJob);
+        }
+        $running = $this->runningJobs();
+        foreach (array_keys($running[$queue] ?? []) as $backgroundJobId) {
+            $job = $this->getJob($backgroundJobId);
+            if ($job !== null) {
+                $jobs[] = $job;
+            }
+        }
+        foreach ($jobs as $job) {
+            if ((int)($job->metadata()['job_id'] ?? 0) === $jobId) {
+                return $job;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Get the queues's names.
      *
      * @return array Array containing the queues' names.
