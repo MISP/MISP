@@ -843,10 +843,17 @@ class AdminShell extends AppShell
         $this->out('Executing all updates to bring the database up to date with the current version.');
         $this->__clearUpdateLock();
         $processId = empty($this->args[0]) ? false : $this->args[0];
-        // Run by hand, not by a worker: try deferred migrations again now.
-        $this->Server->runUpdates(true, false, $processId, true, $processId === false);
-        $this->Server->cleanCacheFiles();
-        $this->out('All updates completed.');
+        $pendingBefore = $this->__pendingUpdateCount();
+        try {
+            // Run by hand, not by a worker: try deferred migrations again now.
+            $this->Server->runUpdates(true, false, $processId, true, $processId === false);
+            $this->Server->cleanCacheFiles();
+            $this->out('All updates completed.');
+        } finally {
+            if ($this->__pendingUpdateCount() < $pendingBefore) {
+                $this->__adviseWebRestart();
+            }
+        }
     }
 
     /**
@@ -945,6 +952,7 @@ class AdminShell extends AppShell
         }
         $this->__clearUpgradeMarker();
         $this->out(__('Upgrade complete.'));
+        $this->__adviseWebRestart();
     }
 
     /**
@@ -1051,6 +1059,26 @@ class AdminShell extends AppShell
         if (!empty($lock)) {
             $this->AdminSetting->delete($lock['AdminSetting']['id']);
         }
+    }
+
+    /**
+     * @return int
+     */
+    private function __pendingUpdateCount()
+    {
+        $version = $this->AdminSetting->getSetting('db_version');
+        return $this->Server->countPendingUpdates($version === false ? '0' : $version);
+    }
+
+    /**
+     * Cake's schema caches live in the web server's APCu where core.php picks
+     * it, out of reach of this process's flush.
+     *
+     * @return void
+     */
+    private function __adviseWebRestart()
+    {
+        $this->out('<warning>' . __('Restart PHP-FPM or Apache now (systemctl restart php8.x-fpm, or apache2 with mod_php). The web server keeps its own copy of the table list in memory (APCu), which a command line run cannot clear; until the restart, pages can fail with a missing table error.') . '</warning>');
     }
 
     /**
@@ -1353,6 +1381,9 @@ class AdminShell extends AppShell
 
         // Whatever runs next must not describe a table from before this ran.
         $manager->inspector()->flushSchemaCacheFiles();
+        if (in_array(true, $results, true)) {
+            $this->__adviseWebRestart();
+        }
         if ($failures > 0) {
             $this->error(
                 __('The run stopped at a failed migration.'),

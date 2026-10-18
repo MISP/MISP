@@ -1104,3 +1104,30 @@
         display: none;
     }
 }
+
+/* The reader's analyst profile switched the assessment off: its three
+ * columns go, at every width. */
+.vsr-wrap.is-unassessed .vsr-c-lean,
+.vsr-wrap.is-unassessed .vsr-c-str,
+.vsr-wrap.is-unassessed .vsr-c-rel {
+    display: none;
+}
+
+.vsr-wrap.is-unassessed .vsr-thead,
+.vsr-wrap.is-unassessed .vsr-row {
+    --vsr-cols: 30px minmax(120px, 1fr) 104px 150px;
+}
+
+@container (max-width: 1000px) {
+    .vsr-wrap.is-unassessed .vsr-thead,
+    .vsr-wrap.is-unassessed .vsr-row {
+        --vsr-cols: 30px minmax(120px, 1fr) 120px;
+    }
+}
+
+@container (max-width: 760px) {
+    .vsr-wrap.is-unassessed .vsr-thead,
+    .vsr-wrap.is-unassessed .vsr-row {
+        --vsr-cols: 30px minmax(100px, 1fr) 86px;
+    }
+}

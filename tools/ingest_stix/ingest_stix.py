@@ -1,4 +1,5 @@
 import json
+import sys
 from argparse import ArgumentParser
 from pymisp import ExpandedPyMISP
 from pymisp.exceptions import PyMISPError

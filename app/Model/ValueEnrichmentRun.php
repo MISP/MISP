@@ -145,6 +145,65 @@ class ValueEnrichmentRun extends AppModel
     }
 
     /**
+     * How many of this organisation's answers are errors, as numbers only.
+     *
+     * Reads at most `$cap` rows over the unique key, whose `value_hash`
+     * order is as good as a random sample, so the share stays honest when
+     * the count is past the cap and the cost does not grow with the store.
+     *
+     * @param array $user
+     * @param int $cap
+     * @return array `total`, `read`, `errors`
+     */
+    public function errorShareFor(array $user, $cap = 2000)
+    {
+        $total = $this->countFor($user);
+        if ($total === 0) {
+            return array('total' => 0, 'read' => 0, 'errors' => 0);
+        }
+        $rows = $this->find('all', array(
+            'recursive' => -1,
+            'fields' => array('ValueEnrichmentRun.state'),
+            'conditions' => array(
+                'ValueEnrichmentRun.org_id' => (int)$user['org_id'],
+                'ValueEnrichmentRun.state !=' => 'running',
+            ),
+            'limit' => (int)$cap,
+        ));
+        $errors = 0;
+        foreach ($rows as $row) {
+            if (!in_array($row['ValueEnrichmentRun']['state'],
+                array('ok', 'silent'), true)
+            ) {
+                $errors++;
+            }
+        }
+        return array('total' => $total, 'read' => count($rows),
+            'errors' => $errors);
+    }
+
+    /**
+     * The instance's latest stored answers, without their payload.
+     *
+     * For a site admin's view of which modules keep failing; bounded by
+     * `$limit` over the `last_run` index.
+     *
+     * @param int $limit
+     * @return array Each with `module`, `state` and `message`
+     */
+    public function latestOutcomes($limit = 2000)
+    {
+        $rows = $this->find('all', array(
+            'recursive' => -1,
+            'fields' => array('ValueEnrichmentRun.module',
+                'ValueEnrichmentRun.state', 'ValueEnrichmentRun.message'),
+            'order' => array('ValueEnrichmentRun.last_run' => 'DESC'),
+            'limit' => (int)$limit,
+        ));
+        return array_column($rows, 'ValueEnrichmentRun');
+    }
+
+    /**
      * How many answers this organisation holds about one value.
      *
      * The Enrichment tab's badge. **Answers, not runs**: a module that

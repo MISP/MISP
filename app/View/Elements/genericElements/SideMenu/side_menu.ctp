@@ -1564,47 +1564,6 @@ $divider = '<li class="divider"></li>';
                     }
                     break;
 
-                case 'galaxy_cluster':
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => $baseurl . '/galaxies/index',
-                        'text' => __('List Galaxies')
-                    ));
-                    echo $divider;
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'view',
-                        'url' => $baseurl . '/galaxies/view/' . h($galaxy_id),
-                        'text' => __('View Galaxy')
-                    ));
-                    if ($menuItem === 'edit') {
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'view_cluster',
-                            'url' => $baseurl . '/galaxy_clusters/view/' . h($clusterId),
-                            'text' => __('View Cluster')
-                        ));
-                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                            'element_id' => 'viewGraph',
-                            'url' => $baseurl . '/galaxies/viewGraph/' . h($id),
-                            'text' => __('View Correlation Graph')
-                        ));
-                    }
-                    if ($menuItem === 'view') {
-                        echo $divider;
-                        if (
-                            isset($cluster['GalaxyCluster']['published']) && !$cluster['GalaxyCluster']['published'] &&
-                            $this->Acl->canPublishGalaxyCluster($cluster)
-                        ) {
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'onClick' => array(
-                                    'function' => 'publishPopup',
-                                    'params' => array($cluster['GalaxyCluster']['id'], 'alert')
-                                ),
-                                'class' => 'publishButtons not-published ' . $publishButtons,
-                                'text' => __('Publish Cluster')
-                            ));
-                        }
-                    }
-                    break;
-
                 case 'galaxy_cluster_relations':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'galaxy_index',

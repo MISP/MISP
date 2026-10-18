@@ -121,6 +121,9 @@ class ValueLabelPriority
     /** What the event marking block draws when a profile names nothing. */
     const DEFAULT_MARKINGS = array('tlp', 'pap');
 
+    /** `context` key switching the assessment off for this reader. */
+    const SHOW_ASSESSMENT = 'show_assessment';
+
     /**
      * The `context` section, whichever shape the profile arrived in.
      *
@@ -739,6 +742,22 @@ class ValueLabelPriority
             }
         }
         return $namespaces;
+    }
+
+    /**
+     * Whether the reader wants the assessment drawn at all.
+     *
+     * Only an explicit `false` hides it, so a profile that says nothing,
+     * and a reader with no profile in force, keep the assessment.
+     *
+     * @param array|null $profile A profile or its parameters
+     * @return bool
+     */
+    public static function showsAssessment($profile)
+    {
+        $section = self::section($profile);
+        return !array_key_exists(self::SHOW_ASSESSMENT, $section)
+            || $section[self::SHOW_ASSESSMENT] !== false;
     }
 
     /**

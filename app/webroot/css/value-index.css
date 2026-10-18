@@ -1956,6 +1956,40 @@
     }
 }
 
+/* The reader's analyst profile switched the assessment off: its three
+ * columns go, at every width. */
+.vi-listwrap.is-unassessed .vi-c-lean,
+.vi-listwrap.is-unassessed .vi-c-strength,
+.vi-listwrap.is-unassessed .vi-c-rel {
+    display: none;
+}
+
+.vi-listwrap.is-unassessed .vi-thead,
+.vi-listwrap.is-unassessed.is-table .vi-row {
+    --vi-cols: 22px minmax(90px, 1fr) 104px 46px 64px 148px;
+}
+
+@container (max-width: 1000px) {
+    .vi-listwrap.is-unassessed .vi-thead,
+    .vi-listwrap.is-unassessed.is-table .vi-row {
+        --vi-cols: 22px minmax(90px, 1fr) 46px 64px 148px;
+    }
+}
+
+@container (max-width: 820px) {
+    .vi-listwrap.is-unassessed .vi-thead,
+    .vi-listwrap.is-unassessed.is-table .vi-row {
+        --vi-cols: 22px minmax(90px, 1fr) 148px;
+    }
+}
+
+@container (max-width: 640px) {
+    .vi-listwrap.is-unassessed .vi-thead,
+    .vi-listwrap.is-unassessed.is-table .vi-row {
+        --vi-cols: 22px minmax(80px, 1fr) 148px;
+    }
+}
+
 
 /* ==================================================================
  * The end of the batch

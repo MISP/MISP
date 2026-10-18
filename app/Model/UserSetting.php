@@ -153,10 +153,6 @@ class UserSetting extends AppModel
             ],
             'validation' => 'validate_json',
         ],
-        'ui_beta_opt_in' => [
-            'placeholder' => false,
-            'validation' => 'validate_json',
-        ],
         'ui_theme' => [
             'placeholder' => 'Overmind, UiBeta, EventTest, Default',
             'options' => ['Overmind', 'UiBeta', 'EventTest', 'Default'],
@@ -471,7 +467,6 @@ class UserSetting extends AppModel
             'event_index_hide_columns' => __('Columns hidden from your event index.'),
             'oidc' => __('Data stored by the OpenID Connect plugin for this account. Managed automatically.'),
             'periodic_notification_filters' => __('Filters which events make it into your periodic (daily, weekly, monthly) summary emails.'),
-            'ui_beta_opt_in' => __('Opts you in to interface features still in beta.'),
             'ui_theme' => __('The interface theme used for your account.'),
             'event_template_user_form_mode' => __('How an event template form is shown to you: every step at once (all) or one step at a time (wizard).'),
             'dashboard_theme' => __('Light or dark appearance of the dashboard; auto follows your browser.'),
@@ -603,17 +598,6 @@ class UserSetting extends AppModel
      public function getTagNumericalValueOverride($userId)
      {
          return $this->getValueForUser($userId, 'tag_numerical_value_override') ?: [];
-     }
-
-    /**
-     * Check if a user has opted into the beta UI
-     * @param int $userId
-     * @return bool
-     */
-     public function isUiBetaEnabled($userId)
-     {
-         $value = $this->getValueForUser($userId, 'ui_beta_opt_in');
-         return !empty($value);
      }
 
     /**

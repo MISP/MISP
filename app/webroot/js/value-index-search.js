@@ -29,6 +29,8 @@
             return;
         }
         var L = JSON.parse(source.textContent);
+        // '0' when the reader's analyst profile switches the assessment off.
+        var assessed = source.getAttribute('data-vsr-assessed') !== '0';
         var base = (form.getAttribute('action') || '').replace(/\/values\/resolve$/, '');
         var MATCHES = base + '/values/matches';
         var ASSESS = base + '/values/assess';
@@ -586,7 +588,7 @@
                 + ' <span class="vsr-kbd">Enter</span> ' + esc(L.keysOpen)
                 + ' <span class="vsr-kbd">→</span> ' + esc(L.keysDetails) + '</span>'
                 + '</div></div>'
-                + '<div class="vsr-wrap">'
+                + '<div class="vsr-wrap' + (assessed ? '' : ' is-unassessed') + '">'
                 + '<div class="vsr-thead" aria-hidden="true"><span></span><span>' + esc(L.headValue) + '</span>'
                 + '<span class="vsr-c-types">' + esc(L.headTypes) + '</span><span class="vsr-c-lean">' + esc(L.headLean) + '</span>'
                 + '<span class="vsr-c-str">' + esc(L.headStrength) + '</span><span class="vsr-c-rel">' + esc(L.headRelevance) + '</span>'

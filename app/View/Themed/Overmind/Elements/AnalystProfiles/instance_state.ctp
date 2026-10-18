@@ -1,6 +1,7 @@
 <?php
 /**
- * What this instance lets a profile do, in four lines.
+ * What this instance lets a profile do, in four lines, as a card in the
+ * index's top row.
  *
  * Three of the four are settings a profile cannot see and cannot
  * override, and each of them produces the same symptom when off: a
@@ -60,9 +61,11 @@ $line = function ($label, $value, $tone, $cap) use ($may_select_for_instance) {
     return $out;
 };
 ?>
-<div class="bench-sec">
-    <span><?= h(__('This instance')) ?></span>
-</div>
+<section class="ap-card ap-card-instance" data-ap-card="instance">
+<?= $this->element('AnalystProfiles/cards/head', array(
+    'icon' => 'server',
+    'title' => __('This instance'),
+)) ?>
 <div class="ap-caps">
     <?= $line(__('Hover card'), $hover['on'] ? __('on') : __('off'),
         $hover['on'] ? 'ok' : 'off', $hover) ?>
@@ -97,8 +100,12 @@ $line = function ($label, $value, $tone, $cap) use ($may_select_for_instance) {
     </div>
 </div>
 <?php if ($auto['state'] !== 'off' && !$modules['on']): ?>
-    <p class="wb-sub mt-1 mb-0">
+    <p class="ap-card-line">
         <?= h(__('A profile may run enrichment here, but this instance has'
             . ' no modules switched on, so nothing runs.')) ?>
     </p>
 <?php endif; ?>
+<?php if ($may_select_for_instance): ?>
+    <footer class="ap-card-foot"><?= h(__('Each value opens its setting.')) ?></footer>
+<?php endif; ?>
+</section>

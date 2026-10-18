@@ -30,6 +30,8 @@
 App::uses('ValueLean', 'Tools/ValueIntelligence');
 
 $card = $valueIntelligence['card'];
+// False when the reader's analyst profile switches the assessment off.
+$assessed = $card['assessed'];
 $lean = $card['lean'];
 $treatment = ValueLean::treatment($lean);
 
@@ -41,7 +43,7 @@ $treatment = ValueLean::treatment($lean);
 $quiet = ValueLean::isDefinite($lean) ? '' : ' vp-hc-quiet';
 
 $bandLevels = array('none' => 0, 'low' => 1, 'medium' => 2, 'high' => 3);
-$bandLevel = $bandLevels[$card['band']] ?? 0;
+$bandLevel = $bandLevels[$card['band'] ?? 'none'] ?? 0;
 
 $relevance = $card['relevance'];
 $relevanceLabels = array(
@@ -204,6 +206,7 @@ if (!empty($spark) && !empty($spark[0]['from'])) {
             <?php endif; ?>
         </div>
 
+        <?php if ($assessed): ?>
         <div class="vp-hc-sec vp-hc-status">
             <i class="vp-hc-ico <?= h($treatment['icon']) ?>"
                aria-hidden="true"></i>
@@ -226,6 +229,7 @@ if (!empty($spark) && !empty($spark[0]['from'])) {
                 </span>
             </span>
         </div>
+        <?php endif; ?>
 
         <?php if ($card['warninglist'] !== null): ?>
             <?php $hit = $card['warninglist']; ?>
@@ -259,6 +263,7 @@ if (!empty($spark) && !empty($spark[0]['from'])) {
                     <div class="vp-hc-s">&nbsp;</div>
                 <?php endif; ?>
             </div>
+            <?php if ($assessed): ?>
             <div class="vp-hc-cell vp-hc-cell-r">
                 <div class="vp-hc-k"><?= h(__('Runway')) ?></div>
                 <?php if ($relevance['runway_days'] === null): ?>
@@ -272,6 +277,7 @@ if (!empty($spark) && !empty($spark[0]['from'])) {
                         ?? $relevance['state']) ?>
                 </div>
             </div>
+            <?php endif; ?>
             <div class="vp-hc-first">
                 <span class="vp-hc-k"><?= h(__('First seen')) ?></span>
                 <?php if ($card['seen']['first']['recorded']): ?>

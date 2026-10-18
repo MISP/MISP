@@ -259,6 +259,8 @@ class ACLComponent extends Component
             'unpin' => array('*'),
             'grade' => array('*'),
             'update' => array(),
+            'enrichment' => array('*'),
+            'fix' => array(),
         ),
         'decayingModel' => array(
             "update" => array(),

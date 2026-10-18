@@ -3780,6 +3780,12 @@ class AnalystProfileFormTool
             $errors[] = __('`context.markings` must be a list of taxonomy'
                 . ' namespaces.');
         }
+        if (array_key_exists(ValueLabelPriority::SHOW_ASSESSMENT, $context)
+            && !is_bool($context[ValueLabelPriority::SHOW_ASSESSMENT])
+        ) {
+            $errors[] = __('`context.show_assessment` must be true or'
+                . ' false.');
+        }
         $galaxies = $this->section($parameters, 'galaxies');
         if (isset($galaxies['attribution'])
             && !$this->isList($galaxies['attribution'])
@@ -4541,6 +4547,12 @@ class AnalystProfileFormTool
         if (isset($merged['thresholds']['thin_record_clamp']['max_voices'])) {
             unset($merged['thresholds']['thin_record_clamp']['max_orgs']);
         }
+        // Shown is the default, so only a switched-off profile stores it.
+        if (($merged['context'][ValueLabelPriority::SHOW_ASSESSMENT] ?? null)
+            === true
+        ) {
+            unset($merged['context'][ValueLabelPriority::SHOW_ASSESSMENT]);
+        }
         $merged = $this->transposeModules($merged, $posted);
         $merged = $this->transposeTiers($merged, $posted);
         $merged = $this->transposeMarkings($merged, $posted);
@@ -5023,7 +5035,34 @@ class AnalystProfileFormTool
                 ? $sources['galaxies']
                 : array(),
         );
-        $blocks = array();
+        $blocks = array(
+            array(
+                'kind' => 'fields',
+                'id' => ValueLabelPriority::SHOW_ASSESSMENT,
+                'title' => __('Assessment'),
+                'blurb' => __(
+                    'Whether value pages, hover cards and the value'
+                    . ' worklist show the lean, relevance and signal'
+                    . ' strength. Switching it off hides them for'
+                    . ' readers of this profile and skips computing'
+                    . ' them; the evidence tabs and the REST API are'
+                    . ' unchanged.'
+                ),
+                'fields' => array(
+                    array(
+                        'key' => ValueLabelPriority::SHOW_ASSESSMENT,
+                        'label' => __('Show the assessment'),
+                        'type' => 'bool',
+                        'value' => ValueLabelPriority::showsAssessment(
+                            $parameters
+                        ),
+                        'default' => true,
+                        'path' => array('context',
+                            ValueLabelPriority::SHOW_ASSESSMENT),
+                    ),
+                ),
+            ),
+        );
         foreach ($offered as $scope => $available) {
             $entries = array();
             $tiers = array();
@@ -5125,10 +5164,11 @@ class AnalystProfileFormTool
             'id' => 'context',
             'title' => __('What you look at first'),
             'blurb' => __(
-                'Which taxonomies and galaxies are shown first on cards'
-                . ' with room for only a few, and which taxonomies the'
-                . ' event page draws as markings. Nothing is hidden —'
-                . ' demoting a label only moves it down.'
+                'Whether the assessment is shown, which taxonomies and'
+                . ' galaxies are shown first on cards with room for only'
+                . ' a few, and which taxonomies the event page draws as'
+                . ' markings. Demoting a label only moves it down, it'
+                . ' never hides it.'
             ),
             'blocks' => $blocks,
         );

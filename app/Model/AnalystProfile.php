@@ -1316,6 +1316,7 @@ class AnalystProfile extends AppModel
             'shared' => !empty($row['shared']),
             'version' => (int)$row['version'],
             'revision' => (int)$row['revision'],
+            'edited_here' => self::editedHere($row),
             'modified' => isset($row['modified']) ? $row['modified'] : null,
             /*
              * A profile whose document will not parse reaches every
@@ -1624,6 +1625,7 @@ class AnalystProfile extends AppModel
                 $profile['default'] = 1;
                 $profile['enabled'] = 1;
                 $profile['revision'] = 1;
+                $profile['shipped_revision'] = 1;
                 $this->save(array('AnalystProfile' => $profile));
                 $outcome[$uuid] = 'created';
                 continue;
@@ -1635,13 +1637,12 @@ class AnalystProfile extends AppModel
                 continue;
             }
             /*
-             * A revision above 1 means the default was edited locally, and
-             * this overwrite discards those edits. That is the rule — the
+             * An overwrite discards local edits. That is the rule — the
              * default tracks upstream and fork is the path to durable
              * divergence — but it is named rather than absorbed silently, so
              * the caller can log it.
              */
-            $hadLocalEdits = (int)$current['revision'] > 1;
+            $hadLocalEdits = self::editedHere($current);
             /*
              * No create() here, deliberately. Model::create() seeds
              * $this->data from the column defaults, so `default` arrives as
@@ -1658,6 +1659,7 @@ class AnalystProfile extends AppModel
                 'parameters' => $profile['parameters'],
                 'version' => $profile['version'],
                 'revision' => (int)$current['revision'] + 1,
+                'shipped_revision' => (int)$current['revision'] + 1,
             )));
             if (empty($saved)) {
                 /*
@@ -1677,6 +1679,147 @@ class AnalystProfile extends AppModel
         }
         $this->resolutionCache = array();
         return $outcome;
+    }
+
+    /**
+     * Whether a shipped profile carries changes made on this instance.
+     *
+     * `shipped_revision` is the revision MISP last wrote; null means MISP
+     * cannot vouch for the row, which reads as edited so that an update
+     * never overwrites an edit without saying so.
+     *
+     * @param array $row The unwrapped row
+     * @return bool
+     */
+    public static function editedHere(array $row)
+    {
+        if (empty($row['default'])) {
+            return false;
+        }
+        if (!isset($row['shipped_revision'])) {
+            return true;
+        }
+        return (int)$row['revision'] > (int)$row['shipped_revision'];
+    }
+
+    /**
+     * How the shipped profiles on this instance compare with MISP's files.
+     *
+     * @return array `profiles`: one entry per shipped file, with `state`
+     *               `missing` (never loaded), `pending` (the file is newer)
+     *               or `current`; `retired`: shipped rows whose file is gone
+     */
+    public function shippedStatus()
+    {
+        $rows = $this->find('all', array(
+            'conditions' => array('AnalystProfile.default' => 1),
+            'fields' => array('id', 'uuid', 'name', 'enabled', 'default',
+                'version', 'revision', 'shipped_revision'),
+            'recursive' => -1,
+        ));
+        $byUuid = array();
+        foreach ($rows as $row) {
+            $byUuid[$row['AnalystProfile']['uuid']] = $row['AnalystProfile'];
+        }
+        $profiles = array();
+        foreach ($this->__loadShippedProfiles() as $file) {
+            $row = isset($byUuid[$file['uuid']])
+                ? $byUuid[$file['uuid']]
+                : null;
+            unset($byUuid[$file['uuid']]);
+            $state = 'current';
+            if ($row === null) {
+                $state = 'missing';
+            } elseif ((int)$file['version'] > (int)$row['version']) {
+                $state = 'pending';
+            }
+            $profiles[] = array(
+                'uuid' => $file['uuid'],
+                'id' => $row === null ? null : (int)$row['id'],
+                'name' => $row === null ? $file['name'] : $row['name'],
+                'enabled' => $row !== null && !empty($row['enabled']),
+                'version' => $row === null ? null : (int)$row['version'],
+                'file_version' => (int)$file['version'],
+                'state' => $state,
+                'edited_here' => $row !== null && self::editedHere($row),
+            );
+        }
+        $retired = array();
+        foreach ($byUuid as $row) {
+            $retired[] = array(
+                'id' => (int)$row['id'],
+                'uuid' => $row['uuid'],
+                'name' => $row['name'],
+            );
+        }
+        return array('profiles' => $profiles, 'retired' => $retired);
+    }
+
+    /**
+     * Fill `shipped_revision` on shipped rows that still match their file.
+     *
+     * A row identical to its file at the same version is one MISP wrote; any
+     * other row is left unknown. Run once, by the migration adding the column.
+     *
+     * @return int The rows marked
+     */
+    public function recordShippedRevisions()
+    {
+        $files = array();
+        foreach ($this->__loadShippedProfiles() as $file) {
+            $files[$file['uuid']] = $file;
+        }
+        $rows = $this->find('all', array(
+            'conditions' => array(
+                'AnalystProfile.default' => 1,
+                'AnalystProfile.shipped_revision' => null,
+            ),
+            'recursive' => -1,
+        ));
+        $marked = 0;
+        foreach ($rows as $row) {
+            $row = $row['AnalystProfile'];
+            if (!isset($files[$row['uuid']])) {
+                continue;
+            }
+            $file = $files[$row['uuid']];
+            $same = (int)$file['version'] === (int)$row['version']
+                && $file['name'] === $row['name']
+                && (string)$file['description'] === (string)$row['description']
+                && empty($row['parameters_unparseable'])
+                && self::__canonicalJson(json_decode($file['parameters'], true))
+                    === self::__canonicalJson($row['parameters']);
+            if (!$same) {
+                continue;
+            }
+            // updateAll(), so `modified` still says when it was last edited.
+            if ($this->updateAll(
+                array('AnalystProfile.shipped_revision' =>
+                    (int)$row['revision']),
+                array('AnalystProfile.id' => (int)$row['id'])
+            )) {
+                $marked++;
+            }
+        }
+        return $marked;
+    }
+
+    /**
+     * @param mixed $value
+     * @return string
+     */
+    private static function __canonicalJson($value)
+    {
+        $sort = function ($node) use (&$sort) {
+            if (!is_array($node)) {
+                return $node;
+            }
+            if (array_keys($node) !== range(0, count($node) - 1)) {
+                ksort($node);
+            }
+            return array_map($sort, $node);
+        };
+        return json_encode($sort($value));
     }
 
     /**
