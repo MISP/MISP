@@ -49,6 +49,7 @@ class Migration_20261016_180323_schema_v3_tags extends TableMigration
      */
     public function beforeUp()
     {
+        $this->deferWhileAlteredElsewhere();
         (new TagNameMerger($this->inspector(), self::TARGET['columns']['name']['collate']))->merge();
         return parent::beforeUp();
     }

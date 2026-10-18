@@ -621,6 +621,38 @@ class TablePreflightTest extends TestCase
         );
     }
 
+    /**
+     * An ALTER an interrupted run left on the server: wait for it or end it,
+     * rather than queue behind its lock with a plan made against the old table.
+     */
+    public function testAnotherConnectionChangingTheTableDefers()
+    {
+        $id = '20261101_000000_converge_events';
+        $live = TableConvergerTest::mysqlLive(self::TARGET);
+        $live['columns']['info']['null'] = true;
+        $manager = new StatementRecordingMigrationManager(array('Migration_' . $id . '.php'));
+        $manager->liveSchema = $this->mysqlInspector('events', $live);
+        $manager->liveSchema->ddl = array('events' => array(array('id' => 9, 'seconds' => 84, 'progress' => 'stage 1 of 2, 41.2 %')));
+
+        $this->assertFalse($manager->apply($id));
+        $this->assertSame(MigrationManager::STATUS_DEFERRED, $manager->rows[$id]['status']);
+        $this->assertSame(
+            'events: connection 9 has been changing this table for 84 s (stage 1 of 2, 41.2 %), most likely the statement of an interrupted run, which the database server carries on with. Wait until it is gone from SHOW PROCESSLIST, or end it with KILL 9 to start the table over, then run Console/cake Admin runUpgrade again.',
+            $manager->rows[$id]['error']
+        );
+        $this->assertSame(array(), $manager->ran);
+
+        $manager->liveSchema->ddl = array();
+        $this->assertTrue($manager->apply($id));
+    }
+
+    public function testAnotherConnectionChangingTheTableIsNamedForPostgres()
+    {
+        $line = TableMigration::alteredElsewhere('events', array('id' => 4242, 'seconds' => 7, 'progress' => null), SchemaInspector::FLAVOUR_PGSQL);
+        $this->assertStringStartsWith('events: connection 4242 has been changing this table for 7 s, most likely', $line);
+        $this->assertStringContainsString('gone from pg_stat_activity, or end it with SELECT pg_cancel_backend(4242) to start', $line);
+    }
+
     public function testTheForecastNamesTheWorkAndTheBusySessions()
     {
         $id = '20261101_000000_converge_events';

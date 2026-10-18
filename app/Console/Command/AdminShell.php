@@ -885,6 +885,9 @@ class AdminShell extends AppShell
         }));
         $this->AdminSetting->resetUpdateFailNumber();
         $manager->setReporter(array($this, 'reportMigration'));
+        if ($this->__onBareTerminal()) {
+            $this->out('<warning>' . __('This terminal is not inside screen or tmux. On a large instance the upgrade runs for hours, and a closed session stops it halfway while the database server carries on with the statement it was on. Consider running it in screen or tmux.') . '</warning>');
+        }
 
         $this->AdminSetting->changeSetting(self::UPGRADE_MARKER, time());
         $this->out(__('Taking the instance offline.'));
@@ -942,6 +945,36 @@ class AdminShell extends AppShell
         }
         $this->__clearUpgradeMarker();
         $this->out(__('Upgrade complete.'));
+    }
+
+    /**
+     * Whether this runs on a terminal that a closed session takes down with
+     * it. sudo drops TMUX and STY, so the process's ancestors count too.
+     *
+     * @return bool
+     */
+    private function __onBareTerminal()
+    {
+        if (!stream_isatty(STDIN) && !stream_isatty(STDOUT)) {
+            return false;
+        }
+        if (getenv('TMUX') || getenv('STY')) {
+            return false;
+        }
+        $pid = getmypid();
+        for ($depth = 0; $depth < 64 && $pid > 1; $depth++) {
+            $stat = @file_get_contents('/proc/' . $pid . '/stat');
+            if ($stat === false) {
+                return true;
+            }
+            $open = strpos($stat, '(');
+            $close = strrpos($stat, ')');
+            if (preg_match('/^(tmux|screen)/i', substr($stat, $open + 1, $close - $open - 1))) {
+                return false;
+            }
+            $pid = (int)explode(' ', substr($stat, $close + 2))[1];
+        }
+        return true;
     }
 
     /**

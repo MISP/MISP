@@ -66,6 +66,15 @@ Run the commands from `app/` as the web server user
    progress as it goes.
    If anything fails, it stops and leaves the instance offline; fix what it
    names and run it again, and it carries on where it stopped.
+   Run it inside `screen` or `tmux`: on a large instance it runs for hours,
+   and a closed SSH session stops it halfway.
+   After an interruption (Ctrl-C, a lost session, a killed process) the
+   database server may still be running the statement the run was on. Look for
+   an `ALTER TABLE` or `CREATE INDEX` in `SHOW PROCESSLIST` (MySQL, MariaDB)
+   or `pg_stat_activity` (PostgreSQL), and either wait for it to finish or end
+   it (`KILL <id>`, `SELECT pg_cancel_backend(<pid>)`) so that the table
+   starts over; then run `runUpgrade` again. A run that finds such a statement
+   on the table it is about to change stops and names it.
    `Console/cake AttributeValue verify` runs the same check on its own and
    changes nothing.
 2. **Let the correlations fill in.** The upgrade recreates the correlation
