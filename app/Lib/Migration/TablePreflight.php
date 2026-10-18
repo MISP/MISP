@@ -56,6 +56,9 @@ class TablePreflight
     /** Pages and tree over raw entry bytes, where the catalog has no index size to scale. */
     const PAGE_OVERHEAD = 1.5;
 
+    /** MariaDB's COPY rebuild sorts the secondary indexes in tmpdir: bytes measured over the result's index bytes. */
+    const COPY_SORT_FACTOR = 1.5;
+
     /** How many rows or values a deferral names. */
     const LISTED = 10;
 
@@ -1027,7 +1030,8 @@ class TablePreflight
      * Free disk for what the run writes, estimated from the target (the live
      * table may lack indexes the target has): the new copy of a rebuilt table
      * beside the old one, or the new indexes; plus the sort files of an index
-     * built in place, in tmpdir. The catalog's index size is scaled by the
+     * built in place or by MariaDB's copy, in tmpdir (MySQL's copy inserts row
+     * by row and writes none). The catalog's index size is scaled by the
      * target's entry bytes over the live ones, which keeps the real width of
      * the strings in it.
      *
@@ -1082,8 +1086,11 @@ class TablePreflight
             $need = array('datadir' => $newIndexes, 'tmpdir' => $newIndexes);
             $what = 'building the new indexes';
         } else {
-            $need = array('datadir' => $copy, 'tmpdir' => $kind === 'inplace' ? $indexes : 0.0);
+            $sorted = $kind === 'inplace' ? $indexes
+                : ($this->inspector->isMariaDb() ? $indexes * self::COPY_SORT_FACTOR : 0.0);
+            $need = array('datadir' => $copy, 'tmpdir' => $sorted);
             $what = 'the rebuild (a new copy of the table beside the old one)';
+            $sortWhat = "the rebuild's index sort files";
         }
         $this->plan['forecast'] = array(
             'kind' => $kind,
@@ -1091,7 +1098,7 @@ class TablePreflight
             'bytes' => $size['data_in_bytes'] + $size['index_in_bytes'],
             'need' => $need['datadir'] + $need['tmpdir'],
         );
-        $this->disk($need, $what);
+        $this->disk($need, $what, isset($sortWhat) ? $sortWhat : $what);
     }
 
     /**
@@ -1164,9 +1171,10 @@ class TablePreflight
     /**
      * @param array $need 'datadir', 'tmpdir' => bytes
      * @param string $what
+     * @param string $tmpWhat What fills tmpdir, where it is checked apart.
      * @return void
      */
-    private function disk(array $need, $what)
+    private function disk(array $need, $what, $tmpWhat)
     {
         $storage = $this->inspector->storage();
         if ($storage === null) {
@@ -1182,10 +1190,13 @@ class TablePreflight
             return;
         }
         $checks = $storage['datadir']['device'] === $storage['tmpdir']['device']
-            ? array(array($storage['datadir'], $need['datadir'] + $need['tmpdir']))
-            : array(array($storage['datadir'], $need['datadir']), array($storage['tmpdir'], $need['tmpdir']));
+            ? array(array($storage['datadir'], $need['datadir'] + $need['tmpdir'], $what))
+            : array(
+                array($storage['datadir'], $need['datadir'], $what),
+                array($storage['tmpdir'], $need['tmpdir'], $tmpWhat)
+            );
         foreach ($checks as $check) {
-            list($place, $bytes) = $check;
+            list($place, $bytes, $label) = $check;
             if ($bytes <= 0) {
                 continue;
             }
@@ -1193,7 +1204,7 @@ class TablePreflight
                 $this->defer[] = sprintf(
                     '%s: %s needs about %s free in %s, and %s is free. Free up space there, then run the update again.',
                     $this->table,
-                    $what,
+                    $label,
                     self::bytes($bytes),
                     $place['path'],
                     self::bytes($place['free'])
@@ -1202,7 +1213,7 @@ class TablePreflight
                 $this->plan['notes'][] = sprintf(
                     '%s: %s needs about %s in %s, and %s is free: close to the estimate',
                     $this->table,
-                    $what,
+                    $label,
                     self::bytes($bytes),
                     $place['path'],
                     self::bytes($place['free'])

@@ -547,7 +547,7 @@ class TablePreflightTest extends TestCase
         $inspector->sizes = $sizes;
         $inspector->storage = array(
             'datadir' => array('path' => '/var/lib/mysql/', 'free' => 12.0 * $gb, 'device' => 1),
-            'tmpdir' => array('path' => '/tmp', 'free' => 1.0 * $gb, 'device' => 2),
+            'tmpdir' => array('path' => '/tmp', 'free' => 20.0 * $gb, 'device' => 2),
         );
         $checked = TableConverger::preflight($inspector, 'events', self::TARGET);
         // 10 GB + 10^8 x 8 B of wider ids + 4 GB x (the entries with 8-byte keys / with 4-byte ones).
@@ -566,6 +566,40 @@ class TablePreflightTest extends TestCase
         $inspector->storage = null;
         $checked = TableConverger::preflight($inspector, 'events', self::TARGET);
         $this->assertStringContainsString("events: free disk not checked, as the database server's directories cannot be read from here", implode("\n", $checked['plan']['notes']));
+    }
+
+    /**
+     * MariaDB's copy sorts the new indexes in tmpdir, 1.5 x their size; MySQL's
+     * copy writes no sort files.
+     */
+    public function testACopyRebuildOnMariaDbNeedsRoomInTmpdir()
+    {
+        $live = TableConvergerTest::mysqlLive(self::TARGET);
+        $live['columns']['id'] = TableConvergerTest::mysqlColumn('int(11)', array('increment' => 'auto_increment'));
+        $live['columns']['org_id'] = TableConvergerTest::mysqlColumn('int(11)');
+        $gb = 1073741824;
+        $inspector = $this->mysqlInspector('events', $live);
+        $inspector->sizes = array('events' => array('data_in_bytes' => 10 * $gb, 'index_in_bytes' => 4 * $gb, 'row_estimate' => 100000000));
+        $inspector->storage = array(
+            'datadir' => array('path' => '/var/lib/mysql/', 'free' => 100.0 * $gb, 'device' => 1),
+            'tmpdir' => array('path' => '/tmp', 'free' => 1.0 * $gb, 'device' => 2),
+        );
+        $checked = TableConverger::preflight($inspector, 'events', self::TARGET);
+        $this->assertCount(1, $checked['defer']);
+        $this->assertRegExp(
+            "/^events: the rebuild's index sort files needs about [5-9]\\.\\d GB free in \\/tmp, and 1\\.0 GB is free\\./",
+            $checked['defer'][0]
+        );
+
+        $inspector->storage['tmpdir']['device'] = 1;
+        $inspector->storage['datadir']['free'] = 20.0 * $gb;
+        $checked = TableConverger::preflight($inspector, 'events', self::TARGET);
+        $this->assertCount(1, $checked['defer']);
+        $this->assertStringStartsWith('events: the rebuild (a new copy of the table beside the old one) needs about 2', $checked['defer'][0]);
+
+        $inspector->version = '8.4.6';
+        $inspector->storage['tmpdir']['device'] = 2;
+        $this->assertSame(array(), TableConverger::preflight($inspector, 'events', self::TARGET)['defer']);
     }
 
     /**
