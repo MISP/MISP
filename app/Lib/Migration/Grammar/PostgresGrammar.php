@@ -45,13 +45,15 @@ class PostgresGrammar extends AbstractGrammar
 
     /**
      * MISP types Cake's Postgres map does not define. mediumtext and longtext
-     * are MySQL storage tiers of one logical type, so both collapse to text.
+     * are MySQL storage tiers of one logical type, so both collapse to text;
+     * longblob is bytea, as binary is.
      *
      * @var array
      */
     protected $extraColumns = array(
         'mediumtext' => array('name' => 'text'),
         'longtext' => array('name' => 'text'),
+        'longblob' => array('name' => 'bytea'),
         'varbinary' => array('name' => 'bytea'),
     );
 

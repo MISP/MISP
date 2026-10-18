@@ -222,7 +222,7 @@ class BaselineGenerator
         'blob' => 'binary',
         'tinyblob' => 'binary',
         'mediumblob' => 'binary',
-        'longblob' => 'binary',
+        'longblob' => 'longblob',
         'varbinary' => 'varbinary',
         'datetime' => 'datetime',
         'timestamp' => 'timestamp',
@@ -253,6 +253,14 @@ class BaselineGenerator
      * @var array
      */
     private static $textTypes = array('text', 'mediumtext', 'longtext');
+
+    /**
+     * DSL types Mysql::describe() folds into text or binary, which only the
+     * catalog tells apart.
+     *
+     * @var array
+     */
+    private static $tieredTypes = array('mediumtext', 'longtext', 'longblob');
 
     /**
      * @var DboSource The MySQL connection the reference is read through.
@@ -389,6 +397,8 @@ class BaselineGenerator
      *   'primary' => the primary key column, or null,
      *   'options' => table parameters ('engine', 'charset', 'collate'),
      *   'expressionDefaults' => column => the expression as the server spelled it,
+     *   'row_format' => the table's row format, upper case, or null - kept out
+     *     of 'options', which the rendering hands to createTable() whole,
      * ), in table-name order.
      */
     public function readSchema()
@@ -412,6 +422,7 @@ class BaselineGenerator
                 'primary' => null,
                 'options' => $options,
                 'expressionDefaults' => array(),
+                'row_format' => empty($row['ROW_FORMAT']) ? null : strtoupper($row['ROW_FORMAT']),
                 'collation' => $collation,
             );
         }
@@ -475,6 +486,25 @@ class BaselineGenerator
             $tokens[$byFamily[$family]] = $token;
         }
         return $tokens;
+    }
+
+    /**
+     * The reference database's default collation, which a table created
+     * without one of its own takes.
+     *
+     * @return array|null 'collate': a token, or the name the reference uses
+     *   for any other collation. Null when the catalog has no such database.
+     */
+    public function readDatabaseDefaults()
+    {
+        $rows = $this->fetchRows(sprintf(
+            'SELECT DEFAULT_COLLATION_NAME AS collation FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = %s;',
+            $this->db->value($this->database, 'string')
+        ));
+        if (empty($rows[0]['collation'])) {
+            return null;
+        }
+        return self::tokenise(array('collate' => $rows[0]['collation']), $this->collationTokens());
     }
 
     /**
@@ -1089,7 +1119,7 @@ class BaselineGenerator
             'integer' => 'integer', 'biginteger' => 'biginteger',
             'smallinteger' => 'smallinteger', 'tinyinteger' => 'tinyinteger',
             'boolean' => 'boolean', 'string' => 'string', 'text' => 'text',
-            'mediumtext' => 'text', 'longtext' => 'text', 'binary' => 'binary',
+            'mediumtext' => 'text', 'longtext' => 'text', 'binary' => 'binary', 'longblob' => 'binary',
             'varbinary' => 'text', 'datetime' => 'datetime', 'timestamp' => 'timestamp',
             'date' => 'date', 'time' => 'time', 'float' => 'float', 'decimal' => 'decimal',
         ),
@@ -1097,7 +1127,7 @@ class BaselineGenerator
             'integer' => 'integer', 'biginteger' => 'biginteger',
             'smallinteger' => 'smallinteger', 'tinyinteger' => 'smallinteger',
             'boolean' => 'boolean', 'string' => 'string', 'text' => 'text',
-            'mediumtext' => 'text', 'longtext' => 'text', 'binary' => 'binary',
+            'mediumtext' => 'text', 'longtext' => 'text', 'binary' => 'binary', 'longblob' => 'binary',
             'varbinary' => 'binary', 'datetime' => 'datetime', 'timestamp' => 'datetime',
             'date' => 'date', 'time' => 'time', 'float' => 'float', 'decimal' => 'decimal',
         ),
@@ -1122,16 +1152,46 @@ class BaselineGenerator
      * the rendering, so none is expected back. Index names are compared
      * through the grammar, which is what prefixes them on PostgreSQL.
      *
+     * What describe() and index() fold away is read off the catalog
+     * (SchemaInspector::tableDefinition()). On MySQL and MariaDB: collations
+     * by class - a token is expected under the name the loaded server's
+     * family gives it, any other collation verbatim - which settles the
+     * charset too; unsigned; index prefix lengths and FULLTEXT; the engine,
+     * row format and default collation of each table and of the database.
+     * On PostgreSQL, which has none of those: no column carries a collation
+     * of its own, and a prefix index is the hash index or btree its
+     * rendering makes of it.
+     *
      * @param SchemaInspector $inspector Reading the database the baseline was loaded into.
      * @param array $schema From readSchema(), off the reference.
+     * @param array|null $database From readDatabaseDefaults(); null skips the database's own default.
      * @return array Findings, one line each. Empty means the round trip is exact.
+     * @throws RuntimeException When the loaded MySQL-family server's version does not say which family it is.
      */
-    public function compare(SchemaInspector $inspector, array $schema)
+    public function compare(SchemaInspector $inspector, array $schema, ?array $database = null)
     {
         $grammar = AbstractGrammar::forDataSource($inspector->getDataSource());
         $flavour = $grammar->flavour();
         $reported = self::$reportedTypes[$flavour];
         $findings = array();
+
+        $family = null;
+        if ($flavour === AbstractGrammar::FLAVOUR_MYSQL) {
+            $family = Collation::family($inspector->serverVersion());
+            if ($family === null) {
+                throw new RuntimeException(sprintf(
+                    'The loaded server reports its version as "%s", which does not say whether it is MariaDB or MySQL.',
+                    $inspector->serverVersion()
+                ));
+            }
+            $loadedDefaults = $database === null ? null : $inspector->databaseDefaults();
+            if ($loadedDefaults !== null) {
+                $finding = self::collationFinding($database['collate'], $loadedDefaults['collation'], $family);
+                if ($finding !== null) {
+                    $findings[] = 'database: default ' . $finding;
+                }
+            }
+        }
 
         $loadedTables = $inspector->tables();
         foreach ($schema as $table => $definition) {
@@ -1260,6 +1320,16 @@ class BaselineGenerator
             foreach (array_keys($indexes) as $extra) {
                 $findings[] = sprintf('%s: index %s not in the reference', $table, $extra);
             }
+
+            $catalog = $inspector->tableDefinition($table);
+            if ($catalog !== null) {
+                $catalogFindings = $flavour === AbstractGrammar::FLAVOUR_PGSQL
+                    ? self::comparePostgresCatalog($table, $definition, $catalog, $grammar)
+                    : self::compareMysqlCatalog($table, $definition, $catalog, $grammar, $family);
+                foreach ($catalogFindings as $finding) {
+                    $findings[] = $finding;
+                }
+            }
         }
         foreach ($loadedTables as $table) {
             if (!isset($schema[$table])) {
@@ -1314,6 +1384,173 @@ class BaselineGenerator
             return 'default ' . var_export($actual, true) . ', expected ' . var_export($want, true);
         }
         return null;
+    }
+
+    /**
+     * @param string $table
+     * @param array $definition One table of readSchema().
+     * @param array $catalog SchemaInspector::tableDefinition() of the loaded table.
+     * @param AbstractGrammar $grammar
+     * @param string $family Collation::MARIADB or Collation::MYSQL, the loaded server's.
+     * @return array Findings.
+     */
+    private static function compareMysqlCatalog($table, array $definition, array $catalog, AbstractGrammar $grammar, $family)
+    {
+        $findings = array();
+        $tableOptions = $definition['options'];
+        $live = $catalog['options'];
+        if (isset($tableOptions['engine']) && strcasecmp($tableOptions['engine'], (string)$live['engine']) !== 0) {
+            $findings[] = sprintf('%s: engine %s, expected %s', $table, self::shown($live['engine']), $tableOptions['engine']);
+        }
+        if (!empty($definition['row_format']) && $definition['row_format'] !== $live['row_format']) {
+            $findings[] = sprintf(
+                '%s: row format %s, expected %s',
+                $table, self::shown($live['row_format']), $definition['row_format']
+            );
+        }
+        $tableCollation = isset($tableOptions['collate']) ? $tableOptions['collate'] : null;
+        if ($tableCollation !== null) {
+            $finding = self::collationFinding($tableCollation, $live['collation'], $family);
+            if ($finding !== null) {
+                $findings[] = sprintf('%s: default %s', $table, $finding);
+            }
+        }
+
+        foreach ($definition['columns'] as $name => $spec) {
+            if (!isset($catalog['columns'][$name])) {
+                continue;
+            }
+            $column = $catalog['columns'][$name];
+            if (isset($column['type'])) {
+                $tier = self::dslType($column['type']);
+                $tiered = in_array($tier, self::$tieredTypes, true) || in_array($spec['type'], self::$tieredTypes, true);
+                if ($tiered && $tier !== $spec['type']) {
+                    $findings[] = sprintf('%s.%s: %s, expected %s', $table, $name, $column['type'], $spec['type']);
+                }
+            }
+            if (!empty($spec['unsigned']) !== (bool)$column['unsigned']) {
+                $findings[] = sprintf(
+                    '%s.%s: %s, expected %s',
+                    $table, $name, $column['unsigned'] ? 'unsigned' : 'signed', $column['unsigned'] ? 'signed' : 'unsigned'
+                );
+            }
+            $isCharacter = $spec['type'] === 'string' || in_array($spec['type'], self::$textTypes, true);
+            $want = isset($spec['collate']) ? $spec['collate'] : ($isCharacter ? $tableCollation : null);
+            // A column that is no longer a string at all has its type reported already.
+            if ($want !== null && $column['collation'] !== null) {
+                $finding = self::collationFinding($want, $column['collation'], $family);
+                if ($finding !== null) {
+                    $findings[] = sprintf('%s.%s: %s', $table, $name, $finding);
+                }
+            }
+        }
+
+        foreach ($definition['indexes'] as $options) {
+            $physical = $grammar->indexName($table, $options['column'], $options);
+            if (!isset($catalog['indexes'][$physical])) {
+                continue;
+            }
+            $index = $catalog['indexes'][$physical];
+            $wantLength = isset($options['length']) ? array_map('intval', $options['length']) : array();
+            if ($wantLength != $index['length']) {
+                $findings[] = sprintf(
+                    '%s: index %s over (%s), expected (%s)',
+                    $table, $physical, self::parts($index['column'], $index['length']), self::parts($options['column'], $wantLength)
+                );
+            }
+            $wantFulltext = !empty($options['fulltext']);
+            if ($wantFulltext !== ($index['type'] === 'fulltext')) {
+                $findings[] = sprintf(
+                    '%s: index %s is %s, expected %s',
+                    $table, $physical, $wantFulltext ? 'not FULLTEXT' : 'FULLTEXT', $wantFulltext ? 'FULLTEXT' : 'not FULLTEXT'
+                );
+            }
+        }
+        return $findings;
+    }
+
+    /**
+     * @param string $table
+     * @param array $definition One table of readSchema().
+     * @param array $catalog SchemaInspector::tableDefinition() of the loaded table.
+     * @param AbstractGrammar $grammar
+     * @return array Findings.
+     */
+    private static function comparePostgresCatalog($table, array $definition, array $catalog, AbstractGrammar $grammar)
+    {
+        $findings = array();
+        foreach (array_keys($definition['columns']) as $name) {
+            if (isset($catalog['columns'][$name]['collation'])) {
+                $findings[] = sprintf(
+                    '%s.%s: collation %s, expected the database default',
+                    $table, $name, $catalog['columns'][$name]['collation']
+                );
+            }
+        }
+
+        $replaced = self::replacedIndexes($table, $definition['indexes']);
+        foreach ($definition['indexes'] as $name => $options) {
+            if (isset($replaced[$name]) || !empty($options['fulltext'])
+                || self::isMysqlOnly($options, $definition['columns'])
+            ) {
+                continue;
+            }
+            $physical = $grammar->indexName($table, $options['column'], $options);
+            if (!isset($catalog['indexes'][$physical])) {
+                continue;
+            }
+            $want = self::needsHashRewrite($options, $definition['columns']) ? 'hash' : 'btree';
+            $got = $catalog['indexes'][$physical]['type'];
+            if ($got !== $want) {
+                $findings[] = sprintf('%s: index %s is a %s index, expected %s', $table, $physical, $got, $want);
+            }
+        }
+        return $findings;
+    }
+
+    /**
+     * @param string $want A Collation token, or a collation's name.
+     * @param string|null $actual The loaded collation.
+     * @param string $family The loaded server's.
+     * @return string|null A finding, or null when they agree.
+     */
+    private static function collationFinding($want, $actual, $family)
+    {
+        $expected = $want;
+        if (Collation::isToken($want)) {
+            $byFamily = Collation::byFamily($want);
+            $expected = $byFamily[$family];
+        }
+        if (strcasecmp($expected, (string)$actual) === 0) {
+            return null;
+        }
+        return sprintf(
+            'collation %s, expected %s%s',
+            self::shown($actual), $expected, $expected === $want ? '' : ' (' . $want . ')'
+        );
+    }
+
+    /**
+     * @param array $columns
+     * @param array $lengths column => prefix
+     * @return string The key parts as MySQL writes them, e.g. `type, value(64)`.
+     */
+    private static function parts(array $columns, array $lengths)
+    {
+        $parts = array();
+        foreach ($columns as $column) {
+            $parts[] = $column . (isset($lengths[$column]) ? '(' . $lengths[$column] . ')' : '');
+        }
+        return implode(', ', $parts);
+    }
+
+    /**
+     * @param string|null $value
+     * @return string
+     */
+    private static function shown($value)
+    {
+        return $value === null || $value === '' ? 'none' : $value;
     }
 
     // --------------------------------------------------------------- helpers

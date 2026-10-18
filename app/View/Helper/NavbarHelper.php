@@ -39,7 +39,6 @@ class NavbarHelper extends AppHelper {
         'regexp'                   => 'datamodels',
         'correlation_exclusions'   => 'datamodels',
         // Sync
-        'syncconfigs'            => 'sync',
         'feeds'                  => 'sync',
         'sharinggroups'          => 'sync',
         'sharinggroupblueprints' => 'sync',
@@ -47,7 +46,7 @@ class NavbarHelper extends AppHelper {
         'cerebrates'             => 'sync',
         'taxiiservers'           => 'sync',
         'sightingdb'             => 'sync',
-        'servers'                => ['default' => 'sync', 'serversettings' => 'administration'],
+        'servers'                => ['default' => 'sync', 'serversettings' => 'administration', 'eventblockrule' => 'administration'],
         // Administration
         'organisations'      => 'administration',
         'roles'              => 'administration',
@@ -77,7 +76,7 @@ class NavbarHelper extends AppHelper {
         // API
         'api' => 'api',
         // Resources
-        'news'  => 'resources',
+        'news'  => ['default' => 'administration', 'index' => 'resources'],
         'doc'   => 'resources',
         'pages' => 'resources',
         // Bookmarks
@@ -453,14 +452,6 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-server',
                 'children' => [
                     [
-                        'label' => __('Create Sync Config'),
-                        'url' => $baseurl . '/servers/createSync',
-                        'controller' => 'servers',
-                        'action' => 'createSync',
-                        'requirement' => $isAclSync && !$isSiteAdmin,
-                        'icon' => 'fas fa-rotate'
-                    ],
-                    [
                         'label' => __('Remote Servers'),
                         'url' => $baseurl . '/servers/index',
                         'controller' => 'servers',
@@ -592,6 +583,15 @@ class NavbarHelper extends AppHelper {
                 'requirement' => $this->Acl->canAccess('servers', 'serverSettings'),
                 'icon' => 'fas fa-gears',
             ],
+            [
+                'type' => 'group',
+                'label' => __('News'),
+                'url' => $baseurl . '/admin/news/index',
+                'controller' => 'news',
+                'action' => 'admin_index',
+                'requirement' => $this->Acl->canAccess('news', 'admin_index'),
+                'icon' => 'fas fa-newspaper',
+            ],
             ['divider' => true],
             [
                 'type' => 'group',
@@ -702,6 +702,14 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Blocklisting'),
                 'icon' => 'fas fa-ban',
                 'children' => [
+                    [
+                        'label' => __('Event Block Rules'),
+                        'url' => $baseurl . '/servers/eventBlockRule',
+                        'controller' => 'servers',
+                        'action' => 'eventBlockRule',
+                        'requirement' => $this->Acl->canAccess('servers', 'eventBlockRule'),
+                        'icon' => 'fas fa-filter-circle-xmark'
+                    ],
                     [
                         'label' => __('Blocklist Event'),
                         'url' => $baseurl . '/eventBlocklists',
@@ -865,6 +873,13 @@ class NavbarHelper extends AppHelper {
 
         $smimeCertificate = (string)Configure::read('SMIME.cert_public_sign');
         $resourcesChildren = [
+            [
+                'label' => __('News'),
+                'url' => $baseurl . '/news/index',
+                'controller' => 'news',
+                'action' => 'index',
+                'icon' => 'fas fa-newspaper'
+            ],
             [
                 'label' => __('User Guide'),
                 'url' => 'https://www.circl.lu/doc/misp/',

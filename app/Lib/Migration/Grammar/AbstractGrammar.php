@@ -25,12 +25,12 @@ App::uses('Collation', 'Migration');
  * What CakePHP has no answer for, and this class therefore owns: RENAME COLUMN,
  * RENAME TABLE, index DDL beyond the create-table clause, positional `after`,
  * prefix-length indexes, FULLTEXT, ROW_FORMAT and table options in an ALTER
- * TABLE, and the three column types MISP uses that Cake's map is missing.
+ * TABLE, and the column types MISP uses that Cake's map is missing.
  *
  * ## The type-map extension
  *
- * Cake's Mysql map has no mediumtext, longtext or varbinary, and the current
- * MISP schema uses all three - so without an extension a migration touching one
+ * Cake's Mysql map has no mediumtext, longtext, longblob or varbinary, and the
+ * MISP schema uses all four - so without an extension a migration touching one
  * of those columns simply could not be expressed. Each grammar declares its own
  * additions in $extraColumns and swaps the merged map into the public
  * $db->columns around each buildColumn() call, restoring it in a finally. The
@@ -57,7 +57,7 @@ abstract class AbstractGrammar
      * knows binary, boolean, string and text, and takes an empty string of
      * any other type for NULL.
      */
-    const QUOTED_AS = array('mediumtext' => 'text', 'longtext' => 'text', 'varbinary' => 'binary');
+    const QUOTED_AS = array('mediumtext' => 'text', 'longtext' => 'text', 'longblob' => 'binary', 'varbinary' => 'binary');
 
     /**
      * @var DboSource

@@ -114,7 +114,7 @@ class OvermindPages
         'servers' => array(
             'index', 'add', 'edit', 'delete', 'previewIndex',
             'previewEvent', 'pullSelectedEvents', 'idTranslator',
-            'serverSettings'
+            'serverSettings', 'eventBlockRule'
         ),
         'feeds' => array(
             'index', 'add', 'edit', 'view', 'importFeeds',
@@ -145,7 +145,7 @@ class OvermindPages
         'jobs' => array('index'),
         'tasks' => array('index', 'add', 'edit'),
         'news' => array(
-            'admin_index', 'add', 'edit', 'delete', 'deleteSelection'
+            'index', 'admin_index', 'add', 'edit', 'delete', 'deleteSelection'
         ),
         'bookmarks' => array(
             'index', 'add', 'edit', 'view', 'delete', 'deleteSelection'

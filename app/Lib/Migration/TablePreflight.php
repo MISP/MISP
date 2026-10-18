@@ -254,12 +254,12 @@ class TablePreflight
         if (isset(self::WIDTHS[$type])) {
             return self::WIDTHS[$type];
         }
-        if ($type === 'string' || $type === 'varbinary' || $type === 'binary' || isset(self::TEXT_BYTES[$type])) {
+        if (in_array($type, array('string', 'varbinary', 'binary', 'longblob'), true) || isset(self::TEXT_BYTES[$type])) {
             $chars = $prefix !== null ? $prefix : $shape['length'];
             if ($chars === null) {
                 return $cap;
             }
-            $bytes = $chars * ($type === 'varbinary' || $type === 'binary' ? 1 : $shape['bytesPerChar']);
+            $bytes = $chars * (in_array($type, array('varbinary', 'binary', 'longblob'), true) ? 1 : $shape['bytesPerChar']);
             return $cap === null ? $bytes : min($bytes, $cap);
         }
         return $cap === null ? 0 : $cap;
@@ -918,12 +918,36 @@ class TablePreflight
             $why = sprintf('the unique key %s compares %s under %s from now on', $name, implode(', ', $loosened), $collation['collate']);
         }
         $this->defer[] = sprintf(
-            '%s: %s, and rows share a value of it: %s%s. Merge or rename those rows, then run the update again.',
+            '%s: %s, and rows share a value of it: %s%s. %s, then run the update again.',
             $this->table,
             $why,
             implode('; ', $clashes),
-            count($rows) >= self::LISTED ? '; ...' : ''
+            count($rows) >= self::LISTED ? '; ...' : '',
+            $this->keysByIdentifier($index)
+                ? 'Those rows stand for the same thing: keep one of them and delete the others'
+                : 'Merge or rename those rows'
         );
+    }
+
+    /**
+     * @param array $index A target unique key.
+     * @return bool Whether it keys rows by an identifier (an ascii uuid or
+     *   hash column) and by no name or other text.
+     */
+    private function keysByIdentifier(array $index)
+    {
+        $identifier = false;
+        foreach (isset($index['column']) ? $index['column'] : array() as $column) {
+            $spec = $this->target['columns'][$column];
+            if (!in_array($spec['type'], TableConverger::STRING_TYPES, true)) {
+                continue;
+            }
+            if (!isset($spec['collate']) || $spec['collate'] !== Collation::ASCII) {
+                return false;
+            }
+            $identifier = true;
+        }
+        return $identifier;
     }
 
     /**

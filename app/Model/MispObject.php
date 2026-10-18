@@ -388,7 +388,8 @@ class MispObject extends AppModel
                 $attribute_to_delete['Attribute']['deleted'] = 1;
                 unset($attribute_to_delete['Attribute']['timestamp']);
             }
-            if (!$this->Attribute->saveMany($attributes_to_delete) && !empty($attributes_to_delete)) {
+            // saveMany() on an empty list falls back to the model's leftover $data
+            if (!empty($attributes_to_delete) && !$this->Attribute->saveMany($attributes_to_delete)) {
                 $this->log(
                     sprintf(
                         'Could not cascade delete to all Attributes of Object %s: some attributes may remain visible (not deleted).',
@@ -1099,11 +1100,8 @@ class MispObject extends AppModel
                 'contain' => array(
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
-                        // MySQL hands an object's attributes back in
-                        // primary-key order off the object_id index without
-                        // being asked; PostgreSQL must be asked, or an edited
-                        // attribute moves to the end of the list.
-                        'order' => $this->isMysql() ? false : 'Attribute.id ASC',
+                        // Insertion order: no index hands it back unasked
+                        'order' => 'Attribute.id ASC',
                         //'ShadowAttribute',
                         'AttributeTag' => array(
                             'Tag'
@@ -1127,7 +1125,7 @@ class MispObject extends AppModel
                     ),
                     'Attribute' => array(
                         'conditions' => $attributeConditions,
-                        'order' => $this->isMysql() ? false : 'Attribute.id ASC',
+                        'order' => 'Attribute.id ASC',
                         //'ShadowAttribute',
                         'AttributeTag' => array(
                             'Tag'

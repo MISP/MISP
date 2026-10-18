@@ -191,7 +191,7 @@ class Module extends AppModel
      *                         restriction (canUse), matching getEnabledModules().
      * @return array|string
      */
-    public function getEnabledModule($name, $type, array $user = null)
+    public function getEnabledModule($name, $type, ?array $user = null)
     {
         if (!isset(self::TYPE_TO_FAMILY[$type])) {
             throw new InvalidArgumentException("Invalid type '$type'.");

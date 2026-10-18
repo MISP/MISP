@@ -645,7 +645,14 @@ search_path TO baseline_check;` inserted after `BEGIN;`. The comparison names
 every column, key and index that differs, in both directions, and knows which
 deviations are the rendering being right — hash indexes, PostgreSQL-only
 indexes, the replaced indexes (checked by the shape the driver reads back, so a
-wrong index under the right name is a finding), boolean defaults. Anything pending in `migrationStatus` means the
+wrong index under the right name is a finding), boolean defaults. It also
+reads the catalog for what the drivers leave out: on MySQL and MariaDB each
+column's collation by class (a `Collation` token is expected under the loaded
+server's own name for it, so a MariaDB reference checks a MySQL load),
+unsigned, index prefixes and FULLTEXT, and the engine, row format and default
+collation of every table and of the database; on PostgreSQL, that no column
+carries a collation of its own and that each text prefix index is the hash
+index its rendering makes. Anything pending in `migrationStatus` means the
 reference was not up to date.
 
 ### 4. What CI checks

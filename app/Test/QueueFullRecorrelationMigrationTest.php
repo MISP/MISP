@@ -23,6 +23,7 @@ class QueueFullRecorrelationMigrationTest extends TestCase
         'attributes' => true,
         'backgroundJobs' => true,
         'pendingJob' => null,
+        'unqueuedJob' => null,
     );
 
     /**
@@ -91,8 +92,15 @@ class QueueFullRecorrelationMigrationTest extends TestCase
     public function testARerunWithItsJobStillPendingQueuesNoSecondOne()
     {
         $decision = self::decide(array('pendingJob' => 42));
-        $this->assertSame('none', $decision['action']);
+        $this->assertSame('queued', $decision['action']);
         $this->assertStringContainsString('(job 42)', $decision['line']);
+    }
+
+    public function testARowAnInterruptedRunLeftUnqueuedIsQueued()
+    {
+        $decision = self::decide(array('unqueuedJob' => 42));
+        $this->assertSame('queue', $decision['action']);
+        $this->assertStringContainsString('left unqueued (job 42)', $decision['line']);
     }
 
     public function testItRunsAfterEverySchemaV3Migration()

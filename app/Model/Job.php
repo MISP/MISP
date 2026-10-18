@@ -62,6 +62,83 @@ class Job extends AppModel
     }
 
     /**
+     * Queue a job unless one of this type and input is already queued or
+     * running. A process killed between the row and the enqueue leaves a row
+     * without a process id; that row is queued now, unless Redis holds its job.
+     *
+     * @param array|string $user
+     * @param string $worker
+     * @param string $jobType
+     * @param string $jobInput
+     * @param string $message
+     * @param string $queue
+     * @param string $command
+     * @param array $args The job id is appended.
+     * @return array The job id, and whether it was queued now.
+     * @throws Exception When it cannot be queued; the row is marked failed first.
+     */
+    public function enqueueOnce($user, $worker, $jobType, $jobInput, $message, $queue, $command, array $args)
+    {
+        $pending = $this->pendingJob($jobType, $jobInput);
+        if ($pending !== null) {
+            $jobId = (int)$pending['id'];
+            $processId = $this->queuedProcessId($pending, $queue);
+            if ($processId !== null) {
+                if (empty($pending['process_id'])) {
+                    $this->save(['id' => $jobId, 'process_id' => $processId], ['atomic' => false]);
+                }
+                return [$jobId, false];
+            }
+        } else {
+            $jobId = $this->createJob($user, $worker, $jobType, $jobInput, $message);
+        }
+        $args[] = $jobId;
+        try {
+            $this->getBackgroundJobsTool()->enqueue($queue, $command, $args, true, $jobId);
+        } catch (Exception $e) {
+            $this->saveStatus($jobId, false, __('Could not be queued: %s', $e->getMessage()));
+            throw $e;
+        }
+        return [$jobId, true];
+    }
+
+    /**
+     * The newest row of this type and input that is waiting or running.
+     *
+     * @param string $jobType
+     * @param string $jobInput
+     * @return array|null id, process_id
+     */
+    public function pendingJob($jobType, $jobInput)
+    {
+        $job = $this->find('first', [
+            'recursive' => -1,
+            'fields' => ['Job.id', 'Job.process_id'],
+            'conditions' => [
+                'Job.job_type' => $jobType,
+                'Job.job_input' => $jobInput,
+                'Job.status' => [0, self::STATUS_WAITING, self::STATUS_RUNNING],
+            ],
+            'order' => ['Job.id' => 'DESC'],
+        ]);
+        return empty($job) ? null : $job['Job'];
+    }
+
+    /**
+     * @param array $job As pendingJob() returns it.
+     * @param string $queue
+     * @return string|null The id of its job in Redis; null when it is not queued.
+     */
+    public function queuedProcessId(array $job, $queue)
+    {
+        if (!empty($job['process_id'])) {
+            return $job['process_id'];
+        }
+        $queued = $this->getBackgroundJobsTool()->findQueuedJob($queue, (int)$job['id']);
+        return $queued === null ? null : $queued->id();
+    }
+
+    /**
      * @param int|null $jobId
      * @param string|null $message
      * @param int|null $progress
@@ -128,5 +205,27 @@ class Job extends AppModel
             $this->logException("Could not save progress for job $jobId", $e, LOG_NOTICE);
         }
         return false;
+    }
+
+    /**
+     * Records how a job's process ended, unless the job already marked its row
+     * failed or completed itself.
+     *
+     * @param int $jobId
+     * @param bool $success
+     * @param string|null $message
+     * @return bool
+     */
+    public function saveExitStatus($jobId, $success, $message = null)
+    {
+        $job = $this->find('first', [
+            'conditions' => ['Job.id' => $jobId],
+            'fields' => ['Job.status'],
+            'recursive' => -1,
+        ]);
+        if (empty($job) || in_array((int)$job['Job']['status'], [self::STATUS_FAILED, self::STATUS_COMPLETED], true)) {
+            return false;
+        }
+        return $this->saveStatus($jobId, $success, $message);
     }
 }

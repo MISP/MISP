@@ -54,26 +54,22 @@ class Migration_20261016_204637_queue_full_recorrelation extends AbstractMigrati
      */
     public function afterUp()
     {
-        if ($this->decision()['action'] !== 'queue') {
+        if (!in_array($this->decision()['action'], array('queue', 'queued'), true)) {
             return true;
         }
         // A worker that is already running starts the job in a new process,
         // which must not read the tables as they were before the upgrade.
         $this->inspector()->flushSchemaCacheFiles();
-        $Job = ClassRegistry::init('Job');
-        $jobId = $Job->createJob('SYSTEM', Job::WORKER_DEFAULT, self::JOB_TYPE, $this->id(), 'Queued by the upgrade.');
-        try {
-            $Job->getBackgroundJobsTool()->enqueue(
-                BackgroundJobsTool::DEFAULT_QUEUE,
-                BackgroundJobsTool::CMD_ADMIN,
-                array('jobGenerateCorrelation', $jobId),
-                true,
-                $jobId
-            );
-        } catch (Exception $e) {
-            $Job->saveStatus($jobId, false, 'Could not be queued: ' . $e->getMessage());
-            throw $e;
-        }
+        ClassRegistry::init('Job')->enqueueOnce(
+            'SYSTEM',
+            Job::WORKER_DEFAULT,
+            self::JOB_TYPE,
+            $this->id(),
+            'Queued by the upgrade.',
+            BackgroundJobsTool::DEFAULT_QUEUE,
+            BackgroundJobsTool::CMD_ADMIN,
+            array('jobGenerateCorrelation')
+        );
         return true;
     }
 
@@ -81,8 +77,11 @@ class Migration_20261016_204637_queue_full_recorrelation extends AbstractMigrati
      * What to do, from what the instance holds.
      *
      * @param array $state disabled, engine, table (null when the engine keeps
-     *   none), correlated, attributes, backgroundJobs, pendingJob (an id or null)
-     * @return array action ('none', 'command' or 'queue'), line
+     *   none), correlated, attributes, backgroundJobs, pendingJob (the id of
+     *   the queued or running job, or null), unqueuedJob (the id of a waiting
+     *   row an interrupted run left unqueued, or null)
+     * @return array action ('none', 'command', 'queue' or 'queued': afterUp()
+     *   then records the job's id in its row if an interrupted run did not), line
      */
     public static function decide(array $state)
     {
@@ -102,7 +101,10 @@ class Migration_20261016_204637_queue_full_recorrelation extends AbstractMigrati
             return self::outcome('command', sprintf('Background jobs are off, so %s stays empty until a full recorrelation runs. Once the instance is back: %s (on a large instance it takes hours).', $state['table'], self::COMMAND));
         }
         if ($state['pendingJob'] !== null) {
-            return self::outcome('none', sprintf('The full recorrelation is already queued or running (job %d): not queueing another.', $state['pendingJob']));
+            return self::outcome('queued', sprintf('The full recorrelation is already queued or running (job %d): not queueing another.', $state['pendingJob']));
+        }
+        if ($state['unqueuedJob'] !== null) {
+            return self::outcome('queue', sprintf('Queues the full recorrelation an interrupted run left unqueued (job %d) to refill %s; a default worker runs it, and the instance can be live meanwhile.', $state['unqueuedJob'], $state['table']));
         }
         return self::outcome('queue', sprintf('Queues a full recorrelation to refill %s; a default worker runs it, and the instance can be live meanwhile.', $state['table']));
     }
@@ -148,26 +150,28 @@ class Migration_20261016_204637_queue_full_recorrelation extends AbstractMigrati
             'recursive' => -1,
             'fields' => array('Attribute.id'),
         ));
-        // Only this migration's own job: rows of jobs that died stay waiting
-        // or running for ever, and must not stop the queueing.
-        $pending = ClassRegistry::init('Job')->find('first', array(
-            'recursive' => -1,
-            'fields' => array('Job.id'),
-            'conditions' => array(
-                'Job.job_type' => self::JOB_TYPE,
-                'Job.job_input' => $this->id(),
-                'Job.status' => array(0, Job::STATUS_WAITING, Job::STATUS_RUNNING),
-            ),
-            'order' => array('Job.id' => 'DESC'),
-        ));
+        $backgroundJobs = (bool)Configure::read('MISP.background_jobs');
+        $pendingJob = $unqueuedJob = null;
+        if ($backgroundJobs) {
+            $Job = ClassRegistry::init('Job');
+            $pending = $Job->pendingJob(self::JOB_TYPE, $this->id());
+            if ($pending !== null) {
+                if ($Job->queuedProcessId($pending, BackgroundJobsTool::DEFAULT_QUEUE) !== null) {
+                    $pendingJob = (int)$pending['id'];
+                } else {
+                    $unqueuedJob = (int)$pending['id'];
+                }
+            }
+        }
         return array(
             'disabled' => (bool)Configure::read('MISP.completely_disable_correlation'),
             'engine' => $Correlation->getCorrelationModelName(),
             'table' => $table,
             'correlated' => $correlated,
             'attributes' => !empty($attribute),
-            'backgroundJobs' => (bool)Configure::read('MISP.background_jobs'),
-            'pendingJob' => empty($pending) ? null : (int)$pending['Job']['id'],
+            'backgroundJobs' => $backgroundJobs,
+            'pendingJob' => $pendingJob,
+            'unqueuedJob' => $unqueuedJob,
         );
     }
 }

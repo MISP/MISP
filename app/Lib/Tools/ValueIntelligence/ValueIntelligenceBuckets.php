@@ -59,7 +59,7 @@ class ValueIntelligenceBuckets
      * @param array|null $rule Defaults to `$spanRule`
      * @return string
      */
-    public static function unitForSpan($days, array $rule = null)
+    public static function unitForSpan($days, ?array $rule = null)
     {
         $rule = $rule === null ? self::$spanRule : $rule;
         foreach ($rule as $step) {

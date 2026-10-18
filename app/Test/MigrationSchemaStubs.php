@@ -271,6 +271,14 @@ if (!class_exists('MigrationTestInspector', false)) {
             return $this->sessions;
         }
 
+        /** @var array table => what ddlOnTable() reports. */
+        public $ddl = array();
+
+        public function ddlOnTable($table)
+        {
+            return isset($this->ddl[$table]) ? $this->ddl[$table] : array();
+        }
+
         public function tables()
         {
             return array_keys($this->schema);

@@ -4831,7 +4831,7 @@ class Event extends AppModel
      * @return array {Event: {...}, Attribute: [...], Object: [...], rejected: [{type, value, reason}], metadata: [...]}
      * @throws NotFoundException|ForbiddenException|MethodNotAllowedException|Exception with a user-facing message
      */
-    public function aiExtractIndicators(array $user, $eventId, array $onlyReportUuids = null)
+    public function aiExtractIndicators(array $user, $eventId, ?array $onlyReportUuids = null)
     {
         $event = $this->fetchSimpleEvent($user, $eventId);
         if (empty($event)) {
@@ -4915,7 +4915,7 @@ class Event extends AppModel
      * @param array|null $onlyReportUuids see aiExtractIndicators()
      * @return array {message, attributes, objects, rejected}
      */
-    public function aiExtractAndApply(array $user, $eventId, array $onlyReportUuids = null)
+    public function aiExtractAndApply(array $user, $eventId, ?array $onlyReportUuids = null)
     {
         $resolved = $this->aiExtractIndicators($user, $eventId, $onlyReportUuids);
         if (empty($resolved['Attribute']) && empty($resolved['Object'])) {
@@ -5196,7 +5196,7 @@ class Event extends AppModel
      * @return array rows: name, colour (null when unknown), exists, is_galaxy,
      *         cluster_id, tag_id, status, selectable, reason
      */
-    public static function classifyAiTagSuggestions(array $names, array $tags, array $clusters, array $eventTagNames, $canCreate, $local, callable $exclusive = null)
+    public static function classifyAiTagSuggestions(array $names, array $tags, array $clusters, array $eventTagNames, $canCreate, $local, ?callable $exclusive = null)
     {
         App::uses('Tag', 'Model');
         $present = [];
@@ -5556,25 +5556,16 @@ class Event extends AppModel
     // includeAllTags: true will include the tags that are marked as non-exportable
     // includeAttachments: true will attach the attachments to the attributes in the data field
     /**
-     * The order an event's children are fetched in: none on MySQL, by id on
-     * anything else.
-     *
-     * The containment below deliberately asks for no order, and on MySQL
-     * that has always meant insertion order anyway: InnoDB answers a
-     * `WHERE event_id IN (...)` off the event_id index, which holds the rows
-     * of one event in primary-key order, and an updated row stays where it
-     * was. PostgreSQL returns a heap in physical order, which is insertion
-     * order until a row is updated and then moves that row to the end - so
-     * attributes[0] stops meaning "the first one" the moment any of them is
-     * edited. Asking PostgreSQL for the id order gives what MySQL gives for
-     * free; asking MySQL for it would add a sort it does not need.
+     * An event's children come back in insertion order, on every engine: no
+     * index hands it back unasked (the planner picks a different composite
+     * per event size), and API consumers read attributes[0] as the first one.
      *
      * @param string $alias
-     * @return string|false
+     * @return string
      */
     private function childOrder($alias)
     {
-        return $this->isMysql() ? false : $alias . '.id ASC';
+        return $alias . '.id ASC';
     }
 
     public function fetchEvent($user, $options = array(), $useCache = false)
@@ -5927,9 +5918,8 @@ class Event extends AppModel
         } else {
             // No order asked for. MySQL answers an id lookup in id order off
             // the primary key; PostgreSQL answers in heap order, which an
-            // UPDATE reshuffles - the same gap childOrder() closes for the
-            // event's children.
-            $params['order'] = $this->childOrder('Event');
+            // UPDATE reshuffles.
+            $params['order'] = $this->isMysql() ? false : 'Event.id ASC';
         }
         $results = $this->find('all', $params);
         if (empty($results)) {

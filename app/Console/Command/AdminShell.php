@@ -49,6 +49,9 @@ class AdminShell extends AppShell
     /** The conversion, as `Console/cake AttributeValue <step>`, in order. */
     const UPGRADE_VALUE_STEPS = array('backfill', 'rebuildFacets', 'remapCorrelations');
 
+    /** The admin setting runUpgrade holds from going offline until it is live again. */
+    const UPGRADE_MARKER = 'upgrade_in_progress';
+
     public function getOptionParser()
     {
         $parser = parent::getOptionParser();
@@ -159,6 +162,22 @@ class AdminShell extends AppShell
         ]);
         $parser->addSubcommand('redisReady', [
             'help' => __('Check if it is possible connect to Redis.'),
+        ]);
+        $parser->addSubcommand('redisRepairSerialization', [
+            'help' => __('Rewrite the values in Redis that were stored PHP-serialized back to their raw form.'),
+            'parser' => [
+                'arguments' => [
+                    'jobId' => ['help' => __('Job to report progress to.'), 'required' => false],
+                ],
+                'options' => [
+                    'dry-run' => [
+                        'short' => 'd',
+                        'help' => __('Count what would be repaired, without changing anything.'),
+                        'default' => false,
+                        'boolean' => true,
+                    ],
+                ],
+            ],
         ]);
         $parser->addSubcommand('securityAudit', [
             'help' => __('Run security audit.'),
@@ -832,17 +851,30 @@ class AdminShell extends AppShell
 
     /**
      * The whole upgrade in one offline run. A run that stops leaves the
-     * instance offline, its schema possibly half converted; a re-run carries on.
+     * instance offline, its schema possibly half converted; a re-run carries on,
+     * down to bringing the instance back after the last update.
      *
      * @return void
      */
     public function runUpgrade()
     {
         $this->__assertOsUserMayWrite();
+        // A killed run can leave a table list cached from before its DDL, and
+        // this process has read it already.
+        $this->Server->cleanCacheFiles();
+        $this->Server->getMigrationManager()->inspector()->disableSchemaCache();
+        $this->__clearUpdateLock();
         $pending = array_keys($this->Server->pendingUpdates());
         if (empty($pending)) {
             $this->out(__('Nothing to upgrade: every update has been applied.'));
-            if (!Configure::read('MISP.live')) {
+            $unfinished = $this->AdminSetting->getSetting(self::UPGRADE_MARKER) !== false;
+            if ($unfinished && !Configure::read('MISP.live')) {
+                $this->out(__('An earlier runUpgrade stopped after its last update; finishing it.'));
+                $this->__finishUpgrade();
+            } elseif ($unfinished) {
+                // Brought back by hand: restarting the workers now could kill a job they run.
+                $this->__clearUpgradeMarker();
+            } elseif (!Configure::read('MISP.live')) {
                 $this->out(__('The instance is offline; Console/cake Admin live 1 brings it back.'));
             }
             return;
@@ -852,9 +884,12 @@ class AdminShell extends AppShell
             return is_string($update) && $manager->has($update);
         }));
         $this->AdminSetting->resetUpdateFailNumber();
-        $this->__clearUpdateLock();
         $manager->setReporter(array($this, 'reportMigration'));
+        if ($this->__onBareTerminal()) {
+            $this->out('<warning>' . __('This terminal is not inside screen or tmux. On a large instance the upgrade runs for hours, and a closed session stops it halfway while the database server carries on with the statement it was on. Consider running it in screen or tmux.') . '</warning>');
+        }
 
+        $this->AdminSetting->changeSetting(self::UPGRADE_MARKER, time());
         $this->out(__('Taking the instance offline.'));
         if (!$this->__setLive(false)) {
             $this->error(__('Could not take the instance offline: MISP.live could not be saved in Redis or in the PHP config file.'));
@@ -881,8 +916,19 @@ class AdminShell extends AppShell
         }
         $this->__upgradeUntil(null, false);
         $this->__upgradeUntil(null, true);
+        $this->__finishUpgrade();
+    }
+
+    /**
+     * The end of a run, after its last update: the marker goes once the
+     * instance is live.
+     *
+     * @return void
+     */
+    private function __finishUpgrade()
+    {
         $this->Server->cleanCacheFiles();
-        $manager->inspector()->flushSchemaCacheFiles();
+        $this->Server->getMigrationManager()->inspector()->flushSchemaCacheFiles();
 
         // A worker started before the run still knows the tables as they were.
         if (Configure::read('MISP.background_jobs')) {
@@ -897,7 +943,46 @@ class AdminShell extends AppShell
         if (!$this->__setLive(true)) {
             $this->error(__('The upgrade is complete, but MISP.live could not be saved: Console/cake Admin live 1'));
         }
+        $this->__clearUpgradeMarker();
         $this->out(__('Upgrade complete.'));
+    }
+
+    /**
+     * Whether this runs on a terminal that a closed session takes down with
+     * it. sudo drops TMUX and STY, so the process's ancestors count too.
+     *
+     * @return bool
+     */
+    private function __onBareTerminal()
+    {
+        if (!stream_isatty(STDIN) && !stream_isatty(STDOUT)) {
+            return false;
+        }
+        if (getenv('TMUX') || getenv('STY')) {
+            return false;
+        }
+        $pid = getmypid();
+        for ($depth = 0; $depth < 64 && $pid > 1; $depth++) {
+            $stat = @file_get_contents('/proc/' . $pid . '/stat');
+            if ($stat === false) {
+                return true;
+            }
+            $open = strpos($stat, '(');
+            $close = strrpos($stat, ')');
+            if (preg_match('/^(tmux|screen)/i', substr($stat, $open + 1, $close - $open - 1))) {
+                return false;
+            }
+            $pid = (int)explode(' ', substr($stat, $close + 2))[1];
+        }
+        return true;
+    }
+
+    /**
+     * @return void
+     */
+    private function __clearUpgradeMarker()
+    {
+        $this->AdminSetting->deleteAll(array('AdminSetting.setting' => self::UPGRADE_MARKER), false);
     }
 
     /**
@@ -1589,6 +1674,34 @@ class AdminShell extends AppShell
         }
     }
 
+    public function redisRepairSerialization()
+    {
+        App::uses('RedisSerializerRepairTool', 'Tools');
+        $jobId = $this->args[0] ?? null;
+        $dryRun = !empty($this->params['dry-run']);
+        try {
+            $repairTool = new RedisSerializerRepairTool(RedisTool::connect(), $dryRun);
+            $lastPercent = -1;
+            $stats = $repairTool->run(function ($checked, $total) use ($jobId, &$lastPercent) {
+                $percent = $total ? min(99, intdiv(100 * $checked, $total)) : 0;
+                if ($percent !== $lastPercent) {
+                    $lastPercent = $percent;
+                    $this->Job->saveProgress($jobId, __('%s of about %s keys checked.', $checked, $total), $percent);
+                }
+            });
+        } catch (Exception $e) {
+            $this->Job->saveStatus($jobId, false, __('Redis repair failed: %s', $e->getMessage()));
+            $this->error(__('Redis repair failed.'), $e->getMessage());
+        }
+        if ($dryRun) {
+            $message = __('%s keys checked, %s values in %s keys would be repaired.', $stats['checked'], $stats['values'], $stats['keys']);
+        } else {
+            $message = __('%s keys checked, %s values repaired in %s keys.', $stats['checked'], $stats['values'], $stats['keys']);
+        }
+        $this->Job->saveStatus($jobId, true, $message);
+        $this->out($message);
+    }
+
     public function clearBruteforce()
     {
         $conditions = array('Bruteforce.username !=' => '');
@@ -1956,7 +2069,7 @@ class AdminShell extends AppShell
                 empty($this->params['database']) ? null : (string)$this->params['database']
             );
             $schema = $generator->readSchema();
-            $findings = $generator->compare(new SchemaInspector($loaded), $schema);
+            $findings = $generator->compare(new SchemaInspector($loaded), $schema, $generator->readDatabaseDefaults());
         } catch (Exception $e) {
             $this->error(__('The comparison could not be run.'), $e->getMessage());
         }

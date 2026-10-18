@@ -55,7 +55,7 @@ class EventSeenTimelineTool
     /** @var Model */
     private $Object;
 
-    public function __construct(EventOverviewTool $overview = null)
+    public function __construct(?EventOverviewTool $overview = null)
     {
         $this->overview = $overview ?? new EventOverviewTool();
         $this->Attribute = ClassRegistry::init('MispAttribute');

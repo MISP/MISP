@@ -1223,56 +1223,6 @@ class Server extends AppModel
         return array_keys($eventUuids);
     }
 
-    public function serverEventsOverlap()
-    {
-        $servers = $this->find('all', [
-            'conditions' => ['Server.pull' => 1],
-            'order' => ['Server.id ASC'],
-            'recursive' => -1,
-        ]);
-
-        if (count($servers) < 2) {
-            return [$servers, []];
-        }
-
-        $serverUuids = [];
-        foreach ($servers as &$server) {
-            try {
-                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-                $uuids = array_column($this->getEventIndexFromServer($serverSync, true), 'uuid');
-                $serverUuids[$server['Server']['id']] = array_flip($uuids);
-                $server['Server']['events_count'] = count($uuids);
-            } catch (Exception $e) {
-                $this->logException("Could not get event UUIDs for server {$server['Server']['id']}", $e);
-            }
-        }
-        unset($server);
-
-        $compared = [];
-        foreach ($servers as $server) {
-            if (!isset($serverUuids[$server['Server']['id']])) {
-                continue;
-            }
-
-            foreach ($servers as $server2) {
-                if ($server['Server']['id'] == $server2['Server']['id']) {
-                    continue;
-                }
-                if (!isset($serverUuids[$server2['Server']['id']])) {
-                    continue;
-                }
-
-                $intersect = count(array_intersect_key($serverUuids[$server['Server']['id']], $serverUuids[$server2['Server']['id']]));
-                $percentage = round(100 * $intersect / $server['Server']['events_count']);
-                $compared[$server['Server']['id']][$server2['Server']['id']] = [
-                    'percentage' => $percentage,
-                    'events' => $intersect,
-                ];
-            }
-        }
-        return [$servers, $compared];
-    }
-
     /**
      * @param int $id Server ID
      * @param string|int $technique Can be 'full', 'incremental' or event ID
@@ -3331,7 +3281,7 @@ class Server extends AppModel
      * @return array|string
      * @throws JsonException
      */
-    public function checkVersionCompatibility(array $server, $user = [], ServerSyncTool $serverSync = null)
+    public function checkVersionCompatibility(array $server, $user = [], ?ServerSyncTool $serverSync = null)
     {
         // for event publishing when we don't have a user.
         if (empty($user)) {
@@ -4418,31 +4368,31 @@ class Server extends AppModel
                 $tagname = explode('.', $tagname);
                 if (!isset($latest_versions[$tagname[0]][$tagname[1]])) {
                     $latest_versions[$tagname[0]][$tagname[1]] = $tagname[2];
-                } elseif (version_compare($tag['name'], $latest_versions[$tagname[0]][$tagname[1]]) === 1) {
+                } elseif ((int)$tagname[2] > (int)$latest_versions[$tagname[0]][$tagname[1]]) {
                     $latest_versions[$tagname[0]][$tagname[1]] = $tagname[2];
                 }    
             }
         }
+        if (empty($latest_versions)) {
+            return false;
+        }
         $version_array = $this->checkMISPVersion();
-        $current = implode('.', $version_array);
-        $latest_version_string = sprintf('v%s.%s.%s', $version_array['major'], $version_array['minor'], $latest_versions[$version_array['major']][$version_array['minor']]);
-        $latest_major = 0;
-        $latest_minor = 0;
-        foreach ($latest_versions as $major => $minor) {
-            if ($major > $latest_major) {
-                $latest_major = $major;
-            }
+        $major = $version_array['major'];
+        $minor = $version_array['minor'];
+        $latest_major = max(array_keys($latest_versions));
+        // A line with no release yet (a new major or minor before its first tag)
+        // compares against the newest release overall
+        if (isset($latest_versions[$major][$minor])) {
+            $newest = [$major, $minor, $latest_versions[$major][$minor]];
+        } else {
+            $newestMinor = max(array_keys($latest_versions[$latest_major]));
+            $newest = [$latest_major, $newestMinor, $latest_versions[$latest_major][$newestMinor]];
         }
-        foreach ($latest_versions[$major] as $minor => $hotfix) {
-            if ($minor > $latest_minor) {
-                $latest_minor = $minor;
-            }
-        }
-        $result = $this->checkVersion($latest_version_string);
-        if ($latest_major > $version_array['major']) {
+        $result = $this->checkVersion(vsprintf('v%s.%s.%s', $newest));
+        if ($latest_major > $major) {
             $result['new_major'] = $latest_major;
-        } else if ($latest_minor > $version_array['minor']) {
-            $result['new_minor'] = $latest_major . '.' . $latest_minor;
+        } else if (isset($latest_versions[$major]) && max(array_keys($latest_versions[$major])) > $minor) {
+            $result['new_minor'] = $major . '.' . max(array_keys($latest_versions[$major]));
         }
         return $result;
     }
@@ -8470,22 +8420,6 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true
                 ),
-                'CyCat_enable' => [
-                    'level' => 1,
-                    'description' => __('Enable lookups for additional relations via CyCat.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true
-                ],
-                'CyCat_url' => [
-                    'level' => 2,
-                    'description' => __('URL to use for CyCat lookups, if enabled.'),
-                    'value' => 'https://api.cycat.org',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                    'null' => true
-                ],
             ),
             'SimpleBackgroundJobs' => [
                 'branch' => 1,

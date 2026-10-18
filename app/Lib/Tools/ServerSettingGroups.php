@@ -629,7 +629,7 @@ class ServerSettingGroups
         'Plugin' => array(
             'Enrichment', 'Import', 'Export', 'Cortex', 'Action', 'Workflow',
             'ZeroMQ', 'Kafka', 'ElasticSearch', 'S3', 'RPZ', 'Sightings',
-            'CustomAuth', 'Geolocation', 'CyCat', 'Benchmarking',
+            'CustomAuth', 'Geolocation', 'Benchmarking',
         ),
     );
 
@@ -723,12 +723,6 @@ class ServerSettingGroups
             'description' => 'Interactive map for geolocation objects',
             'icon' => 'map-location-dot',
             'accent' => '#198754',
-        ),
-        'CyCat' => array(
-            'title' => 'CyCat',
-            'description' => 'Lookups against the CyCat cybersecurity catalogue',
-            'icon' => 'diagram-predecessor',
-            'accent' => '#fd7e14',
         ),
         'Benchmarking' => array(
             'title' => 'Benchmarking',

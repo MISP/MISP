@@ -68,7 +68,7 @@ class BackgroundJob implements JsonSerializable
      * Run the job command
      * @param callable|null $runningCallback
      */
-    public function run(callable $runningCallback = null): void
+    public function run(?callable $runningCallback = null): void
     {
         $descriptorSpec = [
             1 => ["pipe", "w"], // stdout
@@ -109,7 +109,7 @@ class BackgroundJob implements JsonSerializable
      * @param callable|null $runningCallback
      * @return void
      */
-    private function pool($process, array $pipes, callable $runningCallback = null)
+    private function pool($process, array $pipes, ?callable $runningCallback = null)
     {
         stream_set_blocking($pipes[1], false);
         stream_set_blocking($pipes[2], false);
@@ -224,6 +224,27 @@ class BackgroundJob implements JsonSerializable
     public function error(): ?string
     {
         return $this->error;
+    }
+
+    /**
+     * The stderr line that names the error. Cake prints a fatal error as
+     * "Error: <message>" before the trace, after any log echo and warnings.
+     *
+     * @return string|null
+     */
+    public function errorLine(): ?string
+    {
+        $lines = preg_split('/\R/', trim((string)$this->error));
+        foreach (array_reverse($lines) as $line) {
+            $line = trim($line);
+            if (stripos($line, 'error:') !== false &&
+                !preg_match('/^(#\d+ |(Warning|Notice|Strict|Deprecated) Error:)/', $line)
+            ) {
+                return $line;
+            }
+        }
+        $line = trim(end($lines));
+        return $line === '' ? null : $line;
     }
 
     public function metadata(): array

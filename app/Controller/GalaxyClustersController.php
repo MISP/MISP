@@ -929,15 +929,6 @@ class GalaxyClustersController extends AppController
         }
     }
 
-    public function viewCyCatRelations($id)
-    {
-        $cluster = $this->GalaxyCluster->fetchIfAuthorized($this->Auth->user(), $id, 'view', true, false);
-        $CyCatRelations = $this->GalaxyCluster->getCyCatRelations($cluster);
-        $this->set('cluster', $cluster);
-        $this->set('CyCatRelations', $CyCatRelations);
-        $this->render('cluster_cycatrelations');
-    }
-
     public function viewGalaxyMatrix($id)
     {
         if (!$this->request->is('ajax')) {

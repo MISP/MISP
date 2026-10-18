@@ -394,11 +394,13 @@ class AttributeValueCorrelationDbTest extends TestCase
             eval('function ssdeep_fuzzy_compare($a, $b) { return (explode(":", $a)[1] ?? null) === (explode(":", $b)[1] ?? "") ? 60 : 0; }');
         }
         $t = $this->token;
+        // No character in common with the others, so the real extension scores it 0 too
+        $far = strtr(strtoupper($t), '0123456789', 'GHIJKLMNOP');
         list($source, $target) = $this->events;
         $this->add([
             'ss_source' => [$source, 'ssdeep', "24:{$t}abc:{$t}def"],
             'ss_near' => [$target, 'ssdeep', "24:{$t}abc:{$t}xyz"],
-            'ss_far' => [$target, 'ssdeep', "24:{$t}zzz:{$t}def"],
+            'ss_far' => [$target, 'ssdeep', "24:{$far}ZZZ:{$far}DEF"],
         ]);
         $correlation = $this->engine('Default');
         $correlation->FuzzyCorrelateSsdeep = new class([$this->ids['ss_near'], $this->ids['ss_far']]) {
@@ -461,5 +463,27 @@ class AttributeValueCorrelationDbTest extends TestCase
         $this->assertNotFalse($correlation->afterSaveCorrelation($this->saved('ss_source')));
 
         $this->assertSame(['ss_near' => "24:{$t}abc:{$t}xyz"], $this->correlationsOf('default_correlations', 'ss_source'));
+    }
+
+    public function testAFullRecorrelationKeepsTheSsdeepMatches()
+    {
+        if (!function_exists('ssdeep_fuzzy_compare')) {
+            eval('function ssdeep_fuzzy_compare($a, $b) { return (explode(":", $a)[1] ?? null) === (explode(":", $b)[1] ?? "") ? 60 : 0; }');
+        }
+        Configure::write('MISP.enable_advanced_correlations', true);
+        $t = $this->token;
+        list($source, $target) = $this->events;
+        $this->add([
+            'ss_first' => [$source, 'ssdeep', "24:{$t}abc:{$t}def"],
+            'ss_second' => [$target, 'ssdeep', "24:{$t}abc:{$t}xyz"],
+            'ss_third' => [$source, 'ssdeep', "24:{$t}abc:{$t}uvw"],
+        ]);
+        $correlation = $this->engine('Default');
+        // In id order, as a full run meets them, against the real chunk table
+        foreach (['ss_first', 'ss_second', 'ss_third'] as $name) {
+            $this->assertNotFalse($correlation->afterSaveCorrelation($this->saved($name), true));
+        }
+
+        $this->assertSame(['ss_first', 'ss_third'], array_keys($this->correlationsOf('default_correlations', 'ss_second')));
     }
 }

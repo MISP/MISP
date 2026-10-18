@@ -29,7 +29,7 @@ class Migration_20261016_180235_schema_v3_value_enrichment_runs extends TableMig
             'shown' => array('type' => 'integer', 'null' => false, 'default' => '0'),
             'capped' => array('type' => 'boolean', 'null' => false, 'default' => '0'),
             'message' => array('type' => 'text', 'null' => true, 'collate' => Collation::CI),
-            'result' => array('type' => 'binary', 'null' => true),
+            'result' => array('type' => 'longblob', 'null' => true),
         ),
         'indexes' => array(
             'last_run' => array('column' => array('last_run')),
