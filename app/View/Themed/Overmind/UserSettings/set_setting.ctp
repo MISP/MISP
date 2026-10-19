@@ -26,7 +26,6 @@ $choiceMeta = [
         'Default' => ['icon' => 'fas fa-desktop', 'sub' => __('The classic MISP interface (deprecated)')],
         'Overmind' => ['icon' => 'fas fa-wand-magic-sparkles', 'sub' => __('The default interface, built on Bootstrap 5')],
         'UiBeta' => ['icon' => 'fas fa-flask', 'sub' => __('Interface features in beta')],
-        'EventTest' => ['icon' => 'fas fa-vial', 'sub' => __('Event view test theme')],
     ],
     'dashboard_theme' => [
         'auto' => ['icon' => 'fas fa-circle-half-stroke', 'sub' => __('Follow the browser')],

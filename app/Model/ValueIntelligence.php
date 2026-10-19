@@ -12465,13 +12465,11 @@ class ValueIntelligence extends AppModel
      * one tab across. Two readings of one union cannot disagree; two
      * unions can.
      *
-     * **The cost is the tab's, and this card can afford it** for the
-     * reason the tab bar's badge could not (§11 of `26-analyst.md`, and
-     * the pill question settled the same way on 2026-09-05). The union
+     * **The cost is the tab's, and this card can afford it.** The union
      * is five anchor kinds over two tables, 5 to 26 queries — a price
-     * for a lazily-loaded panel a reader is looking at, and not for a
-     * number on a tab bar that renders on every page load whether or
-     * not anybody opens the tab.
+     * for a lazily-loaded panel, not for the page load. The tab bar's
+     * notes-and-opinions pill is copied from this card (or from the
+     * thread) for that reason rather than counted by the frame.
      *
      * **Notes and opinions, and proposals only as a count.** The card
      * draws what it says it draws; a proposal is somebody's edit rather

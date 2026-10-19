@@ -17,11 +17,11 @@ App::uses('ValueLean', 'Tools/ValueIntelligence');
 echo $this->element('genericElements/assetLoader', array(
     'css' => array(
         'value-palette', 'value-widgets', 'misp-brush', 'misp-matrix',
-        'org-tile', 'tile-drawer', 'value-intelligence',
+        'org-tile', 'tile-drawer', 'value-intelligence', 'value-new-event',
     ),
     'js' => array(
         'Chart.min', 'misp-brush', 'misp-matrix', 'tile-drawer',
-        'value-intelligence',
+        'value-intelligence', 'value-new-event',
     ),
 ));
 
@@ -133,6 +133,15 @@ $headerActions = array(
             'attributes' => array('data-intel-graph-add' => json_encode(array(array(
                 'type' => 'Value', 'value' => $profile['value'], 'label' => $profile['value'],
             )))),
+        )
+        : null,
+    $this->Acl->canAccess('values', 'newEvent')
+        ? array(
+            'type' => 'navigate',
+            'label' => __('New event'),
+            'icon' => 'calendar-plus',
+            'class' => 'btn btn-outline-dark',
+            'attributes' => array('data-vp-ne-open' => '1'),
         )
         : null,
 );
@@ -822,17 +831,14 @@ $tabRegistry = array(
         'title' => __('Collaboration'),
         'icon' => 'misp-icon misp-icon-analyst-note misp-simple',
         /*
-         * No count, for both of the reasons the Timeline and History
-         * tabs carry. It is the
-         * *viewer's* count — `AnalystData::buildConditions` scopes
-         * every note and opinion, and a CIRCL reader sees four items
-         * on `8.8.8.8` where a site admin sees six — so two users
-         * would read two numbers off one value's tab bar. And a badge
-         * that agreed with the panel would have to do the panel's
-         * work: the union is five anchor kinds over two tables and
-         * costs 5 to 26 queries, which is not a page-load price for a
-         * number on a tab nobody may open.
+         * Notes plus opinions, filled in by whichever panel reads the
+         * union first — the Overview's preview card or this tab's
+         * thread — so the page load never pays for that union itself.
          */
+        'badge' => array(
+            'deferred' => true,
+            'color' => 'var(--analystData)',
+        ),
         /*
          * One full-width slot, and the standing panel lays out its own
          * internal row: the histogram at col-lg-4 beside the
@@ -964,3 +970,10 @@ echo $this->element('genericElementsBS5/Layout/view_layout', array(
     'data' => $profile,
     'tabs' => $tabs,
 ));
+
+if ($this->Acl->canAccess('values', 'newEvent')) {
+    echo $this->element('Values/View/value_new_event_bar', array(
+        'value' => $profile['value'],
+        'valueB64' => $valueB64,
+    ));
+}

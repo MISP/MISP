@@ -5,6 +5,7 @@ App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 App::uses('ValueLean', 'Tools/ValueIntelligence');
 App::uses('ValueLabelPriority', 'Tools/ValueIntelligence');
 App::uses('ValueInputTool', 'Tools/ValueIntelligence');
+App::uses('ValueNewEventTool', 'Tools/ValueIntelligence');
 App::uses('ValueConditionRewriter', 'Tools');
 App::uses('Value', 'Model');
 
@@ -113,7 +114,7 @@ class ValuesController extends AppController
         if (in_array(
             $this->request->params['action'] ?? null,
             array('viewEnrichmentRun', 'viewEnrichmentBadge', 'triage',
-                'assess', 'matches'),
+                'assess', 'matches', 'newEvent', 'createEvent'),
             true
         )) {
             $this->Security->validatePost = false;
@@ -1580,6 +1581,66 @@ class ValuesController extends AppController
                 'all' => $this->__runParam('all') === '1',
             )
         );
+    }
+
+    /**
+     * The new event dialog: the value, and the enrichment findings the
+     * reader picked, as `picks` (JSON: `[{fp, module, type}]`).
+     *
+     * @param string $b64value
+     * @return void
+     * @throws MethodNotAllowedException
+     */
+    public function newEvent($b64value = null)
+    {
+        $this->request->allowMethod(['post']);
+        $value = $this->__decodeValue($b64value);
+        $user = $this->Auth->user();
+        $this->loadModel('ValueNewEvent');
+        $this->loadModel('Event');
+        $dialog = $this->ValueNewEvent->forDialog(
+            $user,
+            $value,
+            ValueNewEventTool::picks($this->request->data['picks'] ?? null)
+        );
+        $sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($user, 'name', 1);
+        $distributionLevels = $this->Event->distributionLevels;
+        if (empty($sharingGroups)) {
+            unset($distributionLevels[4]);
+        }
+        $threatLevels = array_column($this->Event->ThreatLevel->find('all'), 'ThreatLevel');
+        $this->set('dialog', $dialog);
+        $this->set('valueB64', ValueUrlTool::address($value));
+        $this->set('distributionLevels', $distributionLevels);
+        $this->set('initialDistribution', 0);
+        $this->set('sharingGroups', $sharingGroups);
+        $this->set('threatLevels', array_column($threatLevels, 'name', 'id'));
+        $this->set('analysisLevels', $this->Event->analysisLevels);
+        $this->layout = false;
+        $this->render('new_event');
+    }
+
+    /**
+     * Create the event the dialog describes. The findings are read back
+     * from the organisation's stored answers, never from the request.
+     *
+     * @param string $b64value
+     * @return CakeResponse
+     * @throws MethodNotAllowedException
+     */
+    public function createEvent($b64value = null)
+    {
+        $this->request->allowMethod(['post']);
+        $value = $this->__decodeValue($b64value);
+        $this->loadModel('ValueNewEvent');
+        $result = $this->ValueNewEvent->createFromDialog($this->Auth->user(), $value, $this->request->data);
+        if (isset($result['errors'])) {
+            $response = $this->RestResponse->viewData(['errors' => $result['errors']], 'json');
+            $response->statusCode(400);
+            return $response;
+        }
+        $result['url'] = Configure::read('MISP.baseurl') . '/events/view/' . $result['event_id'];
+        return $this->RestResponse->viewData($result, 'json');
     }
 
     /**

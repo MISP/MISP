@@ -17,6 +17,14 @@ $steps = [
         'commands' => [$cake . ' Admin runUpgrade'],
         'note' => __('It takes MISP offline and stops the background workers, applies every pending update, then brings both back. On a large instance this can take hours: run it in a session that survives a disconnect, such as tmux or screen. If it stops, MISP stays offline; fix the cause it reports and run it again, it carries on from there.'),
     ],
+    [
+        'title' => __('Restart the web server'),
+        'commands' => [
+            'sudo systemctl restart apache2',
+            'sudo systemctl restart php8.2-fpm',
+        ],
+        'note' => __('Restart whichever runs PHP for MISP: Apache with mod_php, or PHP-FPM, whose service name carries your PHP version. This clears the PHP caches that still hold the old database layout; until then, pages can fail and some changes are not saved.'),
+    ],
 ];
 $guideUrl = 'https://github.com/MISP/MISP/blob/3.0_wip/docs/UPGRADE.md#attribute-values-move-to-a-value-table-misp-30';
 $started = $isSiteAdmin && ($progress['running'] || $progress['stopped'] || !$isLive);

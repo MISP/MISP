@@ -345,6 +345,10 @@ class AppController extends Controller
                     $currentTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id'));
                 }
                 $currentTheme = $currentTheme ?: Configure::read('MISP.default_theme');
+                $knownThemes = $this->User->UserSetting::VALID_SETTINGS['ui_theme']['options'];
+                if (!in_array($currentTheme, $knownThemes, true)) {
+                    $currentTheme = null;
+                }
             }
             $currentTheme = $currentTheme ?: MispTheme::DEFAULT_THEME;
             $this->theme = $currentTheme;

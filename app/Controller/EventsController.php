@@ -8739,56 +8739,6 @@ class EventsController extends AppController
         $this->render('/Elements/view_galaxy_matrix');
     }
 
-    public function delegation_index()
-    {
-        $this->loadModel('EventDelegation');
-        $delegatedEvents = $this->EventDelegation->find('list', array(
-                'conditions' => array('EventDelegation.org_id' => $this->Auth->user('org_id')),
-                'fields' => array('event_id')
-        ));
-        $this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
-        $tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
-        $tagNames = array('None');
-        foreach ($tags as $k => $v) {
-            $tagNames[$v['Tag']['id']] = $v['Tag']['name'];
-        }
-        $this->set('tags', $tagNames);
-        $this->paginate = array(
-            'limit' => 60,
-            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user can view/page.
-            'order' => array(
-                    'Event.timestamp' => 'DESC'
-            ),
-            'contain' => array(
-                    'Org' => array('fields' => array('id', 'name')),
-                    'Orgc' => array('fields' => array('id', 'name')),
-                    'SharingGroup' => array('fields' => array('id', 'name')),
-                    'ThreatLevel' => array('fields' => array('ThreatLevel.name'))
-
-            ),
-            'conditions' => array('Event.id' => $delegatedEvents),
-        );
-
-        $this->set('events', $this->paginate());
-        $this->set('threatLevels', $this->Event->ThreatLevel->listThreatLevels());
-        $this->set('eventDescriptions', $this->Event->fieldDescriptions);
-        $this->set('analysisLevels', $this->Event->analysisLevels);
-        $this->set('distributionLevels', $this->Event->distributionLevels);
-
-        $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
-        $this->set('shortDist', $shortDist);
-        $this->set('ajax', false);
-        $this->set('simple', true);
-        $this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
-        $tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
-        $tagNames = array('None');
-        foreach ($tags as $k => $v) {
-            $tagNames[$v['Tag']['id']] = $v['Tag']['name'];
-        }
-        $this->set('tags', $tagNames);
-        $this->render('index');
-    }
-
     // expects a model ID, model type, the module to be used (optional) and the type of enrichment (optional)
     public function queryEnrichment($id, $module = false, $type = 'Enrichment', $model = 'Attribute')
     {

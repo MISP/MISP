@@ -411,7 +411,6 @@ class ACLComponent extends Component
             'correlationCounts' => array('*'),
             'csv' => array('*'),
             'cullEmptyEvents' => array(),
-            'delegation_index' => array('*'),
             'delete' => array('perm_add'),
             'edit' => array('perm_add'),
             'editEventTags' => array('AND' => ['perm_tagger', 'theming_enabled']),
@@ -1038,7 +1037,6 @@ class ACLComponent extends Component
             'statistics' => array('*'),
             'tagStatisticsGraph' => array('*'),
             'terms' => array('*'),
-            'updateLoginTime' => array('*'),
             'updateToAdvancedAuthKeys' => array(),
             'userIp' => [],
             'verifyCertificate' => array(),
@@ -1145,6 +1143,12 @@ class ACLComponent extends Component
                 'AND' => array('perm_add', 'theming_enabled')
             ),
             'enrichmentRun' => array(
+                'AND' => array('perm_add', 'theming_enabled')
+            ),
+            'newEvent' => array(
+                'AND' => array('perm_add', 'theming_enabled')
+            ),
+            'createEvent' => array(
                 'AND' => array('perm_add', 'theming_enabled')
             ),
             'viewAnalystStanding' => array('theming_enabled'),

@@ -823,6 +823,9 @@ if (!empty($thread)) {
 <div class="card shadow-sm mb-3 vp-panel vp-dense"
      style="--vp-panel-color: var(--analystData);"
      data-vp-analyst-thread>
+    <?= $this->element('Values/View/value_analyst_tab_badge', array(
+        'counts' => $counts,
+    )) ?>
 
     <?= $this->element('Values/View/value_panel_header', array(
         /*
