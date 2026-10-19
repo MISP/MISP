@@ -160,7 +160,9 @@ leave you restoring from the backup.
   installation loads `INSTALL/MARIADB.sql` or `INSTALL/MYSQL.sql`
   respectively.
 - **PostgreSQL 16 or later**, with the `pg_trgm` extension
-  ([docs/CONFIG.postgresql.md](CONFIG.postgresql.md)). The On Demand
+  ([docs/CONFIG.postgresql.md](CONFIG.postgresql.md)). `runUpgrade` checks for
+  it before it takes the instance offline and stops with what to do if it is
+  missing and the database user cannot create it. The On Demand
   correlation engine is MySQL/MariaDB only.
 
 ### What behaves differently

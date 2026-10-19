@@ -896,6 +896,8 @@ class AdminShell extends AppShell
             $this->out('<warning>' . __('This terminal is not inside screen or tmux. On a large instance the upgrade runs for hours, and a closed session stops it halfway while the database server carries on with the statement it was on. Consider running it in screen or tmux.') . '</warning>');
         }
 
+        $this->__assertPgTrgm($manager, $migrations);
+
         $this->AdminSetting->changeSetting(self::UPGRADE_MARKER, time());
         $this->out(__('Taking the instance offline.'));
         if (!$this->__setLive(false)) {
@@ -924,6 +926,29 @@ class AdminShell extends AppShell
         $this->__upgradeUntil(null, false);
         $this->__upgradeUntil(null, true);
         $this->__finishUpgrade();
+    }
+
+    /**
+     * PostgreSQL needs the pg_trgm extension for the value table. Refused here,
+     * with the instructions, instead of after the instance went offline.
+     *
+     * @param MigrationManager $manager
+     * @param array $pending Ids of the pending migrations.
+     * @return void
+     */
+    private function __assertPgTrgm(MigrationManager $manager, array $pending)
+    {
+        $id = '20261003_092429_create_attribute_values';
+        if (!in_array($id, $pending, true)) {
+            return;
+        }
+        try {
+            $migration = $manager->migration($id);
+            $migration->setSchemaInspector($manager->inspector());
+            $migration->beforeUp();
+        } catch (RuntimeException $e) {
+            $this->error(__('The upgrade has not started; nothing was changed.'), $e->getMessage());
+        }
     }
 
     /**
