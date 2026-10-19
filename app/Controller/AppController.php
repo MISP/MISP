@@ -547,7 +547,7 @@ class AppController extends Controller
             if ($this->__showsSidePanels()) {
                 $this->set('sidePanels', [
                     'news' => ['unread' => ClassRegistry::init('News')->unreadCount($user)],
-                    'bookmarks' => true,
+                    'bookmarks' => $this->__bookmarkedPage($homepagePath),
                 ]);
             }
 
@@ -579,6 +579,36 @@ class AppController extends Controller
             return false;
         }
         return $this->ACL->canUserAccess($user, 'analystGraphs', 'addNodes');
+    }
+
+    /**
+     * Whether the page is the user's homepage, and whether it is one of their
+     * bookmarks: the navbar's Bookmarks button is lit on either.
+     *
+     * @param string $homepagePath
+     * @return array
+     */
+    private function __bookmarkedPage($homepagePath)
+    {
+        $uri = parse_url((string)env('REQUEST_URI')) ?: [];
+        $path = $uri['path'] ?? '/';
+        $here = $path . (isset($uri['query']) ? '?' . $uri['query'] : '');
+        $home = $homepagePath !== '' && $homepagePath === $path;
+        $host = (string)$this->request->host();
+        $bookmarked = false;
+        foreach ($this->viewVars['bookmarks'] ?? [] as $bookmark) {
+            $url = parse_url((string)$bookmark['Bookmark']['url']);
+            if (empty($url['host'])) {
+                continue;
+            }
+            $urlHost = $url['host'] . (isset($url['port']) ? ':' . $url['port'] : '');
+            $urlHere = ($url['path'] ?? '/') . (isset($url['query']) ? '?' . $url['query'] : '');
+            if (strcasecmp($urlHost, $host) === 0 && $urlHere === $here) {
+                $bookmarked = true;
+                break;
+            }
+        }
+        return ['home' => $home, 'lit' => $home || $bookmarked];
     }
 
     /**

@@ -282,8 +282,6 @@
         function syncButtons() {
             buttons().forEach(function (b) {
                 b.setAttribute('aria-expanded', opened ? 'true' : 'false');
-                var side = b.querySelector('.sp-slot-side');
-                if (side) side.className = 'fas ' + (floating() ? 'fa-window-restore' : 'fa-angles-left') + ' sp-slot-side';
             });
         }
         function titleSlots() {
@@ -302,12 +300,16 @@
                     count.textContent = n ? String(n) : '';
                     count.hidden = !n;
                 }
-                slot.toggleAttribute('data-has-count', !!n);
                 var b = slot.querySelector('[data-side-panel-toggle]');
                 var name = slot.querySelector('.rc-chip-name, .rail-graph-name');
                 if (!n && b && name) b.setAttribute('aria-label', name.textContent.trim());
             });
             titleSlots();
+        }
+        // Lit while there is something for the user there; grey otherwise,
+        // like the graph slot with no graph.
+        function setLit(on) {
+            slots().forEach(function (slot) { slot.setAttribute('data-state', on ? 'active' : 'none'); });
         }
 
         /* the body, from the aside's data-url */
@@ -586,7 +588,7 @@
             mode: function () { return prefs.mode; },
             width: width,
             load: load, fetch: fetchHtml, showLoading: showLoading, showError: showError,
-            openModal: openModalFor, setCount: setCount
+            openModal: openModalFor, setCount: setCount, setLit: setLit
         };
         panels.push(api);
 

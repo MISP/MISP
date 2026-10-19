@@ -11,6 +11,7 @@
         onLoad: function (body) {
             markHere(body);
             applyFilter();
+            bookmarks.setLit(home || !!body.querySelector('.bm-item.is-here'));
         },
         forms: {
             match: /\/bookmarks\/(add|edit|deleteSelection)\b/,
@@ -25,6 +26,13 @@
     var filterBox = panel.querySelector('[data-bm-filter-box]');
     var countEl = panel.querySelector('[data-bm-count]');
     bookmarks.options.forms.messages = { add: text.added, edit: text.saved, deleteSelection: text.deleted };
+
+    // The button is lit on the user's homepage, or on a page they bookmarked.
+    var home = !!document.querySelector('[data-side-panel-slot="bm-so"][data-home]');
+    document.addEventListener('misp:homepage-set', function () {
+        home = true;
+        bookmarks.setLit(true);
+    });
 
     // The add form, named after the page underneath and pointed at it.
     panel.querySelector('[data-bm-add]').addEventListener('click', function () {

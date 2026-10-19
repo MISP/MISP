@@ -110,7 +110,7 @@ class NavbarHelper extends AppHelper {
         $right[] = $this->buildNewsItem($context);
         $right[] = empty($context['sidePanels']['bookmarks'])
             ? $this->buildBookmarksMenu($context, $baseurl)
-            : $this->buildBookmarksItem();
+            : $this->buildBookmarksItem($context);
         $right[] = $this->buildAccountMenu($context, $baseurl);
 
         // Filtering of inaccessible options
@@ -951,6 +951,7 @@ class NavbarHelper extends AppHelper {
             'requirement' => !empty($context['sidePanels']['news']),
             'label' => __('News'),
             'count' => $unread ?: null,
+            'lit' => $unread > 0,
             'title' => $unread
                 ? __n('News: %s unread', 'News: %s unread', $unread, $unread)
                 : __('News'),
@@ -958,14 +959,17 @@ class NavbarHelper extends AppHelper {
         ];
     }
 
-    private function buildBookmarksItem()
+    private function buildBookmarksItem(array $context)
     {
+        $page = $context['sidePanels']['bookmarks'];
         return [
             'type' => 'panel',
             'panel' => 'bm-so',
             'id' => 'bookmarks',
             'label' => __('Bookmarks'),
             'count' => null,
+            'lit' => !empty($page['lit']),
+            'home' => !empty($page['home']),
             'title' => __('Bookmarks'),
             'icon' => 'fas fa-star',
         ];

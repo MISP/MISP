@@ -14,6 +14,7 @@
         onLoad: function (body) {
             // The server marked the news read when it sent them.
             news.setCount(0);
+            news.setLit(false);
             renderMarkdown(body);
         },
         onClose: disposeTips,
