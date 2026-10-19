@@ -1633,18 +1633,6 @@ class AdminShell extends AppShell
         }
 
         $aliasList = [
-            'highPerformance' => [
-                'scripts' => [
-                    'highPerformanceIndexingEvents',
-                    'highPerformanceIndexingAttributes',
-                    'highPerformanceIndexingObjects',
-                    'highPerformanceIndexingDefaultCorrelations',
-                    'highPerformanceIndexingNoAclCorrelations',
-                    'highPerformanceIndexingConnectorTags',
-                    'highPerformanceIndexWarninglists'
-                ],
-                'help' => __('High performance indexing of events, attributes, objects and default correlations. Drastically improves view and search operations. This is a slow reindexing process and is meant for servers with abundant RAM and innodb_buffer_pool_size set to a high value.'),
-            ],
             'indexLogs' => [
                 'scripts' => [
                     'highPerformanceLogSearchIndexing',
@@ -1652,6 +1640,11 @@ class AdminShell extends AppShell
                 'help' => __('High performance indexing of logs. Drastically improves log search performance as well  as functionalities such as checking the past 10 logins. This is a slow reindexing process and is meant for servers with abundant RAM and innodb_buffer_pool_size set to a high value.'),
             ]
         ];
+
+        if (strtolower($script) === 'highperformance') {
+            $this->out(__('The highPerformance indexes are now part of the schema: %s applies them.', 'Console/cake Admin runUpgrade'));
+            return;
+        }
 
         if (strtolower($script) === 'help') {
             $this->out('<info>' . __('Available scripts') . '</info>' . PHP_EOL);

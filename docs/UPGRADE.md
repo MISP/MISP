@@ -240,8 +240,10 @@ leave you restoring from the backup.
 
 - The final migration drops every index on the old text columns, custom ones
   included. The value table's indexes replace them.
-- The `cake Admin` `OnDemandCorrelationTuning` index pack is gone, and the
-  `highPerformance` pack no longer creates text indexes.
+- The `cake Admin` `OnDemandCorrelationTuning` index pack is gone, and
+  `runDBScript highPerformance` only tells you that those indexes are now part
+  of the schema, which the upgrade applies. `runDBScript indexLogs` is
+  unchanged.
 
 **Erasure**
 
