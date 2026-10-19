@@ -165,6 +165,26 @@ leave you restoring from the backup.
   missing and the database user cannot create it. The On Demand
   correlation engine is MySQL/MariaDB only.
 
+### Differences between database engines
+
+MariaDB, MySQL and PostgreSQL compare text, index it and refuse statements
+differently, and 3.0 changes some of it for an instance coming from 2.5. What
+matters to an administrator:
+
+- **Comparisons are stricter about emoji and case-sensitive about uuids.** The
+  new collation tells 4-byte characters apart (`😀` and `😺` were equal under
+  2.5), and uuids and hashes are case-sensitive on MariaDB and MySQL.
+- **PostgreSQL is case-sensitive everywhere** except attribute values: a lookup
+  by tag, sharing group name or email in another case finds nothing.
+- **Requirements by engine**: MariaDB 10.11, MySQL 8.4, PostgreSQL 16 with
+  `pg_trgm`.
+- **Upgrade behaviour** differs by engine, in time, disk (only MariaDB writes
+  sort files to `tmpdir`) and in which statements are refused, in which case
+  the upgrade stops and says what to change.
+
+The full comparison, with the queries behind it, is
+[docs/dev/database-engines.md](dev/database-engines.md).
+
 ### What behaves differently
 
 **Values and duplicates**

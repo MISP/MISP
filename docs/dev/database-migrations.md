@@ -433,7 +433,8 @@ defer: from `up()` or `afterUp()` it is a failure, since work has run by then.
 Rendering defers too, before any statement is sent: a collation token (§4) on a
 server below MariaDB 10.11 or MySQL 8.4.
 
-**A migration is not transactional.** MySQL DDL commits implicitly, so a
+**A migration is not transactional.** DDL commits implicitly on MariaDB and
+MySQL and MISP does not wrap it on PostgreSQL, so a
 migration whose third statement fails leaves the first two applied and the ledger
 row marked failed, and the retry runs `up()` again. So before anything is
 rendered, the declaration is checked against the live schema and what the
