@@ -3082,11 +3082,13 @@ class Event extends AppModel
      * show no proposal at all, because that attribute is filtered out of it.
      *
      * @param array $eventIds
-     * @param int|array $attrDeleted 0, 1 or [0, 1]
+     * @param array $attrDeleted condition on Attribute.deleted
      * @return array Object ids, empty when there is none
      */
-    public function objectIdsWithProposals(array $eventIds, $attrDeleted = 0)
-    {
+    public function objectIdsWithProposals(
+        array $eventIds,
+        array $attrDeleted = ['Attribute.deleted' => 0]
+    ) {
         $proposedIds = $this->proposedAttributeIds($eventIds);
         if (empty($proposedIds)) {
             return [];
@@ -3097,9 +3099,31 @@ class Event extends AppModel
                 'Attribute.event_id' => $eventIds,
                 'Attribute.id' => $proposedIds,
                 'Attribute.object_id !=' => 0,
-                'Attribute.deleted' => $attrDeleted,
+                $attrDeleted,
             ],
             'unique' => true,
+        ]);
+    }
+
+    /**
+     * The events of $eventIds whose soft-deleted rows $user may see: the ones
+     * its organisation owns, or all of them for a sync user, as fetchEvent().
+     *
+     * @param array $user
+     * @param array $eventIds
+     * @return array Event ids
+     */
+    public function eventIdsShowingDeleted(array $user, array $eventIds)
+    {
+        if ($user['Role']['perm_sync']) {
+            return $eventIds;
+        }
+        return $this->find('column', [
+            'fields' => ['Event.id'],
+            'conditions' => [
+                'Event.id' => $eventIds,
+                'Event.org_id' => $user['org_id'],
+            ],
         ]);
     }
 
@@ -3847,13 +3871,27 @@ class Event extends AppModel
         // The objects that survive are rendered whole ($attrDeleted), deleted
         // rows highlighted: a deleted object stripped of its live attributes,
         // or a live object down to its single deleted row, reads as data loss.
+        //
+        // Soft-deleted rows come only from the events whose deleted data the
+        // user may see (eventIdsShowingDeleted()).
         $deleted = (int)($options['deleted'] ?? 0);
-        $attrDeleted = $deleted === 0 ? 0 : [0, 1];
+        $deletedEventIds = $deleted === 0
+            ? [] : $this->eventIdsShowingDeleted($user, $eventIds);
+        $attrDeleted = $deleted === 0
+            ? ['Attribute.deleted' => 0]
+            : ['OR' => [
+                'Attribute.deleted' => 0,
+                'Attribute.event_id' => $deletedEventIds ?: [-1],
+            ]];
         if ($deleted === 1) {
-            $conditions['Object.deleted'] = [0, 1];
+            $conditions[] = ['OR' => [
+                'Object.deleted' => 0,
+                'Object.event_id' => $deletedEventIds ?: [-1],
+            ]];
         } elseif ($deleted === 2) {
-            $objectIdsWithDeletedAttrs =
-                $this->objectIdsWithDeletedAttributes($eventIds);
+            $conditions['Object.event_id'] = $deletedEventIds ?: [-1];
+            $objectIdsWithDeletedAttrs = empty($deletedEventIds)
+                ? [] : $this->objectIdsWithDeletedAttributes($deletedEventIds);
             $conditions[] = ['OR' => [
                 'Object.deleted' => 1,
                 'Object.id' => empty($objectIdsWithDeletedAttrs)
@@ -3892,7 +3930,7 @@ class Event extends AppModel
         $attrScope = [
             'Attribute.event_id' => $eventIds,
             'Attribute.object_id !=' => 0,
-            'Attribute.deleted' => $attrDeleted,
+            $attrDeleted,
         ];
         if (!$isSiteAdmin) {
             $attrScope[] = ['OR' => [
@@ -4016,7 +4054,7 @@ class Event extends AppModel
         $attrConditions = [
             'Attribute.event_id' => $eventIds,
             'Attribute.object_id' => $objectIds,
-            'Attribute.deleted' => $attrDeleted,
+            $attrDeleted,
         ];
         if (!$isSiteAdmin) {
             $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
