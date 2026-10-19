@@ -7,23 +7,6 @@ $headerDescription = __('');
 
 // Actions displayed as buttons in the header section, leave empty if not needed
 $headerActions = [];
-if ($this->Acl->canAccess('cerebrates', 'index')) {
-    $headerActions[] = [
-        'type' => 'navigate',
-        'label' => __('List Cerebrates'),
-        'icon' => 'globe',
-        'url' => $baseurl . '/cerebrates/index'
-    ];
-}
-
-if ($this->Acl->canAccess('communities', 'index')) {
-    $headerActions[] = [
-        'type' => 'navigate',
-        'label' => __('List Communities'),
-        'icon' => 'users',
-        'url' => $baseurl . '/communities/index'
-    ];
-}
 
 if ($this->Acl->canAccess('servers', 'add')) {
     $headerActions[] = [
