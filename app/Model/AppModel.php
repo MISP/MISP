@@ -297,6 +297,9 @@ class AppModel extends Model
     /** @var array|null the $validate the column limit rules were added for */
     private $columnLimitRulesFor = null;
 
+    /** @var string[] columns the model's beforeSave() truncates to fit */
+    public $truncatedColumns = [];
+
     /**
      * Every save validates through here, so this is where each text column
      * gets a rule for its own length: in strict mode a value that does not fit
@@ -316,7 +319,9 @@ class AppModel extends Model
         $validator = $this->validator();
         foreach (ColumnLimits::of($this) as $field => $limit) {
             $rules = $this->validate[$field] ?? [];
-            if (isset($rules['maxLength']) || isset($rules['maxBytes'])) {
+            if (isset($rules['maxLength']) || isset($rules['maxBytes'])
+                || in_array($field, $this->truncatedColumns, true)
+            ) {
                 continue;
             }
             $validator->add($field, 'columnLimit', [

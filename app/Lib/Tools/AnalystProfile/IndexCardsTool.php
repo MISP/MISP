@@ -23,18 +23,24 @@ class IndexCardsTool
     const MODULE_RESTRICTED = 'restricted';
     const MODULE_MISSING = 'missing';
     const MODULE_FAILING = 'failing';
+    const MODULE_UNSTABLE = 'unstable';
 
     /** The order the groups are drawn in: quickest fix first. */
     const GROUP_ORDER = array(
         self::MODULE_OFF,
         self::MODULE_SETTINGS,
         self::MODULE_FAILING,
+        self::MODULE_UNSTABLE,
         self::MODULE_MISSING,
         self::MODULE_RESTRICTED,
     );
 
     /** A module is failing only once it has failed at least this often. */
     const FAILING_MINIMUM = 3;
+
+    /** Timeouts and crashes, as a share of completed queries, that make a
+     * module unstable. */
+    const UNSTABLE_SHARE = 0.5;
 
     /** Run states that mean the module answered. */
     const ANSWERED = array('ok', 'silent');
@@ -232,11 +238,13 @@ class IndexCardsTool
      * @param int|null $orgId The reader's organisation; null for the
      *                        instance view, where a restriction is reported
      *                        rather than applied
+     * @param array $unstable From `unstable()`
      * @return array `state`, `unset` (required settings left empty),
      *               `enabled`, `restrict` (an organisation id or null)
      */
     public static function moduleState($name, array $catalogue,
-        callable $read, array $failing = array(), $orgId = null
+        callable $read, array $failing = array(), $orgId = null,
+        array $unstable = array()
     ) {
         $prefix = 'Plugin.Enrichment_' . $name . '_';
         $enabled = (bool)$read($prefix . 'enabled');
@@ -264,8 +272,104 @@ class IndexCardsTool
             $out['state'] = self::MODULE_RESTRICTED;
         } elseif (isset($failing[$name])) {
             $out['state'] = self::MODULE_FAILING;
+        } elseif (isset($unstable[$name])) {
+            $out['state'] = self::MODULE_UNSTABLE;
         }
         return $out;
+    }
+
+    /**
+     * How the modules the profiles ask for have been answering, as
+     * misp-modules counted it since it started.
+     *
+     * @param mixed $statistics What `Module::getStatistics()` returned
+     * @param array $asked From `askedModules()`
+     * @return array|null Null when the service gave no usable snapshot
+     */
+    public static function activity($statistics, array $asked)
+    {
+        if (!is_array($statistics) || !isset($statistics['modules'])
+            || !is_array($statistics['modules'])
+        ) {
+            return null;
+        }
+        $counts = array('queries', 'completed', 'module_errors', 'timeouts',
+            'exceptions');
+        $out = array_fill_keys($counts, 0) + array(
+            'uptime' => isset($statistics['uptime_seconds'])
+                ? (float)$statistics['uptime_seconds'] : null,
+            'average' => null,
+            'modules' => array(),
+            'idle' => array(),
+        );
+        $total = 0.0;
+        foreach (array_keys($asked) as $name) {
+            if (!isset($statistics['modules'][$name])
+                || !is_array($statistics['modules'][$name])
+            ) {
+                continue;
+            }
+            $module = $statistics['modules'][$name];
+            $times = isset($module['response_time_seconds'])
+                && is_array($module['response_time_seconds'])
+                ? $module['response_time_seconds'] : array();
+            $row = array('name' => $name);
+            foreach ($counts as $count) {
+                $row[$count] = isset($module[$count]) ? (int)$module[$count] : 0;
+            }
+            if ($row['queries'] === 0) {
+                $out['idle'][] = $name;
+                continue;
+            }
+            $row['average'] = isset($times['average'])
+                ? (float)$times['average'] : null;
+            $row['max'] = isset($times['max']) ? (float)$times['max'] : null;
+            $row['last_query_at'] = empty($module['last_query_at'])
+                ? null : (string)$module['last_query_at'];
+            foreach ($counts as $count) {
+                $out[$count] += $row[$count];
+            }
+            $total += isset($times['total']) ? (float)$times['total'] : 0.0;
+            $out['modules'][] = $row;
+        }
+        if ($out['completed'] > 0) {
+            $out['average'] = $total / $out['completed'];
+        }
+        usort($out['modules'], function ($a, $b) {
+            return $b['queries'] - $a['queries']
+                ?: strcmp($a['name'], $b['name']);
+        });
+        return $out;
+    }
+
+    /**
+     * The modules that mostly time out or crash: a fault in the service or
+     * in the timeout, where a module error is usually a value with no
+     * answer.
+     *
+     * @param array|null $activity From `activity()`
+     * @return array module => `completed`, `timeouts`, `exceptions`
+     */
+    public static function unstable($activity)
+    {
+        $unstable = array();
+        if (empty($activity['modules'])) {
+            return $unstable;
+        }
+        foreach ($activity['modules'] as $row) {
+            $faults = $row['timeouts'] + $row['exceptions'];
+            if ($row['completed'] < self::FAILING_MINIMUM
+                || $faults < self::UNSTABLE_SHARE * $row['completed']
+            ) {
+                continue;
+            }
+            $unstable[$row['name']] = array(
+                'completed' => $row['completed'],
+                'timeouts' => $row['timeouts'],
+                'exceptions' => $row['exceptions'],
+            );
+        }
+        return $unstable;
     }
 
     /**
@@ -279,10 +383,12 @@ class IndexCardsTool
      * @param array $taxonomies namespace (lowercased) => `id`,
      *                          `namespace`, `enabled`, for the namespaces
      *                          `askedTaxonomies()` named
+     * @param mixed $statistics What `Module::getStatistics()` returned
      * @return array
      */
     public static function diagnostic(array $profiles, $modules,
-        callable $read, array $answers, array $taxonomies
+        callable $read, array $answers, array $taxonomies,
+        $statistics = null
     ) {
         $catalogue = self::catalogue($modules);
         $asked = self::askedModules($profiles);
@@ -295,6 +401,7 @@ class IndexCardsTool
             'ready' => 0,
             'attention' => 0,
             'groups' => array(),
+            'activity' => null,
             'taxonomies' => self::__taxonomyGroups(
                 self::askedTaxonomies($profiles), $taxonomies),
         );
@@ -303,9 +410,12 @@ class IndexCardsTool
             return $out;
         }
         $failing = self::failing($answers);
+        $out['activity'] = self::activity($statistics, $asked);
+        $unstable = self::unstable($out['activity']);
         $groups = array_fill_keys(self::GROUP_ORDER, array());
         foreach ($asked as $name => $entry) {
-            $state = self::moduleState($name, $catalogue, $read, $failing);
+            $state = self::moduleState($name, $catalogue, $read, $failing,
+                null, $unstable);
             if ($state['state'] === self::MODULE_READY) {
                 $out['ready']++;
                 continue;
@@ -316,6 +426,8 @@ class IndexCardsTool
                 'enabled' => $state['enabled'],
                 'restrict' => $state['restrict'],
                 'failing' => isset($failing[$name]) ? $failing[$name] : null,
+                'unstable' => isset($unstable[$name])
+                    ? $unstable[$name] : null,
             );
             if ($state['state'] !== self::MODULE_RESTRICTED) {
                 $out['attention']++;
