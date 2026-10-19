@@ -45,7 +45,7 @@ $useRail = $bootstrapTheme['navbar'] === 'rail';
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="misp-tag-palettes" content="<?= h(implode(' ', $this->TagChip->semanticNamespaces())) ?>">
-    <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
+    <link rel="shortcut icon" href="<?= $baseurl ?>/img/faviconOvermind.png">
     <title><?= h($title_for_layout) . ' - ' . h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php if ($hasDarkToggle): ?>
     <script>(function(){if(localStorage.getItem('darkMode')==='true'){var r=document.documentElement;r.setAttribute('data-bs-theme','dark');r.setAttribute('data-misp-mode','dark');r.setAttribute('data-theme','midnight');}})()</script>
