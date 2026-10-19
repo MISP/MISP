@@ -20,7 +20,7 @@
         "matthiasmullie/scrapbook": ">=1.5.3",
         "league/flysystem": ">=1.0",
         "supervisorphp/supervisor": "^4.0",
-        "guzzlehttp/guzzle": "^7.4.5",
+        "guzzlehttp/guzzle": "^8.2.0",
         "lstrojny/fxmlrpc": "*",
         "php-http/message": "*",
         "php-http/message-factory": "*",
