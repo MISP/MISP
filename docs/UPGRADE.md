@@ -98,13 +98,67 @@ Run the commands from `app/` as the web server user
 5. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
    `misp:correlation_exclusions`, so both keys can be deleted.
 
-Make sure the database has room for the value table before you start: it is
-built while the old text columns still exist.
+### How long it takes and what it needs
+
+Plan the window and the disk before you go offline. The figures come from
+MariaDB 10.11 on a laptop (SSD, 2 GB InnoDB buffer pool), measured up to 8
+million attributes and extrapolated beyond that; a server with more memory and
+faster disks does better. Run the upgrade on a copy of your database first if
+the window matters.
+
+- **Rebuilding `attributes`** is the step that runs longest. It copies every
+  row into a new table while the table cannot be written to. Once the table no
+  longer fits in the buffer pool the time is linear: about 21,000 rows per
+  second (11 to 13 MB/s of table and index data), which is 6 minutes for 8
+  million attributes, about 1.3 to 1.5 hours for 100 million and 6.5 to 8
+  hours for 500 million.
+- **Filling the value table** (`AttributeValue backfill`) is the other long
+  step: about 8,000 attributes per second, measured once at 2 million. That is
+  about 3 hours for 100 million attributes if it stays linear, and it may be
+  worse, because the value table's unique index grows with it.
+- **A whole upgrade from 2.5** with 2 million attributes took 509 seconds
+  (backfill 242 s, the schema changes before `attributes` 137 s, `attributes`
+  106 s). Count on five hours or more at 100 million attributes.
+- **Free disk: about 3.5 times the size of the `attributes` table, indexes
+  included.** The new table is built beside the old one, and on MariaDB the
+  sort files for its new indexes take about as much again, in the temporary
+  directory (`tmpdir`), which may be another filesystem. At 100 million
+  attributes that is about 180 GB: roughly 85 GB in the data directory and
+  roughly 95 GB in `tmpdir`. MySQL 8.4 writes no sort files to `tmpdir`, so it
+  needs about half of that. The upgrade checks the free space of each
+  filesystem before it starts a table and stops with the amount it needs;
+  `Console/cake Admin migrationApply --dry-run` only prints the SQL and
+  skips this check.
+- **Memory.** An optional speed-up on MariaDB and MySQL: set
+  `innodb_sort_buffer_size = 16M` (a startup setting, so restart the database)
+  for the run. It made the `attributes` rebuild about 15 % faster at 4
+  million attributes. The server allocates that buffer for every index it
+  builds at once, 22 on `attributes`, so allow about 4.5 times the buffer size
+  for each of them (about 1.6 GB more at 16 MB). Do not go much higher on a
+  small machine: 64 MB used more than 5 GB and the operating system killed the
+  database. Take the setting out again afterwards.
+- **While it runs**, each table's start, size and the disk it needs are printed,
+  together with how to watch the statement: `SHOW FULL PROCESSLIST` and its
+  `Progress` column on MariaDB, `performance_schema.events_stages_current` on
+  MySQL.
+
+**Galera and other synchronous clusters.** Run the upgrade on one node. On
+Galera, a schema change replicates in total order isolation: while the
+`attributes` rebuild runs, every node of the cluster is blocked for writes, not
+only the one you run it on. Plan the window for the whole cluster, and do not
+switch the rebuild to rolling schema upgrade unless you have a way to keep the
+nodes' schemas equal.
+
+**Back up first.** A rebuild is not a transaction on any engine: it either ends
+with the new table or can be run again, but a full disk or a killed server can
+leave you restoring from the backup.
 
 ### Requirements
 
-- **MariaDB 10.10 or later** is recommended (collation `utf8mb4_uca1400_ai_ci`).
-  Older MariaDB uses `utf8mb4_unicode_520_ci`. MySQL 8 has not been tested.
+- **MariaDB 10.11 or later** (collation `utf8mb4_uca1400_ai_ci`), or
+  **MySQL 8.4 or later** (collation `utf8mb4_unicode_520_ci`). A new
+  installation loads `INSTALL/MARIADB.sql` or `INSTALL/MYSQL.sql`
+  respectively.
 - **PostgreSQL 16 or later**, with the `pg_trgm` extension
   ([docs/CONFIG.postgresql.md](CONFIG.postgresql.md)). The On Demand
   correlation engine is MySQL/MariaDB only.
