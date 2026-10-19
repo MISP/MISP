@@ -6,6 +6,7 @@
  * @var array $card From IndexCardsTool::diagnostic()
  * @var array $org_names Organisation id => name, for reserved modules
  */
+App::uses('CakeTime', 'Utility');
 $settingsUrl = $this->Html->url(array(
     'controller' => 'servers', 'action' => 'serverSettings', 'Plugin'));
 $settingLink = function ($setting, $label) use ($settingsUrl) {
@@ -37,11 +38,23 @@ $groups = array(
         __('Needs settings'), __('a required setting is empty')),
     IndexCardsTool::MODULE_FAILING => array(
         __('Keeps failing'), __('every recent answer is the same error')),
+    IndexCardsTool::MODULE_UNSTABLE => array(
+        __('Times out or crashes'), __('since misp-modules started')),
     IndexCardsTool::MODULE_MISSING => array(
         __('Not installed'), __('this misp-modules does not have it')),
     IndexCardsTool::MODULE_RESTRICTED => array(
         __('Reserved'), __('one organisation only')),
 );
+$seconds = function ($value) {
+    if ($value === null) {
+        return '–';
+    }
+    if ($value < 1) {
+        return __('%s ms', max(1, (int)round($value * 1000)));
+    }
+    return __('%s s', $value < 10 ? number_format($value, 1) : number_format($value));
+};
+$activity = $card['activity'];
 $taxonomyOff = $card['taxonomies']['off'];
 $taxonomyMissing = $card['taxonomies']['missing'];
 
@@ -127,6 +140,16 @@ if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
                                             &middot; <?= h(__n('%s answer', '%s answers',
                                                 $item['failing']['count'],
                                                 $item['failing']['count'])) ?>
+                                        <?php elseif ($key === IndexCardsTool::MODULE_UNSTABLE): ?>
+                                            <?php $faults = array();
+                                            if ($item['unstable']['timeouts'] > 0) {
+                                                $faults[] = __('%s timed out', number_format($item['unstable']['timeouts']));
+                                            }
+                                            if ($item['unstable']['exceptions'] > 0) {
+                                                $faults[] = __('%s crashed', number_format($item['unstable']['exceptions']));
+                                            } ?>
+                                            <?= h(__('%s of %s queries', implode(', ', $faults),
+                                                number_format($item['unstable']['completed']))) ?>
                                         <?php elseif ($key === IndexCardsTool::MODULE_RESTRICTED): ?>
                                             <?= h(isset($org_names[$item['restrict']])
                                                 ? $org_names[$item['restrict']]
@@ -147,6 +170,12 @@ if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
                                     <?php elseif ($key === IndexCardsTool::MODULE_FAILING): ?>
                                         <?= $settingLink('Plugin.Enrichment_' . $item['name']
                                             . '_enabled', __('Settings')) ?>
+                                    <?php elseif ($key === IndexCardsTool::MODULE_UNSTABLE): ?>
+                                        <?php if ($item['unstable']['timeouts'] > 0): ?>
+                                            <?= $settingLink('Plugin.Enrichment_timeout', __('Timeout')) ?>
+                                        <?php else: ?>
+                                            <span class="ap-item-hint"><?= h(__('misp-modules log')) ?></span>
+                                        <?php endif; ?>
                                     <?php elseif ($key === IndexCardsTool::MODULE_RESTRICTED): ?>
                                         <?= $settingLink('Plugin.Enrichment_' . $item['name']
                                             . '_restrict', __('Settings')) ?>
@@ -210,6 +239,106 @@ if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
             <?= h(__('Every module the profiles ask for is installed, switched'
                 . ' on and answering.')) ?>
         </p>
+    <?php endif; ?>
+
+    <?php if ($activity !== null): ?>
+        <?php
+        $since = $activity['uptime'] === null ? null : CakeTime::timeAgoInWords(
+            time() - (int)$activity['uptime'], array(
+                'end' => '+10 years',
+                'accuracy' => array('year' => 'month', 'month' => 'day',
+                    'week' => 'day', 'day' => 'hour', 'hour' => 'minute'),
+            ));
+        ?>
+        <?php if ($activity['queries'] === 0): ?>
+            <p class="ap-card-line ap-activity-none">
+                <i class="fas fa-chart-simple" aria-hidden="true"></i>
+                <?= h($since === null
+                    ? __('No module the profiles ask for has been queried since'
+                        . ' misp-modules started.')
+                    : __('No module the profiles ask for has been queried since'
+                        . ' misp-modules started %s.', $since)) ?>
+            </p>
+        <?php else: ?>
+            <details class="ap-activity">
+                <summary>
+                    <span class="ap-activity-h"><?= h(__('Service activity')) ?></span>
+                    <span class="ap-activity-sum">
+                        <?= h(__n('%s query', '%s queries', $activity['queries'],
+                            number_format($activity['queries']))) ?>
+                        <?php if ($activity['timeouts'] > 0): ?>
+                            &middot; <span class="ap-activity-bad"><?= h(__('%s timed out',
+                                number_format($activity['timeouts']))) ?></span>
+                        <?php endif; ?>
+                        <?php if ($activity['exceptions'] > 0): ?>
+                            &middot; <span class="ap-activity-bad"><?= h(__('%s crashed',
+                                number_format($activity['exceptions']))) ?></span>
+                        <?php endif; ?>
+                        <?php if ($activity['average'] !== null): ?>
+                            &middot; <?= h(__('%s on average', $seconds($activity['average']))) ?>
+                        <?php endif; ?>
+                    </span>
+                </summary>
+                <div class="ap-activity-body">
+                    <table class="ap-activity-table">
+                        <thead>
+                            <tr>
+                                <th scope="col"><?= h(__('Module')) ?></th>
+                                <th scope="col" class="n"><?= h(__('Queries')) ?></th>
+                                <th scope="col" class="n ap-activity-wide" title="<?= h(__(
+                                    'The module answered with an error. Most modules'
+                                    . ' say so when a value has no answer.')) ?>"><?= h(__('Errors')) ?></th>
+                                <th scope="col" class="n" title="<?= h(__(
+                                    'MISP stopped waiting: Plugin.Enrichment_timeout')) ?>"><?= h(__('Timed out')) ?></th>
+                                <th scope="col" class="n" title="<?= h(__(
+                                    'The module raised an exception; misp-modules'
+                                    . ' logs why')) ?>"><?= h(__('Crashed')) ?></th>
+                                <th scope="col" class="n"><?= h(__('Average')) ?></th>
+                                <th scope="col" class="n ap-activity-wide"><?= h(__('Slowest')) ?></th>
+                                <th scope="col" class="n ap-activity-wide"><?= h(__('Last query')) ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($activity['modules'] as $row): ?>
+                                <?php $last = $row['last_query_at'] === null ? false
+                                    : strtotime($row['last_query_at']); ?>
+                                <tr>
+                                    <th scope="row"><span class="ap-item-name"><?= h($row['name']) ?></span></th>
+                                    <td class="n"><?= h(number_format($row['queries'])) ?></td>
+                                    <td class="n ap-activity-wide<?= $row['module_errors'] ? '' : ' z' ?>"<?php
+                                        if ($row['completed'] > 0): ?> title="<?= h(__('%s%% of completed queries',
+                                            round(100 * $row['module_errors'] / $row['completed']))) ?>"<?php
+                                        endif; ?>><?= h(number_format($row['module_errors'])) ?></td>
+                                    <td class="n<?= $row['timeouts'] ? ' bad' : ' z' ?>"><?= h(number_format($row['timeouts'])) ?></td>
+                                    <td class="n<?= $row['exceptions'] ? ' bad' : ' z' ?>"><?= h(number_format($row['exceptions'])) ?></td>
+                                    <td class="n"><?= h($seconds($row['average'])) ?></td>
+                                    <td class="n ap-activity-wide"><?= h($seconds($row['max'])) ?></td>
+                                    <td class="n ap-activity-wide"<?php if ($last): ?> title="<?= h(
+                                        date('Y-m-d H:i:s', $last)) ?>"<?php endif; ?>><?= h($last
+                                        ? CakeTime::timeAgoInWords($last, array(
+                                            'end' => '+10 years',
+                                            'accuracy' => array('year' => 'month', 'month' => 'day',
+                                                'week' => 'day', 'day' => 'hour', 'hour' => 'minute')))
+                                        : '–') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php if (!empty($activity['idle'])): ?>
+                        <p class="ap-activity-idle">
+                            <?= h(__('Not queried since it started:')) ?>
+                            <?php foreach ($activity['idle'] as $i => $name): ?><?= $i > 0 ? ', ' : ''
+                                ?><span class="ap-item-name"><?= h($name) ?></span><?php endforeach; ?>
+                        </p>
+                    <?php endif; ?>
+                    <p class="ap-activity-note"><?= h($since === null
+                        ? __('Counted by misp-modules for every client it serves,'
+                            . ' and reset when it restarts.')
+                        : __('Counted by misp-modules since it started %s, for every'
+                            . ' client it serves, and reset when it restarts.', $since)) ?></p>
+                </div>
+            </details>
+        <?php endif; ?>
     <?php endif; ?>
 
     <footer class="ap-card-foot">

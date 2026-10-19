@@ -228,7 +228,8 @@ class AnalystProfilesController extends AppController
                 $read,
                 $this->ValueEnrichmentRun->latestOutcomes(),
                 $this->__taxonomiesNamed(
-                    IndexCardsTool::askedTaxonomies($profiles))
+                    IndexCardsTool::askedTaxonomies($profiles)),
+                is_array($modules) ? $this->Module->getStatistics() : null
             );
             $this->set('card', $card);
             $this->set('org_names', $this->__restrictedOrgNames($card));

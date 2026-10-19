@@ -258,6 +258,111 @@ class IndexCardsToolTest extends TestCase
         }
     }
 
+    private function counted($queries, array $outcomes = array(),
+        $average = 0.2, $max = 0.5
+    ) {
+        $outcomes += array('module_errors' => 0, 'exceptions' => 0,
+            'timeouts' => 0);
+        $completed = $queries - (isset($outcomes['in_flight'])
+            ? $outcomes['in_flight'] : 0);
+        unset($outcomes['in_flight']);
+        return $outcomes + array(
+            'type' => 'expansion',
+            'queries' => $queries,
+            'completed' => $completed,
+            'successes' => $completed - array_sum($outcomes),
+            'last_query_at' => $queries ? '2026-10-19T13:05:02.643586+00:00' : null,
+            'response_time_seconds' => array(
+                'count' => $completed,
+                'total' => $completed * $average,
+                'average' => $completed ? $average : null,
+                'max' => $completed ? $max : null,
+            ),
+        );
+    }
+
+    private function statistics(array $modules)
+    {
+        return array(
+            'started_at' => '2026-10-19T13:05:02.643586+00:00',
+            'uptime_seconds' => 7200.5,
+            'totals' => array(),
+            'modules' => $modules,
+        );
+    }
+
+    public function testActivityKeepsTheAskedModulesOnly(): void
+    {
+        $asked = array('dns' => array(), 'whois' => array(),
+            'mmdb_lookup' => array(), 'not_loaded' => array());
+        $this->assertNull(IndexCardsTool::activity(null, $asked));
+        $this->assertNull(IndexCardsTool::activity(array('error' => 'x'), $asked));
+
+        $activity = IndexCardsTool::activity($this->statistics(array(
+            'dns' => $this->counted(10, array('module_errors' => 4), 0.1),
+            'whois' => $this->counted(30, array('timeouts' => 2,
+                'in_flight' => 1), 0.4, 9.0),
+            'mmdb_lookup' => $this->counted(0),
+            'csvimport' => $this->counted(50),
+        )), $asked);
+        $this->assertSame(7200.5, $activity['uptime']);
+        $this->assertSame(array('whois', 'dns'),
+            array_column($activity['modules'], 'name'));
+        $this->assertSame(array('mmdb_lookup'), $activity['idle']);
+        $this->assertSame(40, $activity['queries']);
+        $this->assertSame(39, $activity['completed']);
+        $this->assertSame(4, $activity['module_errors']);
+        $this->assertSame(2, $activity['timeouts']);
+        $this->assertEqualsWithDelta((29 * 0.4 + 10 * 0.1) / 39,
+            $activity['average'], 1e-9);
+        $this->assertSame(9.0, $activity['modules'][0]['max']);
+    }
+
+    public function testTimeoutsAndCrashesMakeAModuleUnstable(): void
+    {
+        $asked = array_fill_keys(array('a', 'b', 'c', 'd', 'e'), array());
+        $unstable = IndexCardsTool::unstable(IndexCardsTool::activity(
+            $this->statistics(array(
+                'a' => $this->counted(6, array('timeouts' => 2, 'exceptions' => 1)),
+                'b' => $this->counted(6, array('timeouts' => 2)),
+                'c' => $this->counted(2, array('exceptions' => 2)),
+                'd' => $this->counted(9, array('module_errors' => 9)),
+                'e' => $this->counted(3, array('exceptions' => 3)),
+            )), $asked));
+        $this->assertSame(array(
+            'a' => array('completed' => 6, 'timeouts' => 2, 'exceptions' => 1),
+            'e' => array('completed' => 3, 'timeouts' => 0, 'exceptions' => 3),
+        ), $unstable);
+        $this->assertSame(array(), IndexCardsTool::unstable(null));
+    }
+
+    public function testTheDiagnosticAddsWhatTheServiceCounted(): void
+    {
+        list($profiles, $modules, $settings, $taxonomies) = $this->devInstance();
+        $card = IndexCardsTool::diagnostic($profiles, $modules,
+            $this->reader($settings),
+            $this->answers('whois', 'error', 'Whois local instance address is missing', 5),
+            $taxonomies,
+            $this->statistics(array(
+                'dns' => $this->counted(5, array('timeouts' => 4)),
+                'whois' => $this->counted(5, array('exceptions' => 5)),
+                'mmdb_lookup' => $this->counted(8),
+            )));
+        $this->assertSame(array('off', 'settings', 'failing', 'unstable',
+            'missing'), array_keys($card['groups']));
+        $this->assertSame('whois', $card['groups']['failing'][0]['name']);
+        $this->assertSame('dns', $card['groups']['unstable'][0]['name']);
+        $this->assertSame(4, $card['groups']['unstable'][0]['unstable']['timeouts']);
+        $this->assertSame(1, $card['ready']);
+        $this->assertSame(6, $card['attention']);
+        $this->assertSame(18, $card['activity']['queries']);
+
+        $card = IndexCardsTool::diagnostic($profiles, $modules,
+            $this->reader($settings), array(), $taxonomies);
+        $this->assertNull($card['activity']);
+        $this->assertArrayNotHasKey('unstable', $card['groups']);
+    }
+
     public function testAReaderWithNothingInForceOrNoRight(): void
     {
         list(, $modules, $settings) = $this->devInstance();
