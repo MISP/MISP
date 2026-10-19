@@ -544,6 +544,13 @@ class AppController extends Controller
                 $this->set('intelGraph', ['active' => ClassRegistry::init('Graph')->activeFor($user, false)]);
             }
 
+            if ($this->__showsSidePanels()) {
+                $this->set('sidePanels', [
+                    'news' => ['unread' => ClassRegistry::init('News')->unreadCount($user)],
+                    'bookmarks' => $this->__bookmarkedPage($homepagePath),
+                ]);
+            }
+
             if (PHP_MAJOR_VERSION < 8) {
                 $this->Flash->error(__('WARNING: MISP 2.5.x is currently running under PHP 7.x, which is unsupported. Make sure that you upgrade to PHP 8.x as soon as possible.'));
             }
@@ -572,6 +579,59 @@ class AppController extends Controller
             return false;
         }
         return $this->ACL->canUserAccess($user, 'analystGraphs', 'addNodes');
+    }
+
+    /**
+     * Whether the page is the user's homepage, and whether it is one of their
+     * bookmarks: the navbar's Bookmarks button is lit on either.
+     *
+     * @param string $homepagePath
+     * @return array
+     */
+    private function __bookmarkedPage($homepagePath)
+    {
+        $uri = parse_url((string)env('REQUEST_URI')) ?: [];
+        $path = $uri['path'] ?? '/';
+        $here = $path . (isset($uri['query']) ? '?' . $uri['query'] : '');
+        $home = $homepagePath !== '' && $homepagePath === $path;
+        $host = (string)$this->request->host();
+        $bookmarked = false;
+        foreach ($this->viewVars['bookmarks'] ?? [] as $bookmark) {
+            $url = parse_url((string)$bookmark['Bookmark']['url']);
+            if (empty($url['host'])) {
+                continue;
+            }
+            $urlHost = $url['host'] . (isset($url['port']) ? ':' . $url['port'] : '');
+            $urlHere = ($url['path'] ?? '/') . (isset($url['query']) ? '?' . $url['query'] : '');
+            if (strcasecmp($urlHost, $host) === 0 && $urlHere === $here) {
+                $bookmarked = true;
+                break;
+            }
+        }
+        return ['home' => $home, 'lit' => $home || $bookmarked];
+    }
+
+    /**
+     * Whether this page's navbar carries the side panels (news, bookmarks): an
+     * Overmind page with the Bootstrap 5 chrome. The dashboard only sets its
+     * layout in the action, after beforeFilter() has asked.
+     *
+     * @return bool
+     */
+    private function __showsSidePanels()
+    {
+        if (($this->theme ?? null) !== 'Overmind') {
+            return false;
+        }
+        App::uses('OvermindPages', 'Tools');
+        $controller = $this->request->params['controller'];
+        $action = $this->request->params['action'];
+        if (OvermindPages::isAuthPage($controller, $action)) {
+            return false;
+        }
+        return $this->layout === 'dashboard'
+            || OvermindPages::normalise($controller) === 'dashboards'
+            || OvermindPages::isMigrated($controller, $action);
     }
 
     /**
@@ -943,8 +1003,13 @@ class AppController extends Controller
             return false;
         }
 
-        // Check if user must read news
-        if (!$this->_isControllerAction(['news' => ['index'], 'users' => ['terms', 'change_pw', 'login', 'logout', 'totp_new', 'email_otp']])) {
+        // Check if user must read news; a page with the news panel shows them there instead
+        $newsExempt = ['news' => ['index'], 'users' => ['terms', 'change_pw', 'login', 'logout', 'totp_new', 'email_otp']];
+        if (($this->theme ?? null) === 'Overmind') {
+            // On its way to the homepage, which has the panel
+            $newsExempt['users'][] = 'routeafterlogin';
+        }
+        if (!$this->_isControllerAction($newsExempt) && !$this->__showsSidePanels()) {
             $this->loadModel('News');
             $latestNewsCreated = $this->News->latestNewsTimestamp();
             if ($latestNewsCreated && $user['newsread'] < $latestNewsCreated) {

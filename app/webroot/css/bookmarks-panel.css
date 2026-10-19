@@ -1,0 +1,84 @@
+/* The bookmarks panel's list (Bookmarks/ajax/panel.ctp) and its subhead; the panel itself is a side panel (side-panel.css). */
+.bm-here { display: flex; flex-wrap: wrap; gap: .5rem; }
+.bm-here .btn { flex: 1 1 auto; }
+.bm-filter { position: relative; margin-top: .6rem; }
+.bm-filter[hidden] { display: none; }
+.bm-filter > i {
+    position: absolute; left: .65rem; top: 50%; transform: translateY(-50%);
+    font-size: .75rem; color: var(--bs-secondary-color); pointer-events: none;
+}
+.bm-filter input { padding-left: 1.9rem; padding-right: 4.5rem; }
+.bm-filter-count {
+    position: absolute; right: 2rem; top: 50%; transform: translateY(-50%);
+    font-size: .7rem; font-variant-numeric: tabular-nums; color: var(--bs-secondary-color); pointer-events: none;
+}
+.bm-filter-count[hidden] { display: none; }
+
+#bm-so .sp-body { gap: 1.1rem; }
+.bm-section { flex: none; display: flex; flex-direction: column; gap: .4rem; }
+.bm-section[hidden] { display: none; }
+.bm-section-title {
+    display: flex; align-items: center; gap: .4rem; margin: 0 0 .1rem; padding-left: .2rem;
+    color: var(--bs-secondary-color); font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+}
+.bm-section-count {
+    padding: 0 .4rem; border-radius: var(--bs-border-radius-pill); background: var(--bs-secondary-bg);
+    font-size: .65rem; letter-spacing: 0;
+}
+
+.bm-item {
+    position: relative;
+    border: 1px solid var(--bs-border-color-translucent); border-radius: var(--bs-border-radius-lg);
+    background: var(--bs-tertiary-bg); transition: border-color .12s ease, background-color .12s ease;
+}
+.bm-item[hidden] { display: none; }
+.bm-item:hover { border-color: var(--bs-border-color); background: var(--bs-body-bg); }
+.bm-item.is-here {
+    border-color: var(--bs-primary-border-subtle);
+    background: color-mix(in srgb, var(--bs-primary-bg-subtle) 60%, var(--bs-body-bg));
+}
+.bm-link {
+    display: flex; align-items: center; gap: .65rem; padding: .55rem .75rem;
+    border-radius: inherit; color: inherit; text-decoration: none;
+}
+a.bm-link:hover .bm-name > span:first-child { text-decoration: underline; }
+.bm-link:focus-visible { outline: 0; box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .35); }
+.bm-ico {
+    flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.9rem; height: 1.9rem;
+    border: 1px solid var(--bs-border-color-translucent); border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg); color: var(--sp-accent); font-size: .8rem;
+}
+.bm-item.is-here .bm-ico { border-color: transparent; background: var(--sp-accent); color: var(--bs-white); }
+.bm-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: .05rem; }
+.bm-name { display: flex; align-items: center; gap: .4rem; min-width: 0; font-weight: 600; color: var(--bs-emphasis-color); }
+.bm-name > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bm-url {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-family: var(--bs-font-monospace); font-size: .72rem; color: var(--bs-secondary-color);
+}
+.bm-tag {
+    flex: none; padding: .05rem .4rem; border-radius: var(--bs-border-radius-pill);
+    background: var(--bs-info-bg-subtle); color: var(--bs-info-text-emphasis);
+    font-size: .6rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+}
+.bm-ext { flex: none; font-size: .7rem; color: var(--bs-secondary-color); }
+.bm-comment { margin: -.25rem .75rem .55rem 3.3rem; overflow-wrap: anywhere; color: var(--bs-secondary-color); font-size: .78rem; }
+.bm-nomatch { margin: 1.5rem 0; text-align: center; color: var(--bs-secondary-color); }
+.bm-nomatch[hidden] { display: none; }
+
+/* edit and delete show on the item while it is pointed at */
+.bm-acts {
+    position: absolute; top: .45rem; right: .45rem; display: flex; gap: .1rem; padding: .1rem;
+    border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg); box-shadow: var(--bs-box-shadow-sm);
+    opacity: 0; pointer-events: none; transition: opacity .12s ease;
+}
+.bm-acts .sp-tool { width: 1.6rem; height: 1.6rem; font-size: .75rem; }
+.bm-item:hover .bm-acts, .bm-item:focus-within .bm-acts { opacity: 1; pointer-events: auto; }
+@media (hover: none) {
+    .bm-acts { opacity: 1; pointer-events: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bm-item, .bm-acts { transition: none; }
+}

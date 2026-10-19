@@ -84,6 +84,7 @@
                 .then(response => {
                     if (!response.ok) throw new Error('Server Error');
                     showToast('<?php echo __('Homepage saved!'); ?>');
+                    document.dispatchEvent(new CustomEvent('misp:homepage-set'));
                 })
                 .catch(() => {
                     showToast('<?php echo __('Failed to set homepage. Please try again.'); ?>', 'danger');
