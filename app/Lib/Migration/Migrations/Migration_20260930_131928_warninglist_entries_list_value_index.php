@@ -25,21 +25,13 @@ class Migration_20260930_131928_warninglist_entries_list_value_index extends Abs
      * (prd/analyst-profile/11-restsearch.md §3.5). Was legacy update 162 on
      * the personas branches.
      *
-     * 191 characters of prefix: utf8mb3's 767-byte limit, and longer than any
-     * entry on a shipped list. PostgreSQL has no prefix index; the dry run
-     * reports what it renders instead.
+     * The index is part of the warninglist_entries 3.0 target, built in that
+     * table's schema v3 rebuild rather than in a pass of its own.
      *
      * @param SchemaBuilder $schema
      * @return void
      */
     public function up(SchemaBuilder $schema)
     {
-        if ($this->inspector()->hasNamedIndex('warninglist_entries', 'idx_wle_list_value')) {
-            return;
-        }
-        $schema->table('warninglist_entries')->addIndex(
-            array('warninglist_id', 'value'),
-            array('name' => 'idx_wle_list_value', 'length' => array('value' => 191))
-        );
     }
 }

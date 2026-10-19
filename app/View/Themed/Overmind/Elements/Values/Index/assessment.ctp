@@ -36,9 +36,15 @@ App::uses('ValueRelevanceTool', 'Tools/ValueIntelligence');
 App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 
 $card = $assessment['card'];
+// False when the reader's analyst profile switches the assessment off.
+$assessed = $card['assessed'];
 $treatment = ValueLean::treatment($card['lean']);
 $counts = $card['counts'];
-$relevance = $card['relevance'];
+$relevance = $card['relevance'] ?? array(
+    'state' => null,
+    'runway_days' => null,
+    'uncertain' => false,
+);
 
 $profileUrl = $this->Html->url(array(
     'controller' => 'values',
@@ -202,6 +208,7 @@ $signalText = function (array $signal) {
         </span>
 <?php endif; ?>
     </div>
+<?php if ($assessed): ?>
     <div class="vi-l2">
         <?= $leanChip ?>
 <?php if ($signalStrength === null): ?>
@@ -222,6 +229,7 @@ $signalText = function (array $signal) {
         <span class="vi-sig vi-sig--top"><?= $signalText($signals[0]) ?></span>
 <?php endif; ?>
     </div>
+<?php endif; ?>
 <?php
 /*
  * Line three is what qualifies the two lines above it, and it is drawn
@@ -273,6 +281,7 @@ if (!$caveats && !$counts['occurrences'] && $card['lean'] === 'none'
 <?php if ($caveats): ?>
     <div class="vi-l3"><?= implode('<br>', $caveats) ?></div>
 <?php endif; ?>
+<?php if ($assessed): ?>
     <div class="vi-l4">
 <?php if ($card['summary'] !== null): ?>
         <div class="vi-summary"><?= h($card['summary']) ?></div>
@@ -287,6 +296,7 @@ if (!$caveats && !$counts['occurrences'] && $card['lean'] === 'none'
         )) ?></span></div>
 <?php endif; ?>
     </div>
+<?php endif; ?>
 </div>
 <?php
 /*
@@ -307,6 +317,7 @@ if (!$caveats && !$counts['occurrences'] && $card['lean'] === 'none'
 <?php endif; ?>
     </span>
     <span class="vi-c-types"><?= h($typesText) ?></span>
+<?php if ($assessed): ?>
     <span class="vi-c-lean"><?= $leanChip ?></span>
     <span class="vi-c-strength">
 <?php if ($signalStrength === null): ?>
@@ -316,6 +327,7 @@ if (!$caveats && !$counts['occurrences'] && $card['lean'] === 'none'
 <?php endif; ?>
     </span>
     <span class="vi-c-rel"><?= $relevanceCell ?></span>
+<?php endif; ?>
     <span class="vi-c-num vi-c-orgs"><b><?= h(number_format($counts['orgs'])) ?></b></span>
     <span class="vi-c-num vi-c-sig"><?php
         /*
@@ -331,11 +343,13 @@ if (!$caveats && !$counts['occurrences'] && $card['lean'] === 'none'
     ?></span>
 </div>
 <div class="vi-acts">
+<?php if ($assessed): ?>
     <button type="button" class="vi-disc" data-vi-act="toggle"
             aria-expanded="false"
             aria-label="<?= h(__('Show all signals')) ?>">
         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 8l3-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
+<?php endif; ?>
 <?php if ($this->Acl->canAccess('collectionElements', 'addElementToCollection')): ?>
     <button type="button" class="vi-btn vi-btn--icon" data-vi-act="collect"
             data-vi-collect="<?= h($this->Html->url(array(

@@ -557,7 +557,7 @@ class WorkflowGraphTool
         return -1;
     }
 
-    public static function getRoamingData(array $user=[], array $data=[], array $workflow=[], int $node_id=-1, array $trigger_node = null, $initiatorUserId = false)
+    public static function getRoamingData(array $user=[], array $data=[], array $workflow=[], int $node_id=-1, ?array $trigger_node = null, $initiatorUserId = false)
     {
         return new WorkflowRoamingData($user, $data, $workflow, $node_id, $trigger_node, $initiatorUserId);
     }

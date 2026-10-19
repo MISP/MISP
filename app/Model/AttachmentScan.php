@@ -496,13 +496,7 @@ class AttachmentScan extends AppModel
             throw new Exception("Module $moduleName doesn't support misp_standard output format.");
         }
 
-        $config = [];
-        if (isset($module['meta']['config'])) {
-            foreach ($module['meta']['config'] as $conf) {
-                $config[$conf] = Configure::read("Plugin.Enrichment_{$moduleName}_$conf");
-            }
-        }
-        return ['config' => $config, 'types' => $types];
+        return ['config' => Module::moduleConfig($module), 'types' => $types];
     }
 
     /**

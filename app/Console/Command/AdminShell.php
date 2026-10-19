@@ -3,6 +3,7 @@ App::uses('AppShell', 'Console/Command');
 App::uses('ProcessTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('ValueDictionaryStatsTool', 'Tools/ValueIntelligence');
 App::uses('AbstractMigration', 'Migration');
 App::uses('MigrationManager', 'Migration');
 App::uses('AbstractGrammar', 'Migration/Grammar');
@@ -26,7 +27,6 @@ class AdminShell extends AppShell
         'MispAttribute',
         'Job',
         'User',
-        'Task',
         'Server',
         'Organisation',
         'AdminSetting',
@@ -42,6 +42,15 @@ class AdminShell extends AppShell
         'Correlation',
         'OverCorrelatingValue'
     ];
+
+    /** The 3.0 migration that waits for the attribute value conversion. */
+    const UPGRADE_VALUE_DROP = '20261010_103316_drop_attribute_value_text';
+
+    /** The conversion, as `Console/cake AttributeValue <step>`, in order. */
+    const UPGRADE_VALUE_STEPS = array('backfill', 'rebuildFacets', 'remapCorrelations');
+
+    /** The admin setting runUpgrade holds from going offline until it is live again. */
+    const UPGRADE_MARKER = 'upgrade_in_progress';
 
     public function getOptionParser()
     {
@@ -130,6 +139,21 @@ class AdminShell extends AppShell
         $parser->addSubcommand('removeOrphanedCorrelations', [
             'help' => __('Remove orphaned correlations.'),
         ]);
+        $parser->addSubcommand('valueDictionaryStats', [
+            'help' => __('Count the attribute value dictionary for the values index. Counts only what was added since the last run, and everything once a week. The values index queues it once a day when background workers run; without them, run it daily from cron.'),
+            'parser' => [
+                'arguments' => [
+                    'jobId' => ['help' => __('Job ID'), 'required' => false],
+                ],
+                'options' => [
+                    'full' => [
+                        'help' => __('Recount every value instead of only the new ones.'),
+                        'default' => false,
+                        'boolean' => true,
+                    ],
+                ],
+            ],
+        ]);
         $parser->addSubcommand('optimiseTables', [
             'help' => __('Optimise database tables.'),
         ]);
@@ -138,6 +162,22 @@ class AdminShell extends AppShell
         ]);
         $parser->addSubcommand('redisReady', [
             'help' => __('Check if it is possible connect to Redis.'),
+        ]);
+        $parser->addSubcommand('redisRepairSerialization', [
+            'help' => __('Rewrite the values in Redis that were stored PHP-serialized back to their raw form.'),
+            'parser' => [
+                'arguments' => [
+                    'jobId' => ['help' => __('Job to report progress to.'), 'required' => false],
+                ],
+                'options' => [
+                    'dry-run' => [
+                        'short' => 'd',
+                        'help' => __('Count what would be repaired, without changing anything.'),
+                        'default' => false,
+                        'boolean' => true,
+                    ],
+                ],
+            ],
         ]);
         $parser->addSubcommand('securityAudit', [
             'help' => __('Run security audit.'),
@@ -203,6 +243,9 @@ class AdminShell extends AppShell
                     ],
                 ],
             ],
+        ]);
+        $parser->addSubcommand('runUpgrade', [
+            'help' => __('Upgrade the database to this version in one offline run: take the instance offline and stop the background workers, apply every pending update (the numeric ones first, then the migrations, with the attribute value conversion where it is due), then restart the workers and bring the instance back. A run that stops leaves the instance offline; running it again carries on.'),
         ]);
         $parser->addSubcommand('migrationCreate', [
             'help' => __('Scaffold a new migration class from the stub.'),
@@ -272,7 +315,7 @@ class AdminShell extends AppShell
     public function jobForgot()
     {
         if (empty($this->args[0])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Forgot']);
+            $this->error('Usage: MISP/app/Console/cake Admin jobForgot [email] [ip] [job_id]');
         }
 
         $email = $this->args[0];
@@ -355,48 +398,32 @@ class AdminShell extends AppShell
 
     public function restartWorkers()
     {
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            try {
-                $this->getBackgroundJobsTool()->restartWorkers(true);
-            } catch (Throwable $e) {
-                $this->error(__('Could not restart the workers'), $e->getMessage());
-            }
-        } else {
-            $this->Server->restartWorkers();
+        try {
+            $this->getBackgroundJobsTool()->restartWorkers(true);
+        } catch (Throwable $e) {
+            $this->error(__('Could not restart the workers'), $e->getMessage());
         }
         echo PHP_EOL . 'Workers restarted.' . PHP_EOL;
     }
 
     public function restartWorker()
     {
-        $simpleBackgroundJobs = (bool)Configure::read('SimpleBackgroundJobs.enabled');
-
-        // Supervisor identifies its programs by name, CakeResque by PID.
-        if (empty($this->args[0]) || (!$simpleBackgroundJobs && !is_numeric($this->args[0]))) {
+        if (empty($this->args[0])) {
             $this->error('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Restart a worker']);
         }
 
         $worker = $this->args[0];
-        if ($simpleBackgroundJobs) {
-            try {
-                $tool = $this->getBackgroundJobsTool();
-                $tool->stopWorker($worker, true);
-                if (is_numeric($worker)) {
-                    $tool->restartDeadWorkers(true);
-                } else {
-                    $tool->startWorker($worker, true);
-                }
-                $response = __('Worker restarted.');
-            } catch (Throwable $e) {
-                $response = __('Could not restart the worker. Reason: %s', $e->getMessage());
-            }
-        } else {
-            $result = $this->Server->restartWorker($worker);
-            if ($result === true) {
-                $response = __('Worker restarted.');
+        try {
+            $tool = $this->getBackgroundJobsTool();
+            $tool->stopWorker($worker, true);
+            if (is_numeric($worker)) {
+                $tool->restartDeadWorkers(true);
             } else {
-                $response = __('Could not restart the worker. Reason: %s', $result);
+                $tool->startWorker($worker, true);
             }
+            $response = __('Worker restarted.');
+        } catch (Throwable $e) {
+            $response = __('Could not restart the worker. Reason: %s', $e->getMessage());
         }
         echo sprintf(
             '%s%s%s',
@@ -408,21 +435,15 @@ class AdminShell extends AppShell
 
     public function killWorker()
     {
-        $simpleBackgroundJobs = (bool)Configure::read('SimpleBackgroundJobs.enabled');
-
-        if (empty($this->args[0]) || (!$simpleBackgroundJobs && !is_numeric($this->args[0]))) {
+        if (empty($this->args[0])) {
             $this->error('Usage: ' . $this->Server->command_line_functions['worker_management_tasks']['data']['Kill a worker']);
         }
 
         $worker = $this->args[0];
-        if ($simpleBackgroundJobs) {
-            try {
-                $this->getBackgroundJobsTool()->stopWorker($worker, true);
-            } catch (Throwable $e) {
-                $this->error(__('Could not kill the worker'), $e->getMessage());
-            }
-        } else {
-            $this->Server->killWorker($worker, false);
+        try {
+            $this->getBackgroundJobsTool()->stopWorker($worker, true);
+        } catch (Throwable $e) {
+            $this->error(__('Could not kill the worker'), $e->getMessage());
         }
         echo sprintf(
             '%s%s%s',
@@ -439,16 +460,12 @@ class AdminShell extends AppShell
         }
 
         $queue = $this->args[0];
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            try {
-                if (!$this->getBackgroundJobsTool()->startWorkerByQueue($queue)) {
-                    $this->error(__('Could not start a worker for queue %s', $queue), __('No stopped worker found for that queue.'));
-                }
-            } catch (Throwable $e) {
-                $this->error(__('Could not start the worker'), $e->getMessage());
+        try {
+            if (!$this->getBackgroundJobsTool()->startWorkerByQueue($queue)) {
+                $this->error(__('Could not start a worker for queue %s', $queue), __('No stopped worker found for that queue.'));
             }
-        } else {
-            $this->Server->startWorker($queue);
+        } catch (Throwable $e) {
+            $this->error(__('Could not start the worker'), $e->getMessage());
         }
         echo sprintf(
             '%s%s%s',
@@ -710,24 +727,6 @@ class AdminShell extends AppShell
         }
     }
 
-    public function prune_update_logs()
-    {
-        if (empty($this->args[0]) || empty($this->args[1])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Prune update logs']);
-        }
-
-        $jobId = $this->args[0];
-        $user_id = $this->args[1];
-        $user = $this->User->getAuthUser($user_id);
-        $this->loadModel('Job');
-        $this->Job->id = $jobId;
-        $this->loadModel('Log');
-        $this->Log->pruneUpdateLogs($jobId, $user);
-        $this->Job->saveField('progress', 100);
-        $this->Job->saveField('message', 'Job done.');
-        $this->Job->saveField('status', 4);
-    }
-
     public function getWorkers()
     {
         $result = $this->Server->workerDiagnostics($workerIssueCount);
@@ -842,15 +841,244 @@ class AdminShell extends AppShell
         $this->AdminSetting->resetUpdateFailNumber();
         $this->__assertOsUserMayWrite();
         $this->out('Executing all updates to bring the database up to date with the current version.');
+        $this->__clearUpdateLock();
+        $processId = empty($this->args[0]) ? false : $this->args[0];
+        $pendingBefore = $this->__pendingUpdateCount();
+        try {
+            // Run by hand, not by a worker: try deferred migrations again now.
+            $this->Server->runUpdates(true, false, $processId, true, $processId === false);
+            $this->Server->cleanCacheFiles();
+            $this->out('All updates completed.');
+        } finally {
+            if ($this->__pendingUpdateCount() < $pendingBefore) {
+                $this->__adviseWebRestart();
+            }
+        }
+    }
+
+    /**
+     * The whole upgrade in one offline run. A run that stops leaves the
+     * instance offline, its schema possibly half converted; a re-run carries on,
+     * down to bringing the instance back after the last update.
+     *
+     * @return void
+     */
+    public function runUpgrade()
+    {
+        $this->__assertOsUserMayWrite();
+        // A killed run can leave a table list cached from before its DDL, and
+        // this process has read it already.
+        $this->Server->cleanCacheFiles();
+        $this->Server->getMigrationManager()->inspector()->disableSchemaCache();
+        $this->__clearUpdateLock();
+        $pending = array_keys($this->Server->pendingUpdates());
+        if (empty($pending)) {
+            $this->out(__('Nothing to upgrade: every update has been applied.'));
+            $unfinished = $this->AdminSetting->getSetting(self::UPGRADE_MARKER) !== false;
+            if ($unfinished && !Configure::read('MISP.live')) {
+                $this->out(__('An earlier runUpgrade stopped after its last update; finishing it.'));
+                $this->__finishUpgrade();
+            } elseif ($unfinished) {
+                // Brought back by hand: restarting the workers now could kill a job they run.
+                $this->__clearUpgradeMarker();
+            } elseif (!Configure::read('MISP.live')) {
+                $this->out(__('The instance is offline; Console/cake Admin live 1 brings it back.'));
+            }
+            return;
+        }
+        $manager = $this->Server->getMigrationManager();
+        $migrations = array_values(array_filter($pending, function ($update) use ($manager) {
+            return is_string($update) && $manager->has($update);
+        }));
+        $this->AdminSetting->resetUpdateFailNumber();
+        $manager->setReporter(array($this, 'reportMigration'));
+        if ($this->__onBareTerminal()) {
+            $this->out('<warning>' . __('This terminal is not inside screen or tmux. On a large instance the upgrade runs for hours, and a closed session stops it halfway while the database server carries on with the statement it was on. Consider running it in screen or tmux.') . '</warning>');
+        }
+
+        $this->AdminSetting->changeSetting(self::UPGRADE_MARKER, time());
+        $this->out(__('Taking the instance offline.'));
+        if (!$this->__setLive(false)) {
+            $this->error(__('Could not take the instance offline: MISP.live could not be saved in Redis or in the PHP config file.'));
+        }
+        // A job left running can hold the locks a rebuild waits for.
+        if (Configure::read('MISP.background_jobs')) {
+            $this->out(__('Stopping the background workers.'));
+            try {
+                $this->getBackgroundJobsTool()->stopWorkers(true);
+            } catch (Throwable $e) {
+                $this->out('<warning>' . __('Could not stop the workers (%s); a job still running can hold up a rebuild.', $e->getMessage()) . '</warning>');
+            }
+        }
+        if (count($migrations) < count($pending)) {
+            $this->out(__('Numeric updates:'));
+            $this->__upgradeUntil(empty($migrations) ? null : $migrations[0], true);
+        }
+        if (in_array(self::UPGRADE_VALUE_DROP, $migrations, true)) {
+            $this->__upgradeUntil(self::UPGRADE_VALUE_DROP, false);
+            foreach (self::UPGRADE_VALUE_STEPS as $step) {
+                $this->out(__('Converting the attribute values: Console/cake AttributeValue %s', $step));
+                $this->dispatchShell('AttributeValue', $step);
+            }
+        }
+        $this->__upgradeUntil(null, false);
+        $this->__upgradeUntil(null, true);
+        $this->__finishUpgrade();
+    }
+
+    /**
+     * The end of a run, after its last update: the marker goes once the
+     * instance is live.
+     *
+     * @return void
+     */
+    private function __finishUpgrade()
+    {
+        $this->Server->cleanCacheFiles();
+        $this->Server->getMigrationManager()->inspector()->flushSchemaCacheFiles();
+
+        // A worker started before the run still knows the tables as they were.
+        if (Configure::read('MISP.background_jobs')) {
+            $this->out(__('Restarting the background workers.'));
+            try {
+                $this->getBackgroundJobsTool()->restartWorkers(true);
+            } catch (Throwable $e) {
+                $this->out('<warning>' . __('Could not restart the workers (%s): Console/cake Admin restartWorkers', $e->getMessage()) . '</warning>');
+            }
+        }
+        $this->out(__('Bringing the instance back.'));
+        if (!$this->__setLive(true)) {
+            $this->error(__('The upgrade is complete, but MISP.live could not be saved: Console/cake Admin live 1'));
+        }
+        $this->__clearUpgradeMarker();
+        $this->out(__('Upgrade complete.'));
+        $this->__adviseWebRestart();
+    }
+
+    /**
+     * Whether this runs on a terminal that a closed session takes down with
+     * it. sudo drops TMUX and STY, so the process's ancestors count too.
+     *
+     * @return bool
+     */
+    private function __onBareTerminal()
+    {
+        if (!stream_isatty(STDIN) && !stream_isatty(STDOUT)) {
+            return false;
+        }
+        if (getenv('TMUX') || getenv('STY')) {
+            return false;
+        }
+        $pid = getmypid();
+        for ($depth = 0; $depth < 64 && $pid > 1; $depth++) {
+            $stat = @file_get_contents('/proc/' . $pid . '/stat');
+            if ($stat === false) {
+                return true;
+            }
+            $open = strpos($stat, '(');
+            $close = strrpos($stat, ')');
+            if (preg_match('/^(tmux|screen)/i', substr($stat, $open + 1, $close - $open - 1))) {
+                return false;
+            }
+            $pid = (int)explode(' ', substr($stat, $close + 2))[1];
+        }
+        return true;
+    }
+
+    /**
+     * @return void
+     */
+    private function __clearUpgradeMarker()
+    {
+        $this->AdminSetting->deleteAll(array('AdminSetting.setting' => self::UPGRADE_MARKER), false);
+    }
+
+    /**
+     * One runUpdates() pass, and a halt unless it applied everything in front
+     * of $stopBefore (everything, without one).
+     *
+     * @param string|null $stopBefore
+     * @param bool $verbose
+     * @return void
+     */
+    private function __upgradeUntil($stopBefore, $verbose)
+    {
+        try {
+            $this->Server->runUpdates($verbose, false, false, true, true, $stopBefore);
+        } catch (Exception $e) {
+            $this->__upgradeHalted(null, array(), $e->getMessage());
+        }
+        $left = array_keys($this->Server->pendingUpdates());
+        $next = empty($left) ? null : $left[0];
+        if ($next !== $stopBefore) {
+            $this->__upgradeHalted($next, $left);
+        }
+    }
+
+    /**
+     * @param string|int|null $next The update the run stopped at.
+     * @param array $left Every update still pending.
+     * @param string|null $reason Why no update could be attempted.
+     * @return void
+     */
+    private function __upgradeHalted($next, array $left, $reason = null)
+    {
+        $manager = $this->Server->getMigrationManager();
+        $manager->inspector()->flushSchemaCacheFiles();
+        $lines = $reason === null ? array() : array($reason);
+        if ($next !== null && is_string($next) && $manager->has($next)) {
+            $ledger = $manager->ledger();
+            $status = isset($ledger[$next]['status']) ? $ledger[$next]['status'] : __('not attempted');
+            $lines[] = __('Stopped at %s (%s).', $next, $status);
+            if (!empty($ledger[$next]['error'])) {
+                foreach (explode(PHP_EOL, $ledger[$next]['error']) as $line) {
+                    $lines[] = '  ' . $line;
+                }
+            }
+        } elseif ($next !== null) {
+            $lines[] = __('Stopped at the numeric update %s; the logs say why.', $next);
+        }
+        if (!empty($left)) {
+            $lines[] = __n('%s update is still pending.', '%s updates are still pending.', count($left), count($left));
+        }
+        $lines[] = Configure::read('MISP.background_jobs')
+            ? __('The instance stays offline and its background workers stopped. Fix the cause and run Console/cake Admin runUpgrade again: it carries on from there.')
+            : __('The instance stays offline. Fix the cause and run Console/cake Admin runUpgrade again: it carries on from there.');
+        $this->error(__('The upgrade stopped.'), implode(PHP_EOL, $lines));
+    }
+
+    /**
+     * Run from the command line by an administrator, so a lock left behind by
+     * an earlier run that died is not one to wait for.
+     *
+     * @return void
+     */
+    private function __clearUpdateLock()
+    {
         $lock = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'update_locked')));
         if (!empty($lock)) {
             $this->AdminSetting->delete($lock['AdminSetting']['id']);
         }
-        $processId = empty($this->args[0]) ? false : $this->args[0];
-        // Run by hand, not by a worker: try deferred migrations again now.
-        $this->Server->runUpdates(true, false, $processId, true, $processId === false);
-        $this->Server->cleanCacheFiles();
-        $this->out('All updates completed.');
+    }
+
+    /**
+     * @return int
+     */
+    private function __pendingUpdateCount()
+    {
+        $version = $this->AdminSetting->getSetting('db_version');
+        return $this->Server->countPendingUpdates($version === false ? '0' : $version);
+    }
+
+    /**
+     * Cake's schema caches live in the web server's APCu where core.php picks
+     * it, out of reach of this process's flush.
+     *
+     * @return void
+     */
+    private function __adviseWebRestart()
+    {
+        $this->out('<warning>' . __('Restart PHP-FPM or Apache now (systemctl restart php8.x-fpm, or apache2 with mod_php). The web server keeps its own copy of the table list in memory (APCu), which a command line run cannot clear; until the restart, pages can fail with a missing table error.') . '</warning>');
     }
 
     /**
@@ -1153,6 +1381,9 @@ class AdminShell extends AppShell
 
         // Whatever runs next must not describe a table from before this ran.
         $manager->inspector()->flushSchemaCacheFiles();
+        if (in_array(true, $results, true)) {
+            $this->__adviseWebRestart();
+        }
         if ($failures > 0) {
             $this->error(
                 __('The run stopped at a failed migration.'),
@@ -1472,6 +1703,34 @@ class AdminShell extends AppShell
         } catch (Exception $e) {
             $this->error('Redis connection is not available', $e->getMessage());
         }
+    }
+
+    public function redisRepairSerialization()
+    {
+        App::uses('RedisSerializerRepairTool', 'Tools');
+        $jobId = $this->args[0] ?? null;
+        $dryRun = !empty($this->params['dry-run']);
+        try {
+            $repairTool = new RedisSerializerRepairTool(RedisTool::connect(), $dryRun);
+            $lastPercent = -1;
+            $stats = $repairTool->run(function ($checked, $total) use ($jobId, &$lastPercent) {
+                $percent = $total ? min(99, intdiv(100 * $checked, $total)) : 0;
+                if ($percent !== $lastPercent) {
+                    $lastPercent = $percent;
+                    $this->Job->saveProgress($jobId, __('%s of about %s keys checked.', $checked, $total), $percent);
+                }
+            });
+        } catch (Exception $e) {
+            $this->Job->saveStatus($jobId, false, __('Redis repair failed: %s', $e->getMessage()));
+            $this->error(__('Redis repair failed.'), $e->getMessage());
+        }
+        if ($dryRun) {
+            $message = __('%s keys checked, %s values in %s keys would be repaired.', $stats['checked'], $stats['values'], $stats['keys']);
+        } else {
+            $message = __('%s keys checked, %s values repaired in %s keys.', $stats['checked'], $stats['values'], $stats['keys']);
+        }
+        $this->Job->saveStatus($jobId, true, $message);
+        $this->out($message);
     }
 
     public function clearBruteforce()
@@ -1841,7 +2100,7 @@ class AdminShell extends AppShell
                 empty($this->params['database']) ? null : (string)$this->params['database']
             );
             $schema = $generator->readSchema();
-            $findings = $generator->compare(new SchemaInspector($loaded), $schema);
+            $findings = $generator->compare(new SchemaInspector($loaded), $schema, $generator->readDatabaseDefaults());
         } catch (Exception $e) {
             $this->error(__('The comparison could not be run.'), $e->getMessage());
         }
@@ -1997,6 +2256,25 @@ class AdminShell extends AppShell
         $this->out(__('%s orphaned correlation removed', $count));
     }
 
+    public function valueDictionaryStats()
+    {
+        $jobId = $this->args[0] ?? null;
+        $tool = new ValueDictionaryStatsTool($this->MispAttribute);
+        try {
+            $state = $tool->snapshot(!empty($this->params['full']));
+        } catch (Exception $e) {
+            if ($jobId) {
+                $this->Job->saveStatus($jobId, false, $e->getMessage());
+            }
+            throw $e;
+        }
+        $message = __('%s distinct values counted.', number_format($state['total']));
+        if ($jobId) {
+            $this->Job->saveStatus($jobId, true, $message);
+        }
+        $this->out($message);
+    }
+
     public function optimiseTables()
     {
         $dataSource = $this->Server->getDataSource();
@@ -2083,33 +2361,7 @@ class AdminShell extends AppShell
     public function live()
     {
         if (isset($this->args[0])) {
-            $newStatus = $this->toBoolean($this->args[0]);
-            $overallSuccess = false;
-            try {
-                $redis = RedisTool::init();
-                if ($newStatus) {
-                    $redis->del('misp:live');
-                    $this->out('Set live status to True in Redis.');
-                } else {
-                    $redis->set('misp:live', '0');
-                    $this->out('Set live status to False in Redis.');
-                }
-                $overallSuccess = true;
-            } catch (Exception $e) {
-                $this->out('<warning>Redis is not reachable.</warning>');
-            }
-
-            $success = $this->Server->serverSettingsSaveValue('MISP.live', $newStatus);
-            if ($success) {
-                $this->out('Set live status in PHP config file.');
-                $overallSuccess = true;
-            } else {
-                $this->out('<warning>Could not set MISP.live in PHP config file.</warning>');
-            }
-
-            if ($overallSuccess) {
-                $this->out($newStatus ? 'MISP is now live. Users can now log in.' : 'MISP is now disabled. Only site admins can log in.');
-            } else {
+            if (!$this->__setLive($this->toBoolean($this->args[0]))) {
                 $this->error('Could not save live status in Redis or PHP config file.');
             }
         } else {
@@ -2118,6 +2370,43 @@ class AdminShell extends AppShell
             $newStatus = RedisTool::init()->get('misp:live');
             $this->out('Redis: ' . ($newStatus !== '0' ? 'True' : 'False'));
         }
+    }
+
+    /**
+     * @param bool $newStatus
+     * @return bool Whether Redis or the PHP config file took it.
+     */
+    private function __setLive($newStatus)
+    {
+        $overallSuccess = false;
+        try {
+            $redis = RedisTool::init();
+            if ($newStatus) {
+                $redis->del('misp:live');
+                $this->out('Set live status to True in Redis.');
+            } else {
+                $redis->set('misp:live', '0');
+                $this->out('Set live status to False in Redis.');
+            }
+            $overallSuccess = true;
+        } catch (Exception $e) {
+            $this->out('<warning>Redis is not reachable.</warning>');
+        }
+
+        $success = $this->Server->serverSettingsSaveValue('MISP.live', $newStatus);
+        if ($success) {
+            $this->out('Set live status in PHP config file.');
+            $overallSuccess = true;
+        } else {
+            $this->out('<warning>Could not set MISP.live in PHP config file.</warning>');
+        }
+
+        if ($overallSuccess) {
+            // Saving writes the file only; this process reads the setting too.
+            Configure::write('MISP.live', (bool)$newStatus);
+            $this->out($newStatus ? 'MISP is now live. Users can now log in.' : 'MISP is now disabled. Only site admins can log in.');
+        }
+        return $overallSuccess;
     }
 
     public function reencrypt()
@@ -2367,7 +2656,7 @@ class AdminShell extends AppShell
     public function truncateTable()
     {
         if (!isset($this->args[0])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation']);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate correlation table']);
         }
         $userId = $this->args[0];
         if ($userId) {
@@ -2382,7 +2671,7 @@ class AdminShell extends AppShell
             ];
         }
         if (empty($this->args[1])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation']);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate correlation table']);
         }
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];

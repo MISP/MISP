@@ -487,8 +487,7 @@ class ObjectSearchAcl(unittest.TestCase):
 
     fetchPaginatedObjects() found the objects holding a matching attribute through a subquery
     that carried neither the attribute ACL nor the deleted scope, so whether an object came
-    back told the user what its hidden or soft-deleted attributes held. Only the themed event
-    view serves the endpoint (MISP.enable_themes), so the class skips where it is off.
+    back told the user what its hidden or soft-deleted attributes held.
     """
 
     @classmethod
@@ -496,8 +495,6 @@ class ObjectSearchAcl(unittest.TestCase):
         warnings.simplefilter("ignore", ResourceWarning)
         cls.admin = PyMISP(url, key)
         cls.admin.global_pythonify = True
-        if not cls.admin.get_server_setting('MISP.enable_themes')['value']:
-            raise unittest.SkipTest('events/viewObjects needs MISP.enable_themes')
         cls.role_id = least_privileged_role(cls.admin, 'perm_add')
         cls.owner_org = make_org(cls.admin, 'regression object search owner org')
         cls.outsider_org = make_org(cls.admin, 'regression object search outsider org')

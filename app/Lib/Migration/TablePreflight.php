@@ -56,6 +56,9 @@ class TablePreflight
     /** Pages and tree over raw entry bytes, where the catalog has no index size to scale. */
     const PAGE_OVERHEAD = 1.5;
 
+    /** MariaDB's COPY rebuild sorts the secondary indexes in tmpdir: bytes measured over the result's index bytes. */
+    const COPY_SORT_FACTOR = 1.5;
+
     /** How many rows or values a deferral names. */
     const LISTED = 10;
 
@@ -254,12 +257,12 @@ class TablePreflight
         if (isset(self::WIDTHS[$type])) {
             return self::WIDTHS[$type];
         }
-        if ($type === 'string' || $type === 'varbinary' || $type === 'binary' || isset(self::TEXT_BYTES[$type])) {
+        if (in_array($type, array('string', 'varbinary', 'binary', 'longblob'), true) || isset(self::TEXT_BYTES[$type])) {
             $chars = $prefix !== null ? $prefix : $shape['length'];
             if ($chars === null) {
                 return $cap;
             }
-            $bytes = $chars * ($type === 'varbinary' || $type === 'binary' ? 1 : $shape['bytesPerChar']);
+            $bytes = $chars * (in_array($type, array('varbinary', 'binary', 'longblob'), true) ? 1 : $shape['bytesPerChar']);
             return $cap === null ? $bytes : min($bytes, $cap);
         }
         return $cap === null ? 0 : $cap;
@@ -918,12 +921,36 @@ class TablePreflight
             $why = sprintf('the unique key %s compares %s under %s from now on', $name, implode(', ', $loosened), $collation['collate']);
         }
         $this->defer[] = sprintf(
-            '%s: %s, and rows share a value of it: %s%s. Merge or rename those rows, then run the update again.',
+            '%s: %s, and rows share a value of it: %s%s. %s, then run the update again.',
             $this->table,
             $why,
             implode('; ', $clashes),
-            count($rows) >= self::LISTED ? '; ...' : ''
+            count($rows) >= self::LISTED ? '; ...' : '',
+            $this->keysByIdentifier($index)
+                ? 'Those rows stand for the same thing: keep one of them and delete the others'
+                : 'Merge or rename those rows'
         );
+    }
+
+    /**
+     * @param array $index A target unique key.
+     * @return bool Whether it keys rows by an identifier (an ascii uuid or
+     *   hash column) and by no name or other text.
+     */
+    private function keysByIdentifier(array $index)
+    {
+        $identifier = false;
+        foreach (isset($index['column']) ? $index['column'] : array() as $column) {
+            $spec = $this->target['columns'][$column];
+            if (!in_array($spec['type'], TableConverger::STRING_TYPES, true)) {
+                continue;
+            }
+            if (!isset($spec['collate']) || $spec['collate'] !== Collation::ASCII) {
+                return false;
+            }
+            $identifier = true;
+        }
+        return $identifier;
     }
 
     /**
@@ -1003,7 +1030,8 @@ class TablePreflight
      * Free disk for what the run writes, estimated from the target (the live
      * table may lack indexes the target has): the new copy of a rebuilt table
      * beside the old one, or the new indexes; plus the sort files of an index
-     * built in place, in tmpdir. The catalog's index size is scaled by the
+     * built in place or by MariaDB's copy, in tmpdir (MySQL's copy inserts row
+     * by row and writes none). The catalog's index size is scaled by the
      * target's entry bytes over the live ones, which keeps the real width of
      * the strings in it.
      *
@@ -1058,8 +1086,11 @@ class TablePreflight
             $need = array('datadir' => $newIndexes, 'tmpdir' => $newIndexes);
             $what = 'building the new indexes';
         } else {
-            $need = array('datadir' => $copy, 'tmpdir' => $kind === 'inplace' ? $indexes : 0.0);
+            $sorted = $kind === 'inplace' ? $indexes
+                : ($this->inspector->isMariaDb() ? $indexes * self::COPY_SORT_FACTOR : 0.0);
+            $need = array('datadir' => $copy, 'tmpdir' => $sorted);
             $what = 'the rebuild (a new copy of the table beside the old one)';
+            $sortWhat = "the rebuild's index sort files";
         }
         $this->plan['forecast'] = array(
             'kind' => $kind,
@@ -1067,7 +1098,7 @@ class TablePreflight
             'bytes' => $size['data_in_bytes'] + $size['index_in_bytes'],
             'need' => $need['datadir'] + $need['tmpdir'],
         );
-        $this->disk($need, $what);
+        $this->disk($need, $what, isset($sortWhat) ? $sortWhat : $what);
     }
 
     /**
@@ -1140,9 +1171,10 @@ class TablePreflight
     /**
      * @param array $need 'datadir', 'tmpdir' => bytes
      * @param string $what
+     * @param string $tmpWhat What fills tmpdir, where it is checked apart.
      * @return void
      */
-    private function disk(array $need, $what)
+    private function disk(array $need, $what, $tmpWhat)
     {
         $storage = $this->inspector->storage();
         if ($storage === null) {
@@ -1158,10 +1190,13 @@ class TablePreflight
             return;
         }
         $checks = $storage['datadir']['device'] === $storage['tmpdir']['device']
-            ? array(array($storage['datadir'], $need['datadir'] + $need['tmpdir']))
-            : array(array($storage['datadir'], $need['datadir']), array($storage['tmpdir'], $need['tmpdir']));
+            ? array(array($storage['datadir'], $need['datadir'] + $need['tmpdir'], $what))
+            : array(
+                array($storage['datadir'], $need['datadir'], $what),
+                array($storage['tmpdir'], $need['tmpdir'], $tmpWhat)
+            );
         foreach ($checks as $check) {
-            list($place, $bytes) = $check;
+            list($place, $bytes, $label) = $check;
             if ($bytes <= 0) {
                 continue;
             }
@@ -1169,7 +1204,7 @@ class TablePreflight
                 $this->defer[] = sprintf(
                     '%s: %s needs about %s free in %s, and %s is free. Free up space there, then run the update again.',
                     $this->table,
-                    $what,
+                    $label,
                     self::bytes($bytes),
                     $place['path'],
                     self::bytes($place['free'])
@@ -1178,7 +1213,7 @@ class TablePreflight
                 $this->plan['notes'][] = sprintf(
                     '%s: %s needs about %s in %s, and %s is free: close to the estimate',
                     $this->table,
-                    $what,
+                    $label,
                     self::bytes($bytes),
                     $place['path'],
                     self::bytes($place['free'])

@@ -242,6 +242,33 @@ class TableConvergerTest extends TestCase
         $this->assertSame(array('type'), $plan['change']['request']['differs']);
     }
 
+    /**
+     * A longblob target widens a BLOB; a binary target keeps a LONGBLOB, also
+     * when something else about the column changes.
+     */
+    public function testBlobSizesAreComparedOneWay()
+    {
+        $target = self::TARGET;
+        $target['columns']['request'] = array('type' => 'longblob', 'null' => true);
+        $live = self::mysqlLive($target);
+        $this->assertTrue(TableConverger::isEmpty(TableConverger::plan($this->mysqlInspector($live), 'events', $target)));
+        $this->assertTrue(TableConverger::isEmpty(TableConverger::plan($this->pgsqlInspector(self::pgsqlLive('events', $target)), 'events', $target)));
+
+        $live['columns']['request'] = self::mysqlColumn('blob', array('null' => true));
+        $plan = TableConverger::plan($this->mysqlInspector($live), 'events', $target);
+        $this->assertSame(array('type'), $plan['change']['request']['differs']);
+        $this->assertSame('longblob', $plan['change']['request']['type']);
+
+        $target['columns']['request'] = array('type' => 'binary', 'null' => true);
+        $live['columns']['request'] = self::mysqlColumn('longblob', array('null' => true));
+        $this->assertTrue(TableConverger::isEmpty(TableConverger::plan($this->mysqlInspector($live), 'events', $target)));
+
+        $live['columns']['request'] = self::mysqlColumn('longblob', array('null' => false));
+        $plan = TableConverger::plan($this->mysqlInspector($live), 'events', $target);
+        $this->assertSame(array('null'), $plan['change']['request']['differs']);
+        $this->assertSame('longblob', $plan['change']['request']['type']);
+    }
+
     // ---------------------------------------------------------------- indexes
 
     /**
@@ -389,6 +416,35 @@ class TableConvergerTest extends TestCase
         );
         $this->assertStringStartsWith('DO $$', $sql[5]);
         $this->assertCount(6, $sql);
+    }
+
+    /**
+     * A prefix over text in a composite index has no PostgreSQL spelling: the
+     * index is MySQL's alone, and a PostgreSQL box that built it as a btree
+     * over whole values loses it.
+     */
+    public function testACompositeTextPrefixIndexIsMysqlOnly()
+    {
+        $target = self::TARGET;
+        $target['indexes']['idx_evt_org_info'] = array('column' => array('org_id', 'info'), 'length' => array('info' => 191));
+
+        $mysql = TableConverger::plan($this->mysqlInspector(self::mysqlLive(self::TARGET)), 'events', $target);
+        $this->assertSame(array('org_id', 'info'), $mysql['addIndexes'][0]['column']);
+        $this->assertTrue(TableConverger::isEmpty(
+            TableConverger::plan($this->pgsqlInspector(self::pgsqlLive('events', $target)), 'events', $target)
+        ));
+
+        $live = self::pgsqlLive('events', $target);
+        $live['indexes']['idx_evt_org_info'] = self::liveIndex('idx_evt_org_info', array('org_id', 'info'));
+        $schema = new SchemaBuilder($this->pgsqlGrammar());
+        $plan = TableConverger::converge($this->pgsqlInspector($live), $schema, 'events', $target);
+        $this->assertSame(array('idx_evt_org_info' => 'retired'), $plan['dropIndexes']);
+        $this->assertSame(array('DROP INDEX "idx_evt_org_info";'), $schema->toSql());
+
+        $schema = $this->mysqlSchema();
+        TableConverger::converge($this->mysqlInspector(null), $schema, 'events', $target);
+        $this->assertStringContainsString('ADD INDEX `idx_evt_org_info` (`org_id`, `info`(191))', implode("\n", $schema->toSql()));
+        $this->assertStringNotContainsString('idx_evt_org_info', implode("\n", $schema->toSql($this->pgsqlGrammar())));
     }
 
     public function testPostgresComparesAnIndexWithItsOwnStatementByMethod()
@@ -669,17 +725,22 @@ class TableConvergerTest extends TestCase
         }
         $indexes = array('PRIMARY' => self::liveIndex($table . '_pkey', array($key), true));
         foreach ($target['indexes'] as $name => $index) {
+            if (BaselineGenerator::isMysqlOnly(array('column' => isset($index['column']) ? $index['column'] : array($name)) + $index, $target['columns'])) {
+                continue;
+            }
             $physical = isset($index['pgsql']['name']) ? $index['pgsql']['name']
                 : (strpos($name, 'idx_') === 0 ? $name : 'idx_' . $table . '_' . $name);
             $method = 'btree';
             $indexColumns = isset($index['column']) ? $index['column'] : array();
+            $unique = !empty($index['unique']);
             if (isset($index['pgsql']['sql'])) {
                 $method = preg_match('/USING (\w+)/', $index['pgsql']['sql'], $m) ? $m[1] : 'btree';
                 $indexColumns = array('(expression)');
-            } elseif (isset($index['length']) && empty($index['unique'])) {
+                $unique = (bool)preg_match('/^CREATE UNIQUE /i', $index['pgsql']['sql']);
+            } elseif (BaselineGenerator::needsHashRewrite($index, $target['columns'])) {
                 $method = 'hash';
             }
-            $indexes[$physical] = self::liveIndex($physical, $indexColumns, !empty($index['unique']), array(), $method);
+            $indexes[$physical] = self::liveIndex($physical, $indexColumns, $unique, array(), $method);
         }
         $indexes['PRIMARY']['primary'] = true;
         return array(

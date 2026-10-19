@@ -64,7 +64,7 @@ if (isset($object['Server'])) {
         }
         foreach ($server['event_uuids'] as $k => $event_uuid) {
             $liContents = '';
-            if ($isSiteAdmin) {
+            if ($isSiteAdmin || $hostOrgUser) {
                 $liContents .= sprintf(
                     '<a href="%s/servers/previewEvent/%s/%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
                     $baseurl,

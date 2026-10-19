@@ -20,14 +20,15 @@ $canPull = !empty($server['Server']['pull']) && !empty($isSiteAdmin);
 
 $headerTitle = h($server['Server']['name'] ?: $server['Server']['url']);
 $headerDescription = __('Remote instance event index preview');
-$headerActions = [
-    [
+$headerActions = [];
+if (!empty($isSiteAdmin)) {
+    $headerActions[] = [
         'type' => 'navigate',
         'label' => __('Back to servers'),
         'icon' => 'arrow-left',
         'url' => $baseurl . '/servers/index'
-    ]
-];
+    ];
+}
 $this->set('headerTitle', $headerTitle);
 $this->set('headerDescription', $headerDescription);
 $this->set('headerActions', $headerActions);

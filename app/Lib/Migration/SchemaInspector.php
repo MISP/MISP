@@ -217,6 +217,10 @@ class SchemaInspector
         // spelled here the way the DSL and the MySQL driver spell it and
         // hasIndex() can find it.
         foreach ($indexes as $name => $index) {
+            // Mysql::index() leaves the flag off a FULLTEXT index.
+            if (!isset($index['unique'])) {
+                $indexes[$name]['unique'] = 0;
+            }
             if (!isset($index['column'])) {
                 continue;
             }
@@ -364,6 +368,29 @@ class SchemaInspector
             'collation' => $collation,
             'charset' => $collation === null ? null : self::charsetOfCollation($collation),
         );
+    }
+
+    /**
+     * The connected database's default charset and collation, which a table
+     * created without its own takes.
+     *
+     * @return array|null 'charset' and 'collation'; null on PostgreSQL, which
+     *   has no such default to change.
+     */
+    public function databaseDefaults()
+    {
+        if (!$this->isMysql()) {
+            return null;
+        }
+        $rows = $this->fetchRows(sprintf(
+            'SELECT DEFAULT_CHARACTER_SET_NAME AS charset, DEFAULT_COLLATION_NAME AS collation'
+                . ' FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = %s;',
+            $this->db->value($this->databaseName(), 'string')
+        ));
+        if (empty($rows) || !isset($rows[0]['collation'])) {
+            return null;
+        }
+        return array('charset' => $rows[0]['charset'], 'collation' => $rows[0]['collation']);
     }
 
     /**
@@ -964,6 +991,104 @@ class SchemaInspector
             'SELECT ID AS id, USER AS user, COMMAND AS command, TIME AS seconds, STATE AS state'
             . ' FROM information_schema.PROCESSLIST'
             . " WHERE ID <> CONNECTION_ID() AND DB = DATABASE() AND COMMAND NOT IN ('Sleep', 'Daemon', 'Binlog Dump');"
+        );
+    }
+
+    /**
+     * Statements other connections are running that change a table's
+     * definition, such as the one an interrupted run left behind: the server
+     * carries on with it until it ends.
+     *
+     * @param string $table
+     * @return array Rows with id, seconds and progress (the server's own
+     *   figure as text; null where it reports none).
+     */
+    public function ddlOnTable($table)
+    {
+        $like = $this->db->value('%' . $table . '%', 'string');
+        if ($this->isMysql()) {
+            $rows = $this->fetchRows(
+                'SELECT ID AS id, TIME AS seconds, INFO AS info'
+                . ($this->isMariaDb() ? ', STAGE AS stage, MAX_STAGE AS max_stage, PROGRESS AS progress' : '')
+                . ' FROM information_schema.PROCESSLIST'
+                . " WHERE ID <> CONNECTION_ID() AND DB = DATABASE() AND COMMAND = 'Query' AND INFO LIKE " . $like . ';'
+            );
+        } else {
+            $rows = $this->fetchRows(
+                'SELECT a.pid AS id, CAST(EXTRACT(EPOCH FROM now() - a.query_start) AS bigint) AS seconds,'
+                . ' a.query AS info, p.phase, p.blocks_done, p.blocks_total'
+                . ' FROM pg_stat_activity a LEFT JOIN pg_stat_progress_create_index p ON p.pid = a.pid'
+                . " WHERE a.pid <> pg_backend_pid() AND a.datname = current_database() AND a.state = 'active'"
+                . ' AND a.query ILIKE ' . $like . ';'
+            );
+        }
+        $running = array();
+        foreach ($rows as $row) {
+            if (preg_match(self::ddlPattern($table), (string)$row['info'])) {
+                $running[] = array(
+                    'id' => (int)$row['id'],
+                    'seconds' => (int)$row['seconds'],
+                    'progress' => $this->ddlProgress($row),
+                );
+            }
+        }
+        return $running;
+    }
+
+    /**
+     * A statement that rebuilds a table or builds an index on it, on either
+     * engine, its name quoted or not and qualified or not. Anchored after the
+     * leading comments, so a query that only mentions such a statement is not one.
+     *
+     * @param string $table
+     * @return string
+     */
+    public static function ddlPattern($table)
+    {
+        $name = '(?:[`"]?[^\s.`"]+[`"]?\.)?[`"]?' . preg_quote($table, '/') . '[`"]?(?![\w$])';
+        return '/^\s*(?:\/\*.*?\*\/\s*)*(?:ALTER\s+TABLE(?:\s+IF\s+EXISTS)?(?:\s+ONLY)?|OPTIMIZE\s+TABLE'
+            . '|CREATE\s+(?:UNIQUE\s+)?INDEX\b[^;]*?\sON(?:\s+ONLY)?)\s+' . $name . '/is';
+    }
+
+    /**
+     * @param array $row A ddlOnTable() candidate.
+     * @return string|null
+     */
+    private function ddlProgress(array $row)
+    {
+        if (array_key_exists('max_stage', $row)) {
+            if ((int)$row['max_stage'] === 0) {
+                return null;
+            }
+            return sprintf('stage %d of %d, %.1f %%', $row['stage'], $row['max_stage'], $row['progress']);
+        }
+        if (array_key_exists('blocks_total', $row)) {
+            if ($row['phase'] === null) {
+                return null;
+            }
+            return (int)$row['blocks_total'] > 0
+                ? sprintf('%s, %.1f %%', $row['phase'], 100 * $row['blocks_done'] / $row['blocks_total'])
+                : $row['phase'];
+        }
+        // MySQL reports it only while the alter-table stages are instrumented.
+        try {
+            $stage = $this->fetchRows(sprintf(
+                'SELECT s.EVENT_NAME AS event, s.WORK_COMPLETED AS done, s.WORK_ESTIMATED AS estimated'
+                . ' FROM performance_schema.events_stages_current s'
+                . ' JOIN performance_schema.threads t ON t.THREAD_ID = s.THREAD_ID'
+                . ' WHERE t.PROCESSLIST_ID = %d;',
+                $row['id']
+            ));
+        } catch (Exception $e) {
+            return null;
+        }
+        if (empty($stage) || empty($stage[0]['estimated'])) {
+            return null;
+        }
+        return sprintf(
+            '%s, %.1f %%',
+            preg_replace('#^stage/innodb/#', '', $stage[0]['event']),
+            100 * $stage[0]['done'] / $stage[0]['estimated']
         );
     }
 

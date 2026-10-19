@@ -236,6 +236,9 @@ if (!class_exists('MigrationTestInspector', false)) {
         /** @var array|null What storage() reports. */
         public $storage;
 
+        /** @var array|null What databaseDefaults() reports. */
+        public $database;
+
         /** @var string */
         private $readsFlavour;
 
@@ -266,6 +269,14 @@ if (!class_exists('MigrationTestInspector', false)) {
         public function otherActiveSessions()
         {
             return $this->sessions;
+        }
+
+        /** @var array table => what ddlOnTable() reports. */
+        public $ddl = array();
+
+        public function ddlOnTable($table)
+        {
+            return isset($this->ddl[$table]) ? $this->ddl[$table] : array();
         }
 
         public function tables()
@@ -331,6 +342,11 @@ if (!class_exists('MigrationTestInspector', false)) {
         public function storage()
         {
             return $this->storage;
+        }
+
+        public function databaseDefaults()
+        {
+            return $this->database;
         }
 
         public function disableSchemaCache()

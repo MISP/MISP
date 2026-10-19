@@ -5,20 +5,18 @@
  *
  * The signal-strength reading of the fact that makes the relevance axis say
  * *timeline uncertain*: no `first_seen` on any occurrence, so nothing
- * records when the value was seen — only when its row was last
- * written.
+ * records when the value was seen — only when MISP recorded it.
  *
  * Take a phishing URL encoded two months after the incident.
  * Relevance says *the timeline is uncertain*; this says the quieter
  * thing next to it — **a record that cannot date its own observations
  * is a weaker record** — and the two readings have separate homes.
  *
- * **It does not measure encoding lag.** `Event.date` against
- * `Attribute.timestamp` looks like one and is not: `timestamp` is
- * last-modified — an edit, a tag, a sync update or a delete bumps it —
- * and `Event.date` is typed by an analyst, so it carries the same delay
- * the measurement would be looking for. MISP stores no created date for
- * an attribute at all.
+ * **It does not measure encoding lag.** `Event.date` against the
+ * attribute's record date looks like one and is not: `Event.date` is
+ * typed by an analyst, so it carries the same delay the measurement
+ * would be looking for, whether the record date is `created` or the
+ * last-modified `timestamp`.
  *
  * **Aggregate evidence, not row evidence.** The fact arrives as a
  * single-row `SUM` over `first_seen`, so it is cheap at any
@@ -83,18 +81,6 @@ class RecordTemporalPrecision extends ValueSignalBase
                 'label' => __('Points when none does'),
             ),
         );
-        /*
-         * `lagged` points and their `lag_days` threshold were here,
-         * deducting 4 for an encoding date that "lags the event". They
-         * are gone with the measurement behind them: `Attribute
-         * .timestamp` is last-modified, not created, and `Event.date`
-         * is typed by an analyst — see `Value::recordSummaryFor()`.
-         * This signal was the only place that unsound number reached
-         * the ledger, so removing it takes it out of the verdict.
-         *
-         * What remains is the fact MISP can actually answer: does any
-         * occurrence carry `first_seen`.
-         */
         $this->config_schema = array();
     }
 

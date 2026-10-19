@@ -1988,14 +1988,6 @@ class AttributesController extends AppController
         return [$attributes, $sightingsData];
     }
 
-    public function checkComposites()
-    {
-        if (!self::_isAdmin()) {
-            throw new NotFoundException();
-        }
-        $this->set('fails', $this->MispAttribute->checkComposites());
-    }
-
     /**
      * Lightweight AJAX endpoint used by the add/edit attribute form to give the
      * user immediate feedback on whether the entered value matches the format
@@ -2692,11 +2684,7 @@ class AttributesController extends AppController
                 if ($temp['name'] === $type) {
                     $found = true;
                     $format = isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified';
-                    if (isset($temp['meta']['config'])) {
-                        foreach ($temp['meta']['config'] as $conf) {
-                            $options[$conf] = Configure::read('Plugin.Enrichment_' . $type . '_' . $conf);
-                        }
-                    }
+                    $options = Module::moduleConfig($temp);
                     break;
                 }
             }
@@ -4123,25 +4111,6 @@ class AttributesController extends AppController
         }
         file_put_contents(APP . '/tmp/logs/missing_attachments.log', json_encode($results, JSON_PRETTY_PRINT));
         return new CakeResponse(array('body' => $counter, 'status' => 200));
-    }
-
-    public function exportSearch($type = false)
-    {
-        $filters = $this->Session->read('search_attributes_filters');
-        if ($filters === null) {
-            throw new NotFoundException('No search to export.');
-        }
-
-        if (empty($type)) {
-            $exports = array_keys($this->MispAttribute->validFormats);
-            $this->set('exports', $exports);
-            $this->render('ajax/exportSearch');
-        } else {
-            $filters = $this->_jsonDecode($filters);
-            $final = $this->MispAttribute->restSearch($this->Auth->user(), $type, $filters);
-            $responseType = $this->MispAttribute->validFormats[$type][0];
-            return $this->RestResponse->viewData($final, $responseType, false, true, 'search.' . $type . '.' . $responseType);
-        }
     }
 
     /**

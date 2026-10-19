@@ -37,14 +37,18 @@ $checked = $valueIntelligence['warninglists_checked'];
 $correlations = $valueIntelligence['correlations'];
 
 $state = $relevance['state'];
+// False when the reader's analyst profile switches the assessment off.
+$showsAssessment = $showsAssessment ?? true;
 
-$subtitle = $state === null
+$subtitle = !$showsAssessment
+    ? null
+    : ($state === null
     ? h(__('Nothing recorded to age'))
     : h(sprintf(
         __('%1$s of %2$s days of lifetime left'),
         max(0, $relevance['runway_days']),
         $relevance['ttl']['days']
-    ));
+    )));
 ?>
 <div class="card shadow-sm mb-3 vp-panel"
      style="--vp-panel-color: var(--correlation);">
@@ -58,7 +62,7 @@ $subtitle = $state === null
 
     <div class="p-3 d-flex flex-column gap-3">
 
-        <?php if ($state !== null): ?>
+        <?php if ($showsAssessment && $state !== null): ?>
             <div class="vp-shelf vp-shelf-<?= h($state) ?>">
                 <div class="vp-shelf-head">
                     <span class="vp-shelf-state">
@@ -122,7 +126,7 @@ $subtitle = $state === null
                         )) ?>
                 </div>
             </div>
-        <?php else: ?>
+        <?php elseif ($showsAssessment): ?>
             <?php
             /*
              * The other two lines below answer even when the answer is

@@ -620,32 +620,27 @@ class WarninglistsController extends AppController
 
     public function checkValue()
     {
-        if ($this->request->is('post')) {
-            if (empty($this->request->data)) {
-                throw new NotFoundException(__('No valid data received.'));
-            }
-            $data = $this->request->data;
-            if (is_array($data) && isset($data['Warninglist'])) {
-                $data = $data['Warninglist'];
-            }
-            if (!is_array($data)) {
-                $data = array($data);
-            }
-            if (array_key_exists('[]', $data)) {
-                $data = $data['[]'];
-            }
-
-            $hits = $this->Warninglist->checkValues($data);
-            if ($this->_isRest()) {
-                return $this->RestResponse->viewData($hits, $this->response->type());
-            }
-            $this->set('hits', $hits);
-            $this->set('data', $data);
-        } else {
-            if ($this->_isRest()) {
-                return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
-            }
+        if (!$this->_isRest()) {
+            return $this->redirect(['action' => 'index']);
         }
+        if (!$this->request->is('post')) {
+            return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
+        }
+        if (empty($this->request->data)) {
+            throw new NotFoundException(__('No valid data received.'));
+        }
+        $data = $this->request->data;
+        if (is_array($data) && isset($data['Warninglist'])) {
+            $data = $data['Warninglist'];
+        }
+        if (!is_array($data)) {
+            $data = array($data);
+        }
+        if (array_key_exists('[]', $data)) {
+            $data = $data['[]'];
+        }
+        $hits = $this->Warninglist->checkValues($data);
+        return $this->RestResponse->viewData($hits, $this->response->type());
     }
 
     public function delete($id)

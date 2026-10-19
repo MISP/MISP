@@ -128,7 +128,10 @@ $schema->table('event_templates')
 | `dropPrimaryKey()` | Drops the constraint, keeps the columns. Add a unique index over the old key column first |
 | `changeOptions($options)` | MySQL table options: `engine`, `row_format`, `charset`, `collate` (a token works). A new default charset applies to columns added later; existing ones keep theirs. PostgreSQL renders nothing |
 
-Schema-scoped: `createTable()`, `dropTable()`, `renameTable()`, `rawSql()`.
+Schema-scoped: `createTable()`, `dropTable()`, `renameTable()`, `rawSql()`,
+and `alterDatabase($options)`: the connected database's default `charset` and
+`collate` (a token works), which a table created without its own takes; left
+out when the database already has them, nothing on PostgreSQL.
 
 ```php
 $schema->createTable('collection_shares', [
@@ -281,7 +284,8 @@ A rebuild can run for hours, so a `TableMigration` is **offline**
 (`$offline = true`): the manager refuses to start any run that has one pending
 from a web request, and on the command line while `MISP.live` is on
 (`MigrationManager::refusal()`; `runUpdates` and `migrationApply` say why, a page
-load just leaves it). `beforeUp()` defers outside the CLI as well. The statements
+load just leaves it). `Console/cake Admin runUpgrade` is the way through (§7).
+`beforeUp()` defers outside the CLI as well. The statements
 run under session settings that leave the ALTER's algorithm to the server (a
 session at COPY would turn instant changes into copies: MariaDB's
 `alter_algorithm = 'DEFAULT'`, quoted, MySQL's `old_alter_table = OFF`) and wait
@@ -373,6 +377,17 @@ Console/cake Admin migrationApply --id <id>       # one
 Applying is also what `runUpdates()` does, so an ordinary login or
 `Console/cake Admin runUpdates` picks migrations up alongside the legacy corpus —
 legacy first in numeric order, then migrations in id order.
+
+A release with an offline migration is applied with `Console/cake Admin
+runUpgrade`, as one run: it takes the instance offline (`MISP.live`), stops the
+background workers (a running job can hold the locks a rebuild waits for),
+applies the numeric updates, then every migration in id order, runs the
+attribute value conversion (`AttributeValue backfill`, `rebuildFacets`,
+`remapCorrelations`) in front of `drop_attribute_value_text`, runs `runUpdates`
+once more, restarts the workers and brings the instance back. When anything
+fails or defers it stops there and leaves the instance offline, the schema
+possibly half converted; a second run carries on. `migrationApply` stays for
+applying by hand.
 
 `migrationApply` must run as the web server's user (`www-data`, `httpd`,
 `apache`, `wwwrun`, `www`, or whoever `MISP.osuser` names). Applying writes cache
@@ -630,7 +645,14 @@ search_path TO baseline_check;` inserted after `BEGIN;`. The comparison names
 every column, key and index that differs, in both directions, and knows which
 deviations are the rendering being right — hash indexes, PostgreSQL-only
 indexes, the replaced indexes (checked by the shape the driver reads back, so a
-wrong index under the right name is a finding), boolean defaults. Anything pending in `migrationStatus` means the
+wrong index under the right name is a finding), boolean defaults. It also
+reads the catalog for what the drivers leave out: on MySQL and MariaDB each
+column's collation by class (a `Collation` token is expected under the loaded
+server's own name for it, so a MariaDB reference checks a MySQL load),
+unsigned, index prefixes and FULLTEXT, and the engine, row format and default
+collation of every table and of the database; on PostgreSQL, that no column
+carries a collation of its own and that each text prefix index is the hash
+index its rendering makes. Anything pending in `migrationStatus` means the
 reference was not up to date.
 
 ### 4. What CI checks

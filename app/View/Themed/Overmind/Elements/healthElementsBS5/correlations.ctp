@@ -263,12 +263,10 @@ $renderTable = function ($tableName, $tableData, $isActive) use ($formatBytes, $
                     </div>
 
                     <div class="card-footer d-flex flex-wrap gap-2 bg-transparent">
-                        <?php if ($engine !== 'Legacy'): ?>
-                            <button type="button" class="btn btn-sm btn-outline-primary"
-                                    onclick="openModal('<?= h($baseurl . '/correlations/switchEngine/' . urlencode($engine)) ?>', 'md')">
-                                <i class="fas fa-toggle-on me-1"></i><?= __('Activate') ?>
-                            </button>
-                        <?php endif; ?>
+                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                onclick="openModal('<?= h($baseurl . '/correlations/switchEngine/' . urlencode($engine)) ?>', 'md')">
+                            <i class="fas fa-toggle-on me-1"></i><?= __('Activate') ?>
+                        </button>
                         <?php if ($engine !== 'OnDemand'): ?>
                             <button type="button" class="btn btn-sm btn-outline-danger"
                                     onclick="openModal('<?= h($baseurl . '/correlations/truncate/' . urlencode($engine)) ?>', 'md')">

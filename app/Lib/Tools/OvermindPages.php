@@ -12,7 +12,7 @@ class OvermindPages
         'events' => array(
             'index', 'add', 'edit', 'delete', 'view', 'view1', 'view2',
             'viewLegacy',
-            'importChoice', 'automation', 'export', 'downloadExport', 'getEventInfoById',
+            'importChoice', 'automation', 'getEventInfoById',
             'freeTextImport', 'proposalEventIndex',
             'merge'
         ),
@@ -48,7 +48,7 @@ class OvermindPages
             'export_for_misp_galaxy'
         ),
         'galaxy_cluster_relations' => array('index'),
-        'objectTemplates' => array('index', 'delete', 'add', 'view'),
+        'objectTemplates' => array('index', 'delete', 'view'),
         'object_relationships' => array('index', 'delete', 'add', 'edit'),
         'event_templates' => array(
             'index', 'view', 'import', 'instantiate', 'add', 'edit',
@@ -87,7 +87,7 @@ class OvermindPages
             'login', 'register', 'forgot', 'change_pw',
             'view', 'admin_view', 'admin_index', 'edit', 'admin_edit',
             'admin_add', 'admin_quickEmail', 'admin_email', 'totp_new',
-            'view_login_history', 'registrations'
+            'view_login_history', 'registrations', 'statistics'
         ),
         'auth_keys' => array('index', 'add', 'edit', 'view'),
         'user_settings' => array('index', 'setSetting', 'deleteSelection'),
@@ -114,7 +114,7 @@ class OvermindPages
         'servers' => array(
             'index', 'add', 'edit', 'delete', 'previewIndex',
             'previewEvent', 'pullSelectedEvents', 'idTranslator',
-            'serverSettings'
+            'serverSettings', 'eventBlockRule'
         ),
         'feeds' => array(
             'index', 'add', 'edit', 'view', 'importFeeds',
@@ -145,7 +145,7 @@ class OvermindPages
         'jobs' => array('index'),
         'tasks' => array('index', 'add', 'edit'),
         'news' => array(
-            'admin_index', 'add', 'edit', 'delete', 'deleteSelection'
+            'index', 'admin_index', 'add', 'edit', 'delete', 'deleteSelection'
         ),
         'bookmarks' => array(
             'index', 'add', 'edit', 'view', 'delete', 'deleteSelection'

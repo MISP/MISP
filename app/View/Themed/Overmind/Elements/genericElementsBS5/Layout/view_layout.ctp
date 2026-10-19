@@ -248,13 +248,17 @@ $tabIconColour = function (array $tab) use ($entityIconColours) {
                     /*
                      * Optional state pill, for a tab whose content resolves to
                      * a state rather than to a count — a verdict, a status, a
-                     * severity. `label` is required; `color` is any CSS colour
-                     * (a variable is the intent) and `dot` prefixes a filled
-                     * circle in it. Absent for every existing caller.
+                     * severity. `label` is required unless `deferred` is set,
+                     * which renders it hidden and empty for a lazily loaded
+                     * panel to fill through setTabBadge(). `color` is any CSS
+                     * colour (a variable is the intent) and `dot` prefixes a
+                     * filled circle in it.
                      */
+                    $badgeLabel = (string)($tab['badge']['label'] ?? '');
                     ?>
-                    <?php if (!empty($tab['badge']['label'])): ?>
-                        <span class="nav-view-badge"<?=
+                    <?php if ($badgeLabel !== '' || !empty($tab['badge']['deferred'])): ?>
+                        <span class="nav-view-badge<?= $badgeLabel === '' ? ' d-none' : '' ?>"
+                            data-tab-badge="<?= h($tab['id']) ?>"<?=
                             empty($tab['badge']['color'])
                                 ? ''
                                 : ' style="--nav-view-badge-color: '

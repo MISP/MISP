@@ -300,6 +300,10 @@ $rowData = function ($row) use ($tokens, $sortKeys, &$defaultOrder) {
         $times[] = 'timestamp:'
             . date('YmdHi', (int)$row['Attribute']['timestamp']);
     }
+    if (!empty($row['Attribute']['created'])) {
+        $times[] = 'created:'
+            . date('YmdHi', (int)$row['Attribute']['created']);
+    }
     if (!empty($row['Event']['publish_timestamp'])) {
         $times[] = 'published:'
             . date('YmdHi', (int)$row['Event']['publish_timestamp']);

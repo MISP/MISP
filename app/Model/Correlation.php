@@ -45,7 +45,6 @@ class Correlation extends AppModel
         'Default' => 'default_correlations',
         'NoAcl' => 'no_acl_correlations',
         'OnDemand' => false,
-        'Legacy' => 'correlations'
     ];
 
     public $actsAs = array(
@@ -667,6 +666,13 @@ class Correlation extends AppModel
      */
     private function __saveCorrelations(array $correlations)
     {
+        // An attribute reaching another through both of its values yields the same row twice,
+        // and one duplicate fails the whole multi-row insert.
+        $unique = [];
+        foreach ($correlations as $correlation) {
+            $unique[serialize($correlation)] = $correlation;
+        }
+        $correlations = array_values($unique);
         try {
             return $this->saveCorrelations($correlations);
         } catch (Exception $e) {
@@ -823,8 +829,14 @@ class Correlation extends AppModel
                 'limit' => empty($correlationLimit) ? null : ($correlationLimit+1)
             ]);
             if (!empty($extraConditions)) {
+                $advancedConditions = $conditions;
+                if ($full && $a['Attribute']['type'] === 'ssdeep') {
+                    // A full run's chunk table holds only the attributes processed before this one,
+                    // so each ssdeep pair is found once anyway, whatever the ids.
+                    unset($advancedConditions['Attribute.id >']);
+                }
                 $correlatingAttributes3 = $this->Attribute->find('all', [
-                    'conditions' => [$conditions, $extraConditions],
+                    'conditions' => [$advancedConditions, $extraConditions],
                     'recursive' => -1,
                     'fields' => $this->getFieldRules(),
                     'contain' => $this->getContainRules(),
@@ -1351,23 +1363,15 @@ class Correlation extends AppModel
                     'name' => __('On Demand correlation engine'),
                     'tables' => [
                     ]
-                ],
-                'Legacy' => [
-                    'name' => __('Legacy correlation engine (< 2.4.160)'),
-                    'tables' => [
-                        'correlations' => [
-                            'id_limit' => self::ID_LIMIT
-                        ]
-                    ]
                 ]
             ],
             'over_correlations' => $this->OverCorrelatingValue->find('count'),
         ];
         $this->CorrelationExclusion = ClassRegistry::init('CorrelationExclusion');
         $results['excluded_correlations'] = $this->CorrelationExclusion->find('count');
-        // One catalog read for every table; a table that is not there (the
-        // legacy one, on most instances) simply has no entry and gets no
-        // metrics, which is what the SHOW TABLE STATUS guard used to do.
+        // One catalog read for every table; a table that is not there simply
+        // has no entry and gets no metrics, which is what the SHOW TABLE
+        // STATUS guard used to do.
         $sizes = $this->getSchemaInspector()->tableSizes();
         foreach ($results['db'] as &$result) {
             foreach ($result['tables'] as $table_name => &$table_data) {
@@ -1410,7 +1414,10 @@ class Correlation extends AppModel
     public function getCorrelationModelName()
     {
         if (!isset($this->engine)) {
-            $this->engine = Configure::read('MISP.correlation_engine') ?: 'Default';
+            $engine = Configure::read('MISP.correlation_engine');
+            // An engine without a behaviour would break every request and every
+            // Admin command; the setting's own check reports the value.
+            $this->engine = isset($this->validEngines[$engine]) ? $engine : 'Default';
         }
         return $this->engine;
     }

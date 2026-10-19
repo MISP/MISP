@@ -211,11 +211,6 @@ class Server extends AppModel
             'description' => "Check whether the S/MIME certificate of every user within this instance's userbase is usable, and list the users whose certificate is not.",
             'url' => '/users/verifyCertificate/'
         ),
-        'databaseCleanupScripts' => array(
-            'title' => 'Database Cleanup Scripts',
-            'description' => 'If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.',
-            'url' => '/logs/pruneUpdateLogs/'
-        ),
         'releaseUpdateLock' => array(
             'title' => 'Release update lock',
             'description' => 'If your database is locked and is not updating, unlock it here.',
@@ -1228,56 +1223,6 @@ class Server extends AppModel
         return array_keys($eventUuids);
     }
 
-    public function serverEventsOverlap()
-    {
-        $servers = $this->find('all', [
-            'conditions' => ['Server.pull' => 1],
-            'order' => ['Server.id ASC'],
-            'recursive' => -1,
-        ]);
-
-        if (count($servers) < 2) {
-            return [$servers, []];
-        }
-
-        $serverUuids = [];
-        foreach ($servers as &$server) {
-            try {
-                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-                $uuids = array_column($this->getEventIndexFromServer($serverSync, true), 'uuid');
-                $serverUuids[$server['Server']['id']] = array_flip($uuids);
-                $server['Server']['events_count'] = count($uuids);
-            } catch (Exception $e) {
-                $this->logException("Could not get event UUIDs for server {$server['Server']['id']}", $e);
-            }
-        }
-        unset($server);
-
-        $compared = [];
-        foreach ($servers as $server) {
-            if (!isset($serverUuids[$server['Server']['id']])) {
-                continue;
-            }
-
-            foreach ($servers as $server2) {
-                if ($server['Server']['id'] == $server2['Server']['id']) {
-                    continue;
-                }
-                if (!isset($serverUuids[$server2['Server']['id']])) {
-                    continue;
-                }
-
-                $intersect = count(array_intersect_key($serverUuids[$server['Server']['id']], $serverUuids[$server2['Server']['id']]));
-                $percentage = round(100 * $intersect / $server['Server']['events_count']);
-                $compared[$server['Server']['id']][$server2['Server']['id']] = [
-                    'percentage' => $percentage,
-                    'events' => $intersect,
-                ];
-            }
-        }
-        return [$servers, $compared];
-    }
-
     /**
      * @param int $id Server ID
      * @param string|int $technique Can be 'full', 'incremental' or event ID
@@ -1452,7 +1397,7 @@ class Server extends AppModel
                 $server['Server']['lastpushedid'] = $lastpushedid;
                 $this->save($server);
             }
-            $this->syncProposals($HttpSocket, $server, null, null, $this->Event);
+            $this->syncProposals($HttpSocket, $server, null, $this->Event);
         }
 
         if ($push['canPush'] || $push['canSight']) {
@@ -1614,72 +1559,62 @@ class Server extends AppModel
         return $successes;
     }
 
-    public function syncProposals($HttpSocket, array $server, $sa_id = null, $event_id = null, $eventModel)
+    public function syncProposals($HttpSocket, array $server, $event_id, $eventModel)
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        if ($sa_id == null) {
-            if ($event_id == null) {
-                // event_id is null when we are doing a push
-                $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
-                try {
-                    $ids = $this->getEventIdsFromServer($serverSync, true, true);
-                } catch (Exception $e) {
-                    $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
-                    return false;
-                }
-                $conditions = array('uuid' => $ids);
-            } else {
-                $conditions = array('id' => $event_id);
-                // event_id is not null when we are doing a publish
+        if ($event_id == null) {
+            // event_id is null when we are doing a push
+            $serverSync = new ServerSyncTool($server, $this->setupSyncRequest($server));
+            try {
+                $ids = $this->getEventIdsFromServer($serverSync, true, true);
+            } catch (Exception $e) {
+                $this->logException("Could not fetch event IDs from server {$server['Server']['name']}", $e);
+                return false;
             }
-            $events = $eventModel->find('all', array(
-                    'conditions' => $conditions,
-                    'recursive' => 1,
-                    'contain' => ['ShadowAttribute' => 'Org'],
-                    'fields' => array('Event.uuid')
-            ));
+            $conditions = array('uuid' => $ids);
+        } else {
+            $conditions = array('id' => $event_id);
+            // event_id is not null when we are doing a publish
+        }
+        $events = $eventModel->find('all', array(
+                'conditions' => $conditions,
+                'recursive' => 1,
+                'contain' => ['ShadowAttribute' => 'Org'],
+                'fields' => array('Event.uuid')
+        ));
 
-            $fails = 0;
-            $success = 0;
-            $error_message = "";
-            foreach ($events as $k => &$event) {
-                if (!empty($event['ShadowAttribute'])) {
-                    foreach ($event['ShadowAttribute'] as &$sa) {
-                        $sa['data'] = $saModel->base64EncodeAttachment($sa);
-                        unset($sa['id']);
-                        unset($sa['value1']);
-                        unset($sa['value2']);
-                    }
+        $fails = 0;
+        $success = 0;
+        $error_message = "";
+        foreach ($events as $k => &$event) {
+            if (!empty($event['ShadowAttribute'])) {
+                foreach ($event['ShadowAttribute'] as &$sa) {
+                    $sa['data'] = $saModel->base64EncodeAttachment($sa);
+                    unset($sa['id']);
+                    unset($sa['value1']);
+                    unset($sa['value2']);
+                }
 
-                    $data = json_encode($event['ShadowAttribute']);
-                    $request = $this->setupSyncRequest($server);
-                    $uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
-                    $response = $HttpSocket->post($uri, $data, $request);
-                    if ($response->code == '200') {
-                        $result = json_decode($response->body(), true);
-                        if ($result['success']) {
-                            $success += intval($result['counter']);
-                        } else {
-                            $fails++;
-                            if ($error_message == "") {
-                                $result['message'];
-                            } else {
-                                $error_message .= " --- " . $result['message'];
-                            }
-                        }
+                $data = json_encode($event['ShadowAttribute']);
+                $request = $this->setupSyncRequest($server);
+                $uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
+                $response = $HttpSocket->post($uri, $data, $request);
+                if ($response->code == '200') {
+                    $result = json_decode($response->body(), true);
+                    if ($result['success']) {
+                        $success += intval($result['counter']);
                     } else {
                         $fails++;
+                        if ($error_message == "") {
+                            $result['message'];
+                        } else {
+                            $error_message .= " --- " . $result['message'];
+                        }
                     }
+                } else {
+                    $fails++;
                 }
-            }
-        } else {
-            // connect to checkuuid($uuid)
-            $request = $this->setupSyncRequest($server);
-            $uri = $server['Server']['url'] . '/events/checkuuid/' . $sa_id;
-            $response = $HttpSocket->get($uri, '', $request);
-            if ($response->code != '200') {
-                return false;
             }
         }
         return true;
@@ -2115,7 +2050,7 @@ class Server extends AppModel
         $defaults = $this->generateServerSettings();
         $options = $defaults['MISP']['correlation_engine']['options'];
         if (!empty($value) && !in_array($value, array_keys($options))) {
-            return __('Please select a valid option from the list of available engines: ', implode(', ', array_keys($options)));
+            return __('Please select a valid option from the list of available engines: %s', implode(', ', array_keys($options)));
         }
         if ($value === 'OnDemand' && !$this->isMysql()) {
             return $this->onDemandEngineUnsupportedMessage();
@@ -2394,14 +2329,6 @@ class Server extends AppModel
     {
         if (isset($value) && $value) {
             return 'E-mailing is blocked.';
-        }
-        return true;
-    }
-
-    public function testDisableCache($value)
-    {
-        if (isset($value) && $value) {
-            return 'Export caches are disabled.';
         }
         return true;
     }
@@ -2757,30 +2684,6 @@ class Server extends AppModel
             return true;
         }
         $this->getPubSubTool()->reloadServer();
-        return true;
-    }
-
-    public function disableCacheAfterHook($setting, $value)
-    {
-        if ($value) {
-            $this->Event = ClassRegistry::init('Event');
-            App::uses('Folder', 'Utility');
-            App::uses('File', 'Utility');
-            // delete all cache files
-            foreach ($this->Event->exportTypes() as $type => $settings) {
-                $dir = new Folder(APP . 'tmp/cached_exports/' . $type);
-                // No caches created for this type of export, move on
-                if ($dir == null) {
-                    continue;
-                }
-                $files = $dir->find('.*' . $settings['extension']);
-                foreach ($files as $file) {
-                    $file = new File($dir->pwd() . DS . $file);
-                    $file->delete();
-                    $file->close();
-                }
-            }
-        }
         return true;
     }
 
@@ -3378,7 +3281,7 @@ class Server extends AppModel
      * @return array|string
      * @throws JsonException
      */
-    public function checkVersionCompatibility(array $server, $user = [], ServerSyncTool $serverSync = null)
+    public function checkVersionCompatibility(array $server, $user = [], ?ServerSyncTool $serverSync = null)
     {
         // for event publishing when we don't have a user.
         if (empty($user)) {
@@ -4117,13 +4020,11 @@ class Server extends AppModel
             $worker_array['controls'] = Configure::read('MISP.manage_workers');
         }
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            try {
-                $worker_array['supervisord_status'] = $this->getBackgroundJobsTool()->getSupervisorStatus();
-            } catch (Exception $exception) {
-                $this->logException('Error getting supervisor status.', $exception);
-                $worker_array['supervisord_status'] = false;
-            }
+        try {
+            $worker_array['supervisord_status'] = $this->getBackgroundJobsTool()->getSupervisorStatus();
+        } catch (Exception $exception) {
+            $this->logException('Error getting supervisor status.', $exception);
+            $worker_array['supervisord_status'] = false;
         }
 
         return $worker_array;
@@ -4131,6 +4032,10 @@ class Server extends AppModel
 
     public function backgroundJobsDiagnostics(&$diagnostic_errors)
     {
+        if (!Configure::read('MISP.background_jobs')) {
+            App::uses('BackgroundJobsTool', 'Tools');
+            return BackgroundJobsTool::STATUS_NOT_ENABLED;
+        }
         $backgroundJobsStatus = $this->getBackgroundJobsTool()->getStatus();
 
         if ($backgroundJobsStatus > 0) {
@@ -4180,109 +4085,6 @@ class Server extends AppModel
             default:
                 return $value;
         }
-    }
-
-    public function killWorker($pid, $user)
-    {
-        if (!is_numeric($pid)) {
-            throw new MethodNotAllowedException('Non numeric PID found!');
-        }
-        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-        $workers = $this->ResqueStatus->getWorkers();
-        $this->Log = ClassRegistry::init('Log');
-        if (isset($workers[$pid])) {
-            $worker = $workers[$pid];
-            if (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false) {
-                shell_exec('kill ' . $pid . ' > /dev/null 2>&1 &');
-                $this->__logRemoveWorker($user, $pid, $worker['queue'], false);
-            } else {
-                $this->ResqueStatus->removeWorker($pid);
-                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
-            }
-            $this->ResqueStatus->removeWorker($pid);
-        }
-    }
-
-    public function killAllWorkers($user = false, $force = false)
-    {
-        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-        $workers = $this->ResqueStatus->getWorkers();
-        $killed = array();
-        foreach ($workers as $pid => $worker) {
-            if (!is_numeric($pid)) {
-                continue;
-            }
-            if (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0) {
-                shell_exec('kill ' . ($force ? ' -9 ' : '') . $pid . ' > /dev/null 2>&1 &');
-                $this->ResqueStatus->removeWorker($pid);
-                $this->__logRemoveWorker($user, $pid, $worker['queue'], false);
-            } else {
-                $this->ResqueStatus->removeWorker($pid);
-                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
-            }
-        }
-        return $killed;
-    }
-
-    public function workerRemoveDead($user = false)
-    {
-        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-        $workers = $this->ResqueStatus->getWorkers();
-        $killed = array();
-        foreach ($workers as $pid => $worker) {
-            if (!is_numeric($pid)) {
-                throw new MethodNotAllowedException('Non numeric PID found!');
-            }
-            $pidTest = file_exists('/proc/' . addslashes($pid));
-            if (!$pidTest) {
-                $this->ResqueStatus->removeWorker($pid);
-                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
-                if (empty($killed[$worker['queue']])) {
-                    $killed[$worker['queue']] = 1;
-                } else {
-                    $killed[$worker['queue']] += 1;
-                }
-            }
-        }
-        return $killed;
-    }
-
-    private function __logRemoveWorker($user, $pid, $queue, $dead = false)
-    {
-        $this->Log = ClassRegistry::init('Log');
-        $this->Log->create();
-        if (empty($user)) {
-            $user = array(
-                'id' => 0,
-                'Organisation' => array(
-                    'name' => 'SYSTEM'
-                ),
-                'email' => 'SYSTEM'
-            );
-        }
-        $type = $dead ? 'dead' : 'kill';
-        $text = array(
-            'dead' => array(
-                'action' => 'remove_dead_workers',
-                'title' => __('Removing a dead worker.'),
-                'change' => sprintf(__('Removing dead worker data. Worker was of type %s with pid %s'), $queue, $pid)
-            ),
-            'kill' => array(
-                'action' => 'stop_worker',
-                'title' => __('Stopping a worker.'),
-                'change' => sprintf(__('Stopping a worker. Worker was of type %s with pid %s'), $queue, $pid)
-            )
-        );
-        $this->Log->saveOrFailSilently(array(
-            'org' => $user['Organisation']['name'],
-            'model' => 'User',
-            'model_id' => $user['id'],
-            'email' => $user['email'],
-            'action' => $text[$type]['action'],
-            'user_id' => $user['id'],
-            'title' => $text[$type]['title'],
-            'change' => $text[$type]['change']
-        ));
     }
 
     /**
@@ -4566,31 +4368,31 @@ class Server extends AppModel
                 $tagname = explode('.', $tagname);
                 if (!isset($latest_versions[$tagname[0]][$tagname[1]])) {
                     $latest_versions[$tagname[0]][$tagname[1]] = $tagname[2];
-                } elseif (version_compare($tag['name'], $latest_versions[$tagname[0]][$tagname[1]]) === 1) {
+                } elseif ((int)$tagname[2] > (int)$latest_versions[$tagname[0]][$tagname[1]]) {
                     $latest_versions[$tagname[0]][$tagname[1]] = $tagname[2];
                 }    
             }
         }
+        if (empty($latest_versions)) {
+            return false;
+        }
         $version_array = $this->checkMISPVersion();
-        $current = implode('.', $version_array);
-        $latest_version_string = sprintf('v%s.%s.%s', $version_array['major'], $version_array['minor'], $latest_versions[$version_array['major']][$version_array['minor']]);
-        $latest_major = 0;
-        $latest_minor = 0;
-        foreach ($latest_versions as $major => $minor) {
-            if ($major > $latest_major) {
-                $latest_major = $major;
-            }
+        $major = $version_array['major'];
+        $minor = $version_array['minor'];
+        $latest_major = max(array_keys($latest_versions));
+        // A line with no release yet (a new major or minor before its first tag)
+        // compares against the newest release overall
+        if (isset($latest_versions[$major][$minor])) {
+            $newest = [$major, $minor, $latest_versions[$major][$minor]];
+        } else {
+            $newestMinor = max(array_keys($latest_versions[$latest_major]));
+            $newest = [$latest_major, $newestMinor, $latest_versions[$latest_major][$newestMinor]];
         }
-        foreach ($latest_versions[$major] as $minor => $hotfix) {
-            if ($minor > $latest_minor) {
-                $latest_minor = $minor;
-            }
-        }
-        $result = $this->checkVersion($latest_version_string);
-        if ($latest_major > $version_array['major']) {
+        $result = $this->checkVersion(vsprintf('v%s.%s.%s', $newest));
+        if ($latest_major > $major) {
             $result['new_major'] = $latest_major;
-        } else if ($latest_minor > $version_array['minor']) {
-            $result['new_minor'] = $latest_major . '.' . $latest_minor;
+        } else if (isset($latest_versions[$major]) && max(array_keys($latest_versions[$major])) > $minor) {
+            $result['new_minor'] = $major . '.' . max(array_keys($latest_versions[$major]));
         }
         return $result;
     }
@@ -4645,7 +4447,7 @@ class Server extends AppModel
 
     public function checkoutMain()
     {
-        $mainBranch = '2.5';
+        $mainBranch = '3.0';
         return exec('git checkout ' . $mainBranch);
     }
 
@@ -4915,56 +4717,15 @@ class Server extends AppModel
         return (empty($server)) ? false : $server;
     }
 
-    public function restartWorkers($user=false)
+    // Only caller: legacy update 8 in the frozen LegacyMigrationsTrait.
+    public function restartWorkers()
     {
         if (Configure::read('MISP.background_jobs')) {
-            $this->workerRemoveDead($user);
-            $prepend = '';
-            shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
-        }
-        return true;
-    }
-
-    public function restartDeadWorkers($user=false)
-    {
-        if (Configure::read('MISP.background_jobs')) {
-            $killed = $this->workerRemoveDead($user);
-            foreach ($killed as $queue => $count) {
-                for ($i = 0; $i < $count; $i++) {
-                    $this->startWorker($queue);
-                }
+            try {
+                $this->getBackgroundJobsTool()->restartWorkers();
+            } catch (Exception $e) {
+                $this->logException('Could not restart the workers.', $e);
             }
-        }
-        return true;
-    }
-
-    public function restartWorker($pid)
-    {
-        if (Configure::read('MISP.background_jobs')) {
-            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-            $workers = $this->ResqueStatus->getWorkers();
-            $pid = intval($pid);
-            if (!isset($workers[$pid])) {
-                return __('Invalid worker.');
-            }
-            $currentWorker = $workers[$pid];
-            $this->killWorker($pid, false);
-            $this->startWorker($currentWorker['queue']);
-            return true;
-        }
-        return __('Background workers not enabled.');
-    }
-
-    public function startWorker($queue)
-    {
-        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
-        if (!in_array($queue, $validTypes)) {
-            return __('Invalid worker type.');
-        }
-        if ($queue != 'scheduler') {
-            shell_exec(APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $queue .' > /dev/null 2>&1 &');
-        } else {
-            shell_exec(APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
         }
         return true;
     }
@@ -5569,7 +5330,7 @@ class Server extends AppModel
                 ),
                 'enable_themes' => array(
                     'level' => 0,
-                    'description' => __('Enable themes for users of the instance. Currently this is used to allow users to opt-in to a the various preview/beta modes.'),
+                    'description' => __('Let users choose a theme other than Overmind, and MISP.default_theme set one for the instance. The classic interface (Default) is only reachable this way, and is deprecated. Overmind is always available, whatever this setting says.'),
                     'value' => false,
                     'test' => 'testBool',
                     'type' => 'boolean',
@@ -5578,8 +5339,8 @@ class Server extends AppModel
                 ),
                 'default_theme' => array(
                     'level' => 2,
-                    'description' => __('Set a default theme for the instance. This is mostly used for developer purposes for now, but will be more interesting in the future.'),
-                    'value' => false,
+                    'description' => __('The theme pages render with for users who have not chosen one. Only applies when MISP.enable_themes is on; Overmind otherwise, or when unset. Default, the classic interface, is deprecated and will be removed in a future release.'),
+                    'value' => 'Overmind',
                     'test' => 'testTheme',
                     'type' => 'string',
                     'optionsSource' => function () {
@@ -5766,15 +5527,6 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string',
                 ),
-                'disable_cached_exports' => array(
-                    'level' => 2,
-                    'description' => __('Cached exports can take up a considerable amount of space and can be disabled instance wide using this setting. Even tough the feature is deprecated and will be removed in the future, you can still decide to enable it.'),
-                    'value' => true,
-                    'null' => true,
-                    'test' => 'testDisableCache',
-                    'type' => 'boolean',
-                    'afterHook' => 'disableCacheAfterHook',
-                ),
                 'footermidleft' => array(
                     'level' => 2,
                     'description' => __('Footer text prepending the "Powered by MISP" text.'),
@@ -5893,7 +5645,7 @@ class Server extends AppModel
                 ),
                 'attachments_dir' => array(
                     'level' => 2,
-                    'description' => __('Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.'),
+                    'description' => __('Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application. A value starting with s3 (such as s3://) stores attachments in the bucket set by the Plugin.S3_* settings instead.'),
                     'value' => APP . '/files', # GUI display purpose only.
                     'null' => false,
                     'test' => 'testForWritableDir',
@@ -8038,13 +7790,6 @@ class Server extends AppModel
                     'test' => 'testForEmpty',
                     'type' => 'string'
                 ),
-                'S3_enable' => array(
-                    'level' => 2,
-                    'description' => __('Enables or disables uploading of malware samples to S3 rather than to disk (WARNING: Get permission from amazon first!)'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
-                ),
                 'S3_aws_compatible' => array(
                     'level' => 2,
                     'description' => __('Use external AWS compatible system such as MinIO'),
@@ -8248,6 +7993,14 @@ class Server extends AppModel
                     'value' => 259200,
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
+                ],
+                'Benchmarking_retention' => [
+                    'level' => 2,
+                    'description' => __('The number of days benchmark data is kept, today included. Default: 0 (kept forever)'),
+                    'value' => 0,
+                    'test' => 'testForNumeric',
+                    'type' => 'numeric',
+                    'null' => true
                 ],
                 'Enrichment_services_enable' => array(
                     'level' => 0,
@@ -8667,32 +8420,9 @@ class Server extends AppModel
                     'type' => 'string',
                     'null' => true
                 ),
-                'CyCat_enable' => [
-                    'level' => 1,
-                    'description' => __('Enable lookups for additional relations via CyCat.'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean',
-                    'null' => true
-                ],
-                'CyCat_url' => [
-                    'level' => 2,
-                    'description' => __('URL to use for CyCat lookups, if enabled.'),
-                    'value' => 'https://api.cycat.org',
-                    'test' => 'testForEmpty',
-                    'type' => 'string',
-                    'null' => true
-                ],
             ),
             'SimpleBackgroundJobs' => [
                 'branch' => 1,
-                'enabled' => [
-                    'level' => self::SETTING_CRITICAL,
-                    'description' => __('Enables or disables background jobs with Supervisor backend. <span class="red bold">Please read %s before setting this to `true`.</span>', '<a href="https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md" target="_blank">' . __('this guide') . '</a>'),
-                    'value' => false,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
-                ],
                 'redis_host' => [
                     'level' => self::SETTING_CRITICAL,
                     'description' => __('The host running the redis server to be used for background jobs.'),
@@ -8847,13 +8577,12 @@ class Server extends AppModel
                     'Get setting' => 'MISP/app/Console/cake Admin getSetting [setting|all]',
                     'Set setting' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
                     'Get authkey' => 'MISP/app/Console/cake Admin getAuthkey [user_email]',
-                    'Change authkey' => 'MISP/app/Console/cake Admin change_authkey [user_email] [authkey]',
+                    'Change authkey' => 'MISP/app/Console/cake User change_authkey [user_id|email] [authkey]',
                     'Set baseurl' => 'MISP/app/Console/cake Admin setSetting MISP.baseurl [baseurl]',
                     'Change password' => 'MISP/app/Console/cake User change_pw [email] [new_password] [--no_password_change]',
                     'Clear Bruteforce entries' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
                     'Clean caches' => 'MISP/app/Console/cake Admin cleanCaches',
                     'Set database version' => 'MISP/app/Console/cake Admin setDatabaseVersion [version]',
-                    'Run database update' => 'MISP/app/Console/cake Admin updateDatabase',
                     'Run updates' => 'MISP/app/Console/cake Admin runUpdates',
                     'Update all JSON structures' => 'MISP/app/Console/cake Admin updateJSON',
                     'Update Galaxy definitions' => 'MISP/app/Console/cake Admin updateGalaxies',
@@ -8862,14 +8591,14 @@ class Server extends AppModel
                     'Update Warninglists' => 'MISP/app/Console/cake Admin updateWarningLists',
                     'Update Noticelists' => 'MISP/app/Console/cake Admin updateNoticeLists',
                     'Set default role' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]',
-                    'Get IPs for user ID' => 'MISP/app/Console/cake Admin UserIP [user_id]',
-                    'Get user ID for user IP' => 'MISP/app/Console/cake Admin IPUser [ip]',
+                    'Get IPs for user ID' => 'MISP/app/Console/cake User user_ips [user_id|email]',
+                    'Get user ID for user IP' => 'MISP/app/Console/cake User ip_user [ip]',
                     'Generate correlation' => 'MISP/app/Console/cake Admin jobGenerateCorrelation [job_id]',
                     'Truncate correlation table' => 'MISP/app/Console/cake Admin truncateTable [user_id] [correlation_engine_name] [job_id]',
+                    'Generate over-correlation occurrences' => 'MISP/app/Console/cake Admin jobGenerateOccurrences [job_id]',
                     'Purge correlation' => 'MISP/app/Console/cake Admin jobPurgeCorrelation [job_id]',
                     'Update MISP' => 'MISP/app/Console/cake Admin updateMISP',
                     'Update after pull' => 'MISP/app/Console/cake Admin updateAfterPull [submodule_name] [job_id] [user_id]',
-                    'Prune update logs' => 'MISP/app/Console/cake Admin prune_update_logs [job_id] [user_id]',
                     'Recover since last successful update' => 'MISP/app/Console/cake Admin recoverSinceLastSuccessfulUpdate',
                     'Reset sync authkeys' => 'MISP/app/Console/cake Admin resetSyncAuthkeys [user_id]',
                     'Purge feed events' => 'MISP/app/Console/cake Admin purgeFeedEvents [user_id] [feed_id]',
@@ -8887,23 +8616,21 @@ class Server extends AppModel
                     'Pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
                     'PushAll' => 'MISP/app/Console/cake Server pushAll [user_id]',
                     'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
+                    'Push Taxii' => 'MISP/app/Console/cake Server push_taxii [user_id] [taxii_server_id|all] [job_id]',
                     'Cache server' => 'MISP/app/Console/cake server cacheServer [user_id] [server_id]',
                     'Cache all servers' => 'MISP/app/Console/cake server cacheServerAll [user_id]',
                     'List all feeds' => 'MISP/app/Console/cake Server listFeeds [json|table]',
                     'View feed' => 'MISP/app/Console/cake Server viewFeed [feed_id] [json|table]',
                     'Toggle feed fetching' => 'MISP/app/Console/cake Server toggleFeed [feed_id]',
                     'Toggle feed caching' => 'MISP/app/Console/cake Server toggleFeedCaching [feed_id]',
-                    'Load default feed configurations' => 'MISP/app/Console/cake Server loadDefaultFeeds [feed_id]',
+                    'Load default feed configurations' => 'MISP/app/Console/cake Server loadDefaultFeeds',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
                     'Test' => 'MISP/app/Console/cake Server test [server_id]',
                     'List' => 'MISP/app/Console/cake Server list',
-                    'Enqueue pull' => 'MISP/app/Console/cake Server enqueuePull [timestamp] [user_id] [task_id]',
-                    'Enqueue push' => 'MISP/app/Console/cake Server enqueuePush [timestamp] [task_id] [user_id]',
-                    'Enqueue feed fetch' => 'MISP/app/Console/cake Server enqueueFeedFetch [timestamp] [user_id] [task_id]',
-                    'Enqueue feed cache' => 'MISP/app/Console/cake Server enqueueFeedCache [timestamp] [user_id] [task_id]',
-                    'Update sharing groups based on blueprints' => 'MISP/app/Console/cake Server executeSGBlueprint [blueprint_id|all|attached|detached]'
+                    'Update sharing groups based on blueprints' => 'MISP/app/Console/cake Admin executeSGBlueprint [blueprint_id|all|attached|detached]',
+                    'Count values for the values index' =>'MISP/app/Console/cake Admin valueDictionaryStats [job_id] [--full]'
                 ),
                 'description' => __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.'),
                 'header' => __('Automating certain console tasks')
@@ -8913,14 +8640,11 @@ class Server extends AppModel
                     'Publish event' => 'MISP/app/Console/cake Event publish [event_id] [pass_along] [job_id] [user_id]',
                     'Publish sightings' => 'MISP/app/Console/cake Event publish_sightings [event_id] [pass_along] [job_id] [user_id]',
                     'Publish Galaxy clusters' => 'MISP/app/Console/cake Event publish_galaxy_clusters [cluster_id] [job_id] [user_id] [pass_along]',
-                    'Cache event' => 'MISP/app/Console/cake Event cache [user_id] [event_id] [export_type]',
-                    'Cache bro' => 'MISP/app/Console/cake Event cachebro [user_id] [event_id]',
-                    'Recover event' => 'MISP/app/Console/cake Event recoverEvent [job_id] [event_id]',
                     'Alert email' => 'MISP/app/Console/cake Event alertemail [user_id] [job_id] [event_id] [old_publish]',
                     'Contact email' => 'MISP/app/Console/cake Event contactemail [event_id] [message] [all] [user_id] [process_id]',
-                    'Enqueue caching' => 'MISP/app/Console/cake Event enqueueCaching [timestamp]',
                     'Do publish' => 'MISP/app/Console/cake Event doPublish [event_id]',
                     'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
+                    'Run attribute enrichment' => 'MISP/app/Console/cake Event attribute_enrichment [user_id] [attribute_id] [json_encoded_module_list] [job_id]',
                     'Process free text' => 'MISP/app/Console/cake Event processfreetext [input]',
                     'Process module result' => 'MISP/app/Console/cake Event processmoduleresult [input]',
                 ),
@@ -8950,24 +8674,13 @@ class Server extends AppModel
      */
     private function getWorkers(): array
     {
-        if (!Configure::read('SimpleBackgroundJobs.enabled')) {
-            try {
-                $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-            } catch (Exception $e) {
-                // redis connection failed
-                $this->logException("Failed to get Resque workers status.", $e);
-                return [];
-            }
-            return $this->ResqueStatus->getWorkers();
-        }
-
         $worker_array = [];
         $workers = $this->getBackgroundJobsTool()->getWorkers();
 
         foreach ($workers as $worker) {
             $worker_array[$worker->pid()] = [
                 'queue' => $worker->queue(),
-                'type' => 'regular', // for compatibility with Resque response
+                'type' => 'regular',
                 'user' => $worker->user()
             ];
         }

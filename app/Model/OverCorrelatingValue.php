@@ -239,15 +239,17 @@ class OverCorrelatingValue extends AppModel
      * Counts the attributes that correlate on each blocked value, its case
      * variants included, as the correlation limit counts them.
      *
+     * @param int|null $jobId
      * @return void
      */
-    public function generateOccurrences()
+    public function generateOccurrences($jobId = null)
     {
         $overCorrelations = $this->find('all', [
             'fields' => ['OverCorrelatingValue.id', 'OverCorrelatingValue.value_id'],
             'conditions' => ['OverCorrelatingValue.value_id !=' => null],
         ]);
         if (empty($overCorrelations)) {
+            ClassRegistry::init('Job')->saveStatus($jobId);
             return;
         }
         $AttributeValue = ClassRegistry::init('AttributeValue');
@@ -283,6 +285,7 @@ class OverCorrelatingValue extends AppModel
             ]];
         }
         $this->saveMany($counts);
+        ClassRegistry::init('Job')->saveStatus($jobId);
     }
 
     public function truncateTable()

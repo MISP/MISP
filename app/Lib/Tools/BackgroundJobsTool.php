@@ -101,13 +101,6 @@ class BackgroundJobsTool
         '-webroot', '--webroot',
     ];
 
-    const CMD_TO_SHELL_DICT = [
-        self::CMD_EVENT => 'EventShell',
-        self::CMD_SERVER => 'ServerShell',
-        self::CMD_ADMIN => 'AdminShell',
-        self::CMD_WORKFLOW => 'WorkflowShell',
-    ];
-
     const JOB_STATUS_PREFIX = 'job_status',
         DATA_CONTENT_PREFIX = 'data_content',
         RUNNING_JOB_PREFIX = 'running';
@@ -121,7 +114,6 @@ class BackgroundJobsTool
      * @var array
      */
     const DEFAULT_SETTINGS = [
-        'enabled' => false,
         'redis_host' => 'localhost',
         'redis_port' => 6379,
         'redis_password' => '',
@@ -142,7 +134,6 @@ class BackgroundJobsTool
      *
      * Settings should have the following format:
      *      [
-     *           'enabled' => true,
      *           'redis_host' => 'localhost',
      *           'redis_port' => 6379,
      *           'redis_password' => '',
@@ -174,9 +165,7 @@ class BackgroundJobsTool
         }
         $this->settings['max_job_history_ttl'] = (int)$ttl;
 
-        if ($this->settings['enabled'] === true) {
-            $this->RedisConnection = $this->createRedisConnection();
-        }
+        $this->RedisConnection = $this->createRedisConnection();
     }
 
     /**
@@ -187,11 +176,6 @@ class BackgroundJobsTool
      */
     public function enqueueDataFile(array $data)
     {
-        if (!$this->settings['enabled']) {
-            // Store serialized data to tmp file when SimpleBackgroundJobs are not enabled
-            return FileAccessTool::writeToTempFile(JsonTool::encode($data));
-        }
-
         // Keep content stored in Redis for 24 hours, that should be enough to process that data
         $uuid = CakeText::uuid();
         $this->RedisConnection->setex(self::DATA_CONTENT_PREFIX . ':' . $uuid, 24 * 3600, $data);
@@ -237,19 +221,17 @@ class BackgroundJobsTool
         string $command,
         array $args = [],
         $trackStatus = null,
-        int $jobId = null,
+        ?int $jobId = null,
         array $metadata = []
     ): string {
 
         $this->validateArgs($args);
-
-        if (!$this->settings['enabled']) {
-            return $this->resqueEnqueue($queue, self::CMD_TO_SHELL_DICT[$command], $args, $trackStatus, $jobId);
-        }
-
         $this->validateQueue($queue);
         $this->validateCommand($command);
 
+        if ($jobId) {
+            $metadata['job_id'] = $jobId;
+        }
         $backgroundJob = new BackgroundJob(
             [
                 'id' => CakeText::uuid(),
@@ -269,39 +251,6 @@ class BackgroundJobsTool
         }
 
         return $backgroundJob->id();
-    }
-
-    /**
-     * Enqueue a Job using the CakeResque.
-     * @deprecated
-     *
-     * @param string $queue Name of the queue to enqueue the job to.
-     * @param string $class Class of the job.
-     * @param array $args Arguments passed to the job.
-     * @param boolean $trackStatus Whether to track the status of the job.
-     * @param int|null $jobId Id of the relational database record representing the job.
-     * @return string Job Id.
-     */
-    private function resqueEnqueue(
-        string $queue,
-        string $class,
-        $args = [],
-        $trackStatus = null,
-        int $jobId = null
-    ): string {
-
-        $process_id = CakeResque::enqueue(
-            $queue,
-            $class,
-            $args,
-            $trackStatus
-        );
-
-        if ($jobId) {
-            $this->updateJobProcessId($jobId, $process_id);
-        }
-
-        return $process_id;
     }
 
     /**
@@ -403,6 +352,38 @@ class BackgroundJobsTool
     }
 
     /**
+     * The job of a `jobs` row that is waiting in the queue or running, found
+     * by the row id enqueue() puts in its metadata.
+     *
+     * @param string $queue Queue name, e.g. 'default'.
+     * @param int $jobId Id of the relational database record representing the job.
+     * @return BackgroundJob|null
+     * @throws RedisException
+     */
+    public function findQueuedJob(string $queue, int $jobId)
+    {
+        $this->validateQueue($queue);
+
+        $jobs = [];
+        foreach ($this->RedisConnection->lRange($queue, 0, -1) ?: [] as $rawJob) {
+            $jobs[] = $rawJob instanceof BackgroundJob ? $rawJob : new BackgroundJob($rawJob);
+        }
+        $running = $this->runningJobs();
+        foreach (array_keys($running[$queue] ?? []) as $backgroundJobId) {
+            $job = $this->getJob($backgroundJobId);
+            if ($job !== null) {
+                $jobs[] = $job;
+            }
+        }
+        foreach ($jobs as $job) {
+            if ((int)($job->metadata()['job_id'] ?? 0) === $jobId) {
+                return $job;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Get the queues's names.
      *
      * @return array Array containing the queues' names.
@@ -469,10 +450,6 @@ class BackgroundJobsTool
     public function getQueueSize(string $queue): int
     {
         $this->validateQueue($queue);
-
-        if (!$this->settings['enabled']) {
-            return CakeResque::getQueueSize($queue);
-        }
 
         return $this->RedisConnection->llen($queue);
     }
@@ -579,6 +556,18 @@ class BackgroundJobsTool
     }
 
     /**
+     * Stops workers
+     *
+     * @param boolean $waitForStop
+     * @return void
+     * @throws Exception
+     */
+    public function stopWorkers(bool $waitForStop = false)
+    {
+        $this->getSupervisor()->stopProcessGroup(self::MISP_WORKERS_PROCESS_GROUP, $waitForStop);
+    }
+
+    /**
      * Restarts workers
      *
      * @param boolean $waitForRestart
@@ -610,10 +599,6 @@ class BackgroundJobsTool
      */
     public function getStatus(): int
     {
-        if (!$this->settings['enabled']) {
-            return self::STATUS_NOT_ENABLED;
-        }
-
         try {
             $redisStatus = $this->RedisConnection->ping();
         } catch (Exception $exception) {

@@ -269,6 +269,80 @@ class EventTag extends AppModel
     }
 
     /**
+     * Events carrying each tag on the event itself or on one of its attributes.
+     * With a user, only what fetchEvent() shows them, flattened (delegated events
+     * aside); without one, every event on the instance.
+     *
+     * @param array $tagIds
+     * @param array|null $user
+     * @param array $eventConditions further conditions on Event, such as filters
+     * @return array lower-cased tag name => events; spellings of a name that differ
+     *               only in case count as one, as MySQL matches clusters to tags
+     */
+    public function countEventsCarrying(array $tagIds, $user = null, array $eventConditions = [])
+    {
+        if (empty($tagIds)) {
+            return [];
+        }
+        $db = $this->getDataSource();
+        $Attribute = $this->Event->Attribute;
+        $eventJoin = ['table' => $this->Event->table, 'alias' => 'Event', 'type' => 'INNER'];
+        $statement = [
+            'limit' => null,
+            'offset' => null,
+            'order' => null,
+            'group' => null,
+        ];
+
+        $eventTags = $db->buildStatement($statement + [
+            'fields' => ['EventTag.tag_id', 'EventTag.event_id'],
+            'table' => $db->fullTableName($this),
+            'alias' => 'EventTag',
+            'joins' => [$eventJoin + ['conditions' => ['Event.id = EventTag.event_id']]],
+            'conditions' => ['AND' => [
+                ['EventTag.tag_id' => $tagIds],
+                $eventConditions,
+                $user === null ? [] : $this->Event->createEventConditions($user),
+            ]],
+        ], $this);
+
+        $attributeAcl = $user === null ? [] : $Attribute->buildConditions($user);
+        $attributeJoins = [
+            ['table' => $Attribute->table, 'alias' => 'Attribute', 'type' => 'INNER', 'conditions' => ['Attribute.id = AttributeTag.attribute_id']],
+            $eventJoin + ['conditions' => ['Event.id = Attribute.event_id']],
+        ];
+        if (!empty($attributeAcl)) {
+            $attributeJoins[] = ['table' => $Attribute->Object->table, 'alias' => 'Object', 'type' => 'LEFT', 'conditions' => ['Object.id = Attribute.object_id']];
+        }
+        $attributeTags = $db->buildStatement($statement + [
+            'fields' => ['AttributeTag.tag_id', 'Attribute.event_id'],
+            'table' => $db->fullTableName($Attribute->AttributeTag),
+            'alias' => 'AttributeTag',
+            'joins' => $attributeJoins,
+            'conditions' => ['AND' => [
+                ['AttributeTag.tag_id' => $tagIds, 'Attribute.deleted' => 0],
+                $eventConditions,
+                $attributeAcl,
+            ]],
+        ], $Attribute->AttributeTag);
+
+        $counts = [];
+        $rows = $db->fetchAll(sprintf(
+            'SELECT LOWER(tag.name) AS name, COUNT(DISTINCT carried.event_id) AS events FROM (%s UNION ALL %s) carried'
+            . ' INNER JOIN %s tag ON tag.id = carried.tag_id GROUP BY LOWER(tag.name)',
+            $eventTags,
+            $attributeTags,
+            $db->fullTableName($this->Tag)
+        ));
+        foreach ($rows as $row) {
+            // Drivers key the columns by table alias or by 0
+            $row = array_merge(...array_values($row));
+            $counts[$row['name']] = (int)$row['events'];
+        }
+        return $counts;
+    }
+
+    /**
      * @param array $tagIds
      * @param array $user
      * @return array Key is tag ID, value is event count that user can see

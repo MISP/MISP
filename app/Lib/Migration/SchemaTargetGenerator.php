@@ -33,10 +33,10 @@ App::uses('SchemaInspector', 'Migration');
 class SchemaTargetGenerator
 {
     /**
-     * tasks is dropped rather than converged; the log tables are not
-     * converged.
+     * tasks and correlations are dropped rather than converged; the log
+     * tables are not converged.
      */
-    const EXCLUDED_TABLES = array('tasks', 'logs', 'audit_logs');
+    const EXCLUDED_TABLES = array('tasks', 'correlations', 'logs', 'audit_logs');
 
     /** References to another table's id that are not named *_id. */
     const HIDDEN_ID_COLUMNS = array(
@@ -70,6 +70,7 @@ class SchemaTargetGenerator
         'sightingdbs' => array('timestamp'),
         'user_settings' => array('timestamp'),
         'users' => array('current_login', 'last_login', 'last_api_access', 'newsread'),
+        'value_enrichment_runs' => array('last_run'),
         'workflow_blueprints' => array('timestamp'),
         'workflows' => array('timestamp'),
     );
@@ -88,11 +89,13 @@ class SchemaTargetGenerator
      * correlation_rules.created defaulted to UNIX_TIMESTAMP(), which MySQL 8.4
      * refuses unparenthesised; CorrelationRule::beforeValidate() sets it on
      * every new rule. created_at is the schema's only TIMESTAMP column, which
-     * ends in 2038 on MySQL.
+     * ends in 2038 on MySQL. value_enrichment_runs.result holds compressed
+     * payloads past BLOB's 64 KB.
      */
     const COLUMN_OVERRIDES = array(
         'correlation_rules' => array('created' => array('default' => '0')),
         'user_login_profiles' => array('created_at' => array('type' => 'datetime')),
+        'value_enrichment_runs' => array('result' => array('type' => 'longblob')),
     );
 
     /**
@@ -101,6 +104,9 @@ class SchemaTargetGenerator
      */
     const ASCII_COLUMNS = array(
         'analyst_data_blocklists' => array('analyst_data_uuid'),
+        'analyst_graphs' => array('uuid', 'object_uuid', 'org_uuid', 'orgc_uuid', 'forked_from_uuid'),
+        'analyst_profile_selections' => array('uuid'),
+        'analyst_profiles' => array('uuid'),
         'attributes' => array('uuid'),
         'auth_keys' => array('uuid', 'authkey', 'authkey_start', 'authkey_end'),
         'collection_elements' => array('uuid', 'element_uuid', 'element_sha256'),
@@ -139,6 +145,7 @@ class SchemaTargetGenerator
         'taxii_servers' => array('uuid'),
         'user_login_profiles' => array('hash'),
         'users' => array('authkey'),
+        'value_enrichment_runs' => array('value_hash'),
         'workflow_blueprints' => array('uuid'),
         'workflows' => array('uuid'),
     );
@@ -148,6 +155,7 @@ class SchemaTargetGenerator
 
     /** Type names compared case-insensitively, kept in the collation they have. */
     const KEPT_COLLATIONS = array(
+        'analyst_graphs' => array('object_type' => 'ascii_general_ci'),
         'collection_elements' => array('element_type' => 'ascii_general_ci'),
         'collections' => array('type' => 'ascii_general_ci'),
         'notes' => array('object_type' => 'ascii_general_ci'),
@@ -849,6 +857,7 @@ class SchemaTargetGenerator
             }
             $mysql = self::keyBytes($columns, $index, AbstractGrammar::FLAVOUR_MYSQL);
             $pgsql = isset($index['pgsql']) || BaselineGenerator::needsHashRewrite($index, $columns)
+                || BaselineGenerator::isMysqlOnly($index, $columns)
                 ? false
                 : self::keyBytes($columns, $index, AbstractGrammar::FLAVOUR_PGSQL);
             $this->keyLengths[$table . '.' . $name] = array('mysql' => $mysql, 'pgsql' => $pgsql);

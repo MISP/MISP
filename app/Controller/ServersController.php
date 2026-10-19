@@ -461,14 +461,6 @@ class ServersController extends AppController
         }
     }
 
-    public function compareServers()
-    {
-        list($servers, $overlap) = $this->Server->serverEventsOverlap();
-        $this->set('servers', $servers);
-        $this->set('overlap', $overlap);
-        $this->set('title_for_layout', __('Server overlap analysis matrix'));
-    }
-
     public function filterEventIndex($id)
     {
         if (!$this->_isSiteAdmin()) {
@@ -938,7 +930,7 @@ class ServersController extends AppController
         if ($this->Server->delete()) {
             $message = __('Server deleted');
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $id, $this->response->type(), $message);
             } else {
                 $this->Flash->success($message);
                 $this->redirect(array('controller' => 'servers', 'action' => 'index'));
@@ -974,44 +966,72 @@ class ServersController extends AppController
     public function eventBlockRule()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $setting = $this->AdminSetting->find('first', [
-            'conditions' => ['setting' => 'eventBlockRule'],
-            'recursive' => -1
-        ]);
-        if (empty($setting)) {
-            $setting = ['setting' => 'eventBlockRule'];
-            if ($this->request->is('post')) {
-                $this->AdminSetting->create();
-            }
-        }
+        $value = $this->AdminSetting->getSetting('eventBlockRule') ?: '';
         if ($this->request->is('post')) {
-            if (!empty($this->request->data['Server'])) {
-                $this->request->data = $this->request->data['Server'];
-            }
-            $setting['AdminSetting']['setting'] = 'eventBlockRule';
-            $setting['AdminSetting']['value'] = $this->request->data['value'];
-            $result = $this->AdminSetting->save($setting);
-            if ($result) {
-                $message = __('Settings saved');
-            } else {
-                $message = __('Could not save the settings. Invalid input.');
+            $data = $this->request->data['Server'] ?? $this->request->data;
+            $value = $data['value'] ?? null;
+            $message = $this->__eventBlockRuleError($value);
+            $result = false;
+            if ($message === null) {
+                $result = $this->AdminSetting->changeSetting('eventBlockRule', $value) === true;
+                $message = $result ? __('Settings saved') : __('Could not save the settings.');
             }
             if ($this->_isRest()) {
                 if ($result) {
-                    return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', $message, $this->response->type());
+                    return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', false, $this->response->type(), $message);
                 } else {
                     return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
                 }
             } else {
                 if ($result) {
                     $this->Flash->success($message);
-                    $this->redirect('/');
+                    return $this->redirect(['action' => 'eventBlockRule']);
                 } else {
                     $this->Flash->error($message);
                 }
             }
+        } elseif ($this->_isRest()) {
+            return $this->RestResponse->viewData(['value' => $value], $this->response->type());
         }
-        $this->set('setting', $setting);
+        $this->set('setting', ['AdminSetting' => ['setting' => 'eventBlockRule', 'value' => is_string($value) ? $value : '']]);
+    }
+
+    /**
+     * The rule set Event::checkEventBlockRules() understands: empty for none,
+     * or a JSON object whose only key, "tags", holds a tag name or a list of them.
+     *
+     * @param mixed $value
+     * @return string|null Why the rule set is refused, null when it is valid
+     */
+    private function __eventBlockRuleError($value)
+    {
+        if (!is_string($value)) {
+            return __('The rule set has to be given as a JSON string in "value".');
+        }
+        if (trim($value) === '') {
+            return null;
+        }
+        try {
+            $rules = json_decode($value, false, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            return __('The rule set is not valid JSON: %s', $e->getMessage());
+        }
+        if (!$rules instanceof stdClass) {
+            return __('The rule set has to be a JSON object, such as {"tags": ["tlp:red"]}.');
+        }
+        $unknown = array_diff(array_keys((array)$rules), ['tags']);
+        if (!empty($unknown)) {
+            return __('Unknown key(s) in the rule set: %s. Only "tags" is supported.', implode(', ', $unknown));
+        }
+        if (isset($rules->tags)) {
+            $tags = is_array($rules->tags) ? $rules->tags : [$rules->tags];
+            foreach ($tags as $tag) {
+                if (!is_string($tag)) {
+                    return __('"tags" has to be a tag name or a list of tag names.');
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -1174,7 +1194,7 @@ class ServersController extends AppController
             $message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
 
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->type(), $message);
             }
             $this->Flash->success($message);
             $this->redirect(array('action' => 'index'));
@@ -1998,42 +2018,9 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $message = __('Worker start signal sent');
-            $this->Server->getBackgroundJobsTool()->startWorkerByQueue($type);
-
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'startWorker', $type, $this->response->type(), $message);
-            } else {
-                $this->Flash->info($message);
-                $this->redirect('/servers/serverSettings/workers');
-            }
-        }
-
-        // CakeResque
-        $validTypes = array('default', 'email', 'scheduler', 'cache', 'prio', 'update');
-        if (!in_array($type, $validTypes)) {
-            throw new MethodNotAllowedException('Invalid worker type.');
-        }
-
-        $prepend = '';
-        if ($type != 'scheduler') {
-            $workerIssueCount = 0;
-            $workerDiagnostic = $this->Server->workerDiagnostics($workerIssueCount);
-            if ($type == 'update' && isset($workerDiagnostic['update']['ok']) && $workerDiagnostic['update']['ok']) {
-                $message = __('Only one `update` worker can run at a time');
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Servers', 'startWorker', false, $message, $this->response->type());
-                } else {
-                    $this->Flash->error($message);
-                    $this->redirect('/servers/serverSettings/workers');
-                }
-            }
-            shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null 2>&1 &');
-        } else {
-            shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
-        }
         $message = __('Worker start signal sent');
+        $this->Server->getBackgroundJobsTool()->startWorkerByQueue($type);
+
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Servers', 'startWorker', $type, $this->response->type(), $message);
         } else {
@@ -2049,19 +2036,8 @@ class ServersController extends AppController
         }
 
         $message = __('Worker stop signal sent');
+        $this->Server->getBackgroundJobsTool()->stopWorker($pid);
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $this->Server->getBackgroundJobsTool()->stopWorker($pid);
-            if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'stopWorker', $pid, $this->response->type(), $message);
-            } else {
-                $this->Flash->info($message);
-                $this->redirect('/servers/serverSettings/workers');
-            }
-        }
-
-        // CakeResque
-        $this->Server->killWorker($pid, $this->Auth->user());
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Servers', 'stopWorker', $pid, $this->response->type(), $message);
         } else {
@@ -2297,30 +2273,13 @@ class ServersController extends AppController
         }
     }
 
-    public function killAllWorkers($force = false)
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException();
-        }
-        $this->Server->killAllWorkers($this->Auth->user(), $force);
-        if ($this->_isRest()) {
-            return $this->RestResponse->saveSuccessResponse('Server', 'killAllWorkers', false, $this->response->type(), __('Killing workers.'));
-        }
-        $this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
-    }
-
     public function restartWorkers()
     {
         if (!$this->request->is('post')) {
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $this->Server->getBackgroundJobsTool()->restartWorkers();
-        } else {
-            // CakeResque
-            $this->Server->restartWorkers($this->Auth->user());
-        }
+        $this->Server->getBackgroundJobsTool()->restartWorkers();
 
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'restartWorkers', false, $this->response->type(), __('Restarting workers.'));
@@ -2334,12 +2293,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $this->Server->getBackgroundJobsTool()->restartDeadWorkers();
-        } else {
-            // CakeResque
-            $this->Server->restartDeadWorkers($this->Auth->user());
-        }
+        $this->Server->getBackgroundJobsTool()->restartDeadWorkers();
 
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'restartDeadWorkers', false, $this->response->type(), __('Restarting workers.'));
@@ -2615,17 +2569,7 @@ class ServersController extends AppController
             throw new MethodNotAllowedException();
         }
 
-        if (Configure::read('SimpleBackgroundJobs.enabled')) {
-            $this->Server->getBackgroundJobsTool()->clearQueue($worker);
-        } else {
-            // CakeResque
-            $worker_array = array('cache', 'default', 'email', 'prio');
-            if (!in_array($worker, $worker_array)) {
-                throw new MethodNotAllowedException('Invalid worker');
-            }
-            $redis = Resque::redis();
-            $redis->del('queue:' . $worker);
-        }
+        $this->Server->getBackgroundJobsTool()->clearQueue($worker);
 
         $this->Flash->success('Queue cleared.');
         $this->redirect($this->referer());
@@ -2663,7 +2607,12 @@ class ServersController extends AppController
 
     public function checkout()
     {
+        $this->request->allowMethod(['post']);
         $result = $this->Server->checkoutMain();
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(array('results' => $result), $this->response->type());
+        }
+        return new CakeResponse(array('body' => $result, 'type' => 'txt'));
     }
 
     public function update($branch = false)
@@ -2882,112 +2831,6 @@ public function updateJSON()
         return $this->RestResponse->viewData($results, $this->response->type());
     }
 
-    public function createSync()
-    {
-        if ($this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('Site admin accounts cannot be used to create server sync configurations.');
-        }
-        $baseurl = Configure::read('MISP.external_baseurl');
-        if (empty($baseurl)) {
-            $baseurl = Configure::read('MISP.baseurl');
-            if (empty($baseurl)) {
-                $baseurl = Router::url('/', true);
-            }
-        }
-        $host_org_id = Configure::read('MISP.host_org_id');
-        if (empty($host_org_id)) {
-            throw new MethodNotAllowedException(__('Cannot create sync config - no host org ID configured for the instance.'));
-        }
-        $this->loadModel('Organisation');
-        $host_org = $this->Organisation->find('first', array(
-            'conditions' => array('Organisation.id' => $host_org_id),
-            'recursive' => -1,
-            'fields' => array('name', 'uuid')
-        ));
-        if (empty($host_org)) {
-            throw new MethodNotAllowedException(__('Configured host org not found. Please make sure that the setting is current on the instance.'));
-        }
-        if (Configure::read('Security.advanced_authkeys')) {
-            $this->loadModel('AuthKey');
-            $authkey = $this->AuthKey->createnewkey($this->Auth->user('id'), null, __('Auto generated sync key - %s', date('Y-m-d H:i:s')));
-        } else {
-            $this->loadModel('User');
-            $authkey = $this->User->find('column', [
-                'conditions' => ['User.id' => $this->Auth->user('id')],
-                'recursive' => -1,
-                'fields' => ['User.authkey']
-            ]);
-            $authkey = $authkey[0];
-        }
-        $server = array(
-            'Server' => array(
-                'url' => $baseurl,
-                'uuid' => Configure::read('MISP.uuid'),
-                'authkey' => h($authkey),
-                'Organisation' => array(
-                    'name' => $host_org['Organisation']['name'],
-                    'uuid' => $host_org['Organisation']['uuid'],
-                )
-            )
-        );
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($server, $this->response->type());
-        } else {
-            $this->set('server', $server);
-        }
-    }
-
-    public function import()
-    {
-        if ($this->request->is('post')) {
-            $server = $this->request->data;
-            if (isset($server['Server'])) {
-                $server = $server['Server'];
-            }
-            if (isset($server['json'])) {
-                $server = json_decode($server['json'], true)['Server'];
-            }
-            $this->loadModel('Organisation');
-            $org_id = $this->Organisation->captureOrg($server['Organisation'], $this->Auth->user());
-            $toSave = array(
-                'push' => 0,
-                'pull' => 0,
-                'caching_enabled' => 0,
-                'json' => '[]',
-                'push_rules' => '[]',
-                'pull_rules' => '[]',
-                'self_signed' => 0,
-                'org_id' => $this->Auth->user('org_id'),
-                'remote_org_id' => $org_id,
-                'name' => empty($server['name']) ? $server['url'] : $server['name'],
-                'url' => $server['url'],
-                'uuid' => $server['uuid'],
-                'authkey' => $server['authkey']
-            );
-            $this->Server->create();
-            $result = $this->Server->save($toSave);
-            if ($result) {
-                if ($this->_isRest()) {
-                    $server = $this->Server->find('first', array(
-                        'conditions' => array('Server.id' => $this->Server->id),
-                        'recursive' => -1
-                    ));
-                    return $this->RestResponse->viewData($server, $this->response->type());
-                } else {
-                    $this->Flash->success(__('The server has been saved'));
-                    $this->redirect(array('action' => 'index', $this->Server->id));
-                }
-            } else {
-                if ($this->_isRest()) {
-                    return $this->RestResponse->saveFailResponse('Servers', 'addFromJson', false, $this->Server->validationErrors, $this->response->type());
-                } else {
-                    $this->Flash->error(__('Could not save the server. Error: %s', json_encode($this->Server->validationErrors)));
-                    $this->redirect(array('action' => 'index'));
-                }
-            }
-        }
-    }
-
     public function resetRemoteAuthKey($id)
     {
         if (!$this->request->is('post')) {
@@ -2999,7 +2842,7 @@ public function updateJSON()
                 $this->Flash->error($result);
                 $this->redirect(array('action' => 'index'));
             } else {
-                return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $message, $this->response->type());
+                return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $result, $this->response->type());
             }
         } else {
             $message = __('API key updated.');
@@ -3007,7 +2850,7 @@ public function updateJSON()
                 $this->Flash->success($message);
                 $this->redirect(array('action' => 'index'));
             } else {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $id, $this->response->type(), $message);
             }
         }
     }
@@ -3024,7 +2867,7 @@ public function updateJSON()
         $success = $this->Server->reprioritise($id, $direction);
         if ($success) {
             $message = __('Priority changed.');
-            return $this->RestResponse->saveSuccessResponse('Servers', 'changePriority', $message, $this->response->type());
+            return $this->RestResponse->saveSuccessResponse('Servers', 'changePriority', $id, $this->response->type(), $message);
         } else {
             $message = __('Priority could not be changed.');
             return $this->RestResponse->saveFailResponse('Servers', 'changePriority', $id, $message, $this->response->type());
@@ -3167,7 +3010,8 @@ public function updateJSON()
 
     public function ipUser($input = false)
     {
-        $params = $this->IndexFilter->harvestParameters(['ip']);
+        $exception = null;
+        $params = $this->IndexFilter->harvestParameters(['ip'], $exception, ['fromQuery' => true]);
         if (!empty($params['ip'])) {
             $input = $params['ip'];
         }
@@ -3199,14 +3043,5 @@ public function updateJSON()
             ];
         }
         return $this->RestResponse->viewData($users, $this->response->type());
-    }
-
-    /**
-     * @deprecated
-     * @return void
-     */
-    public function rest()
-    {
-        $this->redirect(['controller' => 'api', 'action' => 'rest']);
     }
 }

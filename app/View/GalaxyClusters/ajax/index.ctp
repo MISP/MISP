@@ -42,16 +42,6 @@
                                 'url' => sprintf('%s/galaxies/view/%s/context:deleted', $baseurl, $galaxy_id),
                                 'text' => __('Deleted'),
                             ),
-                            array(
-                                'active' => $context === 'fork_tree',
-                                'url' => sprintf('%s/galaxies/view/%s/context:fork_tree', $baseurl, $galaxy_id),
-                                'text' => __('View Fork Tree'),
-                            ),
-                            array(
-                                'active' => $context === 'relations',
-                                'url' => sprintf('%s/galaxies/view/%s/context:relations', $baseurl, $galaxy_id),
-                                'text' => __('View Galaxy Relationships'),
-                            ),
                         )
                     ),
                     array(

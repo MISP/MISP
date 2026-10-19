@@ -47,9 +47,6 @@ class MispAttribute extends AppModel
 
     private $orgs_cache = [];
 
-    /** @var bool|null Cached result of checking if 'deleted' index exists on attributes table */
-    private static $hasDeletedIndex = null;
-
     /** @var bool|null Cached result of checking if 'idx_event_deleted_object' exists on attributes table */
     private static $hasLooseAttributeIndex = null;
 
@@ -535,6 +532,12 @@ class MispAttribute extends AppModel
 
     public $fast_update = false;
 
+    /**
+     * @var int|null The `created` the next insert keeps instead of now, for a
+     *     row that replaces another; a property so no request can set it.
+     */
+    public $carryCreated = null;
+
     // The paginator sorts only by fields and virtual fields; beforeFind sorts by the value
     public function hasField($name, $checkVirtual = false)
     {
@@ -715,20 +718,23 @@ class MispAttribute extends AppModel
         if (empty($attribute['uuid'])) {
             $attribute['uuid'] = CakeText::uuid();
         }
-        // Cake fills `created` on insert but keeps a sent value, on edits too.
-        if (empty($attribute['id']) && empty($this->id)) {
-            $attribute['created'] = time();
-        } else {
-            unset($attribute['created']);
-        }
+        $insert = empty($attribute['id']) && empty($this->id);
         if (!$this->fast_update && !empty($attribute['id'])) {
             $this->old = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Attribute.id' => $attribute['id']),
                 'fields' => ['value', 'disable_correlation', 'type', 'distribution', 'sharing_group_id'],
             ));
+            // An id with no row behind it is an insert, as a log recovery does.
+            $insert = empty($this->old);
         } else {
             $this->old = null;
+        }
+        // Cake fills `created` on insert but keeps a sent value, on edits too.
+        if ($insert) {
+            $attribute['created'] = $this->carryCreated ?? time();
+        } else {
+            unset($attribute['created']);
         }
         // explode value of composite type in value1 and value2
         // or copy value to value1 if not composite type
@@ -1446,20 +1452,6 @@ class MispAttribute extends AppModel
         }
     }
 
-    public function checkComposites()
-    {
-        $compositeTypes = $this->getCompositeTypes();
-        $fails = array();
-        $attributes = $this->find('all', array('recursive' => 0));
-
-        foreach ($attributes as $attribute) {
-            if ((in_array($attribute['Attribute']['type'], $compositeTypes)) && (!strlen($attribute['Attribute']['value1']) || !strlen($attribute['Attribute']['value2']))) {
-                $fails[] = $attribute['Attribute']['event_id'] . ':' . $attribute['Attribute']['id'];
-            }
-        }
-        return $fails;
-    }
-
     public function ISODatetimeToUTC($data, $alias)
     {
         // convert into utc and micro sec
@@ -1534,7 +1526,7 @@ class MispAttribute extends AppModel
     $selectiveFields = [
         'value', 'value1', 'value2', 'type',
         'category', 'object_relation', 'uuid',
-        'timestamp', 'attribute_timestamp',
+        'timestamp', 'attribute_timestamp', 'attribute_created',
         'first_seen', 'last_seen', 'to_ids',
     ];
     foreach ($selectiveFields as $f) {
@@ -2356,13 +2348,17 @@ class MispAttribute extends AppModel
     /**
      * The index to pin a read of some events' live loose attributes to:
      * (event_id, deleted, object_id) once its migration has run, event_id
-     * before. Left alone, the optimiser intersects event_id with object_id,
-     * whose 0 range holds every loose attribute of the instance.
+     * before; null on a driver without index hints. Left alone, the optimiser
+     * intersects event_id with object_id, whose 0 range holds every loose
+     * attribute of the instance.
      *
-     * @return string
+     * @return string|null
      */
     public function looseAttributeIndex()
     {
+        if (!$this->checkDbSupport('indexHints')) {
+            return null;
+        }
         if (self::$hasLooseAttributeIndex === null) {
             self::$hasLooseAttributeIndex = $this->getSchemaInspector()->hasNamedIndex('attributes', 'idx_event_deleted_object');
         }
@@ -2583,13 +2579,6 @@ class MispAttribute extends AppModel
                 $params['order'] = [];
             }
 
-            if (self::$hasDeletedIndex === null) {
-                self::$hasDeletedIndex = $this->getSchemaInspector()->hasNamedIndex('attributes', 'deleted');
-            }
-            if (self::$hasDeletedIndex) {
-                $params['ignoreIndexHint'] = 'deleted';
-            }
-        
             $loop = empty($params['limit']);
             if ($loop) {
                 $params['limit'] = 50000;
@@ -3933,6 +3922,7 @@ class MispAttribute extends AppModel
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'attribute_timestamp' => array('function' => 'set_filter_timestamp'),
+                    'attribute_created' => array('function' => 'set_filter_timestamp'),
                     'first_seen' => array('function' => 'set_filter_seen'),
                     'last_seen' => array('function' => 'set_filter_seen'),
                     'to_ids' => array('function' => 'set_filter_to_ids'),
@@ -4262,9 +4252,8 @@ class MispAttribute extends AppModel
             }
             if ($tags !== false) {
                 // If we sent any tags along, load the associated tag names for each attribute
-                $tag = ClassRegistry::init('Tag');
                 $args = $this->dissectArgs($tags);
-                $tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+                $tagArray = $this->Event->EventTag->fetchEventTagIds($args[0], $args[1]);
                 $temp = array();
                 foreach ($tagArray[0] as $accepted) {
                     $temp['OR'][] = array('Event.id' => $accepted);
@@ -4935,11 +4924,7 @@ class MispAttribute extends AppModel
         $options = array();
         foreach ($enabledModules['modules'] as $k => $temp) {
             if (isset($temp['meta']['config'])) {
-                $settings = array();
-                foreach ($temp['meta']['config'] as $conf) {
-                    $settings[$conf] = Configure::read('Plugin.Enrichment_' . $temp['name'] . '_' . $conf);
-                }
-                $enabledModules['modules'][$k]['config'] = $settings;
+                $enabledModules['modules'][$k]['config'] = Module::moduleConfig($temp);
             }
         }
         $attributes_added = 0;

@@ -27,8 +27,7 @@ class Migration_20260930_131927_value_enrichment_runs extends AbstractMigration
      * identity the page's Redis keys already use.
      *
      * `result` holds a compressed payload that can pass 64 KB, which is all a
-     * MySQL BLOB takes and all the DSL's binary renders as there, so MySQL
-     * widens it to LONGBLOB. PostgreSQL's bytea is unbounded already.
+     * MySQL BLOB takes, hence longblob (bytea on PostgreSQL).
      *
      * @param SchemaBuilder $schema
      * @return void
@@ -56,7 +55,7 @@ class Migration_20260930_131927_value_enrichment_runs extends AbstractMigration
             'shown' => array('type' => 'integer', 'null' => false, 'default' => 0),
             'capped' => array('type' => 'boolean', 'null' => false, 'default' => 0),
             'message' => array('type' => 'text', 'null' => true, 'default' => null),
-            'result' => array('type' => 'binary', 'null' => true, 'default' => null),
+            'result' => array('type' => 'longblob', 'null' => true, 'default' => null),
         ), array(
             'indexes' => array(
                 'run' => array(
@@ -68,10 +67,6 @@ class Migration_20260930_131927_value_enrichment_runs extends AbstractMigration
             'engine' => 'InnoDB',
             'charset' => 'utf8mb4',
             'collate' => 'utf8mb4_unicode_ci',
-        ));
-        $schema->rawSql(array(
-            'mysql' => 'ALTER TABLE `value_enrichment_runs` MODIFY `result` LONGBLOB DEFAULT NULL;',
-            'pgsql' => array(),
         ));
     }
 }

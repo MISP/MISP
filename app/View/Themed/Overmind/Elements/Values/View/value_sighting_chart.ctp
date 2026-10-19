@@ -73,6 +73,8 @@ $series = $valueIntelligence['sighting_series'];
 $sightings = $valueIntelligence['sightings'];
 $relevance = $valueIntelligence['relevance'];
 $notes = $valueIntelligence['sighting_notes'];
+// False when the reader's analyst profile switches the assessment off.
+$showsAssessment = $showsAssessment ?? true;
 $positive = $sightings['total'] - $sightings['fp'] - $sightings['expiration'];
 
 /*
@@ -196,7 +198,7 @@ if ($series !== null) {
         'orgs' => $series['orgs'],
         'plan' => $series['plan'],
         'daily' => $series['daily'],
-        'curves' => $series['curves'],
+        'curves' => $showsAssessment ? $series['curves'] : array(),
         'spans' => $series['spans'],
         'default' => $series['default_span'],
         'labels' => array(
@@ -293,9 +295,11 @@ if ($series !== null) {
                     <?= __('Reports per day, stacked by organisation'
                         . ' · sightings up, contradictions down') ?>
                 </span>
+                <?php if ($showsAssessment): ?>
                 <span class="vp-subhead vp-sight-axis-right">
                     <?= __('Lifetime left · % of the full lifetime') ?>
                 </span>
+                <?php endif; ?>
             </div>
 
             <div class="vp-chart vp-sight-main">
@@ -453,7 +457,7 @@ if ($series !== null) {
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
-                <?php if ($relevance['state'] !== null): ?>
+                <?php if ($showsAssessment && $relevance['state'] !== null): ?>
                     <div class="vp-sight-legend-group">
                         <span class="vp-sight-legend-head">
                             <?= __('Lifetime') ?>
@@ -521,10 +525,12 @@ if ($series !== null) {
              * through the bars can show it.
              */
             ?>
+            <?php if ($showsAssessment): ?>
             <p class="vp-sight-note">
                 <i class="fas fa-circle-info"></i>
                 <span><?= h($notes['fp_moves_nothing']) ?></span>
             </p>
+            <?php endif; ?>
 
             <?php if (!empty($series['clipped'])): ?>
                 <?php
@@ -539,10 +545,13 @@ if ($series !== null) {
                 <p class="vp-sight-note">
                     <i class="fas fa-scissors"></i>
                     <span><?= h(sprintf(
-                        __('Charted from %1$s. This value was first'
-                            . ' recorded on %2$s; the chart bounds its'
-                            . ' span so the runway stays one sample a'
-                            . ' day.'),
+                        $showsAssessment
+                            ? __('Charted from %1$s. This value was first'
+                                . ' recorded on %2$s; the chart bounds its'
+                                . ' span so the runway stays one sample a'
+                                . ' day.')
+                            : __('Charted from %1$s. This value was first'
+                                . ' recorded on %2$s.'),
                         $series['from'],
                         $series['first']
                     )) ?></span>

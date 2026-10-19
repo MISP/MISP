@@ -91,6 +91,7 @@
 .mx-cell[data-state="idle"]:hover { color: var(--bs-body-color); }
 .mx-cell:focus-visible { outline: 2px solid var(--bs-focus-ring-color, var(--bs-primary)); outline-offset: 1px; }
 .mx-cell.is-open { box-shadow: 0 0 0 2px color-mix(in srgb, var(--misp-matrix-event-edge) 55%, transparent); }
+.mx-full[data-mx-heat] .mx-cell[data-state="event"]:not(:hover) { background: color-mix(in srgb, var(--bs-galaxy) var(--mx-heat, 11%), var(--bs-body-bg)); }
 .mx-name { font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .mx-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .mx-tid { display: inline-flex; align-items: center; gap: .25rem; font-family: var(--bs-font-monospace);

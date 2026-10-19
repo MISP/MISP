@@ -1,5 +1,7 @@
 <?php
 
+App::uses('Value', 'Model');
+
 /**
  * Evidence the analyst has decided not to count.
  *
@@ -174,11 +176,12 @@ class ValueExclusionTool
                         . ' out before any signal counts sightings.'
                     ),
                     'note' => __(
-                        'The occurrence\'s time is its last change, as MISP'
-                        . ' keeps no creation time on an attribute, so an'
-                        . ' edited one can let a self-sighting through. A'
-                        . ' sighting whose organisation is hidden from you'
-                        . ' cannot be checked, and is kept.'
+                        'The occurrence\'s time is when it was recorded.'
+                        . ' One from before MISP 3.0 has only its last'
+                        . ' change, so an edited one can let a'
+                        . ' self-sighting through. A sighting whose'
+                        . ' organisation is hidden from you cannot be'
+                        . ' checked, and is kept.'
                     ),
                     'settings' => array(
                         'within_hours' => __(
@@ -467,18 +470,17 @@ class ValueExclusionTool
      * the report is real information — *we still see this* — so a
      * blanket "never count the author's sightings" would throw away the
      * one thing an author is best placed to say. Inside
-     * `within_hours` of the occurrence's own timestamp it is the author
-     * agreeing with themselves.
+     * `within_hours` of when the occurrence was recorded
+     * (`Value::recordedStamp()`) it is the author agreeing with
+     * themselves.
      *
      * Two imprecisions, both stated rather than papered over:
      *
-     * - **The occurrence's timestamp is its last change, not its
-     *   creation.** MISP keeps no created column on an attribute, so an
-     *   attribute edited later has a timestamp later than the report
-     *   it describes, and a self-sighting filed in between stops
-     *   looking self-adjacent. The error is in the safe direction — it
-     *   counts a sighting that might not deserve it, rather than
-     *   discarding one that does.
+     * - **An occurrence from before MISP 3.0 has no creation time**, so
+     *   its last change stands in: edited later, it stops a
+     *   self-sighting filed in between from looking self-adjacent. The
+     *   error is in the safe direction — it counts a sighting that
+     *   might not deserve it, rather than discarding one that does.
      * - **An anonymised sighting cannot be tested.** Under a
      *   restrictive sighting policy the org is stripped from the row,
      *   and a rule that treated a missing org as *not the author*
@@ -557,7 +559,7 @@ class ValueExclusionTool
         }
         $occurrence = $occurrences[$id];
         $orgId = (int)($occurrence['orgc_id'] ?? 0);
-        $at = (int)($occurrence['timestamp'] ?? 0);
+        $at = Value::recordedStamp($occurrence);
         if ($orgId === 0 || $at === 0) {
             return null;
         }

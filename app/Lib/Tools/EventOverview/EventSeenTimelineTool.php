@@ -4,12 +4,16 @@ App::uses('ValueIntelligenceBuckets', 'Tools/ValueIntelligence');
 
 /**
  * The data behind the Overmind event Timeline tab: loose attributes and
- * objects placed by first_seen / last_seen, or by their timestamp, an object
- * spanning its own dates and its attributes'.
+ * objects placed by first_seen / last_seen, by their timestamp or by when
+ * the attribute was created, an object spanning its own dates and its
+ * attributes'.
  *
  * Under the seen basis a row is dated when it has either end; under the
- * timestamp basis it is a single instant. An undated row is counted, never
- * placed. Dates are microseconds; days are UTC days since the epoch.
+ * timestamp and created bases it is a single instant. Objects carry no
+ * creation time, so under the created basis an object spans its attributes'
+ * alone, and attributes from before MISP 3.0 (created 0) are undated. An
+ * undated row is counted, never placed. Dates are microseconds; days are
+ * UTC days since the epoch.
  *
  * Every query is scoped to the events asked for. Visibility is MISP's own
  * read conditions (`EventOverviewTool::aclSql()`), part of the SQL because
@@ -34,6 +38,8 @@ class EventSeenTimelineTool
 
     const BASIS_TIMESTAMP = 'timestamp';
 
+    const BASIS_CREATED = 'created';
+
     /** How far past today the histogram reaches before calling dates outside. */
     const SPAN_AHEAD_DAYS = 3653;
 
@@ -46,10 +52,14 @@ class EventSeenTimelineTool
     /** @var Model */
     private $Attribute;
 
-    public function __construct(EventOverviewTool $overview = null)
+    /** @var Model */
+    private $Object;
+
+    public function __construct(?EventOverviewTool $overview = null)
     {
         $this->overview = $overview ?? new EventOverviewTool();
         $this->Attribute = ClassRegistry::init('MispAttribute');
+        $this->Object = ClassRegistry::init('MispObject');
     }
 
     /**
@@ -122,9 +132,10 @@ class EventSeenTimelineTool
     public function objectChildren(array $user, array $events, $objectId, array $options = [])
     {
         $acl = $this->acl($user, array_column($events, 'id'));
+        list(, $o, $e) = $this->overview->aliases();
         $objects = $this->rows(
-            'SELECT Object.id FROM objects Object JOIN events Event ON Event.id = Object.event_id'
-            . ' WHERE Object.id = ? AND Object.event_id IN (' . $acl['events'] . ') AND Object.deleted = 0'
+            "SELECT $o.id FROM objects $o JOIN events $e ON $e.id = $o.event_id"
+            . " WHERE $o.id = ? AND $o.event_id IN (" . $acl['events'] . ") AND $o.deleted = FALSE"
             . ' AND ' . $acl['object'],
             [(int)$objectId]
         );
@@ -172,11 +183,12 @@ class EventSeenTimelineTool
             'undated_attributes' => 0, 'undated_objects' => 0,
             'facets' => ['types' => [], 'objects' => [], 'categories' => []],
         ];
+        list($a) = $this->overview->aliases();
         $loose = $this->looseFrom($acl);
         $objects = '(' . $this->envelopeSql($acl, $basis) . ') env';
         foreach (['starts' => 's', 'ends' => 'e'] as $key => $column) {
             $source = [
-                'attributes' => 'SELECT FLOOR(' . self::dateSql($basis, 'Attribute', $column) . ' / ' . self::DAY_US . ') AS d,'
+                'attributes' => 'SELECT FLOOR(' . self::dateSql($basis, $a, $column) . ' / ' . self::DAY_US . ') AS d,'
                     . ' COUNT(*) AS n ' . $loose . ' GROUP BY d',
                 'objects' => 'SELECT FLOOR(env.' . $column . ' / ' . self::DAY_US . ') AS d, COUNT(*) AS n'
                     . ' FROM ' . $objects . ' GROUP BY d',
@@ -199,8 +211,8 @@ class EventSeenTimelineTool
             }
         }
         $facets = [
-            ['types', 'type', 'SELECT Attribute.type AS f, Attribute.category AS c, COUNT(*) AS n ' . $loose
-                . ' AND ' . self::datedSql($basis, 'Attribute') . ' GROUP BY Attribute.type, Attribute.category'],
+            ['types', 'type', "SELECT $a.type AS f, $a.category AS c, COUNT(*) AS n " . $loose
+                . ' AND ' . self::datedSql($basis, $a) . " GROUP BY $a.type, $a.category"],
             ['objects', 'name', 'SELECT env.name AS f, env.category AS c, COUNT(*) AS n FROM ' . $objects
                 . ' WHERE env.s IS NOT NULL GROUP BY env.name, env.category'],
         ];
@@ -391,14 +403,16 @@ class EventSeenTimelineTool
         $attributes = $objects = [];
         if (isset($parts['attributes'])) {
             list($sql, $params) = $parts['attributes'];
+            list($a) = $this->overview->aliases();
             $attributes = $this->withValues($this->rows(
-                'SELECT Attribute.id, Attribute.uuid, Attribute.event_id, Attribute.type,'
-                . ' Attribute.category, Attribute.to_ids,'
-                . ' Attribute.value1_id, Attribute.value2_id,'
-                . ' Attribute.first_seen, Attribute.last_seen, Attribute.timestamp,'
-                . ' ' . self::dateSql($basis, 'Attribute', 's') . ' AS s, '
-                . self::dateSql($basis, 'Attribute', 'e') . ' AS e ' . $sql
-                . ' ORDER BY s, Attribute.id LIMIT ' . (self::ITEM_CAP + 1),
+                "SELECT $a.id, $a.uuid, $a.event_id, $a.type,"
+                . " $a.category, $a.to_ids,"
+                . " $a.value1_id, $a.value2_id,"
+                . " $a.first_seen, $a.last_seen, $a.timestamp,"
+                . " $a.created,"
+                . ' ' . self::dateSql($basis, $a, 's') . ' AS s, '
+                . self::dateSql($basis, $a, 'e') . ' AS e ' . $sql
+                . " ORDER BY s, $a.id LIMIT " . (self::ITEM_CAP + 1),
                 $params
             ));
         }
@@ -497,15 +511,16 @@ class EventSeenTimelineTool
 
     private function attributeFilter(array $acl, $basis, array $options, $lower, $upper)
     {
-        $sql = $this->looseFrom($acl) . ' AND ' . self::datedSql($basis, 'Attribute')
-            . ' AND ' . self::dateSql($basis, 'Attribute', 's') . ' <= ? AND ' . self::dateSql($basis, 'Attribute', 'e') . ' >= ?';
+        list($a) = $this->overview->aliases();
+        $sql = $this->looseFrom($acl) . ' AND ' . self::datedSql($basis, $a)
+            . ' AND ' . self::dateSql($basis, $a, 's') . ' <= ? AND ' . self::dateSql($basis, $a, 'e') . ' >= ?';
         $params = [$upper, $lower];
         if (!empty($options['types'])) {
-            $sql .= ' AND Attribute.type IN (' . self::placeholders($options['types']) . ')';
+            $sql .= " AND $a.type IN (" . self::placeholders($options['types']) . ')';
             $params = array_merge($params, array_values($options['types']));
         }
         if (!empty($options['categories'])) {
-            $sql .= ' AND Attribute.category IN (' . self::placeholders($options['categories']) . ')';
+            $sql .= " AND $a.category IN (" . self::placeholders($options['categories']) . ')';
             $params = array_merge($params, array_values($options['categories']));
         }
         if (isset($options['q']) && trim($options['q']) !== '') {
@@ -530,10 +545,11 @@ class EventSeenTimelineTool
         }
         if (isset($options['q']) && trim($options['q']) !== '') {
             $like = '%' . self::escapeLike(mb_strtolower(trim($options['q']))) . '%';
-            $sql .= ' AND (LOWER(env.name) LIKE ? OR EXISTS (SELECT 1 FROM attributes Attribute'
-                . ' JOIN events Event ON Event.id = Attribute.event_id'
-                . ' JOIN objects Object ON Object.id = Attribute.object_id'
-                . ' WHERE Attribute.object_id = env.id AND Attribute.deleted = 0 AND ' . $acl['attribute']
+            list($a, $o, $e) = $this->overview->aliases();
+            $sql .= " AND (LOWER(env.name) LIKE ? OR EXISTS (SELECT 1 FROM attributes $a"
+                . " JOIN events $e ON $e.id = $a.event_id"
+                . " JOIN objects $o ON $o.id = $a.object_id"
+                . " WHERE $a.object_id = env.id AND $a.deleted = FALSE AND " . $acl['attribute']
                 . ' AND ' . $this->valueSearchSql($like) . '))';
             $params[] = $like;
         }
@@ -545,19 +561,20 @@ class EventSeenTimelineTool
      */
     private function children(array $acl, $basis, array $objectIds, $limit)
     {
+        list($a, $o, $e) = $this->overview->aliases();
         $rows = $this->withValues($this->rows(
-            'SELECT Attribute.id, Attribute.uuid, Attribute.event_id, Attribute.object_id,'
-            . ' Attribute.object_relation, Attribute.type, Attribute.category, Attribute.to_ids,'
-            . ' Attribute.value1_id, Attribute.value2_id,'
-            . ' Attribute.first_seen, Attribute.last_seen, Attribute.timestamp,'
-            . ' ' . self::dateSql($basis, 'Attribute', 's') . ' AS s, ' . self::dateSql($basis, 'Attribute', 'e') . ' AS e'
-            . ' FROM attributes Attribute JOIN events Event ON Event.id = Attribute.event_id'
-            . ' JOIN objects Object ON Object.id = Attribute.object_id'
-            . ' WHERE Attribute.object_id IN (' . self::placeholders($objectIds) . ')'
-            . ' AND Attribute.event_id IN (' . $acl['events'] . ') AND Attribute.deleted = 0'
-            . ' AND Object.deleted = 0 AND ' . self::datedSql($basis, 'Attribute')
+            "SELECT $a.id, $a.uuid, $a.event_id, $a.object_id,"
+            . " $a.object_relation, $a.type, $a.category, $a.to_ids,"
+            . " $a.value1_id, $a.value2_id,"
+            . " $a.first_seen, $a.last_seen, $a.timestamp, $a.created,"
+            . ' ' . self::dateSql($basis, $a, 's') . ' AS s, ' . self::dateSql($basis, $a, 'e') . ' AS e'
+            . " FROM attributes $a JOIN events $e ON $e.id = $a.event_id"
+            . " JOIN objects $o ON $o.id = $a.object_id"
+            . " WHERE $a.object_id IN (" . self::placeholders($objectIds) . ')'
+            . " AND $a.event_id IN (" . $acl['events'] . ") AND $a.deleted = FALSE"
+            . " AND $o.deleted = FALSE AND " . self::datedSql($basis, $a)
             . ' AND ' . $acl['attribute'] . ' AND ' . $acl['object']
-            . ' ORDER BY Attribute.object_id, s, Attribute.id LIMIT ' . (int)$limit,
+            . " ORDER BY $a.object_id, s, $a.id LIMIT " . (int)$limit,
             array_map('intval', $objectIds)
         ));
         $children = [];
@@ -581,6 +598,7 @@ class EventSeenTimelineTool
             'first_seen' => self::micro($row['first_seen']),
             'last_seen' => self::micro($row['last_seen']),
             'timestamp' => self::secondsToMicro($row['timestamp'] ?? null),
+            'created' => self::secondsToMicro($row['created'] ?? null),
             'start' => self::micro($row['s']),
             'end' => self::micro($row['e']),
         ];
@@ -641,19 +659,23 @@ class EventSeenTimelineTool
      */
     private function envelopeSql(array $acl, $basis)
     {
-        $inner = 'SELECT Object.id, Object.uuid, Object.event_id, Object.name,'
-            . ' Object.`meta-category` AS category, Object.first_seen AS ofs, Object.last_seen AS ols,'
-            . ' Object.timestamp AS ots,'
-            . ' ' . self::dateSql($basis, 'Object', 's') . ' AS os, ' . self::dateSql($basis, 'Object', 'e') . ' AS oe,'
-            . ' MIN(' . self::dateSql($basis, 'Attribute', 's') . ') AS amin,'
-            . ' MAX(' . self::dateSql($basis, 'Attribute', 'e') . ') AS amax,'
-            . ' COUNT(Attribute.id) AS dated_children'
-            . ' FROM objects Object FORCE INDEX (event_id) JOIN events Event ON Event.id = Object.event_id'
-            . ' LEFT JOIN attributes Attribute ON Attribute.object_id = Object.id AND Attribute.deleted = 0'
-            . ' AND ' . self::datedSql($basis, 'Attribute') . ' AND ' . $acl['attribute']
-            . ' WHERE Object.event_id IN (' . $acl['events'] . ') AND Object.deleted = 0 AND ' . $acl['object']
-            . ' GROUP BY Object.id, Object.uuid, Object.event_id, Object.name, Object.`meta-category`,'
-            . ' Object.first_seen, Object.last_seen, Object.timestamp';
+        list($a, $o, $e) = $this->overview->aliases();
+        $category = $this->Object->getDataSource()->name('meta-category');
+        $index = $this->Object->liveObjectIndex();
+        $inner = "SELECT $o.id, $o.uuid, $o.event_id, $o.name,"
+            . " $o.$category AS category, $o.first_seen AS ofs, $o.last_seen AS ols,"
+            . " $o.timestamp AS ots,"
+            . ' ' . self::dateSql($basis, $o, 's') . ' AS os, ' . self::dateSql($basis, $o, 'e') . ' AS oe,'
+            . ' MIN(' . self::dateSql($basis, $a, 's') . ') AS amin,'
+            . ' MAX(' . self::dateSql($basis, $a, 'e') . ') AS amax,'
+            . " COUNT($a.id) AS dated_children"
+            . " FROM objects $o" . ($index === null ? '' : ' FORCE INDEX (' . $index . ')')
+            . " JOIN events $e ON $e.id = $o.event_id"
+            . " LEFT JOIN attributes $a ON $a.object_id = $o.id AND $a.deleted = FALSE"
+            . ' AND ' . self::datedSql($basis, $a) . ' AND ' . $acl['attribute']
+            . " WHERE $o.event_id IN (" . $acl['events'] . ") AND $o.deleted = FALSE AND " . $acl['object']
+            . " GROUP BY $o.id, $o.uuid, $o.event_id, $o.name, $o.$category,"
+            . " $o.first_seen, $o.last_seen, $o.timestamp";
         return 'SELECT t.id, t.uuid, t.event_id, t.name, t.category, t.ofs, t.ols, t.ots, t.dated_children,'
             . ' LEAST(COALESCE(t.os, t.amin), COALESCE(t.amin, t.os)) AS s,'
             . ' GREATEST(COALESCE(t.oe, t.amax), COALESCE(t.amax, t.oe)) AS e'
@@ -666,29 +688,37 @@ class EventSeenTimelineTool
      */
     private function looseFrom(array $acl)
     {
-        return 'FROM attributes Attribute FORCE INDEX (' . $this->Attribute->looseAttributeIndex() . ')'
-            . ' JOIN events Event ON Event.id = Attribute.event_id'
-            . ' LEFT JOIN objects Object ON Object.id = Attribute.object_id'
-            . ' WHERE Attribute.event_id IN (' . $acl['events'] . ') AND Attribute.object_id = 0'
-            . ' AND Attribute.deleted = 0 AND ' . $acl['attribute'];
+        list($a, $o, $e) = $this->overview->aliases();
+        $index = $this->Attribute->looseAttributeIndex();
+        return "FROM attributes $a" . ($index === null ? '' : ' FORCE INDEX (' . $index . ')')
+            . " JOIN events $e ON $e.id = $a.event_id"
+            . " LEFT JOIN objects $o ON $o.id = $a.object_id"
+            . " WHERE $a.event_id IN (" . $acl['events'] . ") AND $a.object_id = 0"
+            . " AND $a.deleted = FALSE AND " . $acl['attribute'];
     }
 
     /**
-     * The basis asked for, seen dates unless the timestamp is.
+     * The basis asked for, seen dates unless another known one is.
      */
     public static function basis(array $options)
     {
-        return ($options['basis'] ?? null) === self::BASIS_TIMESTAMP ? self::BASIS_TIMESTAMP : self::BASIS_SEEN;
+        $basis = $options['basis'] ?? null;
+        return in_array($basis, [self::BASIS_TIMESTAMP, self::BASIS_CREATED], true) ? $basis : self::BASIS_SEEN;
     }
 
     /**
      * The start (s) or end (e) of a row in microseconds: the earlier or later
-     * seen date, whichever ends it has, or its timestamp, NULL when unset.
+     * seen date, whichever ends it has, or its timestamp or creation time,
+     * NULL when unset.
      */
     public static function dateSql($basis, $alias, $end)
     {
         if ($basis === self::BASIS_TIMESTAMP) {
             return "(NULLIF($alias.timestamp, 0) * 1000000)";
+        }
+        if ($basis === self::BASIS_CREATED) {
+            // A NULL typed as a number: PostgreSQL reads a bare one in a derived table as text
+            return self::isAttribute($alias) ? "(NULLIF($alias.created, 0) * 1000000)" : 'NULLIF(0, 0)';
         }
         $first = "COALESCE($alias.first_seen, $alias.last_seen)";
         $last = "COALESCE($alias.last_seen, $alias.first_seen)";
@@ -700,7 +730,19 @@ class EventSeenTimelineTool
         if ($basis === self::BASIS_TIMESTAMP) {
             return "$alias.timestamp > 0";
         }
+        if ($basis === self::BASIS_CREATED) {
+            return self::isAttribute($alias) ? "$alias.created > 0" : '1 = 0';
+        }
         return "($alias.first_seen IS NOT NULL OR $alias.last_seen IS NOT NULL)";
+    }
+
+    /**
+     * Whether an alias, bare or quoted as EventOverviewTool::aliases() quotes
+     * it, names the attributes.
+     */
+    private static function isAttribute($alias)
+    {
+        return trim($alias, '`"') === 'Attribute';
     }
 
     private static function placeholders(array $values)

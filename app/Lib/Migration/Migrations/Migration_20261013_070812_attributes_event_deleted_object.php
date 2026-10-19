@@ -12,14 +12,13 @@ class Migration_20261013_070812_attributes_event_deleted_object extends Abstract
     public $requiresLogout = false;
 
     /**
+     * The index is part of the attributes 3.0 target, built in that table's
+     * schema v3 rebuild rather than in a pass of its own.
+     *
      * @param SchemaBuilder $schema
      * @return void
      */
     public function up(SchemaBuilder $schema)
     {
-        $columns = array('event_id', 'deleted', 'object_id');
-        if (!$this->inspector()->hasIndex('attributes', $columns)) {
-            $schema->table('attributes')->addIndex($columns, array('name' => 'idx_event_deleted_object'));
-        }
     }
 }

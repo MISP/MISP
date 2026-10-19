@@ -1640,6 +1640,44 @@ tr.evt-extension-row td:first-child { position: relative; }
     fill: var(--misp-graph-label, #26313d);
 }
 
+/* Period brush: misp-timeline.css's strip, in the graph's colours */
+.sankey-overview {
+    --misp-timeline-overview: var(--misp-graph-node-target, #8fbfe8);
+}
+
+.sankey-overview-key {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    margin-left: auto;
+}
+
+.sankey-overview-star {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--misp-graph-current, #6fbe80);
+    color: var(--misp-graph-current-on, #fff);
+    font: 700 9px/12px sans-serif;
+    text-align: center;
+}
+
+.sankey-overview-current {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-left: 2px solid var(--misp-graph-current, #6fbe80);
+    pointer-events: none;
+}
+
+/* centred on the 2px line, which sits outside the padding box */
+.sankey-overview-current > .sankey-overview-star {
+    position: absolute;
+    top: -1px;
+    left: -7px;
+}
+
 /* Overmind emits no --misp-* tokens, so its dark mode supplies them here */
 [data-misp-theme="overmind"][data-misp-mode="dark"] .corr-graph {
     --misp-surface: var(--bs-body-bg);
@@ -1712,6 +1750,63 @@ tr.evt-extension-row td:first-child { position: relative; }
 /* the filters drawer's IOC and event lists scroll on their own */
 .sankey-filter-list {
     max-height: 16rem;
+}
+
+/* Type and object toggles: a ticked option is tinted, an unticked one struck out */
+.sankey-facet-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    max-width: 100%;
+    padding: .1rem .3rem .1rem .55rem;
+    border: 1px solid color-mix(in srgb, var(--bs-correlation) 40%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bs-correlation) 12%, transparent);
+    color: var(--bs-body-color);
+    font-size: .75rem;
+    line-height: 1.4;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.sankey-facet-chip:hover {
+    background: color-mix(in srgb, var(--bs-correlation) 20%, transparent);
+}
+
+.sankey-facet-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sankey-facet-count {
+    padding: 0 .4rem;
+    border-radius: 999px;
+    background: var(--bs-body-bg);
+    color: var(--bs-secondary-color);
+    font-size: .68rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.btn-check:not(:checked) + .sankey-facet-chip {
+    border-style: dashed;
+    border-color: var(--bs-border-color);
+    background: transparent;
+    color: var(--bs-secondary-color);
+}
+
+.btn-check:not(:checked) + .sankey-facet-chip .sankey-facet-name {
+    text-decoration: line-through;
+}
+
+.btn-check:not(:checked) + .sankey-facet-chip .sankey-facet-count {
+    background: var(--bs-secondary-bg);
+}
+
+.btn-check:focus-visible + .sankey-facet-chip {
+    outline: 2px solid var(--bs-correlation);
+    outline-offset: 1px;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2760,7 +2855,7 @@ tr.evt-extension-row td:first-child { position: relative; }
     -webkit-box-orient: vertical;
 }
 /* ==========================================================================
-   events/export — cached exports & text signature downloads
+   Export format glyph tile (ExportFormatHelper, restSearch export form)
    ========================================================================== */
 
 /* Format glyph tile. --h is set per row, the ramp keeps every accent at the
@@ -2780,77 +2875,6 @@ tr.evt-extension-row td:first-child { position: relative; }
 [data-misp-mode="dark"] .ex-icon {
     color: hsl(var(--h) 70% 70%);
     background: hsl(var(--h) 60% 60% / .16);
-}
-
-.ex-scope .ex-table thead th {
-    background: var(--bs-tertiary-bg);
-    font-size: .72rem;
-    letter-spacing: .06em;
-    white-space: nowrap;
-}
-.ex-scope .ex-table td { padding-top: .7rem; padding-bottom: .7rem; }
-
-/* Keep the description readable instead of one long line on ultrawide. */
-.ex-scope .ex-desc { max-width: 46rem; }
-
-.ex-scope .ex-progress {
-    height: 1.1rem;
-    min-width: 9rem;
-    max-width: 12rem;
-    font-size: .7rem;
-}
-
-/* Inline qualifier next to a description: scope, published-only, … */
-.ex-scope .ex-meta-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: .3rem;
-    padding: .05rem .45rem;
-    border-radius: 999px;
-    font-size: .7rem;
-    line-height: 1.5;
-    color: var(--bs-secondary-color);
-    background: var(--bs-tertiary-bg);
-    border: 1px solid var(--bs-border-color);
-    white-space: nowrap;
-}
-.ex-scope .ex-meta-chip-on {
-    color: var(--bs-success-text-emphasis);
-    border-color: var(--bs-success-border-subtle);
-    background: var(--bs-success-bg-subtle);
-}
-.ex-scope .ex-meta-chip-off {
-    color: var(--bs-secondary-color);
-    border-color: var(--bs-border-color);
-    text-decoration: line-through;
-}
-
-.ex-scope .ex-dot { opacity: .5; margin: 0 .15rem; }
-
-/* Signature type chips: ~200 of them, so they scroll inside the card. */
-.ex-scope .ex-siglist {
-    max-height: 20rem;
-    overflow-y: auto;
-    padding-right: .25rem;
-}
-.ex-scope .ex-chip {
-    display: inline-block;
-    padding: .15rem .55rem;
-    border-radius: 999px;
-    font-family: var(--bs-font-monospace);
-    font-size: .76rem;
-    line-height: 1.5;
-    text-decoration: none;
-    color: var(--bs-emphasis-color);
-    background: var(--bs-tertiary-bg);
-    border: 1px solid var(--bs-border-color);
-    transition: border-color .15s, color .15s, background .15s;
-}
-.ex-scope a.ex-chip:hover,
-.ex-scope a.ex-chip:focus-visible {
-    color: var(--bs-primary);
-    border-color: var(--bs-primary);
-    background: var(--bs-primary-bg-subtle);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

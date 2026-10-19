@@ -245,7 +245,6 @@ class UsageDataWidget
                 'conditions' => $conditions,
                 'contain' => ['Event'],
                 'recursive' => -1,
-                'ignoreIndexHint' => 'deleted'
             ]);
             $this->redis->setEx('misp:dashboard:attribute_count:' . $hash, 3600, $count);
         }

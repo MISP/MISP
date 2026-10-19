@@ -25,12 +25,12 @@ App::uses('Collation', 'Migration');
  * What CakePHP has no answer for, and this class therefore owns: RENAME COLUMN,
  * RENAME TABLE, index DDL beyond the create-table clause, positional `after`,
  * prefix-length indexes, FULLTEXT, ROW_FORMAT and table options in an ALTER
- * TABLE, and the three column types MISP uses that Cake's map is missing.
+ * TABLE, and the column types MISP uses that Cake's map is missing.
  *
  * ## The type-map extension
  *
- * Cake's Mysql map has no mediumtext, longtext or varbinary, and the current
- * MISP schema uses all three - so without an extension a migration touching one
+ * Cake's Mysql map has no mediumtext, longtext, longblob or varbinary, and the
+ * MISP schema uses all four - so without an extension a migration touching one
  * of those columns simply could not be expressed. Each grammar declares its own
  * additions in $extraColumns and swaps the merged map into the public
  * $db->columns around each buildColumn() call, restoring it in a finally. The
@@ -57,7 +57,7 @@ abstract class AbstractGrammar
      * knows binary, boolean, string and text, and takes an empty string of
      * any other type for NULL.
      */
-    const QUOTED_AS = array('mediumtext' => 'text', 'longtext' => 'text', 'varbinary' => 'binary');
+    const QUOTED_AS = array('mediumtext' => 'text', 'longtext' => 'text', 'longblob' => 'binary', 'varbinary' => 'binary');
 
     /**
      * @var DboSource
@@ -335,7 +335,8 @@ abstract class AbstractGrammar
      * @param string|array $columns
      * @param array $options 'unique', 'name', 'length', 'fulltext', and for
      *   an index the engines spell differently: 'mysql' => false for one
-     *   PostgreSQL has alone; 'pgsql' => array('name', 'sql', 'extension'),
+     *   PostgreSQL has alone, 'pgsql' => false for one MySQL has alone;
+     *   'pgsql' => array('name', 'sql', 'extension'),
      *   its PostgreSQL name and statement (%1$s the quoted index name, %2$s
      *   the quoted table) and an extension it needs.
      * @return array Statements.
@@ -391,6 +392,44 @@ abstract class AbstractGrammar
             ));
         }
         return $this->resolveCollation($this->resolveRowFormat($options));
+    }
+
+    /**
+     * What alterDatabase() can set.
+     */
+    const DATABASE_OPTIONS = array('charset', 'collate');
+
+    /**
+     * Change the connected database's default charset and collation, which a
+     * table created without its own takes.
+     *
+     * @param array $options Any of DATABASE_OPTIONS.
+     * @return array Statements.
+     */
+    abstract public function alterDatabase(array $options);
+
+    /**
+     * An alterDatabase() declaration as this engine reads it: a collation
+     * token resolved.
+     *
+     * @param array $options
+     * @return array
+     * @throws InvalidArgumentException On no option or an unknown one.
+     */
+    public function databaseOptions(array $options)
+    {
+        if (empty($options)) {
+            throw new InvalidArgumentException('alterDatabase() needs at least one option.');
+        }
+        $unknown = array_diff(array_keys($options), self::DATABASE_OPTIONS);
+        if (!empty($unknown)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unknown database option "%s". Known options are: %s.',
+                implode('", "', $unknown),
+                implode(', ', self::DATABASE_OPTIONS)
+            ));
+        }
+        return $this->resolveCollation($options);
     }
 
     /**
@@ -936,6 +975,15 @@ abstract class AbstractGrammar
     protected static function isPostgresOnly(array $options)
     {
         return isset($options['mysql']) && $options['mysql'] === false;
+    }
+
+    /**
+     * @param array $options An index declaration.
+     * @return bool Whether the index exists on MySQL alone.
+     */
+    protected static function isMysqlOnly(array $options)
+    {
+        return isset($options['pgsql']) && $options['pgsql'] === false;
     }
 
     /**

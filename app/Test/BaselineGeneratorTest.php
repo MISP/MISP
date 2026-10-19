@@ -126,6 +126,60 @@ class BaselineGeneratorTestLoadedPostgres extends MigrationTestPostgres
     }
 }
 
+/**
+ * The same for a MySQL-family server; its version says which family.
+ */
+class BaselineGeneratorTestLoadedMysql extends MigrationTestMysqlExtended
+{
+    public $tables = array();
+
+    public $descriptions = array();
+
+    public $indexData = array();
+
+    public function listSources($data = null)
+    {
+        return $this->tables;
+    }
+
+    public function describe($model)
+    {
+        return isset($this->descriptions[$model]) ? $this->descriptions[$model] : array();
+    }
+
+    public function index($model)
+    {
+        return isset($this->indexData[$model]) ? $this->indexData[$model] : array();
+    }
+}
+
+/**
+ * What the catalog says beside describe() and index(): tableDefinition() and
+ * databaseDefaults() as scripted. A table without a definition gets none of
+ * the catalog checks.
+ */
+class BaselineGeneratorTestLoadedInspector extends SchemaInspector
+{
+    /** @var array table => tableDefinition() */
+    public $definitions = array();
+
+    /** @var array|null */
+    public $database;
+
+    /** @var BaselineGeneratorTestLoadedMysql|null What describe() and index() read. */
+    public $loadedDb;
+
+    public function tableDefinition($table)
+    {
+        return isset($this->definitions[$table]) ? $this->definitions[$table] : null;
+    }
+
+    public function databaseDefaults()
+    {
+        return $this->database;
+    }
+}
+
 class BaselineGeneratorTest extends TestCase
 {
     /** @var MysqlGrammar */
@@ -174,6 +228,8 @@ class BaselineGeneratorTest extends TestCase
             array('mediumtext', array('type' => 'mediumtext')),
             array('longtext', array('type' => 'longtext')),
             array('blob', array('type' => 'binary')),
+            array('mediumblob', array('type' => 'binary')),
+            array('longblob', array('type' => 'longblob')),
             array('varbinary(16)', array('type' => 'varbinary', 'length' => 16)),
             array('datetime', array('type' => 'datetime')),
             array('datetime(4)', array('type' => 'datetime', 'length' => 4)),
@@ -309,6 +365,46 @@ class BaselineGeneratorTest extends TestCase
 
         $plain = array('name' => 'value1', 'column' => array('value1'), 'unique' => false);
         $this->assertFalse(BaselineGenerator::needsHashRewrite($plain, $columns), 'no prefix, nothing to rewrite');
+    }
+
+    /**
+     * PostgreSQL leaves out a non-unique prefix index over several columns
+     * with a text one among them: the rendering notes it, and the comparison
+     * does not ask a loaded PostgreSQL database for it.
+     */
+    public function testACompositeTextPrefixIndexIsLeftOutOnPostgres()
+    {
+        $columns = array('value1' => array('type' => 'text'), 'name' => array('type' => 'string', 'length' => 255));
+        $composite = array('column' => array('name', 'value1'), 'unique' => false, 'length' => array('value1' => 191));
+        $this->assertTrue(BaselineGenerator::isMysqlOnly($composite, $columns));
+        $unique = array_merge($composite, array('unique' => true));
+        $this->assertFalse(BaselineGenerator::isMysqlOnly($unique, $columns), 'a unique key is never left out');
+        $varchar = array('column' => array('value1', 'name'), 'unique' => false, 'length' => array('name' => 191));
+        $this->assertFalse(BaselineGenerator::isMysqlOnly($varchar, $columns), 'a varchar prefix fits a btree entry');
+        $single = array('column' => array('value1'), 'unique' => false, 'length' => array('value1' => 191));
+        $this->assertFalse(BaselineGenerator::isMysqlOnly($single, $columns), 'one text column becomes a hash index');
+
+        $schema = $this->fixtureSchema();
+        $schema['correlations']['indexes']['idx_corr_evt_value'] = array(
+            'name' => 'idx_corr_evt_value',
+            'column' => array('1_event_id', 'value1'),
+            'unique' => false,
+            'length' => array('value1' => 191),
+        );
+        $mysql = $this->generator()->render($this->mysql, $schema, array(), 159);
+        $this->assertStringContainsString('`idx_corr_evt_value` (`1_event_id`, `value1`(191))', $mysql['sql']);
+        $pgsql = $this->generator()->render($this->pgsql, $schema, array(), 159);
+        $this->assertStringNotContainsString('idx_corr_evt_value', $pgsql['sql']);
+        $this->assertContains(
+            'Index idx_corr_evt_value on correlations(1_event_id, value1) left out: a prefix over text in a composite index has no PostgreSQL equivalent.',
+            $pgsql['notes']
+        );
+
+        $inspector = new BaselineGeneratorTestLoadedInspector(new BaselineGeneratorTestLoadedPostgres());
+        $this->assertSame(
+            $this->generator()->compare($inspector, $this->fixtureSchema()),
+            $this->generator()->compare($inspector, $schema)
+        );
     }
 
     public function testExpressionDefaultsAreTranslatedOrRefused()
@@ -522,11 +618,11 @@ class BaselineGeneratorTest extends TestCase
         ));
         $this->assertSame(
             array('tags: PostgreSQL-only index idx_tags_name_lower missing'),
-            $this->generator()->compare(new SchemaInspector($db), $schema)
+            $this->generator()->compare(new BaselineGeneratorTestLoadedInspector($db), $schema)
         );
 
         $db->indexData['tags']['idx_tags_name_lower'] = array('unique' => true, 'column' => 'lower(name)');
-        $this->assertSame(array(), $this->generator()->compare(new SchemaInspector($db), $schema));
+        $this->assertSame(array(), $this->generator()->compare(new BaselineGeneratorTestLoadedInspector($db), $schema));
     }
 
     /**
@@ -599,6 +695,16 @@ class BaselineGeneratorTest extends TestCase
         $this->assertStringNotContainsString('innodb_ft_enable_stopword', $other['sql']);
     }
 
+    public function testTheBaselineSetsTheDatabaseDefaultCollation()
+    {
+        $mariadb = $this->generator()->render(BaselineGenerator::grammar('mariadb'), $this->fixtureSchema(), array(), 159);
+        $this->assertStringContainsString('ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci;', $mariadb['sql']);
+        $mysql = $this->generator()->render(BaselineGenerator::grammar('mysql'), $this->fixtureSchema(), array(), 159);
+        $this->assertStringContainsString('ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci;', $mysql['sql']);
+        $pgsql = $this->generator()->render($this->pgsql, $this->fixtureSchema(), array(), 159);
+        $this->assertStringNotContainsString('ALTER DATABASE', $pgsql['sql']);
+    }
+
     public function testTheRoundTripReadsTheShapeOfAReplacedIndex()
     {
         $db = new BaselineGeneratorTestLoadedPostgres();
@@ -618,12 +724,12 @@ class BaselineGeneratorTest extends TestCase
         $this->assertSame(array(
             'attribute_values: index idx_attribute_values_value over (value), not the index its migration declares',
             'attribute_values: index idx_attribute_values_value_search missing',
-        ), $this->generator()->compare(new SchemaInspector($db), $schema));
+        ), $this->generator()->compare(new BaselineGeneratorTestLoadedInspector($db), $schema));
 
         // As Postgres::index() parses pg_get_indexdef() for the two
         $db->indexData['attribute_values']['idx_attribute_values_value'] = array('unique' => false, 'column' => array('lower("left"(value', '128'));
         $db->indexData['attribute_values']['idx_attribute_values_value_search'] = array('unique' => false, 'column' => 'value gin_trgm_ops');
-        $this->assertSame(array(), $this->generator()->compare(new SchemaInspector($db), $schema));
+        $this->assertSame(array(), $this->generator()->compare(new BaselineGeneratorTestLoadedInspector($db), $schema));
     }
 
     public function testTheMysqlRenderingKeepsEverythingAndNotesNothing()
@@ -746,7 +852,7 @@ class BaselineGeneratorTest extends TestCase
         $generator = $this->generator();
         $generator->answers = array(
             'information_schema.TABLES' => array(
-                array('TABLE_NAME' => 'roles', 'ENGINE' => 'InnoDB', 'TABLE_COLLATION' => 'utf8mb4_unicode_ci'),
+                array('TABLE_NAME' => 'roles', 'ENGINE' => 'InnoDB', 'TABLE_COLLATION' => 'utf8mb4_unicode_ci', 'ROW_FORMAT' => 'Dynamic'),
             ),
             'information_schema.COLUMNS' => array(
                 array('TABLE_NAME' => 'roles', 'COLUMN_NAME' => 'id', 'ORDINAL_POSITION' => 1, 'COLUMN_DEFAULT' => null, 'IS_NULLABLE' => 'NO', 'COLUMN_TYPE' => 'int(11)', 'CHARACTER_SET_NAME' => null, 'COLLATION_NAME' => null, 'EXTRA' => 'auto_increment', 'COLUMN_COMMENT' => ''),
@@ -772,10 +878,12 @@ class BaselineGeneratorTest extends TestCase
         );
         $this->assertSame(array('created' => 'unix_timestamp()'), $schema['roles']['expressionDefaults']);
         $this->assertSame(array('name'), array_keys($schema['roles']['indexes']));
+        // The row format stays out of the options createTable() is handed
         $this->assertSame(
             array('engine' => 'InnoDB', 'charset' => 'utf8mb4', 'collate' => 'utf8mb4_unicode_ci'),
             $schema['roles']['options']
         );
+        $this->assertSame('DYNAMIC', $schema['roles']['row_format']);
         foreach ($generator->asked as $sql) {
             $this->assertStringContainsString("TABLE_SCHEMA = 'reference'", $sql);
         }
@@ -919,7 +1027,7 @@ class BaselineGeneratorTest extends TestCase
      */
     public function testTheRoundTripComparisonNamesEveryDeviationAndNothingElse()
     {
-        $inspector = new SchemaInspector(new BaselineGeneratorTestLoadedPostgres());
+        $inspector = new BaselineGeneratorTestLoadedInspector(new BaselineGeneratorTestLoadedPostgres());
         $findings = $this->generator()->compare($inspector, $this->fixtureSchema());
         $this->assertSame(array(
             'admin_settings.surplus: column not in the reference',
@@ -937,9 +1045,238 @@ class BaselineGeneratorTest extends TestCase
         $db->tables = array('correlations', 'roles', 'system_settings');
         $db->descriptions['roles']['name']['length'] = 100;
         $db->descriptions['roles']['perm_add']['null'] = true;
-        $inspector = new SchemaInspector($db);
+        $inspector = new BaselineGeneratorTestLoadedInspector($db);
         $schema = $this->fixtureSchema();
         unset($schema['admin_settings']);
         $this->assertSame(array(), $this->generator()->compare($inspector, $schema));
+    }
+
+    /**
+     * As readSchema() reads a MariaDB reference: the target collations as
+     * tokens, D21's ascii_general_ci by name.
+     */
+    private function catalogSchema()
+    {
+        return array(
+            'events' => array(
+                'columns' => array(
+                    'id' => array('type' => 'biginteger', 'length' => 20, 'null' => false, 'key' => 'primary'),
+                    'uuid' => array('type' => 'string', 'length' => 36, 'null' => false, 'collate' => Collation::ASCII),
+                    'info' => array('type' => 'text', 'null' => false),
+                    'object_type' => array('type' => 'string', 'length' => 80, 'null' => false, 'collate' => 'ascii_general_ci', 'charset' => 'ascii'),
+                    'counter' => array('type' => 'integer', 'length' => 10, 'unsigned' => true, 'null' => false, 'default' => '0'),
+                    'org_id' => array('type' => 'integer', 'length' => 11, 'null' => false),
+                ),
+                'indexes' => array(
+                    'info' => array('name' => 'info', 'column' => array('info'), 'unique' => false, 'length' => array('info' => 255)),
+                    'info_search' => array('name' => 'info_search', 'column' => array('info'), 'unique' => false, 'fulltext' => true),
+                    'uuid' => array('name' => 'uuid', 'column' => array('uuid'), 'unique' => true),
+                ),
+                'primary' => 'id',
+                'options' => array('engine' => 'InnoDB', 'collate' => Collation::CI),
+                'expressionDefaults' => array(),
+                'row_format' => 'DYNAMIC',
+            ),
+        );
+    }
+
+    /**
+     * A loaded MySQL-family server agreeing with catalogSchema() on what
+     * describe() and index() report, and on the catalog as given.
+     *
+     * @param string $version
+     * @param string $ci The server's name for Collation::CI.
+     * @return BaselineGeneratorTestLoadedInspector
+     */
+    private function loadedMysql($version, $ci)
+    {
+        $db = new BaselineGeneratorTestLoadedMysql($version);
+        $db->tables = array('events');
+        $db->descriptions = array('events' => array(
+            'id' => array('type' => 'biginteger', 'null' => false, 'default' => null, 'length' => 20, 'key' => 'primary'),
+            'uuid' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 36),
+            'info' => array('type' => 'text', 'null' => false, 'default' => null, 'length' => null),
+            'object_type' => array('type' => 'string', 'null' => false, 'default' => null, 'length' => 80),
+            'counter' => array('type' => 'integer', 'null' => false, 'default' => '0', 'length' => 10),
+            'org_id' => array('type' => 'integer', 'null' => false, 'default' => null, 'length' => 11),
+        ));
+        $db->indexData = array('events' => array(
+            'PRIMARY' => array('column' => 'id', 'unique' => 1),
+            'info' => array('column' => 'info', 'unique' => 0, 'length' => array('info' => 255)),
+            'info_search' => array('column' => 'info', 'unique' => 0, 'type' => 'fulltext'),
+            'uuid' => array('column' => 'uuid', 'unique' => 1),
+        ));
+        $column = function ($collation, $unsigned = false) {
+            return array('unsigned' => $unsigned, 'collation' => $collation, 'charset' => $collation === null ? null : strstr($collation, '_', true));
+        };
+        $index = function ($columns, $length = array(), $type = 'btree') {
+            return array('column' => $columns, 'length' => $length, 'type' => $type);
+        };
+        $inspector = new BaselineGeneratorTestLoadedInspector($db);
+        $inspector->definitions['events'] = array(
+            'options' => array('engine' => 'InnoDB', 'row_format' => 'DYNAMIC', 'collation' => $ci, 'charset' => 'utf8mb4'),
+            'columns' => array(
+                'id' => $column(null),
+                'uuid' => $column('ascii_bin'),
+                'info' => $column($ci),
+                'object_type' => $column('ascii_general_ci'),
+                'counter' => $column(null, true),
+                'org_id' => $column(null),
+            ),
+            'indexes' => array(
+                'PRIMARY' => $index(array('id')),
+                'info' => $index(array('info'), array('info' => 255)),
+                'info_search' => $index(array('info'), array(), 'fulltext'),
+                'uuid' => $index(array('uuid')),
+            ),
+        );
+        $inspector->database = array('charset' => 'utf8mb4', 'collation' => $ci);
+        $inspector->loadedDb = $db;
+        return $inspector;
+    }
+
+    /**
+     * A MariaDB reference against a MySQL server: each token is expected
+     * under MySQL's name for it, so the two agree by class.
+     */
+    public function testTheCatalogComparisonNamesWhatDescribeFoldsAway()
+    {
+        $schema = $this->catalogSchema();
+        $database = array('collate' => Collation::CI);
+        $inspector = $this->loadedMysql('8.4.6', 'utf8mb4_unicode_520_ci');
+        $this->assertSame(array(), $this->generator()->compare($inspector, $schema, $database));
+
+        $events = &$inspector->definitions['events'];
+        $events['options'] = array('engine' => 'MyISAM', 'row_format' => 'COMPACT', 'collation' => 'utf8mb3_general_ci', 'charset' => 'utf8mb3');
+        $events['columns']['uuid']['collation'] = 'utf8mb4_bin';
+        $events['columns']['info']['collation'] = 'utf8mb3_general_ci';
+        $events['columns']['counter']['unsigned'] = false;
+        $events['columns']['org_id']['unsigned'] = true;
+        $events['indexes']['info']['length'] = array('info' => 64);
+        $events['indexes']['info_search']['type'] = 'btree';
+        $events['indexes']['uuid']['length'] = array('uuid' => 16);
+        $inspector->database['collation'] = 'latin1_swedish_ci';
+        $this->assertSame(array(
+            'database: default collation latin1_swedish_ci, expected utf8mb4_unicode_520_ci (<CI>)',
+            'events: engine MyISAM, expected InnoDB',
+            'events: row format COMPACT, expected DYNAMIC',
+            'events: default collation utf8mb3_general_ci, expected utf8mb4_unicode_520_ci (<CI>)',
+            'events.uuid: collation utf8mb4_bin, expected ascii_bin (<ASCII>)',
+            'events.info: collation utf8mb3_general_ci, expected utf8mb4_unicode_520_ci (<CI>)',
+            'events.counter: signed, expected unsigned',
+            'events.org_id: unsigned, expected signed',
+            'events: index info over (info(64)), expected (info(255))',
+            'events: index info_search is not FULLTEXT, expected FULLTEXT',
+            'events: index uuid over (uuid(16)), expected (uuid)',
+        ), $this->generator()->compare($inspector, $schema, $database));
+
+        // Without the reference's own default, the database's is not compared
+        $this->assertNotContains(
+            'database: default collation latin1_swedish_ci, expected utf8mb4_unicode_520_ci (<CI>)',
+            $this->generator()->compare($inspector, $schema)
+        );
+    }
+
+    /**
+     * describe() reads every text and blob size as text or binary; the
+     * catalog tells them apart, a longblob from a blob among them.
+     */
+    public function testTheCatalogComparisonNamesTheTextAndBlobTiers()
+    {
+        $schema = $this->catalogSchema();
+        $schema['events']['columns']['payload'] = array('type' => 'longblob', 'null' => true);
+        $database = array('collate' => Collation::CI);
+        $inspector = $this->loadedMysql('8.4.6', 'utf8mb4_unicode_520_ci');
+        $inspector->loadedDb->descriptions['events']['payload'] = array('type' => 'binary', 'null' => true, 'default' => null, 'length' => null);
+        $events = &$inspector->definitions['events'];
+        $events['columns']['payload'] = array('type' => 'longblob', 'unsigned' => false, 'collation' => null, 'charset' => null);
+        $events['columns']['info']['type'] = 'text';
+        $this->assertSame(array(), $this->generator()->compare($inspector, $schema, $database));
+
+        $events['columns']['payload']['type'] = 'blob';
+        $events['columns']['info']['type'] = 'mediumtext';
+        $this->assertSame(array(
+            'events.info: mediumtext, expected text',
+            'events.payload: blob, expected longblob',
+        ), $this->generator()->compare($inspector, $schema, $database));
+    }
+
+    /**
+     * MariaDB has unicode_520_ci too, but its <CI> is uca1400_ai_ci: by class
+     * means the loaded server's own name for the class, not any CI collation.
+     */
+    public function testACollationIsExpectedUnderTheLoadedServersOwnName()
+    {
+        $schema = $this->catalogSchema();
+        $inspector = $this->loadedMysql('10.11.14-MariaDB', 'utf8mb4_uca1400_ai_ci');
+        $this->assertSame(array(), $this->generator()->compare($inspector, $schema));
+
+        $inspector->definitions['events']['columns']['info']['collation'] = 'utf8mb4_unicode_520_ci';
+        $inspector->definitions['events']['columns']['object_type']['collation'] = 'ascii_bin';
+        $this->assertSame(array(
+            'events.info: collation utf8mb4_unicode_520_ci, expected utf8mb4_uca1400_ai_ci (<CI>)',
+            'events.object_type: collation ascii_bin, expected ascii_general_ci',
+        ), $this->generator()->compare($inspector, $schema));
+    }
+
+    public function testTheLoadedServerHasToBeKnown()
+    {
+        $inspector = $this->loadedMysql('', 'utf8mb4_uca1400_ai_ci');
+        $this->expectException('RuntimeException');
+        $this->expectExceptionMessage('The loaded server reports its version as ""');
+        $this->generator()->compare($inspector, $this->catalogSchema());
+    }
+
+    /**
+     * PostgreSQL has no collations, charsets, unsigned or row formats to
+     * compare: a column must not carry a collation of its own, and a prefix
+     * index over text must be the hash index its rendering makes of it.
+     */
+    public function testOnPostgresTheCatalogHoldsNoCollationAndAPrefixIndexKeepsItsRendering()
+    {
+        $db = new BaselineGeneratorTestLoadedPostgres();
+        $db->tables = array('correlations', 'roles', 'system_settings');
+        $db->descriptions['roles']['name']['length'] = 100;
+        $db->descriptions['roles']['perm_add']['null'] = true;
+        $inspector = new BaselineGeneratorTestLoadedInspector($db);
+        $inspector->database = array('charset' => 'utf8mb4', 'collation' => 'utf8mb4_bin');
+        $inspector->definitions['correlations'] = array(
+            'options' => array('engine' => null, 'row_format' => null, 'collation' => null, 'charset' => null),
+            'columns' => array(
+                'id' => array('unsigned' => false, 'collation' => null),
+                '1_event_id' => array('unsigned' => false, 'collation' => null),
+                'value1' => array('unsigned' => false, 'collation' => 'C'),
+                'deleted' => array('unsigned' => false, 'collation' => null),
+                'created' => array('unsigned' => false, 'collation' => null),
+            ),
+            'indexes' => array(
+                'PRIMARY' => array('column' => array('id'), 'length' => array(), 'type' => 'btree'),
+                'idx_correlations_1_event_id' => array('column' => array('1_event_id'), 'length' => array(), 'type' => 'btree'),
+                'idx_correlations_value1' => array('column' => array('value1'), 'length' => array(), 'type' => 'btree'),
+            ),
+        );
+        $schema = $this->fixtureSchema();
+        unset($schema['admin_settings']);
+        $database = array('collate' => Collation::CI);
+        $this->assertSame(array(
+            'correlations.value1: collation C, expected the database default',
+            'correlations: index idx_correlations_value1 is a btree index, expected hash',
+        ), $this->generator()->compare($inspector, $schema, $database));
+
+        $inspector->definitions['correlations']['columns']['value1']['collation'] = null;
+        $inspector->definitions['correlations']['indexes']['idx_correlations_value1']['type'] = 'hash';
+        $this->assertSame(array(), $this->generator()->compare($inspector, $schema, $database));
+    }
+
+    public function testTheReferencesDatabaseDefaultIsReadAsItsToken()
+    {
+        $generator = $this->generator();
+        $this->assertNull($generator->readDatabaseDefaults());
+        $this->assertStringContainsString("SCHEMA_NAME = 'reference'", $generator->asked[0]);
+
+        $generator->answers = array('information_schema.SCHEMATA' => array(array('collation' => 'utf8mb4_uca1400_ai_ci')));
+        $this->assertSame(array('collate' => Collation::CI), $generator->readDatabaseDefaults());
+        $generator->answers = array('information_schema.SCHEMATA' => array(array('collation' => 'latin1_swedish_ci')));
+        $this->assertSame(array('collate' => 'latin1_swedish_ci'), $generator->readDatabaseDefaults());
     }
 }

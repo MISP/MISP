@@ -9,6 +9,8 @@ App::uses('ValueSignalLoader', 'Tools/ValueIntelligence');
 App::uses('ValueVerdictTool', 'Tools/ValueIntelligence');
 App::uses('ValueVerdictDiffTool', 'Tools/ValueIntelligence');
 App::uses('ValueExclusionTool', 'Tools/ValueIntelligence');
+App::uses('ValueEnrichmentTool', 'Tools/ValueIntelligence');
+App::uses('IndexCardsTool', 'Tools/AnalystProfile');
 
 /**
  * The UI for owning an Analyst Profile: an index that names the profile
@@ -106,7 +108,7 @@ class AnalystProfilesController extends AppController
         ) {
             $this->Security->validatePost = false;
         }
-        $this->_csrfTokenHeaderOnly(['grade']);
+        $this->_csrfTokenHeaderOnly(['grade', 'fix']);
         /*
          * The editor posts more than once per page: every field change
          * recomputes the bench, and a pin posts beside it. A single-use
@@ -192,7 +194,221 @@ class AnalystProfilesController extends AppController
             'comparison_set' => $this->__comparisonSet($user),
             'comparison_limit' => self::COMPARISON_LIMIT,
             'capabilities' => $this->__capabilities($board),
+            'shipped' => empty($user['Role']['perm_site_admin'])
+                ? null
+                : $this->AnalystProfile->shippedStatus(),
         ), 'index');
+    }
+
+    /**
+     * The index's enrichment card, fetched after the page because it asks
+     * misp-modules, which the index itself never waits for.
+     *
+     * A site admin gets what every enabled profile asks for set against the
+     * instance; anybody else, their own profile's modules.
+     *
+     * @return CakeResponse
+     */
+    public function enrichment()
+    {
+        $user = $this->Auth->user();
+        $read = function ($setting) {
+            return Configure::read($setting);
+        };
+        $this->loadModel('Module');
+        $modules = $read('Plugin.Enrichment_services_enable')
+            ? $this->Module->getModules('Enrichment')
+            : null;
+        $this->loadModel('ValueEnrichmentRun');
+        if (!empty($user['Role']['perm_site_admin'])) {
+            $profiles = $this->__enabledProfiles();
+            $card = IndexCardsTool::diagnostic(
+                $profiles,
+                $modules,
+                $read,
+                $this->ValueEnrichmentRun->latestOutcomes(),
+                $this->__taxonomiesNamed(
+                    IndexCardsTool::askedTaxonomies($profiles))
+            );
+            $this->set('card', $card);
+            $this->set('org_names', $this->__restrictedOrgNames($card));
+            $element = 'enrichment_diagnostic';
+        } else {
+            $profile = $this->AnalystProfile->resolveFor($user);
+            if (isset($profile['AnalystProfile'])) {
+                $profile = $profile['AnalystProfile'];
+            }
+            $this->set('card', IndexCardsTool::reader(
+                $profile, $modules, $read, $user));
+            $this->set('answers',
+                $this->ValueEnrichmentRun->errorShareFor($user));
+            $element = 'enrichment_reader';
+        }
+        $this->layout = false;
+        return $this->render('/Elements/AnalystProfiles/cards/' . $element);
+    }
+
+    /**
+     * Switch on, from the index's enrichment card, something an enabled
+     * profile asks for: the modules service, one module, or one taxonomy.
+     *
+     * Nothing else: a module or taxonomy no enabled profile names is refused,
+     * so this is never a general settings editor.
+     *
+     * @return CakeResponse
+     */
+    public function fix()
+    {
+        $this->request->allowMethod(array('post'));
+        $user = $this->Auth->user();
+        if (empty($user['Role']['perm_site_admin'])) {
+            throw new ForbiddenException(__(
+                'Changing what this instance offers is a site admin action.'));
+        }
+        $data = isset($this->request->data['AnalystProfile'])
+            ? $this->request->data['AnalystProfile']
+            : $this->request->data;
+        $kind = isset($data['kind']) ? (string)$data['kind'] : '';
+        $name = isset($data['name']) ? trim((string)$data['name']) : '';
+        $profiles = $this->__enabledProfiles();
+        if ($kind === 'services') {
+            $error = $this->__enableSetting($user,
+                'Plugin.Enrichment_services_enable');
+            $done = __('The enrichment modules service is on.');
+        } elseif ($kind === 'module') {
+            $asked = IndexCardsTool::askedModules($profiles);
+            if (!isset($asked[$name])) {
+                throw new NotFoundException(__(
+                    'No enabled profile asks for this module.'));
+            }
+            $error = $this->__enableSetting($user,
+                'Plugin.Enrichment_' . $name . '_enabled');
+            $done = __('%s is enabled.', $name);
+        } elseif ($kind === 'taxonomy') {
+            $namespace = strtolower($name);
+            $asked = IndexCardsTool::askedTaxonomies($profiles);
+            if (!isset($asked[$namespace])) {
+                throw new NotFoundException(__(
+                    'No enabled profile names this taxonomy.'));
+            }
+            $error = $this->__enableTaxonomy($user, $namespace);
+            $done = __('The %s taxonomy is enabled.', $name);
+        } else {
+            throw new BadRequestException(__(
+                'Say what to switch on: services, module or taxonomy.'));
+        }
+        return $this->RestResponse->viewData(array(
+            'saved' => $error === null,
+            'message' => $error === null ? $done : $error,
+        ), 'json');
+    }
+
+    /**
+     * @param array $user
+     * @param string $name
+     * @return string|null Why it was not saved
+     */
+    private function __enableSetting(array $user, $name)
+    {
+        $Server = ClassRegistry::init('Server');
+        $setting = $Server->getSettingData($name);
+        if (empty($setting)) {
+            return __('This instance has no setting %s. Is the module'
+                . ' installed on misp-modules, and is the service'
+                . ' answering?', $name);
+        }
+        $result = $Server->serverSettingsEditValue($user, $setting, '1');
+        if ($result !== true) {
+            return is_string($result) ? $result : __('The setting could'
+                . ' not be written.');
+        }
+        Configure::write($name, true);
+        return null;
+    }
+
+    /**
+     * @param array $user
+     * @param string $namespace Lowercased
+     * @return string|null Why it was not saved
+     */
+    private function __enableTaxonomy(array $user, $namespace)
+    {
+        $this->loadModel('Taxonomy');
+        $taxonomy = $this->Taxonomy->find('first', array(
+            'conditions' => array('LOWER(Taxonomy.namespace)' => $namespace),
+            'recursive' => -1,
+        ));
+        if (empty($taxonomy)) {
+            return __('This instance has no %s taxonomy. Update the'
+                . ' taxonomies to load it.', $namespace);
+        }
+        $taxonomy['Taxonomy']['enabled'] = true;
+        if (!$this->Taxonomy->save($taxonomy)) {
+            return __('The taxonomy could not be saved.');
+        }
+        ClassRegistry::init('Log')->createLogEntry($user, 'enable',
+            'Taxonomy', $taxonomy['Taxonomy']['id'], 'Taxonomy enabled',
+            $taxonomy['Taxonomy']['namespace'] . ' - enabled');
+        return null;
+    }
+
+    /**
+     * Every enabled profile, unwrapped, with its parameters.
+     *
+     * @return array
+     */
+    private function __enabledProfiles()
+    {
+        $rows = $this->AnalystProfile->find('all', array(
+            'conditions' => array('AnalystProfile.enabled' => 1),
+            'fields' => array('id', 'name', 'parameters'),
+            'recursive' => -1,
+        ));
+        return array_column($rows, 'AnalystProfile');
+    }
+
+    /**
+     * @param array $asked From IndexCardsTool::askedTaxonomies()
+     * @return array Lowercased namespace => id, namespace, enabled
+     */
+    private function __taxonomiesNamed(array $asked)
+    {
+        if (empty($asked)) {
+            return array();
+        }
+        $this->loadModel('Taxonomy');
+        $rows = $this->Taxonomy->find('all', array(
+            'conditions' => array(
+                'LOWER(Taxonomy.namespace)' => array_keys($asked)),
+            'fields' => array('id', 'namespace', 'enabled'),
+            'recursive' => -1,
+        ));
+        $out = array();
+        foreach ($rows as $row) {
+            $out[strtolower($row['Taxonomy']['namespace'])] = $row['Taxonomy'];
+        }
+        return $out;
+    }
+
+    /**
+     * @param array $card From IndexCardsTool::diagnostic()
+     * @return array Organisation id => name
+     */
+    private function __restrictedOrgNames(array $card)
+    {
+        if (empty($card['groups'][IndexCardsTool::MODULE_RESTRICTED])) {
+            return array();
+        }
+        $ids = array_filter(array_column(
+            $card['groups'][IndexCardsTool::MODULE_RESTRICTED], 'restrict'));
+        if (empty($ids)) {
+            return array();
+        }
+        $this->loadModel('Organisation');
+        return $this->Organisation->find('list', array(
+            'conditions' => array('Organisation.id' => array_values($ids)),
+            'fields' => array('Organisation.id', 'Organisation.name'),
+        ));
     }
 
     /**
@@ -244,8 +460,9 @@ class AnalystProfilesController extends AppController
             'enrichment_auto_run' => array(
                 'setting' => 'Plugin.ValueIntelligence_enrichment_auto_run',
                 'tab' => 'Plugin',
-                'state' => (string)Configure::read(
-                    'Plugin.ValueIntelligence_enrichment_auto_run'),
+                'state' => ValueEnrichmentTool::normaliseGate(
+                    Configure::read(
+                        'Plugin.ValueIntelligence_enrichment_auto_run')),
             ),
             'instance_profile' => array(
                 'setting' => 'Plugin.ValueIntelligence_instance_profile',
@@ -1146,11 +1363,46 @@ class AnalystProfilesController extends AppController
         $outcome = $this->AnalystProfile->updateDefaults(
             $force === true || $force === 'true' || $force === '1'
         );
-        return $this->__wrote(
-            array('outcomes' => $outcome),
-            __('The shipped defaults were loaded.'),
-            array('action' => 'index')
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(
+                array('outcomes' => $outcome),
+                'application/json'
+            );
+        }
+        $counts = array_count_values($outcome) + array(
+            'created' => 0,
+            'updated' => 0,
+            'overwrote_edits' => 0,
+            'skipped' => 0,
+            'failed' => 0,
         );
+        if (empty($outcome)) {
+            $this->Flash->error(__('No shipped profile could be read.'
+                . ' The error log says why.'));
+        } else {
+            $message = __(
+                'Shipped profiles: %s added, %s updated,'
+                    . ' %s already up to date.',
+                $counts['created'],
+                $counts['updated'] + $counts['overwrote_edits'],
+                $counts['skipped']
+            );
+            if ($counts['overwrote_edits'] > 0) {
+                $message .= ' ' . __(
+                    'Local edits to %s of them were replaced.',
+                    $counts['overwrote_edits']
+                );
+            }
+            if ($counts['failed'] > 0) {
+                $this->Flash->error($message . ' ' . __(
+                    '%s could not be saved; the error log says why.',
+                    $counts['failed']
+                ));
+            } else {
+                $this->Flash->success($message);
+            }
+        }
+        return $this->redirect(array('action' => 'index'));
     }
 
     /**
@@ -2364,7 +2616,7 @@ class AnalystProfilesController extends AppController
      * @return CakeResponse
      */
     private function __refuse(array $errors, array $extra = array(),
-        array $html = null
+        ?array $html = null
     ) {
         if (!$this->_isRest()) {
             foreach ($errors as $error) {

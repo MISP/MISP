@@ -5,8 +5,27 @@
  *
  * @var array $matrix EventMatrixTool::full(), plus origins
  * @var string $lightIcon the glyph marking the weaker state
+ * @var bool $heat optional: shade the used techniques by how many events carry them
  */
 $origins = $matrix['origins'];
+$eventsOf = function (array $item) {
+    $events = (int)($item['events'] ?? 0);
+    if (!empty($item['own'])) {
+        $events = max($events, (int)($item['own']['events'] ?? 0));
+    }
+    foreach ($item['subs'] ?? [] as $sub) {
+        $events = max($events, (int)($sub['events'] ?? 0));
+    }
+    return $events;
+};
+$maxEvents = 0;
+if (!empty($heat)) {
+    foreach ($matrix['columns'] as $column) {
+        foreach ($column['groups'] as $group) {
+            $maxEvents = max($maxEvents, $eventsOf($group));
+        }
+    }
+}
 $active = array_values(array_filter($matrix['tabs'], function ($tab) {
     return $tab['active'] > 0;
 }));
@@ -39,17 +58,21 @@ $cell = function (array $item, array $extra = []) use (&$cellData, $origins) {
     ];
     return $index;
 };
-$button = function (array $item, $state, $index) use ($lightIcon) {
+$button = function (array $item, $state, $index) use ($lightIcon, $eventsOf, $maxEvents) {
     $ind = $state === 'indicators';
+    $shade = '';
+    if ($maxEvents > 0 && $state === 'event') {
+        $shade = sprintf(' style="--mx-heat:%d%%"', 12 + round(48 * log(1 + $eventsOf($item)) / log(1 + $maxEvents)));
+    }
     return sprintf(
-        '<button type="button" class="mx-cell" data-matrix-cell data-state="%s" data-i="%d" aria-label="%s"><span class="mx-name">%s</span><span class="mx-meta"><span class="mx-tid">%s%s</span></span></button>',
-        h($state), $index, h(trim($item['label'] . ' ' . $item['tid'])), h($item['label']),
+        '<button type="button" class="mx-cell" data-matrix-cell data-state="%s" data-i="%d"%s aria-label="%s"><span class="mx-name">%s</span><span class="mx-meta"><span class="mx-tid">%s%s</span></span></button>',
+        h($state), $index, $shade, h(trim($item['label'] . ' ' . $item['tid'])), h($item['label']),
         $ind ? '<i class="' . h($lightIcon) . '" aria-hidden="true"></i>' : '',
         h($item['tid'])
     );
 };
 ?>
-<div class="mx-full" data-mx-full-galaxy="<?= (int)$matrix['galaxy']['id'] ?>" data-mx-tab="<?= h($current) ?>">
+<div class="mx-full" data-mx-full-galaxy="<?= (int)$matrix['galaxy']['id'] ?>" data-mx-tab="<?= h($current) ?>"<?= $maxEvents > 0 ? ' data-mx-heat' : '' ?>>
     <div class="mx-full-tabs" role="tablist" aria-label="<?= h(__('Matrix tabs')) ?>">
         <?php foreach ($active as $tab): ?>
         <button type="button" class="mx-full-tab" role="tab" data-mx-tab-pick="<?= h($tab['key']) ?>"

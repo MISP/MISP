@@ -111,9 +111,30 @@ if ($inForce === null) {
         ),
         array('class' => 'vi-condlink')
     );
+    if (!($showsAssessment ?? true)) {
+        $line = sprintf(
+            h(__('%s switches the assessment off, so values are listed'
+                . ' without a lean, signal strength or relevance.')),
+            $named
+        );
+        $link = $inForce['id'] === null ? null : $this->Html->link(
+            $inForce['editable']
+                ? __('Edit profile')
+                : __('View profile'),
+            array(
+                'controller' => 'analystProfiles',
+                'action' => $inForce['editable'] ? 'edit' : 'view',
+                $inForce['id'],
+                '?' => array('section' => 'context'),
+            ),
+            array('class' => 'vi-condlink')
+        );
+    }
 }
 ?>
 <div class="vi-cond">
     <span><?= $line ?><?php if ($link !== null): ?> <?= $link ?><?php endif; ?></span>
-    <?= $this->element('Values/Index/method') ?>
+    <?php if ($showsAssessment ?? true): ?>
+        <?= $this->element('Values/Index/method') ?>
+    <?php endif; ?>
 </div>

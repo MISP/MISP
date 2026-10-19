@@ -557,36 +557,6 @@ class OrganisationsController extends AppController
         $this->render('ajax/fetch_orgs_for_sg');
     }
 
-    public function fetchSGOrgRow($id, $removable = false, $extend = false)
-    {
-        $this->layout = false;
-        $this->autoRender = false;
-        $this->set('id', (int)$id);
-        $this->set('removable', $removable);
-        $this->set('extend', $extend);
-        $this->render('ajax/sg_org_row_empty');
-    }
-
-    /**
-     * @deprecated Probably not used anywhere.
-     */
-    public function getUUIDs()
-    {
-        if (Configure::read('Security.hide_organisation_index_from_users')) {
-            throw new MethodNotAllowedException(__('This action is not enabled on this instance.'));
-        }
-        $temp = $this->Organisation->find('all', array(
-                'recursive' => -1,
-                'conditions' => array('local' => 1),
-                'fields' => array('Organisation.uuid')
-        ));
-        $orgs = array();
-        foreach ($temp as $t) {
-            $orgs[] = $t['Organisation']['uuid'];
-        }
-        return new CakeResponse(array('body'=> json_encode($orgs), 'type' => 'json'));
-    }
-
     /**
      * The legacy view is always opened for a given organisation, so the merge
      * source comes from the URL. The Overmind modal is opened from the index

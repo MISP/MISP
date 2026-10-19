@@ -14,8 +14,8 @@ App::uses('OfflineConnection', 'Migration/Grammar');
  * Charset, collate, comment, unsigned, ENGINE and the table charset all arrive
  * from Cake's own $fieldParameters/$tableParameters. This class adds what Cake
  * has no notion of: positional `after`, prefix-length index parts, FULLTEXT,
- * the mediumtext/longtext/varbinary types the MISP schema uses, and collation
- * tokens, resolved for the server the datasource reports.
+ * the mediumtext/longtext/longblob/varbinary types the MISP schema uses, and
+ * collation tokens, resolved for the server the datasource reports.
  *
  * Statement shapes follow the ones the legacy corpus and AppModel::__addIndex()
  * already emit (ADD INDEX / DROP INDEX rather than Cake's ADD KEY), so a reader
@@ -31,6 +31,7 @@ class MysqlGrammar extends AbstractGrammar
     protected $extraColumns = array(
         'mediumtext' => array('name' => 'mediumtext'),
         'longtext' => array('name' => 'longtext'),
+        'longblob' => array('name' => 'longblob'),
         'varbinary' => array('name' => 'varbinary'),
     );
 
@@ -89,6 +90,22 @@ class MysqlGrammar extends AbstractGrammar
             $this->name($from),
             $this->name($to)
         ));
+    }
+
+    /**
+     * Without a name, ALTER DATABASE applies to the connected database.
+     */
+    public function alterDatabase(array $options)
+    {
+        $options = $this->databaseOptions($options);
+        $parts = array();
+        if (isset($options['charset'])) {
+            $parts[] = 'CHARACTER SET ' . $options['charset'];
+        }
+        if (isset($options['collate'])) {
+            $parts[] = 'COLLATE ' . $options['collate'];
+        }
+        return array('ALTER DATABASE ' . implode(' ', $parts) . ';');
     }
 
     // ----------------------------------------------------------------- table

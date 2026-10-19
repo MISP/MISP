@@ -348,76 +348,15 @@ class LogsController extends AppController
         $this->set('mayModify', $mayModify);
     }
 
-    public function search()
-    {
-        $this->set('orgRestriction', $this->_isSiteAdmin() ? false : $this->Auth->user('Organisation')['name']);
-        $models = $this->Log->searchModelList;
-        sort($models);
-        $models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
-        $actions = array('' => 'ALL') + $this->_arrayToValuesIndexArray($this->Log->validate['action']['rule'][1]);
-        $this->set('dropdownData', [
-            'model' => $models,
-            'actions' => $actions
-
-        ]);
-        $this->set('models', $models);
-        $this->set('fieldDesc', [
-            'email' => __('The e-mail address of the user that triggered the log entry.'),
-            'org' => __('The organisation name of the user that triggered the log entry (at the time when the entry was added).'),
-            'model' => __('The log entry\'s target object type. When a modification to a user is made, this would be "User".'),
-            'model_id' => __('The log entry\'s target object ID. When a modification to a specific attribute is made, this would be the Attribute\'s local ID.'),
-            'from' => __('Format is YYYY-MM-DD'),
-            'to' => __('Format is YYYY-MM-DD')
-        ]);
-        $this->set('menuData', ['menuList' => 'logs', 'menuItem' => 'search']);
-    }
-
-    private function __buildSearchConditions($filters)
-    {
-        $conditions = array();
-        if (isset($filters['email']) && !empty($filters['email'])) {
-            $conditions['LOWER(Log.email) LIKE'] = '%' . strtolower($filters['email']) . '%';
-        }
-        if (isset($filters['org']) && !empty($filters['org'])) {
-            $conditions['LOWER(Log.org) LIKE'] = '%' . strtolower($filters['org']) . '%';
-        }
-        if ($filters['action'] != 'ALL' && $filters['action'] !== null) {
-            $conditions['Log.action'] = $filters['action'];
-        }
-        if ($filters['model'] != '') {
-            $conditions['Log.model'] = $filters['model'];
-        }
-        if ($filters['model_id'] != '') {
-            $conditions['Log.model_id'] = $filters['model_id'];
-        }
-        if (isset($filters['title']) && !empty($filters['title'])) {
-            $conditions['LOWER(Log.title) LIKE'] = '%' . strtolower($filters['title']) . '%';
-        }
-        if (isset($filters['change']) && !empty($filters['change'])) {
-            $conditions['LOWER(Log.change) LIKE'] = '%' . strtolower($filters['change']) . '%';
-        }
-        foreach (['from' => '>=', 'to' => '<='] as $keyword => $operator) {
-            if (!empty($filters[$keyword])) {
-                $date = $filters[$keyword];
-                if (!empty($filters[$keyword . '_time'])) {
-                    $date .= ' ' . $filters[$keyword . '_time'];
-                } else {
-                    $date .= ' ' . ($keyword == 'from' ? '00:00:00': '23:59:59');
-                }
-                $conditions['Log.created ' . $operator] = $date;
-            }
-        }
-        if (Configure::read('MISP.log_client_ip') && isset($filters['ip']) && !empty($filters['ip'])) {
-            $conditions['Log.ip LIKE'] = '%' . $filters['ip'] . '%';
-        }
-        return $conditions;
-    }
-
     public function returnDates($org = 'all')
     {
         if (!$this->Auth->user('Role')['perm_sharing_group'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
-            if ($org !== 'all' && $org !== $this->Auth->user('Organisation')['name']) {
-                throw new MethodNotAllowedException('Invalid organisation.');
+            if ($org !== 'all') {
+                $this->loadModel('Organisation');
+                $requested = $this->Organisation->fetchOrg($org);
+                if (empty($requested) || (int)$requested['id'] !== (int)$this->Auth->user('org_id')) {
+                    throw new MethodNotAllowedException('Invalid organisation.');
+                }
             }
         }
         $data = $this->Log->returnDates($org);
@@ -425,45 +364,4 @@ class LogsController extends AppController
         $this->set('_serialize', 'data');
     }
 
-    public function pruneUpdateLogs()
-    {
-        $this->request->allowMethod(['post']);
-        $this->Log->pruneUpdateLogsRouter($this->Auth->user());
-        if (Configure::read('MISP.background_jobs')) {
-            $this->Flash->success('The pruning job is queued.');
-        } else {
-            $this->Flash->success('The pruning is complete.');
-        }
-        $this->redirect($this->referer());
-    }
-
-    public function testForStolenAttributes()
-    {
-        $logs = $this->Log->find('list', array(
-            'recursive' => -1,
-            'conditions' => array(
-                'Log.model' => 'Attribute',
-                'Log.action' => 'edit'
-            ),
-            'fields' => array('Log.title')
-        ));
-        $ids = array();
-        foreach ($logs as $log) {
-            preg_match('/Attribute \(([0-9]+?)\)/', $log, $attribute_id);
-            preg_match('/Event \(([0-9]+?)\)/', $log, $event_id);
-            if (!isset($attribute_id[1])) {
-                continue;
-            }
-            if (empty($ids[$attribute_id[1]]) || !in_array($event_id[1], $ids[$attribute_id[1]])) {
-                $ids[$attribute_id[1]][] = $event_id[1];
-            }
-        }
-        $issues = array();
-        foreach ($ids as $aid => $eids) {
-            if (count($eids) > 1) {
-                $issues[$aid] = $eids;
-            }
-        }
-        $this->set('issues', $issues);
-    }
 }

@@ -754,6 +754,8 @@ class GraphTest extends TestCase
 
     public function testAuditLogRecordsTheSummaryInPlaceOfTheDocument()
     {
+        // AuditLogBehavior::changedFields() calls AttributeValue statically
+        require_once __DIR__ . '/AttributeValueClassSupport.php';
         Configure::write('MISP.log_new_audit', true);
         $recorder = new GraphTestRecorder();
         ClassRegistry::$instances['AuditLog'] = $recorder;
@@ -1662,7 +1664,7 @@ class GraphTest extends TestCase
      * Readable attributes, modules reserved away from the user's
      * organisation, and the attribute uuids the instance still holds.
      */
-    private function registerAnswerFakes(array $readable, array $reserved = array(), array $existing = null)
+    private function registerAnswerFakes(array $readable, array $reserved = array(), ?array $existing = null)
     {
         $this->fake('CollectionElement')->on('readableUuids', function ($user, $type, $uuids) use ($readable) {
             return array_values(array_filter($uuids, function ($uuid) use ($readable) {

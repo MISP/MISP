@@ -735,6 +735,39 @@ class SchemaBuilderTest extends TestCase
         $this->assertSame(array(), $schema->toSql());
     }
 
+    /**
+     * The database's defaults are compared as the server names them, so a
+     * re-run renders nothing; PostgreSQL has none and renders none.
+     */
+    public function testAlterDatabaseIsLeftOutWhenTheDatabaseAlreadyDefaultsToIt()
+    {
+        $declare = function (SchemaBuilder $schema) {
+            $schema->alterDatabase(array('collate' => Collation::CI));
+            return $schema;
+        };
+        $mariadb = function () {
+            return new SchemaBuilder(new MysqlGrammar(new MigrationTestMysqlExtended('10.11.14-MariaDB')));
+        };
+
+        $live = $this->live('mysql', array());
+        $live->database = array('charset' => 'utf8mb4', 'collation' => 'utf8mb4_general_ci');
+        $schema = $declare($mariadb());
+        $this->assertSame(array(), $schema->skipSatisfied($live));
+        $this->assertSame(array('ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci;'), $schema->toSql());
+
+        $live->database = array('charset' => 'utf8mb4', 'collation' => 'utf8mb4_uca1400_ai_ci');
+        $schema = $declare($mariadb());
+        $this->assertSame(
+            array('the database already defaults to CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci'),
+            $schema->skipSatisfied($live)
+        );
+        $this->assertSame(array(), $schema->toSql());
+
+        $schema = $declare($this->pgsql());
+        $this->assertSame(array(), $schema->skipSatisfied($this->live('pgsql', array())));
+        $this->assertSame(array(), $schema->toSql());
+    }
+
     public function testMysqlNamesAreComparedWithoutCase()
     {
         $schema = $this->mysql();

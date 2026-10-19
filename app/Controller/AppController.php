@@ -47,7 +47,7 @@ class AppController extends Controller
     const PRE_AUTH_FLOOD_WINDOW = 900;
 
     private $__queryVersion = '240';
-    public $pyMispVersion = '2.5.34.2';
+    public $pyMispVersion = '2.5.34.4';
     public $phpmin = '8.1';
     public $phprec = '8.2';
     public $phptoonew = '9.0';
@@ -338,31 +338,26 @@ class AppController extends Controller
         $currentTheme = 'Default';
         $this->set('theme', $currentTheme);
         if (!$this->_isRest()) {
+            // MISP.enable_themes only unlocks choosing another theme.
+            $currentTheme = null;
             if ($themesEnabled) {
                 if ($this->Auth->user()) {
-                    $currentTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id')) ?? null;
-
-                    if ($currentTheme) {
-                        $this->theme = $currentTheme;
-                        $this->viewClass = 'Theme';
-                    } else {
-                        $currentTheme = Configure::read('MISP.default_theme');
-                        if ($currentTheme) {
-                            $this->theme = $currentTheme;
-                            $this->viewClass = 'Theme';
-                        }
-                    }
-                } else {
-                    $currentTheme = Configure::read('MISP.default_theme');
-                    if ($currentTheme) {
-                        $this->theme = $currentTheme;
-                        $this->viewClass = 'Theme';
-                    }
+                    $currentTheme = $this->User->UserSetting->getUserTheme($this->Auth->user('id'));
                 }
-                $this->set('theme', $currentTheme);
-                if ($currentTheme === 'Overmind') {
-                    $this->set('bootstrapTheme', MispTheme::bootstrapTheme($this->Auth->user()));
+                $currentTheme = $currentTheme ?: Configure::read('MISP.default_theme');
+                $knownThemes = $this->User->UserSetting::VALID_SETTINGS['ui_theme']['options'];
+                if (!in_array($currentTheme, $knownThemes, true)) {
+                    $currentTheme = null;
                 }
+            }
+            $currentTheme = $currentTheme ?: MispTheme::DEFAULT_THEME;
+            $this->theme = $currentTheme;
+            $this->viewClass = 'Theme';
+            $this->set('theme', $currentTheme);
+            if ($currentTheme === 'Overmind') {
+                $this->set('bootstrapTheme', MispTheme::bootstrapTheme($this->Auth->user()));
+            }
+            if ($themesEnabled) {
                 $availableThemes = MispTheme::getAvailableThemes($currentTheme, (bool)Configure::read('debug'));
                 $this->set('themes', $availableThemes);
 
@@ -387,6 +382,10 @@ class AppController extends Controller
             Configure::write('CurrentUserEmail', $user['email']);
             Configure::write('CurrentUserIP', $this->User->_remoteIp());
             $this->__logAccess($user);
+
+            if (!$this->_isControllerAction(['users' => ['logout']]) && $this->User->awaitsV3Upgrade()) {
+                $this->__v3UpgradeRequired($user);
+            }
 
             // Try to run updates
             if ($user['Role']['perm_site_admin'] || (!$this->_isRest() && !$isAjax && $this->_isLive())) {
@@ -1134,6 +1133,37 @@ class AppController extends Controller
         }
     }
 
+    /**
+     * Stops every request while the database has the 2.x layout: the upgrade
+     * is one-way, so it is left to an administrator on the command line.
+     */
+    private function __v3UpgradeRequired(array $user)
+    {
+        $isSiteAdmin = !empty($user['Role']['perm_site_admin']);
+        if ($isSiteAdmin) {
+            $message = __('The database of this MISP instance needs an upgrade that only runs from the command line. Back up the database first: the upgrade is one-way.');
+        } else {
+            $message = __('This MISP instance is being upgraded and is unavailable until the upgrade is done. Please try again later.');
+        }
+        if ($this->_isRest() || $this->request->is('ajax')) {
+            $response = $this->RestResponse->throwException(503, $message);
+        } else {
+            $this->layout = false;
+            $this->set('title_for_layout', $isSiteAdmin ? __('Database upgrade required') : __('Upgrade in progress'));
+            $this->set('isSiteAdmin', $isSiteAdmin);
+            $this->set('message', $message);
+            if ($isSiteAdmin) {
+                $this->set('progress', $this->User->v3UpgradeProgress());
+                $this->set('isLive', $this->_isLive());
+            }
+            $response = $this->render('/genericTemplates/v3_upgrade_required');
+            $response->statusCode(503);
+        }
+        $response->header('Retry-After', '3600');
+        $response->send();
+        $this->_stop();
+    }
+
     private function __cors()
     {
         if (Configure::read('Security.allow_cors')) {
@@ -1602,6 +1632,25 @@ class AppController extends Controller
         return $user;
     }
 
+    /**
+     * Masked like an API key: the header defaults to Authorization, so it
+     * usually carries the caller's MISP API key.
+     *
+     * @param string $externalKey
+     * @return string
+     */
+    private function __externalKeyForLog($externalKey)
+    {
+        $externalKey = trim($externalKey);
+        if (!empty(Configure::read('Security.allow_unsafe_cleartext_apikey_logging'))) {
+            return $externalKey;
+        }
+        if (strlen($externalKey) < 32) {
+            return str_repeat('*', 32);
+        }
+        return substr($externalKey, 0, 4) . str_repeat('*', 32) . substr($externalKey, -4);
+    }
+
     private function __preAuthException($message)
     {
         $this->set('me', array());
@@ -1637,7 +1686,7 @@ class AppController extends Controller
                         'auth_fail',
                         'User',
                         0,
-                        'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->User->_remoteIp(),
+                        'Failed authentication using external key (' . $this->__externalKeyForLog($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $this->User->_remoteIp(),
                         null);
                     $this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
                 }
@@ -1679,9 +1728,9 @@ class AppController extends Controller
                         'auth_fail',
                         'User',
                         0,
-                        'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ')',
+                        'Failed authentication using external key (' . $this->__externalKeyForLog($server[$headerNamespace . $header]) . ')',
                         json_encode($change));
-                    if (Configure::read('CustomAuth_required')) {
+                    if (Configure::read('Plugin.CustomAuth_required')) {
                         $this->Session->destroy();
                         $this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
                     }

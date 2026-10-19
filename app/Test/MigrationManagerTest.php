@@ -32,7 +32,7 @@ class MigrationManagerTest extends TestCase
         'Migration_20260104_000000_unrelated.php',
     );
 
-    private function manager(array $rows = array(), array $files = null)
+    private function manager(array $rows = array(), ?array $files = null)
     {
         return new TestMigrationManager(
             $files === null ? self::$allFiles : $files,
@@ -468,7 +468,7 @@ class MigrationManagerTest extends TestCase
         $sql = $manager->ledgerSchema()->toSql();
         $this->assertCount(1, $sql);
         $this->assertStringStartsWith('CREATE TABLE `schema_migrations` (', $sql[0]);
-        $this->assertStringContainsString('`id` int(11) NOT NULL AUTO_INCREMENT', $sql[0]);
+        $this->assertStringContainsString('`id` bigint(20) NOT NULL AUTO_INCREMENT', $sql[0]);
         $this->assertStringContainsString('`migration_id` varchar(191) NOT NULL', $sql[0]);
         $this->assertStringContainsString('PRIMARY KEY (`id`)', $sql[0]);
         $this->assertStringContainsString('UNIQUE INDEX `migration_id` (`migration_id`)', $sql[0]);
@@ -480,7 +480,7 @@ class MigrationManagerTest extends TestCase
                 "    CHANGE `id` `migration_id` varchar(191) NOT NULL,\n" .
                 "    ADD UNIQUE INDEX `migration_id` (`migration_id`),\n" .
                 "    DROP PRIMARY KEY;",
-                'ALTER TABLE `schema_migrations` ADD `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;',
+                'ALTER TABLE `schema_migrations` ADD `id` bigint(20) NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST;',
             ),
             $manager->ledgerSchema()->toSql(),
             'the earlier shape is reshaped in place, rows kept'

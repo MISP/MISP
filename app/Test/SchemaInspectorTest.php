@@ -255,6 +255,19 @@ class SchemaInspectorTest extends TestCase
         $this->assertFalse($this->inspector->hasNamedIndex('events', 'idx_events_lookup'));
     }
 
+    public function testAFulltextIndexIsReportedAsNotUnique()
+    {
+        $this->db->tables[] = 'attribute_values';
+        $this->db->indexData['attribute_values'] = array(
+            'PRIMARY' => array('column' => 'id', 'unique' => 1),
+            'value_search' => array('column' => 'value', 'type' => 'fulltext'),
+        );
+        $indexes = $this->inspector->indexes('attribute_values');
+        $this->assertSame(0, $indexes['value_search']['unique']);
+        $this->assertTrue($this->inspector->hasIndex('attribute_values', 'value', false));
+        $this->assertFalse($this->inspector->hasIndex('attribute_values', 'value', true));
+    }
+
     public function testIndexesOfAMissingTableAreEmpty()
     {
         $this->assertSame(array(), $this->inspector->indexes('collections'));
@@ -548,6 +561,23 @@ class SchemaInspectorTest extends TestCase
         $this->assertStringContainsString('pg_catalog.pg_settings', $pgsql->queries[0]);
     }
 
+    public function testDatabaseDefaultsAreReadFromTheCatalogOnMysqlOnly()
+    {
+        $mysql = $this->mysqlReader(array(array(
+            array('charset' => 'utf8mb4', 'collation' => 'utf8mb4_general_ci'),
+        )));
+        $this->assertSame(
+            array('charset' => 'utf8mb4', 'collation' => 'utf8mb4_general_ci'),
+            $mysql->databaseDefaults()
+        );
+        $this->assertStringContainsString('information_schema.SCHEMATA WHERE SCHEMA_NAME = ', $mysql->queries[0]);
+        $this->assertNull($this->mysqlReader(array(array()))->databaseDefaults());
+
+        $pgsql = $this->postgresReader();
+        $this->assertNull($pgsql->databaseDefaults());
+        $this->assertSame(array(), $pgsql->queries);
+    }
+
     /**
      * MariaDB's STAGE / MAX_STAGE / PROGRESS are what the update-progress screen
      * reads, and there is nothing engine-neutral to rename them to, so the
@@ -559,6 +589,82 @@ class SchemaInspectorTest extends TestCase
         $reader = $this->mysqlReader(array(array($row)));
         $this->assertSame(array($row), $reader->runningQueries());
         $this->assertStringContainsString('information_schema.PROCESSLIST', $reader->queries[0]);
+    }
+
+    public function testDdlOnTableIsAnotherConnectionsRebuildOfThatTable()
+    {
+        $reader = $this->mysqlReader();
+        $reader->answers = array(
+            'VERSION()' => array(array('version' => '10.11.14-MariaDB')),
+            'PROCESSLIST' => array(
+                array('id' => '9', 'seconds' => '84', 'info' => '/* runUpgrade */ ALTER TABLE `attributes` DROP INDEX `x`', 'stage' => '1', 'max_stage' => '2', 'progress' => '41.2'),
+                array('id' => '10', 'seconds' => '3', 'info' => 'SELECT * FROM `attributes`', 'stage' => '0', 'max_stage' => '0', 'progress' => '0'),
+                array('id' => '11', 'seconds' => '5', 'info' => 'ALTER TABLE `attributes_old` FORCE', 'stage' => '1', 'max_stage' => '2', 'progress' => '3'),
+                array('id' => '12', 'seconds' => '1', 'info' => 'ALTER TABLE `misp`.`attributes` FORCE', 'stage' => '0', 'max_stage' => '0', 'progress' => '0'),
+            ),
+        );
+        $this->assertSame(
+            array(
+                array('id' => 9, 'seconds' => 84, 'progress' => 'stage 1 of 2, 41.2 %'),
+                array('id' => 12, 'seconds' => 1, 'progress' => null),
+            ),
+            $reader->ddlOnTable('attributes')
+        );
+        $this->assertStringContainsString('ID <> CONNECTION_ID() AND DB = DATABASE()', end($reader->queries));
+    }
+
+    public function testDdlOnTableReadsMysqlsStageAndPostgresIndexBuilds()
+    {
+        $reader = $this->mysqlReader();
+        $reader->answers = array(
+            'VERSION()' => array(array('version' => '8.4.6')),
+            'events_stages_current' => array(array('event' => 'stage/innodb/alter table (read PK and internal sort)', 'done' => '50', 'estimated' => '200')),
+            'PROCESSLIST' => array(array('id' => '9', 'seconds' => '84', 'info' => 'ALTER TABLE `attributes` FORCE')),
+        );
+        $this->assertSame(
+            array(array('id' => 9, 'seconds' => 84, 'progress' => 'alter table (read PK and internal sort), 25.0 %')),
+            $reader->ddlOnTable('attributes')
+        );
+
+        $pgsql = $this->postgresReader(array(array(
+            array('id' => '77', 'seconds' => '12', 'info' => 'CREATE INDEX "idx_attr_type" ON "attributes" ("type")', 'phase' => 'building index: scanning table', 'blocks_done' => '50', 'blocks_total' => '100'),
+            array('id' => '78', 'seconds' => '30', 'info' => 'ALTER TABLE "attributes" ALTER COLUMN "id" TYPE bigint', 'phase' => null, 'blocks_done' => null, 'blocks_total' => null),
+        )));
+        $this->assertSame(
+            array(
+                array('id' => 77, 'seconds' => 12, 'progress' => 'building index: scanning table, 50.0 %'),
+                array('id' => 78, 'seconds' => 30, 'progress' => null),
+            ),
+            $pgsql->ddlOnTable('attributes')
+        );
+        $this->assertStringContainsString('pg_stat_activity', $pgsql->queries[0]);
+    }
+
+    /**
+     * @dataProvider ddlStatements
+     */
+    public function testDdlPatternNamesTheTableUnderAnySpelling($statement, $matches)
+    {
+        $this->assertSame($matches, (bool)preg_match(SchemaInspector::ddlPattern('attributes'), $statement));
+    }
+
+    public function ddlStatements()
+    {
+        return array(
+            array('ALTER TABLE `attributes` MODIFY `id` bigint', true),
+            array("/* misp */\n/* user 1 */ ALTER TABLE `attributes` FORCE", true),
+            array('ALTER TABLE "attributes" ALTER COLUMN "id" TYPE bigint', true),
+            array('ALTER TABLE IF EXISTS ONLY "public"."attributes" ADD x int', true),
+            array('alter table attributes force', true),
+            array('OPTIMIZE TABLE `attributes`', true),
+            array('CREATE UNIQUE INDEX "idx_attr_uuid" ON "attributes" ("uuid")', true),
+            array('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx ON public.attributes USING btree (type)', true),
+            array('ALTER TABLE `attributes_old` FORCE', false),
+            array('ALTER TABLE `attribute_tags` ADD INDEX `attributes` (`attribute_id`)', false),
+            array('CREATE INDEX idx ON attribute_tags (attributes)', false),
+            array('SELECT * FROM attributes WHERE info LIKE \'ALTER TABLE attributes\'', false),
+            array('INSERT INTO `attributes` (`value`) VALUES (1)', false),
+        );
     }
 
     /**

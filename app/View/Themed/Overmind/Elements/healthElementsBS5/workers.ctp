@@ -4,8 +4,7 @@
  *
  * Unlike the settings tabs this one is a live view of the worker processes,
  * so it carries actions: start/stop a worker, clear a queue, restart the dead
- * ones, kill everything. They are plain CakePHP postLinks — POST + redirect
- * back to this tab.
+ * ones. They are plain CakePHP postLinks — POST + redirect back to this tab.
  *
  * Every queue card is expanded by default: this is a monitoring view, and
  * collapsing it would hide exactly what the page is opened for.
@@ -17,8 +16,7 @@ App::uses('BackgroundJobsTool', 'Tools');
 
 $controls = !empty($worker_array['controls']);
 $procAccessible = !empty($worker_array['proc_accessible']);
-$supervisorEnabled = (bool)Configure::read('SimpleBackgroundJobs.enabled');
-$supervisorDown = $supervisorEnabled && empty($worker_array['supervisord_status']);
+$supervisorDown = empty($worker_array['supervisord_status']);
 
 $queueMeta = array(
     'default' => array(
@@ -101,20 +99,6 @@ if (empty($worker_array)) {
 
     <!-- GLOBAL ACTIONS -->
     <?php if ($controls): ?>
-        <?php
-            $confirmations['wk-kill'] = array(
-                'title' => __('Kill all workers'),
-                'body' => '<p class="mb-0 text-muted small">' . h(__('Every worker will be asked to stop. Jobs currently being processed are allowed to finish first.')) . '</p>',
-                'label' => __('Kill all workers'),
-                'cls' => 'btn-warning',
-            );
-            $confirmations['wk-kill-force'] = array(
-                'title' => __('Force kill all workers'),
-                'body' => '<p class="mb-0 text-muted small">' . h(__('This issues a kill -9 and terminates any processing currently underway. Jobs in flight will be lost.')) . '</p>',
-                'label' => __('Force kill'),
-                'cls' => 'btn-danger',
-            );
-        ?>
         <div class="card shadow-sm mb-4">
             <div class="card-body d-flex flex-wrap gap-2 align-items-center">
                 <span class="text-muted" style="font-size:.85rem;">
@@ -126,22 +110,9 @@ if (empty($worker_array)) {
                         $baseurl . '/servers/restartDeadWorkers',
                         array('class' => 'btn btn-outline-primary', 'escape' => false)
                     ) ?>
-                    <button type="button" class="btn btn-outline-warning"
-                            onclick="wkConfirm('wk-kill')">
-                        <i class="fas fa-power-off me-1"></i><?= __('Kill all workers') ?>
-                    </button>
-                    <button type="button" class="btn btn-outline-danger"
-                            onclick="wkConfirm('wk-kill-force')">
-                        <i class="fas fa-skull me-1"></i><?= __('Force kill all workers') ?>
-                    </button>
                 </div>
             </div>
         </div>
-
-        <?= $this->Form->postLink('', $baseurl . '/servers/killAllWorkers',
-            array('id' => 'wk-kill', 'class' => 'd-none', 'escape' => false)) ?>
-        <?= $this->Form->postLink('', $baseurl . '/servers/killAllWorkers/1',
-            array('id' => 'wk-kill-force', 'class' => 'd-none', 'escape' => false)) ?>
     <?php endif; ?>
 
     <!-- ONE CARD PER QUEUE -->

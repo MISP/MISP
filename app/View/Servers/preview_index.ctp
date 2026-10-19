@@ -152,6 +152,7 @@
                     ],
                     'icon' => 'arrow-circle-down',
                     'title' => __('Fetch the event'),
+                    'requirement' => $isSiteAdmin,
                     'postLink' => true,
                     'postLinkConfirm' => __('Are you sure you want to fetch and save this event on your instance?'),
                     'complex_requirement' => [
@@ -167,6 +168,7 @@
                     ],
                     'icon' => 'arrow-circle-down',
                     'title' => __('Fetch the event'),
+                    'requirement' => $isSiteAdmin,
                     'color' => 'grey',
                     'postLink' => true,
                     'postLinkConfirm' => __('Are you sure you want to fetch and save this event on your instance?  Warning: This event is not published on the remote end.'),

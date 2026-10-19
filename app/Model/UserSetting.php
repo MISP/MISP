@@ -68,22 +68,18 @@ class UserSetting extends AppModel
             ),
             'validation' => 'validate_json',
         ),
-        'dashboard_access' => array(
-            'placeholder' => 1,
-            'restricted' => 'perm_site_admin',
-            'validation' => 'validate_json',
-        ),
         'dashboard' => array(
             'placeholder' => array(
                 array(
+                    'instance_id' => 'w_1',
                     'widget' => 'MispStatusWidget',
                     'config' => array(
                     ),
                     'position' => array(
                         'x' => 0,
                         'y' => 0,
-                        'width' => 2,
-                        'height' => 2
+                        'w' => 2,
+                        'h' => 2
                     )
                 )
             ),
@@ -153,13 +149,9 @@ class UserSetting extends AppModel
             ],
             'validation' => 'validate_json',
         ],
-        'ui_beta_opt_in' => [
-            'placeholder' => false,
-            'validation' => 'validate_json',
-        ],
         'ui_theme' => [
-            'placeholder' => 'Default, Overmind, UiBeta, EventTest',
-            'options' => ['Default', 'Overmind', 'UiBeta', 'EventTest'],
+            'placeholder' => 'Overmind, UiBeta, Default',
+            'options' => ['Overmind', 'UiBeta', 'Default'],
             'validation' => 'validate_theme',
         ],
         // No static options: themes are discovered from the build output.
@@ -463,15 +455,13 @@ class UserSetting extends AppModel
     {
         return [
             'publish_alert_filter' => __('Filters which published events send you an email alert. Matched against the event, its tags and its organisations.'),
-            'dashboard_access' => __('Legacy flag that granted access to the dashboard. Kept for compatibility, it no longer gates anything.'),
-            'dashboard' => __('Layout of your legacy dashboard: the widgets shown, their configuration and their position on the grid.'),
+            'dashboard' => __('Layout of your dashboard: the widgets shown, their configuration and their position on the grid.'),
             'homepage' => __('The page you land on after logging in and when clicking the MISP logo.'),
             'default_restsearch_parameters' => __('Parameters merged into every restSearch query you run, unless the query overrides them.'),
             'tag_numerical_value_override' => __('Replaces the numerical value of the listed tags with your own, for the scores computed on your behalf (e.g. decaying models).'),
             'event_index_hide_columns' => __('Columns hidden from your event index.'),
             'oidc' => __('Data stored by the OpenID Connect plugin for this account. Managed automatically.'),
             'periodic_notification_filters' => __('Filters which events make it into your periodic (daily, weekly, monthly) summary emails.'),
-            'ui_beta_opt_in' => __('Opts you in to interface features still in beta.'),
             'ui_theme' => __('The interface theme used for your account.'),
             'event_template_user_form_mode' => __('How an event template form is shown to you: every step at once (all) or one step at a time (wizard).'),
             'dashboard_theme' => __('Light or dark appearance of the dashboard; auto follows your browser.'),
@@ -606,25 +596,13 @@ class UserSetting extends AppModel
      }
 
     /**
-     * Check if a user has opted into the beta UI
      * @param int $userId
-     * @return bool
-     */
-     public function isUiBetaEnabled($userId)
-     {
-         $value = $this->getValueForUser($userId, 'ui_beta_opt_in');
-         return !empty($value);
-     }
-
-    /**
-     * Check if a user has opted into the beta UI
-     * @param int $userId
-     * @return bool
+     * @return string|null null when unset or no longer shipped, so the default applies
      */
     public function getUserTheme($userId)
     {
         $value = $this->getValueForUser($userId, 'ui_theme');
-        return $value ?: null;
+        return in_array($value, self::VALID_SETTINGS['ui_theme']['options'], true) ? $value : null;
     }
 
     /**

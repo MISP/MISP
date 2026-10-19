@@ -97,8 +97,7 @@ class MigrationManager
      * @var array
      */
     private static $ledgerColumns = array(
-        // 32-bit, as the install baselines carry it; `primary_key` is 64-bit.
-        'id' => array('type' => 'integer', 'null' => false, 'key' => 'primary'),
+        'id' => array('type' => 'biginteger', 'null' => false, 'key' => 'primary'),
         self::LEDGER_KEY => array('type' => 'string', 'length' => 191, 'null' => false),
         'applied_at' => array('type' => 'datetime', 'null' => false),
         'duration_ms' => array('type' => 'integer', 'null' => false, 'default' => 0),
@@ -306,7 +305,7 @@ class MigrationManager
         ));
         $table->addIndex(self::LEDGER_KEY, array('unique' => true));
         $table->dropPrimaryKey();
-        $table->addColumn('id', 'integer', array('null' => false, 'key' => 'primary', 'first' => true));
+        $table->addColumn('id', self::$ledgerColumns['id']['type'], array('null' => false, 'key' => 'primary', 'first' => true));
         return $schema;
     }
 
@@ -424,7 +423,7 @@ class MigrationManager
      * @param array|null $ids Defaults to everything pending.
      * @return string|null
      */
-    public function refusal(array $ids = null)
+    public function refusal(?array $ids = null)
     {
         $ids = $ids === null ? array_keys($this->pending()) : $ids;
         $offline = array();
@@ -436,7 +435,7 @@ class MigrationManager
         if (empty($offline)) {
             return null;
         }
-        $how = 'Run it from the command line with the instance switched off: Console/cake Admin live 0; Console/cake Admin migrationApply';
+        $how = 'Run the upgrade from the command line: Console/cake Admin runUpgrade';
         if (PHP_SAPI !== 'cli') {
             return sprintf('%s can run for hours and does not start from a web request. %s', $offline[0], $how);
         }
@@ -525,7 +524,7 @@ class MigrationManager
      *   connected one - what a two-flavour dry run needs.
      * @return array
      */
-    public function toSql($id, AbstractGrammar $grammar = null)
+    public function toSql($id, ?AbstractGrammar $grammar = null)
     {
         $this->lastSkipped = array();
         $schema = SchemaBuilder::forDataSource($this->dataSource());

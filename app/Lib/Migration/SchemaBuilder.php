@@ -97,6 +97,7 @@ class SchemaBuilder
         'createTable',
         'dropTable',
         'renameTable',
+        'alterDatabase',
         'addColumn',
         'changeColumn',
         'renameColumn',
@@ -212,6 +213,19 @@ class SchemaBuilder
     }
 
     /**
+     * The connected database's default charset and collation, which a table
+     * created without its own takes. PostgreSQL renders nothing.
+     *
+     * @param array $options 'charset' and 'collate' (a name or a Collation
+     *   token).
+     * @return $this
+     */
+    public function alterDatabase(array $options)
+    {
+        return $this->addOperation('alterDatabase', array($options));
+    }
+
+    /**
      * Hand-written SQL, one entry per flavour.
      *
      * @param array $byFlavour Keyed by AbstractGrammar::FLAVOUR_*. A value may be
@@ -247,7 +261,7 @@ class SchemaBuilder
      * @return array Statements, in declaration order.
      * @throws InvalidArgumentException If a rawSql() has no entry for this flavour.
      */
-    public function toSql(AbstractGrammar $grammar = null)
+    public function toSql(?AbstractGrammar $grammar = null)
     {
         $grammar = $grammar === null ? $this->grammar : $grammar;
         $statements = array();
@@ -533,6 +547,9 @@ class SchemaBuilder
      */
     private function satisfied(SchemaInspector $inspector, array &$tables, array &$operation)
     {
+        if ($operation['operation'] === 'alterDatabase') {
+            return $this->presentDatabaseOptions($inspector, $operation['arguments'][0]);
+        }
         $arguments = $operation['arguments'];
         $table = $arguments[0];
         $state = $this->tableState($inspector, $tables, $table);
@@ -629,6 +646,31 @@ class SchemaBuilder
         }
         $tables[$table] = $state;
         return null;
+    }
+
+    /**
+     * @param SchemaInspector $inspector
+     * @param array $options An alterDatabase() declaration.
+     * @return string|null Why it is left out: the database already defaults
+     *   to what it declares. Never on PostgreSQL, which renders none.
+     */
+    private function presentDatabaseOptions(SchemaInspector $inspector, array $options)
+    {
+        $live = $inspector->databaseDefaults();
+        if ($live === null) {
+            return null;
+        }
+        $options = $this->grammar->databaseOptions($options);
+        foreach (array('charset' => 'charset', 'collate' => 'collation') as $option => $field) {
+            if (isset($options[$option]) && strcasecmp($options[$option], (string)$live[$field]) !== 0) {
+                return null;
+            }
+        }
+        return sprintf(
+            'the database already defaults to CHARACTER SET %s COLLATE %s',
+            $live['charset'],
+            $live['collation']
+        );
     }
 
     /**

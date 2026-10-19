@@ -59,22 +59,10 @@ if (!class_exists('CollectionElementTestFakeModel', false)) {
     }
 }
 
+// The real Hash, not a stub: a partial one would shadow it for every test
+// file loaded after this one (DashboardCsvExportTest needs Hash::flatten).
 if (!class_exists('Hash', false)) {
-    class Hash
-    {
-        /** Only the '{n}.Model.field' shape the model uses. */
-        public static function extract(array $data, $path)
-        {
-            list(, $model, $field) = explode('.', $path);
-            $out = array();
-            foreach ($data as $row) {
-                if (isset($row[$model][$field])) {
-                    $out[] = $row[$model][$field];
-                }
-            }
-            return $out;
-        }
-    }
+    require_once __DIR__ . '/../Lib/cakephp/lib/Cake/Utility/Hash.php';
 }
 
 if (!function_exists('__')) {

@@ -70,8 +70,9 @@ abstract class TableMigration extends AbstractMigration
         $this->expected = null;
         $this->busy = array();
         if (PHP_SAPI !== 'cli') {
-            $this->defer('Schema modernisation runs offline: Console/cake Admin live 0; Console/cake Admin migrationApply');
+            $this->defer('Schema modernisation runs offline: Console/cake Admin runUpgrade');
         }
+        $this->deferWhileAlteredElsewhere();
         $checked = TableConverger::preflight($this->inspector(), static::TABLE, static::TARGET, static::RECREATE);
         if (!empty($checked['defer'])) {
             $this->defer(implode(PHP_EOL, $checked['defer']));
@@ -80,6 +81,42 @@ abstract class TableMigration extends AbstractMigration
         $this->expected = isset($this->plan['forecast']) ? $this->plan['forecast'] : null;
         $this->busy = $this->inspector()->otherActiveSessions();
         return true;
+    }
+
+    /**
+     * Defer while another connection changes the table, instead of waiting
+     * for its lock and then running a plan made against the old definition. A
+     * subclass that writes to the table in beforeUp() calls this first.
+     *
+     * @return void
+     * @throws MigrationDeferredException
+     */
+    protected function deferWhileAlteredElsewhere()
+    {
+        $running = $this->inspector()->ddlOnTable(static::TABLE);
+        if (!empty($running)) {
+            $this->defer(self::alteredElsewhere(static::TABLE, $running[0], $this->inspector()->flavour()));
+        }
+    }
+
+    /**
+     * @param string $table
+     * @param array $ddl As SchemaInspector::ddlOnTable() returns it.
+     * @param string $flavour
+     * @return string
+     */
+    public static function alteredElsewhere($table, array $ddl, $flavour)
+    {
+        $mysql = $flavour === AbstractGrammar::FLAVOUR_MYSQL;
+        return sprintf(
+            '%s: connection %d has been changing this table for %d s%s, most likely the statement of an interrupted run, which the database server carries on with. Wait until it is gone from %s, or end it with %s to start the table over, then run Console/cake Admin runUpgrade again.',
+            $table,
+            $ddl['id'],
+            $ddl['seconds'],
+            $ddl['progress'] === null ? '' : ' (' . $ddl['progress'] . ')',
+            $mysql ? 'SHOW PROCESSLIST' : 'pg_stat_activity',
+            $mysql ? sprintf('KILL %d', $ddl['id']) : sprintf('SELECT pg_cancel_backend(%d)', $ddl['id'])
+        );
     }
 
     public function forecast()

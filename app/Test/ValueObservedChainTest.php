@@ -1,7 +1,7 @@
 <?php
 /**
- * Value::observedFrom()/observedAt(): the date chain every *when*
- * aggregate reads, with and without an attribute creation column.
+ * Value::observedFrom()/observedAt() and the recording date they end in,
+ * and the self-sighting window that reads the same date.
  *
  * Pure PHPUnit, no CakePHP bootstrap and no database. The framework
  * classes the model touches are stubbed, each guarded so that a full-suite
@@ -15,18 +15,6 @@ if (!class_exists('App', false)) {
     {
         public static function uses($class, $package)
         {
-        }
-    }
-}
-
-if (!class_exists('ClassRegistry', false)) {
-    class ClassRegistry
-    {
-        public static $instances = array();
-
-        public static function init($name)
-        {
-            return self::$instances[$name];
         }
     }
 }
@@ -50,113 +38,98 @@ if (!class_exists('AppModel', false)) {
 }
 
 require_once __DIR__ . '/../Model/Value.php';
+require_once __DIR__ . '/../Lib/Tools/ValueIntelligence/ValueExclusionTool.php';
 
 use PHPUnit\Framework\TestCase;
 
-/** An attribute model whose schema holds one optional creation column. */
-class ObservedChainFakeAttribute
-{
-    public $alias = 'Attribute';
-    public $schemaCalls = 0;
-    private $type;
-
-    public function __construct($type)
-    {
-        $this->type = $type;
-    }
-
-    public function schema($field = false)
-    {
-        $this->schemaCalls++;
-        if ($field !== 'creation_datetime' || $this->type === null) {
-            return null;
-        }
-        return array('type' => $this->type, 'null' => true);
-    }
-}
-
 class ValueObservedChainTest extends TestCase
 {
-    /** The chains as they read before the creation column existed. */
-    const LEGACY_AT = 'COALESCE('
-        . 'FLOOR(Attribute.last_seen / 1000000),'
-        . ' FLOOR(Attribute.first_seen / 1000000),'
-        . ' Attribute.timestamp)';
+    const RECORDED = 'CASE WHEN Attribute.created > 0'
+        . ' AND Attribute.created <= Attribute.timestamp'
+        . ' THEN Attribute.created ELSE Attribute.timestamp END';
 
-    const LEGACY_FROM = 'COALESCE('
-        . 'FLOOR(Attribute.first_seen / 1000000),'
-        . ' FLOOR(Attribute.last_seen / 1000000),'
-        . ' Attribute.timestamp)';
-
-    private function valueWith($type, &$fake = null)
+    public function testTheChainsEndInTheRecordingDate()
     {
-        $fake = new ObservedChainFakeAttribute($type);
-        ClassRegistry::$instances['MispAttribute'] = $fake;
-        return new Value();
-    }
-
-    protected function tearDown(): void
-    {
-        unset(ClassRegistry::$instances['MispAttribute']);
-    }
-
-    public function testWithoutTheColumnTheChainsAreUnchanged()
-    {
-        $value = $this->valueWith(null);
-        $this->assertSame(self::LEGACY_FROM, $value->observedFrom());
-        $this->assertSame(self::LEGACY_AT, $value->observedAt());
-    }
-
-    public function creationTypes()
-    {
-        return array(
-            'datetime' => array(
-                'datetime',
-                'UNIX_TIMESTAMP(Attribute.creation_datetime)',
-            ),
-            'timestamp' => array(
-                'timestamp',
-                'UNIX_TIMESTAMP(Attribute.creation_datetime)',
-            ),
-            'microseconds' => array(
-                'biginteger',
-                'FLOOR(Attribute.creation_datetime / 1000000)',
-            ),
-            'seconds' => array(
-                'integer',
-                'Attribute.creation_datetime',
-            ),
-        );
-    }
-
-    /**
-     * @dataProvider creationTypes
-     */
-    public function testTheColumnSitsBetweenTheSeenDatesAndTheRowWrite(
-        $type,
-        $expression
-    ) {
-        $value = $this->valueWith($type);
+        $value = new Value();
         $this->assertSame(
             'COALESCE(FLOOR(Attribute.first_seen / 1000000),'
                 . ' FLOOR(Attribute.last_seen / 1000000), '
-                . $expression . ', Attribute.timestamp)',
+                . self::RECORDED . ')',
             $value->observedFrom()
         );
         $this->assertSame(
             'COALESCE(FLOOR(Attribute.last_seen / 1000000),'
                 . ' FLOOR(Attribute.first_seen / 1000000), '
-                . $expression . ', Attribute.timestamp)',
+                . self::RECORDED . ')',
             $value->observedAt()
         );
     }
 
-    public function testTheSchemaIsAskedOnce()
+    public function testTheRecordingDateTakesAnAlias()
     {
-        $value = $this->valueWith('datetime', $fake);
-        $value->observedFrom();
-        $value->observedAt();
-        $value->observedFrom();
-        $this->assertSame(1, $fake->schemaCalls);
+        $this->assertSame(
+            str_replace('Attribute.', 'A.', self::RECORDED),
+            Value::recordedAt('A')
+        );
+    }
+
+    public function recordings()
+    {
+        return array(
+            'created here, edited since' => array(1000, 5000, 1000),
+            'created here, never edited' => array(1000, 1000, 1000),
+            'pulled: the origin stamp is older' => array(9000, 5000, 5000),
+            'from before 3.0' => array(0, 5000, 5000),
+            'no creation key at all' => array(null, 5000, 5000),
+        );
+    }
+
+    /**
+     * @dataProvider recordings
+     */
+    public function testTheStampMatchesTheSql($created, $timestamp, $expected)
+    {
+        $row = array('timestamp' => $timestamp);
+        if ($created !== null) {
+            $row['created'] = $created;
+        }
+        $this->assertSame($expected, Value::recordedStamp($row));
+    }
+
+    private static function sighting($attributeId, $orgId, $at)
+    {
+        return array('Sighting' => array(
+            'attribute_id' => $attributeId,
+            'org_id' => $orgId,
+            'date_sighting' => $at,
+        ));
+    }
+
+    public function testASelfSightingIsTimedFromTheCreation()
+    {
+        $plan = array('rules' => array(
+            ValueExclusionTool::SIGHTINGS_SELF => array('within_hours' => 1),
+        ));
+        $occurrences = array(
+            // Created at 1000, edited a day later.
+            7 => array('orgc_id' => 3, 'created' => 1000,
+                'timestamp' => 1000 + 86400),
+            // From before 3.0: only the edit is known.
+            8 => array('orgc_id' => 3, 'created' => 0,
+                'timestamp' => 1000 + 86400),
+        );
+        $result = (new ValueExclusionTool())->applyToSightings(
+            array(
+                self::sighting(7, 3, 1000 + 1800),
+                self::sighting(8, 3, 1000 + 1800),
+            ),
+            $occurrences,
+            $plan
+        );
+        $this->assertSame(1, $result['excluded']);
+        $this->assertSame(
+            8,
+            $result['rows'][0]['Sighting']['attribute_id']
+        );
     }
 }

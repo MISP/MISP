@@ -9,7 +9,7 @@ class BenchmarkTool
     /** @var Model */
     public $Model;
 
-    /** @var int */
+    /** @var int days, 0 keeps everything */
     private $retention = 0;
 
     /** @var Redis */
@@ -30,6 +30,7 @@ class BenchmarkTool
     {
         $this->Model = $model;
         $this->redis = RedisTool::init();
+        $this->retention = (int)Configure::read('Plugin.Benchmarking_retention');
     }
 
     public function getSettings()
@@ -49,9 +50,7 @@ class BenchmarkTool
 
     public function startBenchmark()
     {
-        $startTime = microtime(true);
-        $this->retention = Configure::check('Plugin.benchmark_retention') ? Configure::read('Plugin.benchmark_retention') : 0;
-        return $startTime;
+        return microtime(true);
     }
 
     public function stopBenchmark(array $options)
@@ -89,10 +88,12 @@ class BenchmarkTool
 
     private function pushBenchmarkDataToRedis($benchmarkData)
     {
+        $date = $benchmarkData['date'];
+        $dayKeys = [];
         $pipeline = $this->redis->pipeline();
         $pipeline->sAdd(
             self::NAMESPACE . 'days',
-            $benchmarkData['date']
+            $date
         );
         foreach (self::BENCHMARK_SCOPES as $scope) {
             $pipeline->sAdd(
@@ -100,22 +101,28 @@ class BenchmarkTool
                 $benchmarkData[$scope]
             );
             $pipeline->zIncrBy(
-                self::NAMESPACE . $scope . ':count:' . $benchmarkData['date'],
+                $dayKeys[] = self::NAMESPACE . $scope . ':count:' . $date,
                 1,
                 $benchmarkData[$scope]
             );
             foreach (self::BENCHMARK_FIELDS as $field) {
                 $pipeline->zIncrBy(
-                    self::NAMESPACE . $scope . ':' . $field . ':' . $benchmarkData['date'],
+                    $dayKeys[] = self::NAMESPACE . $scope . ':' . $field . ':' . $date,
                     $benchmarkData[$field],
                     $benchmarkData[$scope]
                 );
             }
             $pipeline->zIncrBy(
-                self::NAMESPACE . $scope . ':endpoint:' . $benchmarkData['date'] . ':' . $benchmarkData['user'],
+                $dayKeys[] = self::NAMESPACE . $scope . ':endpoint:' . $date . ':' . $benchmarkData['user'],
                 1,
                 $benchmarkData['endpoint']
             );
+        }
+        if ($this->retention > 0) {
+            $expireAt = strtotime($date . ' +' . $this->retention . ' days');
+            foreach ($dayKeys as $key) {
+                $pipeline->expireAt($key, $expireAt);
+            }
         }
         $pipeline->exec();
     }
@@ -130,11 +137,27 @@ class BenchmarkTool
      */
     public function getRecordedDays()
     {
-        $days = $this->redis->smembers(self::NAMESPACE . 'days');
-        if (empty($days)) {
-            return [];
-        }
+        $days = $this->liveDays();
         sort($days);
+        return $days;
+    }
+
+    /**
+     * The recorded days still within the retention; expired ones leave the set.
+     *
+     * @return array
+     */
+    private function liveDays()
+    {
+        $days = $this->redis->smembers(self::NAMESPACE . 'days') ?: [];
+        if ($this->retention > 0) {
+            $cutoff = date('Y-m-d', strtotime('-' . $this->retention . ' days'));
+            $expired = array_filter($days, fn($day) => $day <= $cutoff);
+            if (!empty($expired)) {
+                $this->redis->sRem(self::NAMESPACE . 'days', ...$expired);
+                $days = array_values(array_diff($days, $expired));
+            }
+        }
         return $days;
     }
 
@@ -176,10 +199,10 @@ class BenchmarkTool
         return $results;
     }
 
-    public function getAllTopLists(array $days = null, $limit = 10, $average = false, $aggregate = false, $scope_filter = [])
+    public function getAllTopLists(?array $days = null, $limit = 10, $average = false, $aggregate = false, $scope_filter = [])
     {
         if ($days === null) {
-            $days = $this->redis->smembers(self::NAMESPACE . 'days');
+            $days = $this->liveDays();
         }
         $results = [];
         foreach (self::BENCHMARK_SCOPES as $scope) {

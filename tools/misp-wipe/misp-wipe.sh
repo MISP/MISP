@@ -81,7 +81,7 @@ mysql --host $MISPDBHost -u $MySQLRUser -p$MySQLRPass $MISPDB < $SQL
 echo "Inserting default values to MySQL tables"
 TMP=/tmp/misp-wipe-$$.sql
 cd $PATH_TO_MISP
-sed -n '/Default values for initial installation/ { s///; :a; n; p; ba; }' INSTALL/MYSQL.sql | egrep -v '(admin_settings|db_version)' > $TMP
+sed -n '/Default values for initial installation/ { s///; :a; n; p; ba; }' INSTALL/MARIADB.sql | egrep -v '(admin_settings|db_version)' > $TMP
 mysql --host $MISPDBHost -u $MySQLRUser -p$MySQLRPass $MISPDB < $TMP
 rm -f $TMP
 

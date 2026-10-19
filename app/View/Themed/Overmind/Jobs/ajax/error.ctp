@@ -2,8 +2,7 @@
 // Overmind BS5 stacktrace fragment injected into #mainModalBody by openModal()
 // from the Jobs index (failed-job magnifier). BS5 re-skin of the legacy
 // app/View/Jobs/ajax/error.ctp. The controller (getError) sets $fields
-// (label => response key) and $response ('error' + 'backtrace', or the
-// CakeResque failed_at/exception/error shape).
+// (label => response key) and $response ('error' + 'backtrace').
 $hasData = !empty($response);
 $backtrace = '';
 if (!empty($response['backtrace'])) {

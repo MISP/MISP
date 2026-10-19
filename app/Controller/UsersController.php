@@ -838,7 +838,7 @@ class UsersController extends AppController
             if (!isset($this->request->data['User']['disabled'])) {
                 $this->request->data['User']['disabled'] = false;
             }
-            if (Configure::read('CustomAuth_enable') && Configure::read('CustomAuth_required')) {
+            if (Configure::read('Plugin.CustomAuth_enable') && Configure::read('Plugin.CustomAuth_required')) {
                 $this->request->data['User']['change_pw'] = 0;
             }
             if (Configure::read('MISP.disable_user_password_change')) {
@@ -1375,20 +1375,13 @@ class UsersController extends AppController
         }
     }
 
-    public function updateLoginTime()
-    {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException('This feature is only accessible via POST requests');
-        }
-        $this->User->id = $this->Auth->user('id');
-        $this->User->saveField('last_login', time());
-        $this->User->saveField('current_login', time());
-        $this->_refreshAuth();
-        $this->redirect(array('Controller' => 'User', 'action' => 'dashboard'));
-    }
-
     public function login()
     {
+        // A header-authenticated user still reaches _postlogin() below
+        if (Configure::read('Plugin.CustomAuth_enable') && Configure::read('Plugin.CustomAuth_required') && !$this->Auth->user()) {
+            $authName = Configure::read('Plugin.CustomAuth_name') ?: __('External authentication');
+            throw new ForbiddenException(__('%s is the only way to log in to this instance. Contact your MISP support for additional information at: %s', $authName, Configure::read('MISP.contact')));
+        }
         $oldHash = false;
         if (!$this->request->is(['get'])) {
             $this->Bruteforce = ClassRegistry::init('Bruteforce');
@@ -1652,39 +1645,45 @@ class UsersController extends AppController
             'conditions' => array('Organisation.id' => $org_ids)
         ));
         $orgs = array(0 => 'All organisations') + $orgs_temp;
-        $data = array();
-        $max = 1;
-        foreach ($orgs as $org_id => $org_name) {
-            $conditions = array('Attribute.deleted' => 0);
-            if ($selected) {
-                $conditions['Attribute.type'] = $selectedTypes;
-            }
-            if ($org_id != 0) {
-                $conditions['Event.orgc_id'] = $org_id;
-            }
-            $params = array(
+        $conditions = array('Attribute.deleted' => 0);
+        if ($selected) {
+            $conditions['Attribute.type'] = $selectedTypes;
+        }
+        $allTypes = $this->User->Event->Attribute->find('all', array(
+            'recursive' => -1,
+            'fields' => array('Attribute.type', 'COUNT(*) as num_types'),
+            'group' => array('Attribute.type'),
+            'conditions' => $conditions,
+            'order' => false
+        ));
+        $counts = array(0 => Hash::combine($allTypes, '{n}.Attribute.type', '{n}.0.num_types'));
+        if (!empty($orgs_temp)) {
+            $conditions['Event.orgc_id'] = array_keys($orgs_temp);
+            $orgTypes = $this->User->Event->Attribute->find('all', array(
                 'recursive' => -1,
-                'fields' => array('Attribute.type', 'COUNT(*) as num_types'),
-                'group' => array('Attribute.type'),
+                'fields' => array('Event.orgc_id', 'Attribute.type', 'COUNT(*) as num_types'),
+                'group' => array('Event.orgc_id', 'Attribute.type'),
                 'joins' => array(
                     array(
                         'table' => 'events',
                         'alias' => 'Event',
-                        'type' => 'LEFT',
+                        'type' => 'INNER',
                         'conditions' => array(
                             'Attribute.event_id = Event.id'
                         )
                     )
                 ),
-                //'order' => array('num_types DESC'),
                 'conditions' => $conditions,
                 'order' => false
-            );
-            if ($org_id == 0) {
-                unset($params['joins']);
+            ));
+            foreach ($orgTypes as $row) {
+                $counts[$row['Event']['orgc_id']][$row['Attribute']['type']] = $row[0]['num_types'];
             }
-            $temp = $this->User->Event->Attribute->find('all', $params);
-            $temp = Hash::combine($temp, '{n}.Attribute.type', '{n}.0.num_types');
+        }
+        $data = array();
+        $max = 1;
+        foreach ($orgs as $org_id => $org_name) {
+            $temp = $counts[$org_id] ?? array();
             $total = 0;
             foreach ($temp as $v) {
                 $v = (int) $v;
@@ -1765,11 +1764,6 @@ class UsersController extends AppController
         $termsFilePath = APP . 'files' . DS . 'terms' . DS . basename($termsFile);
         $this->response->file($termsFilePath, ['download' => true, 'name' => $termsFile]);
         return $this->response;
-    }
-
-    public function checkAndCorrectPgps()
-    {
-        $this->set('fails', $this->User->checkAndCorrectPgps());
     }
 
     public function admin_quickEmail($user_id)
@@ -2344,6 +2338,17 @@ class UsersController extends AppController
 
             $this->set('page', $page);
             $this->set('pages', $pages);
+
+            // Overmind: the page is a frame whose tabs fetch each page as a fragment
+            if ($this->theme === 'Overmind') {
+                if (!$this->request->is('ajax')) {
+                    if (!isset($pages[$page])) {
+                        throw new NotFoundException(__('Invalid page'));
+                    }
+                    return $this->render('statistics');
+                }
+                $this->layout = false;
+            }
         }
 
         if ($page === 'data') {
@@ -2367,6 +2372,8 @@ class UsersController extends AppController
             $result = $this->__statisticsSightings($user, $this->params['named']);
         } elseif ($page === 'galaxyMatrix') {
             $result = $this->__statisticsGalaxyMatrix($user, $this->params['named']);
+        } elseif ($page === 'activity') {
+            return $this->__statisticsActivity($user);
         } else {
             throw new NotFoundException("Invalid page");
         }
@@ -2384,7 +2391,8 @@ class UsersController extends AppController
             'recursive' => -1,
             'order' => ['name'],
         );
-        if (!$user['Role']['perm_site_admin'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+        $hideOrgs = !$user['Role']['perm_site_admin'] && !empty(Configure::read('Security.hide_organisation_index_from_users'));
+        if ($hideOrgs) {
             $params['conditions'] = array('Organisation.id' => $user['org_id']);
         }
         $orgs = $this->User->Organisation->find('list', $params);
@@ -2451,13 +2459,38 @@ class UsersController extends AppController
 
         $this->set('stats', $stats);
         $this->set('orgs', $orgs);
+        $this->set('showActivity', !$hideOrgs);
         $this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
         $this->set('end', strtotime(date('Y-m-d H:i:s')));
         $this->set('startDateCal', $year . ', ' . $month . ', 01');
         $range = '[5, 10, 50, 100]';
         $this->set('range', $range);
         $this->set('activityUrl', $this->baseurl . (Configure::read('MISP.log_new_audit') ? '/audit_logs' : '/logs') . '/returnDates');
+        if ($this->theme === 'Overmind') {
+            $this->set('userStatistics', $this->__userStatistics());
+        }
         $this->render('statistics_data');
+    }
+
+    /**
+     * Log entries per day, all organisations together, over the last 18 weeks
+     */
+    private function __statisticsActivity(array $user)
+    {
+        if (!$user['Role']['perm_site_admin'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+            throw new MethodNotAllowedException(__('This feature is currently disabled.'));
+        }
+        $model = Configure::read('MISP.log_new_audit') ? 'AuditLog' : 'Log';
+        $this->loadModel($model);
+        App::uses('LogActivityTool', 'Tools');
+        $from = date('Y-m-d', strtotime('monday this week -17 weeks'));
+        $to = date('Y-m-d');
+        $data = [
+            'from' => $from,
+            'to' => $to,
+            'days' => (object)LogActivityTool::dailyCounts($this->{$model}, $from, $to),
+        ];
+        return $this->RestResponse->viewData($data, 'json');
     }
 
     private function __statisticsSightings(array $user, $params = array())
@@ -2467,44 +2500,27 @@ class UsersController extends AppController
         if (isset($params['timestamp'])) {
             $conditions['Sighting.date_sighting >'] = $params['timestamp'];
         }
-        $sightings = $this->Sighting->find('all', array(
+        $counts = $this->Sighting->find('all', array(
+            'recursive' => -1,
+            'callbacks' => false,
             'conditions' => $conditions,
-            'fields' => ['Sighting.type', 'Sighting.source', 'Sighting.event_id'],
+            'fields' => ['Sighting.source', 'Sighting.type', 'COUNT(*) AS sightings'],
+            'group' => ['Sighting.source', 'Sighting.type'],
         ));
+        $types = array('sighting', 'false-positive', 'expiration');
         $data = array();
         $toplist = array();
-        $eventids = array();
-        foreach ($sightings as $v) {
-            if ($v['Sighting']['source'] == '') {
-                $v['Sighting']['source'] = 'Undefined';
-            }
-            $type = array('sighting', 'false-positive', 'expiration')[$v['Sighting']['type']];
-            if (isset($data[$v['Sighting']['source']][$type])) {
-                $data[$v['Sighting']['source']][$type]++;
-            } else {
-                $data[$v['Sighting']['source']][$type] = 1;
-            }
-            if (!isset($toplist[$v['Sighting']['source']])) {
-                $toplist[$v['Sighting']['source']] = 1;
-            } else {
-                $toplist[$v['Sighting']['source']]++;
-            }
-            if (!isset($eventids[$v['Sighting']['source']][$type])) {
-                $eventids[$v['Sighting']['source']][$type] = [];
-            }
-            if (!in_array($v['Sighting']['event_id'], $eventids[$v['Sighting']['source']][$type])) {
-                $eventids[$v['Sighting']['source']][$v['Sighting']['type']][] = $type;
-            }
+        foreach ($counts as $row) {
+            $source = $row['Sighting']['source'] == '' ? 'Undefined' : $row['Sighting']['source'];
+            $type = $types[$row['Sighting']['type']];
+            $count = (int)$row[0]['sightings'];
+            $data[$source][$type] = ($data[$source][$type] ?? 0) + $count;
+            $toplist[$source] = ($toplist[$source] ?? 0) + $count;
         }
         arsort($toplist);
         if ($this->_isRest()) {
-            $data = array(
-                'toplist' => $toplist,
-                'eventids' => $eventids
-            );
-            return $this->RestResponse->viewData($data, $this->response->type());
+            return $this->RestResponse->viewData(array('toplist' => $toplist), $this->response->type());
         } else {
-            $this->set('eventids', $eventids);
             $this->set('toplist', $toplist);
             $this->set('data', $data);
             $this->render('statistics_sightings');
@@ -2583,6 +2599,20 @@ class UsersController extends AppController
 
     private function __statisticsUsers($params = array())
     {
+        $statistics = $this->__userStatistics();
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($statistics, $this->response->type());
+        } else {
+            $this->set('statistics', $statistics);
+            $this->render('statistics_users');
+        }
+    }
+
+    /**
+     * @return array users, local and remote organisations: created in total, this month and this year
+     */
+    private function __userStatistics()
+    {
         $this->loadModel('Organisation');
         $this_month = strtotime(date('Y/m') . '/01');
         $this_year = strtotime(date('Y') . '/01/01');
@@ -2625,12 +2655,7 @@ class UsersController extends AppController
                 $statistics[$scope]['data'][$range] = $this->{$scope_data['model']}->find('count', $params);
             }
         }
-        if ($this->_isRest()) {
-            return $this->RestResponse->viewData($statistics, $this->response->type());
-        } else {
-            $this->set('statistics', $statistics);
-            $this->render('statistics_users');
-        }
+        return $statistics;
     }
 
     public function tagStatisticsGraph()
@@ -2719,6 +2744,10 @@ class UsersController extends AppController
             }
         } else {
             $this->set('picked_organisation_id', -1);
+        }
+
+        if ($this->theme === 'Overmind' && !$this->_isRest()) {
+            return $this->__statisticsGalaxyMatrixUsage($user, $galaxy_id, $params);
         }
 
         $rest_response_empty = true;
@@ -2840,6 +2869,70 @@ class UsersController extends AppController
             $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies($this->Auth->user());
             $this->set('matrixGalaxies', $matrixGalaxies);
         }
+        $this->render('statistics_galaxymatrix');
+    }
+
+    /**
+     * The statistics matrix on Overmind's matrix, with the classic counts:
+     * events carrying each technique on the event or on an attribute, every
+     * event without filters, the user's matching events with them.
+     */
+    private function __statisticsGalaxyMatrixUsage(array $user, $galaxyId, array $params)
+    {
+        App::uses('EventMatrixTool', 'Tools/EventOverview');
+        $galaxy = $this->Galaxy->fetchIfAuthorized($user, $galaxyId, 'view', true, false, true);
+        if (!EventMatrixTool::isMatrixGalaxy($galaxy['Galaxy'])) {
+            throw new NotFoundException(__('Invalid galaxy'));
+        }
+        $organisation = (int)($params['organisation'] ?? 0);
+        $dates = [];
+        foreach (['dateFrom' => 'from', 'dateTo' => 'to'] as $param => $filter) {
+            $dates[$param] = (string)($params[$param] ?? '');
+            if ($dates[$param] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dates[$param])) {
+                throw new BadRequestException(__('Invalid date'));
+            }
+        }
+
+        $skeleton = $this->Galaxy->matrixSkeleton($user, $galaxy['Galaxy']);
+        $tagNames = [];
+        foreach ($skeleton['tabs'] as $columns) {
+            foreach ($columns as $cells) {
+                foreach ($cells as $cell) {
+                    $tagNames[mb_strtolower($cell['tag_name'])] = $cell['tag_name'];
+                }
+            }
+        }
+        $tagIds = empty($tagNames) ? [] : ClassRegistry::init('Tag')->find('column', [
+            'conditions' => ['LOWER(Tag.name)' => array_keys($tagNames)],
+            'fields' => ['Tag.id'],
+        ]);
+        $eventConditions = array_filter([
+            'Event.orgc_id' => $organisation,
+            'Event.date >=' => $dates['dateFrom'],
+            'Event.date <=' => $dates['dateTo'],
+        ]);
+        // Unfiltered, the classic statistics count every event on the instance
+        $counts = $this->User->Event->EventTag->countEventsCarrying($tagIds, empty($eventConditions) ? null : $user, $eventConditions);
+        $scores = [];
+        foreach ($counts as $name => $events) {
+            if (isset($tagNames[$name])) {
+                $scores[$tagNames[$name]] = $events;
+            }
+        }
+        $tab = $this->request->query('tab');
+        $matrix = EventMatrixTool::usage($skeleton, $galaxy['Galaxy'], $scores, is_string($tab) ? $tab : null);
+        $matrix['origins'] = [];
+
+        $matrixUrl = $this->baseurl . '/users/statistics/galaxyMatrix/galaxy_id:' . (int)$galaxy['Galaxy']['id'];
+        foreach (array_filter(['organisation' => $organisation] + $dates) as $name => $value) {
+            $matrixUrl .= '/' . $name . ':' . rawurlencode($value);
+        }
+        $this->set('matrix', $matrix);
+        $this->set('matrixGalaxies', $this->Galaxy->getAllowedMatrixGalaxies($user));
+        $this->set('pickedOrganisation', $organisation);
+        $this->set('dateFrom', $dates['dateFrom']);
+        $this->set('dateTo', $dates['dateTo']);
+        $this->set('matrixUrl', $matrixUrl);
         $this->render('statistics_galaxymatrix');
     }
 
@@ -3756,15 +3849,23 @@ class UsersController extends AppController
         return $this->RestResponse->viewData($payload, 'json');
     }
 
-    public function userIp($user)
+    public function userIp($user = null)
     {
-        $result = $this->User->userIP($user);
-        return $this->RestResponse->viewData($result['User'], 'json');
+        if (empty($user)) {
+            throw new BadRequestException(__('No user ID or e-mail address given.'));
+        }
+        return $this->RestResponse->viewData($this->User->userIP($user), 'json');
     }
 
-    public function ipUser($ip)
+    public function ipUser($ip = null)
     {
-        $result = $this->User->ipUser($ip);
-        return $this->RestResponse->viewData($result, 'json');
+        // An IPv6 address can't be passed in the URL path (Cake reads it as a named parameter)
+        $exception = null;
+        $params = $this->IndexFilter->harvestParameters(['ip'], $exception, ['fromQuery' => true]);
+        $ip = $params['ip'] ?? $ip;
+        if (!is_string($ip) || !filter_var($ip, FILTER_VALIDATE_IP)) {
+            throw new BadRequestException(__('Invalid IP address.'));
+        }
+        return $this->RestResponse->viewData($this->User->IPUser($ip), 'json');
     }
 }

@@ -39,7 +39,6 @@ class NavbarHelper extends AppHelper {
         'regexp'                   => 'datamodels',
         'correlation_exclusions'   => 'datamodels',
         // Sync
-        'syncconfigs'            => 'sync',
         'feeds'                  => 'sync',
         'sharinggroups'          => 'sync',
         'sharinggroupblueprints' => 'sync',
@@ -47,7 +46,7 @@ class NavbarHelper extends AppHelper {
         'cerebrates'             => 'sync',
         'taxiiservers'           => 'sync',
         'sightingdb'             => 'sync',
-        'servers'                => ['default' => 'sync', 'serversettings' => 'administration'],
+        'servers'                => ['default' => 'sync', 'serversettings' => 'administration', 'eventblockrule' => 'administration'],
         // Administration
         'organisations'      => 'administration',
         'roles'              => 'administration',
@@ -77,7 +76,7 @@ class NavbarHelper extends AppHelper {
         // API
         'api' => 'api',
         // Resources
-        'news'  => 'resources',
+        'news'  => ['default' => 'administration', 'index' => 'resources'],
         'doc'   => 'resources',
         'pages' => 'resources',
         // Bookmarks
@@ -241,14 +240,14 @@ class NavbarHelper extends AppHelper {
                 'action' => '',
                 'icon' => 'fas fa-chalkboard-user',
             ],
-            // [
-            //     'type' => 'group',
-            //     'label' => __('Statistics'),
-            //     'url' => $baseurl . '/users/statistics',
-            //     'controller' => 'users',
-            //     'action' => 'statistics',
-            //     'icon' => 'fas fa-pie-chart',
-            // ]
+            [
+                'type' => 'group',
+                'label' => __('Statistics'),
+                'url' => $baseurl . '/users/statistics',
+                'controller' => 'users',
+                'action' => 'statistics',
+                'icon' => 'fas fa-chart-pie',
+            ],
         ];
 
         return [
@@ -453,14 +452,6 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-server',
                 'children' => [
                     [
-                        'label' => __('Create Sync Config'),
-                        'url' => $baseurl . '/syncConfigs/add',
-                        'controller' => 'syncConfigs',
-                        'action' => 'add',
-                        'requirement' => $isAclSync && !$isSiteAdmin,
-                        'icon' => 'fas fa-rotate'
-                    ],
-                    [
                         'label' => __('Remote Servers'),
                         'url' => $baseurl . '/servers/index',
                         'controller' => 'servers',
@@ -592,6 +583,15 @@ class NavbarHelper extends AppHelper {
                 'requirement' => $this->Acl->canAccess('servers', 'serverSettings'),
                 'icon' => 'fas fa-gears',
             ],
+            [
+                'type' => 'group',
+                'label' => __('News'),
+                'url' => $baseurl . '/admin/news/index',
+                'controller' => 'news',
+                'action' => 'admin_index',
+                'requirement' => $this->Acl->canAccess('news', 'admin_index'),
+                'icon' => 'fas fa-newspaper',
+            ],
             ['divider' => true],
             [
                 'type' => 'group',
@@ -702,6 +702,14 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Blocklisting'),
                 'icon' => 'fas fa-ban',
                 'children' => [
+                    [
+                        'label' => __('Event Block Rules'),
+                        'url' => $baseurl . '/servers/eventBlockRule',
+                        'controller' => 'servers',
+                        'action' => 'eventBlockRule',
+                        'requirement' => $this->Acl->canAccess('servers', 'eventBlockRule'),
+                        'icon' => 'fas fa-filter-circle-xmark'
+                    ],
                     [
                         'label' => __('Blocklist Event'),
                         'url' => $baseurl . '/eventBlocklists',
@@ -848,14 +856,6 @@ class NavbarHelper extends AppHelper {
                 'requirement' => $this->Acl->canAccess('events', 'automation'),
                 'icon' => 'fas fa-robot',
             ],
-            [
-                'type' => 'group',
-                'label' => __('Export'),
-                'url' => $baseurl . '/events/export',
-                'controller' => 'events',
-                'action' => 'export',
-                'icon' => 'fas fa-file-export',
-            ]
         ];
 
         return [
@@ -873,6 +873,13 @@ class NavbarHelper extends AppHelper {
 
         $smimeCertificate = (string)Configure::read('SMIME.cert_public_sign');
         $resourcesChildren = [
+            [
+                'label' => __('News'),
+                'url' => $baseurl . '/news/index',
+                'controller' => 'news',
+                'action' => 'index',
+                'icon' => 'fas fa-newspaper'
+            ],
             [
                 'label' => __('User Guide'),
                 'url' => 'https://www.circl.lu/doc/misp/',
@@ -908,6 +915,7 @@ class NavbarHelper extends AppHelper {
                 'type' => 'group',
                 'label' => __('Themes'),
                 'icon' => 'fas fa-palette',
+                'requirement' => !empty($context['themesEnabled']),
                 'children' => $this->buildThemesMenu($context)
             ]
         ];
@@ -926,17 +934,8 @@ class NavbarHelper extends AppHelper {
 
         $themes = $context['themes'] ?? [];
         $theme = $context['theme'] ?? null;
-        $themesEnabled = $context['themesEnabled'] ?? false;
 
         $items = [];
-
-        if (!$themesEnabled) {
-            $items[] = [
-                'type' => 'message',
-                'label' => __('Themes are not yet enabled.'),
-                'description' => __('Contact your MISP administrator to set MISP.enable_themes to 1.')
-            ];
-        }
 
         foreach ($themes as $tObj) {
 

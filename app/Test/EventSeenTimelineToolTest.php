@@ -242,11 +242,22 @@ class EventSeenTimelineToolTest extends TestCase
         ]);
     }
 
-    public function testTheBasisIsSeenUnlessTheTimestampIsAsked()
+    public function testTheBasisIsSeenUnlessAnotherKnownOneIsAsked()
     {
         $this->assertSame('seen', EventSeenTimelineTool::basis([]));
-        $this->assertSame('seen', EventSeenTimelineTool::basis(['basis' => 'created']));
+        $this->assertSame('seen', EventSeenTimelineTool::basis(['basis' => 'modified']));
         $this->assertSame('timestamp', EventSeenTimelineTool::basis(['basis' => 'timestamp']));
+        $this->assertSame('created', EventSeenTimelineTool::basis(['basis' => 'created']));
+    }
+
+    public function testTheCreatedBasisDatesAttributesAndNeverObjects()
+    {
+        $start = EventSeenTimelineTool::dateSql('created', 'Attribute', 's');
+        $this->assertSame($start, EventSeenTimelineTool::dateSql('created', 'Attribute', 'e'));
+        $this->assertStringContainsString('NULLIF(Attribute.created, 0)', $start);
+        $this->assertSame('Attribute.created > 0', EventSeenTimelineTool::datedSql('created', 'Attribute'));
+        $this->assertSame('NULLIF(0, 0)', EventSeenTimelineTool::dateSql('created', 'Object', 's'));
+        $this->assertSame('1 = 0', EventSeenTimelineTool::datedSql('created', 'Object'));
     }
 
     public function testTheTimestampBasisPlacesARowAtOneInstant()
@@ -271,6 +282,15 @@ class EventSeenTimelineToolTest extends TestCase
         ]);
 
         $this->assertSame(1700000000000000, $attribute['timestamp']);
+        $this->assertNull($attribute['created']);
         $this->assertNull($object['timestamp']);
+
+        $created = EventSeenTimelineTool::attributeItem([
+            'id' => '6', 'uuid' => 'v', 'event_id' => '7', 'type' => 'md5', 'category' => 'Payload delivery',
+            'to_ids' => '0', 'value1' => 'abc', 'value2' => '', 'first_seen' => null, 'last_seen' => null,
+            'timestamp' => '1700000500', 'created' => '1700000000',
+            's' => '1700000000000000', 'e' => '1700000000000000',
+        ]);
+        $this->assertSame(1700000000000000, $created['created']);
     }
 }

@@ -45,11 +45,10 @@ class ServerSettingGroups
             array(
                 'id' => 'jobs',
                 'title' => 'Background processing',
-                'description' => 'Whether jobs run in the background, and how long their history is kept',
+                'description' => 'How long the history of background jobs is kept',
                 'icon' => 'gears',
                 'accent' => '#198754',
                 'settings' => array(
-                    'SimpleBackgroundJobs.enabled',
                     'SimpleBackgroundJobs.max_job_history_ttl',
                 ),
             ),
@@ -372,7 +371,6 @@ class ServerSettingGroups
                     'MISP.disable_sighting_loading',
                     'MISP.disable_event_locks',
                     'MISP.enable_automatic_garbage_collection',
-                    'MISP.disable_cached_exports',
                     'MISP.deadlock_avoidance',
                     'MISP.updateTimeThreshold',
                     'MISP.default_restsearch_limit',
@@ -631,7 +629,7 @@ class ServerSettingGroups
         'Plugin' => array(
             'Enrichment', 'Import', 'Export', 'Cortex', 'Action', 'Workflow',
             'ZeroMQ', 'Kafka', 'ElasticSearch', 'S3', 'RPZ', 'Sightings',
-            'CustomAuth', 'Geolocation', 'CyCat', 'Benchmarking',
+            'CustomAuth', 'Geolocation', 'Benchmarking',
         ),
     );
 
@@ -725,12 +723,6 @@ class ServerSettingGroups
             'description' => 'Interactive map for geolocation objects',
             'icon' => 'map-location-dot',
             'accent' => '#198754',
-        ),
-        'CyCat' => array(
-            'title' => 'CyCat',
-            'description' => 'Lookups against the CyCat cybersecurity catalogue',
-            'icon' => 'diagram-predecessor',
-            'accent' => '#fd7e14',
         ),
         'Benchmarking' => array(
             'title' => 'Benchmarking',

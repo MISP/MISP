@@ -8,7 +8,7 @@
                 __('Provider') => $relatedFeed['provider'],
             ];
             $popover = '';
-            $canPivot = $relatedFeed['lookup_visible'] || $isSiteAdmin || $me['org_id'] == Configure::read('MISP.Host_org_id');
+            $canPivot = $relatedFeed['lookup_visible'] || $isSiteAdmin || $me['org_id'] == Configure::read('MISP.host_org_id');
             foreach ($relatedData as $k => $v) {
                 $popover .= sprintf(
                     '<span class="bold">%s</span>: <span class="blue">%s</span><br>',

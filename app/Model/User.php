@@ -543,19 +543,6 @@ class User extends AppModel
         return RandomTool::random_str(true, $passwordLength, $characters);
     }
 
-    public function checkAndCorrectPgps()
-    {
-        $fails = array();
-        $users = $this->find('all', array('recursive' => 0));
-
-        foreach ($users as $user) {
-            if (strlen($user['User']['gpgkey']) && strpos($user['User']['gpgkey'], "\n")) {
-                $fails[] = $user['User']['id'] . ':' . $user['User']['id'];
-            }
-        }
-        return $fails;
-    }
-
     /**
      * 0 - true if key is valid
      * 1 - User e-mail
@@ -1496,11 +1483,7 @@ class User extends AppModel
         $sparklineData = array();
         foreach ($events as $event) {
             $date = date("Y-m-d", $event['Event']['timestamp']);
-            if (!isset($sparklineData[$event['Event']['attribute_count']][$date])) {
-                $sparklineData[$date] = $event['Event']['attribute_count'];
-            } else {
-                $sparklineData[$date] += $event['Event']['attribute_count'];
-            }
+            $sparklineData[$date] = ($sparklineData[$date] ?? 0) + (int)$event['Event']['attribute_count'];
         }
 
         // get first and last timestamp

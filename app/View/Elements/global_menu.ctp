@@ -132,10 +132,6 @@ if (!empty($me)) {
                     'type' => 'separator'
                 ),
                 array(
-                    'text' => __('Export'),
-                    'url' => $baseurl . '/events/export'
-                ),
-                array(
                     'text' => __('Automation'),
                     'url' => $baseurl . '/events/automation',
                     'requirement' => $this->Acl->canAccess('events', 'automation'),
@@ -359,11 +355,6 @@ if (!empty($me)) {
             'requirement' =>  $isAclSync || $isAdmin || $hostOrgUser,
             'children' => array(
                 array(
-                    'text' => __('Create Sync Config'),
-                    'url' => $baseurl . '/servers/createSync',
-                    'requirement' => $isAclSync && !$isSiteAdmin
-                ),
-                array(
                     'text' => __('Remote Servers'),
                     'url' => $baseurl . '/servers/index',
                     'requirement' => $this->Acl->canAccess('servers', 'index'),
@@ -558,11 +549,6 @@ if (!empty($me)) {
                     'url' => $baseurl . '/admin/access_logs/index',
                     'requirement' => $isSiteAdmin
                 ),
-                array(
-                    'text' => __('Search Logs'),
-                    'url' => $baseurl . '/logs/search',
-                    'requirement' => $this->Acl->canAccess('logs', 'search')
-                )
             )
         ),
         array(

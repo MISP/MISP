@@ -49,8 +49,6 @@ class AppModel extends Model
     /** @var BackgroundJobsTool */
     private static $loadedBackgroundJobsTool;
 
-    private $__profiler = array();
-
     /** @var AttachmentTool|null */
     private $attachmentTool;
 
@@ -394,7 +392,102 @@ class AppModel extends Model
         }
     }
 
-    public function runUpdates($verbose = false, $useWorker = true, $processId = false, $avoidSilentFail = false, $retryDeferred = false)
+    /**
+     * Whether the database waits on an upgrade only the command line runs:
+     * the MISP 2.x layout (no attribute_values table yet), or a pending
+     * migration that is too long to start from a web request.
+     *
+     * @return bool
+     */
+    public function awaitsV3Upgrade()
+    {
+        $manager = $this->getMigrationManager();
+        $files = glob($manager->directory() . DS . 'Migration_*.php') ?: [];
+        $cacheKey = 'misp:v3_schema:' . md5(implode(',', array_map('basename', $files)));
+        try {
+            $redis = RedisTool::init();
+            if ($redis->get($cacheKey) === '1') {
+                return false;
+            }
+        } catch (Exception $e) {
+            $redis = null;
+        }
+        $inspector = new SchemaInspector($this->getDataSource());
+        if (!$inspector->hasTable('attribute_values')) {
+            return true;
+        }
+        foreach (array_keys($manager->pending()) as $id) {
+            if ($manager->migration($id)->offline) {
+                return true;
+            }
+        }
+        if ($redis) {
+            try {
+                $redis->setex($cacheKey, 3600, '1');
+            } catch (Exception $e) {
+                // Uncached, the schema is read again on the next request.
+            }
+        }
+        return false;
+    }
+
+    /**
+     * How far the command line upgrade has got.
+     *
+     * @return array 'applied' and 'total' migrations; 'running' while a run
+     *   holds the update lock, with 'since' its start time; 'next', the
+     *   first pending migration's id and
+     *   description; 'stopped', its status and error when it failed or
+     *   deferred; 'statement', MariaDB's stage and progress of the statement
+     *   a running upgrade waits on.
+     */
+    public function v3UpgradeProgress()
+    {
+        $manager = $this->getMigrationManager();
+        $pending = array_keys($manager->pending());
+        $total = count($manager->ids());
+        // The lock holds the run's start time, '0' once released.
+        $lock = (int)ClassRegistry::init('AdminSetting')->getSetting('update_locked');
+        $progress = [
+            'applied' => $total - count($pending),
+            'total' => $total,
+            'running' => $lock > 0,
+            'since' => $lock > 0 ? $lock : null,
+            'next' => null,
+            'stopped' => null,
+            'statement' => null,
+        ];
+        if (empty($pending)) {
+            return $progress;
+        }
+        $next = $pending[0];
+        $progress['next'] = ['id' => $next, 'description' => $manager->migration($next)->description];
+        $ledger = $manager->ledger();
+        $status = isset($ledger[$next]['status']) ? $ledger[$next]['status'] : null;
+        if (!$progress['running'] && in_array($status, [MigrationManager::STATUS_FAILED, MigrationManager::STATUS_DEFERRED], true)) {
+            $progress['stopped'] = ['status' => $status, 'error' => (string)$ledger[$next]['error']];
+        }
+        if ($progress['running']) {
+            foreach ($manager->inspector()->runningQueries() as $row) {
+                if (!empty($row['MAX_STAGE']) && preg_match('/^\s*(ALTER|CREATE|OPTIMIZE)\b/i', (string)($row['INFO'] ?? ''))) {
+                    $progress['statement'] = [
+                        'stage' => (int)$row['STAGE'],
+                        'maxStage' => (int)$row['MAX_STAGE'],
+                        'percent' => (float)$row['PROGRESS'],
+                        'seconds' => (int)$row['TIME'],
+                    ];
+                    break;
+                }
+            }
+        }
+        return $progress;
+    }
+
+    /**
+     * @param string|null $stopBefore An update to stop in front of, leaving it
+     *   and everything after it pending; Admin runUpgrade runs steps in between.
+     */
+    public function runUpdates($verbose = false, $useWorker = true, $processId = false, $avoidSilentFail = false, $retryDeferred = false, $stopBefore = null)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->Job = ClassRegistry::init('Job');
@@ -532,6 +625,9 @@ class AppModel extends Model
                 $deferred = false;
                 $migrationManager = $this->getMigrationManager();
                 foreach ($updates as $update => $temp) {
+                    if ($stopBefore !== null && $update === $stopBefore) {
+                        break;
+                    }
                     if ($verbose) {
                         echo str_pad('Executing ' . $update, 30, '.');
                     }
@@ -859,6 +955,15 @@ class AppModel extends Model
     }
 
     /**
+     * @return array What runUpdates() would apply now, in its order.
+     */
+    public function pendingUpdates()
+    {
+        $version = ClassRegistry::init('AdminSetting')->getSetting('db_version');
+        return $this->findUpgrades($version === false ? '0' : $version);
+    }
+
+    /**
      * Everything runUpdates() still has to apply, in the order it must apply it.
      *
      * Two sources, one map. The legacy corpus is frozen at DB_CHANGES_FREEZE and
@@ -1014,13 +1119,7 @@ class AppModel extends Model
         if (!self::$loadedBackgroundJobsTool) {
             App::uses('BackgroundJobsTool', 'Tools');
 
-            // TODO: remove after CakeResque is deprecated
-            $settings = ['enabled' => false];
-            if (Configure::read('SimpleBackgroundJobs.enabled')) {
-                $settings = Configure::read('SimpleBackgroundJobs');
-            }
-
-            $backgroundJobsTool = new BackgroundJobsTool($settings);
+            $backgroundJobsTool = new BackgroundJobsTool(Configure::read('SimpleBackgroundJobs') ?: []);
             self::$loadedBackgroundJobsTool = $backgroundJobsTool;
         }
         return self::$loadedBackgroundJobsTool;
@@ -1130,73 +1229,6 @@ class AppModel extends Model
     public function tableRows()
     {
         return $this->getSchemaInspector()->tableRowEstimate($this->table);
-    }
-
-    // start a benchmark run for the given bench name
-    public function benchmarkInit($name = 'default')
-    {
-        $this->__profiler[$name]['start'] = microtime(true);
-        if (empty($this->__profiler[$name]['memory_start'])) {
-            $this->__profiler[$name]['memory_start'] = memory_get_usage();
-        }
-        return true;
-    }
-
-    // calculate the duration from the init time to the current point in execution. Aggregate flagged executions will increment the duration instead of just setting it
-    public function benchmark($name = 'default', $aggregate = false, $memory_chart = false)
-    {
-        if (!empty($this->__profiler[$name]['start'])) {
-            if ($aggregate) {
-                if (!isset($this->__profiler[$name]['duration'])) {
-                    $this->__profiler[$name]['duration'] = 0;
-                }
-                if (!isset($this->__profiler[$name]['executions'])) {
-                    $this->__profiler[$name]['executions'] = 0;
-                }
-                $this->__profiler[$name]['duration'] += microtime(true) - $this->__profiler[$name]['start'];
-                $this->__profiler[$name]['executions']++;
-                $currentUsage = memory_get_usage();
-                if ($memory_chart) {
-                    $this->__profiler[$name]['memory_chart'][] = $currentUsage - $this->__profiler[$name]['memory_start'];
-                }
-                if (
-                    empty($this->__profiler[$name]['memory_peak']) ||
-                    $this->__profiler[$name]['memory_peak'] < ($currentUsage - $this->__profiler[$name]['memory_start'])
-                ) {
-                    $this->__profiler[$name]['memory_peak'] = $currentUsage - $this->__profiler[$name]['memory_start'];
-                }
-            } else {
-                $this->__profiler[$name]['memory_peak'] = memory_get_usage() - $this->__profiler[$name]['memory_start'];
-                $this->__profiler[$name]['duration'] = microtime(true) - $this->__profiler[$name]['start'];
-            }
-        }
-        return true;
-    }
-
-    // return the results of the benchmark(s). If no name is set all benchmark results are returned in an array.
-    public function benchmarkResult($name = false)
-    {
-        if ($name) {
-            return array($name => $this->__profiler[$name]['duration']);
-        } else {
-            $results = array();
-            foreach ($this->__profiler as $name => $benchmark) {
-                if (!empty($benchmark['duration'])) {
-                    $results[$name] = $benchmark;
-                    unset($results[$name]['start']);
-                    unset($results[$name]['memory_start']);
-                }
-            }
-            return $results;
-        }
-    }
-
-    public function benchmarkCustomAdd($valueToAdd = 0, $name = 'default', $customName = 'custom')
-    {
-        if (empty($this->__profiler[$name]['custom'][$customName])) {
-            $this->__profiler[$name]['custom'][$customName] = 0;
-        }
-        $this->__profiler[$name]['custom'][$customName] += $valueToAdd;
     }
 
     public function setupHttpSocket($server, $HttpSocket = null, $timeout = false, $model = null)
