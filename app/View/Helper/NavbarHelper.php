@@ -76,7 +76,6 @@ class NavbarHelper extends AppHelper {
         // API
         'api' => 'api',
         // Resources
-        'news'  => ['default' => 'administration', 'index' => 'resources'],
         'doc'   => 'resources',
         'pages' => 'resources',
         // Bookmarks
@@ -107,6 +106,7 @@ class NavbarHelper extends AppHelper {
 
         // --- RIGHT ---
         $right = [];
+        $right[] = $this->buildNewsItem($context);
         $right[] = $this->buildIntelGraphItem($context);
         $right[] = $this->buildBookmarksMenu($context, $baseurl);
         $right[] = $this->buildAccountMenu($context, $baseurl);
@@ -583,15 +583,6 @@ class NavbarHelper extends AppHelper {
                 'requirement' => $this->Acl->canAccess('servers', 'serverSettings'),
                 'icon' => 'fas fa-gears',
             ],
-            [
-                'type' => 'group',
-                'label' => __('News'),
-                'url' => $baseurl . '/admin/news/index',
-                'controller' => 'news',
-                'action' => 'admin_index',
-                'requirement' => $this->Acl->canAccess('news', 'admin_index'),
-                'icon' => 'fas fa-newspaper',
-            ],
             ['divider' => true],
             [
                 'type' => 'group',
@@ -874,13 +865,6 @@ class NavbarHelper extends AppHelper {
         $smimeCertificate = (string)Configure::read('SMIME.cert_public_sign');
         $resourcesChildren = [
             [
-                'label' => __('News'),
-                'url' => $baseurl . '/news/index',
-                'controller' => 'news',
-                'action' => 'index',
-                'icon' => 'fas fa-newspaper'
-            ],
-            [
                 'label' => __('User Guide'),
                 'url' => 'https://www.circl.lu/doc/misp/',
                 'icon' => 'fas fa-address-book'
@@ -949,6 +933,26 @@ class NavbarHelper extends AppHelper {
         }
 
         return $items;
+    }
+
+    /**
+     * The News button, which opens the news panel, on the pages the controller
+     * gives one (AppController::beforeRender sets `newsPanel`).
+     */
+    private function buildNewsItem(array $context)
+    {
+        $unread = (int)($context['newsPanel']['unread'] ?? 0);
+        return [
+            'type' => 'news',
+            'id' => 'news',
+            'requirement' => !empty($context['newsPanel']),
+            'label' => __('News'),
+            'count' => $unread ?: null,
+            'title' => $unread
+                ? __n('News: %s unread', 'News: %s unread', $unread, $unread)
+                : __('News'),
+            'icon' => 'fas fa-newspaper',
+        ];
     }
 
     /**

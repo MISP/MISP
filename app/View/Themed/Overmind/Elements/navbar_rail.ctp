@@ -10,7 +10,7 @@
 $slots = [];
 $end = [];
 foreach ($menus['right'] as $item) {
-    if (($item['type'] ?? null) === 'intelGraph') {
+    if (in_array($item['type'] ?? null, ['news', 'intelGraph'], true)) {
         $slots[] = $item;
     } else {
         $end[] = $item;
@@ -29,7 +29,7 @@ foreach ($menus['right'] as $item) {
                 <?php endforeach; ?>
             </ul>
             <?php foreach ($slots as $item): ?>
-                <?= $this->element('navbar_rail_slot', ['item' => $item]) ?>
+                <?= $this->element($item['type'] === 'news' ? 'navbar_rail_news' : 'navbar_rail_slot', ['item' => $item]) ?>
             <?php endforeach; ?>
             <ul class="rail-groups rail-groups--end">
                 <?php foreach ($end as $item): ?>

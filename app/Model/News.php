@@ -34,4 +34,16 @@ class News extends AppModel
         }
         return $data['News']['date_created'];
     }
+
+    /**
+     * @param array $user
+     * @return int News created since the user last read them
+     */
+    public function unreadCount(array $user)
+    {
+        return (int)$this->find('count', [
+            'conditions' => ['News.date_created >' => (int)$user['newsread']],
+            'recursive' => -1,
+        ]);
+    }
 }

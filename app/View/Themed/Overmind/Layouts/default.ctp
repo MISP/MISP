@@ -105,6 +105,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 ['tag-chips', ['preload' => true]],
                 // Analyst data threads also arrive in modals, which bring no assets.
                 ['analyst-rail', ['preload' => true]],
+                empty($newsPanel) ? null : ['news-panel', ['preload' => true]],
             ];
             $css = array_values(array_filter($css));
             $js = [
@@ -182,6 +183,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                         'theme' => $theme ?? null,
                         'themesEnabled' => $themesEnabled ?? false,
                         'intelGraph' => $intelGraph ?? null,
+                        'newsPanel' => $newsPanel ?? null,
                         'darkModeToggle' => $hasDarkToggle,
                         'bootstrapTheme' => $bootstrapTheme['name'],
                         'bootstrapThemeChosen' => !empty($bootstrapTheme['userChoice']),
@@ -314,6 +316,9 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             ]);
             if (!$isAuthPage && !empty($intelGraph)) {
                 echo $this->element('intel_graph_boot');
+            }
+            if (!$isAuthPage && !empty($newsPanel)) {
+                echo $this->element('news_panel');
             }
         } else {
             // Bootstrap 2 JS

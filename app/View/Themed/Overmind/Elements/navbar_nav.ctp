@@ -16,6 +16,15 @@
             <span class="rc-count" data-intel-graph-count<?= $item['count'] === null ? ' hidden' : '' ?>><?= h((string)$item['count']) ?></span>
         </button>
     </li>
+<?php elseif (($item['type'] ?? null) === 'news'): ?>
+    <li class="rc-slot" data-news-slot data-state="<?= $item['count'] === null ? 'read' : 'unread' ?>" title="<?= h($item['title']) ?>"<?= $tourAttr ?>>
+        <button type="button" class="rc-chip" data-news-toggle aria-controls="nw-so" aria-expanded="false" aria-label="<?= h($item['title']) ?>">
+            <?= $this->element('navbar_glyph', ['item' => $item]) ?>
+            <span class="rc-chip-name"><?= h($item['label']) ?></span>
+            <span class="rc-count" data-news-count<?= $item['count'] === null ? ' hidden' : '' ?>><?= h((string)$item['count']) ?></span>
+            <i class="fas fa-angles-left nw-slot-side" aria-hidden="true"></i>
+        </button>
+    </li>
 <?php elseif (!empty($item['children'])): ?>
     <?php $panelId = 'rc-p-' . h($item['id']); ?>
     <li class="rc-group<?= !empty($alignEnd) ? ' rc-end' : '' ?><?= $isActive ? ' is-active' : '' ?>"<?= $tourAttr ?>>

@@ -1,70 +1,94 @@
 <?php
-$edit = $this->request->params['action'] === 'edit' ? true : false;
+$isEdit = $this->request->params['action'] === 'edit';
+$news = $this->request->data['News'] ?? [];
 
+// No novalidate: the browser stops an empty field, which the server would
+// otherwise answer with the bare form outside the modal.
 echo $this->Form->create('News', [
-    'class' => 'needs-validation',
-    'novalidate' => true
+    'id' => 'newsForm',
+]);
+
+echo $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('News'),
+    'title' => $isEdit ? __('Edit news item') : __('Add news item'),
+    'description' => __('News items are shown to every user in the News panel of the navbar, highlighted until they read them.'),
+    'icon' => 'fas fa-newspaper',
+    'isEdit' => $isEdit,
 ]);
 ?>
 
-<div class="container me-5">
+<div class="container-fluid px-4 py-4">
 
-    <div class="row justify-content-center">
+    <div class="d-flex flex-column gap-4">
 
-        <div class="card shadow-sm">
-
-            <div class="card-body">
-
-                <h3 class="mb-2">
-                    <?= $edit ? __('Edit news item') : __('Add news item') ?>
-                </h3>
-
-                <div class="form-text mb-3">
-                    <?= __('News items are shown to users on the News page. New items are highlighted until the user reads them.') ?>
-                </div>
-
-                <!-- TITLE -->
-                <div class="mb-3">
-                    <?= $this->Form->label('title', __('Title'), ['class' => 'form-label fw-semibold']) ?>
-                    <?= $this->Form->text('title', ['class' => 'form-control', 'required' => true]) ?>
-                </div>
-
-                <!-- MESSAGE -->
-                <div class="mb-3">
-                    <?= $this->Form->label('message', __('Message'), ['class' => 'form-label fw-semibold']) ?>
-                    <?= $this->Form->textarea('message', ['class' => 'form-control', 'rows' => 8]) ?>
-                    <div class="form-text"><?= __('You can use Markdown format.') ?></div>
-                </div>
-
-                <!-- ANONYMISE -->
-                <div class="mb-4 form-check">
-                    <?= $this->Form->checkbox('anonymise', ['class' => 'form-check-input', 'id' => 'NewsAnonymise']) ?>
-                    <?= $this->Form->label('anonymise', __('Create anonymously'), ['class' => 'form-check-label', 'for' => 'NewsAnonymise']) ?>
-                    <div class="form-text"><?= __('When set, the news item is not attributed to your account.') ?></div>
-                </div>
-
-                <!-- ACTIONS -->
-                <div class="d-flex justify-content-end gap-3">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                        <?= __('Cancel') ?>
-                    </button>
-                    <?= $this->Form->button(
-                        '<i class="fas fa-check me-1"></i> ' . ($edit ? __('Save changes') : __('Add news item')),
-                        [
-                            'class' => 'btn btn-primary',
-                            'escapeTitle' => false,
-                            'title' => $edit ? __('Save changes') : __('Add news item'),
-                            'aria-label' => $edit ? __('Save changes') : __('Add news item'),
-                        ]
-                    ) ?>
-                </div>
-
-            </div>
-
+        <!-- ── TITLE ───────────────────────────────────────────── -->
+        <div class="w-100 px-2">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'label' => __('Title'),
+                'required' => true,
+                'for' => 'NewsTitle',
+            ]) ?>
+            <?= $this->Form->text('title', [
+                'id' => 'NewsTitle',
+                'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
+                'style' => 'border-bottom:1px solid var(--misp-field-line, #d8dde3) !important; outline:none;',
+                'placeholder' => __('e.g. Scheduled maintenance on Saturday'),
+                'autocomplete' => 'off',
+                'required' => true,
+            ]) ?>
         </div>
+
+        <!-- ── MESSAGE ─────────────────────────────────────────── -->
+        <div class="w-100 px-2">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'label' => __('Message'),
+                'required' => true,
+                'for' => 'NewsMessage',
+            ]) ?>
+            <?= $this->Form->textarea('message', [
+                'id' => 'NewsMessage',
+                'class' => 'form-control',
+                'style' => 'border-color:var(--misp-field-line, #d8dde3); resize:vertical;',
+                'rows' => 8,
+                'placeholder' => __('What users need to know'),
+                'required' => true,
+            ]) ?>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'icon' => 'fab fa-markdown mt-1',
+                'text' => __('Markdown is supported: emphasis, lists, links, code. Images are not shown.'),
+            ]) ?>
+        </div>
+
+        <?php if (!$isEdit): ?>
+            <!-- ── AUTHOR ──────────────────────────────────────── -->
+            <div class="w-100 px-2">
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'label' => __('Author'),
+                ]) ?>
+                <div class="form-check form-switch">
+                    <?= $this->Form->checkbox('anonymise', [
+                        'class' => 'form-check-input',
+                        'id' => 'NewsAnonymise',
+                        'hiddenField' => true,
+                    ]) ?>
+                    <?= $this->Form->label('NewsAnonymise', __('Post anonymously'), ['class' => 'form-check-label']) ?>
+                </div>
+            </div>
+        <?php endif; ?>
 
     </div>
 
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($news['id'])
+            ? [['label' => __('News item'), 'id' => $news['id']]]
+            : [],
+        'hint' => $isEdit ? '' : __('Every user sees it as new until they open the News panel.'),
+        'submit' => $isEdit
+            ? ['label' => __('Save Changes')]
+            : ['label' => __('Publish'), 'icon' => 'fas fa-paper-plane'],
+    ]) ?>
+
 </div>
 
-<?= $this->Form->end(); ?>
+<?= $this->Form->end() ?>

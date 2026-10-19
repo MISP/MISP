@@ -305,10 +305,15 @@
         place();
         if (slide) void panel.offsetWidth;
         panel.classList.remove('is-off');
+        announceDocked();
         unseen = { added: 0, refused: false };
         syncSlot();
         if (!opts.deferMount) ensureMounted();
         if (opts.focus) focusInto();
+    }
+    // The news panel (news-panel.js) shares the right edge and gives way.
+    function announceDocked() {
+        if (opened && !floating()) document.dispatchEvent(new CustomEvent('intel-graph:docked'));
     }
     function closeDock(opts) {
         if (!opened) return;
@@ -1543,6 +1548,7 @@
         clearCallouts();
         remember();
         place();
+        announceDocked();
         syncSlot();
         say(mode === 'floating' ? 'Undocked into a window.' : 'Docked to the right.');
         (mode === 'floating' ? moveHandle : undockBtn).focus({ preventScroll: true });
