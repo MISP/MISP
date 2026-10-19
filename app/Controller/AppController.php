@@ -544,8 +544,11 @@ class AppController extends Controller
                 $this->set('intelGraph', ['active' => ClassRegistry::init('Graph')->activeFor($user, false)]);
             }
 
-            if ($this->__showsNewsPanel()) {
-                $this->set('newsPanel', ['unread' => ClassRegistry::init('News')->unreadCount($user)]);
+            if ($this->__showsSidePanels()) {
+                $this->set('sidePanels', [
+                    'news' => ['unread' => ClassRegistry::init('News')->unreadCount($user)],
+                    'bookmarks' => true,
+                ]);
             }
 
             if (PHP_MAJOR_VERSION < 8) {
@@ -579,13 +582,13 @@ class AppController extends Controller
     }
 
     /**
-     * Whether this page's navbar carries the News button and its panel: an
+     * Whether this page's navbar carries the side panels (news, bookmarks): an
      * Overmind page with the Bootstrap 5 chrome. The dashboard only sets its
      * layout in the action, after beforeFilter() has asked.
      *
      * @return bool
      */
-    private function __showsNewsPanel()
+    private function __showsSidePanels()
     {
         if (($this->theme ?? null) !== 'Overmind') {
             return false;
@@ -976,7 +979,7 @@ class AppController extends Controller
             // On its way to the homepage, which has the panel
             $newsExempt['users'][] = 'routeafterlogin';
         }
-        if (!$this->_isControllerAction($newsExempt) && !$this->__showsNewsPanel()) {
+        if (!$this->_isControllerAction($newsExempt) && !$this->__showsSidePanels()) {
             $this->loadModel('News');
             $latestNewsCreated = $this->News->latestNewsTimestamp();
             if ($latestNewsCreated && $user['newsread'] < $latestNewsCreated) {

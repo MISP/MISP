@@ -106,9 +106,11 @@ class NavbarHelper extends AppHelper {
 
         // --- RIGHT ---
         $right = [];
-        $right[] = $this->buildNewsItem($context);
         $right[] = $this->buildIntelGraphItem($context);
-        $right[] = $this->buildBookmarksMenu($context, $baseurl);
+        $right[] = $this->buildNewsItem($context);
+        $right[] = empty($context['sidePanels']['bookmarks'])
+            ? $this->buildBookmarksMenu($context, $baseurl)
+            : $this->buildBookmarksItem();
         $right[] = $this->buildAccountMenu($context, $baseurl);
 
         // Filtering of inaccessible options
@@ -937,21 +939,35 @@ class NavbarHelper extends AppHelper {
 
     /**
      * The News button, which opens the news panel, on the pages the controller
-     * gives one (AppController::beforeRender sets `newsPanel`).
+     * gives side panels (AppController::beforeRender sets `sidePanels`).
      */
     private function buildNewsItem(array $context)
     {
-        $unread = (int)($context['newsPanel']['unread'] ?? 0);
+        $unread = (int)($context['sidePanels']['news']['unread'] ?? 0);
         return [
-            'type' => 'news',
+            'type' => 'panel',
+            'panel' => 'nw-so',
             'id' => 'news',
-            'requirement' => !empty($context['newsPanel']),
+            'requirement' => !empty($context['sidePanels']['news']),
             'label' => __('News'),
             'count' => $unread ?: null,
             'title' => $unread
                 ? __n('News: %s unread', 'News: %s unread', $unread, $unread)
                 : __('News'),
             'icon' => 'fas fa-newspaper',
+        ];
+    }
+
+    private function buildBookmarksItem()
+    {
+        return [
+            'type' => 'panel',
+            'panel' => 'bm-so',
+            'id' => 'bookmarks',
+            'label' => __('Bookmarks'),
+            'count' => null,
+            'title' => __('Bookmarks'),
+            'icon' => 'fas fa-star',
         ];
     }
 

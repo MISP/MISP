@@ -23,7 +23,7 @@ $dayLabel = function ($timestamp, $day) use ($today, $yesterday) {
 $previousDay = null;
 ?>
 <?php if (empty($newsItems) && $page <= 1): ?>
-    <div class="nw-so-empty">
+    <div class="sp-empty">
         <i class="fas fa-newspaper" aria-hidden="true"></i>
         <strong><?= __('There is no news yet.') ?></strong>
         <p><?= __('Announcements from the administrators of this instance show up here.') ?></p>
@@ -68,14 +68,14 @@ $previousDay = null;
             <?php if ($canEdit || $canDelete): ?>
                 <div class="nw-card-acts">
                     <?php if ($canEdit): ?>
-                        <button type="button" class="nw-so-tool" data-news-modal="<?= h($baseurl . '/news/edit/' . $news['News']['id']) ?>"
+                        <button type="button" class="sp-tool" data-sp-modal="<?= h($baseurl . '/news/edit/' . $news['News']['id']) ?>"
                                 title="<?= __('Edit') ?>" aria-label="<?= __('Edit') ?>">
                             <i class="fas fa-pen-to-square" aria-hidden="true"></i>
                         </button>
                     <?php endif; ?>
                     <?php if ($canDelete): ?>
-                        <button type="button" class="nw-so-tool nw-so-tool-danger" data-news-modal="<?= h($baseurl . '/news/deleteSelection/' . $news['News']['id']) ?>"
-                                data-news-modal-size="md" title="<?= __('Delete') ?>" aria-label="<?= __('Delete') ?>">
+                        <button type="button" class="sp-tool sp-tool-danger" data-sp-modal="<?= h($baseurl . '/news/deleteSelection/' . $news['News']['id']) ?>"
+                                data-sp-modal-size="md" title="<?= __('Delete') ?>" aria-label="<?= __('Delete') ?>">
                             <i class="fas fa-trash" aria-hidden="true"></i>
                         </button>
                     <?php endif; ?>
@@ -85,7 +85,7 @@ $previousDay = null;
     </article>
 <?php endforeach; ?>
 <?php if ($this->Paginator->hasNext()): ?>
-    <button type="button" class="btn btn-sm btn-outline-secondary nw-so-more" data-news-more="<?= $page + 1 ?>">
+    <button type="button" class="btn btn-sm btn-outline-secondary sp-more" data-news-more="<?= $page + 1 ?>">
         <i class="fas fa-angles-down me-1" aria-hidden="true"></i><?= __('Show older news') ?>
     </button>
 <?php endif; ?>

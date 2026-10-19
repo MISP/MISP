@@ -74,7 +74,9 @@ $useRail = $bootstrapTheme['navbar'] === 'rail';
             // → /theme/Overmind/css/dashboard/overmind.css.
             ['dashboard/overmind', ['preload' => true]],
             ['print', ['media' => 'print']],
-            empty($newsPanel) ? null : ['news-panel', ['preload' => true]],
+            empty($sidePanels) ? null : ['side-panel', ['preload' => true]],
+            empty($sidePanels['news']) ? null : ['news-panel', ['preload' => true]],
+            empty($sidePanels['bookmarks']) ? null : ['bookmarks-panel', ['preload' => true]],
         ];
         $css = array_values(array_filter($css));
         if (Configure::read('MISP.custom_css')) {
@@ -118,7 +120,7 @@ $useRail = $bootstrapTheme['navbar'] === 'rail';
                     'theme' => $theme,
                     'themesEnabled' => $themesEnabled,
                     'intelGraph' => $intelGraph ?? null,
-                    'newsPanel' => $newsPanel ?? null,
+                    'sidePanels' => $sidePanels ?? null,
                     'darkModeToggle' => $hasDarkToggle,
                     'bootstrapTheme' => $bootstrapTheme['name'],
                     'bootstrapThemeChosen' => !empty($bootstrapTheme['userChoice']),
@@ -163,8 +165,8 @@ $useRail = $bootstrapTheme['navbar'] === 'rail';
     if (!empty($intelGraph)) {
         echo $this->element('intel_graph_boot');
     }
-    if (!empty($newsPanel)) {
-        echo $this->element('news_panel');
+    if (!empty($sidePanels)) {
+        echo $this->element('side_panels', ['panels' => $sidePanels]);
     }
     ?>
 

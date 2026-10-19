@@ -311,7 +311,7 @@
         if (!opts.deferMount) ensureMounted();
         if (opts.focus) focusInto();
     }
-    // The news panel (news-panel.js) shares the right edge and gives way.
+    // Side panels (side-panel.js) share the right edge and give way.
     function announceDocked() {
         if (opened && !floating()) document.dispatchEvent(new CustomEvent('intel-graph:docked'));
     }

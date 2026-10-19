@@ -16,13 +16,13 @@
             <span class="rc-count" data-intel-graph-count<?= $item['count'] === null ? ' hidden' : '' ?>><?= h((string)$item['count']) ?></span>
         </button>
     </li>
-<?php elseif (($item['type'] ?? null) === 'news'): ?>
-    <li class="rc-slot" data-news-slot data-state="<?= $item['count'] === null ? 'read' : 'unread' ?>" title="<?= h($item['title']) ?>"<?= $tourAttr ?>>
-        <button type="button" class="rc-chip" data-news-toggle aria-controls="nw-so" aria-expanded="false" aria-label="<?= h($item['title']) ?>">
+<?php elseif (($item['type'] ?? null) === 'panel'): ?>
+    <li class="rc-slot" data-side-panel-slot="<?= h($item['panel']) ?>"<?= $item['count'] === null ? '' : ' data-has-count' ?> title="<?= h($item['title']) ?>"<?= $tourAttr ?>>
+        <button type="button" class="rc-chip" data-side-panel-toggle="<?= h($item['panel']) ?>" aria-controls="<?= h($item['panel']) ?>" aria-expanded="false" aria-label="<?= h($item['title']) ?>">
             <?= $this->element('navbar_glyph', ['item' => $item]) ?>
             <span class="rc-chip-name"><?= h($item['label']) ?></span>
-            <span class="rc-count" data-news-count<?= $item['count'] === null ? ' hidden' : '' ?>><?= h((string)$item['count']) ?></span>
-            <i class="fas fa-angles-left nw-slot-side" aria-hidden="true"></i>
+            <span class="rc-count" data-side-panel-count<?= $item['count'] === null ? ' hidden' : '' ?>><?= h((string)$item['count']) ?></span>
+            <i class="fas fa-angles-left sp-slot-side" aria-hidden="true"></i>
         </button>
     </li>
 <?php elseif (!empty($item['children'])): ?>

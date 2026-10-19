@@ -89,6 +89,18 @@ class Bookmark extends AppModel
         if (empty($bookmark)) {
             return false;
         }
+        return $this->canModify($user, $bookmark);
+    }
+
+    /**
+     * mayModify() for a bookmark already loaded.
+     *
+     * @param array $user
+     * @param array $bookmark
+     * @return bool
+     */
+    public function canModify(array $user, array $bookmark)
+    {
         if ($user['Role']['perm_site_admin']) {
             return true;
         }
