@@ -26,6 +26,8 @@ class AccessLog extends AppModel
         'Containable',
     ];
 
+    public $truncatedColumns = ['request_id', 'user_agent', 'url'];
+
     public $belongsTo = [
         'User' => [
             'className' => 'User',
@@ -72,7 +74,7 @@ class AccessLog extends AppModel
         $accessLog = &$this->data['AccessLog'];
 
         // Truncate
-        foreach (['request_id', 'user_agent', 'url'] as $field) {
+        foreach ($this->truncatedColumns as $field) {
             if (isset($accessLog[$field]) && strlen($accessLog[$field]) > 255) {
                 $accessLog[$field] = substr($accessLog[$field], 0, 255);
             }

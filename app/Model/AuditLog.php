@@ -38,6 +38,8 @@ class AuditLog extends AppModel
         'LightPaginator'
     ];
 
+    public $truncatedColumns = ['request_id', 'model_title'];
+
     /** @var array|null */
     private $user = null;
 
