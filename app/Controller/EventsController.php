@@ -2767,15 +2767,18 @@ class EventsController extends AppController
             ],
             'recursive' => -1,
         ]));
+        $deletedEventIds = $this->Event->eventIdsShowingDeleted(
+            $user, $countedEventIds
+        ) ?: [-1];
         $deletedOr = ['Object.deleted' => 1];
         $objectIdsWithDeletedAttrs =
-            $this->Event->objectIdsWithDeletedAttributes($countedEventIds);
+            $this->Event->objectIdsWithDeletedAttributes($deletedEventIds);
         if (!empty($objectIdsWithDeletedAttrs)) {
             $deletedOr['Object.id'] = $objectIdsWithDeletedAttrs;
         }
         $this->set('deletedCount', $this->Event->Object->find('count', [
             'conditions' => [
-                'Object.event_id' => $countedEventIds,
+                'Object.event_id' => $deletedEventIds,
                 'OR' => $deletedOr,
             ],
             'recursive' => -1,
