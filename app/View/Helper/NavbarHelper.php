@@ -1069,6 +1069,7 @@ class NavbarHelper extends AppHelper {
             'id'   => 'account',
             'label' => h($this->UserName->convertEmailToName($me['email'])),
             'image' => $orgLogo,
+            'icon' => $user_icon,
             'children' => $profileChildren
         ];
 
