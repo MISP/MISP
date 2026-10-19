@@ -3,9 +3,11 @@
 
     var root = document.documentElement;
 
-    var pw = document.getElementById('UserPassword');
-    var toggle = document.getElementById('omlPasswordToggle');
-    if (pw && toggle) {
+    document.querySelectorAll('.oml-reveal[aria-controls]').forEach(function (toggle) {
+        var pw = document.getElementById(toggle.getAttribute('aria-controls'));
+        if (!pw) {
+            return;
+        }
         toggle.addEventListener('click', function () {
             var show = pw.type === 'password';
             pw.type = show ? 'text' : 'password';
@@ -15,7 +17,21 @@
             icon.classList.toggle('fa-eye', !show);
             icon.classList.toggle('fa-eye-slash', show);
         });
-    }
+    });
+
+    // data-oml-match names the field a confirmation input must equal.
+    document.querySelectorAll('.oml input[data-oml-match]').forEach(function (confirm) {
+        var source = document.getElementById(confirm.dataset.omlMatch);
+        if (!source) {
+            return;
+        }
+        var sync = function () {
+            var mismatch = confirm.value !== '' && confirm.value !== source.value;
+            confirm.setCustomValidity(mismatch ? confirm.dataset.omlMismatch : '');
+        };
+        source.addEventListener('input', sync);
+        confirm.addEventListener('input', sync);
+    });
 
     // A page left open outlives its CSRF token: fetch a fresh one just before submitting.
     var form = document.querySelector('.oml-panel form[id]');

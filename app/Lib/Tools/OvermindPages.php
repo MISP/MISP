@@ -83,8 +83,8 @@ class OvermindPages
 
         // Users, roles and organisations
         'users' => array(
-            // The first four are the chrome-less pages, see $authActions.
-            'login', 'register', 'forgot', 'change_pw',
+            // The first five are the chrome-less pages, see $authActions.
+            'login', 'register', 'forgot', 'change_pw', 'password_reset',
             'view', 'admin_view', 'admin_index', 'edit', 'admin_edit',
             'admin_add', 'admin_quickEmail', 'admin_email', 'totp_new',
             'view_login_history', 'registrations', 'statistics'
@@ -166,7 +166,7 @@ class OvermindPages
      * @var array
      */
     private static $authActions = array(
-        'login', 'register', 'forgot', 'change_pw'
+        'login', 'register', 'forgot', 'change_pw', 'password_reset'
     );
 
     /**
