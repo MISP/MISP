@@ -573,6 +573,13 @@ class EventReport extends AppModel
                 )
             );
         }
+        if (!$user['Role']['perm_sync']) {
+            // soft-deleted reports only for the event owner, as in fetchEvent()
+            $conditions['AND'][] = ['OR' => [
+                'EventReport.deleted' => 0,
+                'Event.org_id' => $user['org_id'],
+            ]];
+        }
         return $conditions;
     }
 
@@ -763,13 +770,6 @@ class EventReport extends AppModel
             $conditions['AND'][] = ['EventReport.deleted' => 1];
         } else {
             $conditions['AND'][] = ['EventReport.deleted' => 0];
-        }
-        if ($deleted !== 0 && !$user['Role']['perm_sync']) {
-            // soft-deleted reports only for the event owner, as in fetchEvent()
-            $conditions['AND'][] = ['OR' => [
-                'EventReport.deleted' => 0,
-                'Event.org_id' => $user['org_id'],
-            ]];
         }
 
         if (!empty($options['searchFor'])) {
