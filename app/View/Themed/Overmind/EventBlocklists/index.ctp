@@ -4,6 +4,18 @@ $headerTitle = __('Event Blocklists');
 $headerDescription = __('Events matching a blocklisted UUID are prevented from being created (also via synchronisation) on this instance.');
 
 $headerActions = [];
+if ($this->Acl->canAccess('servers', 'eventBlockRule')) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Event block rules'),
+        'icon' => 'filter-circle-xmark',
+        'url' => $baseurl . '/servers/eventBlockRule',
+        'size' => 'lg',
+        'class' => 'btn btn-outline-primary',
+        'standalone' => true,
+        'title' => __('Block new events by their tags'),
+    ];
+}
 if ($this->Acl->canAccess('eventBlocklists', 'add')) {
     $headerActions[] = [
         'type' => 'modal',

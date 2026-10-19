@@ -1,3 +1,7 @@
+<?php
+// Its own page when visited, a modal from the Event Blocklists index
+$inModal = $this->request->is('ajax');
+?>
 <?= $this->Form->create('Server', [
     'url' => $baseurl . '/servers/eventBlockRule',
     'id' => 'eventBlockRuleForm',
@@ -31,10 +35,25 @@
 
     <?= $this->element('genericElementsBS5/Forms/modal_footer', [
         'align' => 'end',
-        'cancel' => false,
+        'cancel' => $inModal ? [] : false,
         'submit' => ['label' => __('Save'), 'icon' => 'fas fa-floppy-disk'],
     ]) ?>
 
 </div>
 
 <?= $this->Form->end() ?>
+<?php if ($inModal): ?>
+<script>
+    (function () {
+        var form = document.getElementById('eventBlockRuleForm');
+        if (!form || typeof submitFormInPlace !== 'function') return;
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            submitFormInPlace(form, {
+                success: <?= json_encode(__('Event block rules saved.'), JSON_HEX_TAG | JSON_HEX_AMP) ?>,
+                renewFrom: form.action
+            });
+        });
+    })();
+</script>
+<?php endif; ?>

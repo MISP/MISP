@@ -703,14 +703,6 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-ban',
                 'children' => [
                     [
-                        'label' => __('Event Block Rules'),
-                        'url' => $baseurl . '/servers/eventBlockRule',
-                        'controller' => 'servers',
-                        'action' => 'eventBlockRule',
-                        'requirement' => $this->Acl->canAccess('servers', 'eventBlockRule'),
-                        'icon' => 'fas fa-filter-circle-xmark'
-                    ],
-                    [
                         'label' => __('Blocklist Event'),
                         'url' => $baseurl . '/eventBlocklists',
                         'controller' => 'eventBlocklists',
