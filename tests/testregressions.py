@@ -558,8 +558,7 @@ class SoftDeletedEventTabsAcl(unittest.TestCase):
     With the Deleted filter on (deleted 1 or 2), fetchPaginatedObjects() and
     fetchPaginatedReports() returned soft-deleted objects, object attributes and reports to
     anyone who could see the event, where fetchEvent() keeps them to the owner org and sync
-    users. Only the themed event view serves the endpoints (MISP.enable_themes), so the class
-    skips where it is off.
+    users.
     """
 
     @classmethod
@@ -567,8 +566,6 @@ class SoftDeletedEventTabsAcl(unittest.TestCase):
         warnings.simplefilter("ignore", ResourceWarning)
         cls.admin = PyMISP(url, key)
         cls.admin.global_pythonify = True
-        if not cls.admin.get_server_setting('MISP.enable_themes')['value']:
-            raise unittest.SkipTest('the event view tabs need MISP.enable_themes')
         cls.role_id = least_privileged_role(cls.admin, 'perm_add')
         cls.owner_org = make_org(cls.admin, 'regression deleted tabs owner org')
         cls.outsider_org = make_org(cls.admin, 'regression deleted tabs outsider org')
