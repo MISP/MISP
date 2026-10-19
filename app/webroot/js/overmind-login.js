@@ -100,7 +100,9 @@
 
     // Sharing communities: instances hold events, events hold attributes,
     // instances sync across communities, and the panel's ports join the graph.
-    var W = 0, H = 0, dpr = 1;
+    // The canvas starts below the navbar on error pages: draw in its own
+    // coordinates, and shift viewport ones (pointer, panel, ports) by its origin.
+    var W = 0, H = 0, dpr = 1, originX = 0, originY = 0;
     var nodes = [], edges = [], adj = [], pulses = [], corrs = [];
     var pal = {};
     var pointer = {x: -9999, y: -9999, active: false};
@@ -137,7 +139,10 @@
 
     function panelRect(pad) {
         var r = panel ? panel.getBoundingClientRect() : {left: 0, top: 0, right: 0, bottom: 0};
-        return {l: r.left - pad, t: r.top - pad, r: r.right + pad, b: r.bottom + pad};
+        return {
+            l: r.left - originX - pad, t: r.top - originY - pad,
+            r: r.right - originX + pad, b: r.bottom - originY + pad
+        };
     }
 
     function inRect(x, y, q) {
@@ -224,8 +229,8 @@
             var n = nodes[i];
             if (n.kind === 'port') {
                 var r = n.el.getBoundingClientRect();
-                n.x = r.left + r.width / 2;
-                n.y = r.top + r.height / 2;
+                n.x = r.left + r.width / 2 - originX;
+                n.y = r.top + r.height / 2 - originY;
             }
         }
     }
@@ -329,8 +334,11 @@
 
     function resize() {
         dpr = Math.min(window.devicePixelRatio || 1, 2);
-        W = window.innerWidth;
-        H = window.innerHeight;
+        var box = canvas.getBoundingClientRect();
+        originX = box.left;
+        originY = box.top;
+        W = box.width;
+        H = box.height;
         canvas.width = Math.round(W * dpr);
         canvas.height = Math.round(H * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -757,8 +765,8 @@
         resizeTimer = setTimeout(resize, 120);
     });
     window.addEventListener('pointermove', function (e) {
-        pointer.x = e.clientX;
-        pointer.y = e.clientY;
+        pointer.x = e.clientX - originX;
+        pointer.y = e.clientY - originY;
         pointer.active = true;
     }, {passive: true});
     document.addEventListener('pointerleave', function () { pointer.active = false; });

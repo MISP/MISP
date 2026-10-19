@@ -19,11 +19,18 @@ $initialMode = $hasDarkToggle ? 'light' : $bootstrapTheme['mode'];
 $currentController = $this->params['controller'];
 $currentAction = $this->params['action'];
 
-$useBootstrap5 = OvermindPages::isMigrated($currentController, $currentAction);
+// Set by the errorPage element, whatever page the error was raised on. Its
+// backdrop covers everything under the navbar, which it keeps for a user.
+$isErrorPage = !empty($isErrorPage);
+
+$useBootstrap5 = $isErrorPage || OvermindPages::isMigrated($currentController, $currentAction);
 
 
 // Overmind pages which own the whole viewport (no navbar, no footer, no header strip)
-$isAuthPage  = $useBootstrap5 && OvermindPages::isAuthPage($currentController, $currentAction);
+$isAuthPage  = $useBootstrap5 && (
+    OvermindPages::isAuthPage($currentController, $currentAction)
+    || ($isErrorPage && empty($errorPageNavbar))
+);
 
 $useRail = $useBootstrap5 && $bootstrapTheme['navbar'] === 'rail';
 
@@ -195,7 +202,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                 }
             ?>
         </header>
-        <?php if ($useBootstrap5 && !$isAuthPage && Configure::read('debug') > 0): ?>
+        <?php if ($useBootstrap5 && !$isAuthPage && !$isErrorPage && Configure::read('debug') > 0): ?>
             <!-- Debug strip, filled by initDebugStrip() in mispOvermind.js -->
             <div class="accordion mb-0" id="debugAccordionWrapper">
                 <div class="accordion-item border-0">
@@ -282,7 +289,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             if (!$isLegacyFullViewportPage) {
                 echo $this->element('footer');
             }
-        } elseif (!$isAuthPage) {
+        } elseif (!$isAuthPage && !$isErrorPage) {
             echo $this->element('footerBS5');
         }
     ?>
@@ -343,7 +350,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
 <?php if ($autoLogoutEnabled): ?>
         window.mispAutoLogout = true;
 <?php endif; ?>
-<?php if ($useBootstrap5 && !$isAuthPage && !empty($onboardingAutostart)): ?>
+<?php if ($useBootstrap5 && !$isAuthPage && !$isErrorPage && !empty($onboardingAutostart)): ?>
         <?php // Set by AppController::beforeRender when the user has never been
               // shown the tour. onboarding.js reads it on DOMContentLoaded,
               // which has not fired yet at this point in the document, and
