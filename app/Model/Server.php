@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('AnalystData', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SystemSetting', 'Model');
@@ -311,7 +312,8 @@ class Server extends AppModel
             $event['Event']['distribution'] = '1';
         }
         // Distribution
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || empty($remoteUser['Role']['perm_sync_internal'])) {
+        $downgrade = empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || empty($remoteUser['Role']['perm_sync_internal']);
+        if ($downgrade) {
             switch ($event['Event']['distribution']) {
                 case 1:
                     // if community only, downgrade to org only after pull
@@ -424,6 +426,21 @@ class Server extends AppModel
                         case '2':
                             $event['Event']['EventReport'][$key]['distribution'] = '1';
                             break;
+                    }
+                }
+            }
+        }
+
+        $event['Event'] = AnalystData::updatePulledNested($event['Event'], $downgrade);
+        foreach (['Attribute', 'Object', 'EventReport'] as $scope) {
+            if (empty($event['Event'][$scope])) {
+                continue;
+            }
+            foreach ($event['Event'][$scope] as $k => $element) {
+                $event['Event'][$scope][$k] = AnalystData::updatePulledNested($element, $downgrade);
+                if ($scope === 'Object' && !empty($element['Attribute'])) {
+                    foreach ($element['Attribute'] as $j => $attribute) {
+                        $event['Event']['Object'][$k]['Attribute'][$j] = AnalystData::updatePulledNested($attribute, $downgrade);
                     }
                 }
             }
@@ -5834,6 +5851,7 @@ class Server extends AppModel
                     'value' => true,
                     'test' => 'testBool',
                     'type' => 'boolean',
+                    'cli_only' => true,
                 ),
                 'osuser' => array(
                     'level' => 0,
@@ -6580,7 +6598,8 @@ class Server extends AppModel
                     'description' => __('The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.'),
                     'value' => '127.0.0.1',
                     'test' => 'testForEmpty',
-                    'type' => 'string'
+                    'type' => 'string',
+                    'cli_only' => true,
                 ),
                 'redis_port' => array(
                     'level' => 0,
@@ -7820,6 +7839,7 @@ class Server extends AppModel
                     'value' => 'localhost',
                     'test' => 'testForEmpty',
                     'type' => 'string',
+                    'cli_only' => true,
                     'afterHook' => 'zmqAfterHook',
                 ),
                 'ZeroMQ_redis_port' => array(
@@ -8448,7 +8468,8 @@ class Server extends AppModel
                     'description' => __('The host running the redis server to be used for background jobs.'),
                     'value' => '127.0.0.1',
                     'test' => 'testForEmpty',
-                    'type' => 'string'
+                    'type' => 'string',
+                    'cli_only' => true,
                 ],
                 'redis_port' => [
                     'level' => self::SETTING_CRITICAL,

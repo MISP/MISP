@@ -22,7 +22,7 @@ import requests
 import urllib3  # type: ignore
 
 try:
-    from pymisp import PyMISP, MISPEvent, MISPObject, MISPUser, MISPOrganisation, MISPSighting
+    from pymisp import PyMISP, MISPEvent, MISPObject, MISPUser, MISPOrganisation, MISPSighting, MISPEventReport
 except ImportError:
     if sys.version_info < (3, 6):
         print('This test suite requires Python 3.6+, breaking.')
@@ -480,6 +480,73 @@ class FlattenedObjectAcl(unittest.TestCase):
                          "another organisation's soft-deleted attribute was returned")
         self.assertNotIn(self.private_id, seen,
                          "an organisation-only object's attribute leaked through flatten")
+
+
+class SoftDeletedReportsAcl(unittest.TestCase):
+    """event_reports/view and event_reports/index serve a soft-deleted report only to the event owner.
+
+    Every report read goes through EventReport::buildACLConditions(), which checked the
+    distribution alone, so any organisation that could see the event read a retracted report's
+    content, where fetchEvent() keeps soft-deleted rows to the owner org and sync users.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+        cls.owner_org = make_org(cls.admin, 'regression deleted reports owner org')
+        cls.outsider_org = make_org(cls.admin, 'regression deleted reports outsider org')
+        cls.created_orgs = [cls.owner_org, cls.outsider_org]
+        cls.owner_user = make_user(cls.admin, cls.owner_org.id, cls.role_id)
+        cls.outsider_user = make_user(cls.admin, cls.outsider_org.id, cls.role_id)
+        cls.created_users = [cls.owner_user, cls.outsider_user]
+        cls.owner = PyMISP(url, cls.owner_user.authkey)
+        cls.owner.global_pythonify = True
+        cls.outsider = PyMISP(url, cls.outsider_user.authkey)
+        cls.outsider.global_pythonify = True
+
+        event = MISPEvent()
+        event.info = 'regression deleted reports %s' % random()
+        event.distribution = 1        # community, so the outsider can open it
+        cls.event = check_response(cls.owner.add_event(event))
+        cls.report_ids = {}
+        for name in ('kept', 'gone'):
+            report = MISPEventReport()
+            report.name = '%s report %s' % (name, random())
+            report.content = name
+            report.distribution = 5
+            report = check_response(cls.owner.add_event_report(cls.event.id, report))
+            cls.report_ids[name] = int(report.id)
+        check_response(cls.owner.delete_event_report(cls.report_ids['gone']))
+
+    @classmethod
+    def tearDownClass(cls):
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    def _view(self, connector, name):
+        return connector._prepare_request('GET', 'event_reports/view/%d' % self.report_ids[name])
+
+    def _index(self, connector, context):
+        response = connector._prepare_request(
+            'GET', 'event_reports/index/event_id:%d/context:%s' % (int(self.event.id), context))
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return sorted(int(r['EventReport']['id']) for r in response.json())
+
+    def test_outsider_cannot_read_a_soft_deleted_report(self):
+        self.assertEqual(200, self._view(self.outsider, 'kept').status_code,
+                         'the outsider cannot read the reports at all, so the test proves nothing')
+        self.assertEqual(404, self._view(self.outsider, 'gone').status_code,
+                         "another organisation's soft-deleted report was served")
+        self.assertEqual([], self._index(self.outsider, 'deleted'),
+                         "another organisation's soft-deleted report was listed")
+        self.assertEqual([self.report_ids['kept']], self._index(self.outsider, 'all'))
+
+    def test_owner_keeps_its_soft_deleted_report(self):
+        self.assertEqual(200, self._view(self.owner, 'gone').status_code)
+        self.assertEqual([self.report_ids['gone']], self._index(self.owner, 'deleted'))
+        self.assertEqual(sorted(self.report_ids.values()), self._index(self.owner, 'all'))
 
 
 if __name__ == '__main__':
