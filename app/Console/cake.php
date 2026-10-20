@@ -53,6 +53,17 @@ if (PHP_VERSION_ID < 80000) {
     require_once dirname(__DIR__). DS . 'Lib' . DS . 'polyfill.php';
 }
 
+if (is_file(dirname(__DIR__) . DS . 'Lib' . DS . 'Tools' . DS . 'PluginMapGuard.php')) {
+    require_once dirname(__DIR__) . DS . 'Lib' . DS . 'Tools' . DS . 'PluginMapGuard.php';
+    $stale = PluginMapGuard::heal(dirname(__DIR__), array(dirname(__DIR__, 2) . DS . 'plugins' . DS));
+    if ($stale !== null) {
+        fwrite(STDERR, $stale['removed']
+            ? 'Removed ' . $stale['file'] . ', which listed a plugin that no longer exists.' . PHP_EOL
+            : 'Could not remove ' . $stale['file'] . ', which lists a plugin that no longer exists: delete it as the web server user.' . PHP_EOL);
+    }
+    unset($stale);
+}
+
 if (!include $dispatcher) {
     trigger_error('Could not locate CakePHP core files.', E_USER_ERROR);
 }

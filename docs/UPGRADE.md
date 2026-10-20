@@ -98,6 +98,13 @@ Run the commands from `app/` as the web server user
 5. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
    `misp:correlation_exclusions`, so both keys can be deleted.
 
+!!! note
+    If the web interface answers "too many redirects" after an update, an
+    update removed a plugin that Cake's cache still lists. Run any
+    `Console/cake` command (it removes the stale cache file and says so), or
+    delete `app/tmp/cache/persistent/myapp_cake_core_object_map` as the web
+    server user. The web interface also repairs itself within a few requests.
+
 ### How long it takes and what it needs
 
 Plan the window and the disk before you go offline. The figures come from
