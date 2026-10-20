@@ -141,6 +141,23 @@ class Module extends AppModel
         }
     }
 
+    /**
+     * What misp-modules counted per module since it started; older services
+     * do not have the endpoint.
+     *
+     * @param string $moduleFamily
+     * @return array|null
+     */
+    public function getStatistics($moduleFamily = 'Enrichment')
+    {
+        try {
+            $statistics = $this->sendRequest('/statistics', 1, null, $moduleFamily);
+        } catch (Exception $e) {
+            return null;
+        }
+        return is_array($statistics) ? $statistics : null;
+    }
+
     public function getEnabledModules($user, $type = false, $moduleFamily = 'Enrichment')
     {
         $modules = $this->getModules($moduleFamily);

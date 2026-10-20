@@ -22,6 +22,11 @@ class NewsController extends AppController
     public function index()
     {
         $user = $this->Auth->user();
+        // The navbar's news panel loads its list from here
+        $panel = $this->request->is('ajax') && $this->theme === 'Overmind';
+        if ($panel) {
+            $this->paginate['limit'] = 10;
+        }
         $newsItems = $this->paginate();
 
         $newsread = $user['newsread'];
@@ -49,6 +54,11 @@ class NewsController extends AppController
 
             $this->User->updateField($user, 'newsread', time());
         }
+
+        if ($panel) {
+            $this->layout = false;
+            $this->render('ajax/panel');
+        }
     }
 
     public function admin_index()
@@ -74,7 +84,7 @@ class NewsController extends AppController
                 }
                 return $data;
             },
-            'redirect' => ['action' => 'index']
+            'redirect' => $this->__returnUrl()
         ];
         $this->CRUD->add($params);
         if ($this->IndexFilter->isRest()) {
@@ -89,7 +99,7 @@ class NewsController extends AppController
     public function edit($id)
     {
         $params = [
-            'redirect' => ['action' => 'index']
+            'redirect' => $this->__returnUrl()
         ];
         $this->CRUD->edit($id, $params);
         if ($this->IndexFilter->isRest()) {
@@ -122,7 +132,42 @@ class NewsController extends AppController
             },
             'multiSuccessMessageCallback' => function ($count) {
                 return __n('%s news item deleted.', '%s news items deleted.', $count, $count);
-            }
+            },
+            'redirect' => $this->__returnUrl()
         ]);
+    }
+
+    /**
+     * The page a news form goes back to: the one it was opened on, unless that
+     * is the form itself. Controller::referer() only knows pages under
+     * MISP.baseurl, so an instance reached under any other name would always
+     * land on the news page; the referer is checked against the host the
+     * request came to instead.
+     *
+     * @return array|string
+     */
+    private function __returnUrl()
+    {
+        App::uses('InternalRedirectValidator', 'Tools');
+        $fallback = ['action' => 'index'];
+        $referer = parse_url((string)env('HTTP_REFERER'));
+        if (empty($referer['host'])) {
+            return $fallback;
+        }
+        $host = $referer['host'] . (isset($referer['port']) ? ':' . $referer['port'] : '');
+        if (strcasecmp($host, (string)$this->request->host()) !== 0) {
+            return $fallback;
+        }
+        $path = InternalRedirectValidator::sanitize(
+            ($referer['path'] ?? '/') . (isset($referer['query']) ? '?' . $referer['query'] : '')
+        );
+        $base = (string)$this->request->base;
+        if ($base !== '' && strpos($path, $base . '/') === 0) {
+            $path = substr($path, strlen($base));
+        }
+        if ($path === '' || preg_match('#^/news/(add|edit|delete)#i', $path)) {
+            return $fallback;
+        }
+        return $path;
     }
 }

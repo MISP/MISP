@@ -1,4 +1,6 @@
 <?php
+App::uses('TmpFileTool', 'Tools');
+
 class SyncTool
 {
     const ALLOWED_CERT_FILE_EXTENSIONS = ['pem', 'crt'];
@@ -126,8 +128,65 @@ class SyncTool
      */
     public static function valueTargetsWithheld()
     {
+        return self::requesterBelow30();
+    }
+
+    /**
+     * @return bool Whether a MISP older than 3.0 is making the request
+     */
+    public static function requesterBelow30()
+    {
         $version = Configure::read('CurrentRequesterMispVersion');
         return $version !== null && version_compare($version, '3.0.0', '<');
+    }
+
+    /**
+     * A MISP older than 3.0 stores text in utf8mb3 columns, which refuse
+     * 4-byte characters (emoji and the like), so they are sent as `?`.
+     * Works on bytes, so it is safe on any input.
+     *
+     * @param string $text
+     * @return string
+     */
+    public static function withoutFourByteChars($text)
+    {
+        if (strpbrk($text, "\xF0\xF1\xF2\xF3\xF4") === false) {
+            return $text;
+        }
+        return preg_replace('/[\xF0-\xF4][\x80-\xBF]{3}/', '?', $text);
+    }
+
+    /**
+     * withoutFourByteChars() for a body too big to hold in memory twice.
+     *
+     * @param TmpFileTool $file Consumed
+     * @return TmpFileTool
+     * @throws Exception
+     */
+    public static function withoutFourByteCharsInFile(TmpFileTool $file)
+    {
+        $shaped = new TmpFileTool();
+        $carry = '';
+        foreach ($file->intoChunks(65536) as $chunk) {
+            $chunk = $carry . $chunk;
+            $carry = '';
+            // A 4-byte character can be split between two chunks
+            $length = strlen($chunk);
+            for ($tail = 1; $tail <= 3 && $tail <= $length; $tail++) {
+                $byte = ord($chunk[$length - $tail]);
+                if ($byte >= 0xF0 && $byte <= 0xF4) {
+                    $carry = substr($chunk, $length - $tail);
+                    $chunk = substr($chunk, 0, $length - $tail);
+                    break;
+                }
+                if ($byte < 0x80 || $byte > 0xBF) {
+                    break;
+                }
+            }
+            $shaped->write(self::withoutFourByteChars($chunk));
+        }
+        $shaped->write($carry);
+        return $shaped;
     }
 
     /**

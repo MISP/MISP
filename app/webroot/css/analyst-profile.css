@@ -2481,6 +2481,100 @@ a.ap-item-label:hover { text-decoration: underline; }
 .ap-reasons dd { margin: 0; }
 
 .ap-items + .ap-card-line { margin-top: .5rem; }
+.ap-item-hint {
+    font-size: .6875rem;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+
+/* ---- what misp-modules counted, folded under the groups ---- */
+.ap-activity {
+    margin-top: .7rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+    font-size: .75rem;
+}
+.ap-activity > summary {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 .55rem;
+    padding: .45rem 0 0;
+    cursor: pointer;
+    list-style: none;
+    color: var(--bs-secondary-color);
+}
+.ap-activity > summary::-webkit-details-marker { display: none; }
+.ap-activity > summary::before {
+    content: "";
+    flex: none;
+    align-self: center;
+    width: .4rem;
+    height: .4rem;
+    margin-right: .05rem;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform .15s ease;
+}
+.ap-activity[open] > summary::before { transform: rotate(45deg); }
+.ap-activity > summary:hover .ap-activity-h { color: var(--bs-body-color); }
+.ap-activity > summary:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+.ap-activity-h {
+    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+.ap-activity-sum {
+    font-size: .6875rem;
+    font-variant-numeric: tabular-nums;
+}
+.ap-activity-bad,
+.ap-activity-table .bad { color: var(--vp-conflict, var(--bs-danger)); }
+.ap-activity-body {
+    padding-top: .4rem;
+    overflow-x: auto;
+}
+.ap-activity-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+}
+.ap-activity-table th,
+.ap-activity-table td {
+    padding: .22rem .5rem;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    white-space: nowrap;
+}
+.ap-activity-table th:first-child,
+.ap-activity-table td:first-child { padding-left: 0; }
+.ap-activity-table th:last-child,
+.ap-activity-table td:last-child { padding-right: 0; }
+.ap-activity-table thead th {
+    font-size: .625rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.ap-activity-table thead th[title] { cursor: help; }
+.ap-activity-table tbody th { font-weight: 400; }
+.ap-activity-table tbody tr:last-child > * { border-bottom: 0; }
+.ap-activity-table .n { text-align: right; }
+.ap-activity-table .z { color: var(--bs-secondary-color); opacity: .6; }
+.ap-activity-idle,
+.ap-activity-note {
+    margin: .45rem 0 0;
+    font-size: .6875rem;
+    line-height: 1.5;
+    color: var(--bs-secondary-color);
+}
+.ap-activity-idle .ap-item-name { font-size: .6875rem; }
+.ap-activity-note { margin-top: .25rem; font-style: italic; }
+.ap-activity-none .fas { margin-right: .25rem; opacity: .7; }
 
 /* ---- the instance card keeps the bench's key/value lines ---- */
 .ap-card-instance .ap-caps { margin-bottom: 0; }
@@ -2494,4 +2588,8 @@ a.ap-item-label:hover { text-decoration: underline; }
 @container wb (max-width: 720px) {
     .ap-cards-side { flex-direction: column; }
     .ap-reasons > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .ap-activity-wide { display: none; }
+    .ap-activity-table th,
+    .ap-activity-table td { padding-left: .35rem; padding-right: .35rem; }
+    .ap-activity-table thead th { white-space: normal; vertical-align: bottom; }
 }

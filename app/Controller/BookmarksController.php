@@ -72,6 +72,14 @@ class BookmarksController extends AppController
 
     public function add()
     {
+        if ($this->request->is('get')) {
+            foreach (['name', 'url'] as $field) {
+                $value = $this->request->query($field);
+                if (is_string($value) && $value !== '') {
+                    $this->request->data['Bookmark'][$field] = $value;
+                }
+            }
+        }
         $params = [
         ];
         $this->CRUD->add($params);
@@ -109,6 +117,37 @@ class BookmarksController extends AppController
             $this->layout = false;
         }
         $this->render('add');
+    }
+
+    /**
+     * The navbar's bookmarks panel: the user's own bookmarks, then the ones
+     * their organisation shares.
+     */
+    public function panel()
+    {
+        if ($this->theme !== 'Overmind') {
+            throw new NotFoundException(__('Invalid action.'));
+        }
+        $user = $this->Auth->user();
+        $bookmarks = $this->Bookmark->getBookmarksForUser($user);
+        usort($bookmarks, function ($a, $b) {
+            return strcasecmp($a['Bookmark']['name'], $b['Bookmark']['name']);
+        });
+        $mine = [];
+        $shared = [];
+        foreach ($bookmarks as $bookmark) {
+            $bookmark['Bookmark']['may_modify'] = $this->Bookmark->canModify($user, $bookmark);
+            if ($bookmark['Bookmark']['user_id'] == $user['id']) {
+                $mine[] = $bookmark;
+            } else {
+                $shared[] = $bookmark;
+            }
+        }
+        $this->set('mine', $mine);
+        $this->set('shared', $shared);
+        $this->set('orgName', $user['Organisation']['name']);
+        $this->layout = false;
+        $this->render('ajax/panel');
     }
 
     public function deleteSelection($id = null)

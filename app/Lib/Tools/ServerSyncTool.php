@@ -604,6 +604,18 @@ class ServerSyncTool
     }
 
     /**
+     * @return bool Whether the remote is a MISP older than 3.0; false when its version cannot be read
+     */
+    private function remoteBelow30()
+    {
+        try {
+            return version_compare($this->info()['version'], '3.0.0', '<');
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
      * @param string $flag
      * @return bool
      * @throws HttpSocketJsonException
@@ -704,6 +716,9 @@ class ServerSyncTool
     {
         $protectedMode = !empty($data['Event']['protected']);
         $data = JsonTool::encode($data);
+        if ($this->remoteBelow30()) {
+            $data = SyncTool::withoutFourByteChars($data);
+        }
 
         if ($logMessage && !empty(Configure::read('Security.sync_audit'))) {
             $pushLogEntry = sprintf(

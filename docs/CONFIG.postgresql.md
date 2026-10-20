@@ -31,7 +31,8 @@ packages, PHP, Redis, workers, the web server — is the same.
 - PostgreSQL 16 or later. Ubuntu 24.04 ships 16; on RHEL 9 enable the
   `postgresql:16` module stream, as its default PostgreSQL 13 is end-of-life.
 - The `pg_trgm` extension. MISP creates it itself, when the install baseline is
-  loaded or during `runUpdates`; see
+  loaded or during `runUpgrade`, which checks for it before it takes the
+  instance offline; see
   [The pg_trgm extension](#the-pg_trgm-extension) below for what that needs.
 - The `pdo_pgsql` PHP extension (`php-pgsql` on Debian/Ubuntu, `php-pgsql` on
   RHEL), for the CLI, php-fpm and Apache alike.

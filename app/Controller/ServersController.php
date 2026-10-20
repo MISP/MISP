@@ -994,6 +994,10 @@ class ServersController extends AppController
             return $this->RestResponse->viewData(['value' => $value], $this->response->type());
         }
         $this->set('setting', ['AdminSetting' => ['setting' => 'eventBlockRule', 'value' => is_string($value) ? $value : '']]);
+        // Opened as a modal from the Event Blocklists index
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+        }
     }
 
     /**

@@ -746,10 +746,16 @@ class RestResponseComponent extends Component
             }
         }
 
+        App::uses('SyncTool', 'Tools');
         if ($response instanceof Generator) {
             $tmpFile = new TmpFileTool();
             $tmpFile->writeWithSeparator($response, null);
             $response = $tmpFile;
+        }
+        if (($type === 'json' || $type === 'application/json') && ($response instanceof TmpFileTool || is_string($response)) && SyncTool::requesterBelow30()) {
+            $response = $response instanceof TmpFileTool
+                ? SyncTool::withoutFourByteCharsInFile($response)
+                : SyncTool::withoutFourByteChars($response);
         }
         if ($response instanceof TmpFileTool) {
             $requestEtag = $this->requestEtag();

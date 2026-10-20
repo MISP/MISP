@@ -139,29 +139,8 @@ $railReason = array(
 $canForkForOrg = !empty($me['Role']['perm_admin'])
     || !empty($me['Role']['perm_site_admin']);
 
-$create = array();
-if ($default !== null) {
-    $create[] = array(
-        'type' => 'action',
-        'label' => __('Fork the instance default'),
-        'icon' => 'code-branch',
-        'url' => array('action' => 'fork', $default['id']),
-        'title' => sprintf(
-            __('A copy of %s that you own and can edit.'),
-            $default['name']
-        ),
-    );
-}
-$create[] = array(
-    'type' => 'navigate',
-    'label' => __('Import JSON'),
-    'icon' => 'file-import',
-    'url' => array('action' => 'import'),
-    'title' => __("Somebody else's, exported from their instance."),
-);
-
 $this->set('headerTitle', __('Analyst Profiles'));
-$this->set('headerBreadcrumb', __('Analyst Profiles'));
+//$this->set('headerBreadcrumb', __('Analyst Profiles'));
 $this->set('headerCount', count($profiles));
 /*
  * All three of a document's jobs, because naming only the first sends
@@ -173,14 +152,32 @@ $this->set('headerDescription', __('A profile decides what MISP makes of'
     . ' a value: which evidence counts and for how long, which labels'
     . ' come first, and which enrichment modules may run. One is in'
     . ' force for you at a time.'));
-$headerActions = array();
-$headerActions[] = array(
-    'type' => 'dropdown',
-    'label' => __('New profile'),
-    'icon' => 'plus',
-    'class' => 'btn btn-outline-primary',
-    'children' => $create,
-);
+
+
+$headerActions = [];
+
+if ($default !== null) {
+    $headerActions[] = [
+        'type' => 'modal',
+        'label' => __('Fork the instance default'),
+        'icon' => 'code-branch',
+        'url' => $baseurl . '/analystProfiles/fork/' . $default['id'],
+        'title' => sprintf(
+            __('A copy of %s that you own and can edit.'),
+            $default['name']
+        ),
+    ];
+}
+
+$headerActions[] = [
+    'type' => 'modal',
+    'label' => __('Import JSON'),
+    'icon' => 'file-import',
+    'url' => $baseurl . '/analystProfiles/import',
+    'size' => 'lg',
+    'title' => __("Somebody else's, exported from their instance."),
+];
+
 $this->set('headerActions', $headerActions);
 ?>
 

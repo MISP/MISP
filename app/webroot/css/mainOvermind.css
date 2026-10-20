@@ -38,7 +38,8 @@ body{
 body[data-controller="users"][data-action="login"],
 body[data-controller="users"][data-action="register"],
 body[data-controller="users"][data-action="forgot"],
-body[data-controller="users"][data-action="change_pw"] {
+body[data-controller="users"][data-action="change_pw"],
+body[data-controller="users"][data-action="password_reset"] {
     background: var(--misp-login-bg, linear-gradient(180deg, var(--primary) 0%, #12718E 50%, #0B394A 100%));
     min-height: 100vh;
     padding-top: 56px;  /* Adjust for fixed navbar height */

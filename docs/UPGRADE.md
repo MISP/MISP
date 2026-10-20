@@ -98,6 +98,13 @@ Run the commands from `app/` as the web server user
 5. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
    `misp:correlation_exclusions`, so both keys can be deleted.
 
+!!! note
+    If the web interface answers "too many redirects" after an update, an
+    update removed a plugin that Cake's cache still lists. Run any
+    `Console/cake` command (it removes the stale cache file and says so), or
+    delete `app/tmp/cache/persistent/myapp_cake_core_object_map` as the web
+    server user. The web interface also repairs itself within a few requests.
+
 ### How long it takes and what it needs
 
 Plan the window and the disk before you go offline. The figures come from
@@ -160,8 +167,30 @@ leave you restoring from the backup.
   installation loads `INSTALL/MARIADB.sql` or `INSTALL/MYSQL.sql`
   respectively.
 - **PostgreSQL 16 or later**, with the `pg_trgm` extension
-  ([docs/CONFIG.postgresql.md](CONFIG.postgresql.md)). The On Demand
+  ([docs/CONFIG.postgresql.md](CONFIG.postgresql.md)). `runUpgrade` checks for
+  it before it takes the instance offline and stops with what to do if it is
+  missing and the database user cannot create it. The On Demand
   correlation engine is MySQL/MariaDB only.
+
+### Differences between database engines
+
+MariaDB, MySQL and PostgreSQL compare text, index it and refuse statements
+differently, and 3.0 changes some of it for an instance coming from 2.5. What
+matters to an administrator:
+
+- **Comparisons are stricter about emoji and case-sensitive about uuids.** The
+  new collation tells 4-byte characters apart (`😀` and `😺` were equal under
+  2.5), and uuids and hashes are case-sensitive on MariaDB and MySQL.
+- **PostgreSQL is case-sensitive everywhere** except attribute values: a lookup
+  by tag, sharing group name or email in another case finds nothing.
+- **Requirements by engine**: MariaDB 10.11, MySQL 8.4, PostgreSQL 16 with
+  `pg_trgm`.
+- **Upgrade behaviour** differs by engine, in time, disk (only MariaDB writes
+  sort files to `tmpdir`) and in which statements are refused, in which case
+  the upgrade stops and says what to change.
+
+The full comparison, with the queries behind it, is
+[docs/dev/database-engines.md](dev/database-engines.md).
 
 ### What behaves differently
 
@@ -238,8 +267,10 @@ leave you restoring from the backup.
 
 - The final migration drops every index on the old text columns, custom ones
   included. The value table's indexes replace them.
-- The `cake Admin` `OnDemandCorrelationTuning` index pack is gone, and the
-  `highPerformance` pack no longer creates text indexes.
+- The `cake Admin` `OnDemandCorrelationTuning` index pack is gone, and
+  `runDBScript highPerformance` only tells you that those indexes are now part
+  of the schema, which the upgrade applies. `runDBScript indexLogs` is
+  unchanged.
 
 **Erasure**
 

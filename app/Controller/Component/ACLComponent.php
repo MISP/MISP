@@ -131,6 +131,7 @@ class ACLComponent extends Component
             'deleteSelection' => ['*'],
             'edit' => ['*'],
             'index' => ['*'],
+            'panel' => ['*'],
             'view' => ['*'],
         ],
         'cerebrates' => [

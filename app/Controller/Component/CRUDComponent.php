@@ -558,7 +558,7 @@ class CRUDComponent extends Component
             } else {
                 $this->Controller->Flash->error(trim($message));
             }
-            return $this->Controller->redirect(['action' => 'index']);
+            return $this->Controller->redirect($options['redirect'] ?? ['action' => 'index']);
         } else {
             $itemList = is_numeric($id) ? [$id] : json_decode($id, true);
             $this->Controller->request->data[$modelName]['id'] = json_encode($itemList);

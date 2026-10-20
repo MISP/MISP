@@ -30,6 +30,19 @@ in a migration is raw MySQL, and it silently does nothing useful anywhere else.
 `rawSql()` exists for the cases that genuinely have no portable spelling — see
 §6 — and it makes you write out every engine by hand.
 
+**Until 3.0 ships, amend instead of adding.** The schema modernisation
+migrations (`schema_v3_*`) have not been released. A change to a table they
+converge goes into that migration's `TARGET`, not into a new migration: a new
+one that changes a column type would rebuild the same table a second time on
+every upgrade. Three consequences:
+
+- an instance that already applied the old target keeps it until its row is
+  deleted from `schema_migrations` and `runUpgrade` is run again (the
+  converger finds the table partly there and brings it the rest of the way);
+- the install baselines are regenerated afterwards (§10);
+- once a release carries the migration, its `TARGET` is frozen like any
+  released migration and a later change is a migration of its own.
+
 ## 2. Why the counter was not enough
 
 The old system tracked one integer, `db_version`, and applied everything above
@@ -376,7 +389,8 @@ Console/cake Admin migrationApply --id <id>       # one
 
 Applying is also what `runUpdates()` does, so an ordinary login or
 `Console/cake Admin runUpdates` picks migrations up alongside the legacy corpus —
-legacy first in numeric order, then migrations in id order.
+legacy first in numeric order, then migrations in id order. A pending offline
+migration is the exception: `runUpdates` refuses it and names `runUpgrade`.
 
 A release with an offline migration is applied with `Console/cake Admin
 runUpgrade`, as one run: it takes the instance offline (`MISP.live`), stops the
@@ -419,7 +433,8 @@ defer: from `up()` or `afterUp()` it is a failure, since work has run by then.
 Rendering defers too, before any statement is sent: a collation token (§4) on a
 server below MariaDB 10.11 or MySQL 8.4.
 
-**A migration is not transactional.** MySQL DDL commits implicitly, so a
+**A migration is not transactional.** DDL commits implicitly on MariaDB and
+MySQL and MISP does not wrap it on PostgreSQL, so a
 migration whose third statement fails leaves the first two applied and the ledger
 row marked failed, and the retry runs `up()` again. So before anything is
 rendered, the declaration is checked against the live schema and what the
@@ -514,9 +529,9 @@ Two things worth knowing about the file:
   rather than nothing. That is correct signal, not noise: such an instance really
   does have schema work outstanding. But it is new, so expect it.
 
-`INSTALL/MYSQL.sql` is a different file with a different lifecycle. It is
-generated, like `INSTALL/POSTGRESQL.sql`, from a reference database that has
-applied everything, and it needs nothing from a migration: a fresh install
+The install baselines (`INSTALL/MARIADB.sql`, `INSTALL/MYSQL.sql`,
+`INSTALL/POSTGRESQL.sql`) are different files with a different lifecycle. They
+are generated from a reference database that has applied everything, and it needs nothing from a migration: a fresh install
 loads it, finds the migration recorded in the seeded ledger, and runs nothing.
 It is regenerated before a release; §10 applies.
 
@@ -552,7 +567,7 @@ recorded in `schema_migrations`, and runs no legacy update and no migration.
 Existing instances are untouched by this: they climb the legacy corpus to 159
 and then apply the migrations, exactly as before.
 
-Regenerate both, from the same reference, once a migration has landed since
+Regenerate all three, from the same reference, once a migration has landed since
 the last time — at the latest before a release. A baseline that lags the
 migrations is not wrong, merely wasteful: a fresh install applies what is
 missing. A baseline dumped from a reference that applied migrations **without**
@@ -570,12 +585,12 @@ the migrations are what produced it:
 ```bash
 mysql -e 'CREATE DATABASE misp_ref'
 git show v2.5.45:INSTALL/MYSQL.sql | mysql misp_ref   # the last hand-maintained baseline, db_version 126
-Console/cake Admin runUpdates                         # against misp_ref: legacy to 159, then every migration
+Console/cake Admin runUpgrade                         # against misp_ref: legacy to 159, then every migration
 Console/cake Admin migrationStatus                    # everything applied, nothing pending or failed
 ```
 
 The generator refuses a reference that is not at the frozen `db_version`.
-`runUpdates` works on the instance's default connection, so on a development
+`runUpgrade` works on the instance's default connection, so on a development
 box point it at the reference from a probe shell for the duration rather than
 editing `database.php`. **Legacy update 150 rewrites the `encoding` of every
 connection in `app/Config/database.php` to a MySQL spelling** and leaves the
@@ -657,16 +672,23 @@ reference was not up to date.
 
 ### 4. What CI checks
 
-The fresh-install job loads `INSTALL/MYSQL.sql`, runs `runUpdates` and asserts
+The fresh-install job loads `INSTALL/MARIADB.sql` (CI runs MariaDB), runs
+`runUpdates` and asserts
 that it had nothing to do: `db_version` 159, no pending migration. A second
-step loads the previous release's `MYSQL.sql` out of git history into another
+step loads the previous release's baseline out of git history (`v2.5.45`'s is
+still called `MYSQL.sql`) into another
 database, runs `runUpdates` there — the legacy corpus and then every
 migration, the path every existing instance takes — and compares the result
 with the fresh install through `verifyInstallBaseline`. That comparison is the
 drift guard: the two ways in have to produce the same schema. Bump the tag the
 legacy step pins when a release moves the baseline.
 
-### Both files
+### All three files
+
+- The MariaDB and MySQL baselines start with an unnamed `ALTER DATABASE` that
+  sets the database default collation, because the migration that does it is
+  seeded as applied and a fresh install would otherwise keep whatever default
+  its database was created with. PostgreSQL has no such statement.
 
 - Keep the literal comment `Default values for initial installation` verbatim
   and once — `tools/misp-wipe/misp-wipe.sh` locates the seed block by matching
@@ -676,9 +698,9 @@ legacy step pins when a release moves the baseline.
   so a replay is harmless. `misp-wipe.sql` does not truncate
   `schema_migrations`, and should not start to — a wipe clears data, not
   schema.
-- Do not edit the generated DDL by hand. A column added to `MYSQL.sql` by hand
+- Do not edit the generated DDL by hand. A column added to a baseline by hand
   is a column PostgreSQL never gets; a migration is what carries both engines,
-  and the next regeneration carries it into both baselines.
+  and the next regeneration carries it into every baseline.
 
 ## 11. Monitoring: what to alert on
 

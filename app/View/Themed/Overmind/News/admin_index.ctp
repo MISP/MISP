@@ -1,7 +1,7 @@
 <?php
 // Header section
 $headerTitle = __('News');
-$headerDescription = __('Announcements shown to users on the News page. New items are highlighted until read.');
+$headerDescription = __('Announcements shown to users in the News panel of the navbar. New items are highlighted until read.');
 
 $headerActions = [];
 if ($this->Acl->canAccess('news', 'add')) {

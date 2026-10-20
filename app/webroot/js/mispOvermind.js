@@ -248,6 +248,72 @@ function keepTabOnFormReturn(container) {
 }
 
 /**
+ * Send a modal form without leaving the page.
+ *
+ * It goes through the controller's REST branch (Accept: application/json),
+ * which answers with the outcome instead of a redirect; the form's own tokens
+ * go with it. On success the modal closes and a toast says so. On a refusal
+ * the modal stays up with the server's reason, and the form takes the tokens
+ * of a freshly rendered copy from `renewFrom`, since the ones it sent are spent.
+ *
+ * @param {HTMLFormElement} form
+ * @param {Object} [options]
+ * @param {string|function(Object): string} [options.success] the toast, or how
+ *        to word it from the answer; the answer's own message by default
+ * @param {string} [options.failure] the toast when the answer gives no reason
+ * @param {string} [options.renewFrom] the URL the form was loaded from
+ * @param {function(Object)} [options.done] runs after a success
+ * @returns {Promise<Object|null>} the answer, or null when it was refused
+ */
+function submitFormInPlace(form, options) {
+    options = options || {};
+    const submit = form.querySelector('[type="submit"]');
+    if (submit) { submit.disabled = true; }
+    return fetch(form.action, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        body: new URLSearchParams(new FormData(form)),
+    }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (data) {
+            if (!r.ok || data.saved === false) { throw data; }
+            return data;
+        });
+    }).then(function (data) {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('mainModal'));
+        if (modal) { modal.hide(); }
+        const message = typeof options.success === 'function'
+            ? options.success(data)
+            : (options.success || data.message);
+        if (message) { showToast(message, 'success'); }
+        if (options.done) { options.done(data); }
+        return data;
+    }).catch(function (data) {
+        if (submit) { submit.disabled = false; }
+        const reasons = [];
+        (function walk(v) {
+            if (Array.isArray(v)) { v.forEach(walk); }
+            else if (v && typeof v === 'object') { Object.keys(v).forEach(function (k) { walk(v[k]); }); }
+            else if (v) { reasons.push(String(v)); }
+        })(data && data.errors);
+        showToast(reasons.length ? reasons.join(' ') : ((data && data.message) || options.failure || 'It could not be saved.'), 'danger');
+        if (options.renewFrom) {
+            fetch(options.renewFrom, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.text(); })
+                .then(function (out) {
+                    const fresh = new DOMParser().parseFromString(out, 'text/html');
+                    fresh.querySelectorAll('input[name^="data[_Token]"]').forEach(function (input) {
+                        const mine = form.querySelector('input[name="' + input.name + '"]');
+                        if (mine) { mine.value = input.value; }
+                    });
+                })
+                .catch(function () { /* the next try reports it */ });
+        }
+        return null;
+    });
+}
+
+/**
  * Go back to an event's view after a modal flow that changed its content.
  *
  * view_layout keeps location.hash in step with the active tab

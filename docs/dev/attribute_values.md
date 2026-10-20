@@ -47,9 +47,10 @@ attribute_values (
   attribute validation already allowed. A longer value is refused before any SQL
   runs.
 - **The collation is chosen when the table is created**: `utf8mb4_uca1400_ai_ci`
-  on MariaDB 10.10 and later, `utf8mb4_unicode_520_ci` on older MariaDB,
-  `utf8mb4_0900_ai_ci` on MySQL 8 (untested). Never `utf8mb4_unicode_ci`,
-  which weighs every 4-byte character the same.
+  on MariaDB 10.11 and later, `utf8mb4_unicode_520_ci` on MySQL 8.4 and later
+  (`0900` collations are `NO PAD`). Never `utf8mb4_unicode_ci`, which weighs
+  every 4-byte character the same. See
+  [database-engines.md](database-engines.md).
 - **PostgreSQL** has `value text`, `hash bytea`, an expression index on
   `lower(left(value, 128))` for case-insensitive lookups and a `pg_trgm` GIN
   index for `value_search` (see `docs/CONFIG.postgresql.md`).

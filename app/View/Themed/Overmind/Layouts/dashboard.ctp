@@ -45,7 +45,7 @@ $useRail = $bootstrapTheme['navbar'] === 'rail';
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="misp-tag-palettes" content="<?= h(implode(' ', $this->TagChip->semanticNamespaces())) ?>">
-    <link rel="shortcut icon" href="<?= $baseurl ?>/img/favicon.png">
+    <link rel="shortcut icon" href="<?= $baseurl ?>/img/faviconOvermind.png">
     <title><?= h($title_for_layout) . ' - ' . h(Configure::read('MISP.title_text') ?: 'MISP') ?></title>
     <?php if ($hasDarkToggle): ?>
     <script>(function(){if(localStorage.getItem('darkMode')==='true'){var r=document.documentElement;r.setAttribute('data-bs-theme','dark');r.setAttribute('data-misp-mode','dark');r.setAttribute('data-theme','midnight');}})()</script>
@@ -74,6 +74,9 @@ $useRail = $bootstrapTheme['navbar'] === 'rail';
             // → /theme/Overmind/css/dashboard/overmind.css.
             ['dashboard/overmind', ['preload' => true]],
             ['print', ['media' => 'print']],
+            empty($sidePanels) ? null : ['side-panel', ['preload' => true]],
+            empty($sidePanels['news']) ? null : ['news-panel', ['preload' => true]],
+            empty($sidePanels['bookmarks']) ? null : ['bookmarks-panel', ['preload' => true]],
         ];
         $css = array_values(array_filter($css));
         if (Configure::read('MISP.custom_css')) {
@@ -117,6 +120,7 @@ $useRail = $bootstrapTheme['navbar'] === 'rail';
                     'theme' => $theme,
                     'themesEnabled' => $themesEnabled,
                     'intelGraph' => $intelGraph ?? null,
+                    'sidePanels' => $sidePanels ?? null,
                     'darkModeToggle' => $hasDarkToggle,
                     'bootstrapTheme' => $bootstrapTheme['name'],
                     'bootstrapThemeChosen' => !empty($bootstrapTheme['userChoice']),
@@ -160,6 +164,9 @@ $useRail = $bootstrapTheme['navbar'] === 'rail';
     ]);
     if (!empty($intelGraph)) {
         echo $this->element('intel_graph_boot');
+    }
+    if (!empty($sidePanels)) {
+        echo $this->element('side_panels', ['panels' => $sidePanels]);
     }
     ?>
 
