@@ -1,0 +1,74 @@
+/* The news panel's list (News/ajax/panel.ctp); the panel itself is a side panel (side-panel.css). */
+#nw-so .sp-body { gap: .9rem; padding-top: .5rem; }
+
+/* a rule with the day between days, as in a conversation */
+.nw-day {
+    flex: none; display: flex; align-items: center; gap: .75rem; margin-top: .4rem;
+    color: var(--bs-secondary-color); font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+}
+.nw-day::before, .nw-day::after { content: ""; flex: 1 1 auto; height: 1px; background: var(--bs-border-color); }
+.nw-day > span { flex: none; padding: .1rem .6rem; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius-pill); background: var(--bs-body-bg); }
+
+/* one news: the author over its card */
+.nw-msg { flex: none; display: flex; flex-direction: column; gap: .3rem; }
+.nw-msg:focus { outline: 0; }
+.nw-msg:focus-visible .nw-card { box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .35); }
+.nw-msg-by { display: flex; align-items: center; gap: .35rem; min-width: 0; padding-left: .2rem; font-size: .78rem; }
+.nw-msg-who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--bs-emphasis-color); }
+.nw-msg-who.is-muted { font-weight: 500; font-style: italic; color: var(--bs-secondary-color); }
+.nw-msg-when {
+    flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.25rem; height: 1.25rem;
+    border-radius: 50%; color: var(--bs-secondary-color); cursor: help; outline: none;
+}
+.nw-msg-when:hover, .nw-msg-when:focus-visible { color: var(--bs-emphasis-color); background: var(--bs-secondary-bg); }
+
+.nw-card {
+    position: relative; padding: .7rem .9rem .8rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: .3rem var(--bs-border-radius-xl) var(--bs-border-radius-xl) var(--bs-border-radius-xl);
+    background: var(--bs-tertiary-bg);
+}
+.nw-msg.is-new .nw-card {
+    border-color: var(--bs-primary-border-subtle);
+    background: color-mix(in srgb, var(--bs-primary-bg-subtle) 60%, var(--bs-body-bg));
+}
+.nw-card-title {
+    margin: 0 0 .35rem; overflow-wrap: anywhere;
+    font-size: .95rem; font-weight: 600; line-height: 1.35; color: var(--bs-emphasis-color);
+}
+.nw-new {
+    display: inline-block; margin-right: .3rem; padding: .1rem .45rem; vertical-align: .1em;
+    border-radius: var(--bs-border-radius-pill); background: var(--sp-accent); color: var(--bs-white);
+    font-size: .65rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+}
+.nw-card-body { overflow-wrap: anywhere; line-height: 1.5; }
+/* until markdown-it renders it, or if it never loads */
+.nw-card-body[data-news-markdown] { white-space: pre-wrap; }
+.nw-card-body > :last-child { margin-bottom: 0; }
+.nw-card-body p, .nw-card-body ul, .nw-card-body ol, .nw-card-body blockquote { margin-bottom: .5rem; }
+.nw-card-body h1, .nw-card-body h2, .nw-card-body h3,
+.nw-card-body h4, .nw-card-body h5, .nw-card-body h6 { margin: .6rem 0 .3rem; font-size: .9rem; font-weight: 600; }
+.nw-card-body pre {
+    padding: .5rem; border-radius: var(--bs-border-radius); background: var(--bs-body-bg);
+    font-size: .8rem; white-space: pre-wrap;
+}
+.nw-card-body code { font-size: .85em; }
+.nw-card-body blockquote { padding-left: .75rem; border-left: 3px solid var(--bs-border-color); color: var(--bs-secondary-color); }
+.nw-card-body table { width: 100%; font-size: .8rem; }
+
+/* edit and delete float on the card's top edge while it is pointed at */
+.nw-card-acts {
+    position: absolute; top: -.95rem; right: .6rem; display: flex; gap: .1rem; padding: .1rem;
+    border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg); box-shadow: var(--bs-box-shadow-sm);
+    opacity: 0; pointer-events: none; transition: opacity .12s ease;
+}
+.nw-card-acts .sp-tool { width: 1.6rem; height: 1.6rem; font-size: .75rem; }
+.nw-msg:hover .nw-card-acts, .nw-msg:focus-within .nw-card-acts { opacity: 1; pointer-events: auto; }
+@media (hover: none) {
+    .nw-card-acts { opacity: 1; pointer-events: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nw-card-acts { transition: none; }
+}

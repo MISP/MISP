@@ -76,7 +76,6 @@ class NavbarHelper extends AppHelper {
         // API
         'api' => 'api',
         // Resources
-        'news'  => ['default' => 'administration', 'index' => 'resources'],
         'doc'   => 'resources',
         'pages' => 'resources',
         // Bookmarks
@@ -108,7 +107,10 @@ class NavbarHelper extends AppHelper {
         // --- RIGHT ---
         $right = [];
         $right[] = $this->buildIntelGraphItem($context);
-        $right[] = $this->buildBookmarksMenu($context, $baseurl);
+        $right[] = $this->buildNewsItem($context);
+        $right[] = empty($context['sidePanels']['bookmarks'])
+            ? $this->buildBookmarksMenu($context, $baseurl)
+            : $this->buildBookmarksItem($context);
         $right[] = $this->buildAccountMenu($context, $baseurl);
 
         // Filtering of inaccessible options
@@ -583,15 +585,6 @@ class NavbarHelper extends AppHelper {
                 'requirement' => $this->Acl->canAccess('servers', 'serverSettings'),
                 'icon' => 'fas fa-gears',
             ],
-            [
-                'type' => 'group',
-                'label' => __('News'),
-                'url' => $baseurl . '/admin/news/index',
-                'controller' => 'news',
-                'action' => 'admin_index',
-                'requirement' => $this->Acl->canAccess('news', 'admin_index'),
-                'icon' => 'fas fa-newspaper',
-            ],
             ['divider' => true],
             [
                 'type' => 'group',
@@ -702,14 +695,6 @@ class NavbarHelper extends AppHelper {
                 'label' => __('Blocklisting'),
                 'icon' => 'fas fa-ban',
                 'children' => [
-                    [
-                        'label' => __('Event Block Rules'),
-                        'url' => $baseurl . '/servers/eventBlockRule',
-                        'controller' => 'servers',
-                        'action' => 'eventBlockRule',
-                        'requirement' => $this->Acl->canAccess('servers', 'eventBlockRule'),
-                        'icon' => 'fas fa-filter-circle-xmark'
-                    ],
                     [
                         'label' => __('Blocklist Event'),
                         'url' => $baseurl . '/eventBlocklists',
@@ -874,13 +859,6 @@ class NavbarHelper extends AppHelper {
         $smimeCertificate = (string)Configure::read('SMIME.cert_public_sign');
         $resourcesChildren = [
             [
-                'label' => __('News'),
-                'url' => $baseurl . '/news/index',
-                'controller' => 'news',
-                'action' => 'index',
-                'icon' => 'fas fa-newspaper'
-            ],
-            [
                 'label' => __('User Guide'),
                 'url' => 'https://www.circl.lu/doc/misp/',
                 'icon' => 'fas fa-address-book'
@@ -949,6 +927,44 @@ class NavbarHelper extends AppHelper {
         }
 
         return $items;
+    }
+
+    /**
+     * The News button, which opens the news panel, on the pages the controller
+     * gives side panels (AppController::beforeRender sets `sidePanels`).
+     */
+    private function buildNewsItem(array $context)
+    {
+        $unread = (int)($context['sidePanels']['news']['unread'] ?? 0);
+        return [
+            'type' => 'panel',
+            'panel' => 'nw-so',
+            'id' => 'news',
+            'requirement' => !empty($context['sidePanels']['news']),
+            'label' => __('News'),
+            'count' => $unread ?: null,
+            'lit' => $unread > 0,
+            'title' => $unread
+                ? __n('News: %s unread', 'News: %s unread', $unread, $unread)
+                : __('News'),
+            'icon' => 'fas fa-newspaper',
+        ];
+    }
+
+    private function buildBookmarksItem(array $context)
+    {
+        $page = $context['sidePanels']['bookmarks'];
+        return [
+            'type' => 'panel',
+            'panel' => 'bm-so',
+            'id' => 'bookmarks',
+            'label' => __('Bookmarks'),
+            'count' => null,
+            'lit' => !empty($page['lit']),
+            'home' => !empty($page['home']),
+            'title' => __('Bookmarks'),
+            'icon' => 'fas fa-star',
+        ];
     }
 
     /**
@@ -1069,6 +1085,7 @@ class NavbarHelper extends AppHelper {
             'id'   => 'account',
             'label' => h($this->UserName->convertEmailToName($me['email'])),
             'image' => $orgLogo,
+            'icon' => $user_icon,
             'children' => $profileChildren
         ];
 
