@@ -92,9 +92,9 @@ if (!defined('WWW_ROOT')) {
 }
 
 /**
- * Drop a cached plugin list that names a removed plugin; on about 1 request in 10.
+ * Drop a cached plugin list that names a removed plugin; on about 1 request in 5.
  */
-if (mt_rand(0, 9) === 0 && is_file(ROOT . DS . APP_DIR . DS . 'Lib' . DS . 'Tools' . DS . 'PluginMapGuard.php')) {
+if (mt_rand(0, 4) === 0 && is_file(ROOT . DS . APP_DIR . DS . 'Lib' . DS . 'Tools' . DS . 'PluginMapGuard.php')) {
 	require_once ROOT . DS . APP_DIR . DS . 'Lib' . DS . 'Tools' . DS . 'PluginMapGuard.php';
 	PluginMapGuard::heal(ROOT . DS . APP_DIR, array(ROOT . DS . 'plugins' . DS));
 }
