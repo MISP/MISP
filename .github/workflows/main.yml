@@ -139,6 +139,8 @@ jobs:
       # prepare php stuff
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
+        env:
+          update: 'true'
         with:
           php-version: ${{ matrix.php }}
           extensions: mysql, mbstring, xml, opcache, readline, redis, gd, apcu
@@ -155,6 +157,28 @@ jobs:
         run: |
           sudo apt-get -y update --allow-releaseinfo-change
           sudo apt-get -y install curl python3 python3-pip python3-virtualenv apache2 libapache2-mod-php$php_version
+
+      - name: Verify PHP security update
+        env:
+          php_version: ${{ matrix.php }}
+        run: |
+          case "$php_version" in
+            8.1) ubuntu_fixed=8.1.2-1ubuntu2.28; upstream_fixed= ;;
+            8.3) ubuntu_fixed=8.3.6-0ubuntu0.24.04.13; upstream_fixed=8.3.36 ;;
+            *) exit 1 ;;
+          esac
+          for package in "php$php_version-cli" "libapache2-mod-php$php_version"; do
+            installed=$(dpkg-query -W -f='${Version}' "$package")
+            installed=${installed#*:}
+            case "$installed" in
+              "${ubuntu_fixed%.*}."*) minimum=$ubuntu_fixed ;;
+              *) minimum=$upstream_fixed ;;
+            esac
+            if [ -z "$minimum" ] || ! dpkg --compare-versions "$installed" ge "$minimum"; then
+              echo "Unsupported or outdated PHP package: $package $installed"
+              exit 1
+            fi
+          done
 
       # mod_php (libapache2-mod-php) ships its own php.ini under
       # /etc/php/$ver/apache2/. The default 128M memory_limit isn't
@@ -222,7 +246,7 @@ jobs:
           sudo a2ensite misp.conf
           cat /etc/apache2/sites-enabled/misp.conf
           sudo a2enmod rewrite
-          sudo systemctl start --no-block apache2
+          sudo systemctl restart --no-block apache2
 
           # MISP configuration
           sudo cp app/Config/bootstrap.default.php app/Config/bootstrap.php

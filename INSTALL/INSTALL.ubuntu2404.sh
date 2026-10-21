@@ -205,6 +205,19 @@ PHP_ETC_BASE=/etc/php/8.3
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 error_check "PHP and required extensions installation."
 
+for php_package in php8.3-cli libapache2-mod-php8.3; do
+    php_package_version=$(dpkg-query -W -f='${Version}' "$php_package") || exit 1
+    php_package_version=${php_package_version#*:}
+    php_minimum_version=8.3.36
+    if [[ "$php_package_version" == 8.3.6-0ubuntu0.24.04.* ]]; then
+        php_minimum_version=8.3.6-0ubuntu0.24.04.13
+    fi
+    if ! dpkg --compare-versions "$php_package_version" ge "$php_minimum_version"; then
+        print_error "Update $php_package ($php_package_version) before continuing."
+        exit 1
+    fi
+done
+
 # Install composer and the composer dependencies of MISP
 
 print_status "Installing composer..."
