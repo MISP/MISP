@@ -50,9 +50,9 @@ class DecayingModelController extends AppController
             }
 
             $attribute_types = array();
-            if (!empty($json['attribute_types'])) {
-                $attribute_types = $json['attribute_types'];
-                unset($json['attribute_types']);
+            if (!empty($json['DecayingModel']['attribute_types'])) {
+                $attribute_types = $json['DecayingModel']['attribute_types'];
+                unset($json['DecayingModel']['attribute_types']);
             }
 
             // Import only ever creates a model for the caller's own organisation, so build the
