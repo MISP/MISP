@@ -149,7 +149,9 @@ $headerDescriptionTabbed = count(array_diff_key($headerDescriptions, ['' => true
  *   'onClick'    name of a JS function; takes over from the type's own
  *                click behaviour, the type then only decides the styling
  *   'confirm'    confirmation message (type action)
- *   'size'       modal size (type modal)
+ *   'modal'      type action only: POST in the background and show the
+ *                answer in the modal; a redirect is followed as a navigation
+ *   'size'       modal size (type modal, or action with 'modal')
  *   'class'      whole button class, replaces the type default
  *   'id'         id of the rendered control
  *   'title'      native tooltip
@@ -262,8 +264,22 @@ $renderHeaderAction = function (array $action, array $options = []) use (
         : '<i class="fas fa-' . h($action['icon'])
             . (empty($options['asItem']) ? '' : ' me-2') . '"></i>';
     $label = h($action['label'] ?? '');
+    $href = $action['url'] ?? '#';
+    $onClick = $headerActionOnClick($action + ['type' => $type]);
 
-    if ($type === 'action' && empty($action['onClick'])) {
+    if ($type === 'action' && empty($action['onClick']) && !empty($action['modal'])) {
+        // The form is only there for its tokens: the link posts it from JS.
+        $formId = str_replace('.', '', uniqid('headerPostModal', true));
+        $this->append('headerActionForms', $this->Form->create(false, [
+            'url' => $action['url'],
+            'id' => $formId,
+            'style' => 'display:none;',
+        ]) . $this->Form->end());
+        $href = '#';
+        $onClick = 'event.preventDefault(); openModalPostForm(\'' . $formId . '\''
+            . (empty($action['size']) ? '' : ', \'' . $action['size'] . '\'')
+            . ');';
+    } elseif ($type === 'action' && empty($action['onClick'])) {
         $linkOptions = [
             'class' => $class,
             'escape' => false,
@@ -287,12 +303,12 @@ $renderHeaderAction = function (array $action, array $options = []) use (
     }
 
     return '<a' . $headerActionAttributes([
-        'href' => $action['url'] ?? '#',
+        'href' => $href,
         'class' => $class,
         'id' => $action['id'] ?? null,
         'title' => $action['title'] ?? null,
         'data-header-tab' => $tab,
-        'onclick' => $headerActionOnClick($action + ['type' => $type]),
+        'onclick' => $onClick,
     ] + ($action['attributes'] ?? [])) . '>' . $icon . $label . '</a>';
 };
 

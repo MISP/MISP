@@ -158,7 +158,8 @@ $headerActions = [];
 
 if ($default !== null) {
     $headerActions[] = [
-        'type' => 'modal',
+        'type' => 'action',
+        'modal' => true,
         'label' => __('Fork the instance default'),
         'icon' => 'code-branch',
         'url' => $baseurl . '/analystProfiles/fork/' . $default['id'],
