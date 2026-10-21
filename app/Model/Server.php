@@ -430,6 +430,10 @@ class Server extends AppModel
                 }
             }
         }
+	// Set published to false if unpublish_event is set for the server
+        if (!empty($server['Server']['unpublish_event'])) {
+            $event['Event']['published'] = 0;
+        }
 
         $event['Event'] = AnalystData::updatePulledNested($event['Event'], $downgrade);
         foreach (['Attribute', 'Object', 'EventReport'] as $scope) {
