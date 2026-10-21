@@ -219,26 +219,82 @@ class GalaxyCluster extends AppModel
         return $cluster;
     }
 
+    /**
+     * Point every relation at the cluster its referenced UUID names. An id of 0
+     * is a target that did not exist yet when the relation was saved; an id of a
+     * row that is gone is a target a galaxy update replaced, since that update
+     * deletes and re-inserts clusters without callbacks.
+     *
+     * @return array repointed, cleared: how many relations changed
+     */
     public function generateMissingRelations()
     {
-        $missingRelations = $this->GalaxyClusterRelation->find('column', [
-            'conditions' => ['referenced_galaxy_cluster_id' => 0],
-            'fields' => ['referenced_galaxy_cluster_uuid'],
-            'unique' => true,
+        $stale = $this->GalaxyClusterRelation->find('all', [
+            'recursive' => -1,
+            'fields' => [
+                'DISTINCT GalaxyClusterRelation.referenced_galaxy_cluster_uuid',
+                'GalaxyClusterRelation.referenced_galaxy_cluster_id',
+            ],
+            'joins' => [[
+                'table' => 'galaxy_clusters',
+                'alias' => 'Target',
+                'type' => 'LEFT',
+                'conditions' => ['Target.id = GalaxyClusterRelation.referenced_galaxy_cluster_id'],
+            ]],
+            'conditions' => ['OR' => [
+                'GalaxyClusterRelation.referenced_galaxy_cluster_id' => 0,
+                'Target.id' => null,
+                'Target.uuid != GalaxyClusterRelation.referenced_galaxy_cluster_uuid',
+            ]],
         ]);
-        if (empty($missingRelations)) {
-            return;
+        $stale = array_column($stale, 'GalaxyClusterRelation');
+        $targets = [];
+        foreach (array_chunk(array_values(array_unique(array_column($stale, 'referenced_galaxy_cluster_uuid'))), 1000) as $uuids) {
+            $rows = $this->find('all', [
+                'recursive' => -1,
+                'fields' => ['GalaxyCluster.uuid', 'MAX(GalaxyCluster.id) AS id'],
+                'conditions' => ['GalaxyCluster.uuid' => $uuids],
+                'group' => ['GalaxyCluster.uuid'],
+            ]);
+            foreach ($rows as $row) {
+                $targets[$row['GalaxyCluster']['uuid']] = (int)$row[0]['id'];
+            }
         }
-        $ids = $this->find('list', [
-            'conditions' => ['uuid' => $missingRelations],
-            'fields' => ['uuid', 'id']
-        ]);
-        foreach ($ids as $uuid => $id) {
+
+        $changed = ['repointed' => 0, 'cleared' => 0];
+        foreach (self::relationTargetRepairs($stale, $targets) as $uuid => $repair) {
             $this->GalaxyClusterRelation->updateAll(
-                ['referenced_galaxy_cluster_id' => $id],
-                ['referenced_galaxy_cluster_uuid' => $uuid]
+                ['GalaxyClusterRelation.referenced_galaxy_cluster_id' => $repair['to']],
+                [
+                    'GalaxyClusterRelation.referenced_galaxy_cluster_uuid' => $uuid,
+                    'GalaxyClusterRelation.referenced_galaxy_cluster_id' => $repair['from'],
+                ]
             );
+            $changed[$repair['to'] ? 'repointed' : 'cleared'] += $this->GalaxyClusterRelation->getAffectedRows();
         }
+        return $changed;
+    }
+
+    /**
+     * @param array $stale relations whose target id is 0, gone, or a cluster with another UUID:
+     *        each referenced_galaxy_cluster_uuid, referenced_galaxy_cluster_id
+     * @param array $targets UUID => id of the newest cluster carrying it
+     * @return array UUID => [from => ids to replace, to => id, 0 when no cluster carries the UUID]
+     */
+    public static function relationTargetRepairs(array $stale, array $targets)
+    {
+        $repairs = [];
+        foreach ($stale as $relation) {
+            $uuid = $relation['referenced_galaxy_cluster_uuid'];
+            $from = (int)$relation['referenced_galaxy_cluster_id'];
+            $to = $targets[$uuid] ?? 0;
+            if ($from === $to) {
+                continue;
+            }
+            $repairs[$uuid]['to'] = $to;
+            $repairs[$uuid]['from'][] = $from;
+        }
+        return $repairs;
     }
 
     public function fetchAndSetUUID($cluster)
