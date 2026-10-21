@@ -1437,12 +1437,15 @@ class DataHandler {
         if (template_req === undefined) { // template not known
             return label;
         }
+
         // search if this field exists in the object
-        for (var attr of obj.Attribute) { // for each field
-            var attr_rel = attr.object_relation;
-            if (template_req.indexOf(attr_rel) != -1) {
-                label += ": " + attr.value;
-                return label;
+        for (var req of template_req){ // for each requiredOff
+            for (var attr of obj.Attribute) { // for each field
+                var attr_rel = attr.object_relation;
+                if (attr_rel === req) {
+                    label += ": " + attr.value;
+                    return label;
+                }
             }
         }
         return label;
