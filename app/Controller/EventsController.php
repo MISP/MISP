@@ -5559,6 +5559,8 @@ class EventsController extends AppController
         if (!is_array($result)) {
             throw new Exception($result);
         }
+	$log = ClassRegistry::init('Log');
+	$log->createLogEntry($this->Auth->user(), 'enrichment', 'Event', $id, 'Executed enrichment module (' . $module . ') on attribute (' . $attribute[0]['Attribute']['id'] . ') from event (' . $event_id . ')');
         $event = $this->Event->handleMispFormatFromModuleResult($result);
         if (empty($event['Attribute']) && empty($event['Object'])) {
             $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
@@ -5656,6 +5658,8 @@ class EventsController extends AppController
         if (!is_array($result)) {
             throw new Exception($result);
         }
+	$log = ClassRegistry::init('Log');
+	$log->createLogEntry($this->Auth->user(), 'enrichment', 'Event', $id, 'Executed enrichment module (' . $module . ') on attribute (' . $attribute[0]['Attribute']['id'] . ') from event (' . $event_id . ')');
         $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
     }
 
