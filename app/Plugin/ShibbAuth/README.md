@@ -118,30 +118,52 @@ If the line does not exist, add it to 'Security' array, for example like below. 
   )
 ```
 
-And configure it. MailTag, OrgTag and GroupTag are the keys for the values (Shibboleth environment variable names) needed by the plugin.
-For example if you are using ADFS you should replace IDP_FEDERATION_TAG by ADFS_FEDERATION, IDP_GROUP_TAG by ADFS_GROUP, etc.
-Replace MISP_DEFAULT_ORG by the organization you want users to be assigned to in case no organization value is given by the identity provider.
-The GroupRoleMatching is an array that allows the definition and correlation between groups and roles in MISP. These get updated
-if the groups are updated (i.e. a user that was admin and their groups changed inside the organization will have his role changed in MISP
-upon the next login being now user or org admin respectively). The GroupSeparator is the character used to separate the different groups
-in the list given by apache. By default, you can leave it at ';'.
+The plugin needs to be configured. Here is the list of available directives:
+  * MailTag => string: environment variable containing user email adress
+  * OrgTag => string: environment variable containing user organization
+  * GroupTag => string: environment variable containing user list of groups
+  * GroupSeparator => char: multiple values separator (default: ";")
+  * GroupRoleMatching => array(string => int): list of group/role identifier (3: user, 1: admin) mappings
+  * DefaultOrg => string: name of default organization to use as fallback
+  * DefaultRole => int: default role identifier to use as fallback
+  * BlockRoleModifications => boolean: if true, roles will not be updated during login. Especially useful if you manually change roles in MISP
+  * BlockOrgModifications => boolean: if true, organizations will not be updated during login. Especially useful if you manually change orgs in MISP
+
+MailTag, OrgTag and GroupTag are the name of the environment variables (or HTTP
+headers) used by the SAML Service Provider to pass user attributes from the
+SAML response to the application. A local Shibboleth Service Provider,
+receiving SAML attributes mail, schacHomeOrganization and eduPersonAffiliation,
+and using default mappings, for instance, will need the
+following settings:
+```php
+     'MailTag'  => 'mail',
+     'OrgTag'   => 'schacHomeOrganization',
+     'GroupTag' => 'unscoped-affiliation',
+```
+A different set of attributes, a different SAML implementation, or a different
+setup, will require different settings.
+
+MailTag is mandatory, at least one of OrgTag or DefaultOrg is mandatory, at
+least one of GroupTag+GroupRoleMatching or DefaultRole is mandatory.
+
+Here is a complete working configuration, using dynamic organization and role
+assignement from SAML response, and using default values as fallback if related
+user attribute is missing:
 
 ```php
-'ApacheShibbAuth' =>                      // Configuration for shibboleth authentication
+'ApacheShibbAuth' =>
     array(
-         'MailTag' => 'IDP_EMAIL_TAG',
-         'OrgTag' => 'IDP_FEDERATION_TAG',
-	 'GroupTag' => 'IDP_GROUP_TAG',
-	 'GroupSeparator' => ';',
-         'GroupRoleMatching' => array(                // 3:User, 1:admin. May be good to set "1" for the first user
-               'possible_group_attribute_value_3' => '3',
-	       'possible_group_attribute_value_2' => 2,
-	       'possible_group_attribute_value_1' => 1,
+         'MailTag'               => 'mail',
+         'OrgTag'                => 'schacHomeOrganization',
+         'DefaultOrg'            => 'my.organization.tld',
+         'GroupTag'              => 'unscoped-affiliation',
+         'GroupRoleMatching'     => array(
+               'member' => 3,
+               'staff'  => 1,
           ),
-         'DefaultOrg' => 'MISP_DEFAULT_ORG',
-         'DefaultRole' => false,        // set to a specific value if you wish to hard-set users created via ApacheShibbAuth
-         'BlockRoleModifications' => false,        // set to true if you wish for the roles never to be updated during login. Especially useful if you manually change roles in MISP
-         'BlockOrgModifications' => false,         // set to true if you wish for the organizations never to be updated during login. Especially useful if you manually change orgs in MISP
+         'DefaultRole'            => 3,
+         'BlockRoleModifications' => false,
+         'BlockOrgModifications'  => false,
     ),
 ```
 
@@ -163,7 +185,7 @@ If used with Apache as webserver it might be useful to make a distinction to fil
   </Directory>
 ```
 
-If you want the logout button to work for killing your session, you can use the CustomAuth plugin to configure a custom logout url, by default the url should be https://&lt;host&gt;/Shibboleth.sso/Logout. This leads to a local logout. If you want to also trigger a logout at the identity provider, you can use the return mechanism. In this case you will need to change the allowed redirects. Your logout url will look like https://&lt;host&gt;/Shibboleth.sso/Logout?return=https://<idp_host>/Logout. Edit your shibboleth configuration (often at /etc/shibboleth/shibboleth2.xml) as necessary. Relevant shibboleth documentation can be found at https://wiki.shibboleth.net/confluence/display/SP3/Logout and https://wiki.shibboleth.net/confluence/display/SP3/Sessions.
+If you want the logout button to work for killing your session, you can use the CustomAuth plugin. You don't have to enable it, just to define a custom logout url, by default it should should be https://&lt;host&gt;/Shibboleth.sso/Logout. This leads to a local logout. If you want to also trigger a logout at the identity provider, you can use the return mechanism. In this case you will need to change the allowed redirects. Your logout url will look like https://&lt;host&gt;/Shibboleth.sso/Logout?return=https://<idp_host>/Logout. Edit your shibboleth configuration (often at /etc/shibboleth/shibboleth2.xml) as necessary. Relevant shibboleth documentation can be found at https://wiki.shibboleth.net/confluence/display/SP3/Logout and https://wiki.shibboleth.net/confluence/display/SP3/Sessions.
 ```xml
 <Sessions lifetime="28800" timeout="3600" relayState="ss:mem"
                   checkAddress="false" handlerSSL="true" cookieProps="https"
