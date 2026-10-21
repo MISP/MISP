@@ -168,8 +168,6 @@ abstract class NidsExport
                         break;
                     case 'email':
                         $this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
-			            $sid++;
-                        $this->emailDstRule($ruleFormat, $item['Attribute'], $sid);
                         break;
                     case 'email-src':
                         $this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
