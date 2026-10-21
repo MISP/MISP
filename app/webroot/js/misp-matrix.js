@@ -2,7 +2,8 @@
 // pane that caps and scrolls, tactic ticks, folds, galaxy switcher), the
 // technique tooltip and popover, and the full matrix modal. A slot with a
 // data-url is fetched; one arriving in a lazy panel is mounted as it is.
-// The galaxy page draws the full matrix inline, in a [data-mx-inline] host.
+// The galaxy and cluster pages draw the full matrix inline, in a
+// [data-mx-inline] host whose controls redraw it with a changed query.
 (function () {
     'use strict';
 
@@ -184,6 +185,19 @@
         (f.f || []).forEach(function (id) {
             out += '<li class="mx-tip-l">' + badge(id) + '</li>';
         });
+        if (texts.via && f.w && f.w.length) out += '<li class="mx-via">' + esc(texts.via.replace('%s', f.w.join(', '))) + '</li>';
+        if (texts.via && f.v && f.v.length) out += '<li class="mx-via">' + esc(texts.via.replace('%s', f.v.join(', '))) + '</li>';
+        (f.d || []).forEach(function (link) {
+            var line = esc(link[2] === 'out' ? texts.linkOut : texts.linkIn)
+                .replace('{who}', '<b>' + esc(link[0]) + '</b>')
+                .replace('{relation}', '<em>' + esc(link[1]) + '</em>');
+            out += '<li class="mx-tip-l mx-link-l"><i class="fas fa-link mx-fi" aria-hidden="true"></i><span>' + line + '</span></li>';
+        });
+        if (f.m === 'self') {
+            out = '<li class="mx-tip-l"><i class="fas fa-location-crosshairs mx-fi" aria-hidden="true"></i><b>' + esc(texts.self) + '</b></li>' + out;
+        } else if (f.m === 'similar') {
+            out = '<li class="mx-tip-l"><i class="fas fa-equals mx-fi" aria-hidden="true"></i>' + esc(texts.similar) + '</li>' + out;
+        }
         return out;
     }
 
@@ -253,6 +267,10 @@
         closePop();
         hideTip();
         var acts = '';
+        if (f.h && f.k > 0 && f.m !== 'self') {
+            acts += '<a class="mx-pop-act" href="' + esc(base() + f.h) + '"><i class="fas fa-calendar-days"></i>'
+                + esc(say('eventsOne', 'eventsMany', f.k)) + '</a>';
+        }
         if (f.n > 0 && f.g && texts.showOne) {
             acts += '<button type="button" class="mx-pop-act" data-mx-show><i class="misp-icon misp-icon-attribute misp-simple"></i>'
                 + esc(say('showOne', 'showMany', f.n)) + '</button>';
@@ -274,6 +292,13 @@
             + '<ul class="mx-pop-facts">' + stateLines(f) + '</ul>'
             + (acts ? '<div class="mx-pop-acts">' + acts + '</div>' : '');
         pop._facts = f;
+        // A technique lit only through its sub-techniques shows them
+        var row = f.w && texts.via ? cell.closest('.mx-row') : null;
+        var fold = row ? row.querySelector('.mx-fold[aria-expanded="false"]') : null;
+        if (fold) {
+            fold.setAttribute('aria-expanded', 'true');
+            row.nextElementSibling.hidden = false;
+        }
         document.body.appendChild(pop);
         place(pop, cell, 6);
         popCell = cell;
@@ -322,18 +347,42 @@
         });
     }
 
-    function loadInline(host, tab) {
+    function queryOf(host) {
+        return new URLSearchParams(host.getAttribute('data-mx-query') || '');
+    }
+
+    // Redraws an inline matrix with its query changed; a null value drops
+    // the parameter. The whole host is replaced, its toolbar counts follow.
+    function loadInline(host, changes) {
         var body = host.querySelector('[data-mx-inline-body]');
         closePop();
         hideTip();
+        var query = queryOf(host);
+        Object.keys(changes).forEach(function (key) {
+            if (changes[key] === null || changes[key] === '') query.delete(key);
+            else query.set(key, changes[key]);
+        });
         body.innerHTML = loader();
-        var url = host.getAttribute('data-url') + (tab ? '?tab=' + encodeURIComponent(tab) : '');
-        fetchText(url).then(function (html) {
-            var fresh = el(html).querySelector('[data-mx-inline-body]');
-            if (fresh) body.replaceWith(fresh);
+        var search = query.toString();
+        fetchText(host.getAttribute('data-url') + (search ? '?' + search : '')).then(function (html) {
+            var fresh = el(html);
+            if (fresh && fresh.hasAttribute('data-mx-inline')) {
+                host.replaceWith(fresh);
+                mountInline(fresh);
+            }
         }, function () {
             body.innerHTML = '<div class="mx-full-empty">' + esc(texts.failed) + '</div>';
         });
+    }
+
+    var CAP = 'misp-cluster-matrix-cap';
+
+    // Which choices a change throws away: a new layer or galaxy has its own
+    // busiest tab, and a new scope reaches its own galaxies.
+    function reset(key, changes) {
+        if (key !== 'tab') changes.tab = null;
+        if (key === 'similar') changes.galaxy = null;
+        return changes;
     }
 
     function openFull() {
@@ -416,10 +465,23 @@
             load(hit.getAttribute('data-mx-rollup')).then(function () {
                 document.dispatchEvent(new CustomEvent('misp:overview-rolled-up', { detail: { source: 'matrix' } }));
             });
+        } else if ((hit = t.closest('[data-mx-set]')) && hit.closest('[data-mx-inline]')) {
+            var pair = hit.getAttribute('data-mx-set').split('=');
+            var set = {};
+            set[pair[0]] = pair[1];
+            loadInline(hit.closest('[data-mx-inline]'), reset(pair[0], set));
+        } else if ((hit = t.closest('[data-mx-toggle-off]'))) {
+            var host = hit.closest('[data-mx-inline]');
+            var off = (queryOf(host).get('off') || '').split(',').filter(Boolean);
+            var relation = hit.getAttribute('data-mx-toggle-off');
+            var at = off.indexOf(relation);
+            if (at > -1) off.splice(at, 1);
+            else off.push(relation);
+            loadInline(host, { off: off.join(',') });
         } else if ((hit = t.closest('[data-mx-tab-pick]'))) {
             var inline = hit.closest('[data-mx-inline]');
             var full = hit.closest('.mx-full');
-            if (inline) loadInline(inline, hit.getAttribute('data-mx-tab-pick'));
+            if (inline) loadInline(inline, { tab: hit.getAttribute('data-mx-tab-pick') });
             else loadFull(full.getAttribute('data-mx-full-galaxy'), hit.getAttribute('data-mx-tab-pick'));
         } else if ((hit = t.closest('[data-mx-full-pick]'))) {
             loadFull(hit.getAttribute('data-mx-full-pick'), null);
@@ -427,6 +489,21 @@
     }
 
     function onChange(e) {
+        var param = e.target.closest && e.target.closest('[data-mx-param]');
+        if (param && param.closest('[data-mx-inline]')) {
+            var name = param.getAttribute('data-mx-param');
+            var change = {};
+            change[name] = param.type === 'checkbox' ? (param.checked ? '1' : '0') : param.value;
+            if (name === 'cap') {
+                try {
+                    window.localStorage.setItem(CAP, param.value);
+                } catch (err) {
+                    // Not remembered, still applied
+                }
+            }
+            loadInline(param.closest('[data-mx-inline]'), reset(name, change));
+            return;
+        }
         var box = e.target.closest && e.target.closest('[data-mx-hide-unused]');
         if (!box) return;
         closePop();
@@ -504,6 +581,16 @@
         texts = readJson(host.getAttribute('data-mx-text'), {});
         hideUnused(host, savedHideUnused(HIDE_UNUSED_INLINE, false));
         wire();
+        if (host.hasAttribute('data-mx-cap-store')) {
+            var saved = null;
+            try {
+                saved = window.localStorage.getItem(CAP);
+            } catch (e) {
+                saved = null;
+            }
+            var offered = saved && host.querySelector('[data-mx-param="cap"] option[value="' + saved.replace(/\D/g, '') + '"]');
+            if (offered && queryOf(host).get('cap') !== saved) loadInline(host, { cap: saved });
+        }
     }
 
     function wire() {

@@ -826,14 +826,26 @@ class IndexPicker
             }
         }
         if (!empty($values['tag'])) {
+            // The filter takes a tag by name or by id; an id keeps its value and gains the name
             $Tag = ClassRegistry::init('Tag');
-            $rows = $Tag->find('all', [
+            $ids = array_values(array_filter($values['tag'], 'ctype_digit'));
+            $byName = $Tag->find('all', [
                 'conditions' => ['AND' => [$Tag->createConditions($user), ['Tag.name' => $values['tag']]]],
                 'fields' => ['Tag.name', 'Tag.colour'],
                 'recursive' => -1,
             ]);
-            foreach ($rows as $r) {
+            foreach ($byName as $r) {
                 $out['tag'][$r['Tag']['name']] = self::tagRow($r);
+            }
+            $byId = empty($ids) ? [] : $Tag->find('all', [
+                'conditions' => ['AND' => [$Tag->createConditions($user), ['Tag.id' => $ids]]],
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour'],
+                'recursive' => -1,
+            ]);
+            foreach ($byId as $r) {
+                if (!isset($out['tag'][(string)$r['Tag']['id']])) {
+                    $out['tag'][(string)$r['Tag']['id']] = ['value' => (string)$r['Tag']['id']] + self::tagRow($r);
+                }
             }
         }
         if (!empty($values['galaxy'])) {

@@ -327,6 +327,18 @@ $children[] = [
         'tree' => $baseurl . '/tags/pickerTree',
     ],
 ];
+if ($filterState->get('tags') !== null) {
+    $children[] = [
+        'type' => 'picker',
+        'name' => 'tags',
+        'label' => __('And tag'),
+        'icon' => 'fas fa-tags',
+        'source' => $baseurl . '/tags/pickerSearch',
+        'exclude' => true,
+        'resolved' => $filterLabels['tags'] ?? [],
+        'hint' => __('Also carried by the event or one of its attributes.'),
+    ];
+}
 $children[] = [
     'type' => 'picker',
     'name' => 'galaxy',

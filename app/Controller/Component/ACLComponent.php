@@ -594,6 +594,7 @@ class ACLComponent extends Component
             'updateCluster' => array('perm_galaxy_editor'),
             'view' => array('*'),
             'viewGalaxyMatrix' => array('*'),
+            'viewMatrix' => array('*'),
             'viewRelations' => array('*'),
             'viewRelationTree' => array('*'),
         ),

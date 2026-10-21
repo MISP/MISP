@@ -182,7 +182,7 @@ class EventsController extends AppController
     private function __indexFilterLabels(array $passedArgs)
     {
         $values = [];
-        foreach (['org', 'tag', 'galaxy', 'sharinggroup'] as $kind) {
+        foreach (['org', 'tag', 'tags', 'galaxy', 'sharinggroup'] as $kind) {
             $raw = $passedArgs['search' . $kind] ?? null;
             if ($raw === null || $raw === '') {
                 continue;
@@ -196,10 +196,13 @@ class EventsController extends AppController
             }
         }
         if (empty($values)) {
-            return ['org' => [], 'tag' => [], 'galaxy' => [], 'sharinggroup' => []];
+            return ['org' => [], 'tag' => [], 'tags' => [], 'galaxy' => [], 'sharinggroup' => []];
         }
         App::uses('IndexPicker', 'Tools');
-        return IndexPicker::resolve($this->Auth->user(), $values);
+        $labels = IndexPicker::resolve($this->Auth->user(), $values);
+        // searchtags is a second, independent tag filter the index ANDs with searchtag
+        $labels['tags'] = empty($values['tags']) ? [] : IndexPicker::resolve($this->Auth->user(), ['tag' => $values['tags']])['tag'];
+        return $labels;
     }
 
     /**

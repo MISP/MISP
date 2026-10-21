@@ -194,6 +194,21 @@ class EventMatrixTool
     }
 
     /**
+     * One galaxy's full matrix with cells the caller has already finished,
+     * for the cluster page; a cell's `extra` reaches the view untouched.
+     *
+     * @param array $skeleton slimSkeleton() of the galaxy, cells the user may see
+     * @param array $galaxy Galaxy row
+     * @param array $byTag cluster tag name => finished cell
+     * @param string|null $tab as full() takes it
+     * @return array
+     */
+    public static function layer(array $skeleton, array $galaxy, array $byTag, $tab = null)
+    {
+        return self::fullOf($skeleton, $galaxy, $byTag, $tab);
+    }
+
+    /**
      * @param array $byTag cluster tag name => finished cell, for the used techniques
      */
     private static function fullOf(array $skeleton, array $galaxy, array $byTag, $tab)
@@ -247,7 +262,13 @@ class EventMatrixTool
                     return strcasecmp($a['label'], $b['label']);
                 });
                 $states = array_column(array_merge($own === null ? [] : [$own], $subs), 'state');
-                $state = in_array('event', $states, true) ? 'event' : (in_array('indicators', $states, true) ? 'indicators' : 'idle');
+                $state = 'idle';
+                foreach (['event', 'declared', 'indicators'] as $candidate) {
+                    if (in_array($candidate, $states, true)) {
+                        $state = $candidate;
+                        break;
+                    }
+                }
                 $activeCount += $state === 'idle' ? 0 : 1;
                 $groups[] = [
                     'tid' => preg_match('/^T\d+$/', (string)$group['key']) ? (string)$group['key'] : ($own['tid'] ?? ''),
@@ -295,7 +316,7 @@ class EventMatrixTool
     private static function fullCellView(array $cell, $label, array $byTag)
     {
         $hit = $byTag[$cell['tag_name']] ?? null;
-        return [
+        $view = [
             'tid' => (string)$cell['external_id'],
             'label' => (string)$label,
             'state' => $hit === null ? 'idle' : $hit['state'],
@@ -312,6 +333,10 @@ class EventMatrixTool
                 'tag_name' => (string)$cell['tag_name'],
             ],
         ];
+        if (isset($hit['extra'])) {
+            $view['extra'] = $hit['extra'];
+        }
+        return $view;
     }
 
     /**

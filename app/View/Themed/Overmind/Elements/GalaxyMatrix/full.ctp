@@ -6,15 +6,23 @@
  * @var array $matrix EventMatrixTool::full(), plus origins
  * @var string $lightIcon the glyph marking the weaker state
  * @var bool $heat optional: shade the used techniques by how many events carry them
+ * @var array $marks optional: cluster tag name => self|similar, ringed and kept out of the heat
+ * @var bool $counts optional: print the event count in the used cells
  */
 $origins = $matrix['origins'];
-$eventsOf = function (array $item) {
-    $events = (int)($item['events'] ?? 0);
-    if (!empty($item['own'])) {
+$marks = $marks ?? [];
+$markOf = function (array $item) use ($marks) {
+    return $marks[$item['cluster']['tag_name'] ?? ''] ?? null;
+};
+$eventsOf = function (array $item) use ($markOf) {
+    $events = $markOf($item) ? 0 : (int)($item['events'] ?? 0);
+    if (!empty($item['own']) && !$markOf($item['own'])) {
         $events = max($events, (int)($item['own']['events'] ?? 0));
     }
     foreach ($item['subs'] ?? [] as $sub) {
-        $events = max($events, (int)($sub['events'] ?? 0));
+        if (!$markOf($sub)) {
+            $events = max($events, (int)($sub['events'] ?? 0));
+        }
     }
     return $events;
 };
@@ -40,12 +48,15 @@ $current = $matrix['tab'];
 $inMore = !in_array($current, array_column($active, 'key'), true);
 
 $cellData = [];
-$cell = function (array $item, array $extra = []) use (&$cellData, $origins) {
+$cell = function (array $item, array $extra = []) use (&$cellData, $origins, $markOf) {
     $index = count($cellData);
     $foreign = empty($item['foreign']) ? [] : array_values(array_filter($item['origins'], function ($id) use ($origins) {
         return isset($origins[$id]);
     }));
-    $cellData[] = $extra + [
+    if (isset($item['cluster']) && $markOf($item)) {
+        $extra['m'] = $markOf($item);
+    }
+    $cellData[] = $extra + ($item['extra'] ?? []) + [
         'l' => $item['label'],
         't' => $item['tid'],
         'c' => $item['cluster']['id'] ?? null,
@@ -58,17 +69,34 @@ $cell = function (array $item, array $extra = []) use (&$cellData, $origins) {
     ];
     return $index;
 };
-$button = function (array $item, $state, $index) use ($lightIcon, $eventsOf, $maxEvents) {
+$showCounts = !empty($counts);
+$button = function (array $item, $state, $index) use ($lightIcon, $eventsOf, $maxEvents, $markOf, $showCounts) {
     $ind = $state === 'indicators';
+    $mark = isset($item['cluster']) ? $markOf($item) : (isset($item['own']['cluster']) ? $markOf($item['own']) : null);
     $shade = '';
-    if ($maxEvents > 0 && $state === 'event') {
+    if ($maxEvents > 0 && $state === 'event' && !$mark) {
         $shade = sprintf(' style="--mx-heat:%d%%"', 12 + round(48 * log(1 + $eventsOf($item)) / log(1 + $maxEvents)));
     }
+    $meta = '<span class="mx-tid">' . ($ind ? '<i class="' . h($lightIcon) . '" aria-hidden="true"></i>' : '') . h($item['tid']) . '</span>';
+    if ($showCounts && $state === 'event') {
+        $events = (int)($item['events'] ?? 0);
+        foreach ($item['subs'] ?? [] as $sub) {
+            $events = max($events, (int)($sub['events'] ?? 0));
+        }
+        $meta .= '<span class="mx-k">' . (int)max($events, (int)($item['own']['events'] ?? 0)) . '</span>';
+    } elseif ($state === 'declared') {
+        $meta .= '<i class="fas fa-link mx-li" aria-hidden="true"></i>';
+    }
+    $here = '';
+    if ($mark === 'self') {
+        $here = '<span class="mx-here" title="' . h(__('This cluster')) . '"><i class="fas fa-location-crosshairs" aria-hidden="true"></i></span>';
+    } elseif ($mark === 'similar') {
+        $here = '<span class="mx-here is-similar" title="' . h(__('Similar to this cluster')) . '"><i class="fas fa-equals" aria-hidden="true"></i></span>';
+    }
     return sprintf(
-        '<button type="button" class="mx-cell" data-matrix-cell data-state="%s" data-i="%d"%s aria-label="%s"><span class="mx-name">%s</span><span class="mx-meta"><span class="mx-tid">%s%s</span></span></button>',
-        h($state), $index, $shade, h(trim($item['label'] . ' ' . $item['tid'])), h($item['label']),
-        $ind ? '<i class="' . h($lightIcon) . '" aria-hidden="true"></i>' : '',
-        h($item['tid'])
+        '<button type="button" class="mx-cell%s" data-matrix-cell data-state="%s" data-i="%d"%s aria-label="%s">%s<span class="mx-name">%s</span><span class="mx-meta">%s</span></button>',
+        $mark ? ' mx-mark-' . h($mark) : '',
+        h($state), $index, $shade, h(trim($item['label'] . ' ' . $item['tid'])), $here, h($item['label']), $meta
     );
 };
 ?>
@@ -114,6 +142,14 @@ $button = function (array $item, $state, $index) use ($lightIcon, $eventsOf, $ma
                 $subs = $group['subs'];
                 $facts = $group['own'] ?? ['label' => $group['label'], 'tid' => $group['tid'], 'state' => $group['state']];
                 $extra = ['u' => count($subs)];
+                $litSubs = array_filter($subs, function ($sub) {
+                    return $sub['state'] !== 'idle';
+                });
+                if (!empty($litSubs) && ($group['own']['state'] ?? 'idle') === 'idle') {
+                    $extra['w'] = array_values(array_map(function ($sub) {
+                        return $sub['label'] . ' ' . $sub['tid'];
+                    }, $litSubs));
+                }
                 if ($group['own'] === null) {
                     $extra['s'] = array_map(function ($sub) {
                         return [$sub['label'], $sub['tid'], $sub['cluster']['id']];
