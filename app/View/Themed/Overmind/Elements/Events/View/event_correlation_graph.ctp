@@ -1502,7 +1502,8 @@ echo $this->element('genericElements/assetLoader', [
                 }
 
                 var valEl = document.createElement('a');
-                valEl.href = baseurl + '/events/view/' + eid;
+                valEl.href = baseurl + '/events/view/' + eid
+                    + (a.attribute && a.attribute.uuid ? '/focus:' + a.attribute.uuid : '');
                 valEl.className = 'small corr-attr-value link-body-emphasis'
                     + ' link-underline-opacity-0 link-underline-opacity-100-hover';
                 valEl.title = a.value + '\n' + _attrOpenEvent.replace('%s', info);

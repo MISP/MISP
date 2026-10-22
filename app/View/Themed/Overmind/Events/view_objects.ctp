@@ -11,7 +11,7 @@ if (!empty($extending)) {
     $paginatorUrl['extending'] = 1;
 }
 foreach (($this->request->params['named'] ?? []) as $namedKey => $namedValue) {
-    if ($namedKey !== 'page') {
+    if ($namedKey !== 'page' && $namedKey !== 'focus') {
         $paginatorUrl[$namedKey] = $namedValue;
     }
 }
@@ -21,6 +21,7 @@ echo $this->element('Objects/index', [
     'objects' => $objects,
     'show_event_id' => false
 ]);
+echo $this->element('Events/View/list_focus', ['focusId' => $focusId ?? null]);
 ?>
 
 <?php

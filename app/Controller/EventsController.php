@@ -2547,6 +2547,24 @@ class EventsController extends AppController
         if (count($extensionSet['ids']) > 1) {
             $event = $this->__overviewReports($event, $user, $extensionSet['ids']);
         }
+        // A deep link onto one attribute opens the tab listing it
+        $focus = $this->request->params['named']['focus'] ?? null;
+        $focusTab = null;
+        if (is_string($focus) && Validation::uuid($focus)) {
+            $focused = $this->Event->Attribute->fetchAttributesSimple($user, [
+                'conditions' => [
+                    'Attribute.uuid' => $focus,
+                    'Attribute.event_id' => $extensionSet['ids'],
+                    'Attribute.deleted' => 0,
+                ],
+                'fields' => ['Attribute.object_id'],
+            ]);
+            if (!empty($focused)) {
+                $focusTab = empty($focused[0]['Attribute']['object_id']) ? 'attributes' : 'objects';
+            }
+        }
+        $this->set('focusTab', $focusTab);
+
         $countShells = [];
         foreach ($extensionSet['events'] as $extensionEvent) {
             $countShells[] = ['Event' => [
@@ -3097,7 +3115,7 @@ class EventsController extends AppController
             'deleted', 'category', 'type', 'toIDS',
             'searchFor', 'flatten', 'proposal',
             'warninglist', 'correlation', 'feed', 'warning', 'analystData', 'narrower', 'seen',
-            'tags', 'galaxy', 'org', 'distribution',
+            'tags', 'galaxy', 'org', 'distribution', 'focus',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -3175,6 +3193,16 @@ class EventsController extends AppController
         $this->set('proposal',           !empty($options['proposal']));
         $this->set('flatten',            !empty($options['flatten']));
         $this->set('searchFor',          $options['searchFor'] ?? '');
+        $focusId = null;
+        if (!empty($options['focus'])) {
+            foreach ($result['Attribute'] as $attribute) {
+                if ($attribute['uuid'] === $options['focus']) {
+                    $focusId = (int)$attribute['id'];
+                    break;
+                }
+            }
+        }
+        $this->set('focusId', $focusId);
 
         // Warninglist filter (set from the event view's Warning Lists card):
         $warninglistFilter = null;
@@ -3264,7 +3292,7 @@ class EventsController extends AppController
             'page', 'limit', 'sort', 'direction',
             'deleted', 'name', 'object', 'meta-category', 'searchFor', 'proposal',
             'category', 'type', 'tags', 'galaxy', 'org', 'toIDS',
-            'correlation', 'feed', 'warning', 'analystData', 'narrower', 'seen', 'distribution',
+            'correlation', 'feed', 'warning', 'analystData', 'narrower', 'seen', 'distribution', 'focus',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -3308,6 +3336,18 @@ class EventsController extends AppController
         ];
 
         $this->set('objects', $result['Object']);
+        $focusId = null;
+        if (!empty($options['focus'])) {
+            foreach ($result['Object'] as $object) {
+                foreach ($object['Attribute'] ?? [] as $attribute) {
+                    if ($attribute['uuid'] === $options['focus']) {
+                        $focusId = (int)$attribute['id'];
+                        break 2;
+                    }
+                }
+            }
+        }
+        $this->set('focusId', $focusId);
         $this->set('total', $total);
         $this->set('page', $page);
         $this->set('limit', $limit);

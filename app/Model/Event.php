@@ -2654,6 +2654,8 @@ class Event extends AppModel
      *     comment
      *   - eventIds (int[]|null) extended / extending view: every event whose
      *     attributes belong in the list. $eventId stays the primary one.
+     *   - focus (string|null) attribute uuid: without an explicit page, open
+     *     the page holding it
      * @return array ['Attribute' => [...], 'total' => int]
      */
     public function fetchPaginatedAttributes(
@@ -2902,6 +2904,15 @@ class Event extends AppModel
                 ),
                 'recursive' => -1,
             ]);
+        }
+
+        // A deep link onto one attribute opens the page holding it. The value
+        // column is not one the lookup below can compare on.
+        if (!empty($options['focus']) && empty($options['page']) && $sort !== 'value') {
+            $page = $this->__pageHolding(
+                $this->Attribute, $conditions, ['Attribute.uuid' => $options['focus']],
+                $sort, $direction, $limit
+            ) ?? $page;
         }
 
         // Fetch page
@@ -3794,6 +3805,44 @@ class Event extends AppModel
     }
 
     /**
+     * The page of a paginated list that holds one row, read under the list's
+     * own conditions and order ($sort, then id ascending).
+     *
+     * @param Model $model the list's model
+     * @param array $conditions the list's conditions
+     * @param array $row conditions picking the row out of the list
+     * @param string $sort
+     * @param string $direction ASC or DESC
+     * @param int $limit
+     * @return int|null null when the row is not in the list
+     */
+    private function __pageHolding(Model $model, array $conditions, array $row, $sort, $direction, $limit)
+    {
+        $alias = $model->alias;
+        $match = $conditions;
+        $match[] = $row;
+        $found = $model->find('first', [
+            'conditions' => $match,
+            'fields' => [$alias . '.id', $alias . '.' . $sort],
+            'recursive' => -1,
+        ]);
+        $value = $found[$alias][$sort] ?? null;
+        if ($value === null) {
+            return null;
+        }
+        $before = $conditions;
+        $before[] = ['OR' => [
+            $alias . '.' . $sort . ($direction === 'DESC' ? ' >' : ' <') => $value,
+            'AND' => [
+                $alias . '.' . $sort => $value,
+                $alias . '.id <' => $found[$alias]['id'],
+            ],
+        ]];
+        $position = $model->find('count', ['conditions' => $before, 'recursive' => -1]);
+        return intdiv($position, $limit) + 1;
+    }
+
+    /**
      * Fetch paginated objects for a given event, with
      * distribution-based ACL on both the object and its
      * nested attributes. Includes attribute tags and
@@ -3822,6 +3871,8 @@ class Event extends AppModel
      *   - org (string|null) creator org name of the object's event
      *   - eventIds (int[]|null) extended / extending view: every event whose
      *     objects belong in the list
+     *   - focus (string|null) attribute uuid: without an explicit page, open
+     *     the page holding its object
      * @return array ['Object' => [...], 'total' => int]
      */
     public function fetchPaginatedObjects(
@@ -4015,6 +4066,22 @@ class Event extends AppModel
             'conditions' => $conditions,
             'recursive' => -1,
         ]);
+
+        // A deep link onto one of an object's attributes opens the page holding the object
+        if (!empty($options['focus']) && empty($options['page'])) {
+            $focusObjectId = $this->Attribute->find('first', [
+                'conditions' => $attrScope + ['Attribute.uuid' => $options['focus']],
+                'fields' => ['Attribute.object_id'],
+                'recursive' => -1,
+            ]);
+            if (!empty($focusObjectId)) {
+                $page = $this->__pageHolding(
+                    $this->Object, $conditions,
+                    ['Object.id' => $focusObjectId['Attribute']['object_id']],
+                    $sort, $direction, $limit
+                ) ?? $page;
+            }
+        }
 
         // Fetch page of objects
         $objects = $this->Object->find('all', [

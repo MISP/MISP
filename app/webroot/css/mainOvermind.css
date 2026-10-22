@@ -1888,6 +1888,15 @@ tr.evt-extension-row td:first-child { position: relative; }
     white-space: nowrap;
 }
 
+/* the row a focus:<uuid> link opened an event's attribute or object tab on */
+.ajax-tab-content tbody > tr.ov-focus-row > * {
+    background-color: rgba(var(--bs-warning-rgb), .18);
+    box-shadow: none;
+}
+.ajax-tab-content tbody > tr.ov-focus-row > :first-child {
+    box-shadow: inset 3px 0 0 var(--bs-warning);
+}
+
 
 .form-switch-galaxy .form-check-input:checked {
     background-color: var(--bs-galaxy);
