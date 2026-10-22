@@ -2,7 +2,7 @@
 /*
  * GET/POST /attributes/galaxySelection/{ids}  (POST body: JSON { global_ids, local_ids })
  *
- * The attribute index's "Cluster" mass action: the shared galaxy picker, opened
+ * The attribute index's "Galaxy" mass action: the shared galaxy picker, opened
  * on the clusters the selection carries.
  * Variables come from AttributesController::galaxySelection.
  */

@@ -138,22 +138,22 @@ $massOpen = function ($key, $size = 'xl') use ($filter_bar, $baseurl) {
         <?php if (!empty($filter_bar['mass_cluster'])): ?>
             <button id="mass-cluster-button"
                     class="btn btn-galaxy btn-sm d-none"
-                    title="<?= __('Add Cluster on selected attributes') ?>"
-                    aria-label="<?= __('Add Cluster to selected attributes') ?>"
+                    title="<?= __('Add Galaxy on selected attributes') ?>"
+                    aria-label="<?= __('Add Galaxy to selected attributes') ?>"
                     onclick="<?= $massOpen('mass_cluster', 'xl') ?>">
                 <span class="misp-icon misp-icon-galaxy misp-simple text-white"></span>
-                <span class="text-white"> <?= __('Cluster') ?></span>
+                <span class="text-white"> <?= __('Galaxy') ?></span>
             </button>
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['mass_local_cluster'])): ?>
             <button id="mass-local-cluster-button"
                     class="btn btn-galaxy btn-sm d-none"
-                    title="<?= __('Add Local Cluster on selected attributes') ?>"
-                    aria-label="<?= __('Add Local Cluster to selected attributes') ?>"
+                    title="<?= __('Add Local Galaxy on selected attributes') ?>"
+                    aria-label="<?= __('Add Local Galaxy to selected attributes') ?>"
                     onclick="multiSelectItems('#', '')">
                 <i class="fas fa-user text-white"></i>
-                <span class="text-white"> <?= __('Local Cluster') ?></span>
+                <span class="text-white"> <?= __('Local Galaxy') ?></span>
             </button>
         <?php endif; ?>
 
