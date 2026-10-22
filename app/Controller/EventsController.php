@@ -6195,19 +6195,13 @@ class EventsController extends AppController
             $this->layout = false;
         }
         $this->loadModel('Module');
-        $importModules = array();
         $modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
-        if (is_array($modules) && !empty($modules['modules'])) {
-            foreach ($modules['modules'] as $module) {
-                $importModules[] = array(
-                    'name' => $module['name'],
-                    'text' => Inflector::humanize($module['name']),
-                );
-            }
-        }
+        $importModules = is_array($modules) && !empty($modules['modules']) ? $modules['modules'] : [];
         $this->set('event', $event);
         $this->set('id', $id);
         $this->set('importModules', $importModules);
+        $this->set('configTypes', Module::CONFIG_TYPES);
+        $this->set('openModule', $this->request->query('module'));
     }
 
     public function edit($id = null)
@@ -9276,7 +9270,7 @@ class EventsController extends AppController
                         throw new Exception($result);
                     }
                     $importComment = !empty($result['comment']) ? $result['comment'] : 'Enriched via the ' . $module['name'] . ' module';
-                    $this->set('backPath', '/events/importModule/' . $module['name'] . '/' . $eventId);
+                    $this->set('backPath', '/events/populateFrom/' . $eventId . '?module=' . urlencode($module['name']));
                     if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
                         // TODO: route non-modifiers through proposals to match __pushFreetext().
                         if (!$mayModify) {
