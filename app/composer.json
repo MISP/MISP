@@ -12,7 +12,7 @@
         "ext-curl": "*",
         "pear/crypt_gpg": "1.6.7",
         "monolog/monolog": "^2.5.0 || ^3.0.0",
-        "spomky-labs/otphp": "~11.4.3",
+        "spomky-labs/otphp": "^11.5",
         "bacon/bacon-qr-code": "^2.0",
         "geoip2/geoip2": "~2.0",
         "browscap/browscap-php": "^7.0",
@@ -33,8 +33,7 @@
     ],
     "require-dev": {
         "phpunit/phpunit": "^8",
-        "php-parallel-lint/php-parallel-lint": "^1.2",
-        "cakephp/debug_kit": "^2.2.0"
+        "php-parallel-lint/php-parallel-lint": "^1.2"
     },
     "suggest": {
         "ext-posix": "For process info fetching",
