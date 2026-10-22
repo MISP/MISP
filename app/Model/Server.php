@@ -4543,7 +4543,7 @@ class Server extends AppModel
     {
         $path = APP . '../';
         if ($submodule_name == false) {
-            $command = sprintf('cd %s; git submodule update --init --recursive 2>&1', $path);
+            $command = sprintf('cd %s; git submodule sync 2>&1; git submodule update --init --recursive 2>&1', $path);
             exec($command, $output, $return_code);
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
@@ -4551,7 +4551,7 @@ class Server extends AppModel
                 $res = array_merge($res, $this->updateDatabaseAfterPullRouter($submodule_name, $user));
             }
         } else if ($this->_isAcceptedSubmodule($submodule_name)) {
-            $command = sprintf('cd %s; git submodule update --init --recursive -- %s 2>&1', $path, $submodule_name);
+            $command = sprintf('cd %s; git submodule sync -- %s 2>&1; git submodule update --init --recursive -- %s 2>&1', $path, $submodule_name, $submodule_name);
             exec($command, $output, $return_code);
             $output = implode("\n", $output);
             $res = array('status' => ($return_code==0 ? true : false), 'output' => $output);
@@ -4661,7 +4661,8 @@ class Server extends AppModel
                 $status = $this->getCurrentGitStatus();
             }
         }
-        $command1 = $workingDirectoryPrefix . 'git pull origin ' . escapeshellarg($status['branch']) . ' 2>&1';
+        // submodules come after the sync: fetching them during the pull uses their old remotes and can abort it
+        $command1 = $workingDirectoryPrefix . 'git pull --no-recurse-submodules origin ' . escapeshellarg($status['branch']) . ' 2>&1';
         $commandSync = $workingDirectoryPrefix . 'git submodule sync 2>&1';
         $command2 = $workingDirectoryPrefix . 'git submodule update --init --recursive 2>&1';
         $final .= $command1 . "\n\n";
