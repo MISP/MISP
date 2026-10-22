@@ -115,16 +115,16 @@ if (!class_exists('AuditLog', false)) {
 
 require_once __DIR__ . '/../Lib/Tools/AnalystGraphDocumentTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
-require_once __DIR__ . '/../Model/Graph.php';
+require_once __DIR__ . '/../Model/Workspace.php';
 require_once __DIR__ . '/../Model/Behavior/AnalystDataParentBehavior.php';
 require_once __DIR__ . '/../Model/Behavior/AuditLogBehavior.php';
 require_once __DIR__ . '/../Lib/Tools/ValueIntelligence/ValueUrlTool.php';
 require_once __DIR__ . '/../Model/AnalystGraphData.php';
 
-class GraphTestGraph extends Graph
+class GraphTestGraph extends Workspace
 {
-    public $alias = 'Graph';
-    public $name = 'Graph';
+    public $alias = 'Workspace';
+    public $name = 'Workspace';
 
     public function __construct()
     {
@@ -133,8 +133,8 @@ class GraphTestGraph extends Graph
 
 class GraphTestModel extends Model
 {
-    public $name = 'Graph';
-    public $alias = 'Graph';
+    public $name = 'Workspace';
+    public $alias = 'Workspace';
     public $primaryKey = 'id';
     public $id = 1;
     public $data = array();
@@ -247,7 +247,7 @@ class GraphTestWritableGraph extends GraphTestGraph
             return false;
         }
         $this->db->log[] = 'save';
-        return array('Graph' => $data['Graph'] + array('revision' => 6, 'node_count' => 1, 'content_size' => 99));
+        return array('Workspace' => $data['Workspace'] + array('revision' => 6, 'node_count' => 1, 'content_size' => 99));
     }
 }
 
@@ -266,7 +266,7 @@ class GraphTestActiveGraph extends GraphTestGraph
 
     public function find($type = 'first', $query = array())
     {
-        return array_intersect_key($this->authors, array_flip($query['conditions']['Graph.id']));
+        return array_intersect_key($this->authors, array_flip($query['conditions']['Workspace.id']));
     }
 }
 
@@ -578,7 +578,7 @@ class GraphTest extends TestCase
 
         list($document, $errors) = AnalystGraphDocumentTool::normalise(self::documentWithNodes(2001));
         $this->assertNull($document);
-        $this->assertSame(array('A graph holds at most 2000 nodes.'), $errors);
+        $this->assertSame(array('A workspace holds at most 2000 nodes.'), $errors);
     }
 
     public function testByteCap()
@@ -589,7 +589,7 @@ class GraphTest extends TestCase
         }
         list($document, $errors) = AnalystGraphDocumentTool::normalise(array('hidden_edges' => $edges));
         $this->assertNull($document);
-        $this->assertSame(array('A graph document is at most 16777216 bytes.'), $errors);
+        $this->assertSame(array('A workspace document is at most 16777216 bytes.'), $errors);
     }
 
     public function testMeasure()
@@ -606,12 +606,12 @@ class GraphTest extends TestCase
     public function testModelStoresTheNormalisedDocument()
     {
         $graph = new GraphTestGraph();
-        $graph->data = array('Graph' => array('content' => array('nodes' => array(self::node('Attribute', self::ATTRIBUTE)))));
+        $graph->data = array('Workspace' => array('content' => array('nodes' => array(self::node('Attribute', self::ATTRIBUTE)))));
 
-        $this->assertTrue($graph->validDocument(array('content' => $graph->data['Graph']['content'])));
+        $this->assertTrue($graph->validDocument(array('content' => $graph->data['Workspace']['content'])));
         $this->assertSame(
             '{"version":1,"nodes":[{"type":"Attribute","uuid":"' . strtolower(self::ATTRIBUTE) . '"}],"groups":[],"hidden_edges":[],"view":{}}',
-            $graph->data['Graph']['content']
+            $graph->data['Workspace']['content']
         );
     }
 
@@ -624,11 +624,11 @@ class GraphTest extends TestCase
 
     public function testGraphIsAnAnalystDataTypeButNotEmbedded()
     {
-        $this->assertContains('Graph', AnalystData::TYPES);
-        $this->assertNotContains('Graph', AnalystData::ANALYST_DATA_TYPES);
-        $this->assertContains('Graph', AnalystData::valid_targets);
+        $this->assertContains('Workspace', AnalystData::TYPES);
+        $this->assertNotContains('Workspace', AnalystData::ANALYST_DATA_TYPES);
+        $this->assertContains('Workspace', AnalystData::valid_targets);
         $this->assertContains('AttributeValue', AnalystData::valid_targets);
-        $this->assertSame(AnalystData::GRAPH, (new GraphTestGraph())->current_type_id);
+        $this->assertSame(AnalystData::WORKSPACE, (new GraphTestGraph())->current_type_id);
     }
 
     public function testGraphsHaveNoLanguage()
@@ -657,8 +657,8 @@ class GraphTest extends TestCase
     public function testEditRights(array $user, $expected)
     {
         $graph = new GraphTestGraph();
-        $record = array('Graph' => array('orgc_uuid' => self::uuid(1)));
-        $this->assertSame($expected, $graph->canEditAnalystData($user, $record, 'Graph'));
+        $record = array('Workspace' => array('orgc_uuid' => self::uuid(1)));
+        $this->assertSame($expected, $graph->canEditAnalystData($user, $record, 'Workspace'));
     }
 
     public static function editRights()
@@ -742,7 +742,7 @@ class GraphTest extends TestCase
     public function testModelSummarisesOnlyTheContentAndAddsTheRevision()
     {
         $graph = new GraphTestGraph();
-        $graph->data = array('Graph' => array('revision' => 4));
+        $graph->data = array('Workspace' => array('revision' => 4));
         $content = self::stored(array(self::node('Event', self::EVENT)));
 
         $this->assertNull($graph->auditLogSummary('name', 'old', 'new'));
@@ -763,19 +763,19 @@ class GraphTest extends TestCase
         $old = self::stored(array(self::node('Event', self::EVENT)));
         $new = self::stored(array(self::node('Event', self::EVENT), self::valueNode('8.8.8.8')));
         $model = new GraphTestModel();
-        $model->data = array('Graph' => array('id' => 1, 'name' => 'Campaign', 'content' => $new, 'revision' => 3));
+        $model->data = array('Workspace' => array('id' => 1, 'name' => 'Campaign', 'content' => $new, 'revision' => 3));
 
         $behavior = new AuditLogBehavior();
         $behavior->setup($model);
         $beforeSave = new ReflectionProperty(AuditLogBehavior::class, 'beforeSave');
         $beforeSave->setAccessible(true);
-        $beforeSave->setValue($behavior, array('Graph' => array('id' => 1, 'name' => 'Campaign', 'content' => $old, 'revision' => 2)));
+        $beforeSave->setValue($behavior, array('Workspace' => array('id' => 1, 'name' => 'Campaign', 'content' => $old, 'revision' => 2)));
 
         $behavior->afterSave($model, false, array('fieldList' => array()));
 
         $this->assertCount(1, $recorder->calls);
         $row = $recorder->calls[0];
-        $this->assertSame('Graph', $row['model']);
+        $this->assertSame('Workspace', $row['model']);
         $this->assertSame('Campaign', $row['model_title']);
         $this->assertSame(array('content'), array_keys($row['change']));
         $this->assertSame(3, $row['change']['content']['revision']);
@@ -788,7 +788,7 @@ class GraphTest extends TestCase
     private function registerEmbedFakes()
     {
         $fakes = array();
-        foreach (array('Note', 'Opinion', 'Relationship', 'Graph', 'User') as $type) {
+        foreach (array('Note', 'Opinion', 'Relationship', 'Workspace', 'User') as $type) {
             $fakes[$type] = new GraphTestRecorder();
             ClassRegistry::$instances[$type] = $fakes[$type];
         }
@@ -800,10 +800,10 @@ class GraphTest extends TestCase
         $fakes = $this->registerEmbedFakes();
         $behavior = new AnalystDataParentBehavior();
 
-        $behavior->fetchAnalystDataBulk(new GraphTestModel(), array(self::EVENT), array('Note', 'Graph'));
+        $behavior->fetchAnalystDataBulk(new GraphTestModel(), array(self::EVENT), array('Note', 'Workspace'));
 
         $this->assertCount(1, $fakes['Note']->calls);
-        $this->assertSame(array(), $fakes['Graph']->calls);
+        $this->assertSame(array(), $fakes['Workspace']->calls);
     }
 
     public function testBulkAttachNeverLoadsGraphs()
@@ -811,10 +811,10 @@ class GraphTest extends TestCase
         $fakes = $this->registerEmbedFakes();
         $behavior = new AnalystDataParentBehavior();
 
-        $behavior->attachAnalystDataBulk(new GraphTestModel(), array(array('uuid' => self::EVENT)), array('Graph', 'Opinion'));
+        $behavior->attachAnalystDataBulk(new GraphTestModel(), array(array('uuid' => self::EVENT)), array('Workspace', 'Opinion'));
 
         $this->assertCount(1, $fakes['Opinion']->calls);
-        $this->assertSame(array(), $fakes['Graph']->calls);
+        $this->assertSame(array(), $fakes['Workspace']->calls);
     }
 
     // ------------------------------------------------------------ API output
@@ -890,8 +890,8 @@ class GraphTest extends TestCase
         $this->assertSame(6, $result['revision']);
         $this->assertSame(1, $result['node_count']);
         list($data, $options) = $graph->saves[0];
-        $this->assertSame(7, $data['Graph']['id']);
-        $this->assertCount(2, $data['Graph']['content']['nodes']);
+        $this->assertSame(7, $data['Workspace']['id']);
+        $this->assertCount(2, $data['Workspace']['content']['nodes']);
         $this->assertSame(array('fieldList' => array('content', 'modified')), $options);
         $this->assertSame(array('save', 'commit'), array_slice($graph->db->log, -2));
     }
@@ -1383,7 +1383,7 @@ class GraphTest extends TestCase
     private function storedActive($stored)
     {
         $this->fake('UserSetting')->on('getValueForUser', function ($userId, $setting) use ($stored) {
-            return $setting === Graph::ACTIVE_SETTING ? $stored : null;
+            return $setting === Workspace::ACTIVE_SETTING ? $stored : null;
         });
     }
 
@@ -1409,9 +1409,9 @@ class GraphTest extends TestCase
         return array(
             'never set' => array(null),
             'empty' => array(array()),
-            'cleared' => array(array('graph_uuid' => null)),
-            'not a uuid' => array(array('graph_uuid' => 'zz')),
-            'not a string' => array(array('graph_uuid' => 5)),
+            'cleared' => array(array('workspace_uuid' => null)),
+            'not a uuid' => array(array('workspace_uuid' => 'zz')),
+            'not a string' => array(array('workspace_uuid' => 5)),
             'not an object' => array('9a000000-0000-4000-8000-000000000061'),
         );
     }
@@ -1429,17 +1429,17 @@ class GraphTest extends TestCase
 
     public function testActiveGraphIsLookedUpByItsLowercaseUuid()
     {
-        $this->storedActive(array('graph_uuid' => strtoupper(self::G1)));
+        $this->storedActive(array('workspace_uuid' => strtoupper(self::G1)));
         $graph = new GraphTestActiveGraph();
         $graph->summaryRows = array(array('uuid' => self::G1, '_canEdit' => true));
 
         $this->assertSame(self::G1, $graph->activeFor(self::analyst(), false)['uuid']);
-        $this->assertSame(array(array(array('Graph.uuid' => self::G1), array('targets' => false))), $graph->summaryCalls);
+        $this->assertSame(array(array(array('Workspace.uuid' => self::G1), array('targets' => false))), $graph->summaryCalls);
     }
 
     public function testAnActiveGraphTheUserCanNoLongerEditIsNone()
     {
-        $this->storedActive(array('graph_uuid' => self::G1));
+        $this->storedActive(array('workspace_uuid' => self::G1));
         $graph = new GraphTestActiveGraph();
         $graph->summaryRows = array(array('uuid' => self::G1, '_canEdit' => false));
         $this->assertNull($graph->activeFor(self::analyst()));
@@ -1454,7 +1454,7 @@ class GraphTest extends TestCase
         $this->assertTrue((new GraphTestActiveGraph())->storeActive(self::analyst(), self::G1));
         $this->assertSame(array(
             array('disable', 'SysLogLogable.SysLogLogable'),
-            array('save', 3, Graph::ACTIVE_SETTING, array('graph_uuid' => self::G1)),
+            array('save', 3, Workspace::ACTIVE_SETTING, array('workspace_uuid' => self::G1)),
             array('enable', 'SysLogLogable.SysLogLogable'),
         ), $behaviors->log);
     }
@@ -1465,7 +1465,7 @@ class GraphTest extends TestCase
         $this->assertTrue((new GraphTestActiveGraph())->storeActive(self::analyst(), null));
         $this->assertSame(array(
             array('disable', 'SysLogLogable.SysLogLogable'),
-            array('save', 3, Graph::ACTIVE_SETTING, array('graph_uuid' => null)),
+            array('save', 3, Workspace::ACTIVE_SETTING, array('workspace_uuid' => null)),
         ), $behaviors->log);
     }
 
@@ -1504,8 +1504,8 @@ class GraphTest extends TestCase
 
         $this->assertSame(array('a', 'c'), array_column($editable, 'uuid'));
         $this->assertSame(array(array(
-            array('Graph.orgc_uuid' => 'org-1'),
-            array('limit' => Graph::EDITABLE_LIMIT),
+            array('Workspace.orgc_uuid' => 'org-1'),
+            array('limit' => Workspace::EDITABLE_LIMIT),
         )), $graph->summaryCalls);
     }
 
@@ -1530,8 +1530,8 @@ class GraphTest extends TestCase
 
         $this->assertSame(array('a', 'c'), array_column($mine, 'uuid'));
         $this->assertSame(array(array(
-            array('Graph.orgc_uuid' => 'org-1', 'Graph.authors LIKE' => '%some\_one@example.test%'),
-            array('limit' => Graph::EDITABLE_LIMIT),
+            array('Workspace.orgc_uuid' => 'org-1', 'Workspace.authors LIKE' => '%some\_one@example.test%'),
+            array('limit' => Workspace::EDITABLE_LIMIT),
         )), $graph->summaryCalls);
         $this->assertSame(array(), $graph->editableBy(self::analyst(), true));
     }
@@ -2229,9 +2229,9 @@ class GraphTest extends TestCase
         ));
 
         $graph = new GraphTestGraph();
-        $graph->data = array('Graph' => array());
+        $graph->data = array('Workspace' => array());
         $this->assertTrue($graph->validDocument(array('content' => $document)), 'an origin this instance does not hold yet is no reason to refuse it');
-        $this->assertSame(array(self::answerKey('ip-dst', '192.0.2.1')), self::keys(json_decode($graph->data['Graph']['content'], true)['nodes']));
+        $this->assertSame(array(self::answerKey('ip-dst', '192.0.2.1')), self::keys(json_decode($graph->data['Workspace']['content'], true)['nodes']));
     }
 
     public function testTheAfterSaveWorkflowGetsAnswerKeysOnly()

@@ -194,12 +194,12 @@ if ($this->Acl->canAccess('collectionElements', 'addElementToCollection')) {
     ];
 }
 
-if ($this->Acl->canAccess('analystGraphs', 'addNodes')) {
+if ($this->Acl->canAccess('workspaces', 'addNodes')) {
     $actions[] = [
         'url' => '#',
         'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',
-        'label' => __('Add to graph'),
-        'short' => __('Graph'),
+        'label' => __('Add to workspace'),
+        'short' => __('Workspace'),
         'entity' => 'analystGraph',
         'attributes' => ['data-intel-graph-add' => json_encode([[
             'type' => 'Event', 'uuid' => $data['Event']['uuid'], 'label' => $data['Event']['info'],

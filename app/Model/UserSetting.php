@@ -196,13 +196,13 @@ class UserSetting extends AppModel
             'placeholder' => [],
             'validation' => 'validate_json',
         ],
-        // The analyst graph "Add to graph" feeds, `{graph_uuid}`. Internal
-        // for the reason `value_intelligence_recent` is: which graph a
-        // colleague is working on is a per-viewer convenience, not an
-        // audited choice.
-        'intelligence_graph_active' => [
+        // The workspace "Add to workspace" feeds, `{workspace_uuid}`.
+        // Internal for the reason `value_intelligence_recent` is: which
+        // workspace a colleague is working on is a per-viewer convenience,
+        // not an audited choice.
+        'active_workspace' => [
             'internal' => true,
-            'placeholder' => ['graph_uuid' => null],
+            'placeholder' => ['workspace_uuid' => null],
             'validation' => 'validate_json',
         ],
         /*

@@ -15,7 +15,7 @@
         && $this->Acl->canAccess('events', 'editEventGalaxies')
         && $this->Acl->canAccess('attributes', 'editAttributeGalaxies');
     $canGraph = $this->Acl->canAccess('analystData', 'add')
-        && $this->Acl->canAccess('analystGraphs', 'save');
+        && $this->Acl->canAccess('workspaces', 'save');
 
     // What a drawn analyst relationship or a saved graph can be shared with,
     // as analystData/add offers it: levels 0-4 (no inherit), the user's

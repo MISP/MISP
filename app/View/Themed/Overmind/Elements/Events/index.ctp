@@ -119,7 +119,7 @@ $count = function ($key, $count, $setting, $iconHtml, $title) use ($col, $icon, 
     ], 'te-num');
 };
 
-$canGraph = $this->Acl->canAccess('analystGraphs', 'addNodes');
+$canGraph = $this->Acl->canAccess('workspaces', 'addNodes');
 
 $fields = [
     [
@@ -179,7 +179,7 @@ $fields = [
     $col('extras', [
         'element' => 'event_extras',
         'header_html' => '<span class="te-hicon te-hx"><i class="misp-icon misp-icon-analyst-graph misp-simple text-analystGraph"></i><i class="misp-icon misp-icon-report misp-simple text-report"></i><i class="misp-icon misp-icon-sighting misp-simple text-sighting"></i><i class="fas fa-comments"></i></span>',
-        'header_title' => __('Analyst graphs, reports, sightings, proposals and discussions, when there are any'),
+        'header_title' => __('Workspaces, reports, sightings, proposals and discussions, when there are any'),
     ]),
     $col('ext', [
         'name' => __('Extension'),
@@ -265,7 +265,7 @@ $fields = [
             ],
             [
                 'type' => 'intelGraph',
-                'label' => __('Add to graph'),
+                'label' => __('Add to workspace'),
                 'icon' => 'text-analystGraph misp-icon misp-icon-analyst-graph misp-simple',
                 'items' => function ($row) {
                     return [['type' => 'Event', 'uuid' => $row['Event']['uuid'], 'label' => $row['Event']['info']]];
