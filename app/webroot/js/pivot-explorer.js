@@ -42,6 +42,8 @@
     //                               attaches to
     //   savedGraph                → { name(), dirty(), save() }: the canvas is
     //                               this stored graph, and the Save pill writes it
+    //   graphUuid()               → the stored graph the canvas draws: while it
+    //                               is the active one, nothing is offered to it
     //
     // A hook left out keeps the event page's behaviour.
     function createExplorer(host) {
@@ -3654,6 +3656,13 @@
             soon();
         }
 
+        // The canvas is the active graph itself: all it draws is already there.
+        function drawsActive() {
+            var a = window.IntelGraph && window.IntelGraph.active();
+            var own = host.graphUuid ? host.graphUuid() : (_savedGraph && _savedGraph.uuid);
+            return !!a && !!own && String(a.uuid).toLowerCase() === String(own).toLowerCase();
+        }
+
         // Offered where the page has IntelGraph: to a writer of graphs. The
         // explorer is a graph itself, so it says which graph the add feeds.
         function graphEntry(text) {
@@ -3661,7 +3670,9 @@
                 text:      text,
                 title:     'Adds it to your active graph, the one the navbar names',
                 iconClass: 'misp-icon misp-icon-analyst-graph misp-simple',
-                visible:   function (el) { return !!window.IntelGraphActions && graphItems(el).length > 0; },
+                visible:   function (el) {
+                    return !!window.IntelGraphActions && !drawsActive() && graphItems(el).length > 0;
+                },
                 onclick:   function (e, el) {
                     window.IntelGraphActions.add(graphItems(el), e && { x: e.clientX, y: e.clientY });
                 }

@@ -605,6 +605,7 @@
                 text:           config.text
             },
             load: load,
+            graphUuid: function () { return state.uuid; },
             graphTarget: function () {
                 var g = state.payload && state.payload.Graph;
                 return g && g.object_uuid ? { type: g.object_type, uuid: g.object_uuid, label: g.name } : null;
