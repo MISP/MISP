@@ -14,7 +14,8 @@ if (empty($sharingGroup['name'])) {
 }
 
 $content = '<span class="misp-icon misp-icon-sharing-group misp-hexagone text-primary"></span>'
-    . '<span class="text-truncate min-w-0">' . h($sharingGroup['name']) . '</span>';
+    . '<span class="text-truncate min-w-0" title="' . h($sharingGroup['name']) . '">'
+    . h($sharingGroup['name']) . '</span>';
 $classes = 'd-inline-flex align-items-center gap-1 fw-semibold mw-100';
 ?>
 <?php if ($link): ?>

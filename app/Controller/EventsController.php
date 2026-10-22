@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('GalaxyColour', 'Tools');
 App::uses('ExtensionEventColour', 'Tools');
+App::uses('SyncTool', 'Tools');
 
 /**
  * @property Event $Event
@@ -935,10 +936,8 @@ class EventsController extends AppController
     private function __indexRestResponse(array $passedArgs)
     {
         // We do not want to allow instances to pull our data that can't make sense of protected mode events
-        $skipProtected = (
-            !empty($this->request->header('misp-version')) &&
-            version_compare($this->request->header('misp-version'), '2.4.156') < 0
-        );
+        $requesterVersion = SyncTool::requesterMispVersion($this->request);
+        $skipProtected = $requesterVersion !== null && version_compare($requesterVersion, '2.4.156') < 0;
 
         $fieldNames = $this->Event->schema();
         $minimal = !empty($passedArgs['searchminimal']) || !empty($passedArgs['minimal']);
@@ -950,7 +949,7 @@ class EventsController extends AppController
             }
             $rules = [
                 'recursive' => -1,
-                'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid', 'protected'),
+                'fields' => array('id', 'timestamp', 'sighting_timestamp', 'published', 'uuid'),
                 'contain' => $contain,
             ];
         } else {
@@ -972,9 +971,16 @@ class EventsController extends AppController
         if (isset($this->paginate['conditions'])) {
             $rules['conditions'] = $this->paginate['conditions'];
         }
-        if ($skipProtected) {
-            $rules['conditions']['Event.protected'] = 0;
+        // Protected events this instance cannot sign are excluded in the query
+        // itself, so pages stay full and X-Result-Count matches what is served.
+        $visible = [['Event.protected' => null], ['Event.protected' => 0]];
+        if (!$skipProtected) {
+            $signableEventIds = $this->Event->CryptographicKey->eventIdsSignableByInstanceKey();
+            if (!empty($signableEventIds)) {
+                $visible[] = ['Event.id' => $signableEventIds];
+            }
         }
+        $rules['conditions']['AND'][] = ['OR' => $visible];
         $paginationRules = array('page', 'limit', 'sort', 'direction');
         foreach ($paginationRules as $paginationRule) {
             if (isset($passedArgs[$paginationRule])) {
@@ -1020,9 +1026,6 @@ class EventsController extends AppController
 
         $isCsvResponse = $this->response->type() === 'text/csv';
 
-        $protectedEventsByInstanceKey = $this->Event->CryptographicKey->protectedEventsByInstanceKey($events);
-        $protectedEventsByInstanceKey = array_flip($protectedEventsByInstanceKey);
-
         // Collect all tag IDs that are events
         if (!$minimal || $includeEventTagsFingerprint) {
             $tagIds = [];
@@ -1067,15 +1070,11 @@ class EventsController extends AppController
             // Fetch all org and sharing groups that are in events
             $orgIds = [];
             $sharingGroupIds = [];
-            foreach ($events as $k => $event) {
+            foreach ($events as $event) {
                 $orgIds[$event['Event']['org_id']] = true;
                 $orgIds[$event['Event']['orgc_id']] = true;
                 $sharingGroupIds[$event['Event']['sharing_group_id']] = true;
-                if ($event['Event']['protected'] && !isset($protectedEventsByInstanceKey[$event['Event']['id']])) {
-                    unset($events[$k]);
-                }
             }
-            $events = array_values($events);
             if (!empty($orgIds)) {
                 $orgs = $this->Event->Org->find('all', [
                     'conditions' => ['Org.id' => array_keys($orgIds)],
@@ -1119,18 +1118,12 @@ class EventsController extends AppController
             }
         } else { // minimal
             foreach ($events as $key => $event) {
-                if ($event['Event']['protected'] && !isset($protectedEventsByInstanceKey[$event['Event']['id']])) {
-                    unset($events[$key]);
-                    continue;
-                }
                 $event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
-                unset($event['Event']['protected']);
                 if ($includeEventTagsFingerprint) {
                     $event['Event']['event_tags_fingerprint'] = $this->Event->getTagsFingerprint($event['EventTag']);
                 }
                 $events[$key] = $event['Event'];
             }
-            $events = array_values($events);
         }
 
         if ($isCsvResponse) {
@@ -2134,6 +2127,7 @@ class EventsController extends AppController
         // through getAttributesRelatedToEvent() - count the same set or the tab
         // header promises rows the tab does not have.
         $this->set('correlation_count', $this->Event->getRelatedEventCount($user, $event['Event']['id'], $sgids, true));
+        $this->set('distributionOutliers', $this->Event->distributionOutliers($user, $event));
 
         $this->set('event', $event);
         $this->set('analysisLevels',
@@ -2419,10 +2413,10 @@ class EventsController extends AppController
             }
         }
 
-        // Favorite event report (for the moment, only the most recent one).
-        // A report carries its own distribution, so seeing the event does not
-        // mean seeing every report on it: apply the report ACL, as the
-        // reports tab does, and skip soft-deleted ones.
+        // The most recently modified report the user may see. A report carries
+        // its own distribution, so seeing the event does not mean seeing every
+        // report on it: apply the report ACL, as the reports tab does, and
+        // skip soft-deleted ones.
         $reportConditions =
             $this->Event->EventReport->buildACLConditions($user);
         $reportConditions['AND'][] = [
@@ -2435,6 +2429,7 @@ class EventsController extends AppController
                 'conditions' => $reportConditions,
                 'contain' => EventReport::DEFAULT_CONTAIN,
                 'recursive' => -1,
+                'order' => ['EventReport.timestamp' => 'DESC', 'EventReport.id' => 'DESC'],
             ]
         );
         $event['EventReport'] = $result['EventReport'] ?? null;
@@ -2542,7 +2537,7 @@ class EventsController extends AppController
             'deleted', 'category', 'type', 'toIDS',
             'searchFor', 'flatten', 'proposal',
             'warninglist', 'correlation', 'feed', 'warning', 'analystData',
-            'tags', 'galaxy', 'org',
+            'tags', 'galaxy', 'org', 'distribution',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -2708,7 +2703,7 @@ class EventsController extends AppController
             'page', 'limit', 'sort', 'direction',
             'deleted', 'name', 'meta-category', 'searchFor', 'proposal',
             'category', 'type', 'tags', 'galaxy', 'org', 'toIDS',
-            'correlation', 'feed', 'warning', 'analystData',
+            'correlation', 'feed', 'warning', 'analystData', 'distribution',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -2772,15 +2767,18 @@ class EventsController extends AppController
             ],
             'recursive' => -1,
         ]));
+        $deletedEventIds = $this->Event->eventIdsShowingDeleted(
+            $user, $countedEventIds
+        ) ?: [-1];
         $deletedOr = ['Object.deleted' => 1];
         $objectIdsWithDeletedAttrs =
-            $this->Event->objectIdsWithDeletedAttributes($countedEventIds);
+            $this->Event->objectIdsWithDeletedAttributes($deletedEventIds);
         if (!empty($objectIdsWithDeletedAttrs)) {
             $deletedOr['Object.id'] = $objectIdsWithDeletedAttrs;
         }
         $this->set('deletedCount', $this->Event->Object->find('count', [
             'conditions' => [
-                'Object.event_id' => $countedEventIds,
+                'Object.event_id' => $deletedEventIds,
                 'OR' => $deletedOr,
             ],
             'recursive' => -1,
@@ -4514,11 +4512,11 @@ class EventsController extends AppController
                     } else {
                         if ($add === 'blocked') {
                             $this->Flash->error(__('A blocklist entry is blocking you from creating any events. Please contact the administration team of this instance') . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
+                        } else if ($this->theme === "Overmind") {
+                            $this->Flash->error($this->__saveFailMessage($validationErrors));
+                            $this->redirect(array('action' => 'index'));
                         } else {
                             $this->Flash->error(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
-                            if ($this->theme === "Overmind") {
-                                $this->redirect(array('action' => 'index'));
-                            }
                         }
                     }
                 }
@@ -4789,26 +4787,28 @@ class EventsController extends AppController
                         throw new BadRequestException(__('Please select a valid sharing group id.'));
                     }
                 }
-                if (isset($this->param['named']['force_contextual_data'])) {
+                if (isset($this->params['named']['force_contextual_data'])) {
                     $force_contextual_data = $this->params['named']['force_contextual_data'];
                 }
                 $clusterDistribution = $initialDistribution;
                 $clusterSharingGroupId = null;
                 if (isset($this->params['named']['galaxies_as_tags'])) {
                     $galaxies_as_tags = $this->params['named']['galaxies_as_tags'];
-                    if (isset($this->params['name']['cluster_distribution'])) {
-                        $clusterDistribution = intval($this->params['named']['cluster_distribution']);
-                        if (!array_key_exists($clusterDistribution, $distributionLevels)) {
-                            throw new BadRequestException(__('Wrong cluster distribution level'));
+                }
+                // Cluster settings apply when galaxies are not imported as
+                // tags, so they are read whether or not galaxies_as_tags is set
+                if (isset($this->params['named']['cluster_distribution'])) {
+                    $clusterDistribution = intval($this->params['named']['cluster_distribution']);
+                    if (!array_key_exists($clusterDistribution, $distributionLevels)) {
+                        throw new BadRequestException(__('Wrong cluster distribution level'));
+                    }
+                    if ($clusterDistribution == 4) {
+                        if (!isset($this->params['named']['cluster_sharing_group_id'])) {
+                            throw new BadRequestException(__('The cluster sharing group id is needed when the cluster distribution is set to 4 ("Sharing group").'));
                         }
-                        if ($clusterDistribution == 4) {
-                            if (!isset($this->params['named']['cluster_sharing_group_id'])) {
-                                throw new BadRequestException(__('The cluster sharing group id is needed when the cluster distribution is set to 4 ("Sharing group").'));
-                            }
-                            $clusterSharingGroupId = intval($this->params['named']['cluster_sharing_group_id']);
-                            if (!array_key_exists($clusterSharingGroupId, $sgs)) {
-                                throw new BadRequestException(__('Please select a valid cluster sharing group id.'));
-                            }
+                        $clusterSharingGroupId = intval($this->params['named']['cluster_sharing_group_id']);
+                        if (!array_key_exists($clusterSharingGroupId, $sgs)) {
+                            throw new BadRequestException(__('Please select a valid cluster sharing group id.'));
                         }
                     }
                 }
@@ -5353,6 +5353,8 @@ class EventsController extends AppController
                 } else {
                     $this->redirect(array('action' => 'view', $id));
                 }
+            } else if ($this->theme === "Overmind") {
+                $this->Flash->error($this->__saveFailMessage($this->Event->validationErrors));
             } else {
                 $this->Flash->error(__('The event could not be saved. Please, try again.'));
             }
@@ -5396,10 +5398,25 @@ class EventsController extends AppController
         $this->set('fieldDesc', $fieldDesc);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
         $this->set('event', $event);
-        if ($this->theme === "Overmind"){
+        if ($this->theme === "Overmind" && $this->request->is('ajax')) {
             $this->layout = false;
         }
         $this->render('add');
+    }
+
+    private function __saveFailMessage($validationErrors)
+    {
+        $reasons = [];
+        array_walk_recursive($validationErrors, function ($message) use (&$reasons) {
+            if (is_string($message)) {
+                $reasons[] = $message;
+            }
+        });
+        $reasons = array_unique($reasons);
+        if (empty($reasons)) {
+            return __('The event could not be saved. Please, try again.');
+        }
+        return __('The event could not be saved: %s', implode(' ', $reasons));
     }
 
     public function delete($id = null)
@@ -9202,12 +9219,10 @@ class EventsController extends AppController
 
     public function getEditStrategy($id)
     {
-        // find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
-        $event = $this->Event->find('first', array(
-            'recursive' => -1,
-            'conditions' => Validation::uuid($id) ? ['Event.uuid' => $id] : ['Event.id' => $id],
-            'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id')
-        ));
+        $user = $this->Auth->user();
+        $event = $this->Event->fetchSimpleEvent($user, $id, [
+            'fields' => ['Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.user_id']
+        ]);
         if (empty($event)) {
             throw new NotFoundException(__('Invalid event'));
         }
@@ -9217,13 +9232,15 @@ class EventsController extends AppController
         } else {
             $response['strategy'] = 'extend';
         }
+        $conditions = $this->Event->createEventConditions($user);
+        $conditions['AND'][] = [
+            'Event.extends_uuid' => $event['Event']['uuid'],
+            'Event.orgc_id' => $user['org_id']
+        ];
         $extendedEvents = $this->Event->find('all', array(
             'recursive' => -1,
             'fields' => array('Event.id', 'Event.info', 'Event.uuid'),
-            'conditions' => array(
-                'Event.extends_uuid' => $event['Event']['uuid'],
-                'Event.orgc_id' => $this->Auth->user('org_id')
-            )
+            'conditions' => $conditions
         ));
         foreach ($extendedEvents as $extendedEvent) {
             $response['extensions'][] = $extendedEvent['Event'];

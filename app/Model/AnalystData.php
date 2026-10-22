@@ -88,7 +88,8 @@ class AnalystData extends AppModel
         'object_uuid' => [
             'uuid' => [
                 'rule' => 'uuid',
-                'message' => 'Please provide a valid RFC 4122 UUID'
+                'message' => 'Please provide a valid RFC 4122 UUID',
+                'required' => 'create',
             ],
         ],
         'org_uuid' => [
@@ -475,6 +476,77 @@ class AnalystData extends AppModel
         ]);
     }
 
+    /**
+     * A readable line for each target $user can open, so a view can name what
+     * a note is about instead of printing its UUID. Visibility is decided by
+     * existingTargets(); the label is then read without callbacks.
+     *
+     * @param array $user
+     * @param array $targets list of ['type' => string, 'uuid' => string]
+     * @return array uuid => ['label' => string, 'meta' => string[]]
+     */
+    public function describeTargets(array $user, array $targets): array
+    {
+        $models = [
+            'Event' => ['Event', ['id', 'info', 'date'], 'info'],
+            'Attribute' => ['MispAttribute', ['type', 'value', 'event_id'], 'value'],
+            'Object' => ['MispObject', ['name', 'meta-category', 'event_id'], 'name'],
+            'EventReport' => ['EventReport', ['name', 'event_id'], 'name'],
+            'GalaxyCluster' => ['GalaxyCluster', ['value', 'type'], 'value'],
+            'Galaxy' => ['Galaxy', ['name', 'type'], 'name'],
+            'Note' => ['Note', ['note', 'language'], 'note'],
+            'Opinion' => ['Opinion', ['opinion', 'comment'], 'comment'],
+            'Relationship' => ['Relationship', ['relationship_type', 'related_object_type'], 'relationship_type'],
+            'Organisation' => ['Organisation', ['name', 'type'], 'name'],
+            'SharingGroup' => ['SharingGroup', ['name'], 'name'],
+        ];
+        $visible = $this->existingTargets($user, $targets);
+        $described = [];
+        foreach ($targets as $target) {
+            $type = $target['type'] ?? '';
+            $uuid = $target['uuid'] ?? '';
+            if (empty($visible[$uuid]) || !isset($models[$type])) {
+                continue;
+            }
+            list($modelName, $fields, $labelField) = $models[$type];
+            $model = ClassRegistry::init($modelName);
+            $alias = $model->alias;
+            $row = $model->find('first', [
+                'conditions' => ["{$alias}.uuid" => $uuid],
+                'fields' => array_map(function ($field) use ($alias) {
+                    return "{$alias}.{$field}";
+                }, $fields),
+                'recursive' => -1,
+                'callbacks' => false,
+            ]);
+            if (empty($row[$alias])) {
+                continue;
+            }
+            $row = $row[$alias];
+            $label = (string)($row[$labelField] ?? '');
+            $meta = [];
+            foreach ($fields as $field) {
+                if ($field === $labelField || !isset($row[$field]) || $row[$field] === '') {
+                    continue;
+                }
+                if ($field === 'id') {
+                    $meta[] = '#' . $row[$field];
+                } elseif ($field === 'event_id') {
+                    $meta[] = __('Event #%s', $row[$field]);
+                } elseif ($field === 'opinion') {
+                    $meta[] = __('%s/100', $row[$field]);
+                } else {
+                    $meta[] = (string)$row[$field];
+                }
+            }
+            $described[$uuid] = [
+                'label' => mb_strimwidth($label, 0, 160, '…'),
+                'meta' => $meta,
+            ];
+        }
+        return $described;
+    }
+
     public function getAnalystDataTypeFromUUID($uuid)
     {
         foreach (self::ANALYST_DATA_TYPES as $type) {
@@ -833,7 +905,6 @@ class AnalystData extends AppModel
             unset($analystData[$type]['id']);
             $analystModel->create();
             $saveSuccess = $analystModel->save($analystData);
-            $saveSuccess = true;
         } else {
             // DPT-4: a regular (non-sync, non-site-admin) caller - the web
             // add/edit afterSave, or analyst data nested in an object/
@@ -1371,21 +1442,54 @@ class AnalystData extends AppModel
 
     private function updatePulledBeforeInsert(array $analystData, $type, array $server, array $user, array $pullRules, $remotePermSyncInternal = false): array
     {
-        $analystData[$type]['locked'] = true;
+        $downgrade = empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || !$remotePermSyncInternal;
+        $analystData[$type] = self::updatePulledAnalystData($analystData[$type], $downgrade);
+        return $analystData;
+    }
 
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || !$remotePermSyncInternal) {
-            switch ($analystData[$type]['distribution']) {
-                case 1:
-                    // if community only, downgrade to org only after pull
-                    $analystData[$type]['distribution'] = '0';
-                    break;
-                case 2:
-                    // if connected communities downgrade to community only
-                    $analystData[$type]['distribution'] = '1';
-                    break;
+    /**
+     * A pulled analyst data row is locked and, over a non-internal link, downgraded
+     * (community only to org only, connected communities to community only).
+     * Its nested children get the same.
+     *
+     * @param array $analystData A single Note, Opinion or Relationship row
+     * @param bool $downgrade
+     * @return array
+     */
+    public static function updatePulledAnalystData(array $analystData, $downgrade): array
+    {
+        $analystData['locked'] = true;
+        if ($downgrade && isset($analystData['distribution'])) {
+            if ($analystData['distribution'] == 1) {
+                $analystData['distribution'] = '0';
+            } elseif ($analystData['distribution'] == 2) {
+                $analystData['distribution'] = '1';
             }
         }
-        return $analystData;
+        return self::updatePulledNested($analystData, $downgrade);
+    }
+
+    /**
+     * Apply updatePulledAnalystData() to the analyst data nested in a pulled element
+     * (an event, attribute, object, report or another analyst data row).
+     *
+     * @param array $element
+     * @param bool $downgrade
+     * @return array
+     */
+    public static function updatePulledNested(array $element, $downgrade): array
+    {
+        foreach (self::ANALYST_DATA_TYPES as $type) {
+            if (empty($element[$type]) || !is_array($element[$type])) {
+                continue;
+            }
+            foreach ($element[$type] as $k => $analystData) {
+                if (is_array($analystData)) {
+                    $element[$type][$k] = self::updatePulledAnalystData($analystData, $downgrade);
+                }
+            }
+        }
+        return $element;
     }
 
     private function buildPullFilterRules(array $server): array

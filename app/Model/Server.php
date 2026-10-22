@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('AnalystData', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SystemSetting', 'Model');
@@ -311,7 +312,8 @@ class Server extends AppModel
             $event['Event']['distribution'] = '1';
         }
         // Distribution
-        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || empty($remoteUser['Role']['perm_sync_internal'])) {
+        $downgrade = empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id'] || empty($remoteUser['Role']['perm_sync_internal']);
+        if ($downgrade) {
             switch ($event['Event']['distribution']) {
                 case 1:
                     // if community only, downgrade to org only after pull
@@ -402,6 +404,21 @@ class Server extends AppModel
                         case '2':
                             $event['Event']['EventReport'][$key]['distribution'] = '1';
                             break;
+                    }
+                }
+            }
+        }
+
+        $event['Event'] = AnalystData::updatePulledNested($event['Event'], $downgrade);
+        foreach (['Attribute', 'Object', 'EventReport'] as $scope) {
+            if (empty($event['Event'][$scope])) {
+                continue;
+            }
+            foreach ($event['Event'][$scope] as $k => $element) {
+                $event['Event'][$scope][$k] = AnalystData::updatePulledNested($element, $downgrade);
+                if ($scope === 'Object' && !empty($element['Attribute'])) {
+                    foreach ($element['Attribute'] as $j => $attribute) {
+                        $event['Event']['Object'][$k]['Attribute'][$j] = AnalystData::updatePulledNested($attribute, $downgrade);
                     }
                 }
             }
@@ -908,14 +925,17 @@ class Server extends AppModel
      * @param array $pagination Optional ['page' => int, 'limit' => int]. When set,
      *                          a single ordered page is requested instead of the
      *                          whole index (see getEventIdsFromServer()).
+     * @param int|null $resultCount Set to the remote's X-Result-Count, or null
+     *                              when unknown (e.g. served from cache).
      * @return array
      * @throws HttpSocketHttpException
      * @throws HttpSocketJsonException
      * @throws JsonException
      * @throws RedisException
      */
-    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [])
+    public function getEventIndexFromServer(ServerSyncTool $serverSync, $ignoreFilterRules = false, array $pagination = [], &$resultCount = null)
     {
+        $resultCount = null;
         if (!$ignoreFilterRules) {
             $filterRules = $this->filterRuleToParameter($serverSync->server()['Server']['pull_rules']);
             if (!empty($filterRules['org']) && !$serverSync->isSupported(ServerSyncTool::FEATURE_ORG_RULE)) {
@@ -968,17 +988,23 @@ class Server extends AppModel
             }
         }
 
-        // Save to cache for 24 hours if ETag provided
+        $count = $response->getHeader('X-Result-Count');
+        if (is_numeric($count)) {
+            $resultCount = (int)$count;
+        }
+
+        $eventIndex = $response->json();
+
+        // Save to cache for 24 hours if ETag provided. Empty pages are not
+        // cached: a 304 has no X-Result-Count to tell a filtered page from the end.
         $etag = $response->getHeader('etag');
-        if ($etag) {
+        if ($etag && !empty($eventIndex)) {
             $serverSync->debug("Event index from remote server has different etag $etag, saving to cache");
             $data = RedisTool::compress($response->body);
             $redis->setex($etagCacheKey, 3600 * 24, $etag);
             $redis->setex($contentCacheKey, 3600 * 24, $data);
             unset($data);
         }
-
-        $eventIndex = $response->json();
 
         // correct $eventArray if just one event, probably this response returns old MISP
         if (isset($eventIndex['id'])) {
@@ -1140,10 +1166,18 @@ class Server extends AppModel
         $page = 1;
         $previousMaxId = null;
         while (true) {
-            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize]);
+            $eventArray = $this->getEventIndexFromServer($serverSync, $ignoreFilterRules, ['page' => $page, 'limit' => $pageSize], $remoteCount);
             $fetched = count($eventArray);
+            // The remote drops protected events after paging, so a short or even
+            // empty page is not the end. X-Result-Count is counted before that
+            // filter; without it (cached page) only an empty page proves the end.
+            $lastPage = $remoteCount === null ? $fetched === 0 : $page * $pageSize >= $remoteCount;
             if ($fetched === 0) {
-                break;
+                if ($lastPage) {
+                    break;
+                }
+                $page++;
+                continue;
             }
             // A remote that does not honour the limit (older instance) returns the
             // whole index in one response. Detecting more rows than we asked for
@@ -1180,7 +1214,7 @@ class Server extends AppModel
             }
             unset($eventArray);
 
-            if ($remoteIgnoredPagination || $notAdvancing || $fetched < $pageSize) {
+            if ($remoteIgnoredPagination || $notAdvancing || $lastPage) {
                 break; // last page (or a remote that is not paginating)
             }
             $page++;
@@ -3381,19 +3415,20 @@ class Server extends AppModel
         }
         $localVersion = $this->checkMISPVersion();
         $protectedMode = version_compare($remoteVersionString, '2.4.156') >= 0;
+        $crossMajor = ServerSyncTool::isCrossMajorCompatible(implode('.', $localVersion), $remoteVersionString);
         $response = false;
         $success = false;
         $issueLevel = "warning";
-        if ($localVersion['major'] > $remoteVersion[0]) {
+        if (!$crossMajor && $localVersion['major'] > $remoteVersion[0]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance's MISP version is behind by a major version.";
         }
-        if ($response === false && $localVersion['major'] < $remoteVersion[0]) {
+        if ($response === false && !$crossMajor && $localVersion['major'] < $remoteVersion[0]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
         }
-        if ($response === false && $localVersion['minor'] > $remoteVersion[1]) {
+        if ($response === false && !$crossMajor && $localVersion['minor'] > $remoteVersion[1]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance's MISP version is behind by a minor version.";
         }
-        if ($response === false && $localVersion['minor'] < $remoteVersion[1]) {
+        if ($response === false && !$crossMajor && $localVersion['minor'] < $remoteVersion[1]) {
             $response = "Sync to Server ('{$server['Server']['id']}') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
         }
 
@@ -3403,13 +3438,13 @@ class Server extends AppModel
         } else {
             $issueLevel = "error";
         }
-        if ($response === false && $localVersion['hotfix'] > $remoteVersion[2]) {
+        if ($response === false && !$crossMajor && $localVersion['hotfix'] > $remoteVersion[2]) {
             $response = "Sync to Server ('{$server['Server']['id']}') initiated, but the remote instance is a few hotfixes behind.";
         }
-        if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) {
+        if ($response === false && !$crossMajor && $localVersion['hotfix'] < $remoteVersion[2]) {
             $response = "Sync to Server ('{$server['Server']['id']}') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
         }
-        if (empty($response) && $remoteVersion[1] <= 4 && $remoteVersion[2] < 111) {
+        if (empty($response) && version_compare($remoteVersionString, '2.4.111', '<')) {
             $response = "Sync to Server ('{$server['Server']['id']}') initiated, but version 2.4.111 is required in order to be able to pull proposals from the remote side.";
         }
 
@@ -4099,7 +4134,7 @@ class Server extends AppModel
     {
         $expected = array(
             'stix' => '>=1.2.0.11', 'cybox' => '>=2.1.0.21', 'mixbox' => '>=1.0.5', 'maec' => '>=4.1.0.17',
-            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2026.9.16'
+            'stix2' => '>=3.0.1', 'pymisp' => '>=2.5.1', 'misp-stix' => '>=2026.10.12'
         );
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptFile = APP . 'files' . DS . 'scripts' . DS . 'stixtest.py';
@@ -4861,7 +4896,7 @@ class Server extends AppModel
                 $tagname = explode('.', $tagname);
                 if (!isset($latest_versions[$tagname[0]][$tagname[1]])) {
                     $latest_versions[$tagname[0]][$tagname[1]] = $tagname[2];
-                } elseif (version_compare($tag['name'], $latest_versions[$tagname[0]][$tagname[1]]) === 1) {
+                } elseif ((int)$tagname[2] > (int)$latest_versions[$tagname[0]][$tagname[1]]) {
                     $latest_versions[$tagname[0]][$tagname[1]] = $tagname[2];
                 }    
             }
@@ -9184,13 +9219,12 @@ class Server extends AppModel
                     'Get setting' => 'MISP/app/Console/cake Admin getSetting [setting|all]',
                     'Set setting' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
                     'Get authkey' => 'MISP/app/Console/cake Admin getAuthkey [user_email]',
-                    'Change authkey' => 'MISP/app/Console/cake Admin change_authkey [user_email] [authkey]',
+                    'Change authkey' => 'MISP/app/Console/cake User change_authkey [user_id|email] [authkey]',
                     'Set baseurl' => 'MISP/app/Console/cake Admin setSetting MISP.baseurl [baseurl]',
                     'Change password' => 'MISP/app/Console/cake User change_pw [email] [new_password] [--no_password_change]',
                     'Clear Bruteforce entries' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
                     'Clean caches' => 'MISP/app/Console/cake Admin cleanCaches',
                     'Set database version' => 'MISP/app/Console/cake Admin setDatabaseVersion [version]',
-                    'Run database update' => 'MISP/app/Console/cake Admin updateDatabase',
                     'Run updates' => 'MISP/app/Console/cake Admin runUpdates',
                     'Update all JSON structures' => 'MISP/app/Console/cake Admin updateJSON',
                     'Update Galaxy definitions' => 'MISP/app/Console/cake Admin updateGalaxies',
@@ -9199,10 +9233,11 @@ class Server extends AppModel
                     'Update Warninglists' => 'MISP/app/Console/cake Admin updateWarningLists',
                     'Update Noticelists' => 'MISP/app/Console/cake Admin updateNoticeLists',
                     'Set default role' => 'MISP/app/Console/cake Admin setDefaultRole [role_id]',
-                    'Get IPs for user ID' => 'MISP/app/Console/cake Admin UserIP [user_id]',
-                    'Get user ID for user IP' => 'MISP/app/Console/cake Admin IPUser [ip]',
+                    'Get IPs for user ID' => 'MISP/app/Console/cake User user_ips [user_id|email]',
+                    'Get user ID for user IP' => 'MISP/app/Console/cake User ip_user [ip]',
                     'Generate correlation' => 'MISP/app/Console/cake Admin jobGenerateCorrelation [job_id]',
                     'Truncate correlation table' => 'MISP/app/Console/cake Admin truncateTable [user_id] [correlation_engine_name] [job_id]',
+                    'Generate over-correlation occurrences' => 'MISP/app/Console/cake Admin jobGenerateOccurrences [job_id]',
                     'Purge correlation' => 'MISP/app/Console/cake Admin jobPurgeCorrelation [job_id]',
                     'Generate shadow attribute correlation' => 'MISP/app/Console/cake Admin jobGenerateShadowAttributeCorrelation [job_id]',
                     'Update MISP' => 'MISP/app/Console/cake Admin updateMISP',
@@ -9226,13 +9261,14 @@ class Server extends AppModel
                     'Pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
                     'PushAll' => 'MISP/app/Console/cake Server pushAll [user_id]',
                     'Push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
+                    'Push Taxii' => 'MISP/app/Console/cake Server push_taxii [user_id] [taxii_server_id|all] [job_id]',
                     'Cache server' => 'MISP/app/Console/cake server cacheServer [user_id] [server_id]',
                     'Cache all servers' => 'MISP/app/Console/cake server cacheServerAll [user_id]',
                     'List all feeds' => 'MISP/app/Console/cake Server listFeeds [json|table]',
                     'View feed' => 'MISP/app/Console/cake Server viewFeed [feed_id] [json|table]',
                     'Toggle feed fetching' => 'MISP/app/Console/cake Server toggleFeed [feed_id]',
                     'Toggle feed caching' => 'MISP/app/Console/cake Server toggleFeedCaching [feed_id]',
-                    'Load default feed configurations' => 'MISP/app/Console/cake Server loadDefaultFeeds [feed_id]',
+                    'Load default feed configurations' => 'MISP/app/Console/cake Server loadDefaultFeeds',
                     'Cache feeds for quick lookups' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Fetch feeds as local data' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
                     'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
@@ -9242,7 +9278,7 @@ class Server extends AppModel
                     'Enqueue push' => 'MISP/app/Console/cake Server enqueuePush [timestamp] [task_id] [user_id]',
                     'Enqueue feed fetch' => 'MISP/app/Console/cake Server enqueueFeedFetch [timestamp] [user_id] [task_id]',
                     'Enqueue feed cache' => 'MISP/app/Console/cake Server enqueueFeedCache [timestamp] [user_id] [task_id]',
-                    'Update sharing groups based on blueprints' => 'MISP/app/Console/cake Server executeSGBlueprint [blueprint_id|all|attached|detached]'
+                    'Update sharing groups based on blueprints' => 'MISP/app/Console/cake Admin executeSGBlueprint [blueprint_id|all|attached|detached]'
                 ),
                 'description' => __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.'),
                 'header' => __('Automating certain console tasks')
@@ -9260,6 +9296,7 @@ class Server extends AppModel
                     'Enqueue caching' => 'MISP/app/Console/cake Event enqueueCaching [timestamp]',
                     'Do publish' => 'MISP/app/Console/cake Event doPublish [event_id]',
                     'Run enrichment' => 'MISP/app/Console/cake Event enrichment [user_id] [event_id] [json_encoded_module_list]',
+                    'Run attribute enrichment' => 'MISP/app/Console/cake Event attribute_enrichment [user_id] [attribute_id] [json_encoded_module_list] [job_id]',
                     'Process free text' => 'MISP/app/Console/cake Event processfreetext [input]',
                     'Process module result' => 'MISP/app/Console/cake Event processmoduleresult [input]',
                 ),

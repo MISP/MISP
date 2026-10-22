@@ -139,6 +139,22 @@ class AdminShell extends AppShell
         $parser->addSubcommand('redisReady', [
             'help' => __('Check if it is possible connect to Redis.'),
         ]);
+        $parser->addSubcommand('redisRepairSerialization', [
+            'help' => __('Rewrite the values in Redis that were stored PHP-serialized back to their raw form.'),
+            'parser' => [
+                'arguments' => [
+                    'jobId' => ['help' => __('Job to report progress to.'), 'required' => false],
+                ],
+                'options' => [
+                    'dry-run' => [
+                        'short' => 'd',
+                        'help' => __('Count what would be repaired, without changing anything.'),
+                        'default' => false,
+                        'boolean' => true,
+                    ],
+                ],
+            ],
+        ]);
         $parser->addSubcommand('securityAudit', [
             'help' => __('Run security audit.'),
         ]);
@@ -258,7 +274,7 @@ class AdminShell extends AppShell
     public function jobForgot()
     {
         if (empty($this->args[0])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Forgot']);
+            $this->error('Usage: MISP/app/Console/cake Admin jobForgot [email] [ip] [job_id]');
         }
 
         $email = $this->args[0];
@@ -863,9 +879,36 @@ class AdminShell extends AppShell
             $this->AdminSetting->delete($lock['AdminSetting']['id']);
         }
         $processId = empty($this->args[0]) ? false : $this->args[0];
-        $this->Server->runUpdates(true, false, $processId, true);
-        $this->Server->cleanCacheFiles();
-        $this->out('All updates completed.');
+        $pendingBefore = $this->__pendingUpdateCount();
+        try {
+            $this->Server->runUpdates(true, false, $processId, true);
+            $this->Server->cleanCacheFiles();
+            $this->out('All updates completed.');
+        } finally {
+            if ($this->__pendingUpdateCount() < $pendingBefore) {
+                $this->__adviseWebRestart();
+            }
+        }
+    }
+
+    /**
+     * @return int
+     */
+    private function __pendingUpdateCount()
+    {
+        $version = $this->AdminSetting->getSetting('db_version');
+        return $this->Server->countPendingUpdates($version === false ? '0' : $version);
+    }
+
+    /**
+     * Cake's schema caches live in the web server's APCu where core.php picks
+     * it, out of reach of this process's flush.
+     *
+     * @return void
+     */
+    private function __adviseWebRestart()
+    {
+        $this->out('<warning>' . __('Restart PHP-FPM or Apache now (systemctl restart php8.x-fpm, or apache2 with mod_php). The web server keeps its own copy of the table list in memory (APCu), which a command line run cannot clear; until the restart, pages can fail with a missing table error.') . '</warning>');
     }
 
     /**
@@ -1149,6 +1192,9 @@ class AdminShell extends AppShell
 
         // Whatever runs next must not describe a table from before this ran.
         $manager->inspector()->flushSchemaCacheFiles();
+        if (in_array(true, $results, true)) {
+            $this->__adviseWebRestart();
+        }
         if ($failures > 0) {
             $this->error(
                 __('The run stopped at a failed migration.'),
@@ -1420,6 +1466,34 @@ class AdminShell extends AppShell
         } catch (Exception $e) {
             $this->error('Redis connection is not available', $e->getMessage());
         }
+    }
+
+    public function redisRepairSerialization()
+    {
+        App::uses('RedisSerializerRepairTool', 'Tools');
+        $jobId = $this->args[0] ?? null;
+        $dryRun = !empty($this->params['dry-run']);
+        try {
+            $repairTool = new RedisSerializerRepairTool(RedisTool::connect(), $dryRun);
+            $lastPercent = -1;
+            $stats = $repairTool->run(function ($checked, $total) use ($jobId, &$lastPercent) {
+                $percent = $total ? min(99, intdiv(100 * $checked, $total)) : 0;
+                if ($percent !== $lastPercent) {
+                    $lastPercent = $percent;
+                    $this->Job->saveProgress($jobId, __('%s of about %s keys checked.', $checked, $total), $percent);
+                }
+            });
+        } catch (Exception $e) {
+            $this->Job->saveStatus($jobId, false, __('Redis repair failed: %s', $e->getMessage()));
+            $this->error(__('Redis repair failed.'), $e->getMessage());
+        }
+        if ($dryRun) {
+            $message = __('%s keys checked, %s values in %s keys would be repaired.', $stats['checked'], $stats['values'], $stats['keys']);
+        } else {
+            $message = __('%s keys checked, %s values repaired in %s keys.', $stats['checked'], $stats['values'], $stats['keys']);
+        }
+        $this->Job->saveStatus($jobId, true, $message);
+        $this->out($message);
     }
 
     public function clearBruteforce()
@@ -2245,7 +2319,7 @@ class AdminShell extends AppShell
     public function truncateTable()
     {
         if (!isset($this->args[0])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation']);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate correlation table']);
         }
         $userId = $this->args[0];
         if ($userId) {
@@ -2260,7 +2334,7 @@ class AdminShell extends AppShell
             ];
         }
         if (empty($this->args[1])) {
-            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate table correlation']);
+            $this->error('Usage: ' . $this->Server->command_line_functions['console_admin_tasks']['data']['Truncate correlation table']);
         }
         if (!empty($this->args[2])) {
             $jobId = $this->args[2];

@@ -234,6 +234,10 @@ class Event extends AppModel
                 'rule' => array('valueNotEmpty'),
                 'required' => true
             ),
+            'maxBytes' => array(
+                'rule' => array('maxBytes', 65535),
+                'message' => 'Event info cannot be longer than 65535 bytes.',
+            ),
         ),
         'user_id' => array(
             'numeric' => array(
@@ -1651,7 +1655,6 @@ class Event extends AppModel
                     'object_template_version' => array('function' => 'set_filter_object_template_version')
                 ),
                 'Attribute' => array(
-                    'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_type'),
                     'object_relation' => array('function' => 'set_filter_simple_attribute'),
@@ -1687,17 +1690,22 @@ class Event extends AppModel
                                         'event_id'
                                     )
                                 );
-                                $subQuery = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
-                                if ($param === 'value') {
-                                    $subQuery[0] = explode('WHERE', $subQuery[0]);
-                                    //$subQuery[0][0] .= ' USE INDEX (value1, value2) ';
-                                    $subQuery[0] = implode('WHERE', $subQuery[0]);
-                                }
-                                $conditions['AND'][] = $subQuery;
+                                $conditions['AND'][] = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
                             }
                         }
                     }
                 }
+            }
+            if (isset($params['value']) && $params['value'] !== false) {
+                // It reads the attributes in a subquery of its own, which a
+                // second one around it would run per event
+                $options = array(
+                    'filter' => 'value',
+                    'scope' => 'Attribute',
+                    'pop' => false,
+                    'context' => 'Event'
+                );
+                $conditions = $this->set_filter_value($params, $conditions, $options);
             }
         }
         $find_params = array(
@@ -1924,6 +1932,64 @@ class Event extends AppModel
     }
 
     /**
+     * What in an event is shared more narrowly than the event itself: the
+     * standalone attributes and the objects whose distribution is one of
+     * DistributionLevel::narrowerThan() the event's, per level, among the rows
+     * $user can see.
+     *
+     * @param array $user
+     * @param array $event ['Event' => id, distribution]
+     * @return array ['Attribute' => [level => count], 'Object' => [...]]
+     */
+    public function distributionOutliers(array $user, array $event)
+    {
+        App::uses('DistributionLevel', 'Tools');
+        $narrower = DistributionLevel::narrowerThan($event['Event']['distribution']);
+        if (empty($narrower)) {
+            return ['Attribute' => [], 'Object' => []];
+        }
+        $eventId = (int)$event['Event']['id'];
+        $isSiteAdmin = !empty($user['Role']['perm_site_admin']);
+        $sgids = $isSiteAdmin ? [] : $this->SharingGroup->authorizedIds($user);
+        $result = [];
+        foreach (['Attribute' => $this->Attribute, 'Object' => $this->Object] as $alias => $model) {
+            $conditions = [
+                $alias . '.event_id' => $eventId,
+                $alias . '.deleted' => 0,
+                $alias . '.distribution' => $narrower,
+            ];
+            if ($alias === 'Attribute') {
+                $conditions['Attribute.object_id'] = 0;
+            }
+            if (!$isSiteAdmin) {
+                $conditions['AND'][0]['OR'] = [
+                    ['AND' => [
+                        $alias . '.distribution >' => 0,
+                        $alias . '.distribution !=' => 4,
+                    ]],
+                    ['AND' => [
+                        $alias . '.distribution' => 4,
+                        $alias . '.sharing_group_id' => $sgids,
+                    ]],
+                    $this->eventOwnerSubquery($alias) . ' = ' . (int)$user['org_id'],
+                ];
+            }
+            $rows = $model->find('all', [
+                'conditions' => $conditions,
+                'fields' => [$alias . '.distribution', 'COUNT(*) AS count'],
+                'group' => [$alias . '.distribution'],
+                'recursive' => -1,
+            ]);
+            $result[$alias] = [];
+            foreach ($rows as $row) {
+                $result[$alias][(int)$row[$alias]['distribution']] = (int)$row[0]['count'];
+            }
+            ksort($result[$alias]);
+        }
+        return $result;
+    }
+
+    /**
      * Fetch paginated standalone attributes (object_id=0)
      * for a given event, with distribution-based ACL.
      *
@@ -2025,6 +2091,9 @@ class Event extends AppModel
         if (isset($options['toIDS']) && $options['toIDS'] != 0) {
             $conditions['Attribute.to_ids'] =
                 $options['toIDS'] == 2 ? 0 : 1;
+        }
+        if (isset($options['distribution']) && $options['distribution'] !== '') {
+            $conditions['Attribute.distribution'] = (int)$options['distribution'];
         }
         if (!empty($options['searchFor'])) {
             // Same reach as the classic event view's filter: a value, a UUID
@@ -2359,11 +2428,13 @@ class Event extends AppModel
      * show no proposal at all, because that attribute is filtered out of it.
      *
      * @param array $eventIds
-     * @param int|array $attrDeleted 0, 1 or [0, 1]
+     * @param array $attrDeleted condition on Attribute.deleted
      * @return array Object ids, empty when there is none
      */
-    public function objectIdsWithProposals(array $eventIds, $attrDeleted = 0)
-    {
+    public function objectIdsWithProposals(
+        array $eventIds,
+        array $attrDeleted = ['Attribute.deleted' => 0]
+    ) {
         $proposedIds = $this->proposedAttributeIds($eventIds);
         if (empty($proposedIds)) {
             return [];
@@ -2374,9 +2445,31 @@ class Event extends AppModel
                 'Attribute.event_id' => $eventIds,
                 'Attribute.id' => $proposedIds,
                 'Attribute.object_id !=' => 0,
-                'Attribute.deleted' => $attrDeleted,
+                $attrDeleted,
             ],
             'unique' => true,
+        ]);
+    }
+
+    /**
+     * The events of $eventIds whose soft-deleted rows $user may see: the ones
+     * its organisation owns, or all of them for a sync user, as fetchEvent().
+     *
+     * @param array $user
+     * @param array $eventIds
+     * @return array Event ids
+     */
+    public function eventIdsShowingDeleted(array $user, array $eventIds)
+    {
+        if ($user['Role']['perm_sync']) {
+            return $eventIds;
+        }
+        return $this->find('column', [
+            'fields' => ['Event.id'],
+            'conditions' => [
+                'Event.id' => $eventIds,
+                'Event.org_id' => $user['org_id'],
+            ],
         ]);
     }
 
@@ -2989,13 +3082,27 @@ class Event extends AppModel
         // The objects that survive are rendered whole ($attrDeleted), deleted
         // rows highlighted: a deleted object stripped of its live attributes,
         // or a live object down to its single deleted row, reads as data loss.
+        //
+        // Soft-deleted rows come only from the events whose deleted data the
+        // user may see (eventIdsShowingDeleted()).
         $deleted = (int)($options['deleted'] ?? 0);
-        $attrDeleted = $deleted === 0 ? 0 : [0, 1];
+        $deletedEventIds = $deleted === 0
+            ? [] : $this->eventIdsShowingDeleted($user, $eventIds);
+        $attrDeleted = $deleted === 0
+            ? ['Attribute.deleted' => 0]
+            : ['OR' => [
+                'Attribute.deleted' => 0,
+                'Attribute.event_id' => $deletedEventIds ?: [-1],
+            ]];
         if ($deleted === 1) {
-            $conditions['Object.deleted'] = [0, 1];
+            $conditions[] = ['OR' => [
+                'Object.deleted' => 0,
+                'Object.event_id' => $deletedEventIds ?: [-1],
+            ]];
         } elseif ($deleted === 2) {
-            $objectIdsWithDeletedAttrs =
-                $this->objectIdsWithDeletedAttributes($eventIds);
+            $conditions['Object.event_id'] = $deletedEventIds ?: [-1];
+            $objectIdsWithDeletedAttrs = empty($deletedEventIds)
+                ? [] : $this->objectIdsWithDeletedAttributes($deletedEventIds);
             $conditions[] = ['OR' => [
                 'Object.deleted' => 1,
                 'Object.id' => empty($objectIdsWithDeletedAttrs)
@@ -3022,13 +3129,16 @@ class Event extends AppModel
             $conditions['Object.meta-category'] =
                 $options['meta-category'];
         }
+        if (isset($options['distribution']) && $options['distribution'] !== '') {
+            $conditions['Object.distribution'] = (int)$options['distribution'];
+        }
 
         $sgids = $this->SharingGroup->authorizedIds($user);
         // The attributes an object is judged on: the ones it shows.
         $attrScope = [
             'Attribute.event_id' => $eventIds,
             'Attribute.object_id !=' => 0,
-            'Attribute.deleted' => $attrDeleted,
+            $attrDeleted,
         ];
         if (!$isSiteAdmin) {
             $attrScope[] = ['OR' => [
@@ -3154,7 +3264,7 @@ class Event extends AppModel
         $attrConditions = [
             'Attribute.event_id' => $eventIds,
             'Attribute.object_id' => $objectIds,
-            'Attribute.deleted' => $attrDeleted,
+            $attrDeleted,
         ];
         if (!$isSiteAdmin) {
             $attributeCondSelect = $this->eventOwnerSubquery('Attribute');
@@ -9366,6 +9476,8 @@ class Event extends AppModel
                 }
                 $objects[] = $tmp_object;
             }
+            // Read in template order
+            $this->Object->sortAttributesByTemplate($objects);
             $event['Object'] = $objects;
         }
         if (!empty($result['results']['EventReport'])) {
@@ -9616,12 +9728,6 @@ class Event extends AppModel
             if (empty($data['Event'])) {
                 $data = array('Event' => $data);
             }
-            if ($distribution == 4) {
-                // The legacy STIX 1 script takes no sharing group;
-                // set it here so _add() and _edit() both see it.
-                // The STIX 2 script already carries the same value.
-                $data['Event']['sharing_group_id'] = $sharingGroupId;
-            }
             if (!$galaxiesAsTags) {
                 if (!isset($this->GalaxyCluster)) {
                     $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -9703,46 +9809,39 @@ class Event extends AppModel
         $scriptDir = APP . 'files' . DS . 'scripts';
         if ($stixVersion === '2' || $stixVersion === '2.0' || $stixVersion === '2.1') {
             $scriptFile = $scriptDir . DS . 'stix2' . DS . 'stix2misp.py';
-            $outputPath = $file . '.out';
-            $shellCommand = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                '-i', $file,
-                '--distribution', $distribution,
-                '--org-uuid', $orgUuid
-            ];
-            if ($distribution == 4) {
-                array_push($shellCommand, '--sharing-group-id', $sharingGroupId);
-            }
-            if ($forceContextualData) {
-                $shellCommand[] = '--force-contextual-data';
-            }
-            if ($galaxiesAsTags) {
-                $shellCommand[] = '--galaxies-as-tags';
-            } else {
-                array_push($shellCommand, '--cluster-distribution', $clusterDistribution);
-                if ($clusterDistribution == 4) {
-                    array_push($shellCommand, '--cluster-sharing-group-id', $clusterSharingGroupId);
-                }
-            }
-            if ($debug) {
-                $shellCommand[] = '--debug';
-            }
             $stixVersion = "STIX 2.1";
         } else if ($stixVersion === '1' || $stixVersion === '1.1' || $stixVersion === '1.2') {
             $scriptFile = $scriptDir . DS . 'stix2misp.py';
-            $outputPath = $file . '.json';
-            $shellCommand = [
-                ProcessTool::pythonBin(),
-                $scriptFile,
-                $file,
-                $distribution,
-                Configure::read('MISP.default_attribute_distribution'),
-                $this->__getTagNamesFromSynonyms($scriptDir)
-            ];
             $stixVersion = "STIX 1.1";
         } else {
             throw new InvalidArgumentException('Invalid STIX version');
+        }
+        // Both importers are misp-stix wrappers taking the same arguments and
+        // writing the converted event next to their input
+        $outputPath = $file . '.out';
+        $shellCommand = [
+            ProcessTool::pythonBin(),
+            $scriptFile,
+            '-i', $file,
+            '--distribution', $distribution,
+            '--org-uuid', $orgUuid
+        ];
+        if ($distribution == 4) {
+            array_push($shellCommand, '--sharing-group-id', $sharingGroupId);
+        }
+        if ($forceContextualData) {
+            $shellCommand[] = '--force-contextual-data';
+        }
+        if ($galaxiesAsTags) {
+            $shellCommand[] = '--galaxies-as-tags';
+        } else {
+            array_push($shellCommand, '--cluster-distribution', $clusterDistribution);
+            if ($clusterDistribution == 4) {
+                array_push($shellCommand, '--cluster-sharing-group-id', $clusterSharingGroupId);
+            }
+        }
+        if ($debug) {
+            $shellCommand[] = '--debug';
         }
 
         try {
@@ -9779,58 +9878,6 @@ class Event extends AppModel
                 $data['Tag'][] = array('name' => $tag_name);
             }
         }
-    }
-
-    /**
-     * @param string $scriptDir
-     * @return string
-     * @throws Exception
-     */
-    private function __getTagNamesFromSynonyms($scriptDir)
-    {
-        $synonymsToTagNames = $scriptDir . DS . 'tmp' . DS . 'synonymsToTagNames.json';
-        if (!file_exists($synonymsToTagNames) || (time() - filemtime($synonymsToTagNames)) > 600) {
-            if (!isset($this->GalaxyCluster)) {
-                $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
-            }
-            // The latest version of every cluster, by tag name. This used to
-            // be a GROUP BY tag_name that also selected value and id, which
-            // MySQL tolerates (and answers with an arbitrary row per group)
-            // and PostgreSQL rejects. Ascending by version and letting the
-            // later row overwrite the earlier one is the same question asked
-            // portably, and it is what the old query was assumed to answer.
-            $clusters = array();
-            $allClusters = $this->GalaxyCluster->find('all', array(
-                'recursive' => -1,
-                'fields' => array('GalaxyCluster.value', 'GalaxyCluster.version', 'GalaxyCluster.tag_name', 'GalaxyCluster.id'),
-                'order' => array('GalaxyCluster.version ASC', 'GalaxyCluster.id ASC'),
-            ));
-            foreach ($allClusters as $cluster) {
-                $clusters[$cluster['GalaxyCluster']['tag_name']] = $cluster;
-            }
-            unset($allClusters);
-            $clusters = array_values($clusters);
-            $synonyms = $this->GalaxyCluster->GalaxyElement->find('all', array(
-                'recursive' => -1,
-                'fields' => array('galaxy_cluster_id', 'value'),
-                'conditions' => array('key' => 'synonyms')
-            ));
-            $idToSynonyms = array();
-            foreach ($synonyms as $synonym) {
-                $idToSynonyms[$synonym['GalaxyElement']['galaxy_cluster_id']][] = $synonym['GalaxyElement']['value'];
-            }
-            $mapping = array();
-            foreach ($clusters as $cluster) {
-                $mapping[$cluster['GalaxyCluster']['value']][] = $cluster['GalaxyCluster']['tag_name'];
-                if (!empty($idToSynonyms[$cluster['GalaxyCluster']['id']])) {
-                    foreach ($idToSynonyms[$cluster['GalaxyCluster']['id']] as $synonym) {
-                        $mapping[$synonym][] = $cluster['GalaxyCluster']['tag_name'];
-                    }
-                }
-            }
-            FileAccessTool::writeToFile($synonymsToTagNames, JsonTool::encode($mapping));
-        }
-        return $synonymsToTagNames;
     }
 
     public function enrichmentRouter($options)
@@ -11929,7 +11976,7 @@ class Event extends AppModel
                     if (empty($analystData['object_type'])) {
                         $analystData['object_type'] = $parentObjectType;
                     }
-                    if (empty($analystData['object_uuid'])) {
+                    if (empty($analystData['object_uuid']) && $analystData['object_type'] === $parentObjectType) {
                         $analystData['object_uuid'] = $parentObjectUUID;
                     }
                     $this->{$type}->captureAnalystData($user, $analystData);

@@ -417,6 +417,13 @@ class Correlation extends AppModel
      */
     private function __saveCorrelations(array $correlations)
     {
+        // An attribute reaching another through both of its values yields the same row twice,
+        // and one duplicate fails the whole multi-row insert.
+        $unique = [];
+        foreach ($correlations as $correlation) {
+            $unique[serialize($correlation)] = $correlation;
+        }
+        $correlations = array_values($unique);
         try {
             return $this->saveCorrelations($correlations);
         } catch (Exception $e) {

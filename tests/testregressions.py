@@ -22,7 +22,8 @@ import requests
 import urllib3  # type: ignore
 
 try:
-    from pymisp import PyMISP, MISPEvent, MISPObject, MISPUser, MISPOrganisation, MISPSighting
+    from pymisp import (PyMISP, MISPEvent, MISPEventReport, MISPObject, MISPUser,
+                        MISPOrganisation, MISPSighting)
 except ImportError:
     if sys.version_info < (3, 6):
         print('This test suite requires Python 3.6+, breaking.')
@@ -552,6 +553,182 @@ class ObjectSearchAcl(unittest.TestCase):
     def test_owner_still_finds_its_own_attribute(self):
         self.assertIn(self.object_id, self._found(self.owner, 'hidden'),
                       'the owner lost the search on its organisation-only attribute')
+
+
+class SoftDeletedEventTabsAcl(unittest.TestCase):
+    """The event view's objects and reports tabs show soft-deleted rows only to the event owner.
+
+    With the Deleted filter on (deleted 1 or 2), fetchPaginatedObjects() and
+    fetchPaginatedReports() returned soft-deleted objects, object attributes and reports to
+    anyone who could see the event, where fetchEvent() keeps them to the owner org and sync
+    users. Only the themed event view serves the endpoints (MISP.enable_themes), so the class
+    skips where it is off.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        if not cls.admin.get_server_setting('MISP.enable_themes')['value']:
+            raise unittest.SkipTest('the event view tabs need MISP.enable_themes')
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+        cls.owner_org = make_org(cls.admin, 'regression deleted tabs owner org')
+        cls.outsider_org = make_org(cls.admin, 'regression deleted tabs outsider org')
+        cls.created_orgs = [cls.owner_org, cls.outsider_org]
+        cls.owner_user = make_user(cls.admin, cls.owner_org.id, cls.role_id)
+        cls.outsider_user = make_user(cls.admin, cls.outsider_org.id, cls.role_id)
+        cls.created_users = [cls.owner_user, cls.outsider_user]
+        cls.owner = PyMISP(url, cls.owner_user.authkey)
+        cls.owner.global_pythonify = True
+        cls.outsider = PyMISP(url, cls.outsider_user.authkey)
+        cls.outsider.global_pythonify = True
+        cls._seed()
+
+    @classmethod
+    def tearDownClass(cls):
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    @classmethod
+    def _seed(cls):
+        """A community event of the owner org with a live object holding a soft-deleted
+        attribute, a soft-deleted object, and a live and a soft-deleted report."""
+        event = MISPEvent()
+        event.info = 'regression deleted tabs %s' % random()
+        event.distribution = 1        # community, so the outsider can open it
+        cls.event = check_response(cls.owner.add_event(event))
+
+        live = MISPObject('file')
+        live.distribution = 5         # inherit the event
+        live.add_attribute('filename', value='kept-%s.txt' % random(), distribution=5)
+        live.add_attribute('filename', value='gone-%s.txt' % random(), distribution=5)
+        live = check_response(cls.owner.add_object(cls.event.id, live))
+        cls.live_id = int(live.id)
+        cls.kept_id, cls.gone_id = (int(a.id) for a in live.attributes)
+        check_response(cls.owner.delete_attribute(cls.gone_id))
+
+        dropped = MISPObject('file')
+        dropped.distribution = 5
+        dropped.add_attribute('filename', value='dropped-%s.txt' % random(), distribution=5)
+        dropped = check_response(cls.owner.add_object(cls.event.id, dropped))
+        cls.dropped_id = int(dropped.id)
+        check_response(cls.owner.delete_object(cls.dropped_id))
+
+        cls.report_ids = {}
+        for name in ('kept', 'gone'):
+            report = MISPEventReport()
+            report.name = '%s report %s' % (name, random())
+            report.content = name
+            report.distribution = 5
+            report = check_response(cls.owner.add_event_report(cls.event.id, report))
+            cls.report_ids[name] = int(report.id)
+        check_response(cls.owner.delete_event_report(cls.report_ids['gone']))
+
+    def _tab(self, connector, tab, deleted):
+        response = connector._prepare_request(
+            'POST', 'events/%s/%d' % (tab, int(self.event.id)), data={'deleted': deleted})
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return response.json()
+
+    def _objects(self, connector, deleted):
+        """Object id -> the ids of the attributes it shows."""
+        return {int(o['id']): [int(a['id']) for a in o.get('Attribute', [])]
+                for o in self._tab(connector, 'viewObjects', deleted).get('Object', [])}
+
+    def _reports(self, connector, deleted):
+        return [int(r['EventReport']['id'])
+                for r in self._tab(connector, 'viewEventReports', deleted).get('EventReport', [])]
+
+    def test_outsider_gets_no_soft_deleted_object_data(self):
+        objects = self._objects(self.outsider, 1)
+        self.assertIn(self.live_id, objects,
+                      'the outsider cannot read the objects at all, so the test proves nothing')
+        self.assertIn(self.kept_id, objects[self.live_id])
+        self.assertNotIn(self.gone_id, objects[self.live_id],
+                         "another organisation's soft-deleted attribute was shown")
+        self.assertNotIn(self.dropped_id, objects,
+                         "another organisation's soft-deleted object was shown")
+        self.assertEqual({}, self._objects(self.outsider, 2),
+                         'the Deleted filter listed objects to the outsider')
+
+    def test_outsider_gets_no_soft_deleted_report(self):
+        self.assertEqual([self.report_ids['kept']], self._reports(self.outsider, 1),
+                         "another organisation's soft-deleted report was shown")
+        self.assertEqual([], self._reports(self.outsider, 2),
+                         "another organisation's soft-deleted report was shown")
+
+    def test_owner_keeps_its_soft_deleted_rows(self):
+        objects = self._objects(self.owner, 2)
+        self.assertEqual({self.live_id, self.dropped_id}, set(objects))
+        self.assertIn(self.gone_id, objects[self.live_id])
+        self.assertEqual([self.report_ids['gone']], self._reports(self.owner, 2))
+
+
+class SoftDeletedReportsAcl(unittest.TestCase):
+    """event_reports/view and event_reports/index serve a soft-deleted report only to the event owner.
+
+    Every report read goes through EventReport::buildACLConditions(), which checked the
+    distribution alone, so any organisation that could see the event read a retracted report's
+    content, where fetchEvent() keeps soft-deleted rows to the owner org and sync users.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        cls.admin = PyMISP(url, key)
+        cls.admin.global_pythonify = True
+        cls.role_id = least_privileged_role(cls.admin, 'perm_add')
+        cls.owner_org = make_org(cls.admin, 'regression deleted reports owner org')
+        cls.outsider_org = make_org(cls.admin, 'regression deleted reports outsider org')
+        cls.created_orgs = [cls.owner_org, cls.outsider_org]
+        cls.owner_user = make_user(cls.admin, cls.owner_org.id, cls.role_id)
+        cls.outsider_user = make_user(cls.admin, cls.outsider_org.id, cls.role_id)
+        cls.created_users = [cls.owner_user, cls.outsider_user]
+        cls.owner = PyMISP(url, cls.owner_user.authkey)
+        cls.owner.global_pythonify = True
+        cls.outsider = PyMISP(url, cls.outsider_user.authkey)
+        cls.outsider.global_pythonify = True
+
+        event = MISPEvent()
+        event.info = 'regression deleted reports %s' % random()
+        event.distribution = 1        # community, so the outsider can open it
+        cls.event = check_response(cls.owner.add_event(event))
+        cls.report_ids = {}
+        for name in ('kept', 'gone'):
+            report = MISPEventReport()
+            report.name = '%s report %s' % (name, random())
+            report.content = name
+            report.distribution = 5
+            report = check_response(cls.owner.add_event_report(cls.event.id, report))
+            cls.report_ids[name] = int(report.id)
+        check_response(cls.owner.delete_event_report(cls.report_ids['gone']))
+
+    @classmethod
+    def tearDownClass(cls):
+        drop_fixtures(cls.admin, cls.created_orgs, cls.created_users)
+
+    def _view(self, connector, name):
+        return connector._prepare_request('GET', 'event_reports/view/%d' % self.report_ids[name])
+
+    def _index(self, connector, context):
+        response = connector._prepare_request(
+            'GET', 'event_reports/index/event_id:%d/context:%s' % (int(self.event.id), context))
+        self.assertEqual(200, response.status_code, response.text[:300])
+        return sorted(int(r['EventReport']['id']) for r in response.json())
+
+    def test_outsider_cannot_read_a_soft_deleted_report(self):
+        self.assertEqual(200, self._view(self.outsider, 'kept').status_code,
+                         'the outsider cannot read the reports at all, so the test proves nothing')
+        self.assertEqual(404, self._view(self.outsider, 'gone').status_code,
+                         "another organisation's soft-deleted report was served")
+        self.assertEqual([], self._index(self.outsider, 'deleted'),
+                         "another organisation's soft-deleted report was listed")
+        self.assertEqual([self.report_ids['kept']], self._index(self.outsider, 'all'))
+
+    def test_owner_keeps_its_soft_deleted_report(self):
+        self.assertEqual(200, self._view(self.owner, 'gone').status_code)
+        self.assertEqual([self.report_ids['gone']], self._index(self.owner, 'deleted'))
+        self.assertEqual(sorted(self.report_ids.values()), self._index(self.owner, 'all'))
 
 
 if __name__ == '__main__':

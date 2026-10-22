@@ -701,7 +701,7 @@ class SharingGroup extends AppModel
      */
     private function captureSGExisting($user, $existingSG, $sg)
     {
-        if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id']) && !$user['Role']['perm_sync']) {
+        if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id'])) {
             return false;
         }
         if (empty($sg['modified']) || $sg['modified'] > $existingSG['SharingGroup']['modified']) {

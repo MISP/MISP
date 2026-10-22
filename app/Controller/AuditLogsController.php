@@ -362,8 +362,12 @@ class AuditLogsController extends AppController
     {
         $user = $this->_closeSession();
         if (!$user['Role']['perm_sharing_group'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
-            if ($org !== 'all' && $org !== $user['Organisation']['name']) {
-                throw new MethodNotAllowedException('Invalid organisation.');
+            if ($org !== 'all') {
+                $this->loadModel('Organisation');
+                $requested = $this->Organisation->fetchOrg($org);
+                if (empty($requested) || (int)$requested['id'] !== (int)$user['org_id']) {
+                    throw new MethodNotAllowedException('Invalid organisation.');
+                }
             }
         }
 

@@ -92,7 +92,7 @@
                     } else {
                         foreach ($sharingGroup['SharingGroupOrg'] as $sge) {
                             if (!empty($sge['Organisation'])) {
-                                $combined .= "<br><a href='" . $baseurl . "/organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
+                                $combined .= "<br><a href='" . $baseurl . "/organisations/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
                                 if ($sge['extend']) {
                                     $combined .= ' (can extend)';
                                 }
@@ -105,7 +105,7 @@
                     } else {
                         foreach ($sharingGroup['SharingGroupServer'] as $sgs) {
                             if ($sgs['server_id'] != 0) {
-                                $combined .= "<br><a href='" . $baseurl . "/server/view/" . h($sgs['Server']['id']) . "'>" . h($sgs['Server']['name']) . "</a>";
+                                $combined .= "<br>" . h($sgs['Server']['name']);
                             } else {
                                 $combined .= "<br>This instance";
                             }

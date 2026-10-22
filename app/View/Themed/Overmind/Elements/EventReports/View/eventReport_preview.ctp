@@ -33,10 +33,13 @@ $overlayHtml = '
                         <span class="misp-icon misp-icon-report misp-simple" style="color:#10B981;font-size:1rem;"></span>
                     </div>
                     <div>
-                        <div class="fw-bold lh-1"><?= __('First Event Report') ?></div>
+                        <div class="fw-bold lh-1"><?= __('Latest Event Report') ?></div>
                         <?php if ($hasReport): ?>
                             <div class="small text-muted mt-1">
-                                <?= __('Created on %s', $this->Time->time($reportData['timestamp'])) ?>
+                                <?php if (!empty($reportData['name'])): ?>
+                                    <span class="fw-semibold text-body-emphasis"><?= h($reportData['name']) ?></span> &middot;
+                                <?php endif; ?>
+                                <?= __('Last modified %s', $this->Time->time($reportData['timestamp'])) ?>
                             </div>
                         <?php endif; ?>
                     </div>

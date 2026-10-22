@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 App::uses('AttachmentTool', 'Tools');
 App::uses('JsonTool', 'Tools');
+App::uses('ServerSyncTool', 'Tools');
 App::uses('SecurityAudit', 'Tools');
 App::uses('SystemSetting', 'Model');
 
@@ -557,19 +558,11 @@ class ServersController extends AppController
                     if (empty($this->request->data['Server']['remote_org_id'])) {
                         return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Remote Organisation\'s id/uuid not given (remote_org_id)'), $this->response->type());
                     }
-                    if (Validation::uuid($this->request->data['Server']['remote_org_id'])) {
-                        $orgCondition = array('uuid' => $this->request->data['Server']['remote_org_id']);
-                    } else {
-                        $orgCondition = array('id' => $this->request->data['Server']['remote_org_id']);
-                    }
-                    $existingOrgs = $this->Server->Organisation->find('first', array(
-                            'conditions' => $orgCondition,
-                            'recursive' => -1,
-                            'fields' => array('id', 'uuid')
-                    ));
-                    if (empty($existingOrgs)) {
+                    $remoteOrgId = $this->__findOrgId($this->request->data['Server']['remote_org_id']);
+                    if ($remoteOrgId === false) {
                         return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Invalid Remote Organisation'), $this->response->type());
                     }
+                    $this->request->data['Server']['remote_org_id'] = $remoteOrgId;
                 } else {
                     if ($this->request->data['Server']['organisation_type'] === ""){
                         $fail = true;
@@ -774,6 +767,13 @@ class ServersController extends AppController
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
                 }
+                if ($this->_isRest() && !isset($json) && !empty($this->request->data['Server']['remote_org_id'])) {
+                    $remoteOrgId = $this->__findOrgId($this->request->data['Server']['remote_org_id']);
+                    if ($remoteOrgId === false) {
+                        return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('Organisation' => 'Invalid Remote Organisation'), $this->response->type());
+                    }
+                    $this->request->data['Server']['remote_org_id'] = $remoteOrgId;
+                }
                 if (isset($this->request->data['Server']['organisation_type']) && isset($json)) {
                     // adds 'remote_org_id' in the fields to update
                     $fieldList[] = 'remote_org_id';
@@ -933,7 +933,7 @@ class ServersController extends AppController
         if ($this->Server->delete()) {
             $message = __('Server deleted');
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'delete', $id, $this->response->type(), $message);
             } else {
                 $this->Flash->success($message);
                 $this->redirect(array('controller' => 'servers', 'action' => 'index'));
@@ -969,44 +969,72 @@ class ServersController extends AppController
     public function eventBlockRule()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $setting = $this->AdminSetting->find('first', [
-            'conditions' => ['setting' => 'eventBlockRule'],
-            'recursive' => -1
-        ]);
-        if (empty($setting)) {
-            $setting = ['setting' => 'eventBlockRule'];
-            if ($this->request->is('post')) {
-                $this->AdminSetting->create();
-            }
-        }
+        $value = $this->AdminSetting->getSetting('eventBlockRule') ?: '';
         if ($this->request->is('post')) {
-            if (!empty($this->request->data['Server'])) {
-                $this->request->data = $this->request->data['Server'];
-            }
-            $setting['AdminSetting']['setting'] = 'eventBlockRule';
-            $setting['AdminSetting']['value'] = $this->request->data['value'];
-            $result = $this->AdminSetting->save($setting);
-            if ($result) {
-                $message = __('Settings saved');
-            } else {
-                $message = __('Could not save the settings. Invalid input.');
+            $data = $this->request->data['Server'] ?? $this->request->data;
+            $value = $data['value'] ?? null;
+            $message = $this->__eventBlockRuleError($value);
+            $result = false;
+            if ($message === null) {
+                $result = $this->AdminSetting->changeSetting('eventBlockRule', $value) === true;
+                $message = $result ? __('Settings saved') : __('Could not save the settings.');
             }
             if ($this->_isRest()) {
                 if ($result) {
-                    return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', $message, $this->response->type());
+                    return $this->RestResponse->saveSuccessResponse('Servers', 'eventBlockRule', false, $this->response->type(), $message);
                 } else {
                     return $this->RestResponse->saveFailResponse('Servers', 'eventBlockRule', false, $message, $this->response->type());
                 }
             } else {
                 if ($result) {
                     $this->Flash->success($message);
-                    $this->redirect('/');
+                    return $this->redirect(['action' => 'eventBlockRule']);
                 } else {
                     $this->Flash->error($message);
                 }
             }
+        } elseif ($this->_isRest()) {
+            return $this->RestResponse->viewData(['value' => $value], $this->response->type());
         }
-        $this->set('setting', $setting);
+        $this->set('setting', ['AdminSetting' => ['setting' => 'eventBlockRule', 'value' => is_string($value) ? $value : '']]);
+    }
+
+    /**
+     * The rule set Event::checkEventBlockRules() understands: empty for none,
+     * or a JSON object whose only key, "tags", holds a tag name or a list of them.
+     *
+     * @param mixed $value
+     * @return string|null Why the rule set is refused, null when it is valid
+     */
+    private function __eventBlockRuleError($value)
+    {
+        if (!is_string($value)) {
+            return __('The rule set has to be given as a JSON string in "value".');
+        }
+        if (trim($value) === '') {
+            return null;
+        }
+        try {
+            $rules = json_decode($value, false, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            return __('The rule set is not valid JSON: %s', $e->getMessage());
+        }
+        if (!$rules instanceof stdClass) {
+            return __('The rule set has to be a JSON object, such as {"tags": ["tlp:red"]}.');
+        }
+        $unknown = array_diff(array_keys((array)$rules), ['tags']);
+        if (!empty($unknown)) {
+            return __('Unknown key(s) in the rule set: %s. Only "tags" is supported.', implode(', ', $unknown));
+        }
+        if (isset($rules->tags)) {
+            $tags = is_array($rules->tags) ? $rules->tags : [$rules->tags];
+            foreach ($tags as $tag) {
+                if (!is_string($tag)) {
+                    return __('"tags" has to be a tag name or a list of tag names.');
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -1169,11 +1197,25 @@ class ServersController extends AppController
             $message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
 
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'push', $id, $this->response->type(), $message);
             }
             $this->Flash->success($message);
             $this->redirect(array('action' => 'index'));
         }
+    }
+
+    /**
+     * @param int|string $idOrUuid
+     * @return int|false
+     */
+    private function __findOrgId($idOrUuid)
+    {
+        $org = $this->Server->Organisation->find('first', [
+            'conditions' => [Validation::uuid($idOrUuid) ? 'uuid' : 'id' => $idOrUuid],
+            'recursive' => -1,
+            'fields' => ['id'],
+        ]);
+        return empty($org) ? false : (int)$org['Organisation']['id'];
     }
 
     private function __saveCert($server, $id, $client = false, $delete = false)
@@ -2498,7 +2540,7 @@ class ServersController extends AppController
                         }
                     }
                 }
-                if (!$mismatch && $version[1] == 4 && $version[2] < 111) {
+                if (!$mismatch && version_compare($result['info']['version'], '2.4.111', '<')) {
                     $mismatch = 'proposal';
                 }
                 if (!$perm_sync && !$perm_sighting) {
@@ -2515,6 +2557,9 @@ class ServersController extends AppController
                     if ($version[1] == 4 && $version[2] < 111) {
                             $mismatch = 'proposal';
                     }
+                }
+                if ($mismatch === 'major' && ServerSyncTool::isCrossMajorCompatible(implode('.', $local_version), $result['info']['version'])) {
+                    $mismatch = 'major_compatible';
                 }
                 return $this->RestResponse->viewData([
                     'status' => 1,
@@ -2975,7 +3020,7 @@ public function updateJSON()
                 $this->Flash->error($result);
                 $this->redirect(array('action' => 'index'));
             } else {
-                return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $message, $this->response->type());
+                return $this->RestResponse->saveFailResponse('Servers', 'resetRemoteAuthKey', $id, $result, $this->response->type());
             }
         } else {
             $message = __('API key updated.');
@@ -2983,7 +3028,7 @@ public function updateJSON()
                 $this->Flash->success($message);
                 $this->redirect(array('action' => 'index'));
             } else {
-                return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $message, $this->response->type());
+                return $this->RestResponse->saveSuccessResponse('Servers', 'resetRemoteAuthKey', $id, $this->response->type(), $message);
             }
         }
     }
@@ -3000,7 +3045,7 @@ public function updateJSON()
         $success = $this->Server->reprioritise($id, $direction);
         if ($success) {
             $message = __('Priority changed.');
-            return $this->RestResponse->saveSuccessResponse('Servers', 'changePriority', $message, $this->response->type());
+            return $this->RestResponse->saveSuccessResponse('Servers', 'changePriority', $id, $this->response->type(), $message);
         } else {
             $message = __('Priority could not be changed.');
             return $this->RestResponse->saveFailResponse('Servers', 'changePriority', $id, $message, $this->response->type());
@@ -3271,7 +3316,8 @@ public function updateJSON()
 
     public function ipUser($input = false)
     {
-        $params = $this->IndexFilter->harvestParameters(['ip']);
+        $exception = null;
+        $params = $this->IndexFilter->harvestParameters(['ip'], $exception, ['fromQuery' => true]);
         if (!empty($params['ip'])) {
             $input = $params['ip'];
         }

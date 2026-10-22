@@ -219,6 +219,8 @@ class FeedsController extends AppController
         $otherFeeds = $this->Feed->getAllCachingEnabledFeeds($feedId, true);
         $this->set('other_feeds', $otherFeeds);
         $this->set('feedId', $feedId);
+        $withTimestamp = $this->Feed->attachFeedCacheTimestamps([$this->viewVars['data']]);
+        $this->set('cacheTimestamp', $withTimestamp[0]['Feed']['cache_timestamp'] ?? null);
 
         $this->loadModel('Event');
         $distributionLevels = $this->Event->distributionLevels;

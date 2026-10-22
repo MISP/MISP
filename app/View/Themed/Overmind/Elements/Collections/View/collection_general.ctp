@@ -1,147 +1,43 @@
 <?php
-
 $collection = $data['Collection'] ?? $data;
-
+$description = trim((string)($collection['description'] ?? ''));
+$canEdit = !empty($isSiteAdmin) || !empty($mayModify);
+$editUrl = $baseurl . '/collections/edit/' . $collection['id'];
 ?>
 
-<div class="card mb-3 shadow-sm">
+<div class="card mb-3 border-0 shadow-sm overflow-hidden">
+    <div style="height:3px;background:linear-gradient(90deg, var(--bs-primary), rgba(var(--bs-primary-rgb), 0));"></div>
 
-    <div class="card-body">
-
-        <!-- NAME -->
-        <div class="mb-4">
-            <div class="text-muted small bold text-uppercase fw-bold mb-1">
-                <?= __('Name') ?>
+    <?php if ($description !== ''): ?>
+        <div class="card-body px-4 py-3">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary flex-shrink-0"
+                      style="width:1.75rem;height:1.75rem;">
+                    <i class="fas fa-align-left fa-xs"></i>
+                </span>
+                <span class="text-body-secondary small text-uppercase fw-bold"><?= __('Description') ?></span>
             </div>
-
-            <div class="fw-semibold fs-5">
-                <?= h($collection['name'] ?? '') ?>
-            </div>
+            <p class="mb-0 fs-6 lh-lg text-body text-break">
+                <?= nl2br(h($description)) ?>
+            </p>
         </div>
-
-        <!-- DESCRIPTION -->
-        <div class="mb-4">
-            <div class="text-muted small text-uppercase fw-bold mb-1">
-                <?= __('Description') ?>
+    <?php else: ?>
+        <div class="card-body d-flex flex-column align-items-center text-center gap-2 py-4">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-body-tertiary text-body-secondary"
+                  style="width:2.5rem;height:2.5rem;">
+                <i class="fas fa-align-left"></i>
+            </span>
+            <div class="fw-semibold"><?= __('No description yet') ?></div>
+            <div class="text-body-secondary small">
+                <?= __('A short summary helps others understand what this collection gathers and why.') ?>
             </div>
-
-            <div class="bg-light border rounded p-3">
-                <?= nl2br(h($collection['description'] ?? '')) ?>
-            </div>
+            <?php if ($canEdit): ?>
+                <a href="<?= h($editUrl) ?>"
+                   class="btn btn-sm btn-outline-primary rounded-pill px-3 mt-1"
+                   onclick="event.preventDefault(); openModal(this.href);">
+                    <i class="fas fa-plus me-1"></i><?= __('Add a description') ?>
+                </a>
+            <?php endif; ?>
         </div>
-
-        <!-- META GRID -->
-        <div class="row g-3">
-
-            <!-- ID -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    ID
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <div class="bg-light rounded px-2 py-1">
-                        <?= h($collection['id'] ?? '') ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- UUID -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    UUID
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-
-                    <div class="bg-light rounded px-2 py-1" id="uuid-value">
-                        <?= h($collection['uuid'] ?? '') ?>
-                    </div>
-
-                    <!-- COPY BUTTON -->
-                    <button
-                        class="text-muted border-0 bg-white"
-                        onclick="copyToClipboard(this, '<?= h(h($collection['uuid'] ?? '')) ?>')"
-                        data-bs-toggle="tooltip"
-                        title="<?= __('Copy UUID') ?>"
-                        aria-label="<?= __('Copy UUID') ?>">
-                        <i class="fas fa-copy"></i>
-                    </button>
-
-                </div>
-            </div>
-
-            <!-- DISTRIBUTION -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Distribution') ?>
-                </div>
-
-                <?= $this->element('genericElementsBS5/Badges/distribution',
-                    [
-                        'distribution' => $collection['distribution'],
-                        'full' => true
-                    ]
-                ); ?>
-                <?php if ((int)$collection['distribution'] === 4): ?>
-                    <div class="py-1">
-                        <?= $this->element('genericElementsBS5/Badges/sharing_group', [
-                            'sharingGroup' => $collection['SharingGroup'] ?? [],
-                        ]); ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <!-- CREATOR ORG -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Creator Org') ?>
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <?= $this->OrgImg->getOrgLogoV2($collection['Orgc'], 24, false); ?>
-                    <?= h($collection['Orgc']['name'] ?? '') ?>
-                </div>
-            </div>
-
-            <!-- OWNER ORG -->
-            <div class="col-md-4">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Owner Org') ?>
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <?= $this->OrgImg->getOrgLogoV2($collection['Org'], 24, false); ?>
-                    <?= h($collection['Org']['name'] ?? '') ?>
-                </div>
-            </div>
-
-            <!-- CREATED -->
-            <div class="col-md-2">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Created at') ?>
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fas fa-calendar-alt text-muted"></i>
-                    <?= !empty($collection['created']) ? $this->Time->time($collection['created']) : '' ?>
-                </div>
-            </div>
-
-            <!-- MODIFIED -->
-            <div class="col-md-2">
-                <div class="text-muted small text-uppercase fw-bold mb-1">
-                    <?= __('Modified at') ?>
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fas fa-history text-muted"></i>
-                    <?= !empty($collection['modified']) ? $this->Time->time($collection['modified']) : '' ?>
-                </div>
-            </div>
-
-        </div>
-
-    </div>
-
+    <?php endif; ?>
 </div>
