@@ -17,7 +17,11 @@ $isCard  = isset($viewMode) && $viewMode === 'card';
         <i class="<?= $faClass ?>"></i>
     </span>
     <div class="d-flex flex-column overflow-hidden" style="min-width:0;">
-        <span class="fw-semibold<?= $isCard ? '' : ' text-truncate' ?>" title="<?= h($name) ?>"><?= h($name) ?></span>
+        <?php if (!empty($viewUrl)): ?>
+            <a href="<?= h($viewUrl) ?>" class="fw-semibold link-body-emphasis link-underline-opacity-0 link-underline-opacity-100-hover<?= $isCard ? '' : ' text-truncate' ?>" title="<?= h($name) ?>"><?= h($name) ?></a>
+        <?php else: ?>
+            <span class="fw-semibold<?= $isCard ? '' : ' text-truncate' ?>" title="<?= h($name) ?>"><?= h($name) ?></span>
+        <?php endif; ?>
         <?php if (!empty($description)): ?>
             <span class="text-muted small <?= $isCard ? 'idx-clamp-2' : 'text-truncate' ?>"
                   <?= $isCard ? '' : 'style="max-width:480px;"' ?>
