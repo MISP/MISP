@@ -3,10 +3,10 @@
  *
  * jQuery-free BS5 rewrite of app/View/Events/import_module.ctp: same field
  * names (Event.config.*, Event.source, Event.paste, Event.fileupload) so the
- * importModule POST handler is unchanged. No SideMenu. The Import button is a
- * native submit → full-page POST → result screen renders with the legacy stack.
+ * importModule POST handler is unchanged. No SideMenu. The form posts into a
+ * chained modal, where the import results are reviewed.
  *
- * Vars: $module, $configTypes, $eventId, $event, $mayModify.
+ * Vars: $module, $configTypes, $eventId, $event, $mayModify, $moduleError.
  */
 
 $eventId = (int)$eventId;
@@ -43,6 +43,10 @@ if ($hasPaste && $hasFile) {
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4">
     <?php echo $this->Form->create('', ['type' => 'file', 'id' => 'importModuleForm']); ?>
+
+    <?php if (!empty($moduleError)): ?>
+        <div class="alert alert-danger py-2 mb-3"><?= h($moduleError) ?></div>
+    <?php endif; ?>
 
     <?php if (isset($module['meta']['description'])): ?>
         <p class="text-muted mb-3"><?= h($module['meta']['description']) ?></p>
@@ -165,6 +169,17 @@ if ($hasPaste && $hasFile) {
     if (src && src.type === 'checkbox') {
         src.addEventListener('change', toggle);
         toggle();
+    }
+
+    var form = document.getElementById('importModuleForm');
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            if (!document.getElementById('mainModal')) {
+                return;
+            }
+            e.preventDefault();
+            openModalPostChained(form.getAttribute('action'), new FormData(form));
+        });
     }
 })();
 </script>

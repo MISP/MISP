@@ -9163,6 +9163,7 @@ class EventsController extends AppController
         if ($this->request->is('ajax')) {
             $this->layout = false;
         }
+        $overmindModal = $this->request->is('ajax') && $this->theme === 'Overmind';
 
         $this->loadModel('Module');
         $module = $this->Module->getEnabledModule($moduleName, 'Import', $this->Auth->user());
@@ -9267,13 +9268,15 @@ class EventsController extends AppController
                     if (!$result) {
                         throw new InternalErrorException(__('Import service not reachable.'));
                     }
-                    if (isset($result['error'])) {
-                        $this->Flash->error($result['error']);
+                    $moduleError = isset($result['error']) ? $result['error'] : null;
+                    if ($moduleError !== null && !$overmindModal) {
+                        $this->Flash->error($moduleError);
                     }
                     if (!is_array($result)) {
                         throw new Exception($result);
                     }
                     $importComment = !empty($result['comment']) ? $result['comment'] : 'Enriched via the ' . $module['name'] . ' module';
+                    $this->set('backPath', '/events/importModule/' . $module['name'] . '/' . $eventId);
                     if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
                         // TODO: route non-modifiers through proposals to match __pushFreetext().
                         if (!$mayModify) {
@@ -9287,6 +9290,8 @@ class EventsController extends AppController
                         }
                         $this->set('event', $resolvedEvent);
                         $this->set('menuItem', 'importResults');
+                        $this->set('type', 'Import');
+                        $this->set('emptyMessage', $moduleError);
                         $render_name = 'resolved_misp_format';
                     } else {
                         $resultArray = $this->Event->handleModuleResult($result, $eventId);
@@ -9311,7 +9316,15 @@ class EventsController extends AppController
                         $this->set('typeDefinitions', $this->Event->Attribute->typeDefinitions);
                         $this->set('typeCategoryMapping', $typeCategoryMapping);
                         $this->set('defaultAttributeDistribution', $this->Event->Attribute->defaultDistribution());
-                        $render_name = 'resolved_attributes';
+                        if ($this->theme === 'Overmind') {
+                            $this->set('proposals', !$mayModify);
+                            $this->set('missingTldLists', []);
+                            $this->set('moduleError', $moduleError);
+                            $this->set('eyebrow', __('Import module'));
+                            $render_name = 'freetext_resolution';
+                        } else {
+                            $render_name = 'resolved_attributes';
+                        }
                     }
 
                     $distributionData = $this->Event->Attribute->fetchDistributionData($this->Auth->user());
@@ -9324,7 +9337,11 @@ class EventsController extends AppController
                 }
             }
             if ($fail) {
-                $this->Flash->error($fail);
+                if ($overmindModal) {
+                    $this->set('moduleError', $fail);
+                } else {
+                    $this->Flash->error($fail);
+                }
             }
         }
         $this->set('configTypes', Module::CONFIG_TYPES);
