@@ -215,10 +215,10 @@ $foldChildren = empty($objects) ? [] : [
                     <button id="obj-multi-graph-button"
                             class="btn btn-analystGraph btn-sm d-none"
                             type="button"
-                            title="<?= __('Add the selected to the active graph') ?>"
-                            aria-label="<?= __('Add the selected to the active graph') ?>">
+                            title="<?= __('Add the selected to the active workspace') ?>"
+                            aria-label="<?= __('Add the selected to the active workspace') ?>">
                         <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
-                        <span class="text-white"> <?= __('Graph') ?></span>
+                        <span class="text-white"> <?= __('Workspace') ?></span>
                     </button>
                     <button id="obj-multi-delete-button"
                             class="btn btn-outline-danger btn-sm d-none"
@@ -246,11 +246,11 @@ $foldChildren = empty($objects) ? [] : [
                     <button id="mass-graph-button"
                             class="btn btn-analystGraph btn-sm d-none"
                             type="button"
-                            title="<?= __('Add the selected to the active graph') ?>"
-                            aria-label="<?= __('Add the selected to the active graph') ?>"
+                            title="<?= __('Add the selected to the active workspace') ?>"
+                            aria-label="<?= __('Add the selected to the active workspace') ?>"
                             onclick="addSelectedToGraph(this)">
                         <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
-                        <span class="text-white"> <?= __('Graph') ?></span>
+                        <span class="text-white"> <?= __('Workspace') ?></span>
                     </button>
                     <?php endif; ?>
                     <?php if ($canEdit): ?>
@@ -455,7 +455,7 @@ $foldChildren = empty($objects) ? [] : [
                             <a href="#" class="btn btn-sm btn-outline-analystGraph<?= $objCanEdit ? '' : ' ms-auto' ?>"
                                data-intel-graph-add="<?= h(json_encode([['type' => 'Object', 'uuid' => $object['uuid'], 'label' => $object['name']]])) ?>">
                                 <i class="misp-icon misp-icon-analyst-graph misp-simple me-1"></i>
-                                <?= __('Add to graph') ?>
+                                <?= __('Add to workspace') ?>
                             </a>
                         <?php endif; ?>
                         <?php if ($_canCollect): ?>

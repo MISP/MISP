@@ -968,7 +968,7 @@ class NavbarHelper extends AppHelper {
     }
 
     /**
-     * The analyst graph "Add to graph" feeds, when the controller says this
+     * The workspace "Add to workspace" feeds, when the controller says this
      * user may have one (AppController::beforeRender sets `intelGraph`).
      */
     private function buildIntelGraphItem(array $context)
@@ -978,9 +978,9 @@ class NavbarHelper extends AppHelper {
             'type' => 'intelGraph',
             'id' => 'intel-graph',
             'requirement' => !empty($context['intelGraph']),
-            'label' => $graph ? $graph['name'] : __('No graph'),
+            'label' => $graph ? $graph['name'] : __('No workspace'),
             'count' => $graph ? (int)$graph['node_count'] : null,
-            'title' => __('Analyst graph'),
+            'title' => __('Workspace'),
             'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',
         ];
     }

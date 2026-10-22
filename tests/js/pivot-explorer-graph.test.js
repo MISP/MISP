@@ -2539,7 +2539,7 @@ const shows = (g, text, data) => menuItem(g, text).visible(data === null ? null 
 test('18: MISP adds six entries to the node menu, after the library\'s own', async () => {
     const g = await buildGraph(ev({ Object: [obj({ uuid: 'A' })] }));
     eq('in this order', g.opts.UI.contextMenu.menuNode.menu.map(i => [i.text, i.iconClass]), [
-        ['Save this element', 'fas fa-save'], ['Add to active graph', 'fas fa-circle-nodes'],
+        ['Save this element', 'fas fa-save'], ['Add to active workspace', 'fas fa-circle-nodes'],
         ['Open its event', 'fas fa-external-link-alt'], ['Browse feed', 'fas fa-rss'],
         ['Preview in feed', 'fas fa-rss'], ['Copy value', 'fas fa-copy']]);
     ok('no topbar of ours, and the edge and note menus left alone',
@@ -4053,7 +4053,7 @@ test('enrich save: offered from the node menu and the selection menu', async () 
     const one = menuItem(g, 'Save this element');
     const many = g.opts.UI.contextMenu.menuSelection.menu.find(i => i.text === 'Save selection');
     eq('the selection menu holds that and the graph add', g.opts.UI.contextMenu.menuSelection.menu.map(i => [i.text, i.iconClass]),
-       [['Save selection', 'fas fa-save'], ['Add selection to active graph', 'fas fa-circle-nodes']]);
+       [['Save selection', 'fas fa-save'], ['Add selection to active workspace', 'fas fa-circle-nodes']]);
     const n = id => ({ id, getData: () => ({ type: 'object', scope: 'module' }) });
     const ledger = g.graph.pivots;
     ['r1', 'r2', 'r3'].forEach(id => ledger.savable.add(id));

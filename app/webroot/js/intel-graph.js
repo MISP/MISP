@@ -1,5 +1,5 @@
-// IntelGraph — the analyst graph "Add to graph" feeds, and the way any page
-// reaches analyst graphs. Loaded on every Overmind page that has the navbar's
+// IntelGraph — the workspace "Add to workspace" feeds, and the way any page
+// reaches workspaces. Loaded on every Overmind page that has the navbar's
 // graph slot (Elements/intel_graph_boot.ctp), so it stays small: the graph
 // itself — Pivotick, the explorer and analyst-graph.js — loads on the first
 // mount() only.
@@ -30,7 +30,7 @@
 
     var config = Object.assign({ baseurl: '', active: null, assets: {}, explorer: {}, text: {} },
                                window.IntelGraphConfig || {});
-    var text = Object.assign({ none: 'No graph' }, config.text);
+    var text = Object.assign({ none: 'No workspace' }, config.text);
     var active = config.active || null;
     var dock = null;
 

@@ -1740,7 +1740,7 @@ class AnalystData extends AppModel
             $Graph = ClassRegistry::init('Graph');
             $analystData = $Graph->attachContent($analystData);
             if ($analystData === null) {
-                return __('The graph was deleted before it could be pushed.');
+                return __('The workspace was deleted before it could be pushed.');
             }
             if (is_array($analystData['Graph']['content'])) {
                 $analystData['Graph']['content'] = ClassRegistry::init('AnalystGraphData')

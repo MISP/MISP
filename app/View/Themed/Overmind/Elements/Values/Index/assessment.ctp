@@ -363,15 +363,15 @@ if (!$caveats && !$counts['occurrences'] && $card['lean'] === 'none'
             class="fas fa-folder-plus" aria-hidden="true"></i></button>
 <?php endif; ?>
 <?php if ($this->Acl->canAccess('analystGraphs', 'addNodes')): ?>
-    <?php // Sent to the active graph by intel-graph-actions.js ?>
+    <?php // Sent to the active workspace by intel-graph-actions.js ?>
     <button type="button" class="vi-btn vi-btn--icon"
             data-intel-graph-add="<?= h(json_encode(array(array(
                 'type' => 'Value',
                 'value' => $assessment['value'],
                 'label' => $assessment['value'],
             )))) ?>"
-            title="<?= h(__('Add to current graph')) ?>"
-            aria-label="<?= h(__('Add to current graph')) ?>"><i
+            title="<?= h(__('Add to workspace')) ?>"
+            aria-label="<?= h(__('Add to workspace')) ?>"><i
             class="misp-icon misp-icon-analyst-graph misp-simple"
             aria-hidden="true"></i></button>
 <?php endif; ?>

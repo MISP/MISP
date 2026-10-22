@@ -52,7 +52,7 @@ $attrDeleted = !empty($attr['deleted']);
             <a class="dropdown-item justify-content-start" href="#"
                data-intel-graph-add="<?= h(json_encode([['type' => 'Attribute', 'uuid' => $attr['uuid'] ?? '', 'label' => $attr['value'] ?? '']])) ?>">
                 <i class="text-analystGraph misp-icon misp-icon-analyst-graph misp-simple me-2"></i>
-                <?= __('Add to graph') ?>
+                <?= __('Add to workspace') ?>
             </a>
         </li>
         <?php endif; ?>

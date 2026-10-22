@@ -422,10 +422,10 @@
                     }
                 };
             };
-            entries('menuNode').push(keepEntry('Keep in graph'), removeEntry('Remove from graph'));
-            entries('menuSelection').push(keepEntry('Keep selection in graph'), removeEntry('Remove selection from graph'));
+            entries('menuNode').push(keepEntry('Keep in workspace'), removeEntry('Remove from workspace'));
+            entries('menuSelection').push(keepEntry('Keep selection in workspace'), removeEntry('Remove selection from workspace'));
             entries('menuEdge').push({
-                text: 'Hide in this graph',
+                text: 'Hide in this workspace',
                 iconClass: 'fas fa-eye-slash',
                 visible: function (el) { return canEditGraph() && !!(el && el.id); },
                 onclick: function (e, el) { hideEdge(el.id); }

@@ -53,7 +53,7 @@ class Graph extends AnalystData
         'name' => [
             'notBlank' => [
                 'rule' => 'notBlank',
-                'message' => 'A graph needs a name.',
+                'message' => 'A workspace needs a name.',
                 'required' => 'create',
             ],
             'maxLength' => [
@@ -64,7 +64,7 @@ class Graph extends AnalystData
         'object_type' => [
             'validTarget' => [
                 'rule' => ['inList', self::VALID_TARGETS],
-                'message' => 'A graph attaches to a collection, an event or a galaxy cluster.',
+                'message' => 'A workspace attaches to a collection, an event or a galaxy cluster.',
                 'required' => 'create',
             ],
         ],
@@ -472,8 +472,8 @@ class Graph extends AnalystData
     }
 
     /**
-     * The graph "Add to graph" feeds: the one the user chose, while it is
-     * still one they may edit.
+     * The workspace "Add to workspace" feeds: the one the user chose, while
+     * it is still one they may edit.
      *
      * @param array $user
      * @param bool $targets Label its target
@@ -491,8 +491,9 @@ class Graph extends AnalystData
     }
 
     /**
-     * Remember the graph "Add to graph" feeds, or forget it with null. The
-     * legacy log is suppressed: its full-change entry would record the choice.
+     * Remember the workspace "Add to workspace" feeds, or forget it with
+     * null. The legacy log is suppressed: its full-change entry would record
+     * the choice.
      *
      * @param array $user
      * @param string|null $uuid A graph the user may edit

@@ -8,7 +8,7 @@
  */
 $color = 'info';
 
-$targets = ['' => __("Keep each graph's own target")];
+$targets = ['' => __("Keep each workspace's own target")];
 foreach ($collections as $collection) {
     $targets[$collection['type'] . ':' . $collection['uuid']] = __('Collection: %s', $collection['label']);
 }
@@ -23,9 +23,9 @@ echo $this->Form->create('Graph', [
 
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
     'accent' => $color,
-    'eyebrow' => __('Analyst Graphs'),
-    'title' => __('Import graphs'),
-    'description' => __("A file exported from this or another instance. Each graph keeps its uuid and becomes your organisation's; one this instance already holds is refused."),
+    'eyebrow' => __('Workspaces'),
+    'title' => __('Import workspaces'),
+    'description' => __("A file exported from this or another instance. Each workspace keeps its uuid and becomes your organisation's; one this instance already holds is refused."),
     'icon' => 'fas fa-file-import',
     'titleIcon' => 'fas fa-file-import',
 ]) ?>
@@ -43,7 +43,7 @@ echo $this->Form->create('Graph', [
                 'accept' => '.json,application/json',
             ]) ?>
             <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                'text' => __('Or paste its contents below. One graph or several, at most %s.', $transferLimit),
+                'text' => __('Or paste its contents below. One workspace or several, at most %s.', $transferLimit),
                 'class' => 'mt-2',
             ]) ?>
             <?= $this->Form->textarea('Graph.import.json', [
@@ -64,7 +64,7 @@ echo $this->Form->create('Graph', [
                 'empty' => false,
             ]) ?>
             <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                'text' => __('A graph hangs off a collection, an event or a galaxy cluster. Pick a collection to put every imported graph on it.'),
+                'text' => __('A workspace hangs off a collection, an event or a galaxy cluster. Pick a collection to put every imported workspace on it.'),
                 'class' => 'mt-2',
             ]) ?>
         </div>
@@ -77,7 +77,7 @@ echo $this->Form->create('Graph', [
                 'sharingGroups' => $sharingGroups,
                 'value' => $defaultDistribution,
                 'id' => 'analyst-graph-import-distribution',
-                'hint' => __('Applies to every imported graph.'),
+                'hint' => __('Applies to every imported workspace.'),
             ]) ?>
         </div>
 

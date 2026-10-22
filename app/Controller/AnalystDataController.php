@@ -353,7 +353,7 @@ class AnalystDataController extends AppController
                 'callbacks' => false,
             ]);
             if (empty($graph)) {
-                throw new NotFoundException(__('Invalid graph.'));
+                throw new NotFoundException(__('Invalid workspace.'));
             }
             return $this->redirect('/analyst_graphs/view/' . $graph[$this->AnalystData->alias]['uuid']);
         }

@@ -40,7 +40,7 @@ $galaxyOptions = isset($galaxyOptions) ? $galaxyOptions : null;
  * Fields specific to actions:
  *
  * - type           : modal | navigate | toggle | copy | divider | intelGraph
- * - items          : intelGraph only: fn($row) → the records "Add to graph" sends
+ * - items          : intelGraph only: fn($row) → the records "Add to workspace" sends
  * - label          : Displayed text
  * - label_on/off   : Text for toggle
  * - icon           : FontAwesome icon
@@ -403,7 +403,7 @@ $fields = array_merge($fields, [
             ],
             [
                 'type' => 'intelGraph',
-                'label' => __('Add to graph'),
+                'label' => __('Add to workspace'),
                 'icon' => 'text-analystGraph misp-icon misp-icon-analyst-graph misp-simple',
                 'items' => function ($row) use ($path) {
                     return [['type' => 'Attribute', 'uuid' => Hash::get($row, $path('uuid')), 'label' => Hash::get($row, $path('value'))]];

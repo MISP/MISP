@@ -278,7 +278,7 @@ class EventIndexHelper extends AppHelper
     }
 
     /**
-     * Analyst graphs, sightings, proposals and discussion posts, each only
+     * Workspaces, sightings, proposals and discussion posts, each only
      * when there are some.
      *
      * @return array html parts
@@ -288,7 +288,7 @@ class EventIndexHelper extends AppHelper
         $extras = [];
         if ($graphs) {
             $n = count($graphs);
-            $label = $this->plural($n, '%s analyst graph', '%s analyst graphs') . ': ' . implode(', ', array_column($graphs, 'name'));
+            $label = $this->plural($n, '%s workspace', '%s workspaces') . ': ' . implode(', ', array_column($graphs, 'name'));
             // Newest first: the preview shows the graph changed last
             $extras[] = sprintf(
                 '<a class="dk-graph" href="%s" aria-label="%s" data-intel-graph-thumb="%s" data-revision="%d" data-surface="peek" data-name="%s"%s>'
@@ -298,7 +298,7 @@ class EventIndexHelper extends AppHelper
                 h($graphs[0]['uuid']),
                 (int)($graphs[0]['revision'] ?? 0),
                 h($graphs[0]['name']),
-                $n > 1 ? ' data-note="' . h(__('Changed last of %s graphs on this event', $n)) . '"' : '',
+                $n > 1 ? ' data-note="' . h(__('Changed last of %s workspaces on this event', $n)) . '"' : '',
                 $n
             );
         }

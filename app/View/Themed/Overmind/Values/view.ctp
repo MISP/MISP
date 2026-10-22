@@ -127,7 +127,7 @@ $headerActions = array(
     $this->Acl->canAccess('analystGraphs', 'addNodes')
         ? array(
             'type' => 'navigate',
-            'label' => __('Add to graph'),
+            'label' => __('Add to workspace'),
             'icon' => 'circle-nodes',
             'class' => 'btn btn-outline-dark',
             'attributes' => array('data-intel-graph-add' => json_encode(array(array(

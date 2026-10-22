@@ -578,7 +578,7 @@ class GraphTest extends TestCase
 
         list($document, $errors) = AnalystGraphDocumentTool::normalise(self::documentWithNodes(2001));
         $this->assertNull($document);
-        $this->assertSame(array('A graph holds at most 2000 nodes.'), $errors);
+        $this->assertSame(array('A workspace holds at most 2000 nodes.'), $errors);
     }
 
     public function testByteCap()
@@ -589,7 +589,7 @@ class GraphTest extends TestCase
         }
         list($document, $errors) = AnalystGraphDocumentTool::normalise(array('hidden_edges' => $edges));
         $this->assertNull($document);
-        $this->assertSame(array('A graph document is at most 16777216 bytes.'), $errors);
+        $this->assertSame(array('A workspace document is at most 16777216 bytes.'), $errors);
     }
 
     public function testMeasure()
