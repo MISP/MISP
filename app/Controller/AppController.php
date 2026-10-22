@@ -118,7 +118,6 @@ class AppController extends Controller
         'Deprecation',
         'RestSearch',
         'CRUD'
-        //,'DebugKit.Toolbar'
     );
 
     public function beforeFilter()
