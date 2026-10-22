@@ -407,7 +407,7 @@ class Galaxy extends AppModel
         if (!empty($allRelations)) {
             $this->GalaxyCluster->GalaxyClusterRelation->bulkSaveRelations($allRelations);
         }
-        // Probably unnecessary anymore
+        // The clusters were replaced without callbacks: re-point the relations other galaxies hold towards them
         $this->GalaxyCluster->generateMissingRelations();
         return true;
     }

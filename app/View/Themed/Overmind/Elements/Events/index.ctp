@@ -119,11 +119,16 @@ $count = function ($key, $count, $setting, $iconHtml, $title) use ($col, $icon, 
     ], 'te-num');
 };
 
+$canGraph = $this->Acl->canAccess('analystGraphs', 'addNodes');
+
 $fields = [
     [
         'element' => 'checkbox',
         'data_path' => 'Event.id',
         'publish_path' => 'Event.published',
+        'graph_item' => function ($row) {
+            return ['type' => 'Event', 'uuid' => $row['Event']['uuid'], 'label' => $row['Event']['info']];
+        },
         'card_section' => 'selector',
         'class' => 'te-c-sel',
         'header_class' => 'te-c-sel',
@@ -252,6 +257,20 @@ $fields = [
                 'url' => $baseurl . '/events/%action%/%id%',
                 'state_path' => 'Event.published',
                 'requirement' => 'check_publish_rights'
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => $canGraph,
+            ],
+            [
+                'type' => 'intelGraph',
+                'label' => __('Add to graph'),
+                'icon' => 'text-analystGraph misp-icon misp-icon-analyst-graph misp-simple',
+                'items' => function ($row) {
+                    return [['type' => 'Event', 'uuid' => $row['Event']['uuid'], 'label' => $row['Event']['info']]];
+                },
+                'requirement' => $canGraph,
             ]
         ]
     ],
@@ -327,6 +346,18 @@ $children[] = [
         'tree' => $baseurl . '/tags/pickerTree',
     ],
 ];
+if ($filterState->get('tags') !== null) {
+    $children[] = [
+        'type' => 'picker',
+        'name' => 'tags',
+        'label' => __('And tag'),
+        'icon' => 'fas fa-tags',
+        'source' => $baseurl . '/tags/pickerSearch',
+        'exclude' => true,
+        'resolved' => $filterLabels['tags'] ?? [],
+        'hint' => __('Also carried by the event or one of its attributes.'),
+    ];
+}
 $children[] = [
     'type' => 'picker',
     'name' => 'galaxy',
@@ -539,7 +570,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'chips' => $chips,
                 'apply' => 'close',
                 'export' => 1,
-                'delete' => '/delete'
+                'delete' => '/delete',
+                'mass_graph' => $canGraph,
             ],
             'fields' => $fields,
             'primary_id_path' => 'Event.id',

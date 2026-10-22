@@ -10,6 +10,13 @@
     color: var(--bs-secondary-color); text-decoration: none;
 }
 .eo-flag-link:hover { color: var(--bs-link-color); }
+.eo-time {
+    display: inline-flex; align-items: center; padding: 0; border: 0; background: none;
+    color: inherit; font: inherit; border-radius: .2rem;
+}
+.eo-time time { text-decoration: underline dotted transparent; text-underline-offset: 3px; transition: text-decoration-color .15s; }
+.eo-time:hover time, .eo-time:focus-visible time { text-decoration-color: currentColor; }
+.eo-time:focus-visible { outline: 2px solid var(--bs-focus-ring-color, rgba(13,110,253,.25)); outline-offset: 2px; }
 
 /* extension relation + view switch */
 .eo-ext {

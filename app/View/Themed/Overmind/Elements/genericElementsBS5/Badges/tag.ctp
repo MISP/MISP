@@ -7,6 +7,7 @@
  * - $showFavourite (bool) optional
  * - $relationship (string) optional, EventTag/AttributeTag.relationship_type
  * - $searchUrl (string) optional link prefix, no link by default
+ * - $href (string) optional full link, overrides $searchUrl
  * - $inline (bool) optional, path and value on one row
  */
 $showFavourite = $showFavourite ?? false;
@@ -16,6 +17,9 @@ $chip = $this->TagChip->chip([
     'relationship_type' => !empty($relationship) ? trim((string)$relationship) : null,
 ], [
     'searchUrl' => $searchUrl ?? '',
+    'href' => empty($href) ? null : function () use ($href) {
+        return $href;
+    },
     'class' => $hiddenClass ?? '',
     'inline' => !empty($inline),
 ]);

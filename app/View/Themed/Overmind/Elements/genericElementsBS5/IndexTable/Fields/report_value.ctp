@@ -36,6 +36,9 @@ $reader = !empty($field['reader']);
            ])) ?>">
             <?= h($name) ?>
         </a>
+    <?php elseif (!empty($viewUrl)): ?>
+        <a class="mb-0 fw-semibold link-body-emphasis link-underline-opacity-0 link-underline-opacity-100-hover"
+           href="<?= h($viewUrl) ?>"><?= h($name) ?></a>
     <?php else: ?>
         <p class="mb-0 fw-semibold">
             <?= h($name) ?>

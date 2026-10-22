@@ -6,7 +6,8 @@
  * Security token's `_lastAction` (render side) matches request->here()
  * (receive side).
  *
- * Available vars: $id (event id), $event, $importModules.
+ * Available vars: $id (event id), $event, $importModules, $configTypes,
+ * $openModule (the import module whose section starts open).
  */
 
 $eventId = (int)$id;
@@ -175,18 +176,20 @@ $submitRow = function ($label, $icon = 'fas fa-sign-in-alt', $class = 'btn-prima
             $closeSection();
         else:
             foreach ($importModules as $i => $module):
-                $openSection(7 + $i, 'pfMod' . $i, 'fas fa-puzzle-piece', $module['text'], __('Import module'));
-                ?>
-                <p class="text-muted small mb-2">
-                    <?= __('Open the import form for this module in a new dialog.') ?>
-                </p>
-                <div class="d-flex justify-content-end mt-3">
-                    <button type="button" class="btn btn-primary"
-                            onclick="openModalChained('<?= $baseurl ?>/events/importModule/<?= h($module['name']) ?>/<?= $eventId ?>');">
-                        <i class="fas fa-up-right-from-square me-1"></i><?= __('Open module') ?>
-                    </button>
-                </div>
-                <?php
+                $openSection(
+                    7 + $i,
+                    'pfMod' . $i,
+                    'fas fa-puzzle-piece',
+                    Inflector::humanize($module['name']),
+                    __('Import module'),
+                    $module['name'] === $openModule
+                );
+                echo $this->element('Events/import_module_form', [
+                    'module' => $module,
+                    'eventId' => $eventId,
+                    'idPrefix' => 'pfMod' . $i,
+                    'inline' => true,
+                ]);
                 $closeSection();
             endforeach;
         endif;

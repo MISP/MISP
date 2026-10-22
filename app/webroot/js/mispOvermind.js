@@ -837,6 +837,25 @@ function multiSelectItems(url, suffixe, size = 'md') {
     openModal(fullUrl, size);
 }
 
+// The selected rows that can go to an analyst graph, as IntelGraph.add() takes them
+function selectedGraphItems() {
+    const items = [];
+    selectedItems.forEach(item => {
+        if (!item.graphItem) return;
+        try {
+            items.push(JSON.parse(item.graphItem));
+        } catch (e) { /* a row without a usable item is left out */ }
+    });
+    return items;
+}
+
+function addSelectedToGraph(button) {
+    const items = selectedGraphItems();
+    if (items.length && window.IntelGraphActions) {
+        window.IntelGraphActions.add(items, button);
+    }
+}
+
 function redirectToExportResult() {
     const returnFormat = document.getElementById('EventReturnFormat')?.value;
     let idListStr = document.getElementById('PromptForm')?.dataset.idlist;
@@ -924,15 +943,34 @@ function setView(view, save = true, scope = document) {
     if (save) localStorage.setItem('indexViewMode', view);
 }
 
-// The bar floats over the bottom of the page; while it shows, the page gets
-// room for it so the last rows and the pager stay reachable.
-function syncMultiSelectFloat(toolbar) {
-    const shown = !!toolbar && toolbar.classList.contains('ms-float')
-        && !toolbar.classList.contains('d-none') && toolbar.getClientRects().length > 0;
-    document.body.classList.toggle('ms-float-open', shown);
-    if (shown) {
-        document.body.style.setProperty('--ms-float-h', toolbar.offsetHeight + 'px');
+// The bars float over the bottom of the page, stacked when more than one
+// shows; while any does, the page gets room for them so the last rows and the
+// pager stay reachable.
+function syncMultiSelectFloat() {
+    const shown = Array.from(document.querySelectorAll('.ms-float'))
+        .filter(bar => !bar.classList.contains('d-none') && bar.getClientRects().length > 0);
+    let bottom = 16;
+    shown.forEach(bar => {
+        bar.style.bottom = bottom + 'px';
+        bottom += bar.offsetHeight + 8;
+    });
+    document.body.classList.toggle('ms-float-open', shown.length > 0);
+    if (shown.length) {
+        document.body.style.setProperty('--ms-float-h', (bottom - 24) + 'px');
     }
+}
+
+// "<b>3</b> selected", or the bar's own data-one / data-many wording
+function setMultiSelectCount(countEl, n) {
+    const template = countEl.dataset[n === 1 ? 'one' : 'many'];
+    if (!template) {
+        countEl.textContent = n;
+        return;
+    }
+    const parts = template.split('%s');
+    const b = document.createElement('b');
+    b.textContent = n;
+    countEl.replaceChildren(parts[0], b, parts.slice(1).join('%s'));
 }
 
 function updateMultiSelectToolbar() {
@@ -961,18 +999,19 @@ function updateMultiSelectToolbar() {
     const optionalButton  = scope.querySelector('#mass-optional-button');
     const highlightButton   = scope.querySelector('#mass-highlight-button');
     const removehighlightButton  = scope.querySelector('#mass-removehighlight-button');
+    const graphButton    = scope.querySelector('#mass-graph-button');
 
     const count          = selectedItems.size;
 
     if (count === 0) {
         toolbar?.classList.add('d-none');
-        syncMultiSelectFloat(toolbar);
+        syncMultiSelectFloat();
         return;
     }
 
     toolbar?.classList.remove('d-none');
-    if (selectedCount) selectedCount.textContent = count;
-    syncMultiSelectFloat(toolbar);
+    if (selectedCount) setMultiSelectCount(selectedCount, count);
+    syncMultiSelectFloat();
 
     let canDeleteAll = true;
     let allEnabled = true;
@@ -1004,6 +1043,7 @@ function updateMultiSelectToolbar() {
     objectButton?.classList.toggle('d-none', isHidden);
     relationshipButton?.classList.toggle('d-none', isHidden);
     sightingButton?.classList.remove('d-none');
+    graphButton?.classList.toggle('d-none', !window.IntelGraphActions || selectedGraphItems().length === 0);
 
     fetchButton?.classList.toggle('d-none', !allEnabled);
 
@@ -1145,9 +1185,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const enable    = checkbox.dataset.enable;
         const require    = checkbox.dataset.require;
         const highlight    = checkbox.dataset.highlight;
+        const graphItem    = checkbox.dataset.graphItem;
 
         if (checkbox.checked) {
-            selectedItems.set(id, { id, canDelete, publish, enable, require, highlight});
+            selectedItems.set(id, { id, canDelete, publish, enable, require, highlight, graphItem });
         } else {
             selectedItems.delete(id);
         }

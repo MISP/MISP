@@ -19,7 +19,7 @@
 //
 // Events, on document, each with the details in event.detail:
 //   intel-graph:active   { graph }                        the active graph changed
-//   intel-graph:added    { graph, report, items, undo }   addNodes went through
+//   intel-graph:added    { graph, report, items, undo, origin }  addNodes went through
 //   intel-graph:refused  { graph, items, status, message } addNodes was refused
 //   intel-graph:removed  { graph, report, items }         removeNodes went through
 //   intel-graph:drawn    { graph, report, handle }        a mounted graph drew an add or a removal
@@ -172,12 +172,26 @@
         };
     }
 
+    // Where on screen an add was made from, taken before the request: the
+    // control may be gone by the time it answers.
+    function originOf(o) {
+        if (!o) return null;
+        if (o.getBoundingClientRect) {
+            var r = o.getBoundingClientRect();
+            return r.width || r.height ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null;
+        }
+        return typeof o.x === 'number' && typeof o.y === 'number' ? { x: o.x, y: o.y } : null;
+    }
+
     // items: [{ type, uuid } | { type: 'Value', value }]. Resolves
     // { status: 'added' | 'unchanged' | 'no-graph', graph, report, undo };
     // a refusal rejects, after intel-graph:refused.
     // options.graph adds to that graph instead of the active one.
+    // options.origin, the element or { x, y } point the add was made from,
+    // is where the dock draws it leaving from.
     function add(items, options) {
         var uuid = (options && options.graph) || (active && active.uuid);
+        var origin = originOf(options && options.origin);
         if (!uuid) {
             emit('pick', { items: items });
             return Promise.resolve({ status: 'no-graph', graph: null, report: null, undo: null });
@@ -186,7 +200,7 @@
             var added = report.added || [];
             var undo = added.length ? undoOnce(uuid, added) : null;
             touchActive(uuid, report);
-            emit('added', { graph: uuid, report: report, items: items, undo: undo });
+            emit('added', { graph: uuid, report: report, items: items, undo: undo, origin: origin });
             return {
                 status: report.changed ? 'added' : 'unchanged',
                 graph: uuid,

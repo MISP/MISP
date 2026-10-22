@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('GalaxyClusterRailCards', 'Tools/RailCards');
 App::uses('GalaxyElementFacets', 'Tools');
+App::uses('ClusterMatrixTool', 'Tools');
 
 /**
  * @property GalaxyCluster $GalaxyCluster
@@ -254,6 +255,8 @@ class GalaxyClustersController extends AppController
         $cluster = $clusters[0];
         $cluster = $this->GalaxyCluster->attachExtendFromInfo($this->Auth->user(), $cluster);
         if ($this->theme === 'Overmind') {
+            $matrix = new ClusterMatrixTool($this->Auth->user(), $cluster['GalaxyCluster']);
+            $this->set('matrixReach', $matrix->reachOnLoad());
             $railCards = new GalaxyClusterRailCards();
             $clusterId = $cluster['GalaxyCluster']['id'];
             $this->set('railCards', RailCard::byId([
@@ -1120,6 +1123,36 @@ class GalaxyClustersController extends AppController
         $this->set('galaxy_id', $cluster['GalaxyCluster']['galaxy_id']);
         $this->set('defaultCluster', $cluster['GalaxyCluster']['default']);
         $this->set('cluster', $cluster);
+    }
+
+    /**
+     * The Matrix tab: the techniques the cluster meets on events (observed)
+     * or is linked to by relations (declared), with or without its similar
+     * clusters. GET ?layer=observed|declared&similar=0|1&cap=<n>&galaxy=<id>
+     * &tab=<key>&off=<relation,...>
+     *
+     * @param mixed $id ID or UUID of the cluster
+     */
+    public function viewMatrix($id)
+    {
+        $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
+        $cluster = $this->GalaxyCluster->fetchIfAuthorized($user, $id, 'view', true, false);
+        $query = $this->request->query;
+        $tool = new ClusterMatrixTool($user, $cluster['GalaxyCluster']);
+        $matrix = $tool->view([
+            'layer' => $query['layer'] ?? null,
+            'similar' => ($query['similar'] ?? '1') !== '0',
+            'cap' => $query['cap'] ?? null,
+            'galaxy' => $query['galaxy'] ?? null,
+            'tab' => isset($query['tab']) && is_string($query['tab']) ? $query['tab'] : null,
+            'off' => isset($query['off']) && is_string($query['off']) ? explode(',', $query['off']) : [],
+        ]);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($matrix, 'json');
+        }
+        $this->set('view', $matrix);
+        $this->layout = false;
     }
 
     /**

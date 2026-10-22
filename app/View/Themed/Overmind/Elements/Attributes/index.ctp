@@ -104,6 +104,12 @@ $fields = [
         'element' => 'checkbox',
         'data_path' => 'Attribute.id',
         'card_section' => 'selector',
+        'graph_item' => function ($row) use ($path) {
+            if (!empty(Hash::get($row, $path('deleted')))) {
+                return null;
+            }
+            return ['type' => 'Attribute', 'uuid' => Hash::get($row, $path('uuid')), 'label' => Hash::get($row, $path('value'))];
+        },
     ]
 ];
 
@@ -656,6 +662,9 @@ if ($inEventView && !$showingDeleted) {
 
 if (!$showingDeleted) {
     $massActions['mass_sighting'] = true;
+}
+if ($_canGraph) {
+    $massActions['mass_graph'] = true;
 }
 
 if (!$inEventView) {

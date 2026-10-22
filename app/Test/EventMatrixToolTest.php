@@ -275,6 +275,37 @@ class EventMatrixToolTest extends TestCase
         $this->assertSame(0, $enterprise['columns'][0]['groups'][0]['own']['events']);
     }
 
+    public function testLayerKeepsDeclaredCellsAndTheirExtraAndRollsThemUpToTheParent()
+    {
+        $cell = function ($id, $value, $externalId) {
+            return [
+                'id' => $id, 'uuid' => 'c' . $id, 'value' => $value, 'external_id' => $externalId,
+                'tag_name' => 'misp-galaxy:mitre-attack-pattern="' . $value . '"', 'default' => true,
+            ];
+        };
+        $phishing = $cell(1, 'Phishing - T1566', 'T1566');
+        $link = $cell(2, 'Spearphishing Link - T1566.002', 'T1566.002');
+        $exploit = $cell(3, 'Exploit Public-Facing Application - T1190', 'T1190');
+        $skeleton = EventMatrixTool::slimSkeleton([
+            'killChain' => ['attack-enterprise' => ['initial-access']],
+            'tabs' => ['attack-enterprise' => ['initial-access' => [$exploit, $phishing, $link]]],
+        ]);
+        $declared = [
+            'state' => 'declared', 'onEvent' => false, 'events' => 0, 'indicators' => 0, 'loose' => 0,
+            'foreign' => false, 'origins' => [], 'extra' => ['d' => [['APT29 - G0016', 'uses', 'out']]],
+        ];
+        $full = EventMatrixTool::layer($skeleton, self::ATTACK, [$link['tag_name'] => $declared]);
+
+        $groups = array_column($full['columns'][0]['groups'], null, 'tid');
+        $this->assertSame('declared', $groups['T1566']['state']);
+        $this->assertSame('idle', $groups['T1566']['own']['state']);
+        $this->assertArrayNotHasKey('extra', $groups['T1566']['own']);
+        $this->assertSame('declared', $groups['T1566']['subs'][0]['state']);
+        $this->assertSame([['APT29 - G0016', 'uses', 'out']], $groups['T1566']['subs'][0]['extra']['d']);
+        $this->assertSame('idle', $groups['T1190']['state']);
+        $this->assertSame(1, $full['columns'][0]['active']);
+    }
+
     public function testTabLabels()
     {
         $this->assertSame('ICS · Field Controller/RTU/PLC/IED', EventMatrixTool::tabLabel('ics-attack-Field-Controller/RTU/PLC/IED', 'mitre-attack-pattern'));

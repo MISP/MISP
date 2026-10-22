@@ -825,6 +825,7 @@ class MispObject extends AppModel
                 'Object.sharing_group_id', 'Object.comment',
                 'Object.first_seen', 'Object.last_seen',
                 'Event.id', 'Event.uuid', 'Event.info', 'Event.orgc_id',
+                'Event.user_id',
             ],
             'joins' => [[
                 'table' => 'events',

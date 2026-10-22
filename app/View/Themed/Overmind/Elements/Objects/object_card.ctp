@@ -18,6 +18,7 @@ $objId = $ctx['id'];
 $attrs = $ctx['attrs'];
 $isDeleted = $ctx['deleted'];
 $objCanEdit = $ctx['canEdit'];
+$objSelectable = $objCanEdit || $ctx['graphItem'] !== null;
 $objCanTag = $ctx['canTag'];
 $collapseId = 'objcard_collapse_' . $objId;
 $expanded = !empty($ctx['expand']);
@@ -31,16 +32,18 @@ $expanded = !empty($ctx['expand']);
 
         <!-- ── Header: the same line as the list view's ── -->
         <h2 class="accordion-header obj-header d-flex align-items-center">
-            <?php if ($objCanEdit): ?>
+            <?php if ($objSelectable): ?>
             <span class="ps-3 pe-1 d-inline-flex align-items-center flex-shrink-0 checkbox-index">
                 <input type="checkbox"
                        class="obj-select form-check-input mt-0"
                        data-object-id="<?= $objId ?>"
+                       data-can-delete="<?= $objCanEdit ? '1' : '0' ?>"
+                       <?php if ($ctx['graphItem'] !== null): ?>data-graph-item="<?= h(json_encode($ctx['graphItem'])) ?>"<?php endif; ?>
                        aria-label="<?= h(__('Select this object')) ?>"
                        title="<?= h(__('Select this object')) ?>">
             </span>
             <?php endif; ?>
-            <button class="accordion-button<?= $expanded ? '' : ' collapsed' ?> py-2 <?= $objCanEdit ? 'ps-2 pe-3' : 'px-3' ?> rounded-top flex-grow-1"
+            <button class="accordion-button<?= $expanded ? '' : ' collapsed' ?> py-2 <?= $objSelectable ? 'ps-2 pe-3' : 'px-3' ?> rounded-top flex-grow-1"
                     style="min-width:0;"
                     type="button"
                     data-bs-toggle="collapse"

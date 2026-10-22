@@ -13,7 +13,7 @@ class OvermindPages
             'index', 'add', 'edit', 'delete', 'view', 'view1', 'view2',
             'viewLegacy',
             'importChoice', 'automation', 'getEventInfoById',
-            'freeTextImport', 'proposalEventIndex',
+            'freeTextImport', 'importModule', 'proposalEventIndex',
             'merge'
         ),
         'attributes' => array(

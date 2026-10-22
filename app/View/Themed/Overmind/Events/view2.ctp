@@ -61,6 +61,8 @@
         . ($distributionFilter !== '' ? '/distribution:' . (int)$distributionFilter : '');
     $objectFilter = (int)($this->request->params['named']['object'] ?? 0);
     $objectsSuffix = $listSuffix . ($objectFilter > 0 ? '/object:' . $objectFilter : '');
+    $focusTab = $focusTab ?? null;
+    $focusSuffix = $focusTab ? '/focus:' . rawurlencode($this->request->params['named']['focus']) : '';
 
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
@@ -96,11 +98,13 @@
                 'title' => __('Objects'),
                 'icon' => 'misp-icon misp-icon-object misp-simple',
                 'count' => $object_count ?? 0,
+                'active' => $focusTab === 'objects',
 
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']), $objectsSuffix)
+                        'ajax' => sprintf('/events/viewObjects/%s%s', h($event['Event']['id']),
+                            $objectsSuffix . ($focusTab === 'objects' ? $focusSuffix : ''))
                     ]
                 ],
             ],
@@ -109,11 +113,13 @@
                 'title' => __('Attributes'),
                 'icon' => 'misp-icon misp-icon-attribute misp-simple',
                 'count' => $attribute_count ?? 0,
+                'active' => $focusTab === 'attributes',
 
                 // Content
                 'left' => [
                     [
-                        'ajax' => sprintf('/events/viewAttributes/%s%s', h($event['Event']['id']), $listSuffix)
+                        'ajax' => sprintf('/events/viewAttributes/%s%s', h($event['Event']['id']),
+                            $listSuffix . ($focusTab === 'attributes' ? $focusSuffix : ''))
                     ]
                 ],
             ],

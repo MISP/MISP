@@ -284,6 +284,53 @@
         });
     }
 
+    // An add on its way from where it was made to where it went: the
+    // navbar slot, or the open panel. Resolves on arrival.
+    function flightTarget() {
+        var box = null;
+        if (opened) {
+            box = (stage.offsetParent ? stage : panel).getBoundingClientRect();
+        } else {
+            Array.prototype.some.call(slotButtons(), function (b) {
+                var r = (b.firstElementChild || b).getBoundingClientRect();
+                if (!r.width || r.bottom < 0 || r.top > window.innerHeight) return false;
+                box = r;
+                return true;
+            });
+        }
+        return box && box.width ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : null;
+    }
+    function fly(from) {
+        var to = from && !reducedMotion() && flightTarget();
+        var dx = to ? to.x - from.x : 0, dy = to ? to.y - from.y : 0;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (!to || dist < 32 || !panel.animate) return Promise.resolve();
+        var token = el('span', 'ig-flight');
+        token.appendChild(icon('misp-icon misp-icon-analyst-graph misp-simple'));
+        token.style.left = from.x + 'px';
+        token.style.top = from.y + 'px';
+        document.body.appendChild(token);
+        // A quadratic arc bowed upwards, kept below the top of the window.
+        var cx = from.x + dx * 0.3;
+        var cy = Math.max(12, Math.min(from.y, to.y) - Math.min(60, dist * 0.15));
+        var frames = [];
+        for (var i = 0; i <= 16; i++) {
+            var t = i / 16, u = 1 - t;
+            var x = u * u * from.x + 2 * u * t * cx + t * t * to.x;
+            var y = u * u * from.y + 2 * u * t * cy + t * t * to.y;
+            frames.push({
+                offset: t,
+                opacity: t < 0.8 ? 1 : 1 - (t - 0.8) * 3,
+                transform: 'translate(' + (x - from.x) + 'px,' + (y - from.y) + 'px) scale(' + (1 - 0.45 * t) + ')'
+            });
+        }
+        var flight = token.animate(frames, {
+            duration: Math.min(850, 350 + dist * 0.4),
+            easing: 'cubic-bezier(.5, 0, .3, 1)'
+        });
+        return flight.finished.catch(function () { /* cut short */ }).then(function () { token.remove(); });
+    }
+
     /* ── open, close ───────────────────────────────────────── */
     var opened = false;
     var closeTimer = 0;
@@ -1035,11 +1082,12 @@
         });
         if (d.undo) undos[entry.id] = d.undo;
         push(d.graph, entry);
-        if (!opened) {
-            unseen.added += entry.count;
+        if (!opened) unseen.added += entry.count;
+        fly(d.origin).then(function () {
+            if (opened) return;
             syncSlot();
             pulseSlot();
-        }
+        });
         var a = IG().active();
         if (a && lower(a.uuid) === lower(d.graph)) {
             renderTray();

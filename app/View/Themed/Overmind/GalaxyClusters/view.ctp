@@ -23,6 +23,13 @@ $this->set('headerTitleHtml', sprintf(
 $elementCount = isset($data['GalaxyElement']) ? count($data['GalaxyElement']) : 0;
 $railCards = $railCards ?? [];
 
+if (!empty($matrixReach)) {
+    echo $this->element('genericElements/assetLoader', [
+        'css' => ['misp-matrix'],
+        'js' => ['misp-matrix'],
+    ]);
+}
+
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,
     'ownership' => [
@@ -31,7 +38,7 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
         'distribution' => $data['distribution'] ?? null,
         'sharingGroup' => $data['SharingGroup'] ?? [],
     ],
-    'tabs' => [
+    'tabs' => array_values(array_filter([
         [
             'id' => 'general',
             'title' => __('General'),
@@ -70,6 +77,16 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
             ],
             'right' => $this->RailCard->rail($railCards, ['cluster-relations'], 'relations'),
         ],
+        empty($matrixReach) ? null : [
+            'id' => 'matrix',
+            'title' => __('Matrix'),
+            'icon' => 'fas fa-table-cells',
+            'left' => [
+                [
+                    'ajax' => $baseurl . '/galaxy_clusters/viewMatrix/' . h($data['id']),
+                ],
+            ],
+        ],
         [
             'id' => 'pivot-explorer',
             'title' => __('Pivot Explorer'),
@@ -78,5 +95,5 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
                 'GalaxyClusters/View/galaxy_cluster_pivot_explorer',
             ],
         ],
-    ],
+    ])),
 ]);

@@ -1002,7 +1002,7 @@ class OnboardingTour
                 'optional' => true,
                 'title' => __('The fast way to feed an event'),
                 'body' => '<p>' . __('Typing indicators one at a time gets '
-                    . 'old. <strong>Populate from</strong> takes a whole '
+                    . 'old. <strong>Import from</strong> takes a whole '
                     . 'report, finds the indicators in it and proposes them in '
                     . 'bulk for you to accept.') . '</p>',
             ],
@@ -1323,10 +1323,10 @@ class OnboardingTour
                 'optional' => true,
                 'waitingText' => __('Open one of your organisation&rsquo;s '
                     . 'events to carry on.'),
-                'title' => __('Populate from'),
+                'title' => __('Import from'),
                 'body' => '<p>' . __('When the indicators come in a report, a '
                     . 'mail or another MISP, do not retype them. Click '
-                    . '<strong>Populate from</strong>.') . '</p>',
+                    . '<strong>Import from</strong>.') . '</p>',
             ],
             [
                 'anchor' => '#headingpfFreetext',

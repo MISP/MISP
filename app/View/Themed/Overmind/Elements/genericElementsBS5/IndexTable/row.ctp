@@ -12,9 +12,12 @@
     $rowHtml = '';
     foreach ($fields as $column => $field) {
         $field['data_path'] = empty($field['data_path']) ? '' : $field['data_path'];
+        // The row's title field links to the page a double-click opens
+        $linkToView = $field['link_to_view'] ?? (($field['card_section'] ?? null) === 'title');
+        $fieldViewUrl = $linkToView ? ($viewUrl ?? null) : null;
         if (!isset($field['requirement']) || $field['requirement']) {
             if (empty($field['element'])) {
-                $valueField = $this->element('genericElementsBS5/IndexTable/Fields/generic_field', array('field' => $field, 'row' => $row, 'data_path' => empty($field['data_path']) ? '' : $field['data_path'], 'k' => $k, 'column' => $column));
+                $valueField = $this->element('genericElementsBS5/IndexTable/Fields/generic_field', array('field' => $field, 'row' => $row, 'data_path' => empty($field['data_path']) ? '' : $field['data_path'], 'k' => $k, 'column' => $column, 'viewUrl' => $fieldViewUrl));
             } else {
                 $valueField = $this->element(
                     'genericElementsBS5/IndexTable/Fields/' . $field['element'],
@@ -25,6 +28,7 @@
                         'data_path' => empty($field['data_path']) ? '' : $field['data_path'],
                         'k' => $k,
                         'primary' => $primary,
+                        'viewUrl' => $fieldViewUrl,
                         'viewMode' => 'table',
                     )
                 );

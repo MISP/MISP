@@ -849,6 +849,7 @@ echo $this->element('genericElements/assetLoader', [
     var _wlHiddenMany = <?= json_encode(__('%s warninglisted attributes hidden')) ?>;
     var _attrPillOne  = <?= json_encode(__('%s correlating attribute - click to expand')) ?>;
     var _attrPillMany = <?= json_encode(__('%s correlating attributes - click to expand')) ?>;
+    var _attrOpenEvent = <?= json_encode(__('Open event: %s')) ?>;
 
     function _isWarninglisted(parentId) {
         return !!(_warninglistHits && _warninglistHits[parentId]);
@@ -1500,8 +1501,12 @@ echo $this->element('genericElements/assetLoader', [
                     row.appendChild(typeEl);
                 }
 
-                var valEl = document.createElement('span');
-                valEl.className = 'small corr-attr-value';
+                var valEl = document.createElement('a');
+                valEl.href = baseurl + '/events/view/' + eid
+                    + (a.attribute && a.attribute.uuid ? '/focus:' + a.attribute.uuid : '');
+                valEl.className = 'small corr-attr-value link-body-emphasis'
+                    + ' link-underline-opacity-0 link-underline-opacity-100-hover';
+                valEl.title = a.value + '\n' + _attrOpenEvent.replace('%s', info);
                 valEl.textContent = a.value;
                 row.appendChild(valEl);
 

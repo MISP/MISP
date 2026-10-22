@@ -25,7 +25,7 @@ $distFallback = $this->DistributionLevel->fallback();
 
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
     'accent' => 'event',
-    'eyebrow' => __('Freetext Import'),
+    'eyebrow' => isset($eyebrow) ? $eyebrow : __('Freetext Import'),
     'title' => __('Review detected %s', $scope),
     'titleBadge' => empty($resultArray)
         ? ''

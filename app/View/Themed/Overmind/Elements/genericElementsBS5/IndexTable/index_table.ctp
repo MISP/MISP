@@ -23,6 +23,9 @@ $tableFields = array_filter($data['fields'], function($field) {
 foreach ($data['data'] as $k => $data_row) {
 
     $primary = !empty($data['primary_id_path']) ? Hash::get($data_row, $data['primary_id_path']) : null;
+    $viewUrl = ($dblclickUrl !== null && $primary !== null && $primary !== '')
+        ? str_replace('%id%', (string)$primary, $dblclickUrl)
+        : null;
 
     $rowClass = '';
     if (!empty($data['row_class_callable']) && is_callable($data['row_class_callable'])) {
@@ -82,6 +85,7 @@ foreach ($data['data'] as $k => $data_row) {
             'options' => $data['options'] ?? [],
             'actions' => $data['actions'] ?? [],
             'primary' => $primary,
+            'viewUrl' => $viewUrl,
             'marker' => $rowMarker,
         ]
     );

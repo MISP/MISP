@@ -22,7 +22,8 @@ echo $this->element('genericElementsBS5/Badges/tag', [
         'tag' => $tag,
         'local' => $tag['local_only'] ?? false,
         'hiddenClass' => null,
-        'showFavourite' => $showFavourite
+        'showFavourite' => $showFavourite,
+        'href' => $viewUrl ?? null,
     ]);
 
 $taxonomy = Hash::extract($row, $field['data_path'] . '.Taxonomy');
