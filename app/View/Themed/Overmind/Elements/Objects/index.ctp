@@ -45,7 +45,7 @@ $inExtensionView = count($extensionEvents) > 1;
 // rendering — the two must not drift on rights, origin or ordering.
 $objContext = function (array $object) use (
     $inExtensionView, $extensionEvents, $canEdit, $canTagObj, $currentProposal,
-    $currentObject
+    $currentObject, $_mayGraph
 ) {
     $attrs = $object['Attribute'] ?? [];
     $origin = $inExtensionView
@@ -67,6 +67,9 @@ $objContext = function (array $object) use (
         // rights are not the same as the current event's.
         'canEdit' => $origin === null ? $canEdit : !empty($origin['mayModify']),
         'canTag' => $origin === null ? $canTagObj : !empty($origin['mayModifyTag']),
+        'graphItem' => ($_mayGraph && empty($object['deleted']))
+            ? ['type' => 'Object', 'uuid' => $object['uuid'], 'label' => $object['name']]
+            : null,
         'style' => $foreign ? sprintf(
             'border-left:4px solid %s !important;background:%s;',
             $origin['palette']['badgeBorder'],
@@ -202,41 +205,68 @@ $foldChildren = empty($objects) ? [] : [
                     'item_url' => $objectsUrl,
                 ]
             ) ?>
-            <?php if ($canEdit): ?>
-            <div id="objMultiSelectToolbar" class="mt-2 d-none">
+            <div id="objMultiSelectToolbar"
+                 class="ms-float d-none" role="region" aria-label="<?= h(__('Selected objects')) ?>">
                 <div class="p-2 border rounded bg-light d-flex align-items-center gap-2 flex-wrap">
-                    <strong>
-                        <?= __('Selected objects') ?>:
-                        <span id="objSelectedCount">0</span>
-                    </strong>
+                    <span class="ms-count" id="objSelectedCount"
+                          data-one="<?= h(__('%s object selected')) ?>"
+                          data-many="<?= h(__('%s objects selected')) ?>"></span>
+                    <span class="ms-sep" aria-hidden="true"></span>
+                    <button id="obj-multi-graph-button"
+                            class="btn btn-analystGraph btn-sm d-none"
+                            type="button"
+                            title="<?= __('Add the selected to the active graph') ?>"
+                            aria-label="<?= __('Add the selected to the active graph') ?>">
+                        <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
+                        <span class="text-white"> <?= __('Graph') ?></span>
+                    </button>
                     <button id="obj-multi-delete-button"
-                            class="btn btn-danger btn-sm"
+                            class="btn btn-outline-danger btn-sm d-none"
                             type="button"
                             title="<?= __('Delete selected objects') ?>"
                             aria-label="<?= __('Delete selected objects') ?>">
-                        <i class="fas fa-trash text-white"></i>
-                        <span class="text-white"> <?= __('Delete') ?></span>
+                        <i class="fas fa-trash"></i>
+                        <span> <?= __('Delete') ?></span>
                     </button>
-                    <button id="obj-clear-selection-button"
-                            class="btn btn-outline-secondary btn-sm"
-                            type="button">
+                    <span class="ms-sep" aria-hidden="true"></span>
+                    <button id="obj-clear-selection-button" type="button" class="btn btn-sm btn-link ms-clear">
                         <?= __('Clear selection') ?>
                     </button>
                 </div>
             </div>
-            <div id="multiSelectToolbar" class="mt-2 d-none">
+            <?php if ($canEdit || $_mayGraph): ?>
+            <div id="multiSelectToolbar"
+                 class="ms-float d-none" role="region" aria-label="<?= h(__('Selected attributes')) ?>">
                 <div class="p-2 border rounded bg-light d-flex align-items-center gap-2 flex-wrap">
-                    <strong>
-                        <?= __('Selected items') ?>:
-                        <span id="selectedCount">0</span>
-                    </strong>
+                    <span class="ms-count" id="selectedCount"
+                          data-one="<?= h(__('%s attribute selected')) ?>"
+                          data-many="<?= h(__('%s attributes selected')) ?>"></span>
+                    <span class="ms-sep" aria-hidden="true"></span>
+                    <?php if ($_mayGraph): ?>
+                    <button id="mass-graph-button"
+                            class="btn btn-analystGraph btn-sm d-none"
+                            type="button"
+                            title="<?= __('Add the selected to the active graph') ?>"
+                            aria-label="<?= __('Add the selected to the active graph') ?>"
+                            onclick="addSelectedToGraph(this)">
+                        <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
+                        <span class="text-white"> <?= __('Graph') ?></span>
+                    </button>
+                    <?php endif; ?>
+                    <?php if ($canEdit): ?>
                     <button id="multi-delete-button"
-                            class="btn btn-danger btn-sm d-none"
+                            class="btn btn-outline-danger btn-sm d-none"
+                            type="button"
                             title="<?= __('Delete selected attributes') ?>"
                             aria-label="<?= __('Delete selected attributes') ?>"
                             onclick="multiSelectItems(baseurl + '/attributes/deleteSelection', '')">
-                        <i class="fas fa-trash text-white"></i>
-                        <span class="text-white"> <?= __('Delete') ?></span>
+                        <i class="fas fa-trash"></i>
+                        <span> <?= __('Delete') ?></span>
+                    </button>
+                    <?php endif; ?>
+                    <span class="ms-sep" aria-hidden="true"></span>
+                    <button type="button" class="btn btn-sm btn-link ms-clear" onclick="clearMultiSelect(this)">
+                        <?= __('Clear selection') ?>
                     </button>
                 </div>
             </div>
@@ -259,6 +289,7 @@ $foldChildren = empty($objects) ? [] : [
             $objOrigin   = $ctx['origin'];
             $objStyle    = $ctx['style'];
             $objCanEdit  = $ctx['canEdit'];
+            $objSelectable = $objCanEdit || $ctx['graphItem'] !== null;
             $objCanTag   = $ctx['canTag'];
             $_canGraph   = !$isDeleted && $_mayGraph;
             $_canCollect = !$isDeleted && $_mayCollect;
@@ -269,16 +300,18 @@ $foldChildren = empty($objects) ? [] : [
 
             <!-- Card header -->
             <h2 class="accordion-header obj-header d-flex align-items-center" id="<?= $headingId ?>">
-                <?php if ($objCanEdit): ?>
+                <?php if ($objSelectable): ?>
                 <span class="ps-3 pe-1 d-inline-flex align-items-center flex-shrink-0 checkbox-index">
                     <input type="checkbox"
                            class="obj-select form-check-input mt-0"
                            data-object-id="<?= $objId ?>"
+                           data-can-delete="<?= $objCanEdit ? '1' : '0' ?>"
+                           <?php if ($ctx['graphItem'] !== null): ?>data-graph-item="<?= h(json_encode($ctx['graphItem'])) ?>"<?php endif; ?>
                            aria-label="<?= h(__('Select this object')) ?>"
                            title="<?= h(__('Select this object')) ?>">
                 </span>
                 <?php endif; ?>
-                <button class="accordion-button<?= $expandForProposal ? '' : ' collapsed' ?> py-2 <?= $objCanEdit ? 'ps-2 pe-3' : 'px-3' ?> rounded flex-grow-1"
+                <button class="accordion-button<?= $expandForProposal ? '' : ' collapsed' ?> py-2 <?= $objSelectable ? 'ps-2 pe-3' : 'px-3' ?> rounded flex-grow-1"
                         style="min-width:0;"
                         type="button"
                         data-bs-toggle="collapse"
@@ -490,6 +523,9 @@ $foldChildren = empty($objects) ? [] : [
                                                        mass-select mt-0"
                                                 data-item-id="<?= $attrId ?>"
                                                 data-can-delete="<?= $objCanEdit ? '1' : '0' ?>"
+                                                <?php if ($_mayGraph && empty($attr['deleted'])): ?>
+                                                data-graph-item="<?= h(json_encode(['type' => 'Attribute', 'uuid' => $attr['uuid'], 'label' => $attr['value']])) ?>"
+                                                <?php endif; ?>
                                             >
                                         </div>
                                     </td>
@@ -849,33 +885,52 @@ $foldChildren = empty($objects) ? [] : [
     // the global selectedItems map, which the attribute toolbar deletes through
     // /attributes/deleteSelection — and since an object id and an attribute id
     // are both plain integers, the two selections would silently merge.
-    var objSelected = new Set();
+    var objSelected = new Map();
 
     function objScope() { return container || document; }
+
+    function objGraphItems() {
+        var items = [];
+        objSelected.forEach(function (sel) { if (sel.graphItem) items.push(sel.graphItem); });
+        return items;
+    }
 
     function updateObjToolbar() {
         var bar = objScope().querySelector('#objMultiSelectToolbar');
         if (!bar) return;
         bar.classList.toggle('d-none', objSelected.size === 0);
         var countEl = objScope().querySelector('#objSelectedCount');
-        if (countEl) countEl.textContent = objSelected.size;
+        if (countEl) setMultiSelectCount(countEl, objSelected.size);
+        var canDeleteAll = true;
+        objSelected.forEach(function (sel) { if (!sel.canDelete) canDeleteAll = false; });
+        var delBtn = objScope().querySelector('#obj-multi-delete-button');
+        if (delBtn) delBtn.classList.toggle('d-none', !canDeleteAll);
+        var graphBtn = objScope().querySelector('#obj-multi-graph-button');
+        if (graphBtn) graphBtn.classList.toggle('d-none', !window.IntelGraphActions || objGraphItems().length === 0);
+        syncMultiSelectFloat();
     }
 
     // Both views render a checkbox per object and both are in the DOM at once,
     // so a tick has to reach the other view's copy — otherwise switching views
     // shows a selection that disagrees with the toolbar.
-    function setObjSelected(id, checked) {
-        if (checked) { objSelected.add(id); } else { objSelected.delete(id); }
+    function setObjSelected(id, checked, box) {
+        if (checked) {
+            var graphItem = null;
+            try { graphItem = box.dataset.graphItem ? JSON.parse(box.dataset.graphItem) : null; } catch (e) { /* left out */ }
+            objSelected.set(id, { canDelete: box.dataset.canDelete === '1', graphItem: graphItem });
+        } else {
+            objSelected.delete(id);
+        }
         objScope().querySelectorAll('.obj-select[data-object-id="' + id + '"]')
-            .forEach(function (box) { box.checked = checked; });
+            .forEach(function (twin) { twin.checked = checked; });
         updateObjToolbar();
     }
 
     // Bound per checkbox rather than delegated: the container outlives an ajax
-    // reload, so a delegated listener would stack up and keep a stale Set.
+    // reload, so a delegated listener would stack up and keep a stale Map.
     objScope().querySelectorAll('.obj-select').forEach(function (box) {
         box.addEventListener('change', function () {
-            setObjSelected(box.dataset.objectId, box.checked);
+            setObjSelected(box.dataset.objectId, box.checked, box);
         });
     });
 
@@ -885,16 +940,24 @@ $foldChildren = empty($objects) ? [] : [
             if (objSelected.size === 0) return;
             openModal(
                 baseurl + '/objects/deleteSelection/'
-                    + JSON.stringify(Array.from(objSelected).map(Number)),
+                    + JSON.stringify(Array.from(objSelected.keys()).map(Number)),
                 'md'
             );
+        });
+    }
+
+    var objGraphBtn = objScope().querySelector('#obj-multi-graph-button');
+    if (objGraphBtn) {
+        objGraphBtn.addEventListener('click', function () {
+            var items = objGraphItems();
+            if (items.length && window.IntelGraphActions) window.IntelGraphActions.add(items, objGraphBtn);
         });
     }
 
     var objClearBtn = objScope().querySelector('#obj-clear-selection-button');
     if (objClearBtn) {
         objClearBtn.addEventListener('click', function () {
-            Array.from(objSelected).forEach(function (id) { setObjSelected(id, false); });
+            Array.from(objSelected.keys()).forEach(function (id) { setObjSelected(id, false); });
         });
     }
 

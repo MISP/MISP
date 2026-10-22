@@ -49,6 +49,12 @@ $fields = [
         'element' => 'checkbox',
         'data_path' => 'GalaxyCluster.id',
         'enable_path' => 'GalaxyCluster.enabled',
+        'graph_item' => function ($row) {
+            if (!empty($row['GalaxyCluster']['deleted'])) {
+                return null;
+            }
+            return ['type' => 'GalaxyCluster', 'uuid' => $row['GalaxyCluster']['uuid'], 'label' => $row['GalaxyCluster']['value']];
+        },
         'card_section' => 'selector',
     ],
     [
@@ -268,6 +274,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 // Mass delete (soft/hard) via deleteSelection. delete_url is absolute because item_url carries the galaxy id.
                 'delete' => ($isSiteAdmin || !empty($me['Role']['perm_galaxy_editor'])) ? '/deleteSelection' : null,
                 'delete_url' => '/galaxy_clusters/deleteSelection',
+                'mass_graph' => $this->Acl->canAccess('analystGraphs', 'addNodes'),
             ],
             'fields' => $fields,
             'primary_id_path' => 'GalaxyCluster.id',

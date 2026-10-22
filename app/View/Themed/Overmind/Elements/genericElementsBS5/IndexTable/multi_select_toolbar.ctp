@@ -84,6 +84,17 @@ $massOpen = function ($key, $size = 'xl') use ($filter_bar, $baseurl) {
             </button>
         <?php endif; ?>
 
+        <?php if (!empty($filter_bar['mass_graph'])): ?>
+            <button id="mass-graph-button"
+                    class="btn btn-analystGraph btn-sm d-none"
+                    title="<?= __('Add the selected to the active graph') ?>"
+                    aria-label="<?= __('Add the selected to the active graph') ?>"
+                    onclick="addSelectedToGraph(this)">
+                <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
+                <span class="text-white"> <?= __('Graph') ?></span>
+            </button>
+        <?php endif; ?>
+
         <?php
             /*
              * Only for specific indexes that need a custom action button in the mass-action toolbar.
