@@ -311,9 +311,9 @@ $offerExtract = !$extracted && $wordy >= 2;
 <?php endif; ?>
             <span class="vi-segs" data-vi-views>
                 <button class="vi-seg" type="button" data-vi-view="cards"
-                        aria-pressed="true"><?= h(__('Cards')) ?></button>
+                        aria-pressed="false"><?= h(__('Cards')) ?></button>
                 <button class="vi-seg" type="button" data-vi-view="table"
-                        aria-pressed="false"><?= h(__('Table')) ?></button>
+                        aria-pressed="true"><?= h(__('Table')) ?></button>
             </span>
             <span class="vi-keys">
                 <span><span class="vi-kbd">j</span> <span class="vi-kbd">k</span> <?= h(__('move')) ?></span>
@@ -351,7 +351,7 @@ $offerExtract = !$extracted && $wordy >= 2;
              data-vi-settled="<?= h(__('Sorted by assessment.')) ?>"
              data-vi-back="<?= h(__('Back to paste order')) ?>"></div>
     </div>
-    <div class="vi-listwrap<?= $showsAssessment ? '' : ' is-unassessed' ?>">
+    <div class="vi-listwrap is-table<?= $showsAssessment ? '' : ' is-unassessed' ?>">
         <div class="vi-thead" aria-hidden="true">
             <span></span>
             <span><?= h(__('value')) ?></span>
