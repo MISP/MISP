@@ -1,18 +1,10 @@
 <?php
 $orgData = $org['Organisation'] ?? [];
 $orgId   = $orgData['id'] ?? $id;
-$local   = !empty($orgData['local']);
 
 // ── PAGE HEADER ──────────────────────────────────────────────────
 
-$logo = $this->OrgImg->getOrgLogoV2($orgData, 40, false);
-$headerTitleHtml = '<span class="d-inline-flex align-items-center gap-2">'
-    . $logo
-    . '<span>' . h($orgData['name'] ?? '') . '</span>'
-    . '<span class="badge align-middle ' . ($local ? 'text-bg-success' : 'text-bg-secondary') . '" '
-        . 'style="font-size:.7rem;">' . ($local ? __('Local') : __('Remote')) . '</span>'
-    . '</span>';
-$this->set('headerTitleHtml', $headerTitleHtml);
+$this->set('headerTitle', $orgData['name'] ?? '');
 
 $description = trim($orgData['description'] ?? '');
 if ($description !== '') {

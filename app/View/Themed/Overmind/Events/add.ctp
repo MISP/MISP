@@ -214,20 +214,14 @@ echo $this->Form->create('Event', ['id' => 'EventForm', 'novalidate' => true]);
                 'required' => true,
                 'for' => 'EventDateDisplay',
             ]) ?>
-            <div class="ov-form-box">
-                <input type="text"
-                       id="EventDateDisplay"
-                       class="ov-form-bare"
-                       inputmode="numeric"
-                       autocomplete="off"
-                       placeholder="DD/MM/YYYY"
-                       data-invalid-msg="<?= h(__('Enter the event date as DD/MM/YYYY.')) ?>"
-                       value="<?= h(date('d/m/Y', strtotime($currentDate))) ?>">
-                <?= $this->Form->hidden('date', [
-                    'id'    => 'EventDate',
-                    'value' => $currentDate,
-                ]) ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/date_field', [
+                'field' => 'date',
+                'id' => 'EventDate',
+                'value' => $currentDate,
+                'required' => true,
+                'requiredMsg' => __('Enter the event date.'),
+                'invalidMsg' => __('Enter the event date as DD/MM/YYYY.'),
+            ]) ?>
         </div>
 
     </div>

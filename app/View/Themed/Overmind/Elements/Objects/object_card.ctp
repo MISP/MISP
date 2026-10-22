@@ -3,9 +3,8 @@
  * One object as a card, for the card view of the event's object index.
  *
  * Same three pieces as the list view, stacked: the header line, the object's
- * own actions, and the attributes behind a click. The header carries exactly
- * what the accordion's header carries — on one line, truncated rather than
- * wrapped, so a grid of cards still reads as a grid of rows.
+ * own actions, and the attributes behind a click. The header is the
+ * accordion's own (Objects/object_header).
  *
  * Parameters:
  *   object             array  one entry of $objects
@@ -30,7 +29,7 @@ $expanded = !empty($ctx['expand']);
          style="<?= h($ctx['style']) ?>"
          data-primary-id="<?= $objId ?>">
 
-        <!-- ── Header: the list view's header line, kept on one line ── -->
+        <!-- ── Header: the same line as the list view's ── -->
         <h2 class="accordion-header obj-header d-flex align-items-center">
             <?php if ($objCanEdit): ?>
             <span class="ps-3 pe-1 d-inline-flex align-items-center flex-shrink-0 checkbox-index">
@@ -49,78 +48,25 @@ $expanded = !empty($ctx['expand']);
                     aria-expanded="<?= $expanded ? 'true' : 'false' ?>"
                     aria-controls="<?= $collapseId ?>">
 
-                <span class="d-flex align-items-center flex-nowrap
-                             gap-2 w-100 me-2 text-start"
-                      style="overflow:hidden;">
-
-                    <!-- Distribution -->
-                    <span class="flex-shrink-0 d-inline-flex">
-                        <?= $this->element('genericElementsBS5/Badges/distribution', [
-                            'distribution' => $object['distribution'] ?? 0,
-                            'full' => false,
-                        ]) ?>
-                    </span>
-
-                    <?php if ($isDeleted): ?>
-                        <span class="badge bg-danger bg-opacity-75 text-white flex-shrink-0">
-                            <i class="fas fa-trash me-1"></i><?= __('Deleted') ?>
-                        </span>
-                    <?php endif; ?>
-
-                    <!-- Name -->
-                    <span class="fw-semibold text-nowrap flex-shrink-0">
-                        <span class="misp-icon misp-icon-object misp-hexagone me-1 text-secondary"></span>
-                        <?= h($object['name']) ?>
-                    </span>
-
-                    <!-- First attribute's value -->
-                    <?php if ($ctx['firstValue'] !== ''): ?>
-                        <span class="badge bg-white border text-body fw-normal
-                                     font-monospace text-truncate"
-                              style="max-width:340px;min-width:0;flex-shrink:1;"
-                              title="<?= h(($ctx['firstRelation'] !== ''
-                                  ? $ctx['firstRelation'] . ': ' : '') . $ctx['firstValue']) ?>">
-                            <?= h($ctx['firstValue']) ?>
-                        </span>
-                    <?php endif; ?>
-
-                    <!-- Meta-category -->
-                    <?php if (!empty($object['meta-category'])): ?>
-                        <span class="badge rounded-pill text-bg-light border
-                                     text-secondary fw-normal flex-shrink-0">
-                            <?= h($object['meta-category']) ?>
-                        </span>
-                    <?php endif; ?>
-
-                    <!-- Comment -->
-                    <?php if (!empty($object['comment'])): ?>
-                        <span class="text-muted fst-italic small text-truncate"
-                              style="min-width:0;flex-shrink:100;"
-                              title="<?= h($object['comment']) ?>">
-                            <i class="fas fa-comment fa-xs me-1"></i><?= h($object['comment']) ?>
-                        </span>
-                    <?php endif; ?>
-
-                    <!-- Attribute count -->
-                    <span class="badge rounded-pill bg-secondary-subtle
-                                 text-secondary ms-auto flex-shrink-0">
-                        <?= __n('%s attribute', '%s attributes',
-                            $ctx['count'], $ctx['count']) ?>
-                    </span>
-
-                    <!-- Timestamp -->
-                    <span class="text-muted small text-nowrap flex-shrink-0">
-                        <i class="fas fa-clock fa-xs me-1"></i>
-                        <?= date('Y-m-d', (int)$object['timestamp']) ?>
-                    </span>
-
-                </span>
+                <?= $this->element('Objects/object_header', [
+                    'object' => $object,
+                    'ctx' => $ctx,
+                ]) ?>
             </button>
         </h2>
 
         <!-- ── The object's own actions, right under the header ────── -->
         <div class="card-body flex-grow-0 py-2 px-3 border-top d-flex flex-wrap
                     align-items-center gap-2 small text-muted">
+            <?php if (!empty($object['comment'])): ?>
+                <span class="card card-link-item bg-light w-100">
+                    <div class="card-body p-1 text-truncate">
+                        <i class="fas fa-comment"></i>
+                        <?= h($object['comment']) ?>
+                    </div>
+                </span>
+            <?php endif; ?>
+            <?= $this->element('Objects/object_taxonomy', ['object' => $object]) ?>
             <?php if (!empty($object['uuid'])): ?>
                 <button type="button"
                         class="btn btn-sm btn-link p-0 text-muted lh-1"
@@ -128,12 +74,6 @@ $expanded = !empty($ctx['expand']);
                         onclick="copyValueToClipboard('<?= h($object['uuid']) ?>', '<?= h(__('UUID copied to clipboard')) ?>');">
                     <i class="fas fa-fingerprint"></i>
                 </button>
-            <?php endif; ?>
-            <?php if (!empty($object['template_version'])): ?>
-                <span class="text-nowrap">
-                    <span class="misp-icon misp-icon-tag misp-hexagone me-1"></span>
-                    <?= __('v%s', h($object['template_version'])) ?>
-                </span>
             <?php endif; ?>
             <?= $this->element('Events/View/extension_origin', [
                 'event_id' => $object['event_id'] ?? 0,

@@ -61,7 +61,6 @@ $_canAnalystData = !empty($me['Role']['perm_analyst_data']);
 // offered when the matching services plugin is enabled and the user can add data.
 $_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
 $_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
-// Analyst data is only attached to attributes in the event view (fetchPaginatedAttributes).
 $inEventView = empty($show_event_id) && !empty($event['Event']['id']);
 // Extended / extending event view: rows can belong to any event of the merged
 // set, so each one says where it comes from and wears its origin's accent.
@@ -248,7 +247,6 @@ $fields = array_merge($fields, [
         'relationship_inbound_path' => $path('RelationshipInbound'),
         'uuid_path' => $path('uuid'),
         'object_type' => 'Attribute',
-        'requirement' => $inEventView,
         'card_section' => 'meta',
         'display_in' => ['table', 'card'],
     ],
@@ -264,6 +262,80 @@ $fields = array_merge($fields, [
                 'icon' => 'copy',
                 'data_path' => $path('uuid'),
                 'copy_message' => __('UUID copied to clipboard'),
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Edit'),
+                'icon' => 'pen-to-square',
+                'url' => $baseurl . '/attributes/edit/%id%',
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Restore'),
+                'icon' => 'rotate-left',
+                'url' => $baseurl . '/attributes/restore/%id%',
+                'class' => 'text-success',
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && !empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Delete'),
+                'icon' => 'trash',
+                'url' => $baseurl . '/attributes/delete/%id%',
+                'class' => 'text-danger',
+                'requirement' => function($row) use ($_rowMayModify) {
+                    return $_rowMayModify($row) && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => function($row) use ($_rowMayModify, $_enrichmentEnabled, $_cortexEnabled) {
+                    return $_rowMayModify($row) && ($_enrichmentEnabled || $_cortexEnabled) && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Enrich'),
+                'icon' => 'fas fa-wand-magic-sparkles text-enrichment',
+                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Enrichment/Attribute',
+                'requirement' => function($row) use ($_rowMayModify, $_enrichmentEnabled) {
+                    return $_rowMayModify($row) && $_enrichmentEnabled && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Enrich (Cortex)'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Cortex/Attribute',
+                'requirement' => function($row) use ($_rowMayModify, $_cortexEnabled) {
+                    return $_rowMayModify($row) && $_cortexEnabled && empty($row['deleted']) && empty($row['is_proposal']);
+                }
+            ],
+            [
+                'type' => 'divider',
+                'requirement' => function($row) use ($_canPropose) {
+                    return $_canPropose && empty($row['is_proposal']) && empty($row['deleted']);
+                }
+            ],
+            [
+                'type' => 'modal',
+                'label' => __('Propose change'),
+                'icon' => 'comment-dots',
+                'url' => $baseurl . '/shadow_attributes/edit/%id%',
+                'requirement' => function($row) use ($_canPropose) {
+                    return  $_canPropose && empty($row['is_proposal']) && empty($row['deleted']);
+                }
             ],
             [
                 'type' => 'divider',
@@ -300,74 +372,6 @@ $fields = array_merge($fields, [
                 'requirement' => function($row) use ($inEventView, $_canAnalystData) {
                     return $inEventView && $_canAnalystData && empty($row['deleted']) && empty($row['is_proposal']);
                 }
-            ],
-            [
-                'type' => 'divider',
-                'requirement' => function($row) use ($_rowMayModify, $_enrichmentEnabled, $_cortexEnabled) {
-                    return $_rowMayModify($row) && ($_enrichmentEnabled || $_cortexEnabled) && empty($row['deleted']) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Enrich'),
-                'icon' => 'fas fa-wand-magic-sparkles text-enrichment',
-                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Enrichment/Attribute',
-                'requirement' => function($row) use ($_rowMayModify, $_enrichmentEnabled) {
-                    return $_rowMayModify($row) && $_enrichmentEnabled && empty($row['deleted']) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Enrich (Cortex)'),
-                'icon' => 'eye',
-                'url' => $baseurl . '/events/queryEnrichment/%id%/0/Cortex/Attribute',
-                'requirement' => function($row) use ($_rowMayModify, $_cortexEnabled) {
-                    return $_rowMayModify($row) && $_cortexEnabled && empty($row['deleted']) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Propose change'),
-                'icon' => 'comment-dots',
-                'url' => $baseurl . '/shadow_attributes/edit/%id%',
-                'requirement' => function($row) use ($_canPropose) {
-                    return  $_canPropose && empty($row['is_proposal']) && empty($row['deleted']);
-                }
-            ],
-            [
-                'type' => 'divider',
-                'requirement' => function($row) use ($_rowMayModify) {
-                    return $_rowMayModify($row) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Edit'),
-                'icon' => 'pen-to-square',
-                'url' => $baseurl . '/attributes/edit/%id%',
-                'requirement' => function($row) use ($_rowMayModify) {
-                    return $_rowMayModify($row) && empty($row['deleted']) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Restore'),
-                'icon' => 'rotate-left',
-                'url' => $baseurl . '/attributes/restore/%id%',
-                'class' => 'text-success',
-                'requirement' => function($row) use ($_rowMayModify) {
-                    return $_rowMayModify($row) && !empty($row['deleted']) && empty($row['is_proposal']);
-                }
-            ],
-            [
-                'type' => 'modal',
-                'label' => __('Delete'),
-                'icon' => 'trash',
-                'url' => $baseurl . '/attributes/delete/%id%',
-                'class' => 'text-danger',
-                'requirement' => function($row) use ($_rowMayModify) {
-                    return $_rowMayModify($row) && empty($row['deleted']) && empty($row['is_proposal']);
-                }
             ]
         ]
     ]
@@ -389,11 +393,14 @@ $fields = array_merge($fields, [
  */
 
 $children = [
-    [
-        'type' => 'search',
-        'button' => 'Search',
-        'placeholder' => __('Filter by attribute value'),
-    ]
+    array_merge(
+        [
+            'type' => 'search',
+            'button' => 'Search',
+            'placeholder' => __('Filter by attribute value, UUID or comment'),
+        ],
+        $inEventView ? ['mode' => 'legacy', 'name' => 'searchFor'] : []
+    )
 ];
 
 // Inside an event the attribute tab reloads itself over ajax and drives its own
@@ -436,68 +443,17 @@ if (!empty($show_filters)) {
     ]);
 }
 
-if (empty($show_event_id) && !empty($event['Event']['id'])) {
-    // Event view: only category and type are supported by viewAttributes
-    $children = array_merge($children, [
-        [
-            'type' => 'more_filters',
-            'label' => __('More filters'),
-            'children' => [
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Category'),
-                    'name' => 'category',
-                    'options' => ['' => ''] + ($categoryOptions ?? [])
-                ],
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Type'),
-                    'name' => 'type',
-                    'options' => ['' => ''] + ($typeOptions ?? [])
-                ],
-            ]
-        ]
-    ]);
-} else {
-    $children = array_merge($children, [
-        [
-            'type' => 'more_filters',
-            'label' => __('More filters'),
-            'children' => [
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Category'),
-                    'name' => 'category',
-                    'options' => $categoryOptions ?? []
-                ],
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Type'),
-                    'name' => 'type',
-                    'options' => $typeOptions ?? []
-                ],
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Creator Org'),
-                    'name' => 'org',
-                    'options' => $orgOptions ?? []
-                ],
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Tags'),
-                    'name' => 'tags',
-                    'options' => $tagOptions ?? []
-                ],
-                [
-                    'type' => 'dropdown',
-                    'label' => __('Galaxy'),
-                    'name' => 'galaxy',
-                    'options' => $galaxyOptions ?? []
-                ]
-            ]
-        ]
-    ]);
-}
+App::uses('AttributeFilterPanel', 'Tools');
+$moreFilterChildren = AttributeFilterPanel::children(
+    compact('categoryOptions', 'typeOptions', 'orgOptions', 'tagOptions')
+        + ['galaxyOptions' => $galaxyOptions ?? null],
+    $inEventView
+);
+$children[] = [
+    'type' => 'more_filters',
+    'label' => __('More filters'),
+    'children' => $moreFilterChildren,
+];
 
 if (empty($show_event_id) && !empty($event['Event']['id'])) {
     $attrEventId     = $event['Event']['id'];
@@ -541,6 +497,30 @@ $filterBar = [
     'children' => $children,
     'soft_delete' => '/deleteSelection',
 ];
+
+// Mass actions beside delete. A soft-deleted row can only be deleted for good,
+// and edit / object / relationship are scoped to the event whose page this is,
+// so an extended view (rows from several events) offers tagging only.
+$massActions = [];
+$showingDeleted = !empty($this->request->params['named']['deleted']);
+if ($inEventView && !$showingDeleted) {
+    $massEventId = (int)$event['Event']['id'];
+    if ($_canModify && !$inExtensionView) {
+        $massActions['mass_edit'] = '/attributes/getMassEditForm/' . $massEventId;
+    }
+    if ($canTagAttr) {
+        $massActions['mass_tag'] = '/attributes/tagSelection';
+        $massActions['mass_cluster'] = '/attributes/galaxySelection';
+    }
+    if ($_canModify && !$inExtensionView) {
+        $massActions['mass_object'] = '/objects/proposeObjectsFromAttributes/' . $massEventId;
+        $massActions['mass_relationship'] = '/objectReferences/bulkAdd/' . $massEventId;
+    }
+}
+
+if (!$showingDeleted) {
+    $massActions['mass_sighting'] = true;
+}
 
 if (!$inEventView) {
     $filterBar['transport'] = 'query';
@@ -586,16 +566,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                     $origin['palette']['badgeBorder']
                 );
             },
-            'filter_bar' => $filterBar + [
-                // 'mass_edit' => 1,
-                // 'mass_tag' => 1,
-                // 'mass_local_tag' => 1,
-                // 'mass_cluster' => 1,
-                // 'mass_local_cluster' => 1,
-                // 'mass_object' => 1,
-                // 'mass_relationship' =>1,
-                // 'mass_sighting' =>1,
-            ],
+            'filter_bar' => $filterBar + $massActions,
             'fields' => $fields,
         ]
     ],

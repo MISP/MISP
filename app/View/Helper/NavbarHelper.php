@@ -33,7 +33,6 @@ class NavbarHelper extends AppHelper {
         'warninglists'             => 'datamodels',
         'noticelists'              => 'datamodels',
         'regexp'                   => 'datamodels',
-        'allowedlists'             => 'datamodels',
         'correlation_exclusions'   => 'datamodels',
         // Sync
         'syncconfigs'            => 'sync',
@@ -410,22 +409,6 @@ class NavbarHelper extends AppHelper {
                         'action' => 'index',
                         'requirement' => !$isAclRegexp,
                         'icon' => 'fas fa-code'
-                    ],
-                    [
-                        'label' => __('Signature Allowedlist'),
-                        'url' => $baseurl . '/admin/allowedlists/index',
-                        'controller' => 'allowedlists',
-                        'action' => 'index',
-                        'requirement' => $isAclRegexp,
-                        'icon' => 'fas fa-check-circle'
-                    ],
-                    [
-                        'label' => __('Signature Allowedlist'),
-                        'url' => $baseurl . '/allowedlists/index',
-                        'controller' => 'allowedlists',
-                        'action' => 'index',
-                        'requirement' => !$isAclRegexp,
-                        'icon' => 'fas fa-check-circle'
                     ],
                     [
                         'label' => __('Correlation Exclusions'),

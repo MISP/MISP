@@ -132,14 +132,6 @@ if ($field['data_path'] === 'Regexp.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
-if ($field['data_path'] === 'Allowedlist.id') {
-    if (!isset($mayModify)){
-        $mayModify = $isSiteAdmin;
-    }
-    $checkboxAttrs['data-item-id'] = $id;
-    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
-}
-
 if ($field['data_path'] === 'CorrelationExclusion.id') {
     if (!isset($mayModify)){
         $mayModify = $isSiteAdmin;
@@ -240,14 +232,6 @@ if ($field['data_path'] === 'TagCollection.id') {
 }
 
 if ($field['data_path'] === 'Taxonomy.id') {
-    if (!isset($mayModify)){
-        $mayModify = $mayModify = $isSiteAdmin;
-    }
-    $checkboxAttrs['data-item-id'] = $id;
-    $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
-}
-
-if ($field['data_path'] === 'Template.id') {
     if (!isset($mayModify)){
         $mayModify = $mayModify = $isSiteAdmin;
     }

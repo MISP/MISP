@@ -374,8 +374,42 @@ class AnalystDataController extends AppController
         if ($overmind && $isAjax) {
             $this->layout = false;
         }
+        if ($overmind) {
+            $this->__setTargetExistence($this->viewVars['data'] ?? []);
+        }
         $this->_setViewElements();
         $this->set('menuData', array('menuList' => 'analyst_data', 'menuItem' => 'index'));
+    }
+
+    /**
+     * Tell the index which of the rendered targets still resolve, so a UUID
+     * pointing at something this instance no longer holds is rendered as text
+     * instead of a link into a "not found" page.
+     *
+     * @param array $rows the page of analyst data about to be rendered
+     */
+    private function __setTargetExistence(array $rows)
+    {
+        $model = $this->modelSelection;
+        $pairs = [
+            ['object_type', 'object_uuid'],
+            ['related_object_type', 'related_object_uuid'],
+        ];
+        $targets = [];
+        foreach ($rows as $row) {
+            foreach ($pairs as list($typeKey, $uuidKey)) {
+                if (!empty($row[$model][$uuidKey])) {
+                    $targets[] = [
+                        'type' => $row[$model][$typeKey] ?? '',
+                        'uuid' => $row[$model][$uuidKey],
+                    ];
+                }
+            }
+        }
+        $this->set(
+            'analystTargetExists',
+            $this->AnalystData->existingTargets($this->Auth->user(), $targets)
+        );
     }
 
     /**

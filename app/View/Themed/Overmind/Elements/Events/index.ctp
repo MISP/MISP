@@ -208,6 +208,7 @@ $children[] = [
             'type' => 'dropdown',
             'label' => __('Distribution'),
             'name' => 'distribution',
+            'placeholder' => __('Any'),
             'options' => [
                 '' => '',
                 '0' => 'Your organisation only',
@@ -220,6 +221,7 @@ $children[] = [
             'type' => 'dropdown',
             'label' => __('Published'),
             'name' => 'published',
+            'placeholder' => __('Any'),
             'options' => [
                 '' => '',
                 '1' => 'Published',
@@ -230,18 +232,21 @@ $children[] = [
             'type' => 'dropdown',
             'label' => __('Creator Org'),
             'name' => 'org',
+            'placeholder' => __('Any'),
             'options' => $orgOptions
         ],
         [
             'type' => 'dropdown',
             'label' => __('Tags'),
             'name' => 'tag',
+            'placeholder' => __('Any'),
             'options' => $tagOptions
         ],
         [
             'type' => 'dropdown',
             'label' => __('Galaxy'),
             'name' => 'galaxy',
+            'placeholder' => __('Any'),
             'options' => $galaxyOptions
         ]
     ]

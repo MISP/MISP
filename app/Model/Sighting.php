@@ -924,8 +924,13 @@ class Sighting extends AppModel
                 'fields' => ['Attribute.id', 'Attribute.event_id'],
             ]);
         } else {
-            $filters['value'] = $values;
+            if (!empty($values)) {
+                $filters['value'] = $values;
+            }
             $params = $this->Attribute->restSearch($user, 'json', $filters, true);
+            if (!empty($conditions)) {
+                $params['conditions'] = ['AND' => [$params['conditions'], $conditions]];
+            }
             $attributes = $this->Attribute->fetchAttributes($user, $params);
         }
         if (empty($attributes)) {

@@ -120,6 +120,24 @@ class BenchmarkTool
         $pipeline->exec();
     }
 
+    /**
+     * Every day collection actually wrote something for, oldest first.
+     *
+     * Records outlive the plugin being switched off, so a view needs this to
+     * tell "never collected" apart from "collected until <date>, then stopped".
+     *
+     * @return array
+     */
+    public function getRecordedDays()
+    {
+        $days = $this->redis->smembers(self::NAMESPACE . 'days');
+        if (empty($days)) {
+            return [];
+        }
+        sort($days);
+        return $days;
+    }
+
     public function getTopList(string $scope, string $field, array $days = [], $limit = 10, $average = false, $aggregate = false)
     {
         $results = [];
@@ -131,10 +149,14 @@ class BenchmarkTool
             foreach ($temp as $k => $v) {
                 if ($average) {
                     $divisor = $this->redis->zscore(self::NAMESPACE . $scope . ':count:' . $day, $k);
+                    // zscore answers false for a member the count set never saw.
+                    if (empty($divisor)) {
+                        continue;
+                    }
                     if ($aggregate) {
                         $results['aggregate'][$k] = empty($results['aggregate'][$k]) ? ($v / $divisor) : ($results['aggregate'][$k] + ($v / $divisor));
                     } else {
-                        $results[$day][$k] = (int)($v / $divisor);
+                        $results[$day][$k] = round($v / $divisor, 3);
                     }
                 } else {
                     if ($aggregate) {
@@ -145,10 +167,10 @@ class BenchmarkTool
                 }
             }
         }
-        if ($aggregate && $average) {
-            $count_days = count($days);
+        if ($aggregate && $average && !empty($results['aggregate'])) {
+            $count_days = max(1, count($days));
             foreach ($results['aggregate'] as $k => $result) {
-                $results['aggregate'][$k] = (int)($result / $count_days);
+                $results['aggregate'][$k] = round($result / $count_days, 3);
             }
         }
         return $results;
