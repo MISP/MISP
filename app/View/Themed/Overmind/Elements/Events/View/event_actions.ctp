@@ -100,10 +100,10 @@ if ($canEdit) {
         'onclick' => $modal("$baseurl/events/populateFrom/$eventId"),
         'icon' => 'fas fa-sign-in-alt',
         'tour' => 'action-populate-from',
-        'label' => __('Populate from'),
+        'label' => __('Import from'),
         'pinned' => true,
         'tileOrder' => 4,
-        'short' => __('Populate'),
+        'short' => __('Import'),
         'entity' => 'attribute'
     ];
 
