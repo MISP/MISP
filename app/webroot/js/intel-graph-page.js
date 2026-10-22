@@ -1,4 +1,4 @@
-// A workspace's own page (AnalystGraphs/view.ctp): the graph mounted at
+// A workspace's own page (Workspaces/view.ctp): the graph mounted at
 // full size through IntelGraph, the bar that says what is not saved yet, and
 // the fork and settings dialogs.
 //
@@ -355,7 +355,7 @@
                 submit.disabled = true;
                 window.IntelGraph.fork(graph.uuid, { name: name, target: { type: t.type, uuid: t.uuid } }).then(function (fork) {
                     window.removeEventListener('beforeunload', guard);
-                    window.location.href = baseurl() + '/analyst_graphs/view/' + encodeURIComponent(fork.uuid);
+                    window.location.href = baseurl() + '/workspaces/view/' + encodeURIComponent(fork.uuid);
                 }, function (err) {
                     submit.disabled = false;
                     error.textContent = 'Could not fork: ' + message(err);
@@ -405,14 +405,14 @@
                 e.preventDefault();
                 var name = form.querySelector('#ig-page-settings-name').value.trim();
                 if (!name) { error.textContent = 'A workspace needs a name.'; return; }
-                var body = { Graph: {
+                var body = { Workspace: {
                     name: name,
                     description: form.querySelector('#ig-page-settings-description').value,
                     distribution: +dist.value,
                     sharing_group_id: dist.value === '4' ? +sg.value : null
                 } };
                 if (dist.value === '4' && !sg.value) { error.textContent = 'Pick the sharing group to share it with.'; return; }
-                window.IntelGraph.request('POST', '/analystData/edit/Graph/' + graph.id + '.json', body).then(function () {
+                window.IntelGraph.request('POST', '/analystData/edit/Workspace/' + graph.id + '.json', body).then(function () {
                     window.removeEventListener('beforeunload', guard);
                     window.location.reload();
                 }, function (err) {
@@ -421,10 +421,10 @@
             });
             form.querySelector('[data-ig-page-delete]').addEventListener('click', function () {
                 if (!window.confirm('Delete “' + graph.name + '”? The records it shows stay in MISP; the workspace and its layout are gone, here and wherever it was shared.')) return;
-                window.IntelGraph.request('POST', '/analystData/delete/Graph/' + graph.id + '.json', {}).then(function () {
+                window.IntelGraph.request('POST', '/analystData/delete/Workspace/' + graph.id + '.json', {}).then(function () {
                     window.removeEventListener('beforeunload', guard);
                     var t = graph.target;
-                    window.location.href = baseurl() + (t && t.id ? config.targetPaths[t.type] + t.id : '/analystData/index/Graph');
+                    window.location.href = baseurl() + (t && t.id ? config.targetPaths[t.type] + t.id : '/analystData/index/Workspace');
                 }, function (err) {
                     error.textContent = 'Not deleted: ' + message(err);
                 });

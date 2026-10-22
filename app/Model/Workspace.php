@@ -4,10 +4,10 @@ App::uses('AnalystData', 'Model');
 App::uses('AnalystGraphDocumentTool', 'Tools');
 
 /**
- * An analyst graph: analyst data attached to one record, whose content is a
+ * A workspace: analyst data attached to one record, whose content is a
  * document of the records it shows and their layout.
  */
-class Graph extends AnalystData
+class Workspace extends AnalystData
 {
     public $useTable = 'analyst_graphs';
 
@@ -19,7 +19,7 @@ class Graph extends AnalystData
         'AnalystData',
     );
 
-    public $current_type = 'Graph';
+    public $current_type = 'Workspace';
     public $current_type_id = 3;
 
     const VALID_TARGETS = [
@@ -38,7 +38,7 @@ class Graph extends AnalystData
         'description',
     ];
 
-    const ACTIVE_SETTING = 'intelligence_graph_active';
+    const ACTIVE_SETTING = 'active_workspace';
 
     /** What a list of graphs reads of each: everything but the document. */
     const SUMMARY_FIELDS = [
@@ -316,7 +316,7 @@ class Graph extends AnalystData
      * @param array $options `limit`; `targets` (default true) labels each
      *                       target as the user sees it; `parents` (default
      *                       false) adds `forked_from`, see withParents()
-     * @return array Graph rows, unwrapped, `node_count` the nodes the user
+     * @return array Workspace rows, unwrapped, `node_count` the nodes the user
      *               may read
      */
     public function summaries(array $user, array $conditions, array $options = [])
@@ -482,7 +482,7 @@ class Graph extends AnalystData
     public function activeFor(array $user, $targets = true)
     {
         $stored = ClassRegistry::init('UserSetting')->getValueForUser($user['id'], self::ACTIVE_SETTING);
-        $uuid = is_array($stored) ? ($stored['graph_uuid'] ?? null) : null;
+        $uuid = is_array($stored) ? ($stored['workspace_uuid'] ?? null) : null;
         if (!is_string($uuid) || !Validation::uuid($uuid)) {
             return null;
         }
@@ -505,7 +505,7 @@ class Graph extends AnalystData
         $logged = $UserSetting->Behaviors->enabled('SysLogLogable.SysLogLogable');
         $UserSetting->Behaviors->disable('SysLogLogable.SysLogLogable');
         try {
-            return (bool)$UserSetting->setSettingInternal($user['id'], self::ACTIVE_SETTING, ['graph_uuid' => $uuid]);
+            return (bool)$UserSetting->setSettingInternal($user['id'], self::ACTIVE_SETTING, ['workspace_uuid' => $uuid]);
         } finally {
             if ($logged) {
                 $UserSetting->Behaviors->enable('SysLogLogable.SysLogLogable');

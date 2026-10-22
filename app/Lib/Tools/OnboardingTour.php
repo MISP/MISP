@@ -67,7 +67,7 @@ class OnboardingTour
 
     const VALUE_VIEW_MATCH = '^/values/view/[^/]+';
 
-    const GRAPH_VIEW_MATCH = '^/(analyst_graphs|analystGraphs)/view/';
+    const WORKSPACE_VIEW_MATCH = '^/workspaces/view/';
 
     /** Detail pages the Data models and Sync sections open from a list. */
     const TAXONOMY_VIEW = '^/taxonomies/view/[0-9]+';
@@ -1998,8 +1998,8 @@ class OnboardingTour
                 [
                     'id' => 'workspaces',
                     'title' => __('Workspaces'),
-                    'requires' => ['analystGraphs', 'view'],
-                    'steps' => self::intelligenceGraphSteps(),
+                    'requires' => ['workspaces', 'view'],
+                    'steps' => self::workspaceSteps(),
                 ],
             ],
         ];
@@ -2237,14 +2237,14 @@ class OnboardingTour
         ];
     }
 
-    private static function intelligenceGraphSteps()
+    private static function workspaceSteps()
     {
         return [
             [
                 'anchor' => '[data-tour="nav-intel-graph"]',
                 'placement' => 'bottom',
                 'optional' => true,
-                'requires' => ['analystGraphs', 'addNodes'],
+                'requires' => ['workspaces', 'addNodes'],
                 'title' => __('Your active workspace'),
                 'body' => '<p>' . __('Where the Pivot Explorer is for '
                     . 'exploring, a <strong>workspace</strong> keeps the '
@@ -2256,10 +2256,10 @@ class OnboardingTour
                     . 'beside any page.') . '</p>',
             ],
             [
-                'page' => '/analystData/index/Graph',
+                'page' => '/analystData/index/Workspace',
                 'anchor' => '[data-tour="page-title"]',
                 'placement' => 'bottom',
-                'skipIf' => self::GRAPH_VIEW_MATCH,
+                'skipIf' => self::WORKSPACE_VIEW_MATCH,
                 'title' => __('All workspaces'),
                 'body' => '<p>' . __('Workspaces are analyst data, attached to a '
                     . 'collection, an event or a galaxy cluster and shared '
@@ -2269,17 +2269,17 @@ class OnboardingTour
                     . 'started.') . '</p>',
             ],
             [
-                'page' => '/analystData/index/Graph',
+                'page' => '/analystData/index/Workspace',
                 'anchor' => '[data-tour="graph-row"]',
                 'placement' => 'right',
                 'optional' => true,
-                'skipIf' => self::GRAPH_VIEW_MATCH,
+                'skipIf' => self::WORKSPACE_VIEW_MATCH,
                 'title' => __('Open one'),
                 'body' => '<p>' . __('Hover a thumbnail for a preview, then '
                     . 'double-click a row to open the workspace.') . '</p>',
             ],
             [
-                'pageMatch' => self::GRAPH_VIEW_MATCH,
+                'pageMatch' => self::WORKSPACE_VIEW_MATCH,
                 'anchor' => '[data-tour="graph-canvas"]',
                 'placement' => 'top',
                 'waitingText' => __('Open a workspace from the list to carry on, '
@@ -2291,7 +2291,7 @@ class OnboardingTour
                     . 'hidden.') . '</p>',
             ],
             [
-                'pageMatch' => self::GRAPH_VIEW_MATCH,
+                'pageMatch' => self::WORKSPACE_VIEW_MATCH,
                 'anchor' => '[data-tour="graph-bar"]',
                 'placement' => 'bottom',
                 'optional' => true,
@@ -2302,7 +2302,7 @@ class OnboardingTour
                     . 'meantime, you are offered to merge or reload.') . '</p>',
             ],
             [
-                'pageMatch' => self::GRAPH_VIEW_MATCH,
+                'pageMatch' => self::WORKSPACE_VIEW_MATCH,
                 'anchor' => '[data-tour="page-actions"]',
                 'placement' => 'bottom',
                 'optional' => true,

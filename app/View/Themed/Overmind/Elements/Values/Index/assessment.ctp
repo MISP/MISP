@@ -362,7 +362,7 @@ if (!$caveats && !$counts['occurrences'] && $card['lean'] === 'none'
             aria-label="<?= h(__('Add to collection')) ?>"><i
             class="fas fa-folder-plus" aria-hidden="true"></i></button>
 <?php endif; ?>
-<?php if ($this->Acl->canAccess('analystGraphs', 'addNodes')): ?>
+<?php if ($this->Acl->canAccess('workspaces', 'addNodes')): ?>
     <?php // Sent to the active workspace by intel-graph-actions.js ?>
     <button type="button" class="vi-btn vi-btn--icon"
             data-intel-graph-add="<?= h(json_encode(array(array(

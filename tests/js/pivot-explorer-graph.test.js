@@ -4092,7 +4092,7 @@ test('links: the canvas draws the links MISP holds between its records, once eac
     const g = await buildGraph(ev({ Object: [
         fedObj({ uuid: 'A', ObjectReference: [ref({ uuid: 'R1', referenced_uuid: 'B' })] }),
         fedObj({ uuid: 'B' }),
-    ] }), { routes: [[/\/analyst_graphs\/edges\.json$/, init => {
+    ] }), { routes: [[/\/workspaces\/edges\.json$/, init => {
         asked.push(JSON.parse(init.body));
         return { Value: [], edges: [
             { id: 'object-reference:R1', kind: 'object-reference', from: 'Object:a', to: 'Object:b', label: 'related-to', uuid: 'R1' },

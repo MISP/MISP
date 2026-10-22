@@ -13,8 +13,8 @@ foreach ($collections as $collection) {
     $targets[$collection['type'] . ':' . $collection['uuid']] = __('Collection: %s', $collection['label']);
 }
 
-echo $this->Form->create('Graph', [
-    'url' => $baseurl . '/analyst_graphs/import',
+echo $this->Form->create('Workspace', [
+    'url' => $baseurl . '/workspaces/import',
     'type' => 'file',
     'novalidate' => true,
     'id' => 'analystGraphImportForm',
@@ -38,7 +38,7 @@ echo $this->Form->create('Graph', [
                 'accent' => $color,
                 'label' => __('Export file'),
             ]) ?>
-            <?= $this->Form->file('Graph.import.file', [
+            <?= $this->Form->file('Workspace.import.file', [
                 'class' => 'form-control',
                 'accept' => '.json,application/json',
             ]) ?>
@@ -46,11 +46,11 @@ echo $this->Form->create('Graph', [
                 'text' => __('Or paste its contents below. One workspace or several, at most %s.', $transferLimit),
                 'class' => 'mt-2',
             ]) ?>
-            <?= $this->Form->textarea('Graph.import.json', [
+            <?= $this->Form->textarea('Workspace.import.json', [
                 'class' => 'form-control font-monospace mt-2',
                 'rows' => 5,
                 'spellcheck' => 'false',
-                'placeholder' => '{"Graph": {"name": "…", "content": {"nodes": […]}}}',
+                'placeholder' => '{"Workspace": {"name": "…", "content": {"nodes": […]}}}',
             ]) ?>
         </div>
 
@@ -59,7 +59,7 @@ echo $this->Form->create('Graph', [
                 'accent' => $color,
                 'label' => __('Target'),
             ]) ?>
-            <?= $this->Form->select('Graph.import.target', $targets, [
+            <?= $this->Form->select('Workspace.import.target', $targets, [
                 'class' => 'form-select',
                 'empty' => false,
             ]) ?>
@@ -71,7 +71,7 @@ echo $this->Form->create('Graph', [
 
         <div class="w-100">
             <?= $this->element('genericElementsBS5/Forms/distribution_field', [
-                'field' => 'Graph.import.distribution',
+                'field' => 'Workspace.import.distribution',
                 'accent' => $color,
                 'levels' => $distributionLevels,
                 'sharingGroups' => $sharingGroups,

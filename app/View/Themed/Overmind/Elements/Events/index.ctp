@@ -119,7 +119,7 @@ $count = function ($key, $count, $setting, $iconHtml, $title) use ($col, $icon, 
     ], 'te-num');
 };
 
-$canGraph = $this->Acl->canAccess('analystGraphs', 'addNodes');
+$canGraph = $this->Acl->canAccess('workspaces', 'addNodes');
 
 $fields = [
     [

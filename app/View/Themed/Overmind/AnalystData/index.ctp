@@ -83,7 +83,7 @@ if ($m === 'Note') {
         'card_section' => 'attribute',
         'display_in' => ['table', 'card'],
     ];
-} else if ($m === 'Graph') {
+} else if ($m === 'Workspace') {
     echo $this->element('genericElements/assetLoader', [
         'js' => ['intel-graph-thumb', 'intel-graph-thumbs'],
         'css' => ['intel-graph-thumbs'],
@@ -96,10 +96,10 @@ if ($m === 'Note') {
         'function' => function ($row) {
             return sprintf(
                 '<div class="igt-cell" data-tour="graph-row"><span data-intel-graph-thumb="%s" data-revision="%s" data-surface="index" data-name="%s"></span><span>%s</span></div>',
-                h($row['Graph']['uuid']),
-                h($row['Graph']['revision'] ?? ''),
-                h($row['Graph']['name']),
-                h($row['Graph']['name'])
+                h($row['Workspace']['uuid']),
+                h($row['Workspace']['revision'] ?? ''),
+                h($row['Workspace']['name']),
+                h($row['Workspace']['name'])
             );
         },
         'class' => 'idx-col-wrap',
@@ -110,17 +110,17 @@ if ($m === 'Note') {
         'name' => __('Forked from'),
         'element' => 'custom',
         'function' => function ($row) use ($baseurl) {
-            if (empty($row['Graph']['forked_from_uuid'])) {
+            if (empty($row['Workspace']['forked_from_uuid'])) {
                 return '';
             }
             $icon = '<i class="fas fa-code-fork me-1 text-body-secondary" aria-hidden="true"></i>';
-            $parent = $row['Graph']['forked_from'] ?? null;
+            $parent = $row['Workspace']['forked_from'] ?? null;
             if ($parent === null) {
                 return $icon . '<span class="text-body-secondary">' . __('A fork') . '</span>';
             }
             return $icon . sprintf(
                 '<a href="%s">%s</a>',
-                h($baseurl . '/analyst_graphs/view/' . $parent['uuid']),
+                h($baseurl . '/workspaces/view/' . $parent['uuid']),
                 h($parent['name'])
             );
         },
@@ -198,16 +198,16 @@ $fields[] = [
             'type' => 'navigate',
             'label' => __('Export'),
             'icon' => 'file-export',
-            'url' => $baseurl . '/analyst_graphs/export/%uuid%',
+            'url' => $baseurl . '/workspaces/export/%uuid%',
             'url_params_data_paths' => ['uuid' => $m . '.uuid'],
-            'requirement' => $m === 'Graph',
+            'requirement' => $m === 'Workspace',
         ],
         [
             'type' => 'modal',
             'label' => __('Edit'),
             'icon' => 'pen-to-square',
             'url' => $baseurl . '/analystData/edit/' . $m . '/%id%',
-            'requirement' => $m === 'Graph' ? false : $canEdit,
+            'requirement' => $m === 'Workspace' ? false : $canEdit,
         ],
         [
             'type' => 'modal',
@@ -239,13 +239,13 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 ],
                 // The type is baked into the URL so deleteSelection knows which model to hit.
                 'delete' => '/deleteSelection/' . $m,
-                'custom_actions' => $m !== 'Graph' ? [] : [
+                'custom_actions' => $m !== 'Workspace' ? [] : [
                     [
                         'id' => 'multi-export-graphs-button',
                         'label' => __('Export'),
                         'icon' => 'file-export',
                         'onclick' => sprintf(
-                            "if (selectedItems.size) { window.location = '%s/analyst_graphs/export/' + JSON.stringify(Array.from(selectedItems.keys())); }",
+                            "if (selectedItems.size) { window.location = '%s/workspaces/export/' + JSON.stringify(Array.from(selectedItems.keys())); }",
                             $baseurl
                         ),
                     ],

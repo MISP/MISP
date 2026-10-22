@@ -94,7 +94,7 @@
             main.style.minWidth = '0';
             var top = el('div', 'd-flex align-items-center gap-2');
             var a = el('a', 'fw-semibold text-truncate', g.name);
-            a.href = config.baseurl + '/analyst_graphs/view/' + encodeURIComponent(g.uuid);
+            a.href = config.baseurl + '/workspaces/view/' + encodeURIComponent(g.uuid);
             if (g.description) a.title = g.description;
             top.appendChild(a);
             if (active) {
@@ -117,7 +117,7 @@
                 if (g.forked_from) {
                     f.appendChild(document.createTextNode('fork of '));
                     var p = el('a', 'link-secondary', g.forked_from.name);
-                    p.href = config.baseurl + '/analyst_graphs/view/' + encodeURIComponent(g.forked_from.uuid);
+                    p.href = config.baseurl + '/workspaces/view/' + encodeURIComponent(g.forked_from.uuid);
                     f.appendChild(p);
                 } else {
                     f.appendChild(document.createTextNode('fork'));
@@ -152,7 +152,7 @@
                 tools.appendChild(tool('fas fa-code-fork', 'Fork it onto this ' + config.targetName, function (b) {
                     b.disabled = true;
                     window.IntelGraph.fork(g.uuid, { target: { type: target.type, uuid: target.uuid } }).then(function (fork) {
-                        window.location.href = config.baseurl + '/analyst_graphs/view/' + encodeURIComponent(fork.uuid);
+                        window.location.href = config.baseurl + '/workspaces/view/' + encodeURIComponent(fork.uuid);
                     }, function (err) {
                         b.disabled = false;
                         toast('Could not fork: ' + message(err), 'danger');
@@ -164,9 +164,9 @@
         }
 
         function load() {
-            return getJson('/analyst_graphs/forTarget/' + encodeURIComponent(target.type) + '/' + encodeURIComponent(target.uuid) + '.json')
+            return getJson('/workspaces/forTarget/' + encodeURIComponent(target.type) + '/' + encodeURIComponent(target.uuid) + '.json')
                 .then(function (out) {
-                    var graphs = (out && out.Graph) || [];
+                    var graphs = (out && out.Workspace) || [];
                     // Kept on the record, its target: not the workspaces it is a node of.
                     countEl.textContent = graphs.length
                         ? graphs.length + (graphs.length === 1 ? ' workspace' : ' workspaces') + ' on this ' + config.targetName

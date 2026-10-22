@@ -4,7 +4,7 @@
     $canAnalyst = !empty($me['Role']['perm_add'])
         && !empty($me['Role']['perm_analyst_data']);
     $canGraph = $this->Acl->canAccess('analystData', 'add')
-        && $this->Acl->canAccess('analystGraphs', 'save');
+        && $this->Acl->canAccess('workspaces', 'save');
 
     // What a drawn analyst relationship or a saved graph can be shared with,
     // as the event page's explorer offers it.

@@ -45,7 +45,7 @@ $actions[] = [
     'short' => __('Correlations'),
 ];
 
-if ($this->Acl->canAccess('analystGraphs', 'addNodes') && !$isDeleted) {
+if ($this->Acl->canAccess('workspaces', 'addNodes') && !$isDeleted) {
     $actions[] = [
         'url' => '#',
         'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',

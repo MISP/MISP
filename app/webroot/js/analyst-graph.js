@@ -1,7 +1,7 @@
-// Analyst Graph — a stored analyst graph drawn by the Pivot Explorer, its
+// Analyst Graph — a stored workspace drawn by the Pivot Explorer, its
 // third host after the event page and the value Neighbourhood.
 //
-// The graph's `data` payload (/analyst_graphs/data/<uuid>.json) holds the
+// The graph's `data` payload (/workspaces/data/<uuid>.json) holds the
 // document, the records of the nodes the viewer may read, shaped as the
 // explorer's builders read them, and the edges MISP holds between them. This
 // file turns it into pivotick data, and reads the document back off the
@@ -94,7 +94,7 @@
         var values = byUuid(payload.Value, 'sha256');
         kit.mergePriorities(payload.ui_priorities);
         // An answer claims who kept it: the graph's organisation
-        var keptBy = (payload.Graph && payload.Graph.Orgc && payload.Graph.Orgc.name) || null;
+        var keptBy = (payload.Workspace && payload.Workspace.Orgc && payload.Workspace.Orgc.name) || null;
         var known = payload.known_values || [];
 
         function owner(rec) {
@@ -319,7 +319,7 @@
         var editableEvents = {};
 
         function fetchData() {
-            return request('GET', '/analyst_graphs/data/' + encodeURIComponent(state.uuid) + '.json');
+            return request('GET', '/workspaces/data/' + encodeURIComponent(state.uuid) + '.json');
         }
 
         function take(payload, kit) {
@@ -334,13 +334,13 @@
             var first = config.payload ? Promise.resolve(config.payload) : fetchData();
             return first.then(function (payload) {
                 take(payload, kit);
-                state.revision = payload.Graph.revision;
+                state.revision = payload.Workspace.revision;
                 return { raw: payload, event: payloadOf(payload), data: state.built.data };
             });
         }
 
         function canEditGraph() {
-            return !!(state.payload && state.payload.Graph._canEdit);
+            return !!(state.payload && state.payload.Workspace._canEdit);
         }
 
         function changed(reason) {
@@ -607,11 +607,11 @@
             load: load,
             graphUuid: function () { return state.uuid; },
             graphTarget: function () {
-                var g = state.payload && state.payload.Graph;
+                var g = state.payload && state.payload.Workspace;
                 return g && g.object_uuid ? { type: g.object_type, uuid: g.object_uuid, label: g.name } : null;
             },
             savedGraph: config.saveControls ? {
-                name:  function () { return (state.payload && state.payload.Graph.name) || ''; },
+                name:  function () { return (state.payload && state.payload.Workspace.name) || ''; },
                 dirty: function () { return canEditGraph() && state.dirty; },
                 save:  config.saveControls.save
             } : null,
@@ -894,7 +894,7 @@
         function rebase() {
             return fetchData().then(function (payload) {
                 apply(payload);
-                state.revision = payload.Graph.revision;
+                state.revision = payload.Workspace.revision;
                 return handle;
             });
         }
@@ -902,7 +902,7 @@
         function save() {
             var composed = composeDocument();
             state.saving = true;
-            return request('POST', '/analyst_graphs/save/' + encodeURIComponent(state.uuid) + '.json',
+            return request('POST', '/workspaces/save/' + encodeURIComponent(state.uuid) + '.json',
                            { content: composed.document, revision: state.revision })
             .then(function (report) {
                 state.revision = report.revision;
@@ -991,7 +991,7 @@
                 apply(payload);
                 if (!state.dirty) {
                     place(payload.document);
-                    state.revision = payload.Graph.revision;
+                    state.revision = payload.Workspace.revision;
                 }
                 return handle;
             });

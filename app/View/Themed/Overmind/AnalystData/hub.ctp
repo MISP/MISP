@@ -26,7 +26,7 @@ $types = [
         'title'       => __('Relationships'),
         'description' => __('Typed links connecting two MISP data points together.'),
     ],
-    'Graph' => [
+    'Workspace' => [
         'icon'        => 'misp-icon misp-icon-analyst-graph misp-simple',
         'color'       => 'analystGraph',
         'title'       => __('Workspaces'),
@@ -40,7 +40,7 @@ if (!isset($types[$selectedType])) {
 }
 
 
-if (!empty($selectedType) && $selectedType !== 'Graph' && !empty($me['Role']['perm_analyst_data'])) {
+if (!empty($selectedType) && $selectedType !== 'Workspace' && !empty($me['Role']['perm_analyst_data'])) {
     $this->set('headerActions', [
         [
             'type'  => 'modal',
@@ -50,14 +50,14 @@ if (!empty($selectedType) && $selectedType !== 'Graph' && !empty($me['Role']['pe
             'url'   => $baseurl . '/analystData/add/' . $selectedType,
         ],
     ]);
-} elseif ($selectedType === 'Graph' && (!empty($me['Role']['perm_site_admin']) || (!empty($me['Role']['perm_add']) && !empty($me['Role']['perm_analyst_data'])))) {
+} elseif ($selectedType === 'Workspace' && (!empty($me['Role']['perm_site_admin']) || (!empty($me['Role']['perm_add']) && !empty($me['Role']['perm_analyst_data'])))) {
     $this->set('headerActions', [
         [
             'type'  => 'modal',
             'label' => __('Import workspaces'),
             'icon'  => 'file-import',
-            'class' => 'btn btn-' . $types['Graph']['color'],
-            'url'   => $baseurl . '/analyst_graphs/import',
+            'class' => 'btn btn-' . $types['Workspace']['color'],
+            'url'   => $baseurl . '/workspaces/import',
             'size'  => 'lg',
         ],
     ]);

@@ -412,7 +412,7 @@ if ($field['data_path'] === 'existing_tag.Tag.id') {
     $checkboxAttrs['disabled'] = true;
 }
 
-// What the bar's "Graph" button sends for this row, as IntelGraph.add() takes it
+// What the bar's "Workspace" button sends for this row, as IntelGraph.add() takes it
 if (isset($field['graph_item'])) {
     $graphItem = call_user_func($field['graph_item'], $row);
     if (!empty($graphItem)) {

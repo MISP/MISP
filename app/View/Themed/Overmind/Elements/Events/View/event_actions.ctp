@@ -194,7 +194,7 @@ if ($this->Acl->canAccess('collectionElements', 'addElementToCollection')) {
     ];
 }
 
-if ($this->Acl->canAccess('analystGraphs', 'addNodes')) {
+if ($this->Acl->canAccess('workspaces', 'addNodes')) {
     $actions[] = [
         'url' => '#',
         'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',

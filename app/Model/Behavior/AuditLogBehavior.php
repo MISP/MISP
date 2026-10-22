@@ -59,7 +59,7 @@ class AuditLogBehavior extends ModelBehavior
         'Galaxy' => 'name',
         'GalaxyCluster' => 'value',
         'Warninglist' => 'name',
-        'Graph' => 'name',
+        'Workspace' => 'name',
     ];
 
     public function __construct()

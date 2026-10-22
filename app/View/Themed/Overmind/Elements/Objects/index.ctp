@@ -32,7 +32,7 @@ $canTagObj = isset($event)
 
 $_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
 $_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
-$_mayGraph = $this->Acl->canAccess('analystGraphs', 'addNodes');
+$_mayGraph = $this->Acl->canAccess('workspaces', 'addNodes');
 $_mayCollect = $this->Acl->canAccess('collectionElements', 'addElementToCollection');
 
 // Extended / extending event view: an object can belong to any event of the

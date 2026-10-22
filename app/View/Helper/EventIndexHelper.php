@@ -293,7 +293,7 @@ class EventIndexHelper extends AppHelper
             $extras[] = sprintf(
                 '<a class="dk-graph" href="%s" aria-label="%s" data-intel-graph-thumb="%s" data-revision="%d" data-surface="peek" data-name="%s"%s>'
                     . '<i class="misp-icon misp-icon-analyst-graph misp-simple text-analystGraph"></i> %d</a>',
-                h($this->baseurl() . ($n === 1 ? '/analyst_graphs/view/' . $graphs[0]['uuid'] : '/events/view/' . (int)$event['id'])),
+                h($this->baseurl() . ($n === 1 ? '/workspaces/view/' . $graphs[0]['uuid'] : '/events/view/' . (int)$event['id'])),
                 h($label),
                 h($graphs[0]['uuid']),
                 (int)($graphs[0]['revision'] ?? 0),

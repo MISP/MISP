@@ -3562,7 +3562,7 @@
         }
 
         /* ── the links MISP holds between what is on the canvas ── */
-        // An edge of /analyst_graphs/data or /edges as the explorer draws it,
+        // An edge of /workspaces/data or /edges as the explorer draws it,
         // its ends ("Type:uuid") resolved to node ids by endId; null when an
         // end is not drawn. Contains is the object drawing its attributes.
         function storedEdge(e, endId) {
@@ -3612,7 +3612,7 @@
             if (!fresh || items.length < 2) return;
             _linksAsked = {};
             Object.keys(idsOf).forEach(function (k) { _linksAsked[k] = true; });
-            postJson('/analyst_graphs/edges.json', { nodes: items }).then(function (out) {
+            postJson('/workspaces/edges.json', { nodes: items }).then(function (out) {
                 if (g !== _graph) return;
                 var valueOf = {};
                 (out.Value || []).forEach(function (v) { valueOf[v.sha256] = v.value; });
@@ -4178,7 +4178,7 @@
             _graph.notifier.success(title, '“' + saved.name + '”', {
                 action: {
                     label:   'Open workspace',
-                    onClick: function () { openInTab('/analyst_graphs/view/' + encodeURIComponent(saved.uuid)); }
+                    onClick: function () { openInTab('/workspaces/view/' + encodeURIComponent(saved.uuid)); }
                 }
             });
         }

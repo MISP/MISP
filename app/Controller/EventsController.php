@@ -1425,23 +1425,23 @@ class EventsController extends AppController
         $uuids = array_column(array_column($events, 'Event'), 'uuid');
 
         // Callbacks off: AnalystData::afterFind resolves orgs and child notes per row.
-        $Graph = ClassRegistry::init('Graph');
-        $graphRows = $Graph->find('all', [
+        $Workspace = ClassRegistry::init('Workspace');
+        $graphRows = $Workspace->find('all', [
             'conditions' => ['AND' => [
-                ['Graph.object_type' => 'Event', 'Graph.object_uuid' => $uuids],
-                $Graph->buildConditions($user),
+                ['Workspace.object_type' => 'Event', 'Workspace.object_uuid' => $uuids],
+                $Workspace->buildConditions($user),
             ]],
-            'fields' => ['Graph.uuid', 'Graph.name', 'Graph.object_uuid', 'Graph.revision'],
-            'order' => ['Graph.modified' => 'DESC'],
+            'fields' => ['Workspace.uuid', 'Workspace.name', 'Workspace.object_uuid', 'Workspace.revision'],
+            'order' => ['Workspace.modified' => 'DESC'],
             'recursive' => -1,
             'callbacks' => false,
         ]);
         $graphs = [];
         foreach ($graphRows as $row) {
-            $graphs[$row['Graph']['object_uuid']][] = [
-                'uuid' => $row['Graph']['uuid'],
-                'name' => $row['Graph']['name'],
-                'revision' => (int)$row['Graph']['revision'],
+            $graphs[$row['Workspace']['object_uuid']][] = [
+                'uuid' => $row['Workspace']['uuid'],
+                'name' => $row['Workspace']['name'],
+                'revision' => (int)$row['Workspace']['revision'],
             ];
         }
 

@@ -58,7 +58,7 @@ $model      = !empty($firstRow['Attribute']) ? 'Attribute' : null;
 $_canModify = !empty($mayModify);
 $_canPropose = !empty($me['Role']['perm_add']);
 $_canAnalystData = !empty($me['Role']['perm_analyst_data']);
-$_canGraph = $this->Acl->canAccess('analystGraphs', 'addNodes');
+$_canGraph = $this->Acl->canAccess('workspaces', 'addNodes');
 $_canCollect = $this->Acl->canAccess('collectionElements', 'addElementToCollection');
 // Enrichment / Cortex expansion (misp-modules): the "Enrich" actions are only
 // offered when the matching services plugin is enabled and the user can add data.

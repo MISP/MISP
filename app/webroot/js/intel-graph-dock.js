@@ -619,7 +619,7 @@
         switchBtn.disabled = !a;
         switchBtn.querySelector('.ig-so-caret').hidden = !a;
         fullLink.hidden = !a;
-        fullLink.href = a ? baseurl() + '/analyst_graphs/view/' + encodeURIComponent(a.uuid) : '#';
+        fullLink.href = a ? baseurl() + '/workspaces/view/' + encodeURIComponent(a.uuid) : '#';
         metaEl.textContent = '';
         if (!a) return;
         metaEl.appendChild(targetFact(a.target, a.object_type));

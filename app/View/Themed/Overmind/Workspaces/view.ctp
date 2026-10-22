@@ -32,7 +32,7 @@ $description = [
     $this->element('genericElementsBS5/Badges/distribution', ['distribution' => $graph['distribution']]),
 ];
 if (!empty($graph['forked_from'])) {
-    $parentLink = '<a href="' . h($baseurl . '/analyst_graphs/view/' . $graph['forked_from']['uuid']) . '">'
+    $parentLink = '<a href="' . h($baseurl . '/workspaces/view/' . $graph['forked_from']['uuid']) . '">'
         . h($graph['forked_from']['name']) . '</a>';
     $description[] = '<span class="ms-3" data-ig-forked-from><i class="fas fa-code-fork me-1"></i>'
         . __('Forked from %s', $parentLink) . '</span>';
@@ -68,7 +68,7 @@ $this->set('headerDescription', implode('', $description));
 $this->set('headerCount', $graph['node_count']);
 $this->set('headerBreadcrumb', [
     ['label' => __('Analyst data'), 'url' => '/analystData/index'],
-    ['label' => __('Workspaces'), 'url' => '/analystData/index/Graph'],
+    ['label' => __('Workspaces'), 'url' => '/analystData/index/Workspace'],
 ]);
 $this->set('headerActions', $headerActions);
 
