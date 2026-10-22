@@ -3662,7 +3662,9 @@
                 title:     'Adds it to your active graph, the one the navbar names',
                 iconClass: 'misp-icon misp-icon-analyst-graph misp-simple',
                 visible:   function (el) { return !!window.IntelGraphActions && graphItems(el).length > 0; },
-                onclick:   function (e, el) { window.IntelGraphActions.add(graphItems(el)); }
+                onclick:   function (e, el) {
+                    window.IntelGraphActions.add(graphItems(el), e && { x: e.clientX, y: e.clientY });
+                }
             };
         }
 

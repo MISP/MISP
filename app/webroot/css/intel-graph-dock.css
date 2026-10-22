@@ -20,6 +20,13 @@
 .ig-slot-new.is-refused { background: var(--bs-danger); }
 .ig-slot-pulse [data-intel-graph-count],
 .ig-slot-pulse [data-intel-graph-toggle] > i:first-child { animation: ig-so-pop .9s ease; }
+/* an add on its way to the slot or the open panel, moved by intel-graph-dock.js */
+.ig-flight {
+    position: fixed; z-index: 1090; width: 28px; height: 28px; margin: -14px 0 0 -14px;
+    display: grid; place-items: center; border-radius: 50%; pointer-events: none;
+    background: var(--ig-so-accent); color: var(--bs-white); box-shadow: var(--bs-box-shadow);
+    font-size: 15px; will-change: transform, opacity;
+}
 /* Above the navbar's collapse the bar has no room for the name below 1600px,
    nor for the count below 1366px: the slot's title and the dock's head carry
    them (F6). */
