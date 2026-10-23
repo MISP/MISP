@@ -828,6 +828,34 @@ function openModalPostChained(url, body, size = 'xl') {
     }
 }
 
+// POST the hidden form `formId` (its CSRF tokens included) for a POST-only
+// action and show the HTML answer in #mainModal. An answer that redirects means
+// the action is done: the page it names is loaded instead, flash included (the
+// ajax layout fetch() followed it with does not consume the flash).
+function openModalPostForm(formId, size = 'lg') {
+    const form = document.getElementById(formId);
+    if (!form) {
+        return;
+    }
+    fetch(form.action, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    }).then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+            return;
+        }
+        return response.text().then(html => {
+            const el = document.getElementById('mainModal');
+            setModalSize(size, el.querySelector('.modal-dialog'));
+            renderMainModalContent(html);
+            bootstrap.Modal.getOrCreateInstance(el).show();
+        });
+    });
+}
+
 function multiSelectItems(url, suffixe, size = 'md') {
     if (selectedItems.size === 0) {
         return;
