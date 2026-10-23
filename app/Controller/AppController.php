@@ -549,7 +549,7 @@ class AppController extends Controller
             }
 
             if ($this->__showsAnalystGraphSlot($user)) {
-                $this->set('intelGraph', ['active' => ClassRegistry::init('Graph')->activeFor($user, false)]);
+                $this->set('intelGraph', ['active' => ClassRegistry::init('Workspace')->activeFor($user, false)]);
             }
 
             if ($this->__showsSidePanels()) {
@@ -586,7 +586,7 @@ class AppController extends Controller
         if (OvermindPages::isAuthPage($controller, $action)) {
             return false;
         }
-        return $this->ACL->canUserAccess($user, 'analystGraphs', 'addNodes');
+        return $this->ACL->canUserAccess($user, 'workspaces', 'addNodes');
     }
 
     /**
