@@ -26,7 +26,11 @@ $isCard = isset($viewMode) && $viewMode === 'card';
             );
         endif; ?>
         <p class="mb-0 fw-semibold">
-            <?= h($name); ?>
+            <?php if (!empty($viewUrl)): ?>
+                <a href="<?= h($viewUrl) ?>" class="link-body-emphasis link-underline-opacity-0 link-underline-opacity-100-hover"><?= h($name) ?></a>
+            <?php else: ?>
+                <?= h($name); ?>
+            <?php endif; ?>
         </p>
     </div>
 

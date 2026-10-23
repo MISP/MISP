@@ -1422,8 +1422,10 @@
             return;
         }
         window.mispOnboardingAutostart = false;
+        // keepalive: start() may navigate away right after this call.
         fetch(base() + '/users/onboardingSeen', {
             method: 'POST',
+            keepalive: true,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         }).catch(function () { /* offered again next login, no worse */ });
     }

@@ -1425,23 +1425,23 @@ class EventsController extends AppController
         $uuids = array_column(array_column($events, 'Event'), 'uuid');
 
         // Callbacks off: AnalystData::afterFind resolves orgs and child notes per row.
-        $Graph = ClassRegistry::init('Graph');
-        $graphRows = $Graph->find('all', [
+        $Workspace = ClassRegistry::init('Workspace');
+        $graphRows = $Workspace->find('all', [
             'conditions' => ['AND' => [
-                ['Graph.object_type' => 'Event', 'Graph.object_uuid' => $uuids],
-                $Graph->buildConditions($user),
+                ['Workspace.object_type' => 'Event', 'Workspace.object_uuid' => $uuids],
+                $Workspace->buildConditions($user),
             ]],
-            'fields' => ['Graph.uuid', 'Graph.name', 'Graph.object_uuid', 'Graph.revision'],
-            'order' => ['Graph.modified' => 'DESC'],
+            'fields' => ['Workspace.uuid', 'Workspace.name', 'Workspace.object_uuid', 'Workspace.revision'],
+            'order' => ['Workspace.modified' => 'DESC'],
             'recursive' => -1,
             'callbacks' => false,
         ]);
         $graphs = [];
         foreach ($graphRows as $row) {
-            $graphs[$row['Graph']['object_uuid']][] = [
-                'uuid' => $row['Graph']['uuid'],
-                'name' => $row['Graph']['name'],
-                'revision' => (int)$row['Graph']['revision'],
+            $graphs[$row['Workspace']['object_uuid']][] = [
+                'uuid' => $row['Workspace']['uuid'],
+                'name' => $row['Workspace']['name'],
+                'revision' => (int)$row['Workspace']['revision'],
             ];
         }
 
@@ -2547,6 +2547,24 @@ class EventsController extends AppController
         if (count($extensionSet['ids']) > 1) {
             $event = $this->__overviewReports($event, $user, $extensionSet['ids']);
         }
+        // A deep link onto one attribute opens the tab listing it
+        $focus = $this->request->params['named']['focus'] ?? null;
+        $focusTab = null;
+        if (is_string($focus) && Validation::uuid($focus)) {
+            $focused = $this->Event->Attribute->fetchAttributesSimple($user, [
+                'conditions' => [
+                    'Attribute.uuid' => $focus,
+                    'Attribute.event_id' => $extensionSet['ids'],
+                    'Attribute.deleted' => 0,
+                ],
+                'fields' => ['Attribute.object_id'],
+            ]);
+            if (!empty($focused)) {
+                $focusTab = empty($focused[0]['Attribute']['object_id']) ? 'attributes' : 'objects';
+            }
+        }
+        $this->set('focusTab', $focusTab);
+
         $countShells = [];
         foreach ($extensionSet['events'] as $extensionEvent) {
             $countShells[] = ['Event' => [
@@ -3097,7 +3115,7 @@ class EventsController extends AppController
             'deleted', 'category', 'type', 'toIDS',
             'searchFor', 'flatten', 'proposal',
             'warninglist', 'correlation', 'feed', 'warning', 'analystData', 'narrower', 'seen',
-            'tags', 'galaxy', 'org', 'distribution',
+            'tags', 'galaxy', 'org', 'distribution', 'focus',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -3175,6 +3193,16 @@ class EventsController extends AppController
         $this->set('proposal',           !empty($options['proposal']));
         $this->set('flatten',            !empty($options['flatten']));
         $this->set('searchFor',          $options['searchFor'] ?? '');
+        $focusId = null;
+        if (!empty($options['focus'])) {
+            foreach ($result['Attribute'] as $attribute) {
+                if ($attribute['uuid'] === $options['focus']) {
+                    $focusId = (int)$attribute['id'];
+                    break;
+                }
+            }
+        }
+        $this->set('focusId', $focusId);
 
         // Warninglist filter (set from the event view's Warning Lists card):
         $warninglistFilter = null;
@@ -3264,7 +3292,7 @@ class EventsController extends AppController
             'page', 'limit', 'sort', 'direction',
             'deleted', 'name', 'object', 'meta-category', 'searchFor', 'proposal',
             'category', 'type', 'tags', 'galaxy', 'org', 'toIDS',
-            'correlation', 'feed', 'warning', 'analystData', 'narrower', 'seen', 'distribution',
+            'correlation', 'feed', 'warning', 'analystData', 'narrower', 'seen', 'distribution', 'focus',
         ];
         foreach ($paramKeys as $key) {
             if (isset($namedParams[$key])) {
@@ -3308,6 +3336,18 @@ class EventsController extends AppController
         ];
 
         $this->set('objects', $result['Object']);
+        $focusId = null;
+        if (!empty($options['focus'])) {
+            foreach ($result['Object'] as $object) {
+                foreach ($object['Attribute'] ?? [] as $attribute) {
+                    if ($attribute['uuid'] === $options['focus']) {
+                        $focusId = (int)$attribute['id'];
+                        break 2;
+                    }
+                }
+            }
+        }
+        $this->set('focusId', $focusId);
         $this->set('total', $total);
         $this->set('page', $page);
         $this->set('limit', $limit);
@@ -6155,19 +6195,13 @@ class EventsController extends AppController
             $this->layout = false;
         }
         $this->loadModel('Module');
-        $importModules = array();
         $modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
-        if (is_array($modules) && !empty($modules['modules'])) {
-            foreach ($modules['modules'] as $module) {
-                $importModules[] = array(
-                    'name' => $module['name'],
-                    'text' => Inflector::humanize($module['name']),
-                );
-            }
-        }
+        $importModules = is_array($modules) && !empty($modules['modules']) ? $modules['modules'] : [];
         $this->set('event', $event);
         $this->set('id', $id);
         $this->set('importModules', $importModules);
+        $this->set('configTypes', Module::CONFIG_TYPES);
+        $this->set('openModule', $this->request->query('module'));
     }
 
     public function edit($id = null)
@@ -9123,6 +9157,7 @@ class EventsController extends AppController
         if ($this->request->is('ajax')) {
             $this->layout = false;
         }
+        $overmindModal = $this->request->is('ajax') && $this->theme === 'Overmind';
 
         $this->loadModel('Module');
         $module = $this->Module->getEnabledModule($moduleName, 'Import', $this->Auth->user());
@@ -9227,13 +9262,15 @@ class EventsController extends AppController
                     if (!$result) {
                         throw new InternalErrorException(__('Import service not reachable.'));
                     }
-                    if (isset($result['error'])) {
-                        $this->Flash->error($result['error']);
+                    $moduleError = isset($result['error']) ? $result['error'] : null;
+                    if ($moduleError !== null && !$overmindModal) {
+                        $this->Flash->error($moduleError);
                     }
                     if (!is_array($result)) {
                         throw new Exception($result);
                     }
                     $importComment = !empty($result['comment']) ? $result['comment'] : 'Enriched via the ' . $module['name'] . ' module';
+                    $this->set('backPath', '/events/populateFrom/' . $eventId . '?module=' . urlencode($module['name']));
                     if (!empty($module['mispattributes']['format']) && $module['mispattributes']['format'] === 'misp_standard') {
                         // TODO: route non-modifiers through proposals to match __pushFreetext().
                         if (!$mayModify) {
@@ -9247,6 +9284,8 @@ class EventsController extends AppController
                         }
                         $this->set('event', $resolvedEvent);
                         $this->set('menuItem', 'importResults');
+                        $this->set('type', 'Import');
+                        $this->set('emptyMessage', $moduleError);
                         $render_name = 'resolved_misp_format';
                     } else {
                         $resultArray = $this->Event->handleModuleResult($result, $eventId);
@@ -9271,7 +9310,15 @@ class EventsController extends AppController
                         $this->set('typeDefinitions', $this->Event->Attribute->typeDefinitions);
                         $this->set('typeCategoryMapping', $typeCategoryMapping);
                         $this->set('defaultAttributeDistribution', $this->Event->Attribute->defaultDistribution());
-                        $render_name = 'resolved_attributes';
+                        if ($this->theme === 'Overmind') {
+                            $this->set('proposals', !$mayModify);
+                            $this->set('missingTldLists', []);
+                            $this->set('moduleError', $moduleError);
+                            $this->set('eyebrow', __('Import module'));
+                            $render_name = 'freetext_resolution';
+                        } else {
+                            $render_name = 'resolved_attributes';
+                        }
                     }
 
                     $distributionData = $this->Event->Attribute->fetchDistributionData($this->Auth->user());
@@ -9284,7 +9331,11 @@ class EventsController extends AppController
                 }
             }
             if ($fail) {
-                $this->Flash->error($fail);
+                if ($overmindModal) {
+                    $this->set('moduleError', $fail);
+                } else {
+                    $this->Flash->error($fail);
+                }
             }
         }
         $this->set('configTypes', Module::CONFIG_TYPES);

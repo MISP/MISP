@@ -1,6 +1,6 @@
-// The Graphs card on a collection, an event or a galaxy cluster
-// (Elements/AnalystGraphs/graphs_card.ctp): the graphs hung off the record,
-// to open, fork or make active, and "New graph" on it. Reading needs nothing
+// The Workspaces card on a collection, an event or a galaxy cluster
+// (Elements/AnalystGraphs/graphs_card.ctp): the workspaces hung off the
+// record, to open, fork or make active, and "New workspace" on it. Reading needs nothing
 // but the page; the writes go through IntelGraph, which every user who may
 // make them has.
 
@@ -94,13 +94,13 @@
             main.style.minWidth = '0';
             var top = el('div', 'd-flex align-items-center gap-2');
             var a = el('a', 'fw-semibold text-truncate', g.name);
-            a.href = config.baseurl + '/analyst_graphs/view/' + encodeURIComponent(g.uuid);
+            a.href = config.baseurl + '/workspaces/view/' + encodeURIComponent(g.uuid);
             if (g.description) a.title = g.description;
             top.appendChild(a);
             if (active) {
                 var on = el('span', 'badge rounded-pill bg-primary-subtle text-primary-emphasis border border-primary-subtle fw-semibold flex-shrink-0');
                 on.setAttribute('data-ig-active-pill', '');
-                on.title = '“Add to graph” feeds this graph';
+                on.title = '“Add to workspace” feeds this workspace';
                 on.appendChild(icon('fas fa-bullseye me-1'));
                 on.appendChild(document.createTextNode('Active'));
                 top.appendChild(on);
@@ -117,7 +117,7 @@
                 if (g.forked_from) {
                     f.appendChild(document.createTextNode('fork of '));
                     var p = el('a', 'link-secondary', g.forked_from.name);
-                    p.href = config.baseurl + '/analyst_graphs/view/' + encodeURIComponent(g.forked_from.uuid);
+                    p.href = config.baseurl + '/workspaces/view/' + encodeURIComponent(g.forked_from.uuid);
                     f.appendChild(p);
                 } else {
                     f.appendChild(document.createTextNode('fork'));
@@ -137,10 +137,10 @@
 
             var tools = el('div', 'd-flex flex-shrink-0');
             if (config.canCreate && g._canEdit && !active) {
-                tools.appendChild(tool('fas fa-bullseye', 'Make it my active graph', function (b) {
+                tools.appendChild(tool('fas fa-bullseye', 'Make it my active workspace', function (b) {
                     b.disabled = true;
                     window.IntelGraph.setActive(g.uuid).then(function () {
-                        toast('“Add to graph” now feeds “' + g.name + '”.');
+                        toast('“Add to workspace” now feeds “' + g.name + '”.');
                         load();
                     }, function (err) {
                         b.disabled = false;
@@ -152,7 +152,7 @@
                 tools.appendChild(tool('fas fa-code-fork', 'Fork it onto this ' + config.targetName, function (b) {
                     b.disabled = true;
                     window.IntelGraph.fork(g.uuid, { target: { type: target.type, uuid: target.uuid } }).then(function (fork) {
-                        window.location.href = config.baseurl + '/analyst_graphs/view/' + encodeURIComponent(fork.uuid);
+                        window.location.href = config.baseurl + '/workspaces/view/' + encodeURIComponent(fork.uuid);
                     }, function (err) {
                         b.disabled = false;
                         toast('Could not fork: ' + message(err), 'danger');
@@ -164,20 +164,20 @@
         }
 
         function load() {
-            return getJson('/analyst_graphs/forTarget/' + encodeURIComponent(target.type) + '/' + encodeURIComponent(target.uuid) + '.json')
+            return getJson('/workspaces/forTarget/' + encodeURIComponent(target.type) + '/' + encodeURIComponent(target.uuid) + '.json')
                 .then(function (out) {
-                    var graphs = (out && out.Graph) || [];
-                    // Kept on the record, its target: not the graphs it is a node of.
+                    var graphs = (out && out.Workspace) || [];
+                    // Kept on the record, its target: not the workspaces it is a node of.
                     countEl.textContent = graphs.length
-                        ? graphs.length + (graphs.length === 1 ? ' graph' : ' graphs') + ' kept on this ' + config.targetName
-                        : 'No graph kept on this ' + config.targetName;
+                        ? graphs.length + (graphs.length === 1 ? ' workspace' : ' workspaces') + ' on this ' + config.targetName
+                        : 'No workspace on this ' + config.targetName;
                     body.textContent = '';
                     if (!graphs.length) {
                         var empty = el('div', 'd-flex flex-column align-items-center justify-content-center text-muted py-4 px-3 text-center');
                         empty.appendChild(icon('misp-icon misp-icon-analyst-graph misp-simple fa-2x mb-2 opacity-50'));
                         empty.appendChild(el('p', 'mb-0 small fw-semibold', config.canCreate
-                            ? 'Start one with +, then send records to it with “Add to graph”.'
-                            : 'No graph hangs off this ' + config.targetName + ' yet.'));
+                            ? 'Start one with +, then send records to it with “Add to workspace”.'
+                            : 'No workspace hangs off this ' + config.targetName + ' yet.'));
                         body.appendChild(empty);
                         return;
                     }
@@ -188,7 +188,7 @@
                     body.textContent = '';
                     var err = el('div', 'text-center text-muted py-4 small');
                     err.appendChild(icon('fas fa-exclamation-triangle me-2'));
-                    err.appendChild(document.createTextNode('Could not load the graphs.'));
+                    err.appendChild(document.createTextNode('Could not load the workspaces.'));
                     body.appendChild(err);
                 });
         }
@@ -233,7 +233,7 @@
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
                 var name = form.elements.name.value.trim();
-                if (!name) { error.textContent = 'A graph needs a name.'; return; }
+                if (!name) { error.textContent = 'A workspace needs a name.'; return; }
                 if (dist.value === '4' && !sg.value) { error.textContent = 'Pick the sharing group to share it with.'; return; }
                 var submit = form.querySelector('[type="submit"]');
                 submit.disabled = true;

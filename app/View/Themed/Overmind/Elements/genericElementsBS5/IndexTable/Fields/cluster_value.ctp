@@ -27,6 +27,9 @@ $valueHtml = h($cluster['value'] ?? '');
 if (!empty($field['url']) && !empty($cluster['id'])) {
     $valueHtml = '<a href="' . h(str_replace('%id%', h($cluster['id']), $field['url']))
         . '" class="text-decoration-none">' . $valueHtml . '</a>';
+} elseif (!empty($viewUrl)) {
+    $valueHtml = '<a href="' . h($viewUrl) . '" class="link-body-emphasis link-underline-opacity-0 link-underline-opacity-100-hover">'
+        . $valueHtml . '</a>';
 }
 
 // A "forked from" parent is only available when the controller attaches it.

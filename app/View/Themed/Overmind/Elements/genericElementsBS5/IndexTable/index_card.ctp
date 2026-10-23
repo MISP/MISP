@@ -79,9 +79,16 @@ $cardFields = array_filter($data['fields'], function($field) {
     return in_array('card', $field['display_in']);
 });
 
+$primary = !empty($data['primary_id_path']) ? Hash::get($row, $data['primary_id_path']) : null;
+$viewUrl = (!empty($data['row_dblclick_url']) && $primary !== null && $primary !== '')
+    ? str_replace('%id%', (string)$primary, $data['row_dblclick_url'])
+    : null;
+
 foreach ($cardFields as $column => $field) {
 
     $section = $field['card_section'] ?? 'extra';
+    $linkToView = $field['link_to_view'] ?? ($section === 'title');
+    $fieldViewUrl = $linkToView ? $viewUrl : null;
 
     ob_start();
 
@@ -95,7 +102,8 @@ foreach ($cardFields as $column => $field) {
                     'row' => $row,
                     'data_path' => $field['data_path'] ?? '',
                     'k' => $k,
-                    'column' => $column
+                    'column' => $column,
+                    'viewUrl' => $fieldViewUrl,
                 ]
             );
         } else {
@@ -107,6 +115,7 @@ foreach ($cardFields as $column => $field) {
                     'column' => $column,
                     'data_path' => $field['data_path'] ?? '',
                     'k' => $k,
+                    'viewUrl' => $fieldViewUrl,
                     'viewMode' => 'card',
                 ]
             );

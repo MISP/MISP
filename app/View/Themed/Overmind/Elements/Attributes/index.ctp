@@ -40,7 +40,7 @@ $galaxyOptions = isset($galaxyOptions) ? $galaxyOptions : null;
  * Fields specific to actions:
  *
  * - type           : modal | navigate | toggle | copy | divider | intelGraph
- * - items          : intelGraph only: fn($row) → the records "Add to graph" sends
+ * - items          : intelGraph only: fn($row) → the records "Add to workspace" sends
  * - label          : Displayed text
  * - label_on/off   : Text for toggle
  * - icon           : FontAwesome icon
@@ -58,7 +58,7 @@ $model      = !empty($firstRow['Attribute']) ? 'Attribute' : null;
 $_canModify = !empty($mayModify);
 $_canPropose = !empty($me['Role']['perm_add']);
 $_canAnalystData = !empty($me['Role']['perm_analyst_data']);
-$_canGraph = $this->Acl->canAccess('analystGraphs', 'addNodes');
+$_canGraph = $this->Acl->canAccess('workspaces', 'addNodes');
 $_canCollect = $this->Acl->canAccess('collectionElements', 'addElementToCollection');
 // Enrichment / Cortex expansion (misp-modules): the "Enrich" actions are only
 // offered when the matching services plugin is enabled and the user can add data.
@@ -104,6 +104,12 @@ $fields = [
         'element' => 'checkbox',
         'data_path' => 'Attribute.id',
         'card_section' => 'selector',
+        'graph_item' => function ($row) use ($path) {
+            if (!empty(Hash::get($row, $path('deleted')))) {
+                return null;
+            }
+            return ['type' => 'Attribute', 'uuid' => Hash::get($row, $path('uuid')), 'label' => Hash::get($row, $path('value'))];
+        },
     ]
 ];
 
@@ -397,7 +403,7 @@ $fields = array_merge($fields, [
             ],
             [
                 'type' => 'intelGraph',
-                'label' => __('Add to graph'),
+                'label' => __('Add to workspace'),
                 'icon' => 'text-analystGraph misp-icon misp-icon-analyst-graph misp-simple',
                 'items' => function ($row) use ($path) {
                     return [['type' => 'Attribute', 'uuid' => Hash::get($row, $path('uuid')), 'label' => Hash::get($row, $path('value'))]];
@@ -656,6 +662,9 @@ if ($inEventView && !$showingDeleted) {
 
 if (!$showingDeleted) {
     $massActions['mass_sighting'] = true;
+}
+if ($_canGraph) {
+    $massActions['mass_graph'] = true;
 }
 
 if (!$inEventView) {

@@ -119,11 +119,16 @@ $count = function ($key, $count, $setting, $iconHtml, $title) use ($col, $icon, 
     ], 'te-num');
 };
 
+$canGraph = $this->Acl->canAccess('workspaces', 'addNodes');
+
 $fields = [
     [
         'element' => 'checkbox',
         'data_path' => 'Event.id',
         'publish_path' => 'Event.published',
+        'graph_item' => function ($row) {
+            return ['type' => 'Event', 'uuid' => $row['Event']['uuid'], 'label' => $row['Event']['info']];
+        },
         'card_section' => 'selector',
         'class' => 'te-c-sel',
         'header_class' => 'te-c-sel',
@@ -174,7 +179,7 @@ $fields = [
     $col('extras', [
         'element' => 'event_extras',
         'header_html' => '<span class="te-hicon te-hx"><i class="misp-icon misp-icon-analyst-graph misp-simple text-analystGraph"></i><i class="misp-icon misp-icon-report misp-simple text-report"></i><i class="misp-icon misp-icon-sighting misp-simple text-sighting"></i><i class="fas fa-comments"></i></span>',
-        'header_title' => __('Analyst graphs, reports, sightings, proposals and discussions, when there are any'),
+        'header_title' => __('Workspaces, reports, sightings, proposals and discussions, when there are any'),
     ]),
     $col('ext', [
         'name' => __('Extension'),
@@ -252,6 +257,20 @@ $fields = [
                 'url' => $baseurl . '/events/%action%/%id%',
                 'state_path' => 'Event.published',
                 'requirement' => 'check_publish_rights'
+            ],
+            [
+                'type' => 'divider',
+                'url' => '#',
+                'requirement' => $canGraph,
+            ],
+            [
+                'type' => 'intelGraph',
+                'label' => __('Add to workspace'),
+                'icon' => 'text-analystGraph misp-icon misp-icon-analyst-graph misp-simple',
+                'items' => function ($row) {
+                    return [['type' => 'Event', 'uuid' => $row['Event']['uuid'], 'label' => $row['Event']['info']]];
+                },
+                'requirement' => $canGraph,
             ]
         ]
     ],
@@ -551,7 +570,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'chips' => $chips,
                 'apply' => 'close',
                 'export' => 1,
-                'delete' => '/delete'
+                'delete' => '/delete',
+                'mass_graph' => $canGraph,
             ],
             'fields' => $fields,
             'primary_id_path' => 'Event.id',

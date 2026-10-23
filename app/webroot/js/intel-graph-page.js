@@ -1,4 +1,4 @@
-// An analyst graph's own page (AnalystGraphs/view.ctp): the graph mounted at
+// A workspace's own page (Workspaces/view.ctp): the graph mounted at
 // full size through IntelGraph, the bar that says what is not saved yet, and
 // the fork and settings dialogs.
 //
@@ -161,7 +161,7 @@
                 '≈ ' + kit.formatBytes(size.bytes) + ' of ' + kit.formatBytes(size.limits.bytes)));
             if (size.limits.document_bytes && size.limits.bytes < size.limits.document_bytes) {
                 body.appendChild(el('div', 'small text-body-secondary mb-2', 'This server takes a save of up to '
-                    + kit.formatBytes(size.limits.bytes) + '; a graph can hold up to '
+                    + kit.formatBytes(size.limits.bytes) + '; a workspace can hold up to '
                     + kit.formatBytes(size.limits.document_bytes) + '.'));
             }
             body.appendChild(el('h6', 'dropdown-header px-0', groups.length ? 'Large groups' : 'No large group'));
@@ -200,7 +200,7 @@
             hiddenWrap.hidden = !list.length;
             find('[data-ig-page-hidden-label]').textContent = plural(list.length, 'hidden link', 'hidden links');
             hiddenMenu.textContent = '';
-            hiddenMenu.appendChild(el('h6', 'dropdown-header', 'Hidden in this graph'));
+            hiddenMenu.appendChild(el('h6', 'dropdown-header', 'Hidden in this workspace'));
             list.forEach(function (e) {
                 var row = el('div', 'd-flex align-items-center gap-2 px-3 py-1');
                 row.setAttribute('data-ig-edge', e.id);
@@ -235,7 +235,7 @@
             conflict = { revision: revision };
             conflictEl.hidden = false;
             conflictEl.textContent = '';
-            conflictEl.appendChild(el('strong', null, 'Not saved: this graph was saved elsewhere since it opened here'
+            conflictEl.appendChild(el('strong', null, 'Not saved: this workspace was saved elsewhere since it opened here'
                 + (revision != null ? ' (it is now at revision ' + revision + ')' : '') + '. '));
             conflictEl.appendChild(document.createTextNode('Save your changes over that version — what it added is kept — or reload it and drop them.'));
             var acts = el('div', 'mt-2 d-flex gap-2');
@@ -252,7 +252,7 @@
                     conflictEl.appendChild(el('div', 'mt-1', 'Could not read the newer version: ' + message(err)));
                 });
             });
-            var reload = el('button', 'btn btn-sm btn-outline-danger', 'Reload the graph');
+            var reload = el('button', 'btn btn-sm btn-outline-danger', 'Reload the workspace');
             reload.type = 'button';
             reload.addEventListener('click', function () { window.removeEventListener('beforeunload', guard); window.location.reload(); });
             acts.appendChild(over);
@@ -283,7 +283,7 @@
                 saving = false;
                 if (err && err.status === 409) {
                     showConflict(err.body && err.body.revision);
-                    notifyCanvas('Not saved', 'This graph was saved elsewhere since it opened here.');
+                    notifyCanvas('Not saved', 'This workspace was saved elsewhere since it opened here.');
                     return;
                 }
                 render();
@@ -316,7 +316,7 @@
             error.textContent = '';
             list.textContent = '';
             if (!config.forkTargets.length) {
-                list.appendChild(el('p', 'small text-body-secondary', 'Your organisation has no collection to attach a fork to. Open the event, collection or galaxy cluster your copy should hang off, and fork the graph from its dock there.'));
+                list.appendChild(el('p', 'small text-body-secondary', 'Your organisation has no collection to attach a fork to. Open the event, collection or galaxy cluster your copy should hang off, and fork the workspace from its dock there.'));
             }
             config.forkTargets.forEach(function (t, i) {
                 var wrap = el('div', 'form-check');
@@ -329,7 +329,7 @@
                 var label = el('label', 'form-check-label', (config.targetTypes[t.type] || t.type) + ' · ' + t.label);
                 label.htmlFor = input.id;
                 if (i === 0 && graph.target && t.uuid === graph.target.uuid) {
-                    label.appendChild(el('span', 'badge text-bg-secondary ms-2', 'this graph’s'));
+                    label.appendChild(el('span', 'badge text-bg-secondary ms-2', 'this workspace’s'));
                 }
                 wrap.appendChild(input);
                 wrap.appendChild(label);
@@ -348,14 +348,14 @@
                 var error = form.querySelector('[data-ig-page-fork-error]');
                 var picked = form.querySelector('input[name="ig-fork-target"]:checked');
                 var name = form.querySelector('#ig-page-fork-name').value.trim();
-                if (!name) { error.textContent = 'A graph needs a name.'; return; }
+                if (!name) { error.textContent = 'A workspace needs a name.'; return; }
                 if (!picked) { error.textContent = 'Pick what the fork attaches to.'; return; }
                 var t = config.forkTargets[+picked.value];
                 var submit = form.querySelector('[type="submit"]');
                 submit.disabled = true;
                 window.IntelGraph.fork(graph.uuid, { name: name, target: { type: t.type, uuid: t.uuid } }).then(function (fork) {
                     window.removeEventListener('beforeunload', guard);
-                    window.location.href = baseurl() + '/analyst_graphs/view/' + encodeURIComponent(fork.uuid);
+                    window.location.href = baseurl() + '/workspaces/view/' + encodeURIComponent(fork.uuid);
                 }, function (err) {
                     submit.disabled = false;
                     error.textContent = 'Could not fork: ' + message(err);
@@ -404,15 +404,15 @@
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
                 var name = form.querySelector('#ig-page-settings-name').value.trim();
-                if (!name) { error.textContent = 'A graph needs a name.'; return; }
-                var body = { Graph: {
+                if (!name) { error.textContent = 'A workspace needs a name.'; return; }
+                var body = { Workspace: {
                     name: name,
                     description: form.querySelector('#ig-page-settings-description').value,
                     distribution: +dist.value,
                     sharing_group_id: dist.value === '4' ? +sg.value : null
                 } };
                 if (dist.value === '4' && !sg.value) { error.textContent = 'Pick the sharing group to share it with.'; return; }
-                window.IntelGraph.request('POST', '/analystData/edit/Graph/' + graph.id + '.json', body).then(function () {
+                window.IntelGraph.request('POST', '/analystData/edit/Workspace/' + graph.id + '.json', body).then(function () {
                     window.removeEventListener('beforeunload', guard);
                     window.location.reload();
                 }, function (err) {
@@ -420,11 +420,11 @@
                 });
             });
             form.querySelector('[data-ig-page-delete]').addEventListener('click', function () {
-                if (!window.confirm('Delete “' + graph.name + '”? The records it shows stay in MISP; the graph and its layout are gone, here and wherever it was shared.')) return;
-                window.IntelGraph.request('POST', '/analystData/delete/Graph/' + graph.id + '.json', {}).then(function () {
+                if (!window.confirm('Delete “' + graph.name + '”? The records it shows stay in MISP; the workspace and its layout are gone, here and wherever it was shared.')) return;
+                window.IntelGraph.request('POST', '/analystData/delete/Workspace/' + graph.id + '.json', {}).then(function () {
                     window.removeEventListener('beforeunload', guard);
                     var t = graph.target;
-                    window.location.href = baseurl() + (t && t.id ? config.targetPaths[t.type] + t.id : '/analystData/index/Graph');
+                    window.location.href = baseurl() + (t && t.id ? config.targetPaths[t.type] + t.id : '/analystData/index/Workspace');
                 }, function (err) {
                     error.textContent = 'Not deleted: ' + message(err);
                 });

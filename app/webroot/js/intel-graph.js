@@ -1,5 +1,5 @@
-// IntelGraph — the analyst graph "Add to graph" feeds, and the way any page
-// reaches analyst graphs. Loaded on every Overmind page that has the navbar's
+// IntelGraph — the workspace "Add to workspace" feeds, and the way any page
+// reaches workspaces. Loaded on every Overmind page that has the navbar's
 // graph slot (Elements/intel_graph_boot.ctp), so it stays small: the graph
 // itself — Pivotick, the explorer and analyst-graph.js — loads on the first
 // mount() only.
@@ -19,7 +19,7 @@
 //
 // Events, on document, each with the details in event.detail:
 //   intel-graph:active   { graph }                        the active graph changed
-//   intel-graph:added    { graph, report, items, undo }   addNodes went through
+//   intel-graph:added    { graph, report, items, undo, origin }  addNodes went through
 //   intel-graph:refused  { graph, items, status, message } addNodes was refused
 //   intel-graph:removed  { graph, report, items }         removeNodes went through
 //   intel-graph:drawn    { graph, report, handle }        a mounted graph drew an add or a removal
@@ -30,7 +30,7 @@
 
     var config = Object.assign({ baseurl: '', active: null, assets: {}, explorer: {}, text: {} },
                                window.IntelGraphConfig || {});
-    var text = Object.assign({ none: 'No graph' }, config.text);
+    var text = Object.assign({ none: 'No workspace' }, config.text);
     var active = config.active || null;
     var dock = null;
 
@@ -68,7 +68,7 @@
     }
 
     function graphPath(action, uuid) {
-        return '/analyst_graphs/' + action + (uuid ? '/' + encodeURIComponent(uuid) : '') + '.json';
+        return '/workspaces/' + action + (uuid ? '/' + encodeURIComponent(uuid) : '') + '.json';
     }
 
     function emit(name, detail) {
@@ -127,13 +127,13 @@
 
     function refreshActive() {
         return request('GET', graphPath('active')).then(function (out) {
-            return setActiveState(out && out.Graph);
+            return setActiveState(out && out.Workspace);
         });
     }
 
     function setActive(uuid) {
-        return request('POST', graphPath('active'), { graph_uuid: uuid || null }).then(function (out) {
-            return setActiveState(out && out.Graph);
+        return request('POST', graphPath('active'), { workspace_uuid: uuid || null }).then(function (out) {
+            return setActiveState(out && out.Workspace);
         });
     }
 
@@ -141,7 +141,7 @@
     // scope 'mine', only those listing the user among their authors.
     function list(scope) {
         return request('GET', graphPath('editable') + (scope === 'mine' ? '?scope=mine' : '')).then(function (out) {
-            return { graphs: (out && out.Graph) || [], active: (out && out.active) || null };
+            return { graphs: (out && out.Workspace) || [], active: (out && out.active) || null };
         });
     }
 
@@ -172,12 +172,26 @@
         };
     }
 
+    // Where on screen an add was made from, taken before the request: the
+    // control may be gone by the time it answers.
+    function originOf(o) {
+        if (!o) return null;
+        if (o.getBoundingClientRect) {
+            var r = o.getBoundingClientRect();
+            return r.width || r.height ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null;
+        }
+        return typeof o.x === 'number' && typeof o.y === 'number' ? { x: o.x, y: o.y } : null;
+    }
+
     // items: [{ type, uuid } | { type: 'Value', value }]. Resolves
     // { status: 'added' | 'unchanged' | 'no-graph', graph, report, undo };
     // a refusal rejects, after intel-graph:refused.
     // options.graph adds to that graph instead of the active one.
+    // options.origin, the element or { x, y } point the add was made from,
+    // is where the dock draws it leaving from.
     function add(items, options) {
         var uuid = (options && options.graph) || (active && active.uuid);
+        var origin = originOf(options && options.origin);
         if (!uuid) {
             emit('pick', { items: items });
             return Promise.resolve({ status: 'no-graph', graph: null, report: null, undo: null });
@@ -186,7 +200,7 @@
             var added = report.added || [];
             var undo = added.length ? undoOnce(uuid, added) : null;
             touchActive(uuid, report);
-            emit('added', { graph: uuid, report: report, items: items, undo: undo });
+            emit('added', { graph: uuid, report: report, items: items, undo: undo, origin: origin });
             return {
                 status: report.changed ? 'added' : 'unchanged',
                 graph: uuid,
@@ -205,16 +219,16 @@
     // graph.
     function create(graph, options) {
         var target = graph.target || {};
-        var body = { Graph: {
+        var body = { Workspace: {
             name: graph.name,
             description: graph.description,
             distribution: graph.distribution,
             sharing_group_id: graph.sharing_group_id
         } };
-        if (graph.content) body.Graph.content = graph.content;
-        var path = '/analyst_data/add/Graph/' + encodeURIComponent(target.uuid) + '/' + encodeURIComponent(target.type) + '.json';
+        if (graph.content) body.Workspace.content = graph.content;
+        var path = '/analyst_data/add/Workspace/' + encodeURIComponent(target.uuid) + '/' + encodeURIComponent(target.type) + '.json';
         return request('POST', path, body).then(function (out) {
-            var created = out && out.Graph;
+            var created = out && out.Workspace;
             if (!created || (options && options.activate === false)) return created;
             return setActive(created.uuid).then(function () { return created; });
         });
@@ -223,7 +237,7 @@
     // options: { target: { type, uuid }, name }
     function fork(uuid, options) {
         return request('POST', graphPath('fork', uuid), options || {}).then(function (out) {
-            return out && out.Graph;
+            return out && out.Workspace;
         });
     }
 

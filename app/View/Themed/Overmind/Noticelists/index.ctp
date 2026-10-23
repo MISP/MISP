@@ -49,6 +49,7 @@ $fields = [
         'sort' => 'Noticelist.expanded_name',
         'data_path' => 'Noticelist.expanded_name',
         'card_section' => 'title',
+        'link_to_view' => false,
         'display_in' => ['table', 'card']
     ],
     [

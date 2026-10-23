@@ -21,6 +21,12 @@ if ($hasName && !empty($field['url'])) {
         h(str_replace('%id%', rawurlencode((string)$id), $field['url'])),
         $label
     );
+} elseif ($hasName && !empty($viewUrl)) {
+    $label = sprintf(
+        '<a href="%s" class="link-body-emphasis link-underline-opacity-0 link-underline-opacity-100-hover">%s</a>',
+        h($viewUrl),
+        $label
+    );
 }
 ?>
 

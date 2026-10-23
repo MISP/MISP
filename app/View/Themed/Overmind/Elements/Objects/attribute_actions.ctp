@@ -41,7 +41,7 @@ $attrDeleted = !empty($attr['deleted']);
             </a>
         </li>
         <?php
-            $mayGraph = !$attrDeleted && $this->Acl->canAccess('analystGraphs', 'addNodes');
+            $mayGraph = !$attrDeleted && $this->Acl->canAccess('workspaces', 'addNodes');
             $mayCollect = !$attrDeleted && $this->Acl->canAccess('collectionElements', 'addElementToCollection');
         ?>
         <?php if ($mayGraph || $mayCollect): ?>
@@ -52,7 +52,7 @@ $attrDeleted = !empty($attr['deleted']);
             <a class="dropdown-item justify-content-start" href="#"
                data-intel-graph-add="<?= h(json_encode([['type' => 'Attribute', 'uuid' => $attr['uuid'] ?? '', 'label' => $attr['value'] ?? '']])) ?>">
                 <i class="text-analystGraph misp-icon misp-icon-analyst-graph misp-simple me-2"></i>
-                <?= __('Add to graph') ?>
+                <?= __('Add to workspace') ?>
             </a>
         </li>
         <?php endif; ?>

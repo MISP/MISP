@@ -30,6 +30,13 @@
             );
         }
     }
+    if (!empty($viewUrl) && $data !== '' && empty($field['privacy'])) {
+        $data = sprintf(
+            '<a href="%s" class="link-body-emphasis link-underline-opacity-0 link-underline-opacity-100-hover">%s</a>',
+            h($viewUrl),
+            $data
+        );
+    }
     if (!empty($field['onClick'])) {
         $data = sprintf(
             '<span onClick="%s">%s</span>',

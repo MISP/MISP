@@ -1,9 +1,9 @@
 <?php
 /**
- * The graphs hung off a record (PRD §8.3): each with its creator,
+ * The workspaces hung off a record (PRD §8.3): each with its creator,
  * distribution and node count, to open, fork or make the active one; and
- * "New graph" on this record. Also tells the dock which record is on screen,
- * for its own "New graph" and fork.
+ * "New workspace" on this record. Also tells the dock which record is on
+ * screen, for its own "New workspace" and fork.
  *
  * @var string $targetType Collection, Event or GalaxyCluster
  * @var string $targetUuid
@@ -12,7 +12,7 @@
 $targetUuid = strtolower($targetUuid);
 $this->set('intelGraphPage', ['type' => $targetType, 'uuid' => $targetUuid, 'label' => $targetLabel]);
 
-$canCreate = $this->Acl->canAccess('analystGraphs', 'addNodes');
+$canCreate = $this->Acl->canAccess('workspaces', 'addNodes');
 $create = null;
 if ($canCreate) {
     $levels = [];
@@ -43,7 +43,7 @@ $config = [
     'target' => ['type' => $targetType, 'uuid' => $targetUuid, 'label' => $targetLabel],
     'targetName' => $targetNames[$targetType] ?? $targetType,
     'canCreate' => $canCreate,
-    'canFork' => $this->Acl->canAccess('analystGraphs', 'fork'),
+    'canFork' => $this->Acl->canAccess('workspaces', 'fork'),
     'create' => $create,
     'distributionLevels' => $this->DistributionLevel->all(),
 ];
@@ -62,12 +62,12 @@ echo $this->element('genericElements/assetLoader', [
                 <i class="misp-icon misp-icon-analyst-graph misp-simple text-analystGraph" style="font-size:1rem;"></i>
             </div>
             <div class="me-auto">
-                <div class="fw-bold lh-1"><?= __('Graphs') ?></div>
+                <div class="fw-bold lh-1"><?= __('Workspaces') ?></div>
                 <div class="small text-muted mt-1" data-ig-card-count>…</div>
             </div>
             <?php if ($canCreate): ?>
                 <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" data-ig-card-new
-                        title="<?= __('New graph on this %s', h($config['targetName'])) ?>">
+                        title="<?= __('New workspace on this %s', h($config['targetName'])) ?>">
                     <i class="fas fa-plus"></i>
                 </button>
             <?php endif; ?>
@@ -84,7 +84,7 @@ echo $this->element('genericElements/assetLoader', [
             <div class="modal-dialog">
                 <form class="modal-content" novalidate data-ig-card-form>
                     <div class="modal-header">
-                        <h2 class="modal-title fs-5"><i class="misp-icon misp-icon-analyst-graph misp-simple me-2"></i><?= __('New graph') ?></h2>
+                        <h2 class="modal-title fs-5"><i class="misp-icon misp-icon-analyst-graph misp-simple me-2"></i><?= __('New workspace') ?></h2>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
                     </div>
                     <div class="modal-body">
@@ -100,7 +100,7 @@ echo $this->element('genericElements/assetLoader', [
                         <select class="form-select mb-2" name="sharing_group_id" hidden aria-label="<?= __('Sharing group') ?>"></select>
                         <div class="form-check mt-3">
                             <input class="form-check-input" type="checkbox" name="activate" checked>
-                            <label class="form-check-label" data-ig-for="activate"><?= __('Make it my active graph: “Add to graph” feeds it') ?></label>
+                            <label class="form-check-label" data-ig-for="activate"><?= __('Make it my active workspace: “Add to workspace” feeds it') ?></label>
                         </div>
                         <div class="invalid-feedback d-block" data-ig-card-error></div>
                     </div>

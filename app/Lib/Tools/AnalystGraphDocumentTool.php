@@ -127,17 +127,17 @@ class AnalystGraphDocumentTool
         if (is_string($content)) {
             $content = json_decode($content, true);
             if (!is_array($content)) {
-                return [null, [__('The graph document is not valid JSON.')]];
+                return [null, [__('The workspace document is not valid JSON.')]];
             }
         }
         if (!is_array($content)) {
-            return [null, [__('The graph document must be an object.')]];
+            return [null, [__('The workspace document must be an object.')]];
         }
 
         $errors = [];
         $version = $content['version'] ?? self::VERSION;
         if ($version !== self::VERSION) {
-            $errors[] = __('Unsupported graph document version.');
+            $errors[] = __('Unsupported workspace document version.');
         }
 
         $nodes = $content['nodes'] ?? [];
@@ -146,7 +146,7 @@ class AnalystGraphDocumentTool
             $nodes = [];
         }
         if (count($nodes) > self::MAX_NODES) {
-            $errors[] = __('A graph holds at most %s nodes.', self::MAX_NODES);
+            $errors[] = __('A workspace holds at most %s nodes.', self::MAX_NODES);
             $nodes = [];
         }
         $document = self::emptyDocument();
@@ -203,7 +203,7 @@ class AnalystGraphDocumentTool
             $notes = [];
         }
         if (count($notes) > self::MAX_NOTES) {
-            $errors[] = __('A graph holds at most %s notes.', self::MAX_NOTES);
+            $errors[] = __('A workspace holds at most %s notes.', self::MAX_NOTES);
             $notes = [];
         }
         $notes = self::normaliseNotes($notes, $errors);
@@ -215,7 +215,7 @@ class AnalystGraphDocumentTool
             return [null, $errors];
         }
         if (strlen(self::encode($document)) > self::MAX_BYTES) {
-            return [null, [__('A graph document is at most %s bytes.', self::MAX_BYTES)]];
+            return [null, [__('A workspace document is at most %s bytes.', self::MAX_BYTES)]];
         }
         return [$document, []];
     }
@@ -305,7 +305,7 @@ class AnalystGraphDocumentTool
         $seen = array_flip(self::nodeKeysOf($nodes));
         foreach (array_values($items) as $i => $item) {
             if (is_array($item) && ($item['type'] ?? null) === self::ANSWER) {
-                $report['refused'][] = ['index' => $i, 'error' => __('A module answer is kept by saving the graph, not added to it.')];
+                $report['refused'][] = ['index' => $i, 'error' => __('A module answer is kept by saving the workspace, not added to it.')];
                 continue;
             }
             $errors = [];
@@ -320,7 +320,7 @@ class AnalystGraphDocumentTool
                 continue;
             }
             if (count($nodes) >= self::MAX_NODES) {
-                $report['refused'][] = ['index' => $i, 'error' => __('A graph holds at most %s nodes.', self::MAX_NODES)];
+                $report['refused'][] = ['index' => $i, 'error' => __('A workspace holds at most %s nodes.', self::MAX_NODES)];
                 continue;
             }
             $seen[$key] = true;

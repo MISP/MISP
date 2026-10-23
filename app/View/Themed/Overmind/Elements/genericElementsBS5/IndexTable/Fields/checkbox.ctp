@@ -59,6 +59,11 @@ if ($field['data_path'] === 'Attribute.id') {
     $checkboxAttrs['data-can-delete'] = ($mayModify) ? '1' : '0';
 }
 
+if ($field['data_path'] === 'Object.id') {
+    $checkboxAttrs['data-item-id'] = $id;
+    $checkboxAttrs['data-can-delete'] = $this->Acl->canModifyEvent($row) ? '1' : '0';
+}
+
 if ($field['data_path'] === 'Collection.id' || !empty($data['Collection'])) {
     if (!isset($mayModify)){
         $mayModify = $this->Acl->canModifyCollection($row);
@@ -405,6 +410,14 @@ if (in_array($field['data_path'], ['Note.id', 'Opinion.id', 'Relationship.id'], 
 
 if ($field['data_path'] === 'existing_tag.Tag.id') {
     $checkboxAttrs['disabled'] = true;
+}
+
+// What the bar's "Workspace" button sends for this row, as IntelGraph.add() takes it
+if (isset($field['graph_item'])) {
+    $graphItem = call_user_func($field['graph_item'], $row);
+    if (!empty($graphItem)) {
+        $checkboxAttrs['data-graph-item'] = json_encode($graphItem);
+    }
 }
 ?>
 

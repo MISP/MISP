@@ -1888,6 +1888,15 @@ tr.evt-extension-row td:first-child { position: relative; }
     white-space: nowrap;
 }
 
+/* the row a focus:<uuid> link opened an event's attribute or object tab on */
+.ajax-tab-content tbody > tr.ov-focus-row > * {
+    background-color: rgba(var(--bs-warning-rgb), .18);
+    box-shadow: none;
+}
+.ajax-tab-content tbody > tr.ov-focus-row > :first-child {
+    box-shadow: inset 3px 0 0 var(--bs-warning);
+}
+
 
 .form-switch-galaxy .form-check-input:checked {
     background-color: var(--bs-galaxy);
@@ -5303,13 +5312,13 @@ tr.evt-extension-row td:first-child { position: relative; }
     50% { filter: brightness(.8); }
 }
 
-/* Index bulk-action bar (genericElementsBS5/IndexTable/multi_select_toolbar.ctp), floating over the page */
-#multiSelectToolbar.ms-float {
+/* Index bulk-action bars (genericElementsBS5/IndexTable/multi_select_toolbar.ctp, the event's Objects tab), floating over the page */
+.ms-float {
     position: fixed; z-index: 1040; left: 50%; bottom: 16px; transform: translateX(-50%);
     width: max-content; max-width: calc(100vw - 32px); margin: 0;
 }
-#multiSelectToolbar.ms-float > div,
-#multiSelectToolbar.ms-float > fieldset > div {
+.ms-float > div,
+.ms-float > fieldset > div {
     padding: 8px 10px 8px 16px !important;
     background: var(--bs-body-bg) !important; color: var(--bs-body-color);
     border-color: var(--bs-card-border-color, var(--bs-border-color)) !important;
@@ -5317,11 +5326,11 @@ tr.evt-extension-row td:first-child { position: relative; }
     box-shadow: 0 10px 30px rgba(0, 0, 0, .22);
     font-size: .86rem; white-space: nowrap;
 }
-#multiSelectToolbar .ms-count { color: var(--bs-secondary-color); }
-#multiSelectToolbar .ms-count b { color: var(--bs-emphasis-color); font-variant-numeric: tabular-nums; }
-#multiSelectToolbar .ms-sep { width: 1px; align-self: stretch; margin: 0 4px; background: var(--bs-border-color); }
-#multiSelectToolbar .ms-clear { padding-left: 4px; padding-right: 4px; text-decoration: none; }
-#multiSelectToolbar .ms-clear:hover { text-decoration: underline; }
+.ms-float .ms-count { color: var(--bs-secondary-color); }
+.ms-float .ms-count b { color: var(--bs-emphasis-color); font-variant-numeric: tabular-nums; }
+.ms-float .ms-sep { width: 1px; align-self: stretch; margin: 0 4px; background: var(--bs-border-color); }
+.ms-float .ms-clear { padding-left: 4px; padding-right: 4px; text-decoration: none; }
+.ms-float .ms-clear:hover { text-decoration: underline; }
 body.ms-float-open { padding-bottom: calc(var(--ms-float-h, 56px) + 32px); }
 
 /* Attribute values (Attributes/value_display.ctp, value_flags.ctp) */

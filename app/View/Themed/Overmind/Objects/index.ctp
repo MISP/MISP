@@ -17,7 +17,17 @@ $filterState = new IndexFilterState(
 );
 $filterLabels = $filterLabels ?? ['org' => [], 'sharinggroup' => []];
 
+$canGraph = $this->Acl->canAccess('workspaces', 'addNodes');
+
 $fields = [
+    [
+        'element' => 'checkbox',
+        'data_path' => 'Object.id',
+        'card_section' => 'selector',
+        'graph_item' => function ($row) {
+            return ['type' => 'Object', 'uuid' => $row['Object']['uuid'], 'label' => $row['Object']['name']];
+        },
+    ],
     [
         'name' => __('Object'),
         'sort' => 'name',
@@ -321,6 +331,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 'pull' => 'right',
                 'children' => $children,
                 'transport' => 'query',
+                'soft_delete' => '/deleteSelection',
+                'mass_graph' => $canGraph,
                 'chips' => [
                     'labels' => [
                         'template_uuid' => __('Template uuid'),

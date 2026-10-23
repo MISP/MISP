@@ -18,7 +18,7 @@ class ServerSyncTool
         FEATURE_SIGHTING_REST_SEARCH = 'sighting_rest',
         FEATURE_FAST_CACHING = 'fast_caching',
         FEATURE_COLLECTION_SYNC = 'collection_sync',
-        FEATURE_ANALYST_GRAPH = 'analyst_graph',
+        FEATURE_WORKSPACE = 'workspace',
         FEATURE_ANALYST_DATA_BATCH = 'analyst_data_batch_push',
         FEATURE_VALUE_TARGETS = 'value_targets';
 
@@ -655,8 +655,8 @@ class ServerSyncTool
                 return $version[0] > 2 || ($version[0] == 2 && $version[1] == 5 && $version[2] >= 33);
             case self::FEATURE_COLLECTION_SYNC:
                 return isset($info['collection_sync']) && $info['collection_sync'];
-            case self::FEATURE_ANALYST_GRAPH:
-                return isset($info['analyst_graph']) && $info['analyst_graph'];
+            case self::FEATURE_WORKSPACE:
+                return isset($info['workspace']) && $info['workspace'];
             case self::FEATURE_ANALYST_DATA_BATCH:
                 return isset($info['analyst_data_batch_push']) && $info['analyst_data_batch_push'];
             case self::FEATURE_VALUE_TARGETS:

@@ -124,10 +124,10 @@ $headerActions = array(
             'class' => 'btn btn-outline-dark disabled',
             'title' => __('Your role does not allow adding to collections.'),
         ),
-    $this->Acl->canAccess('analystGraphs', 'addNodes')
+    $this->Acl->canAccess('workspaces', 'addNodes')
         ? array(
             'type' => 'navigate',
-            'label' => __('Add to graph'),
+            'label' => __('Add to workspace'),
             'icon' => 'circle-nodes',
             'class' => 'btn btn-outline-dark',
             'attributes' => array('data-intel-graph-add' => json_encode(array(array(

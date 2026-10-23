@@ -45,13 +45,13 @@ $actions[] = [
     'short' => __('Correlations'),
 ];
 
-if ($this->Acl->canAccess('analystGraphs', 'addNodes') && !$isDeleted) {
+if ($this->Acl->canAccess('workspaces', 'addNodes') && !$isDeleted) {
     $actions[] = [
         'url' => '#',
         'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',
         'entity' => 'analystGraph',
-        'label' => __('Add to graph'),
-        'short' => __('Graph'),
+        'label' => __('Add to workspace'),
+        'short' => __('Workspace'),
         'attributes' => ['data-intel-graph-add' => json_encode([['type' => 'GalaxyCluster', 'uuid' => $uuid, 'label' => $data['value']]])],
     ];
 }

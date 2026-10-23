@@ -59,7 +59,7 @@ $config = [
         ],
     ],
     'text' => [
-        'none' => __('No graph'),
+        'none' => __('No workspace'),
     ],
 ];
 ?>

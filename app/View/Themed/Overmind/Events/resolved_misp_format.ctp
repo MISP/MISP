@@ -156,16 +156,38 @@ $attrTableHead = function () use ($idsToggle) {
 // The AI indicator extraction (A4) lands here too: same review, its own
 // wording, the module's rejected candidates on top.
 $isAi = $type === 'AI';
-$accent = $isAi ? 'primary' : 'enrichment';
+$isImport = $type === 'Import';
+$accent = $isAi ? 'primary' : ($isImport ? 'event' : 'enrichment');
+if ($isImport) {
+    $eyebrow = __('Import module');
+} elseif ($isAi) {
+    $eyebrow = __('AI actions');
+} else {
+    $eyebrow = $type === 'Cortex' ? __('Cortex') : __('Enrichment');
+}
+if ($isAi) {
+    $backOnclick = sprintf("openModal('%s', 'md');", h(!empty($backUrl) ? $backUrl : $baseurl . '/events/aiExtractIndicators/' . $eventId));
+} elseif ($isImport) {
+    $backOnclick = sprintf("openModalChained('%s%s');", $baseurl, h($backPath));
+} else {
+    $backOnclick = sprintf(
+        "openModal('%s/events/queryEnrichment/%s/0/%s/%s');",
+        $baseurl, h($sourceId), h($backType), h($backModel)
+    );
+}
 ?>
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
     'accent' => $accent,
-    'eyebrow' => $isAi ? __('AI actions') : ($type === 'Cortex' ? __('Cortex') : __('Enrichment')),
-    'title' => $isAi ? __('Extracted indicators') : __('Enrichment results'),
+    'eyebrow' => $eyebrow,
+    'title' => $isAi
+        ? __('Extracted indicators')
+        : ($isImport ? __('Import results') : __('Enrichment results')),
     'description' => $isAi
         ? __('Event #%s — what the AI module read out of the event reports; remove anything wrong, then import.', h($eventId))
         : __('Event') . ': #' . h($eventId),
-    'titleIcon' => $isAi ? 'fas fa-robot' : 'fas fa-wand-magic-sparkles',
+    'titleIcon' => $isAi
+        ? 'fas fa-robot'
+        : ($isImport ? 'fas fa-file-import' : 'fas fa-wand-magic-sparkles'),
     'close' => true,
 ]) ?>
 
@@ -465,12 +487,7 @@ $accent = $isAi ? 'primary' : 'enrichment';
         'buttons' => [[
             'label' => __('Back'),
             'icon' => 'fas fa-arrow-left',
-            'attrs' => ['onclick' => $isAi
-                ? sprintf("openModal('%s', 'md');", h(!empty($backUrl) ? $backUrl : $baseurl . '/events/aiExtractIndicators/' . $eventId))
-                : sprintf(
-                    "openModal('%s/events/queryEnrichment/%s/0/%s/%s');",
-                    $baseurl, h($sourceId), h($backType), h($backModel)
-                )],
+            'attrs' => ['onclick' => $backOnclick],
         ]],
         'submit' => [
             'label' => __('Import'),

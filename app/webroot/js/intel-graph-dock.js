@@ -1,4 +1,4 @@
-// The analyst graph dock: the active graph, over whatever page the analyst is
+// The workspace dock: the active workspace, over whatever page the analyst is
 // on (phase 6's pick, mockups/dock.html in the PRD). Docked, it is a drawer
 // against the right edge, full height under the navbar, as wide as the
 // analyst drags it; it covers the page's right edge and never reflows the
@@ -284,6 +284,53 @@
         });
     }
 
+    // An add on its way from where it was made to where it went: the
+    // navbar slot, or the open panel. Resolves on arrival.
+    function flightTarget() {
+        var box = null;
+        if (opened) {
+            box = (stage.offsetParent ? stage : panel).getBoundingClientRect();
+        } else {
+            Array.prototype.some.call(slotButtons(), function (b) {
+                var r = (b.firstElementChild || b).getBoundingClientRect();
+                if (!r.width || r.bottom < 0 || r.top > window.innerHeight) return false;
+                box = r;
+                return true;
+            });
+        }
+        return box && box.width ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : null;
+    }
+    function fly(from) {
+        var to = from && !reducedMotion() && flightTarget();
+        var dx = to ? to.x - from.x : 0, dy = to ? to.y - from.y : 0;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (!to || dist < 32 || !panel.animate) return Promise.resolve();
+        var token = el('span', 'ig-flight');
+        token.appendChild(icon('misp-icon misp-icon-analyst-graph misp-simple'));
+        token.style.left = from.x + 'px';
+        token.style.top = from.y + 'px';
+        document.body.appendChild(token);
+        // A quadratic arc bowed upwards, kept below the top of the window.
+        var cx = from.x + dx * 0.3;
+        var cy = Math.max(12, Math.min(from.y, to.y) - Math.min(60, dist * 0.15));
+        var frames = [];
+        for (var i = 0; i <= 16; i++) {
+            var t = i / 16, u = 1 - t;
+            var x = u * u * from.x + 2 * u * t * cx + t * t * to.x;
+            var y = u * u * from.y + 2 * u * t * cy + t * t * to.y;
+            frames.push({
+                offset: t,
+                opacity: t < 0.8 ? 1 : 1 - (t - 0.8) * 3,
+                transform: 'translate(' + (x - from.x) + 'px,' + (y - from.y) + 'px) scale(' + (1 - 0.45 * t) + ')'
+            });
+        }
+        var flight = token.animate(frames, {
+            duration: Math.min(850, 350 + dist * 0.4),
+            easing: 'cubic-bezier(.5, 0, .3, 1)'
+        });
+        return flight.finished.catch(function () { /* cut short */ }).then(function () { token.remove(); });
+    }
+
     /* ── open, close ───────────────────────────────────────── */
     var opened = false;
     var closeTimer = 0;
@@ -567,12 +614,12 @@
     }
     function renderHead() {
         var a = IG().active();
-        nameEl.textContent = a ? a.name : 'Pick a graph';
-        switchBtn.title = a ? 'Switch graph' + (a.description ? ' — ' + a.description : '') : '';
+        nameEl.textContent = a ? a.name : 'Pick a workspace';
+        switchBtn.title = a ? 'Switch workspace' + (a.description ? ' — ' + a.description : '') : '';
         switchBtn.disabled = !a;
         switchBtn.querySelector('.ig-so-caret').hidden = !a;
         fullLink.hidden = !a;
-        fullLink.href = a ? baseurl() + '/analyst_graphs/view/' + encodeURIComponent(a.uuid) : '#';
+        fullLink.href = a ? baseurl() + '/workspaces/view/' + encodeURIComponent(a.uuid) : '#';
         metaEl.textContent = '';
         if (!a) return;
         metaEl.appendChild(targetFact(a.target, a.object_type));
@@ -607,24 +654,24 @@
             kind = 'readonly'; iconCls = 'fas fa-lock';
             var org = (a.Orgc && a.Orgc.name) || 'another organisation';
             var p = el('p');
-            p.appendChild(el('strong', null, org + '’s graph. '));
-            p.appendChild(document.createTextNode('Only ' + org + ' can change it, so “Add to graph” is refused here. Fork it to keep working on your own copy.'));
+            p.appendChild(el('strong', null, org + '’s workspace. '));
+            p.appendChild(document.createTextNode('Only ' + org + ' can change it, so “Add to workspace” is refused here. Fork it to keep working on your own copy.'));
             body.appendChild(p);
             var acts = el('div', 'ig-so-actions');
             forkButtons(null).forEach(function (b) { acts.appendChild(b); });
             body.appendChild(acts);
         } else if (layout === 'conflict') {
             kind = 'conflict'; iconCls = 'fas fa-code-compare';
-            body.appendChild(el('p', null, 'Layout not saved: this graph was saved somewhere else since it opened here'
+            body.appendChild(el('p', null, 'Layout not saved: this workspace was saved somewhere else since it opened here'
                 + (conflictRevision != null ? ' (it is now at revision ' + conflictRevision + ')' : '') + '.'));
             body.appendChild(el('p', 'mt-1', 'Save your layout over that version — what it added is kept, and placed — or reload it and drop your moves. Adds were never at risk: they were saved as they landed.'));
             var acts2 = el('div', 'ig-so-actions');
             acts2.appendChild(button('btn btn-sm btn-danger', 'Save my layout over it', rebaseAndSave, 'fas fa-code-merge'));
-            acts2.appendChild(button('btn btn-sm btn-outline-danger', 'Reload the graph', function () { notice = null; mountActive(); }, 'fas fa-rotate'));
+            acts2.appendChild(button('btn btn-sm btn-outline-danger', 'Reload the workspace', function () { notice = null; mountActive(); }, 'fas fa-rotate'));
             body.appendChild(acts2);
         } else if (pending) {
             kind = 'pending'; iconCls = 'fas fa-inbox';
-            body.appendChild(el('p', null, describeItems(pending) + ' waiting: pick the graph it goes to, or start one.'));
+            body.appendChild(el('p', null, describeItems(pending) + ' waiting: pick the workspace it goes to, or start one.'));
         } else if (notice) {
             kind = notice.kind; iconCls = notice.kind === 'error' ? 'fas fa-triangle-exclamation' : 'fas fa-check';
             body.appendChild(el('p', null, notice.text));
@@ -758,8 +805,8 @@
         mark.appendChild(icon('fas fa-ban'));
         b.appendChild(mark);
         var bodyEl = el('span', 'ig-so-pick-body');
-        bodyEl.appendChild(el('span', 'ig-so-pick-name', 'No active graph'));
-        bodyEl.appendChild(el('span', 'ig-so-pick-sub', '“Add to graph” asks which graph next time'));
+        bodyEl.appendChild(el('span', 'ig-so-pick-name', 'No active workspace'));
+        bodyEl.appendChild(el('span', 'ig-so-pick-sub', '“Add to workspace” asks which workspace next time'));
         b.appendChild(bodyEl);
         b.addEventListener('click', clearActive);
         return b;
@@ -768,13 +815,13 @@
         hideMenu();
         notice = null;
         IG().setActive(null).catch(function (err) {
-            notice = { kind: 'error', text: 'Could not clear the active graph: ' + ((err && err.message) || 'unknown error') };
+            notice = { kind: 'error', text: 'Could not clear the active workspace: ' + ((err && err.message) || 'unknown error') };
             renderBanner();
         });
     }
     var SCOPES = [
-        { key: 'mine', label: 'Mine', head: 'Your graphs', empty: 'No graph names you among its authors yet.' },
-        { key: 'org', label: 'Organisation', head: 'Your organisation’s graphs', empty: 'Your organisation has no graph yet.' }
+        { key: 'mine', label: 'Mine', head: 'Your workspaces', empty: 'No workspace names you among its authors yet.' },
+        { key: 'org', label: 'Organisation', head: 'Your organisation’s workspaces', empty: 'Your organisation has no workspace yet.' }
     ];
     function scopeOf(key) {
         return SCOPES.filter(function (s) { return s.key === key; })[0] || SCOPES[1];
@@ -787,7 +834,7 @@
         head.appendChild(title);
         var toggle = el('div', 'btn-group btn-group-sm');
         toggle.setAttribute('role', 'group');
-        toggle.setAttribute('aria-label', 'Whose graphs');
+        toggle.setAttribute('aria-label', 'Whose workspaces');
         head.appendChild(toggle);
         into.appendChild(head);
         var holder = el('div', asDropdown ? 'ig-so-list' : 'list-group');
@@ -836,7 +883,7 @@
             }, function (err) {
                 if (seq !== listSeq) return;
                 holder.textContent = '';
-                holder.appendChild(el('div', 'px-3 py-2 text-danger small', 'Could not list the graphs: ' + ((err && err.message) || 'error')));
+                holder.appendChild(el('div', 'px-3 py-2 text-danger small', 'Could not list the workspaces: ' + ((err && err.message) || 'error')));
             });
         }
         load();
@@ -849,7 +896,7 @@
         var id = 'ig-so-new-' + (++formSeq);
         var form = el('form', 'ig-so-new');
         form.noValidate = true;
-        var label = el('label', 'form-label', 'New graph');
+        var label = el('label', 'form-label', 'New workspace');
         label.htmlFor = id;
         form.appendChild(label);
         var group = el('div', 'input-group input-group-sm');
@@ -870,9 +917,9 @@
         if (page) {
             help.appendChild(document.createTextNode('On '));
             help.appendChild(el('strong', null, typeOf(page.type).label + ' · ' + page.label));
-            help.appendChild(document.createTextNode(', the page you are on. It becomes your active graph.'));
+            help.appendChild(document.createTextNode(', the page you are on. It becomes your active workspace.'));
         } else {
-            help.textContent = 'Open an event, a collection or a cluster to start a graph on it.';
+            help.textContent = 'Open an event, a collection or a cluster to start a workspace on it.';
             input.disabled = submit.disabled = true;
         }
         form.appendChild(help);
@@ -880,8 +927,8 @@
             e.preventDefault();
             var name = input.value.trim();
             input.classList.remove('is-invalid');
-            if (!name) { input.classList.add('is-invalid'); feedback.textContent = 'A graph needs a name.'; input.focus(); return; }
-            if (!page) { input.classList.add('is-invalid'); feedback.textContent = 'This page is not a record a graph can hang off.'; return; }
+            if (!name) { input.classList.add('is-invalid'); feedback.textContent = 'A workspace needs a name.'; input.focus(); return; }
+            if (!page) { input.classList.add('is-invalid'); feedback.textContent = 'This page is not a record a workspace can hang off.'; return; }
             submit.disabled = true;
             IG().create({ name: name, target: { type: page.type, uuid: page.uuid } }).then(function (created) {
                 hideMenu();
@@ -891,7 +938,7 @@
                 submit.disabled = false;
                 input.classList.add('is-invalid');
                 var errs = err && err.body && err.body.errors;
-                feedback.textContent = (errs && errs.name && errs.name[0]) || (err && err.message) || 'Could not create the graph.';
+                feedback.textContent = (errs && errs.name && errs.name[0]) || (err && err.message) || 'Could not create the workspace.';
             });
         });
         return form;
@@ -903,11 +950,11 @@
         noneEl.hidden = false;
         noneEl.textContent = '';
         if (pending) {
-            noneEl.appendChild(el('h2', null, 'Add to which graph?'));
-            noneEl.appendChild(el('p', null, 'The one you pick becomes your active graph: later adds go to it too.'));
+            noneEl.appendChild(el('h2', null, 'Add to which workspace?'));
+            noneEl.appendChild(el('p', null, 'The one you pick becomes your active workspace: later adds go to it too.'));
         } else {
-            noneEl.appendChild(el('h2', null, 'No active graph'));
-            noneEl.appendChild(el('p', null, '“Add to graph” on the pages you browse feeds one graph at a time. Pick the one you are working on, or start one; nothing loads until you do.'));
+            noneEl.appendChild(el('h2', null, 'No active workspace'));
+            noneEl.appendChild(el('p', null, '“Add to workspace” on the pages you browse feeds one workspace at a time. Pick the one you are working on, or start one; nothing loads until you do.'));
         }
         var choices = el('div', 'd-flex flex-column gap-3');
         noneEl.appendChild(choices);
@@ -932,10 +979,10 @@
     function emptyCard() {
         var box = el('div', 'ig-so-empty');
         box.appendChild(icon('fas fa-circle-plus'));
-        box.appendChild(el('strong', null, 'Nothing in this graph yet'));
+        box.appendChild(el('strong', null, 'Nothing in this workspace yet'));
         var p = el('p');
         p.appendChild(document.createTextNode('Use '));
-        p.appendChild(el('kbd', null, 'Add to graph'));
+        p.appendChild(el('kbd', null, 'Add to workspace'));
         p.appendChild(document.createTextNode(' on the pages you browse — an event, an attribute, an object, a value. Each one lands here as you add it, and stays.'));
         box.appendChild(p);
         return box;
@@ -1035,11 +1082,12 @@
         });
         if (d.undo) undos[entry.id] = d.undo;
         push(d.graph, entry);
-        if (!opened) {
-            unseen.added += entry.count;
+        if (!opened) unseen.added += entry.count;
+        fly(d.origin).then(function () {
+            if (opened) return;
             syncSlot();
             pulseSlot();
-        }
+        });
         var a = IG().active();
         if (a && lower(a.uuid) === lower(d.graph)) {
             renderTray();
@@ -1134,7 +1182,7 @@
             render();
             if (!opened) return;
             flash('is-landing');
-            say((entry.kind === 'added' ? 'Added ' : 'Already in the graph: ') + titleOf(entry));
+            say((entry.kind === 'added' ? 'Added ' : 'Already in the workspace: ') + titleOf(entry));
             pointAt(nodes, entry);
         });
     }
@@ -1298,8 +1346,8 @@
             });
             if (names.childNodes.length) parts.push(names);
         }
-        parts.push(e.kind === 'present' ? 'already in this graph' : e.kind === 'undone' ? 'undone'
-            : e.kind === 'gone' ? 'no longer in this graph' : 'added');
+        parts.push(e.kind === 'present' ? 'already in this workspace' : e.kind === 'undone' ? 'undone'
+            : e.kind === 'gone' ? 'no longer in this workspace' : 'added');
         if (e.refused) parts.push(e.refused + ' not added');
         parts.push(ago(e.at));
         parts.forEach(function (p, i) {
@@ -1357,8 +1405,8 @@
         if (!list.length) {
             var hint = el('li', 'ig-so-arr-hint');
             hint.textContent = !readOnly(a)
-                ? 'What you send with “Add to graph” lands here, page after page.'
-                : 'Nothing can be added to this graph.';
+                ? 'What you send with “Add to workspace” lands here, page after page.'
+                : 'Nothing can be added to this workspace.';
             trayList.appendChild(hint);
             return;
         }
@@ -1413,7 +1461,7 @@
         if (readOnly(a)) {
             text.appendChild(icon('fas fa-lock me-1'));
             text.appendChild(document.createTextNode(layout === 'moved-ro'
-                ? 'Moves here are not kept: this graph is read-only.'
+                ? 'Moves here are not kept: this workspace is read-only.'
                 : 'Read-only: nothing you add or move here is kept.'));
             return;
         }
@@ -1649,7 +1697,7 @@
         // The dock is drawn at once where it was left; the graph once the
         // page itself has loaded.
         openDock({ instant: true, deferMount: true });
-        showLoading('Loading the graph…');
+        showLoading('Loading the workspace…');
         var go = function () {
             var idle = window.requestIdleCallback || function (fn) { return setTimeout(fn, 200); };
             idle(function () { if (opened) ensureMounted(); }, { timeout: 1200 });
