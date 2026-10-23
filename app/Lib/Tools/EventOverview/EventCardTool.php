@@ -282,18 +282,17 @@ class EventCardTool
     /**
      * @param mixed $level
      * @param array|null $sharingGroup id, name
-     * @param int|null $sharingGroupOrgs
-     * @return array level, icon, label, style (the badge's theme colours)
+     * @return array level, icon, label, style (the badge's theme colours),
+     *  sharing_group (id, name) when the level is a named sharing group
      */
-    public static function distribution($level, $sharingGroup = null, $sharingGroupOrgs = null)
+    public static function distribution($level, $sharingGroup = null)
     {
         $meta = DistributionLevel::get($level);
         $label = $meta['label'];
+        $group = null;
         if ((int)$level === 4 && !empty($sharingGroup['name'])) {
             $label = __('Sharing group %s', $sharingGroup['name']);
-            if ($sharingGroupOrgs !== null) {
-                $label .= ' · ' . __n('%s organisation', '%s organisations', $sharingGroupOrgs, $sharingGroupOrgs);
-            }
+            $group = ['id' => (int)($sharingGroup['id'] ?? 0), 'name' => (string)$sharingGroup['name']];
         }
         return [
             'level' => $level,
@@ -305,6 +304,7 @@ class EventCardTool
                 DistributionLevel::themed($meta, 'fg'),
                 DistributionLevel::themed($meta, 'border', '33')
             ),
+            'sharing_group' => $group,
         ];
     }
 

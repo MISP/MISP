@@ -144,8 +144,9 @@
 .te-ext a:hover { color: var(--dk-accent); text-decoration: underline; }
 .te-ext i { font-size: .72rem; margin-right: 3px; color: var(--bs-tertiary-color); }
 .te-ext .is-unheld { font-style: italic; color: var(--bs-tertiary-color); }
-.te-index .te-table td.te-c-dist { text-align: center; padding: 0; }
-.te-index .te-table td.te-c-dist .dk-dist { margin: 0; vertical-align: middle; width: 24px; height: 20px; }
+.te-index .te-table td.te-c-dist { text-align: left; padding: 0 6px; }
+.te-index .te-table td.te-c-dist .dk-dist { margin: 0; vertical-align: middle; width: 24px; min-width: 24px; height: 20px; }
+.te-index .te-table td.te-c-dist .dk-dist.is-sg:not(.is-icon) { width: auto; }
 .te-index .te-table td.te-c-date, .te-index .te-table td.te-c-pub, .te-index .te-table td.te-c-changed {
     font-size: .76rem; color: var(--bs-secondary-color); font-variant-numeric: tabular-nums;
 }

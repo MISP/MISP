@@ -266,8 +266,25 @@ class EventIndexHelper extends AppHelper
         );
     }
 
+    /**
+     * The distribution badge; a sharing group carries its name and opens
+     * its popover (events-index-cards.js), so it needs no tooltip.
+     */
     public function distribution(array $dist)
     {
+        $sg = $dist['sharing_group'] ?? null;
+        if ($sg) {
+            return sprintf(
+                '<button type="button" class="dk-dist is-sg" style="%s" data-sg-id="%d" data-sg-name="%s" aria-label="%s" aria-haspopup="dialog" aria-expanded="false">'
+                    . '<i class="%s"></i><span class="dk-dist-name">%s</span></button>',
+                h($dist['style']),
+                (int)$sg['id'],
+                h($sg['name']),
+                h($dist['label']),
+                h($dist['icon']),
+                h($sg['name'])
+            );
+        }
         return sprintf(
             '<span class="dk-dist" style="%s" title="%s" aria-label="%s"><i class="%s"></i></span>',
             h($dist['style']),

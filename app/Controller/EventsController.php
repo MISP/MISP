@@ -1445,25 +1445,6 @@ class EventsController extends AppController
             ];
         }
 
-        $sharingGroupIds = [];
-        foreach ($events as $event) {
-            if ((int)$event['Event']['distribution'] === 4 && !empty($event['Event']['sharing_group_id'])) {
-                $sharingGroupIds[(int)$event['Event']['sharing_group_id']] = true;
-            }
-        }
-        $sharingGroupOrgs = [];
-        if ($sharingGroupIds) {
-            $rows = $this->Event->SharingGroup->SharingGroupOrg->find('all', [
-                'conditions' => ['SharingGroupOrg.sharing_group_id' => array_keys($sharingGroupIds)],
-                'fields' => ['SharingGroupOrg.sharing_group_id', 'COUNT(*) AS orgs'],
-                'group' => ['SharingGroupOrg.sharing_group_id'],
-                'recursive' => -1,
-            ]);
-            foreach ($rows as $row) {
-                $sharingGroupOrgs[(int)$row['SharingGroupOrg']['sharing_group_id']] = (int)$row[0]['orgs'];
-            }
-        }
-
         $extendedBy = [];
         $rows = $this->Event->find('all', [
             'conditions' => ['AND' => [
@@ -1520,17 +1501,12 @@ class EventsController extends AppController
                     ? ['id' => (int)$parent['id'], 'info' => $parent['info'], 'uuid' => $e['extends_uuid']]
                     : ['id' => null, 'info' => null, 'uuid' => $e['extends_uuid']];
             }
-            $sharingGroupId = (int)($e['sharing_group_id'] ?? 0);
             $events[$k]['EventCard'] = [
                 'rows' => EventCardTool::rows($context, $profile),
                 'markings' => EventCardTool::markings($context, $markingNamespaces, $pinned, $descriptions),
                 'grade' => EventCardTool::grade($event['Orgc'] ?? [], $grades),
                 'state' => EventCardTool::state($e),
-                'distribution' => EventCardTool::distribution(
-                    $e['distribution'],
-                    $event['SharingGroup'] ?? null,
-                    $sharingGroupOrgs[$sharingGroupId] ?? null
-                ),
+                'distribution' => EventCardTool::distribution($e['distribution'], $event['SharingGroup'] ?? null),
                 'graphs' => $graphs[$e['uuid']] ?? [],
                 'extends' => $extends,
                 'extended_by' => $extendedBy[$e['uuid']] ?? 0,

@@ -1,6 +1,6 @@
 /* Overmind events index — the +N on each one-line context lane, the context
-   popover it opens (card and table alike), and the selection state of the
-   cards. */
+   popover it opens (card and table alike), the sharing group badges and
+   their popover, and the selection state of the cards. */
 (function () {
     'use strict';
 
@@ -78,8 +78,97 @@
         more.textContent = '+' + rest;
     }
 
+    /* ---------- a sharing group's name to the room its badge has ---------- */
+    var NAME_MIN = 40, DIST_CAP = 176;
+    var measure = document.createElement('canvas').getContext('2d');
+
+    function fontOf(el) {
+        var cs = getComputedStyle(el);
+        return cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    }
+    function textWidth(s, font) {
+        measure.font = font;
+        return measure.measureText(s).width;
+    }
+    // The head and the tail survive: sibling groups tend to differ at the end.
+    function midTrunc(s, max, font) {
+        if (textWidth(s, font) <= max) return s;
+        for (var n = s.length - 1; n >= 3; n--) {
+            var head = Math.ceil(n * 0.58);
+            var t = s.slice(0, head).replace(/\s+$/, '') + '…' + s.slice(s.length - (n - head)).replace(/^\s+/, '');
+            if (textWidth(t, font) <= max) return t;
+        }
+        return '';
+    }
+    function hpad(el) {
+        var cs = getComputedStyle(el);
+        return parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    }
+    // Everything in the named badge but its name.
+    function chromeOf(chip) {
+        var icon = chip.classList.contains('is-icon');
+        chip.classList.remove('is-icon');
+        var cs = getComputedStyle(chip);
+        var w = hpad(chip) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth)
+            + (parseFloat(getComputedStyle(chip.firstElementChild).width) || 14) + (parseFloat(cs.columnGap) || 0);
+        chip.classList.toggle('is-icon', icon);
+        return w;
+    }
+    // A card footer's auto margins are its free room, so only the siblings'
+    // own widths count against the badge (and the 10px it keeps from them).
+    function roomIn(chip, chrome) {
+        var box = chip.parentElement;
+        if (!box.clientWidth) return null;
+        var room = box.clientWidth - hpad(box);
+        if (box.classList.contains('dk-foot')) {
+            Array.prototype.forEach.call(box.children, function (c) {
+                if (c !== chip) room -= c.offsetWidth;
+            });
+            room -= 10;
+        }
+        return room - chrome;
+    }
+
+    // Measured with every badge at its smallest, then written: one layout for the lot.
+    function fitDist(chips) {
+        if (!chips.length) return;
+        var chrome = chromeOf(chips[0]);
+        var font = fontOf(chips[0].lastElementChild);
+        chips.forEach(function (chip) { chip.classList.add('is-icon'); });
+        var memo = {};
+        chips.map(function (chip) {
+            var room = roomIn(chip, chrome);
+            if (room === null) return null;
+            var name = chip.getAttribute('data-sg-name');
+            var key = name + '\u0000' + Math.floor(room);
+            if (!(key in memo)) memo[key] = room < NAME_MIN ? '' : midTrunc(name, room, font);
+            return memo[key];
+        }).forEach(function (text, i) {
+            var chip = chips[i];
+            chip.lastElementChild.textContent = text || chip.getAttribute('data-sg-name');
+            chip.classList.toggle('is-icon', text === '');
+        });
+    }
+
+    // The width a table's distribution column needs to name its groups in full.
+    function distWidth(table) {
+        var chips = $$('td.te-c-dist .dk-dist[data-sg-name]', table);
+        if (!chips.length) return 0;
+        var font = fontOf(chips[0].lastElementChild);
+        var longest = 0, seen = {};
+        chips.forEach(function (chip) {
+            var name = chip.getAttribute('data-sg-name');
+            if (seen[name]) return;
+            seen[name] = true;
+            longest = Math.max(longest, textWidth(name, font));
+        });
+        var extra = chromeOf(chips[0]) + hpad(chips[0].closest('td'));
+        return { want: Math.min(DIST_CAP, Math.ceil(longest + extra) + 1), least: Math.ceil(NAME_MIN + extra) };
+    }
+
     function fitAll(scope) {
         fitLanes($$('.dk-ctx[data-dk-lane]', scope));
+        fitDist($$('.dk-card .dk-foot .dk-dist[data-sg-name]', scope));
     }
 
     function syncSelection(root) {
@@ -95,7 +184,7 @@
         });
     }
 
-    /* ---------- the context popover: one lane on hover, pinned on click ---------- */
+    /* ---------- the popover: a context lane or a sharing group, on hover, pinned on click ---------- */
     var OPEN_MORE = 250, OPEN_LANE = 450, CLOSE = 220;
     var popEl = null, pop = null, openT = null, closeT = null, refocused = null;
 
@@ -135,8 +224,11 @@
     }
 
     // Where hovering opens a lane: the table cell, or the card's +N alone.
+    // A sharing group opens from its badge.
     function zoneOf(el) {
         if (!el || !el.closest('.dk-index') || el.closest('.dk-pop-float')) return null;
+        var sg = el.closest('.dk-dist[data-sg-id]');
+        if (sg) return sg;
         var cell = el.closest('td.te-lane');
         if (cell && cell.querySelector('.te-ctx[data-dk-lane]')) return cell;
         var more = el.closest('.dk-more');
@@ -145,7 +237,11 @@
     function laneOf(zone) {
         return zone.matches('.dk-ctx, .te-ctx') ? zone : zone.querySelector('.te-ctx[data-dk-lane]');
     }
+    function isSg(zone) {
+        return zone.matches('.dk-dist[data-sg-id]');
+    }
     function hasMore(zone) {
+        if (isSg(zone)) return true;
         var lane = laneOf(zone);
         var more = lane.querySelector('.dk-more');
         if (more && !more.hidden) return true;
@@ -158,6 +254,7 @@
         clearTimeout(openT);
         clearTimeout(closeT);
         openT = closeT = null;
+        sgWanted = null;
     }
 
     function fill(view) {
@@ -188,6 +285,24 @@
         place();
     }
 
+    // Drawn by the server (SharingGroupsController::peek), once per group per page.
+    var sgPeeks = {};
+    function loadSg(id) {
+        if (!sgPeeks[id]) {
+            sgPeeks[id] = fetch((window.baseurl || '') + '/sharing_groups/peek/' + encodeURIComponent(id), {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' }
+            }).then(function (r) {
+                return r.ok && !r.redirected ? r.text() : null;
+            }).then(function (html) {
+                return html && html.indexOf('dk-sg-pop') >= 0 ? html : null;
+            }, function () {
+                return null;
+            });
+        }
+        return sgPeeks[id];
+    }
+
     function place() {
         var el = popEl;
         var r = pop.zone.getBoundingClientRect();
@@ -197,6 +312,7 @@
         var below = window.innerHeight - r.bottom - 12, above = r.top - Math.max(headBottom, 0) - 12;
         el.style.left = '0px';
         el.style.top = '0px';
+        var sg = pop.kind === 'sg';
         var beside = widen(Math.max(below, above), vw - 32);
         var pw, ph, top;
         if (beside) {
@@ -206,12 +322,14 @@
             // Too tall for either side: over the row rather than cut short
             var nav = document.querySelector('nav.fixed-top, .navbar.fixed-top');
             var ceiling = Math.max(8, nav ? nav.getBoundingClientRect().bottom + 8 : 8);
-            truncate(window.innerHeight - ceiling - 8);
+            // A sharing group lists few enough members to need no cut.
+            if (!sg) truncate(window.innerHeight - ceiling - 8);
             ph = el.offsetHeight;
             top = Math.max(ceiling, Math.min(r.bottom + 2, window.innerHeight - ph - 8));
         }
         pw = el.offsetWidth;
-        var left = Math.min(Math.max(16, r.left), vw - pw - 16);
+        // A badge sits at the right of its row or card: its popover hangs from that edge.
+        var left = Math.min(Math.max(16, sg ? r.right - pw : r.left), vw - pw - 16);
         el.style.left = (left + window.scrollX) + 'px';
         el.style.top = (top + window.scrollY) + 'px';
     }
@@ -289,23 +407,48 @@
         });
     }
 
+    // A sharing group opens once its popover has arrived; when it cannot
+    // arrive, its badge falls back to a plain tooltip.
+    var sgWanted = null;
     function openPop(zone, pinned) {
         cancelTimers();
         if (pop && pop.zone === zone) {
             if (pinned && !pop.pinned) pin();
             return;
         }
+        if (isSg(zone)) {
+            sgWanted = zone;
+            loadSg(zone.getAttribute('data-sg-id')).then(function (html) {
+                if (sgWanted !== zone) return;
+                if (!html) {
+                    sgWanted = null;
+                    zone.title = zone.getAttribute('aria-label');
+                    return;
+                }
+                begin({ kind: 'sg', zone: zone, root: zone.closest('[data-event-id]') || zone, trigger: zone, pinned: false });
+                popEl.innerHTML = html;
+                popEl.setAttribute('aria-label', zone.getAttribute('aria-label'));
+                place();
+                if (pinned) pin();
+            });
+            return;
+        }
         closePop();
         var lane = laneOf(zone);
         var root = zone.closest('[data-event-id]');
         if (!root || !root.querySelector('template.dk-ctx-tpl')) return;
-        pop = { zone: zone, root: root, lane: lane.getAttribute('data-dk-lane'), more: lane.querySelector('.dk-more'), pinned: false };
-        zone.classList.add('is-popped');
+        begin({ kind: 'lane', zone: zone, root: root, lane: lane.getAttribute('data-dk-lane'), trigger: lane.querySelector('.dk-more'), pinned: false });
+        fill('lane');
+        if (pinned) pin();
+    }
+    function begin(p) {
+        closePop();
+        pop = p;
+        p.zone.classList.add('is-popped');
         popElement().hidden = false;
         popEl.classList.remove('is-pinned');
-        fill('lane');
-        if (pop.more) pop.more.setAttribute('aria-expanded', 'true');
-        if (pinned) pin();
+        popEl.classList.toggle('is-sg', p.kind === 'sg');
+        if (p.trigger) p.trigger.setAttribute('aria-expanded', 'true');
     }
     function pin() {
         pop.pinned = true;
@@ -319,11 +462,12 @@
         pop = null;
         popEl.hidden = true;
         p.zone.classList.remove('is-popped');
-        if (p.more) {
-            p.more.setAttribute('aria-expanded', 'false');
-            if (restore && document.contains(p.more) && !p.more.hidden) {
-                refocused = p.more;
-                p.more.focus();
+        var t = p.trigger;
+        if (t) {
+            t.setAttribute('aria-expanded', 'false');
+            if (restore && document.contains(t) && !t.hidden) {
+                refocused = t;
+                t.focus();
             }
         }
     }
@@ -343,17 +487,20 @@
         if (pop && pop.pinned) return;
         if (!hasMore(zone)) return;
         clearTimeout(openT);
-        var onMore = !!e.target.closest('.dk-more');
-        openT = setTimeout(function () { openPop(zone, false); }, onMore ? OPEN_MORE : OPEN_LANE);
+        var sg = isSg(zone);
+        if (sg) loadSg(zone.getAttribute('data-sg-id'));
+        openT = setTimeout(function () { openPop(zone, false); }, sg || e.target.closest('.dk-more') ? OPEN_MORE : OPEN_LANE);
     });
     document.addEventListener('mouseout', function (e) {
         var zone = zoneOf(e.target);
         if (!zone || (e.relatedTarget && (zone.contains(e.relatedTarget) || (popEl && popEl.contains(e.relatedTarget))))) return;
         clearTimeout(openT);
+        if (sgWanted === zone) sgWanted = null;
         if (pop && pop.zone === zone) scheduleClose();
     });
+    var TRIGGERS = '.dk-index .dk-more, .dk-index .dk-dist[data-sg-id]';
     document.addEventListener('focusin', function (e) {
-        var more = e.target.closest && e.target.closest('.dk-index .dk-more');
+        var more = e.target.closest && e.target.closest(TRIGGERS);
         if (more && more === refocused) {
             refocused = null;
             return;
@@ -365,12 +512,12 @@
         }, OPEN_MORE);
     });
     document.addEventListener('focusout', function (e) {
-        if (!e.target.closest || !e.target.closest('.dk-index .dk-more') || !pop || pop.pinned) return;
+        if (!e.target.closest || !e.target.closest(TRIGGERS) || !pop || pop.pinned) return;
         if (e.relatedTarget && popEl.contains(e.relatedTarget)) return;
         closePop();
     });
     document.addEventListener('click', function (e) {
-        var more = e.target.closest && e.target.closest('.dk-index .dk-more');
+        var more = e.target.closest && e.target.closest(TRIGGERS);
         if (!more) return;
         e.preventDefault();
         e.stopPropagation();
@@ -379,10 +526,15 @@
         else openPop(zone, true);
     }, true);
     document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') sgWanted = null;
         if (e.key === 'Escape' && pop) {
             e.stopPropagation();
-            closePop(pop.pinned || (pop.more && document.activeElement === pop.more));
+            closePop(pop.pinned || (pop.trigger && document.activeElement === pop.trigger));
         }
+    }, true);
+    // Two clicks on a badge pin and unpin it; they do not open the event.
+    document.addEventListener('dblclick', function (e) {
+        if (e.target.closest && e.target.closest('.dk-index .dk-dist[data-sg-id]')) e.stopPropagation();
     }, true);
     document.addEventListener('mousedown', function (e) {
         if (!pop || popEl.contains(e.target) || pop.zone.contains(e.target)) return;
@@ -448,7 +600,10 @@
         });
     }
 
-    window.eventIndexCards = { scan: scan, fit: fitAll, fitLanes: fitLanes, closePop: function () { closePop(); } };
+    window.eventIndexCards = {
+        scan: scan, fit: fitAll, fitLanes: fitLanes, fitDist: fitDist, distWidth: distWidth,
+        closePop: function () { closePop(); }
+    };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', scan);

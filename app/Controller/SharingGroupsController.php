@@ -1,6 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('SharingGroupRailCards', 'Tools/RailCards');
+App::uses('SharingGroupPeek', 'Tools');
 
 /**
  * @property SharingGroup $SharingGroup
@@ -607,6 +608,61 @@ class SharingGroupsController extends AppController
             'fields' => ['SharingGroup.id'],
         ])['SharingGroup']['id'];
         $this->_renderRailCard((new SharingGroupRailCards())->lazy($cardId, $this->Auth->user(), $sgId));
+    }
+
+    /**
+     * The popover a sharing group's badge opens on the Overmind events index.
+     *
+     * @param int|string $id
+     */
+    public function peek($id)
+    {
+        $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
+        if ($this->theme !== 'Overmind' || !$this->SharingGroup->checkIfAuthorised($user, $id)) {
+            throw new NotFoundException(__('Invalid sharing group.'));
+        }
+        $sg = $this->SharingGroup->find('first', [
+            'conditions' => Validation::uuid($id) ? ['SharingGroup.uuid' => $id] : ['SharingGroup.id' => $id],
+            'fields' => [
+                'SharingGroup.id', 'SharingGroup.name', 'SharingGroup.description', 'SharingGroup.releasability',
+                'SharingGroup.org_id', 'SharingGroup.active', 'SharingGroup.local', 'SharingGroup.roaming',
+            ],
+            'contain' => [
+                'Organisation' => ['fields' => ['Organisation.id', 'Organisation.name', 'Organisation.uuid']],
+                'SharingGroupServer' => ['fields' => ['SharingGroupServer.server_id', 'SharingGroupServer.all_orgs']],
+            ],
+        ]);
+        $sgId = (int)$sg['SharingGroup']['id'];
+        $SharingGroupOrg = $this->SharingGroup->SharingGroupOrg;
+        $count = $SharingGroupOrg->find('count', [
+            'conditions' => ['SharingGroupOrg.sharing_group_id' => $sgId],
+            'recursive' => -1,
+        ]);
+        $members = null;
+        if ($this->__showOrgs()) {
+            $query = [
+                'fields' => ['SharingGroupOrg.org_id', 'SharingGroupOrg.extend'],
+                'contain' => ['Organisation' => ['fields' => ['Organisation.id', 'Organisation.name', 'Organisation.uuid']]],
+            ];
+            // The owner and the reader's organisation are listed wherever they sort.
+            $members = array_merge(
+                $SharingGroupOrg->find('all', $query + [
+                    'conditions' => [
+                        'SharingGroupOrg.sharing_group_id' => $sgId,
+                        'SharingGroupOrg.org_id' => array_unique([(int)$sg['SharingGroup']['org_id'], (int)$user['org_id']]),
+                    ],
+                ]),
+                $SharingGroupOrg->find('all', $query + [
+                    'conditions' => ['SharingGroupOrg.sharing_group_id' => $sgId],
+                    'order' => 'LOWER(Organisation.name) ASC',
+                    'limit' => SharingGroupPeek::LIMIT,
+                ])
+            );
+        }
+        $this->layout = false;
+        $this->set('peek', SharingGroupPeek::build($sg, $members, $count, $user['org_id']));
+        $this->render('/Elements/SharingGroups/peek');
     }
 
     private function __initialiseSGQuickEdit($id, $request)

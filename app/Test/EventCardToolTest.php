@@ -415,9 +415,15 @@ class EventCardToolTest extends TestCase
         $this->assertStringContainsString('var(--misp-dist-3-bg, #d1f7e0)', $all['style']);
         $this->assertStringContainsString('var(--misp-dist-3-border, #0f513233)', $all['style']);
 
-        $sg = EventCardTool::distribution('4', ['id' => 2, 'name' => 'CSIRTs'], 12);
-        $this->assertSame('Sharing group CSIRTs · 12 organisations', $sg['label']);
+        $this->assertNull($all['sharing_group']);
+
+        $sg = EventCardTool::distribution('4', ['id' => '2', 'name' => 'CSIRTs']);
+        $this->assertSame('Sharing group CSIRTs', $sg['label']);
+        $this->assertSame(['id' => 2, 'name' => 'CSIRTs'], $sg['sharing_group']);
         $this->assertStringContainsString('sharing-group', $sg['icon']);
+
+        // A sharing group the payload does not name stays a level badge
+        $this->assertNull(EventCardTool::distribution(4, [])['sharing_group']);
 
         $this->assertSame('Unknown', EventCardTool::distribution(null)['label']);
     }

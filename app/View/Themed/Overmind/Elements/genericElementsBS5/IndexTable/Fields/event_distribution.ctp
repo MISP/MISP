@@ -1,5 +1,5 @@
 <?php
-// Overmind events index: the distribution as its icon, the level or sharing group in the tooltip.
+// Overmind events index: the distribution as its icon, a sharing group by name.
 if (empty($row['EventCard'])) {
     return;
 }

@@ -186,6 +186,23 @@
         }
         if (titleFree) w.title = tw;
         else if (!free.length && w.title !== undefined) w.title += rem;
+        // Sharing groups are named out of the lanes' spare room, then the
+        // title's down to its narrow minimum; short of that, they stay icons.
+        var dist = on(COL.dist) && window.eventIndexCards ? window.eventIndexCards.distWidth(table) : 0;
+        if (dist && dist.want > w.dist) {
+            var givers = lanes.slice().reverse().map(function (c) { return [c.k, self.minOf(c)]; });
+            if (titleFree) givers.push(['title', COL.title.nmin]);
+            var spare = givers.reduce(function (s, g) { return s + Math.max(0, w[g[0]] - g[1]); }, 0);
+            if (w.dist + spare >= dist.least) {
+                var take = Math.min(dist.want - w.dist, spare);
+                w.dist += take;
+                givers.forEach(function (g) {
+                    var give = Math.min(take, Math.max(0, w[g[0]] - g[1]));
+                    w[g[0]] -= give;
+                    take -= give;
+                });
+            }
+        }
         shown.forEach(function (c) {
             $('th.te-c-' + c.k, head).style.width = w[c.k] + 'px';
         });
@@ -216,6 +233,9 @@
         var table = this.table();
         if (!table || !table.parentNode.clientWidth) return;
         $$('.te-marks', table).forEach(fitMarks);
+        if (window.eventIndexCards) {
+            window.eventIndexCards.fitDist($$('td.te-c-dist .dk-dist[data-sg-name]', table));
+        }
         if (!this.hidden.clusters && window.eventIndexCards) {
             window.eventIndexCards.fitLanes($$('tr.te-row .te-lane .te-ctx[data-dk-lane]', table));
         }
