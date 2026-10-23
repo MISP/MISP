@@ -2,9 +2,15 @@
 $breadcrumb = '';
 $unclickableControllers = ['pages'];
 if (!empty($currentController)) {
+    $middleUrl = null;
     if ($currentController === 'galaxy_clusters') {
         $currentController = 'galaxies';
         $middle = 'clusters';
+        if (!empty($galaxy_id)) {
+            $middleUrl = $this->Html->url(
+                '/galaxies/view/' . (int)$galaxy_id
+            ) . '#tab-clusters';
+        }
     }
     $controllerUrl = $this->Html->url('/' . $currentController);
     if ($currentController === 'users') {
@@ -24,7 +30,13 @@ if (!empty($currentController)) {
         if (empty($middle)) {
             $breadcrumb .= ' > ' . ucfirst(h($currentAction));
         } else {
-            $breadcrumb .= ' > ' . ucfirst(h($middle)) .  ' > ' . ucfirst(h($currentAction));
+            $middleCrumb = ucfirst(h($middle));
+            if (!empty($middleUrl)) {
+                $middleCrumb = '<a href="' . h($middleUrl) . '" '
+                    . 'class="text-muted text-decoration-none breadcrumb-controller-link">'
+                    . $middleCrumb . '</a>';
+            }
+            $breadcrumb .= ' > ' . $middleCrumb . ' > ' . ucfirst(h($currentAction));
         }
     }
 }
