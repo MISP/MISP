@@ -44,8 +44,8 @@
  *  - skipUnless  Regex; skip the step unless the current path matches. For
  *                steps about a record the user was asked to open: an empty
  *                list leaves nothing to open, and nothing to wait for.
- *  - openMenu    Hold the navbar menus around the anchor open for the step —
- *                they otherwise only open on hover — and unfold the navbar
+ *  - openMenu    Hold the menus around the anchor open for the step — navbar
+ *                menus otherwise only open on hover — and unfold the navbar
  *                when a narrow window has folded it behind its toggler.
  *  - waitingText Copy for the dock while waiting on `pageMatch`.
  *  - advance     'button' (default); 'click' to require the real click;
@@ -1053,15 +1053,13 @@ class OnboardingTour
             [
                 'pageMatch' => self::EVENT_VIEW_MATCH,
                 'anchor' => '[data-tour="event-tags-edit"]',
-                // Above, so the "⋯" menu the button may be folded into can
-                // drop open without the popover covering it.
-                'placement' => 'top',
+                'openMenu' => true,
+                'placement' => 'left',
                 'advance' => 'click',
                 'optional' => true,
                 'title' => __('Apply a tag'),
-                'body' => '<p>' . __('Click <strong>Edit Tags</strong> — on a '
-                    . 'narrow card it sits behind the '
-                    . '<strong>&hellip;</strong> menu. Start with a '
+                'body' => '<p>' . __('Click <strong>Edit</strong> in the '
+                    . '<strong>Tags</strong> menu. Start with a '
                     . '<code>tlp:</code> tag: it states how far the recipient '
                     . 'may pass the event on.') . '</p>',
             ],
@@ -1093,6 +1091,7 @@ class OnboardingTour
             [
                 'pageMatch' => self::EVENT_VIEW_MATCH,
                 'anchor' => '[data-tour="event-galaxies-edit"]',
+                'openMenu' => true,
                 'placement' => 'left',
                 'optional' => true,
                 'title' => __('Attach a cluster'),

@@ -49,6 +49,7 @@
     }
 
     function afterFragment(el) {
+        if (window.initCollapsibleSections) window.initCollapsibleSections(el);
         var inventory = el.querySelector('.eo-inventory');
         if (inventory) {
             fillNarrower(

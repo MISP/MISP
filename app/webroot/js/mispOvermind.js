@@ -7882,6 +7882,7 @@ function initCollapsibleSection(box) {
        in a background tab, and a card that was filled while hidden would stay
        unclamped. Reading scrollHeight forces the layout we need anyway. */
     function schedule() {
+        if (!box.isConnected) { teardown(); return; }
         if (applying || scheduled) { return; }
         scheduled = window.setTimeout(function () {
             scheduled = null;
@@ -7921,13 +7922,24 @@ function initCollapsibleSection(box) {
        rather than armed on opening — a listener added mid-dispatch still runs
        for the very click that added it, which would shut the card again before
        the pointer came back up. */
-    document.addEventListener('click', function (event) {
+    function closeOnOutsideClick(event) {
+        if (!box.isConnected) { teardown(); return; }
         if (!expanded) { return; }
         if (box.contains(event.target) || overlay.contains(event.target)) {
             return;
         }
         setExpanded(false);
-    });
+    }
+    document.addEventListener('click', closeOnOutsideClick);
+
+    /* A body that came in a fetched fragment is replaced, not emptied, when
+       the fragment reloads: drop what still holds on to the old one. */
+    function teardown() {
+        observer.disconnect();
+        document.removeEventListener('click', closeOnOutsideClick);
+        window.removeEventListener('resize', schedule);
+        window.removeEventListener('load', schedule);
+    }
 
     /* Content arriving, a search hiding rows, a class flipping — anything but
        our own clamp, which is a style attribute on the box itself. */

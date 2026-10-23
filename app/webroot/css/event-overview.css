@@ -296,8 +296,15 @@
 .eo-tech-galaxy a:hover { text-decoration: underline; }
 .eo-tech-galaxy small { font-weight: 400; font-variant-numeric: tabular-nums; }
 #eo-context-card { container: eo-context / inline-size; }
+@container eo-context (max-width: 720px) {
+    .eo-context .eo-card-head { flex-wrap: wrap; row-gap: .5rem; }
+    .eo-context .eo-filter { order: 5; flex: 1 1 100%; max-width: none; }
+}
 @container eo-context (max-width: 560px) {
     .eo-techniques { grid-template-columns: minmax(0, 1fr); }
+}
+@container eo-context (max-width: 440px) {
+    .eo-context .eo-btn-label { display: none; }
 }
 .eo-on {
     --eo-ind: color-mix(in srgb, var(--bs-attribute) 75%, var(--bs-body-color));
