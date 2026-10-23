@@ -529,9 +529,18 @@ class AppController extends Controller
             $this->set('hasNotifications', $hasNotifications);
 
             // Onboarding marker, set at the user's first ever login.
-            // cleared by UsersController::onboardingSeen()
+            // cleared by UsersController::onboardingSeen(). Sessions are not
+            // locked, so a concurrent request can write the session copy
+            // back after it was cleared: the stored setting has the last word.
             if ($this->Session->check('Overmind.onboarding_pending')) {
-                $this->set('onboardingAutostart', true);
+                $pending = $this->User->UserSetting->getValueForUser(
+                    $user['id'], 'onboarding_pending'
+                );
+                if (!empty($pending)) {
+                    $this->set('onboardingAutostart', true);
+                } else {
+                    $this->Session->delete('Overmind.onboarding_pending');
+                }
             }
 
             $homepagePath = $this->User->UserSetting->getHomepagePath($user['id']);
@@ -540,7 +549,7 @@ class AppController extends Controller
             }
 
             if ($this->__showsAnalystGraphSlot($user)) {
-                $this->set('intelGraph', ['active' => ClassRegistry::init('Workspace')->activeFor($user, false)]);
+                $this->set('intelGraph', ['active' => ClassRegistry::init('Graph')->activeFor($user, false)]);
             }
 
             if ($this->__showsSidePanels()) {
@@ -577,7 +586,7 @@ class AppController extends Controller
         if (OvermindPages::isAuthPage($controller, $action)) {
             return false;
         }
-        return $this->ACL->canUserAccess($user, 'workspaces', 'addNodes');
+        return $this->ACL->canUserAccess($user, 'analystGraphs', 'addNodes');
     }
 
     /**
