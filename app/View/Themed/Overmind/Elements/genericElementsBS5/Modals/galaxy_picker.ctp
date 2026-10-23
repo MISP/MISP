@@ -27,16 +27,9 @@ $searchUrl = h($baseurl . '/events/searchGalaxyClusters');
 $initGJson = json_encode($currentGlobalClusters, JSON_HEX_TAG | JSON_HEX_AMP);
 $initLJson = json_encode($currentLocalClusters,  JSON_HEX_TAG | JSON_HEX_AMP);
 
-/* FontAwesome brand-icon names (rendered with the `fab` prefix) */
-$brandIcons = [
-    'github', 'gitlab', 'docker', 'linux', 'android', 'apple',
-    'google', 'microsoft', 'facebook', 'twitter', 'linkedin',
-    'btc', 'ethereum', 'optin-monster', 'internet-explorer',
-];
-
 /* Reusable section markup (category buttons + picker + selected area) */
 $section = function ($scope, $iconClass, $title, $badgeHtml = '')
-        use ($galaxyList, $brandIcons) {
+        use ($galaxyList) {
     ob_start(); ?>
     <div class="w-100 px-2" data-section="<?= h($scope) ?>">
         <div class="d-flex align-items-center gap-2 fw-bold text-uppercase mb-2 text-galaxy"
@@ -53,15 +46,13 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
                 <button type="button"
                         class="btn btn-sm btn-outline-galaxy galaxy-cat-btn active"
                         data-cat="all"><?= __('All Galaxies') ?></button>
-                <?php foreach ($galaxyList as $g):
-                    $pref = in_array($g['icon'], $brandIcons, true) ? 'fab' : 'fas';
-                ?>
+                <?php foreach ($galaxyList as $g): ?>
                     <button type="button"
                             class="btn btn-sm btn-outline-galaxy galaxy-cat-btn"
                             data-cat="galaxy"
                             data-galaxy-id="<?= (int)$g['id'] ?>"
                             title="<?= h($g['name']) ?>">
-                        <i class="<?= $pref ?> fa-<?= h($g['icon']) ?> me-1"></i><?= h($g['name']) ?>
+                        <i class="<?= $this->FontAwesome->getClass($g['icon']) ?> me-1"></i><?= h($g['name']) ?>
                     </button>
                 <?php endforeach; ?>
             </div>

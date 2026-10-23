@@ -116,7 +116,7 @@ $title = $many
      data-mx-text="<?= h(json_encode($texts)) ?>">
     <div class="mx-head d-flex align-items-center gap-2">
         <div class="misp-icon-tile rounded-2 d-flex align-items-center justify-content-center" style="width:36px;height:36px;<?= $tile ?>">
-            <i class="fas fa-<?= h($first['icon'] ?: 'map') ?>" style="font-size:1rem;" data-mx-icon></i>
+            <i class="<?= $this->FontAwesome->getClass($first['icon'] ?: 'map') ?>" style="font-size:1rem;" data-mx-icon></i>
         </div>
         <div class="me-auto" style="min-width:0">
             <div class="fw-bold lh-1 mx-title"><?= h($title) ?></div>
@@ -132,7 +132,7 @@ $title = $many
         <?php foreach ($galaxies as $i => $galaxy): ?>
         <button type="button" class="mx-switch-opt" data-mx-galaxy-pick="<?= (int)$galaxy['id'] ?>"
                 aria-pressed="<?= $i === 0 ? 'true' : 'false' ?>" title="<?= h($galaxy['name']) ?>">
-            <i class="fas fa-<?= h($galaxy['icon'] ?: 'map') ?>" aria-hidden="true"></i>
+            <i class="<?= $this->FontAwesome->getClass($galaxy['icon'] ?: 'map') ?>" aria-hidden="true"></i>
             <span class="mx-switch-name"><?= h($galaxy['name']) ?></span>
             <span class="mx-switch-n"><?= (int)$galaxy['techniques'] ?></span>
         </button>
@@ -141,7 +141,7 @@ $title = $many
     <?php endif; ?>
     <?php foreach ($galaxies as $i => $galaxy): ?>
     <div class="mx-galaxy" data-mx-galaxy="<?= (int)$galaxy['id'] ?>" data-mx-name="<?= h($galaxy['name']) ?>"
-         data-mx-icon-name="<?= h($galaxy['icon'] ?: 'map') ?>" data-mx-sub-text="<?= h($subLine($galaxy)) ?>"<?= $i === 0 ? '' : ' hidden' ?>>
+         data-mx-icon-class="<?= $this->FontAwesome->getClass($galaxy['icon'] ?: 'map') ?>" data-mx-sub-text="<?= h($subLine($galaxy)) ?>"<?= $i === 0 ? '' : ' hidden' ?>>
         <div class="mx-strip" role="navigation" aria-label="<?= h(__('Jump to a tactic')) ?>" hidden>
             <?php foreach ($galaxy['tactics'] as $t => $tactic): ?>
             <?php $tacticOnEvent = in_array('event', array_column($tactic['groups'], 'state'), true); ?>
