@@ -6,7 +6,7 @@
 ?>
 <aside id="ig-so" class="ig-so" role="region" aria-labelledby="ig-so-label ig-so-name" hidden>
     <div class="ig-so-grip" role="separator" tabindex="0" aria-orientation="vertical" aria-controls="ig-so"
-         aria-label="<?= __('Graph panel width') ?>" title="<?= __('Drag to resize · double-click to widen') ?>" data-ig-grip>
+         aria-label="<?= __('Workspace panel width') ?>" title="<?= __('Drag to resize · double-click to widen') ?>" data-ig-grip>
         <span class="ig-so-grip-knob" aria-hidden="true"></span>
     </div>
     <?php foreach (['n', 's', 'e', 'w', 'nw', 'ne', 'sw'] as $edge): ?>
@@ -20,12 +20,12 @@
                     title="<?= __('Drag to move · arrow keys') ?>" aria-label="<?= __('Move the window (arrow keys)') ?>">
                 <i class="fas fa-grip-vertical" aria-hidden="true"></i>
             </button>
-            <span id="ig-so-label" class="visually-hidden"><?= __('Analyst graph:') ?></span>
+            <span id="ig-so-label" class="visually-hidden"><?= __('Workspace:') ?></span>
             <div class="dropdown ig-so-switch">
                 <button type="button" class="ig-so-title" data-ig-switch data-bs-toggle="dropdown"
-                        data-bs-auto-close="outside" aria-expanded="false" title="<?= __('Switch graph') ?>">
+                        data-bs-auto-close="outside" aria-expanded="false" title="<?= __('Switch workspace') ?>">
                     <i class="misp-icon misp-icon-analyst-graph misp-simple ig-so-title-icon" aria-hidden="true"></i>
-                    <span id="ig-so-name" class="ig-so-name" data-ig-name><?= __('Analyst graph') ?></span>
+                    <span id="ig-so-name" class="ig-so-name" data-ig-name><?= __('Workspace') ?></span>
                     <i class="fas fa-chevron-down ig-so-caret" aria-hidden="true"></i>
                 </button>
                 <div class="dropdown-menu ig-so-menu" data-ig-menu></div>
@@ -43,7 +43,7 @@
                 <a class="ig-so-tool" data-ig-full href="#" title="<?= __('Open full page') ?>" aria-label="<?= __('Open full page') ?>">
                     <i class="fas fa-up-right-from-square" aria-hidden="true"></i>
                 </a>
-                <button type="button" class="btn-close ig-so-close" data-ig-close aria-label="<?= __('Close the graph panel') ?>" title="<?= __('Close (Esc)') ?>"></button>
+                <button type="button" class="btn-close ig-so-close" data-ig-close aria-label="<?= __('Close the workspace panel') ?>" title="<?= __('Close (Esc)') ?>"></button>
             </div>
         </div>
         <div class="ig-so-meta" data-ig-meta></div>

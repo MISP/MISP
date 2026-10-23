@@ -5,7 +5,7 @@
  */
 
 $this->set('headerTitle', __('Analyst Data'));
-$this->set('headerDescription', __('Notes, opinions, relationships and graphs enriching your MISP data. Pick a collection to explore.'));
+$this->set('headerDescription', __('Notes, opinions, relationships and workspaces enriching your MISP data. Pick a collection to explore.'));
 
 $types = [
     'Note' => [
@@ -26,11 +26,11 @@ $types = [
         'title'       => __('Relationships'),
         'description' => __('Typed links connecting two MISP data points together.'),
     ],
-    'Graph' => [
+    'Workspace' => [
         'icon'        => 'misp-icon misp-icon-analyst-graph misp-simple',
         'color'       => 'analystGraph',
-        'title'       => __('Graphs'),
-        'description' => __('Drawings of how records relate, kept on a collection, an event or a galaxy cluster.'),
+        'title'       => __('Workspaces'),
+        'description' => __('Records you are working on and how they relate, kept on a collection, an event or a galaxy cluster.'),
     ],
 ];
 
@@ -40,7 +40,7 @@ if (!isset($types[$selectedType])) {
 }
 
 
-if (!empty($selectedType) && $selectedType !== 'Graph' && !empty($me['Role']['perm_analyst_data'])) {
+if (!empty($selectedType) && $selectedType !== 'Workspace' && !empty($me['Role']['perm_analyst_data'])) {
     $this->set('headerActions', [
         [
             'type'  => 'modal',
@@ -50,14 +50,14 @@ if (!empty($selectedType) && $selectedType !== 'Graph' && !empty($me['Role']['pe
             'url'   => $baseurl . '/analystData/add/' . $selectedType,
         ],
     ]);
-} elseif ($selectedType === 'Graph' && (!empty($me['Role']['perm_site_admin']) || (!empty($me['Role']['perm_add']) && !empty($me['Role']['perm_analyst_data'])))) {
+} elseif ($selectedType === 'Workspace' && (!empty($me['Role']['perm_site_admin']) || (!empty($me['Role']['perm_add']) && !empty($me['Role']['perm_analyst_data'])))) {
     $this->set('headerActions', [
         [
             'type'  => 'modal',
-            'label' => __('Import graphs'),
+            'label' => __('Import workspaces'),
             'icon'  => 'file-import',
-            'class' => 'btn btn-' . $types['Graph']['color'],
-            'url'   => $baseurl . '/analyst_graphs/import',
+            'class' => 'btn btn-' . $types['Workspace']['color'],
+            'url'   => $baseurl . '/workspaces/import',
             'size'  => 'lg',
         ],
     ]);

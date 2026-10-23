@@ -490,8 +490,8 @@
 
         var uuid = card.getAttribute('data-eo-event-uuid');
         if (uuid) {
-            fetchJson(base() + '/analyst_graphs/forTarget/Event/' + encodeURIComponent(uuid) + '.json').then(function (res) {
-                var graphs = (res && res.Graph) || [];
+            fetchJson(base() + '/workspaces/forTarget/Event/' + encodeURIComponent(uuid) + '.json').then(function (res) {
+                var graphs = (res && res.Workspace) || [];
                 if (!graphs.length) return;
                 var drawn = graphs.filter(function (g) { return (g.node_count || 0) > 0; });
                 saved = drawn[0] || graphs[0];

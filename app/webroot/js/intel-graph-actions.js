@@ -1,7 +1,7 @@
-// "Add to graph" (PRD §8.3). Every control on the page that carries
+// "Add to workspace" (PRD §8.3). Every control on the page that carries
 // data-intel-graph-add — a JSON list of items as IntelGraph.add() takes them,
-// each with a label — sends them to the active graph. With no active graph
-// the dock asks which one, and makes it active.
+// each with a label — sends them to the active workspace. With no active
+// workspace the dock asks which one, and makes it active.
 //
 // What was added is said by the dock: its arrivals when it is open, the
 // navbar slot's badge while it is closed.

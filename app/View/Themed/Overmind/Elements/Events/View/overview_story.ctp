@@ -175,8 +175,8 @@ $reportSub = function (array $row) use ($extensionEvents, $data, $eventId) {
              data-eo-text-summary="<?= h(__('%s linked objects and attributes — too many to draw here.')) ?>"
              data-eo-text-failed="<?= h(__('The graph could not be drawn.')) ?>"
              data-eo-text-counts="<?= h(__('%1$s objects, %2$s references')) ?>"
-             data-eo-text-saved="<?= h(__('Saved graph: %s')) ?>"
-             data-eo-text-saved-count="<?= h(__('%s saved graphs')) ?>"
+             data-eo-text-saved="<?= h(__('Workspace: %s')) ?>"
+             data-eo-text-saved-count="<?= h(__('%s workspaces')) ?>"
              data-eo-text-node-count="<?= h(__('%s nodes')) ?>">
             <div class="eo-card-head">
                 <div class="misp-icon-tile eo-tile" style="--tile:var(--bs-correlation);--tile-bg:color-mix(in srgb, var(--bs-correlation) 12%, transparent);">
@@ -189,10 +189,10 @@ $reportSub = function (array $row) use ($extensionEvents, $data, $eventId) {
                 <div class="eo-switch" role="group" aria-label="<?= h(__('Graph source')) ?>">
                     <div class="dropdown d-inline-flex">
                         <button type="button" data-eo-graph-mode="saved" disabled
-                                title="<?= h(__('No saved graph on this event')) ?>"
-                                data-eo-title-ready="<?= h(__('Show the saved graph')) ?>"
-                                data-eo-title-pick="<?= h(__('Choose a saved graph')) ?>">
-                            <i class="fas fa-bookmark"></i><?= __('Saved graph') ?>
+                                title="<?= h(__('No workspace on this event')) ?>"
+                                data-eo-title-ready="<?= h(__('Show a workspace')) ?>"
+                                data-eo-title-pick="<?= h(__('Choose a workspace')) ?>">
+                            <i class="fas fa-bookmark"></i><?= __('Workspace') ?>
                             <i class="fas fa-caret-down d-none" data-eo-graph-caret></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end eo-graph-pick" data-eo-graph-pick></ul>

@@ -27,7 +27,7 @@ class AnalystData extends AppModel
         'Organisation',
         'SharingGroup',
         'Collection',
-        'Graph',
+        'Workspace',
         'AttributeValue',
     ];
 
@@ -43,7 +43,7 @@ class AnalystData extends AppModel
     const NOTE = 0,
         OPINION = 1,
         RELATIONSHIP = 2,
-        GRAPH = 3;
+        WORKSPACE = 3;
 
     // The types embedded in the records they are attached to
     const ANALYST_DATA_TYPES = [
@@ -56,7 +56,7 @@ class AnalystData extends AppModel
         'Note',
         'Opinion',
         'Relationship',
-        'Graph',
+        'Workspace',
     ];
 
     // A graph pull fetches at most this many bytes, or graphs, per request
@@ -1278,9 +1278,10 @@ class AnalystData extends AppModel
         $serverSync->debug("Starting Analyst Data sync");
 
         $types = self::ANALYST_DATA_TYPES;
-        // A peer that predates graphs fails its whole analyst-data push on the key
-        if ($serverSync->isSupported(ServerSyncTool::FEATURE_ANALYST_GRAPH)) {
-            $types[] = 'Graph';
+        // A peer that predates workspaces fails its whole analyst-data push on
+        // the key
+        if ($serverSync->isSupported(ServerSyncTool::FEATURE_WORKSPACE)) {
+            $types[] = 'Workspace';
         }
         $analystData = $this->collectDataForPush($serverSync->server(), $types);
         if (!$serverSync->isSupported(ServerSyncTool::FEATURE_VALUE_TARGETS)) {
@@ -1352,9 +1353,9 @@ class AnalystData extends AppModel
             ],
         ];
         $typeOptions = [];
-        if (in_array('Graph', $types, true)) {
+        if (in_array('Workspace', $types, true)) {
             // Content is read at upload, for the graphs the remote accepts
-            $typeOptions['Graph']['fields'] = ClassRegistry::init('Graph')->metadataFields();
+            $typeOptions['Workspace']['fields'] = ClassRegistry::init('Workspace')->metadataFields();
         }
         $dataForPush = $this->getAllAnalystData('all', $options, $types, $typeOptions);
         $this->Event = ClassRegistry::init('Event');
@@ -1579,7 +1580,7 @@ class AnalystData extends AppModel
      * @param array $user
      * @param array $filters
      * @param array $types
-     * @return array [type => [uuid => modified]]; a Graph entry is
+     * @return array [type => [uuid => modified]]; a Workspace entry is
      *               {modified, size}, its content size in bytes
      */
     public function indexMinimal(array $user, $filters = [], array $types = self::ANALYST_DATA_TYPES): array
@@ -1595,13 +1596,13 @@ class AnalystData extends AppModel
             'fields' => ['uuid', 'modified', 'locked']
         ];
         $tmp = $this->getAllAnalystData('all', $options, $types, [
-            'Graph' => ['fields' => ['uuid', 'modified', 'locked', 'content_size']],
+            'Workspace' => ['fields' => ['uuid', 'modified', 'locked', 'content_size']],
         ]);
         $allData = [];
         foreach ($tmp as $type => $entries) {
             foreach ($entries as $i => $entry) {
                 $entry = $entry[$type];
-                if ($type === 'Graph') {
+                if ($type === 'Workspace') {
                     $allData[$type][$entry['uuid']] = [
                         'modified' => $entry['modified'],
                         'size' => (int)$entry['content_size'],
@@ -1736,15 +1737,15 @@ class AnalystData extends AppModel
      */
     private function prepareEntryForUpload($type, array $analystData, array $server)
     {
-        if ($type === 'Graph') {
-            $Graph = ClassRegistry::init('Graph');
-            $analystData = $Graph->attachContent($analystData);
+        if ($type === 'Workspace') {
+            $Workspace = ClassRegistry::init('Workspace');
+            $analystData = $Workspace->attachContent($analystData);
             if ($analystData === null) {
-                return __('The graph was deleted before it could be pushed.');
+                return __('The workspace was deleted before it could be pushed.');
             }
-            if (is_array($analystData['Graph']['content'])) {
-                $analystData['Graph']['content'] = ClassRegistry::init('AnalystGraphData')
-                    ->documentForServer($analystData['Graph']['content'], $server);
+            if (is_array($analystData['Workspace']['content'])) {
+                $analystData['Workspace']['content'] = ClassRegistry::init('AnalystGraphData')
+                    ->documentForServer($analystData['Workspace']['content'], $server);
             }
         }
         return $this->prepareForPushToServer($type, $analystData, $server);
@@ -1975,7 +1976,7 @@ class AnalystData extends AppModel
             if (empty($entries)) {
                 continue;
             }
-            if ($type === 'Graph') {
+            if ($type === 'Workspace') {
                 $chunks = self::sizedBatches($entries, self::GRAPH_PULL_BATCH_BYTES, self::GRAPH_PULL_BATCH_COUNT);
             } else {
                 $chunks = array_chunk(array_keys($entries), 100);

@@ -17,14 +17,14 @@ class AnalystDataController extends AppController
         'Opinion',
         'Note',
         'Relationship',
-        'Graph'
+        'Workspace'
     ];
 
     private $__valid_types = [
         'Opinion',
         'Note',
         'Relationship',
-        'Graph'
+        'Workspace'
     ];
 
     // public $modelSelection = 'Note';
@@ -93,11 +93,11 @@ class AnalystDataController extends AppController
                         throw new MethodNotAllowedException($canSGBeUsed);
                     }
                 }
-                if ($this->modelSelection === 'Graph') {
+                if ($this->modelSelection === 'Workspace') {
                     // Only a fork records what it was forked from
-                    unset($analystData['Graph']['forked_from_uuid']);
-                    if (isset($analystData['Graph']['content'])) {
-                        $analystData['Graph']['content'] = $this->AnalystData->contentForWrite($currentUser, $analystData['Graph']['content']);
+                    unset($analystData['Workspace']['forked_from_uuid']);
+                    if (isset($analystData['Workspace']['content'])) {
+                        $analystData['Workspace']['content'] = $this->AnalystData->contentForWrite($currentUser, $analystData['Workspace']['content']);
                     }
                 }
                 return $analystData;
@@ -163,10 +163,10 @@ class AnalystDataController extends AppController
                     }
                 }
                 $analystData[$this->modelSelection]['modified'] = date('Y-m-d H:i:s');
-                if ($this->modelSelection === 'Graph') {
+                if ($this->modelSelection === 'Workspace') {
                     // The document is written by a revision-checked save only:
                     // writing back the copy loaded here would undo one made since
-                    unset($analystData['Graph']['content'], $analystData['Graph']['content_size'], $analystData['Graph']['node_count']);
+                    unset($analystData['Workspace']['content'], $analystData['Workspace']['content_size'], $analystData['Workspace']['node_count']);
                 }
                 return $analystData;
             },
@@ -313,7 +313,7 @@ class AnalystDataController extends AppController
             $info = sprintf('%s/100 :: %s', $deletedAnalystData[$type]['opinion'], $deletedAnalystData[$type]['comment']);
         } else if ($type === 'Relationship') {
             $info = sprintf('-- %s --> %s :: %s', $deletedAnalystData[$type]['relationship_type'] ?? '[undefined]', $deletedAnalystData[$type]['related_object_type'], $deletedAnalystData[$type]['related_object_uuid']);
-        } else if ($type === 'Graph') {
+        } else if ($type === 'Workspace') {
             $info = $deletedAnalystData[$type]['name'];
         }
         $blocklist = ClassRegistry::init('AnalystDataBlocklist');
@@ -345,7 +345,7 @@ class AnalystDataController extends AppController
             $id = $this->AnalystData->getIDFromUUID($type, $id);
         }
 
-        if ($this->modelSelection === 'Graph' && !$this->_isRest() && !$this->request->is('ajax')) {
+        if ($this->modelSelection === 'Workspace' && !$this->_isRest() && !$this->request->is('ajax')) {
             $graph = $this->AnalystData->find('first', [
                 'conditions' => ['AND' => [[$this->AnalystData->alias . '.id' => $id], $this->AnalystData->buildConditions($this->Auth->user())]],
                 'fields' => [$this->AnalystData->alias . '.uuid'],
@@ -353,9 +353,9 @@ class AnalystDataController extends AppController
                 'callbacks' => false,
             ]);
             if (empty($graph)) {
-                throw new NotFoundException(__('Invalid graph.'));
+                throw new NotFoundException(__('Invalid workspace.'));
             }
-            return $this->redirect('/analyst_graphs/view/' . $graph[$this->AnalystData->alias]['uuid']);
+            return $this->redirect('/workspaces/view/' . $graph[$this->AnalystData->alias]['uuid']);
         }
 
         $this->AnalystData->fetchRecursive = false;
@@ -461,7 +461,7 @@ class AnalystDataController extends AppController
                 if ($this->_isRest()) {
                     $data = $this->__decodeGraphContents($data);
                 }
-                if ($this->modelSelection === 'Graph' && !$this->_isRest()) {
+                if ($this->modelSelection === 'Workspace' && !$this->_isRest()) {
                     $data = $this->__countGraphNodes($data);
                 }
                 return $data;
@@ -486,23 +486,23 @@ class AnalystDataController extends AppController
      * Each graph's node count as the user sees it, in place of the stored one
      * (G6), its original when it is a fork, and no document.
      *
-     * @param array $data Graph rows
+     * @param array $data Workspace rows
      * @return array
      */
     private function __countGraphNodes(array $data)
     {
         $contents = $graphs = [];
         foreach ($data as $i => $row) {
-            $contents[$i] = $row['Graph']['content'] ?? null;
-            $graphs[$i] = $row['Graph'];
+            $contents[$i] = $row['Workspace']['content'] ?? null;
+            $graphs[$i] = $row['Workspace'];
         }
         $user = $this->Auth->user();
         $counts = ClassRegistry::init('AnalystGraphData')->visibleCounts($user, $contents);
         $parents = $this->AnalystData->withParents($user, $graphs);
         foreach ($data as $i => $row) {
-            $data[$i]['Graph']['node_count'] = $counts[$i];
-            $data[$i]['Graph']['forked_from'] = $parents[$i]['forked_from'];
-            unset($data[$i]['Graph']['content'], $data[$i]['Graph']['content_size']);
+            $data[$i]['Workspace']['node_count'] = $counts[$i];
+            $data[$i]['Workspace']['forked_from'] = $parents[$i]['forked_from'];
+            unset($data[$i]['Workspace']['content'], $data[$i]['Workspace']['content_size']);
         }
         return $data;
     }
@@ -734,7 +734,7 @@ class AnalystDataController extends AppController
     }
 
     /**
-     * Graph documents as REST returns them: records as stored, module answers
+     * Workspace documents as REST returns them: records as stored, module answers
      * only as the requester may see them.
      *
      * @param array $rows
@@ -742,20 +742,20 @@ class AnalystDataController extends AppController
      */
     private function __decodeGraphContents(array $rows): array
     {
-        if ($this->modelSelection !== 'Graph') {
+        if ($this->modelSelection !== 'Workspace') {
             return $rows;
         }
         App::uses('AnalystGraphDocumentTool', 'Tools');
         $documents = [];
         foreach ($rows as $i => $row) {
-            if (isset($row['Graph']['content'])) {
-                $documents[$i] = AnalystGraphDocumentTool::decode($row['Graph']['content']);
+            if (isset($row['Workspace']['content'])) {
+                $documents[$i] = AnalystGraphDocumentTool::decode($row['Workspace']['content']);
             }
         }
         $documents = ClassRegistry::init('AnalystGraphData')->documentsFor($this->Auth->user(), array_filter($documents), true);
         foreach ($rows as $i => $row) {
-            if (isset($row['Graph']['content'])) {
-                $rows[$i]['Graph']['content'] = $documents[$i] ?? null;
+            if (isset($row['Workspace']['content'])) {
+                $rows[$i]['Workspace']['content'] = $documents[$i] ?? null;
             }
         }
         return $rows;

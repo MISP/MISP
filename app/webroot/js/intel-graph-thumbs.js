@@ -10,7 +10,7 @@
 // Every such element is mounted once, when the page has it: on load, and as
 // rows are drawn later (the Graphs card, the dock's switcher, an index reload).
 // Its picture comes from IntelGraph.thumbnail() where the page has the client,
-// from analyst_graphs/thumbnail otherwise; four requests at a time, once per
+// from workspaces/thumbnail otherwise; four requests at a time, once per
 // revision, what is on screen first. IntelGraphThumb.layout() places it.
 //
 // The tile says data-thumb-state="loading|ready|empty|error". On the card and
@@ -74,7 +74,7 @@
             return window.IntelGraph.thumbnail(uuid, revision);
         }
         var base = typeof window.baseurl === 'string' ? window.baseurl : '';
-        return fetch(base + '/analyst_graphs/thumbnail/' + encodeURIComponent(uuid) + '.json', {
+        return fetch(base + '/workspaces/thumbnail/' + encodeURIComponent(uuid) + '.json', {
             credentials: 'same-origin',
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         }).then(function (r) {
@@ -339,7 +339,7 @@
             var total = typeof thumb.total === 'number' ? thumb.total : nodes.length;
             tile.legend.textContent = '';
             if (!nodes.length) {
-                stage(tile, message('empty', 'No nodes yet', 'Records sent with “Add to graph” appear here.'), 'This graph has no nodes yet');
+                stage(tile, message('empty', 'No nodes yet', 'Records sent with “Add to workspace” appear here.'), 'This workspace has no nodes yet');
                 tile.countEl.textContent = '0 nodes';
                 return;
             }
@@ -613,7 +613,7 @@
         } else {
             el = htmlEl('button', 'igt igt--' + surface);
             el.type = 'button';
-            el.setAttribute('aria-label', 'Preview the graph “' + name + '”');
+            el.setAttribute('aria-label', 'Preview “' + name + '”');
             el.setAttribute('aria-expanded', 'false');
         }
         el.setAttribute('data-thumb-for', uuid);
