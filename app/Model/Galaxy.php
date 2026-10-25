@@ -1174,15 +1174,19 @@ class Galaxy extends AppModel
         $this->loadLog()->createLogEntry($user, 'galaxy', ucfirst($targetType), $targetId, $logTitle);
     }
 
-    public function getMitreAttackGalaxyId($type="mitre-attack-pattern", $namespace="mitre-attack")
+    public function getMitreAttackGalaxyId(
+        $type = 'mitre-attack-pattern',
+        $namespace = null
+    )
     {
+        $conditions = array('Galaxy.type' => $type);
+        if ($namespace !== null) {
+            $conditions['Galaxy.namespace'] = $namespace;
+        }
         $galaxy = $this->find('first', array(
             'recursive' => -1,
             'fields' => array('MAX(Galaxy.version) as latest_version', 'id'),
-            'conditions' => array(
-                'Galaxy.type' => $type,
-                'Galaxy.namespace' => $namespace
-            ),
+            'conditions' => $conditions,
             'group' => array('name', 'id')
         ));
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
