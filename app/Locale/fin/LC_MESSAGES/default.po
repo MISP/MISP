@@ -1,0 +1,2074 @@
+# Finnish translation of MISP.
+# Machine-assisted draft; native-language review required.
+# Distributed under the same license as MISP.
+msgid ""
+msgstr ""
+"Project-Id-Version: MISP 3.0\n"
+"Report-Msgid-Bugs-To: https://github.com/MISP/MISP/issues\n"
+"POT-Creation-Date: 2026-10-25 00:00+0000\n"
+"PO-Revision-Date: 2026-10-25 00:00+0000\n"
+"Last-Translator: MISP contributors\n"
+"Language-Team: Finnish\n"
+"Language: fi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:244
+msgid "Optional"
+msgstr "Valinnainen"
+
+#: Lib/Tools/SharingGroupPeek.php:107
+msgid "Description"
+msgstr "Kuvaus"
+
+#: View/Helper/NavbarHelper.php:794
+msgid "Access logs"
+msgstr "Käyttölokit"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:233
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:123
+msgid "Edit"
+msgstr "Muokkaa"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:240
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:286
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:326
+msgid "Delete"
+msgstr "Poista"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:336
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:134
+msgid "Tag"
+msgstr "Tunniste"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:254
+msgid "Publish"
+msgstr "Julkaise"
+
+#: View/Helper/NavbarHelper.php:784
+msgid "Audit logs"
+msgstr "Tarkastuslokit"
+
+#: View/Helper/NavbarHelper.php:239
+msgid "Dashboard"
+msgstr "Kojelauta"
+
+#: View/Helper/NavbarHelper.php:179
+msgid "Event Reports"
+msgstr "Tapahtumaraportit"
+
+#: View/Helper/EventIndexHelper.php:52
+#: View/Themed/Overmind/Elements/Events/index.ctp:202
+#: View/Themed/Overmind/Elements/Events/index.ctp:403
+#: View/Themed/Overmind/Elements/Events/index.ctp:406
+#: View/Themed/Overmind/Elements/Events/index.ctp:424
+#: View/Themed/Overmind/Elements/Events/index.ctp:498
+#: View/Themed/Overmind/Elements/Events/index.ctp:499
+msgid "Published"
+msgstr "Julkaistu"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:196
+msgid "Date"
+msgstr "Päivämäärä"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:495
+msgid "Threat level"
+msgstr "Uhkataso"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:193
+#: View/Themed/Overmind/Elements/Events/index.ctp:387
+msgid "Distribution"
+msgstr "Jakelu"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:393
+#: View/Themed/Overmind/Elements/Events/index.ctp:493
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:21
+msgid "Sharing group"
+msgstr "Jakamisryhmä"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:494
+msgid "Analysis"
+msgstr "Analyysi"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:488
+msgid "Attribute"
+msgstr "Attribuutti"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:203
+#: View/Themed/Overmind/Elements/Events/index.ctp:61
+msgid "Published at"
+msgstr "Julkaistu klo"
+
+#: View/Themed/Overmind/Users/login.ctp:127
+msgid "Email"
+msgstr "Sähköposti"
+
+#: View/Helper/NavbarHelper.php:465
+msgid "Feeds"
+msgstr "Syötteet"
+
+#: View/Helper/NavbarHelper.php:143
+#: View/Themed/Overmind/Elements/Events/index.ctp:177
+msgid "Objects"
+msgstr "Objektit"
+
+#: View/Helper/NavbarHelper.php:476
+msgid "Sharing Groups"
+msgstr "Jakamisryhmät"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:34
+msgid "Organisations"
+msgstr "Organisaatiot"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:492
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:266
+msgid "Tags"
+msgstr "Tunnisteet"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:183
+msgid "All"
+msgstr "Kaikki"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:195
+msgid "Enabled"
+msgstr "Käytössä"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "days"
+msgstr "päivää"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "hours"
+msgstr "tuntia"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:267
+msgid "Taxonomies"
+msgstr "Taksonomiat"
+
+#: View/Helper/NavbarHelper.php:298
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:199
+msgid "Galaxies"
+msgstr "Galaksit"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:364
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:156
+msgid "Galaxy"
+msgstr "Galaksi"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:169
+msgid "Markings"
+msgstr "Merkinnät"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_panel.ctp:60
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:45
+msgid "Any"
+msgstr "Mikä tahansa"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:294
+#, php-format
+msgid "Sharing group %s"
+msgstr "Jakamisryhmä %s"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:373
+msgid "just now"
+msgstr "juuri nyt"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:376
+#, php-format
+msgid "%s min ago"
+msgstr "%s min sitten"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:379
+#, php-format
+msgid "%s h ago"
+msgstr "%s h sitten"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:382
+#, php-format
+msgid "%s d ago"
+msgstr "%s pv sitten"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:385
+#, php-format
+msgid "%s wk ago"
+msgstr "%s vk sitten"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:388
+#, php-format
+msgid "%s mo ago"
+msgstr "%s kk sitten"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:390
+#, php-format
+msgid "%s y ago"
+msgstr "%s v sitten"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:253
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:375
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
+msgid "Search"
+msgstr "Etsi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:778
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:784
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:122
+msgid "Clear all"
+msgstr "Tyhjennä kaikki"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+msgid "Remove this filter"
+msgstr "Poista tämä suodatin"
+
+#: View/Helper/NavbarHelper.php:258
+msgid "Data points"
+msgstr "Datapisteet"
+
+#: View/Helper/NavbarHelper.php:439
+msgid "Data models"
+msgstr "Datamallit"
+
+#: View/Helper/NavbarHelper.php:566
+msgid "Sync"
+msgstr "Synkronoi"
+
+#: View/Helper/NavbarHelper.php:760
+msgid "Administration"
+msgstr "Hallinto"
+
+#: View/Helper/NavbarHelper.php:805
+msgid "Logs"
+msgstr "Lokit"
+
+#: View/Helper/NavbarHelper.php:903
+msgid "Resources"
+msgstr "Resurssit"
+
+#: View/Helper/NavbarHelper.php:1028 View/Helper/NavbarHelper.php:961
+#: View/Helper/NavbarHelper.php:965
+msgid "Bookmarks"
+msgstr "Kirjanmerkit"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:19
+msgid "Pagination"
+msgstr "Sivutus"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:57
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:200
+msgid "Sightings"
+msgstr "Havainnot"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:197
+msgid "Event date"
+msgstr "Tapahtuman päivämäärä"
+
+#: View/Helper/NavbarHelper.php:162
+msgid "Value Intelligence"
+msgstr "Arvoon liittyvät tiedustelutiedot"
+
+#: View/Helper/NavbarHelper.php:516
+msgid "Integrations"
+msgstr "Integraatiot"
+
+#: View/Helper/NavbarHelper.php:727
+#: View/Themed/Overmind/Elements/Events/index.ctp:178
+#: View/Themed/Overmind/Elements/Events/index.ctp:55
+msgid "Correlations"
+msgstr "Korrelaatiot"
+
+#: View/Helper/EventIndexHelper.php:264
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:30
+msgid "Close"
+msgstr "Sulje"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:242
+msgid "Open"
+msgstr "Avaa"
+
+#: View/Helper/NavbarHelper.php:135
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:19
+msgid "Events"
+msgstr "Tapahtumat"
+
+#: View/Helper/NavbarHelper.php:151
+#: View/Themed/Overmind/Elements/Events/index.ctp:176
+msgid "Attributes"
+msgstr "Attribuutit"
+
+#: View/Helper/EventIndexHelper.php:54
+#: View/Themed/Overmind/Elements/Events/index.ctp:407
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:23
+msgid "Unpublished"
+msgstr "Julkaisematon"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:238
+msgid "Required"
+msgstr "Pakollinen"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:56
+msgid "Reports"
+msgstr "Raportit"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:68
+msgid "Reach"
+msgstr "Kattavuus"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:43
+msgid "No organisation is a member yet."
+msgstr "Yksikään organisaatio ei ole vielä jäsen."
+
+#: Lib/Tools/SharingGroupPeek.php:91
+msgid "Stays on this instance."
+msgstr "Säilyy tässä instanssissa."
+
+#: Lib/Tools/SharingGroupPeek.php:89
+#, php-format
+msgid "Pushed to %s other instance."
+msgid_plural "Pushed to %s other instances."
+msgstr[0] "Lähetetty %s muulle instanssille."
+msgstr[1] "Lähetetty %s muulle instanssille."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:194
+msgid "Deprecated"
+msgstr "Vanhentunut"
+
+#: Lib/Tools/SharingGroupPeek.php:29
+msgid "Inactive"
+msgstr "Ei-aktiivinen"
+
+#: Lib/Tools/SharingGroupPeek.php:32
+msgid "Received through sync"
+msgstr "Vastaanotettu synkronoinnin kautta"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Roaming"
+msgstr "Liikkuva"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Travels to any instance its members connect to."
+msgstr ""
+"Välitetään kaikkiin instansseihin, joihin sen jäsenet muodostavat yhteyden."
+
+#: Lib/Tools/SharingGroupPeek.php:107
+msgid "Releasable to"
+msgstr "Luovutettavissa seuraaville"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+#: View/Themed/Overmind/Elements/Events/index.ctp:518
+msgid "none"
+msgstr "ei yhtään"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:178
+msgid "Object"
+msgstr "Objekti"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "no"
+msgstr "ei"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "yes"
+msgstr "kyllä"
+
+#: View/Helper/NavbarHelper.php:395
+msgid "Warninglists"
+msgstr "Varoituslistat"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:193
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:490
+msgid "Clear"
+msgstr "Tyhjennä"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:154
+#: View/Themed/Overmind/Elements/Events/index.ctp:325
+#: View/Themed/Overmind/Elements/Events/index.ctp:486
+msgid "Creator org"
+msgstr "Luonut organisaatio"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:189
+msgid "Relationship"
+msgstr "Suhde"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:142
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
+msgid "ID"
+msgstr "ID"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:252
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:380
+msgid "Remove"
+msgstr "Poista"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:149
+msgid "Title"
+msgstr "Otsikko"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:227
+msgid "View"
+msgstr "Näytä"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:159
+#: View/Themed/Overmind/Elements/Events/index.ctp:50
+msgid "Owner org"
+msgstr "Omistava organisaatio"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid "Request access"
+msgstr "Pyydä käyttöoikeutta"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:308
+msgid "Discard"
+msgstr "Hylkää"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:379
+msgid "Excluded"
+msgstr "Poissuljettu"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination.ctp:14
+msgid ""
+"Page {:page} of {:pages}, showing {:current} records out of {:count} total, "
+"starting on record {:start}, ending on {:end}"
+msgstr ""
+"Sivu {:page} / {:pages}, näyttää {:current} tietuetta yhteensä {:count}, "
+"alkaen tietueesta {:start}, päättyen {:end}"
+
+#: View/Helper/NavbarHelper.php:320
+msgid "Decaying Models"
+msgstr "Vanhentumismallit"
+
+#: View/Helper/NavbarHelper.php:190
+msgid "Template Variables"
+msgstr "Mallin muuttujat"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:164
+#: View/Themed/Overmind/Elements/Events/index.ctp:51
+msgid "Creator user"
+msgstr "Luonut käyttäjä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:377
+msgid "Include"
+msgstr "Sisällytä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:197
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:378
+msgid "Exclude"
+msgstr "Sulje pois"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:368
+msgid "Loading…"
+msgstr "Ladataan…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:381
+msgid "Apply"
+msgstr "Käytä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:174
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:175
+msgid "Group selected Attributes into an Object"
+msgstr "Ryhmittele valitut attribuutit objektiksi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:196
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:197
+msgid "Sightings display for selected attributes"
+msgstr "Valittujen attribuuttien havainnot"
+
+#: View/Helper/NavbarHelper.php:875
+msgid "Server PGP public key"
+msgstr "Palvelimen julkinen PGP-avain"
+
+#: View/Helper/NavbarHelper.php:884
+msgid "Server S/MIME certificate"
+msgstr "Palvelimen S/MIME-sertifikaatti"
+
+#: View/Themed/Overmind/Users/login.ctp:144
+msgid "Password"
+msgstr "Salasana"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:253
+msgid "Unpublish"
+msgstr "Peruuta julkaisu"
+
+#: View/Helper/NavbarHelper.php:288
+msgid "List Tag Collections"
+msgstr "Listaa tunnistekokoelmat"
+
+#: View/Helper/NavbarHelper.php:837
+msgid "Automation"
+msgstr "Automaatio"
+
+#: View/Helper/NavbarHelper.php:1063
+msgid "My Profile"
+msgstr "Oma profiili"
+
+#: View/Helper/NavbarHelper.php:619
+msgid "List Organisations"
+msgstr "Listaa organisaatiot"
+
+#: View/Helper/NavbarHelper.php:488
+msgid "List Sharing Groups"
+msgstr "Listaa jakamisryhmät"
+
+#: View/Helper/NavbarHelper.php:503
+msgid "List Sharing Group Blueprints"
+msgstr "Listaa jakamisryhmien suunnitelmat"
+
+#: View/Helper/NavbarHelper.php:867
+msgid "Categories & Types"
+msgstr "Luokat ja tyypit"
+
+#: View/Helper/NavbarHelper.php:247
+msgid "Statistics"
+msgstr "Tilastot"
+
+#: View/Helper/NavbarHelper.php:603
+msgid "List Users"
+msgstr "Listaa käyttäjät"
+
+#: View/Helper/NavbarHelper.php:634
+msgid "List Roles"
+msgstr "Listaa roolit"
+
+#: View/Helper/NavbarHelper.php:581
+msgid "Server Settings & Maintenance"
+msgstr "Palvelimen asetukset ja ylläpito"
+
+#: View/Helper/NavbarHelper.php:666
+msgid "Jobs"
+msgstr "Taustatyöt"
+
+#: View/Helper/NavbarHelper.php:674
+msgid "Scheduled Tasks"
+msgstr "Ajastetut tehtävät"
+
+#: View/Helper/NavbarHelper.php:281
+msgid "List Tags"
+msgstr "Listaa tunnisteet"
+
+#: View/Helper/NavbarHelper.php:274
+msgid "List Taxonomies"
+msgstr "Listaa taksonomiat"
+
+#: View/Helper/NavbarHelper.php:357
+msgid "List Event Templates"
+msgstr "Listaa tapahtumamallit"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:65
+msgid "Export"
+msgstr "Vie"
+
+#: View/Helper/NavbarHelper.php:302
+msgid "List Galaxies"
+msgstr "Listaa galaksit"
+
+#: View/Helper/NavbarHelper.php:365
+msgid "List Object Templates"
+msgstr "Listaa objektimallit"
+
+#: View/Helper/NavbarHelper.php:372
+msgid "List Object Relationships"
+msgstr "Listaa objektisuhteet"
+
+#: View/Helper/NavbarHelper.php:1018
+msgid "Manage Bookmarks"
+msgstr "Hallitse kirjanmerkkejä"
+
+#: View/Helper/NavbarHelper.php:409 View/Helper/NavbarHelper.php:417
+msgid "Import Regexp"
+msgstr "Tuo Regexp"
+
+#: View/Helper/NavbarHelper.php:402
+msgid "Noticelists"
+msgstr "Ilmoituslistat"
+
+#: View/Helper/NavbarHelper.php:425
+msgid "Correlation Exclusions"
+msgstr "Korrelaatiopoikkeukset"
+
+#: View/Helper/NavbarHelper.php:944 View/Helper/NavbarHelper.php:949
+msgid "News"
+msgstr "Uutiset"
+
+#: View/Helper/NavbarHelper.php:894
+msgid "Themes"
+msgstr "Teemat"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "ON"
+msgstr "PÄÄLLÄ"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "OFF"
+msgstr "POIS PÄÄLTÄ"
+
+#: View/Helper/NavbarHelper.php:862
+msgid "User Guide"
+msgstr "Käyttöopas"
+
+#: View/Helper/NavbarHelper.php:457
+msgid "Remote Servers"
+msgstr "Etäpalvelimet"
+
+#: View/Helper/NavbarHelper.php:520
+msgid "Communities"
+msgstr "Yhteisöt"
+
+#: View/Helper/NavbarHelper.php:528
+msgid "Cerebrates"
+msgstr "Cerebrates"
+
+#: View/Helper/NavbarHelper.php:536
+msgid "TAXII Servers"
+msgstr "TAXII-palvelimet"
+
+#: View/Helper/NavbarHelper.php:642
+msgid "List Auth Keys"
+msgstr "Listaa todennusavaimet"
+
+#: View/Helper/NavbarHelper.php:682
+msgid "Benchmarking"
+msgstr "Suorituskykyvertailu"
+
+#: View/Helper/NavbarHelper.php:739
+msgid "Correlation rules"
+msgstr "Korrelaatiosäännöt"
+
+#: View/Helper/NavbarHelper.php:747
+msgid "Over-correlating values"
+msgstr "Ylikorreloivat arvot"
+
+#: View/Helper/NavbarHelper.php:849
+msgid "API"
+msgstr "API"
+
+#: View/Helper/NavbarHelper.php:1070
+msgid "Log out"
+msgstr "Kirjaudu ulos"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:185
+#: View/Themed/Overmind/Elements/Events/index.ctp:502
+#: View/Themed/Overmind/Elements/Events/index.ctp:52
+msgid "Extension"
+msgstr "Laajennus"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:10
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:40
+msgid "Menu"
+msgstr "Valikko"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:208
+#: View/Themed/Overmind/Elements/side_panel.ctp:75
+msgid "Loading"
+msgstr "Ladataan"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:154
+msgid "Creator"
+msgstr "Luoja"
+
+#: View/Helper/NavbarHelper.php:209
+#: View/Themed/Overmind/Elements/Events/index.ctp:496
+#: View/Themed/Overmind/Elements/Events/index.ctp:58
+msgid "Proposals"
+msgstr "Ehdotukset"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:259
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:376
+msgid "Selected"
+msgstr "Valittu"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:210
+#: View/Themed/Overmind/Elements/Events/index.ctp:60
+msgid "Last change"
+msgstr "Viimeinen muutos"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:223
+msgid "Enable"
+msgstr "Ota käyttöön"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:229
+msgid "Disable"
+msgstr "Poista käytöstä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:47
+msgid "Custom"
+msgstr "Mukautettu"
+
+#: View/Helper/EventIndexHelper.php:49
+#, php-format
+msgid "Changes pending: published %s, changed since"
+msgstr "Muutoksia odottaa: julkaistu %s, muutettu sen jälkeen"
+
+#: View/Helper/EventIndexHelper.php:52
+#, php-format
+msgid "Published %s"
+msgstr "Julkaistu %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "Created by %s"
+msgstr "Tekijä: %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "held here by %s"
+msgstr "säilytetään täällä käyttäjän %s toimesta"
+
+#: View/Helper/EventIndexHelper.php:95
+#, php-format
+msgid "Your grade for %s: %s (analyst profile)"
+msgstr "Arviosi kohteelle %1$s: %2$s (analyytikkoprofiili)"
+
+#: View/Helper/EventIndexHelper.php:118
+#, php-format
+msgid "Admiralty scale: %s"
+msgstr "Admiraliteettiasteikko: %s"
+
+#: View/Helper/EventIndexHelper.php:128 View/Helper/EventIndexHelper.php:461
+msgid "pinned by your profile"
+msgstr "kiinnitetty profiiliisi"
+
+#: View/Helper/EventIndexHelper.php:137
+#, php-format
+msgid "No %s marking"
+msgstr "Ei %s-merkintää"
+
+#: View/Helper/EventIndexHelper.php:177 View/Helper/EventIndexHelper.php:195
+msgid "(cluster not available here)"
+msgstr "(klusteri ei saatavilla täältä)"
+
+#: View/Helper/EventIndexHelper.php:187
+#, php-format
+msgid "Mitigation %s"
+msgstr "Lieventämistoimi %s"
+
+#: View/Helper/EventIndexHelper.php:211
+#, php-format
+msgid "%s unresolved"
+msgstr "%s ratkaisematta"
+
+#: View/Helper/EventIndexHelper.php:226
+#, php-format
+msgid "%s: show all"
+msgstr "%s: näytä kaikki"
+
+#: View/Helper/EventIndexHelper.php:318
+#, php-format
+msgid "Changed last of %s workspaces on this event"
+msgstr "Viimeksi muutettu tämän tapahtuman %s työtilasta"
+
+#: View/Helper/EventIndexHelper.php:365
+#, php-format
+msgid "Extends #%s %s"
+msgstr "Laajentaa #%1$s %2$s"
+
+#: View/Helper/EventIndexHelper.php:366
+#, php-format
+msgid "extends #%s"
+msgstr "laajentaa tapahtumaa #%s"
+
+#: View/Helper/EventIndexHelper.php:370
+#, php-format
+msgid "Extends %s, which is not available here"
+msgstr "Laajentaa tapahtumaa %s, joka ei ole saatavilla täällä"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "missing"
+msgstr "puuttuu"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "extends an unknown event"
+msgstr "laajentaa tuntematonta tapahtumaa"
+
+#: View/Helper/EventIndexHelper.php:379
+#, php-format
+msgid "extended by %s"
+msgstr "laajennettu tapahtumalla %s"
+
+#: View/Helper/EventIndexHelper.php:411
+msgid "Cluster not available here"
+msgstr "Klusteri ei ole saatavilla täältä"
+
+#: View/Helper/EventIndexHelper.php:464
+msgid "preferred by your profile"
+msgstr "profiilisi suosimana"
+
+#: View/Helper/EventIndexHelper.php:387
+#, php-format
+msgid "%s galaxy tag whose cluster is not available here"
+msgid_plural "%s galaxy tags whose cluster is not available here"
+msgstr[0] "%s galaksitunniste, jonka klusteri ei ole saatavilla täällä"
+msgstr[1] ""
+"%s galaksitunnistetta, joiden klusterit eivät ole saatavilla täällä"
+
+#: View/Helper/NavbarHelper.php:171
+msgid "Collections"
+msgstr "Kokoelmat"
+
+#: View/Helper/NavbarHelper.php:183 View/Helper/NavbarHelper.php:213
+msgid "Index"
+msgstr "Hakemisto"
+
+#: View/Helper/NavbarHelper.php:200
+msgid "Analyst Data"
+msgstr "Analyytikkotiedot"
+
+#: View/Helper/NavbarHelper.php:220
+msgid "Events with Proposals"
+msgstr "Tapahtumat, joissa on ehdotuksia"
+
+#: View/Helper/NavbarHelper.php:227
+msgid "Delegation Requests"
+msgstr "Delegaatiopyynnöt"
+
+#: View/Helper/NavbarHelper.php:270
+msgid "Tags & Taxonomies"
+msgstr "Tunnisteet ja taksonomiat"
+
+#: View/Helper/NavbarHelper.php:309
+msgid "List Galaxy Relationships"
+msgstr "Listaa galaksien suhteet"
+
+#: View/Helper/NavbarHelper.php:344
+msgid "Analyst Profiles"
+msgstr "Analyytikkoprofiilit"
+
+#: View/Helper/NavbarHelper.php:353
+msgid "Templates"
+msgstr "Mallit"
+
+#: View/Helper/NavbarHelper.php:391
+msgid "Filters & Lists"
+msgstr "Suodattimet ja luettelot"
+
+#: View/Helper/NavbarHelper.php:453
+msgid "Servers & Feeds"
+msgstr "Palvelimet ja syötteet"
+
+#: View/Helper/NavbarHelper.php:544
+msgid "Sighting DB"
+msgstr "Havaintotietokanta"
+
+#: View/Helper/NavbarHelper.php:555
+msgid "Event ID Translator"
+msgstr "Tapahtumatunnuksen kääntäjä"
+
+#: View/Helper/NavbarHelper.php:591
+msgid "Users & Orgs"
+msgstr "Käyttäjät ja organisaatiot"
+
+#: View/Helper/NavbarHelper.php:611
+msgid "User Settings"
+msgstr "Käyttäjäasetukset"
+
+#: View/Helper/NavbarHelper.php:630
+msgid "Roles & Permissions"
+msgstr "Roolit ja käyttöoikeudet"
+
+#: View/Helper/NavbarHelper.php:654
+msgid "System jobs"
+msgstr "Järjestelmän taustatyöt"
+
+#: View/Helper/NavbarHelper.php:658
+msgid "Workflow"
+msgstr "Työnkulku"
+
+#: View/Helper/NavbarHelper.php:695
+msgid "Blocklisting"
+msgstr "Estolistaus"
+
+#: View/Helper/NavbarHelper.php:699
+msgid "Blocklisted events"
+msgstr "Estolistalla olevat tapahtumat"
+
+#: View/Helper/NavbarHelper.php:707
+msgid "Blocklisted organisations"
+msgstr "Estoluettelossa olevat organisaatiot"
+
+#: View/Helper/NavbarHelper.php:715
+msgid "Blocklisted sightings"
+msgstr "Estolistalla olevat havainnot"
+
+#: View/Helper/NavbarHelper.php:731
+msgid "Top correlations"
+msgstr "Yleisimmät korrelaatiot"
+
+#: View/Helper/NavbarHelper.php:775
+msgid "Application logs"
+msgstr "Sovelluslokit"
+
+#: View/Helper/NavbarHelper.php:819
+msgid "Open API"
+msgstr "OpenAPI"
+
+#: View/Helper/NavbarHelper.php:827
+msgid "REST Client"
+msgstr "REST-asiakas"
+
+#: View/Helper/NavbarHelper.php:981
+msgid "No workspace"
+msgstr "Ei työtilaa"
+
+#: View/Helper/NavbarHelper.php:983
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:94
+msgid "Workspace"
+msgstr "Työtila"
+
+#: View/Helper/NavbarHelper.php:1006
+msgid "Set this page as homepage"
+msgstr "Aseta tämä sivu kotisivuksi"
+
+#: View/Helper/NavbarHelper.php:1050
+msgid "Dark mode"
+msgstr "Tumma tila"
+
+#: View/Helper/NavbarHelper.php:1058
+msgid "Replay the tutorial"
+msgstr "Toista opetusohjelma uudelleen"
+
+#: View/Helper/NavbarHelper.php:1100
+msgid "Light"
+msgstr "Vaalea"
+
+#: View/Helper/NavbarHelper.php:1101
+msgid "Dark"
+msgstr "Tumma"
+
+#: View/Helper/NavbarHelper.php:1102
+msgid "Light and dark"
+msgstr "Vaalea ja tumma"
+
+#: View/Helper/NavbarHelper.php:1137
+#, php-format
+msgid "Instance default (%s)"
+msgstr "Instanssin oletus (%s)"
+
+#: View/Helper/NavbarHelper.php:1138
+msgid "Follow the theme your administrator picks for this instance."
+msgstr "Käytä ylläpitäjän tälle instanssille valitsemaa teemaa."
+
+#: View/Helper/NavbarHelper.php:1146
+msgid "Theme"
+msgstr "Teema"
+
+#: View/Helper/NavbarHelper.php:948
+#, php-format
+msgid "News: %s unread"
+msgid_plural "News: %s unread"
+msgstr[0] "Uutiset: %s lukematon"
+msgstr[1] "Uutiset: %s lukematonta"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:89
+msgid "Reset"
+msgstr "Nollaa"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:82
+msgid "Next page"
+msgstr "Seuraava sivu"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:27
+msgid "Previous page"
+msgstr "Edellinen sivu"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:119
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:120
+msgid "Edit selected attributes"
+msgstr "Muokkaa valittuja attribuutteja"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+#, php-format
+msgid "Remove %s"
+msgstr "Poista %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:268
+msgid "Add to workspace"
+msgstr "Lisää työtilaan"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close (Esc)"
+msgstr "Sulje (Esc)"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:53
+msgid "Tags & galaxies"
+msgstr "Tunnisteet ja galaksit"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:54
+msgid "Attributes & objects"
+msgstr "Attribuutit ja objektit"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:59
+msgid "Discussions"
+msgstr "Keskustelut"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:83
+#: View/Themed/Overmind/Elements/Events/index.ctp:84
+msgid "Choose columns"
+msgstr "Valitse sarakkeet"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:85
+#: View/Themed/Overmind/Elements/Events/index.ctp:86
+msgid "Columns"
+msgstr "Sarakkeet"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:88
+msgid "Reset widths"
+msgstr "Nollaa leveydet"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:139
+msgid "Publish state"
+msgstr "Julkaisemisen tila"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:170
+msgid "Markings your analyst profile pins"
+msgstr "Analyytikkoprofiiliisi kiinnitetyt merkinnät"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:174
+msgid "ATT&CK techniques (count, then ids), then mitigations"
+msgstr ""
+"ATT&CK-tekniikat (lukumäärä, sitten tunnisteet), sitten lieventämistoimet"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:175
+msgid "Other clusters, then tags"
+msgstr "Muut klusterit, sitten tunnisteet"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:182
+msgid ""
+"Workspaces, reports, sightings, proposals and discussions, when there are "
+"any"
+msgstr ""
+"Työtilat, raportit, havainnot, ehdotukset ja keskustelut, jos niitä on"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:209
+#: View/Themed/Overmind/Elements/Events/index.ctp:423
+#: View/Themed/Overmind/Elements/Events/index.ctp:497
+msgid "Changed"
+msgstr "Muutettu"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:342
+msgid "Event or attribute tags."
+msgstr "Tapahtuma- tai attribuuttitunnisteet."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:353
+msgid "And tag"
+msgstr "Ja tunniste"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:358
+msgid "Also carried by the event or one of its attributes."
+msgstr "Myös tapahtuman tai jonkin sen attribuutin tunnisteena."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:369
+msgid "Clusters attached to the event."
+msgstr "Tapahtumaan liitetyt klusterit."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:380
+msgid "Any sharing group"
+msgstr "Mikä tahansa jakamisryhmä"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:397
+msgid "Including a group keeps only events shared with it."
+msgstr "Ryhmän sisällyttäminen näyttää vain sille jaetut tapahtumat."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "24h"
+msgstr "24h"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "last 24 hours"
+msgstr "viimeiset 24 tuntia"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "7d"
+msgstr "7 pv"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "last 7 days"
+msgstr "viimeiset 7 päivää"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "30d"
+msgstr "30 pv"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "last 30 days"
+msgstr "viimeiset 30 päivää"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "90d"
+msgstr "90 pv"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "last 90 days"
+msgstr "viimeiset 90 päivää"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "1y"
+msgstr "1v"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "last year"
+msgstr "viimeiset 12 kuukautta"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:420
+msgid "Time"
+msgstr "Aika"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:434
+msgid "My events"
+msgstr "Minun tapahtumani"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:448
+msgid "Org events"
+msgstr "Organisaation tapahtumat"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:467
+#, php-format
+msgid "until %s"
+msgstr "%s asti"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "minutes"
+msgstr "minuuttia"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "seconds"
+msgstr "sekuntia"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:472
+#, php-format
+msgid "last %s %s"
+msgstr "viimeiset %1$s %2$s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:475
+#: View/Themed/Overmind/Elements/Events/index.ctp:478
+#, php-format
+msgid "since %s"
+msgstr "alkaen %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:487
+msgid "Anything"
+msgstr "Mitä tahansa"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:489
+msgid "Attribute value"
+msgstr "Attribuutin arvo"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:490
+msgid "Date from"
+msgstr "Päivämäärä alkaen"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:491
+msgid "Date until"
+msgstr "Päivämäärä asti"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:500
+msgid "First published"
+msgstr "Julkaistu ensimmäisen kerran"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:501
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:31
+msgid "Changes pending"
+msgstr "Muutokset odottavat"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:503
+msgid "Extended"
+msgstr "Laajennettu"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:504
+msgid "Minimal"
+msgstr "Minimaalinen"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+msgid "some"
+msgstr "joitakin"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:28
+msgid "Never published, or unpublished since"
+msgstr "Ei koskaan julkaistu tai julkaisematon sen jälkeen"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:37
+msgid "Published once and changed since"
+msgstr "Julkaistu kerran ja muuttunut sen jälkeen"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:40
+msgid "Changed this week"
+msgstr "Muutettu tällä viikolla"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:45
+msgid "Changed in the last 7 days"
+msgstr "Muutettu viimeisen 7 päivän aikana"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:50
+msgid "Since your last visit"
+msgstr "Edellisen vierailusi jälkeen"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:55
+#, php-format
+msgid "Changed since your previous login, %s"
+msgstr "Muutettu edellisen kirjautumisen jälkeen, %s"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:59
+msgid "New this week"
+msgstr "Uutta tällä viikolla"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:64
+msgid "First published in the last 7 days"
+msgstr "Julkaistu ensimmäisen kerran viimeisen 7 päivän aikana"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:67
+msgid "Creator orgs"
+msgstr "Luoneet organisaatiot"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:70
+msgid "Filter by creator organisation"
+msgstr "Suodata tapahtuman luoneen organisaation mukaan"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:79
+msgid "Event dates"
+msgstr "Tapahtumapäivät"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:84
+msgid "Figures for these filters"
+msgstr "Näiden suodattimien luvut"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:83
+msgid "Fetch"
+msgstr "Hae"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:241
+#, php-format
+msgid "Open %s"
+msgstr "Avaa %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:268
+msgid "Activate"
+msgstr "Aktivoi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:274
+msgid "Deactivate"
+msgstr "Poista käytöstä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:90
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:91
+msgid "Add the selected to the active workspace"
+msgstr "Lisää valitut aktiiviseen työtilaan"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:332
+msgid "Clear selection"
+msgstr "Tyhjennä valinta"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:20
+#, php-format
+msgid "Sharing group · owned by %s"
+msgstr "Jakamisryhmä · omistaja %s"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:41
+msgid "Every organisation on this instance"
+msgstr "Jokainen tämän instanssin organisaatio"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:51
+msgid "owner"
+msgstr "omistaja"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:52
+msgid "your org"
+msgstr "organisaatiosi"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:54
+msgid "Can add organisations"
+msgstr "Voi lisätä organisaatioita"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:61
+#, php-format
+msgid "+%s more · open the group"
+msgstr "+%s muuta · avaa ryhmä"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:81
+msgid "Only this group"
+msgstr "Vain tämä ryhmä"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:82
+msgid "Open group"
+msgstr "Avaa ryhmä"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:38
+#, php-format
+msgid "%s member organisation"
+msgid_plural "%s member organisations"
+msgstr[0] "%s jäsenorganisaatio"
+msgstr[1] "%s jäsenorganisaatiota"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:253
+msgid "Highlight"
+msgstr "Korosta"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:367
+msgid "Searching…"
+msgstr "Haetaan…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:49
+msgid "From"
+msgstr "Alkaen"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:50
+msgid "To"
+msgstr "Asti"
+
+#: View/Themed/Overmind/Users/login.ctp:82
+#: View/Themed/Overmind/Users/login.ctp:88
+#: View/Themed/Overmind/Users/login.ctp:97
+msgid "Logo"
+msgstr "Logo"
+
+#: View/Themed/Overmind/Users/login.ctp:90
+#: View/Themed/Overmind/Users/login.ctp:91
+msgid "MISP — Intelligence Sharing"
+msgstr "MISP — Tiedustelutietojen jakaminen"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:182
+#, php-format
+msgid "aka %s"
+msgstr "eli %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:184
+msgid "All galaxies"
+msgstr "Kaikki galaksit"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:185
+#, php-format
+msgid "All of %s"
+msgstr "Kaikki %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:186
+msgid "All tactics"
+msgstr "Kaikki taktiikat"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:187
+msgid "All tags"
+msgstr "Kaikki tunnisteet"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:188
+msgid "A–Z"
+msgstr "A–Z"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:189
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:370
+#, php-format
+msgid "Back to %s"
+msgstr "Takaisin: %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:190
+msgid "Browse"
+msgstr "Selaa"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:191
+msgid "By namespace"
+msgstr "Nimiavaruuden mukaan"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:192
+msgid "Check the spelling, or browse a scope on the left."
+msgstr "Tarkista oikeinkirjoitus tai selaa vasemmalla olevaa aluetta."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:196
+msgid "Everywhere"
+msgstr "Kaikkialta"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:198
+#, php-format
+msgid "First %s matches · keep typing or narrow"
+msgstr "Ensimmäiset %s osumaa · jatka kirjoittamista tai rajaa hakua"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:200
+msgid "Has selected values"
+msgstr "Sisältää valitut arvot"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:201
+msgid "In use"
+msgstr "Käytössä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:202
+msgid "Clusters already attached somewhere"
+msgstr "Klusterit, jotka on jo liitetty johonkin"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:203
+msgid "Keep typing"
+msgstr "Jatka kirjoittamista"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:204
+msgid "apply"
+msgstr "käytä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:205
+msgid "back"
+msgstr "takaisin"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:206
+msgid "exclude"
+msgstr "sulje pois"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:207
+msgid "include"
+msgstr "sisällytä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:209
+msgid "Loading scopes…"
+msgstr "Ladataan rajauksia…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:210
+msgid "Could not load the scopes."
+msgstr "Rajauksia ei voitu ladata."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:211
+msgid "Could not load these values"
+msgstr "Näitä arvoja ei voitu ladata"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:212
+msgid "All of"
+msgstr "Kaikki"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:213
+msgid "Events tagged with every one of them, on the event itself"
+msgstr "Tapahtumat, jotka on merkitty jokaisella niistä itse tapahtumaan"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:214
+msgid "Any of"
+msgstr "Mikä tahansa"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:215
+msgid ""
+"Events with at least one of them, on the event or one of its attributes"
+msgstr ""
+"Tapahtumat, joissa vähintään yksi näistä on tapahtuman tai jonkin sen "
+"attribuutin tunnisteena"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:216
+msgid "Match"
+msgstr "Vastaavuus"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:217
+msgid "matrix"
+msgstr "matriisi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:218
+msgid "A matrix: browse it by tactic"
+msgstr "Matriisi: selaa sitä taktiikan mukaan"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:219
+#, php-format
+msgid "+%s more"
+msgstr "+%s muuta"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:220
+msgid "More not shown · type to narrow"
+msgstr "Kaikkia ei näytetä · rajaa kirjoittamalla"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:221
+#, php-format
+msgid "+%s more · type to narrow"
+msgstr "+%s lisää · rajaa kirjoittamalla"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:222
+msgid "Namespaces"
+msgstr "Nimiavaruudet"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:223
+#, php-format
+msgid "Narrow to %s, keeping “%s”"
+msgstr "Rajaa kohtaan %1$s, säilytä \"%2$s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:224
+msgid "Narrow to"
+msgstr "Rajaa kohteeseen"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:225
+msgid "No cluster in use"
+msgstr "Ei klusteria käytössä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:226
+#, php-format
+msgid "No cluster in use matches “%s”"
+msgstr "Mikään käytössä oleva klusteri ei vastaa \"%s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:227
+msgid "No cluster in use for this tactic"
+msgstr "Tälle taktiikalle ei ole käytössä klusteria"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:228
+msgid "No namespace"
+msgstr "Ei nimiavaruutta"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:229
+msgid "Free-text tags, written without a \"namespace:\" prefix."
+msgstr ""
+"Vapaatekstitunnisteet, jotka on kirjoitettu ilman "
+"\"namespace:\"-etuliitettä."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:230
+msgid "No predicate has a match."
+msgstr "Millään predikaatilla ei ole vastinetta."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:231
+msgid "not"
+msgstr "ei"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:232
+msgid "Not attached to anything yet"
+msgstr "Ei vielä liitetty mihinkään"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:233
+msgid "no taxonomy"
+msgstr "ei taksonomiaa"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:234
+msgid "Not enabled"
+msgstr "Ei käytössä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:235
+msgid "Nothing here yet"
+msgstr "Ei täällä vielä mitään"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:236
+#, php-format
+msgid "Nothing in %s matches “%s”"
+msgstr "Mikään kohteessa %1$s ei vastaa sanaa \"%2$s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:237
+#, php-format
+msgid "Nothing matches “%s”"
+msgstr "Mikään ei vastaa sanaa \"%s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:238
+#, php-format
+msgid "No %s value matches “%s”"
+msgstr "Mikään %1$s-arvo ei vastaa arvoa \"%2$s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:239
+#, php-format
+msgid "Tags written as \"%s:…\", with no taxonomy behind them."
+msgstr "Tunnisteet muodossa \"%s:…\", joille ei ole taksonomiaa."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:240
+msgid "Numerical value"
+msgstr "Numeerinen arvo"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:243
+#, php-format
+msgid "or type to search all %s %s values."
+msgstr "tai kirjoita hakeaksesi kaikista %1$s %2$s -arvoista."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:244
+msgid "Other namespaces"
+msgstr "Muut nimiavaruudet"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:245
+#, php-format
+msgid "Other %s tags"
+msgstr "Muut %s-tunnisteet"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:246
+msgid "Tags in this namespace that are not entries of the taxonomy"
+msgstr ""
+"Tunnisteet tässä nimiavaruudessa, jotka eivät ole taksonomian merkintöjä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:247
+msgid "pick a heading to narrow"
+msgstr "rajaa valitsemalla otsikko"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:248
+msgid "Pick a predicate"
+msgstr "Valitse predikaatti"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:249
+msgid "Pinned in your profile"
+msgstr "Kiinnitetty profiiliisi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:250
+msgid "Predicates"
+msgstr "Predikaatit"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:251
+msgid "Preferred in your profile"
+msgstr "Ensisijainen profiilissasi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:254
+msgid "Search all clusters, or pick a scope"
+msgstr "Hae kaikista klustereista tai valitse rajaus"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:255
+#, php-format
+msgid "Search all of %s"
+msgstr "Hae kaikista kohteista %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:256
+msgid "Search all tags, or pick a scope"
+msgstr "Hae kaikista tunnisteista tai valitse rajaus"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:257
+msgid "Search failed"
+msgstr "Haku epäonnistui"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:258
+#, php-format
+msgid "Search in %s"
+msgstr "Hae: %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:260
+msgid "show all"
+msgstr "näytä kaikki"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:261
+msgid "Show all clusters"
+msgstr "Näytä kaikki klusterit"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:262
+msgid "Show where it lives"
+msgstr "Näytä sijainti"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:263
+#, php-format
+msgid "Starts with %s"
+msgstr "Alkaa %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:264
+msgid "Stop excluding"
+msgstr "Lopeta poissulkeminen"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:265
+msgid "Tactics"
+msgstr "Taktiikat"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:268
+msgid "taxonomy"
+msgstr "taksonomia"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:269
+msgid "Nothing selected · click a value to include it,"
+msgstr "Mitään ei ole valittu · napsauta arvoa sisällyttääksesi sen,"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:270
+msgid "to exclude it"
+msgstr "sulkemaan sen pois"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:271
+#: View/Themed/Overmind/Elements/side_panel.ctp:33
+msgid "Try again"
+msgstr "Yritä uudelleen"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:272
+msgid "Two characters search every cluster, or pick a scope on the left."
+msgstr ""
+"Hae kaikista klustereista kirjoittamalla kaksi merkkiä tai valitse rajaus "
+"vasemmalta."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:273
+msgid "Two characters search every tag, or pick a scope on the left."
+msgstr ""
+"Hae kaikista tunnisteista kirjoittamalla kaksi merkkiä tai valitse rajaus "
+"vasemmalta."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:274
+msgid "Where you are"
+msgstr "Sijaintisi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:275
+msgid "Which clusters"
+msgstr "Mitkä klusterit"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:366
+msgid "Type 2 characters to search"
+msgstr "Kirjoita 2 merkkiä etsiäksesi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:369
+msgid "The list could not be loaded"
+msgstr "Listaa ei voitu ladata"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:371
+#, php-format
+msgid "Choose %s"
+msgstr "Valitse %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:372
+msgid "Nothing matches"
+msgstr "Mikään ei vastaa"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:373
+#, php-format
+msgid "%s more: type to narrow"
+msgstr "%s lisää: kavenna kirjoittamalla"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:374
+msgid "The search failed"
+msgstr "Haku epäonnistui"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:382
+msgid "Any of these. Applies when you close the picker."
+msgstr "Mikä tahansa näistä. Valinta tulee voimaan, kun suljet valitsimen."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:383
+msgid "Any of these."
+msgstr "Mikä tahansa näistä."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:384
+msgid ""
+"This link asks for events with all of these. Changing the selection here "
+"switches to any of them."
+msgstr ""
+"Tämä linkki hakee tapahtumia, joissa ovat kaikki nämä. Valinnan muuttaminen "
+"tässä hakee tapahtumia, joissa on mikä tahansa niistä."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:385
+msgid "Not found on this instance"
+msgstr "Ei löydy tästä instanssista"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:386
+msgid "The filtered list could not be loaded."
+msgstr "Suodatettua luetteloa ei voitu ladata."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:473
+msgid "Search a value"
+msgstr "Hae arvoa"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:727
+#, php-format
+msgid "%s shown, page %s"
+msgstr "%1$s näytetään, sivu %2$s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:733
+#, php-format
+msgid "%s shown, page %s of %s"
+msgstr "%1$s näytetään, sivu %2$s/%3$s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:739
+#, php-format
+msgid "%s shown"
+msgstr "%s näytetään"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:767
+msgid "Active filters"
+msgstr "Aktiiviset suodattimet"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:45
+#, php-format
+msgid "%s (all of)"
+msgstr "%s (kaikki)"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_picker.ctp:108
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:37
+#, php-format
+msgid "%s selected"
+msgid_plural "%s selected"
+msgstr[0] "%s valittu"
+msgstr[1] "%s valittu"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:46
+msgid "No limit"
+msgstr "Ei rajaa"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:48
+msgid "Pick dates"
+msgstr "Valitse päivämäärät"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:51
+msgid "Both rows apply together. Applies when you close the picker."
+msgstr ""
+"Molemmat rivit ovat voimassa yhdessä. Valinta tulee voimaan, kun suljet "
+"valitsimen."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:62
+#, php-format
+msgid "%s set"
+msgid_plural "%s set"
+msgstr[0] "%s asetettu"
+msgstr[1] "%s asetettu"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_toggle.ctp:17
+msgid "More Filters"
+msgstr "Lisää suodattimia"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_card.ctp:56
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_table.ctp:103
+msgid "No items to display"
+msgstr "Ei näytettäviä kohteita"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:30
+msgid "Selected items"
+msgstr "Valitut kohteet"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:61
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:62
+msgid "Export selected attributes"
+msgstr "Vie valitut attribuutit"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:79
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:80
+msgid "Fetch the selected events"
+msgstr "Hae valitut tapahtumat"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:130
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:131
+msgid "Add Tag on selected attributes"
+msgstr "Lisää tunniste valittuihin attribuutteihin"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:141
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:142
+msgid "Add Local Tag on selected attributes"
+msgstr "Lisää paikallinen tunniste valittuihin attribuutteihin"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:145
+msgid "Local Tag"
+msgstr "Paikallinen tunniste"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:152
+msgid "Add Galaxy on selected attributes"
+msgstr "Lisää galaksi valittuihin attribuutteihin"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:153
+msgid "Add Galaxy to selected attributes"
+msgstr "Lisää galaksi valittuihin attribuutteihin"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:163
+msgid "Add Local Galaxy on selected attributes"
+msgstr "Lisää paikallinen galaksi valittuihin attribuutteihin"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:164
+msgid "Add Local Galaxy to selected attributes"
+msgstr "Lisää paikallinen galaksi valittuihin attribuutteihin"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:167
+msgid "Local Galaxy"
+msgstr "Paikallinen galaksi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:185
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:186
+msgid "Create new relationship for selected attributes"
+msgstr "Luo uusi suhde valituille attribuuteille"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:221
+msgid "Enable selected items"
+msgstr "Ota valitut kohteet käyttöön"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:227
+msgid "Disable selected items"
+msgstr "Poista valitut kohteet käytöstä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:236
+msgid "Make the selected items required"
+msgstr "Tee valitut kohteet pakollisiksi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:242
+msgid "Make the selected items optional"
+msgstr "Tee valituista kohteista valinnaisia"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:251
+msgid "Highlight selected items"
+msgstr "Korosta valitut kohteet"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:257
+msgid "Remove highlight for selected items"
+msgstr "Poista valittujen kohteiden korostus"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:259
+msgid "Remove Highlight"
+msgstr "Poista korostus"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:266
+msgid "Activate selected items"
+msgstr "Aktivoi valitut kohteet"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:272
+msgid "Deactivate selected items"
+msgstr "Poista valitut kohteet käytöstä"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:282
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:283
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:322
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:323
+msgid "Delete selected items"
+msgstr "Poista valitut kohteet"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:293
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:294
+msgid "Process the selected registrations"
+msgstr "Käsittele valitut rekisteröinnit"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:297
+msgid "Process"
+msgstr "Käsittele"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:304
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:305
+msgid "Discard the selected registrations"
+msgstr "Hylkää valitut rekisteröinnit"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:78
+#, php-format
+msgid "Showing %s–%s"
+msgstr "Näytetään %1$s–%2$s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:84
+#, php-format
+msgid "Showing %s–%s of %s"
+msgstr "Näytetään %1$s–%2$s/%3$s"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Drag to resize · double-click to widen"
+msgstr "Muuta kokoa vetämällä · kaksoisnapsauta laajentaaksesi"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Resize the window (arrow keys)"
+msgstr "Muuta ikkunan kokoa (nuolinäppäimet)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Drag to resize"
+msgstr "Muuta kokoa vetämällä"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Drag to move · arrow keys"
+msgstr "Siirrä vetämällä · nuolinäppäimet"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Move the window (arrow keys)"
+msgstr "Siirrä ikkunaa (nuolinäppäimet)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:56
+msgid "Undock into a window"
+msgstr "Irrota omaksi ikkunaksi"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:59
+msgid "Dock to the right"
+msgstr "Kiinnitä oikealle"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:28
+#: View/Themed/Overmind/Elements/side_panel.ctp:62
+msgid "Widen the panel"
+msgstr "Laajenna paneelia"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:1
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:20
+msgid "Main"
+msgstr "Päävalikko"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:3
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:22
+#, php-format
+msgid "MISP %s"
+msgstr "MISP %s"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:4
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:23
+msgid "MISP Logo"
+msgstr "MISP-logo"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:27
+#, php-format
+msgid "%s shows or hides it"
+msgstr "%s näyttää tai piilottaa sen"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:29
+msgid "Back to your width"
+msgstr "Palauta valitsemasi leveys"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:30
+msgid "Undocked into a window."
+msgstr "Irrotettu omaksi ikkunaksi."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:31
+msgid "Docked to the right."
+msgstr "Kiinnitetty oikealle."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:32
+msgid "Failed to load."
+msgstr "Lataus epäonnistui."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:34
+msgid "It could not be saved."
+msgstr "Tallentaminen epäonnistui."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Panel width"
+msgstr "Paneelin leveys"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close the panel"
+msgstr "Sulje paneeli"
+
+#: View/Themed/Overmind/Users/login.ctp:162
+#: View/Themed/Overmind/Users/login.ctp:163
+msgid "Show password"
+msgstr "Näytä salasana"
+
+#: View/Themed/Overmind/Users/login.ctp:164
+msgid "Hide password"
+msgstr "Piilota salasana"
+
+#: View/Themed/Overmind/Users/login.ctp:37
+msgid "Log in with SAML"
+msgstr "Kirjaudu sisään SAML:llä"
+
+#: View/Themed/Overmind/Users/login.ctp:44
+msgid "Log in with Azure AD"
+msgstr "Kirjaudu sisään Azure AD:lla"
+
+#: View/Themed/Overmind/Users/login.ctp:51
+msgid "Log in with OIDC"
+msgstr "Kirjaudu sisään OIDC:llä"
+
+#: View/Themed/Overmind/Users/login.ctp:117
+#: View/Themed/Overmind/Users/login.ctp:194
+msgid "Log in"
+msgstr "Kirjaudu sisään"
+
+#: View/Themed/Overmind/Users/login.ctp:120
+msgid "This instance uses single sign-on. Choose your identity provider."
+msgstr ""
+"Tämä instanssi käyttää kertakirjautumista. Valitse tunnistuspalvelusi."
+
+#: View/Themed/Overmind/Users/login.ctp:146
+msgid "Forgot your password?"
+msgstr "Unohditko salasanasi?"
+
+#: View/Themed/Overmind/Users/login.ctp:173
+msgid "One-time password"
+msgstr "Kertakäyttöinen salasana"
+
+#: View/Themed/Overmind/Users/login.ctp:186
+#, php-format
+msgid "Enter the code from your token. Manage your tokens in %s."
+msgstr ""
+"Syötä tunnistautumisvälineesi koodi. Hallinnoi tunnistautumisvälineitäsi "
+"kohteessa %s."
+
+#: View/Themed/Overmind/Users/login.ctp:198
+msgid "or"
+msgstr "tai"
+
+#: View/Themed/Overmind/Users/login.ctp:211
+msgid "No account yet?"
+msgstr "Eikö tiliä ole vielä?"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid ""
+"Registration will be sent to the administrators of the instance for "
+"consideration."
+msgstr ""
+"Rekisteröintipyyntö lähetetään instanssin ylläpitäjille harkittavaksi."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:25
+msgid "Theme updated!"
+msgstr "Teema päivitetty!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:31
+msgid "Failed to toggle Beta UI. Please try again."
+msgstr "Beta-käyttöliittymän vaihtaminen epäonnistui. Yritä uudelleen."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:56
+msgid "Failed to change the theme. Please try again."
+msgstr "Teeman vaihtaminen epäonnistui. Yritä uudelleen."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:86
+msgid "Homepage saved!"
+msgstr "Kotisivu tallennettu!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:90
+msgid "Failed to set homepage. Please try again."
+msgstr "Kotisivun asettaminen epäonnistui. Yritä uudelleen."

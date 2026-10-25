@@ -1,0 +1,2070 @@
+# Croatian translation of MISP.
+# Machine-assisted draft; native-language review required.
+# Distributed under the same license as MISP.
+msgid ""
+msgstr ""
+"Project-Id-Version: MISP 3.0\n"
+"Report-Msgid-Bugs-To: https://github.com/MISP/MISP/issues\n"
+"POT-Creation-Date: 2026-10-25 00:00+0000\n"
+"PO-Revision-Date: 2026-10-25 00:00+0000\n"
+"Last-Translator: MISP contributors\n"
+"Language-Team: Croatian\n"
+"Language: hr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:244
+msgid "Optional"
+msgstr "Neobavezno"
+
+#: Lib/Tools/SharingGroupPeek.php:107
+msgid "Description"
+msgstr "Opis"
+
+#: View/Helper/NavbarHelper.php:794
+msgid "Access logs"
+msgstr "Dnevnici pristupa"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:233
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:123
+msgid "Edit"
+msgstr "Uredi"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:240
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:286
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:326
+msgid "Delete"
+msgstr "Izbriši"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:336
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:134
+msgid "Tag"
+msgstr "Oznaka"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:254
+msgid "Publish"
+msgstr "Objavi"
+
+#: View/Helper/NavbarHelper.php:784
+msgid "Audit logs"
+msgstr "Dnevnici revizije"
+
+#: View/Helper/NavbarHelper.php:239
+msgid "Dashboard"
+msgstr "Nadzorna ploča"
+
+#: View/Helper/NavbarHelper.php:179
+msgid "Event Reports"
+msgstr "Izvješća o događajima"
+
+#: View/Helper/EventIndexHelper.php:52
+#: View/Themed/Overmind/Elements/Events/index.ctp:202
+#: View/Themed/Overmind/Elements/Events/index.ctp:403
+#: View/Themed/Overmind/Elements/Events/index.ctp:406
+#: View/Themed/Overmind/Elements/Events/index.ctp:424
+#: View/Themed/Overmind/Elements/Events/index.ctp:498
+#: View/Themed/Overmind/Elements/Events/index.ctp:499
+msgid "Published"
+msgstr "Objavljeno"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:196
+msgid "Date"
+msgstr "Datum"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:495
+msgid "Threat level"
+msgstr "Razina prijetnje"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:193
+#: View/Themed/Overmind/Elements/Events/index.ctp:387
+msgid "Distribution"
+msgstr "Distribucija"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:393
+#: View/Themed/Overmind/Elements/Events/index.ctp:493
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:21
+msgid "Sharing group"
+msgstr "Grupa za dijeljenje"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:494
+msgid "Analysis"
+msgstr "Analiza"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:488
+msgid "Attribute"
+msgstr "Atribut"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:203
+#: View/Themed/Overmind/Elements/Events/index.ctp:61
+msgid "Published at"
+msgstr "Objavljeno u"
+
+#: View/Themed/Overmind/Users/login.ctp:127
+msgid "Email"
+msgstr "E-mail"
+
+#: View/Helper/NavbarHelper.php:465
+msgid "Feeds"
+msgstr "Podatkovni izvori"
+
+#: View/Helper/NavbarHelper.php:143
+#: View/Themed/Overmind/Elements/Events/index.ctp:177
+msgid "Objects"
+msgstr "Objekti"
+
+#: View/Helper/NavbarHelper.php:476
+msgid "Sharing Groups"
+msgstr "Grupe za dijeljenje"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:34
+msgid "Organisations"
+msgstr "Organizacije"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:492
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:266
+msgid "Tags"
+msgstr "Oznake"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:183
+msgid "All"
+msgstr "Sve"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:195
+msgid "Enabled"
+msgstr "Omogućeno"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "days"
+msgstr "dana"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "hours"
+msgstr "sati"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:267
+msgid "Taxonomies"
+msgstr "Taksonomije"
+
+#: View/Helper/NavbarHelper.php:298
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:199
+msgid "Galaxies"
+msgstr "Galaksije"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:364
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:156
+msgid "Galaxy"
+msgstr "Galaksija"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:169
+msgid "Markings"
+msgstr "Obilježja"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_panel.ctp:60
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:45
+msgid "Any"
+msgstr "Bilo koje"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:294
+#, php-format
+msgid "Sharing group %s"
+msgstr "Grupa za dijeljenje %s"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:373
+msgid "just now"
+msgstr "upravo sada"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:376
+#, php-format
+msgid "%s min ago"
+msgstr "Prije %s min"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:379
+#, php-format
+msgid "%s h ago"
+msgstr "Prije %s h"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:382
+#, php-format
+msgid "%s d ago"
+msgstr "prije %s d"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:385
+#, php-format
+msgid "%s wk ago"
+msgstr "prije %s tjed."
+
+#: Lib/Tools/EventOverview/EventCardTool.php:388
+#, php-format
+msgid "%s mo ago"
+msgstr "prije %s mj"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:390
+#, php-format
+msgid "%s y ago"
+msgstr "prije %s g"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:253
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:375
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
+msgid "Search"
+msgstr "Traži"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:778
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:784
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:122
+msgid "Clear all"
+msgstr "Obriši sve"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+msgid "Remove this filter"
+msgstr "Uklonite ovaj filter"
+
+#: View/Helper/NavbarHelper.php:258
+msgid "Data points"
+msgstr "Podatkovne točke"
+
+#: View/Helper/NavbarHelper.php:439
+msgid "Data models"
+msgstr "Modeli podataka"
+
+#: View/Helper/NavbarHelper.php:566
+msgid "Sync"
+msgstr "Sinkronizacija"
+
+#: View/Helper/NavbarHelper.php:760
+msgid "Administration"
+msgstr "Administracija"
+
+#: View/Helper/NavbarHelper.php:805
+msgid "Logs"
+msgstr "Zapisnici"
+
+#: View/Helper/NavbarHelper.php:903
+msgid "Resources"
+msgstr "Resursi"
+
+#: View/Helper/NavbarHelper.php:1028 View/Helper/NavbarHelper.php:961
+#: View/Helper/NavbarHelper.php:965
+msgid "Bookmarks"
+msgstr "Knjižne oznake"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:19
+msgid "Pagination"
+msgstr "Paginacija"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:57
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:200
+msgid "Sightings"
+msgstr "Opažanja"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:197
+msgid "Event date"
+msgstr "Datum događaja"
+
+#: View/Helper/NavbarHelper.php:162
+msgid "Value Intelligence"
+msgstr "Obavještajni podaci o vrijednosti"
+
+#: View/Helper/NavbarHelper.php:516
+msgid "Integrations"
+msgstr "Integracije"
+
+#: View/Helper/NavbarHelper.php:727
+#: View/Themed/Overmind/Elements/Events/index.ctp:178
+#: View/Themed/Overmind/Elements/Events/index.ctp:55
+msgid "Correlations"
+msgstr "Korelacije"
+
+#: View/Helper/EventIndexHelper.php:264
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:30
+msgid "Close"
+msgstr "Zatvori"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:242
+msgid "Open"
+msgstr "Otvori"
+
+#: View/Helper/NavbarHelper.php:135
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:19
+msgid "Events"
+msgstr "Događaji"
+
+#: View/Helper/NavbarHelper.php:151
+#: View/Themed/Overmind/Elements/Events/index.ctp:176
+msgid "Attributes"
+msgstr "Atributi"
+
+#: View/Helper/EventIndexHelper.php:54
+#: View/Themed/Overmind/Elements/Events/index.ctp:407
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:23
+msgid "Unpublished"
+msgstr "Neobjavljeno"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:238
+msgid "Required"
+msgstr "Obavezno"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:56
+msgid "Reports"
+msgstr "Izvješća"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:68
+msgid "Reach"
+msgstr "Doseg"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:43
+msgid "No organisation is a member yet."
+msgstr "Nijedna organizacija još nije članica."
+
+#: Lib/Tools/SharingGroupPeek.php:91
+msgid "Stays on this instance."
+msgstr "Ostaje u ovoj instanci."
+
+#: Lib/Tools/SharingGroupPeek.php:89
+#, php-format
+msgid "Pushed to %s other instance."
+msgid_plural "Pushed to %s other instances."
+msgstr[0] "Poslano na %s drugu instancu."
+msgstr[1] "Poslano na %s druge instance."
+msgstr[2] "Poslano na %s drugih instanci."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:194
+msgid "Deprecated"
+msgstr "Zastarjelo"
+
+#: Lib/Tools/SharingGroupPeek.php:29
+msgid "Inactive"
+msgstr "Neaktivan"
+
+#: Lib/Tools/SharingGroupPeek.php:32
+msgid "Received through sync"
+msgstr "Primljeno sinkronizacijom"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Roaming"
+msgstr "Roaming"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Travels to any instance its members connect to."
+msgstr "Dijeli se sa svakom instancom na koju se članovi grupe povežu."
+
+#: Lib/Tools/SharingGroupPeek.php:107
+msgid "Releasable to"
+msgstr "Dopušteno ustupiti sljedećim primateljima"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+#: View/Themed/Overmind/Elements/Events/index.ctp:518
+msgid "none"
+msgstr "nikakav"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:178
+msgid "Object"
+msgstr "Objekt"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "no"
+msgstr "ne"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "yes"
+msgstr "da"
+
+#: View/Helper/NavbarHelper.php:395
+msgid "Warninglists"
+msgstr "Liste upozorenja"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:193
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:490
+msgid "Clear"
+msgstr "Očisti"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:154
+#: View/Themed/Overmind/Elements/Events/index.ctp:325
+#: View/Themed/Overmind/Elements/Events/index.ctp:486
+msgid "Creator org"
+msgstr "Organizacija stvaratelja"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:189
+msgid "Relationship"
+msgstr "Odnos"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:142
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
+msgid "ID"
+msgstr "ID"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:252
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:380
+msgid "Remove"
+msgstr "Ukloniti"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:149
+msgid "Title"
+msgstr "Naslov"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:227
+msgid "View"
+msgstr "Prikaži"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:159
+#: View/Themed/Overmind/Elements/Events/index.ctp:50
+msgid "Owner org"
+msgstr "Organizacija vlasnika"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid "Request access"
+msgstr "Zatraži pristup"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:308
+msgid "Discard"
+msgstr "Odbaciti"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:379
+msgid "Excluded"
+msgstr "Isključeno"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination.ctp:14
+msgid ""
+"Page {:page} of {:pages}, showing {:current} records out of {:count} total, "
+"starting on record {:start}, ending on {:end}"
+msgstr ""
+"Stranica {:page} od {:pages}, prikazuje {:current} zapisa od {:count} "
+"ukupno, počevši od zapisa {:start}, završavajući {:end}"
+
+#: View/Helper/NavbarHelper.php:320
+msgid "Decaying Models"
+msgstr "Modeli slabljenja"
+
+#: View/Helper/NavbarHelper.php:190
+msgid "Template Variables"
+msgstr "Varijable predloška"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:164
+#: View/Themed/Overmind/Elements/Events/index.ctp:51
+msgid "Creator user"
+msgstr "Korisnik stvaratelj"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:377
+msgid "Include"
+msgstr "Uključiti"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:197
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:378
+msgid "Exclude"
+msgstr "Isključi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:368
+msgid "Loading…"
+msgstr "Učitavanje…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:381
+msgid "Apply"
+msgstr "Primijeni"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:174
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:175
+msgid "Group selected Attributes into an Object"
+msgstr "Grupirajte odabrane atribute u objekt"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:196
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:197
+msgid "Sightings display for selected attributes"
+msgstr "Prikaz opažanja za odabrane atribute"
+
+#: View/Helper/NavbarHelper.php:875
+msgid "Server PGP public key"
+msgstr "PGP javni ključ poslužitelja"
+
+#: View/Helper/NavbarHelper.php:884
+msgid "Server S/MIME certificate"
+msgstr "S/MIME certifikat poslužitelja"
+
+#: View/Themed/Overmind/Users/login.ctp:144
+msgid "Password"
+msgstr "Lozinka"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:253
+msgid "Unpublish"
+msgstr "Poništi objavu"
+
+#: View/Helper/NavbarHelper.php:288
+msgid "List Tag Collections"
+msgstr "Popis zbirki oznaka"
+
+#: View/Helper/NavbarHelper.php:837
+msgid "Automation"
+msgstr "Automatizacija"
+
+#: View/Helper/NavbarHelper.php:1063
+msgid "My Profile"
+msgstr "Moj profil"
+
+#: View/Helper/NavbarHelper.php:619
+msgid "List Organisations"
+msgstr "Popis organizacija"
+
+#: View/Helper/NavbarHelper.php:488
+msgid "List Sharing Groups"
+msgstr "Popis grupa za dijeljenje"
+
+#: View/Helper/NavbarHelper.php:503
+msgid "List Sharing Group Blueprints"
+msgstr "Popis nacrta grupa za dijeljenje"
+
+#: View/Helper/NavbarHelper.php:867
+msgid "Categories & Types"
+msgstr "Kategorije i vrste"
+
+#: View/Helper/NavbarHelper.php:247
+msgid "Statistics"
+msgstr "Statistika"
+
+#: View/Helper/NavbarHelper.php:603
+msgid "List Users"
+msgstr "Popis korisnika"
+
+#: View/Helper/NavbarHelper.php:634
+msgid "List Roles"
+msgstr "Popis uloga"
+
+#: View/Helper/NavbarHelper.php:581
+msgid "Server Settings & Maintenance"
+msgstr "Postavke i održavanje poslužitelja"
+
+#: View/Helper/NavbarHelper.php:666
+msgid "Jobs"
+msgstr "Pozadinski zadaci"
+
+#: View/Helper/NavbarHelper.php:674
+msgid "Scheduled Tasks"
+msgstr "Planirani zadaci"
+
+#: View/Helper/NavbarHelper.php:281
+msgid "List Tags"
+msgstr "Popis oznaka"
+
+#: View/Helper/NavbarHelper.php:274
+msgid "List Taxonomies"
+msgstr "Popis taksonomija"
+
+#: View/Helper/NavbarHelper.php:357
+msgid "List Event Templates"
+msgstr "Popis predložaka događaja"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:65
+msgid "Export"
+msgstr "Izvoz"
+
+#: View/Helper/NavbarHelper.php:302
+msgid "List Galaxies"
+msgstr "Popis galaksija"
+
+#: View/Helper/NavbarHelper.php:365
+msgid "List Object Templates"
+msgstr "Popis predložaka objekata"
+
+#: View/Helper/NavbarHelper.php:372
+msgid "List Object Relationships"
+msgstr "Popis odnosa objekata"
+
+#: View/Helper/NavbarHelper.php:1018
+msgid "Manage Bookmarks"
+msgstr "Upravljanje knjižnim oznakama"
+
+#: View/Helper/NavbarHelper.php:409 View/Helper/NavbarHelper.php:417
+msgid "Import Regexp"
+msgstr "Uvezi regularni izraz"
+
+#: View/Helper/NavbarHelper.php:402
+msgid "Noticelists"
+msgstr "Liste obavijesti"
+
+#: View/Helper/NavbarHelper.php:425
+msgid "Correlation Exclusions"
+msgstr "Isključivanja korelacije"
+
+#: View/Helper/NavbarHelper.php:944 View/Helper/NavbarHelper.php:949
+msgid "News"
+msgstr "Vijesti"
+
+#: View/Helper/NavbarHelper.php:894
+msgid "Themes"
+msgstr "Teme"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "ON"
+msgstr "UKLJUČENO"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "OFF"
+msgstr "ISKLJUČENO"
+
+#: View/Helper/NavbarHelper.php:862
+msgid "User Guide"
+msgstr "Korisnički priručnik"
+
+#: View/Helper/NavbarHelper.php:457
+msgid "Remote Servers"
+msgstr "Udaljeni poslužitelji"
+
+#: View/Helper/NavbarHelper.php:520
+msgid "Communities"
+msgstr "Zajednice"
+
+#: View/Helper/NavbarHelper.php:528
+msgid "Cerebrates"
+msgstr "Cerebrates"
+
+#: View/Helper/NavbarHelper.php:536
+msgid "TAXII Servers"
+msgstr "TAXII poslužitelji"
+
+#: View/Helper/NavbarHelper.php:642
+msgid "List Auth Keys"
+msgstr "Popis ključeva za autentifikaciju"
+
+#: View/Helper/NavbarHelper.php:682
+msgid "Benchmarking"
+msgstr "Usporedba performansi"
+
+#: View/Helper/NavbarHelper.php:739
+msgid "Correlation rules"
+msgstr "Pravila korelacije"
+
+#: View/Helper/NavbarHelper.php:747
+msgid "Over-correlating values"
+msgstr "Prekorelirane vrijednosti"
+
+#: View/Helper/NavbarHelper.php:849
+msgid "API"
+msgstr "API"
+
+#: View/Helper/NavbarHelper.php:1070
+msgid "Log out"
+msgstr "Odjavi se"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:185
+#: View/Themed/Overmind/Elements/Events/index.ctp:502
+#: View/Themed/Overmind/Elements/Events/index.ctp:52
+msgid "Extension"
+msgstr "Proširenje"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:10
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:40
+msgid "Menu"
+msgstr "Izbornik"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:208
+#: View/Themed/Overmind/Elements/side_panel.ctp:75
+msgid "Loading"
+msgstr "Učitavanje"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:154
+msgid "Creator"
+msgstr "Autor"
+
+#: View/Helper/NavbarHelper.php:209
+#: View/Themed/Overmind/Elements/Events/index.ctp:496
+#: View/Themed/Overmind/Elements/Events/index.ctp:58
+msgid "Proposals"
+msgstr "Prijedlozi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:259
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:376
+msgid "Selected"
+msgstr "Odabrano"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:210
+#: View/Themed/Overmind/Elements/Events/index.ctp:60
+msgid "Last change"
+msgstr "Zadnja promjena"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:223
+msgid "Enable"
+msgstr "Omogući"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:229
+msgid "Disable"
+msgstr "Onemogući"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:47
+msgid "Custom"
+msgstr "Prilagođeno"
+
+#: View/Helper/EventIndexHelper.php:49
+#, php-format
+msgid "Changes pending: published %s, changed since"
+msgstr "Promjene na čekanju: objavljeno %s, promijenjeno od"
+
+#: View/Helper/EventIndexHelper.php:52
+#, php-format
+msgid "Published %s"
+msgstr "Objavljeno %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "Created by %s"
+msgstr "Autor: %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "held here by %s"
+msgstr "ovdje drži %s"
+
+#: View/Helper/EventIndexHelper.php:95
+#, php-format
+msgid "Your grade for %s: %s (analyst profile)"
+msgstr "Vaša ocjena za %1$s: %2$s (profil analitičara)"
+
+#: View/Helper/EventIndexHelper.php:118
+#, php-format
+msgid "Admiralty scale: %s"
+msgstr "Admiralitetska ljestvica: %s"
+
+#: View/Helper/EventIndexHelper.php:128 View/Helper/EventIndexHelper.php:461
+msgid "pinned by your profile"
+msgstr "prikvačeno vašim profilom"
+
+#: View/Helper/EventIndexHelper.php:137
+#, php-format
+msgid "No %s marking"
+msgstr "Nema oznake %s"
+
+#: View/Helper/EventIndexHelper.php:177 View/Helper/EventIndexHelper.php:195
+msgid "(cluster not available here)"
+msgstr "(klaster nije dostupan ovdje)"
+
+#: View/Helper/EventIndexHelper.php:187
+#, php-format
+msgid "Mitigation %s"
+msgstr "Mjera ublažavanja %s"
+
+#: View/Helper/EventIndexHelper.php:211
+#, php-format
+msgid "%s unresolved"
+msgstr "%s neriješeno"
+
+#: View/Helper/EventIndexHelper.php:226
+#, php-format
+msgid "%s: show all"
+msgstr "%s: prikaži sve"
+
+#: View/Helper/EventIndexHelper.php:318
+#, php-format
+msgid "Changed last of %s workspaces on this event"
+msgstr "Promijenjen zadnji od %s radnih prostora na ovom događaju"
+
+#: View/Helper/EventIndexHelper.php:365
+#, php-format
+msgid "Extends #%s %s"
+msgstr "Proširuje #%1$s %2$s"
+
+#: View/Helper/EventIndexHelper.php:366
+#, php-format
+msgid "extends #%s"
+msgstr "proširuje #%s"
+
+#: View/Helper/EventIndexHelper.php:370
+#, php-format
+msgid "Extends %s, which is not available here"
+msgstr "Proširuje %s, koji ovdje nije dostupan"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "missing"
+msgstr "nedostaje"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "extends an unknown event"
+msgstr "proširuje nepoznati događaj"
+
+#: View/Helper/EventIndexHelper.php:379
+#, php-format
+msgid "extended by %s"
+msgstr "proširio %s"
+
+#: View/Helper/EventIndexHelper.php:411
+msgid "Cluster not available here"
+msgstr "Klaster nije dostupan ovdje"
+
+#: View/Helper/EventIndexHelper.php:464
+msgid "preferred by your profile"
+msgstr "preferirano u vašem profilu"
+
+#: View/Helper/EventIndexHelper.php:387
+#, php-format
+msgid "%s galaxy tag whose cluster is not available here"
+msgid_plural "%s galaxy tags whose cluster is not available here"
+msgstr[0] "%s oznaka galaksije čiji klaster ovdje nije dostupan"
+msgstr[1] "%s oznake galaksija čiji klasteri ovdje nisu dostupni"
+msgstr[2] "%s oznaka galaksija čiji klasteri ovdje nisu dostupni"
+
+#: View/Helper/NavbarHelper.php:171
+msgid "Collections"
+msgstr "Zbirke"
+
+#: View/Helper/NavbarHelper.php:183 View/Helper/NavbarHelper.php:213
+msgid "Index"
+msgstr "Indeks"
+
+#: View/Helper/NavbarHelper.php:200
+msgid "Analyst Data"
+msgstr "Podaci analitičara"
+
+#: View/Helper/NavbarHelper.php:220
+msgid "Events with Proposals"
+msgstr "Događaji s prijedlozima"
+
+#: View/Helper/NavbarHelper.php:227
+msgid "Delegation Requests"
+msgstr "Zahtjevi za delegiranje"
+
+#: View/Helper/NavbarHelper.php:270
+msgid "Tags & Taxonomies"
+msgstr "Oznake i taksonomije"
+
+#: View/Helper/NavbarHelper.php:309
+msgid "List Galaxy Relationships"
+msgstr "Popis odnosa galaksija"
+
+#: View/Helper/NavbarHelper.php:344
+msgid "Analyst Profiles"
+msgstr "Profili analitičara"
+
+#: View/Helper/NavbarHelper.php:353
+msgid "Templates"
+msgstr "Predlošci"
+
+#: View/Helper/NavbarHelper.php:391
+msgid "Filters & Lists"
+msgstr "Filtri i popisi"
+
+#: View/Helper/NavbarHelper.php:453
+msgid "Servers & Feeds"
+msgstr "Poslužitelji i izvori sadržaja"
+
+#: View/Helper/NavbarHelper.php:544
+msgid "Sighting DB"
+msgstr "Baza podataka opažanja"
+
+#: View/Helper/NavbarHelper.php:555
+msgid "Event ID Translator"
+msgstr "Prevoditelj ID-a događaja"
+
+#: View/Helper/NavbarHelper.php:591
+msgid "Users & Orgs"
+msgstr "Korisnici i organizacije"
+
+#: View/Helper/NavbarHelper.php:611
+msgid "User Settings"
+msgstr "Korisničke postavke"
+
+#: View/Helper/NavbarHelper.php:630
+msgid "Roles & Permissions"
+msgstr "Uloge i dopuštenja"
+
+#: View/Helper/NavbarHelper.php:654
+msgid "System jobs"
+msgstr "Sistemski poslovi"
+
+#: View/Helper/NavbarHelper.php:658
+msgid "Workflow"
+msgstr "Tijek rada"
+
+#: View/Helper/NavbarHelper.php:695
+msgid "Blocklisting"
+msgstr "Popis blokiranih"
+
+#: View/Helper/NavbarHelper.php:699
+msgid "Blocklisted events"
+msgstr "Događaji na popisu blokiranih"
+
+#: View/Helper/NavbarHelper.php:707
+msgid "Blocklisted organisations"
+msgstr "Organizacije na popisu blokiranih"
+
+#: View/Helper/NavbarHelper.php:715
+msgid "Blocklisted sightings"
+msgstr "Opažanja na popisu blokiranih"
+
+#: View/Helper/NavbarHelper.php:731
+msgid "Top correlations"
+msgstr "Najčešće korelacije"
+
+#: View/Helper/NavbarHelper.php:775
+msgid "Application logs"
+msgstr "Dnevnici aplikacije"
+
+#: View/Helper/NavbarHelper.php:819
+msgid "Open API"
+msgstr "OpenAPI"
+
+#: View/Helper/NavbarHelper.php:827
+msgid "REST Client"
+msgstr "REST klijent"
+
+#: View/Helper/NavbarHelper.php:981
+msgid "No workspace"
+msgstr "Nema radnog prostora"
+
+#: View/Helper/NavbarHelper.php:983
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:94
+msgid "Workspace"
+msgstr "Radni prostor"
+
+#: View/Helper/NavbarHelper.php:1006
+msgid "Set this page as homepage"
+msgstr "Postavite ovu stranicu kao početnu"
+
+#: View/Helper/NavbarHelper.php:1050
+msgid "Dark mode"
+msgstr "Tamni način rada"
+
+#: View/Helper/NavbarHelper.php:1058
+msgid "Replay the tutorial"
+msgstr "Ponovno reproducirajte vodič"
+
+#: View/Helper/NavbarHelper.php:1100
+msgid "Light"
+msgstr "Svijetlo"
+
+#: View/Helper/NavbarHelper.php:1101
+msgid "Dark"
+msgstr "Tamno"
+
+#: View/Helper/NavbarHelper.php:1102
+msgid "Light and dark"
+msgstr "Svjetlo i tamno"
+
+#: View/Helper/NavbarHelper.php:1137
+#, php-format
+msgid "Instance default (%s)"
+msgstr "Zadano za instancu (%s)"
+
+#: View/Helper/NavbarHelper.php:1138
+msgid "Follow the theme your administrator picks for this instance."
+msgstr "Koristi temu koju je administrator odabrao za ovu instancu."
+
+#: View/Helper/NavbarHelper.php:1146
+msgid "Theme"
+msgstr "Tema"
+
+#: View/Helper/NavbarHelper.php:948
+#, php-format
+msgid "News: %s unread"
+msgid_plural "News: %s unread"
+msgstr[0] "Novosti: %s nepročitana"
+msgstr[1] "Novosti: %s nepročitane"
+msgstr[2] "Novosti: %s nepročitanih"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:89
+msgid "Reset"
+msgstr "Resetiraj"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:82
+msgid "Next page"
+msgstr "Sljedeća stranica"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:27
+msgid "Previous page"
+msgstr "Prethodna stranica"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:119
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:120
+msgid "Edit selected attributes"
+msgstr "Uredite odabrane atribute"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+#, php-format
+msgid "Remove %s"
+msgstr "Ukloni %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:268
+msgid "Add to workspace"
+msgstr "Dodaj u radni prostor"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close (Esc)"
+msgstr "Zatvori (Esc)"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:53
+msgid "Tags & galaxies"
+msgstr "Oznake i galaksije"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:54
+msgid "Attributes & objects"
+msgstr "Atributi i objekti"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:59
+msgid "Discussions"
+msgstr "Rasprave"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:83
+#: View/Themed/Overmind/Elements/Events/index.ctp:84
+msgid "Choose columns"
+msgstr "Odaberite stupce"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:85
+#: View/Themed/Overmind/Elements/Events/index.ctp:86
+msgid "Columns"
+msgstr "Stupci"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:88
+msgid "Reset widths"
+msgstr "Ponovno postavite širine"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:139
+msgid "Publish state"
+msgstr "Stanje objave"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:170
+msgid "Markings your analyst profile pins"
+msgstr "Obilježja prikvačena u vašem analitičkom profilu"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:174
+msgid "ATT&CK techniques (count, then ids), then mitigations"
+msgstr "Tehnike ATT&CK (broj, zatim identifikatori), potom mjere ublažavanja"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:175
+msgid "Other clusters, then tags"
+msgstr "Ostali klasteri, zatim oznake"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:182
+msgid ""
+"Workspaces, reports, sightings, proposals and discussions, when there are "
+"any"
+msgstr ""
+"Radni prostori, izvješća, opažanja, prijedlozi i rasprave, ako postoje"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:209
+#: View/Themed/Overmind/Elements/Events/index.ctp:423
+#: View/Themed/Overmind/Elements/Events/index.ctp:497
+msgid "Changed"
+msgstr "Promijenjeno"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:342
+msgid "Event or attribute tags."
+msgstr "Oznake događaja ili atributa."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:353
+msgid "And tag"
+msgstr "I oznaka"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:358
+msgid "Also carried by the event or one of its attributes."
+msgstr "Prisutna je i na događaju ili nekom od njegovih atributa."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:369
+msgid "Clusters attached to the event."
+msgstr "Klasteri priloženi događaju."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:380
+msgid "Any sharing group"
+msgstr "Bilo koja grupa za dijeljenje"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:397
+msgid "Including a group keeps only events shared with it."
+msgstr "Uključivanjem grupe ostaju samo događaji podijeljeni s njom."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "24h"
+msgstr "24h"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "last 24 hours"
+msgstr "zadnja 24 sata"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "7d"
+msgstr "7d"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "last 7 days"
+msgstr "posljednjih 7 dana"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "30d"
+msgstr "30d"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "last 30 days"
+msgstr "posljednjih 30 dana"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "90d"
+msgstr "90d"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "last 90 days"
+msgstr "zadnjih 90 dana"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "1y"
+msgstr "1 g"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "last year"
+msgstr "posljednjih 12 mjeseci"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:420
+msgid "Time"
+msgstr "Vrijeme"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:434
+msgid "My events"
+msgstr "Moji događaji"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:448
+msgid "Org events"
+msgstr "Događaji organizacije"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:467
+#, php-format
+msgid "until %s"
+msgstr "do %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "minutes"
+msgstr "minuta"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "seconds"
+msgstr "sekundi"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:472
+#, php-format
+msgid "last %s %s"
+msgstr "posljednji %1$s %2$s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:475
+#: View/Themed/Overmind/Elements/Events/index.ctp:478
+#, php-format
+msgid "since %s"
+msgstr "od %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:487
+msgid "Anything"
+msgstr "Bilo što"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:489
+msgid "Attribute value"
+msgstr "Vrijednost atributa"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:490
+msgid "Date from"
+msgstr "Datum od"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:491
+msgid "Date until"
+msgstr "Datum do"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:500
+msgid "First published"
+msgstr "Prvi put objavljeno"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:501
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:31
+msgid "Changes pending"
+msgstr "Promjene na čekanju"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:503
+msgid "Extended"
+msgstr "Prošireno"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:504
+msgid "Minimal"
+msgstr "Minimalno"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+msgid "some"
+msgstr "neke"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:28
+msgid "Never published, or unpublished since"
+msgstr "Nikad nije objavljeno ili je objava naknadno povučena"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:37
+msgid "Published once and changed since"
+msgstr "Objavljeno jednom i od tada promijenjeno"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:40
+msgid "Changed this week"
+msgstr "Promijenjeno ovaj tjedan"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:45
+msgid "Changed in the last 7 days"
+msgstr "Promijenjeno u zadnjih 7 dana"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:50
+msgid "Since your last visit"
+msgstr "Od vašeg posljednjeg posjeta"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:55
+#, php-format
+msgid "Changed since your previous login, %s"
+msgstr "Promijenjeno od vaše prethodne prijave, %s"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:59
+msgid "New this week"
+msgstr "Novo ovaj tjedan"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:64
+msgid "First published in the last 7 days"
+msgstr "Prvi put objavljeno u zadnjih 7 dana"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:67
+msgid "Creator orgs"
+msgstr "Organizacije autora"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:70
+msgid "Filter by creator organisation"
+msgstr "Filtriraj prema organizaciji autora"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:79
+msgid "Event dates"
+msgstr "Datumi događaja"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:84
+msgid "Figures for these filters"
+msgstr "Brojke za ove filtere"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:83
+msgid "Fetch"
+msgstr "Dohvati"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:241
+#, php-format
+msgid "Open %s"
+msgstr "Otvori %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:268
+msgid "Activate"
+msgstr "Aktiviraj"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:274
+msgid "Deactivate"
+msgstr "Deaktiviraj"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:90
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:91
+msgid "Add the selected to the active workspace"
+msgstr "Dodajte odabrano u aktivni radni prostor"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:332
+msgid "Clear selection"
+msgstr "Očisti odabir"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:20
+#, php-format
+msgid "Sharing group · owned by %s"
+msgstr "Grupa za dijeljenje · vlasnik %s"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:41
+msgid "Every organisation on this instance"
+msgstr "Sve organizacije u ovoj instanci"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:51
+msgid "owner"
+msgstr "vlasnik"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:52
+msgid "your org"
+msgstr "vaša organizacija"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:54
+msgid "Can add organisations"
+msgstr "Može dodati organizacije"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:61
+#, php-format
+msgid "+%s more · open the group"
+msgstr "+%s još · otvori grupu"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:81
+msgid "Only this group"
+msgstr "Samo ova grupa"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:82
+msgid "Open group"
+msgstr "Otvori grupu"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:38
+#, php-format
+msgid "%s member organisation"
+msgid_plural "%s member organisations"
+msgstr[0] "%s organizacija članica"
+msgstr[1] "%s organizacije članice"
+msgstr[2] "%s organizacija članica"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:253
+msgid "Highlight"
+msgstr "Istakni"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:367
+msgid "Searching…"
+msgstr "Pretraživanje…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:49
+msgid "From"
+msgstr "Od"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:50
+msgid "To"
+msgstr "Do"
+
+#: View/Themed/Overmind/Users/login.ctp:82
+#: View/Themed/Overmind/Users/login.ctp:88
+#: View/Themed/Overmind/Users/login.ctp:97
+msgid "Logo"
+msgstr "Logotip"
+
+#: View/Themed/Overmind/Users/login.ctp:90
+#: View/Themed/Overmind/Users/login.ctp:91
+msgid "MISP — Intelligence Sharing"
+msgstr "MISP — Razmjena obavještajnih podataka"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:182
+#, php-format
+msgid "aka %s"
+msgstr "poznat kao %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:184
+msgid "All galaxies"
+msgstr "Sve galaksije"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:185
+#, php-format
+msgid "All of %s"
+msgstr "Sve %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:186
+msgid "All tactics"
+msgstr "Sve taktike"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:187
+msgid "All tags"
+msgstr "Sve oznake"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:188
+msgid "A–Z"
+msgstr "A–Z"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:189
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:370
+#, php-format
+msgid "Back to %s"
+msgstr "Natrag na %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:190
+msgid "Browse"
+msgstr "Pregledaj"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:191
+msgid "By namespace"
+msgstr "Po imenskom prostoru"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:192
+msgid "Check the spelling, or browse a scope on the left."
+msgstr "Provjerite pravopis ili pregledajte opseg s lijeve strane."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:196
+msgid "Everywhere"
+msgstr "Posvuda"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:198
+#, php-format
+msgid "First %s matches · keep typing or narrow"
+msgstr "Prvih %s rezultata · nastavite pisati ili suzite pretragu"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:200
+msgid "Has selected values"
+msgstr "Ima odabrane vrijednosti"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:201
+msgid "In use"
+msgstr "U upotrebi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:202
+msgid "Clusters already attached somewhere"
+msgstr "Klasteri koji su već negdje povezani"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:203
+msgid "Keep typing"
+msgstr "Nastavi tipkati"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:204
+msgid "apply"
+msgstr "primijeni"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:205
+msgid "back"
+msgstr "natrag"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:206
+msgid "exclude"
+msgstr "isključi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:207
+msgid "include"
+msgstr "uključi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:209
+msgid "Loading scopes…"
+msgstr "Učitavanje opsega..."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:210
+msgid "Could not load the scopes."
+msgstr "Nije moguće učitati opsege."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:211
+msgid "Could not load these values"
+msgstr "Nije moguće učitati ove vrijednosti"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:212
+msgid "All of"
+msgstr "Sve od"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:213
+msgid "Events tagged with every one of them, on the event itself"
+msgstr "Događaji označeni svakim od njih, na samom događaju"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:214
+msgid "Any of"
+msgstr "Bilo koji od"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:215
+msgid ""
+"Events with at least one of them, on the event or one of its attributes"
+msgstr ""
+"Događaji s barem jednim od njih, na događaju ili jednom od njegovih atributa"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:216
+msgid "Match"
+msgstr "Podudaranje"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:217
+msgid "matrix"
+msgstr "matrica"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:218
+msgid "A matrix: browse it by tactic"
+msgstr "Matrica: pregledajte je po taktici"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:219
+#, php-format
+msgid "+%s more"
+msgstr "+ još %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:220
+msgid "More not shown · type to narrow"
+msgstr "Neki rezultati nisu prikazani · upišite za sužavanje"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:221
+#, php-format
+msgid "+%s more · type to narrow"
+msgstr "+%s više · upišite za sužavanje"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:222
+msgid "Namespaces"
+msgstr "Imenski prostori"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:223
+#, php-format
+msgid "Narrow to %s, keeping “%s”"
+msgstr "Suziti na %1$s, zadržavajući “%2$s”"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:224
+msgid "Narrow to"
+msgstr "Suzi na"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:225
+msgid "No cluster in use"
+msgstr "Ne koristi se klaster"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:226
+#, php-format
+msgid "No cluster in use matches “%s”"
+msgstr "Nijedan klaster u upotrebi ne odgovara “%s”"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:227
+msgid "No cluster in use for this tactic"
+msgstr "Ne koristi se klaster za ovu taktiku"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:228
+msgid "No namespace"
+msgstr "Nema imenskog prostora"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:229
+msgid "Free-text tags, written without a \"namespace:\" prefix."
+msgstr "Oznake slobodnog teksta bez prefiksa \"namespace:\"."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:230
+msgid "No predicate has a match."
+msgstr "Nijedan predikat nema podudaranje."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:231
+msgid "not"
+msgstr "ne"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:232
+msgid "Not attached to anything yet"
+msgstr "Još nije vezan ni za što"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:233
+msgid "no taxonomy"
+msgstr "nema taksonomije"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:234
+msgid "Not enabled"
+msgstr "Nije omogućeno"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:235
+msgid "Nothing here yet"
+msgstr "Ovdje još nema ništa"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:236
+#, php-format
+msgid "Nothing in %s matches “%s”"
+msgstr "Ništa u %1$s ne odgovara \"%2$s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:237
+#, php-format
+msgid "Nothing matches “%s”"
+msgstr "Ništa ne odgovara “%s”"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:238
+#, php-format
+msgid "No %s value matches “%s”"
+msgstr "Nijedna %1$s vrijednost ne odgovara \"%2$s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:239
+#, php-format
+msgid "Tags written as \"%s:…\", with no taxonomy behind them."
+msgstr "Oznake napisane kao \"%s:…\", bez taksonomije iza njih."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:240
+msgid "Numerical value"
+msgstr "Numerička vrijednost"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:243
+#, php-format
+msgid "or type to search all %s %s values."
+msgstr "ili upišite za pretraživanje svih %1$s %2$s vrijednosti."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:244
+msgid "Other namespaces"
+msgstr "Ostali imenski prostori"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:245
+#, php-format
+msgid "Other %s tags"
+msgstr "Ostale %s oznake"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:246
+msgid "Tags in this namespace that are not entries of the taxonomy"
+msgstr "Oznake u ovom prostoru imena koje nisu unosi taksonomije"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:247
+msgid "pick a heading to narrow"
+msgstr "odaberite naslov za sužavanje"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:248
+msgid "Pick a predicate"
+msgstr "Odaberite predikat"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:249
+msgid "Pinned in your profile"
+msgstr "Prikvačeno na vašem profilu"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:250
+msgid "Predicates"
+msgstr "Predikati"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:251
+msgid "Preferred in your profile"
+msgstr "Preferirano u vašem profilu"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:254
+msgid "Search all clusters, or pick a scope"
+msgstr "Pretražite sve klastere ili odaberite opseg"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:255
+#, php-format
+msgid "Search all of %s"
+msgstr "Pretraži sve %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:256
+msgid "Search all tags, or pick a scope"
+msgstr "Pretražite sve oznake ili odaberite opseg"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:257
+msgid "Search failed"
+msgstr "Pretraga nije uspjela"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:258
+#, php-format
+msgid "Search in %s"
+msgstr "Traži u %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:260
+msgid "show all"
+msgstr "pokazati sve"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:261
+msgid "Show all clusters"
+msgstr "Prikaži sve klastere"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:262
+msgid "Show where it lives"
+msgstr "Prikaži lokaciju"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:263
+#, php-format
+msgid "Starts with %s"
+msgstr "Počinje s %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:264
+msgid "Stop excluding"
+msgstr "Prestani isključivati"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:265
+msgid "Tactics"
+msgstr "Taktike"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:268
+msgid "taxonomy"
+msgstr "taksonomija"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:269
+msgid "Nothing selected · click a value to include it,"
+msgstr "Ništa nije odabrano · kliknite vrijednost da biste je uključili,"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:270
+msgid "to exclude it"
+msgstr "da biste je isključili"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:271
+#: View/Themed/Overmind/Elements/side_panel.ctp:33
+msgid "Try again"
+msgstr "Pokušajte ponovno"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:272
+msgid "Two characters search every cluster, or pick a scope on the left."
+msgstr ""
+"Upišite dva znaka za pretraživanje svih klastera ili odaberite opseg s "
+"lijeve strane."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:273
+msgid "Two characters search every tag, or pick a scope on the left."
+msgstr ""
+"Upišite dva znaka za pretraživanje svih oznaka ili odaberite opseg s lijeve "
+"strane."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:274
+msgid "Where you are"
+msgstr "Gdje si ti"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:275
+msgid "Which clusters"
+msgstr "Koji klasteri"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:366
+msgid "Type 2 characters to search"
+msgstr "Upišite 2 znaka za pretraživanje"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:369
+msgid "The list could not be loaded"
+msgstr "Popis se nije mogao učitati"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:371
+#, php-format
+msgid "Choose %s"
+msgstr "Odaberite %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:372
+msgid "Nothing matches"
+msgstr "Ništa ne odgovara"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:373
+#, php-format
+msgid "%s more: type to narrow"
+msgstr "%s više: upišite za sužavanje"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:374
+msgid "The search failed"
+msgstr "Pretraga nije uspjela"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:382
+msgid "Any of these. Applies when you close the picker."
+msgstr "Bilo koji od ovih. Primjenjuje se kada zatvorite birač."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:383
+msgid "Any of these."
+msgstr "Bilo koji od ovih."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:384
+msgid ""
+"This link asks for events with all of these. Changing the selection here "
+"switches to any of them."
+msgstr ""
+"Ova poveznica traži događaje sa svim ovim oznakama. Promjenom odabira ovdje "
+"prelazite na događaje s barem jednom od njih."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:385
+msgid "Not found on this instance"
+msgstr "Nije pronađeno u ovoj instanci"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:386
+msgid "The filtered list could not be loaded."
+msgstr "Filtrirani popis nije se mogao učitati."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:473
+msgid "Search a value"
+msgstr "Tražite vrijednost"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:727
+#, php-format
+msgid "%s shown, page %s"
+msgstr "Prikazano %1$s, stranica %2$s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:733
+#, php-format
+msgid "%s shown, page %s of %s"
+msgstr "Prikazano %1$s, stranica %2$s od %3$s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:739
+#, php-format
+msgid "%s shown"
+msgstr "%s prikazano"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:767
+msgid "Active filters"
+msgstr "Aktivni filteri"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:45
+#, php-format
+msgid "%s (all of)"
+msgstr "%s (sve)"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_picker.ctp:108
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:37
+#, php-format
+msgid "%s selected"
+msgid_plural "%s selected"
+msgstr[0] "Odabrano: %s"
+msgstr[1] "Odabrano: %s"
+msgstr[2] "Odabrano: %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:46
+msgid "No limit"
+msgstr "Bez ograničenja"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:48
+msgid "Pick dates"
+msgstr "Odaberite datume"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:51
+msgid "Both rows apply together. Applies when you close the picker."
+msgstr "Oba reda primjenjuju se zajedno. Primjenjuje se kada zatvorite birač."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:62
+#, php-format
+msgid "%s set"
+msgid_plural "%s set"
+msgstr[0] "Postavljeno: %s"
+msgstr[1] "Postavljeno: %s"
+msgstr[2] "Postavljeno: %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_toggle.ctp:17
+msgid "More Filters"
+msgstr "Više filtera"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_card.ctp:56
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_table.ctp:103
+msgid "No items to display"
+msgstr "Nema stavki za prikaz"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:30
+msgid "Selected items"
+msgstr "Odabrane stavke"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:61
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:62
+msgid "Export selected attributes"
+msgstr "Izvoz odabranih atributa"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:79
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:80
+msgid "Fetch the selected events"
+msgstr "Dohvati odabrane događaje"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:130
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:131
+msgid "Add Tag on selected attributes"
+msgstr "Dodaj oznaku odabranim atributima"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:141
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:142
+msgid "Add Local Tag on selected attributes"
+msgstr "Dodajte lokalnu oznaku odabranim atributima"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:145
+msgid "Local Tag"
+msgstr "Lokalna oznaka"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:152
+msgid "Add Galaxy on selected attributes"
+msgstr "Dodaj galaksiju odabranim atributima"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:153
+msgid "Add Galaxy to selected attributes"
+msgstr "Dodaj galaksiju odabranim atributima"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:163
+msgid "Add Local Galaxy on selected attributes"
+msgstr "Dodaj lokalnu galaksiju odabranim atributima"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:164
+msgid "Add Local Galaxy to selected attributes"
+msgstr "Dodaj lokalnu galaksiju odabranim atributima"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:167
+msgid "Local Galaxy"
+msgstr "Lokalna galaksija"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:185
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:186
+msgid "Create new relationship for selected attributes"
+msgstr "Stvorite novi odnos za odabrane atribute"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:221
+msgid "Enable selected items"
+msgstr "Omogući odabrane stavke"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:227
+msgid "Disable selected items"
+msgstr "Onemogući odabrane stavke"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:236
+msgid "Make the selected items required"
+msgstr "Postavi odabrane stavke kao obavezne"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:242
+msgid "Make the selected items optional"
+msgstr "Postavi odabrane stavke kao neobavezne"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:251
+msgid "Highlight selected items"
+msgstr "Istakni odabrane stavke"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:257
+msgid "Remove highlight for selected items"
+msgstr "Ukloni isticanje za odabrane stavke"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:259
+msgid "Remove Highlight"
+msgstr "Ukloni isticanje"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:266
+msgid "Activate selected items"
+msgstr "Aktivirajte odabrane stavke"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:272
+msgid "Deactivate selected items"
+msgstr "Deaktiviraj odabrane stavke"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:282
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:283
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:322
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:323
+msgid "Delete selected items"
+msgstr "Izbriši odabrane stavke"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:293
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:294
+msgid "Process the selected registrations"
+msgstr "Obradite odabrane registracije"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:297
+msgid "Process"
+msgstr "Obradi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:304
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:305
+msgid "Discard the selected registrations"
+msgstr "Odbaci odabrane registracije"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:78
+#, php-format
+msgid "Showing %s–%s"
+msgstr "Prikaz %1$s–%2$s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:84
+#, php-format
+msgid "Showing %s–%s of %s"
+msgstr "Prikaz %1$s–%2$s od %3$s"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Drag to resize · double-click to widen"
+msgstr "Povucite za promjenu veličine · dvaput kliknite za proširenje"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Resize the window (arrow keys)"
+msgstr "Promjena veličine prozora (tipke sa strelicama)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Drag to resize"
+msgstr "Povucite za promjenu veličine"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Drag to move · arrow keys"
+msgstr "Povucite za pomicanje · tipke sa strelicama"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Move the window (arrow keys)"
+msgstr "Pomicanje prozora (tipke sa strelicama)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:56
+msgid "Undock into a window"
+msgstr "Odvoji u zaseban prozor"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:59
+msgid "Dock to the right"
+msgstr "Usidri desno"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:28
+#: View/Themed/Overmind/Elements/side_panel.ctp:62
+msgid "Widen the panel"
+msgstr "Proširite ploču"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:1
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:20
+msgid "Main"
+msgstr "Glavni izbornik"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:3
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:22
+#, php-format
+msgid "MISP %s"
+msgstr "MISP %s"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:4
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:23
+msgid "MISP Logo"
+msgstr "MISP logotip"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:27
+#, php-format
+msgid "%s shows or hides it"
+msgstr "%s ga prikazuje ili skriva"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:29
+msgid "Back to your width"
+msgstr "Vrati na odabranu širinu"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:30
+msgid "Undocked into a window."
+msgstr "Odvojeno u zaseban prozor."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:31
+msgid "Docked to the right."
+msgstr "Usidreno desno."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:32
+msgid "Failed to load."
+msgstr "Učitavanje nije uspjelo."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:34
+msgid "It could not be saved."
+msgstr "Spremanje nije uspjelo."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Panel width"
+msgstr "Širina panela"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close the panel"
+msgstr "Zatvorite ploču"
+
+#: View/Themed/Overmind/Users/login.ctp:162
+#: View/Themed/Overmind/Users/login.ctp:163
+msgid "Show password"
+msgstr "Prikaži lozinku"
+
+#: View/Themed/Overmind/Users/login.ctp:164
+msgid "Hide password"
+msgstr "Sakrij lozinku"
+
+#: View/Themed/Overmind/Users/login.ctp:37
+msgid "Log in with SAML"
+msgstr "Prijavite se pomoću SAML-a"
+
+#: View/Themed/Overmind/Users/login.ctp:44
+msgid "Log in with Azure AD"
+msgstr "Prijavite se s Azure AD"
+
+#: View/Themed/Overmind/Users/login.ctp:51
+msgid "Log in with OIDC"
+msgstr "Prijavite se s OIDC-om"
+
+#: View/Themed/Overmind/Users/login.ctp:117
+#: View/Themed/Overmind/Users/login.ctp:194
+msgid "Log in"
+msgstr "Prijavi se"
+
+#: View/Themed/Overmind/Users/login.ctp:120
+msgid "This instance uses single sign-on. Choose your identity provider."
+msgstr ""
+"Ova instanca koristi jedinstvenu prijavu. Odaberite pružatelja identiteta."
+
+#: View/Themed/Overmind/Users/login.ctp:146
+msgid "Forgot your password?"
+msgstr "Zaboravili ste lozinku?"
+
+#: View/Themed/Overmind/Users/login.ctp:173
+msgid "One-time password"
+msgstr "Jednokratna lozinka"
+
+#: View/Themed/Overmind/Users/login.ctp:186
+#, php-format
+msgid "Enter the code from your token. Manage your tokens in %s."
+msgstr "Unesite kod sa svog tokena. Upravljajte svojim tokenima u %s."
+
+#: View/Themed/Overmind/Users/login.ctp:198
+msgid "or"
+msgstr "ili"
+
+#: View/Themed/Overmind/Users/login.ctp:211
+msgid "No account yet?"
+msgstr "Još nemate račun?"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid ""
+"Registration will be sent to the administrators of the instance for "
+"consideration."
+msgstr ""
+"Registracija će biti poslana administratorima instance na razmatranje."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:25
+msgid "Theme updated!"
+msgstr "Tema ažurirana!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:31
+msgid "Failed to toggle Beta UI. Please try again."
+msgstr ""
+"Nije uspjelo prebacivanje Beta korisničkog sučelja. Molimo pokušajte ponovo."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:56
+msgid "Failed to change the theme. Please try again."
+msgstr "Promjena teme nije uspjela. Molimo pokušajte ponovo."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:86
+msgid "Homepage saved!"
+msgstr "Početna stranica spremljena!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:90
+msgid "Failed to set homepage. Please try again."
+msgstr "Postavljanje početne stranice nije uspjelo. Molimo pokušajte ponovo."

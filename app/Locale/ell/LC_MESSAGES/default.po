@@ -1,0 +1,2079 @@
+# Greek translation of MISP.
+# Machine-assisted draft; native-language review required.
+# Distributed under the same license as MISP.
+msgid ""
+msgstr ""
+"Project-Id-Version: MISP 3.0\n"
+"Report-Msgid-Bugs-To: https://github.com/MISP/MISP/issues\n"
+"POT-Creation-Date: 2026-10-25 00:00+0000\n"
+"PO-Revision-Date: 2026-10-25 00:00+0000\n"
+"Last-Translator: MISP contributors\n"
+"Language-Team: Greek\n"
+"Language: el\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:244
+msgid "Optional"
+msgstr "Προαιρετικό"
+
+#: Lib/Tools/SharingGroupPeek.php:107
+msgid "Description"
+msgstr "Περιγραφή"
+
+#: View/Helper/NavbarHelper.php:794
+msgid "Access logs"
+msgstr "Αρχεία καταγραφής πρόσβασης"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:233
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:123
+msgid "Edit"
+msgstr "Επεξεργασία"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:240
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:286
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:326
+msgid "Delete"
+msgstr "Διαγραφή"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:336
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:134
+msgid "Tag"
+msgstr "Ετικέτα"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:254
+msgid "Publish"
+msgstr "Δημοσίευση"
+
+#: View/Helper/NavbarHelper.php:784
+msgid "Audit logs"
+msgstr "Αρχεία καταγραφής ελέγχου"
+
+#: View/Helper/NavbarHelper.php:239
+msgid "Dashboard"
+msgstr "Πίνακας ελέγχου"
+
+#: View/Helper/NavbarHelper.php:179
+msgid "Event Reports"
+msgstr "Αναφορές συμβάντων"
+
+#: View/Helper/EventIndexHelper.php:52
+#: View/Themed/Overmind/Elements/Events/index.ctp:202
+#: View/Themed/Overmind/Elements/Events/index.ctp:403
+#: View/Themed/Overmind/Elements/Events/index.ctp:406
+#: View/Themed/Overmind/Elements/Events/index.ctp:424
+#: View/Themed/Overmind/Elements/Events/index.ctp:498
+#: View/Themed/Overmind/Elements/Events/index.ctp:499
+msgid "Published"
+msgstr "Δημοσιεύθηκε"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:196
+msgid "Date"
+msgstr "Ημερομηνία"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:495
+msgid "Threat level"
+msgstr "Επίπεδο απειλής"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:193
+#: View/Themed/Overmind/Elements/Events/index.ctp:387
+msgid "Distribution"
+msgstr "Διανομή"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:393
+#: View/Themed/Overmind/Elements/Events/index.ctp:493
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:21
+msgid "Sharing group"
+msgstr "Ομάδα διαμοιρασμού"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:494
+msgid "Analysis"
+msgstr "Ανάλυση"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:488
+msgid "Attribute"
+msgstr "Ιδιότητα"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:203
+#: View/Themed/Overmind/Elements/Events/index.ctp:61
+msgid "Published at"
+msgstr "Δημοσιεύθηκε στις"
+
+#: View/Themed/Overmind/Users/login.ctp:127
+msgid "Email"
+msgstr "Ηλεκτρονικό ταχυδρομείο"
+
+#: View/Helper/NavbarHelper.php:465
+msgid "Feeds"
+msgstr "Ροές δεδομένων"
+
+#: View/Helper/NavbarHelper.php:143
+#: View/Themed/Overmind/Elements/Events/index.ctp:177
+msgid "Objects"
+msgstr "Αντικείμενα"
+
+#: View/Helper/NavbarHelper.php:476
+msgid "Sharing Groups"
+msgstr "Ομάδες διαμοιρασμού"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:34
+msgid "Organisations"
+msgstr "Οργανισμοί"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:492
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:266
+msgid "Tags"
+msgstr "Ετικέτες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:183
+msgid "All"
+msgstr "Όλα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:195
+msgid "Enabled"
+msgstr "Ενεργοποιημένο"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "days"
+msgstr "ημέρες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "hours"
+msgstr "ώρες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:267
+msgid "Taxonomies"
+msgstr "Ταξινομίες"
+
+#: View/Helper/NavbarHelper.php:298
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:199
+msgid "Galaxies"
+msgstr "Γαλαξίες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:364
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:156
+msgid "Galaxy"
+msgstr "Γαλαξίας"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:169
+msgid "Markings"
+msgstr "Επισημάνσεις"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_panel.ctp:60
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:45
+msgid "Any"
+msgstr "Οποιαδήποτε"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:294
+#, php-format
+msgid "Sharing group %s"
+msgstr "Ομάδα διαμοιρασμού %s"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:373
+msgid "just now"
+msgstr "μόλις τώρα"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:376
+#, php-format
+msgid "%s min ago"
+msgstr "πριν από %s λεπ."
+
+#: Lib/Tools/EventOverview/EventCardTool.php:379
+#, php-format
+msgid "%s h ago"
+msgstr "πριν από %s ώρ."
+
+#: Lib/Tools/EventOverview/EventCardTool.php:382
+#, php-format
+msgid "%s d ago"
+msgstr "%s ημ. πριν"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:385
+#, php-format
+msgid "%s wk ago"
+msgstr "πριν από %s εβδ."
+
+#: Lib/Tools/EventOverview/EventCardTool.php:388
+#, php-format
+msgid "%s mo ago"
+msgstr "πριν από %s μήν."
+
+#: Lib/Tools/EventOverview/EventCardTool.php:390
+#, php-format
+msgid "%s y ago"
+msgstr "Πριν από %s χρόνια"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:253
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:375
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
+msgid "Search"
+msgstr "Αναζήτηση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:778
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:784
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:122
+msgid "Clear all"
+msgstr "Καθαρίστε όλα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+msgid "Remove this filter"
+msgstr "Αφαιρέστε αυτό το φίλτρο"
+
+#: View/Helper/NavbarHelper.php:258
+msgid "Data points"
+msgstr "Σημεία δεδομένων"
+
+#: View/Helper/NavbarHelper.php:439
+msgid "Data models"
+msgstr "Μοντέλα δεδομένων"
+
+#: View/Helper/NavbarHelper.php:566
+msgid "Sync"
+msgstr "Συγχρονισμός"
+
+#: View/Helper/NavbarHelper.php:760
+msgid "Administration"
+msgstr "Διαχείριση"
+
+#: View/Helper/NavbarHelper.php:805
+msgid "Logs"
+msgstr "Αρχεία καταγραφής"
+
+#: View/Helper/NavbarHelper.php:903
+msgid "Resources"
+msgstr "Πόροι"
+
+#: View/Helper/NavbarHelper.php:1028 View/Helper/NavbarHelper.php:961
+#: View/Helper/NavbarHelper.php:965
+msgid "Bookmarks"
+msgstr "Σελιδοδείκτες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:19
+msgid "Pagination"
+msgstr "Σελιδοποίηση"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:57
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:200
+msgid "Sightings"
+msgstr "Παρατηρήσεις"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:197
+msgid "Event date"
+msgstr "Ημερομηνία συμβάντος"
+
+#: View/Helper/NavbarHelper.php:162
+msgid "Value Intelligence"
+msgstr "Πληροφορίες για την τιμή"
+
+#: View/Helper/NavbarHelper.php:516
+msgid "Integrations"
+msgstr "Ενσωματώσεις"
+
+#: View/Helper/NavbarHelper.php:727
+#: View/Themed/Overmind/Elements/Events/index.ctp:178
+#: View/Themed/Overmind/Elements/Events/index.ctp:55
+msgid "Correlations"
+msgstr "Συσχετισμοί"
+
+#: View/Helper/EventIndexHelper.php:264
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:30
+msgid "Close"
+msgstr "Κλείσιμο"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:242
+msgid "Open"
+msgstr "Άνοιγμα"
+
+#: View/Helper/NavbarHelper.php:135
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:19
+msgid "Events"
+msgstr "Συμβάντα"
+
+#: View/Helper/NavbarHelper.php:151
+#: View/Themed/Overmind/Elements/Events/index.ctp:176
+msgid "Attributes"
+msgstr "Ιδιότητες"
+
+#: View/Helper/EventIndexHelper.php:54
+#: View/Themed/Overmind/Elements/Events/index.ctp:407
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:23
+msgid "Unpublished"
+msgstr "Αδημοσίευτο"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:238
+msgid "Required"
+msgstr "Απαιτείται"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:56
+msgid "Reports"
+msgstr "Αναφορές"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:68
+msgid "Reach"
+msgstr "Εμβέλεια"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:43
+msgid "No organisation is a member yet."
+msgstr "Κανένας οργανισμός δεν είναι ακόμη μέλος."
+
+#: Lib/Tools/SharingGroupPeek.php:91
+msgid "Stays on this instance."
+msgstr "Παραμένει σε αυτή την εγκατάσταση."
+
+#: Lib/Tools/SharingGroupPeek.php:89
+#, php-format
+msgid "Pushed to %s other instance."
+msgid_plural "Pushed to %s other instances."
+msgstr[0] "Προωθήθηκε σε %s άλλη εγκατάσταση."
+msgstr[1] "Προωθήθηκε σε %s άλλες εγκαταστάσεις."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:194
+msgid "Deprecated"
+msgstr "Παρωχημένο"
+
+#: Lib/Tools/SharingGroupPeek.php:29
+msgid "Inactive"
+msgstr "Ανενεργό"
+
+#: Lib/Tools/SharingGroupPeek.php:32
+msgid "Received through sync"
+msgstr "Λήψη μέσω συγχρονισμού"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Roaming"
+msgstr "Περιαγωγή"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Travels to any instance its members connect to."
+msgstr ""
+"Διαμοιράζεται σε κάθε εγκατάσταση στην οποία συνδέονται τα μέλη της ομάδας."
+
+#: Lib/Tools/SharingGroupPeek.php:107
+msgid "Releasable to"
+msgstr "Επιτρέπεται η κοινοποίηση σε"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+#: View/Themed/Overmind/Elements/Events/index.ctp:518
+msgid "none"
+msgstr "κανένα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:178
+msgid "Object"
+msgstr "Αντικείμενο"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "no"
+msgstr "όχι"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "yes"
+msgstr "ναι"
+
+#: View/Helper/NavbarHelper.php:395
+msgid "Warninglists"
+msgstr "Λίστες προειδοποιήσεων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:193
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:490
+msgid "Clear"
+msgstr "Εκκαθάριση"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:154
+#: View/Themed/Overmind/Elements/Events/index.ctp:325
+#: View/Themed/Overmind/Elements/Events/index.ctp:486
+msgid "Creator org"
+msgstr "Οργανισμός δημιουργού"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:189
+msgid "Relationship"
+msgstr "Σχέση"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:142
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
+msgid "ID"
+msgstr "ID"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:252
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:380
+msgid "Remove"
+msgstr "Αφαίρεση"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:149
+msgid "Title"
+msgstr "Τίτλος"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:227
+msgid "View"
+msgstr "Προβολή"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:159
+#: View/Themed/Overmind/Elements/Events/index.ctp:50
+msgid "Owner org"
+msgstr "Οργανισμός ιδιοκτήτη"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid "Request access"
+msgstr "Ζητήστε πρόσβαση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:308
+msgid "Discard"
+msgstr "Απόρριψη"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:379
+msgid "Excluded"
+msgstr "Εξαιρείται"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination.ctp:14
+msgid ""
+"Page {:page} of {:pages}, showing {:current} records out of {:count} total, "
+"starting on record {:start}, ending on {:end}"
+msgstr ""
+"Σελίδα {:page} από {:pages}, εμφανίζει {:current} εγγραφές από το σύνολο "
+"{:count}, ξεκινώντας από την εγγραφή {:start}, λήγοντας στις {:end}"
+
+#: View/Helper/NavbarHelper.php:320
+msgid "Decaying Models"
+msgstr "Μοντέλα φθοράς"
+
+#: View/Helper/NavbarHelper.php:190
+msgid "Template Variables"
+msgstr "Μεταβλητές προτύπου"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:164
+#: View/Themed/Overmind/Elements/Events/index.ctp:51
+msgid "Creator user"
+msgstr "Χρήστης δημιουργός"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:377
+msgid "Include"
+msgstr "Συμπερίληψη"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:197
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:378
+msgid "Exclude"
+msgstr "Εξαίρεση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:368
+msgid "Loading…"
+msgstr "Φόρτωση…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:381
+msgid "Apply"
+msgstr "Εφαρμογή"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:174
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:175
+msgid "Group selected Attributes into an Object"
+msgstr "Ομαδοποίηση επιλεγμένων ιδιοτήτων σε αντικείμενο"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:196
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:197
+msgid "Sightings display for selected attributes"
+msgstr "Εμφάνιση παρατηρήσεων για επιλεγμένες ιδιότητες"
+
+#: View/Helper/NavbarHelper.php:875
+msgid "Server PGP public key"
+msgstr "Δημόσιο κλειδί PGP διακομιστή"
+
+#: View/Helper/NavbarHelper.php:884
+msgid "Server S/MIME certificate"
+msgstr "Πιστοποιητικό διακομιστή S/MIME"
+
+#: View/Themed/Overmind/Users/login.ctp:144
+msgid "Password"
+msgstr "Κωδικός πρόσβασης"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:253
+msgid "Unpublish"
+msgstr "Κατάργηση δημοσίευσης"
+
+#: View/Helper/NavbarHelper.php:288
+msgid "List Tag Collections"
+msgstr "Λίστα συλλογών ετικετών"
+
+#: View/Helper/NavbarHelper.php:837
+msgid "Automation"
+msgstr "Αυτοματοποίηση"
+
+#: View/Helper/NavbarHelper.php:1063
+msgid "My Profile"
+msgstr "Το προφίλ μου"
+
+#: View/Helper/NavbarHelper.php:619
+msgid "List Organisations"
+msgstr "Κατάλογος Οργανισμών"
+
+#: View/Helper/NavbarHelper.php:488
+msgid "List Sharing Groups"
+msgstr "Λίστα ομάδων διαμοιρασμού"
+
+#: View/Helper/NavbarHelper.php:503
+msgid "List Sharing Group Blueprints"
+msgstr "Λίστα σχεδίων ομάδων διαμοιρασμού"
+
+#: View/Helper/NavbarHelper.php:867
+msgid "Categories & Types"
+msgstr "Κατηγορίες & Τύποι"
+
+#: View/Helper/NavbarHelper.php:247
+msgid "Statistics"
+msgstr "Στατιστικά στοιχεία"
+
+#: View/Helper/NavbarHelper.php:603
+msgid "List Users"
+msgstr "Λίστα χρηστών"
+
+#: View/Helper/NavbarHelper.php:634
+msgid "List Roles"
+msgstr "Λίστα ρόλων"
+
+#: View/Helper/NavbarHelper.php:581
+msgid "Server Settings & Maintenance"
+msgstr "Ρυθμίσεις & Συντήρηση διακομιστή"
+
+#: View/Helper/NavbarHelper.php:666
+msgid "Jobs"
+msgstr "Εργασίες παρασκηνίου"
+
+#: View/Helper/NavbarHelper.php:674
+msgid "Scheduled Tasks"
+msgstr "Προγραμματισμένες εργασίες"
+
+#: View/Helper/NavbarHelper.php:281
+msgid "List Tags"
+msgstr "Λίστα ετικετών"
+
+#: View/Helper/NavbarHelper.php:274
+msgid "List Taxonomies"
+msgstr "Κατάλογος Ταξινομιών"
+
+#: View/Helper/NavbarHelper.php:357
+msgid "List Event Templates"
+msgstr "Λίστα προτύπων συμβάντων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:65
+msgid "Export"
+msgstr "Εξαγωγή"
+
+#: View/Helper/NavbarHelper.php:302
+msgid "List Galaxies"
+msgstr "Κατάλογος Γαλαξιών"
+
+#: View/Helper/NavbarHelper.php:365
+msgid "List Object Templates"
+msgstr "Λίστα προτύπων αντικειμένων"
+
+#: View/Helper/NavbarHelper.php:372
+msgid "List Object Relationships"
+msgstr "Λίστα σχέσεων αντικειμένων"
+
+#: View/Helper/NavbarHelper.php:1018
+msgid "Manage Bookmarks"
+msgstr "Διαχείριση σελιδοδεικτών"
+
+#: View/Helper/NavbarHelper.php:409 View/Helper/NavbarHelper.php:417
+msgid "Import Regexp"
+msgstr "Εισαγωγή Regexp"
+
+#: View/Helper/NavbarHelper.php:402
+msgid "Noticelists"
+msgstr "Λίστες ειδοποιήσεων"
+
+#: View/Helper/NavbarHelper.php:425
+msgid "Correlation Exclusions"
+msgstr "Εξαιρέσεις συσχέτισης"
+
+#: View/Helper/NavbarHelper.php:944 View/Helper/NavbarHelper.php:949
+msgid "News"
+msgstr "Νέα"
+
+#: View/Helper/NavbarHelper.php:894
+msgid "Themes"
+msgstr "Θέματα"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "ON"
+msgstr "ΕΝΕΡΓΟΠΟΙΗΣΗ"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "OFF"
+msgstr "ΑΠΕΝΕΡΓΟΠΟΙΗΣΗ"
+
+#: View/Helper/NavbarHelper.php:862
+msgid "User Guide"
+msgstr "Οδηγός χρήσης"
+
+#: View/Helper/NavbarHelper.php:457
+msgid "Remote Servers"
+msgstr "Απομακρυσμένοι διακομιστές"
+
+#: View/Helper/NavbarHelper.php:520
+msgid "Communities"
+msgstr "Κοινότητες"
+
+#: View/Helper/NavbarHelper.php:528
+msgid "Cerebrates"
+msgstr "Cerebrates"
+
+#: View/Helper/NavbarHelper.php:536
+msgid "TAXII Servers"
+msgstr "Διακομιστές TAXII"
+
+#: View/Helper/NavbarHelper.php:642
+msgid "List Auth Keys"
+msgstr "Λίστα κλειδιών ελέγχου ταυτότητας"
+
+#: View/Helper/NavbarHelper.php:682
+msgid "Benchmarking"
+msgstr "Συγκριτική αξιολόγηση"
+
+#: View/Helper/NavbarHelper.php:739
+msgid "Correlation rules"
+msgstr "Κανόνες συσχέτισης"
+
+#: View/Helper/NavbarHelper.php:747
+msgid "Over-correlating values"
+msgstr "Υπερσυσχέτιση τιμών"
+
+#: View/Helper/NavbarHelper.php:849
+msgid "API"
+msgstr "API"
+
+#: View/Helper/NavbarHelper.php:1070
+msgid "Log out"
+msgstr "Αποσύνδεση"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:185
+#: View/Themed/Overmind/Elements/Events/index.ctp:502
+#: View/Themed/Overmind/Elements/Events/index.ctp:52
+msgid "Extension"
+msgstr "Επέκταση"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:10
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:40
+msgid "Menu"
+msgstr "Μενού"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:208
+#: View/Themed/Overmind/Elements/side_panel.ctp:75
+msgid "Loading"
+msgstr "Φόρτωση"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:154
+msgid "Creator"
+msgstr "Δημιουργός"
+
+#: View/Helper/NavbarHelper.php:209
+#: View/Themed/Overmind/Elements/Events/index.ctp:496
+#: View/Themed/Overmind/Elements/Events/index.ctp:58
+msgid "Proposals"
+msgstr "Προτάσεις"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:259
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:376
+msgid "Selected"
+msgstr "Επιλεγμένο"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:210
+#: View/Themed/Overmind/Elements/Events/index.ctp:60
+msgid "Last change"
+msgstr "Τελευταία αλλαγή"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:223
+msgid "Enable"
+msgstr "Ενεργοποίηση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:229
+msgid "Disable"
+msgstr "Απενεργοποίηση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:47
+msgid "Custom"
+msgstr "Προσαρμοσμένο"
+
+#: View/Helper/EventIndexHelper.php:49
+#, php-format
+msgid "Changes pending: published %s, changed since"
+msgstr "Αλλαγές σε εκκρεμότητα: δημοσιεύτηκε %s, άλλαξε από τότε"
+
+#: View/Helper/EventIndexHelper.php:52
+#, php-format
+msgid "Published %s"
+msgstr "Δημοσιεύτηκε %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "Created by %s"
+msgstr "Δημιουργήθηκε από %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "held here by %s"
+msgstr "κρατείται εδώ από %s"
+
+#: View/Helper/EventIndexHelper.php:95
+#, php-format
+msgid "Your grade for %s: %s (analyst profile)"
+msgstr "Ο βαθμός σας για το %1$s: %2$s (προφίλ αναλυτή)"
+
+#: View/Helper/EventIndexHelper.php:118
+#, php-format
+msgid "Admiralty scale: %s"
+msgstr "Κλίμακα του Ναυαρχείου: %s"
+
+#: View/Helper/EventIndexHelper.php:128 View/Helper/EventIndexHelper.php:461
+msgid "pinned by your profile"
+msgstr "καρφιτσωμένο από το προφίλ σας"
+
+#: View/Helper/EventIndexHelper.php:137
+#, php-format
+msgid "No %s marking"
+msgstr "Χωρίς σήμανση %s"
+
+#: View/Helper/EventIndexHelper.php:177 View/Helper/EventIndexHelper.php:195
+msgid "(cluster not available here)"
+msgstr "(το σύμπλεγμα δεν είναι διαθέσιμο εδώ)"
+
+#: View/Helper/EventIndexHelper.php:187
+#, php-format
+msgid "Mitigation %s"
+msgstr "Μέτρο αντιμετώπισης %s"
+
+#: View/Helper/EventIndexHelper.php:211
+#, php-format
+msgid "%s unresolved"
+msgstr "%s δεν έχει επιλυθεί"
+
+#: View/Helper/EventIndexHelper.php:226
+#, php-format
+msgid "%s: show all"
+msgstr "%s: εμφάνιση όλων"
+
+#: View/Helper/EventIndexHelper.php:318
+#, php-format
+msgid "Changed last of %s workspaces on this event"
+msgstr "Άλλαξε ο τελευταίος από τους %s χώρους εργασίας σε αυτό το συμβάν"
+
+#: View/Helper/EventIndexHelper.php:365
+#, php-format
+msgid "Extends #%s %s"
+msgstr "Επεκτείνει #%1$s %2$s"
+
+#: View/Helper/EventIndexHelper.php:366
+#, php-format
+msgid "extends #%s"
+msgstr "επεκτείνει το συμβάν #%s"
+
+#: View/Helper/EventIndexHelper.php:370
+#, php-format
+msgid "Extends %s, which is not available here"
+msgstr "Επεκτείνει το %s, το οποίο δεν είναι διαθέσιμο εδώ"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "missing"
+msgstr "λείπει"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "extends an unknown event"
+msgstr "επεκτείνει ένα άγνωστο συμβάν"
+
+#: View/Helper/EventIndexHelper.php:379
+#, php-format
+msgid "extended by %s"
+msgstr "επέκταση από %s"
+
+#: View/Helper/EventIndexHelper.php:411
+msgid "Cluster not available here"
+msgstr "Το σύμπλεγμα δεν είναι διαθέσιμο εδώ"
+
+#: View/Helper/EventIndexHelper.php:464
+msgid "preferred by your profile"
+msgstr "προτιμάται από το προφίλ σας"
+
+#: View/Helper/EventIndexHelper.php:387
+#, php-format
+msgid "%s galaxy tag whose cluster is not available here"
+msgid_plural "%s galaxy tags whose cluster is not available here"
+msgstr[0] "%s ετικέτα γαλαξία της οποίας το σύμπλεγμα δεν είναι διαθέσιμο εδώ"
+msgstr[1] ""
+"%s ετικέτες γαλαξιών των οποίων τα συμπλέγματα δεν είναι διαθέσιμα εδώ"
+
+#: View/Helper/NavbarHelper.php:171
+msgid "Collections"
+msgstr "Συλλογές"
+
+#: View/Helper/NavbarHelper.php:183 View/Helper/NavbarHelper.php:213
+msgid "Index"
+msgstr "Ευρετήριο"
+
+#: View/Helper/NavbarHelper.php:200
+msgid "Analyst Data"
+msgstr "Δεδομένα Αναλυτή"
+
+#: View/Helper/NavbarHelper.php:220
+msgid "Events with Proposals"
+msgstr "Συμβάντα με προτάσεις"
+
+#: View/Helper/NavbarHelper.php:227
+msgid "Delegation Requests"
+msgstr "Αιτήματα ανάθεσης"
+
+#: View/Helper/NavbarHelper.php:270
+msgid "Tags & Taxonomies"
+msgstr "Ετικέτες & Ταξινομίες"
+
+#: View/Helper/NavbarHelper.php:309
+msgid "List Galaxy Relationships"
+msgstr "Κατάλογος Σχέσεων Γαλαξία"
+
+#: View/Helper/NavbarHelper.php:344
+msgid "Analyst Profiles"
+msgstr "Προφίλ Αναλυτών"
+
+#: View/Helper/NavbarHelper.php:353
+msgid "Templates"
+msgstr "Πρότυπα"
+
+#: View/Helper/NavbarHelper.php:391
+msgid "Filters & Lists"
+msgstr "Φίλτρα & Λίστες"
+
+#: View/Helper/NavbarHelper.php:453
+msgid "Servers & Feeds"
+msgstr "Διακομιστές και ροές δεδομένων"
+
+#: View/Helper/NavbarHelper.php:544
+msgid "Sighting DB"
+msgstr "Βάση δεδομένων παρατηρήσεων"
+
+#: View/Helper/NavbarHelper.php:555
+msgid "Event ID Translator"
+msgstr "Μεταφραστής αναγνωριστικού συμβάντος"
+
+#: View/Helper/NavbarHelper.php:591
+msgid "Users & Orgs"
+msgstr "Χρήστες & Οργανισμοί"
+
+#: View/Helper/NavbarHelper.php:611
+msgid "User Settings"
+msgstr "Ρυθμίσεις χρήστη"
+
+#: View/Helper/NavbarHelper.php:630
+msgid "Roles & Permissions"
+msgstr "Ρόλοι & Δικαιώματα"
+
+#: View/Helper/NavbarHelper.php:654
+msgid "System jobs"
+msgstr "Εργασίες συστήματος"
+
+#: View/Helper/NavbarHelper.php:658
+msgid "Workflow"
+msgstr "Ροή εργασιών"
+
+#: View/Helper/NavbarHelper.php:695
+msgid "Blocklisting"
+msgstr "Προσθήκη σε λίστα αποκλεισμού"
+
+#: View/Helper/NavbarHelper.php:699
+msgid "Blocklisted events"
+msgstr "Συμβάντα στη λίστα αποκλεισμού"
+
+#: View/Helper/NavbarHelper.php:707
+msgid "Blocklisted organisations"
+msgstr "Οργανισμοί στη λίστα αποκλεισμού"
+
+#: View/Helper/NavbarHelper.php:715
+msgid "Blocklisted sightings"
+msgstr "Παρατηρήσεις στη λίστα αποκλεισμού"
+
+#: View/Helper/NavbarHelper.php:731
+msgid "Top correlations"
+msgstr "Κορυφαίοι συσχετισμοί"
+
+#: View/Helper/NavbarHelper.php:775
+msgid "Application logs"
+msgstr "Αρχεία καταγραφής εφαρμογών"
+
+#: View/Helper/NavbarHelper.php:819
+msgid "Open API"
+msgstr "OpenAPI"
+
+#: View/Helper/NavbarHelper.php:827
+msgid "REST Client"
+msgstr "Πελάτης REST"
+
+#: View/Helper/NavbarHelper.php:981
+msgid "No workspace"
+msgstr "Χωρίς χώρο εργασίας"
+
+#: View/Helper/NavbarHelper.php:983
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:94
+msgid "Workspace"
+msgstr "Χώρος εργασίας"
+
+#: View/Helper/NavbarHelper.php:1006
+msgid "Set this page as homepage"
+msgstr "Ορίστε αυτήν τη σελίδα ως αρχική σελίδα"
+
+#: View/Helper/NavbarHelper.php:1050
+msgid "Dark mode"
+msgstr "Σκοτεινή λειτουργία"
+
+#: View/Helper/NavbarHelper.php:1058
+msgid "Replay the tutorial"
+msgstr "Επαναλάβετε το σεμινάριο"
+
+#: View/Helper/NavbarHelper.php:1100
+msgid "Light"
+msgstr "Φωτεινό"
+
+#: View/Helper/NavbarHelper.php:1101
+msgid "Dark"
+msgstr "Σκοτεινό"
+
+#: View/Helper/NavbarHelper.php:1102
+msgid "Light and dark"
+msgstr "Φωτεινό και σκοτεινό"
+
+#: View/Helper/NavbarHelper.php:1137
+#, php-format
+msgid "Instance default (%s)"
+msgstr "Προεπιλογή εγκατάστασης (%s)"
+
+#: View/Helper/NavbarHelper.php:1138
+msgid "Follow the theme your administrator picks for this instance."
+msgstr ""
+"Χρήση του θέματος που επιλέγει ο διαχειριστής για αυτή την εγκατάσταση."
+
+#: View/Helper/NavbarHelper.php:1146
+msgid "Theme"
+msgstr "Θέμα"
+
+#: View/Helper/NavbarHelper.php:948
+#, php-format
+msgid "News: %s unread"
+msgid_plural "News: %s unread"
+msgstr[0] "Νέα: %s μη αναγνωσμένο"
+msgstr[1] "Νέα: %s μη αναγνωσμένα"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:89
+msgid "Reset"
+msgstr "Επαναφορά"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:82
+msgid "Next page"
+msgstr "Επόμενη σελίδα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:27
+msgid "Previous page"
+msgstr "Προηγούμενη σελίδα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:119
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:120
+msgid "Edit selected attributes"
+msgstr "Επεξεργασία επιλεγμένων ιδιοτήτων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+#, php-format
+msgid "Remove %s"
+msgstr "Κατάργηση %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:268
+msgid "Add to workspace"
+msgstr "Προσθήκη στον χώρο εργασίας"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close (Esc)"
+msgstr "Κλείσιμο (Esc)"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:53
+msgid "Tags & galaxies"
+msgstr "Ετικέτες & γαλαξίες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:54
+msgid "Attributes & objects"
+msgstr "Ιδιότητες & αντικείμενα"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:59
+msgid "Discussions"
+msgstr "Συζητήσεις"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:83
+#: View/Themed/Overmind/Elements/Events/index.ctp:84
+msgid "Choose columns"
+msgstr "Επιλέξτε στήλες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:85
+#: View/Themed/Overmind/Elements/Events/index.ctp:86
+msgid "Columns"
+msgstr "Στήλες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:88
+msgid "Reset widths"
+msgstr "Επαναφέρετε τα πλάτη"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:139
+msgid "Publish state"
+msgstr "Κατάσταση δημοσίευσης"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:170
+msgid "Markings your analyst profile pins"
+msgstr "Σημάνσεις που καρφιτσώνει το προφίλ αναλυτή σας"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:174
+msgid "ATT&CK techniques (count, then ids), then mitigations"
+msgstr ""
+"Τεχνικές ATT&CK (πλήθος, μετά αναγνωριστικά), έπειτα μέτρα αντιμετώπισης"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:175
+msgid "Other clusters, then tags"
+msgstr "Άλλα συμπλέγματα, μετά ετικέτες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:182
+msgid ""
+"Workspaces, reports, sightings, proposals and discussions, when there are "
+"any"
+msgstr ""
+"Χώροι εργασίας, αναφορές, παρατηρήσεις, προτάσεις και συζητήσεις, όταν "
+"υπάρχουν"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:209
+#: View/Themed/Overmind/Elements/Events/index.ctp:423
+#: View/Themed/Overmind/Elements/Events/index.ctp:497
+msgid "Changed"
+msgstr "Άλλαξε"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:342
+msgid "Event or attribute tags."
+msgstr "Ετικέτες συμβάντων ή ιδιοτήτων."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:353
+msgid "And tag"
+msgstr "Και ετικέτα"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:358
+msgid "Also carried by the event or one of its attributes."
+msgstr "Υπάρχει επίσης στο συμβάν ή σε μία από τις ιδιότητές του."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:369
+msgid "Clusters attached to the event."
+msgstr "Συμπλέγματα συνδεδεμένα με το συμβάν."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:380
+msgid "Any sharing group"
+msgstr "Οποιαδήποτε ομάδα διαμοιρασμού"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:397
+msgid "Including a group keeps only events shared with it."
+msgstr ""
+"Η συμπερίληψη ομάδας εμφανίζει μόνο συμβάντα που διαμοιράζονται με αυτή."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "24h"
+msgstr "24 ώρες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "last 24 hours"
+msgstr "τις τελευταίες 24 ώρες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "7d"
+msgstr "7 ημ."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "last 7 days"
+msgstr "τις τελευταίες 7 ημέρες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "30d"
+msgstr "30 ημ."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "last 30 days"
+msgstr "τις τελευταίες 30 ημέρες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "90d"
+msgstr "90 ημ."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "last 90 days"
+msgstr "τις τελευταίες 90 ημέρες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "1y"
+msgstr "1 έτος"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "last year"
+msgstr "τελευταίοι 12 μήνες"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:420
+msgid "Time"
+msgstr "Χρόνος"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:434
+msgid "My events"
+msgstr "Τα συμβάντα μου"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:448
+msgid "Org events"
+msgstr "Συμβάντα οργανισμού"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:467
+#, php-format
+msgid "until %s"
+msgstr "έως %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "minutes"
+msgstr "λεπτά"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "seconds"
+msgstr "δευτερόλεπτα"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:472
+#, php-format
+msgid "last %s %s"
+msgstr "τελευταία %1$s %2$s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:475
+#: View/Themed/Overmind/Elements/Events/index.ctp:478
+#, php-format
+msgid "since %s"
+msgstr "από %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:487
+msgid "Anything"
+msgstr "Οτιδήποτε"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:489
+msgid "Attribute value"
+msgstr "Τιμή ιδιότητας"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:490
+msgid "Date from"
+msgstr "Ημερομηνία από"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:491
+msgid "Date until"
+msgstr "Ημερομηνία έως"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:500
+msgid "First published"
+msgstr "Πρωτοδημοσιεύτηκε"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:501
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:31
+msgid "Changes pending"
+msgstr "Αλλαγές σε εκκρεμότητα"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:503
+msgid "Extended"
+msgstr "Επεκταμένο"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:504
+msgid "Minimal"
+msgstr "Ελάχιστο"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+msgid "some"
+msgstr "μερικά"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:28
+msgid "Never published, or unpublished since"
+msgstr "Δεν έχει δημοσιευθεί ποτέ ή δεν έχει δημοσιευτεί από τότε"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:37
+msgid "Published once and changed since"
+msgstr "Δημοσιεύτηκε μία φορά και άλλαξε έκτοτε"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:40
+msgid "Changed this week"
+msgstr "Άλλαξε αυτή την εβδομάδα"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:45
+msgid "Changed in the last 7 days"
+msgstr "Άλλαξε τις τελευταίες 7 ημέρες"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:50
+msgid "Since your last visit"
+msgstr "Από την τελευταία σας επίσκεψη"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:55
+#, php-format
+msgid "Changed since your previous login, %s"
+msgstr "Άλλαξε από την προηγούμενη σύνδεσή σας, %s"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:59
+msgid "New this week"
+msgstr "Νέα αυτή την εβδομάδα"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:64
+msgid "First published in the last 7 days"
+msgstr "Δημοσιεύτηκε για πρώτη φορά τις τελευταίες 7 ημέρες"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:67
+msgid "Creator orgs"
+msgstr "Οργανισμοί δημιουργών"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:70
+msgid "Filter by creator organisation"
+msgstr "Φιλτράρισμα κατά οργανισμό δημιουργού"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:79
+msgid "Event dates"
+msgstr "Ημερομηνίες συμβάντων"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:84
+msgid "Figures for these filters"
+msgstr "Στοιχεία για αυτά τα φίλτρα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:83
+msgid "Fetch"
+msgstr "Ανάκτηση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:241
+#, php-format
+msgid "Open %s"
+msgstr "Άνοιγμα %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:268
+msgid "Activate"
+msgstr "Ενεργοποίηση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:274
+msgid "Deactivate"
+msgstr "Απενεργοποίηση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:90
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:91
+msgid "Add the selected to the active workspace"
+msgstr "Προσθέστε το επιλεγμένο στον ενεργό χώρο εργασίας"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:332
+msgid "Clear selection"
+msgstr "Εκκαθάριση επιλογής"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:20
+#, php-format
+msgid "Sharing group · owned by %s"
+msgstr "Ομάδα διαμοιρασμού · ιδιοκτήτης %s"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:41
+msgid "Every organisation on this instance"
+msgstr "Κάθε οργανισμός σε αυτή την εγκατάσταση"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:51
+msgid "owner"
+msgstr "ιδιοκτήτης"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:52
+msgid "your org"
+msgstr "ο οργανισμός σας"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:54
+msgid "Can add organisations"
+msgstr "Μπορεί να προσθέσει οργανισμούς"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:61
+#, php-format
+msgid "+%s more · open the group"
+msgstr "+%s περισσότερα · ανοίξτε την ομάδα"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:81
+msgid "Only this group"
+msgstr "Μόνο αυτή η ομάδα"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:82
+msgid "Open group"
+msgstr "Άνοιγμα ομάδας"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:38
+#, php-format
+msgid "%s member organisation"
+msgid_plural "%s member organisations"
+msgstr[0] "%s οργανισμός μέλος"
+msgstr[1] "%s οργανισμοί μέλη"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:253
+msgid "Highlight"
+msgstr "Επισήμανση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:367
+msgid "Searching…"
+msgstr "Αναζήτηση…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:49
+msgid "From"
+msgstr "Από"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:50
+msgid "To"
+msgstr "Έως"
+
+#: View/Themed/Overmind/Users/login.ctp:82
+#: View/Themed/Overmind/Users/login.ctp:88
+#: View/Themed/Overmind/Users/login.ctp:97
+msgid "Logo"
+msgstr "Λογότυπο"
+
+#: View/Themed/Overmind/Users/login.ctp:90
+#: View/Themed/Overmind/Users/login.ctp:91
+msgid "MISP — Intelligence Sharing"
+msgstr "MISP — Ανταλλαγή πληροφοριών"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:182
+#, php-format
+msgid "aka %s"
+msgstr "γνωστός και ως %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:184
+msgid "All galaxies"
+msgstr "Όλοι οι γαλαξίες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:185
+#, php-format
+msgid "All of %s"
+msgstr "Όλα τα %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:186
+msgid "All tactics"
+msgstr "Όλες οι τακτικές"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:187
+msgid "All tags"
+msgstr "Όλες οι ετικέτες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:188
+msgid "A–Z"
+msgstr "A–Z"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:189
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:370
+#, php-format
+msgid "Back to %s"
+msgstr "Επιστροφή στο %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:190
+msgid "Browse"
+msgstr "Περιήγηση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:191
+msgid "By namespace"
+msgstr "Με χώρο ονομάτων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:192
+msgid "Check the spelling, or browse a scope on the left."
+msgstr "Ελέγξτε την ορθογραφία ή περιηγηθείτε σε ένα πεδίο στα αριστερά."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:196
+msgid "Everywhere"
+msgstr "Παντού"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:198
+#, php-format
+msgid "First %s matches · keep typing or narrow"
+msgstr "Πρώτες %s αντιστοιχίσεις · συνεχίστε να πληκτρολογείτε ή περιορίστε"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:200
+msgid "Has selected values"
+msgstr "Έχει επιλεγμένες τιμές"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:201
+msgid "In use"
+msgstr "Σε χρήση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:202
+msgid "Clusters already attached somewhere"
+msgstr "Τα συμπλέγματα έχουν ήδη συνδεθεί κάπου"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:203
+msgid "Keep typing"
+msgstr "Συνεχίστε να πληκτρολογείτε"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:204
+msgid "apply"
+msgstr "εφαρμογή"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:205
+msgid "back"
+msgstr "πίσω"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:206
+msgid "exclude"
+msgstr "εξαίρεση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:207
+msgid "include"
+msgstr "συμπερίληψη"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:209
+msgid "Loading scopes…"
+msgstr "Φόρτωση πεδίων…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:210
+msgid "Could not load the scopes."
+msgstr "Δεν ήταν δυνατή η φόρτωση των πεδίων."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:211
+msgid "Could not load these values"
+msgstr "Δεν ήταν δυνατή η φόρτωση αυτών των τιμών"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:212
+msgid "All of"
+msgstr "Όλα από"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:213
+msgid "Events tagged with every one of them, on the event itself"
+msgstr "Συμβάντα με όλες αυτές τις ετικέτες στο ίδιο το συμβάν"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:214
+msgid "Any of"
+msgstr "Οποιοδήποτε από"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:215
+msgid ""
+"Events with at least one of them, on the event or one of its attributes"
+msgstr ""
+"Συμβάντα με τουλάχιστον μία από αυτές τις ετικέτες στο συμβάν ή σε μία από "
+"τις ιδιότητές του"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:216
+msgid "Match"
+msgstr "Αντιστοίχιση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:217
+msgid "matrix"
+msgstr "πίνακας"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:218
+msgid "A matrix: browse it by tactic"
+msgstr "Πίνακας: περιήγηση ανά τακτική"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:219
+#, php-format
+msgid "+%s more"
+msgstr "+%s ακόμη"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:220
+msgid "More not shown · type to narrow"
+msgstr "Περισσότερα δεν εμφανίζονται · πληκτρολογήστε για να περιορίσετε"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:221
+#, php-format
+msgid "+%s more · type to narrow"
+msgstr "+%s περισσότερα · πληκτρολογήστε για να περιορίσετε"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:222
+msgid "Namespaces"
+msgstr "Χώροι ονομάτων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:223
+#, php-format
+msgid "Narrow to %s, keeping “%s”"
+msgstr "Περιορίστε στο %1$s, διατηρώντας το \"%2$s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:224
+msgid "Narrow to"
+msgstr "Περιορισμός σε"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:225
+msgid "No cluster in use"
+msgstr "Δεν χρησιμοποιείται σύμπλεγμα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:226
+#, php-format
+msgid "No cluster in use matches “%s”"
+msgstr "Κανένα σύμπλεγμα σε χρήση δεν ταιριάζει με το \"%s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:227
+msgid "No cluster in use for this tactic"
+msgstr "Δεν χρησιμοποιείται σύμπλεγμα για αυτήν την τακτική"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:228
+msgid "No namespace"
+msgstr "Χωρίς χώρο ονομάτων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:229
+msgid "Free-text tags, written without a \"namespace:\" prefix."
+msgstr "Ετικέτες ελεύθερου κειμένου χωρίς το πρόθεμα \"namespace:\"."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:230
+msgid "No predicate has a match."
+msgstr "Κανένα κατηγόρημα δεν έχει ταίριασμα."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:231
+msgid "not"
+msgstr "όχι"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:232
+msgid "Not attached to anything yet"
+msgstr "Δεν έχει συνδεθεί με τίποτα ακόμα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:233
+msgid "no taxonomy"
+msgstr "χωρίς ταξινομία"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:234
+msgid "Not enabled"
+msgstr "Δεν είναι ενεργοποιημένο"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:235
+msgid "Nothing here yet"
+msgstr "Τίποτα εδώ ακόμα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:236
+#, php-format
+msgid "Nothing in %s matches “%s”"
+msgstr "Τίποτα στο %1$s δεν ταιριάζει με το \"%2$s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:237
+#, php-format
+msgid "Nothing matches “%s”"
+msgstr "Τίποτα δεν ταιριάζει με το \"%s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:238
+#, php-format
+msgid "No %s value matches “%s”"
+msgstr "Καμία τιμή %1$s δεν ταιριάζει με το \"%2$s\""
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:239
+#, php-format
+msgid "Tags written as \"%s:…\", with no taxonomy behind them."
+msgstr "Ετικέτες της μορφής \"%s:…\", χωρίς αντίστοιχη ταξινομία."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:240
+msgid "Numerical value"
+msgstr "Αριθμητική τιμή"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:243
+#, php-format
+msgid "or type to search all %s %s values."
+msgstr "ή πληκτρολογήστε για αναζήτηση όλων των τιμών %1$s %2$s."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:244
+msgid "Other namespaces"
+msgstr "Άλλοι χώροι ονομάτων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:245
+#, php-format
+msgid "Other %s tags"
+msgstr "Άλλες ετικέτες %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:246
+msgid "Tags in this namespace that are not entries of the taxonomy"
+msgstr ""
+"Ετικέτες σε αυτόν τον χώρο ονομάτων που δεν αποτελούν καταχωρήσεις της "
+"ταξινομίας"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:247
+msgid "pick a heading to narrow"
+msgstr "επιλέξτε μια επικεφαλίδα για περιορισμό"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:248
+msgid "Pick a predicate"
+msgstr "Διάλεξε κατηγόρημα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:249
+msgid "Pinned in your profile"
+msgstr "Καρφιτσώθηκε στο προφίλ σας"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:250
+msgid "Predicates"
+msgstr "Κατηγορήματα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:251
+msgid "Preferred in your profile"
+msgstr "Προτιμάται στο προφίλ σας"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:254
+msgid "Search all clusters, or pick a scope"
+msgstr "Αναζητήστε όλα τα συμπλέγματα ή επιλέξτε ένα εύρος"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:255
+#, php-format
+msgid "Search all of %s"
+msgstr "Αναζήτηση σε όλα τα %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:256
+msgid "Search all tags, or pick a scope"
+msgstr "Αναζητήστε όλες τις ετικέτες ή επιλέξτε ένα εύρος"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:257
+msgid "Search failed"
+msgstr "Η αναζήτηση απέτυχε"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:258
+#, php-format
+msgid "Search in %s"
+msgstr "Αναζήτηση στο %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:260
+msgid "show all"
+msgstr "δείξε όλα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:261
+msgid "Show all clusters"
+msgstr "Εμφάνιση όλων των συμπλεγμάτων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:262
+msgid "Show where it lives"
+msgstr "Εμφάνιση τοποθεσίας"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:263
+#, php-format
+msgid "Starts with %s"
+msgstr "Ξεκινά με %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:264
+msgid "Stop excluding"
+msgstr "Σταματήστε να αποκλείετε"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:265
+msgid "Tactics"
+msgstr "Τακτικές"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:268
+msgid "taxonomy"
+msgstr "ταξινομία"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:269
+msgid "Nothing selected · click a value to include it,"
+msgstr ""
+"Δεν έχει επιλεγεί τίποτα · κάντε κλικ σε μια τιμή για να τη συμπεριλάβετε,"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:270
+msgid "to exclude it"
+msgstr "για να την εξαιρέσετε"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:271
+#: View/Themed/Overmind/Elements/side_panel.ctp:33
+msgid "Try again"
+msgstr "Προσπαθήστε ξανά"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:272
+msgid "Two characters search every cluster, or pick a scope on the left."
+msgstr ""
+"Πληκτρολογήστε δύο χαρακτήρες για αναζήτηση σε όλα τα συμπλέγματα ή επιλέξτε"
+" ένα πεδίο στα αριστερά."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:273
+msgid "Two characters search every tag, or pick a scope on the left."
+msgstr ""
+"Πληκτρολογήστε δύο χαρακτήρες για αναζήτηση σε όλες τις ετικέτες ή επιλέξτε "
+"ένα πεδίο στα αριστερά."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:274
+msgid "Where you are"
+msgstr "Εκεί που είσαι"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:275
+msgid "Which clusters"
+msgstr "Ποια συμπλέγματα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:366
+msgid "Type 2 characters to search"
+msgstr "Πληκτρολογήστε 2 χαρακτήρες για αναζήτηση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:369
+msgid "The list could not be loaded"
+msgstr "Δεν ήταν δυνατή η φόρτωση της λίστας"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:371
+#, php-format
+msgid "Choose %s"
+msgstr "Επιλέξτε %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:372
+msgid "Nothing matches"
+msgstr "Τίποτα δεν ταιριάζει"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:373
+#, php-format
+msgid "%s more: type to narrow"
+msgstr "%s περισσότερα: πληκτρολογήστε για να περιορίσετε"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:374
+msgid "The search failed"
+msgstr "Η αναζήτηση απέτυχε"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:382
+msgid "Any of these. Applies when you close the picker."
+msgstr "Οποιοδήποτε από αυτά. Ισχύει όταν κλείνετε το εργαλείο επιλογής."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:383
+msgid "Any of these."
+msgstr "Οποιοδήποτε από αυτά."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:384
+msgid ""
+"This link asks for events with all of these. Changing the selection here "
+"switches to any of them."
+msgstr ""
+"Αυτός ο σύνδεσμος αναζητά συμβάντα με όλες αυτές τις ετικέτες. Η αλλαγή της "
+"επιλογής εδώ αναζητά συμβάντα με τουλάχιστον μία από αυτές."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:385
+msgid "Not found on this instance"
+msgstr "Δεν βρέθηκε σε αυτή την εγκατάσταση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:386
+msgid "The filtered list could not be loaded."
+msgstr "Δεν ήταν δυνατή η φόρτωση της φιλτραρισμένης λίστας."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:473
+msgid "Search a value"
+msgstr "Αναζήτηση τιμής"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:727
+#, php-format
+msgid "%s shown, page %s"
+msgstr "Εμφανίζονται %1$s, σελίδα %2$s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:733
+#, php-format
+msgid "%s shown, page %s of %s"
+msgstr "Εμφανίζονται %1$s, σελίδα %2$s από %3$s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:739
+#, php-format
+msgid "%s shown"
+msgstr "Εμφανίζονται %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:767
+msgid "Active filters"
+msgstr "Ενεργά φίλτρα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:45
+#, php-format
+msgid "%s (all of)"
+msgstr "%s (όλα)"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_picker.ctp:108
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:37
+#, php-format
+msgid "%s selected"
+msgid_plural "%s selected"
+msgstr[0] "Επιλεγμένα: %s"
+msgstr[1] "Επιλεγμένα: %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:46
+msgid "No limit"
+msgstr "Κανένα όριο"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:48
+msgid "Pick dates"
+msgstr "Διάλεξε ημερομηνίες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:51
+msgid "Both rows apply together. Applies when you close the picker."
+msgstr ""
+"Και οι δύο σειρές εφαρμόζονται μαζί. Ισχύει όταν κλείνετε το εργαλείο "
+"επιλογής."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:62
+#, php-format
+msgid "%s set"
+msgid_plural "%s set"
+msgstr[0] "Ορισμένα: %s"
+msgstr[1] "Ορισμένα: %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_toggle.ctp:17
+msgid "More Filters"
+msgstr "Περισσότερα φίλτρα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_card.ctp:56
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_table.ctp:103
+msgid "No items to display"
+msgstr "Δεν υπάρχουν στοιχεία για εμφάνιση"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:30
+msgid "Selected items"
+msgstr "Επιλεγμένα στοιχεία"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:61
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:62
+msgid "Export selected attributes"
+msgstr "Εξαγωγή επιλεγμένων ιδιοτήτων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:79
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:80
+msgid "Fetch the selected events"
+msgstr "Λήψη των επιλεγμένων συμβάντων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:130
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:131
+msgid "Add Tag on selected attributes"
+msgstr "Προσθήκη ετικέτας σε επιλεγμένες ιδιότητες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:141
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:142
+msgid "Add Local Tag on selected attributes"
+msgstr "Προσθήκη τοπικής ετικέτας σε επιλεγμένες ιδιότητες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:145
+msgid "Local Tag"
+msgstr "Τοπική ετικέτα"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:152
+msgid "Add Galaxy on selected attributes"
+msgstr "Προσθήκη γαλαξία σε επιλεγμένες ιδιότητες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:153
+msgid "Add Galaxy to selected attributes"
+msgstr "Προσθήκη γαλαξία σε επιλεγμένες ιδιότητες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:163
+msgid "Add Local Galaxy on selected attributes"
+msgstr "Προσθήκη τοπικού γαλαξία σε επιλεγμένες ιδιότητες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:164
+msgid "Add Local Galaxy to selected attributes"
+msgstr "Προσθήκη τοπικού γαλαξία σε επιλεγμένες ιδιότητες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:167
+msgid "Local Galaxy"
+msgstr "Τοπικός γαλαξίας"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:185
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:186
+msgid "Create new relationship for selected attributes"
+msgstr "Δημιουργία νέας σχέσης για επιλεγμένες ιδιότητες"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:221
+msgid "Enable selected items"
+msgstr "Ενεργοποίηση επιλεγμένων στοιχείων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:227
+msgid "Disable selected items"
+msgstr "Απενεργοποίηση επιλεγμένων στοιχείων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:236
+msgid "Make the selected items required"
+msgstr "Ορισμός επιλεγμένων στοιχείων ως υποχρεωτικών"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:242
+msgid "Make the selected items optional"
+msgstr "Ορισμός επιλεγμένων στοιχείων ως προαιρετικών"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:251
+msgid "Highlight selected items"
+msgstr "Επισημάνετε επιλεγμένα στοιχεία"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:257
+msgid "Remove highlight for selected items"
+msgstr "Κατάργηση επισήμανσης για επιλεγμένα στοιχεία"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:259
+msgid "Remove Highlight"
+msgstr "Κατάργηση επισήμανσης"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:266
+msgid "Activate selected items"
+msgstr "Ενεργοποίηση επιλεγμένων στοιχείων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:272
+msgid "Deactivate selected items"
+msgstr "Απενεργοποίηση επιλεγμένων στοιχείων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:282
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:283
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:322
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:323
+msgid "Delete selected items"
+msgstr "Διαγραφή επιλεγμένων στοιχείων"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:293
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:294
+msgid "Process the selected registrations"
+msgstr "Επεξεργαστείτε τις επιλεγμένες εγγραφές"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:297
+msgid "Process"
+msgstr "Επεξεργασία"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:304
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:305
+msgid "Discard the selected registrations"
+msgstr "Απορρίψτε τις επιλεγμένες εγγραφές"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:78
+#, php-format
+msgid "Showing %s–%s"
+msgstr "Εμφάνιση %1$s–%2$s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:84
+#, php-format
+msgid "Showing %s–%s of %s"
+msgstr "Εμφάνιση %1$s–%2$s από %3$s"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Drag to resize · double-click to widen"
+msgstr "Σύρετε για αλλαγή μεγέθους · κάντε διπλό κλικ για διεύρυνση"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Resize the window (arrow keys)"
+msgstr "Αλλαγή μεγέθους παραθύρου (πλήκτρα βέλους)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Drag to resize"
+msgstr "Σύρετε για αλλαγή μεγέθους"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Drag to move · arrow keys"
+msgstr "Σύρετε για μετακίνηση · πλήκτρα βέλους"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Move the window (arrow keys)"
+msgstr "Μετακίνηση του παραθύρου (πλήκτρα βέλους)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:56
+msgid "Undock into a window"
+msgstr "Απόσπαση σε ξεχωριστό παράθυρο"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:59
+msgid "Dock to the right"
+msgstr "Προσάρτηση στα δεξιά"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:28
+#: View/Themed/Overmind/Elements/side_panel.ctp:62
+msgid "Widen the panel"
+msgstr "Διευρύνετε το πάνελ"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:1
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:20
+msgid "Main"
+msgstr "Κύριο μενού"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:3
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:22
+#, php-format
+msgid "MISP %s"
+msgstr "MISP %s"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:4
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:23
+msgid "MISP Logo"
+msgstr "Λογότυπο MISP"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:27
+#, php-format
+msgid "%s shows or hides it"
+msgstr "Το %s το εμφανίζει ή το αποκρύπτει"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:29
+msgid "Back to your width"
+msgstr "Επαναφορά επιλεγμένου πλάτους"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:30
+msgid "Undocked into a window."
+msgstr "Αποσπάστηκε σε ξεχωριστό παράθυρο."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:31
+msgid "Docked to the right."
+msgstr "Προσαρτήθηκε στα δεξιά."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:32
+msgid "Failed to load."
+msgstr "Αποτυχία φόρτωσης."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:34
+msgid "It could not be saved."
+msgstr "Η αποθήκευση απέτυχε."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Panel width"
+msgstr "Πλάτος πλαισίου"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close the panel"
+msgstr "Κλείσιμο πλαισίου"
+
+#: View/Themed/Overmind/Users/login.ctp:162
+#: View/Themed/Overmind/Users/login.ctp:163
+msgid "Show password"
+msgstr "Εμφάνιση κωδικού πρόσβασης"
+
+#: View/Themed/Overmind/Users/login.ctp:164
+msgid "Hide password"
+msgstr "Απόκρυψη κωδικού πρόσβασης"
+
+#: View/Themed/Overmind/Users/login.ctp:37
+msgid "Log in with SAML"
+msgstr "Συνδεθείτε με SAML"
+
+#: View/Themed/Overmind/Users/login.ctp:44
+msgid "Log in with Azure AD"
+msgstr "Συνδεθείτε με το Azure AD"
+
+#: View/Themed/Overmind/Users/login.ctp:51
+msgid "Log in with OIDC"
+msgstr "Συνδεθείτε με το OIDC"
+
+#: View/Themed/Overmind/Users/login.ctp:117
+#: View/Themed/Overmind/Users/login.ctp:194
+msgid "Log in"
+msgstr "Σύνδεση"
+
+#: View/Themed/Overmind/Users/login.ctp:120
+msgid "This instance uses single sign-on. Choose your identity provider."
+msgstr ""
+"Αυτή η εγκατάσταση χρησιμοποιεί ενιαία σύνδεση. Επιλέξτε τον πάροχο "
+"ταυτότητάς σας."
+
+#: View/Themed/Overmind/Users/login.ctp:146
+msgid "Forgot your password?"
+msgstr "Ξεχάσατε τον κωδικό σας;"
+
+#: View/Themed/Overmind/Users/login.ctp:173
+msgid "One-time password"
+msgstr "Κωδικός πρόσβασης μίας χρήσης"
+
+#: View/Themed/Overmind/Users/login.ctp:186
+#, php-format
+msgid "Enter the code from your token. Manage your tokens in %s."
+msgstr ""
+"Εισαγάγετε τον κωδικό από το διακριτικό σας. Διαχειριστείτε τα διακριτικά "
+"σας στο %s."
+
+#: View/Themed/Overmind/Users/login.ctp:198
+msgid "or"
+msgstr "ή"
+
+#: View/Themed/Overmind/Users/login.ctp:211
+msgid "No account yet?"
+msgstr "Δεν υπάρχει λογαριασμός ακόμα;"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid ""
+"Registration will be sent to the administrators of the instance for "
+"consideration."
+msgstr ""
+"Το αίτημα εγγραφής θα σταλεί στους διαχειριστές της εγκατάστασης για "
+"εξέταση."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:25
+msgid "Theme updated!"
+msgstr "Το θέμα ενημερώθηκε!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:31
+msgid "Failed to toggle Beta UI. Please try again."
+msgstr "Απέτυχε η εναλλαγή του Beta UI. Δοκιμάστε ξανά."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:56
+msgid "Failed to change the theme. Please try again."
+msgstr "Η αλλαγή του θέματος απέτυχε. Δοκιμάστε ξανά."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:86
+msgid "Homepage saved!"
+msgstr "Η αρχική σελίδα αποθηκεύτηκε!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:90
+msgid "Failed to set homepage. Please try again."
+msgstr "Ο ορισμός της αρχικής σελίδας απέτυχε. Δοκιμάστε ξανά."
