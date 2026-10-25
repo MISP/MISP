@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2022-07-21 15:58\n"
+"PO-Revision-Date: 2026-10-25 00:00+0000\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Hungarian\n"
 "MIME-Version: 1.0\n"
@@ -43,8 +43,9 @@ msgid "Mandatory"
 msgstr ""
 
 #: Console/Command/APIShell.php:70
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:244
 msgid "Optional"
-msgstr ""
+msgstr "Opcionális"
 
 #: Console/Command/APIShell.php:79
 msgid "API Documentation"
@@ -137,15 +138,11 @@ msgstr ""
 msgid "Type"
 msgstr ""
 
-#: Console/Command/APIShell.php:88
-#: View/Cerebrates/index.ctp:25
-#: View/Cerebrates/preview_sharing_groups.ctp:30
-#: View/Cerebrates/view.ctp:30
-#: View/Communities/index.ctp:59
-#: View/Dashboards/list_templates.ctp:43
-#: View/Dashboards/save_template.ctp:21
-#: View/DecayingModel/index.ctp:82
-#: View/DecayingModel/view.ctp:21
+#: Console/Command/APIShell.php:88 Lib/Tools/SharingGroupPeek.php:107
+#: View/Cerebrates/index.ctp:25 View/Cerebrates/preview_sharing_groups.ctp:30
+#: View/Cerebrates/view.ctp:30 View/Communities/index.ctp:59
+#: View/Dashboards/list_templates.ctp:43 View/Dashboards/save_template.ctp:21
+#: View/DecayingModel/index.ctp:82 View/DecayingModel/view.ctp:21
 #: View/Elements/GalaxyClusters/relations_graph.ctp:443
 #: View/Elements/Servers/View/row_object.ctp:24
 #: View/Elements/healthElements/db_schema_diagnostic.ctp:91
@@ -157,33 +154,24 @@ msgstr ""
 #: View/Elements/templateElements/populateTemplateFile.ctp:10
 #: View/Elements/templateElements/templateRowAttribute.ctp:21
 #: View/Elements/templateElements/templateRowFile.ctp:21
-#: View/Events/export.ctp:26
-#: View/Galaxies/index.ctp:73
-#: View/Galaxies/view.ctp:9
-#: View/GalaxyClusters/view.ctp:44
-#: View/GalaxyClusters/ajax/index.ctp:150
-#: View/ObjectTemplates/view.ctp:10
+#: View/Events/export.ctp:26 View/Galaxies/index.ctp:73
+#: View/Galaxies/view.ctp:9 View/GalaxyClusters/ajax/index.ctp:150
+#: View/GalaxyClusters/view.ctp:44 View/ObjectTemplates/view.ctp:10
 #: View/Objects/add.ctp:26;125;222
 #: View/Objects/group_attributes_into_object.ctp:8
 #: View/Objects/propose_objects_from_attributes.ctp:17
-#: View/Organisations/index.ctp:89
-#: View/Organisations/view.ctp:20
+#: View/Organisations/index.ctp:89 View/Organisations/view.ctp:20
 #: View/Pages/doc/administration.ctp:48;240
 #: View/Pages/doc/categories_and_types.ctp:44;61
 #: View/Pages/doc/using_the_system.ctp:108;145;328;341;379
-#: View/SharingGroups/add.ctp:55
-#: View/SharingGroups/edit.ctp:55
-#: View/SharingGroups/index.ctp:76
-#: View/SharingGroups/view.ctp:26
-#: View/Sightingdb/index.ctp:88
-#: View/TagCollections/index.ctp:15
-#: View/Taxonomies/index.ctp:49
-#: View/Taxonomies/view.ctp:37
-#: View/Templates/view.ctp:20
-#: View/Warninglists/index.ctp:67
+#: View/SharingGroups/add.ctp:55 View/SharingGroups/edit.ctp:55
+#: View/SharingGroups/index.ctp:76 View/SharingGroups/view.ctp:26
+#: View/Sightingdb/index.ctp:88 View/TagCollections/index.ctp:15
+#: View/Taxonomies/index.ctp:49 View/Taxonomies/view.ctp:37
+#: View/Templates/view.ctp:20 View/Warninglists/index.ctp:67
 #: View/Warninglists/view.ctp:7
 msgid "Description"
-msgstr ""
+msgstr "Leírás"
 
 #: Console/Command/AdminShell.php:17
 msgid "Update the JSON definitions of MISP."
@@ -986,56 +974,48 @@ msgstr ""
 
 #: Controller/AuditLogsController.php:76;118
 #: View/DecayingModel/decaying_tool.ctp:137
-#: View/Elements/eventdiscussion.ctp:85;93
-#: View/Elements/Events/eventIndexTable.ctp:211
 #: View/Elements/Events/View/row_attribute.ctp:394
 #: View/Elements/Events/View/row_object.ctp:124;125
+#: View/Elements/Events/eventIndexTable.ctp:211
 #: View/Elements/TagCollections/index_row.ctp:44
-#: View/Elements/markdownEditor/markdownEditor.ctp:30
-#: View/Feeds/index.ctp:289
-#: View/GalaxyClusterRelations/add.ctp:8
-#: View/Organisations/index.ctp:151
-#: View/Pages/doc/using_the_system.ctp:191
-#: View/Regexp/admin_index.ctp:27
-#: View/Roles/admin_edit.ctp:55
-#: View/Servers/index.ctp:182
-#: View/Tags/index.ctp:140
-#: View/Users/admin_index.ctp:259
-#: View/Users/edit.ctp:47
+#: View/Elements/eventdiscussion.ctp:85;93
+#: View/Elements/markdownEditor/markdownEditor.ctp:30 View/Feeds/index.ctp:289
+#: View/GalaxyClusterRelations/add.ctp:8 View/Organisations/index.ctp:151
+#: View/Pages/doc/using_the_system.ctp:191 View/Regexp/admin_index.ctp:27
+#: View/Roles/admin_edit.ctp:55 View/Servers/index.ctp:182
+#: View/Tags/index.ctp:140 View/Themed/Overmind/Elements/Events/index.ctp:233
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:123
+#: View/Users/admin_index.ctp:259 View/Users/edit.ctp:47
 #: View/Warninglists/index.ctp:147
 msgid "Edit"
-msgstr ""
+msgstr "Szerk"
 
 #: Controller/AuditLogsController.php:77;119
 msgid "Soft delete"
 msgstr ""
 
-#: Controller/AuditLogsController.php:78;120
-#: View/Allowedlists/index.ctp:33
+#: Controller/AuditLogsController.php:78;120 View/Allowedlists/index.ctp:33
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:16
-#: View/Elements/eventdiscussion.ctp:86;94
 #: View/Elements/Events/eventIndexTable.ctp:213
 #: View/Elements/TagCollections/index_row.ctp:45
+#: View/Elements/eventdiscussion.ctp:86;94
 #: View/Elements/genericElements/Form/hardSoftDeleteForm.ctp:43
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:773
 #: View/Elements/healthElements/files.ctp:73
 #: View/EventGraph/ajax/eventGraph_delete_form.ctp:14
-#: View/EventReports/index.ctp:97
-#: View/EventReports/ajax/indexForEvent.ctp:113
-#: View/Events/view_graph.ctp:31
-#: View/Feeds/index.ctp:296
+#: View/EventReports/ajax/indexForEvent.ctp:113 View/EventReports/index.ctp:97
+#: View/Events/view_graph.ctp:31 View/Feeds/index.ctp:296
 #: View/GalaxyElements/ajax/index.ctp:67
-#: View/ObjectReferences/ajax/delete.ctp:32
-#: View/ObjectTemplates/index.ctp:118
-#: View/Objects/ajax/delete.ctp:19
-#: View/Organisations/index.ctp:155
-#: View/Pages/doc/using_the_system.ctp:192
-#: View/Regexp/admin_index.ctp:28
+#: View/ObjectReferences/ajax/delete.ctp:32 View/ObjectTemplates/index.ctp:118
+#: View/Objects/ajax/delete.ctp:19 View/Organisations/index.ctp:155
+#: View/Pages/doc/using_the_system.ctp:192 View/Regexp/admin_index.ctp:28
 #: View/Servers/index.ctp:183
-#: View/Users/admin_index.ctp:269
-#: View/Warninglists/index.ctp:165
+#: View/Themed/Overmind/Elements/Events/index.ctp:240
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:286
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:326
+#: View/Users/admin_index.ctp:269 View/Warninglists/index.ctp:165
 msgid "Delete"
-msgstr ""
+msgstr "Törlés"
 
 #: Controller/AuditLogsController.php:79;121
 msgid "Undelete"
@@ -1044,10 +1024,11 @@ msgstr ""
 #: Controller/AuditLogsController.php:80;81;122
 #: Controller/EventsController.php:1127
 #: View/Elements/DecayingModels/View/basescore_computation_steps.ctp:5
-#: View/Feeds/index.ctp:192
-#: View/Taxonomies/ajax/taxonomy_tags.ctp:52
+#: View/Feeds/index.ctp:192 View/Taxonomies/ajax/taxonomy_tags.ctp:52
+#: View/Themed/Overmind/Elements/Events/index.ctp:336
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:134
 msgid "Tag"
-msgstr ""
+msgstr "Címke"
 
 #: Controller/AuditLogsController.php:82;83;123
 #: View/Elements/ajaxAttributeTags.ctp:29
@@ -1069,19 +1050,19 @@ msgstr ""
 #: View/Events/ajax/eventPublishConfirmationForm.ctp:28
 #: View/Feeds/index.ctp:163
 #: View/GalaxyClusters/ajax/publishConfirmationForm.ctp:25
-#: View/Pages/doc/using_the_system.ctp:190
-#: View/Servers/ajax/update.ctp:13
+#: View/Pages/doc/using_the_system.ctp:190 View/Servers/ajax/update.ctp:13
+#: View/Themed/Overmind/Elements/Events/index.ctp:254
 msgid "Publish"
-msgstr ""
+msgstr "Közzététel"
 
 #: Controller/AuditLogsController.php:89
 msgid "Publish sightings"
 msgstr ""
 
-#: Controller/AuditLogsController.php:132
-#: View/AuditLogs/admin_index.ctp:2
+#: Controller/AuditLogsController.php:132 View/AuditLogs/admin_index.ctp:2
+#: View/Helper/NavbarHelper.php:784
 msgid "Audit logs"
-msgstr ""
+msgstr "Audit naplók"
 
 #: Controller/AuditLogsController.php:185
 #: View/AuditLogs/event_index.ctp:2
@@ -1556,32 +1537,33 @@ msgstr ""
 msgid "No PGP key set in your profile. To receive attributes in emails, submit your public key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:1125
-#: View/Events/view.ctp:186
-#: View/Feeds/preview_event.ctp:43
-#: View/GalaxyClusters/view.ctp:47
-#: View/GalaxyClusters/ajax/index.ctp:76
+#: Controller/EventsController.php:1125 View/Events/view.ctp:186
+#: View/Feeds/preview_event.ctp:43 View/GalaxyClusters/ajax/index.ctp:76
+#: View/GalaxyClusters/view.ctp:47 View/Helper/EventIndexHelper.php:52
 #: View/Pages/doc/using_the_system.ctp:160;213
-#: View/Servers/preview_event.ctp:44
-#: View/Servers/preview_index.ctp:108
+#: View/Servers/preview_event.ctp:44 View/Servers/preview_index.ctp:108
+#: View/Themed/Overmind/Elements/Events/index.ctp:202
+#: View/Themed/Overmind/Elements/Events/index.ctp:403
+#: View/Themed/Overmind/Elements/Events/index.ctp:406
+#: View/Themed/Overmind/Elements/Events/index.ctp:424
+#: View/Themed/Overmind/Elements/Events/index.ctp:498
+#: View/Themed/Overmind/Elements/Events/index.ctp:499
 msgid "Published"
-msgstr ""
+msgstr "Közzétéve"
 
-#: Controller/EventsController.php:1128
-#: View/Attributes/index.ctp:14
+#: Controller/EventsController.php:1128 View/Attributes/index.ctp:14
 #: View/DecayingModel/decaying_tool_rest_search.ctp:23
-#: View/Elements/eventattribute.ctp:121
 #: View/Elements/Feeds/eventattribute.ctp:41
 #: View/Elements/Servers/eventattribute.ctp:37
-#: View/Events/proposal_event_index.ctp:24
-#: View/Events/view.ctp:121
+#: View/Elements/eventattribute.ctp:121
+#: View/Events/proposal_event_index.ctp:24 View/Events/view.ctp:121
 #: View/Feeds/preview_event.ctp:17
 #: View/Objects/group_attributes_into_object.ctp:56
 #: View/Pages/doc/using_the_system.ctp:33;167;208;230;251
-#: View/Servers/preview_event.ctp:20
-#: View/Sightings/ajax/list_sightings.ctp:9
+#: View/Servers/preview_event.ctp:20 View/Sightings/ajax/list_sightings.ctp:9
+#: View/Themed/Overmind/Elements/Events/index.ctp:196
 msgid "Date"
-msgstr ""
+msgstr "Dátum"
 
 #: Controller/EventsController.php:1129
 #: View/Attributes/alternate_search_result.ctp:8
@@ -1597,61 +1579,59 @@ msgstr ""
 
 #: Controller/EventsController.php:1130
 #: View/Events/get_event_info_by_id.ctp:14
+#: View/Themed/Overmind/Elements/Events/index.ctp:495
 msgid "Threat level"
-msgstr ""
+msgstr "Veszélyességi szint"
 
 #: Controller/EventsController.php:1131
-#: View/Attributes/index.ctp:103
 #: View/Attributes/ajax/attributeEditMassForm.ctp:15
-#: View/Elements/Feeds/eventattribute.ctp:50
+#: View/Attributes/index.ctp:103 View/Elements/Feeds/eventattribute.ctp:50
 #: View/Elements/GalaxyClusters/relations_graph.ctp:445
-#: View/EventReports/index.ctp:74
-#: View/EventReports/view.ctp:15
-#: View/EventReports/ajax/indexForEvent.ctp:97
-#: View/Events/resolved_attributes.ctp:51
-#: View/Events/resolved_misp_format.ctp:97;150;353
-#: View/Events/view.ctp:157
-#: View/Feeds/add.ctp:138
-#: View/Feeds/freetext_index.ctp:32
-#: View/Feeds/index.ctp:186
-#: View/Feeds/preview_event.ctp:35
+#: View/EventReports/ajax/indexForEvent.ctp:97 View/EventReports/index.ctp:74
+#: View/EventReports/view.ctp:15 View/Events/resolved_attributes.ctp:51
+#: View/Events/resolved_misp_format.ctp:97;150;353 View/Events/view.ctp:157
+#: View/Feeds/add.ctp:138 View/Feeds/freetext_index.ctp:32
+#: View/Feeds/index.ctp:186 View/Feeds/preview_event.ctp:35
 #: View/GalaxyClusterRelations/index.ctp:107
-#: View/GalaxyClusters/view.ctp:63
+#: View/GalaxyClusters/ajax/index.ctp:174 View/GalaxyClusters/view.ctp:63
 #: View/GalaxyClusters/view_relations.ctp:63;130
-#: View/GalaxyClusters/ajax/index.ctp:174
 #: View/Objects/add.ctp:51;130;226
 #: View/Objects/group_attributes_into_object.ctp:12;59
 #: View/Objects/revise_object.ctp:11;59
 #: View/Pages/doc/using_the_system.ctp:34;90;126;186;211;237
 #: View/Servers/preview_event.ctp:33
 #: View/Templates/populate_event_from_template_attributes.ctp:11
+#: View/Themed/Overmind/Elements/Events/index.ctp:193
+#: View/Themed/Overmind/Elements/Events/index.ctp:387
 #: View/Threads/index.ctp:41
 msgid "Distribution"
-msgstr ""
+msgstr "Elosztás"
 
-#: Controller/EventsController.php:1132
-#: Model/Attribute.php:94
+#: Controller/EventsController.php:1132 Model/Attribute.php:94
 #: View/Elements/view_event_distribution_graph.ctp:24
+#: View/Themed/Overmind/Elements/Events/index.ctp:393
+#: View/Themed/Overmind/Elements/Events/index.ctp:493
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:21
 msgid "Sharing group"
-msgstr ""
+msgstr "Megosztási csoport"
 
 #: Controller/EventsController.php:1133
-#: View/Events/get_event_info_by_id.ctp:13
-#: View/Events/view.ctp:152
+#: View/Events/get_event_info_by_id.ctp:13 View/Events/view.ctp:152
 #: View/Feeds/preview_event.ctp:25
 #: View/Pages/doc/using_the_system.ctp:70;177;210
 #: View/Servers/preview_event.ctp:28
+#: View/Themed/Overmind/Elements/Events/index.ctp:494
 msgid "Analysis"
-msgstr ""
+msgstr "Elemzés"
 
 #: Controller/EventsController.php:1134
 #: View/Elements/templateElements/templateRowAttribute.ctp:4
-#: View/ObjectReferences/ajax/add.ctp:86
-#: View/Objects/revise_object.ctp:52
+#: View/ObjectReferences/ajax/add.ctp:86 View/Objects/revise_object.ctp:52
 #: View/Pages/doc/administration.ctp:168
 #: View/TemplateElements/ajax/template_element_add_choices.ctp:3
+#: View/Themed/Overmind/Elements/Events/index.ctp:488
 msgid "Attribute"
-msgstr ""
+msgstr "Tulajdonság"
 
 #: Controller/EventsController.php:1135
 msgid "Has proposal"
@@ -1663,22 +1643,21 @@ msgid "Last change at"
 msgstr ""
 
 #: Controller/EventsController.php:1137
-#: View/Elements/Events/eventIndexTable.ctp:41
-#: View/Events/index.ctp:35
+#: View/Elements/Events/eventIndexTable.ctp:41 View/Events/index.ctp:35
+#: View/Themed/Overmind/Elements/Events/index.ctp:203
+#: View/Themed/Overmind/Elements/Events/index.ctp:61
 msgid "Published at"
-msgstr ""
+msgstr "Megjelent:"
 
 #: Controller/EventsController.php:1141
-#: View/Events/proposal_event_index.ctp:21
-#: View/Jobs/index.ctp:79
+#: View/Events/proposal_event_index.ctp:21 View/Jobs/index.ctp:79
 #: View/Logs/admin_search.ctp:6
 #: View/Pages/doc/administration.ctp:87;104;116;181;195
 #: View/Pages/doc/using_the_system.ctp:166
-#: View/Users/admin_index.ctp:129
-#: View/Users/registrations.ctp:61
-#: View/Users/view.ctp:5
+#: View/Themed/Overmind/Users/login.ctp:127 View/Users/admin_index.ctp:129
+#: View/Users/registrations.ctp:61 View/Users/view.ctp:5
 msgid "Email"
-msgstr ""
+msgstr "E-mail"
 
 #: Controller/EventsController.php:1150
 #: View/Logs/admin_search.ctp:8
@@ -2111,10 +2090,10 @@ msgstr ""
 msgid "Default feed metadata loaded."
 msgstr ""
 
-#: Controller/FeedsController.php:121
-#: View/Feeds/index.ctp:215
+#: Controller/FeedsController.php:121 View/Feeds/index.ctp:215
+#: View/Helper/NavbarHelper.php:465
 msgid "Feeds"
-msgstr ""
+msgstr "Adatforrások"
 
 #: Controller/FeedsController.php:128;291;430
 msgid "Inherit from feed"
@@ -3206,12 +3185,11 @@ msgstr ""
 msgid "Sharing Group could not be deleted. Make sure that there are no events, attributes or threads belonging to this sharing group."
 msgstr ""
 
-#: Controller/SharingGroupsController.php:363
-#: View/Cerebrates/view.ctp:63
-#: View/Organisations/view.ctp:72;73
+#: Controller/SharingGroupsController.php:363 View/Cerebrates/view.ctp:63
+#: View/Helper/NavbarHelper.php:476 View/Organisations/view.ctp:72;73
 #: View/SharingGroups/index.ctp:4
 msgid "Sharing Groups"
-msgstr ""
+msgstr "Megosztási csoportok"
 
 #: Controller/SightingdbController.php:32
 msgid "SightingDB connection added."
@@ -3752,48 +3730,40 @@ msgstr ""
 msgid "Usage data"
 msgstr ""
 
-#: Controller/UsersController.php:1830
-#: View/Cerebrates/view.ctp:57
-#: View/Elements/global_menu.ctp:196
-#: View/SharingGroups/add.ctp:19
-#: View/SharingGroups/edit.ctp:19
-#: View/SharingGroups/view.ctp:51
+#: Controller/UsersController.php:1830 View/Cerebrates/view.ctp:57
+#: View/Elements/global_menu.ctp:196 View/SharingGroups/add.ctp:19
+#: View/SharingGroups/edit.ctp:19 View/SharingGroups/view.ctp:51
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:34
 #: View/Users/statistics_data.ctp:34
 msgid "Organisations"
-msgstr ""
+msgstr "Szervezetek"
 
 #: Controller/UsersController.php:1831
 msgid "User and Organisation statistics"
 msgstr ""
 
-#: Controller/UsersController.php:1832
-#: View/Attributes/index.ctp:52
+#: Controller/UsersController.php:1832 View/Attributes/index.ctp:52
 #: View/DecayingModel/decaying_tool_rest_search.ctp:28
-#: View/Elements/eventattribute.ctp:129
 #: View/Elements/EventReports/reportHelpModal.ctp:53
 #: View/Elements/Events/eventIndexTable.ctp:31
 #: View/Elements/Feeds/eventattribute.ctp:46
 #: View/Elements/GalaxyClusters/relations_graph.ctp:466
 #: View/Elements/Servers/eventattribute.ctp:42
+#: View/Elements/eventattribute.ctp:129
 #: View/Elements/genericElements/Form/Fields/tagsField.ctp:2
-#: View/Events/get_event_info_by_id.ctp:15
-#: View/Events/index.ctp:27
-#: View/Events/resolved_misp_format.ctp:68;146;349
-#: View/Events/view.ctp:104
-#: View/Feeds/preview_event.ctp:15
-#: View/Feeds/preview_index.ctp:35
-#: View/Feeds/view.ctp:16
-#: View/GalaxyClusters/view_relations.ctp:138
+#: View/Events/get_event_info_by_id.ctp:15 View/Events/index.ctp:27
+#: View/Events/resolved_misp_format.ctp:68;146;349 View/Events/view.ctp:104
+#: View/Feeds/preview_event.ctp:15 View/Feeds/preview_index.ctp:35
+#: View/Feeds/view.ctp:16 View/GalaxyClusters/view_relations.ctp:138
 #: View/Noticelists/preview_entries.ctp:19
 #: View/Pages/doc/using_the_system.ctp:164;207;318
-#: View/Servers/preview_event.ctp:18
-#: View/Servers/preview_index.ctp:90
-#: View/TagCollections/index.ctp:10
-#: View/Tags/index.ctp:124
-#: View/Templates/add.ctp:20
-#: View/Templates/view.ctp:24
+#: View/Servers/preview_event.ctp:18 View/Servers/preview_index.ctp:90
+#: View/TagCollections/index.ctp:10 View/Tags/index.ctp:124
+#: View/Templates/add.ctp:20 View/Templates/view.ctp:24
+#: View/Themed/Overmind/Elements/Events/index.ctp:492
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:266
 msgid "Tags"
-msgstr ""
+msgstr "Címkék"
 
 #: Controller/UsersController.php:1833
 msgid "Attribute histogram"
@@ -3807,28 +3777,21 @@ msgstr ""
 msgid "Galaxy Matrix"
 msgstr ""
 
-#: Controller/UsersController.php:2193
-#: View/AuthKeys/view.ctp:53
-#: View/Elements/eventattributetoolbar.ctp:9
+#: Controller/UsersController.php:2193 View/AuthKeys/view.ctp:53
 #: View/Elements/Events/eventIndexTable.ctp:185
-#: View/EventReports/index.ctp:16
-#: View/EventReports/ajax/indexForEvent.ctp:50
-#: View/Events/proposal_event_index.ctp:64
-#: View/Galaxies/index.ctp:13
+#: View/Elements/eventattributetoolbar.ctp:9
+#: View/EventReports/ajax/indexForEvent.ctp:50 View/EventReports/index.ctp:16
+#: View/Events/proposal_event_index.ctp:64 View/Galaxies/index.ctp:13
 #: View/GalaxyClusterRelations/index.ctp:14
-#: View/GalaxyClusters/ajax/index.ctp:19
-#: View/Jobs/index.ctp:13;61
-#: View/ObjectTemplates/index.ctp:33
-#: View/Regexp/admin_add.ctp:17
-#: View/Regexp/admin_edit.ctp:18
-#: View/Sightings/ajax/advanced.ctp:5
-#: View/Taxonomies/index.ctp:12
-#: View/Taxonomies/ajax/taxonomy_tags.ctp:160
-#: View/UserSettings/index.ctp:41
-#: View/Users/admin_index.ctp:66
+#: View/GalaxyClusters/ajax/index.ctp:19 View/Jobs/index.ctp:13;61
+#: View/ObjectTemplates/index.ctp:33 View/Regexp/admin_add.ctp:17
+#: View/Regexp/admin_edit.ctp:18 View/Sightings/ajax/advanced.ctp:5
+#: View/Taxonomies/ajax/taxonomy_tags.ctp:160 View/Taxonomies/index.ctp:12
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:183
+#: View/UserSettings/index.ctp:41 View/Users/admin_index.ctp:66
 #: View/Warninglists/index.ctp:20
 msgid "All"
-msgstr ""
+msgstr "Mind"
 
 #: Controller/UsersController.php:2434
 msgid "Self registration is not enabled on this instance."
@@ -8118,40 +8081,27 @@ msgstr ""
 msgid "Regex entries (in the standard php regex /{regex}/{modifier} format) entered below will restrict matching attributes from being included in the IDS flag sensitive exports (such as NIDS exports)."
 msgstr ""
 
-#: View/Allowedlists/index.ctp:11
-#: View/AuthKeys/view.ctp:23
+#: View/Allowedlists/index.ctp:11 View/AuthKeys/view.ctp:23
 #: View/Elements/Events/eventIndexTable.ctp:29
-#: View/EventReports/index.ctp:48
-#: View/EventReports/view.ctp:3
-#: View/EventReports/ajax/indexForEvent.ctp:71
-#: View/Events/get_event_info_by_id.ctp:12
-#: View/Feeds/index.ctp:85
-#: View/Feeds/view.ctp:3
-#: View/GalaxyClusters/ajax/index.ctp:67
-#: View/Jobs/index.ctp:98
-#: View/Noticelists/index.ctp:4
-#: View/ObjectTemplates/view.ctp:3
-#: View/Objects/add.ctp:214
-#: View/Objects/group_attributes_into_object.ctp:54
-#: View/Organisations/index.ctp:68
-#: View/Organisations/view.ctp:5
-#: View/Organisations/ajax/merge.ctp:56;63
-#: View/Pages/doc/using_the_system.ctp:163;203
-#: View/Roles/index.ctp:4
-#: View/Servers/compare_servers.ctp:4
-#: View/Servers/index.ctp:14
-#: View/ShadowAttributes/index.ctp:34
-#: View/SharingGroups/index.ctp:49
-#: View/SharingGroups/view.ctp:10
-#: View/Tags/index.ctp:34
-#: View/Taxonomies/index.ctp:37
+#: View/EventReports/ajax/indexForEvent.ctp:71 View/EventReports/index.ctp:48
+#: View/EventReports/view.ctp:3 View/Events/get_event_info_by_id.ctp:12
+#: View/Feeds/index.ctp:85 View/Feeds/view.ctp:3
+#: View/GalaxyClusters/ajax/index.ctp:67 View/Jobs/index.ctp:98
+#: View/Noticelists/index.ctp:4 View/ObjectTemplates/view.ctp:3
+#: View/Objects/add.ctp:214 View/Objects/group_attributes_into_object.ctp:54
+#: View/Organisations/ajax/merge.ctp:56;63 View/Organisations/index.ctp:68
+#: View/Organisations/view.ctp:5 View/Pages/doc/using_the_system.ctp:163;203
+#: View/Roles/index.ctp:4 View/Servers/compare_servers.ctp:4
+#: View/Servers/index.ctp:14 View/ShadowAttributes/index.ctp:34
+#: View/SharingGroups/index.ctp:49 View/SharingGroups/view.ctp:10
+#: View/Tags/index.ctp:34 View/Taxonomies/index.ctp:37
 #: View/Taxonomies/view.ctp:29
-#: View/Users/admin_index.ctp:110
-#: View/Users/view.ctp:3
-#: View/Warninglists/index.ctp:48
-#: View/Warninglists/view.ctp:5
+#: View/Themed/Overmind/Elements/Events/index.ctp:142
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
+#: View/Users/admin_index.ctp:110 View/Users/view.ctp:3
+#: View/Warninglists/index.ctp:48 View/Warninglists/view.ctp:5
 msgid "ID"
-msgstr ""
+msgstr "ID"
 
 #: View/Allowedlists/index.ctp:39
 #: View/GalaxyClusterBlocklists/index.ctp:80
@@ -8296,8 +8246,9 @@ msgid "Org"
 msgstr ""
 
 #: View/Attributes/alternate_search_result.ctp:9
+#: View/Themed/Overmind/Elements/Events/index.ctp:197
 msgid "Event date"
-msgstr ""
+msgstr "Esemény dátuma"
 
 #: View/Attributes/alternate_search_result.ctp:10
 #: View/Events/view.ctp:512
@@ -8466,16 +8417,15 @@ msgstr ""
 msgid "No Failed Composites"
 msgstr ""
 
-#: View/Attributes/index.ctp:9
-#: View/Attributes/ajax/hover_enrichment.ctp:33
-#: View/Elements/histogram.ctp:4
-#: View/Events/view.ctp:527
+#: View/Attributes/ajax/hover_enrichment.ctp:33 View/Attributes/index.ctp:9
+#: View/Elements/histogram.ctp:4 View/Events/view.ctp:527
+#: View/Helper/NavbarHelper.php:151
 #: View/Objects/orphaned_object_diagnostics.ctp:44
 #: View/Pages/doc/using_the_system.ctp:242
-#: View/Users/statistics_data.ctp:19
-#: View/Users/statistics_orgs.ctp:36
+#: View/Themed/Overmind/Elements/Events/index.ctp:176
+#: View/Users/statistics_data.ctp:19 View/Users/statistics_orgs.ctp:36
 msgid "Attributes"
-msgstr ""
+msgstr "Tulajdonságok"
 
 #: View/Attributes/index.ctp:21
 #: View/Elements/eventattribute.ctp:123
@@ -8544,14 +8494,13 @@ msgstr ""
 
 #: View/Attributes/index.ctp:57
 #: View/DecayingModel/decaying_tool_rest_search.ctp:30
-#: View/Elements/eventattribute.ctp:136
-#: View/Elements/global_menu.ctp:123
-#: View/Events/view.ctp:539
-#: View/Events/ajax/ajaxGalaxies.ctp:4
-#: View/Servers/preview_event.ctp:98
+#: View/Elements/eventattribute.ctp:136 View/Elements/global_menu.ctp:123
+#: View/Events/ajax/ajaxGalaxies.ctp:4 View/Events/view.ctp:539
+#: View/Helper/NavbarHelper.php:298 View/Servers/preview_event.ctp:98
 #: View/TagCollections/index.ctp:11
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:199
 msgid "Galaxies"
-msgstr ""
+msgstr "Galaxisok"
 
 #: View/Attributes/index.ctp:62
 #: View/AuthKeys/add.ctp:16
@@ -8615,11 +8564,11 @@ msgstr ""
 
 #: View/Attributes/index.ctp:116
 #: View/DecayingModel/decaying_tool_rest_search.ctp:33
-#: View/Elements/eventattribute.ctp:143
-#: View/Events/index.ctp:30
-#: View/Events/view.ctp:251
+#: View/Elements/eventattribute.ctp:143 View/Events/index.ctp:30
+#: View/Events/view.ctp:251 View/Themed/Overmind/Elements/Events/index.ctp:57
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:200
 msgid "Sightings"
-msgstr ""
+msgstr "Látások"
 
 #: View/Attributes/index.ctp:126
 #: View/Elements/eventattribute.ctp:144
@@ -8769,11 +8718,12 @@ msgstr ""
 msgid "Create proposals"
 msgstr ""
 
-#: View/Attributes/ajax/attributeEditMassForm.ctp:45
-#: View/Events/index.ctp:29
-#: View/Feeds/freetext_index.ctp:31
+#: View/Attributes/ajax/attributeEditMassForm.ctp:45 View/Events/index.ctp:29
+#: View/Feeds/freetext_index.ctp:31 View/Helper/NavbarHelper.php:727
+#: View/Themed/Overmind/Elements/Events/index.ctp:178
+#: View/Themed/Overmind/Elements/Events/index.ctp:55
 msgid "Correlations"
-msgstr ""
+msgstr "Összefüggések"
 
 #: View/Attributes/ajax/attributeEditMassForm.ctp:48
 msgid "Enable correlations"
@@ -8866,8 +8816,10 @@ msgid "Remove %s tag %s from %s %s?"
 msgstr ""
 
 #: View/Attributes/ajax/tagRemoveConfirmation.ctp:17
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:252
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:380
 msgid "Remove"
-msgstr ""
+msgstr "Távolítsa el"
 
 #: View/Attributes/ajax/toggle_correlation.ctp:6
 msgid "Toggle Correlation %s "
@@ -8928,8 +8880,10 @@ msgid "Clear filtering rules"
 msgstr ""
 
 #: View/AuditLogs/admin_index.ctp:7
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:193
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:490
 msgid "Clear"
-msgstr ""
+msgstr "Tiszta"
 
 #: View/AuditLogs/admin_index.ctp:231
 #: View/AuditLogs/event_index.ctp:6
@@ -9001,17 +8955,14 @@ msgstr ""
 msgid "Model"
 msgstr ""
 
-#: View/AuditLogs/admin_index.ctp:246
-#: View/AuditLogs/event_index.ctp:21
-#: View/Inbox/index.ctp:31
-#: View/Logs/admin_search.ctp:19
-#: View/News/add.ctp:17
-#: View/News/index.ctp:21
-#: View/Pages/doc/administration.ctp:185;198
+#: View/AuditLogs/admin_index.ctp:246 View/AuditLogs/event_index.ctp:21
+#: View/Inbox/index.ctp:31 View/Logs/admin_search.ctp:19 View/News/add.ctp:17
+#: View/News/index.ctp:21 View/Pages/doc/administration.ctp:185;198
 #: View/Pages/doc/using_the_system.ctp:271
+#: View/Themed/Overmind/Elements/Events/index.ctp:149
 #: View/Threads/index.ctp:16
 msgid "Title"
-msgstr ""
+msgstr "Cím"
 
 #: View/AuditLogs/admin_index.ctp:247
 #: View/AuditLogs/event_index.ctp:22
@@ -9049,31 +9000,26 @@ msgstr ""
 msgid "Event #%s: %s"
 msgstr ""
 
-#: View/AuditLogs/admin_index.ctp:291
-#: View/AuditLogs/event_index.ctp:43
+#: View/AuditLogs/admin_index.ctp:291 View/AuditLogs/event_index.ctp:43
 #: View/DecayingModel/decaying_tool_rest_search.ctp:57
-#: View/DecayingModel/index.ctp:155
-#: View/Elements/eventdiscussion.ctp:115
-#: View/Elements/generic_table.ctp:47
-#: View/Elements/generic_table_row.ctp:39
+#: View/DecayingModel/index.ctp:155 View/Elements/eventdiscussion.ctp:115
 #: View/Elements/genericElements/IndexTable/pagination_counter.ctp:2
-#: View/Events/index.ctp:142
-#: View/Events/proposal_event_index.ctp:72
-#: View/Events/ajax/index.ctp:21
-#: View/Feeds/freetext_index.ctp:74
-#: View/Feeds/preview_index.ctp:77
-#: View/Jobs/index.ctp:180
-#: View/Logs/admin_index.ctp:113
-#: View/Logs/event_index.ctp:47
+#: View/Elements/generic_table.ctp:47 View/Elements/generic_table_row.ctp:39
+#: View/Events/ajax/index.ctp:21 View/Events/index.ctp:142
+#: View/Events/proposal_event_index.ctp:72 View/Feeds/freetext_index.ctp:74
+#: View/Feeds/preview_index.ctp:77 View/Jobs/index.ctp:180
+#: View/Logs/admin_index.ctp:113 View/Logs/event_index.ctp:47
 #: View/ObjectTemplateElements/ajax/view_elements.ctp:60
-#: View/ObjectTemplates/index.ctp:129
-#: View/Regexp/admin_index.ctp:36
-#: View/Regexp/index.ctp:31
-#: View/Servers/index.ctp:194
-#: View/Servers/preview_index.ctp:178
-#: View/Tasks/index.ctp:92
-msgid "Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}"
+#: View/ObjectTemplates/index.ctp:129 View/Regexp/admin_index.ctp:36
+#: View/Regexp/index.ctp:31 View/Servers/index.ctp:194
+#: View/Servers/preview_index.ctp:178 View/Tasks/index.ctp:92
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination.ctp:14
+msgid ""
+"Page {:page} of {:pages}, showing {:current} records out of {:count} total, "
+"starting on record {:start}, ending on {:end}"
 msgstr ""
+"{:pages}/{:page}. oldal, összesen {:count}-ból {:current} rekord látható, "
+"a(z) {:start} rekordtól kezdve a(z) {:end} dátumig"
 
 #: View/AuditLogs/event_index.ctp:11;50
 msgid "Older logs"
@@ -9709,8 +9655,9 @@ msgid "Can other organization use this model"
 msgstr ""
 
 #: View/DecayingModel/add.ctp:37
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
 msgid "days"
-msgstr ""
+msgstr "nap"
 
 #: View/DecayingModel/add.ctp:40
 msgid "The end of life of the indicator"
@@ -9829,8 +9776,9 @@ msgstr ""
 
 #: View/DecayingModel/decaying_tool_basescore.ctp:13
 #: View/Taxonomies/index.ctp:3
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:267
 msgid "Taxonomies"
-msgstr ""
+msgstr "Taxonómiák"
 
 #: View/DecayingModel/decaying_tool_basescore.ctp:14
 msgid "Weight"
@@ -9841,8 +9789,9 @@ msgid "Numerical value overriden by userSetting.&#10;Original numerical_value = 
 msgstr ""
 
 #: View/DecayingModel/decaying_tool_basescore.ctp:100
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:379
 msgid "Excluded"
-msgstr ""
+msgstr "Kizárva"
 
 #: View/DecayingModel/decaying_tool_basescore.ctp:121
 msgid "Placeholder for `Organisation source confidence`"
@@ -9884,12 +9833,14 @@ msgstr ""
 
 #: View/DecayingModel/decaying_tool_simulation.ctp:45
 #: View/Elements/genericElements/ListTopBar/group_search.ctp:23
-#: View/Events/automation.ctp:39
-#: View/Logs/admin_index.ctp:20;21
+#: View/Events/automation.ctp:39 View/Logs/admin_index.ctp:20;21
 #: View/Logs/admin_search.ctp:25
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:253
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:375
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
 #: View/Warninglists/check_value.ctp:12
 msgid "Search"
-msgstr ""
+msgstr "Keresés"
 
 #: View/DecayingModel/decaying_tool_simulation.ctp:49
 msgid "Specific Attribute"
@@ -9961,9 +9912,9 @@ msgstr ""
 msgid "JSON file"
 msgstr ""
 
-#: View/DecayingModel/index.ctp:2
+#: View/DecayingModel/index.ctp:2 View/Helper/NavbarHelper.php:320
 msgid "Decaying Models"
-msgstr ""
+msgstr "Elévülési modellek"
 
 #: View/DecayingModel/index.ctp:23;24
 msgid "All Models"
@@ -10030,23 +9981,16 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
-#: View/DecayingModel/index.ctp:91
-#: View/DecayingModel/view.ctp:31
-#: View/Events/view.ctp:309
-#: View/Feeds/add.ctp:11
-#: View/Feeds/index.ctp:91
-#: View/Feeds/view.ctp:64
-#: View/Galaxies/index.ctp:18;77
-#: View/Noticelists/view.ctp:34
-#: View/ObjectTemplates/index.ctp:28
-#: View/Sightingdb/index.ctp:19
-#: View/Taxonomies/index.ctp:17;60
-#: View/Taxonomies/view.ctp:45
-#: View/Taxonomies/ajax/taxonomy_tags.ctp:59;165
-#: View/Warninglists/index.ctp:25;99
-#: View/Warninglists/view.ctp:13
+#: View/DecayingModel/index.ctp:91 View/DecayingModel/view.ctp:31
+#: View/Events/view.ctp:309 View/Feeds/add.ctp:11 View/Feeds/index.ctp:91
+#: View/Feeds/view.ctp:64 View/Galaxies/index.ctp:18;77
+#: View/Noticelists/view.ctp:34 View/ObjectTemplates/index.ctp:28
+#: View/Sightingdb/index.ctp:19 View/Taxonomies/ajax/taxonomy_tags.ctp:59;165
+#: View/Taxonomies/index.ctp:17;60 View/Taxonomies/view.ctp:45
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:195
+#: View/Warninglists/index.ctp:25;99 View/Warninglists/view.ctp:13
 msgid "Enabled"
-msgstr ""
+msgstr "Engedélyezve"
 
 #: View/DecayingModel/index.ctp:92
 #: View/Elements/eventattribute.ctp:162
@@ -10093,11 +10037,12 @@ msgstr ""
 msgid "Are you sure you want to enable DecayingModel #"
 msgstr ""
 
-#: View/DecayingModel/view.ctp:5
-#: View/Elements/Events/eventIndexTable.ctp:21
-#: View/Events/view.ctp:61
+#: View/DecayingModel/view.ctp:5 View/Elements/Events/eventIndexTable.ctp:21
+#: View/Events/view.ctp:61 View/Themed/Overmind/Elements/Events/index.ctp:154
+#: View/Themed/Overmind/Elements/Events/index.ctp:325
+#: View/Themed/Overmind/Elements/Events/index.ctp:486
 msgid "Creator org"
-msgstr ""
+msgstr "Létrehozó szervezet"
 
 #: View/DecayingModel/view.ctp:27
 #: View/SharingGroups/add.ctp:93
@@ -10271,8 +10216,10 @@ msgid "Add new cluster to selected Attributes"
 msgstr ""
 
 #: View/Elements/eventattributetoolbar.ctp:88
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:174
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:175
 msgid "Group selected Attributes into an Object"
-msgstr ""
+msgstr "Csoportosítsa a kiválasztott attribútumokat egy objektumba"
 
 #: View/Elements/eventattributetoolbar.ctp:97
 msgid "Delete selected Attributes"
@@ -10287,8 +10234,10 @@ msgid "Discard selected Proposals"
 msgstr ""
 
 #: View/Elements/eventattributetoolbar.ctp:121
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:196
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:197
 msgid "Sightings display for selected attributes"
-msgstr ""
+msgstr "A kiválasztott attribútumokhoz tartozó megfigyelések megjelenítése"
 
 #: View/Elements/eventattributetoolbar.ctp:132
 msgid "Populate using a template"
@@ -10458,11 +10407,12 @@ msgstr ""
 msgid "Errors"
 msgstr ""
 
-#: View/Elements/flashErrorMessage.ctp:5
 #: View/Elements/GalaxyClusters/clusterElementUI.ctp:34
+#: View/Elements/flashErrorMessage.ctp:5 View/Helper/EventIndexHelper.php:264
 #: View/Jobs/ajax/error.ctp:34
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:30
 msgid "Close"
-msgstr ""
+msgstr "Bezárás"
 
 #: View/Elements/footer.ctp:3
 msgid "Show keyboard shortcuts help"
@@ -10473,8 +10423,10 @@ msgid "Keyboard shortcuts for this page"
 msgstr ""
 
 #: View/Elements/footer.ctp:6
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+#: View/Themed/Overmind/Elements/Events/index.ctp:518
 msgid "none"
-msgstr ""
+msgstr "egyik sem"
 
 #: View/Elements/footer.ctp:19
 msgid "Could not locate the PGP public key."
@@ -10619,16 +10571,16 @@ msgstr ""
 msgid "View delegation requests"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:56
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1113
+#: View/Elements/global_menu.ctp:56 View/Helper/NavbarHelper.php:281
 #: View/Pages/doc/general.ctp:40
 msgid "List Tags"
-msgstr ""
+msgstr "Címkék listája"
 
-#: View/Elements/global_menu.ctp:60
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:291
+#: View/Elements/global_menu.ctp:60 View/Helper/NavbarHelper.php:288
 msgid "List Tag Collections"
-msgstr ""
+msgstr "Címkegyűjtemények listázása"
 
 #: View/Elements/global_menu.ctp:64
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1118
@@ -10637,10 +10589,10 @@ msgstr ""
 msgid "Add Tag"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:69
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1146
+#: View/Elements/global_menu.ctp:69 View/Helper/NavbarHelper.php:274
 msgid "List Taxonomies"
-msgstr ""
+msgstr "Sorolja fel a taxonómiákat"
 
 #: View/Elements/global_menu.ctp:73
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1176
@@ -10654,24 +10606,21 @@ msgstr ""
 msgid "Add Template"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:85
-#: View/Elements/view_event_graph.ctp:15
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:389
-#: View/Events/export.ctp:2
-#: View/Events/export_alternate.ctp:2;95
+#: View/Elements/global_menu.ctp:85 View/Elements/view_event_graph.ctp:15
+#: View/Events/export.ctp:2 View/Events/export_alternate.ctp:2;95
 #: View/Pages/doc/general.ctp:44
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:65
 msgid "Export"
-msgstr ""
+msgstr "Export"
 
-#: View/Elements/global_menu.ctp:89
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:395
-#: View/Events/automation.ctp:5
-#: View/Events/export_alternate.ctp:97
-#: View/Events/legacy_automation.ctp:2
-#: View/Pages/doc/general.ctp:45
+#: View/Elements/global_menu.ctp:89 View/Events/automation.ctp:5
+#: View/Events/export_alternate.ctp:97 View/Events/legacy_automation.ctp:2
+#: View/Helper/NavbarHelper.php:837 View/Pages/doc/general.ctp:45
 #: View/Pages/doc/using_the_system.ctp:15;361
 msgid "Automation"
-msgstr ""
+msgstr "Automatizálás"
 
 #: View/Elements/global_menu.ctp:101;421
 msgid "Blocklist Event"
@@ -10682,16 +10631,16 @@ msgstr ""
 msgid "Manage Event Blocklists"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:118
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:642
+#: View/Elements/global_menu.ctp:118 View/Helper/NavbarHelper.php:239
 #: View/Users/dashboard.ctp:2
 msgid "Dashboard"
-msgstr ""
+msgstr "Irányítópult"
 
-#: View/Elements/global_menu.ctp:127
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1340;1468;1512
+#: View/Elements/global_menu.ctp:127 View/Helper/NavbarHelper.php:302
 msgid "List Galaxies"
-msgstr ""
+msgstr "Sorolja fel a galaxisokat"
 
 #: View/Elements/global_menu.ctp:131
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1352;1524
@@ -10703,46 +10652,43 @@ msgstr ""
 msgid "Input Filters"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:141;146
-#: View/Pages/doc/administration.ctp:12;64
-#: View/Pages/doc/general.ctp:50
-#: View/Pages/doc/user_management.ctp:69
-#: View/Regexp/admin_index.ctp:2
-#: View/Regexp/index.ctp:2
+#: View/Elements/global_menu.ctp:141;146 View/Helper/NavbarHelper.php:409
+#: View/Helper/NavbarHelper.php:417 View/Pages/doc/administration.ctp:12;64
+#: View/Pages/doc/general.ctp:50 View/Pages/doc/user_management.ctp:69
+#: View/Regexp/admin_index.ctp:2 View/Regexp/index.ctp:2
 msgid "Import Regexp"
-msgstr ""
+msgstr "Importálási reguláris kifejezések"
 
-#: View/Elements/global_menu.ctp:161
+#: View/Elements/global_menu.ctp:161 View/Helper/NavbarHelper.php:395
 #: View/Warninglists/index.ctp:44
 msgid "Warninglists"
-msgstr ""
+msgstr "Figyelmeztetési listák"
 
-#: View/Elements/global_menu.ctp:165
+#: View/Elements/global_menu.ctp:165 View/Helper/NavbarHelper.php:402
 #: View/Noticelists/index.ctp:66
 msgid "Noticelists"
-msgstr ""
+msgstr "Értesítők"
 
-#: View/Elements/global_menu.ctp:169
+#: View/Elements/global_menu.ctp:169 View/Helper/NavbarHelper.php:425
 msgid "Correlation Exclusions"
-msgstr ""
+msgstr "Korrelációs kizárások"
 
 #: View/Elements/global_menu.ctp:177
 #: View/Pages/doc/general.ctp:22;54
 msgid "Global Actions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:180
-#: View/News/index.ctp:38
-#: View/Pages/doc/general.ctp:56
-#: View/Pages/doc/user_management.ctp:51
+#: View/Elements/global_menu.ctp:180 View/Helper/NavbarHelper.php:944
+#: View/Helper/NavbarHelper.php:949 View/News/index.ctp:38
+#: View/Pages/doc/general.ctp:56 View/Pages/doc/user_management.ctp:51
 msgid "News"
-msgstr ""
+msgstr "Hírek"
 
-#: View/Elements/global_menu.ctp:184
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:628
+#: View/Elements/global_menu.ctp:184 View/Helper/NavbarHelper.php:1063
 #: View/Pages/doc/general.ctp:57
 msgid "My Profile"
-msgstr ""
+msgstr "Profilom"
 
 #: View/Elements/global_menu.ctp:188
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:633
@@ -10760,15 +10706,15 @@ msgstr ""
 msgid "Role Permissions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:208
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1539
+#: View/Elements/global_menu.ctp:208 View/Helper/NavbarHelper.php:365
 msgid "List Object Templates"
-msgstr ""
+msgstr "Objektum sablonok listázása"
 
-#: View/Elements/global_menu.ctp:215
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:678
+#: View/Elements/global_menu.ctp:215 View/Helper/NavbarHelper.php:488
 msgid "List Sharing Groups"
-msgstr ""
+msgstr "Listamegosztó csoportok"
 
 #: View/Elements/global_menu.ctp:219
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:684
@@ -10785,36 +10731,31 @@ msgstr ""
 msgid "List Decaying Models"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:239
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:691
-#: View/Events/legacy_automation.ctp:42
-#: View/Pages/doc/general.ctp:60
+#: View/Elements/global_menu.ctp:239 View/Events/legacy_automation.ctp:42
+#: View/Helper/NavbarHelper.php:862 View/Pages/doc/general.ctp:60
 #: View/Pages/doc/user_management.ctp:53
 msgid "User Guide"
-msgstr ""
+msgstr "Felhasználói útmutató"
 
-#: View/Elements/global_menu.ctp:243
+#: View/Elements/global_menu.ctp:243 View/Helper/NavbarHelper.php:867
 msgid "Categories & Types"
-msgstr ""
+msgstr "Kategóriák és típusok"
 
 #: View/Elements/global_menu.ctp:247
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:695
 msgid "Terms & Conditions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:251
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:699
-#: View/Pages/doc/general.ctp:62
-#: View/Pages/doc/user_management.ctp:55
-#: View/Users/statistics_data.ctp:7
-#: View/Users/statistics_galaxymatrix.ctp:2
-#: View/Users/statistics_histogram.ctp:7
-#: View/Users/statistics_orgs.ctp:7
-#: View/Users/statistics_sightings.ctp:2
-#: View/Users/statistics_tags.ctp:7
+#: View/Elements/global_menu.ctp:251 View/Helper/NavbarHelper.php:247
+#: View/Pages/doc/general.ctp:62 View/Pages/doc/user_management.ctp:55
+#: View/Users/statistics_data.ctp:7 View/Users/statistics_galaxymatrix.ctp:2
+#: View/Users/statistics_histogram.ctp:7 View/Users/statistics_orgs.ctp:7
+#: View/Users/statistics_sightings.ctp:2 View/Users/statistics_tags.ctp:7
 #: View/Users/statistics_users.ctp:2
 msgid "Statistics"
-msgstr ""
+msgstr "Statisztika"
 
 #: View/Elements/global_menu.ctp:258
 #: View/Pages/doc/general.ctp:92
@@ -10870,29 +10811,27 @@ msgstr ""
 msgid "List Communities"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:313
+#: View/Elements/global_menu.ctp:313 View/Helper/NavbarHelper.php:528
 msgid "Cerebrates"
-msgstr ""
+msgstr "Cerebrates"
 
-#: View/Elements/global_menu.ctp:326
-#: View/Pages/doc/administration.ctp:8
-#: View/Pages/doc/concepts.ctp:8
-#: View/Pages/doc/general.ctp:8;24;71
-#: View/Pages/doc/quickstart.ctp:8
+#: View/Elements/global_menu.ctp:326 View/Helper/NavbarHelper.php:760
+#: View/Pages/doc/administration.ctp:8 View/Pages/doc/concepts.ctp:8
+#: View/Pages/doc/general.ctp:8;24;71 View/Pages/doc/quickstart.ctp:8
 #: View/Pages/doc/user_management.ctp:14
 #: View/Pages/doc/using_the_system.ctp:21
 msgid "Administration"
-msgstr ""
+msgstr "Adminisztráció"
 
-#: View/Elements/global_menu.ctp:331
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:918
+#: View/Elements/global_menu.ctp:331 View/Helper/NavbarHelper.php:603
 #: View/Pages/doc/general.ctp:74
 msgid "List Users"
-msgstr ""
+msgstr "Felhasználók listázása"
 
-#: View/Elements/global_menu.ctp:335
+#: View/Elements/global_menu.ctp:335 View/Helper/NavbarHelper.php:642
 msgid "List Auth Keys"
-msgstr ""
+msgstr "Hitelesítési kulcsok listája"
 
 #: View/Elements/global_menu.ctp:339
 msgid "List User Settings"
@@ -10918,45 +10857,43 @@ msgstr ""
 msgid "User Registrations"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:364
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:648;980
+#: View/Elements/global_menu.ctp:364 View/Helper/NavbarHelper.php:619
 msgid "List Organisations"
-msgstr ""
+msgstr "Szervezetek listázása"
 
 #: View/Elements/global_menu.ctp:368
 msgid "Add Organisations"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:376
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:992
+#: View/Elements/global_menu.ctp:376 View/Helper/NavbarHelper.php:634
 #: View/Pages/doc/general.ctp:76
 msgid "List Roles"
-msgstr ""
+msgstr "Szerepek listája"
 
 #: View/Elements/global_menu.ctp:380
 msgid "Add Roles"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:389
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:998
+#: View/Elements/global_menu.ctp:389 View/Helper/NavbarHelper.php:581
 #: View/Servers/server_settings.ctp:5
 msgid "Server Settings & Maintenance"
-msgstr ""
+msgstr "Szerver beállítások és karbantartás"
 
-#: View/Elements/global_menu.ctp:398
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1009
-#: View/Jobs/index.ctp:2
-#: View/Pages/doc/general.ctp:80
+#: View/Elements/global_menu.ctp:398 View/Helper/NavbarHelper.php:666
+#: View/Jobs/index.ctp:2 View/Pages/doc/general.ctp:80
 msgid "Jobs"
-msgstr ""
+msgstr "Feladatok"
 
-#: View/Elements/global_menu.ctp:407
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1015
-#: View/Pages/doc/concepts.ctp:36
-#: View/Pages/doc/general.ctp:81
+#: View/Elements/global_menu.ctp:407 View/Helper/NavbarHelper.php:674
+#: View/Pages/doc/concepts.ctp:36 View/Pages/doc/general.ctp:81
 #: View/Tasks/index.ctp:3
 msgid "Scheduled Tasks"
-msgstr ""
+msgstr "Ütemezett feladatok"
 
 #: View/Elements/global_menu.ctp:412
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1021
@@ -10977,11 +10914,10 @@ msgstr ""
 msgid "Top Correlations"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:457
-#: View/Logs/admin_index.ctp:2
-#: View/Logs/event_index.ctp:6
+#: View/Elements/global_menu.ctp:457 View/Helper/NavbarHelper.php:805
+#: View/Logs/admin_index.ctp:2 View/Logs/event_index.ctp:6
 msgid "Logs"
-msgstr ""
+msgstr "Naplók"
 
 #: View/Elements/global_menu.ctp:461
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1053
@@ -11001,9 +10937,9 @@ msgstr ""
 msgid "Search Logs"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:477
+#: View/Elements/global_menu.ctp:477 View/Helper/NavbarHelper.php:849
 msgid "API"
-msgstr ""
+msgstr "API"
 
 #: View/Elements/global_menu.ctp:480
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1580
@@ -11025,10 +10961,10 @@ msgstr ""
 msgid "Notifications"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:531
+#: View/Elements/global_menu.ctp:531 View/Helper/NavbarHelper.php:1070
 #: View/Pages/doc/general.ctp:28;63
 msgid "Log out"
-msgstr ""
+msgstr "Kijelentkezés"
 
 #: View/Elements/histogram.ctp:1
 msgid "Attribute Types Histogram"
@@ -11047,11 +10983,12 @@ msgid "Attributes per organization"
 msgstr ""
 
 #: View/Elements/view_event_distribution_graph.ctp:9
-#: View/Elements/view_timeline.ctp:23
-#: View/Layouts/dashboard.ctp:93
+#: View/Elements/view_timeline.ctp:23 View/Layouts/dashboard.ctp:93
 #: View/Layouts/default.ctp:90
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:208
+#: View/Themed/Overmind/Elements/side_panel.ctp:75
 msgid "Loading"
-msgstr ""
+msgstr "Betöltés"
 
 #: View/Elements/view_event_distribution_graph.ctp:18
 msgid "Elements having lower distribution level than the event"
@@ -11238,11 +11175,11 @@ msgstr ""
 msgid "Member org"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:28
-#: View/Events/index.ctp:24
-#: View/Events/view.ctp:71
+#: View/Elements/Events/eventIndexTable.ctp:28 View/Events/index.ctp:24
+#: View/Events/view.ctp:71 View/Themed/Overmind/Elements/Events/index.ctp:159
+#: View/Themed/Overmind/Elements/Events/index.ctp:50
 msgid "Owner org"
-msgstr ""
+msgstr "Tulajdonos szervezet"
 
 #: View/Elements/Events/eventIndexTable.ctp:30
 #: View/Events/index.ctp:28
@@ -11294,11 +11231,11 @@ msgstr ""
 msgid "#Posts"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:38
-#: View/Events/index.ctp:26
-#: View/Events/view.ctp:99
+#: View/Elements/Events/eventIndexTable.ctp:38 View/Events/index.ctp:26
+#: View/Events/view.ctp:99 View/Themed/Overmind/Elements/Events/index.ctp:164
+#: View/Themed/Overmind/Elements/Events/index.ctp:51
 msgid "Creator user"
-msgstr ""
+msgstr "Létrehozó felhasználó"
 
 #: View/Elements/Events/eventIndexTable.ctp:40;41
 msgid "Last modified at"
@@ -11307,17 +11244,14 @@ msgstr ""
 #: View/Elements/Events/eventIndexTable.ctp:58;216
 #: View/Elements/dashboard/dashboard_events.ctp:4;5
 #: View/Elements/dashboard/dashboard_notifications.ctp:4;5;9
-#: View/Events/proposal_event_index.ctp:36
-#: View/Feeds/preview_index.ctp:69
-#: View/ObjectTemplates/index.ctp:114
-#: View/Organisations/index.ctp:142
-#: View/Pages/doc/using_the_system.ctp:193
-#: View/Servers/index.ctp:101
+#: View/Events/proposal_event_index.ctp:36 View/Feeds/preview_index.ctp:69
+#: View/ObjectTemplates/index.ctp:114 View/Organisations/index.ctp:142
+#: View/Pages/doc/using_the_system.ctp:193 View/Servers/index.ctp:101
 #: View/Servers/preview_index.ctp:170
-#: View/Users/admin_index.ctp:277
-#: View/Warninglists/index.ctp:160
+#: View/Themed/Overmind/Elements/Events/index.ctp:227
+#: View/Users/admin_index.ctp:277 View/Warninglists/index.ctp:160
 msgid "View"
-msgstr ""
+msgstr "Megtekintés"
 
 #: View/Elements/Events/eventIndexTable.ctp:73
 msgid "Threat level: %s"
@@ -11598,12 +11532,15 @@ msgid "Coverage by currently selected sources: "
 msgstr ""
 
 #: View/Elements/Feeds/View/feed_overlap_tool.ctp:58
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:377
 msgid "Include"
-msgstr ""
+msgstr "Tartalmazza"
 
 #: View/Elements/Feeds/View/feed_overlap_tool.ctp:75
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:197
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:378
 msgid "Exclude"
-msgstr ""
+msgstr "Kizárás"
 
 #: View/Elements/Feeds/View/feed_overlap_tool.ctp:86
 msgid "Check coverage"
@@ -11647,9 +11584,10 @@ msgid "This galaxy does not have any relationships."
 msgstr ""
 
 #: View/Elements/GalaxyClusters/relations_graph.ctp:442
-#: View/Events/view.ctp:509
+#: View/Events/view.ctp:509 View/Themed/Overmind/Elements/Events/index.ctp:364
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:156
 msgid "Galaxy"
-msgstr ""
+msgstr "Galaxis"
 
 #: View/Elements/GalaxyClusters/relations_graph.ctp:447;448
 msgid "Owner Org."
@@ -11695,8 +11633,9 @@ msgstr ""
 #: View/Elements/Objects/object_add_attributes.ctp:40
 #: View/Elements/healthElements/diagnostics.ctp:203
 #: View/Taxonomies/index.ctp:67
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:238
 msgid "Required"
-msgstr ""
+msgstr "Kötelező"
 
 #: View/Elements/Objects/object_similarities.ctp:76
 msgid "Update template and merge"
@@ -11797,10 +11736,10 @@ msgstr ""
 msgid "Events published: "
 msgstr ""
 
-#: View/Elements/dashboard/dashboard_events.ctp:7
-#: View/Servers/index.ctp:105
+#: View/Elements/dashboard/dashboard_events.ctp:7 View/Servers/index.ctp:105
+#: View/Themed/Overmind/Elements/Events/index.ctp:89
 msgid "Reset"
-msgstr ""
+msgstr "Alaphelyzetbe állítás"
 
 #: View/Elements/dashboard/dashboard_notifications.ctp:4
 msgid "Proposals: "
@@ -11893,12 +11832,11 @@ msgstr ""
 
 #: View/Elements/genericElements/Form/Fields/headersField.ctp:18
 #: View/Pages/doc/administration.ctp:88;117
-#: View/Users/admin_add.ctp:41
-#: View/Users/admin_edit.ctp:49
-#: View/Users/change_pw.ctp:9
+#: View/Themed/Overmind/Users/login.ctp:144 View/Users/admin_add.ctp:41
+#: View/Users/admin_edit.ctp:49 View/Users/change_pw.ctp:9
 #: View/Users/edit.ctp:14
 msgid "Password"
-msgstr ""
+msgstr "Jelszó"
 
 #: View/Elements/genericElements/Form/Fields/headersField.ctp:22
 msgid "Add basic auth header"
@@ -12179,8 +12117,9 @@ msgid "Publish (no email)"
 msgstr ""
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:200
+#: View/Themed/Overmind/Elements/Events/index.ctp:253
 msgid "Unpublish"
-msgstr ""
+msgstr "Közzététel visszavonása"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:209
 msgid "Publish Sightings"
@@ -13050,8 +12989,11 @@ msgid "PHP Extensions"
 msgstr ""
 
 #: View/Elements/healthElements/diagnostics.ctp:202
+#: View/Themed/Overmind/Elements/Events/index.ctp:185
+#: View/Themed/Overmind/Elements/Events/index.ctp:502
+#: View/Themed/Overmind/Elements/Events/index.ctp:52
 msgid "Extension"
-msgstr ""
+msgstr "Kiterjesztés"
 
 #: View/Elements/healthElements/diagnostics.ctp:204
 msgid "Why to install"
@@ -13686,8 +13628,10 @@ msgid "Save"
 msgstr ""
 
 #: View/Elements/markdownEditor/markdownEditor.ctp:55
+#: View/Themed/Overmind/Elements/navbar.ctp:10
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:40
 msgid "Menu"
-msgstr ""
+msgstr "Menü"
 
 #: View/Elements/markdownEditor/markdownEditor.ctp:67
 msgid "Download PDF (via print)"
@@ -14180,11 +14124,6 @@ msgstr ""
 msgid "Delegation index"
 msgstr ""
 
-#: View/EventDelegations/index.ctp:87
-msgid ""
-msgstr ""
-""
-
 #: View/EventDelegations/ajax/accept_delegation.ctp:4
 msgid "Are you sure you would like to accept the request by %s to take ownership of Event #%s"
 msgstr ""
@@ -14268,8 +14207,9 @@ msgid "Decline and remove delegation request"
 msgstr ""
 
 #: View/EventDelegations/ajax/view.ctp:23
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:308
 msgid "Discard"
-msgstr ""
+msgstr "Eldobni"
 
 #: View/EventGraph/ajax/eventGraph_add_form.ctp:6
 msgid "Add EventGraph"
@@ -15291,8 +15231,9 @@ msgid "Attachments are disabled on this instance"
 msgstr ""
 
 #: View/Events/export.ctp:76
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:368
 msgid "Loading…"
-msgstr ""
+msgstr "Betöltés…"
 
 #: View/Events/export.ctp:78
 #: View/Jobs/index.ctp:123
@@ -15400,8 +15341,10 @@ msgid "NOT"
 msgstr ""
 
 #: View/Events/filter_event_index.ctp:25;144;211;212;237;239
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_panel.ctp:60
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:45
 msgid "Any"
-msgstr ""
+msgstr "Bármilyen"
 
 #: View/Events/filter_event_index.ctp:32;221
 #: View/Pages/doc/using_the_system.ctp:67;172
@@ -15448,9 +15391,10 @@ msgstr ""
 
 #: View/Events/filter_event_index.ctp:202
 #: View/Servers/filter_event_index.ctp:21
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:381
 #: View/Users/admin_filter_user_index.ctp:106
 msgid "Apply"
-msgstr ""
+msgstr "Jelentkezni"
 
 #: View/Events/filter_event_index.ctp:211
 msgid "\"No\""
@@ -15498,26 +15442,25 @@ msgstr ""
 msgid "Input File"
 msgstr ""
 
-#: View/Events/index.ctp:2
-#: View/Events/ajax/index.ctp:3
-#: View/GalaxyClusters/view.ctp:76
-#: View/Organisations/view.ctp:69;70
-#: View/SharingGroups/view.ctp:46
-#: View/Users/statistics_data.ctp:14
-#: View/Users/statistics_orgs.ctp:35
+#: View/Events/ajax/index.ctp:3 View/Events/index.ctp:2
+#: View/GalaxyClusters/view.ctp:76 View/Helper/NavbarHelper.php:135
+#: View/Organisations/view.ctp:69;70 View/SharingGroups/view.ctp:46
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:19
+#: View/Users/statistics_data.ctp:14 View/Users/statistics_orgs.ctp:35
 msgid "Events"
-msgstr ""
+msgstr "Események"
 
 #: View/Events/index.ctp:25
 msgid "Attribute count"
 msgstr ""
 
-#: View/Events/index.ctp:31
-#: View/Events/proposal_event_index.ctp:18
-#: View/Pages/doc/concepts.ctp:28
+#: View/Events/index.ctp:31 View/Events/proposal_event_index.ctp:18
+#: View/Helper/NavbarHelper.php:209 View/Pages/doc/concepts.ctp:28
 #: View/ShadowAttributes/index.ctp:99
+#: View/Themed/Overmind/Elements/Events/index.ctp:496
+#: View/Themed/Overmind/Elements/Events/index.ctp:58
 msgid "Proposals"
-msgstr ""
+msgstr "Ajánlások"
 
 #: View/Events/index.ctp:32
 #: View/Threads/index.ctp:36
@@ -16162,11 +16105,12 @@ msgstr ""
 msgid "First recorded change"
 msgstr ""
 
-#: View/Events/view.ctp:202
-#: View/Feeds/preview_event.ctp:49
+#: View/Events/view.ctp:202 View/Feeds/preview_event.ctp:49
 #: View/Servers/preview_event.ctp:50
+#: View/Themed/Overmind/Elements/Events/index.ctp:210
+#: View/Themed/Overmind/Elements/Events/index.ctp:60
 msgid "Last change"
-msgstr ""
+msgstr "Utolsó változtatás"
 
 #: View/Events/view.ctp:206
 msgid "Modification map"
@@ -16338,9 +16282,9 @@ msgstr ""
 msgid "Toggle discussions"
 msgstr ""
 
-#: View/Events/view.ctp:560
+#: View/Events/view.ctp:560 View/Helper/NavbarHelper.php:179
 msgid "Event Reports"
-msgstr ""
+msgstr "Eseményjelentések"
 
 #: View/Events/view.ctp:192
 msgid " (%s Object)"
@@ -16357,8 +16301,10 @@ msgid "Hover target"
 msgstr ""
 
 #: View/Events/view_graph.ctp:25
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:259
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:376
 msgid "Selected"
-msgstr ""
+msgstr "Kiválasztva"
 
 #: View/Events/view_graph.ctp:30
 msgid "Expand"
@@ -16562,11 +16508,15 @@ msgid "Default Tag"
 msgstr ""
 
 #: View/Feeds/compare_feeds.ctp:73
-msgid "None or less than 1% of the data of %s is contained in %s (%s matching values)"
+#, php-format
+msgid ""
+"None or less than 1%% of the data of %s is contained in %s (%s matching "
+"values)"
 msgstr ""
 
 #: View/Feeds/compare_feeds.ctp:74
-msgid "%s% of the data of %s is contained in %s (%s matching values)"
+#, php-format
+msgid "%s%% of the data of %s is contained in %s (%s matching values)"
 msgstr ""
 
 #: View/Feeds/freetext_index.ctp:2
@@ -16870,25 +16820,23 @@ msgstr ""
 msgid "Galaxy index"
 msgstr ""
 
-#: View/Galaxies/index.ctp:102
-#: View/Taxonomies/index.ctp:92
+#: View/Galaxies/index.ctp:102 View/Taxonomies/index.ctp:92
 #: View/Taxonomies/view.ctp:19
-#: View/Warninglists/index.ctp:108
-#: View/Warninglists/view.ctp:20
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:223
+#: View/Warninglists/index.ctp:108 View/Warninglists/view.ctp:20
 msgid "Enable"
-msgstr ""
+msgstr "Engedélyezés"
 
 #: View/Galaxies/index.ctp:107
 msgid "Are you sure you want to enable this galaxy library?"
 msgstr ""
 
-#: View/Galaxies/index.ctp:120
-#: View/Taxonomies/index.ctp:110
+#: View/Galaxies/index.ctp:120 View/Taxonomies/index.ctp:110
 #: View/Taxonomies/view.ctp:17
-#: View/Warninglists/index.ctp:126
-#: View/Warninglists/view.ctp:20
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:229
+#: View/Warninglists/index.ctp:126 View/Warninglists/view.ctp:20
 msgid "Disable"
-msgstr ""
+msgstr "Letilt"
 
 #: View/Galaxies/index.ctp:125
 msgid "Are you sure you want to disable this galaxy library?"
@@ -17250,8 +17198,9 @@ msgid "For default clusters, you can restore the cluster at any time by force up
 msgstr ""
 
 #: View/GalaxyClusters/ajax/index.ctp:29
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:47
 msgid "Custom"
-msgstr ""
+msgstr "Egyéni"
 
 #: View/GalaxyClusters/ajax/index.ctp:38
 msgid "My Clusters"
@@ -17568,8 +17517,9 @@ msgstr ""
 
 #: View/ObjectReferences/ajax/add.ctp:54
 #: View/Objects/orphaned_object_diagnostics.ctp:38
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:178
 msgid "Object"
-msgstr ""
+msgstr "Objektum"
 
 #: View/ObjectReferences/ajax/add.ctp:121
 msgid "Target Details"
@@ -19120,8 +19070,9 @@ msgid "The job's ID (this is the ID of the job's meta-data stored in the default
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:222
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:297
 msgid "Process"
-msgstr ""
+msgstr "Eljárás"
 
 #: View/Pages/doc/administration.ctp:222
 msgid "The process's ID."
@@ -19414,9 +19365,9 @@ msgid "If you have audit permissions, you can view the logs for your organisatio
 msgstr ""
 
 #: View/Pages/doc/general.ctp:26;90
-#: View/Threads/index.ctp:6
+#: View/Themed/Overmind/Elements/Events/index.ctp:59 View/Threads/index.ctp:6
 msgid "Discussions"
-msgstr ""
+msgstr "Megbeszélések"
 
 #: View/Pages/doc/general.ctp:26
 msgid "Link to the discussion threads."
@@ -20552,8 +20503,9 @@ msgid "Here is a list of the various tools you can use while using this feature"
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:260
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:19
 msgid "Pagination"
-msgstr ""
+msgstr "Lapozás"
 
 #: View/Pages/doc/using_the_system.ctp:260
 msgid "There are 5 posts visible on each event page, if there have been more messages posted, use the previous and next button to navigate through the thread. This will not reload the rest of the page."
@@ -22128,11 +22080,10 @@ msgstr ""
 msgid "Example: Multinational sharing group"
 msgstr ""
 
-#: View/SharingGroups/add.ctp:53
-#: View/SharingGroups/edit.ctp:53
-#: View/SharingGroups/index.ctp:86
+#: Lib/Tools/SharingGroupPeek.php:107 View/SharingGroups/add.ctp:53
+#: View/SharingGroups/edit.ctp:53 View/SharingGroups/index.ctp:86
 msgid "Releasable to"
-msgstr ""
+msgstr "Kiadható"
 
 #: View/SharingGroups/add.ctp:54
 #: View/SharingGroups/edit.ctp:54
@@ -22154,10 +22105,10 @@ msgstr ""
 msgid "Make the sharing group selectable (active)"
 msgstr ""
 
-#: View/SharingGroups/add.ctp:61;78;99
-#: View/SharingGroups/edit.ctp:61;78;107
+#: View/SharingGroups/add.ctp:61;78;99 View/SharingGroups/edit.ctp:61;78;107
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:82
 msgid "Next page"
-msgstr ""
+msgstr "Következő oldal"
 
 #: View/SharingGroups/add.ctp:65
 #: View/SharingGroups/edit.ctp:65
@@ -22184,10 +22135,10 @@ msgstr ""
 msgid "Extend"
 msgstr ""
 
-#: View/SharingGroups/add.ctp:77;98;114
-#: View/SharingGroups/edit.ctp:77;106;122
+#: View/SharingGroups/add.ctp:77;98;114 View/SharingGroups/edit.ctp:77;106;122
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:27
 msgid "Previous page"
-msgstr ""
+msgstr "Előző oldal"
 
 #: View/SharingGroups/add.ctp:82
 #: View/SharingGroups/edit.ctp:90
@@ -22253,8 +22204,9 @@ msgid "Passive Sharing Groups"
 msgstr ""
 
 #: View/SharingGroups/index.ctp:69
+#: View/Themed/Overmind/Elements/Events/index.ctp:154
 msgid "Creator"
-msgstr ""
+msgstr "Alkotó"
 
 #: View/SharingGroups/index.ctp:80
 msgid "Org count"
@@ -22792,9 +22744,9 @@ msgstr ""
 msgid "A description of the template"
 msgstr ""
 
-#: View/Templates/index.ctp:12
+#: View/Helper/NavbarHelper.php:353 View/Templates/index.ctp:12
 msgid "Templates"
-msgstr ""
+msgstr "Sablonok"
 
 #: View/Templates/populate_event_from_template_attributes.ctp:2
 msgid "Populate From Template Results"
@@ -23246,18 +23198,23 @@ msgstr ""
 msgid "Enter your OTP here"
 msgstr ""
 
-#: View/Users/login.ctp:8
+#: View/Themed/Overmind/Users/login.ctp:82
+#: View/Themed/Overmind/Users/login.ctp:88
+#: View/Themed/Overmind/Users/login.ctp:97 View/Users/login.ctp:8
 #: View/Users/statistics_orgs.ctp:32
 msgid "Logo"
-msgstr ""
+msgstr "Logo"
 
 #: View/Users/login.ctp:38;56
 msgid "Login"
 msgstr ""
 
-#: View/Users/login.ctp:51
-msgid "Registration will be sent to the administrators of the instance for consideration."
+#: View/Themed/Overmind/Users/login.ctp:212 View/Users/login.ctp:51
+msgid ""
+"Registration will be sent to the administrators of the instance for "
+"consideration."
 msgstr ""
+"A regisztrációt megfontolásra elküldjük a példány adminisztrátorainak."
 
 #: View/Users/login.ctp:52
 msgid "No account yet? Register now!"
@@ -23303,17 +23260,22 @@ msgstr ""
 msgid "Message to the admins"
 msgstr ""
 
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:293
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:294
 #: View/Users/registrations.ctp:12
 msgid "Process the selected registrations"
-msgstr ""
+msgstr "A kiválasztott regisztrációk feldolgozása"
 
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:304
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:305
 #: View/Users/registrations.ctp:18
 msgid "Discard the selected registrations"
-msgstr ""
+msgstr "Vesse el a kiválasztott regisztrációkat"
 
+#: View/Themed/Overmind/Elements/Events/index.ctp:420
 #: View/Users/registrations.ctp:44
 msgid "Time"
-msgstr ""
+msgstr "Idő"
 
 #: View/Users/registrations.ctp:56
 msgid "User Agent"
@@ -23989,3 +23951,1554 @@ msgstr ""
 msgid "Warninglist with same name already exists."
 msgstr ""
 
+#: View/Helper/NavbarHelper.php:794
+msgid "Access logs"
+msgstr "Hozzáférési naplók"
+
+#: View/Helper/NavbarHelper.php:143
+#: View/Themed/Overmind/Elements/Events/index.ctp:177
+msgid "Objects"
+msgstr "Objektumok"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "hours"
+msgstr "óra"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:169
+msgid "Markings"
+msgstr "Jelölések"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:294
+#, php-format
+msgid "Sharing group %s"
+msgstr "%s megosztási csoport"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:373
+msgid "just now"
+msgstr "éppen most"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:376
+#, php-format
+msgid "%s min ago"
+msgstr "%s perce"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:379
+#, php-format
+msgid "%s h ago"
+msgstr "%s órája"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:382
+#, php-format
+msgid "%s d ago"
+msgstr "%s napja"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:385
+#, php-format
+msgid "%s wk ago"
+msgstr "%s hete"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:388
+#, php-format
+msgid "%s mo ago"
+msgstr "%s hónapja"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:390
+#, php-format
+msgid "%s y ago"
+msgstr "%s éve"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:778
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:784
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:122
+msgid "Clear all"
+msgstr "Minden törlése"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+msgid "Remove this filter"
+msgstr "Távolítsa el ezt a szűrőt"
+
+#: View/Helper/NavbarHelper.php:258
+msgid "Data points"
+msgstr "Adatpontok"
+
+#: View/Helper/NavbarHelper.php:439
+msgid "Data models"
+msgstr "Adatmodellek"
+
+#: View/Helper/NavbarHelper.php:566
+msgid "Sync"
+msgstr "Szinkronizálás"
+
+#: View/Helper/NavbarHelper.php:903
+msgid "Resources"
+msgstr "Források"
+
+#: View/Helper/NavbarHelper.php:1028 View/Helper/NavbarHelper.php:961
+#: View/Helper/NavbarHelper.php:965
+msgid "Bookmarks"
+msgstr "Könyvjelzők"
+
+#: View/Helper/NavbarHelper.php:162
+msgid "Value Intelligence"
+msgstr "Értékadatok elemzése"
+
+#: View/Helper/NavbarHelper.php:516
+msgid "Integrations"
+msgstr "Integrációk"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:242
+msgid "Open"
+msgstr "Nyitva"
+
+#: View/Helper/EventIndexHelper.php:54
+#: View/Themed/Overmind/Elements/Events/index.ctp:407
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:23
+msgid "Unpublished"
+msgstr "Nincs közzétéve"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:56
+msgid "Reports"
+msgstr "Jelentések"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:68
+msgid "Reach"
+msgstr "Elérési kör"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:43
+msgid "No organisation is a member yet."
+msgstr "Még egyetlen szervezet sem tagja."
+
+#: Lib/Tools/SharingGroupPeek.php:91
+msgid "Stays on this instance."
+msgstr "Ennél a példánál marad."
+
+#: Lib/Tools/SharingGroupPeek.php:89
+#, php-format
+msgid "Pushed to %s other instance."
+msgid_plural "Pushed to %s other instances."
+msgstr[0] "Elküldve %s másik példánynak."
+msgstr[1] "Elküldve %s másik példánynak."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:194
+msgid "Deprecated"
+msgstr "Elavult"
+
+#: Lib/Tools/SharingGroupPeek.php:29
+msgid "Inactive"
+msgstr "Inaktív"
+
+#: Lib/Tools/SharingGroupPeek.php:32
+msgid "Received through sync"
+msgstr "Szinkronizáláson keresztül érkezett"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Roaming"
+msgstr "Barangolás"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Travels to any instance its members connect to."
+msgstr "Bármely példányhoz utazik, amelyhez tagjai csatlakoznak."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "no"
+msgstr "sz"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "yes"
+msgstr "igen"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:189
+msgid "Relationship"
+msgstr "Kapcsolat"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid "Request access"
+msgstr "Kérjen hozzáférést"
+
+#: View/Helper/NavbarHelper.php:190
+msgid "Template Variables"
+msgstr "Sablonváltozók"
+
+#: View/Helper/NavbarHelper.php:875
+msgid "Server PGP public key"
+msgstr "Szerver PGP nyilvános kulcsa"
+
+#: View/Helper/NavbarHelper.php:884
+msgid "Server S/MIME certificate"
+msgstr "Szerver S/MIME tanúsítvány"
+
+#: View/Helper/NavbarHelper.php:503
+msgid "List Sharing Group Blueprints"
+msgstr "Listamegosztó csoport tervrajzok"
+
+#: View/Helper/NavbarHelper.php:357
+msgid "List Event Templates"
+msgstr "Eseménysablonok listázása"
+
+#: View/Helper/NavbarHelper.php:372
+msgid "List Object Relationships"
+msgstr "Objektumkapcsolatok listázása"
+
+#: View/Helper/NavbarHelper.php:1018
+msgid "Manage Bookmarks"
+msgstr "Könyvjelzők kezelése"
+
+#: View/Helper/NavbarHelper.php:894
+msgid "Themes"
+msgstr "Témák"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "ON"
+msgstr "BE"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "OFF"
+msgstr "KI"
+
+#: View/Helper/NavbarHelper.php:457
+msgid "Remote Servers"
+msgstr "Távoli szerverek"
+
+#: View/Helper/NavbarHelper.php:520
+msgid "Communities"
+msgstr "közösségek"
+
+#: View/Helper/NavbarHelper.php:536
+msgid "TAXII Servers"
+msgstr "TAXII szerverek"
+
+#: View/Helper/NavbarHelper.php:682
+msgid "Benchmarking"
+msgstr "Teljesítménymérés"
+
+#: View/Helper/NavbarHelper.php:739
+msgid "Correlation rules"
+msgstr "Korrelációs szabályok"
+
+#: View/Helper/NavbarHelper.php:747
+msgid "Over-correlating values"
+msgstr "Túlkorreláló értékek"
+
+#: View/Helper/EventIndexHelper.php:49
+#, php-format
+msgid "Changes pending: published %s, changed since"
+msgstr "Változások függőben: közzétéve %s, azóta megváltozott"
+
+#: View/Helper/EventIndexHelper.php:52
+#, php-format
+msgid "Published %s"
+msgstr "Közzétéve: %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "Created by %s"
+msgstr "Létrehozta: %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "held here by %s"
+msgstr "itt tart: %s"
+
+#: View/Helper/EventIndexHelper.php:95
+#, php-format
+msgid "Your grade for %s: %s (analyst profile)"
+msgstr "A %1$s osztályzata: %2$s (elemzői profil)"
+
+#: View/Helper/EventIndexHelper.php:118
+#, php-format
+msgid "Admiralty scale: %s"
+msgstr "Admiralitási skála: %s"
+
+#: View/Helper/EventIndexHelper.php:128 View/Helper/EventIndexHelper.php:461
+msgid "pinned by your profile"
+msgstr "a profilod által rögzített"
+
+#: View/Helper/EventIndexHelper.php:137
+#, php-format
+msgid "No %s marking"
+msgstr "Nincs %s jelölés"
+
+#: View/Helper/EventIndexHelper.php:177 View/Helper/EventIndexHelper.php:195
+msgid "(cluster not available here)"
+msgstr "(itt nem érhető el a klaszter)"
+
+#: View/Helper/EventIndexHelper.php:187
+#, php-format
+msgid "Mitigation %s"
+msgstr "Enyhítés %s"
+
+#: View/Helper/EventIndexHelper.php:211
+#, php-format
+msgid "%s unresolved"
+msgstr "%s megoldatlan"
+
+#: View/Helper/EventIndexHelper.php:226
+#, php-format
+msgid "%s: show all"
+msgstr "%s: az összes megjelenítése"
+
+#: View/Helper/EventIndexHelper.php:318
+#, php-format
+msgid "Changed last of %s workspaces on this event"
+msgstr "Az utolsó %s munkaterület megváltozott ezen az eseményen"
+
+#: View/Helper/EventIndexHelper.php:365
+#, php-format
+msgid "Extends #%s %s"
+msgstr "Meghosszabbítja a # %1$s %2$s"
+
+#: View/Helper/EventIndexHelper.php:366
+#, php-format
+msgid "extends #%s"
+msgstr "kiterjeszti #%s"
+
+#: View/Helper/EventIndexHelper.php:370
+#, php-format
+msgid "Extends %s, which is not available here"
+msgstr "Kiterjed a %s, ami itt nem érhető el"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "missing"
+msgstr "hiányzik"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "extends an unknown event"
+msgstr "egy ismeretlen eseményt terjeszt ki"
+
+#: View/Helper/EventIndexHelper.php:379
+#, php-format
+msgid "extended by %s"
+msgstr "kiterjesztve: %s"
+
+#: View/Helper/EventIndexHelper.php:411
+msgid "Cluster not available here"
+msgstr "A klaszter itt nem érhető el"
+
+#: View/Helper/EventIndexHelper.php:464
+msgid "preferred by your profile"
+msgstr "a profilod által preferált"
+
+#: View/Helper/EventIndexHelper.php:387
+#, php-format
+msgid "%s galaxy tag whose cluster is not available here"
+msgid_plural "%s galaxy tags whose cluster is not available here"
+msgstr[0] "%s galaxiscímke, amelynek klasztere itt nem érhető el"
+msgstr[1] "%s galaxiscímke, amelynek klasztere itt nem érhető el"
+
+#: View/Helper/NavbarHelper.php:171
+msgid "Collections"
+msgstr "gyűjtemények"
+
+#: View/Helper/NavbarHelper.php:183 View/Helper/NavbarHelper.php:213
+msgid "Index"
+msgstr "Áttekintés"
+
+#: View/Helper/NavbarHelper.php:200
+msgid "Analyst Data"
+msgstr "Elemzői adatok"
+
+#: View/Helper/NavbarHelper.php:220
+msgid "Events with Proposals"
+msgstr "Események ajánlatokkal"
+
+#: View/Helper/NavbarHelper.php:227
+msgid "Delegation Requests"
+msgstr "Delegálási kérelmek"
+
+#: View/Helper/NavbarHelper.php:270
+msgid "Tags & Taxonomies"
+msgstr "Címkék és taxonómiák"
+
+#: View/Helper/NavbarHelper.php:309
+msgid "List Galaxy Relationships"
+msgstr "Sorolja fel a galaxis kapcsolatokat"
+
+#: View/Helper/NavbarHelper.php:344
+msgid "Analyst Profiles"
+msgstr "Elemzői profilok"
+
+#: View/Helper/NavbarHelper.php:391
+msgid "Filters & Lists"
+msgstr "Szűrők és listák"
+
+#: View/Helper/NavbarHelper.php:453
+msgid "Servers & Feeds"
+msgstr "Szerverek és hírfolyamok"
+
+#: View/Helper/NavbarHelper.php:544
+msgid "Sighting DB"
+msgstr "Észlelési adatbázis"
+
+#: View/Helper/NavbarHelper.php:555
+msgid "Event ID Translator"
+msgstr "Eseményazonosító-fordító"
+
+#: View/Helper/NavbarHelper.php:591
+msgid "Users & Orgs"
+msgstr "Felhasználók és szervezetek"
+
+#: View/Helper/NavbarHelper.php:611
+msgid "User Settings"
+msgstr "Felhasználói beállítások"
+
+#: View/Helper/NavbarHelper.php:630
+msgid "Roles & Permissions"
+msgstr "Szerepek és engedélyek"
+
+#: View/Helper/NavbarHelper.php:654
+msgid "System jobs"
+msgstr "Rendszerfeladatok"
+
+#: View/Helper/NavbarHelper.php:658
+msgid "Workflow"
+msgstr "Munkafolyamat"
+
+#: View/Helper/NavbarHelper.php:695
+msgid "Blocklisting"
+msgstr "Blokklista"
+
+#: View/Helper/NavbarHelper.php:699
+msgid "Blocklisted events"
+msgstr "Blokklistán szereplő események"
+
+#: View/Helper/NavbarHelper.php:707
+msgid "Blocklisted organisations"
+msgstr "Blokkolt szervezetek"
+
+#: View/Helper/NavbarHelper.php:715
+msgid "Blocklisted sightings"
+msgstr "Blokklistán szereplő megfigyelések"
+
+#: View/Helper/NavbarHelper.php:731
+msgid "Top correlations"
+msgstr "Legfőbb korrelációk"
+
+#: View/Helper/NavbarHelper.php:775
+msgid "Application logs"
+msgstr "Alkalmazásnaplók"
+
+#: View/Helper/NavbarHelper.php:819
+msgid "Open API"
+msgstr "Open API"
+
+#: View/Helper/NavbarHelper.php:827
+msgid "REST Client"
+msgstr "REST kliens"
+
+#: View/Helper/NavbarHelper.php:981
+msgid "No workspace"
+msgstr "Nincs munkaterület"
+
+#: View/Helper/NavbarHelper.php:983
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:94
+msgid "Workspace"
+msgstr "Munkaterület"
+
+#: View/Helper/NavbarHelper.php:1006
+msgid "Set this page as homepage"
+msgstr "Állítsa be ezt az oldalt kezdőlapként"
+
+#: View/Helper/NavbarHelper.php:1050
+msgid "Dark mode"
+msgstr "Sötét mód"
+
+#: View/Helper/NavbarHelper.php:1058
+msgid "Replay the tutorial"
+msgstr "Az oktatóprogram újrajátszása"
+
+#: View/Helper/NavbarHelper.php:1100
+msgid "Light"
+msgstr "Fény"
+
+#: View/Helper/NavbarHelper.php:1101
+msgid "Dark"
+msgstr "Sötét"
+
+#: View/Helper/NavbarHelper.php:1102
+msgid "Light and dark"
+msgstr "Világos és sötét"
+
+#: View/Helper/NavbarHelper.php:1137
+#, php-format
+msgid "Instance default (%s)"
+msgstr "Alapértelmezett példány (%s)"
+
+#: View/Helper/NavbarHelper.php:1138
+msgid "Follow the theme your administrator picks for this instance."
+msgstr ""
+"Kövesse azt a témát, amelyet az adminisztrátor választott ehhez a "
+"példányhoz."
+
+#: View/Helper/NavbarHelper.php:1146
+msgid "Theme"
+msgstr "Téma"
+
+#: View/Helper/NavbarHelper.php:948
+#, php-format
+msgid "News: %s unread"
+msgid_plural "News: %s unread"
+msgstr[0] "Hírek: %s olvasatlan"
+msgstr[1] "Hírek: %s olvasatlan"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:119
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:120
+msgid "Edit selected attributes"
+msgstr "A kiválasztott attribútumok szerkesztése"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+#, php-format
+msgid "Remove %s"
+msgstr "%s eltávolítása"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:268
+msgid "Add to workspace"
+msgstr "Hozzáadás a munkaterülethez"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close (Esc)"
+msgstr "Bezárás (Esc)"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:53
+msgid "Tags & galaxies"
+msgstr "Címkék és galaxisok"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:54
+msgid "Attributes & objects"
+msgstr "Attribútumok és objektumok"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:83
+#: View/Themed/Overmind/Elements/Events/index.ctp:84
+msgid "Choose columns"
+msgstr "Válasszon oszlopokat"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:85
+#: View/Themed/Overmind/Elements/Events/index.ctp:86
+msgid "Columns"
+msgstr "Oszlopok"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:88
+msgid "Reset widths"
+msgstr "Szélesség visszaállítása"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:139
+msgid "Publish state"
+msgstr "Közzététel állapota"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:170
+msgid "Markings your analyst profile pins"
+msgstr "Megjelöli az elemzői profil csapjait"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:174
+msgid "ATT&CK techniques (count, then ids), then mitigations"
+msgstr "ATT&CK technikák (számlálás, majd azonosítók), majd enyhítések"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:175
+msgid "Other clusters, then tags"
+msgstr "Egyéb klaszterek, majd címkék"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:182
+msgid ""
+"Workspaces, reports, sightings, proposals and discussions, when there are "
+"any"
+msgstr ""
+"Munkaterületek, jelentések, megfigyelések, javaslatok és megbeszélések, ha "
+"vannak"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:209
+#: View/Themed/Overmind/Elements/Events/index.ctp:423
+#: View/Themed/Overmind/Elements/Events/index.ctp:497
+msgid "Changed"
+msgstr "Megváltozott"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:342
+msgid "Event or attribute tags."
+msgstr "Esemény- vagy attribútumcímkék."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:353
+msgid "And tag"
+msgstr "És tag"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:358
+msgid "Also carried by the event or one of its attributes."
+msgstr "Az esemény vagy annak egyik attribútuma is hordozza."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:369
+msgid "Clusters attached to the event."
+msgstr "Az eseményhez csatolt klaszterek."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:380
+msgid "Any sharing group"
+msgstr "Bármilyen megosztási csoport"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:397
+msgid "Including a group keeps only events shared with it."
+msgstr "Egy csoport felvétele csak a vele megosztott eseményeket tartja meg."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "24h"
+msgstr "24 óra"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "last 24 hours"
+msgstr "elmúlt 24 óra"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "7d"
+msgstr "7 nap"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "last 7 days"
+msgstr "elmúlt 7 nap"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "30d"
+msgstr "30 nap"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "last 30 days"
+msgstr "elmúlt 30 nap"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "90d"
+msgstr "90 nap"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "last 90 days"
+msgstr "elmúlt 90 nap"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "1y"
+msgstr "1 év"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "last year"
+msgstr "tavaly"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:434
+msgid "My events"
+msgstr "Eseményeim"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:448
+msgid "Org events"
+msgstr "Szervezeti események"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:467
+#, php-format
+msgid "until %s"
+msgstr "eddig: %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "minutes"
+msgstr "perc"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "seconds"
+msgstr "másodperc"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:472
+#, php-format
+msgid "last %s %s"
+msgstr "utolsó %1$s %2$s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:475
+#: View/Themed/Overmind/Elements/Events/index.ctp:478
+#, php-format
+msgid "since %s"
+msgstr "%s óta"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:487
+msgid "Anything"
+msgstr "Bármit"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:489
+msgid "Attribute value"
+msgstr "Attribútum értéke"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:490
+msgid "Date from"
+msgstr "Dátum:"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:491
+msgid "Date until"
+msgstr "Dátum ig"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:500
+msgid "First published"
+msgstr "Először megjelent"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:501
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:31
+msgid "Changes pending"
+msgstr "Változások függőben"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:503
+msgid "Extended"
+msgstr "Kiterjesztve"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:504
+msgid "Minimal"
+msgstr "Minimális"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+msgid "some"
+msgstr "néhány"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:28
+msgid "Never published, or unpublished since"
+msgstr "Soha nem publikálták, vagy azóta sem publikálták"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:37
+msgid "Published once and changed since"
+msgstr "Egyszer megjelent, azóta változott"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:40
+msgid "Changed this week"
+msgstr "Ezen a héten változott"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:45
+msgid "Changed in the last 7 days"
+msgstr "Változott az elmúlt 7 napban"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:50
+msgid "Since your last visit"
+msgstr "Legutóbbi látogatása óta"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:55
+#, php-format
+msgid "Changed since your previous login, %s"
+msgstr "Az előző bejelentkezése óta megváltozott, %s"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:59
+msgid "New this week"
+msgstr "Új a héten"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:64
+msgid "First published in the last 7 days"
+msgstr "Az elmúlt 7 napban jelent meg először"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:67
+msgid "Creator orgs"
+msgstr "Alkotó szervezetek"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:70
+msgid "Filter by creator organisation"
+msgstr "Szűrés alkotó szervezet szerint"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:79
+msgid "Event dates"
+msgstr "Események dátumai"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:84
+msgid "Figures for these filters"
+msgstr "Ezekre a szűrőkre vonatkozó ábrák"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:83
+msgid "Fetch"
+msgstr "Lekérés"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:241
+#, php-format
+msgid "Open %s"
+msgstr "Megnyitás %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:268
+msgid "Activate"
+msgstr "Aktiválja"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:274
+msgid "Deactivate"
+msgstr "Deaktiválás"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:90
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:91
+msgid "Add the selected to the active workspace"
+msgstr "Adja hozzá a kiválasztottat az aktív munkaterülethez"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:332
+msgid "Clear selection"
+msgstr "Tiszta kijelölés"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:20
+#, php-format
+msgid "Sharing group · owned by %s"
+msgstr "Megosztási csoport · tulajdonosa: %s"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:41
+msgid "Every organisation on this instance"
+msgstr "Ezen a példányon minden szervezet"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:51
+msgid "owner"
+msgstr "tulajdonosa"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:52
+msgid "your org"
+msgstr "az Ön szervezete"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:54
+msgid "Can add organisations"
+msgstr "Szervezeteket adhat hozzá"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:61
+#, php-format
+msgid "+%s more · open the group"
+msgstr "+%s további · Nyissa meg a csoportot"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:81
+msgid "Only this group"
+msgstr "Csak ez a csoport"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:82
+msgid "Open group"
+msgstr "Nyitott csoport"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:38
+#, php-format
+msgid "%s member organisation"
+msgid_plural "%s member organisations"
+msgstr[0] "%s tagszervezet"
+msgstr[1] "%s tagszervezet"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:253
+msgid "Highlight"
+msgstr "Kiemelés"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:367
+msgid "Searching…"
+msgstr "Keresés…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:49
+msgid "From"
+msgstr "-tól"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:50
+msgid "To"
+msgstr "Eddig"
+
+#: View/Themed/Overmind/Users/login.ctp:90
+#: View/Themed/Overmind/Users/login.ctp:91
+msgid "MISP — Intelligence Sharing"
+msgstr "MISP – Intelligencia megosztása"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:182
+#, php-format
+msgid "aka %s"
+msgstr "más néven %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:184
+msgid "All galaxies"
+msgstr "Minden galaxis"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:185
+#, php-format
+msgid "All of %s"
+msgstr "Az összes %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:186
+msgid "All tactics"
+msgstr "Minden taktika"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:187
+msgid "All tags"
+msgstr "Minden címke"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:188
+msgid "A–Z"
+msgstr "A–Z"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:189
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:370
+#, php-format
+msgid "Back to %s"
+msgstr "Vissza ide: %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:190
+msgid "Browse"
+msgstr "Tallózás"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:191
+msgid "By namespace"
+msgstr "Névtér szerint"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:192
+msgid "Check the spelling, or browse a scope on the left."
+msgstr "Ellenőrizze a helyesírást, vagy böngésszen a bal oldali hatókörben."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:196
+msgid "Everywhere"
+msgstr "Mindenhol"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:198
+#, php-format
+msgid "First %s matches · keep typing or narrow"
+msgstr "Az első %s találat · Gépeljen tovább, vagy szűkítse"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:200
+msgid "Has selected values"
+msgstr "Kiválasztott értékekkel rendelkezik"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:201
+msgid "In use"
+msgstr "Használatban"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:202
+msgid "Clusters already attached somewhere"
+msgstr "Klaszterek már csatolva vannak valahol"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:203
+msgid "Keep typing"
+msgstr "Gépeljen tovább"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:204
+msgid "apply"
+msgstr "vonatkozik"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:205
+msgid "back"
+msgstr "vissza"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:206
+msgid "exclude"
+msgstr "kizárni"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:207
+msgid "include"
+msgstr "közé tartozik"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:209
+msgid "Loading scopes…"
+msgstr "Hatókör betöltése…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:210
+msgid "Could not load the scopes."
+msgstr "Nem sikerült betölteni a hatóköröket."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:211
+msgid "Could not load these values"
+msgstr "Nem sikerült betölteni ezeket az értékeket"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:212
+msgid "All of"
+msgstr "Az összes"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:213
+msgid "Events tagged with every one of them, on the event itself"
+msgstr "Mindegyikkel megjelölt események magán az eseményen"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:214
+msgid "Any of"
+msgstr "Bármelyik"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:215
+msgid ""
+"Events with at least one of them, on the event or one of its attributes"
+msgstr ""
+"Események, amelyek közül legalább az egyik az eseményen vagy annak egyik "
+"jellemzőjén szerepel"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:216
+msgid "Match"
+msgstr "Egyezés"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:217
+msgid "matrix"
+msgstr "mátrix"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:218
+msgid "A matrix: browse it by tactic"
+msgstr "Mátrix: böngésszen taktika szerint"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:219
+#, php-format
+msgid "+%s more"
+msgstr "+ %s további"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:220
+msgid "More not shown · type to narrow"
+msgstr "Több nem látható · szűkítendő típus"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:221
+#, php-format
+msgid "+%s more · type to narrow"
+msgstr "+%s további · írja be a szűkítéshez"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:222
+msgid "Namespaces"
+msgstr "Névterek"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:223
+#, php-format
+msgid "Narrow to %s, keeping “%s”"
+msgstr "Szűkítés %1$s-ra, megtartva a „%2$s”"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:224
+msgid "Narrow to"
+msgstr "Szűk"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:225
+msgid "No cluster in use"
+msgstr "Nincs használatban fürt"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:226
+#, php-format
+msgid "No cluster in use matches “%s”"
+msgstr "Nincs használatban lévő klaszter, amely megfelel a következőnek: „%s”"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:227
+msgid "No cluster in use for this tactic"
+msgstr "Ehhez a taktikához nem használnak klasztert"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:228
+msgid "No namespace"
+msgstr "Nincs névtér"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:229
+msgid "Free-text tags, written without a \"namespace:\" prefix."
+msgstr "Szabad szövegű címkék, \"névtér:\" előtag nélkül írva."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:230
+msgid "No predicate has a match."
+msgstr "Egy predikátumnak sincs egyezése."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:231
+msgid "not"
+msgstr "nem"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:232
+msgid "Not attached to anything yet"
+msgstr "Még semmihez nem kötött"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:233
+msgid "no taxonomy"
+msgstr "nincs taxonómia"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:234
+msgid "Not enabled"
+msgstr "Nincs engedélyezve"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:235
+msgid "Nothing here yet"
+msgstr "Itt még semmi"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:236
+#, php-format
+msgid "Nothing in %s matches “%s”"
+msgstr "A(z) %1$s mezőben semmi sem egyezik a következővel: „%2$s”"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:237
+#, php-format
+msgid "Nothing matches “%s”"
+msgstr "Semmi sem felel meg a következőnek: „%s”"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:238
+#, php-format
+msgid "No %s value matches “%s”"
+msgstr "Egyetlen %1$s érték sem felel meg a következőnek: „%2$s”"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:239
+#, php-format
+msgid "Tags written as \"%s:…\", with no taxonomy behind them."
+msgstr "„%s:…” címkék, mögöttük taxonómia nélkül."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:240
+msgid "Numerical value"
+msgstr "Számérték"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:243
+#, php-format
+msgid "or type to search all %s %s values."
+msgstr "vagy írja be az összes %1$s %2$s érték kereséséhez."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:244
+msgid "Other namespaces"
+msgstr "Egyéb névterek"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:245
+#, php-format
+msgid "Other %s tags"
+msgstr "Egyéb %s címkék"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:246
+msgid "Tags in this namespace that are not entries of the taxonomy"
+msgstr "Olyan címkék ebben a névtérben, amelyek nem a taxonómia bejegyzései"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:247
+msgid "pick a heading to narrow"
+msgstr "válasszon egy címsort a szűkítéshez"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:248
+msgid "Pick a predicate"
+msgstr "Válasszon egy predikátumot"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:249
+msgid "Pinned in your profile"
+msgstr "Rögzítve a profilodban"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:250
+msgid "Predicates"
+msgstr "Predikátumok"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:251
+msgid "Preferred in your profile"
+msgstr "Előnyben részesített a profiljában"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:254
+msgid "Search all clusters, or pick a scope"
+msgstr "Keresés az összes klaszterben, vagy válasszon egy hatókört"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:255
+#, php-format
+msgid "Search all of %s"
+msgstr "Keresés az összesben: %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:256
+msgid "Search all tags, or pick a scope"
+msgstr "Keresés az összes címkében, vagy válasszon egy hatókört"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:257
+msgid "Search failed"
+msgstr "A keresés sikertelen"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:258
+#, php-format
+msgid "Search in %s"
+msgstr "Keresés itt: %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:260
+msgid "show all"
+msgstr "az összes megjelenítése"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:261
+msgid "Show all clusters"
+msgstr "Az összes klaszter megjelenítése"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:262
+msgid "Show where it lives"
+msgstr "Mutasd meg, hol él"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:263
+#, php-format
+msgid "Starts with %s"
+msgstr "A következővel kezdődik: %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:264
+msgid "Stop excluding"
+msgstr "Hagyja abba a kizárást"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:265
+msgid "Tactics"
+msgstr "Taktika"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:268
+msgid "taxonomy"
+msgstr "rendszertan"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:269
+msgid "Nothing selected · click a value to include it,"
+msgstr "Nincs kiválasztva · Kattintson egy értékre, hogy belefoglalja,"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:270
+msgid "to exclude it"
+msgstr "kizárni"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:271
+#: View/Themed/Overmind/Elements/side_panel.ctp:33
+msgid "Try again"
+msgstr "Próbálja újra"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:272
+msgid "Two characters search every cluster, or pick a scope on the left."
+msgstr ""
+"Két karakter keres minden klaszterben, vagy válasszon egy hatókört a bal "
+"oldalon."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:273
+msgid "Two characters search every tag, or pick a scope on the left."
+msgstr ""
+"Két karakter keres minden címkében, vagy válasszon egy hatókört a bal "
+"oldalon."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:274
+msgid "Where you are"
+msgstr "Hol vagy"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:275
+msgid "Which clusters"
+msgstr "Melyik klaszter"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:366
+msgid "Type 2 characters to search"
+msgstr "Írjon be 2 karaktert a kereséshez"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:369
+msgid "The list could not be loaded"
+msgstr "A listát nem sikerült betölteni"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:371
+#, php-format
+msgid "Choose %s"
+msgstr "Válassza a %s lehetőséget"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:372
+msgid "Nothing matches"
+msgstr "Semmi sem egyezik"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:373
+#, php-format
+msgid "%s more: type to narrow"
+msgstr "További %s: írja be a szűkítéshez"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:374
+msgid "The search failed"
+msgstr "A keresés sikertelen volt"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:382
+msgid "Any of these. Applies when you close the picker."
+msgstr "Ezek bármelyike. A válogató bezárásakor érvényes."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:383
+msgid "Any of these."
+msgstr "Ezek bármelyike."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:384
+msgid ""
+"This link asks for events with all of these. Changing the selection here "
+"switches to any of them."
+msgstr ""
+"Ez a link az összes eseményt kéri. Ha itt módosítja a kijelölést, akkor "
+"bármelyikre vált."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:385
+msgid "Not found on this instance"
+msgstr "Ezen a példányon nem található"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:386
+msgid "The filtered list could not be loaded."
+msgstr "A szűrt lista nem tölthető be."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:473
+msgid "Search a value"
+msgstr "Érték keresése"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:727
+#, php-format
+msgid "%s shown, page %s"
+msgstr "%1$s látható, %2$s. oldal"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:733
+#, php-format
+msgid "%s shown, page %s of %s"
+msgstr "%1$s látható, %3$s/%2$s. oldal"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:739
+#, php-format
+msgid "%s shown"
+msgstr "%s látható"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:767
+msgid "Active filters"
+msgstr "Aktív szűrők"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:45
+#, php-format
+msgid "%s (all of)"
+msgstr "%s (összes)"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_picker.ctp:108
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:37
+#, php-format
+msgid "%s selected"
+msgid_plural "%s selected"
+msgstr[0] "%s kiválasztva"
+msgstr[1] "%s kiválasztva"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:46
+msgid "No limit"
+msgstr "Nincs korlátozás"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:48
+msgid "Pick dates"
+msgstr "Válassza ki a dátumokat"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:51
+msgid "Both rows apply together. Applies when you close the picker."
+msgstr "Mindkét sor együtt érvényes. A válogató bezárásakor érvényes."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:62
+#, php-format
+msgid "%s set"
+msgid_plural "%s set"
+msgstr[0] "%s beállítva"
+msgstr[1] "%s beállítva"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_toggle.ctp:17
+msgid "More Filters"
+msgstr "További szűrők"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_card.ctp:56
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_table.ctp:103
+msgid "No items to display"
+msgstr "Nincs megjeleníthető elem"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:30
+msgid "Selected items"
+msgstr "Kiválasztott tételek"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:61
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:62
+msgid "Export selected attributes"
+msgstr "A kiválasztott attribútumok exportálása"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:79
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:80
+msgid "Fetch the selected events"
+msgstr "A kiválasztott események lekérése"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:130
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:131
+msgid "Add Tag on selected attributes"
+msgstr "Címke hozzáadása a kiválasztott attribútumokhoz"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:141
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:142
+msgid "Add Local Tag on selected attributes"
+msgstr "Helyi címke hozzáadása a kiválasztott attribútumokhoz"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:145
+msgid "Local Tag"
+msgstr "Helyi címke"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:152
+msgid "Add Galaxy on selected attributes"
+msgstr "Galaxy hozzáadása a kiválasztott attribútumokhoz"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:153
+msgid "Add Galaxy to selected attributes"
+msgstr "Galaxy hozzáadása a kiválasztott attribútumokhoz"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:163
+msgid "Add Local Galaxy on selected attributes"
+msgstr "Helyi galaxis hozzáadása a kiválasztott attribútumokhoz"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:164
+msgid "Add Local Galaxy to selected attributes"
+msgstr "Helyi galaxis hozzáadása a kiválasztott attribútumokhoz"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:167
+msgid "Local Galaxy"
+msgstr "Helyi galaxis"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:185
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:186
+msgid "Create new relationship for selected attributes"
+msgstr "Új kapcsolat létrehozása a kiválasztott attribútumokhoz"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:221
+msgid "Enable selected items"
+msgstr "A kiválasztott elemek engedélyezése"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:227
+msgid "Disable selected items"
+msgstr "A kiválasztott elemek letiltása"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:236
+msgid "Make the selected items required"
+msgstr "Tegye szükségessé a kiválasztott elemeket"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:242
+msgid "Make the selected items optional"
+msgstr "A kiválasztott elemeket választhatóvá tegye"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:251
+msgid "Highlight selected items"
+msgstr "A kiválasztott elemek kiemelése"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:257
+msgid "Remove highlight for selected items"
+msgstr "A kijelölt elemek kiemelésének eltávolítása"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:259
+msgid "Remove Highlight"
+msgstr "Kiemelés eltávolítása"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:266
+msgid "Activate selected items"
+msgstr "A kiválasztott elemek aktiválása"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:272
+msgid "Deactivate selected items"
+msgstr "A kiválasztott elemek deaktiválása"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:282
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:283
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:322
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:323
+msgid "Delete selected items"
+msgstr "A kiválasztott elemek törlése"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:78
+#, php-format
+msgid "Showing %s–%s"
+msgstr "%1$s–%2$s megjelenítése"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:84
+#, php-format
+msgid "Showing %s–%s of %s"
+msgstr "%1$s–%2$s/%3$s megjelenítése"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Drag to resize · double-click to widen"
+msgstr "Húzza az átméretezéshez · Kattintson duplán a szélesítéshez"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Resize the window (arrow keys)"
+msgstr "Az ablak átméretezése (nyílbillentyűk)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Drag to resize"
+msgstr "Húzza az átméretezéshez"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Drag to move · arrow keys"
+msgstr "Húzza a mozgatáshoz · nyílbillentyűket"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Move the window (arrow keys)"
+msgstr "Az ablak mozgatása (nyílbillentyűk)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:56
+msgid "Undock into a window"
+msgstr "Oldja ki az ablakba"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:59
+msgid "Dock to the right"
+msgstr "Dokk jobbra"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:28
+#: View/Themed/Overmind/Elements/side_panel.ctp:62
+msgid "Widen the panel"
+msgstr "Szélesítse a panelt"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:1
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:20
+msgid "Main"
+msgstr "Fő"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:3
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:22
+#, php-format
+msgid "MISP %s"
+msgstr "MISP %s"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:4
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:23
+msgid "MISP Logo"
+msgstr "MISP logó"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:27
+#, php-format
+msgid "%s shows or hides it"
+msgstr "%s megjeleníti vagy elrejti"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:29
+msgid "Back to your width"
+msgstr "Vissza a szélességéhez"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:30
+msgid "Undocked into a window."
+msgstr "Kikapcsolva egy ablakba."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:31
+msgid "Docked to the right."
+msgstr "Jobbra dokkolva."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:32
+msgid "Failed to load."
+msgstr "Nem sikerült betölteni."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:34
+msgid "It could not be saved."
+msgstr "Nem lehetett elmenteni."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Panel width"
+msgstr "Panelszélesség"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close the panel"
+msgstr "Zárja be a panelt"
+
+#: View/Themed/Overmind/Users/login.ctp:162
+#: View/Themed/Overmind/Users/login.ctp:163
+msgid "Show password"
+msgstr "Jelszó megjelenítése"
+
+#: View/Themed/Overmind/Users/login.ctp:164
+msgid "Hide password"
+msgstr "Jelszó elrejtése"
+
+#: View/Themed/Overmind/Users/login.ctp:37
+msgid "Log in with SAML"
+msgstr "Jelentkezzen be SAML-lel"
+
+#: View/Themed/Overmind/Users/login.ctp:44
+msgid "Log in with Azure AD"
+msgstr "Jelentkezzen be az Azure AD-vel"
+
+#: View/Themed/Overmind/Users/login.ctp:51
+msgid "Log in with OIDC"
+msgstr "Jelentkezzen be az OIDC-vel"
+
+#: View/Themed/Overmind/Users/login.ctp:117
+#: View/Themed/Overmind/Users/login.ctp:194
+msgid "Log in"
+msgstr "Bejelentkezés"
+
+#: View/Themed/Overmind/Users/login.ctp:120
+msgid "This instance uses single sign-on. Choose your identity provider."
+msgstr ""
+"Ez a példány egyszeri bejelentkezést használ. Válassza ki az "
+"identitásszolgáltatóját."
+
+#: View/Themed/Overmind/Users/login.ctp:146
+msgid "Forgot your password?"
+msgstr "Elfelejtette jelszavát?"
+
+#: View/Themed/Overmind/Users/login.ctp:173
+msgid "One-time password"
+msgstr "Egyszeri jelszó"
+
+#: View/Themed/Overmind/Users/login.ctp:186
+#, php-format
+msgid "Enter the code from your token. Manage your tokens in %s."
+msgstr "Írja be a kódot a tokenjéből. Kezelje tokenjeit itt: %s."
+
+#: View/Themed/Overmind/Users/login.ctp:198
+msgid "or"
+msgstr "vagy"
+
+#: View/Themed/Overmind/Users/login.ctp:211
+msgid "No account yet?"
+msgstr "Még nincs fiók?"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:25
+msgid "Theme updated!"
+msgstr "Téma frissítve!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:31
+msgid "Failed to toggle Beta UI. Please try again."
+msgstr "Nem sikerült váltani a Béta UI-t. Kérjük, próbálja újra."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:56
+msgid "Failed to change the theme. Please try again."
+msgstr "Nem sikerült megváltoztatni a témát. Kérjük, próbálja újra."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:86
+msgid "Homepage saved!"
+msgstr "A kezdőlap mentve!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:90
+msgid "Failed to set homepage. Please try again."
+msgstr "Nem sikerült beállítani a kezdőlapot. Kérjük, próbálja újra."

@@ -16594,11 +16594,17 @@ msgid "Default Tag"
 msgstr "Tags par défaut"
 
 #: View/Feeds/compare_feeds.ctp:73
-msgid "None or less than 1% of the data of %s is contained in %s (%s matching values)"
-msgstr "Moins d'1% ou aucune des données de %s est contenue dans %s (%s de valeurs correspondantes)"
+#, php-format
+msgid ""
+"None or less than 1%% of the data of %s is contained in %s (%s matching "
+"values)"
+msgstr ""
+"Moins d'1%% ou aucune des données de %s est contenue dans %s (%s de valeurs "
+"correspondantes)"
 
 #: View/Feeds/compare_feeds.ctp:74
-msgid "%s% of the data of %s is contained in %s (%s matching values)"
+#, php-format
+msgid "%s%% of the data of %s is contained in %s (%s matching values)"
 msgstr ""
 
 #: View/Feeds/freetext_index.ctp:2

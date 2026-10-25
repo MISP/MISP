@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2022-07-21 15:58\n"
+"PO-Revision-Date: 2026-10-25 00:00+0000\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Korean\n"
 "MIME-Version: 1.0\n"
@@ -1065,10 +1065,10 @@ msgstr ""
 #: View/Events/ajax/eventPublishConfirmationForm.ctp:28
 #: View/Feeds/index.ctp:163
 #: View/GalaxyClusters/ajax/publishConfirmationForm.ctp:25
-#: View/Pages/doc/using_the_system.ctp:190
-#: View/Servers/ajax/update.ctp:13
+#: View/Pages/doc/using_the_system.ctp:190 View/Servers/ajax/update.ctp:13
+#: View/Themed/Overmind/Elements/Events/index.ctp:254
 msgid "Publish"
-msgstr ""
+msgstr "게시"
 
 #: Controller/AuditLogsController.php:89
 msgid "Publish sightings"
@@ -1552,32 +1552,33 @@ msgstr ""
 msgid "No PGP key set in your profile. To receive attributes in emails, submit your public key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:1125
-#: View/Events/view.ctp:186
-#: View/Feeds/preview_event.ctp:43
-#: View/GalaxyClusters/view.ctp:47
-#: View/GalaxyClusters/ajax/index.ctp:76
+#: Controller/EventsController.php:1125 View/Events/view.ctp:186
+#: View/Feeds/preview_event.ctp:43 View/GalaxyClusters/ajax/index.ctp:76
+#: View/GalaxyClusters/view.ctp:47 View/Helper/EventIndexHelper.php:52
 #: View/Pages/doc/using_the_system.ctp:160;213
-#: View/Servers/preview_event.ctp:44
-#: View/Servers/preview_index.ctp:108
+#: View/Servers/preview_event.ctp:44 View/Servers/preview_index.ctp:108
+#: View/Themed/Overmind/Elements/Events/index.ctp:202
+#: View/Themed/Overmind/Elements/Events/index.ctp:403
+#: View/Themed/Overmind/Elements/Events/index.ctp:406
+#: View/Themed/Overmind/Elements/Events/index.ctp:424
+#: View/Themed/Overmind/Elements/Events/index.ctp:498
+#: View/Themed/Overmind/Elements/Events/index.ctp:499
 msgid "Published"
-msgstr ""
+msgstr "게시됨"
 
-#: Controller/EventsController.php:1128
-#: View/Attributes/index.ctp:14
+#: Controller/EventsController.php:1128 View/Attributes/index.ctp:14
 #: View/DecayingModel/decaying_tool_rest_search.ctp:23
-#: View/Elements/eventattribute.ctp:121
 #: View/Elements/Feeds/eventattribute.ctp:41
 #: View/Elements/Servers/eventattribute.ctp:37
-#: View/Events/proposal_event_index.ctp:24
-#: View/Events/view.ctp:121
+#: View/Elements/eventattribute.ctp:121
+#: View/Events/proposal_event_index.ctp:24 View/Events/view.ctp:121
 #: View/Feeds/preview_event.ctp:17
 #: View/Objects/group_attributes_into_object.ctp:56
 #: View/Pages/doc/using_the_system.ctp:33;167;208;230;251
-#: View/Servers/preview_event.ctp:20
-#: View/Sightings/ajax/list_sightings.ctp:9
+#: View/Servers/preview_event.ctp:20 View/Sightings/ajax/list_sightings.ctp:9
+#: View/Themed/Overmind/Elements/Events/index.ctp:196
 msgid "Date"
-msgstr ""
+msgstr "날짜"
 
 #: Controller/EventsController.php:1129
 #: View/Attributes/alternate_search_result.ctp:8
@@ -1593,61 +1594,59 @@ msgstr "이벤트 정보"
 
 #: Controller/EventsController.php:1130
 #: View/Events/get_event_info_by_id.ctp:14
+#: View/Themed/Overmind/Elements/Events/index.ctp:495
 msgid "Threat level"
-msgstr ""
+msgstr "위협 수준"
 
 #: Controller/EventsController.php:1131
-#: View/Attributes/index.ctp:103
 #: View/Attributes/ajax/attributeEditMassForm.ctp:15
-#: View/Elements/Feeds/eventattribute.ctp:50
+#: View/Attributes/index.ctp:103 View/Elements/Feeds/eventattribute.ctp:50
 #: View/Elements/GalaxyClusters/relations_graph.ctp:445
-#: View/EventReports/index.ctp:74
-#: View/EventReports/view.ctp:15
-#: View/EventReports/ajax/indexForEvent.ctp:97
-#: View/Events/resolved_attributes.ctp:51
-#: View/Events/resolved_misp_format.ctp:97;150;353
-#: View/Events/view.ctp:157
-#: View/Feeds/add.ctp:138
-#: View/Feeds/freetext_index.ctp:32
-#: View/Feeds/index.ctp:186
-#: View/Feeds/preview_event.ctp:35
+#: View/EventReports/ajax/indexForEvent.ctp:97 View/EventReports/index.ctp:74
+#: View/EventReports/view.ctp:15 View/Events/resolved_attributes.ctp:51
+#: View/Events/resolved_misp_format.ctp:97;150;353 View/Events/view.ctp:157
+#: View/Feeds/add.ctp:138 View/Feeds/freetext_index.ctp:32
+#: View/Feeds/index.ctp:186 View/Feeds/preview_event.ctp:35
 #: View/GalaxyClusterRelations/index.ctp:107
-#: View/GalaxyClusters/view.ctp:63
+#: View/GalaxyClusters/ajax/index.ctp:174 View/GalaxyClusters/view.ctp:63
 #: View/GalaxyClusters/view_relations.ctp:63;130
-#: View/GalaxyClusters/ajax/index.ctp:174
 #: View/Objects/add.ctp:51;130;226
 #: View/Objects/group_attributes_into_object.ctp:12;59
 #: View/Objects/revise_object.ctp:11;59
 #: View/Pages/doc/using_the_system.ctp:34;90;126;186;211;237
 #: View/Servers/preview_event.ctp:33
 #: View/Templates/populate_event_from_template_attributes.ctp:11
+#: View/Themed/Overmind/Elements/Events/index.ctp:193
+#: View/Themed/Overmind/Elements/Events/index.ctp:387
 #: View/Threads/index.ctp:41
 msgid "Distribution"
-msgstr ""
+msgstr "유통"
 
-#: Controller/EventsController.php:1132
-#: Model/Attribute.php:94
+#: Controller/EventsController.php:1132 Model/Attribute.php:94
 #: View/Elements/view_event_distribution_graph.ctp:24
+#: View/Themed/Overmind/Elements/Events/index.ctp:393
+#: View/Themed/Overmind/Elements/Events/index.ctp:493
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:21
 msgid "Sharing group"
-msgstr ""
+msgstr "공유 그룹"
 
 #: Controller/EventsController.php:1133
-#: View/Events/get_event_info_by_id.ctp:13
-#: View/Events/view.ctp:152
+#: View/Events/get_event_info_by_id.ctp:13 View/Events/view.ctp:152
 #: View/Feeds/preview_event.ctp:25
 #: View/Pages/doc/using_the_system.ctp:70;177;210
 #: View/Servers/preview_event.ctp:28
+#: View/Themed/Overmind/Elements/Events/index.ctp:494
 msgid "Analysis"
-msgstr ""
+msgstr "분석"
 
 #: Controller/EventsController.php:1134
 #: View/Elements/templateElements/templateRowAttribute.ctp:4
-#: View/ObjectReferences/ajax/add.ctp:86
-#: View/Objects/revise_object.ctp:52
+#: View/ObjectReferences/ajax/add.ctp:86 View/Objects/revise_object.ctp:52
 #: View/Pages/doc/administration.ctp:168
 #: View/TemplateElements/ajax/template_element_add_choices.ctp:3
+#: View/Themed/Overmind/Elements/Events/index.ctp:488
 msgid "Attribute"
-msgstr ""
+msgstr "속성"
 
 #: Controller/EventsController.php:1135
 msgid "Has proposal"
@@ -1659,22 +1658,21 @@ msgid "Last change at"
 msgstr ""
 
 #: Controller/EventsController.php:1137
-#: View/Elements/Events/eventIndexTable.ctp:41
-#: View/Events/index.ctp:35
+#: View/Elements/Events/eventIndexTable.ctp:41 View/Events/index.ctp:35
+#: View/Themed/Overmind/Elements/Events/index.ctp:203
+#: View/Themed/Overmind/Elements/Events/index.ctp:61
 msgid "Published at"
-msgstr ""
+msgstr "게시일:"
 
 #: Controller/EventsController.php:1141
-#: View/Events/proposal_event_index.ctp:21
-#: View/Jobs/index.ctp:79
+#: View/Events/proposal_event_index.ctp:21 View/Jobs/index.ctp:79
 #: View/Logs/admin_search.ctp:6
 #: View/Pages/doc/administration.ctp:87;104;116;181;195
 #: View/Pages/doc/using_the_system.ctp:166
-#: View/Users/admin_index.ctp:129
-#: View/Users/registrations.ctp:61
-#: View/Users/view.ctp:5
+#: View/Themed/Overmind/Users/login.ctp:127 View/Users/admin_index.ctp:129
+#: View/Users/registrations.ctp:61 View/Users/view.ctp:5
 msgid "Email"
-msgstr ""
+msgstr "이메일"
 
 #: Controller/EventsController.php:1150
 #: View/Logs/admin_search.ctp:8
@@ -2105,10 +2103,10 @@ msgstr "그것을 실행하는 데 필요한 권한이 없습니다."
 msgid "Default feed metadata loaded."
 msgstr ""
 
-#: Controller/FeedsController.php:121
-#: View/Feeds/index.ctp:215
+#: Controller/FeedsController.php:121 View/Feeds/index.ctp:215
+#: View/Helper/NavbarHelper.php:465
 msgid "Feeds"
-msgstr ""
+msgstr "피드"
 
 #: Controller/FeedsController.php:128;291;430
 msgid "Inherit from feed"
@@ -3200,12 +3198,11 @@ msgstr ""
 msgid "Sharing Group could not be deleted. Make sure that there are no events, attributes or threads belonging to this sharing group."
 msgstr ""
 
-#: Controller/SharingGroupsController.php:363
-#: View/Cerebrates/view.ctp:63
-#: View/Organisations/view.ctp:72;73
+#: Controller/SharingGroupsController.php:363 View/Cerebrates/view.ctp:63
+#: View/Helper/NavbarHelper.php:476 View/Organisations/view.ctp:72;73
 #: View/SharingGroups/index.ctp:4
 msgid "Sharing Groups"
-msgstr ""
+msgstr "공유 그룹"
 
 #: Controller/SightingdbController.php:32
 msgid "SightingDB connection added."
@@ -3746,15 +3743,13 @@ msgstr ""
 msgid "Usage data"
 msgstr ""
 
-#: Controller/UsersController.php:1830
-#: View/Cerebrates/view.ctp:57
-#: View/Elements/global_menu.ctp:196
-#: View/SharingGroups/add.ctp:19
-#: View/SharingGroups/edit.ctp:19
-#: View/SharingGroups/view.ctp:51
+#: Controller/UsersController.php:1830 View/Cerebrates/view.ctp:57
+#: View/Elements/global_menu.ctp:196 View/SharingGroups/add.ctp:19
+#: View/SharingGroups/edit.ctp:19 View/SharingGroups/view.ctp:51
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:34
 #: View/Users/statistics_data.ctp:34
 msgid "Organisations"
-msgstr ""
+msgstr "조직"
 
 #: Controller/UsersController.php:1831
 msgid "User and Organisation statistics"
@@ -3801,28 +3796,21 @@ msgstr ""
 msgid "Galaxy Matrix"
 msgstr ""
 
-#: Controller/UsersController.php:2193
-#: View/AuthKeys/view.ctp:53
-#: View/Elements/eventattributetoolbar.ctp:9
+#: Controller/UsersController.php:2193 View/AuthKeys/view.ctp:53
 #: View/Elements/Events/eventIndexTable.ctp:185
-#: View/EventReports/index.ctp:16
-#: View/EventReports/ajax/indexForEvent.ctp:50
-#: View/Events/proposal_event_index.ctp:64
-#: View/Galaxies/index.ctp:13
+#: View/Elements/eventattributetoolbar.ctp:9
+#: View/EventReports/ajax/indexForEvent.ctp:50 View/EventReports/index.ctp:16
+#: View/Events/proposal_event_index.ctp:64 View/Galaxies/index.ctp:13
 #: View/GalaxyClusterRelations/index.ctp:14
-#: View/GalaxyClusters/ajax/index.ctp:19
-#: View/Jobs/index.ctp:13;61
-#: View/ObjectTemplates/index.ctp:33
-#: View/Regexp/admin_add.ctp:17
-#: View/Regexp/admin_edit.ctp:18
-#: View/Sightings/ajax/advanced.ctp:5
-#: View/Taxonomies/index.ctp:12
-#: View/Taxonomies/ajax/taxonomy_tags.ctp:160
-#: View/UserSettings/index.ctp:41
-#: View/Users/admin_index.ctp:66
+#: View/GalaxyClusters/ajax/index.ctp:19 View/Jobs/index.ctp:13;61
+#: View/ObjectTemplates/index.ctp:33 View/Regexp/admin_add.ctp:17
+#: View/Regexp/admin_edit.ctp:18 View/Sightings/ajax/advanced.ctp:5
+#: View/Taxonomies/ajax/taxonomy_tags.ctp:160 View/Taxonomies/index.ctp:12
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:183
+#: View/UserSettings/index.ctp:41 View/Users/admin_index.ctp:66
 #: View/Warninglists/index.ctp:20
 msgid "All"
-msgstr ""
+msgstr "모두"
 
 #: Controller/UsersController.php:2434
 msgid "Self registration is not enabled on this instance."
@@ -8109,40 +8097,27 @@ msgstr ""
 msgid "Regex entries (in the standard php regex /{regex}/{modifier} format) entered below will restrict matching attributes from being included in the IDS flag sensitive exports (such as NIDS exports)."
 msgstr ""
 
-#: View/Allowedlists/index.ctp:11
-#: View/AuthKeys/view.ctp:23
+#: View/Allowedlists/index.ctp:11 View/AuthKeys/view.ctp:23
 #: View/Elements/Events/eventIndexTable.ctp:29
-#: View/EventReports/index.ctp:48
-#: View/EventReports/view.ctp:3
-#: View/EventReports/ajax/indexForEvent.ctp:71
-#: View/Events/get_event_info_by_id.ctp:12
-#: View/Feeds/index.ctp:85
-#: View/Feeds/view.ctp:3
-#: View/GalaxyClusters/ajax/index.ctp:67
-#: View/Jobs/index.ctp:98
-#: View/Noticelists/index.ctp:4
-#: View/ObjectTemplates/view.ctp:3
-#: View/Objects/add.ctp:214
-#: View/Objects/group_attributes_into_object.ctp:54
-#: View/Organisations/index.ctp:68
-#: View/Organisations/view.ctp:5
-#: View/Organisations/ajax/merge.ctp:56;63
-#: View/Pages/doc/using_the_system.ctp:163;203
-#: View/Roles/index.ctp:4
-#: View/Servers/compare_servers.ctp:4
-#: View/Servers/index.ctp:14
-#: View/ShadowAttributes/index.ctp:34
-#: View/SharingGroups/index.ctp:49
-#: View/SharingGroups/view.ctp:10
-#: View/Tags/index.ctp:34
-#: View/Taxonomies/index.ctp:37
+#: View/EventReports/ajax/indexForEvent.ctp:71 View/EventReports/index.ctp:48
+#: View/EventReports/view.ctp:3 View/Events/get_event_info_by_id.ctp:12
+#: View/Feeds/index.ctp:85 View/Feeds/view.ctp:3
+#: View/GalaxyClusters/ajax/index.ctp:67 View/Jobs/index.ctp:98
+#: View/Noticelists/index.ctp:4 View/ObjectTemplates/view.ctp:3
+#: View/Objects/add.ctp:214 View/Objects/group_attributes_into_object.ctp:54
+#: View/Organisations/ajax/merge.ctp:56;63 View/Organisations/index.ctp:68
+#: View/Organisations/view.ctp:5 View/Pages/doc/using_the_system.ctp:163;203
+#: View/Roles/index.ctp:4 View/Servers/compare_servers.ctp:4
+#: View/Servers/index.ctp:14 View/ShadowAttributes/index.ctp:34
+#: View/SharingGroups/index.ctp:49 View/SharingGroups/view.ctp:10
+#: View/Tags/index.ctp:34 View/Taxonomies/index.ctp:37
 #: View/Taxonomies/view.ctp:29
-#: View/Users/admin_index.ctp:110
-#: View/Users/view.ctp:3
-#: View/Warninglists/index.ctp:48
-#: View/Warninglists/view.ctp:5
+#: View/Themed/Overmind/Elements/Events/index.ctp:142
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
+#: View/Users/admin_index.ctp:110 View/Users/view.ctp:3
+#: View/Warninglists/index.ctp:48 View/Warninglists/view.ctp:5
 msgid "ID"
-msgstr ""
+msgstr "ID"
 
 #: View/Allowedlists/index.ctp:39
 #: View/GalaxyClusterBlocklists/index.ctp:80
@@ -8287,8 +8262,9 @@ msgid "Org"
 msgstr ""
 
 #: View/Attributes/alternate_search_result.ctp:9
+#: View/Themed/Overmind/Elements/Events/index.ctp:197
 msgid "Event date"
-msgstr ""
+msgstr "이벤트 날짜"
 
 #: View/Attributes/alternate_search_result.ctp:10
 #: View/Events/view.ctp:512
@@ -8457,16 +8433,15 @@ msgstr ""
 msgid "No Failed Composites"
 msgstr ""
 
-#: View/Attributes/index.ctp:9
-#: View/Attributes/ajax/hover_enrichment.ctp:33
-#: View/Elements/histogram.ctp:4
-#: View/Events/view.ctp:527
+#: View/Attributes/ajax/hover_enrichment.ctp:33 View/Attributes/index.ctp:9
+#: View/Elements/histogram.ctp:4 View/Events/view.ctp:527
+#: View/Helper/NavbarHelper.php:151
 #: View/Objects/orphaned_object_diagnostics.ctp:44
 #: View/Pages/doc/using_the_system.ctp:242
-#: View/Users/statistics_data.ctp:19
-#: View/Users/statistics_orgs.ctp:36
+#: View/Themed/Overmind/Elements/Events/index.ctp:176
+#: View/Users/statistics_data.ctp:19 View/Users/statistics_orgs.ctp:36
 msgid "Attributes"
-msgstr ""
+msgstr "속성"
 
 #: View/Attributes/index.ctp:21
 #: View/Elements/eventattribute.ctp:123
@@ -8535,14 +8510,13 @@ msgstr ""
 
 #: View/Attributes/index.ctp:57
 #: View/DecayingModel/decaying_tool_rest_search.ctp:30
-#: View/Elements/eventattribute.ctp:136
-#: View/Elements/global_menu.ctp:123
-#: View/Events/view.ctp:539
-#: View/Events/ajax/ajaxGalaxies.ctp:4
-#: View/Servers/preview_event.ctp:98
+#: View/Elements/eventattribute.ctp:136 View/Elements/global_menu.ctp:123
+#: View/Events/ajax/ajaxGalaxies.ctp:4 View/Events/view.ctp:539
+#: View/Helper/NavbarHelper.php:298 View/Servers/preview_event.ctp:98
 #: View/TagCollections/index.ctp:11
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:199
 msgid "Galaxies"
-msgstr ""
+msgstr "갤럭시"
 
 #: View/Attributes/index.ctp:62
 #: View/AuthKeys/add.ctp:16
@@ -8606,11 +8580,11 @@ msgstr ""
 
 #: View/Attributes/index.ctp:116
 #: View/DecayingModel/decaying_tool_rest_search.ctp:33
-#: View/Elements/eventattribute.ctp:143
-#: View/Events/index.ctp:30
-#: View/Events/view.ctp:251
+#: View/Elements/eventattribute.ctp:143 View/Events/index.ctp:30
+#: View/Events/view.ctp:251 View/Themed/Overmind/Elements/Events/index.ctp:57
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:200
 msgid "Sightings"
-msgstr ""
+msgstr "목격"
 
 #: View/Attributes/index.ctp:126
 #: View/Elements/eventattribute.ctp:144
@@ -8760,11 +8734,12 @@ msgstr ""
 msgid "Create proposals"
 msgstr ""
 
-#: View/Attributes/ajax/attributeEditMassForm.ctp:45
-#: View/Events/index.ctp:29
-#: View/Feeds/freetext_index.ctp:31
+#: View/Attributes/ajax/attributeEditMassForm.ctp:45 View/Events/index.ctp:29
+#: View/Feeds/freetext_index.ctp:31 View/Helper/NavbarHelper.php:727
+#: View/Themed/Overmind/Elements/Events/index.ctp:178
+#: View/Themed/Overmind/Elements/Events/index.ctp:55
 msgid "Correlations"
-msgstr ""
+msgstr "상관관계"
 
 #: View/Attributes/ajax/attributeEditMassForm.ctp:48
 msgid "Enable correlations"
@@ -8857,8 +8832,10 @@ msgid "Remove %s tag %s from %s %s?"
 msgstr ""
 
 #: View/Attributes/ajax/tagRemoveConfirmation.ctp:17
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:252
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:380
 msgid "Remove"
-msgstr ""
+msgstr "제거"
 
 #: View/Attributes/ajax/toggle_correlation.ctp:6
 msgid "Toggle Correlation %s "
@@ -8919,8 +8896,10 @@ msgid "Clear filtering rules"
 msgstr ""
 
 #: View/AuditLogs/admin_index.ctp:7
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:193
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:490
 msgid "Clear"
-msgstr ""
+msgstr "클리어"
 
 #: View/AuditLogs/admin_index.ctp:231
 #: View/AuditLogs/event_index.ctp:6
@@ -8992,17 +8971,14 @@ msgstr ""
 msgid "Model"
 msgstr ""
 
-#: View/AuditLogs/admin_index.ctp:246
-#: View/AuditLogs/event_index.ctp:21
-#: View/Inbox/index.ctp:31
-#: View/Logs/admin_search.ctp:19
-#: View/News/add.ctp:17
-#: View/News/index.ctp:21
-#: View/Pages/doc/administration.ctp:185;198
+#: View/AuditLogs/admin_index.ctp:246 View/AuditLogs/event_index.ctp:21
+#: View/Inbox/index.ctp:31 View/Logs/admin_search.ctp:19 View/News/add.ctp:17
+#: View/News/index.ctp:21 View/Pages/doc/administration.ctp:185;198
 #: View/Pages/doc/using_the_system.ctp:271
+#: View/Themed/Overmind/Elements/Events/index.ctp:149
 #: View/Threads/index.ctp:16
 msgid "Title"
-msgstr ""
+msgstr "제목"
 
 #: View/AuditLogs/admin_index.ctp:247
 #: View/AuditLogs/event_index.ctp:22
@@ -9040,31 +9016,26 @@ msgstr ""
 msgid "Event #%s: %s"
 msgstr ""
 
-#: View/AuditLogs/admin_index.ctp:291
-#: View/AuditLogs/event_index.ctp:43
+#: View/AuditLogs/admin_index.ctp:291 View/AuditLogs/event_index.ctp:43
 #: View/DecayingModel/decaying_tool_rest_search.ctp:57
-#: View/DecayingModel/index.ctp:155
-#: View/Elements/eventdiscussion.ctp:115
-#: View/Elements/generic_table.ctp:47
-#: View/Elements/generic_table_row.ctp:39
+#: View/DecayingModel/index.ctp:155 View/Elements/eventdiscussion.ctp:115
 #: View/Elements/genericElements/IndexTable/pagination_counter.ctp:2
-#: View/Events/index.ctp:142
-#: View/Events/proposal_event_index.ctp:72
-#: View/Events/ajax/index.ctp:21
-#: View/Feeds/freetext_index.ctp:74
-#: View/Feeds/preview_index.ctp:77
-#: View/Jobs/index.ctp:180
-#: View/Logs/admin_index.ctp:113
-#: View/Logs/event_index.ctp:47
+#: View/Elements/generic_table.ctp:47 View/Elements/generic_table_row.ctp:39
+#: View/Events/ajax/index.ctp:21 View/Events/index.ctp:142
+#: View/Events/proposal_event_index.ctp:72 View/Feeds/freetext_index.ctp:74
+#: View/Feeds/preview_index.ctp:77 View/Jobs/index.ctp:180
+#: View/Logs/admin_index.ctp:113 View/Logs/event_index.ctp:47
 #: View/ObjectTemplateElements/ajax/view_elements.ctp:60
-#: View/ObjectTemplates/index.ctp:129
-#: View/Regexp/admin_index.ctp:36
-#: View/Regexp/index.ctp:31
-#: View/Servers/index.ctp:194
-#: View/Servers/preview_index.ctp:178
-#: View/Tasks/index.ctp:92
-msgid "Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}"
+#: View/ObjectTemplates/index.ctp:129 View/Regexp/admin_index.ctp:36
+#: View/Regexp/index.ctp:31 View/Servers/index.ctp:194
+#: View/Servers/preview_index.ctp:178 View/Tasks/index.ctp:92
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination.ctp:14
+msgid ""
+"Page {:page} of {:pages}, showing {:current} records out of {:count} total, "
+"starting on record {:start}, ending on {:end}"
 msgstr ""
+"{:pages} 중 {:page} 페이지, 총 {:count} 중 {:current} 레코드 표시, {:start} 레코드에서 시작하여 "
+"{:end}에 끝남"
 
 #: View/AuditLogs/event_index.ctp:11;50
 msgid "Older logs"
@@ -9700,8 +9671,9 @@ msgid "Can other organization use this model"
 msgstr ""
 
 #: View/DecayingModel/add.ctp:37
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
 msgid "days"
-msgstr ""
+msgstr "일"
 
 #: View/DecayingModel/add.ctp:40
 msgid "The end of life of the indicator"
@@ -9820,8 +9792,9 @@ msgstr ""
 
 #: View/DecayingModel/decaying_tool_basescore.ctp:13
 #: View/Taxonomies/index.ctp:3
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:267
 msgid "Taxonomies"
-msgstr ""
+msgstr "분류법"
 
 #: View/DecayingModel/decaying_tool_basescore.ctp:14
 msgid "Weight"
@@ -9832,8 +9805,9 @@ msgid "Numerical value overriden by userSetting.&#10;Original numerical_value = 
 msgstr ""
 
 #: View/DecayingModel/decaying_tool_basescore.ctp:100
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:379
 msgid "Excluded"
-msgstr ""
+msgstr "제외됨"
 
 #: View/DecayingModel/decaying_tool_basescore.ctp:121
 msgid "Placeholder for `Organisation source confidence`"
@@ -9875,12 +9849,14 @@ msgstr ""
 
 #: View/DecayingModel/decaying_tool_simulation.ctp:45
 #: View/Elements/genericElements/ListTopBar/group_search.ctp:23
-#: View/Events/automation.ctp:39
-#: View/Logs/admin_index.ctp:20;21
+#: View/Events/automation.ctp:39 View/Logs/admin_index.ctp:20;21
 #: View/Logs/admin_search.ctp:25
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:253
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:375
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
 #: View/Warninglists/check_value.ctp:12
 msgid "Search"
-msgstr ""
+msgstr "검색"
 
 #: View/DecayingModel/decaying_tool_simulation.ctp:49
 msgid "Specific Attribute"
@@ -9952,9 +9928,9 @@ msgstr ""
 msgid "JSON file"
 msgstr ""
 
-#: View/DecayingModel/index.ctp:2
+#: View/DecayingModel/index.ctp:2 View/Helper/NavbarHelper.php:320
 msgid "Decaying Models"
-msgstr ""
+msgstr "감쇠 모델"
 
 #: View/DecayingModel/index.ctp:23;24
 msgid "All Models"
@@ -10021,23 +9997,16 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
-#: View/DecayingModel/index.ctp:91
-#: View/DecayingModel/view.ctp:31
-#: View/Events/view.ctp:309
-#: View/Feeds/add.ctp:11
-#: View/Feeds/index.ctp:91
-#: View/Feeds/view.ctp:64
-#: View/Galaxies/index.ctp:18;77
-#: View/Noticelists/view.ctp:34
-#: View/ObjectTemplates/index.ctp:28
-#: View/Sightingdb/index.ctp:19
-#: View/Taxonomies/index.ctp:17;60
-#: View/Taxonomies/view.ctp:45
-#: View/Taxonomies/ajax/taxonomy_tags.ctp:59;165
-#: View/Warninglists/index.ctp:25;99
-#: View/Warninglists/view.ctp:13
+#: View/DecayingModel/index.ctp:91 View/DecayingModel/view.ctp:31
+#: View/Events/view.ctp:309 View/Feeds/add.ctp:11 View/Feeds/index.ctp:91
+#: View/Feeds/view.ctp:64 View/Galaxies/index.ctp:18;77
+#: View/Noticelists/view.ctp:34 View/ObjectTemplates/index.ctp:28
+#: View/Sightingdb/index.ctp:19 View/Taxonomies/ajax/taxonomy_tags.ctp:59;165
+#: View/Taxonomies/index.ctp:17;60 View/Taxonomies/view.ctp:45
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:195
+#: View/Warninglists/index.ctp:25;99 View/Warninglists/view.ctp:13
 msgid "Enabled"
-msgstr ""
+msgstr "활성화됨"
 
 #: View/DecayingModel/index.ctp:92
 #: View/Elements/eventattribute.ctp:162
@@ -10084,11 +10053,12 @@ msgstr ""
 msgid "Are you sure you want to enable DecayingModel #"
 msgstr ""
 
-#: View/DecayingModel/view.ctp:5
-#: View/Elements/Events/eventIndexTable.ctp:21
-#: View/Events/view.ctp:61
+#: View/DecayingModel/view.ctp:5 View/Elements/Events/eventIndexTable.ctp:21
+#: View/Events/view.ctp:61 View/Themed/Overmind/Elements/Events/index.ctp:154
+#: View/Themed/Overmind/Elements/Events/index.ctp:325
+#: View/Themed/Overmind/Elements/Events/index.ctp:486
 msgid "Creator org"
-msgstr ""
+msgstr "생성 조직"
 
 #: View/DecayingModel/view.ctp:27
 #: View/SharingGroups/add.ctp:93
@@ -10262,8 +10232,10 @@ msgid "Add new cluster to selected Attributes"
 msgstr ""
 
 #: View/Elements/eventattributetoolbar.ctp:88
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:174
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:175
 msgid "Group selected Attributes into an Object"
-msgstr ""
+msgstr "선택된 속성을 객체로 그룹화"
 
 #: View/Elements/eventattributetoolbar.ctp:97
 msgid "Delete selected Attributes"
@@ -10278,8 +10250,10 @@ msgid "Discard selected Proposals"
 msgstr ""
 
 #: View/Elements/eventattributetoolbar.ctp:121
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:196
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:197
 msgid "Sightings display for selected attributes"
-msgstr ""
+msgstr "선택된 속성에 대한 관찰 표시"
 
 #: View/Elements/eventattributetoolbar.ctp:132
 msgid "Populate using a template"
@@ -10449,11 +10423,12 @@ msgstr ""
 msgid "Errors"
 msgstr ""
 
-#: View/Elements/flashErrorMessage.ctp:5
 #: View/Elements/GalaxyClusters/clusterElementUI.ctp:34
+#: View/Elements/flashErrorMessage.ctp:5 View/Helper/EventIndexHelper.php:264
 #: View/Jobs/ajax/error.ctp:34
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:30
 msgid "Close"
-msgstr ""
+msgstr "닫기"
 
 #: View/Elements/footer.ctp:3
 msgid "Show keyboard shortcuts help"
@@ -10464,8 +10439,10 @@ msgid "Keyboard shortcuts for this page"
 msgstr ""
 
 #: View/Elements/footer.ctp:6
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+#: View/Themed/Overmind/Elements/Events/index.ctp:518
 msgid "none"
-msgstr ""
+msgstr "없음"
 
 #: View/Elements/footer.ctp:19
 msgid "Could not locate the PGP public key."
@@ -10616,10 +10593,10 @@ msgstr ""
 msgid "List Tags"
 msgstr "태그 목록"
 
-#: View/Elements/global_menu.ctp:60
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:291
+#: View/Elements/global_menu.ctp:60 View/Helper/NavbarHelper.php:288
 msgid "List Tag Collections"
-msgstr ""
+msgstr "태그 컬렉션 목록"
 
 #: View/Elements/global_menu.ctp:64
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1118
@@ -10628,10 +10605,10 @@ msgstr ""
 msgid "Add Tag"
 msgstr "태그 추가"
 
-#: View/Elements/global_menu.ctp:69
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1146
+#: View/Elements/global_menu.ctp:69 View/Helper/NavbarHelper.php:274
 msgid "List Taxonomies"
-msgstr ""
+msgstr "목록 분류"
 
 #: View/Elements/global_menu.ctp:73
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1176
@@ -10679,10 +10656,10 @@ msgstr ""
 msgid "Dashboard"
 msgstr "대시보드"
 
-#: View/Elements/global_menu.ctp:127
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1340;1468;1512
+#: View/Elements/global_menu.ctp:127 View/Helper/NavbarHelper.php:302
 msgid "List Galaxies"
-msgstr ""
+msgstr "은하 나열"
 
 #: View/Elements/global_menu.ctp:131
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1352;1524
@@ -10694,46 +10671,43 @@ msgstr ""
 msgid "Input Filters"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:141;146
-#: View/Pages/doc/administration.ctp:12;64
-#: View/Pages/doc/general.ctp:50
-#: View/Pages/doc/user_management.ctp:69
-#: View/Regexp/admin_index.ctp:2
-#: View/Regexp/index.ctp:2
+#: View/Elements/global_menu.ctp:141;146 View/Helper/NavbarHelper.php:409
+#: View/Helper/NavbarHelper.php:417 View/Pages/doc/administration.ctp:12;64
+#: View/Pages/doc/general.ctp:50 View/Pages/doc/user_management.ctp:69
+#: View/Regexp/admin_index.ctp:2 View/Regexp/index.ctp:2
 msgid "Import Regexp"
-msgstr ""
+msgstr "가져오기 정규식"
 
-#: View/Elements/global_menu.ctp:161
+#: View/Elements/global_menu.ctp:161 View/Helper/NavbarHelper.php:395
 #: View/Warninglists/index.ctp:44
 msgid "Warninglists"
-msgstr ""
+msgstr "경고 목록"
 
-#: View/Elements/global_menu.ctp:165
+#: View/Elements/global_menu.ctp:165 View/Helper/NavbarHelper.php:402
 #: View/Noticelists/index.ctp:66
 msgid "Noticelists"
-msgstr ""
+msgstr "공지사항"
 
-#: View/Elements/global_menu.ctp:169
+#: View/Elements/global_menu.ctp:169 View/Helper/NavbarHelper.php:425
 msgid "Correlation Exclusions"
-msgstr ""
+msgstr "상관관계 제외"
 
 #: View/Elements/global_menu.ctp:177
 #: View/Pages/doc/general.ctp:22;54
 msgid "Global Actions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:180
-#: View/News/index.ctp:38
-#: View/Pages/doc/general.ctp:56
-#: View/Pages/doc/user_management.ctp:51
+#: View/Elements/global_menu.ctp:180 View/Helper/NavbarHelper.php:944
+#: View/Helper/NavbarHelper.php:949 View/News/index.ctp:38
+#: View/Pages/doc/general.ctp:56 View/Pages/doc/user_management.ctp:51
 msgid "News"
-msgstr ""
+msgstr "뉴스"
 
-#: View/Elements/global_menu.ctp:184
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:628
+#: View/Elements/global_menu.ctp:184 View/Helper/NavbarHelper.php:1063
 #: View/Pages/doc/general.ctp:57
 msgid "My Profile"
-msgstr ""
+msgstr "내 프로필"
 
 #: View/Elements/global_menu.ctp:188
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:633
@@ -10751,15 +10725,15 @@ msgstr ""
 msgid "Role Permissions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:208
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1539
+#: View/Elements/global_menu.ctp:208 View/Helper/NavbarHelper.php:365
 msgid "List Object Templates"
-msgstr ""
+msgstr "객체 템플릿 목록"
 
-#: View/Elements/global_menu.ctp:215
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:678
+#: View/Elements/global_menu.ctp:215 View/Helper/NavbarHelper.php:488
 msgid "List Sharing Groups"
-msgstr ""
+msgstr "목록 공유 그룹"
 
 #: View/Elements/global_menu.ctp:219
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:684
@@ -10784,28 +10758,24 @@ msgstr ""
 msgid "User Guide"
 msgstr "사용자 가이드"
 
-#: View/Elements/global_menu.ctp:243
+#: View/Elements/global_menu.ctp:243 View/Helper/NavbarHelper.php:867
 msgid "Categories & Types"
-msgstr ""
+msgstr "카테고리 및 유형"
 
 #: View/Elements/global_menu.ctp:247
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:695
 msgid "Terms & Conditions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:251
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:699
-#: View/Pages/doc/general.ctp:62
-#: View/Pages/doc/user_management.ctp:55
-#: View/Users/statistics_data.ctp:7
-#: View/Users/statistics_galaxymatrix.ctp:2
-#: View/Users/statistics_histogram.ctp:7
-#: View/Users/statistics_orgs.ctp:7
-#: View/Users/statistics_sightings.ctp:2
-#: View/Users/statistics_tags.ctp:7
+#: View/Elements/global_menu.ctp:251 View/Helper/NavbarHelper.php:247
+#: View/Pages/doc/general.ctp:62 View/Pages/doc/user_management.ctp:55
+#: View/Users/statistics_data.ctp:7 View/Users/statistics_galaxymatrix.ctp:2
+#: View/Users/statistics_histogram.ctp:7 View/Users/statistics_orgs.ctp:7
+#: View/Users/statistics_sightings.ctp:2 View/Users/statistics_tags.ctp:7
 #: View/Users/statistics_users.ctp:2
 msgid "Statistics"
-msgstr ""
+msgstr "통계"
 
 #: View/Elements/global_menu.ctp:258
 #: View/Pages/doc/general.ctp:92
@@ -10861,29 +10831,27 @@ msgstr ""
 msgid "List Communities"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:313
+#: View/Elements/global_menu.ctp:313 View/Helper/NavbarHelper.php:528
 msgid "Cerebrates"
-msgstr ""
+msgstr "Cerebrates"
 
-#: View/Elements/global_menu.ctp:326
-#: View/Pages/doc/administration.ctp:8
-#: View/Pages/doc/concepts.ctp:8
-#: View/Pages/doc/general.ctp:8;24;71
-#: View/Pages/doc/quickstart.ctp:8
+#: View/Elements/global_menu.ctp:326 View/Helper/NavbarHelper.php:760
+#: View/Pages/doc/administration.ctp:8 View/Pages/doc/concepts.ctp:8
+#: View/Pages/doc/general.ctp:8;24;71 View/Pages/doc/quickstart.ctp:8
 #: View/Pages/doc/user_management.ctp:14
 #: View/Pages/doc/using_the_system.ctp:21
 msgid "Administration"
-msgstr ""
+msgstr "관리"
 
-#: View/Elements/global_menu.ctp:331
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:918
+#: View/Elements/global_menu.ctp:331 View/Helper/NavbarHelper.php:603
 #: View/Pages/doc/general.ctp:74
 msgid "List Users"
-msgstr ""
+msgstr "사용자 나열"
 
-#: View/Elements/global_menu.ctp:335
+#: View/Elements/global_menu.ctp:335 View/Helper/NavbarHelper.php:642
 msgid "List Auth Keys"
-msgstr ""
+msgstr "인증 키 목록"
 
 #: View/Elements/global_menu.ctp:339
 msgid "List User Settings"
@@ -10909,30 +10877,30 @@ msgstr ""
 msgid "User Registrations"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:364
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:648;980
+#: View/Elements/global_menu.ctp:364 View/Helper/NavbarHelper.php:619
 msgid "List Organisations"
-msgstr ""
+msgstr "조직 나열"
 
 #: View/Elements/global_menu.ctp:368
 msgid "Add Organisations"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:376
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:992
+#: View/Elements/global_menu.ctp:376 View/Helper/NavbarHelper.php:634
 #: View/Pages/doc/general.ctp:76
 msgid "List Roles"
-msgstr ""
+msgstr "역할 나열"
 
 #: View/Elements/global_menu.ctp:380
 msgid "Add Roles"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:389
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:998
+#: View/Elements/global_menu.ctp:389 View/Helper/NavbarHelper.php:581
 #: View/Servers/server_settings.ctp:5
 msgid "Server Settings & Maintenance"
-msgstr ""
+msgstr "서버 설정 및 유지 관리"
 
 #: View/Elements/global_menu.ctp:398
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1009
@@ -10941,13 +10909,12 @@ msgstr ""
 msgid "Jobs"
 msgstr "작업"
 
-#: View/Elements/global_menu.ctp:407
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1015
-#: View/Pages/doc/concepts.ctp:36
-#: View/Pages/doc/general.ctp:81
+#: View/Elements/global_menu.ctp:407 View/Helper/NavbarHelper.php:674
+#: View/Pages/doc/concepts.ctp:36 View/Pages/doc/general.ctp:81
 #: View/Tasks/index.ctp:3
 msgid "Scheduled Tasks"
-msgstr ""
+msgstr "예약된 작업"
 
 #: View/Elements/global_menu.ctp:412
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1021
@@ -10968,11 +10935,10 @@ msgstr ""
 msgid "Top Correlations"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:457
-#: View/Logs/admin_index.ctp:2
-#: View/Logs/event_index.ctp:6
+#: View/Elements/global_menu.ctp:457 View/Helper/NavbarHelper.php:805
+#: View/Logs/admin_index.ctp:2 View/Logs/event_index.ctp:6
 msgid "Logs"
-msgstr ""
+msgstr "로그"
 
 #: View/Elements/global_menu.ctp:461
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1053
@@ -10992,9 +10958,9 @@ msgstr ""
 msgid "Search Logs"
 msgstr "로그 검색"
 
-#: View/Elements/global_menu.ctp:477
+#: View/Elements/global_menu.ctp:477 View/Helper/NavbarHelper.php:849
 msgid "API"
-msgstr ""
+msgstr "API"
 
 #: View/Elements/global_menu.ctp:480
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1580
@@ -11016,10 +10982,10 @@ msgstr ""
 msgid "Notifications"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:531
+#: View/Elements/global_menu.ctp:531 View/Helper/NavbarHelper.php:1070
 #: View/Pages/doc/general.ctp:28;63
 msgid "Log out"
-msgstr ""
+msgstr "로그아웃"
 
 #: View/Elements/histogram.ctp:1
 msgid "Attribute Types Histogram"
@@ -11038,11 +11004,12 @@ msgid "Attributes per organization"
 msgstr ""
 
 #: View/Elements/view_event_distribution_graph.ctp:9
-#: View/Elements/view_timeline.ctp:23
-#: View/Layouts/dashboard.ctp:93
+#: View/Elements/view_timeline.ctp:23 View/Layouts/dashboard.ctp:93
 #: View/Layouts/default.ctp:90
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:208
+#: View/Themed/Overmind/Elements/side_panel.ctp:75
 msgid "Loading"
-msgstr ""
+msgstr "로딩 중"
 
 #: View/Elements/view_event_distribution_graph.ctp:18
 msgid "Elements having lower distribution level than the event"
@@ -11229,11 +11196,11 @@ msgstr ""
 msgid "Member org"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:28
-#: View/Events/index.ctp:24
-#: View/Events/view.ctp:71
+#: View/Elements/Events/eventIndexTable.ctp:28 View/Events/index.ctp:24
+#: View/Events/view.ctp:71 View/Themed/Overmind/Elements/Events/index.ctp:159
+#: View/Themed/Overmind/Elements/Events/index.ctp:50
 msgid "Owner org"
-msgstr ""
+msgstr "소유 조직"
 
 #: View/Elements/Events/eventIndexTable.ctp:30
 #: View/Events/index.ctp:28
@@ -11285,11 +11252,11 @@ msgstr ""
 msgid "#Posts"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:38
-#: View/Events/index.ctp:26
-#: View/Events/view.ctp:99
+#: View/Elements/Events/eventIndexTable.ctp:38 View/Events/index.ctp:26
+#: View/Events/view.ctp:99 View/Themed/Overmind/Elements/Events/index.ctp:164
+#: View/Themed/Overmind/Elements/Events/index.ctp:51
 msgid "Creator user"
-msgstr ""
+msgstr "생성 사용자"
 
 #: View/Elements/Events/eventIndexTable.ctp:40;41
 msgid "Last modified at"
@@ -11298,17 +11265,14 @@ msgstr ""
 #: View/Elements/Events/eventIndexTable.ctp:58;216
 #: View/Elements/dashboard/dashboard_events.ctp:4;5
 #: View/Elements/dashboard/dashboard_notifications.ctp:4;5;9
-#: View/Events/proposal_event_index.ctp:36
-#: View/Feeds/preview_index.ctp:69
-#: View/ObjectTemplates/index.ctp:114
-#: View/Organisations/index.ctp:142
-#: View/Pages/doc/using_the_system.ctp:193
-#: View/Servers/index.ctp:101
+#: View/Events/proposal_event_index.ctp:36 View/Feeds/preview_index.ctp:69
+#: View/ObjectTemplates/index.ctp:114 View/Organisations/index.ctp:142
+#: View/Pages/doc/using_the_system.ctp:193 View/Servers/index.ctp:101
 #: View/Servers/preview_index.ctp:170
-#: View/Users/admin_index.ctp:277
-#: View/Warninglists/index.ctp:160
+#: View/Themed/Overmind/Elements/Events/index.ctp:227
+#: View/Users/admin_index.ctp:277 View/Warninglists/index.ctp:160
 msgid "View"
-msgstr ""
+msgstr "보기"
 
 #: View/Elements/Events/eventIndexTable.ctp:73
 msgid "Threat level: %s"
@@ -11586,12 +11550,15 @@ msgid "Coverage by currently selected sources: "
 msgstr ""
 
 #: View/Elements/Feeds/View/feed_overlap_tool.ctp:58
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:377
 msgid "Include"
-msgstr ""
+msgstr "포함"
 
 #: View/Elements/Feeds/View/feed_overlap_tool.ctp:75
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:197
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:378
 msgid "Exclude"
-msgstr ""
+msgstr "제외"
 
 #: View/Elements/Feeds/View/feed_overlap_tool.ctp:86
 msgid "Check coverage"
@@ -11635,9 +11602,10 @@ msgid "This galaxy does not have any relationships."
 msgstr ""
 
 #: View/Elements/GalaxyClusters/relations_graph.ctp:442
-#: View/Events/view.ctp:509
+#: View/Events/view.ctp:509 View/Themed/Overmind/Elements/Events/index.ctp:364
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:156
 msgid "Galaxy"
-msgstr ""
+msgstr "갤럭시"
 
 #: View/Elements/GalaxyClusters/relations_graph.ctp:447;448
 msgid "Owner Org."
@@ -11683,8 +11651,9 @@ msgstr ""
 #: View/Elements/Objects/object_add_attributes.ctp:40
 #: View/Elements/healthElements/diagnostics.ctp:203
 #: View/Taxonomies/index.ctp:67
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:238
 msgid "Required"
-msgstr ""
+msgstr "필수"
 
 #: View/Elements/Objects/object_similarities.ctp:76
 msgid "Update template and merge"
@@ -11785,10 +11754,10 @@ msgstr ""
 msgid "Events published: "
 msgstr ""
 
-#: View/Elements/dashboard/dashboard_events.ctp:7
-#: View/Servers/index.ctp:105
+#: View/Elements/dashboard/dashboard_events.ctp:7 View/Servers/index.ctp:105
+#: View/Themed/Overmind/Elements/Events/index.ctp:89
 msgid "Reset"
-msgstr ""
+msgstr "초기화"
 
 #: View/Elements/dashboard/dashboard_notifications.ctp:4
 msgid "Proposals: "
@@ -11881,12 +11850,11 @@ msgstr ""
 
 #: View/Elements/genericElements/Form/Fields/headersField.ctp:18
 #: View/Pages/doc/administration.ctp:88;117
-#: View/Users/admin_add.ctp:41
-#: View/Users/admin_edit.ctp:49
-#: View/Users/change_pw.ctp:9
+#: View/Themed/Overmind/Users/login.ctp:144 View/Users/admin_add.ctp:41
+#: View/Users/admin_edit.ctp:49 View/Users/change_pw.ctp:9
 #: View/Users/edit.ctp:14
 msgid "Password"
-msgstr ""
+msgstr "비밀번호"
 
 #: View/Elements/genericElements/Form/Fields/headersField.ctp:22
 msgid "Add basic auth header"
@@ -12166,8 +12134,9 @@ msgid "Publish (no email)"
 msgstr ""
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:200
+#: View/Themed/Overmind/Elements/Events/index.ctp:253
 msgid "Unpublish"
-msgstr ""
+msgstr "게시 취소"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:209
 msgid "Publish Sightings"
@@ -13037,8 +13006,11 @@ msgid "PHP Extensions"
 msgstr ""
 
 #: View/Elements/healthElements/diagnostics.ctp:202
+#: View/Themed/Overmind/Elements/Events/index.ctp:185
+#: View/Themed/Overmind/Elements/Events/index.ctp:502
+#: View/Themed/Overmind/Elements/Events/index.ctp:52
 msgid "Extension"
-msgstr ""
+msgstr "확장"
 
 #: View/Elements/healthElements/diagnostics.ctp:204
 msgid "Why to install"
@@ -13673,8 +13645,10 @@ msgid "Save"
 msgstr ""
 
 #: View/Elements/markdownEditor/markdownEditor.ctp:55
+#: View/Themed/Overmind/Elements/navbar.ctp:10
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:40
 msgid "Menu"
-msgstr ""
+msgstr "메뉴"
 
 #: View/Elements/markdownEditor/markdownEditor.ctp:67
 msgid "Download PDF (via print)"
@@ -14167,11 +14141,6 @@ msgstr ""
 msgid "Delegation index"
 msgstr ""
 
-#: View/EventDelegations/index.ctp:87
-msgid ""
-msgstr ""
-""
-
 #: View/EventDelegations/ajax/accept_delegation.ctp:4
 msgid "Are you sure you would like to accept the request by %s to take ownership of Event #%s"
 msgstr ""
@@ -14255,8 +14224,9 @@ msgid "Decline and remove delegation request"
 msgstr ""
 
 #: View/EventDelegations/ajax/view.ctp:23
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:308
 msgid "Discard"
-msgstr ""
+msgstr "폐기"
 
 #: View/EventGraph/ajax/eventGraph_add_form.ctp:6
 msgid "Add EventGraph"
@@ -15278,8 +15248,9 @@ msgid "Attachments are disabled on this instance"
 msgstr ""
 
 #: View/Events/export.ctp:76
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:368
 msgid "Loading…"
-msgstr ""
+msgstr "로드 중…"
 
 #: View/Events/export.ctp:78
 #: View/Jobs/index.ctp:123
@@ -15387,8 +15358,10 @@ msgid "NOT"
 msgstr ""
 
 #: View/Events/filter_event_index.ctp:25;144;211;212;237;239
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_panel.ctp:60
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:45
 msgid "Any"
-msgstr ""
+msgstr "모두"
 
 #: View/Events/filter_event_index.ctp:32;221
 #: View/Pages/doc/using_the_system.ctp:67;172
@@ -15435,9 +15408,10 @@ msgstr ""
 
 #: View/Events/filter_event_index.ctp:202
 #: View/Servers/filter_event_index.ctp:21
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:381
 #: View/Users/admin_filter_user_index.ctp:106
 msgid "Apply"
-msgstr ""
+msgstr "적용하다"
 
 #: View/Events/filter_event_index.ctp:211
 msgid "\"No\""
@@ -15485,26 +15459,25 @@ msgstr ""
 msgid "Input File"
 msgstr ""
 
-#: View/Events/index.ctp:2
-#: View/Events/ajax/index.ctp:3
-#: View/GalaxyClusters/view.ctp:76
-#: View/Organisations/view.ctp:69;70
-#: View/SharingGroups/view.ctp:46
-#: View/Users/statistics_data.ctp:14
-#: View/Users/statistics_orgs.ctp:35
+#: View/Events/ajax/index.ctp:3 View/Events/index.ctp:2
+#: View/GalaxyClusters/view.ctp:76 View/Helper/NavbarHelper.php:135
+#: View/Organisations/view.ctp:69;70 View/SharingGroups/view.ctp:46
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:19
+#: View/Users/statistics_data.ctp:14 View/Users/statistics_orgs.ctp:35
 msgid "Events"
-msgstr ""
+msgstr "이벤트"
 
 #: View/Events/index.ctp:25
 msgid "Attribute count"
 msgstr ""
 
-#: View/Events/index.ctp:31
-#: View/Events/proposal_event_index.ctp:18
-#: View/Pages/doc/concepts.ctp:28
+#: View/Events/index.ctp:31 View/Events/proposal_event_index.ctp:18
+#: View/Helper/NavbarHelper.php:209 View/Pages/doc/concepts.ctp:28
 #: View/ShadowAttributes/index.ctp:99
+#: View/Themed/Overmind/Elements/Events/index.ctp:496
+#: View/Themed/Overmind/Elements/Events/index.ctp:58
 msgid "Proposals"
-msgstr ""
+msgstr "제안"
 
 #: View/Events/index.ctp:32
 #: View/Threads/index.ctp:36
@@ -16148,11 +16121,12 @@ msgstr ""
 msgid "First recorded change"
 msgstr ""
 
-#: View/Events/view.ctp:202
-#: View/Feeds/preview_event.ctp:49
+#: View/Events/view.ctp:202 View/Feeds/preview_event.ctp:49
 #: View/Servers/preview_event.ctp:50
+#: View/Themed/Overmind/Elements/Events/index.ctp:210
+#: View/Themed/Overmind/Elements/Events/index.ctp:60
 msgid "Last change"
-msgstr ""
+msgstr "마지막 변경"
 
 #: View/Events/view.ctp:206
 msgid "Modification map"
@@ -16324,9 +16298,9 @@ msgstr ""
 msgid "Toggle discussions"
 msgstr ""
 
-#: View/Events/view.ctp:560
+#: View/Events/view.ctp:560 View/Helper/NavbarHelper.php:179
 msgid "Event Reports"
-msgstr ""
+msgstr "이벤트 보고서"
 
 #: View/Events/view.ctp:192
 msgid " (%s Object)"
@@ -16342,8 +16316,10 @@ msgid "Hover target"
 msgstr ""
 
 #: View/Events/view_graph.ctp:25
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:259
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:376
 msgid "Selected"
-msgstr ""
+msgstr "선택됨"
 
 #: View/Events/view_graph.ctp:30
 msgid "Expand"
@@ -16547,11 +16523,15 @@ msgid "Default Tag"
 msgstr ""
 
 #: View/Feeds/compare_feeds.ctp:73
-msgid "None or less than 1% of the data of %s is contained in %s (%s matching values)"
+#, php-format
+msgid ""
+"None or less than 1%% of the data of %s is contained in %s (%s matching "
+"values)"
 msgstr ""
 
 #: View/Feeds/compare_feeds.ctp:74
-msgid "%s% of the data of %s is contained in %s (%s matching values)"
+#, php-format
+msgid "%s%% of the data of %s is contained in %s (%s matching values)"
 msgstr ""
 
 #: View/Feeds/freetext_index.ctp:2
@@ -16855,25 +16835,23 @@ msgstr ""
 msgid "Galaxy index"
 msgstr ""
 
-#: View/Galaxies/index.ctp:102
-#: View/Taxonomies/index.ctp:92
+#: View/Galaxies/index.ctp:102 View/Taxonomies/index.ctp:92
 #: View/Taxonomies/view.ctp:19
-#: View/Warninglists/index.ctp:108
-#: View/Warninglists/view.ctp:20
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:223
+#: View/Warninglists/index.ctp:108 View/Warninglists/view.ctp:20
 msgid "Enable"
-msgstr ""
+msgstr "활성화"
 
 #: View/Galaxies/index.ctp:107
 msgid "Are you sure you want to enable this galaxy library?"
 msgstr ""
 
-#: View/Galaxies/index.ctp:120
-#: View/Taxonomies/index.ctp:110
+#: View/Galaxies/index.ctp:120 View/Taxonomies/index.ctp:110
 #: View/Taxonomies/view.ctp:17
-#: View/Warninglists/index.ctp:126
-#: View/Warninglists/view.ctp:20
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:229
+#: View/Warninglists/index.ctp:126 View/Warninglists/view.ctp:20
 msgid "Disable"
-msgstr ""
+msgstr "비활성화"
 
 #: View/Galaxies/index.ctp:125
 msgid "Are you sure you want to disable this galaxy library?"
@@ -17234,8 +17212,9 @@ msgid "For default clusters, you can restore the cluster at any time by force up
 msgstr ""
 
 #: View/GalaxyClusters/ajax/index.ctp:29
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:47
 msgid "Custom"
-msgstr ""
+msgstr "사용자 지정"
 
 #: View/GalaxyClusters/ajax/index.ctp:38
 msgid "My Clusters"
@@ -17552,8 +17531,9 @@ msgstr ""
 
 #: View/ObjectReferences/ajax/add.ctp:54
 #: View/Objects/orphaned_object_diagnostics.ctp:38
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:178
 msgid "Object"
-msgstr ""
+msgstr "객체"
 
 #: View/ObjectReferences/ajax/add.ctp:121
 msgid "Target Details"
@@ -19104,8 +19084,9 @@ msgid "The job's ID (this is the ID of the job's meta-data stored in the default
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:222
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:297
 msgid "Process"
-msgstr ""
+msgstr "프로세스"
 
 #: View/Pages/doc/administration.ctp:222
 msgid "The process's ID."
@@ -19398,9 +19379,9 @@ msgid "If you have audit permissions, you can view the logs for your organisatio
 msgstr ""
 
 #: View/Pages/doc/general.ctp:26;90
-#: View/Threads/index.ctp:6
+#: View/Themed/Overmind/Elements/Events/index.ctp:59 View/Threads/index.ctp:6
 msgid "Discussions"
-msgstr ""
+msgstr "토론"
 
 #: View/Pages/doc/general.ctp:26
 msgid "Link to the discussion threads."
@@ -20536,8 +20517,9 @@ msgid "Here is a list of the various tools you can use while using this feature"
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:260
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:19
 msgid "Pagination"
-msgstr ""
+msgstr "페이지 매김"
 
 #: View/Pages/doc/using_the_system.ctp:260
 msgid "There are 5 posts visible on each event page, if there have been more messages posted, use the previous and next button to navigate through the thread. This will not reload the rest of the page."
@@ -22112,11 +22094,10 @@ msgstr ""
 msgid "Example: Multinational sharing group"
 msgstr ""
 
-#: View/SharingGroups/add.ctp:53
-#: View/SharingGroups/edit.ctp:53
-#: View/SharingGroups/index.ctp:86
+#: Lib/Tools/SharingGroupPeek.php:107 View/SharingGroups/add.ctp:53
+#: View/SharingGroups/edit.ctp:53 View/SharingGroups/index.ctp:86
 msgid "Releasable to"
-msgstr ""
+msgstr "다음으로 릴리스 가능"
 
 #: View/SharingGroups/add.ctp:54
 #: View/SharingGroups/edit.ctp:54
@@ -22138,10 +22119,10 @@ msgstr ""
 msgid "Make the sharing group selectable (active)"
 msgstr ""
 
-#: View/SharingGroups/add.ctp:61;78;99
-#: View/SharingGroups/edit.ctp:61;78;107
+#: View/SharingGroups/add.ctp:61;78;99 View/SharingGroups/edit.ctp:61;78;107
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:82
 msgid "Next page"
-msgstr ""
+msgstr "다음 페이지"
 
 #: View/SharingGroups/add.ctp:65
 #: View/SharingGroups/edit.ctp:65
@@ -22168,10 +22149,10 @@ msgstr ""
 msgid "Extend"
 msgstr ""
 
-#: View/SharingGroups/add.ctp:77;98;114
-#: View/SharingGroups/edit.ctp:77;106;122
+#: View/SharingGroups/add.ctp:77;98;114 View/SharingGroups/edit.ctp:77;106;122
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:27
 msgid "Previous page"
-msgstr ""
+msgstr "이전 페이지"
 
 #: View/SharingGroups/add.ctp:82
 #: View/SharingGroups/edit.ctp:90
@@ -22237,8 +22218,9 @@ msgid "Passive Sharing Groups"
 msgstr ""
 
 #: View/SharingGroups/index.ctp:69
+#: View/Themed/Overmind/Elements/Events/index.ctp:154
 msgid "Creator"
-msgstr ""
+msgstr "크리에이터"
 
 #: View/SharingGroups/index.ctp:80
 msgid "Org count"
@@ -22776,9 +22758,9 @@ msgstr ""
 msgid "A description of the template"
 msgstr ""
 
-#: View/Templates/index.ctp:12
+#: View/Helper/NavbarHelper.php:353 View/Templates/index.ctp:12
 msgid "Templates"
-msgstr ""
+msgstr "템플릿"
 
 #: View/Templates/populate_event_from_template_attributes.ctp:2
 msgid "Populate From Template Results"
@@ -23230,18 +23212,22 @@ msgstr ""
 msgid "Enter your OTP here"
 msgstr ""
 
-#: View/Users/login.ctp:8
+#: View/Themed/Overmind/Users/login.ctp:82
+#: View/Themed/Overmind/Users/login.ctp:88
+#: View/Themed/Overmind/Users/login.ctp:97 View/Users/login.ctp:8
 #: View/Users/statistics_orgs.ctp:32
 msgid "Logo"
-msgstr ""
+msgstr "로고"
 
 #: View/Users/login.ctp:38;56
 msgid "Login"
 msgstr ""
 
-#: View/Users/login.ctp:51
-msgid "Registration will be sent to the administrators of the instance for consideration."
-msgstr ""
+#: View/Themed/Overmind/Users/login.ctp:212 View/Users/login.ctp:51
+msgid ""
+"Registration will be sent to the administrators of the instance for "
+"consideration."
+msgstr "고려를 위해 인스턴스 관리자에게 등록이 전송됩니다."
 
 #: View/Users/login.ctp:52
 msgid "No account yet? Register now!"
@@ -23287,17 +23273,22 @@ msgstr ""
 msgid "Message to the admins"
 msgstr ""
 
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:293
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:294
 #: View/Users/registrations.ctp:12
 msgid "Process the selected registrations"
-msgstr ""
+msgstr "선택된 등록을 처리합니다"
 
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:304
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:305
 #: View/Users/registrations.ctp:18
 msgid "Discard the selected registrations"
-msgstr ""
+msgstr "선택된 등록을 폐기합니다."
 
+#: View/Themed/Overmind/Elements/Events/index.ctp:420
 #: View/Users/registrations.ctp:44
 msgid "Time"
-msgstr ""
+msgstr "시간"
 
 #: View/Users/registrations.ctp:56
 msgid "User Agent"
@@ -23973,3 +23964,1534 @@ msgstr ""
 msgid "Warninglist with same name already exists."
 msgstr ""
 
+#: View/Helper/NavbarHelper.php:794
+msgid "Access logs"
+msgstr "접속 로그"
+
+#: View/Helper/NavbarHelper.php:143
+#: View/Themed/Overmind/Elements/Events/index.ctp:177
+msgid "Objects"
+msgstr "객체"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "hours"
+msgstr "시간"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:169
+msgid "Markings"
+msgstr "표시"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:294
+#, php-format
+msgid "Sharing group %s"
+msgstr "공유 그룹 %s"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:373
+msgid "just now"
+msgstr "방금"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:376
+#, php-format
+msgid "%s min ago"
+msgstr "%s분 전"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:379
+#, php-format
+msgid "%s h ago"
+msgstr "%s시간 전"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:382
+#, php-format
+msgid "%s d ago"
+msgstr "%s일 전"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:385
+#, php-format
+msgid "%s wk ago"
+msgstr "%s주 전"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:388
+#, php-format
+msgid "%s mo ago"
+msgstr "%s개월 전"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:390
+#, php-format
+msgid "%s y ago"
+msgstr "%s년 전"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:778
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:784
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:122
+msgid "Clear all"
+msgstr "모두 지우기"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+msgid "Remove this filter"
+msgstr "이 필터를 제거하세요"
+
+#: View/Helper/NavbarHelper.php:258
+msgid "Data points"
+msgstr "데이터 포인트"
+
+#: View/Helper/NavbarHelper.php:439
+msgid "Data models"
+msgstr "데이터 모델"
+
+#: View/Helper/NavbarHelper.php:566
+msgid "Sync"
+msgstr "동기화"
+
+#: View/Helper/NavbarHelper.php:903
+msgid "Resources"
+msgstr "자원"
+
+#: View/Helper/NavbarHelper.php:1028 View/Helper/NavbarHelper.php:961
+#: View/Helper/NavbarHelper.php:965
+msgid "Bookmarks"
+msgstr "북마크"
+
+#: View/Helper/NavbarHelper.php:162
+msgid "Value Intelligence"
+msgstr "값 인텔리전스"
+
+#: View/Helper/NavbarHelper.php:516
+msgid "Integrations"
+msgstr "통합"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:242
+msgid "Open"
+msgstr "열기"
+
+#: View/Helper/EventIndexHelper.php:54
+#: View/Themed/Overmind/Elements/Events/index.ctp:407
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:23
+msgid "Unpublished"
+msgstr "게시되지 않음"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:56
+msgid "Reports"
+msgstr "보고서"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:68
+msgid "Reach"
+msgstr "전파 범위"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:43
+msgid "No organisation is a member yet."
+msgstr "아직 회원으로 가입한 기관이 없습니다."
+
+#: Lib/Tools/SharingGroupPeek.php:91
+msgid "Stays on this instance."
+msgstr "이 인스턴스에 유지됩니다."
+
+#: Lib/Tools/SharingGroupPeek.php:89
+#, php-format
+msgid "Pushed to %s other instance."
+msgid_plural "Pushed to %s other instances."
+msgstr[0] "다른 인스턴스 %s개로 전송되었습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:194
+msgid "Deprecated"
+msgstr "더 이상 사용되지 않음"
+
+#: Lib/Tools/SharingGroupPeek.php:29
+msgid "Inactive"
+msgstr "비활성"
+
+#: Lib/Tools/SharingGroupPeek.php:32
+msgid "Received through sync"
+msgstr "동기화를 통해 수신됨"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Roaming"
+msgstr "로밍"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Travels to any instance its members connect to."
+msgstr "해당 구성원이 연결되는 모든 인스턴스로 이동합니다."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "no"
+msgstr "아니"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "yes"
+msgstr "네"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:189
+msgid "Relationship"
+msgstr "관계"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid "Request access"
+msgstr "액세스 요청"
+
+#: View/Helper/NavbarHelper.php:190
+msgid "Template Variables"
+msgstr "템플릿 변수"
+
+#: View/Helper/NavbarHelper.php:875
+msgid "Server PGP public key"
+msgstr "서버 PGP 공개 키"
+
+#: View/Helper/NavbarHelper.php:884
+msgid "Server S/MIME certificate"
+msgstr "서버 S/MIME 인증서"
+
+#: View/Helper/NavbarHelper.php:503
+msgid "List Sharing Group Blueprints"
+msgstr "목록 공유 그룹 청사진"
+
+#: View/Helper/NavbarHelper.php:357
+msgid "List Event Templates"
+msgstr "이벤트 템플릿 나열"
+
+#: View/Helper/NavbarHelper.php:372
+msgid "List Object Relationships"
+msgstr "객체 관계 나열"
+
+#: View/Helper/NavbarHelper.php:1018
+msgid "Manage Bookmarks"
+msgstr "북마크 관리"
+
+#: View/Helper/NavbarHelper.php:894
+msgid "Themes"
+msgstr "테마"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "ON"
+msgstr "켜짐"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "OFF"
+msgstr "꺼짐"
+
+#: View/Helper/NavbarHelper.php:457
+msgid "Remote Servers"
+msgstr "원격 서버"
+
+#: View/Helper/NavbarHelper.php:520
+msgid "Communities"
+msgstr "커뮤니티"
+
+#: View/Helper/NavbarHelper.php:536
+msgid "TAXII Servers"
+msgstr "TAXII 서버"
+
+#: View/Helper/NavbarHelper.php:682
+msgid "Benchmarking"
+msgstr "성능 측정"
+
+#: View/Helper/NavbarHelper.php:739
+msgid "Correlation rules"
+msgstr "상관 규칙"
+
+#: View/Helper/NavbarHelper.php:747
+msgid "Over-correlating values"
+msgstr "과상관 값"
+
+#: View/Helper/EventIndexHelper.php:49
+#, php-format
+msgid "Changes pending: published %s, changed since"
+msgstr "보류 중인 변경 사항: 게시된 %s, 이후 변경됨"
+
+#: View/Helper/EventIndexHelper.php:52
+#, php-format
+msgid "Published %s"
+msgstr "게시됨 %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "Created by %s"
+msgstr "작성자: %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "held here by %s"
+msgstr "여기 %s이(가) 보유하고 있습니다."
+
+#: View/Helper/EventIndexHelper.php:95
+#, php-format
+msgid "Your grade for %s: %s (analyst profile)"
+msgstr "귀하의 %1$s 등급: %2$s (분석가 프로필)"
+
+#: View/Helper/EventIndexHelper.php:118
+#, php-format
+msgid "Admiralty scale: %s"
+msgstr "해군 규모: %s"
+
+#: View/Helper/EventIndexHelper.php:128 View/Helper/EventIndexHelper.php:461
+msgid "pinned by your profile"
+msgstr "프로필에 고정됨"
+
+#: View/Helper/EventIndexHelper.php:137
+#, php-format
+msgid "No %s marking"
+msgstr "%s 표시 없음"
+
+#: View/Helper/EventIndexHelper.php:177 View/Helper/EventIndexHelper.php:195
+msgid "(cluster not available here)"
+msgstr "(여기에서는 클러스터를 사용할 수 없음)"
+
+#: View/Helper/EventIndexHelper.php:187
+#, php-format
+msgid "Mitigation %s"
+msgstr "완화 %s"
+
+#: View/Helper/EventIndexHelper.php:211
+#, php-format
+msgid "%s unresolved"
+msgstr "%s 해결되지 않음"
+
+#: View/Helper/EventIndexHelper.php:226
+#, php-format
+msgid "%s: show all"
+msgstr "%s: 모두 표시"
+
+#: View/Helper/EventIndexHelper.php:318
+#, php-format
+msgid "Changed last of %s workspaces on this event"
+msgstr "이 이벤트의 마지막 %s 작업공간이 변경되었습니다."
+
+#: View/Helper/EventIndexHelper.php:365
+#, php-format
+msgid "Extends #%s %s"
+msgstr "#%1$s %2$s 확장"
+
+#: View/Helper/EventIndexHelper.php:366
+#, php-format
+msgid "extends #%s"
+msgstr "#%s 확장"
+
+#: View/Helper/EventIndexHelper.php:370
+#, php-format
+msgid "Extends %s, which is not available here"
+msgstr "여기서는 사용할 수 없는 %s을 확장합니다."
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "missing"
+msgstr "누락"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "extends an unknown event"
+msgstr "알 수 없는 이벤트를 확장합니다."
+
+#: View/Helper/EventIndexHelper.php:379
+#, php-format
+msgid "extended by %s"
+msgstr "%s에 의해 연장됨"
+
+#: View/Helper/EventIndexHelper.php:411
+msgid "Cluster not available here"
+msgstr "여기서는 클러스터를 사용할 수 없습니다."
+
+#: View/Helper/EventIndexHelper.php:464
+msgid "preferred by your profile"
+msgstr "귀하의 프로필이 선호하는"
+
+#: View/Helper/EventIndexHelper.php:387
+#, php-format
+msgid "%s galaxy tag whose cluster is not available here"
+msgid_plural "%s galaxy tags whose cluster is not available here"
+msgstr[0] "클러스터를 여기서 사용할 수 없는 갤럭시 태그 %s개"
+
+#: View/Helper/NavbarHelper.php:171
+msgid "Collections"
+msgstr "컬렉션"
+
+#: View/Helper/NavbarHelper.php:183 View/Helper/NavbarHelper.php:213
+msgid "Index"
+msgstr "목록"
+
+#: View/Helper/NavbarHelper.php:200
+msgid "Analyst Data"
+msgstr "분석가 데이터"
+
+#: View/Helper/NavbarHelper.php:220
+msgid "Events with Proposals"
+msgstr "제안이 있는 이벤트"
+
+#: View/Helper/NavbarHelper.php:227
+msgid "Delegation Requests"
+msgstr "위임 요청"
+
+#: View/Helper/NavbarHelper.php:270
+msgid "Tags & Taxonomies"
+msgstr "태그 및 분류"
+
+#: View/Helper/NavbarHelper.php:309
+msgid "List Galaxy Relationships"
+msgstr "은하 관계 나열"
+
+#: View/Helper/NavbarHelper.php:344
+msgid "Analyst Profiles"
+msgstr "분석가 프로필"
+
+#: View/Helper/NavbarHelper.php:391
+msgid "Filters & Lists"
+msgstr "필터 및 목록"
+
+#: View/Helper/NavbarHelper.php:453
+msgid "Servers & Feeds"
+msgstr "서버 및 피드"
+
+#: View/Helper/NavbarHelper.php:544
+msgid "Sighting DB"
+msgstr "관측 데이터베이스"
+
+#: View/Helper/NavbarHelper.php:555
+msgid "Event ID Translator"
+msgstr "이벤트 ID 변환기"
+
+#: View/Helper/NavbarHelper.php:591
+msgid "Users & Orgs"
+msgstr "사용자 및 조직"
+
+#: View/Helper/NavbarHelper.php:611
+msgid "User Settings"
+msgstr "사용자 설정"
+
+#: View/Helper/NavbarHelper.php:630
+msgid "Roles & Permissions"
+msgstr "역할 및 권한"
+
+#: View/Helper/NavbarHelper.php:654
+msgid "System jobs"
+msgstr "시스템 작업"
+
+#: View/Helper/NavbarHelper.php:658
+msgid "Workflow"
+msgstr "작업 흐름"
+
+#: View/Helper/NavbarHelper.php:695
+msgid "Blocklisting"
+msgstr "차단 목록"
+
+#: View/Helper/NavbarHelper.php:699
+msgid "Blocklisted events"
+msgstr "차단된 이벤트"
+
+#: View/Helper/NavbarHelper.php:707
+msgid "Blocklisted organisations"
+msgstr "차단된 조직"
+
+#: View/Helper/NavbarHelper.php:715
+msgid "Blocklisted sightings"
+msgstr "차단된 목격"
+
+#: View/Helper/NavbarHelper.php:731
+msgid "Top correlations"
+msgstr "상위 상관관계"
+
+#: View/Helper/NavbarHelper.php:775
+msgid "Application logs"
+msgstr "애플리케이션 로그"
+
+#: View/Helper/NavbarHelper.php:819
+msgid "Open API"
+msgstr "오픈 API"
+
+#: View/Helper/NavbarHelper.php:827
+msgid "REST Client"
+msgstr "REST 클라이언트"
+
+#: View/Helper/NavbarHelper.php:981
+msgid "No workspace"
+msgstr "작업공간 없음"
+
+#: View/Helper/NavbarHelper.php:983
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:94
+msgid "Workspace"
+msgstr "작업공간"
+
+#: View/Helper/NavbarHelper.php:1006
+msgid "Set this page as homepage"
+msgstr "이 페이지를 홈페이지로 설정하세요"
+
+#: View/Helper/NavbarHelper.php:1050
+msgid "Dark mode"
+msgstr "다크 모드"
+
+#: View/Helper/NavbarHelper.php:1058
+msgid "Replay the tutorial"
+msgstr "튜토리얼 다시 보기"
+
+#: View/Helper/NavbarHelper.php:1100
+msgid "Light"
+msgstr "빛"
+
+#: View/Helper/NavbarHelper.php:1101
+msgid "Dark"
+msgstr "어두운"
+
+#: View/Helper/NavbarHelper.php:1102
+msgid "Light and dark"
+msgstr "빛과 어둠"
+
+#: View/Helper/NavbarHelper.php:1137
+#, php-format
+msgid "Instance default (%s)"
+msgstr "인스턴스 기본값(%s)"
+
+#: View/Helper/NavbarHelper.php:1138
+msgid "Follow the theme your administrator picks for this instance."
+msgstr "이 인스턴스에 대해 관리자가 선택한 테마를 따르십시오."
+
+#: View/Helper/NavbarHelper.php:1146
+msgid "Theme"
+msgstr "테마"
+
+#: View/Helper/NavbarHelper.php:948
+#, php-format
+msgid "News: %s unread"
+msgid_plural "News: %s unread"
+msgstr[0] "뉴스: 읽지 않음 %s개"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:119
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:120
+msgid "Edit selected attributes"
+msgstr "선택한 속성 편집"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+#, php-format
+msgid "Remove %s"
+msgstr "%s 제거"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:268
+msgid "Add to workspace"
+msgstr "작업공간에 추가"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close (Esc)"
+msgstr "닫기(Esc)"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:53
+msgid "Tags & galaxies"
+msgstr "태그 및 은하계"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:54
+msgid "Attributes & objects"
+msgstr "속성 및 객체"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:83
+#: View/Themed/Overmind/Elements/Events/index.ctp:84
+msgid "Choose columns"
+msgstr "열 선택"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:85
+#: View/Themed/Overmind/Elements/Events/index.ctp:86
+msgid "Columns"
+msgstr "열"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:88
+msgid "Reset widths"
+msgstr "폭 재설정"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:139
+msgid "Publish state"
+msgstr "게시 상태"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:170
+msgid "Markings your analyst profile pins"
+msgstr "분석가 프로필 핀 표시"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:174
+msgid "ATT&CK techniques (count, then ids), then mitigations"
+msgstr "ATT&CK 기술(개수, ID), 완화"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:175
+msgid "Other clusters, then tags"
+msgstr "다른 클러스터, 그 다음 태그"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:182
+msgid ""
+"Workspaces, reports, sightings, proposals and discussions, when there are "
+"any"
+msgstr "작업 공간, 보고서, 목격, 제안 및 토론(있는 경우)"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:209
+#: View/Themed/Overmind/Elements/Events/index.ctp:423
+#: View/Themed/Overmind/Elements/Events/index.ctp:497
+msgid "Changed"
+msgstr "변경됨"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:342
+msgid "Event or attribute tags."
+msgstr "이벤트 또는 속성 태그."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:353
+msgid "And tag"
+msgstr "그리고 태그"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:358
+msgid "Also carried by the event or one of its attributes."
+msgstr "또한 이벤트 또는 해당 속성 중 하나에 의해 전달됩니다."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:369
+msgid "Clusters attached to the event."
+msgstr "이벤트에 연결된 클러스터입니다."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:380
+msgid "Any sharing group"
+msgstr "모든 공유 그룹"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:397
+msgid "Including a group keeps only events shared with it."
+msgstr "그룹을 포함하면 해당 그룹과 공유된 이벤트만 유지됩니다."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "24h"
+msgstr "24시간"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "last 24 hours"
+msgstr "지난 24시간"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "7d"
+msgstr "7일"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "last 7 days"
+msgstr "지난 7일"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "30d"
+msgstr "30일"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "last 30 days"
+msgstr "지난 30일"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "90d"
+msgstr "90일"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "last 90 days"
+msgstr "지난 90일"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "1y"
+msgstr "1년"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "last year"
+msgstr "작년"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:434
+msgid "My events"
+msgstr "내 이벤트"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:448
+msgid "Org events"
+msgstr "조직 이벤트"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:467
+#, php-format
+msgid "until %s"
+msgstr "~ %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "minutes"
+msgstr "분"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "seconds"
+msgstr "초"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:472
+#, php-format
+msgid "last %s %s"
+msgstr "지난 %1$s %2$s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:475
+#: View/Themed/Overmind/Elements/Events/index.ctp:478
+#, php-format
+msgid "since %s"
+msgstr "이후 %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:487
+msgid "Anything"
+msgstr "무엇이든"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:489
+msgid "Attribute value"
+msgstr "속성값"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:490
+msgid "Date from"
+msgstr "날짜"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:491
+msgid "Date until"
+msgstr "종료일"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:500
+msgid "First published"
+msgstr "처음 출판됨"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:501
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:31
+msgid "Changes pending"
+msgstr "변경 보류 중"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:503
+msgid "Extended"
+msgstr "확장됨"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:504
+msgid "Minimal"
+msgstr "최소"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+msgid "some"
+msgstr "일부"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:28
+msgid "Never published, or unpublished since"
+msgstr "그 이후로 출판된 적이 없거나 출판되지 않았습니다."
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:37
+msgid "Published once and changed since"
+msgstr "한 번 게시되고 이후 변경됨"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:40
+msgid "Changed this week"
+msgstr "이번주에 변경되었습니다"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:45
+msgid "Changed in the last 7 days"
+msgstr "지난 7일 동안 변경됨"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:50
+msgid "Since your last visit"
+msgstr "마지막 방문 이후"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:55
+#, php-format
+msgid "Changed since your previous login, %s"
+msgstr "이전 로그인 %s 이후 변경되었습니다."
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:59
+msgid "New this week"
+msgstr "이번 주 새로운 소식"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:64
+msgid "First published in the last 7 days"
+msgstr "지난 7일 동안 처음 게시됨"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:67
+msgid "Creator orgs"
+msgstr "크리에이터 조직"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:70
+msgid "Filter by creator organisation"
+msgstr "창작자 조직별 필터링"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:79
+msgid "Event dates"
+msgstr "이벤트 날짜"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:84
+msgid "Figures for these filters"
+msgstr "이 필터의 수치"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:83
+msgid "Fetch"
+msgstr "가져오기"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:241
+#, php-format
+msgid "Open %s"
+msgstr "%s 열기"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:268
+msgid "Activate"
+msgstr "활성화"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:274
+msgid "Deactivate"
+msgstr "비활성화"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:90
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:91
+msgid "Add the selected to the active workspace"
+msgstr "선택한 항목을 활성 작업공간에 추가합니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:332
+msgid "Clear selection"
+msgstr "선택 취소"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:20
+#, php-format
+msgid "Sharing group · owned by %s"
+msgstr "공유 그룹 · %s 소유"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:41
+msgid "Every organisation on this instance"
+msgstr "이 인스턴스의 모든 조직"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:51
+msgid "owner"
+msgstr "소유자"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:52
+msgid "your org"
+msgstr "귀하의 조직"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:54
+msgid "Can add organisations"
+msgstr "조직 추가 가능"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:61
+#, php-format
+msgid "+%s more · open the group"
+msgstr "+%s개 더보기 · 그룹 열기"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:81
+msgid "Only this group"
+msgstr "이 그룹만"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:82
+msgid "Open group"
+msgstr "공개 그룹"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:38
+#, php-format
+msgid "%s member organisation"
+msgid_plural "%s member organisations"
+msgstr[0] "회원 조직 %s개"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:253
+msgid "Highlight"
+msgstr "하이라이트"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:367
+msgid "Searching…"
+msgstr "검색 중…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:49
+msgid "From"
+msgstr "부터"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:50
+msgid "To"
+msgstr "종료"
+
+#: View/Themed/Overmind/Users/login.ctp:90
+#: View/Themed/Overmind/Users/login.ctp:91
+msgid "MISP — Intelligence Sharing"
+msgstr "MISP — 정보 공유"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:182
+#, php-format
+msgid "aka %s"
+msgstr "일명 %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:184
+msgid "All galaxies"
+msgstr "모든 은하계"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:185
+#, php-format
+msgid "All of %s"
+msgstr "%s 전체"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:186
+msgid "All tactics"
+msgstr "모든 전술"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:187
+msgid "All tags"
+msgstr "모든 태그"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:188
+msgid "A–Z"
+msgstr "A–Z"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:189
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:370
+#, php-format
+msgid "Back to %s"
+msgstr "%s(으)로 돌아가기"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:190
+msgid "Browse"
+msgstr "찾아보기"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:191
+msgid "By namespace"
+msgstr "네임스페이스별"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:192
+msgid "Check the spelling, or browse a scope on the left."
+msgstr "철자를 확인하거나 왼쪽에서 범위를 찾아보세요."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:196
+msgid "Everywhere"
+msgstr "모든 곳에서"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:198
+#, php-format
+msgid "First %s matches · keep typing or narrow"
+msgstr "첫 번째 %s 일치 · 계속 입력하거나 범위를 좁히세요"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:200
+msgid "Has selected values"
+msgstr "선택된 값이 있음"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:201
+msgid "In use"
+msgstr "사용 중"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:202
+msgid "Clusters already attached somewhere"
+msgstr "이미 어딘가에 연결된 클러스터"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:203
+msgid "Keep typing"
+msgstr "계속 입력하세요"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:204
+msgid "apply"
+msgstr "적용하다"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:205
+msgid "back"
+msgstr "뒤로"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:206
+msgid "exclude"
+msgstr "제외"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:207
+msgid "include"
+msgstr "포함"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:209
+msgid "Loading scopes…"
+msgstr "범위 로드 중…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:210
+msgid "Could not load the scopes."
+msgstr "범위를 로드할 수 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:211
+msgid "Could not load these values"
+msgstr "이 값을 로드할 수 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:212
+msgid "All of"
+msgstr "모두"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:213
+msgid "Events tagged with every one of them, on the event itself"
+msgstr "이벤트 자체에 태그가 달린 이벤트"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:214
+msgid "Any of"
+msgstr "다음 중 하나"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:215
+msgid ""
+"Events with at least one of them, on the event or one of its attributes"
+msgstr "이벤트 또는 그 속성 중 하나에 대한 이벤트 중 적어도 하나가 있는 이벤트"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:216
+msgid "Match"
+msgstr "일치"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:217
+msgid "matrix"
+msgstr "매트릭스"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:218
+msgid "A matrix: browse it by tactic"
+msgstr "매트릭스: 전술별로 찾아보기"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:219
+#, php-format
+msgid "+%s more"
+msgstr "+%s개 더보기"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:220
+msgid "More not shown · type to narrow"
+msgstr "더 표시되지 않음 · 좁힐 유형"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:221
+#, php-format
+msgid "+%s more · type to narrow"
+msgstr "+%s개 더보기 · 범위를 좁히려면 입력하세요."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:222
+msgid "Namespaces"
+msgstr "네임스페이스"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:223
+#, php-format
+msgid "Narrow to %s, keeping “%s”"
+msgstr "%1$s로 범위를 좁히고 “%2$s”을 유지합니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:224
+msgid "Narrow to"
+msgstr "다음으로 좁혀짐"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:225
+msgid "No cluster in use"
+msgstr "사용 중인 클러스터가 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:226
+#, php-format
+msgid "No cluster in use matches “%s”"
+msgstr "사용 중인 클러스터가 \"%s\"과(와) 일치하지 않습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:227
+msgid "No cluster in use for this tactic"
+msgstr "이 전술에 사용되는 클러스터가 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:228
+msgid "No namespace"
+msgstr "네임스페이스 없음"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:229
+msgid "Free-text tags, written without a \"namespace:\" prefix."
+msgstr "\"namespace:\" 접두사 없이 작성된 자유 텍스트 태그."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:230
+msgid "No predicate has a match."
+msgstr "일치하는 술어가 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:231
+msgid "not"
+msgstr "아니"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:232
+msgid "Not attached to anything yet"
+msgstr "아직 아무것도 붙어있지 않아요"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:233
+msgid "no taxonomy"
+msgstr "분류 없음"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:234
+msgid "Not enabled"
+msgstr "활성화되지 않음"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:235
+msgid "Nothing here yet"
+msgstr "아직 아무것도 없습니다"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:236
+#, php-format
+msgid "Nothing in %s matches “%s”"
+msgstr "%1$s에 \"%2$s\"과(와) 일치하는 항목이 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:237
+#, php-format
+msgid "Nothing matches “%s”"
+msgstr "\"%s\"과(와) 일치하는 항목이 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:238
+#, php-format
+msgid "No %s value matches “%s”"
+msgstr "“%2$s”과(와) 일치하는 %1$s 값이 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:239
+#, php-format
+msgid "Tags written as \"%s:…\", with no taxonomy behind them."
+msgstr "\"%s:…\"로 작성된 태그이며 뒤에 분류가 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:240
+msgid "Numerical value"
+msgstr "수치"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:243
+#, php-format
+msgid "or type to search all %s %s values."
+msgstr "또는 모든 %1$s %2$s 값을 검색하려면 입력하세요."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:244
+msgid "Other namespaces"
+msgstr "기타 네임스페이스"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:245
+#, php-format
+msgid "Other %s tags"
+msgstr "기타 %s 태그"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:246
+msgid "Tags in this namespace that are not entries of the taxonomy"
+msgstr "분류 항목이 아닌 이 네임스페이스의 태그"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:247
+msgid "pick a heading to narrow"
+msgstr "범위를 좁힐 제목을 선택하세요."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:248
+msgid "Pick a predicate"
+msgstr "술어 선택"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:249
+msgid "Pinned in your profile"
+msgstr "프로필에 고정됨"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:250
+msgid "Predicates"
+msgstr "술어"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:251
+msgid "Preferred in your profile"
+msgstr "귀하의 프로필에서 선호됩니다"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:254
+msgid "Search all clusters, or pick a scope"
+msgstr "모든 클러스터를 검색하거나 범위를 선택하세요."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:255
+#, php-format
+msgid "Search all of %s"
+msgstr "%s 전체 검색"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:256
+msgid "Search all tags, or pick a scope"
+msgstr "모든 태그를 검색하거나 범위를 선택하세요."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:257
+msgid "Search failed"
+msgstr "검색 실패"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:258
+#, php-format
+msgid "Search in %s"
+msgstr "%s에서 검색"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:260
+msgid "show all"
+msgstr "모두 표시"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:261
+msgid "Show all clusters"
+msgstr "모든 클러스터 표시"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:262
+msgid "Show where it lives"
+msgstr "그것이 사는 곳을 보여주세요"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:263
+#, php-format
+msgid "Starts with %s"
+msgstr "%s로 시작"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:264
+msgid "Stop excluding"
+msgstr "제외 중지"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:265
+msgid "Tactics"
+msgstr "전술"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:268
+msgid "taxonomy"
+msgstr "분류학"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:269
+msgid "Nothing selected · click a value to include it,"
+msgstr "아무것도 선택되지 않음 · 포함할 값을 클릭하세요."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:270
+msgid "to exclude it"
+msgstr "제외하다"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:271
+#: View/Themed/Overmind/Elements/side_panel.ctp:33
+msgid "Try again"
+msgstr "다시 시도하세요"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:272
+msgid "Two characters search every cluster, or pick a scope on the left."
+msgstr "두 문자가 모든 클러스터를 검색하거나 왼쪽에서 범위를 선택합니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:273
+msgid "Two characters search every tag, or pick a scope on the left."
+msgstr "두 문자가 모든 태그를 검색하거나 왼쪽에서 범위를 선택합니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:274
+msgid "Where you are"
+msgstr "당신이 있는 곳"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:275
+msgid "Which clusters"
+msgstr "어떤 클러스터"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:366
+msgid "Type 2 characters to search"
+msgstr "검색하려면 2자를 입력하세요."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:369
+msgid "The list could not be loaded"
+msgstr "목록을 로드할 수 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:371
+#, php-format
+msgid "Choose %s"
+msgstr "%s을(를) 선택하세요"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:372
+msgid "Nothing matches"
+msgstr "일치하는 항목이 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:373
+#, php-format
+msgid "%s more: type to narrow"
+msgstr "%s 더보기: 범위를 좁히려면 입력하세요."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:374
+msgid "The search failed"
+msgstr "검색에 실패했습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:382
+msgid "Any of these. Applies when you close the picker."
+msgstr "다음 중 하나입니다. 선택기를 닫을 때 적용됩니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:383
+msgid "Any of these."
+msgstr "다음 중 하나입니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:384
+msgid ""
+"This link asks for events with all of these. Changing the selection here "
+"switches to any of them."
+msgstr "이 링크는 이 모든 것을 포함하는 이벤트를 요청합니다. 여기에서 선택 항목을 변경하면 그 중 하나로 전환됩니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:385
+msgid "Not found on this instance"
+msgstr "이 인스턴스에서는 찾을 수 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:386
+msgid "The filtered list could not be loaded."
+msgstr "필터링된 목록을 로드할 수 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:473
+msgid "Search a value"
+msgstr "값 검색"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:727
+#, php-format
+msgid "%s shown, page %s"
+msgstr "%1$s 표시됨, 페이지 %2$s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:733
+#, php-format
+msgid "%s shown, page %s of %s"
+msgstr "%1$s 표시됨, %3$s의 %2$s 페이지"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:739
+#, php-format
+msgid "%s shown"
+msgstr "%s 표시됨"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:767
+msgid "Active filters"
+msgstr "능동 필터"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:45
+#, php-format
+msgid "%s (all of)"
+msgstr "%s (모두)"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_picker.ctp:108
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:37
+#, php-format
+msgid "%s selected"
+msgid_plural "%s selected"
+msgstr[0] "%s개 선택됨"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:46
+msgid "No limit"
+msgstr "제한 없음"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:48
+msgid "Pick dates"
+msgstr "날짜 선택"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:51
+msgid "Both rows apply together. Applies when you close the picker."
+msgstr "두 행 모두 함께 적용됩니다. 선택기를 닫을 때 적용됩니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:62
+#, php-format
+msgid "%s set"
+msgid_plural "%s set"
+msgstr[0] "%s개 설정됨"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_toggle.ctp:17
+msgid "More Filters"
+msgstr "더 많은 필터"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_card.ctp:56
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_table.ctp:103
+msgid "No items to display"
+msgstr "표시할 항목이 없습니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:30
+msgid "Selected items"
+msgstr "선택된 항목"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:61
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:62
+msgid "Export selected attributes"
+msgstr "선택한 속성 내보내기"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:79
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:80
+msgid "Fetch the selected events"
+msgstr "선택한 이벤트를 가져옵니다."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:130
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:131
+msgid "Add Tag on selected attributes"
+msgstr "선택한 속성에 태그 추가"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:141
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:142
+msgid "Add Local Tag on selected attributes"
+msgstr "선택한 속성에 로컬 태그 추가"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:145
+msgid "Local Tag"
+msgstr "로컬 태그"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:152
+msgid "Add Galaxy on selected attributes"
+msgstr "선택한 속성에 갤럭시 추가"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:153
+msgid "Add Galaxy to selected attributes"
+msgstr "선택한 속성에 은하계 추가"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:163
+msgid "Add Local Galaxy on selected attributes"
+msgstr "선택한 속성에 로컬 갤럭시 추가"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:164
+msgid "Add Local Galaxy to selected attributes"
+msgstr "선택한 속성에 지역 은하 추가"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:167
+msgid "Local Galaxy"
+msgstr "국부 은하"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:185
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:186
+msgid "Create new relationship for selected attributes"
+msgstr "선택된 속성에 대한 새로운 관계 생성"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:221
+msgid "Enable selected items"
+msgstr "선택한 항목 활성화"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:227
+msgid "Disable selected items"
+msgstr "선택한 항목 비활성화"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:236
+msgid "Make the selected items required"
+msgstr "선택한 항목을 필수 항목으로 설정"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:242
+msgid "Make the selected items optional"
+msgstr "선택한 항목을 선택사항으로 설정"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:251
+msgid "Highlight selected items"
+msgstr "선택한 항목 강조 표시"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:257
+msgid "Remove highlight for selected items"
+msgstr "선택한 항목의 강조 표시 제거"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:259
+msgid "Remove Highlight"
+msgstr "하이라이트 제거"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:266
+msgid "Activate selected items"
+msgstr "선택한 항목 활성화"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:272
+msgid "Deactivate selected items"
+msgstr "선택한 항목 비활성화"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:282
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:283
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:322
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:323
+msgid "Delete selected items"
+msgstr "선택한 항목 삭제"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:78
+#, php-format
+msgid "Showing %s–%s"
+msgstr "%1$s–%2$s 표시 중"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:84
+#, php-format
+msgid "Showing %s–%s of %s"
+msgstr "%3$s 중 %1$s–%2$s 표시 중"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Drag to resize · double-click to widen"
+msgstr "크기를 조정하려면 드래그하세요. 확대하려면 두 번 클릭하세요."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Resize the window (arrow keys)"
+msgstr "창 크기 조정(화살표 키)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Drag to resize"
+msgstr "드래그하여 크기 조정"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Drag to move · arrow keys"
+msgstr "드래그하여 이동 · 화살표 키"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Move the window (arrow keys)"
+msgstr "창 이동(화살표 키)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:56
+msgid "Undock into a window"
+msgstr "창으로 도킹 해제"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:59
+msgid "Dock to the right"
+msgstr "오른쪽에 도킹"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:28
+#: View/Themed/Overmind/Elements/side_panel.ctp:62
+msgid "Widen the panel"
+msgstr "패널을 넓혀보세요"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:1
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:20
+msgid "Main"
+msgstr "메인"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:3
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:22
+#, php-format
+msgid "MISP %s"
+msgstr "MISP %s"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:4
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:23
+msgid "MISP Logo"
+msgstr "MISP 로고"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:27
+#, php-format
+msgid "%s shows or hides it"
+msgstr "%s 표시하거나 숨깁니다."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:29
+msgid "Back to your width"
+msgstr "너의 너비로 돌아가기"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:30
+msgid "Undocked into a window."
+msgstr "창으로 도킹 해제되었습니다."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:31
+msgid "Docked to the right."
+msgstr "오른쪽에 도킹되었습니다."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:32
+msgid "Failed to load."
+msgstr "로드에 실패했습니다."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:34
+msgid "It could not be saved."
+msgstr "저장할 수 없습니다."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Panel width"
+msgstr "패널 너비"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close the panel"
+msgstr "패널을 닫으세요"
+
+#: View/Themed/Overmind/Users/login.ctp:162
+#: View/Themed/Overmind/Users/login.ctp:163
+msgid "Show password"
+msgstr "비밀번호 표시"
+
+#: View/Themed/Overmind/Users/login.ctp:164
+msgid "Hide password"
+msgstr "비밀번호 숨기기"
+
+#: View/Themed/Overmind/Users/login.ctp:37
+msgid "Log in with SAML"
+msgstr "SAML로 로그인"
+
+#: View/Themed/Overmind/Users/login.ctp:44
+msgid "Log in with Azure AD"
+msgstr "Azure AD로 로그인"
+
+#: View/Themed/Overmind/Users/login.ctp:51
+msgid "Log in with OIDC"
+msgstr "OIDC로 로그인"
+
+#: View/Themed/Overmind/Users/login.ctp:117
+#: View/Themed/Overmind/Users/login.ctp:194
+msgid "Log in"
+msgstr "로그인"
+
+#: View/Themed/Overmind/Users/login.ctp:120
+msgid "This instance uses single sign-on. Choose your identity provider."
+msgstr "이 인스턴스는 싱글 사인온(SSO)을 사용합니다. ID 공급자를 선택하세요."
+
+#: View/Themed/Overmind/Users/login.ctp:146
+msgid "Forgot your password?"
+msgstr "비밀번호를 잊으셨나요?"
+
+#: View/Themed/Overmind/Users/login.ctp:173
+msgid "One-time password"
+msgstr "일회용 비밀번호"
+
+#: View/Themed/Overmind/Users/login.ctp:186
+#, php-format
+msgid "Enter the code from your token. Manage your tokens in %s."
+msgstr "토큰의 코드를 입력하세요. %s에서 토큰을 관리하세요."
+
+#: View/Themed/Overmind/Users/login.ctp:198
+msgid "or"
+msgstr "또는"
+
+#: View/Themed/Overmind/Users/login.ctp:211
+msgid "No account yet?"
+msgstr "아직 계정이 없나요?"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:25
+msgid "Theme updated!"
+msgstr "테마가 업데이트되었습니다!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:31
+msgid "Failed to toggle Beta UI. Please try again."
+msgstr "베타 UI를 전환하지 못했습니다. 다시 시도해 주세요."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:56
+msgid "Failed to change the theme. Please try again."
+msgstr "테마를 변경하지 못했습니다. 다시 시도해 주세요."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:86
+msgid "Homepage saved!"
+msgstr "홈페이지가 저장되었습니다!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:90
+msgid "Failed to set homepage. Please try again."
+msgstr "홈페이지 설정에 실패했습니다. 다시 시도해 주세요."

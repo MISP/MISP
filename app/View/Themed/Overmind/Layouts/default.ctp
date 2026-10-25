@@ -5,7 +5,7 @@
 
 // Load the Overmind page registry in order to decide which asset stack to emit.
 App::uses('OvermindPages', 'Tools');
-App::uses('I18n', 'I18n');
+App::uses('MispLanguage', 'Tools');
 App::uses('MispTheme', 'Lib/MispTheme');
 
 // Set by AppController; resolved here too for pages rendered without it,
@@ -47,20 +47,9 @@ if (!$useBootstrap5) {
     $mainStyle = ' style="padding-top:' . $navbarOffset . 'px;"';
 }
 
-// Conversion between ISO 639-2 code (`Config.language`) and BCP 47 tag (lang attribute) 
-$htmlLang = 'en';
 $configLanguage = (string)Configure::read('Config.language');
-// Keep the historical catalog directory while emitting a valid language tag.
-if ($configLanguage === 'zh-s') {
-    $htmlLang = 'zh-Hans';
-} elseif ($configLanguage !== '') {
-    if (strlen($configLanguage) === 3) {
-        $mappedLanguage = I18n::getInstance()->l10n->map($configLanguage);
-        $htmlLang = $mappedLanguage ?: 'en';
-    } else {
-        $htmlLang = str_replace('_', '-', $configLanguage);
-    }
-}
+$htmlLang = MispLanguage::htmlLang($configLanguage);
+$htmlDirection = MispLanguage::direction($configLanguage);
 
 
 // Auto-logout feature : new event-driven check if MISP.disable_auto_logout is false
@@ -82,7 +71,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
 
 
 <!DOCTYPE html>
-<html lang="<?= h($htmlLang) ?>"<?= $useRail && !$isAuthPage ? ' class="misp-railed"' : '' ?> data-misp-mode="<?= h($initialMode) ?>" data-misp-theme="<?= h($bootstrapTheme['name']) ?>">
+<html lang="<?= h($htmlLang) ?>" dir="<?= h($htmlDirection) ?>"<?= $useRail && !$isAuthPage ? ' class="misp-railed"' : '' ?> data-misp-mode="<?= h($initialMode) ?>" data-misp-theme="<?= h($bootstrapTheme['name']) ?>">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">

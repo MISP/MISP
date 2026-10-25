@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2022-07-21 15:58\n"
+"PO-Revision-Date: 2026-10-25 00:00+0000\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Sinhala\n"
 "MIME-Version: 1.0\n"
@@ -11015,9 +11015,9 @@ msgstr "ලැයිස්තු විගණන ලඝු-සටහන්"
 msgid "Search Logs"
 msgstr "සෙවුම් ලඝු-සටහන්"
 
-#: View/Elements/global_menu.ctp:477
+#: View/Elements/global_menu.ctp:477 View/Helper/NavbarHelper.php:849
 msgid "API"
-msgstr ""
+msgstr "API"
 
 #: View/Elements/global_menu.ctp:480
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1580
@@ -11661,9 +11661,10 @@ msgid "This galaxy does not have any relationships."
 msgstr "මෙම මන්දාකිණියට කිසිදු සබඳතාවක් නොමැත."
 
 #: View/Elements/GalaxyClusters/relations_graph.ctp:442
-#: View/Events/view.ctp:509
+#: View/Events/view.ctp:509 View/Themed/Overmind/Elements/Events/index.ctp:364
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:156
 msgid "Galaxy"
-msgstr ""
+msgstr "ගැලැක්සිය"
 
 #: View/Elements/GalaxyClusters/relations_graph.ctp:447;448
 msgid "Owner Org."
@@ -14195,11 +14196,6 @@ msgstr "ලබන්නා"
 msgid "Delegation index"
 msgstr "නියෝජිත දර්ශකය"
 
-#: View/EventDelegations/index.ctp:87
-msgid ""
-msgstr ""
-""
-
 #: View/EventDelegations/ajax/accept_delegation.ctp:4
 msgid "Are you sure you would like to accept the request by %s to take ownership of Event #%s"
 msgstr "සිදුවීම් #%sහි හිමිකාරිත්වය ගැනීමට ඔබ %s න් ඉල්ලීම පිළිගැනීමට කැමති බව ඔබට විශ්වාසද"
@@ -16609,12 +16605,16 @@ msgid "Default Tag"
 msgstr "පෙරනිමි ටැගය"
 
 #: View/Feeds/compare_feeds.ctp:73
-msgid "None or less than 1% of the data of %s is contained in %s (%s matching values)"
-msgstr "%s හි දත්ත වලින් කිසිවක් හෝ 1% ට වඩා අඩු නොවේ %s (ගැලපෙන අගයන්%s)"
+#, php-format
+msgid ""
+"None or less than 1%% of the data of %s is contained in %s (%s matching "
+"values)"
+msgstr "%s හි දත්ත වලින් කිසිවක් හෝ 1%% ට වඩා අඩු නොවේ %s (ගැලපෙන අගයන්%s)"
 
 #: View/Feeds/compare_feeds.ctp:74
-msgid "%s% of the data of %s is contained in %s (%s matching values)"
-msgstr "%s හි දත්ත වලින් %s% %s හි අඩංගු වේ (ගැලපෙන අගයන් %s)"
+#, php-format
+msgid "%s%% of the data of %s is contained in %s (%s matching values)"
+msgstr "%2$s හි දත්තවලින් %1$s%% ක් %3$s හි අඩංගු වේ (ගැළපෙන අගයන් %4$s)"
 
 #: View/Feeds/freetext_index.ctp:2
 msgid "Parsed attributes from feed %s"
@@ -24070,3 +24070,1544 @@ msgstr "හිස් නැත"
 msgid "Warninglist with same name already exists."
 msgstr "එකම නම සහිත අනතුරු ඇඟවීමේ ලැයිස්තුව දැනටමත් පවතී."
 
+#: View/Helper/NavbarHelper.php:794
+msgid "Access logs"
+msgstr "ප්‍රවේශ සටහන්"
+
+#: View/Helper/NavbarHelper.php:143
+#: View/Themed/Overmind/Elements/Events/index.ctp:177
+msgid "Objects"
+msgstr "වස්තු"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "hours"
+msgstr "පැය"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:169
+msgid "Markings"
+msgstr "සලකුණු"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:294
+#, php-format
+msgid "Sharing group %s"
+msgstr "බෙදාගැනීමේ කණ්ඩායම %s"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:373
+msgid "just now"
+msgstr "දැන්ම"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:376
+#, php-format
+msgid "%s min ago"
+msgstr "මිනිත්තු %s කට පෙර"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:379
+#, php-format
+msgid "%s h ago"
+msgstr "පැය %s කට පෙර"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:382
+#, php-format
+msgid "%s d ago"
+msgstr "දින %s කට පෙර"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:385
+#, php-format
+msgid "%s wk ago"
+msgstr "සති %s කට පෙර"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:388
+#, php-format
+msgid "%s mo ago"
+msgstr "මාස %s කට පෙර"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:390
+#, php-format
+msgid "%s y ago"
+msgstr "වසර %s කට පෙර"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:778
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:784
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:122
+msgid "Clear all"
+msgstr "සියල්ල හිස් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+msgid "Remove this filter"
+msgstr "මෙම පෙරහන ඉවත් කරන්න"
+
+#: View/Helper/NavbarHelper.php:258
+msgid "Data points"
+msgstr "දත්ත අංග"
+
+#: View/Helper/NavbarHelper.php:439
+msgid "Data models"
+msgstr "දත්ත ආකෘති"
+
+#: View/Helper/NavbarHelper.php:566
+msgid "Sync"
+msgstr "සමමුහුර්තකරණය"
+
+#: View/Helper/NavbarHelper.php:903
+msgid "Resources"
+msgstr "සම්පත්"
+
+#: View/Helper/NavbarHelper.php:1028 View/Helper/NavbarHelper.php:961
+#: View/Helper/NavbarHelper.php:965
+msgid "Bookmarks"
+msgstr "පිටු සලකුණු"
+
+#: View/Helper/NavbarHelper.php:162
+msgid "Value Intelligence"
+msgstr "අගය පිළිබඳ බුද්ධි තොරතුරු"
+
+#: View/Helper/NavbarHelper.php:516
+msgid "Integrations"
+msgstr "ඒකාබද්ධකරණ"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:242
+msgid "Open"
+msgstr "විවෘත කරන්න"
+
+#: View/Helper/EventIndexHelper.php:54
+#: View/Themed/Overmind/Elements/Events/index.ctp:407
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:23
+msgid "Unpublished"
+msgstr "ප්‍රකාශයට පත් කර නැත"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:56
+msgid "Reports"
+msgstr "වාර්තා"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:68
+msgid "Reach"
+msgstr "බෙදාහැරීමේ පරාසය"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:43
+msgid "No organisation is a member yet."
+msgstr "තවම සාමාජික සංවිධාන නොමැත."
+
+#: Lib/Tools/SharingGroupPeek.php:91
+msgid "Stays on this instance."
+msgstr "මෙම MISP ස්ථාපනයේ පමණක් පවතී."
+
+#: Lib/Tools/SharingGroupPeek.php:89
+#, php-format
+msgid "Pushed to %s other instance."
+msgid_plural "Pushed to %s other instances."
+msgstr[0] "වෙනත් MISP ස්ථාපන %s කට යවා ඇත."
+msgstr[1] "වෙනත් MISP ස්ථාපන %s කට යවා ඇත."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:194
+msgid "Deprecated"
+msgstr "යල් පැන ඇත"
+
+#: Lib/Tools/SharingGroupPeek.php:29
+msgid "Inactive"
+msgstr "අක්‍රියයි"
+
+#: Lib/Tools/SharingGroupPeek.php:32
+msgid "Received through sync"
+msgstr "සමමුහුර්තකරණයෙන් ලැබුණි"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Roaming"
+msgstr "රෝමිං"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Travels to any instance its members connect to."
+msgstr "සාමාජිකයන් සම්බන්ධ වන ඕනෑම MISP ස්ථාපනයකට බෙදාහැරේ."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "no"
+msgstr "නැත"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "yes"
+msgstr "ඔව්"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:189
+msgid "Relationship"
+msgstr "සම්බන්ධතාව"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid "Request access"
+msgstr "ප්රවේශය ඉල්ලන්න"
+
+#: View/Helper/NavbarHelper.php:190
+msgid "Template Variables"
+msgstr "අච්චු විචල්‍ය"
+
+#: View/Helper/NavbarHelper.php:875
+msgid "Server PGP public key"
+msgstr "සේවාදායකයේ PGP පොදු යතුර"
+
+#: View/Helper/NavbarHelper.php:884
+msgid "Server S/MIME certificate"
+msgstr "සේවාදායකයේ S/MIME සහතිකය"
+
+#: View/Helper/NavbarHelper.php:503
+msgid "List Sharing Group Blueprints"
+msgstr "බෙදාගැනීමේ කණ්ඩායම් සැලසුම් ලැයිස්තුව"
+
+#: View/Helper/NavbarHelper.php:357
+msgid "List Event Templates"
+msgstr "සිදුවීම් අච්චු ලැයිස්තුව"
+
+#: View/Helper/NavbarHelper.php:372
+msgid "List Object Relationships"
+msgstr "වස්තු සම්බන්ධතා ලැයිස්තුව"
+
+#: View/Helper/NavbarHelper.php:1018
+msgid "Manage Bookmarks"
+msgstr "පිටු සලකුණු කළමනාකරණය"
+
+#: View/Helper/NavbarHelper.php:894
+msgid "Themes"
+msgstr "තේමා"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "ON"
+msgstr "සක්‍රියයි"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "OFF"
+msgstr "අක්‍රියයි"
+
+#: View/Helper/NavbarHelper.php:457
+msgid "Remote Servers"
+msgstr "දුරස්ථ සේවාදායක"
+
+#: View/Helper/NavbarHelper.php:520
+msgid "Communities"
+msgstr "ප්‍රජා"
+
+#: View/Helper/NavbarHelper.php:536
+msgid "TAXII Servers"
+msgstr "TAXII සේවාදායක"
+
+#: View/Helper/NavbarHelper.php:682
+msgid "Benchmarking"
+msgstr "කාර්ය සාධන මැනීම"
+
+#: View/Helper/NavbarHelper.php:739
+msgid "Correlation rules"
+msgstr "සහසම්බන්ධතා නීති"
+
+#: View/Helper/NavbarHelper.php:747
+msgid "Over-correlating values"
+msgstr "අධික සහසම්බන්ධතා ඇති අගයන්"
+
+#: View/Helper/EventIndexHelper.php:49
+#, php-format
+msgid "Changes pending: published %s, changed since"
+msgstr "වෙනස්කම් ඇත: %s ප්‍රකාශිතයි, ඉන්පසු වෙනස් කර ඇත"
+
+#: View/Helper/EventIndexHelper.php:52
+#, php-format
+msgid "Published %s"
+msgstr "%s ප්‍රකාශිතයි"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "Created by %s"
+msgstr "%s විසින් නිර්මාණය කරන ලදී"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "held here by %s"
+msgstr "මෙහි %s සතුව ඇත"
+
+#: View/Helper/EventIndexHelper.php:95
+#, php-format
+msgid "Your grade for %s: %s (analyst profile)"
+msgstr "%s සඳහා ඔබේ ශ්‍රේණිය: %s (විශ්ලේෂක පැතිකඩ)"
+
+#: View/Helper/EventIndexHelper.php:118
+#, php-format
+msgid "Admiralty scale: %s"
+msgstr "අද්මිරාල්ටි පරිමාණය: %s"
+
+#: View/Helper/EventIndexHelper.php:128 View/Helper/EventIndexHelper.php:461
+msgid "pinned by your profile"
+msgstr "ඔබේ පැතිකඩෙන් අමුණා ඇත"
+
+#: View/Helper/EventIndexHelper.php:137
+#, php-format
+msgid "No %s marking"
+msgstr "%s සලකුණක් නැත"
+
+#: View/Helper/EventIndexHelper.php:177 View/Helper/EventIndexHelper.php:195
+msgid "(cluster not available here)"
+msgstr "(පොකුර මෙහි නොමැත)"
+
+#: View/Helper/EventIndexHelper.php:187
+#, php-format
+msgid "Mitigation %s"
+msgstr "අවම කිරීමේ පියවර %s"
+
+#: View/Helper/EventIndexHelper.php:211
+#, php-format
+msgid "%s unresolved"
+msgstr "%s ක් විසඳා නැත"
+
+#: View/Helper/EventIndexHelper.php:226
+#, php-format
+msgid "%s: show all"
+msgstr "%s: සියල්ල පෙන්වන්න"
+
+#: View/Helper/EventIndexHelper.php:318
+#, php-format
+msgid "Changed last of %s workspaces on this event"
+msgstr "මෙම සිදුවීමේ වැඩ අවකාශ %s න් අවසන් වරට වෙනස් කළ එක"
+
+#: View/Helper/EventIndexHelper.php:365
+#, php-format
+msgid "Extends #%s %s"
+msgstr "#%s %s දිගු කරයි"
+
+#: View/Helper/EventIndexHelper.php:366
+#, php-format
+msgid "extends #%s"
+msgstr "#%s දිගු කරයි"
+
+#: View/Helper/EventIndexHelper.php:370
+#, php-format
+msgid "Extends %s, which is not available here"
+msgstr "මෙහි නොමැති %s දිගු කරයි"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "missing"
+msgstr "නොමැත"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "extends an unknown event"
+msgstr "නොදන්නා සිදුවීමක් දිගු කරයි"
+
+#: View/Helper/EventIndexHelper.php:379
+#, php-format
+msgid "extended by %s"
+msgstr "%s මගින් දිගු කර ඇත"
+
+#: View/Helper/EventIndexHelper.php:411
+msgid "Cluster not available here"
+msgstr "පොකුර මෙහි නොමැත"
+
+#: View/Helper/EventIndexHelper.php:464
+msgid "preferred by your profile"
+msgstr "ඔබේ පැතිකඩෙන් ප්‍රමුඛ කර ඇත"
+
+#: View/Helper/EventIndexHelper.php:387
+#, php-format
+msgid "%s galaxy tag whose cluster is not available here"
+msgid_plural "%s galaxy tags whose cluster is not available here"
+msgstr[0] "මෙහි පොකුරු නොමැති ගැලැක්සි ටැග් %s ක්"
+msgstr[1] "මෙහි පොකුරු නොමැති ගැලැක්සි ටැග් %s ක්"
+
+#: View/Helper/NavbarHelper.php:171
+msgid "Collections"
+msgstr "එකතු"
+
+#: View/Helper/NavbarHelper.php:183 View/Helper/NavbarHelper.php:213
+msgid "Index"
+msgstr "ලැයිස්තුව"
+
+#: View/Helper/NavbarHelper.php:200
+msgid "Analyst Data"
+msgstr "විශ්ලේෂක දත්ත"
+
+#: View/Helper/NavbarHelper.php:220
+msgid "Events with Proposals"
+msgstr "යෝජනා සහිත සිදුවීම්"
+
+#: View/Helper/NavbarHelper.php:227
+msgid "Delegation Requests"
+msgstr "පැවරීම් ඉල්ලීම්"
+
+#: View/Helper/NavbarHelper.php:270
+msgid "Tags & Taxonomies"
+msgstr "ටැග් සහ වර්ගීකරණ"
+
+#: View/Helper/NavbarHelper.php:309
+msgid "List Galaxy Relationships"
+msgstr "ගැලැක්සි සම්බන්ධතා ලැයිස්තුව"
+
+#: View/Helper/NavbarHelper.php:344
+msgid "Analyst Profiles"
+msgstr "විශ්ලේෂක පැතිකඩ"
+
+#: View/Helper/NavbarHelper.php:391
+msgid "Filters & Lists"
+msgstr "පෙරහන් සහ ලැයිස්තු"
+
+#: View/Helper/NavbarHelper.php:453
+msgid "Servers & Feeds"
+msgstr "සේවාදායක සහ දත්ත මූලාශ්‍ර"
+
+#: View/Helper/NavbarHelper.php:544
+msgid "Sighting DB"
+msgstr "නිරීක්ෂණ දත්ත සමුදාය"
+
+#: View/Helper/NavbarHelper.php:555
+msgid "Event ID Translator"
+msgstr "සිදුවීම් හැඳුනුම් පරිවර්තකය"
+
+#: View/Helper/NavbarHelper.php:591
+msgid "Users & Orgs"
+msgstr "පරිශීලකයන් සහ සංවිධාන"
+
+#: View/Helper/NavbarHelper.php:611
+msgid "User Settings"
+msgstr "පරිශීලක සැකසුම්"
+
+#: View/Helper/NavbarHelper.php:630
+msgid "Roles & Permissions"
+msgstr "භූමිකා සහ අවසර"
+
+#: View/Helper/NavbarHelper.php:654
+msgid "System jobs"
+msgstr "පද්ධති කාර්යයන්"
+
+#: View/Helper/NavbarHelper.php:658
+msgid "Workflow"
+msgstr "කාර්ය ප්‍රවාහය"
+
+#: View/Helper/NavbarHelper.php:695
+msgid "Blocklisting"
+msgstr "අවහිර ලැයිස්තු"
+
+#: View/Helper/NavbarHelper.php:699
+msgid "Blocklisted events"
+msgstr "අවහිර කළ සිදුවීම්"
+
+#: View/Helper/NavbarHelper.php:707
+msgid "Blocklisted organisations"
+msgstr "අවහිර කළ සංවිධාන"
+
+#: View/Helper/NavbarHelper.php:715
+msgid "Blocklisted sightings"
+msgstr "අවහිර කළ නිරීක්ෂණ"
+
+#: View/Helper/NavbarHelper.php:731
+msgid "Top correlations"
+msgstr "ඉහළ සහසම්බන්ධතා"
+
+#: View/Helper/NavbarHelper.php:775
+msgid "Application logs"
+msgstr "යෙදුම් සටහන්"
+
+#: View/Helper/NavbarHelper.php:819
+msgid "Open API"
+msgstr "විවෘත API"
+
+#: View/Helper/NavbarHelper.php:827
+msgid "REST Client"
+msgstr "REST සේවාදායකයා"
+
+#: View/Helper/NavbarHelper.php:981
+msgid "No workspace"
+msgstr "වැඩ අවකාශයක් නැත"
+
+#: View/Helper/NavbarHelper.php:983
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:94
+msgid "Workspace"
+msgstr "වැඩ අවකාශය"
+
+#: View/Helper/NavbarHelper.php:1006
+msgid "Set this page as homepage"
+msgstr "මෙම පිටුව මුල් පිටුව ලෙස සකසන්න"
+
+#: View/Helper/NavbarHelper.php:1050
+msgid "Dark mode"
+msgstr "අඳුරු ප්‍රකාරය"
+
+#: View/Helper/NavbarHelper.php:1058
+msgid "Replay the tutorial"
+msgstr "නිබන්ධනය නැවත පෙන්වන්න"
+
+#: View/Helper/NavbarHelper.php:1100
+msgid "Light"
+msgstr "ආලෝක"
+
+#: View/Helper/NavbarHelper.php:1101
+msgid "Dark"
+msgstr "අඳුරු"
+
+#: View/Helper/NavbarHelper.php:1102
+msgid "Light and dark"
+msgstr "ආලෝක සහ අඳුරු"
+
+#: View/Helper/NavbarHelper.php:1137
+#, php-format
+msgid "Instance default (%s)"
+msgstr "ස්ථාපනයේ පෙරනිමිය (%s)"
+
+#: View/Helper/NavbarHelper.php:1138
+msgid "Follow the theme your administrator picks for this instance."
+msgstr "මෙම ස්ථාපනය සඳහා පරිපාලක තෝරාගත් තේමාව භාවිත කරන්න."
+
+#: View/Helper/NavbarHelper.php:1146
+msgid "Theme"
+msgstr "තේමාව"
+
+#: View/Helper/NavbarHelper.php:948
+#, php-format
+msgid "News: %s unread"
+msgid_plural "News: %s unread"
+msgstr[0] "පුවත්: නොකියවූ %s"
+msgstr[1] "පුවත්: නොකියවූ %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:119
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:120
+msgid "Edit selected attributes"
+msgstr "තෝරාගත් ගුණාංග සංස්කරණය කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+#, php-format
+msgid "Remove %s"
+msgstr "%s ඉවත් කරන්න"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:268
+msgid "Add to workspace"
+msgstr "වැඩ අවකාශයට එක් කරන්න"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close (Esc)"
+msgstr "වසන්න (Esc)"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:53
+msgid "Tags & galaxies"
+msgstr "ටැග් සහ ගැලැක්සි"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:54
+msgid "Attributes & objects"
+msgstr "ගුණාංග සහ වස්තු"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:83
+#: View/Themed/Overmind/Elements/Events/index.ctp:84
+msgid "Choose columns"
+msgstr "තීරු තෝරන්න"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:85
+#: View/Themed/Overmind/Elements/Events/index.ctp:86
+msgid "Columns"
+msgstr "තීරු"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:88
+msgid "Reset widths"
+msgstr "පළල යළි සකසන්න"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:139
+msgid "Publish state"
+msgstr "ප්‍රකාශන තත්ත්වය"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:170
+msgid "Markings your analyst profile pins"
+msgstr "ඔබේ විශ්ලේෂක පැතිකඩ අමුණන සලකුණු"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:174
+msgid "ATT&CK techniques (count, then ids), then mitigations"
+msgstr "ATT&CK තාක්ෂණ (ගණන, පසුව ID), ඉන්පසු අවම කිරීමේ පියවර"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:175
+msgid "Other clusters, then tags"
+msgstr "වෙනත් පොකුරු, ඉන්පසු ටැග්"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:182
+msgid ""
+"Workspaces, reports, sightings, proposals and discussions, when there are "
+"any"
+msgstr "වැඩ අවකාශ, වාර්තා, නිරීක්ෂණ, යෝජනා සහ සාකච්ඡා තිබේ නම්"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:209
+#: View/Themed/Overmind/Elements/Events/index.ctp:423
+#: View/Themed/Overmind/Elements/Events/index.ctp:497
+msgid "Changed"
+msgstr "වෙනස් කර ඇත"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:342
+msgid "Event or attribute tags."
+msgstr "සිදුවීම් හෝ ගුණාංග ටැග්."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:353
+msgid "And tag"
+msgstr "සහ ටැගය"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:358
+msgid "Also carried by the event or one of its attributes."
+msgstr "සිදුවීමේ හෝ එහි ගුණාංගයක ද ඇත."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:369
+msgid "Clusters attached to the event."
+msgstr "සිදුවීමට එක් කළ පොකුරු."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:380
+msgid "Any sharing group"
+msgstr "ඕනෑම බෙදාගැනීමේ කණ්ඩායමක්"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:397
+msgid "Including a group keeps only events shared with it."
+msgstr "කණ්ඩායමක් ඇතුළත් කළ විට එය සමඟ බෙදාගත් සිදුවීම් පමණක් තබයි."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "24h"
+msgstr "පැය 24"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "last 24 hours"
+msgstr "පසුගිය පැය 24"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "7d"
+msgstr "දින 7"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "last 7 days"
+msgstr "පසුගිය දින 7"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "30d"
+msgstr "දින 30"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "last 30 days"
+msgstr "පසුගිය දින 30"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "90d"
+msgstr "දින 90"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "last 90 days"
+msgstr "පසුගිය දින 90"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "1y"
+msgstr "වසර 1"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "last year"
+msgstr "පසුගිය වසර"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:434
+msgid "My events"
+msgstr "මගේ සිදුවීම්"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:448
+msgid "Org events"
+msgstr "සංවිධානයේ සිදුවීම්"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:467
+#, php-format
+msgid "until %s"
+msgstr "%s දක්වා"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "minutes"
+msgstr "මිනිත්තු"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "seconds"
+msgstr "තත්පර"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:472
+#, php-format
+msgid "last %s %s"
+msgstr "පසුගිය %2$s %1$s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:475
+#: View/Themed/Overmind/Elements/Events/index.ctp:478
+#, php-format
+msgid "since %s"
+msgstr "%s සිට"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:487
+msgid "Anything"
+msgstr "ඕනෑම දෙයක්"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:489
+msgid "Attribute value"
+msgstr "ගුණාංග අගය"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:490
+msgid "Date from"
+msgstr "ආරම්භක දිනය"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:491
+msgid "Date until"
+msgstr "අවසන් දිනය"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:500
+msgid "First published"
+msgstr "පළමු ප්‍රකාශනය"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:501
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:31
+msgid "Changes pending"
+msgstr "වෙනස්කම් අපේක්ෂිතයි"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:503
+msgid "Extended"
+msgstr "දිගු කර ඇත"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:504
+msgid "Minimal"
+msgstr "අවම"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+msgid "some"
+msgstr "සමහර"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:28
+msgid "Never published, or unpublished since"
+msgstr "කිසිදා ප්‍රකාශයට පත් කර නැත, හෝ ප්‍රකාශනය අවලංගු කර ඇත"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:37
+msgid "Published once and changed since"
+msgstr "වරක් ප්‍රකාශිතයි, ඉන්පසු වෙනස් කර ඇත"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:40
+msgid "Changed this week"
+msgstr "මෙම සතියේ වෙනස් කළ"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:45
+msgid "Changed in the last 7 days"
+msgstr "පසුගිය දින 7 තුළ වෙනස් කළ"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:50
+msgid "Since your last visit"
+msgstr "ඔබේ අවසන් පැමිණීමේ සිට"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:55
+#, php-format
+msgid "Changed since your previous login, %s"
+msgstr "ඔබේ පෙර පිවිසුම වූ %s සිට වෙනස් කළ"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:59
+msgid "New this week"
+msgstr "මෙම සතියේ නව"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:64
+msgid "First published in the last 7 days"
+msgstr "පසුගිය දින 7 තුළ පළමුව ප්‍රකාශිත"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:67
+msgid "Creator orgs"
+msgstr "නිර්මාතෘ සංවිධාන"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:70
+msgid "Filter by creator organisation"
+msgstr "නිර්මාතෘ සංවිධානයෙන් පෙරන්න"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:79
+msgid "Event dates"
+msgstr "සිදුවීම් දින"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:84
+msgid "Figures for these filters"
+msgstr "මෙම පෙරහන් සඳහා සංඛ්‍යා"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:83
+msgid "Fetch"
+msgstr "ලබාගන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:241
+#, php-format
+msgid "Open %s"
+msgstr "%s විවෘත කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:268
+msgid "Activate"
+msgstr "සක්‍රිය කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:274
+msgid "Deactivate"
+msgstr "අක්‍රිය කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:90
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:91
+msgid "Add the selected to the active workspace"
+msgstr "තෝරාගත් දෑ සක්‍රිය වැඩ අවකාශයට එක් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:332
+msgid "Clear selection"
+msgstr "තේරීම හිස් කරන්න"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:20
+#, php-format
+msgid "Sharing group · owned by %s"
+msgstr "බෙදාගැනීමේ කණ්ඩායම · හිමිකරු: %s"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:41
+msgid "Every organisation on this instance"
+msgstr "මෙම ස්ථාපනයේ සියලු සංවිධාන"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:51
+msgid "owner"
+msgstr "හිමිකරු"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:52
+msgid "your org"
+msgstr "ඔබේ සංවිධානය"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:54
+msgid "Can add organisations"
+msgstr "සංවිධාන එක් කළ හැක"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:61
+#, php-format
+msgid "+%s more · open the group"
+msgstr "තවත් %s · කණ්ඩායම විවෘත කරන්න"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:81
+msgid "Only this group"
+msgstr "මෙම කණ්ඩායම පමණි"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:82
+msgid "Open group"
+msgstr "කණ්ඩායම විවෘත කරන්න"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:38
+#, php-format
+msgid "%s member organisation"
+msgid_plural "%s member organisations"
+msgstr[0] "සාමාජික සංවිධාන ගණන: %s"
+msgstr[1] "සාමාජික සංවිධාන ගණන: %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:253
+msgid "Highlight"
+msgstr "ඉස්මතු කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:367
+msgid "Searching…"
+msgstr "සොයමින්…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:49
+msgid "From"
+msgstr "සිට"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:50
+msgid "To"
+msgstr "දක්වා"
+
+#: View/Themed/Overmind/Users/login.ctp:90
+#: View/Themed/Overmind/Users/login.ctp:91
+msgid "MISP — Intelligence Sharing"
+msgstr "MISP — බුද්ධි තොරතුරු බෙදාගැනීම"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:182
+#, php-format
+msgid "aka %s"
+msgstr "%s ලෙසද හැඳින්වේ"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:184
+msgid "All galaxies"
+msgstr "සියලු ගැලැක්සි"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:185
+#, php-format
+msgid "All of %s"
+msgstr "%s හි සියල්ල"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:186
+msgid "All tactics"
+msgstr "සියලු උපක්‍රම"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:187
+msgid "All tags"
+msgstr "සියලුම ටැග්"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:188
+msgid "A–Z"
+msgstr "A–Z"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:189
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:370
+#, php-format
+msgid "Back to %s"
+msgstr "%s වෙත ආපසු"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:190
+msgid "Browse"
+msgstr "පිරික්සන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:191
+msgid "By namespace"
+msgstr "නාම අවකාශය අනුව"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:192
+msgid "Check the spelling, or browse a scope on the left."
+msgstr "අක්ෂර වින්‍යාසය පරීක්ෂා කරන්න, හෝ වම් පැත්තේ පරාසයක් පිරික්සන්න."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:196
+msgid "Everywhere"
+msgstr "සෑම තැනකම"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:198
+#, php-format
+msgid "First %s matches · keep typing or narrow"
+msgstr "පළමු ගැළපුම් %s · තව ටයිප් කරන්න හෝ පරාසය සීමා කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:200
+msgid "Has selected values"
+msgstr "තෝරාගත් අගයන් ඇත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:201
+msgid "In use"
+msgstr "භාවිතයේ ඇත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:202
+msgid "Clusters already attached somewhere"
+msgstr "දැනටමත් යම් තැනකට එක් කළ පොකුරු"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:203
+msgid "Keep typing"
+msgstr "තව ටයිප් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:204
+msgid "apply"
+msgstr "අයදුම් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:205
+msgid "back"
+msgstr "ආපසු"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:206
+msgid "exclude"
+msgstr "බැහැර කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:207
+msgid "include"
+msgstr "ඇතුළත් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:209
+msgid "Loading scopes…"
+msgstr "පරාස පූරණය වෙමින්…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:210
+msgid "Could not load the scopes."
+msgstr "පරාස පූරණය කළ නොහැකි විය."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:211
+msgid "Could not load these values"
+msgstr "මෙම අගයන් පූරණය කළ නොහැකි විය"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:212
+msgid "All of"
+msgstr "සියල්ල"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:213
+msgid "Events tagged with every one of them, on the event itself"
+msgstr "සිදුවීමේම මෙම සියලු ටැග් ඇති සිදුවීම්"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:214
+msgid "Any of"
+msgstr "ඕනෑම එකක්"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:215
+msgid ""
+"Events with at least one of them, on the event or one of its attributes"
+msgstr "සිදුවීමේ හෝ එහි ගුණාංගයක මෙම ටැග්වලින් එකක් හෝ ඇති සිදුවීම්"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:216
+msgid "Match"
+msgstr "ගැළපීම"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:217
+msgid "matrix"
+msgstr "න්‍යාසය"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:218
+msgid "A matrix: browse it by tactic"
+msgstr "න්‍යාසයක්: උපක්‍රමය අනුව පිරික්සන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:219
+#, php-format
+msgid "+%s more"
+msgstr "තවත් %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:220
+msgid "More not shown · type to narrow"
+msgstr "තවත් ප්‍රතිඵල නොපෙන්වයි · සීමා කිරීමට ටයිප් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:221
+#, php-format
+msgid "+%s more · type to narrow"
+msgstr "තවත් %s · සීමා කිරීමට ටයිප් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:222
+msgid "Namespaces"
+msgstr "නාම අවකාශ"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:223
+#, php-format
+msgid "Narrow to %s, keeping “%s”"
+msgstr "“%2$s” තබාගෙන %1$s වෙත සීමා කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:224
+msgid "Narrow to"
+msgstr "වෙත සීමා කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:225
+msgid "No cluster in use"
+msgstr "භාවිතයේ ඇති පොකුරු නැත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:226
+#, php-format
+msgid "No cluster in use matches “%s”"
+msgstr "භාවිතයේ ඇති කිසිදු පොකුරක් “%s” සමඟ නොගැළපේ"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:227
+msgid "No cluster in use for this tactic"
+msgstr "මෙම උපක්‍රමය සඳහා භාවිතයේ ඇති පොකුරු නැත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:228
+msgid "No namespace"
+msgstr "නාම අවකාශයක් නැත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:229
+msgid "Free-text tags, written without a \"namespace:\" prefix."
+msgstr "“namespace:” උපසර්ගය නොමැති නිදහස් පෙළ ටැග්."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:230
+msgid "No predicate has a match."
+msgstr "කිසිදු විධේයක ගැළපීමක් නැත."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:231
+msgid "not"
+msgstr "නොවන"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:232
+msgid "Not attached to anything yet"
+msgstr "තවම කිසිවකට එක් කර නැත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:233
+msgid "no taxonomy"
+msgstr "වර්ගීකරණයක් නැත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:234
+msgid "Not enabled"
+msgstr "සක්‍රිය කර නැත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:235
+msgid "Nothing here yet"
+msgstr "මෙහි තවම කිසිවක් නැත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:236
+#, php-format
+msgid "Nothing in %s matches “%s”"
+msgstr "%1$s හි කිසිවක් “%2$s” සමඟ නොගැළපේ"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:237
+#, php-format
+msgid "Nothing matches “%s”"
+msgstr "“%s” සමඟ කිසිවක් නොගැළපේ"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:238
+#, php-format
+msgid "No %s value matches “%s”"
+msgstr "කිසිදු %1$s අගයක් “%2$s” සමඟ නොගැළපේ"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:239
+#, php-format
+msgid "Tags written as \"%s:…\", with no taxonomy behind them."
+msgstr "සම්බන්ධ වර්ගීකරණයක් නැති “%s:…” ආකාරයේ ටැග්."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:240
+msgid "Numerical value"
+msgstr "සංඛ්යාත්මක අගය"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:243
+#, php-format
+msgid "or type to search all %s %s values."
+msgstr "හෝ සියලු %s %s අගයන් සෙවීමට ටයිප් කරන්න."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:244
+msgid "Other namespaces"
+msgstr "වෙනත් නාම අවකාශ"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:245
+#, php-format
+msgid "Other %s tags"
+msgstr "වෙනත් %s ටැග්"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:246
+msgid "Tags in this namespace that are not entries of the taxonomy"
+msgstr "මෙම නාම අවකාශයේ වර්ගීකරණයට අයත් නොවන ටැග්"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:247
+msgid "pick a heading to narrow"
+msgstr "සීමා කිරීමට මාතෘකාවක් තෝරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:248
+msgid "Pick a predicate"
+msgstr "විධේයක් තෝරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:249
+msgid "Pinned in your profile"
+msgstr "ඔබේ පැතිකඩේ අමුණා ඇත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:250
+msgid "Predicates"
+msgstr "විධේය"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:251
+msgid "Preferred in your profile"
+msgstr "ඔබේ පැතිකඩේ ප්‍රමුඛ කර ඇත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:254
+msgid "Search all clusters, or pick a scope"
+msgstr "සියලු පොකුරු සොයන්න, හෝ පරාසයක් තෝරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:255
+#, php-format
+msgid "Search all of %s"
+msgstr "%s හි සියල්ල සොයන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:256
+msgid "Search all tags, or pick a scope"
+msgstr "සියලු ටැග් සොයන්න, හෝ පරාසයක් තෝරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:257
+msgid "Search failed"
+msgstr "සෙවීම අසාර්ථක විය"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:258
+#, php-format
+msgid "Search in %s"
+msgstr "%s හි සොයන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:260
+msgid "show all"
+msgstr "සියල්ල පෙන්වන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:261
+msgid "Show all clusters"
+msgstr "සියලු පොකුරු පෙන්වන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:262
+msgid "Show where it lives"
+msgstr "එය ඇති තැන පෙන්වන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:263
+#, php-format
+msgid "Starts with %s"
+msgstr "%s වලින් ඇරඹේ"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:264
+msgid "Stop excluding"
+msgstr "බැහැර කිරීම නවත්වන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:265
+msgid "Tactics"
+msgstr "උපක්‍රම"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:268
+msgid "taxonomy"
+msgstr "වර්ගීකරණය"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:269
+msgid "Nothing selected · click a value to include it,"
+msgstr "කිසිවක් තෝරා නැත · අගයක් ඇතුළත් කිරීමට එය ක්ලික් කරන්න,"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:270
+msgid "to exclude it"
+msgstr "එය බැහැර කිරීමට"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:271
+#: View/Themed/Overmind/Elements/side_panel.ctp:33
+msgid "Try again"
+msgstr "නැවත උත්සාහ කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:272
+msgid "Two characters search every cluster, or pick a scope on the left."
+msgstr ""
+"සියලු පොකුරු සෙවීමට අක්ෂර දෙකක් ටයිප් කරන්න, හෝ වම් පැත්තෙන් පරාසයක් තෝරන්න."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:273
+msgid "Two characters search every tag, or pick a scope on the left."
+msgstr ""
+"සියලු ටැග් සෙවීමට අක්ෂර දෙකක් ටයිප් කරන්න, හෝ වම් පැත්තෙන් පරාසයක් තෝරන්න."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:274
+msgid "Where you are"
+msgstr "ඔබ සිටින තැන"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:275
+msgid "Which clusters"
+msgstr "කුමන පොකුරුද"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:366
+msgid "Type 2 characters to search"
+msgstr "සෙවීමට අක්ෂර 2 ක් ටයිප් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:369
+msgid "The list could not be loaded"
+msgstr "ලැයිස්තුව පූරණය කළ නොහැකි විය"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:371
+#, php-format
+msgid "Choose %s"
+msgstr "%s තෝරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:372
+msgid "Nothing matches"
+msgstr "ගැළපීම් නැත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:373
+#, php-format
+msgid "%s more: type to narrow"
+msgstr "තවත් %s: සීමා කිරීමට ටයිප් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:374
+msgid "The search failed"
+msgstr "සෙවීම අසාර්ථක විය"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:382
+msgid "Any of these. Applies when you close the picker."
+msgstr "මේවායින් ඕනෑම එකක්. තේරීම් කවුළුව වැසූ විට යෙදේ."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:383
+msgid "Any of these."
+msgstr "මේවායින් ඕනෑම එකක්."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:384
+msgid ""
+"This link asks for events with all of these. Changing the selection here "
+"switches to any of them."
+msgstr ""
+"මෙම සබැඳිය මේ සියල්ල ඇති සිදුවීම් සොයයි. මෙහි තේරීම වෙනස් කළ විට ඕනෑම එකක් "
+"සෙවීමට මාරු වේ."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:385
+msgid "Not found on this instance"
+msgstr "මෙම ස්ථාපනයේ හමු නොවීය"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:386
+msgid "The filtered list could not be loaded."
+msgstr "පෙරූ ලැයිස්තුව පූරණය කළ නොහැකි විය."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:473
+msgid "Search a value"
+msgstr "අගයක් සොයන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:727
+#, php-format
+msgid "%s shown, page %s"
+msgstr "%s ක් පෙන්වයි, පිටුව %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:733
+#, php-format
+msgid "%s shown, page %s of %s"
+msgstr "%1$s ක් පෙන්වයි, පිටුව %2$s / %3$s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:739
+#, php-format
+msgid "%s shown"
+msgstr "%s ක් පෙන්වයි"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:767
+msgid "Active filters"
+msgstr "සක්‍රිය පෙරහන්"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:45
+#, php-format
+msgid "%s (all of)"
+msgstr "%s (සියල්ල)"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_picker.ctp:108
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:37
+#, php-format
+msgid "%s selected"
+msgid_plural "%s selected"
+msgstr[0] "%s ක් තෝරා ඇත"
+msgstr[1] "%s ක් තෝරා ඇත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:46
+msgid "No limit"
+msgstr "සීමාවක් නැත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:48
+msgid "Pick dates"
+msgstr "දින තෝරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:51
+msgid "Both rows apply together. Applies when you close the picker."
+msgstr "පේළි දෙකම එකට යෙදේ. තේරීම් කවුළුව වැසූ විට බලපැවැත්වේ."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:62
+#, php-format
+msgid "%s set"
+msgid_plural "%s set"
+msgstr[0] "%s ක් සකසා ඇත"
+msgstr[1] "%s ක් සකසා ඇත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_toggle.ctp:17
+msgid "More Filters"
+msgstr "තවත් පෙරහන්"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_card.ctp:56
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_table.ctp:103
+msgid "No items to display"
+msgstr "පෙන්වීමට අංග නැත"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:30
+msgid "Selected items"
+msgstr "තෝරාගත් අංග"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:61
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:62
+msgid "Export selected attributes"
+msgstr "තෝරාගත් ගුණාංග අපනයනය කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:79
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:80
+msgid "Fetch the selected events"
+msgstr "තෝරාගත් සිදුවීම් ලබාගන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:130
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:131
+msgid "Add Tag on selected attributes"
+msgstr "තෝරාගත් ගුණාංගවලට ටැගයක් එක් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:141
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:142
+msgid "Add Local Tag on selected attributes"
+msgstr "තෝරාගත් ගුණාංගවලට දේශීය ටැගයක් එක් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:145
+msgid "Local Tag"
+msgstr "දේශීය ටැගය"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:152
+msgid "Add Galaxy on selected attributes"
+msgstr "තෝරාගත් ගුණාංගවලට ගැලැක්සියක් එක් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:153
+msgid "Add Galaxy to selected attributes"
+msgstr "තෝරාගත් ගුණාංගවලට ගැලැක්සියක් එක් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:163
+msgid "Add Local Galaxy on selected attributes"
+msgstr "තෝරාගත් ගුණාංගවලට දේශීය ගැලැක්සියක් එක් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:164
+msgid "Add Local Galaxy to selected attributes"
+msgstr "තෝරාගත් ගුණාංගවලට දේශීය ගැලැක්සියක් එක් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:167
+msgid "Local Galaxy"
+msgstr "දේශීය මන්දාකිණිය"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:185
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:186
+msgid "Create new relationship for selected attributes"
+msgstr "තෝරාගත් ගුණාංග සඳහා නව සම්බන්ධතාවක් සාදන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:221
+msgid "Enable selected items"
+msgstr "තෝරාගත් අංග සක්‍රිය කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:227
+msgid "Disable selected items"
+msgstr "තෝරාගත් අංග අක්‍රිය කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:236
+msgid "Make the selected items required"
+msgstr "තෝරාගත් අංග අවශ්‍ය ලෙස සකසන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:242
+msgid "Make the selected items optional"
+msgstr "තෝරාගත් අංග විකල්ප ලෙස සකසන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:251
+msgid "Highlight selected items"
+msgstr "තෝරාගත් අංග ඉස්මතු කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:257
+msgid "Remove highlight for selected items"
+msgstr "තෝරාගත් අංගවල ඉස්මතු කිරීම ඉවත් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:259
+msgid "Remove Highlight"
+msgstr "ඉස්මතු කිරීම ඉවත් කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:266
+msgid "Activate selected items"
+msgstr "තෝරාගත් අංග සක්‍රිය කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:272
+msgid "Deactivate selected items"
+msgstr "තෝරාගත් අංග අක්‍රිය කරන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:282
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:283
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:322
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:323
+msgid "Delete selected items"
+msgstr "තෝරාගත් අංග මකන්න"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:78
+#, php-format
+msgid "Showing %s–%s"
+msgstr "%s–%s පෙන්වයි"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:84
+#, php-format
+msgid "Showing %s–%s of %s"
+msgstr "%3$s න් %1$s–%2$s පෙන්වයි"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Drag to resize · double-click to widen"
+msgstr "ප්‍රමාණය වෙනස් කිරීමට අදින්න · පළල් කිරීමට දෙවරක් ක්ලික් කරන්න"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Resize the window (arrow keys)"
+msgstr "කවුළුවේ ප්‍රමාණය වෙනස් කරන්න (ඊතල යතුරු)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Drag to resize"
+msgstr "ප්‍රමාණය වෙනස් කිරීමට අදින්න"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Drag to move · arrow keys"
+msgstr "ගෙන යාමට අදින්න · ඊතල යතුරු"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Move the window (arrow keys)"
+msgstr "කවුළුව ගෙන යන්න (ඊතල යතුරු)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:56
+msgid "Undock into a window"
+msgstr "වෙනම කවුළුවකට වෙන් කරන්න"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:59
+msgid "Dock to the right"
+msgstr "දකුණට අමුණන්න"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:28
+#: View/Themed/Overmind/Elements/side_panel.ctp:62
+msgid "Widen the panel"
+msgstr "පුවරුව පළල් කරන්න"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:1
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:20
+msgid "Main"
+msgstr "ප්‍රධාන"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:3
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:22
+#, php-format
+msgid "MISP %s"
+msgstr "MISP %s"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:4
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:23
+msgid "MISP Logo"
+msgstr "MISP ලාංඡනය"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:27
+#, php-format
+msgid "%s shows or hides it"
+msgstr "%s මගින් පෙන්වයි හෝ සඟවයි"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:29
+msgid "Back to your width"
+msgstr "ඔබේ පළලට ආපසු"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:30
+msgid "Undocked into a window."
+msgstr "වෙනම කවුළුවකට වෙන් කර ඇත."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:31
+msgid "Docked to the right."
+msgstr "දකුණට අමුණා ඇත."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:32
+msgid "Failed to load."
+msgstr "පූරණය අසාර්ථක විය."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:34
+msgid "It could not be saved."
+msgstr "සුරැකිය නොහැකි විය."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Panel width"
+msgstr "පුවරු පළල"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close the panel"
+msgstr "පුවරුව වසන්න"
+
+#: View/Themed/Overmind/Users/login.ctp:162
+#: View/Themed/Overmind/Users/login.ctp:163
+msgid "Show password"
+msgstr "මුරපදය පෙන්වන්න"
+
+#: View/Themed/Overmind/Users/login.ctp:164
+msgid "Hide password"
+msgstr "මුරපදය සඟවන්න"
+
+#: View/Themed/Overmind/Users/login.ctp:37
+msgid "Log in with SAML"
+msgstr "SAML මගින් පුරන්න"
+
+#: View/Themed/Overmind/Users/login.ctp:44
+msgid "Log in with Azure AD"
+msgstr "Azure AD මගින් පුරන්න"
+
+#: View/Themed/Overmind/Users/login.ctp:51
+msgid "Log in with OIDC"
+msgstr "OIDC මගින් පුරන්න"
+
+#: View/Themed/Overmind/Users/login.ctp:117
+#: View/Themed/Overmind/Users/login.ctp:194
+msgid "Log in"
+msgstr "පුරන්න"
+
+#: View/Themed/Overmind/Users/login.ctp:120
+msgid "This instance uses single sign-on. Choose your identity provider."
+msgstr "මෙම ස්ථාපනය තනි පිවිසුම භාවිත කරයි. ඔබේ අනන්‍යතා සපයන්නා තෝරන්න."
+
+#: View/Themed/Overmind/Users/login.ctp:146
+msgid "Forgot your password?"
+msgstr "මුරපදය අමතකද?"
+
+#: View/Themed/Overmind/Users/login.ctp:173
+msgid "One-time password"
+msgstr "එක් වරක් භාවිත මුරපදය"
+
+#: View/Themed/Overmind/Users/login.ctp:186
+#, php-format
+msgid "Enter the code from your token. Manage your tokens in %s."
+msgstr "ඔබේ ටෝකනයේ කේතය ඇතුළත් කරන්න. %s තුළ ටෝකන කළමනාකරණය කරන්න."
+
+#: View/Themed/Overmind/Users/login.ctp:198
+msgid "or"
+msgstr "හෝ"
+
+#: View/Themed/Overmind/Users/login.ctp:211
+msgid "No account yet?"
+msgstr "තවම ගිණුමක් නැද්ද?"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:25
+msgid "Theme updated!"
+msgstr "තේමාව යාවත්කාලීන විය!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:31
+msgid "Failed to toggle Beta UI. Please try again."
+msgstr "බීටා අතුරුමුහුණත මාරු කළ නොහැකි විය. නැවත උත්සාහ කරන්න."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:56
+msgid "Failed to change the theme. Please try again."
+msgstr "තේමාව වෙනස් කළ නොහැකි විය. නැවත උත්සාහ කරන්න."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:86
+msgid "Homepage saved!"
+msgstr "මුල් පිටුව සුරැකුණි!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:90
+msgid "Failed to set homepage. Please try again."
+msgstr "මුල් පිටුව සැකසිය නොහැකි විය. නැවත උත්සාහ කරන්න."
