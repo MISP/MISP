@@ -109,3 +109,9 @@ def test_every_declared_coverage_language_has_a_catalog():
     assert set(coverage['locales']) <= set(checker.LOCALES)
     assert {'fin', 'nld', 'est', 'lav', 'lit', 'ell', 'bul', 'slk', 'hrv'} \
         <= set(coverage['locales'])
+
+
+def test_hebrew_and_farsi_are_discoverable_and_covered():
+    coverage = json.loads(checker.COVERAGE.read_text(encoding='utf-8'))
+    assert {'heb', 'fas'} <= set(checker.LOCALES)
+    assert {'heb', 'fas'} <= set(coverage['locales'])
