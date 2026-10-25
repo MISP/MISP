@@ -21,8 +21,11 @@ $pluralIndex = function ($locale, $n) {
     if (in_array($locale, ['jpn', 'kor', 'th_TH', 'zh-s'], true)) {
         return 0;
     }
-    if (in_array($locale, ['fra', 'pt_BR'], true)) {
+    if (in_array($locale, ['fra', 'pt_BR', 'fas'], true)) {
         return $n > 1 ? 1 : 0;
+    }
+    if ($locale === 'heb') {
+        return $n === 1 ? 0 : ($n === 2 ? 1 : 2);
     }
     if ($locale === 'ara') {
         return $n === 0 ? 0 : ($n === 1 ? 1 : ($n === 2 ? 2
@@ -98,6 +101,11 @@ $layoutLanguages = [
     'zh-s' => ['zh-Hans', 'ltr'],
     'pt_BR' => ['pt-BR', 'ltr'],
     '' => ['en', 'ltr'],
+    'heb' => ['he', 'rtl'],
+    'fas' => ['fa', 'rtl'],
+    'he-IL' => ['he-IL', 'rtl'],
+    'fa-IR' => ['fa-IR', 'rtl'],
+    'per' => ['fa', 'rtl'],
     'fin' => ['fi', 'ltr'],
     'nld' => ['nl', 'ltr'],
     'est' => ['et', 'ltr'],
@@ -154,7 +162,9 @@ foreach ($locales as $locale) {
     I18n::clear();
     I18n::getInstance()->l10n = new L10n();
     $raw = $locale === 'eng' ? [] : I18n::loadPo(APP . 'Locale/' . $locale . '/LC_MESSAGES/default.po');
-    $check(MispLanguage::direction($locale), $locale === 'ara' ? 'rtl' : 'ltr', $locale . ' direction');
+    $check(MispLanguage::direction($locale),
+        in_array($locale, ['ara', 'heb', 'fas'], true) ? 'rtl' : 'ltr',
+        $locale . ' direction');
     $check(preg_match('/^[a-z]{2,3}(?:-[A-Za-z0-9]+)*$/', MispLanguage::htmlLang($locale)),
         1, $locale . ' HTML language');
     $check(__('MISP translation fallback %s', 'OK'),

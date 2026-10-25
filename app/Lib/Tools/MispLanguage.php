@@ -13,8 +13,10 @@ class MispLanguage
         'deu' => ['Deutsch', 'de'],
         'ell' => ['Ελληνικά', 'el'],
         'est' => ['Eesti', 'et'],
+        'fas' => ['فارسی', 'fa'],
         'fin' => ['Suomi', 'fi'],
         'fra' => ['Français', 'fr'],
+        'heb' => ['עברית', 'he'],
         'hrv' => ['Hrvatski', 'hr'],
         'hun' => ['Magyar', 'hu'],
         'ita' => ['Italiano', 'it'],
@@ -60,7 +62,7 @@ class MispLanguage
 
     public static function direction($language)
     {
-        return preg_match('/^ar(?:-|$)/', self::htmlLang($language))
+        return preg_match('/^(?:ar|he|fa)(?:-|$)/i', self::htmlLang($language))
             ? 'rtl' : 'ltr';
     }
 }

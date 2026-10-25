@@ -18,6 +18,7 @@ The selector uses native names while preserving the catalog codes from MISP 2.5.
 | French | `fra` | `fr` |
 | German | `deu` | `de` |
 | Greek | `ell` | `el` |
+| Hebrew | `heb` | `he` |
 | Hungarian | `hun` | `hu` |
 | Italian | `ita` | `it` |
 | Japanese | `jpn` | `ja` |
@@ -25,6 +26,7 @@ The selector uses native names while preserving the catalog codes from MISP 2.5.
 | Latvian | `lav` | `lv` |
 | Lithuanian | `lit` | `lt` |
 | Norwegian | `no` | `no` |
+| Persian / Farsi | `fas` | `fa` |
 | Polish | `pol` | `pl` |
 | Portuguese (Portugal) | `pt` | `pt` |
 | Portuguese (Brazil) | `pt_BR` | `pt-BR` |
@@ -39,7 +41,9 @@ The selector uses native names while preserving the catalog codes from MISP 2.5.
 | Simplified Chinese | `zh-s` | `zh-Hans` |
 
 The newer Sindarin (`sjn`) catalog remains selectable and is validated too.
-Arabic pages emit `dir="rtl"`; the other languages use `dir="ltr"`.
+Arabic, Hebrew and Persian pages emit `dir="rtl"`; the other languages use
+`dir="ltr"`. Regional tags such as `he-IL` and `fa-IR` also receive the correct
+direction.
 `MispLanguage` shares display names and HTML language metadata between the
 settings selector and the default/dashboard layouts for Default, UiBeta and
 Overmind.
@@ -60,31 +64,34 @@ Aliases do not appear as additional language choices. Existing configuration
 values and Crowdin export paths remain valid.
 
 Czech, Slovak, Polish, Croatian, Russian and Ukrainian use three integer-count
-plural forms. Latvian, Lithuanian and Romanian also have three forms. The older
-Czech, Polish, Russian and Ukrainian catalogs had four-form CLDR headers with
-decimal categories that CakePHP's integer plural dispatcher did not recognise,
-causing it to select the first form for every count. Arabic retains six forms;
-Japanese, Korean, Thai and Chinese have one. The other catalogs have two,
-including the French and Brazilian Portuguese rule that treats zero like one.
+plural forms. Latvian, Lithuanian, Romanian and Hebrew also have three forms.
+The older Czech, Polish, Russian and Ukrainian catalogs had four-form CLDR
+headers with decimal categories that CakePHP's integer plural dispatcher did
+not recognise, causing it to select the first form for every count. Arabic
+retains six forms; Japanese, Korean, Thai and Chinese have one. The other
+catalogs have two, including the French, Brazilian Portuguese and Persian
+rule that treats zero like one. Hebrew uses the integer categories one, two
+and other.
 
 ## Current scope and language review
 
-All 21 language catalogs shipped in MISP 2.5 and the nine new Finnish, Dutch,
-Estonian, Latvian, Lithuanian, Greek, Bulgarian, Slovak and Croatian catalogs
-cover the same 466 shared Overmind messages: navigation, sign-in, event
-browsing and statistics, sharing-group popovers, filters, pagination, bulk
-actions and side panels. The coverage list is maintained in
+All 21 language catalogs shipped in MISP 2.5 and the eleven new Finnish, Dutch,
+Estonian, Latvian, Lithuanian, Greek, Bulgarian, Slovak, Croatian, Hebrew and
+Persian catalogs cover the same 466 shared Overmind messages: navigation,
+sign-in, event browsing and statistics, sharing-group popovers, filters,
+pagination, bulk actions and side panels. The coverage list is maintained in
 `tools/i18n/overmind-core.json` and checked automatically.
 The Sindarin catalog was added in 3.0 and is not part of that coverage contract.
 
-The nine new catalogs contain only this shared UI scope; older catalogs also
+The eleven new catalogs contain only this shared UI scope; older catalogs also
 contain other application messages. Missing or untranslated messages outside
 the scope continue to fall back to English. Existing nonempty translations
 are retained except for repairs to placeholders, percentage escaping, metadata
 and newline formatting. The new wording is machine-assisted draft translation
 and requires native-language review before merge. Technical validation does not
 establish linguistic accuracy. The new catalogs use the framework's canonical
-codes (`nld`, `ell`, `slk`), so they do not need directory aliases.
+codes (for example, `nld`, `ell`, `slk`, `heb`, `fas`), so they do not need
+directory aliases.
 
 For threat-intelligence and defence deployments, review the wording for threat
 level, distribution, sharing groups, sightings, attribution and the Admiralty
@@ -144,9 +151,10 @@ find app/Locale -type f -name '*.po' -exec \
 
 For manual review, open the login page and events index in each language. Check
 the selector, filters, column chooser, pagination, sharing-group popover and
-feedback messages. Review long labels on narrow layouts, Arabic text direction,
-and mixed-direction identifiers/values. Full browser/layout verification remains
-a separate check from catalog and runtime validation.
+feedback messages. Review long labels on narrow layouts, Arabic/Hebrew/Persian
+text direction, and mixed-direction identifiers/values such as IP addresses,
+hashes, URLs, event IDs and numeric counts. Full browser/layout verification
+remains a separate check from catalog and runtime validation.
 
 ## Prepare source strings
 
