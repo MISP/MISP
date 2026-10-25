@@ -1855,10 +1855,23 @@ class Server extends AppModel
     public function loadAvailableLanguages()
     {
         $dirs = glob(APP . 'Locale/*', GLOB_ONLYDIR);
-        $languages = array('eng' => 'eng');
+        // Native names make the supported catalogs recognisable in the selector.
+        $names = [
+            'eng' => 'English',
+            'zh-s' => '简体中文',
+            'fra' => 'Français',
+            'deu' => 'Deutsch',
+            'pt' => 'Português (Portugal)',
+            'pt_BR' => 'Português (Brasil)',
+        ];
+        $languages = array('eng' => $names['eng']);
         foreach ($dirs as $dir) {
+            // Runtime aliases do not represent additional selectable languages.
+            if (is_link($dir)) {
+                continue;
+            }
             $dir = str_replace(APP . 'Locale' . DS, '', $dir);
-            $languages[$dir] = $dir;
+            $languages[$dir] = $names[$dir] ?? $dir;
         }
         return $languages;
     }

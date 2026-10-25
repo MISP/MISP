@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2022-07-21 15:58\n"
+"PO-Revision-Date: 2026-10-25 00:00+0000\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Chinese Simplified\n"
 "MIME-Version: 1.0\n"
@@ -1073,10 +1073,10 @@ msgstr "发布"
 msgid "Publish sightings"
 msgstr ""
 
-#: Controller/AuditLogsController.php:132
-#: View/AuditLogs/admin_index.ctp:2
+#: Controller/AuditLogsController.php:132 View/AuditLogs/admin_index.ctp:2
+#: View/Helper/NavbarHelper.php:784
 msgid "Audit logs"
-msgstr ""
+msgstr "审计日志"
 
 #: Controller/AuditLogsController.php:185
 #: View/AuditLogs/event_index.ctp:2
@@ -1592,8 +1592,9 @@ msgstr "事件信息"
 
 #: Controller/EventsController.php:1130
 #: View/Events/get_event_info_by_id.ctp:14
+#: View/Themed/Overmind/Elements/Events/index.ctp:495
 msgid "Threat level"
-msgstr ""
+msgstr "威胁级别"
 
 #: Controller/EventsController.php:1131
 #: View/Attributes/index.ctp:103
@@ -1658,10 +1659,11 @@ msgid "Last change at"
 msgstr ""
 
 #: Controller/EventsController.php:1137
-#: View/Elements/Events/eventIndexTable.ctp:41
-#: View/Events/index.ctp:35
+#: View/Elements/Events/eventIndexTable.ctp:41 View/Events/index.ctp:35
+#: View/Themed/Overmind/Elements/Events/index.ctp:203
+#: View/Themed/Overmind/Elements/Events/index.ctp:61
 msgid "Published at"
-msgstr ""
+msgstr "发布时间"
 
 #: Controller/EventsController.php:1141
 #: View/Events/proposal_event_index.ctp:21
@@ -3537,10 +3539,11 @@ msgstr "无效用户设置."
 msgid "Invalid setting."
 msgstr "无效设置."
 
-#: Controller/UserSettingsController.php:164;324
-#: Model/UserSetting.php:404
-msgid "This setting is restricted and requires the following permission(s): %s"
-msgstr "此设置受限制, 需要以下权限：％s"
+#: Controller/UserSettingsController.php:164;324 Model/UserSetting.php:404
+#, php-format
+msgid ""
+"This setting is restricted and requires the following permission(s): %s"
+msgstr "此设置受限制，需要以下权限：%s"
 
 #: Controller/UserSettingsController.php:196
 msgid "Setting saved."
@@ -4080,8 +4083,11 @@ msgid "This could be an indication of an attempted privilege escalation on older
 msgstr "这可能表明尝试在较弱的MISP早期版本(<2.4.115)上尝试特权升级"
 
 #: Controller/Component/ACLComponent.php:857
-msgid "User triggered security alert by attempting to access /%s/%s. Reason why this endpoint is of interest: %s"
-msgstr "用户通过尝试访问/%s/%s/%s触发了安全警报。该端点感兴趣的原因: %s"
+#, php-format
+msgid ""
+"User triggered security alert by attempting to access /%s/%s. Reason why "
+"this endpoint is of interest: %s"
+msgstr "用户尝试访问 /%s/%s，触发了安全警报。关注此端点的原因：%s"
 
 #: Controller/Component/AdminCrudComponent.php:20
 msgid "The %s has been saved."
@@ -7993,28 +7999,50 @@ msgid "%s authkeys reset, %s could not be reset"
 msgstr "%s authkeys重置, %s authkeys不能被重置"
 
 #: Model/User.php:1183
-msgid "Dear user,\n\n"
-"an API key reset has been triggered by an administrator for your user account on %s.\n\n"
-"Your new API key is: %s\n\n"
-"Please update your server's sync setup to reflect this change.\n\n"
+#, php-format
+msgid ""
+"Dear user,\n"
+"\n"
+"an API key reset has been triggered by an administrator for your user account on %s.\n"
+"\n"
+"Your new API key is: %s\n"
+"\n"
+"Please update your server's sync setup to reflect this change.\n"
+"\n"
 "We apologise for the inconvenience."
-msgstr "亲爱的用户,\n\n"
-"您的用户账户的管理员已经触发了一个API密钥重置.\n\n"
-"您的新API密钥是: %s\n\n"
-"请更新您的服务器的同步设置以反映这一变化.\n\n"
-"我们为给您带来的不便表示歉意."
+msgstr ""
+"尊敬的用户：\n"
+"\n"
+"管理员已重置您在 %s 上的用户账户的 API 密钥。\n"
+"\n"
+"您的新 API 密钥为：%s\n"
+"\n"
+"请更新服务器的同步设置以应用此更改。\n"
+"\n"
+"对于给您带来的不便，我们深表歉意。"
 
 #: Model/User.php:1188
-msgid "Dear user,\n\n"
-"an API key reset has been triggered by an administrator for your user account on %s.\n\n"
-"Your new API key can be retrieved by logging in using this sync user's account.\n\n"
-"Please update your server's sync setup to reflect this change.\n\n"
+#, php-format
+msgid ""
+"Dear user,\n"
+"\n"
+"an API key reset has been triggered by an administrator for your user account on %s.\n"
+"\n"
+"Your new API key can be retrieved by logging in using this sync user's account.\n"
+"\n"
+"Please update your server's sync setup to reflect this change.\n"
+"\n"
 "We apologise for the inconvenience."
-msgstr "亲爱的用户,\n\n"
-"您的用户账户的管理员已经触发了一个API密钥重置.\n\n"
-"您的新API密钥可以通过登录这个同步用户的账户来获取.\n\n"
-"请更新您的服务器的同步设置以反映这一变化.\n\n"
-"我们为给您带来的不便表示歉意."
+msgstr ""
+"尊敬的用户：\n"
+"\n"
+"管理员已重置您在 %s 上的用户账户的 API 密钥。\n"
+"\n"
+"您可以使用此同步用户的账户登录以获取新的 API 密钥。\n"
+"\n"
+"请更新服务器的同步设置以应用此更改。\n"
+"\n"
+"对于给您带来的不便，我们深表歉意。"
 
 #: Model/User.php:1197
 msgid "API key reset by administrator"
@@ -8614,11 +8642,11 @@ msgstr "IDS"
 
 #: View/Attributes/index.ctp:116
 #: View/DecayingModel/decaying_tool_rest_search.ctp:33
-#: View/Elements/eventattribute.ctp:143
-#: View/Events/index.ctp:30
-#: View/Events/view.ctp:251
+#: View/Elements/eventattribute.ctp:143 View/Events/index.ctp:30
+#: View/Events/view.ctp:251 View/Themed/Overmind/Elements/Events/index.ctp:57
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:200
 msgid "Sightings"
-msgstr ""
+msgstr "观测记录"
 
 #: View/Attributes/index.ctp:126
 #: View/Elements/eventattribute.ctp:144
@@ -8927,8 +8955,10 @@ msgid "Clear filtering rules"
 msgstr ""
 
 #: View/AuditLogs/admin_index.ctp:7
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:193
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:490
 msgid "Clear"
-msgstr ""
+msgstr "清除"
 
 #: View/AuditLogs/admin_index.ctp:231
 #: View/AuditLogs/event_index.ctp:6
@@ -9048,31 +9078,26 @@ msgstr ""
 msgid "Event #%s: %s"
 msgstr ""
 
-#: View/AuditLogs/admin_index.ctp:291
-#: View/AuditLogs/event_index.ctp:43
+#: View/AuditLogs/admin_index.ctp:291 View/AuditLogs/event_index.ctp:43
 #: View/DecayingModel/decaying_tool_rest_search.ctp:57
-#: View/DecayingModel/index.ctp:155
-#: View/Elements/eventdiscussion.ctp:115
-#: View/Elements/generic_table.ctp:47
-#: View/Elements/generic_table_row.ctp:39
+#: View/DecayingModel/index.ctp:155 View/Elements/eventdiscussion.ctp:115
 #: View/Elements/genericElements/IndexTable/pagination_counter.ctp:2
-#: View/Events/index.ctp:142
-#: View/Events/proposal_event_index.ctp:72
-#: View/Events/ajax/index.ctp:21
-#: View/Feeds/freetext_index.ctp:74
-#: View/Feeds/preview_index.ctp:77
-#: View/Jobs/index.ctp:180
-#: View/Logs/admin_index.ctp:113
-#: View/Logs/event_index.ctp:47
+#: View/Elements/generic_table.ctp:47 View/Elements/generic_table_row.ctp:39
+#: View/Events/ajax/index.ctp:21 View/Events/index.ctp:142
+#: View/Events/proposal_event_index.ctp:72 View/Feeds/freetext_index.ctp:74
+#: View/Feeds/preview_index.ctp:77 View/Jobs/index.ctp:180
+#: View/Logs/admin_index.ctp:113 View/Logs/event_index.ctp:47
 #: View/ObjectTemplateElements/ajax/view_elements.ctp:60
-#: View/ObjectTemplates/index.ctp:129
-#: View/Regexp/admin_index.ctp:36
-#: View/Regexp/index.ctp:31
-#: View/Servers/index.ctp:194
-#: View/Servers/preview_index.ctp:178
-#: View/Tasks/index.ctp:92
-msgid "Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}"
+#: View/ObjectTemplates/index.ctp:129 View/Regexp/admin_index.ctp:36
+#: View/Regexp/index.ctp:31 View/Servers/index.ctp:194
+#: View/Servers/preview_index.ctp:178 View/Tasks/index.ctp:92
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination.ctp:14
+msgid ""
+"Page {:page} of {:pages}, showing {:current} records out of {:count} total, "
+"starting on record {:start}, ending on {:end}"
 msgstr ""
+"第 {:page} 页，共 {:pages} 页，显示 {:current} 条记录，共 {:count} 条，从第 {:start} 条到第 "
+"{:end} 条"
 
 #: View/AuditLogs/event_index.ctp:11;50
 msgid "Older logs"
@@ -10722,9 +10747,9 @@ msgstr "警告列表"
 msgid "Noticelists"
 msgstr "提醒列表"
 
-#: View/Elements/global_menu.ctp:169
+#: View/Elements/global_menu.ctp:169 View/Helper/NavbarHelper.php:425
 msgid "Correlation Exclusions"
-msgstr ""
+msgstr "关联排除项"
 
 #: View/Elements/global_menu.ctp:177
 #: View/Pages/doc/general.ctp:22;54
@@ -10870,9 +10895,9 @@ msgstr "添加SightingDB连接"
 msgid "List Communities"
 msgstr "社区列表"
 
-#: View/Elements/global_menu.ctp:313
+#: View/Elements/global_menu.ctp:313 View/Helper/NavbarHelper.php:528
 msgid "Cerebrates"
-msgstr ""
+msgstr "Cerebrates"
 
 #: View/Elements/global_menu.ctp:326
 #: View/Pages/doc/administration.ctp:8
@@ -10890,9 +10915,9 @@ msgstr "管理界面"
 msgid "List Users"
 msgstr "列出用户"
 
-#: View/Elements/global_menu.ctp:335
+#: View/Elements/global_menu.ctp:335 View/Helper/NavbarHelper.php:642
 msgid "List Auth Keys"
-msgstr ""
+msgstr "列出认证密钥"
 
 #: View/Elements/global_menu.ctp:339
 msgid "List User Settings"
@@ -11001,9 +11026,9 @@ msgstr ""
 msgid "Search Logs"
 msgstr "搜索日志"
 
-#: View/Elements/global_menu.ctp:477
+#: View/Elements/global_menu.ctp:477 View/Helper/NavbarHelper.php:849
 msgid "API"
-msgstr ""
+msgstr "API"
 
 #: View/Elements/global_menu.ctp:480
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:1580
@@ -11294,11 +11319,11 @@ msgstr "帖子数量"
 msgid "#Posts"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:38
-#: View/Events/index.ctp:26
-#: View/Events/view.ctp:99
+#: View/Elements/Events/eventIndexTable.ctp:38 View/Events/index.ctp:26
+#: View/Events/view.ctp:99 View/Themed/Overmind/Elements/Events/index.ctp:164
+#: View/Themed/Overmind/Elements/Events/index.ctp:51
 msgid "Creator user"
-msgstr ""
+msgstr "创建用户"
 
 #: View/Elements/Events/eventIndexTable.ctp:40;41
 msgid "Last modified at"
@@ -13046,8 +13071,11 @@ msgid "PHP Extensions"
 msgstr "PHP 扩展"
 
 #: View/Elements/healthElements/diagnostics.ctp:202
+#: View/Themed/Overmind/Elements/Events/index.ctp:185
+#: View/Themed/Overmind/Elements/Events/index.ctp:502
+#: View/Themed/Overmind/Elements/Events/index.ctp:52
 msgid "Extension"
-msgstr ""
+msgstr "扩展"
 
 #: View/Elements/healthElements/diagnostics.ctp:204
 msgid "Why to install"
@@ -13682,8 +13710,10 @@ msgid "Save"
 msgstr "保存"
 
 #: View/Elements/markdownEditor/markdownEditor.ctp:55
+#: View/Themed/Overmind/Elements/navbar.ctp:10
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:40
 msgid "Menu"
-msgstr ""
+msgstr "菜单"
 
 #: View/Elements/markdownEditor/markdownEditor.ctp:67
 msgid "Download PDF (via print)"
@@ -13969,8 +13999,11 @@ msgid "Field"
 msgstr "字段"
 
 #: View/Elements/templateElements/populateTemplateAttribute.ctp:38
-msgid "Describe the %s using one or several (separated by a line-break) of the following types: %s"
-msgstr "用下列类型中的一个或几个(用分界线隔开)来描述: %s"
+#, php-format
+msgid ""
+"Describe the %s using one or several (separated by a line-break) of the "
+"following types: %s"
+msgstr "使用以下一种或多种类型（以换行符分隔）描述 %s：%s"
 
 #: View/Elements/templateElements/populateTemplateAttribute.ctp:40
 msgid "Describe the %s using one or several %s\\s (separated by a line-break) "
@@ -14175,11 +14208,6 @@ msgstr "接收方"
 #: View/EventDelegations/index.ctp:86
 msgid "Delegation index"
 msgstr "授权索引"
-
-#: View/EventDelegations/index.ctp:87
-msgid ""
-msgstr ""
-""
 
 #: View/EventDelegations/ajax/accept_delegation.ctp:4
 msgid "Are you sure you would like to accept the request by %s to take ownership of Event #%s"
@@ -15944,8 +15972,12 @@ msgid "Attribute details"
 msgstr "属性详情"
 
 #: View/Events/resolved_attributes.ctp:4
-msgid "Below you can see the %s that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution."
-msgstr "下面您可以看到要创建的%, 确保类别和类型都是正确的, 经常会根据不确定的自动解析提供几个选项."
+#, php-format
+msgid ""
+"Below you can see the %s that are to be created. Make sure that the "
+"categories and the types are correct, often several options will be offered "
+"based on an inconclusive automatic resolution."
+msgstr "以下是将要创建的 %s。请确认类别和类型正确；自动识别结果不确定时，通常会提供多个选项。"
 
 #: View/Events/resolved_attributes.ctp:8
 msgid "Warning: You are missing warninglist(s) that are used to recognise TLDs. Make sure your MISP has the warninglist submodule enabled and updated or else this tool might end up missing valid domains/hostnames/urls. The missing lists are: %s"
@@ -16336,9 +16368,9 @@ msgstr "切换属性"
 msgid "Toggle discussions"
 msgstr "切换讨论"
 
-#: View/Events/view.ctp:560
+#: View/Events/view.ctp:560 View/Helper/NavbarHelper.php:179
 msgid "Event Reports"
-msgstr ""
+msgstr "事件报告"
 
 #: View/Events/view.ctp:192
 msgid " (%s Object)"
@@ -16563,8 +16595,9 @@ msgid "None or less than 1% of the data of %s is contained in %s (%s matching va
 msgstr "%s中没有或少于1%的数据包含在%s中(%s匹配值)"
 
 #: View/Feeds/compare_feeds.ctp:74
+#, php-format
 msgid "%s% of the data of %s is contained in %s (%s matching values)"
-msgstr "%s%的数据包含在%s中(%s匹配值)"
+msgstr "%2$s 的数据中有 %1$s% 包含在 %3$s 中（%4$s 个匹配值）"
 
 #: View/Feeds/freetext_index.ctp:2
 msgid "Parsed attributes from feed %s"
@@ -17246,8 +17279,9 @@ msgid "For default clusters, you can restore the cluster at any time by force up
 msgstr ""
 
 #: View/GalaxyClusters/ajax/index.ctp:29
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:47
 msgid "Custom"
-msgstr ""
+msgstr "自定义"
 
 #: View/GalaxyClusters/ajax/index.ctp:38
 msgid "My Clusters"
@@ -17891,8 +17925,9 @@ msgid "All similar objects not displayed..."
 msgstr "所有未显示的相似对象..."
 
 #: View/Objects/revise_object.ctp:126
+#, php-format
 msgid "%s Similar objects found. %s not displayed"
-msgstr "$s 相似对象发现, %s 未显示"
+msgstr "找到 %s 个相似对象。%s 个未显示"
 
 #: View/Objects/revise_object.ctp:164
 msgid "This attribute will NOT be merged into the similar object as it is conflicting with another attribute."
@@ -20548,8 +20583,9 @@ msgid "Here is a list of the various tools you can use while using this feature"
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:260
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:19
 msgid "Pagination"
-msgstr ""
+msgstr "分页"
 
 #: View/Pages/doc/using_the_system.ctp:260
 msgid "There are 5 posts visible on each event page, if there have been more messages posted, use the previous and next button to navigate through the thread. This will not reload the rest of the page."
@@ -22250,8 +22286,9 @@ msgid "Passive Sharing Groups"
 msgstr "被动共享组"
 
 #: View/SharingGroups/index.ctp:69
+#: View/Themed/Overmind/Elements/Events/index.ctp:154
 msgid "Creator"
-msgstr ""
+msgstr "创建者"
 
 #: View/SharingGroups/index.ctp:80
 msgid "Org count"
@@ -22367,8 +22404,9 @@ msgid "Add Sighting"
 msgstr "添加观察"
 
 #: View/Sightings/ajax/quickAddConfirmationForm.ctp:7
+#, php-format
 msgid "Add%s sighting (%s)?"
-msgstr "添加观察(%s)?"
+msgstr "添加%s观测记录（%s）？"
 
 #: View/Sightings/ajax/quickAddConfirmationForm.ctp:7
 msgid "false-positive"
@@ -23253,9 +23291,11 @@ msgstr "Logo"
 msgid "Login"
 msgstr "登入"
 
-#: View/Users/login.ctp:51
-msgid "Registration will be sent to the administrators of the instance for consideration."
-msgstr ""
+#: View/Themed/Overmind/Users/login.ctp:212 View/Users/login.ctp:51
+msgid ""
+"Registration will be sent to the administrators of the instance for "
+"consideration."
+msgstr "注册申请将发送给实例管理员审核。"
 
 #: View/Users/login.ctp:52
 msgid "No account yet? Register now!"
@@ -23301,17 +23341,22 @@ msgstr ""
 msgid "Message to the admins"
 msgstr ""
 
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:293
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:294
 #: View/Users/registrations.ctp:12
 msgid "Process the selected registrations"
-msgstr ""
+msgstr "处理所选注册申请"
 
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:304
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:305
 #: View/Users/registrations.ctp:18
 msgid "Discard the selected registrations"
-msgstr ""
+msgstr "丢弃所选注册申请"
 
+#: View/Themed/Overmind/Elements/Events/index.ctp:420
 #: View/Users/registrations.ctp:44
 msgid "Time"
-msgstr ""
+msgstr "时间"
 
 #: View/Users/registrations.ctp:56
 msgid "User Agent"
@@ -23987,3 +24032,1534 @@ msgstr ""
 msgid "Warninglist with same name already exists."
 msgstr ""
 
+#: View/Helper/NavbarHelper.php:794
+msgid "Access logs"
+msgstr "访问日志"
+
+#: View/Helper/NavbarHelper.php:143
+#: View/Themed/Overmind/Elements/Events/index.ctp:177
+msgid "Objects"
+msgstr "对象"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "hours"
+msgstr "小时"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:169
+msgid "Markings"
+msgstr "标记"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:294
+#, php-format
+msgid "Sharing group %s"
+msgstr "共享组 %s"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:373
+msgid "just now"
+msgstr "刚刚"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:376
+#, php-format
+msgid "%s min ago"
+msgstr "%s 分钟前"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:379
+#, php-format
+msgid "%s h ago"
+msgstr "%s 小时前"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:382
+#, php-format
+msgid "%s d ago"
+msgstr "%s 天前"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:385
+#, php-format
+msgid "%s wk ago"
+msgstr "%s 周前"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:388
+#, php-format
+msgid "%s mo ago"
+msgstr "%s 个月前"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:390
+#, php-format
+msgid "%s y ago"
+msgstr "%s 年前"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:778
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:784
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:122
+msgid "Clear all"
+msgstr "全部清除"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+msgid "Remove this filter"
+msgstr "移除此筛选条件"
+
+#: View/Helper/NavbarHelper.php:258
+msgid "Data points"
+msgstr "数据项"
+
+#: View/Helper/NavbarHelper.php:439
+msgid "Data models"
+msgstr "数据模型"
+
+#: View/Helper/NavbarHelper.php:566
+msgid "Sync"
+msgstr "同步"
+
+#: View/Helper/NavbarHelper.php:903
+msgid "Resources"
+msgstr "资源"
+
+#: View/Helper/NavbarHelper.php:1028 View/Helper/NavbarHelper.php:961
+#: View/Helper/NavbarHelper.php:965
+msgid "Bookmarks"
+msgstr "书签"
+
+#: View/Helper/NavbarHelper.php:162
+msgid "Value Intelligence"
+msgstr "值情报"
+
+#: View/Helper/NavbarHelper.php:516
+msgid "Integrations"
+msgstr "集成"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:242
+msgid "Open"
+msgstr "打开"
+
+#: View/Helper/EventIndexHelper.php:54
+#: View/Themed/Overmind/Elements/Events/index.ctp:407
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:23
+msgid "Unpublished"
+msgstr "未发布"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:56
+msgid "Reports"
+msgstr "报告"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:68
+msgid "Reach"
+msgstr "传播范围"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:43
+msgid "No organisation is a member yet."
+msgstr "尚无成员组织。"
+
+#: Lib/Tools/SharingGroupPeek.php:91
+msgid "Stays on this instance."
+msgstr "仅保留在此实例上。"
+
+#: Lib/Tools/SharingGroupPeek.php:89
+#, php-format
+msgid "Pushed to %s other instance."
+msgid_plural "Pushed to %s other instances."
+msgstr[0] "推送到其他 %s 个实例。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:194
+msgid "Deprecated"
+msgstr "已弃用"
+
+#: Lib/Tools/SharingGroupPeek.php:29
+msgid "Inactive"
+msgstr "未启用"
+
+#: Lib/Tools/SharingGroupPeek.php:32
+msgid "Received through sync"
+msgstr "通过同步接收"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Roaming"
+msgstr "漫游"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Travels to any instance its members connect to."
+msgstr "传播到其成员连接的任何实例。"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "no"
+msgstr "否"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "yes"
+msgstr "是"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:189
+msgid "Relationship"
+msgstr "关系"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid "Request access"
+msgstr "申请访问"
+
+#: View/Helper/NavbarHelper.php:190
+msgid "Template Variables"
+msgstr "模板变量"
+
+#: View/Helper/NavbarHelper.php:875
+msgid "Server PGP public key"
+msgstr "服务器 PGP 公钥"
+
+#: View/Helper/NavbarHelper.php:884
+msgid "Server S/MIME certificate"
+msgstr "服务器 S/MIME 证书"
+
+#: View/Helper/NavbarHelper.php:503
+msgid "List Sharing Group Blueprints"
+msgstr "列出共享组蓝图"
+
+#: View/Helper/NavbarHelper.php:357
+msgid "List Event Templates"
+msgstr "列出事件模板"
+
+#: View/Helper/NavbarHelper.php:372
+msgid "List Object Relationships"
+msgstr "列出对象关系"
+
+#: View/Helper/NavbarHelper.php:1018
+msgid "Manage Bookmarks"
+msgstr "管理书签"
+
+#: View/Helper/NavbarHelper.php:894
+msgid "Themes"
+msgstr "主题"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "ON"
+msgstr "开"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "OFF"
+msgstr "关"
+
+#: View/Helper/NavbarHelper.php:457
+msgid "Remote Servers"
+msgstr "远程服务器"
+
+#: View/Helper/NavbarHelper.php:520
+msgid "Communities"
+msgstr "社区"
+
+#: View/Helper/NavbarHelper.php:536
+msgid "TAXII Servers"
+msgstr "TAXII 服务器"
+
+#: View/Helper/NavbarHelper.php:682
+msgid "Benchmarking"
+msgstr "基准测试"
+
+#: View/Helper/NavbarHelper.php:739
+msgid "Correlation rules"
+msgstr "关联规则"
+
+#: View/Helper/NavbarHelper.php:747
+msgid "Over-correlating values"
+msgstr "关联过多的值"
+
+#: View/Helper/EventIndexHelper.php:49
+#, php-format
+msgid "Changes pending: published %s, changed since"
+msgstr "有待发布的更改：发布于 %s，此后已修改"
+
+#: View/Helper/EventIndexHelper.php:52
+#, php-format
+msgid "Published %s"
+msgstr "发布于 %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "Created by %s"
+msgstr "由 %s 创建"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "held here by %s"
+msgstr "由 %s 在此持有"
+
+#: View/Helper/EventIndexHelper.php:95
+#, php-format
+msgid "Your grade for %s: %s (analyst profile)"
+msgstr "您对 %s 的评级：%s（分析员配置）"
+
+#: View/Helper/EventIndexHelper.php:118
+#, php-format
+msgid "Admiralty scale: %s"
+msgstr "海军情报评级：%s"
+
+#: View/Helper/EventIndexHelper.php:128 View/Helper/EventIndexHelper.php:461
+msgid "pinned by your profile"
+msgstr "已由您的配置固定"
+
+#: View/Helper/EventIndexHelper.php:137
+#, php-format
+msgid "No %s marking"
+msgstr "无 %s 标记"
+
+#: View/Helper/EventIndexHelper.php:177 View/Helper/EventIndexHelper.php:195
+msgid "(cluster not available here)"
+msgstr "（此处无此集群）"
+
+#: View/Helper/EventIndexHelper.php:187
+#, php-format
+msgid "Mitigation %s"
+msgstr "缓解措施 %s"
+
+#: View/Helper/EventIndexHelper.php:211
+#, php-format
+msgid "%s unresolved"
+msgstr "%s 项未解析"
+
+#: View/Helper/EventIndexHelper.php:226
+#, php-format
+msgid "%s: show all"
+msgstr "%s：显示全部"
+
+#: View/Helper/EventIndexHelper.php:318
+#, php-format
+msgid "Changed last of %s workspaces on this event"
+msgstr "此事件的 %s 个工作区中最近修改的工作区"
+
+#: View/Helper/EventIndexHelper.php:365
+#, php-format
+msgid "Extends #%s %s"
+msgstr "扩展 #%s %s"
+
+#: View/Helper/EventIndexHelper.php:366
+#, php-format
+msgid "extends #%s"
+msgstr "扩展 #%s"
+
+#: View/Helper/EventIndexHelper.php:370
+#, php-format
+msgid "Extends %s, which is not available here"
+msgstr "扩展 %s，但此处无此事件"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "missing"
+msgstr "缺失"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "extends an unknown event"
+msgstr "扩展未知事件"
+
+#: View/Helper/EventIndexHelper.php:379
+#, php-format
+msgid "extended by %s"
+msgstr "由 %s 扩展"
+
+#: View/Helper/EventIndexHelper.php:411
+msgid "Cluster not available here"
+msgstr "此处无此集群"
+
+#: View/Helper/EventIndexHelper.php:464
+msgid "preferred by your profile"
+msgstr "您的配置优先选用"
+
+#: View/Helper/EventIndexHelper.php:387
+#, php-format
+msgid "%s galaxy tag whose cluster is not available here"
+msgid_plural "%s galaxy tags whose cluster is not available here"
+msgstr[0] "%s 个星系标签的集群在此处不可用"
+
+#: View/Helper/NavbarHelper.php:171
+msgid "Collections"
+msgstr "集合"
+
+#: View/Helper/NavbarHelper.php:183 View/Helper/NavbarHelper.php:213
+msgid "Index"
+msgstr "列表"
+
+#: View/Helper/NavbarHelper.php:200
+msgid "Analyst Data"
+msgstr "分析员数据"
+
+#: View/Helper/NavbarHelper.php:220
+msgid "Events with Proposals"
+msgstr "有提议的事件"
+
+#: View/Helper/NavbarHelper.php:227
+msgid "Delegation Requests"
+msgstr "委派请求"
+
+#: View/Helper/NavbarHelper.php:270
+msgid "Tags & Taxonomies"
+msgstr "标签和分类法"
+
+#: View/Helper/NavbarHelper.php:309
+msgid "List Galaxy Relationships"
+msgstr "列出星系关系"
+
+#: View/Helper/NavbarHelper.php:344
+msgid "Analyst Profiles"
+msgstr "分析员配置"
+
+#: View/Helper/NavbarHelper.php:391
+msgid "Filters & Lists"
+msgstr "筛选器和列表"
+
+#: View/Helper/NavbarHelper.php:453
+msgid "Servers & Feeds"
+msgstr "服务器和数据源"
+
+#: View/Helper/NavbarHelper.php:544
+msgid "Sighting DB"
+msgstr "观测数据库"
+
+#: View/Helper/NavbarHelper.php:555
+msgid "Event ID Translator"
+msgstr "事件 ID 转换器"
+
+#: View/Helper/NavbarHelper.php:591
+msgid "Users & Orgs"
+msgstr "用户和组织"
+
+#: View/Helper/NavbarHelper.php:611
+msgid "User Settings"
+msgstr "用户设置"
+
+#: View/Helper/NavbarHelper.php:630
+msgid "Roles & Permissions"
+msgstr "角色和权限"
+
+#: View/Helper/NavbarHelper.php:654
+msgid "System jobs"
+msgstr "系统任务"
+
+#: View/Helper/NavbarHelper.php:658
+msgid "Workflow"
+msgstr "工作流"
+
+#: View/Helper/NavbarHelper.php:695
+msgid "Blocklisting"
+msgstr "阻止列表"
+
+#: View/Helper/NavbarHelper.php:699
+msgid "Blocklisted events"
+msgstr "已阻止的事件"
+
+#: View/Helper/NavbarHelper.php:707
+msgid "Blocklisted organisations"
+msgstr "已阻止的组织"
+
+#: View/Helper/NavbarHelper.php:715
+msgid "Blocklisted sightings"
+msgstr "已阻止的观测记录"
+
+#: View/Helper/NavbarHelper.php:731
+msgid "Top correlations"
+msgstr "主要关联"
+
+#: View/Helper/NavbarHelper.php:775
+msgid "Application logs"
+msgstr "应用程序日志"
+
+#: View/Helper/NavbarHelper.php:819
+msgid "Open API"
+msgstr "开放 API"
+
+#: View/Helper/NavbarHelper.php:827
+msgid "REST Client"
+msgstr "REST 客户端"
+
+#: View/Helper/NavbarHelper.php:981
+msgid "No workspace"
+msgstr "无工作区"
+
+#: View/Helper/NavbarHelper.php:983
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:94
+msgid "Workspace"
+msgstr "工作区"
+
+#: View/Helper/NavbarHelper.php:1006
+msgid "Set this page as homepage"
+msgstr "将此页设为首页"
+
+#: View/Helper/NavbarHelper.php:1050
+msgid "Dark mode"
+msgstr "深色模式"
+
+#: View/Helper/NavbarHelper.php:1058
+msgid "Replay the tutorial"
+msgstr "重新播放教程"
+
+#: View/Helper/NavbarHelper.php:1100
+msgid "Light"
+msgstr "浅色"
+
+#: View/Helper/NavbarHelper.php:1101
+msgid "Dark"
+msgstr "深色"
+
+#: View/Helper/NavbarHelper.php:1102
+msgid "Light and dark"
+msgstr "浅色和深色"
+
+#: View/Helper/NavbarHelper.php:1137
+#, php-format
+msgid "Instance default (%s)"
+msgstr "实例默认主题（%s）"
+
+#: View/Helper/NavbarHelper.php:1138
+msgid "Follow the theme your administrator picks for this instance."
+msgstr "使用管理员为此实例选择的主题。"
+
+#: View/Helper/NavbarHelper.php:1146
+msgid "Theme"
+msgstr "主题"
+
+#: View/Helper/NavbarHelper.php:948
+#, php-format
+msgid "News: %s unread"
+msgid_plural "News: %s unread"
+msgstr[0] "新闻：%s 条未读"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:119
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:120
+msgid "Edit selected attributes"
+msgstr "编辑所选属性"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+#, php-format
+msgid "Remove %s"
+msgstr "移除 %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:268
+msgid "Add to workspace"
+msgstr "添加到工作区"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close (Esc)"
+msgstr "关闭（Esc）"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:53
+msgid "Tags & galaxies"
+msgstr "标签和星系"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:54
+msgid "Attributes & objects"
+msgstr "属性和对象"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:83
+#: View/Themed/Overmind/Elements/Events/index.ctp:84
+msgid "Choose columns"
+msgstr "选择列"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:85
+#: View/Themed/Overmind/Elements/Events/index.ctp:86
+msgid "Columns"
+msgstr "列"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:88
+msgid "Reset widths"
+msgstr "重置列宽"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:139
+msgid "Publish state"
+msgstr "发布状态"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:170
+msgid "Markings your analyst profile pins"
+msgstr "您的分析员配置固定的标记"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:174
+msgid "ATT&CK techniques (count, then ids), then mitigations"
+msgstr "ATT&CK 技术（先按数量，再按 ID），然后是缓解措施"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:175
+msgid "Other clusters, then tags"
+msgstr "其他集群，然后是标签"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:182
+msgid ""
+"Workspaces, reports, sightings, proposals and discussions, when there are "
+"any"
+msgstr "工作区、报告、观测记录、提议和讨论（如有）"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:209
+#: View/Themed/Overmind/Elements/Events/index.ctp:423
+#: View/Themed/Overmind/Elements/Events/index.ctp:497
+msgid "Changed"
+msgstr "已更改"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:342
+msgid "Event or attribute tags."
+msgstr "事件或属性的标签。"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:353
+msgid "And tag"
+msgstr "并且包含标签"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:358
+msgid "Also carried by the event or one of its attributes."
+msgstr "事件或其某个属性也包含此标签。"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:369
+msgid "Clusters attached to the event."
+msgstr "附加到事件的集群。"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:380
+msgid "Any sharing group"
+msgstr "任意共享组"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:397
+msgid "Including a group keeps only events shared with it."
+msgstr "包含某个组后，仅保留与该组共享的事件。"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "24h"
+msgstr "24小时"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "last 24 hours"
+msgstr "过去 24 小时"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "7d"
+msgstr "7天"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "last 7 days"
+msgstr "过去 7 天"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "30d"
+msgstr "30天"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "last 30 days"
+msgstr "过去 30 天"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "90d"
+msgstr "90天"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "last 90 days"
+msgstr "过去 90 天"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "1y"
+msgstr "1年"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "last year"
+msgstr "过去一年"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:434
+msgid "My events"
+msgstr "我的事件"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:448
+msgid "Org events"
+msgstr "组织事件"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:467
+#, php-format
+msgid "until %s"
+msgstr "截至 %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "minutes"
+msgstr "分钟"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "seconds"
+msgstr "秒"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:472
+#, php-format
+msgid "last %s %s"
+msgstr "过去 %s %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:475
+#: View/Themed/Overmind/Elements/Events/index.ctp:478
+#, php-format
+msgid "since %s"
+msgstr "自 %s 起"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:487
+msgid "Anything"
+msgstr "任意内容"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:489
+msgid "Attribute value"
+msgstr "属性值"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:490
+msgid "Date from"
+msgstr "起始日期"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:491
+msgid "Date until"
+msgstr "截止日期"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:500
+msgid "First published"
+msgstr "首次发布"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:501
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:31
+msgid "Changes pending"
+msgstr "更改待发布"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:503
+msgid "Extended"
+msgstr "已扩展"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:504
+msgid "Minimal"
+msgstr "精简"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+msgid "some"
+msgstr "部分"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:28
+msgid "Never published, or unpublished since"
+msgstr "从未发布，或此后已取消发布"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:37
+msgid "Published once and changed since"
+msgstr "曾发布，此后已修改"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:40
+msgid "Changed this week"
+msgstr "本周更改"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:45
+msgid "Changed in the last 7 days"
+msgstr "过去 7 天内更改"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:50
+msgid "Since your last visit"
+msgstr "自您上次访问以来"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:55
+#, php-format
+msgid "Changed since your previous login, %s"
+msgstr "自您上次登录（%s）以来已更改"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:59
+msgid "New this week"
+msgstr "本周新增"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:64
+msgid "First published in the last 7 days"
+msgstr "过去 7 天内首次发布"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:67
+msgid "Creator orgs"
+msgstr "创建组织"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:70
+msgid "Filter by creator organisation"
+msgstr "按创建组织筛选"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:79
+msgid "Event dates"
+msgstr "事件日期"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:84
+msgid "Figures for these filters"
+msgstr "当前筛选条件的统计"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:83
+msgid "Fetch"
+msgstr "获取"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:241
+#, php-format
+msgid "Open %s"
+msgstr "打开 %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:268
+msgid "Activate"
+msgstr "启用"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:274
+msgid "Deactivate"
+msgstr "停用"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:90
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:91
+msgid "Add the selected to the active workspace"
+msgstr "将所选项添加到当前工作区"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:332
+msgid "Clear selection"
+msgstr "清除选择"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:20
+#, php-format
+msgid "Sharing group · owned by %s"
+msgstr "共享组 · 所有者：%s"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:41
+msgid "Every organisation on this instance"
+msgstr "此实例上的所有组织"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:51
+msgid "owner"
+msgstr "所有者"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:52
+msgid "your org"
+msgstr "您的组织"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:54
+msgid "Can add organisations"
+msgstr "可以添加组织"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:61
+#, php-format
+msgid "+%s more · open the group"
+msgstr "还有 %s 个 · 打开共享组"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:81
+msgid "Only this group"
+msgstr "仅此共享组"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:82
+msgid "Open group"
+msgstr "打开共享组"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:38
+#, php-format
+msgid "%s member organisation"
+msgid_plural "%s member organisations"
+msgstr[0] "%s 个成员组织"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:253
+msgid "Highlight"
+msgstr "突出显示"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:367
+msgid "Searching…"
+msgstr "搜索中…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:49
+msgid "From"
+msgstr "从"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:50
+msgid "To"
+msgstr "至"
+
+#: View/Themed/Overmind/Users/login.ctp:90
+#: View/Themed/Overmind/Users/login.ctp:91
+msgid "MISP — Intelligence Sharing"
+msgstr "MISP — 情报共享"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:182
+#, php-format
+msgid "aka %s"
+msgstr "又名 %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:184
+msgid "All galaxies"
+msgstr "所有星系"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:185
+#, php-format
+msgid "All of %s"
+msgstr "%s 的全部内容"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:186
+msgid "All tactics"
+msgstr "所有战术"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:187
+msgid "All tags"
+msgstr "所有标签"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:188
+msgid "A–Z"
+msgstr "A–Z"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:189
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:370
+#, php-format
+msgid "Back to %s"
+msgstr "返回 %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:190
+msgid "Browse"
+msgstr "浏览"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:191
+msgid "By namespace"
+msgstr "按命名空间"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:192
+msgid "Check the spelling, or browse a scope on the left."
+msgstr "检查拼写，或浏览左侧的范围。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:196
+msgid "Everywhere"
+msgstr "全部范围"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:198
+#, php-format
+msgid "First %s matches · keep typing or narrow"
+msgstr "前 %s 项匹配 · 继续输入或缩小范围"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:200
+msgid "Has selected values"
+msgstr "包含所选值"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:201
+msgid "In use"
+msgstr "使用中"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:202
+msgid "Clusters already attached somewhere"
+msgstr "已附加到某处的集群"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:203
+msgid "Keep typing"
+msgstr "继续输入"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:204
+msgid "apply"
+msgstr "应用"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:205
+msgid "back"
+msgstr "返回"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:206
+msgid "exclude"
+msgstr "排除"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:207
+msgid "include"
+msgstr "包含"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:209
+msgid "Loading scopes…"
+msgstr "正在加载范围…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:210
+msgid "Could not load the scopes."
+msgstr "无法加载范围。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:211
+msgid "Could not load these values"
+msgstr "无法加载这些值"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:212
+msgid "All of"
+msgstr "全部包含"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:213
+msgid "Events tagged with every one of them, on the event itself"
+msgstr "事件本身带有所有这些标签的事件"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:214
+msgid "Any of"
+msgstr "包含任一项"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:215
+msgid ""
+"Events with at least one of them, on the event or one of its attributes"
+msgstr "事件或其某个属性至少带有其中一个标签的事件"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:216
+msgid "Match"
+msgstr "匹配方式"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:217
+msgid "matrix"
+msgstr "矩阵"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:218
+msgid "A matrix: browse it by tactic"
+msgstr "矩阵：按战术浏览"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:219
+#, php-format
+msgid "+%s more"
+msgstr "还有 %s 项"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:220
+msgid "More not shown · type to narrow"
+msgstr "还有未显示的内容 · 输入以缩小范围"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:221
+#, php-format
+msgid "+%s more · type to narrow"
+msgstr "还有 %s 项 · 输入以缩小范围"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:222
+msgid "Namespaces"
+msgstr "命名空间"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:223
+#, php-format
+msgid "Narrow to %s, keeping “%s”"
+msgstr "缩小到 %s，保留“%s”"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:224
+msgid "Narrow to"
+msgstr "缩小范围至"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:225
+msgid "No cluster in use"
+msgstr "没有使用中的集群"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:226
+#, php-format
+msgid "No cluster in use matches “%s”"
+msgstr "没有使用中的集群匹配“%s”"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:227
+msgid "No cluster in use for this tactic"
+msgstr "此战术没有使用中的集群"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:228
+msgid "No namespace"
+msgstr "无命名空间"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:229
+msgid "Free-text tags, written without a \"namespace:\" prefix."
+msgstr "自由文本标签，不带“namespace:”前缀。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:230
+msgid "No predicate has a match."
+msgstr "没有匹配的谓词。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:231
+msgid "not"
+msgstr "非"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:232
+msgid "Not attached to anything yet"
+msgstr "尚未附加到任何内容"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:233
+msgid "no taxonomy"
+msgstr "无分类法"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:234
+msgid "Not enabled"
+msgstr "未启用"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:235
+msgid "Nothing here yet"
+msgstr "此处暂无内容"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:236
+#, php-format
+msgid "Nothing in %s matches “%s”"
+msgstr "%s 中没有匹配“%s”的内容"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:237
+#, php-format
+msgid "Nothing matches “%s”"
+msgstr "没有匹配“%s”的内容"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:238
+#, php-format
+msgid "No %s value matches “%s”"
+msgstr "没有 %s 值匹配“%s”"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:239
+#, php-format
+msgid "Tags written as \"%s:…\", with no taxonomy behind them."
+msgstr "格式为“%s:…”且不属于任何分类法的标签。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:240
+msgid "Numerical value"
+msgstr "数值"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:243
+#, php-format
+msgid "or type to search all %s %s values."
+msgstr "或输入以搜索所有 %s %s 值。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:244
+msgid "Other namespaces"
+msgstr "其他命名空间"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:245
+#, php-format
+msgid "Other %s tags"
+msgstr "其他 %s 标签"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:246
+msgid "Tags in this namespace that are not entries of the taxonomy"
+msgstr "此命名空间中不属于分类法条目的标签"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:247
+msgid "pick a heading to narrow"
+msgstr "选择标题以缩小范围"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:248
+msgid "Pick a predicate"
+msgstr "选择谓词"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:249
+msgid "Pinned in your profile"
+msgstr "已在您的配置中固定"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:250
+msgid "Predicates"
+msgstr "谓词"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:251
+msgid "Preferred in your profile"
+msgstr "在您的配置中优先选用"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:254
+msgid "Search all clusters, or pick a scope"
+msgstr "搜索所有集群，或选择范围"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:255
+#, php-format
+msgid "Search all of %s"
+msgstr "搜索 %s 的全部内容"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:256
+msgid "Search all tags, or pick a scope"
+msgstr "搜索所有标签，或选择范围"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:257
+msgid "Search failed"
+msgstr "搜索失败"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:258
+#, php-format
+msgid "Search in %s"
+msgstr "在 %s 中搜索"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:260
+msgid "show all"
+msgstr "显示全部"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:261
+msgid "Show all clusters"
+msgstr "显示所有集群"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:262
+msgid "Show where it lives"
+msgstr "显示所在位置"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:263
+#, php-format
+msgid "Starts with %s"
+msgstr "以 %s 开头"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:264
+msgid "Stop excluding"
+msgstr "停止排除"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:265
+msgid "Tactics"
+msgstr "战术"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:268
+msgid "taxonomy"
+msgstr "分类法"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:269
+msgid "Nothing selected · click a value to include it,"
+msgstr "未选择任何内容 · 单击值以包含，"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:270
+msgid "to exclude it"
+msgstr "以排除该值"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:271
+#: View/Themed/Overmind/Elements/side_panel.ctp:33
+msgid "Try again"
+msgstr "重试"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:272
+msgid "Two characters search every cluster, or pick a scope on the left."
+msgstr "输入两个字符以搜索所有集群，或选择左侧的范围。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:273
+msgid "Two characters search every tag, or pick a scope on the left."
+msgstr "输入两个字符以搜索所有标签，或选择左侧的范围。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:274
+msgid "Where you are"
+msgstr "当前位置"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:275
+msgid "Which clusters"
+msgstr "选择集群"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:366
+msgid "Type 2 characters to search"
+msgstr "输入 2 个字符以搜索"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:369
+msgid "The list could not be loaded"
+msgstr "无法加载列表"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:371
+#, php-format
+msgid "Choose %s"
+msgstr "选择 %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:372
+msgid "Nothing matches"
+msgstr "没有匹配项"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:373
+#, php-format
+msgid "%s more: type to narrow"
+msgstr "还有 %s 项：输入以缩小范围"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:374
+msgid "The search failed"
+msgstr "搜索失败"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:382
+msgid "Any of these. Applies when you close the picker."
+msgstr "任意一项。关闭选择器时应用。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:383
+msgid "Any of these."
+msgstr "任意一项。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:384
+msgid ""
+"This link asks for events with all of these. Changing the selection here "
+"switches to any of them."
+msgstr "此链接要求事件包含所有这些项。在此更改选择将切换为包含任意一项。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:385
+msgid "Not found on this instance"
+msgstr "此实例上未找到"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:386
+msgid "The filtered list could not be loaded."
+msgstr "无法加载筛选后的列表。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:473
+msgid "Search a value"
+msgstr "搜索值"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:727
+#, php-format
+msgid "%s shown, page %s"
+msgstr "显示 %s 项，第 %s 页"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:733
+#, php-format
+msgid "%s shown, page %s of %s"
+msgstr "显示 %s 项，第 %s 页，共 %s 页"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:739
+#, php-format
+msgid "%s shown"
+msgstr "显示 %s 项"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:767
+msgid "Active filters"
+msgstr "当前筛选条件"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:45
+#, php-format
+msgid "%s (all of)"
+msgstr "%s（全部）"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_picker.ctp:108
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:37
+#, php-format
+msgid "%s selected"
+msgid_plural "%s selected"
+msgstr[0] "已选择 %s 项"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:46
+msgid "No limit"
+msgstr "不限"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:48
+msgid "Pick dates"
+msgstr "选择日期"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:51
+msgid "Both rows apply together. Applies when you close the picker."
+msgstr "两行条件同时应用。关闭选择器时生效。"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:62
+#, php-format
+msgid "%s set"
+msgid_plural "%s set"
+msgstr[0] "已设置 %s 项"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_toggle.ctp:17
+msgid "More Filters"
+msgstr "更多筛选条件"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_card.ctp:56
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_table.ctp:103
+msgid "No items to display"
+msgstr "没有可显示的项目"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:30
+msgid "Selected items"
+msgstr "所选项目"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:61
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:62
+msgid "Export selected attributes"
+msgstr "导出所选属性"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:79
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:80
+msgid "Fetch the selected events"
+msgstr "获取所选事件"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:130
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:131
+msgid "Add Tag on selected attributes"
+msgstr "为所选属性添加标签"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:141
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:142
+msgid "Add Local Tag on selected attributes"
+msgstr "为所选属性添加本地标签"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:145
+msgid "Local Tag"
+msgstr "本地标签"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:152
+msgid "Add Galaxy on selected attributes"
+msgstr "为所选属性添加星系"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:153
+msgid "Add Galaxy to selected attributes"
+msgstr "将星系添加到所选属性"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:163
+msgid "Add Local Galaxy on selected attributes"
+msgstr "为所选属性添加本地星系"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:164
+msgid "Add Local Galaxy to selected attributes"
+msgstr "将本地星系添加到所选属性"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:167
+msgid "Local Galaxy"
+msgstr "本地星系"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:185
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:186
+msgid "Create new relationship for selected attributes"
+msgstr "为所选属性创建新关系"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:221
+msgid "Enable selected items"
+msgstr "启用所选项目"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:227
+msgid "Disable selected items"
+msgstr "禁用所选项目"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:236
+msgid "Make the selected items required"
+msgstr "将所选项目设为必填"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:242
+msgid "Make the selected items optional"
+msgstr "将所选项目设为可选"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:251
+msgid "Highlight selected items"
+msgstr "突出显示所选项目"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:257
+msgid "Remove highlight for selected items"
+msgstr "移除所选项目的突出显示"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:259
+msgid "Remove Highlight"
+msgstr "移除突出显示"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:266
+msgid "Activate selected items"
+msgstr "启用所选项目"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:272
+msgid "Deactivate selected items"
+msgstr "停用所选项目"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:282
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:283
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:322
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:323
+msgid "Delete selected items"
+msgstr "删除所选项目"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:78
+#, php-format
+msgid "Showing %s–%s"
+msgstr "显示 %s–%s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:84
+#, php-format
+msgid "Showing %s–%s of %s"
+msgstr "显示 %s–%s，共 %s 条"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Drag to resize · double-click to widen"
+msgstr "拖动以调整大小 · 双击以加宽"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Resize the window (arrow keys)"
+msgstr "调整窗口大小（方向键）"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Drag to resize"
+msgstr "拖动以调整大小"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Drag to move · arrow keys"
+msgstr "拖动以移动 · 方向键"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Move the window (arrow keys)"
+msgstr "移动窗口（方向键）"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:56
+msgid "Undock into a window"
+msgstr "分离为独立窗口"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:59
+msgid "Dock to the right"
+msgstr "停靠到右侧"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:28
+#: View/Themed/Overmind/Elements/side_panel.ctp:62
+msgid "Widen the panel"
+msgstr "加宽面板"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:1
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:20
+msgid "Main"
+msgstr "主导航"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:3
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:22
+#, php-format
+msgid "MISP %s"
+msgstr "MISP %s"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:4
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:23
+msgid "MISP Logo"
+msgstr "MISP 标志"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:27
+#, php-format
+msgid "%s shows or hides it"
+msgstr "按 %s 显示或隐藏"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:29
+msgid "Back to your width"
+msgstr "恢复原有宽度"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:30
+msgid "Undocked into a window."
+msgstr "已分离为独立窗口。"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:31
+msgid "Docked to the right."
+msgstr "已停靠到右侧。"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:32
+msgid "Failed to load."
+msgstr "加载失败。"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:34
+msgid "It could not be saved."
+msgstr "无法保存。"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Panel width"
+msgstr "面板宽度"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close the panel"
+msgstr "关闭面板"
+
+#: View/Themed/Overmind/Users/login.ctp:162
+#: View/Themed/Overmind/Users/login.ctp:163
+msgid "Show password"
+msgstr "显示密码"
+
+#: View/Themed/Overmind/Users/login.ctp:164
+msgid "Hide password"
+msgstr "隐藏密码"
+
+#: View/Themed/Overmind/Users/login.ctp:37
+msgid "Log in with SAML"
+msgstr "使用 SAML 登录"
+
+#: View/Themed/Overmind/Users/login.ctp:44
+msgid "Log in with Azure AD"
+msgstr "使用 Azure AD 登录"
+
+#: View/Themed/Overmind/Users/login.ctp:51
+msgid "Log in with OIDC"
+msgstr "使用 OIDC 登录"
+
+#: View/Themed/Overmind/Users/login.ctp:117
+#: View/Themed/Overmind/Users/login.ctp:194
+msgid "Log in"
+msgstr "登录"
+
+#: View/Themed/Overmind/Users/login.ctp:120
+msgid "This instance uses single sign-on. Choose your identity provider."
+msgstr "此实例使用单点登录。请选择身份提供商。"
+
+#: View/Themed/Overmind/Users/login.ctp:146
+msgid "Forgot your password?"
+msgstr "忘记密码？"
+
+#: View/Themed/Overmind/Users/login.ctp:173
+msgid "One-time password"
+msgstr "一次性密码"
+
+#: View/Themed/Overmind/Users/login.ctp:186
+#, php-format
+msgid "Enter the code from your token. Manage your tokens in %s."
+msgstr "输入令牌生成的验证码。在 %s 中管理您的令牌。"
+
+#: View/Themed/Overmind/Users/login.ctp:198
+msgid "or"
+msgstr "或"
+
+#: View/Themed/Overmind/Users/login.ctp:211
+msgid "No account yet?"
+msgstr "还没有账户？"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:25
+msgid "Theme updated!"
+msgstr "主题已更新！"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:31
+msgid "Failed to toggle Beta UI. Please try again."
+msgstr "无法切换测试版界面。请重试。"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:56
+msgid "Failed to change the theme. Please try again."
+msgstr "无法更改主题。请重试。"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:86
+msgid "Homepage saved!"
+msgstr "首页已保存！"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:90
+msgid "Failed to set homepage. Please try again."
+msgstr "无法设置首页。请重试。"
