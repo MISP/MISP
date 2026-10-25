@@ -11,9 +11,10 @@
  * `<script type="module" src=".../board.module.mjs">` tag stays in
  * the view because it's tied to the dashboard markup it operates on.
  */
+App::uses('MispLanguage', 'Tools');
 ?>
 <!DOCTYPE html>
-<html lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
+<html lang="<?= h(MispLanguage::htmlLang((string)Configure::read('Config.language'))) ?>" dir="<?= h(MispLanguage::direction((string)Configure::read('Config.language'))) ?>">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">

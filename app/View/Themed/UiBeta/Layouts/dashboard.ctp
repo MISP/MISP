@@ -27,9 +27,10 @@
  * dashboard.ctp), no BS5-chrome swap is required — UiBeta keeps
  * the BS2.3-era global_menu + footer.
  */
+App::uses('MispLanguage', 'Tools');
 ?>
 <!DOCTYPE html>
-<html lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>">
+<html lang="<?= h(MispLanguage::htmlLang((string)Configure::read('Config.language'))) ?>" dir="<?= h(MispLanguage::direction((string)Configure::read('Config.language'))) ?>">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">

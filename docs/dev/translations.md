@@ -32,7 +32,8 @@ The selector uses native names while preserving the catalog codes from MISP 2.5.
 The newer Sindarin (`sjn`) catalog remains selectable and is validated too.
 Arabic pages emit `dir="rtl"`; the other languages use `dir="ltr"`.
 `MispLanguage` shares display names and HTML language metadata between the
-settings selector and both the legacy and Overmind layouts.
+settings selector and the default/dashboard layouts for Default, UiBeta and
+Overmind.
 
 ## Catalog compatibility
 
@@ -101,7 +102,9 @@ The PHP smoke check uses the real framework without application configuration,
 a database or cache files. It checks catalog lookup for all language choices,
 shared messages, plural dispatch for counts 0–202 and selected larger values,
 English fallback, percentage formatting, HTML language/direction metadata and
-navbar encoding. A fixture with quotes, a newline and a script terminator checks
+navbar encoding. It renders the document openings from all six theme/layout
+combinations to check language/direction attributes and retained Overmind rail
+and theme attributes. A fixture with quotes, a newline and a script terminator checks
 inline script escaping. The optional output directory receives rendered scripts
 for JavaScript syntax checks:
 

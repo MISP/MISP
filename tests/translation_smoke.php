@@ -53,6 +53,69 @@ $check = function ($actual, $expected, $label) use (&$checks) {
         exit(1);
     }
 };
+
+// Render the actual layout preambles, stopping before assets and page chrome.
+// Helper-only checks miss layouts that bypass the language mapping entirely.
+$layoutView = new class {
+    public $params = ['controller' => 'events', 'action' => 'index'];
+
+    public function documentOpening($path)
+    {
+        $source = file_get_contents($path);
+        $head = strpos($source, '<head>');
+        if ($head === false) {
+            throw new RuntimeException('Missing document head in ' . $path);
+        }
+        $file = tempnam(sys_get_temp_dir(), 'misp-language-');
+        $level = ob_get_level();
+        try {
+            file_put_contents($file, substr($source, 0, $head));
+            $baseurl = '/misp';
+            $bootstrapTheme = [
+                'mode' => 'dark', 'navbar' => 'rail', 'name' => 'language-test',
+            ];
+            ob_start();
+            include $file;
+            return ob_get_clean();
+        } finally {
+            while (ob_get_level() > $level) {
+                ob_end_clean();
+            }
+            unlink($file);
+        }
+    }
+};
+$layoutLanguages = [
+    'eng' => ['en', 'ltr'],
+    'ara' => ['ar', 'rtl'],
+    'zh-s' => ['zh-Hans', 'ltr'],
+    'pt_BR' => ['pt-BR', 'ltr'],
+    '' => ['en', 'ltr'],
+];
+foreach (['', 'Themed/UiBeta/', 'Themed/Overmind/'] as $theme) {
+    foreach (['default', 'dashboard'] as $layout) {
+        $path = APP . 'View/' . $theme . 'Layouts/' . $layout . '.ctp';
+        foreach ($layoutLanguages as $locale => [$tag, $direction]) {
+            Configure::write('Config.language', $locale);
+            $document = new DOMDocument();
+            $document->loadHTML($layoutView->documentOpening($path)
+                . '<head><title>Language test</title></head><body></body></html>');
+            $html = $document->documentElement;
+            $label = $theme . $layout . ' (' . $locale . ')';
+            $check($html->getAttribute('lang'), $tag, $label . ' lang');
+            $check($html->getAttribute('dir'), $direction, $label . ' dir');
+            if ($theme === 'Themed/Overmind/') {
+                $check($html->getAttribute('class'), 'misp-railed', $label . ' rail');
+                $check($html->getAttribute('data-misp-mode'), 'dark', $label . ' mode');
+                $check($html->getAttribute('data-misp-theme'), 'language-test', $label . ' theme');
+                if ($layout === 'dashboard') {
+                    $check($html->getAttribute('data-theme'), 'midnight', $label . ' overlay');
+                }
+            }
+        }
+    }
+}
+
 $scriptDirectory = $argv[1] ?? null;
 if ($scriptDirectory && !is_dir($scriptDirectory)) {
     mkdir($scriptDirectory, 0770, true);
