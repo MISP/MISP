@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('MispLanguage', 'Tools');
 App::uses('AnalystData', 'Model');
 App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
@@ -1855,23 +1856,14 @@ class Server extends AppModel
     public function loadAvailableLanguages()
     {
         $dirs = glob(APP . 'Locale/*', GLOB_ONLYDIR);
-        // Native names make the supported catalogs recognisable in the selector.
-        $names = [
-            'eng' => 'English',
-            'zh-s' => '简体中文',
-            'fra' => 'Français',
-            'deu' => 'Deutsch',
-            'pt' => 'Português (Portugal)',
-            'pt_BR' => 'Português (Brasil)',
-        ];
-        $languages = array('eng' => $names['eng']);
+        $languages = array('eng' => MispLanguage::label('eng'));
         foreach ($dirs as $dir) {
             // Runtime aliases do not represent additional selectable languages.
             if (is_link($dir)) {
                 continue;
             }
             $dir = str_replace(APP . 'Locale' . DS, '', $dir);
-            $languages[$dir] = $names[$dir] ?? $dir;
+            $languages[$dir] = MispLanguage::label($dir);
         }
         return $languages;
     }

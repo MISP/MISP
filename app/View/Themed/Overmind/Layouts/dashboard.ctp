@@ -30,6 +30,7 @@
  * midnight overlay) is loaded after mainOvermind so its tokens
  * and selectors win where they overlap.
  */
+App::uses('MispLanguage', 'Tools');
 App::uses('MispTheme', 'Lib/MispTheme');
 $bootstrapTheme = $bootstrapTheme ?? MispTheme::bootstrapTheme($me ?? null);
 // The global dark mode drives the dashboard's midnight overlay, so its
@@ -39,7 +40,7 @@ $initialMode = $hasDarkToggle ? 'light' : $bootstrapTheme['mode'];
 $useRail = $bootstrapTheme['navbar'] === 'rail';
 ?>
 <!DOCTYPE html>
-<html lang="<?= Configure::read('Config.language') === 'eng' ? 'en' : Configure::read('Config.language') ?>"<?= $useRail ? ' class="misp-railed"' : '' ?> data-misp-mode="<?= h($initialMode) ?>" data-misp-theme="<?= h($bootstrapTheme['name']) ?>"<?= $initialMode === 'dark' ? ' data-theme="midnight"' : '' ?>>
+<html lang="<?= h(MispLanguage::htmlLang((string)Configure::read('Config.language'))) ?>" dir="<?= h(MispLanguage::direction((string)Configure::read('Config.language'))) ?>"<?= $useRail ? ' class="misp-railed"' : '' ?> data-misp-mode="<?= h($initialMode) ?>" data-misp-theme="<?= h($bootstrapTheme['name']) ?>"<?= $initialMode === 'dark' ? ' data-theme="midnight"' : '' ?>>
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">

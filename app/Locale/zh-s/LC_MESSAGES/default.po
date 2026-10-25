@@ -349,7 +349,7 @@ msgstr ""
 
 #: Console/Command/AdminShell.php:694
 msgid "%s events purged.\n"
-msgstr "%s 清理事件"
+msgstr "%s 清理事件\n"
 
 #: Console/Command/AdminShell.php:713
 msgid "> Database schema dumped on disk"
@@ -16591,13 +16591,16 @@ msgid "Default Tag"
 msgstr "默认标签"
 
 #: View/Feeds/compare_feeds.ctp:73
-msgid "None or less than 1% of the data of %s is contained in %s (%s matching values)"
-msgstr "%s中没有或少于1%的数据包含在%s中(%s匹配值)"
+#, php-format
+msgid ""
+"None or less than 1%% of the data of %s is contained in %s (%s matching "
+"values)"
+msgstr "%s中没有或少于1%%的数据包含在%s中(%s匹配值)"
 
 #: View/Feeds/compare_feeds.ctp:74
 #, php-format
-msgid "%s% of the data of %s is contained in %s (%s matching values)"
-msgstr "%2$s 的数据中有 %1$s% 包含在 %3$s 中（%4$s 个匹配值）"
+msgid "%s%% of the data of %s is contained in %s (%s matching values)"
+msgstr "%2$s 的数据中有 %1$s%% 包含在 %3$s 中（%4$s 个匹配值）"
 
 #: View/Feeds/freetext_index.ctp:2
 msgid "Parsed attributes from feed %s"

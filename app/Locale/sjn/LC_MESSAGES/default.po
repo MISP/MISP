@@ -7,6 +7,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Language: sjn\n"
+"PO-Revision-Date: 2026-10-25 00:00+0000\n"
 
 #: Console/Command/APIShell.php:15
 msgid "The following API documentation is derived directly from [MISP RestResponseComponent's source code](app/Controller/Component/RestResponseComponent.php)"
@@ -7132,7 +7133,6 @@ msgstr "%s thîw %s (%s) tolonnen vae o %s(%s)."
 #: View/Themed/UiBeta/Events/view.ctp:2476;2495
 msgid "Global"
 msgstr "Cain"
-
 
 #: Controller/TagsController.php:877
 msgid "Failed to remove tag from object."
@@ -31625,12 +31625,16 @@ msgid "Default Tag Collection"
 msgstr "Hannad Thîw Boe"
 
 #: View/Feeds/compare_feeds.ctp:73
-msgid "None or less than 1% of the data of %s is contained in %s (%s matching values)"
-msgstr "Ú hó atha 1% en i vael en %s ni mi %s (%s vael sedhen)"
+#, php-format
+msgid ""
+"None or less than 1%% of the data of %s is contained in %s (%s matching "
+"values)"
+msgstr "Ú hó atha 1%% en i vael en %s ni mi %s (%s vael sedhen)"
 
 #: View/Feeds/compare_feeds.ctp:74
-msgid "%s% of the data of %s is contained in %s (%s matching values)"
-msgstr "%s% en i vael en %s ni mi %s (%s vael sedhen)"
+#, php-format
+msgid "%s%% of the data of %s is contained in %s (%s matching values)"
+msgstr "%s%% en i vael en %s ni mi %s (%s vael sedhen)"
 
 #: View/Feeds/freetext_index.ctp:2
 msgid "Parsed attributes from feed %s"

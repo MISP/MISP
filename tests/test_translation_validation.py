@@ -67,8 +67,37 @@ def test_invalid_plural_metadata_fails(tmp_path):
     assert errors
 
 
-def test_all_priority_catalogs_are_valid():
-    for locale in checker.LOCALES:
-        path = checker.ROOT / 'app/Locale' / locale / 'LC_MESSAGES/default.po'
+def test_all_catalogs_are_valid():
+    for path in checker.catalog_paths():
         _, errors = checker.check_catalog(path)
-        assert not errors, (locale, errors)
+        assert not errors, (path, errors)
+
+
+def test_gettext_php_formats_require_escaped_literal_percent():
+    entry = polib.POEntry(msgid='%s% of %s', msgstr='%2$s: %1$s%', flags=['php-format'])
+    assert checker.validate_entry(entry, 2)
+    entry.msgid = '%s%% of %s'
+    entry.msgstr = '%2$s: %1$s%%'
+    assert checker.validate_entry(entry, 2) == []
+
+
+def test_plural_source_variants_can_have_different_arguments():
+    entry = polib.POEntry(msgid='Tag added', msgid_plural='%s tags added',
+                         msgstr_plural={0: 'Étiquette ajoutée', 1: '%s étiquettes ajoutées'})
+    assert checker.validate_entry(entry, 2) == []
+    entry.msgstr_plural = {0: 'เพิ่มแท็กแล้ว %s'}
+    assert checker.validate_entry(entry, 1) == []
+
+
+def test_gettext_requires_matching_edge_newlines():
+    entry = polib.POEntry(msgid='%s events purged.\n', msgstr='%s 清理事件')
+    assert checker.validate_entry(entry, 2)
+    entry.msgstr += '\n'
+    assert checker.validate_entry(entry, 2) == []
+
+
+def test_discovery_includes_legacy_languages_and_excludes_aliases():
+    assert set(['ara', 'cze', 'dan', 'hun', 'ita', 'jpn', 'kor', 'no', 'pol',
+                'ro', 'rus', 'si-LK', 'spa', 'swe', 'th_TH', 'ukr']) <= set(checker.LOCALES)
+    assert not set(['ces', 'nor', 'por', 'ron']) & set(checker.LOCALES)
+    assert any(p.name == 'cake_dev.po' for p in checker.catalog_paths())

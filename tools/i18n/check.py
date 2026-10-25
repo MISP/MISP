@@ -2,6 +2,7 @@
 """Check MISP gettext catalogs without requiring a running MISP instance."""
 
 import argparse
+import json
 from collections import Counter
 from gettext import GNUTranslations
 from io import BytesIO
@@ -12,7 +13,16 @@ import sys
 import polib
 
 ROOT = Path(__file__).resolve().parents[2]
-LOCALES = ('zh-s', 'fra', 'deu', 'pt', 'pt_BR')
+
+
+def catalog_paths():
+    return sorted(path for path in (ROOT / 'app/Locale').glob('*/LC_MESSAGES/*.po')
+                  if not path.parent.parent.is_symlink())
+
+
+LOCALES = tuple(path.parent.parent.name for path in catalog_paths()
+                if path.name == 'default.po')
+COVERAGE = ROOT / 'tools/i18n/overmind-core.json'
 # CakePHP escapes bare percent signs before calling vsprintf. In particular,
 # "% of" in prose is not a conversion. Keep argument positions and types so
 # translators can reorder parameters using %2$s without losing any argument.
@@ -48,18 +58,35 @@ def validate_entry(entry, plural_count):
     if entry.msgid_plural:
         if set(entry.msgstr_plural) != set(range(plural_count)) or not all(values):
             errors.append('missing or extra plural forms')
-        if placeholders(entry.msgid) != placeholders(entry.msgid_plural):
-            errors.append('singular and plural source placeholders differ')
-    expected = placeholders(entry.msgid)
+    expected = [placeholders(entry.msgid)]
+    if entry.msgid_plural:
+        # Source variants can legitimately differ, e.g. "Tag added" /
+        # "%s tags added". Single-form languages may use the count in both.
+        expected.append(placeholders(entry.msgid_plural))
+    if 'php-format' in entry.flags:
+        # GNU gettext does not apply CakePHP's repair of bare percent signs.
+        # A flagged message must be a valid format in both tools.
+        for text in [entry.msgid, entry.msgid_plural] + values:
+            if not text:
+                continue
+            covered = {index for match in PRINTF.finditer(text)
+                       for index in range(match.start(), match.end())}
+            if any(char == '%' and index not in covered
+                   for index, char in enumerate(text)):
+                errors.append('unescaped percent sign in PHP format')
     for index, value in enumerate(values):
-        if value and placeholders(value) != expected:
+        if value and placeholders(value) not in expected:
             errors.append('placeholders differ in translation form %s' % index)
+        if value and (value.startswith('\n') != entry.msgid.startswith('\n')
+                      or value.endswith('\n') != entry.msgid.endswith('\n')):
+            errors.append('source and translation edge newlines differ')
     return errors
 
 
 def check_catalog(path):
     # polib checks syntax and duplicate (context, msgid) keys. Compiling in
     # memory also checks the metadata/plural expression with GNU gettext.
+    path = Path(path)
     catalog = polib.pofile(str(path), check_for_duplicates=True)
     plural_header = catalog.metadata.get('Plural-Forms', '')
     match = re.search(r'nplurals\s*=\s*(\d+)\s*;', plural_header)
@@ -70,16 +97,23 @@ def check_catalog(path):
     for entry in catalog:
         for error in validate_entry(entry, int(match[1])):
             errors.append('%r: %s' % (entry.msgid, error))
+    coverage = json.loads(COVERAGE.read_text(encoding='utf-8'))
+    if path.name == 'default.po' and path.parent.parent.name in coverage['locales']:
+        entries = {(entry.msgctxt, entry.msgid): entry for entry in catalog}
+        for message, plural in coverage['messages'].items():
+            entry = entries.get((None, message))
+            if (not entry or not entry.translated()
+                    or entry.msgid_plural != (plural or '')):
+                errors.append('%r: missing shared UI translation' % message)
     return catalog, errors
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('catalogs', nargs='*', type=Path,
-                        help='PO files; defaults to the five 3.0 priority catalogs')
+                        help='PO files; defaults to every catalog, excluding aliases')
     args = parser.parse_args()
-    paths = args.catalogs or [ROOT / 'app/Locale' / loc / 'LC_MESSAGES/default.po'
-                             for loc in LOCALES]
+    paths = args.catalogs or catalog_paths()
     failed = False
     for path in paths:
         try:
@@ -94,7 +128,15 @@ def main():
             failed = True
     # The Crowdin template must also stay parseable and have unique keys.
     try:
-        polib.pofile(str(ROOT / 'app/Locale/default.pot'), check_for_duplicates=True)
+        template = polib.pofile(str(ROOT / 'app/Locale/default.pot'),
+                                check_for_duplicates=True)
+        source_keys = {entry.msgid for entry in template}
+        coverage = json.loads(COVERAGE.read_text(encoding='utf-8'))
+        missing = set(coverage['messages']) - source_keys
+        if missing:
+            print('default.pot: missing shared UI source messages: %s' % sorted(missing),
+                  file=sys.stderr)
+            failed = True
     except (OSError, ValueError) as error:
         print('default.pot: %s' % error, file=sys.stderr)
         failed = True
