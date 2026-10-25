@@ -28,19 +28,26 @@ $pluralIndex = function ($locale, $n) {
         return $n === 0 ? 0 : ($n === 1 ? 1 : ($n === 2 ? 2
             : ($n % 100 >= 3 && $n % 100 <= 10 ? 3 : ($n % 100 >= 11 ? 4 : 5))));
     }
-    if ($locale === 'cze') {
+    if (in_array($locale, ['cze', 'slk'], true)) {
         return $n === 1 ? 0 : ($n >= 2 && $n <= 4 ? 1 : 2);
     }
     if ($locale === 'pol') {
         return $n === 1 ? 0 : ($n % 10 >= 2 && $n % 10 <= 4
             && ($n % 100 < 12 || $n % 100 > 14) ? 1 : 2);
     }
-    if (in_array($locale, ['rus', 'ukr'], true)) {
+    if (in_array($locale, ['rus', 'ukr', 'hrv'], true)) {
         return $n % 10 === 1 && $n % 100 !== 11 ? 0
             : ($n % 10 >= 2 && $n % 10 <= 4 && ($n % 100 < 12 || $n % 100 > 14) ? 1 : 2);
     }
     if ($locale === 'ro') {
         return $n === 1 ? 0 : ($n === 0 || ($n % 100 > 0 && $n % 100 < 20) ? 1 : 2);
+    }
+    if ($locale === 'lav') {
+        return $n % 10 === 1 && $n % 100 !== 11 ? 0 : ($n !== 0 ? 1 : 2);
+    }
+    if ($locale === 'lit') {
+        return $n % 10 === 1 && $n % 100 !== 11 ? 0
+            : ($n % 10 >= 2 && ($n % 100 < 10 || $n % 100 >= 20) ? 1 : 2);
     }
     return $n !== 1 ? 1 : 0;
 };
@@ -91,6 +98,15 @@ $layoutLanguages = [
     'zh-s' => ['zh-Hans', 'ltr'],
     'pt_BR' => ['pt-BR', 'ltr'],
     '' => ['en', 'ltr'],
+    'fin' => ['fi', 'ltr'],
+    'nld' => ['nl', 'ltr'],
+    'est' => ['et', 'ltr'],
+    'lav' => ['lv', 'ltr'],
+    'lit' => ['lt', 'ltr'],
+    'ell' => ['el', 'ltr'],
+    'bul' => ['bg', 'ltr'],
+    'slk' => ['sk', 'ltr'],
+    'hrv' => ['hr', 'ltr'],
 ];
 foreach (['', 'Themed/UiBeta/', 'Themed/Overmind/'] as $theme) {
     foreach (['default', 'dashboard'] as $layout) {

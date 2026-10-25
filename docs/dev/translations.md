@@ -8,14 +8,22 @@ The selector uses native names while preserving the catalog codes from MISP 2.5.
 | --- | --- | --- |
 | English | `eng` (source strings) | `en` |
 | Arabic | `ara` | `ar` |
+| Bulgarian | `bul` | `bg` |
+| Croatian | `hrv` | `hr` |
 | Czech | `cze` | `cs` |
 | Danish | `dan` | `da` |
-| German | `deu` | `de` |
+| Dutch | `nld` | `nl` |
+| Estonian | `est` | `et` |
+| Finnish | `fin` | `fi` |
 | French | `fra` | `fr` |
+| German | `deu` | `de` |
+| Greek | `ell` | `el` |
 | Hungarian | `hun` | `hu` |
 | Italian | `ita` | `it` |
 | Japanese | `jpn` | `ja` |
 | Korean | `kor` | `ko` |
+| Latvian | `lav` | `lv` |
+| Lithuanian | `lit` | `lt` |
 | Norwegian | `no` | `no` |
 | Polish | `pol` | `pl` |
 | Portuguese (Portugal) | `pt` | `pt` |
@@ -23,6 +31,7 @@ The selector uses native names while preserving the catalog codes from MISP 2.5.
 | Romanian | `ro` | `ro` |
 | Russian | `rus` | `ru` |
 | Sinhala | `si-LK` | `si-LK` |
+| Slovak | `slk` | `sk` |
 | Spanish | `spa` | `es` |
 | Swedish | `swe` | `sv` |
 | Thai | `th_TH` | `th-TH` |
@@ -50,27 +59,40 @@ export paths. Keep these symlinks when packaging an installation:
 Aliases do not appear as additional language choices. Existing configuration
 values and Crowdin export paths remain valid.
 
-Czech, Polish, Russian and Ukrainian use their three integer-count plural forms.
-Their older four-form CLDR headers included decimal categories that CakePHP's
-integer plural dispatcher did not recognise, causing it to select the first
-form for every count. Arabic retains six forms; Romanian has three; Japanese,
-Korean, Thai and Chinese have one. The other catalogs have two, including the
-French and Brazilian Portuguese rule that treats zero like one.
+Czech, Slovak, Polish, Croatian, Russian and Ukrainian use three integer-count
+plural forms. Latvian, Lithuanian and Romanian also have three forms. The older
+Czech, Polish, Russian and Ukrainian catalogs had four-form CLDR headers with
+decimal categories that CakePHP's integer plural dispatcher did not recognise,
+causing it to select the first form for every count. Arabic retains six forms;
+Japanese, Korean, Thai and Chinese have one. The other catalogs have two,
+including the French and Brazilian Portuguese rule that treats zero like one.
 
 ## Current scope and language review
 
-All 21 language catalogs shipped in MISP 2.5 cover the same 466 shared Overmind
-messages: navigation, sign-in, event browsing and statistics, sharing-group
-popovers, filters, pagination, bulk actions and side panels. The coverage list
-is maintained in `tools/i18n/overmind-core.json` and checked automatically.
+All 21 language catalogs shipped in MISP 2.5 and the nine new Finnish, Dutch,
+Estonian, Latvian, Lithuanian, Greek, Bulgarian, Slovak and Croatian catalogs
+cover the same 466 shared Overmind messages: navigation, sign-in, event
+browsing and statistics, sharing-group popovers, filters, pagination, bulk
+actions and side panels. The coverage list is maintained in
+`tools/i18n/overmind-core.json` and checked automatically.
 The Sindarin catalog was added in 3.0 and is not part of that coverage contract.
 
-The full application catalogs still contain untranslated messages outside this
-scope; those continue to fall back to English. Existing nonempty translations
+The nine new catalogs contain only this shared UI scope; older catalogs also
+contain other application messages. Missing or untranslated messages outside
+the scope continue to fall back to English. Existing nonempty translations
 are retained except for repairs to placeholders, percentage escaping, metadata
 and newline formatting. The new wording is machine-assisted draft translation
 and requires native-language review before merge. Technical validation does not
-establish linguistic accuracy.
+establish linguistic accuracy. The new catalogs use the framework's canonical
+codes (`nld`, `ell`, `slk`), so they do not need directory aliases.
+
+For threat-intelligence and defence deployments, review the wording for threat
+level, distribution, sharing groups, sightings, attribution and the Admiralty
+scale with analysts who speak the target language. Distribution and releasability
+labels must retain their access-control meaning. Keep MISP, ATT&CK, TLP, TAXII,
+PGP, S/MIME, SAML, Azure AD, OIDC, OpenAPI and API identifiers unchanged.
+Translations localise the interface; they do not translate event content or
+change sharing permissions.
 
 Use the existing `default` domain and `app/Locale/default.pot`. Submit wording
 improvements through [MISP on Crowdin](https://crowdin.com/project/misp), with
@@ -93,7 +115,7 @@ php tests/translation_smoke.php work/i18n/scripts
 The checker discovers every `.po` file under `app/Locale`, excludes symlink
 aliases, and validates duplicate keys, metadata/plural expressions, complete
 plural entries, printf argument positions/types, named pagination tokens and
-newline boundaries. It enforces the shared UI coverage contract in each legacy
+newline boundaries. It enforces the shared UI coverage contract in each covered
 catalog and checks the source template for duplicate or missing coverage keys.
 Outside that contract, empty entries are allowed to preserve English fallback.
 Pass individual `.po` paths to validate a subset.

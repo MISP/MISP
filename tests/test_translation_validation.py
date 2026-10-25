@@ -1,5 +1,6 @@
 """Regression checks for placeholder loss, reordering and plural completeness."""
 import importlib.util
+import json
 from pathlib import Path
 
 import polib
@@ -101,3 +102,10 @@ def test_discovery_includes_legacy_languages_and_excludes_aliases():
                 'ro', 'rus', 'si-LK', 'spa', 'swe', 'th_TH', 'ukr']) <= set(checker.LOCALES)
     assert not set(['ces', 'nor', 'por', 'ron']) & set(checker.LOCALES)
     assert any(p.name == 'cake_dev.po' for p in checker.catalog_paths())
+
+
+def test_every_declared_coverage_language_has_a_catalog():
+    coverage = json.loads(checker.COVERAGE.read_text(encoding='utf-8'))
+    assert set(coverage['locales']) <= set(checker.LOCALES)
+    assert {'fin', 'nld', 'est', 'lav', 'lit', 'ell', 'bul', 'slk', 'hrv'} \
+        <= set(coverage['locales'])
