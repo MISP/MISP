@@ -17,7 +17,7 @@ foreach ($menus['right'] as $item) {
     }
 }
 ?>
-<nav class="rail-nav" aria-label="<?= __('Main') ?>">
+<nav class="rail-nav" aria-label="<?= h(__('Main')) ?>">
     <div class="rail-bar">
         <a class="rail-brand" href="<?= empty($homepage['path']) ? $baseurl . '/' : $baseurl . h($homepage['path']) ?>"<?= empty($mispVersionFull) ? '' : ' title="' . h(__('MISP %s', $mispVersionFull)) . '"' ?>>
             <?= $this->Html->image('misp-logo-main-cmyk-icon coul.png', ['alt' => __('MISP Logo')]) ?>
@@ -37,7 +37,7 @@ foreach ($menus['right'] as $item) {
                 <?php endforeach; ?>
             </ul>
         </div>
-        <button type="button" class="rail-toggle" aria-label="<?= __('Menu') ?>" aria-controls="rail-menu" aria-expanded="false">
+        <button type="button" class="rail-toggle" aria-label="<?= h(__('Menu')) ?>" aria-controls="rail-menu" aria-expanded="false">
             <i class="fas fa-bars" aria-hidden="true"></i>
         </button>
     </div>

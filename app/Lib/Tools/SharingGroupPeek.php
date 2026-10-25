@@ -84,7 +84,7 @@ class SharingGroupPeek
             }
         }
         if (!empty($group['roaming'])) {
-            $peek['reach'] = ['mode' => __('Roaming'), 'text' => __('it travels to any instance its members connect to.')];
+            $peek['reach'] = ['mode' => __('Roaming'), 'text' => __('Travels to any instance its members connect to.')];
         } elseif ($remote) {
             $peek['reach'] = ['mode' => null, 'text' => __n('Pushed to %s other instance.', 'Pushed to %s other instances.', $remote, $remote)];
         } else {

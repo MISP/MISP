@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2019-04-20 04:41\n"
+"PO-Revision-Date: 2026-10-25 00:00+0000\n"
 "Last-Translator: Steve Clement (SteveClement)\n"
 "Language-Team: Portuguese\n"
 "MIME-Version: 1.0\n"
@@ -1633,43 +1633,35 @@ msgstr ""
 msgid "Usage data"
 msgstr ""
 
-#: Controller/UsersController.php:1566
-#: View/Elements/global_menu.ctp:151
-#: View/SharingGroups/add.ctp:19
-#: View/SharingGroups/edit.ctp:19
+#: Controller/UsersController.php:1566 View/Elements/global_menu.ctp:151
+#: View/SharingGroups/add.ctp:19 View/SharingGroups/edit.ctp:19
 #: View/SharingGroups/view.ctp:39
-#: View/Users/statistics.ctp:27
-#: View/Users/statistics_data.ctp:34
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:34
+#: View/Users/statistics.ctp:27 View/Users/statistics_data.ctp:34
 msgid "Organisations"
-msgstr ""
+msgstr "Organizações"
 
 #: Controller/UsersController.php:1567
 msgid "User and Organisation statistics"
 msgstr ""
 
-#: Controller/UsersController.php:1568
-#: View/Attributes/index.ctp:53
-#: View/Elements/eventattribute.ctp:150
+#: Controller/UsersController.php:1568 View/Attributes/index.ctp:53
 #: View/Elements/Events/eventIndexTable.ctp:37
 #: View/Elements/Feeds/eventattribute.ctp:45
 #: View/Elements/Servers/eventattribute.ctp:45
-#: View/Events/resolved_attributes.ctp:53
-#: View/Events/view.ctp:118
-#: View/Feeds/preview_event.ctp:16
-#: View/Feeds/preview_index.ctp:39
-#: View/Feeds/view.ctp:16
+#: View/Elements/eventattribute.ctp:150 View/Events/resolved_attributes.ctp:53
+#: View/Events/view.ctp:118 View/Feeds/preview_event.ctp:16
+#: View/Feeds/preview_index.ctp:39 View/Feeds/view.ctp:16
 #: View/Noticelists/view.ctp:43
 #: View/Pages/doc/using_the_system.ctp:164;207;318
-#: View/Servers/preview_event.ctp:27
-#: View/Servers/preview_index.ctp:94
-#: View/TagCollections/index.ctp:10
-#: View/Tags/index.ctp:10
-#: View/Taxonomies/view.ctp:88
-#: View/Templates/add.ctp:12
-#: View/Templates/edit.ctp:12
-#: View/Templates/view.ctp:19
+#: View/Servers/preview_event.ctp:27 View/Servers/preview_index.ctp:94
+#: View/TagCollections/index.ctp:10 View/Tags/index.ctp:10
+#: View/Taxonomies/view.ctp:88 View/Templates/add.ctp:12
+#: View/Templates/edit.ctp:12 View/Templates/view.ctp:19
+#: View/Themed/Overmind/Elements/Events/index.ctp:492
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:266
 msgid "Tags"
-msgstr ""
+msgstr "Etiquetas"
 
 #: Controller/UsersController.php:1569
 msgid "Attribute histogram"
@@ -1833,10 +1825,12 @@ msgstr ""
 msgid "All communities"
 msgstr ""
 
-#: Model/Attribute.php:63
-#: View/Elements/view_event_distribution_graph.ctp:24
+#: Model/Attribute.php:63 View/Elements/view_event_distribution_graph.ctp:24
+#: View/Themed/Overmind/Elements/Events/index.ctp:393
+#: View/Themed/Overmind/Elements/Events/index.ctp:493
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:21
 msgid "Sharing group"
-msgstr ""
+msgstr "Grupo de partilha"
 
 #: Model/Attribute.php:64
 msgid "Inherit event"
@@ -4089,8 +4083,9 @@ msgid "Event info"
 msgstr ""
 
 #: View/Attributes/alternate_search_result.ctp:9
+#: View/Themed/Overmind/Elements/Events/index.ctp:197
 msgid "Event date"
-msgstr ""
+msgstr "Data do evento"
 
 #: View/Attributes/alternate_search_result.ctp:10
 #: View/Events/view.ctp:459
@@ -4166,16 +4161,15 @@ msgstr ""
 msgid "Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this."
 msgstr ""
 
-#: View/Attributes/index.ctp:2
-#: View/Elements/histogram.ctp:4
-#: View/Events/resolved_misp_format.ctp:195
-#: View/Events/view.ctp:468
+#: View/Attributes/index.ctp:2 View/Elements/histogram.ctp:4
+#: View/Events/resolved_misp_format.ctp:195 View/Events/view.ctp:468
+#: View/Helper/NavbarHelper.php:151
 #: View/Objects/orphaned_object_diagnostics.ctp:44
 #: View/Pages/doc/using_the_system.ctp:242
-#: View/Users/statistics.ctp:16
-#: View/Users/statistics_data.ctp:19
+#: View/Themed/Overmind/Elements/Events/index.ctp:176
+#: View/Users/statistics.ctp:16 View/Users/statistics_data.ctp:19
 msgid "Attributes"
-msgstr ""
+msgstr "Atributos"
 
 #: View/Attributes/index.ctp:8
 msgid " with the value containing "
@@ -4307,15 +4301,13 @@ msgstr ""
 msgid "next"
 msgstr ""
 
-#: View/Attributes/index.ctp:54
-#: View/Elements/eventattribute.ctp:157
-#: View/Elements/global_menu.ctp:90
-#: View/Events/view.ctp:480
-#: View/Events/ajax/ajaxGalaxies.ctp:6
-#: View/Galaxies/index.ctp:2
-#: View/TagCollections/index.ctp:11
+#: View/Attributes/index.ctp:54 View/Elements/eventattribute.ctp:157
+#: View/Elements/global_menu.ctp:90 View/Events/ajax/ajaxGalaxies.ctp:6
+#: View/Events/view.ctp:480 View/Galaxies/index.ctp:2
+#: View/Helper/NavbarHelper.php:298 View/TagCollections/index.ctp:11
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:199
 msgid "Galaxies"
-msgstr ""
+msgstr "Galáxias"
 
 #: View/Attributes/index.ctp:56
 #: View/Elements/eventattribute.ctp:159
@@ -4340,11 +4332,11 @@ msgstr ""
 msgid "Feed hits"
 msgstr ""
 
-#: View/Attributes/index.ctp:61
-#: View/Elements/eventattribute.ctp:164
-#: View/Events/view.ctp:242
+#: View/Attributes/index.ctp:61 View/Elements/eventattribute.ctp:164
+#: View/Events/view.ctp:242 View/Themed/Overmind/Elements/Events/index.ctp:57
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:200
 msgid "Sightings"
-msgstr ""
+msgstr "Observações"
 
 #: View/Attributes/index.ctp:62
 #: View/Elements/eventattribute.ctp:165
@@ -4394,50 +4386,35 @@ msgstr ""
 msgid "Actions"
 msgstr ""
 
-#: View/Attributes/index.ctp:121
-#: View/Elements/eventdiscussion.ctp:119
-#: View/Elements/generic_table.ctp:53
-#: View/Elements/generic_table_row.ctp:45
+#: View/Attributes/index.ctp:121 View/Elements/eventdiscussion.ctp:119
 #: View/Elements/genericElements/IndexTable/pagination_counter.ctp:5
-#: View/EventBlacklists/index.ctp:47
-#: View/Events/index.ctp:108
-#: View/Events/proposal_event_index.ctp:88
-#: View/Events/ajax/index.ctp:32
-#: View/Feeds/index.ctp:293
-#: View/Feeds/preview_index.ctp:81
-#: View/Galaxies/index.ctp:68
-#: View/GalaxyClusters/ajax/index.ctp:91
-#: View/GalaxyElements/ajax/index.ctp:38
-#: View/Jobs/index.ctp:181
-#: View/Logs/admin_index.ctp:120
-#: View/Logs/event_index.ctp:54
-#: View/News/index.ctp:33
-#: View/Noticelists/index.ctp:76
+#: View/Elements/generic_table.ctp:53 View/Elements/generic_table_row.ctp:45
+#: View/EventBlacklists/index.ctp:47 View/Events/ajax/index.ctp:32
+#: View/Events/index.ctp:108 View/Events/proposal_event_index.ctp:88
+#: View/Feeds/index.ctp:293 View/Feeds/preview_index.ctp:81
+#: View/Galaxies/index.ctp:68 View/GalaxyClusters/ajax/index.ctp:91
+#: View/GalaxyElements/ajax/index.ctp:38 View/Jobs/index.ctp:181
+#: View/Logs/admin_index.ctp:120 View/Logs/event_index.ctp:54
+#: View/News/index.ctp:33 View/Noticelists/index.ctp:76
 #: View/ObjectTemplateElements/ajax/view_elements.ctp:66
-#: View/ObjectTemplates/index.ctp:130
-#: View/OrgBlacklists/index.ctp:45
-#: View/Organisations/index.ctp:152
-#: View/Regexp/admin_index.ctp:43
-#: View/Regexp/index.ctp:38
-#: View/Roles/admin_index.ctp:88
-#: View/Roles/index.ctp:61
-#: View/Servers/index.ctp:149
-#: View/Servers/preview_index.ctp:182
-#: View/ShadowAttributes/index.ctp:111
-#: View/SharingGroups/index.ctp:98
-#: View/Tags/index.ctp:134
-#: View/Tasks/index.ctp:99
-#: View/Taxonomies/index.ctp:58
-#: View/Taxonomies/view.ctp:174
-#: View/Templates/index.ctp:54
-#: View/Threads/index.ctp:91
-#: View/Users/admin_index.ctp:79
-#: View/Users/ajax/admin_index.ctp:25
-#: View/Warninglists/index.ctp:69
-#: View/Whitelists/admin_index.ctp:40
-#: View/Whitelists/index.ctp:35
-msgid "Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}"
+#: View/ObjectTemplates/index.ctp:130 View/OrgBlacklists/index.ctp:45
+#: View/Organisations/index.ctp:152 View/Regexp/admin_index.ctp:43
+#: View/Regexp/index.ctp:38 View/Roles/admin_index.ctp:88
+#: View/Roles/index.ctp:61 View/Servers/index.ctp:149
+#: View/Servers/preview_index.ctp:182 View/ShadowAttributes/index.ctp:111
+#: View/SharingGroups/index.ctp:98 View/Tags/index.ctp:134
+#: View/Tasks/index.ctp:99 View/Taxonomies/index.ctp:58
+#: View/Taxonomies/view.ctp:174 View/Templates/index.ctp:54
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination.ctp:14
+#: View/Threads/index.ctp:91 View/Users/admin_index.ctp:79
+#: View/Users/ajax/admin_index.ctp:25 View/Warninglists/index.ctp:69
+#: View/Whitelists/admin_index.ctp:40 View/Whitelists/index.ctp:35
+msgid ""
+"Page {:page} of {:pages}, showing {:current} records out of {:count} total, "
+"starting on record {:start}, ending on {:end}"
 msgstr ""
+"Página {:page} de {:pages}, a mostrar {:current} registos de um total de "
+"{:count}, do registo {:start} ao {:end}"
 
 #: View/Attributes/report_validation_issues_attributes.ctp:2
 msgid "Listing invalid attribute validations"
@@ -4497,12 +4474,13 @@ msgstr ""
 msgid "Alternate Search Result (Events)"
 msgstr ""
 
-#: View/Attributes/search.ctp:38
-#: View/Events/automation.ctp:14
-#: View/Logs/admin_index.ctp:20;21
-#: View/Logs/admin_search.ctp:25
+#: View/Attributes/search.ctp:38 View/Events/automation.ctp:14
+#: View/Logs/admin_index.ctp:20;21 View/Logs/admin_search.ctp:25
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:253
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:375
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
 msgid "Search"
-msgstr ""
+msgstr "Pesquisar"
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:6
 msgid "Attribute Deletion"
@@ -4517,32 +4495,26 @@ msgid "Are you sure you want to soft-delete Attribute #%s? The Attribute will on
 msgstr ""
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:16
-#: View/Elements/eventdiscussion.ctp:90;98
 #: View/Elements/Events/eventIndexTable.ctp:245
 #: View/Elements/TagCollections/index_row.ctp:44
 #: View/Elements/Users/userIndexTable.ctp:91
+#: View/Elements/eventdiscussion.ctp:90;98
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:558
-#: View/Elements/healthElements/files.ctp:73
-#: View/EventBlacklists/index.ctp:39
+#: View/Elements/healthElements/files.ctp:73 View/EventBlacklists/index.ctp:39
 #: View/EventGraph/ajax/eventGraph_delete_form.ctp:14
-#: View/Events/view_graph.ctp:31
-#: View/Feeds/index.ctp:283
-#: View/Galaxies/index.ctp:58
-#: View/News/index.ctp:24
-#: View/ObjectReferences/ajax/delete.ctp:32
-#: View/ObjectTemplates/index.ctp:119
-#: View/Objects/ajax/delete.ctp:19
-#: View/OrgBlacklists/index.ctp:37
-#: View/Organisations/index.ctp:140
-#: View/Pages/doc/using_the_system.ctp:192
-#: View/Regexp/admin_index.ctp:35
-#: View/Roles/admin_index.ctp:80
-#: View/Servers/index.ctp:137
-#: View/SharingGroups/index.ctp:87
-#: View/Tags/index.ctp:125
+#: View/Events/view_graph.ctp:31 View/Feeds/index.ctp:283
+#: View/Galaxies/index.ctp:58 View/News/index.ctp:24
+#: View/ObjectReferences/ajax/delete.ctp:32 View/ObjectTemplates/index.ctp:119
+#: View/Objects/ajax/delete.ctp:19 View/OrgBlacklists/index.ctp:37
+#: View/Organisations/index.ctp:140 View/Pages/doc/using_the_system.ctp:192
+#: View/Regexp/admin_index.ctp:35 View/Roles/admin_index.ctp:80
+#: View/Servers/index.ctp:137 View/SharingGroups/index.ctp:87
+#: View/Tags/index.ctp:125 View/Themed/Overmind/Elements/Events/index.ctp:240
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:286
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:326
 #: View/Whitelists/admin_index.ctp:32
 msgid "Delete"
-msgstr ""
+msgstr "Eliminar"
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:16
 #: View/Attributes/ajax/attributeEditMassForm.ctp:31
@@ -4669,19 +4641,18 @@ msgstr ""
 #: View/Attributes/ajax/attributeEditMassForm.ctp:15
 #: View/Elements/eventattributecreation.ctp:30
 #: View/Events/resolved_attributes.ctp:51
-#: View/Events/resolved_misp_format.ctp:60;134;205
-#: View/Events/view.ctp:149
-#: View/Feeds/add.ctp:169
-#: View/Feeds/edit.ctp:165
-#: View/Feeds/freetext_index.ctp:36
-#: View/Objects/add.ctp:41;99
+#: View/Events/resolved_misp_format.ctp:60;134;205 View/Events/view.ctp:149
+#: View/Feeds/add.ctp:169 View/Feeds/edit.ctp:165
+#: View/Feeds/freetext_index.ctp:36 View/Objects/add.ctp:41;99
 #: View/Objects/revise_object.ctp:27;50
 #: View/Pages/doc/using_the_system.ctp:34;90;126;186;211;237
 #: View/Servers/preview_event.ctp:53
 #: View/Templates/populate_event_from_template_attributes.ctp:11
+#: View/Themed/Overmind/Elements/Events/index.ctp:193
+#: View/Themed/Overmind/Elements/Events/index.ctp:387
 #: View/Threads/index.ctp:27
 msgid "Distribution"
-msgstr ""
+msgstr "Distribuição"
 
 #: View/Attributes/ajax/attributeEditMassForm.ctp:33
 #: View/Pages/doc/using_the_system.ctp:96
@@ -4766,8 +4737,10 @@ msgid "from "
 msgstr ""
 
 #: View/Attributes/ajax/tagRemoveConfirmation.ctp:12
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:252
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:380
 msgid "Remove"
-msgstr ""
+msgstr "Remover"
 
 #: View/Attributes/ajax/toggle_correlation.ctp:6
 msgid "Toggle Correlation %s "
@@ -4826,17 +4799,16 @@ msgstr ""
 msgid "Select all attributes/proposals on current page"
 msgstr ""
 
-#: View/Elements/eventattribute.ctp:138
 #: View/Elements/Feeds/eventattribute.ctp:41
 #: View/Elements/Servers/eventattribute.ctp:41
-#: View/Events/proposal_event_index.ctp:30
-#: View/Events/view.ctp:133
+#: View/Elements/eventattribute.ctp:138
+#: View/Events/proposal_event_index.ctp:30 View/Events/view.ctp:133
 #: View/Feeds/preview_event.ctp:25
 #: View/Pages/doc/using_the_system.ctp:33;167;208;230;251
-#: View/Servers/preview_event.ctp:36
-#: View/Sightings/ajax/list_sightings.ctp:5
+#: View/Servers/preview_event.ctp:36 View/Sightings/ajax/list_sightings.ctp:5
+#: View/Themed/Overmind/Elements/Events/index.ctp:196
 msgid "Date"
-msgstr ""
+msgstr "Data"
 
 #: View/Elements/eventattribute.ctp:142
 #: View/Elements/eventdiscussion.ctp:142
@@ -4871,15 +4843,13 @@ msgstr ""
 msgid "Show all attributes"
 msgstr ""
 
-#: View/Elements/eventattributetoolbar.ctp:6
 #: View/Elements/Events/eventIndexTable.ctp:216
-#: View/Jobs/index.ctp:13;65
-#: View/ObjectTemplates/index.ctp:40
-#: View/Regexp/admin_add.ctp:17
-#: View/Regexp/admin_edit.ctp:18
-#: View/Sightings/ajax/advanced.ctp:5
+#: View/Elements/eventattributetoolbar.ctp:6 View/Jobs/index.ctp:13;65
+#: View/ObjectTemplates/index.ctp:40 View/Regexp/admin_add.ctp:17
+#: View/Regexp/admin_edit.ctp:18 View/Sightings/ajax/advanced.ctp:5
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:183
 msgid "All"
-msgstr ""
+msgstr "Todos"
 
 #: View/Elements/eventattributetoolbar.ctp:15
 msgid "Only show %s related attributes"
@@ -4942,8 +4912,10 @@ msgid "Discard selected Proposals"
 msgstr ""
 
 #: View/Elements/eventattributetoolbar.ctp:108
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:196
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:197
 msgid "Sightings display for selected attributes"
-msgstr ""
+msgstr "Mostrar observações dos atributos selecionados"
 
 #: View/Elements/eventattributetoolbar.ctp:119
 msgid "Populate using a template"
@@ -5029,31 +5001,24 @@ msgstr ""
 msgid "User "
 msgstr ""
 
-#: View/Elements/eventdiscussion.ctp:89;97
-#: View/Elements/Events/eventIndexTable.ctp:242
 #: View/Elements/Events/View/row_attribute.ctp:391
+#: View/Elements/Events/eventIndexTable.ctp:242
 #: View/Elements/TagCollections/index_row.ctp:43
 #: View/Elements/Users/userIndexTable.ctp:90
-#: View/EventBlacklists/edit.ctp:37
-#: View/EventBlacklists/index.ctp:38
-#: View/Feeds/edit.ctp:194
-#: View/Feeds/index.ctp:282
-#: View/News/index.ctp:22
-#: View/OrgBlacklists/edit.ctp:30
-#: View/OrgBlacklists/index.ctp:36
-#: View/Organisations/index.ctp:138
-#: View/Pages/doc/using_the_system.ctp:191
-#: View/Regexp/admin_index.ctp:34
-#: View/Roles/admin_edit.ctp:42
-#: View/Roles/admin_index.ctp:79
-#: View/Servers/index.ctp:136
-#: View/SharingGroups/index.ctp:86
-#: View/Tags/edit.ctp:36
-#: View/Tags/index.ctp:124
-#: View/Templates/edit.ctp:49
+#: View/Elements/eventdiscussion.ctp:89;97 View/EventBlacklists/edit.ctp:37
+#: View/EventBlacklists/index.ctp:38 View/Feeds/edit.ctp:194
+#: View/Feeds/index.ctp:282 View/News/index.ctp:22
+#: View/OrgBlacklists/edit.ctp:30 View/OrgBlacklists/index.ctp:36
+#: View/Organisations/index.ctp:138 View/Pages/doc/using_the_system.ctp:191
+#: View/Regexp/admin_index.ctp:34 View/Roles/admin_edit.ctp:42
+#: View/Roles/admin_index.ctp:79 View/Servers/index.ctp:136
+#: View/SharingGroups/index.ctp:86 View/Tags/edit.ctp:36
+#: View/Tags/index.ctp:124 View/Templates/edit.ctp:49
+#: View/Themed/Overmind/Elements/Events/index.ctp:233
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:123
 #: View/Whitelists/admin_index.ctp:31
 msgid "Edit"
-msgstr ""
+msgstr "Editar"
 
 #: View/Elements/eventdiscussion.ctp:90;98
 msgid "Are you sure you want to delete this post?"
@@ -5116,18 +5081,21 @@ msgstr ""
 msgid "Errors"
 msgstr ""
 
-#: View/Elements/flashErrorMessage.ctp:5
+#: View/Elements/flashErrorMessage.ctp:5 View/Helper/EventIndexHelper.php:264
 #: View/Jobs/ajax/error.ctp:34
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:30
 msgid "Close"
-msgstr ""
+msgstr "Fechar"
 
 #: View/Elements/footer.ctp:5
 msgid "Keyboard shortcuts for this page"
 msgstr ""
 
 #: View/Elements/footer.ctp:6
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+#: View/Themed/Overmind/Elements/Events/index.ctp:518
 msgid "none"
-msgstr ""
+msgstr "nenhum"
 
 #: View/Elements/footer.ctp:15
 #: View/Users/admin_add.ctp:70
@@ -5270,16 +5238,16 @@ msgstr ""
 msgid "Events with proposals"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:49
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:786
+#: View/Elements/global_menu.ctp:49 View/Helper/NavbarHelper.php:281
 #: View/Pages/doc/general.ctp:40
 msgid "List Tags"
-msgstr ""
+msgstr "Listar etiquetas"
 
-#: View/Elements/global_menu.ctp:53
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:222
+#: View/Elements/global_menu.ctp:53 View/Helper/NavbarHelper.php:288
 msgid "List Tag Collections"
-msgstr ""
+msgstr "Listar coleções de etiquetas"
 
 #: View/Elements/global_menu.ctp:57
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:791
@@ -5288,10 +5256,10 @@ msgstr ""
 msgid "Add Tag"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:62
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:820
+#: View/Elements/global_menu.ctp:62 View/Helper/NavbarHelper.php:274
 msgid "List Taxonomies"
-msgstr ""
+msgstr "Listar taxonomias"
 
 #: View/Elements/global_menu.ctp:66
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:848
@@ -5305,43 +5273,38 @@ msgstr ""
 msgid "Add Template"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:78
-#: View/Elements/view_event_graph.ctp:15
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:308
-#: View/Events/export.ctp:2
-#: View/Events/export_alternate.ctp:2;95
+#: View/Elements/global_menu.ctp:78 View/Elements/view_event_graph.ctp:15
+#: View/Events/export.ctp:2 View/Events/export_alternate.ctp:2;95
 #: View/Pages/doc/general.ctp:44
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:65
 msgid "Export"
-msgstr ""
+msgstr "Exportar"
 
-#: View/Elements/global_menu.ctp:82
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:314
-#: View/Events/automation.ctp:2
-#: View/Events/export_alternate.ctp:97
-#: View/Events/legacy_automation.ctp:2
-#: View/Pages/doc/general.ctp:45
+#: View/Elements/global_menu.ctp:82 View/Events/automation.ctp:2
+#: View/Events/export_alternate.ctp:97 View/Events/legacy_automation.ctp:2
+#: View/Helper/NavbarHelper.php:837 View/Pages/doc/general.ctp:45
 #: View/Pages/doc/using_the_system.ctp:15;361
 msgid "Automation"
-msgstr ""
+msgstr "Automatização"
 
-#: View/Elements/global_menu.ctp:94
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:954
+#: View/Elements/global_menu.ctp:94 View/Helper/NavbarHelper.php:302
 msgid "List Galaxies"
-msgstr ""
+msgstr "Listar galáxias"
 
 #: View/Elements/global_menu.ctp:101
 #: View/Pages/doc/general.ctp:21
 msgid "Input Filters"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:104;109
-#: View/Pages/doc/administration.ctp:12;64
-#: View/Pages/doc/general.ctp:50
-#: View/Pages/doc/user_management.ctp:69
-#: View/Regexp/admin_index.ctp:2
-#: View/Regexp/index.ctp:2
+#: View/Elements/global_menu.ctp:104;109 View/Helper/NavbarHelper.php:409
+#: View/Helper/NavbarHelper.php:417 View/Pages/doc/administration.ctp:12;64
+#: View/Pages/doc/general.ctp:50 View/Pages/doc/user_management.ctp:69
+#: View/Regexp/admin_index.ctp:2 View/Regexp/index.ctp:2
 msgid "Import Regexp"
-msgstr ""
+msgstr "Expressões regulares de importação"
 
 #: View/Elements/global_menu.ctp:114;119
 #: View/Pages/doc/administration.ctp:13
@@ -5366,24 +5329,23 @@ msgstr ""
 msgid "Global Actions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:139
-#: View/News/index.ctp:2
-#: View/Pages/doc/general.ctp:56
-#: View/Pages/doc/user_management.ctp:51
+#: View/Elements/global_menu.ctp:139 View/Helper/NavbarHelper.php:944
+#: View/Helper/NavbarHelper.php:949 View/News/index.ctp:2
+#: View/Pages/doc/general.ctp:56 View/Pages/doc/user_management.ctp:51
 msgid "News"
-msgstr ""
+msgstr "Notícias"
 
-#: View/Elements/global_menu.ctp:143
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:440
+#: View/Elements/global_menu.ctp:143 View/Helper/NavbarHelper.php:1063
 #: View/Pages/doc/general.ctp:57
 msgid "My Profile"
-msgstr ""
+msgstr "O meu perfil"
 
-#: View/Elements/global_menu.ctp:147
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:444
+#: View/Elements/global_menu.ctp:147 View/Helper/NavbarHelper.php:239
 #: View/Users/dashboard.ctp:2
 msgid "Dashboard"
-msgstr ""
+msgstr "Painel"
 
 #: View/Elements/global_menu.ctp:156
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:463
@@ -5391,52 +5353,47 @@ msgstr ""
 msgid "Role Permissions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:163
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:998
+#: View/Elements/global_menu.ctp:163 View/Helper/NavbarHelper.php:365
 msgid "List Object Templates"
-msgstr ""
+msgstr "Listar modelos de objetos"
 
-#: View/Elements/global_menu.ctp:170
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:480
+#: View/Elements/global_menu.ctp:170 View/Helper/NavbarHelper.php:488
 msgid "List Sharing Groups"
-msgstr ""
+msgstr "Listar grupos de partilha"
 
 #: View/Elements/global_menu.ctp:174
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:486
 msgid "Add Sharing Group"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:182
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:493
-#: View/Events/legacy_automation.ctp:42
-#: View/Pages/doc/general.ctp:60
+#: View/Elements/global_menu.ctp:182 View/Events/legacy_automation.ctp:42
+#: View/Helper/NavbarHelper.php:862 View/Pages/doc/general.ctp:60
 #: View/Pages/doc/user_management.ctp:53
 msgid "User Guide"
-msgstr ""
+msgstr "Guia do utilizador"
 
-#: View/Elements/global_menu.ctp:186
+#: View/Elements/global_menu.ctp:186 View/Helper/NavbarHelper.php:867
 msgid "Categories & Types"
-msgstr ""
+msgstr "Categorias e tipos"
 
 #: View/Elements/global_menu.ctp:190
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:497
 msgid "Terms & Conditions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:194
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:501
-#: View/Pages/doc/general.ctp:62
-#: View/Pages/doc/user_management.ctp:55
-#: View/Users/statistics.ctp:7
-#: View/Users/statistics_data.ctp:7
+#: View/Elements/global_menu.ctp:194 View/Helper/NavbarHelper.php:247
+#: View/Pages/doc/general.ctp:62 View/Pages/doc/user_management.ctp:55
+#: View/Users/statistics.ctp:7 View/Users/statistics_data.ctp:7
 #: View/Users/statistics_galaxymatrix.ctp:2
-#: View/Users/statistics_histogram.ctp:7
-#: View/Users/statistics_orgs.ctp:7
-#: View/Users/statistics_sightings.ctp:2
-#: View/Users/statistics_tags.ctp:7
+#: View/Users/statistics_histogram.ctp:7 View/Users/statistics_orgs.ctp:7
+#: View/Users/statistics_sightings.ctp:2 View/Users/statistics_tags.ctp:7
 #: View/Users/statistics_users.ctp:2
 msgid "Statistics"
-msgstr ""
+msgstr "Estatísticas"
 
 #: View/Elements/global_menu.ctp:201
 #: View/Pages/doc/general.ctp:92
@@ -5469,21 +5426,19 @@ msgstr ""
 msgid "Search Feed Caches"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:234
-#: View/Pages/doc/administration.ctp:8
-#: View/Pages/doc/concepts.ctp:8
-#: View/Pages/doc/general.ctp:8;24;71
-#: View/Pages/doc/quickstart.ctp:8
+#: View/Elements/global_menu.ctp:234 View/Helper/NavbarHelper.php:760
+#: View/Pages/doc/administration.ctp:8 View/Pages/doc/concepts.ctp:8
+#: View/Pages/doc/general.ctp:8;24;71 View/Pages/doc/quickstart.ctp:8
 #: View/Pages/doc/user_management.ctp:14
 #: View/Pages/doc/using_the_system.ctp:21
 msgid "Administration"
-msgstr ""
+msgstr "Administração"
 
-#: View/Elements/global_menu.ctp:239
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:626
+#: View/Elements/global_menu.ctp:239 View/Helper/NavbarHelper.php:603
 #: View/Pages/doc/general.ctp:74
 msgid "List Users"
-msgstr ""
+msgstr "Listar utilizadores"
 
 #: View/Elements/global_menu.ctp:243
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:621
@@ -5496,45 +5451,43 @@ msgstr ""
 msgid "Contact Users"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:254
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:450;668
+#: View/Elements/global_menu.ctp:254 View/Helper/NavbarHelper.php:619
 msgid "List Organisations"
-msgstr ""
+msgstr "Listar organizações"
 
 #: View/Elements/global_menu.ctp:258
 msgid "Add Organisations"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:265
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:680
+#: View/Elements/global_menu.ctp:265 View/Helper/NavbarHelper.php:634
 #: View/Pages/doc/general.ctp:76
 msgid "List Roles"
-msgstr ""
+msgstr "Listar funções"
 
 #: View/Elements/global_menu.ctp:269
 msgid "Add Roles"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:278
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:686
+#: View/Elements/global_menu.ctp:278 View/Helper/NavbarHelper.php:581
 #: View/Servers/server_settings.ctp:5
 msgid "Server Settings & Maintenance"
-msgstr ""
+msgstr "Configuração e manutenção do servidor"
 
-#: View/Elements/global_menu.ctp:287
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:693
-#: View/Jobs/index.ctp:2
-#: View/Pages/doc/general.ctp:80
+#: View/Elements/global_menu.ctp:287 View/Helper/NavbarHelper.php:666
+#: View/Jobs/index.ctp:2 View/Pages/doc/general.ctp:80
 msgid "Jobs"
-msgstr ""
+msgstr "Tarefas"
 
-#: View/Elements/global_menu.ctp:296
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:699
-#: View/Pages/doc/concepts.ctp:36
-#: View/Pages/doc/general.ctp:81
+#: View/Elements/global_menu.ctp:296 View/Helper/NavbarHelper.php:674
+#: View/Pages/doc/concepts.ctp:36 View/Pages/doc/general.ctp:81
 #: View/Tasks/index.ctp:3
 msgid "Scheduled Tasks"
-msgstr ""
+msgstr "Tarefas agendadas"
 
 #: View/Elements/global_menu.ctp:305
 msgid "Blacklist Event"
@@ -5572,10 +5525,10 @@ msgstr ""
 msgid "Search Logs"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:367;372
+#: View/Elements/global_menu.ctp:367;372 View/Helper/NavbarHelper.php:1070
 #: View/Pages/doc/general.ctp:28;63
 msgid "Log out"
-msgstr ""
+msgstr "Terminar sessão"
 
 #: View/Elements/histogram.ctp:1
 msgid "Attribute Types Histogram"
@@ -5594,10 +5547,11 @@ msgid "Attributes per organization"
 msgstr ""
 
 #: View/Elements/view_event_distribution_graph.ctp:9
-#: View/Layouts/default.ctp:90
-#: View/Layouts/graph.ctp:84
+#: View/Layouts/default.ctp:90 View/Layouts/graph.ctp:84
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:208
+#: View/Themed/Overmind/Elements/side_panel.ctp:75
 msgid "Loading"
-msgstr ""
+msgstr "A carregar"
 
 #: View/Elements/view_event_distribution_graph.ctp:18
 msgid "Elements having lower distribution level than the event"
@@ -5654,10 +5608,11 @@ msgstr ""
 msgid "Select all events on current page"
 msgstr ""
 
-#: View/Elements/Events/eventIndexTable.ctp:27
-#: View/Events/view.ctp:87
+#: View/Elements/Events/eventIndexTable.ctp:27 View/Events/view.ctp:87
+#: View/Themed/Overmind/Elements/Events/index.ctp:159
+#: View/Themed/Overmind/Elements/Events/index.ctp:50
 msgid "Owner org"
-msgstr ""
+msgstr "Organização proprietária"
 
 #: View/Elements/Events/eventIndexTable.ctp:35
 msgid "Clusters"
@@ -5701,35 +5656,29 @@ msgid "#Posts"
 msgstr ""
 
 #: View/Elements/Events/eventIndexTable.ctp:53
-#: View/Events/proposal_event_index.ctp:27
-#: View/Events/view.ctp:113
-#: View/Jobs/index.ctp:77
-#: View/Logs/admin_search.ctp:6
+#: View/Events/proposal_event_index.ctp:27 View/Events/view.ctp:113
+#: View/Jobs/index.ctp:77 View/Logs/admin_search.ctp:6
 #: View/Pages/doc/administration.ctp:87;104;116;181;195
 #: View/Pages/doc/using_the_system.ctp:166
-#: View/Users/admin_view.ctp:8
+#: View/Themed/Overmind/Users/login.ctp:127 View/Users/admin_view.ctp:8
 #: View/Users/view.ctp:4
 msgid "Email"
-msgstr ""
+msgstr "Endereço de correio eletrónico"
 
 #: View/Elements/Events/eventIndexTable.ctp:82;86;248
 #: View/Elements/Users/userIndexTable.ctp:94
 #: View/Elements/dashboard/dashboard_events.ctp:4;5
 #: View/Elements/dashboard/dashboard_notifications.ctp:4;5;9
-#: View/Events/proposal_event_index.ctp:45;49
-#: View/Feeds/preview_index.ctp:73
-#: View/Galaxies/index.ctp:59
-#: View/GalaxyClusters/ajax/index.ctp:81
-#: View/Noticelists/index.ctp:66
-#: View/ObjectTemplates/index.ctp:115
-#: View/Organisations/index.ctp:143
-#: View/Pages/doc/using_the_system.ctp:193
-#: View/Servers/preview_index.ctp:174
-#: View/SharingGroups/index.ctp:89
+#: View/Events/proposal_event_index.ctp:45;49 View/Feeds/preview_index.ctp:73
+#: View/Galaxies/index.ctp:59 View/GalaxyClusters/ajax/index.ctp:81
+#: View/Noticelists/index.ctp:66 View/ObjectTemplates/index.ctp:115
+#: View/Organisations/index.ctp:143 View/Pages/doc/using_the_system.ctp:193
+#: View/Servers/preview_index.ctp:174 View/SharingGroups/index.ctp:89
 #: View/Taxonomies/index.ctp:49
+#: View/Themed/Overmind/Elements/Events/index.ctp:227
 #: View/Warninglists/index.ctp:60
 msgid "View"
-msgstr ""
+msgstr "Ver"
 
 #: View/Elements/Events/eventIndexTable.ctp:168
 msgid " correlation(s). Show filtered event with correlation only."
@@ -5988,12 +5937,15 @@ msgid "Coverage by currently selected sources: "
 msgstr ""
 
 #: View/Elements/Feeds/View/feed_overlap_tool.ctp:58
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:377
 msgid "Include"
-msgstr ""
+msgstr "Incluir"
 
 #: View/Elements/Feeds/View/feed_overlap_tool.ctp:75
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:197
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:378
 msgid "Exclude"
-msgstr ""
+msgstr "Excluir"
 
 #: View/Elements/Feeds/View/feed_overlap_tool.ctp:86
 msgid "Check coverage"
@@ -6072,6 +6024,7 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
+#: Lib/Tools/SharingGroupPeek.php:107
 #: View/Elements/Servers/View/row_object.ctp:21
 #: View/Elements/healthElements/files.ctp:8
 #: View/Elements/healthElements/overview.ctp:17
@@ -6081,25 +6034,18 @@ msgstr ""
 #: View/Elements/templateElements/populateTemplateFile.ctp:10
 #: View/Elements/templateElements/templateRowAttribute.ctp:21
 #: View/Elements/templateElements/templateRowFile.ctp:21
-#: View/Events/export.ctp:26
-#: View/Galaxies/view.ctp:20
-#: View/GalaxyClusters/view.ctp:17
-#: View/ObjectTemplates/view.ctp:9
-#: View/Objects/add.ctp:16;94
-#: View/Organisations/view.ctp:15;58;59
+#: View/Events/export.ctp:26 View/Galaxies/view.ctp:20
+#: View/GalaxyClusters/view.ctp:17 View/ObjectTemplates/view.ctp:9
+#: View/Objects/add.ctp:16;94 View/Organisations/view.ctp:15;58;59
 #: View/Pages/doc/administration.ctp:48;241
 #: View/Pages/doc/categories_and_types.ctp:44;61
 #: View/Pages/doc/using_the_system.ctp:108;145;328;341;379
-#: View/Servers/preview_event.ctp:65
-#: View/SharingGroups/add.ctp:55
-#: View/SharingGroups/edit.ctp:55
-#: View/SharingGroups/index.ctp:45
-#: View/TagCollections/index.ctp:15
-#: View/Taxonomies/view.ctp:14
-#: View/Templates/view.ctp:14
-#: View/Warninglists/view.ctp:11
+#: View/Servers/preview_event.ctp:65 View/SharingGroups/add.ctp:55
+#: View/SharingGroups/edit.ctp:55 View/SharingGroups/index.ctp:45
+#: View/TagCollections/index.ctp:15 View/Taxonomies/view.ctp:14
+#: View/Templates/view.ctp:14 View/Warninglists/view.ctp:11
 msgid "Description"
-msgstr ""
+msgstr "Descrição"
 
 #: View/Elements/Servers/View/row_object.ctp:22
 #: View/Templates/view.ctp:2
@@ -6172,8 +6118,9 @@ msgid "Events published: "
 msgstr ""
 
 #: View/Elements/dashboard/dashboard_events.ctp:7
+#: View/Themed/Overmind/Elements/Events/index.ctp:89
 msgid "Reset"
-msgstr ""
+msgstr "Repor"
 
 #: View/Elements/dashboard/dashboard_notifications.ctp:2
 msgid "Notifications"
@@ -6259,8 +6206,9 @@ msgid "Publish (no email)"
 msgstr ""
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:144
+#: View/Themed/Overmind/Elements/Events/index.ctp:253
 msgid "Unpublish"
-msgstr ""
+msgstr "Anular publicação"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:153
 msgid "Delegate Publishing"
@@ -7464,12 +7412,12 @@ msgstr ""
 
 #: View/Elements/templateElements/templateRowAttribute.ctp:4
 #: View/Events/resolved_misp_format.ctp:126
-#: View/ObjectReferences/ajax/add.ctp:86
-#: View/Objects/revise_object.ctp:43
+#: View/ObjectReferences/ajax/add.ctp:86 View/Objects/revise_object.ctp:43
 #: View/Pages/doc/administration.ctp:168
 #: View/TemplateElements/ajax/template_element_add_choices.ctp:3
+#: View/Themed/Overmind/Elements/Events/index.ctp:488
 msgid "Attribute"
-msgstr ""
+msgstr "Atributo"
 
 #: View/Elements/templateElements/templateRowAttribute.ctp:30
 #: View/Elements/templateElements/templateRowFile.ctp:30
@@ -7714,8 +7662,9 @@ msgstr ""
 #: View/ShadowAttributes/ajax/attributeEditTo_idsForm.ctp:6
 #: View/ShadowAttributes/ajax/attributeEditTypeForm.ctp:6
 #: View/ShadowAttributes/ajax/attributeEditValueForm.ctp:6
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:308
 msgid "Discard"
-msgstr ""
+msgstr "Rejeitar"
 
 #: View/EventGraph/ajax/eventGraph_add_form.ctp:6
 msgid "Add EventGraph"
@@ -8549,8 +8498,9 @@ msgid "Attachments are disabled on this instance"
 msgstr ""
 
 #: View/Events/export.ctp:76
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:368
 msgid "Loading…"
-msgstr ""
+msgstr "A carregar…"
 
 #: View/Events/export.ctp:78
 #: View/Jobs/index.ctp:122
@@ -8674,8 +8624,10 @@ msgid "NOT"
 msgstr ""
 
 #: View/Events/filter_event_index.ctp:25;112;179;180;205;207
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_panel.ctp:60
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:45
 msgid "Any"
-msgstr ""
+msgstr "Qualquer"
 
 #: View/Events/filter_event_index.ctp:32;189
 #: View/Pages/doc/using_the_system.ctp:67;172
@@ -8720,9 +8672,10 @@ msgstr ""
 
 #: View/Events/filter_event_index.ctp:170
 #: View/Servers/filter_event_index.ctp:21
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:381
 #: View/Users/admin_filter_user_index.ctp:106
 msgid "Apply"
-msgstr ""
+msgstr "Aplicar"
 
 #: View/Events/filter_event_index.ctp:179
 msgid "\"No\""
@@ -8749,15 +8702,14 @@ msgstr ""
 msgid "Input File"
 msgstr ""
 
-#: View/Events/index.ctp:2
-#: View/Events/ajax/index.ctp:3
-#: View/GalaxyClusters/view.ctp:38
+#: View/Events/ajax/index.ctp:3 View/Events/index.ctp:2
+#: View/GalaxyClusters/view.ctp:38 View/Helper/NavbarHelper.php:135
 #: View/Organisations/view.ctp:66;67
-#: View/Users/statistics.ctp:11
-#: View/Users/statistics_data.ctp:14
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:19
+#: View/Users/statistics.ctp:11 View/Users/statistics_data.ctp:14
 #: View/Users/statistics_orgs.ctp:33
 msgid "Events"
-msgstr ""
+msgstr "Eventos"
 
 #: View/Events/index.ctp:34
 #: View/Logs/admin_index.ctp:54
@@ -9140,11 +9092,12 @@ msgstr ""
 msgid "Event with proposals"
 msgstr ""
 
-#: View/Events/proposal_event_index.ctp:24
-#: View/Pages/doc/concepts.ctp:28
-#: View/ShadowAttributes/index.ctp:2
+#: View/Events/proposal_event_index.ctp:24 View/Helper/NavbarHelper.php:209
+#: View/Pages/doc/concepts.ctp:28 View/ShadowAttributes/index.ctp:2
+#: View/Themed/Overmind/Elements/Events/index.ctp:496
+#: View/Themed/Overmind/Elements/Events/index.ctp:58
 msgid "Proposals"
-msgstr ""
+msgstr "Propostas"
 
 #: View/Events/proposal_event_index.ctp:25
 #: View/Events/view.ctp:107
@@ -9228,15 +9181,18 @@ msgstr ""
 msgid "Below you can see the %s that are to be created, from the results of the enrichment module."
 msgstr ""
 
-#: View/Events/resolved_misp_format.ctp:34
+#: View/Events/resolved_misp_format.ctp:34 View/Helper/NavbarHelper.php:143
+#: View/Themed/Overmind/Elements/Events/index.ctp:177
 msgid "Objects"
-msgstr ""
+msgstr "Objetos"
 
 #: View/Events/resolved_misp_format.ctp:43
 #: View/Organisations/ajax/merge.ctp:56;63
 #: View/Pages/doc/using_the_system.ctp:163;203
+#: View/Themed/Overmind/Elements/Events/index.ctp:142
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:90
 msgid "ID"
-msgstr ""
+msgstr "ID"
 
 #: View/Events/resolved_misp_format.ctp:52
 msgid "Meta Category"
@@ -9247,8 +9203,9 @@ msgid "References:"
 msgstr ""
 
 #: View/Events/resolved_misp_format.ctp:88
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:189
 msgid "Relationship"
-msgstr ""
+msgstr "Relação"
 
 #: View/Events/resolved_misp_format.ctp:89
 msgid "Referenced name/type"
@@ -9333,9 +9290,11 @@ msgstr ""
 msgid "Member Organisation"
 msgstr ""
 
-#: View/Events/view.ctp:77
+#: View/Events/view.ctp:77 View/Themed/Overmind/Elements/Events/index.ctp:154
+#: View/Themed/Overmind/Elements/Events/index.ctp:325
+#: View/Themed/Overmind/Elements/Events/index.ctp:486
 msgid "Creator org"
-msgstr ""
+msgstr "Organização criadora"
 
 #: View/Events/view.ctp:138
 #: View/Feeds/preview_event.ctp:30
@@ -9344,12 +9303,12 @@ msgstr ""
 msgid "Threat Level"
 msgstr ""
 
-#: View/Events/view.ctp:144
-#: View/Feeds/preview_event.ctp:37
+#: View/Events/view.ctp:144 View/Feeds/preview_event.ctp:37
 #: View/Pages/doc/using_the_system.ctp:70;177;210
 #: View/Servers/preview_event.ctp:48
+#: View/Themed/Overmind/Elements/Events/index.ctp:494
 msgid "Analysis"
-msgstr ""
+msgstr "Análise"
 
 #: View/Events/view.ctp:168
 msgid "Toggle advanced sharing network viewer"
@@ -9361,13 +9320,18 @@ msgstr ""
 msgid "Info"
 msgstr ""
 
-#: View/Events/view.ctp:178
-#: View/Feeds/preview_event.ctp:55;60;65
+#: View/Events/view.ctp:178 View/Feeds/preview_event.ctp:55;60;65
+#: View/Helper/EventIndexHelper.php:52
 #: View/Pages/doc/using_the_system.ctp:160;213
-#: View/Servers/preview_event.ctp:78;88
-#: View/Servers/preview_index.ctp:112
+#: View/Servers/preview_event.ctp:78;88 View/Servers/preview_index.ctp:112
+#: View/Themed/Overmind/Elements/Events/index.ctp:202
+#: View/Themed/Overmind/Elements/Events/index.ctp:403
+#: View/Themed/Overmind/Elements/Events/index.ctp:406
+#: View/Themed/Overmind/Elements/Events/index.ctp:424
+#: View/Themed/Overmind/Elements/Events/index.ctp:498
+#: View/Themed/Overmind/Elements/Events/index.ctp:499
 msgid "Published"
-msgstr ""
+msgstr "Publicado"
 
 #: View/Events/view.ctp:184
 msgid " (%s Objects)"
@@ -9385,9 +9349,10 @@ msgstr ""
 msgid "First recorded change"
 msgstr ""
 
-#: View/Events/view.ctp:194
+#: View/Events/view.ctp:194 View/Themed/Overmind/Elements/Events/index.ctp:210
+#: View/Themed/Overmind/Elements/Events/index.ctp:60
 msgid "Last change"
-msgstr ""
+msgstr "Última alteração"
 
 #: View/Events/view.ctp:198
 msgid "Modification map"
@@ -9434,13 +9399,12 @@ msgstr ""
 msgid "Disabled"
 msgstr ""
 
-#: View/Events/view.ctp:300
-#: View/Feeds/view.ctp:62
-#: View/Noticelists/index.ctp:63
-#: View/ObjectTemplates/index.ctp:35
+#: View/Events/view.ctp:300 View/Feeds/view.ctp:62
+#: View/Noticelists/index.ctp:63 View/ObjectTemplates/index.ctp:35
 #: View/Taxonomies/view.ctp:24
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:195
 msgid "Enabled"
-msgstr ""
+msgstr "Ativado"
 
 #: View/Events/view.ctp:309
 #: View/Warninglists/view.ctp:24
@@ -9484,9 +9448,10 @@ msgstr ""
 msgid "Toggle galaxies"
 msgstr ""
 
-#: View/Events/view.ctp:456
+#: View/Events/view.ctp:456 View/Themed/Overmind/Elements/Events/index.ctp:364
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:156
 msgid "Galaxy"
-msgstr ""
+msgstr "Galáxia"
 
 #: View/Events/view.ctp:459
 msgid "Toggle Event graph"
@@ -9525,8 +9490,10 @@ msgid "Hover target"
 msgstr ""
 
 #: View/Events/view_graph.ctp:25
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:259
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:376
 msgid "Selected"
-msgstr ""
+msgstr "Selecionados"
 
 #: View/Events/view_graph.ctp:30
 msgid "Expand"
@@ -9569,11 +9536,11 @@ msgid "Publish but do NOT send alert email? Only for minor changes!"
 msgstr ""
 
 #: View/Events/ajax/eventPublishConfirmationForm.ctp:26
-#: View/Feeds/index.ctp:105
-#: View/Pages/doc/using_the_system.ctp:190
+#: View/Feeds/index.ctp:105 View/Pages/doc/using_the_system.ctp:190
 #: View/Servers/ajax/update.ctp:11
+#: View/Themed/Overmind/Elements/Events/index.ctp:254
 msgid "Publish"
-msgstr ""
+msgstr "Publicar"
 
 #: View/Events/ajax/exportChoice.ctp:2
 msgid "Choose the format that you wish to download the event in"
@@ -9673,15 +9640,13 @@ msgstr ""
 msgid "Username"
 msgstr ""
 
-#: View/Feeds/add.ctp:73
-#: View/Feeds/edit.ctp:48
+#: View/Feeds/add.ctp:73 View/Feeds/edit.ctp:48
 #: View/Pages/doc/administration.ctp:88;117
-#: View/Users/admin_add.ctp:40
-#: View/Users/admin_edit.ctp:40
-#: View/Users/change_pw.ctp:9
+#: View/Themed/Overmind/Users/login.ctp:144 View/Users/admin_add.ctp:40
+#: View/Users/admin_edit.ctp:40 View/Users/change_pw.ctp:9
 #: View/Users/edit.ctp:13
 msgid "Password"
-msgstr ""
+msgstr "Palavra-passe"
 
 #: View/Feeds/add.ctp:77
 #: View/Feeds/edit.ctp:52
@@ -9892,9 +9857,11 @@ msgstr ""
 msgid "Fetch selected"
 msgstr ""
 
-#: View/Feeds/freetext_index.ctp:35
+#: View/Feeds/freetext_index.ctp:35 View/Helper/NavbarHelper.php:727
+#: View/Themed/Overmind/Elements/Events/index.ctp:178
+#: View/Themed/Overmind/Elements/Events/index.ctp:55
 msgid "Correlations"
-msgstr ""
+msgstr "Correlações"
 
 #: View/Feeds/import_feeds.ctp:4
 msgid "Paste feed data"
@@ -9913,9 +9880,9 @@ msgstr ""
 msgid "Feed metadata JSON"
 msgstr ""
 
-#: View/Feeds/index.ctp:2
+#: View/Feeds/index.ctp:2 View/Helper/NavbarHelper.php:465
 msgid "Feeds"
-msgstr ""
+msgstr "Fontes de dados"
 
 #: View/Feeds/index.ctp:3
 msgid "Generate feed lookup caches or fetch feed data (enabled feeds only)"
@@ -10307,10 +10274,10 @@ msgstr ""
 msgid "No error data found. Generally job error data is purged from Redis after 24 hours, however, you can still view the errors in the log files in \"/app/tmp/logs\"."
 msgstr ""
 
-#: View/Logs/admin_index.ctp:2
+#: View/Helper/NavbarHelper.php:805 View/Logs/admin_index.ctp:2
 #: View/Logs/event_index.ctp:6
 msgid "Logs"
-msgstr ""
+msgstr "Registos"
 
 #: View/Logs/admin_index.ctp:5
 msgid "Results for all log entries"
@@ -10366,12 +10333,12 @@ msgstr ""
 msgid "Organisation"
 msgstr ""
 
-#: View/Logs/admin_search.ctp:19
-#: View/Pages/doc/administration.ctp:185;198
+#: View/Logs/admin_search.ctp:19 View/Pages/doc/administration.ctp:185;198
 #: View/Pages/doc/using_the_system.ctp:271
+#: View/Themed/Overmind/Elements/Events/index.ctp:149
 #: View/Threads/index.ctp:22
 msgid "Title"
-msgstr ""
+msgstr "Título"
 
 #: View/Logs/admin_search.ctp:21
 #: View/Pages/doc/administration.ctp:186;199
@@ -10407,9 +10374,9 @@ msgstr ""
 msgid "There are currently no news messages."
 msgstr ""
 
-#: View/Noticelists/index.ctp:2
+#: View/Helper/NavbarHelper.php:402 View/Noticelists/index.ctp:2
 msgid "Noticelists"
-msgstr ""
+msgstr "Listas de notificações"
 
 #: View/Noticelists/index.ctp:32
 msgid "Expanded name"
@@ -10437,24 +10404,24 @@ msgstr ""
 msgid "(disable)"
 msgstr ""
 
-#: View/Noticelists/view.ctp:21
-#: View/Taxonomies/index.ctp:43
+#: View/Noticelists/view.ctp:21 View/Taxonomies/index.ctp:43
 #: View/Taxonomies/view.ctp:29;155
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:229
 #: View/Warninglists/view.ctp:23
 msgid "Disable"
-msgstr ""
+msgstr "Desativar"
 
 #: View/Noticelists/view.ctp:23
 #: View/Taxonomies/view.ctp:31
 msgid "(enable)"
 msgstr ""
 
-#: View/Noticelists/view.ctp:23
-#: View/Taxonomies/index.ctp:45
+#: View/Noticelists/view.ctp:23 View/Taxonomies/index.ctp:45
 #: View/Taxonomies/view.ctp:31;159
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:223
 #: View/Warninglists/view.ctp:23
 msgid "Enable"
-msgstr ""
+msgstr "Ativar"
 
 #: View/Noticelists/ajax/delete_confirmation.ctp:9
 msgid "Noticelist Deletion"
@@ -10478,8 +10445,9 @@ msgstr ""
 
 #: View/ObjectReferences/ajax/add.ctp:54
 #: View/Objects/orphaned_object_diagnostics.ctp:38
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:178
 msgid "Object"
-msgstr ""
+msgstr "Objeto"
 
 #: View/ObjectReferences/ajax/add.ctp:121
 msgid "Target Details"
@@ -10815,11 +10783,12 @@ msgstr ""
 msgid "View all"
 msgstr ""
 
-#: View/Organisations/index.ctp:86
-#: View/Users/login.ctp:8
+#: View/Organisations/index.ctp:86 View/Themed/Overmind/Users/login.ctp:82
+#: View/Themed/Overmind/Users/login.ctp:88
+#: View/Themed/Overmind/Users/login.ctp:97 View/Users/login.ctp:8
 #: View/Users/statistics_orgs.ctp:30
 msgid "Logo"
-msgstr ""
+msgstr "Logótipo"
 
 #: View/Organisations/index.ctp:97
 msgid "Added by"
@@ -11915,8 +11884,9 @@ msgid "The job's ID (this is the ID of the job's meta-data stored in the default
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:222
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:297
 msgid "Process"
-msgstr ""
+msgstr "Processar"
 
 #: View/Pages/doc/administration.ctp:222
 msgid "The process's ID."
@@ -12209,9 +12179,9 @@ msgid "If you have audit permissions, you can view the logs for your organisatio
 msgstr ""
 
 #: View/Pages/doc/general.ctp:26;90
-#: View/Threads/index.ctp:2
+#: View/Themed/Overmind/Elements/Events/index.ctp:59 View/Threads/index.ctp:2
 msgid "Discussions"
-msgstr ""
+msgstr "Discussões"
 
 #: View/Pages/doc/general.ctp:26
 msgid "Link to the discussion threads."
@@ -13356,8 +13326,9 @@ msgid "Here is a list of the various tools you can use while using this feature"
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:260
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:19
 msgid "Pagination"
-msgstr ""
+msgstr "Paginação"
 
 #: View/Pages/doc/using_the_system.ctp:260
 msgid "There are 5 posts visible on each event page, if there have been more messages posted, use the previous and next button to navigate through the thread. This will not reload the rest of the page."
@@ -14061,11 +14032,6 @@ msgstr ""
 msgid "In response to"
 msgstr ""
 
-#: View/Posts/add.ctp:33
-msgid ""
-msgstr ""
-""
-
 #: View/Posts/edit.ctp:12
 msgid "Contents"
 msgstr ""
@@ -14669,11 +14635,10 @@ msgstr ""
 msgid "Example: Multinational sharing group"
 msgstr ""
 
-#: View/SharingGroups/add.ctp:53
-#: View/SharingGroups/edit.ctp:53
-#: View/SharingGroups/index.ctp:46
+#: Lib/Tools/SharingGroupPeek.php:107 View/SharingGroups/add.ctp:53
+#: View/SharingGroups/edit.ctp:53 View/SharingGroups/index.ctp:46
 msgid "Releasable to"
-msgstr ""
+msgstr "Partilhável com"
 
 #: View/SharingGroups/add.ctp:54
 #: View/SharingGroups/edit.ctp:54
@@ -14695,10 +14660,10 @@ msgstr ""
 msgid "Make the sharing group selectable (active)"
 msgstr ""
 
-#: View/SharingGroups/add.ctp:61;78;99
-#: View/SharingGroups/edit.ctp:61;78;107
+#: View/SharingGroups/add.ctp:61;78;99 View/SharingGroups/edit.ctp:61;78;107
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:82
 msgid "Next page"
-msgstr ""
+msgstr "Página seguinte"
 
 #: View/SharingGroups/add.ctp:65
 #: View/SharingGroups/edit.ctp:65
@@ -14726,10 +14691,10 @@ msgstr ""
 msgid "Extend"
 msgstr ""
 
-#: View/SharingGroups/add.ctp:77;98;114
-#: View/SharingGroups/edit.ctp:77;106;122
+#: View/SharingGroups/add.ctp:77;98;114 View/SharingGroups/edit.ctp:77;106;122
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/pagination_nav.ctp:27
 msgid "Previous page"
-msgstr ""
+msgstr "Página anterior"
 
 #: View/SharingGroups/add.ctp:82
 #: View/SharingGroups/edit.ctp:90
@@ -14793,9 +14758,9 @@ msgstr ""
 msgid "Synchronisation: </span>Furthermore, events are automatically pushed to: <span id=\"summaryservers\" class=\"red bold\"></span>"
 msgstr ""
 
-#: View/SharingGroups/index.ctp:2
+#: View/Helper/NavbarHelper.php:476 View/SharingGroups/index.ctp:2
 msgid "Sharing Groups"
-msgstr ""
+msgstr "Grupos de partilha"
 
 #: View/SharingGroups/index.ctp:26
 msgid "Active Sharing Groups"
@@ -14973,12 +14938,14 @@ msgid "Update all"
 msgstr ""
 
 #: View/Taxonomies/index.ctp:2
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:267
 msgid "Taxonomies"
-msgstr ""
+msgstr "Taxonomias"
 
 #: View/Taxonomies/index.ctp:26
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:238
 msgid "Required"
-msgstr ""
+msgstr "Obrigatório"
 
 #: View/Taxonomies/index.ctp:27
 msgid "Active Tags"
@@ -15023,16 +14990,19 @@ msgid "Unhide selected tags"
 msgstr ""
 
 #: View/Taxonomies/view.ctp:83
+#: View/Themed/Overmind/Elements/Events/index.ctp:336
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:134
 msgid "Tag"
-msgstr ""
+msgstr "Etiqueta"
 
 #: View/Taxonomies/view.ctp:84
 msgid "Expanded"
 msgstr ""
 
 #: View/Taxonomies/view.ctp:85
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:240
 msgid "Numerical value"
-msgstr ""
+msgstr "Valor numérico"
 
 #: View/Taxonomies/view.ctp:154
 msgid "Refresh"
@@ -15228,9 +15198,9 @@ msgstr ""
 msgid "Create"
 msgstr ""
 
-#: View/Templates/index.ctp:2
+#: View/Helper/NavbarHelper.php:353 View/Templates/index.ctp:2
 msgid "Templates"
-msgstr ""
+msgstr "Modelos"
 
 #: View/Templates/index.ctp:45
 msgid "Are you sure you want to delete Template #"
@@ -15727,9 +15697,9 @@ msgstr ""
 msgid "Submit password reset"
 msgstr ""
 
-#: View/Warninglists/index.ctp:2
+#: View/Helper/NavbarHelper.php:395 View/Warninglists/index.ctp:2
 msgid "Warninglists"
-msgstr ""
+msgstr "Listas de aviso"
 
 #: View/Warninglists/index.ctp:35
 msgid "Valid attributes"
@@ -16027,3 +15997,1644 @@ msgstr ""
 msgid "Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: \"/8.8.8.8/\" Please double check the name."
 msgstr ""
 
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:244
+msgid "Optional"
+msgstr "Opcional"
+
+#: View/Helper/NavbarHelper.php:794
+msgid "Access logs"
+msgstr "Registos de acesso"
+
+#: View/Helper/NavbarHelper.php:784
+msgid "Audit logs"
+msgstr "Registos de auditoria"
+
+#: View/Helper/NavbarHelper.php:179
+msgid "Event Reports"
+msgstr "Relatórios de eventos"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:495
+msgid "Threat level"
+msgstr "Nível de ameaça"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:203
+#: View/Themed/Overmind/Elements/Events/index.ctp:61
+msgid "Published at"
+msgstr "Publicado em"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "days"
+msgstr "dias"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "hours"
+msgstr "horas"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:169
+msgid "Markings"
+msgstr "Marcações"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:294
+#, php-format
+msgid "Sharing group %s"
+msgstr "Grupo de partilha %s"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:373
+msgid "just now"
+msgstr "agora mesmo"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:376
+#, php-format
+msgid "%s min ago"
+msgstr "há %s min"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:379
+#, php-format
+msgid "%s h ago"
+msgstr "há %s h"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:382
+#, php-format
+msgid "%s d ago"
+msgstr "há %s d"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:385
+#, php-format
+msgid "%s wk ago"
+msgstr "há %s sem."
+
+#: Lib/Tools/EventOverview/EventCardTool.php:388
+#, php-format
+msgid "%s mo ago"
+msgstr "há %s meses"
+
+#: Lib/Tools/EventOverview/EventCardTool.php:390
+#, php-format
+msgid "%s y ago"
+msgstr "há %s anos"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:778
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:784
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:122
+msgid "Clear all"
+msgstr "Limpar tudo"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+msgid "Remove this filter"
+msgstr "Remover este filtro"
+
+#: View/Helper/NavbarHelper.php:258
+msgid "Data points"
+msgstr "Dados"
+
+#: View/Helper/NavbarHelper.php:439
+msgid "Data models"
+msgstr "Modelos de dados"
+
+#: View/Helper/NavbarHelper.php:566
+msgid "Sync"
+msgstr "Sincronização"
+
+#: View/Helper/NavbarHelper.php:903
+msgid "Resources"
+msgstr "Recursos"
+
+#: View/Helper/NavbarHelper.php:1028 View/Helper/NavbarHelper.php:961
+#: View/Helper/NavbarHelper.php:965
+msgid "Bookmarks"
+msgstr "Marcadores"
+
+#: View/Helper/NavbarHelper.php:162
+msgid "Value Intelligence"
+msgstr "Informações sobre valores"
+
+#: View/Helper/NavbarHelper.php:516
+msgid "Integrations"
+msgstr "Integrações"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:242
+msgid "Open"
+msgstr "Abrir"
+
+#: View/Helper/EventIndexHelper.php:54
+#: View/Themed/Overmind/Elements/Events/index.ctp:407
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:23
+msgid "Unpublished"
+msgstr "Não publicado"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:56
+msgid "Reports"
+msgstr "Relatórios"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:68
+msgid "Reach"
+msgstr "Alcance"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:43
+msgid "No organisation is a member yet."
+msgstr "Ainda não há organizações membros."
+
+#: Lib/Tools/SharingGroupPeek.php:91
+msgid "Stays on this instance."
+msgstr "Permanece nesta instância."
+
+#: Lib/Tools/SharingGroupPeek.php:89
+#, php-format
+msgid "Pushed to %s other instance."
+msgid_plural "Pushed to %s other instances."
+msgstr[0] "Enviado para %s outra instância."
+msgstr[1] "Enviado para %s outras instâncias."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:194
+msgid "Deprecated"
+msgstr "Obsoleto"
+
+#: Lib/Tools/SharingGroupPeek.php:29
+msgid "Inactive"
+msgstr "Inativo"
+
+#: Lib/Tools/SharingGroupPeek.php:32
+msgid "Received through sync"
+msgstr "Recebido por sincronização"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Roaming"
+msgstr "Itinerância"
+
+#: Lib/Tools/SharingGroupPeek.php:87
+msgid "Travels to any instance its members connect to."
+msgstr "É propagado para qualquer instância à qual os seus membros se liguem."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "no"
+msgstr "não"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:520
+#: View/Themed/Overmind/Elements/Events/index.ctp:521
+msgid "yes"
+msgstr "sim"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:193
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:490
+msgid "Clear"
+msgstr "Limpar"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid "Request access"
+msgstr "Pedir acesso"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:379
+msgid "Excluded"
+msgstr "Excluído"
+
+#: View/Helper/NavbarHelper.php:320
+msgid "Decaying Models"
+msgstr "Modelos de decaimento"
+
+#: View/Helper/NavbarHelper.php:190
+msgid "Template Variables"
+msgstr "Variáveis de modelos"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:164
+#: View/Themed/Overmind/Elements/Events/index.ctp:51
+msgid "Creator user"
+msgstr "Utilizador criador"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:174
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:175
+msgid "Group selected Attributes into an Object"
+msgstr "Agrupar atributos selecionados num objeto"
+
+#: View/Helper/NavbarHelper.php:875
+msgid "Server PGP public key"
+msgstr "Chave pública PGP do servidor"
+
+#: View/Helper/NavbarHelper.php:884
+msgid "Server S/MIME certificate"
+msgstr "Certificado S/MIME do servidor"
+
+#: View/Helper/NavbarHelper.php:503
+msgid "List Sharing Group Blueprints"
+msgstr "Listar planos de grupos de partilha"
+
+#: View/Helper/NavbarHelper.php:357
+msgid "List Event Templates"
+msgstr "Listar modelos de eventos"
+
+#: View/Helper/NavbarHelper.php:372
+msgid "List Object Relationships"
+msgstr "Listar relações entre objetos"
+
+#: View/Helper/NavbarHelper.php:1018
+msgid "Manage Bookmarks"
+msgstr "Gerir marcadores"
+
+#: View/Helper/NavbarHelper.php:425
+msgid "Correlation Exclusions"
+msgstr "Exclusões de correlação"
+
+#: View/Helper/NavbarHelper.php:894
+msgid "Themes"
+msgstr "Temas"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "ON"
+msgstr "ATIVO"
+
+#: View/Themed/Overmind/Elements/navbar_item.ctp:27
+msgid "OFF"
+msgstr "INATIVO"
+
+#: View/Helper/NavbarHelper.php:457
+msgid "Remote Servers"
+msgstr "Servidores remotos"
+
+#: View/Helper/NavbarHelper.php:520
+msgid "Communities"
+msgstr "Comunidades"
+
+#: View/Helper/NavbarHelper.php:528
+msgid "Cerebrates"
+msgstr "Cerebrates"
+
+#: View/Helper/NavbarHelper.php:536
+msgid "TAXII Servers"
+msgstr "Servidores TAXII"
+
+#: View/Helper/NavbarHelper.php:642
+msgid "List Auth Keys"
+msgstr "Listar chaves de autenticação"
+
+#: View/Helper/NavbarHelper.php:682
+msgid "Benchmarking"
+msgstr "Avaliação de desempenho"
+
+#: View/Helper/NavbarHelper.php:739
+msgid "Correlation rules"
+msgstr "Regras de correlação"
+
+#: View/Helper/NavbarHelper.php:747
+msgid "Over-correlating values"
+msgstr "Valores com correlações excessivas"
+
+#: View/Helper/NavbarHelper.php:849
+msgid "API"
+msgstr "API"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:185
+#: View/Themed/Overmind/Elements/Events/index.ctp:502
+#: View/Themed/Overmind/Elements/Events/index.ctp:52
+msgid "Extension"
+msgstr "Extensão"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:10
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:40
+msgid "Menu"
+msgstr "Menu"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:154
+msgid "Creator"
+msgstr "Criador"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:47
+msgid "Custom"
+msgstr "Personalizado"
+
+#: View/Helper/EventIndexHelper.php:49
+#, php-format
+msgid "Changes pending: published %s, changed since"
+msgstr "Alterações pendentes: publicado %s, alterado desde então"
+
+#: View/Helper/EventIndexHelper.php:52
+#, php-format
+msgid "Published %s"
+msgstr "Publicado %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "Created by %s"
+msgstr "Criado por %s"
+
+#: View/Helper/EventIndexHelper.php:75
+#, php-format
+msgid "held here by %s"
+msgstr "mantido aqui por %s"
+
+#: View/Helper/EventIndexHelper.php:95
+#, php-format
+msgid "Your grade for %s: %s (analyst profile)"
+msgstr "A sua avaliação de %s: %s (perfil de analista)"
+
+#: View/Helper/EventIndexHelper.php:118
+#, php-format
+msgid "Admiralty scale: %s"
+msgstr "Escala do Almirantado: %s"
+
+#: View/Helper/EventIndexHelper.php:128 View/Helper/EventIndexHelper.php:461
+msgid "pinned by your profile"
+msgstr "afixado pelo seu perfil"
+
+#: View/Helper/EventIndexHelper.php:137
+#, php-format
+msgid "No %s marking"
+msgstr "Sem marcação %s"
+
+#: View/Helper/EventIndexHelper.php:177 View/Helper/EventIndexHelper.php:195
+msgid "(cluster not available here)"
+msgstr "(cluster indisponível aqui)"
+
+#: View/Helper/EventIndexHelper.php:187
+#, php-format
+msgid "Mitigation %s"
+msgstr "Mitigação %s"
+
+#: View/Helper/EventIndexHelper.php:211
+#, php-format
+msgid "%s unresolved"
+msgstr "%s por resolver"
+
+#: View/Helper/EventIndexHelper.php:226
+#, php-format
+msgid "%s: show all"
+msgstr "%s: mostrar tudo"
+
+#: View/Helper/EventIndexHelper.php:318
+#, php-format
+msgid "Changed last of %s workspaces on this event"
+msgstr "Último espaço alterado dos %s espaços de trabalho deste evento"
+
+#: View/Helper/EventIndexHelper.php:365
+#, php-format
+msgid "Extends #%s %s"
+msgstr "Estende #%s %s"
+
+#: View/Helper/EventIndexHelper.php:366
+#, php-format
+msgid "extends #%s"
+msgstr "estende #%s"
+
+#: View/Helper/EventIndexHelper.php:370
+#, php-format
+msgid "Extends %s, which is not available here"
+msgstr "Estende %s, que não está disponível aqui"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "missing"
+msgstr "em falta"
+
+#: View/Helper/EventIndexHelper.php:371
+msgid "extends an unknown event"
+msgstr "estende um evento desconhecido"
+
+#: View/Helper/EventIndexHelper.php:379
+#, php-format
+msgid "extended by %s"
+msgstr "estendido por %s"
+
+#: View/Helper/EventIndexHelper.php:411
+msgid "Cluster not available here"
+msgstr "Cluster indisponível aqui"
+
+#: View/Helper/EventIndexHelper.php:464
+msgid "preferred by your profile"
+msgstr "preferido pelo seu perfil"
+
+#: View/Helper/EventIndexHelper.php:387
+#, php-format
+msgid "%s galaxy tag whose cluster is not available here"
+msgid_plural "%s galaxy tags whose cluster is not available here"
+msgstr[0] "%s etiqueta de galáxia cujo cluster não está disponível aqui"
+msgstr[1] "%s etiquetas de galáxia cujos clusters não estão disponíveis aqui"
+
+#: View/Helper/NavbarHelper.php:171
+msgid "Collections"
+msgstr "Coleções"
+
+#: View/Helper/NavbarHelper.php:183 View/Helper/NavbarHelper.php:213
+msgid "Index"
+msgstr "Lista"
+
+#: View/Helper/NavbarHelper.php:200
+msgid "Analyst Data"
+msgstr "Dados de analistas"
+
+#: View/Helper/NavbarHelper.php:220
+msgid "Events with Proposals"
+msgstr "Eventos com propostas"
+
+#: View/Helper/NavbarHelper.php:227
+msgid "Delegation Requests"
+msgstr "Pedidos de delegação"
+
+#: View/Helper/NavbarHelper.php:270
+msgid "Tags & Taxonomies"
+msgstr "Etiquetas e taxonomias"
+
+#: View/Helper/NavbarHelper.php:309
+msgid "List Galaxy Relationships"
+msgstr "Listar relações entre galáxias"
+
+#: View/Helper/NavbarHelper.php:344
+msgid "Analyst Profiles"
+msgstr "Perfis de analista"
+
+#: View/Helper/NavbarHelper.php:391
+msgid "Filters & Lists"
+msgstr "Filtros e listas"
+
+#: View/Helper/NavbarHelper.php:453
+msgid "Servers & Feeds"
+msgstr "Servidores e fontes de dados"
+
+#: View/Helper/NavbarHelper.php:544
+msgid "Sighting DB"
+msgstr "Base de dados de observações"
+
+#: View/Helper/NavbarHelper.php:555
+msgid "Event ID Translator"
+msgstr "Conversor de ID de eventos"
+
+#: View/Helper/NavbarHelper.php:591
+msgid "Users & Orgs"
+msgstr "Utilizadores e organizações"
+
+#: View/Helper/NavbarHelper.php:611
+msgid "User Settings"
+msgstr "Definições do utilizador"
+
+#: View/Helper/NavbarHelper.php:630
+msgid "Roles & Permissions"
+msgstr "Funções e permissões"
+
+#: View/Helper/NavbarHelper.php:654
+msgid "System jobs"
+msgstr "Tarefas do sistema"
+
+#: View/Helper/NavbarHelper.php:658
+msgid "Workflow"
+msgstr "Fluxo de trabalho"
+
+#: View/Helper/NavbarHelper.php:695
+msgid "Blocklisting"
+msgstr "Listas de bloqueio"
+
+#: View/Helper/NavbarHelper.php:699
+msgid "Blocklisted events"
+msgstr "Eventos bloqueados"
+
+#: View/Helper/NavbarHelper.php:707
+msgid "Blocklisted organisations"
+msgstr "Organizações bloqueadas"
+
+#: View/Helper/NavbarHelper.php:715
+msgid "Blocklisted sightings"
+msgstr "Observações bloqueadas"
+
+#: View/Helper/NavbarHelper.php:731
+msgid "Top correlations"
+msgstr "Principais correlações"
+
+#: View/Helper/NavbarHelper.php:775
+msgid "Application logs"
+msgstr "Registos da aplicação"
+
+#: View/Helper/NavbarHelper.php:819
+msgid "Open API"
+msgstr "API aberta"
+
+#: View/Helper/NavbarHelper.php:827
+msgid "REST Client"
+msgstr "Cliente REST"
+
+#: View/Helper/NavbarHelper.php:981
+msgid "No workspace"
+msgstr "Sem espaço de trabalho"
+
+#: View/Helper/NavbarHelper.php:983
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:94
+msgid "Workspace"
+msgstr "Espaço de trabalho"
+
+#: View/Helper/NavbarHelper.php:1006
+msgid "Set this page as homepage"
+msgstr "Definir esta página como página inicial"
+
+#: View/Helper/NavbarHelper.php:1050
+msgid "Dark mode"
+msgstr "Modo escuro"
+
+#: View/Helper/NavbarHelper.php:1058
+msgid "Replay the tutorial"
+msgstr "Repetir o tutorial"
+
+#: View/Helper/NavbarHelper.php:1100
+msgid "Light"
+msgstr "Claro"
+
+#: View/Helper/NavbarHelper.php:1101
+msgid "Dark"
+msgstr "Escuro"
+
+#: View/Helper/NavbarHelper.php:1102
+msgid "Light and dark"
+msgstr "Claro e escuro"
+
+#: View/Helper/NavbarHelper.php:1137
+#, php-format
+msgid "Instance default (%s)"
+msgstr "Predefinição da instância (%s)"
+
+#: View/Helper/NavbarHelper.php:1138
+msgid "Follow the theme your administrator picks for this instance."
+msgstr "Usar o tema escolhido pelo administrador para esta instância."
+
+#: View/Helper/NavbarHelper.php:1146
+msgid "Theme"
+msgstr "Tema"
+
+#: View/Helper/NavbarHelper.php:948
+#, php-format
+msgid "News: %s unread"
+msgid_plural "News: %s unread"
+msgstr[0] "Notícias: %s não lida"
+msgstr[1] "Notícias: %s não lidas"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:119
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:120
+msgid "Edit selected attributes"
+msgstr "Editar atributos selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:118
+#, php-format
+msgid "Remove %s"
+msgstr "Remover %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:268
+msgid "Add to workspace"
+msgstr "Adicionar ao espaço de trabalho"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close (Esc)"
+msgstr "Fechar (Esc)"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:53
+msgid "Tags & galaxies"
+msgstr "Etiquetas e galáxias"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:54
+msgid "Attributes & objects"
+msgstr "Atributos e objetos"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:83
+#: View/Themed/Overmind/Elements/Events/index.ctp:84
+msgid "Choose columns"
+msgstr "Escolher colunas"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:85
+#: View/Themed/Overmind/Elements/Events/index.ctp:86
+msgid "Columns"
+msgstr "Colunas"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:88
+msgid "Reset widths"
+msgstr "Repor larguras"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:139
+msgid "Publish state"
+msgstr "Estado de publicação"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:170
+msgid "Markings your analyst profile pins"
+msgstr "Marcações afixadas pelo seu perfil de analista"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:174
+msgid "ATT&CK techniques (count, then ids), then mitigations"
+msgstr "Técnicas ATT&CK (contagem e depois ID), seguidas de mitigações"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:175
+msgid "Other clusters, then tags"
+msgstr "Outros clusters, seguidos de etiquetas"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:182
+msgid ""
+"Workspaces, reports, sightings, proposals and discussions, when there are "
+"any"
+msgstr ""
+"Espaços de trabalho, relatórios, observações, propostas e discussões, quando"
+" existirem"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:209
+#: View/Themed/Overmind/Elements/Events/index.ctp:423
+#: View/Themed/Overmind/Elements/Events/index.ctp:497
+msgid "Changed"
+msgstr "Alterado"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:342
+msgid "Event or attribute tags."
+msgstr "Etiquetas de eventos ou atributos."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:353
+msgid "And tag"
+msgstr "E etiqueta"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:358
+msgid "Also carried by the event or one of its attributes."
+msgstr "Também presente no evento ou num dos seus atributos."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:369
+msgid "Clusters attached to the event."
+msgstr "Clusters associados ao evento."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:380
+msgid "Any sharing group"
+msgstr "Qualquer grupo de partilha"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:397
+msgid "Including a group keeps only events shared with it."
+msgstr "Incluir um grupo mantém apenas os eventos partilhados com ele."
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "24h"
+msgstr "24 h"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:411
+msgid "last 24 hours"
+msgstr "últimas 24 horas"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "7d"
+msgstr "7 d"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:412
+msgid "last 7 days"
+msgstr "últimos 7 dias"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "30d"
+msgstr "30 d"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:413
+msgid "last 30 days"
+msgstr "últimos 30 dias"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "90d"
+msgstr "90 d"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:414
+msgid "last 90 days"
+msgstr "últimos 90 dias"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "1y"
+msgstr "1 ano"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:415
+msgid "last year"
+msgstr "último ano"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:420
+msgid "Time"
+msgstr "Período"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:434
+msgid "My events"
+msgstr "Os meus eventos"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:448
+msgid "Org events"
+msgstr "Eventos da organização"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:467
+#, php-format
+msgid "until %s"
+msgstr "até %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "minutes"
+msgstr "minutos"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:471
+msgid "seconds"
+msgstr "segundos"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:472
+#, php-format
+msgid "last %s %s"
+msgstr "últimos %s %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:475
+#: View/Themed/Overmind/Elements/Events/index.ctp:478
+#, php-format
+msgid "since %s"
+msgstr "desde %s"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:487
+msgid "Anything"
+msgstr "Tudo"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:489
+msgid "Attribute value"
+msgstr "Valor do atributo"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:490
+msgid "Date from"
+msgstr "Data de início"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:491
+msgid "Date until"
+msgstr "Data de fim"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:500
+msgid "First published"
+msgstr "Primeira publicação"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:501
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:31
+msgid "Changes pending"
+msgstr "Alterações pendentes"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:503
+msgid "Extended"
+msgstr "Estendido"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:504
+msgid "Minimal"
+msgstr "Mínimo"
+
+#: View/Themed/Overmind/Elements/Events/index.ctp:516
+msgid "some"
+msgstr "alguns"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:28
+msgid "Never published, or unpublished since"
+msgstr "Nunca publicado ou com publicação anulada desde então"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:37
+msgid "Published once and changed since"
+msgstr "Publicado anteriormente e alterado desde então"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:40
+msgid "Changed this week"
+msgstr "Alterados esta semana"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:45
+msgid "Changed in the last 7 days"
+msgstr "Alterados nos últimos 7 dias"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:50
+msgid "Since your last visit"
+msgstr "Desde a sua última visita"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:55
+#, php-format
+msgid "Changed since your previous login, %s"
+msgstr "Alterados desde o seu último início de sessão, %s"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:59
+msgid "New this week"
+msgstr "Novos esta semana"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:64
+msgid "First published in the last 7 days"
+msgstr "Publicados pela primeira vez nos últimos 7 dias"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:67
+msgid "Creator orgs"
+msgstr "Organizações criadoras"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:70
+msgid "Filter by creator organisation"
+msgstr "Filtrar por organização criadora"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:79
+msgid "Event dates"
+msgstr "Datas dos eventos"
+
+#: View/Themed/Overmind/Elements/Events/index_stats.ctp:84
+msgid "Figures for these filters"
+msgstr "Estatísticas para estes filtros"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:83
+msgid "Fetch"
+msgstr "Obter"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:241
+#, php-format
+msgid "Open %s"
+msgstr "Abrir %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:268
+msgid "Activate"
+msgstr "Ativar"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:274
+msgid "Deactivate"
+msgstr "Desativar"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:90
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:91
+msgid "Add the selected to the active workspace"
+msgstr "Adicionar a seleção ao espaço de trabalho ativo"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:332
+msgid "Clear selection"
+msgstr "Limpar seleção"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:20
+#, php-format
+msgid "Sharing group · owned by %s"
+msgstr "Grupo de partilha · proprietário: %s"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:41
+msgid "Every organisation on this instance"
+msgstr "Todas as organizações desta instância"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:51
+msgid "owner"
+msgstr "proprietário"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:52
+msgid "your org"
+msgstr "a sua organização"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:54
+msgid "Can add organisations"
+msgstr "Pode adicionar organizações"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:61
+#, php-format
+msgid "+%s more · open the group"
+msgstr "+%s outros · abrir o grupo"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:81
+msgid "Only this group"
+msgstr "Apenas este grupo"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:82
+msgid "Open group"
+msgstr "Abrir grupo"
+
+#: View/Themed/Overmind/Elements/SharingGroups/peek.ctp:38
+#, php-format
+msgid "%s member organisation"
+msgid_plural "%s member organisations"
+msgstr[0] "%s organização membro"
+msgstr[1] "%s organizações membros"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:253
+msgid "Highlight"
+msgstr "Realçar"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:367
+msgid "Searching…"
+msgstr "A pesquisar…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:49
+msgid "From"
+msgstr "De"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:50
+msgid "To"
+msgstr "Até"
+
+#: View/Themed/Overmind/Users/login.ctp:90
+#: View/Themed/Overmind/Users/login.ctp:91
+msgid "MISP — Intelligence Sharing"
+msgstr "MISP — Partilha de informações"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:182
+#, php-format
+msgid "aka %s"
+msgstr "também conhecido como %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:184
+msgid "All galaxies"
+msgstr "Todas as galáxias"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:185
+#, php-format
+msgid "All of %s"
+msgstr "Tudo em %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:186
+msgid "All tactics"
+msgstr "Todas as táticas"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:187
+msgid "All tags"
+msgstr "Todas as etiquetas"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:188
+msgid "A–Z"
+msgstr "A–Z"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:189
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:370
+#, php-format
+msgid "Back to %s"
+msgstr "Voltar a %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:190
+msgid "Browse"
+msgstr "Explorar"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:191
+msgid "By namespace"
+msgstr "Por espaço de nomes"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:192
+msgid "Check the spelling, or browse a scope on the left."
+msgstr "Verifique a ortografia ou explore um âmbito à esquerda."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:196
+msgid "Everywhere"
+msgstr "Em todo o lado"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:198
+#, php-format
+msgid "First %s matches · keep typing or narrow"
+msgstr "Primeiros %s resultados · continue a escrever ou restrinja a pesquisa"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:200
+msgid "Has selected values"
+msgstr "Contém valores selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:201
+msgid "In use"
+msgstr "Em utilização"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:202
+msgid "Clusters already attached somewhere"
+msgstr "Clusters já associados a algum elemento"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:203
+msgid "Keep typing"
+msgstr "Continue a escrever"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:204
+msgid "apply"
+msgstr "aplicar"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:205
+msgid "back"
+msgstr "voltar"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:206
+msgid "exclude"
+msgstr "excluir"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:207
+msgid "include"
+msgstr "incluir"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:209
+msgid "Loading scopes…"
+msgstr "A carregar âmbitos…"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:210
+msgid "Could not load the scopes."
+msgstr "Não foi possível carregar os âmbitos."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:211
+msgid "Could not load these values"
+msgstr "Não foi possível carregar estes valores"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:212
+msgid "All of"
+msgstr "Todos"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:213
+msgid "Events tagged with every one of them, on the event itself"
+msgstr "Eventos com todas estas etiquetas no próprio evento"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:214
+msgid "Any of"
+msgstr "Qualquer um"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:215
+msgid ""
+"Events with at least one of them, on the event or one of its attributes"
+msgstr ""
+"Eventos com pelo menos uma destas etiquetas no evento ou num dos seus "
+"atributos"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:216
+msgid "Match"
+msgstr "Correspondência"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:217
+msgid "matrix"
+msgstr "matriz"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:218
+msgid "A matrix: browse it by tactic"
+msgstr "Uma matriz: explorar por tática"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:219
+#, php-format
+msgid "+%s more"
+msgstr "+%s outros"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:220
+msgid "More not shown · type to narrow"
+msgstr "Há mais resultados ocultos · escreva para restringir"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:221
+#, php-format
+msgid "+%s more · type to narrow"
+msgstr "+%s outros · escreva para restringir"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:222
+msgid "Namespaces"
+msgstr "Espaços de nomes"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:223
+#, php-format
+msgid "Narrow to %s, keeping “%s”"
+msgstr "Restringir a %s, mantendo «%s»"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:224
+msgid "Narrow to"
+msgstr "Restringir a"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:225
+msgid "No cluster in use"
+msgstr "Nenhum cluster em utilização"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:226
+#, php-format
+msgid "No cluster in use matches “%s”"
+msgstr "Nenhum cluster em utilização corresponde a «%s»"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:227
+msgid "No cluster in use for this tactic"
+msgstr "Nenhum cluster em utilização para esta tática"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:228
+msgid "No namespace"
+msgstr "Sem espaço de nomes"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:229
+msgid "Free-text tags, written without a \"namespace:\" prefix."
+msgstr "Etiquetas de texto livre, sem o prefixo «namespace:»."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:230
+msgid "No predicate has a match."
+msgstr "Nenhum predicado tem correspondência."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:231
+msgid "not"
+msgstr "não"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:232
+msgid "Not attached to anything yet"
+msgstr "Ainda sem associações"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:233
+msgid "no taxonomy"
+msgstr "sem taxonomia"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:234
+msgid "Not enabled"
+msgstr "Não ativado"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:235
+msgid "Nothing here yet"
+msgstr "Ainda sem conteúdo"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:236
+#, php-format
+msgid "Nothing in %s matches “%s”"
+msgstr "Nada em %s corresponde a «%s»"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:237
+#, php-format
+msgid "Nothing matches “%s”"
+msgstr "Nada corresponde a «%s»"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:238
+#, php-format
+msgid "No %s value matches “%s”"
+msgstr "Nenhum valor de %s corresponde a «%s»"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:239
+#, php-format
+msgid "Tags written as \"%s:…\", with no taxonomy behind them."
+msgstr "Etiquetas no formato «%s:…», sem taxonomia associada."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:243
+#, php-format
+msgid "or type to search all %s %s values."
+msgstr "ou escreva para pesquisar todos os valores de %s %s."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:244
+msgid "Other namespaces"
+msgstr "Outros espaços de nomes"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:245
+#, php-format
+msgid "Other %s tags"
+msgstr "Outras etiquetas de %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:246
+msgid "Tags in this namespace that are not entries of the taxonomy"
+msgstr "Etiquetas deste espaço de nomes que não pertencem à taxonomia"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:247
+msgid "pick a heading to narrow"
+msgstr "escolha um título para restringir"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:248
+msgid "Pick a predicate"
+msgstr "Escolher um predicado"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:249
+msgid "Pinned in your profile"
+msgstr "Afixado no seu perfil"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:250
+msgid "Predicates"
+msgstr "Predicados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:251
+msgid "Preferred in your profile"
+msgstr "Preferido no seu perfil"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:254
+msgid "Search all clusters, or pick a scope"
+msgstr "Pesquisar todos os clusters ou escolher um âmbito"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:255
+#, php-format
+msgid "Search all of %s"
+msgstr "Pesquisar tudo em %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:256
+msgid "Search all tags, or pick a scope"
+msgstr "Pesquisar todas as etiquetas ou escolher um âmbito"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:257
+msgid "Search failed"
+msgstr "A pesquisa falhou"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:258
+#, php-format
+msgid "Search in %s"
+msgstr "Pesquisar em %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:260
+msgid "show all"
+msgstr "mostrar tudo"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:261
+msgid "Show all clusters"
+msgstr "Mostrar todos os clusters"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:262
+msgid "Show where it lives"
+msgstr "Mostrar onde se encontra"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:263
+#, php-format
+msgid "Starts with %s"
+msgstr "Começa por %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:264
+msgid "Stop excluding"
+msgstr "Deixar de excluir"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:265
+msgid "Tactics"
+msgstr "Táticas"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:268
+msgid "taxonomy"
+msgstr "taxonomia"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:269
+msgid "Nothing selected · click a value to include it,"
+msgstr "Nada selecionado · clique num valor para o incluir,"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:270
+msgid "to exclude it"
+msgstr "para o excluir"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:271
+#: View/Themed/Overmind/Elements/side_panel.ctp:33
+msgid "Try again"
+msgstr "Tentar novamente"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:272
+msgid "Two characters search every cluster, or pick a scope on the left."
+msgstr ""
+"Escreva dois caracteres para pesquisar todos os clusters ou escolha um "
+"âmbito à esquerda."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:273
+msgid "Two characters search every tag, or pick a scope on the left."
+msgstr ""
+"Escreva dois caracteres para pesquisar todas as etiquetas ou escolha um "
+"âmbito à esquerda."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:274
+msgid "Where you are"
+msgstr "Localização atual"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:275
+msgid "Which clusters"
+msgstr "Que clusters"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:366
+msgid "Type 2 characters to search"
+msgstr "Escreva 2 caracteres para pesquisar"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:369
+msgid "The list could not be loaded"
+msgstr "Não foi possível carregar a lista"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:371
+#, php-format
+msgid "Choose %s"
+msgstr "Escolher %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:372
+msgid "Nothing matches"
+msgstr "Sem correspondências"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:373
+#, php-format
+msgid "%s more: type to narrow"
+msgstr "Mais %s: escreva para restringir"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:374
+msgid "The search failed"
+msgstr "A pesquisa falhou"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:382
+msgid "Any of these. Applies when you close the picker."
+msgstr "Qualquer um destes. Aplicado ao fechar o seletor."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:383
+msgid "Any of these."
+msgstr "Qualquer um destes."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:384
+msgid ""
+"This link asks for events with all of these. Changing the selection here "
+"switches to any of them."
+msgstr ""
+"Esta ligação pede eventos com todos estes valores. Alterar a seleção aqui "
+"passa a procurar qualquer um deles."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:385
+msgid "Not found on this instance"
+msgstr "Não encontrado nesta instância"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:386
+msgid "The filtered list could not be loaded."
+msgstr "Não foi possível carregar a lista filtrada."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:473
+msgid "Search a value"
+msgstr "Pesquisar um valor"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:727
+#, php-format
+msgid "%s shown, page %s"
+msgstr "%s apresentados, página %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:733
+#, php-format
+msgid "%s shown, page %s of %s"
+msgstr "%s apresentados, página %s de %s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:739
+#, php-format
+msgid "%s shown"
+msgstr "%s apresentados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_bar.ctp:767
+msgid "Active filters"
+msgstr "Filtros ativos"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_chips.ctp:45
+#, php-format
+msgid "%s (all of)"
+msgstr "%s (todos)"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_picker.ctp:108
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:37
+#, php-format
+msgid "%s selected"
+msgid_plural "%s selected"
+msgstr[0] "%s selecionado"
+msgstr[1] "%s selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:46
+msgid "No limit"
+msgstr "Sem limite"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:48
+msgid "Pick dates"
+msgstr "Escolher datas"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:51
+msgid "Both rows apply together. Applies when you close the picker."
+msgstr "As duas linhas são aplicadas em conjunto ao fechar o seletor."
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_time.ctp:62
+#, php-format
+msgid "%s set"
+msgid_plural "%s set"
+msgstr[0] "%s definido"
+msgstr[1] "%s definidos"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/filter_toggle.ctp:17
+msgid "More Filters"
+msgstr "Mais filtros"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_card.ctp:56
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/index_table.ctp:103
+msgid "No items to display"
+msgstr "Sem itens para apresentar"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:30
+msgid "Selected items"
+msgstr "Itens selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:61
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:62
+msgid "Export selected attributes"
+msgstr "Exportar atributos selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:79
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:80
+msgid "Fetch the selected events"
+msgstr "Obter os eventos selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:130
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:131
+msgid "Add Tag on selected attributes"
+msgstr "Adicionar etiqueta aos atributos selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:141
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:142
+msgid "Add Local Tag on selected attributes"
+msgstr "Adicionar etiqueta local aos atributos selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:145
+msgid "Local Tag"
+msgstr "Etiqueta local"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:152
+msgid "Add Galaxy on selected attributes"
+msgstr "Adicionar galáxia aos atributos selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:153
+msgid "Add Galaxy to selected attributes"
+msgstr "Adicionar galáxia aos atributos selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:163
+msgid "Add Local Galaxy on selected attributes"
+msgstr "Adicionar galáxia local aos atributos selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:164
+msgid "Add Local Galaxy to selected attributes"
+msgstr "Adicionar galáxia local aos atributos selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:167
+msgid "Local Galaxy"
+msgstr "Galáxia local"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:185
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:186
+msgid "Create new relationship for selected attributes"
+msgstr "Criar nova relação para os atributos selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:221
+msgid "Enable selected items"
+msgstr "Ativar itens selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:227
+msgid "Disable selected items"
+msgstr "Desativar itens selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:236
+msgid "Make the selected items required"
+msgstr "Tornar obrigatórios os itens selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:242
+msgid "Make the selected items optional"
+msgstr "Tornar opcionais os itens selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:251
+msgid "Highlight selected items"
+msgstr "Realçar itens selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:257
+msgid "Remove highlight for selected items"
+msgstr "Remover realce dos itens selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:259
+msgid "Remove Highlight"
+msgstr "Remover realce"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:266
+msgid "Activate selected items"
+msgstr "Ativar itens selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:272
+msgid "Deactivate selected items"
+msgstr "Desativar itens selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:282
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:283
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:322
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:323
+msgid "Delete selected items"
+msgstr "Eliminar itens selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:293
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:294
+msgid "Process the selected registrations"
+msgstr "Processar os pedidos de registo selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:304
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/multi_select_toolbar.ctp:305
+msgid "Discard the selected registrations"
+msgstr "Rejeitar os pedidos de registo selecionados"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:78
+#, php-format
+msgid "Showing %s–%s"
+msgstr "A mostrar %s–%s"
+
+#: View/Themed/Overmind/Elements/genericElementsBS5/IndexTable/scaffold.ctp:84
+#, php-format
+msgid "Showing %s–%s of %s"
+msgstr "A mostrar %s–%s de %s"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Drag to resize · double-click to widen"
+msgstr "Arrastar para redimensionar · duplo clique para alargar"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Resize the window (arrow keys)"
+msgstr "Redimensionar a janela (teclas de direção)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:46
+msgid "Drag to resize"
+msgstr "Arrastar para redimensionar"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Drag to move · arrow keys"
+msgstr "Arrastar para mover · teclas de direção"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:49
+msgid "Move the window (arrow keys)"
+msgstr "Mover a janela (teclas de direção)"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:56
+msgid "Undock into a window"
+msgstr "Desencaixar para uma janela"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:59
+msgid "Dock to the right"
+msgstr "Encaixar à direita"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:28
+#: View/Themed/Overmind/Elements/side_panel.ctp:62
+msgid "Widen the panel"
+msgstr "Alargar o painel"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:1
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:20
+msgid "Main"
+msgstr "Navegação principal"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:3
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:22
+#, php-format
+msgid "MISP %s"
+msgstr "MISP %s"
+
+#: View/Themed/Overmind/Elements/navbar.ctp:4
+#: View/Themed/Overmind/Elements/navbar_rail.ctp:23
+msgid "MISP Logo"
+msgstr "Logótipo do MISP"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:27
+#, php-format
+msgid "%s shows or hides it"
+msgstr "%s mostra ou oculta o painel"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:29
+msgid "Back to your width"
+msgstr "Voltar à sua largura"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:30
+msgid "Undocked into a window."
+msgstr "Desencaixado para uma janela."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:31
+msgid "Docked to the right."
+msgstr "Encaixado à direita."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:32
+msgid "Failed to load."
+msgstr "Falha ao carregar."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:34
+msgid "It could not be saved."
+msgstr "Não foi possível guardar."
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:39
+msgid "Panel width"
+msgstr "Largura do painel"
+
+#: View/Themed/Overmind/Elements/side_panel.ctp:66
+msgid "Close the panel"
+msgstr "Fechar o painel"
+
+#: View/Themed/Overmind/Users/login.ctp:162
+#: View/Themed/Overmind/Users/login.ctp:163
+msgid "Show password"
+msgstr "Mostrar palavra-passe"
+
+#: View/Themed/Overmind/Users/login.ctp:164
+msgid "Hide password"
+msgstr "Ocultar palavra-passe"
+
+#: View/Themed/Overmind/Users/login.ctp:37
+msgid "Log in with SAML"
+msgstr "Iniciar sessão com SAML"
+
+#: View/Themed/Overmind/Users/login.ctp:44
+msgid "Log in with Azure AD"
+msgstr "Iniciar sessão com Azure AD"
+
+#: View/Themed/Overmind/Users/login.ctp:51
+msgid "Log in with OIDC"
+msgstr "Iniciar sessão com OIDC"
+
+#: View/Themed/Overmind/Users/login.ctp:117
+#: View/Themed/Overmind/Users/login.ctp:194
+msgid "Log in"
+msgstr "Iniciar sessão"
+
+#: View/Themed/Overmind/Users/login.ctp:120
+msgid "This instance uses single sign-on. Choose your identity provider."
+msgstr ""
+"Esta instância utiliza autenticação única. Escolha o seu fornecedor de "
+"identidade."
+
+#: View/Themed/Overmind/Users/login.ctp:146
+msgid "Forgot your password?"
+msgstr "Esqueceu-se da palavra-passe?"
+
+#: View/Themed/Overmind/Users/login.ctp:173
+msgid "One-time password"
+msgstr "Palavra-passe de utilização única"
+
+#: View/Themed/Overmind/Users/login.ctp:186
+#, php-format
+msgid "Enter the code from your token. Manage your tokens in %s."
+msgstr "Introduza o código do seu token. Faça a gestão dos seus tokens em %s."
+
+#: View/Themed/Overmind/Users/login.ctp:198
+msgid "or"
+msgstr "ou"
+
+#: View/Themed/Overmind/Users/login.ctp:211
+msgid "No account yet?"
+msgstr "Ainda não tem conta?"
+
+#: View/Themed/Overmind/Users/login.ctp:212
+msgid ""
+"Registration will be sent to the administrators of the instance for "
+"consideration."
+msgstr ""
+"O pedido de registo será enviado aos administradores da instância para "
+"análise."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:25
+msgid "Theme updated!"
+msgstr "Tema atualizado!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:31
+msgid "Failed to toggle Beta UI. Please try again."
+msgstr "Não foi possível alternar a interface beta. Tente novamente."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:56
+msgid "Failed to change the theme. Please try again."
+msgstr "Não foi possível alterar o tema. Tente novamente."
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:86
+msgid "Homepage saved!"
+msgstr "Página inicial guardada!"
+
+#: View/Themed/Overmind/Elements/navbar_actions.ctp:90
+msgid "Failed to set homepage. Please try again."
+msgstr "Não foi possível definir a página inicial. Tente novamente."

@@ -696,7 +696,7 @@ class NavbarHelper extends AppHelper {
                 'icon' => 'fas fa-ban',
                 'children' => [
                     [
-                        'label' => __('Blocklist Event'),
+                        'label' => __('Blocklisted events'),
                         'url' => $baseurl . '/eventBlocklists',
                         'controller' => 'eventBlocklists',
                         'action' => '',
@@ -704,7 +704,7 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'fas fa-file-circle-exclamation'
                     ],
                     [
-                        'label' => __('Blocklists Organisations'),
+                        'label' => __('Blocklisted organisations'),
                         'url' => $baseurl . '/orgBlocklists',
                         'controller' => 'orgBlocklists',
                         'action' => '',
@@ -712,7 +712,7 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'fas fa-building-circle-exclamation'
                     ],
                     [
-                        'label' => __('Blocklists Sightings'),
+                        'label' => __('Blocklisted sightings'),
                         'url' => $baseurl . '/sightingBlocklists',
                         'controller' => 'sightingBlocklists',
                         'action' => '',
@@ -736,7 +736,7 @@ class NavbarHelper extends AppHelper {
                         'icon' => 'fas fa-ranking-star'
                     ],
                     [
-                        'label' => __('Correlations rules'),
+                        'label' => __('Correlation rules'),
                         'url' => $baseurl . '/correlationRules/index',
                         'controller' => 'correlationRules',
                         'action' => 'index',

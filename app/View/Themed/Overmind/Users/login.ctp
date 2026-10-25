@@ -79,22 +79,22 @@ echo $this->element('genericElements/assetLoader', [
                 <?php if ($hasPartners): ?>
                     <div class="oml-brand-partner oml-brand-partner-left">
                         <?php if ($partnerLogos['left']): ?>
-                            <img src="<?= $partnerLogos['left'] ?>" alt="<?= __('Logo') ?>" onerror="this.style.display='none';">
+                            <img src="<?= $partnerLogos['left'] ?>" alt="<?= h(__('Logo')) ?>" onerror="this.style.display='none';">
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
                 <div class="oml-brand-main">
                     <?php if ($mainLogo): ?>
-                        <img src="<?= $mainLogo ?>" alt="<?= __('Logo') ?>">
+                        <img src="<?= $mainLogo ?>" alt="<?= h(__('Logo')) ?>">
                     <?php else: ?>
-                        <img class="oml-logo-light" src="<?= $baseurl ?>/img/misp-logo-horizontal.png" alt="<?= __('MISP — Intelligence Sharing') ?>" width="1200" height="352">
-                        <img class="oml-logo-dark" src="<?= $baseurl ?>/img/misp-logo-horizontal-light.png" alt="<?= __('MISP — Intelligence Sharing') ?>" width="1200" height="352">
+                        <img class="oml-logo-light" src="<?= $baseurl ?>/img/misp-logo-horizontal.png" alt="<?= h(__('MISP — Intelligence Sharing')) ?>" width="1200" height="352">
+                        <img class="oml-logo-dark" src="<?= $baseurl ?>/img/misp-logo-horizontal-light.png" alt="<?= h(__('MISP — Intelligence Sharing')) ?>" width="1200" height="352">
                     <?php endif; ?>
                 </div>
                 <?php if ($hasPartners): ?>
                     <div class="oml-brand-partner oml-brand-partner-right">
                         <?php if ($partnerLogos['right']): ?>
-                            <img src="<?= $partnerLogos['right'] ?>" alt="<?= __('Logo') ?>" onerror="this.style.display='none';">
+                            <img src="<?= $partnerLogos['right'] ?>" alt="<?= h(__('Logo')) ?>" onerror="this.style.display='none';">
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
@@ -114,17 +114,17 @@ echo $this->element('genericElements/assetLoader', [
                 <?php endif; ?>
             <?php endforeach; ?>
 
-            <h1 class="oml-title" id="omlTitle"><?= __('Log in') ?></h1>
+            <h1 class="oml-title" id="omlTitle"><?= h(__('Log in')) ?></h1>
 
             <?php if (!$formLoginEnabled && $ssoButtons): ?>
-                <p class="oml-sso-lead"><?= __('This instance uses single sign-on. Choose your identity provider.') ?></p>
+                <p class="oml-sso-lead"><?= h(__('This instance uses single sign-on. Choose your identity provider.')) ?></p>
             <?php endif; ?>
 
             <?php if ($formLoginEnabled): ?>
                 <?= $this->Form->create('User', ['novalidate' => true]) ?>
                     <div class="oml-field">
                         <div class="oml-field-head">
-                            <label for="UserEmail"><?= __('Email') ?></label>
+                            <label for="UserEmail"><?= h(__('Email')) ?></label>
                         </div>
                         <?= $this->Form->input('email', [
                             'type' => 'email',
@@ -141,9 +141,9 @@ echo $this->element('genericElements/assetLoader', [
 
                     <div class="oml-field">
                         <div class="oml-field-head">
-                            <label for="UserPassword"><?= __('Password') ?></label>
+                            <label for="UserPassword"><?= h(__('Password')) ?></label>
                             <?php if (Configure::read('Security.allow_password_forgotten')): ?>
-                                <a href="<?= $baseurl ?>/users/forgot"><?= __('Forgot your password?') ?></a>
+                                <a href="<?= $baseurl ?>/users/forgot"><?= h(__('Forgot your password?')) ?></a>
                             <?php endif; ?>
                         </div>
                         <div class="oml-control">
@@ -159,9 +159,9 @@ echo $this->element('genericElements/assetLoader', [
                             ]) ?>
                             <button type="button" class="oml-reveal" id="omlPasswordToggle"
                                 aria-controls="UserPassword" aria-pressed="false"
-                                aria-label="<?= __('Show password') ?>"
-                                data-label-show="<?= __('Show password') ?>"
-                                data-label-hide="<?= __('Hide password') ?>">
+                                aria-label="<?= h(__('Show password')) ?>"
+                                data-label-show="<?= h(__('Show password')) ?>"
+                                data-label-hide="<?= h(__('Hide password')) ?>">
                                 <i class="fa-regular fa-eye" aria-hidden="true"></i>
                             </button>
                         </div>
@@ -170,7 +170,7 @@ echo $this->element('genericElements/assetLoader', [
                     <?php if ($otpEnabled): ?>
                         <div class="oml-field">
                             <div class="oml-field-head">
-                                <label for="UserOtp"><?= __('One-time password') ?></label>
+                                <label for="UserOtp"><?= h(__('One-time password')) ?></label>
                             </div>
                             <?= $this->Form->input('otp', [
                                 'type' => 'text',
@@ -191,11 +191,11 @@ echo $this->element('genericElements/assetLoader', [
                         </div>
                     <?php endif; ?>
 
-                    <button class="oml-btn oml-btn-primary" type="submit"><?= __('Log in') ?></button>
+                    <button class="oml-btn oml-btn-primary" type="submit"><?= h(__('Log in')) ?></button>
                 <?= $this->Form->end() ?>
 
                 <?php if ($ssoButtons): ?>
-                    <div class="oml-divider" aria-hidden="true"><?= __('or') ?></div>
+                    <div class="oml-divider" aria-hidden="true"><?= h(__('or')) ?></div>
                 <?php endif; ?>
             <?php endif; ?>
 
@@ -208,8 +208,8 @@ echo $this->element('genericElements/assetLoader', [
 
             <?php if ($formLoginEnabled && Configure::read('Security.allow_self_registration')): ?>
                 <p class="oml-register">
-                    <?= __('No account yet?') ?>
-                    <a href="<?= $baseurl ?>/users/register" title="<?= __('Registration will be sent to the administrators of the instance for consideration.') ?>"><?= __('Request access') ?></a>
+                    <?= h(__('No account yet?')) ?>
+                    <a href="<?= $baseurl ?>/users/register" title="<?= h(__('Registration will be sent to the administrators of the instance for consideration.')) ?>"><?= h(__('Request access')) ?></a>
                 </p>
             <?php endif; ?>
 

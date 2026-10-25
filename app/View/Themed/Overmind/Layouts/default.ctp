@@ -50,7 +50,10 @@ if (!$useBootstrap5) {
 // Conversion between ISO 639-2 code (`Config.language`) and BCP 47 tag (lang attribute) 
 $htmlLang = 'en';
 $configLanguage = (string)Configure::read('Config.language');
-if ($configLanguage !== '') {
+// Keep the historical catalog directory while emitting a valid language tag.
+if ($configLanguage === 'zh-s') {
+    $htmlLang = 'zh-Hans';
+} elseif ($configLanguage !== '') {
     if (strlen($configLanguage) === 3) {
         $mappedLanguage = I18n::getInstance()->l10n->map($configLanguage);
         $htmlLang = $mappedLanguage ?: 'en';

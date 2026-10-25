@@ -10,3 +10,5 @@ maxminddb
 # Used by tests/ldapauth to drive the directory the LdapAuth plugin
 # authenticates against.
 ldap3
+# Gettext catalog validation: tools/i18n/check.py
+polib>=1.2,<2

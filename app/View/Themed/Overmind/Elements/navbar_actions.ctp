@@ -22,13 +22,13 @@
                 .then(response => {
                     if (response.ok) {
                         location.reload();
-                        throw new ShowToast('<?php echo __('Theme updated!'); ?>');
+                        throw new ShowToast(<?= json_encode(__('Theme updated!'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);
                     } else {
                         throw new Error('Server Error');
                     }
                 })
                 .catch(error => {
-                    alert('<?php echo __('Failed to toggle Beta UI. Please try again.'); ?>');
+                    alert(<?= json_encode(__('Failed to toggle Beta UI. Please try again.'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);
                 });
             });
         });
@@ -83,11 +83,11 @@
                 })
                 .then(response => {
                     if (!response.ok) throw new Error('Server Error');
-                    showToast('<?php echo __('Homepage saved!'); ?>');
+                    showToast(<?= json_encode(__('Homepage saved!'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);
                     document.dispatchEvent(new CustomEvent('misp:homepage-set'));
                 })
                 .catch(() => {
-                    showToast('<?php echo __('Failed to set homepage. Please try again.'); ?>', 'danger');
+                    showToast(<?= json_encode(__('Failed to set homepage. Please try again.'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, 'danger');
                 });
             });
         });

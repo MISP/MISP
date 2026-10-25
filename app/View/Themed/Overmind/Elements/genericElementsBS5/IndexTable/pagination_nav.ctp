@@ -16,7 +16,7 @@ if ($end - $start + 1 < $maxPagesToShow) {
 }
 ?>
 
-<nav aria-label="Pagination">
+<nav aria-label="<?= h(__('Pagination')) ?>">
     <ul class="pagination mb-0 <?= $sizeClass ?>">
 
         <!-- PREVIOUS -->
@@ -24,7 +24,7 @@ if ($end - $start + 1 < $maxPagesToShow) {
             <li class="page-item">
                 <?= $Paginator->prev(
                     '<i class="fas fa-chevron-left"></i>',
-                    ['class' => 'page-link', 'escape' => false],
+                    ['class' => 'page-link', 'escape' => false, 'aria-label' => __('Previous page')],
                     null,
                     ['escape' => false]
                 ) ?>
@@ -79,7 +79,7 @@ if ($end - $start + 1 < $maxPagesToShow) {
             <li class="page-item">
                 <?= $Paginator->next(
                     '<i class="fas fa-chevron-right"></i>',
-                    ['class' => 'page-link', 'escape' => false],
+                    ['class' => 'page-link', 'escape' => false, 'aria-label' => __('Next page')],
                     null,
                     ['escape' => false]
                 ) ?>

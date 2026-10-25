@@ -76,7 +76,7 @@ class SharingGroupPeekTest extends TestCase
     {
         $roaming = SharingGroupPeek::build($this->sg(['roaming' => true]), [], 0, 1);
         $this->assertSame('Roaming', $roaming['reach']['mode']);
-        $this->assertStringStartsWith('it travels', $roaming['reach']['text']);
+        $this->assertStringStartsWith('Travels', $roaming['reach']['text']);
 
         $pushed = SharingGroupPeek::build($this->sg([], [
             ['server_id' => '0', 'all_orgs' => true],

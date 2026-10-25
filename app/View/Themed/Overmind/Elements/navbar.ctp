@@ -1,4 +1,4 @@
-<nav class="rc-nav<?= empty($builtinPalette) ? '' : ' rc-daylight' ?>" aria-label="<?= __('Main') ?>">
+<nav class="rc-nav<?= empty($builtinPalette) ? '' : ' rc-daylight' ?>" aria-label="<?= h(__('Main')) ?>">
     <div class="rc-bar">
         <a class="rc-brand" href="<?= empty($homepage['path']) ? $baseurl .'/' : $baseurl . h($homepage['path']) ?>"<?= empty($mispVersionFull) ? '' : ' title="' . h(__('MISP %s', $mispVersionFull)) . '"' ?>>
             <?= $this->Html->image('misp-logo-main-cmyk-icon coul.png', ['alt' => __('MISP Logo')]) ?>
@@ -7,7 +7,7 @@
             <?php endif; ?>
         </a>
 
-        <button type="button" class="rc-toggler" aria-expanded="false" aria-controls="rc-collapse" aria-label="<?= __('Menu') ?>">
+        <button type="button" class="rc-toggler" aria-expanded="false" aria-controls="rc-collapse" aria-label="<?= h(__('Menu')) ?>">
             <i class="fas fa-bars rc-burger" aria-hidden="true"></i>
             <i class="fas fa-xmark rc-x" aria-hidden="true"></i>
         </button>
