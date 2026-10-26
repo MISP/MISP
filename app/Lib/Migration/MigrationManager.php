@@ -405,7 +405,7 @@ class MigrationManager
      *   connected one - what a two-flavour dry run needs.
      * @return array
      */
-    public function toSql($id, AbstractGrammar $grammar = null)
+    public function toSql($id, ?AbstractGrammar $grammar = null)
     {
         $schema = SchemaBuilder::forDataSource($this->dataSource());
         $migration = $this->migration($id);

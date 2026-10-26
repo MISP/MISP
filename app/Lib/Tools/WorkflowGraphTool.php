@@ -212,7 +212,7 @@ class GraphWalker
         }
     }
 
-    public function _walk($node_id, $path_type=null, array $path_list=[], WorkflowRoamingData $roamingData)
+    public function _walk($node_id, $path_type, array $path_list, WorkflowRoamingData $roamingData)
     {
         $this->cursor = $node_id;
         $node = $this->graph[$node_id];
@@ -557,12 +557,12 @@ class WorkflowGraphTool
         return -1;
     }
 
-    public static function getRoamingData(array $user=[], array $data=[], array $workflow=[], int $node_id=-1, array $trigger_node = null, $initiatorUserId = false)
+    public static function getRoamingData(array $user=[], array $data=[], array $workflow=[], int $node_id=-1, ?array $trigger_node = null, $initiatorUserId = false)
     {
         return new WorkflowRoamingData($user, $data, $workflow, $node_id, $trigger_node, $initiatorUserId);
     }
 
-    public static function getWalkerIterator(array $graphData, $WorkflowModel, $startNodeID, $path_type=null, WorkflowRoamingData $roamingData)
+    public static function getWalkerIterator(array $graphData, $WorkflowModel, $startNodeID, $path_type, WorkflowRoamingData $roamingData)
     {
         if (!in_array($path_type, GraphWalker::ALLOWED_PATH_TYPES)) {
             return [];

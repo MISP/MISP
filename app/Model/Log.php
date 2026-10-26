@@ -362,7 +362,7 @@ class Log extends AppModel
 
     // to combat a certain bug that causes the upgrade scripts to loop without being able to set the correct version
     // this function remedies a fixed upgrade bug instance by eliminating the massive number of erroneous upgrade log entries
-    public function pruneUpdateLogs($jobId = false, $user)
+    public function pruneUpdateLogs($jobId, $user)
     {
         $max = $this->find('first', array('fields' => array('MAX(id) AS lastid')));
         if (!empty($max)) {

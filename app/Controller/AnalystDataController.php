@@ -92,7 +92,7 @@ class AnalystDataController extends AppController
         $this->render('add');
     }
 
-    public function edit($type = 'Note', $id)
+    public function edit($type, $id)
     {
         if ($type === 'all' && Validation::uuid($id)) {
             $this->loadModel('AnalystData');
@@ -152,7 +152,7 @@ class AnalystDataController extends AppController
         $this->render('add');
     }
 
-    public function delete($type = 'Note', $id, $hard=true)
+    public function delete($type, $id, $hard=true)
     {
         if ($type === 'all' && Validation::uuid($id)) {
             $this->loadModel('AnalystData');
@@ -288,7 +288,7 @@ class AnalystDataController extends AppController
         $blocklist->save(['analyst_data_uuid' => $deletedAnalystData[$type]['uuid'], 'analyst_data_info' => $info, 'analyst_data_orgc' => $orgc['Orgc']['name']]);
     }
 
-    public function view($type = 'Note', $id)
+    public function view($type, $id)
     {
         if ($type === 'all' && Validation::uuid($id)) {
             $this->loadModel('AnalystData');
@@ -495,7 +495,7 @@ class AnalystDataController extends AppController
         return $this->RestResponse->viewData($data, 'json');
     }
 
-    public function getChildren($type = 'Note', $uuid, $depth=2)
+    public function getChildren($type, $uuid, $depth=2)
     {
         $this->__typeSelector($type);
         $data = $this->AnalystData->getChildren($this->Auth->user(), $uuid, $depth);

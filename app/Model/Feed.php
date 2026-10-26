@@ -215,7 +215,7 @@ class Feed extends AppModel
      * @return array
      * @throws Exception
      */
-    public function getNewEventUuids($feed, HttpSocket $HttpSocket = null)
+    public function getNewEventUuids($feed, ?HttpSocket $HttpSocket = null)
     {
         $manifest = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
         $this->Event = ClassRegistry::init('Event');
@@ -255,7 +255,7 @@ class Feed extends AppModel
      * @return Generator<string>
      * @throws Exception
      */
-    public function getCache(array $feed, HttpSocket $HttpSocket = null)
+    public function getCache(array $feed, ?HttpSocket $HttpSocket = null)
     {
         $uri = $feed['Feed']['url'] . '/hashes.csv';
         $data = $this->feedGetUri($feed, $uri, $HttpSocket);
@@ -278,7 +278,7 @@ class Feed extends AppModel
      * @return array
      * @throws Exception
      */
-    private function downloadManifest($feed, HttpSocket $HttpSocket = null)
+    private function downloadManifest($feed, ?HttpSocket $HttpSocket = null)
     {
         $manifestUrl = $feed['Feed']['url'] . '/manifest.json';
         $data = $this->feedGetUri($feed, $manifestUrl, $HttpSocket);
@@ -363,7 +363,7 @@ class Feed extends AppModel
      * @return array
      * @throws Exception
      */
-    public function getManifest(array $feed, HttpSocket $HttpSocket = null)
+    public function getManifest(array $feed, ?HttpSocket $HttpSocket = null)
     {
         $events = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
         $events = $this->__filterEventsIndex($events, $feed);
@@ -429,7 +429,7 @@ class Feed extends AppModel
      * @return array|bool
      * @throws Exception
      */
-    public function getFreetextFeed($feed, HttpSocket $HttpSocket = null, $type = 'freetext')
+    public function getFreetextFeed($feed, ?HttpSocket $HttpSocket = null, $type = 'freetext')
     {
         if ($this->isFeedLocal($feed)) {
             $feedUrl = $feed['Feed']['url'];
@@ -825,7 +825,7 @@ class Feed extends AppModel
      * @return array
      * @throws Exception
      */
-    private function downloadFromFeed(array $actions, array $feed, HttpSocket $HttpSocket = null, array $user, $jobId = false)
+    private function downloadFromFeed(array $actions, array $feed, ?HttpSocket $HttpSocket, array $user, $jobId = false)
     {
         $total = count($actions['add']) + count($actions['edit']);
         $currentItem = 0;
@@ -1259,7 +1259,7 @@ class Feed extends AppModel
      * @return array|bool|string
      * @throws Exception
      */
-    private function __addEventFromFeed(HttpSocket $HttpSocket = null, $feed, $uuid, $user, $filterRules)
+    private function __addEventFromFeed(?HttpSocket $HttpSocket, $feed, $uuid, $user, $filterRules)
     {
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
@@ -1279,7 +1279,7 @@ class Feed extends AppModel
      * @return mixed
      * @throws Exception
      */
-    private function __updateEventFromFeed(HttpSocket $HttpSocket = null, $feed, $uuid, $user, $filterRules)
+    private function __updateEventFromFeed(?HttpSocket $HttpSocket, $feed, $uuid, $user, $filterRules)
     {
          $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket);
         $event = $this->__prepareEvent($event, $feed, $filterRules);
@@ -1655,7 +1655,7 @@ class Feed extends AppModel
      * @param int|false $jobId
      * @return bool
      */
-    private function __cacheFreetextFeed(array $feed, $redis, HttpSocket $HttpSocket = null, $jobId = false)
+    private function __cacheFreetextFeed(array $feed, $redis, ?HttpSocket $HttpSocket = null, $jobId = false)
     {
         $feedId = $feed['Feed']['id'];
 
@@ -1697,7 +1697,7 @@ class Feed extends AppModel
      * @param false $jobId
      * @return bool
      */
-    private function __cacheMISPFeedTraditional($feed, $redis, HttpSocket $HttpSocket = null, $jobId = false)
+    private function __cacheMISPFeedTraditional($feed, $redis, ?HttpSocket $HttpSocket = null, $jobId = false)
     {
         $feedId = $feed['Feed']['id'];
         try {
@@ -1759,7 +1759,7 @@ class Feed extends AppModel
      * @param false $jobId
      * @return bool
      */
-    private function __cacheMISPFeedCache($feed, $redis, HttpSocket $HttpSocket = null, $jobId = false)
+    private function __cacheMISPFeedCache($feed, $redis, ?HttpSocket $HttpSocket = null, $jobId = false)
     {
         $feedId = $feed['Feed']['id'];
 
@@ -2181,7 +2181,7 @@ class Feed extends AppModel
      * @return array
      * @throws Exception
      */
-    private function downloadAndParseEventFromFeed($feed, $eventUuid, HttpSocket $HttpSocket = null, $permissive = false, &$error_message = null)
+    private function downloadAndParseEventFromFeed($feed, $eventUuid, ?HttpSocket $HttpSocket = null, $permissive = false, &$error_message = null)
     {
         if (!Validation::uuid($eventUuid)) {
             throw new InvalidArgumentException("Given event UUID '$eventUuid' is invalid.");
@@ -2223,7 +2223,7 @@ class Feed extends AppModel
      * @return string
      * @throws Exception
      */
-    private function feedGetUri($feed, $uri, HttpSocket $HttpSocket = null)
+    private function feedGetUri($feed, $uri, ?HttpSocket $HttpSocket = null)
     {
         if ($this->isFeedLocal($feed)) {
             $uri = mb_ereg_replace("/\:\/\//", '', $uri);
