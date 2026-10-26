@@ -2792,7 +2792,121 @@ tr.evt-extension-row td:first-child { position: relative; }
 .dg-scope .dg-raw table { width: 100%; }
 .dg-scope .dg-submodules { font-size: .8rem; overflow-x: auto; }
 
+/* ---- AI module status: one step per link of the chain ---- */
+.aic-chain { list-style: none; margin: 0; padding: 0; }
+.aic-step {
+    --aic-colour: var(--bs-secondary-color);
+    position: relative; display: flex; gap: .85rem; padding-bottom: 1.1rem;
+}
+.aic-step:last-child { padding-bottom: 0; }
+.aic-step:not(:last-child)::before {
+    content: ''; position: absolute; left: calc(.875rem - 1px); top: 1.95rem; bottom: .2rem;
+    border-left: 2px solid var(--bs-border-color);
+}
+.aic-step-ok:not(:last-child)::before {
+    border-left-color: color-mix(in srgb, var(--bs-success) 55%, var(--bs-border-color));
+}
+.aic-step-ok   { --aic-colour: var(--bs-success); }
+.aic-step-fail { --aic-colour: var(--bs-danger); }
+.aic-step-warn { --aic-colour: #fd7e14; }
+.aic-step-off  { --aic-colour: var(--bs-secondary); }
+.aic-step-idle { --aic-colour: var(--bs-primary); }
+.aic-step-wait { --aic-colour: var(--bs-border-color); }
+.aic-dot {
+    flex: 0 0 auto; width: 1.75rem; height: 1.75rem; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .75rem; font-weight: 700; color: #fff;
+    background: var(--aic-colour); border: 2px solid var(--aic-colour);
+}
+.aic-step-idle .aic-dot,
+.aic-step-wait .aic-dot { background: var(--bs-body-bg); color: var(--aic-colour); }
+.aic-step-wait .aic-dot { color: var(--bs-secondary-color); }
+.aic-step-wait .aic-step-body { opacity: .6; }
+.aic-step-body { flex: 1 1 auto; min-width: 0; padding-top: .2rem; font-size: .85rem; }
+.aic-step-detail {
+    margin-top: .1rem; font-size: .76rem; color: var(--bs-secondary-color); overflow-wrap: anywhere;
+}
+.aic-fix {
+    margin-top: .55rem; padding: .55rem .75rem; border-radius: .4rem; font-size: .8rem;
+    border: 1px solid var(--bs-border-color); background: var(--bs-tertiary-bg);
+}
+.aic-fix-0 {
+    border-color: color-mix(in srgb, var(--bs-danger) 35%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-danger) 7%, transparent);
+}
+.aic-fix-1 {
+    border-color: color-mix(in srgb, var(--bs-warning) 45%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-warning) 10%, transparent);
+}
+.aic-fix-3 {
+    border-color: color-mix(in srgb, var(--bs-info) 35%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-info) 7%, transparent);
+}
+.aic-fix-error {
+    font-family: var(--bs-font-monospace); font-size: .74rem; color: var(--bs-danger);
+    margin-bottom: .3rem; overflow-wrap: anywhere;
+}
+.aic-result {
+    margin-top: .5rem; padding: .1rem .65rem; border-radius: .4rem;
+    border: 1px solid var(--bs-border-color); background: var(--bs-tertiary-bg);
+}
 
+/* ---- AI module installation guide (modal) ----
+   The guide is plain markdown from the module's repository: its numbered list
+   of steps, its GitHub alerts and its mermaid diagram get their layout here. */
+.aic-intro ol {
+    list-style: none; counter-reset: aic-step; padding: 0; margin: 0 0 .75rem;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .5rem;
+}
+.aic-intro ol > li {
+    counter-increment: aic-step; position: relative; font-size: .8rem;
+    padding: .55rem .7rem .55rem 2.6rem; border: 1px solid var(--bs-border-color); border-radius: .5rem;
+}
+.aic-intro ol > li::before {
+    content: counter(aic-step); position: absolute; left: .7rem; top: .55rem;
+    width: 1.4rem; height: 1.4rem; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 700; color: #fff; background: var(--bs-info);
+}
+.aic-mermaid { margin: .25rem 0 1rem; text-align: center; }
+.aic-mermaid svg { max-width: 100%; height: auto; }
+.aic-alert {
+    --aic-alert: var(--bs-info);
+    margin: 0 0 1rem; padding: .55rem .8rem; border-radius: .4rem;
+    border: 1px solid color-mix(in srgb, var(--aic-alert) 35%, var(--bs-border-color));
+    border-left: 4px solid var(--aic-alert);
+    background: color-mix(in srgb, var(--aic-alert) 7%, transparent);
+}
+.aic-alert > :last-child { margin-bottom: 0; }
+.aic-alert-title { margin-bottom: .2rem; font-size: .8rem; font-weight: 600; color: var(--aic-alert); }
+.aic-alert-tip       { --aic-alert: var(--bs-success); }
+.aic-alert-important { --aic-alert: #6f42c1; }
+.aic-alert-warning   { --aic-alert: #b8860b; }
+.aic-alert-caution   { --aic-alert: var(--bs-danger); }
+
+.aic-guide-tabs {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--bs-modal-bg, var(--bs-body-bg));
+}
+.aic-md { font-size: .875rem; }
+.aic-md h3 { font-size: 1rem; margin-top: 1.5rem; }
+.aic-md :not(pre) > code {
+    padding: .1rem .3rem; border-radius: var(--bs-border-radius-sm);
+    background: var(--bs-tertiary-bg); color: var(--bs-code-color);
+}
+.aic-code {
+    margin-bottom: 1rem; border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius); overflow: hidden;
+}
+.aic-code-head {
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    padding: .2rem .3rem .2rem .75rem; border-bottom: 1px solid var(--bs-border-color);
+    background: var(--bs-secondary-bg); color: var(--bs-secondary-color);
+    font-family: var(--bs-font-monospace); font-size: .7rem;
+}
+.aic-code-head .btn { --bs-btn-padding-y: .05rem; --bs-btn-padding-x: .45rem; --bs-btn-font-size: .7rem; }
+.aic-md .aic-code pre { margin: 0; border-radius: 0; font-size: .8rem; }
+.aic-md-raw { white-space: pre-wrap; font-family: var(--bs-font-monospace); font-size: .78rem; }
 
 /* ═══════════════════════════════════════════════════════════
    Event Templates
