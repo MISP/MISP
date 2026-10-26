@@ -319,10 +319,32 @@ class AuthKeysController extends AppController
             // update the key with the source IP
             if ($authKey) {
                 $authKey['AuthKey']['allowed_ips'] = $ip;
-                $this->AuthKey->save($authKey, ['fieldList' => ['allowed_ips']]);
-                $this->Flash->success(__('IP address set as allowed source for the Key.'));
+                $saved = $this->AuthKey->save($authKey, ['fieldList' => ['allowed_ips']]);
+                $message = $saved ?
+                    __('IP address set as allowed source for the Key.') :
+                    __('Failed to set IP as source.');
+                if ($this->IndexFilter->isRest()) {
+                    return $saved ?
+                        $this->RestResponse->saveSuccessResponse(
+                            'AuthKeys', 'pin', $id, $this->response->type(), $message
+                        ) :
+                        $this->RestResponse->saveFailResponse(
+                            'AuthKeys', 'pin', $id, $message, $this->response->type()
+                        );
+                }
+                if ($saved) {
+                    $this->Flash->success($message);
+                } else {
+                    $this->Flash->error($message);
+                }
             } else {
-                $this->Flash->error(__('Failed to set IP as source'));
+                $message = __('Invalid auth key.');
+                if ($this->IndexFilter->isRest()) {
+                    return $this->RestResponse->saveFailResponse(
+                        'AuthKeys', 'pin', $id, $message, $this->response->type()
+                    );
+                }
+                $this->Flash->error($message);
             }
         }
         $this->redirect($this->referer());
