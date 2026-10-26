@@ -85,6 +85,8 @@ class Module extends AppModel
 
     private $httpSocket = [];
 
+    private $moduleTimeoutDefaults = [];
+
     public function validateIPField($value)
     {
         if (!filter_var($value, FILTER_VALIDATE_IP) === false) {
@@ -132,8 +134,18 @@ class Module extends AppModel
     {
         try {
             // Wait just one second to not block loading pages when modules are not reachable
-            return $this->sendRequest('/modules', 1, null, $moduleFamily);
+            $modules = $this->sendRequest('/modules', 1, null, $moduleFamily);
+            $this->moduleTimeoutDefaults[$moduleFamily] = [];
+            if (is_array($modules)) {
+                foreach ($modules as $module) {
+                    if (isset($module['name']) && is_string($module['name'])) {
+                        $this->moduleTimeoutDefaults[$moduleFamily][$module['name']] = $module['meta'] ?? [];
+                    }
+                }
+            }
+            return $modules;
         } catch (Exception $e) {
+            $this->moduleTimeoutDefaults[$moduleFamily] = [];
             if ($throwException) {
                 throw $e;
             }
@@ -318,14 +330,8 @@ class Module extends AppModel
                 return __('Trigger `%s` blocked enrichment', $trigger_id);
             }
         }
-        if ($hover) {
-            $timeout = Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ?: 5;
-        } else {
-            $timeout = Configure::read('Plugin.' . $moduleFamily . '_timeout') ?: 10;
-        }
-        if (!isset($postData['timeout'])) {
-            $postData['timeout'] = (int) $timeout;
-        }
+        $timeout = $this->queryTimeout($postData, $hover, $moduleFamily);
+        $postData['timeout'] = $timeout;
         try {
             return $this->sendRequest('/query', $timeout, $postData, $moduleFamily);
         } catch (Exception $e) {
@@ -335,6 +341,52 @@ class Module extends AppModel
             $this->logException('Failed to query module ' . $moduleFamily, $e);
             return false;
         }
+    }
+
+    /** Read settings separately so timeout resolution can be tested without CakePHP. */
+    protected function moduleTimeoutSetting($name)
+    {
+        return Configure::read($name);
+    }
+
+    private static function positiveTimeout($value)
+    {
+        if (!is_int($value) && !is_string($value)) {
+            return null;
+        }
+        $timeout = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        return $timeout === false ? null : $timeout;
+    }
+
+    /** Use the same execution budget for the HTTP client and the module server. */
+    private function queryTimeout(array $postData, $hover, $moduleFamily)
+    {
+        if (isset($postData['timeout'])) {
+            $timeout = self::positiveTimeout($postData['timeout']);
+            if ($timeout === null) {
+                throw new InvalidArgumentException('Module timeout must be a positive integer in seconds.');
+            }
+            return $timeout;
+        }
+
+        $name = $postData['module'];
+        $setting = $hover ? 'hover_execution_timeout' : 'execution_timeout';
+        $timeout = self::positiveTimeout($this->moduleTimeoutSetting('Plugin.' . $moduleFamily . '_' . $name . '_' . $setting));
+        if ($timeout !== null) {
+            return $timeout;
+        }
+
+        if (!isset($this->moduleTimeoutDefaults[$moduleFamily])) {
+            $this->getModules($moduleFamily);
+        }
+        $metadataKey = $hover ? 'hover_timeout' : 'timeout';
+        $timeout = self::positiveTimeout($this->moduleTimeoutDefaults[$moduleFamily][$name][$metadataKey] ?? null);
+        if ($timeout !== null) {
+            return $timeout;
+        }
+
+        $familySetting = 'Plugin.' . $moduleFamily . ($hover ? '_hover_timeout' : '_timeout');
+        return self::positiveTimeout($this->moduleTimeoutSetting($familySetting)) ?? ($hover ? 5 : 10);
     }
 
     /**
@@ -399,6 +451,21 @@ class Module extends AppModel
                             'description' => empty($module['meta']['description']) ? '' : $module['meta']['description']
                         ]
                     ];
+                    $timeoutSettings = ['execution_timeout' => 'timeout'];
+                    if (in_array('hover', $module['meta']['module-type'], true)) {
+                        $timeoutSettings['hover_execution_timeout'] = 'hover_timeout';
+                    }
+                    foreach ($timeoutSettings as $name => $metadataKey) {
+                        $moduleSettings[] = [
+                            'name' => $name,
+                            'type' => 'numeric',
+                            'value' => self::positiveTimeout($module['meta'][$metadataKey] ?? null) ?? 0,
+                            'test' => 'testForPositiveInteger',
+                            'description' => $metadataKey === 'hover_timeout'
+                                ? __('Hover execution timeout in seconds. Set to 0 to use the module default or the family hover timeout.')
+                                : __('Module execution timeout in seconds. Set to 0 to use the module default or the family timeout.')
+                        ];
+                    }
                     if ($moduleFamily !== 'Action') {
                         $moduleSettings[] = [
                             'name' => 'restrict',
@@ -409,6 +476,9 @@ class Module extends AppModel
                             foreach ($module['meta']['config'] as $key => $value) {
                                 if (is_array($value)) {
                                     $name = is_string($key) ? $key : $value['name'];
+                                    if (isset($timeoutSettings[$name])) {
+                                        continue;
+                                    }
                                     $moduleSettings[] = [
                                         'name' => $name,
                                         'type' => $value['type'] ?? 'string',
@@ -420,12 +490,18 @@ class Module extends AppModel
                                         'redacted' => $value['redacted'] ?? false
                                     ];
                                 } else if (is_string($key)) {
+                                    if (isset($timeoutSettings[$key])) {
+                                        continue;
+                                    }
                                     $moduleSettings[] = [
                                         'name' => $key,
                                         'type' => 'string',
                                         'description' => $value
                                     ];
                                 } else {
+                                    if (isset($timeoutSettings[$value])) {
+                                        continue;
+                                    }
                                     $moduleSettings[] = array('name' => $value, 'type' => 'string');
                                 }
                             }
