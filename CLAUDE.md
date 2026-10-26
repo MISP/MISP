@@ -156,7 +156,7 @@ When in doubt about where a change belongs, it belongs on `develop`.
 
 ## Requirements
 
-- PHP 8.1+ (8.2 recommended, <9.0)
+- PHP 8.2+ (8.3 recommended, <9.0)
 - MySQL/MariaDB with UTF-8MB4
 - Redis (caching, background jobs)
 - Python 3.10+ (workers, PyMISP)
