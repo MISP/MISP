@@ -44,7 +44,8 @@ class RedisTool
         } else {
             $port = Configure::read('MISP.redis_port') ?: 6379;
         }
-        $database = Configure::read('MISP.redis_database') ?: 13;
+        $database = Configure::read('MISP.redis_database');
+        $database = is_numeric($database) ? (int)$database : 13;
         $pass = Configure::read('MISP.redis_password');
 
         $redis = new Redis();
