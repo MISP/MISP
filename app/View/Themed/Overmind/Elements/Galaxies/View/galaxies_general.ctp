@@ -9,21 +9,6 @@ $labelClass = 'text-body-secondary text-uppercase fw-bold';
 $labelStyle = 'font-size:.7rem;';
 $tileStyle = 'width:1.75rem;height:1.75rem;';
 
-$formatDate = function ($value) {
-    $digits = preg_replace('/\D/', '', (string)$value);
-    if ($digits === '' || (int)$digits === 0) {
-        return '<span class="text-muted">' . __('N/A') . '</span>';
-    }
-    return $this->Time->time($value);
-};
-$this->set(
-    'headerDescription',
-    '<span class="d-inline-flex align-items-center gap-3 flex-wrap">'
-    . '<span title="' . h(__('Created')) . '"><i class="fas fa-calendar-day me-1 opacity-50"></i>' . $formatDate($data['created'] ?? null) . '</span>'
-    . '<span title="' . h(__('Last modified')) . '"><i class="fas fa-edit me-1 opacity-50"></i>' . $formatDate($data['modified'] ?? null) . '</span>'
-    . '</span>'
-);
-
 $flags = [
     [
         'on' => !empty($data['enabled']),

@@ -8,6 +8,7 @@ $m = $modelSelection ?? 'Note';
 $record = $data[$m] ?? [];
 $railCards = $railCards ?? [];
 $this->set('headerIdentity', $record);
+$this->set('headerTimestamps', $record);
 
 $this->set('headerTitle', h($m) . ' #' . h($record['id'] ?? ''));
 

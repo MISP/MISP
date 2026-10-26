@@ -1,6 +1,4 @@
 <?php
-App::uses('CakeTime', 'Utility');
-
 $event = $data['Event'] ?? [];
 $orgc = $data['Orgc'] ?? [];
 $org = $data['Org'] ?? [];
@@ -8,46 +6,12 @@ $sg = $data['SharingGroup'] ?? [];
 $distribution = (int)($event['distribution'] ?? 0);
 $markings = $overviewMarkings ?? ['declared' => [], 'present' => [], 'absent' => []];
 
-$relativeStamp = function ($icon, $label, $timestamp) {
-    $timestamp = (int)$timestamp;
-    $absolute = date('Y-m-d H:i:s', $timestamp);
-    $relative = CakeTime::timeAgoInWords($timestamp, [
-        'end' => '+100 years',
-        'accuracy' => [
-            'year' => 'year', 'month' => 'month', 'week' => 'week', 'day' => 'day',
-            'hour' => 'hour', 'minute' => 'minute', 'second' => 'second',
-        ],
-    ]);
-    return sprintf(
-        '<button type="button" class="eo-time" title="%s" aria-label="%s"'
-        . ' data-copy-value="%s" data-copy-msg="%s"'
-        . ' onclick="copyValueToClipboard(this.dataset.copyValue, this.dataset.copyMsg)">'
-        . '<i class="fas fa-%s me-1 opacity-50"></i><time datetime="%s">%s</time></button>',
-        h($label . ' ' . $absolute . "\n" . __('Click to copy')),
-        h($label . ' ' . $absolute),
-        h($absolute),
-        h(__('Datetime copied to clipboard')),
-        h($icon),
-        h(date('c', $timestamp)),
-        h($relative)
-    );
-};
-
 $meta = [];
-if (!empty($event['date'])) {
-    $meta[] = '<span title="' . __('Event date') . '"><i class="fas fa-calendar-day me-1 opacity-50"></i>' . h($event['date']) . '</span>';
-}
-if (!empty($event['timestamp'])) {
-    $meta[] = $relativeStamp('edit', __('Last modified'), $event['timestamp']);
-}
-if (!empty($event['published']) && !empty($event['publish_timestamp'])) {
-    $meta[] = $relativeStamp('paper-plane', __('Last published'), $event['publish_timestamp']);
-}
 if (!empty($event['protected'])) {
-    $meta[] = '<span class="eo-flag" title="' . __('Protected events can only be updated by signatories') . '"><i class="fas fa-shield-alt"></i>' . __('Protected') . '</span>';
+    $meta[] = '<span class="eo-flag border rounded" title="' . __('Protected events can only be updated by signatories') . '"><i class="fas fa-shield-alt"></i>' . __('Protected') . '</span>';
 }
 if (!empty($event['disable_correlation'])) {
-    $meta[] = '<span class="eo-flag"><i class="fas fa-unlink"></i>' . __('Correlation disabled') . '</span>';
+    $meta[] = '<span class="eo-flag border rounded"><i class="fas fa-unlink"></i>' . __('Correlation disabled') . '</span>';
 }
 $isExtended = !empty($extended);
 $isExtending = !empty($extending);
@@ -102,7 +66,7 @@ if (!empty($children)) {
             . $childIcon . h(__n('Extended by %s event', 'Extended by %s events', count($children), count($children)))
             . '</button><span class="dropdown-menu eo-ext-menu">' . $items . '</span>';
     }
-    $meta[] = '<span class="eo-ext dropdown">' . $relation . $extSwitch(
+    $meta[] = '<span class="eo-ext border rounded dropdown">' . $relation . $extSwitch(
         $isExtended,
         $modeUrl(!$isExtended, $isExtending),
         __('Extended view'),
@@ -112,7 +76,7 @@ if (!empty($children)) {
     ) . '</span>';
 }
 if (!empty($event['Extends']) && is_array($event['Extends'])) {
-    $meta[] = '<span class="eo-ext">'
+    $meta[] = '<span class="eo-ext border rounded">'
         . $extEventLink($event['Extends'], 'eo-ext-rel', '<i class="fas fa-code-merge"></i>' . h(__('Extends')))
         . $extSwitch(
             $isExtending,

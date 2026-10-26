@@ -32,6 +32,7 @@
 
     $this->set('headerTitle', $headerTitle);
     $this->set('headerIdentity', $event['Event']);
+    $this->set('headerTimestamps', $event['Event']);
     $this->set('headerDescription', $headerDescription);
     $this->set('headerActions', $headerActions);
 

@@ -3,24 +3,6 @@
 $report = $data['EventReport'] ?? [];
 $event = $data['Event'] ?? [];
 
-$descParts = [];
-if (!empty($report['date'])) {
-    $descParts[] = '<span>'
-        . '<i class="fas fa-calendar-day me-1 opacity-50"></i>'
-        . h($report['date'])
-        . '</span>';
-}
-if (!empty($report['timestamp'])) {
-    $descParts[] = '<span>'
-        . '<i class="fas fa-edit me-1 opacity-50"></i>'
-        . $this->Time->time($report['timestamp'])
-        . '</span>';
-}
-$headerDescription = '<span class="d-inline-flex gap-3 flex-wrap">'
-    . implode('', $descParts)
-    . '</span>';
-$this->set('headerDescription', $headerDescription);
-
 $eventId = $report['event_id'] ?? ($event['id'] ?? null);
 $eventUrl = $baseurl . '/events/view/' . $eventId;
 $published = !empty($parentEvent['Event']['published']);

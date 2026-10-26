@@ -23,20 +23,6 @@ $color = $s['color'];
 $labelStyle = 'font-size:.7rem;';
 $labelClass = 'text-body-secondary text-uppercase fw-bold';
 
-$descParts = [];
-if (!empty($record['created'])) {
-    $descParts[] = '<span title="' . h(__('Created')) . '">'
-        . '<i class="fas fa-calendar-day me-1 opacity-50"></i>' . h($record['created']) . '</span>';
-}
-if (!empty($record['modified'])) {
-    $descParts[] = '<span title="' . h(__('Last modified')) . '">'
-        . '<i class="fas fa-edit me-1 opacity-50"></i>' . h($record['modified']) . '</span>';
-}
-$this->set(
-    'headerDescription',
-    '<span class="d-inline-flex align-items-center gap-3 flex-wrap">' . implode('', $descParts) . '</span>'
-);
-
 $targetGlyphs = [
     'Event' => 'misp-icon misp-icon-event misp-simple',
     'Attribute' => 'fas fa-cube',

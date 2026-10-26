@@ -16,9 +16,7 @@ $this->set('headerTitleHtml', sprintf(
         h($key['comment'])
     )
 ));
-$this->set('headerDescription', empty($key['created'])
-    ? ''
-    : '<span title="' . h(__('Created')) . '"><i class="fas fa-calendar-plus me-1 opacity-50"></i>' . $this->Time->time($key['created']) . '</span>');
+$this->set('headerTimestamps', $key);
 
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,

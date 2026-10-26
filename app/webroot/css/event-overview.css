@@ -6,22 +6,14 @@
 .eo-meta { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .35rem 1rem; }
 .eo-flag {
     display: inline-flex; align-items: center; gap: .3rem; font-size: .78rem; font-weight: 600;
-    padding: .05rem .45rem; border-radius: 999px; border: 1px solid var(--bs-border-color);
-    color: var(--bs-secondary-color); text-decoration: none;
+    padding: .05rem .45rem; color: var(--bs-secondary-color); text-decoration: none;
 }
 .eo-flag-link:hover { color: var(--bs-link-color); }
-.eo-time {
-    display: inline-flex; align-items: center; padding: 0; border: 0; background: none;
-    color: inherit; font: inherit; border-radius: .2rem;
-}
-.eo-time time { text-decoration: underline dotted transparent; text-underline-offset: 3px; transition: text-decoration-color .15s; }
-.eo-time:hover time, .eo-time:focus-visible time { text-decoration-color: currentColor; }
-.eo-time:focus-visible { outline: 2px solid var(--bs-focus-ring-color, rgba(13,110,253,.25)); outline-offset: 2px; }
 
 /* extension relation + view switch */
 .eo-ext {
     display: inline-flex; align-items: stretch; max-width: 100%; font-size: .78rem; font-weight: 600; line-height: 1.5;
-    border: 1px solid var(--bs-border-color); border-radius: 999px; background: var(--bs-body-bg);
+    background: var(--bs-body-bg);
 }
 .eo-ext-rel {
     display: inline-flex; align-items: center; gap: .3rem; min-width: 0; padding: .05rem .55rem;

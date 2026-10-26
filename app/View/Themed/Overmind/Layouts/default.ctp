@@ -277,6 +277,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
                         'headerTitle' => $headerTitle ?? null,
                         'headerDescription' => $headerDescription ?? null,
                         'headerIdentity' => $headerIdentity ?? null,
+                        'headerTimestamps' => $headerTimestamps ?? null,
                         'headerStats' => $headerStats ?? [],
                         'headerCount' => $headerCount ?? null,
                     ]);

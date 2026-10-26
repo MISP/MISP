@@ -14,6 +14,7 @@
 
     $this->set('headerTitle', h($this->UserName->convertEmailToName($email)));
     $this->set('headerIdentity', $user['User']);
+    $this->set('headerTimestamps', $user['User']);
 
     $tabs = [
         [

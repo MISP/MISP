@@ -1,6 +1,7 @@
 <?php
     $railCards = $railCards ?? [];
     $this->set('headerIdentity', $report['EventReport']);
+    $this->set('headerTimestamps', $report['EventReport']);
     $headerTitle = $report['EventReport']['name'] ?? '';
     $headerDescription = '';
     $headerActions = [];
