@@ -99,8 +99,8 @@ function renderNotes(notes, relationship_related_object, emptyMessage='<?= __('E
 }
 
 function renderNote(note, relationship_related_object, isInbound=false) {
-    note.modified_relative = note.modified ? moment(note.modified).fromNow() : note.modified
-    note.created_relative = note.created ? moment(note.created).fromNow() : note.created
+    note.modified_relative = note.modified ? moment.utc(note.modified).fromNow() : note.modified
+    note.created_relative = note.created ? moment.utc(note.created).fromNow() : note.created
     note.modified = note.modified ? (new Date(note.modified)).toLocaleString() : note.modified
     note.created = note.created ? (new Date(note.created)).toLocaleString() : note.created
     note.distribution_text = note.distribution != 4 ? shortDist[note.distribution] : note.SharingGroup.name
