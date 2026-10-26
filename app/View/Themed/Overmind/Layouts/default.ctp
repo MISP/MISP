@@ -161,6 +161,9 @@ if (substr($currentAction, 0, 6) === 'admin_') {
     <?php endif; ?>
 </head>
 <body class="bg-light" data-controller="<?= h($currentController) ?>" data-action="<?= h($currentAction) ?>">
+    <?php if ($useBootstrap5): ?>
+        <?= $this->element('skip_link') ?>
+    <?php endif; ?>
     <div class="main-wrapper">
         <!-- Navbar -->
         <header>
@@ -250,7 +253,7 @@ if (substr($currentAction, 0, 6) === 'admin_') {
             </div>
         <?php endif; ?>
         <!-- Flash & Content -->
-        <main role="main" class="content"<?= $mainStyle ?>>
+        <main id="main-content" tabindex="-1" class="content"<?= $mainStyle ?>>
             <div id="flashOverlay">
                 <div id="flashContainer" class="ov-toast-stack">
                     <?= $this->Flash->render(); ?>
