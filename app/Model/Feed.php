@@ -1458,6 +1458,18 @@ class Feed extends AppModel
                 $this->save($feed);
             }
         }
+        $uniqueKeys = [];
+        foreach ($data as $k => $dataPoint) {
+            $uniqueKey = $dataPoint['type'] . '|' . ($dataPoint['category'] ?? '') . '|' .
+                mb_strtolower(AttributeValidationTool::modifyBeforeValidation($dataPoint['type'], $dataPoint['value']));
+            if (isset($uniqueKeys[$uniqueKey])) {
+                unset($data[$k]);
+            } else {
+                $uniqueKeys[$uniqueKey] = true;
+            }
+        }
+        unset($uniqueKeys);
+
         if ($feed['Feed']['fixed_event']) {
             $existsAttributesValueToId = $this->Event->Attribute->find('list', array(
                 'conditions' => array(
@@ -1520,7 +1532,17 @@ class Feed extends AppModel
         }
         $chunks = array_chunk($data, 100);
         foreach ($chunks as $k => $chunk) {
-            $this->Event->Attribute->saveMany($chunk, ['validate' => true, 'parentEvent' => $event]);
+            $saveOptions = ['validate' => true, 'parentEvent' => $event];
+            if (!$this->Event->Attribute->saveMany($chunk, $saveOptions)) {
+                // saveMany() is atomic, so save the rows one by one to keep a single bad row from dropping the chunk
+                foreach ($chunk as $row) {
+                    $this->Event->Attribute->create();
+                    if (!$this->Event->Attribute->save($row, $saveOptions)) {
+                        $errors = json_encode($this->Event->Attribute->validationErrors);
+                        $this->log("Could not save value '{$row['value']}' from feed {$feed['Feed']['id']}: $errors", LOG_WARNING);
+                    }
+                }
+            }
             $this->jobProgress($jobId, null, 50 + round(($k * 100 + 1) / count($data) * 50));
         }
         if (!empty($data) || !empty($attributesToDelete)) {
