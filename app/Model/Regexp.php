@@ -81,7 +81,7 @@ class Regexp extends AppModel
         return $finalArray;
     }
 
-    public function replaceSpecific($string, $allRegexp = null, $type)
+    public function replaceSpecific($string, $allRegexp, $type)
     {
         $orig = $string;
         foreach ($allRegexp as $regexp) {

@@ -505,7 +505,7 @@ class MispObject extends AppModel
      * @return array|array[]|bool|int|mixed|string
      * @throws Exception
      */
-    public function saveObject(array $object, $eventId, $template = false, array $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
+    public function saveObject(array $object, $eventId, $template, array $user, $errorBehaviour = 'drop', $breakOnDuplicate = false)
     {
         $templateFields = array(
             'name' => 'name',
@@ -1199,7 +1199,7 @@ class MispObject extends AppModel
      * @return array|int
      * @throws JsonException
      */
-    public function deltaMerge(array $object, array $objectToSave, $onlyAddNewAttribute=false, array $user)
+    public function deltaMerge(array $object, array $objectToSave, $onlyAddNewAttribute, array $user)
     {
         if (!isset($objectToSave['Object'])) {
             $dataToBackup = array('ObjectReferences', 'Attribute', 'ShadowAttribute');

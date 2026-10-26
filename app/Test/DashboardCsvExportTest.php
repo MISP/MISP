@@ -78,7 +78,7 @@ class DashboardCsvExportTest extends TestCase
         fwrite($handle, $csv);
         rewind($handle);
         $rows = array();
-        while (($row = fgetcsv($handle)) !== false) {
+        while (($row = fgetcsv($handle, null, ',', '"', '\\')) !== false) {
             if ($row === array(null)) {
                 continue;
             }

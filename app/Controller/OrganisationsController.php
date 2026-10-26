@@ -486,7 +486,7 @@ class OrganisationsController extends AppController
         return $result;
     }
 
-    public function fetchOrgsForSG($idList = '{}', $type)
+    public function fetchOrgsForSG($idList, $type)
     {
         if ($type === 'local') {
             $local = 1;

@@ -308,17 +308,17 @@ class AadAuthenticateAuthenticate extends BaseAuthenticate
 					if (self::$check_ad_groups) {
 						if ($this->_checkAdGroup($authdata)) {
 							$mispUsername = $authProperty;
-							$this->_log("info", "Successful AAD group check for ${mispUsername}");
+							$this->_log("info", "Successful AAD group check for {$mispUsername}");
 						}
 					} else {
 						$mispUsername = $authProperty;
 					}
 
 					if ($mispUsername) {
-						$this->_log("info", "Attempt AAD authentication for ${mispUsername}");
+						$this->_log("info", "Attempt AAD authentication for {$mispUsername}");
 						$user = $this->_findUser($mispUsername);
 						if ($user) {
-							$this->_log("info", "AAD authentication successful for ${mispUsername}");
+							$this->_log("info", "AAD authentication successful for {$mispUsername}");
 							// Rotate the session ID now that the user is authenticated, to
 							// prevent session fixation. Safe to do here since the state
 							// check above no longer depends on the session ID staying fixed.

@@ -237,7 +237,7 @@ class BackgroundJobsTool
         string $command,
         array $args = [],
         $trackStatus = null,
-        int $jobId = null,
+        ?int $jobId = null,
         array $metadata = []
     ): string {
 
@@ -290,7 +290,7 @@ class BackgroundJobsTool
         string $class,
         $args = [],
         $trackStatus = null,
-        int $jobId = null
+        ?int $jobId = null
     ): string {
 
         $process_id = CakeResque::enqueue(
