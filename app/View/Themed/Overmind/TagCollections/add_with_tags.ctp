@@ -4,6 +4,13 @@ $isEdit = $this->request->params['action'] === 'editWithTags';
 $collection = $this->request->data['TagCollection'] ?? [];
 $currentTags = $currentTags ?? [];
 
+// Opened directly rather than as a modal: the form's own header strip titles the page
+$asPage = empty($ajax);
+if ($asPage) {
+    $this->set('hideHeaderSection', true);
+    echo '<div class="container-xl py-4"><div class="card shadow-sm overflow-hidden">';
+}
+
 echo $this->Form->create('TagCollection', [
     'id' => 'tagCollectionForm',
     'novalidate' => true,
@@ -140,12 +147,16 @@ echo $this->Form->create('TagCollection', [
     <?= $this->element('genericElementsBS5/Forms/modal_footer', [
         'isEdit' => $isEdit,
         'meta' => $isEdit && !empty($collection['id']) ? [['label' => __('Collection'), 'id' => $collection['id']]] : [],
+        'cancel' => $asPage ? ['href' => $baseurl . '/tagCollections/index', 'attrs' => []] : [],
         'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Collection')],
     ]) ?>
 
 </div>
 
 <?= $this->Form->end() ?>
+<?php if ($asPage): ?>
+</div></div>
+<?php endif; ?>
 
 <script>
 (function () {

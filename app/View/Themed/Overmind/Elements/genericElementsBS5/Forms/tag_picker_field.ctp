@@ -67,29 +67,38 @@ foreach ($categories as $key => $category) {
     var catData = <?= json_encode($catData, JSON_HEX_TAG | JSON_HEX_AMP) ?: '{}' ?>;
     var initTags = <?= json_encode($selected, JSON_HEX_TAG | JSON_HEX_AMP) ?: '[]' ?>;
 
-    var root = document.querySelector('[data-tag-picker="' + uid + '"]');
-    if (!root || root.dataset.tagPickerReady) { return; }
-    root.dataset.tagPickerReady = '1';
+    function boot() {
+        var root = document.querySelector('[data-tag-picker="' + uid + '"]');
+        if (!root || root.dataset.tagPickerReady) { return; }
+        root.dataset.tagPickerReady = '1';
 
-    var inputsEl = root.querySelector('.tag-picker-inputs');
+        var inputsEl = root.querySelector('.tag-picker-inputs');
 
-    initTagPickerSection(root, catData, initTags, {
-        onChange: function (ids) {
-            /* Rebuild the posted list, keeping the empty scalar in front */
-            inputsEl.innerHTML = '';
-            var sentinel = document.createElement('input');
-            sentinel.type = 'hidden';
-            sentinel.name = inputName;
-            sentinel.value = '';
-            inputsEl.appendChild(sentinel);
-            ids.forEach(function (id) {
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = inputName + '[]';
-                input.value = id;
-                inputsEl.appendChild(input);
-            });
-        }
-    });
+        initTagPickerSection(root, catData, initTags, {
+            onChange: function (ids) {
+                /* Rebuild the posted list, keeping the empty scalar in front */
+                inputsEl.innerHTML = '';
+                var sentinel = document.createElement('input');
+                sentinel.type = 'hidden';
+                sentinel.name = inputName;
+                sentinel.value = '';
+                inputsEl.appendChild(sentinel);
+                ids.forEach(function (id) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = inputName + '[]';
+                    input.value = id;
+                    inputsEl.appendChild(input);
+                });
+            }
+        });
+    }
+
+    /* On a full page this runs before mispOvermind.js defines the initialiser */
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
 })();
 </script>

@@ -73,30 +73,39 @@ $searchUrl = $baseurl . '/events/searchGalaxyClusters';
     var searchUrl = <?= json_encode($searchUrl, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     var initClusters = <?= json_encode($selected, JSON_HEX_TAG | JSON_HEX_AMP) ?: '[]' ?>;
 
-    var root = document.querySelector('[data-galaxy-picker="' + uid + '"]');
-    if (!root || root.dataset.galaxyPickerReady) { return; }
-    root.dataset.galaxyPickerReady = '1';
+    function boot() {
+        var root = document.querySelector('[data-galaxy-picker="' + uid + '"]');
+        if (!root || root.dataset.galaxyPickerReady) { return; }
+        root.dataset.galaxyPickerReady = '1';
 
-    var inputsEl = root.querySelector('.galaxy-picker-inputs');
+        var inputsEl = root.querySelector('.galaxy-picker-inputs');
 
-    initGalaxyPickerSection(root, initClusters, {
-        searchUrl: searchUrl,
-        onChange: function (ids) {
-            /* Rebuild the posted list, keeping the empty scalar in front */
-            inputsEl.innerHTML = '';
-            var sentinel = document.createElement('input');
-            sentinel.type = 'hidden';
-            sentinel.name = inputName;
-            sentinel.value = '';
-            inputsEl.appendChild(sentinel);
-            ids.forEach(function (id) {
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = inputName + '[]';
-                input.value = id;
-                inputsEl.appendChild(input);
-            });
-        }
-    });
+        initGalaxyPickerSection(root, initClusters, {
+            searchUrl: searchUrl,
+            onChange: function (ids) {
+                /* Rebuild the posted list, keeping the empty scalar in front */
+                inputsEl.innerHTML = '';
+                var sentinel = document.createElement('input');
+                sentinel.type = 'hidden';
+                sentinel.name = inputName;
+                sentinel.value = '';
+                inputsEl.appendChild(sentinel);
+                ids.forEach(function (id) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = inputName + '[]';
+                    input.value = id;
+                    inputsEl.appendChild(input);
+                });
+            }
+        });
+    }
+
+    /* On a full page this runs before mispOvermind.js defines the initialiser */
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
 })();
 </script>

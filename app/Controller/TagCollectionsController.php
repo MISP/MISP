@@ -95,7 +95,7 @@ class TagCollectionsController extends AppController
                         $this->response->type()
                     );
                 }
-                $this->Flash->success(__('Collection sauvegardée.'));
+                $this->Flash->success(__('Tag collection saved.'));
                 return $this->redirect(['action' => 'index']);
             }
             if ($this->IndexFilter->isRest()) {
@@ -111,7 +111,9 @@ class TagCollectionsController extends AppController
         if ($this->IndexFilter->isRest()) {
             return $this->restResponsePayload;
         }
-        $this->layout=false;
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+        }
         $this->loadModel('Tag');
         $this->__setPickerTags();
         $this->set('galaxyList', $this->__galaxyListForPicker());
@@ -403,7 +405,7 @@ class TagCollectionsController extends AppController
                         $this->response->type()
                     );
                 }
-                $this->Flash->success(__('Collection mise à jour.'));
+                $this->Flash->success(__('Tag collection updated.'));
                 return $this->redirect(['action' => 'index']);
             }
             if ($this->IndexFilter->isRest()) {
@@ -422,7 +424,9 @@ class TagCollectionsController extends AppController
             $this->request->data['TagCollection']['galaxies'] = $storedGalaxyTagIds;
         }
 
-        $this->layout = false;
+        if ($this->request->is('ajax')) {
+            $this->layout = false;
+        }
         $this->loadModel('Tag');
         $this->__setPickerTags();
         $this->set('galaxyList', $this->__galaxyListForPicker());
