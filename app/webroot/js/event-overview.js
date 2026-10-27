@@ -49,30 +49,7 @@
     }
 
     function afterFragment(el) {
-        var inventory = el.querySelector('.eo-inventory');
-        if (inventory) {
-            fillNarrower(
-                parseInt(inventory.getAttribute('data-eo-narrower-count'), 10) || 0,
-                inventory.getAttribute('data-eo-narrower-tab') || 'objects'
-            );
-        }
         document.dispatchEvent(new CustomEvent('misp:overview-fragment', { detail: { el: el } }));
-    }
-
-    function fillNarrower(count, tab) {
-        var link = document.querySelector('[data-eo-narrower]');
-        if (!link) return;
-        link.setAttribute('data-eo-narrower-tab', tab);
-        if (!count) {
-            link.classList.add('d-none');
-            return;
-        }
-        var label = count === 1 ? link.getAttribute('data-eo-label-one') : link.getAttribute('data-eo-label-many');
-        link.textContent = fmt(label, [count]);
-        var icon = document.createElement('i');
-        icon.className = 'fas fa-filter me-1';
-        link.prepend(icon);
-        link.classList.remove('d-none');
     }
 
     // Hovering a group row, one of its types or a bar segment marks that group.
@@ -175,12 +152,6 @@
         if (filter) {
             e.preventDefault();
             openFiltered(filter.getAttribute('data-eo-filter-tab') || 'objects', { type: filter.getAttribute('data-eo-filter-types') });
-            return;
-        }
-        var narrower = e.target.closest('[data-eo-narrower]');
-        if (narrower) {
-            e.preventDefault();
-            openFiltered(narrower.getAttribute('data-eo-narrower-tab') || 'objects', { narrower: 1 });
             return;
         }
         var rollup = e.target.closest('[data-eo-rollup]');
@@ -543,7 +514,7 @@
             container.dataset.ifpOrigin = unfilteredUrl(container);
         });
         reopenTab();
-        if (!document.querySelector('.eo-band')) return;
+        if (!document.querySelector('.eo-card')) return;
         document.querySelectorAll('#eo-context-card, #eo-inventory-card, #eo-object-views')
             .forEach(loadFragment);
         document.querySelectorAll('[data-eo-fragment-lazy]').forEach(function (el) {

@@ -15,7 +15,7 @@ $threatStops = [
     ['value' => 1, 'title' => __('High'), 'tone' => 'var(--misp-tone-red-solid, #dc3545)', 'sub' => __('Active exploitation')],
 ];
 ?>
-<div class="card shadow-sm mb-3 eo-card eo-details">
+<div class="card shadow-sm mb-3 eo-card eo-details" data-tour="event-general">
     <button type="button" class="eo-details-toggle collapsed" data-bs-toggle="collapse" data-bs-target="#eo-details" aria-expanded="false" aria-controls="eo-details">
         <i class="fas fa-chevron-right eo-chevron"></i><?= __('Details') ?>
         <span class="eo-muted small ms-2"><?= __('Analysis, threat level, correlation, protection, publication, changes') ?></span>

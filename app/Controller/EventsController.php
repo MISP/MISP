@@ -2641,6 +2641,7 @@ class EventsController extends AppController
             ]);
         }
         $this->set('sharingGroupOrgCount', $sharingGroupOrgCount);
+        $this->set('distributionOutliers', $this->Event->distributionOutliers($user, $event));
 
         $this->set('analysisLevels',
             $this->Event->analysisLevels

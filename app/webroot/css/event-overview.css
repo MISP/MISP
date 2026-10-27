@@ -23,40 +23,10 @@
 .eo-ext-item .eo-ext-info { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .eo-ext-item .eo-muted { flex-shrink: 0; font-size: .74rem; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* provenance & sharing band */
-.eo-band { display: flex; flex-direction: row; flex-wrap: wrap; align-items: stretch; padding: 0; }
-.eo-band-cell { padding: .7rem 1rem; display: flex; flex-direction: column; justify-content: center; gap: .3rem; min-width: 0; }
-.eo-band-cell + .eo-band-cell { border-left: 1px solid var(--bs-border-color); }
-.eo-band-org { flex-direction: row; align-items: center; gap: .7rem; flex: 0 1 auto; min-width: 220px; }
-.eo-band-dist { flex: 1 1 260px; }
-.eo-band-marking { flex: 0 1 auto; }
 .eo-band-label {
     font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
     color: var(--bs-secondary-color);
 }
-.eo-org-tile {
-    width: 40px; height: 40px; flex-shrink: 0; border-radius: .5rem; display: flex; align-items: center; justify-content: center;
-    background: color-mix(in srgb, var(--bs-primary) 12%, transparent); color: var(--bs-primary); font-size: 1.15rem; overflow: hidden;
-}
-.eo-org-tile img { max-width: 30px; max-height: 30px; }
-.eo-org-name { display: block; font-size: 1.15rem; font-weight: 700; color: var(--bs-primary); text-decoration: none; line-height: 1.2; }
-.eo-org-name:hover { text-decoration: underline; }
-.eo-org-held { font-size: .74rem; color: var(--bs-secondary-color); line-height: 1.2; }
-.eo-org-held a { color: inherit; font-weight: 600; }
-.eo-contrib { margin-left: auto; align-self: center; }
-.eo-contrib-toggle { display: inline-flex; align-items: center; gap: .35rem; padding: .15rem .4rem .15rem .25rem;
-    border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius-pill); font-size: .74rem;
-    color: var(--bs-secondary-color); }
-.eo-contrib-toggle:hover, .eo-contrib-toggle[aria-expanded="true"] { border-color: var(--bs-primary); color: var(--bs-body-color); }
-.eo-contrib-stack { display: inline-flex; }
-.eo-contrib-avatar { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-    overflow: hidden; font-size: .62rem; font-weight: 700; color: var(--bs-primary);
-    background: var(--bs-primary-bg-subtle); box-shadow: 0 0 0 2px var(--bs-body-bg); }
-.eo-contrib-avatar + .eo-contrib-avatar { margin-left: -6px; }
-.eo-contrib-avatar img { width: 100%; height: 100%; object-fit: contain; background: var(--bs-body-bg); }
-.eo-contrib-count { font-weight: 600; font-variant-numeric: tabular-nums; }
-.eo-sg { display: inline-flex; align-items: center; gap: .3rem; font-weight: 600; text-decoration: none; max-width: 16rem; }
-.eo-narrower { font-size: .74rem; padding: .05rem .45rem; }
 .eo-filter { max-width: 11.5rem; flex-shrink: 1; }
 .eo-filter .input-group-text { background: var(--bs-body-bg); }
 .eo-profile-change { margin-left: .3rem; color: var(--bs-secondary-color); font-size: .72rem; }
@@ -383,8 +353,6 @@ button.eo-on.is-only:hover, button.eo-on.is-only:focus-visible { background: col
 }
 
 @media (max-width: 767.98px) {
-    .eo-band-cell + .eo-band-cell { border-left: 0; border-top: 1px solid var(--bs-border-color); }
-    .eo-band-cell { flex-basis: 100%; }
     .eo-group { grid-template-columns: 1fr auto; }
     .eo-types { grid-column: 1 / -1; }
     .eo-rows { grid-template-columns: 1fr; }

@@ -19,9 +19,7 @@ $tabFor = function (array $group) {
     return $group['in_objects'] * 2 >= $group['total'] ? 'objects' : 'attributes';
 };
 ?>
-<div class="eo-inventory" data-eo-narrower-count="<?= (int)$inventory['narrower'] ?>"
-     data-eo-narrower-tab="<?= (int)($inventory['narrower_in_objects'] ?? 0) * 2 >= (int)$inventory['narrower'] ? 'objects' : 'attributes' ?>"
-     data-eo-event-id="<?= $eventId ?>">
+<div class="eo-inventory" data-eo-event-id="<?= $eventId ?>">
     <div class="eo-card-head">
         <div class="misp-icon-tile eo-tile" style="--tile:var(--bs-attribute);--tile-bg:color-mix(in srgb, var(--bs-attribute) 12%, transparent);">
             <i class="misp-icon misp-icon-attribute misp-simple"></i>
