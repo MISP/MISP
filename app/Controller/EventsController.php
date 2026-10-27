@@ -2683,13 +2683,13 @@ class EventsController extends AppController
      * from another.
      *
      * `extended:1` merges the events extending the one being viewed,
-     * `extending:1` merges the event it extends; both may be on at once. The
-     * modes are carried between the event view and its ajax tabs through
-     * $extensionSuffix, so a tab reload never silently drops back to the
-     * atomic view.
+     * `extendedIds:<id>,<id>` only those of them listed, `extending:1` merges
+     * the event it extends; both may be on at once. The modes are carried
+     * between the event view and its ajax tabs through $extensionSuffix, so a
+     * tab reload never silently drops back to the atomic view.
      *
      * View vars set:
-     *   extended         int    1 when the extending events are merged in
+     *   extended         int    1 when extending events are merged in
      *   extending        int    1 when the extended event is merged in
      *   extensionView    bool   true when either mode is on
      *   extensionEvents  array  [id => id/uuid/info/Orgc/role/palette plus
@@ -2713,6 +2713,14 @@ class EventsController extends AppController
         $extending = (
             !empty($namedParams['extending']) || !empty($data['extending'])
         ) ? 1 : 0;
+        $extendedIds = $namedParams['extendedIds'] ?? $data['extendedIds'] ?? '';
+        $extendedIds = array_values(array_unique(array_filter(array_map(
+            'intval',
+            is_array($extendedIds) ? $extendedIds : explode(',', (string)$extendedIds)
+        ))));
+        if (!empty($extendedIds)) {
+            $extended = $extendedIds;
+        }
 
         $set = $this->Event->getExtensionEventSet(
             $user, $event, $extended, $extending
@@ -2735,13 +2743,15 @@ class EventsController extends AppController
                 $this->ACL->canModifyTag($user, $shell);
         }
 
-        $this->set('extended', $extended);
+        $this->set('extended', empty($extended) ? 0 : 1);
         $this->set('extending', $extending);
         $this->set('extensionView', (bool)($extended || $extending));
         $this->set('extensionEvents', $set['events']);
         $this->set(
             'extensionSuffix',
-            ($extended ? '/extended:1' : '')
+            (is_array($extended)
+                ? '/extendedIds:' . implode(',', $extended)
+                : ($extended ? '/extended:1' : ''))
                 . ($extending ? '/extending:1' : '')
         );
 

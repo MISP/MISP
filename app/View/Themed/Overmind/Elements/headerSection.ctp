@@ -120,7 +120,7 @@ $headerDescriptions = array_filter($headerDescriptions, function ($text) {
 });
 
 // `$headerIdentity` is the page's record; its id/uuid pill leads every description line,
-// followed by the dates pill of `$headerTimestamps`.
+// followed by the dates of `$headerTimestamps`.
 $identityHtml = empty($headerIdentity) ? '' : trim($this->element(
     'genericElementsBS5/Badges/identity_pill',
     ['id' => $headerIdentity['id'] ?? null, 'uuid' => $headerIdentity['uuid'] ?? null]
