@@ -1,5 +1,6 @@
 <?php
 $this->set('headerIdentity', $event['Event']);
+$this->set('headerTimestamps', $event['Event']);
 $serverId   = (int)$server['Server']['id'];
 $serverName = !empty($server['Server']['name'])
     ? sprintf('"%s" (%s)', $server['Server']['name'], $server['Server']['url'])

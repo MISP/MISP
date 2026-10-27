@@ -1,5 +1,6 @@
 <?php
 $this->set('headerIdentity', $event['Event']);
+$this->set('headerTimestamps', $event['Event']);
 
 $feedId = (int)$feed['Feed']['id'];
 $feedName = !empty($feed['Feed']['provider'])

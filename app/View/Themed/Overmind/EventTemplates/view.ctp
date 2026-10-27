@@ -35,17 +35,8 @@ foreach ($structure as $element) {
 
 $isActive = (int)($tpl['active'] ?? 0) === 1;
 
-$descParts = [];
-if (!empty($tpl['created'])) {
-    $descParts[] = '<span title="' . h(__('Created')) . '"><i class="fas fa-calendar-plus me-1 opacity-50"></i>'
-        . $this->Time->time($tpl['created']) . '</span>';
-}
-if (!empty($tpl['modified'])) {
-    $descParts[] = '<span title="' . h(__('Last modified')) . '"><i class="fas fa-edit me-1 opacity-50"></i>'
-        . $this->Time->time($tpl['modified']) . '</span>';
-}
 $this->set('headerTitle', $tpl['name'] ?? __('Event Template'));
-$this->set('headerDescription', '<span class="d-inline-flex align-items-center gap-3 flex-wrap">' . implode('', $descParts) . '</span>');
+$this->set('headerTimestamps', $tpl);
 $this->set('headerCountText', '');
 $this->set('templateShape', [
     'sections' => $sectionCount,

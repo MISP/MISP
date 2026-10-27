@@ -24,19 +24,6 @@ $threatStops = [
 $analysisLevel = (int)($evt['analysis'] ?? 0);
 $threatLevelId = (int)($evt['threat_level_id'] ?? 4);
 
-// Dates -> header description strip (like the classic event view).
-$descParts = [];
-if (!empty($evt['date'])) {
-    $descParts[] = '<span><i class="fas fa-calendar-day me-1 opacity-50"></i>'
-        . h($evt['date']) . '</span>';
-}
-if (!empty($evt['timestamp'])) {
-    $descParts[] = '<span><i class="fas fa-edit me-1 opacity-50"></i>'
-        . $this->Time->time($evt['timestamp']) . '</span>';
-}
-$this->set('headerDescription',
-    '<span class="d-inline-flex gap-3 flex-wrap">' . implode('', $descParts) . '</span>');
-
 // ── Stats computed from the preloaded remote data ──────────────────────────
 $attrByCategory = [];
 $objByName = [];

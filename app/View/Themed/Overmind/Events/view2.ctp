@@ -32,6 +32,7 @@
 
     $this->set('headerTitle', $headerTitle);
     $this->set('headerIdentity', $event['Event']);
+    $this->set('headerTimestamps', $event['Event']);
     $this->set('headerDescription', $headerDescription);
     $this->set('headerActions', $headerActions);
 
@@ -64,10 +65,46 @@
     $focusTab = $focusTab ?? null;
     $focusSuffix = $focusTab ? '/focus:' . rawurlencode($this->request->params['named']['focus']) : '';
 
+    // What is shared more narrowly than the event: one chip per level and
+    // kind, each opening its tab filtered to that level.
+    $outliers = [];
+    foreach (['Attribute' => 'attributes', 'Object' => 'objects'] as $outlierModel => $outlierTab) {
+        foreach ($distributionOutliers[$outlierModel] ?? [] as $outlierLevel => $outlierCount) {
+            $outliers[] = [
+                'level' => $outlierLevel,
+                'text' => $outlierModel === 'Attribute'
+                    ? __n('%s attribute', '%s attributes', $outlierCount, $outlierCount)
+                    : __n('%s object', '%s objects', $outlierCount, $outlierCount),
+                'url' => sprintf(
+                    '%s/events/view/%d%s/distribution:%d#open-tab-%s',
+                    $baseurl,
+                    $event['Event']['id'],
+                    $extensionSuffix,
+                    $outlierLevel,
+                    $outlierTab
+                ),
+            ];
+        }
+    }
+    usort($outliers, function ($a, $b) {
+        return $a['level'] - $b['level'];
+    });
+
     echo $this->element('genericElementsBS5/Layout/view_layout',
     [
         'data' => $event,
         'report' => $event['EventReport'] ?? null,
+        'ownership' => [
+            'orgc' => $event['Orgc'] ?? [],
+            'org' => $event['Org'] ?? [],
+            'user' => $event['User'] ?? [],
+            'contributors' => $contributors ?? [],
+            'distribution' => $event['Event']['distribution'] ?? null,
+            'sharingGroup' => ($event['SharingGroup'] ?? [])
+                + (isset($sharingGroupOrgCount) ? ['org_count' => $sharingGroupOrgCount] : []),
+            'markings' => $overviewMarkings ?? [],
+            'outliers' => $outliers,
+        ],
         'tabs' => [
             [
                 'id' => 'general',

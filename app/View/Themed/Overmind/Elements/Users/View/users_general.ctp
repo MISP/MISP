@@ -28,21 +28,6 @@ $adminView = !empty($admin_view);
 $glyph = $this->RoleGlyph->get($role);
 $dash  = '<span class="text-muted">&mdash;</span>';
 
-/* Date line under the page title, as every other view page sets it. */
-$descParts = [];
-if (!empty($u['date_created'])) {
-    $descParts[] = '<span title="' . h(__('Created')) . '"><i class="fas fa-calendar-plus me-1 opacity-50"></i>'
-        . $this->Time->time($u['date_created']) . '</span>';
-}
-if (!empty($u['date_modified'])) {
-    $descParts[] = '<span title="' . h(__('Last modified')) . '"><i class="fas fa-edit me-1 opacity-50"></i>'
-        . $this->Time->time($u['date_modified']) . '</span>';
-}
-$this->set(
-    'headerDescription',
-    '<span class="d-inline-flex align-items-center gap-3 flex-wrap">' . implode('', $descParts) . '</span>'
-);
-
 /*
  * Connection state. `current_login` is the timestamp of the latest sign-in
  * (`last_login` is the one before it — User::updateLoginTimes shifts them).

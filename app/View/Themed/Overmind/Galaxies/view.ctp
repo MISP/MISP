@@ -1,5 +1,6 @@
 <?php
 $this->set('headerIdentity', $galaxy['Galaxy']);
+$this->set('headerTimestamps', $galaxy['Galaxy']);
 $data = $galaxy['Galaxy'];
 $railCards = $railCards ?? [];
 

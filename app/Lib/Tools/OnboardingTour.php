@@ -1112,8 +1112,8 @@ class OnboardingTour
                 . 'controls in place.')),
             [
                 'pageMatch' => self::EVENT_VIEW_MATCH,
-                'anchor' => '[data-tour="event-general"]',
-                'placement' => 'right',
+                'anchor' => '[data-tour="ownership"]',
+                'placement' => 'bottom',
                 'waitingText' => __('Open an event to carry on with sharing '
                     . 'and publication.'),
                 'title' => __('Distribution, in place'),

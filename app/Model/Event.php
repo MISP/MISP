@@ -2498,7 +2498,8 @@ class Event extends AppModel
      * @param array $user
      * @param array $event     event with at least Event.id, Event.uuid and
      *                         Event.extends_uuid
-     * @param bool  $extended  merge the events extending this one
+     * @param bool|int[] $extended merge the events extending this one: all
+     *                         of them, or only the ids listed
      * @param bool  $extending merge the event this one extends
      * @return array [
      *   'ids'    => int[] every event id in the view, viewed event first,
@@ -2534,6 +2535,9 @@ class Event extends AppModel
             $lookups['extension'] = [
                 'Event.extends_uuid' => $event['Event']['uuid'],
             ];
+            if (is_array($extended)) {
+                $lookups['extension']['Event.id'] = $extended;
+            }
         }
         if ($extending && !empty($event['Event']['extends_uuid'])) {
             $lookups['extended'] = [

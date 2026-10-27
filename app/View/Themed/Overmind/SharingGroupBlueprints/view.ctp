@@ -4,10 +4,7 @@ $railCards = $railCards ?? [];
 
 $this->set('headerIdentity', $blueprint);
 $this->set('headerTitle', $blueprint['name'] ?? '');
-$this->set('headerDescription', empty($blueprint['timestamp'])
-    ? ''
-    : '<span title="' . h(__('Last modified')) . '"><i class="fas fa-edit me-1 opacity-50"></i>'
-        . $this->Time->time($blueprint['timestamp']) . '</span>');
+$this->set('headerTimestamps', $blueprint);
 
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,

@@ -131,10 +131,15 @@ $headerDescriptions = array_filter($headerDescriptions, function ($text) {
     return $text !== null && $text !== '';
 });
 
-// `$headerIdentity` is the page's record; its id/uuid pill leads every description line.
+// `$headerIdentity` is the page's record; its id/uuid pill leads every description line,
+// followed by the dates of `$headerTimestamps`.
 $identityHtml = empty($headerIdentity) ? '' : trim($this->element(
     'genericElementsBS5/Badges/identity_pill',
     ['id' => $headerIdentity['id'] ?? null, 'uuid' => $headerIdentity['uuid'] ?? null]
+));
+$identityHtml .= empty($headerTimestamps) ? '' : trim($this->element(
+    'genericElementsBS5/Badges/timestamp_pill',
+    ['record' => $headerTimestamps]
 ));
 if ($identityHtml !== '') {
     foreach ($headerDescriptions as $tabId => $text) {
@@ -142,7 +147,8 @@ if ($identityHtml !== '') {
             . $identityHtml . '<span>' . $text . '</span></span>';
     }
     if (!isset($headerDescriptions[''])) {
-        $headerDescriptions[''] = $identityHtml;
+        $headerDescriptions[''] = '<span class="d-inline-flex align-items-center gap-3 flex-wrap">'
+            . $identityHtml . '</span>';
     }
 }
 $headerDescriptionTabbed = count(array_diff_key($headerDescriptions, ['' => true])) > 0;

@@ -21,24 +21,7 @@ $this->set('headerTitleHtml', $titleHtml);
 $this->set('headerCountText', '');
 
 $this->set('headerIdentity', $collection);
-
-$descParts = [];
-if (!empty($collection['created'])) {
-    $descParts[] = '<span title="' . h(__('Created')) . '">'
-        . '<i class="fas fa-calendar-day me-1 opacity-50"></i>'
-        . $this->Time->time($collection['created'])
-        . '</span>';
-}
-if (!empty($collection['modified'])) {
-    $descParts[] = '<span title="' . h(__('Last modified')) . '">'
-        . '<i class="fas fa-edit me-1 opacity-50"></i>'
-        . $this->Time->time($collection['modified'])
-        . '</span>';
-}
-$this->set(
-    'headerDescription',
-    '<span class="d-inline-flex align-items-center gap-3 flex-wrap">' . implode('', $descParts) . '</span>'
-);
+$this->set('headerTimestamps', $collection);
 
 echo $this->element('genericElementsBS5/Layout/view_layout', [
     'data' => $data,

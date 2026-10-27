@@ -10,24 +10,13 @@ $this->set('headerTitle', $orgData['name'] ?? '');
 
 // Creation and modification details are only shown to those who could see
 // them before: site admins and the organisation's own admins.
-$headerParts = [];
 if (!empty($isSiteAdmin) || !empty($fullAccess)) {
-    if (!empty($orgData['date_created'])) {
-        $headerParts[] = '<span title="' . h(__('Created')) . '"><i class="fas fa-calendar-plus me-1 opacity-50"></i>'
-            . $this->Time->time($orgData['date_created'])
-            . (!empty($orgData['created_by_email'])
-                ? ' <span class="opacity-75">' . h(__('by %s', $orgData['created_by_email'])) . '</span>'
-                : '')
-            . '</span>';
-    }
-    if (!empty($orgData['date_modified'])) {
-        $headerParts[] = '<span title="' . h(__('Last modified')) . '"><i class="fas fa-edit me-1 opacity-50"></i>'
-            . $this->Time->time($orgData['date_modified']) . '</span>';
+    $this->set('headerTimestamps', $orgData);
+    if (!empty($orgData['created_by_email'])) {
+        $this->set('headerDescription', '<span title="' . h(__('Created by')) . '"><i class="fas fa-user-plus me-1 opacity-50"></i>'
+            . h($orgData['created_by_email']) . '</span>');
     }
 }
-$this->set('headerDescription', empty($headerParts)
-    ? ''
-    : '<span class="d-inline-flex align-items-center gap-3 flex-wrap">' . implode('', $headerParts) . '</span>');
 
 // ── TABS ─────────────────────────────────────────────────────────
 $tabs = [
