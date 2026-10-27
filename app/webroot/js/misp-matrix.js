@@ -139,7 +139,7 @@
         });
         var galaxy = visibleGalaxy();
         c.querySelector('[data-mx-sub]').textContent = galaxy.getAttribute('data-mx-sub-text');
-        c.querySelector('[data-mx-icon]').className = 'fas fa-' + galaxy.getAttribute('data-mx-icon-name');
+        c.querySelector('[data-mx-icon]').className = galaxy.getAttribute('data-mx-icon-class');
         fitPane();
     }
 
@@ -331,7 +331,7 @@
         var pane = c.querySelector('.mx-galaxy[data-mx-galaxy="' + galaxyId + '"]');
         if (pane) {
             m.querySelector('[data-mx-modal-title]').textContent = pane.getAttribute('data-mx-name');
-            m.querySelector('[data-mx-modal-icon]').className = 'fas fa-' + pane.getAttribute('data-mx-icon-name');
+            m.querySelector('[data-mx-modal-icon]').className = pane.getAttribute('data-mx-icon-class');
         }
         m.querySelectorAll('[data-mx-full-pick]').forEach(function (b) {
             b.setAttribute('aria-pressed', b.getAttribute('data-mx-full-pick') === galaxyId ? 'true' : 'false');
