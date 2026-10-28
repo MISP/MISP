@@ -279,4 +279,14 @@ class ComplexQueryToolTest extends TestCase
         $this->assertSame(['=', '!='], $d['fields']['to_ids']['operators']);
         $this->assertSame(5, $d['limits']['max_depth']);
     }
+
+    public function testInjectedRegistryReplacesTheAttributeFields(): void
+    {
+        $fields = ['info' => ['kind' => 'string', 'column' => 'Event.info', 'ops' => ['=']]];
+        $tool = new ComplexQueryTool($this->model, [], $fields);
+        $this->assertSame(['info'], array_keys($tool->describe()['fields']));
+        $this->assertSame(['Event.info' => 'x'], $tool->conditions(['info' => 'x']));
+        $this->expectException(ComplexQueryException::class);
+        $tool->validate(['type' => 'x']);
+    }
 }

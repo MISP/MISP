@@ -60,6 +60,7 @@ class ComplexQueryTool
     ];
 
     private $model;
+    private $fields;
     private $limits;
     private $errors;
     private $nodes;
@@ -67,9 +68,11 @@ class ComplexQueryTool
     /**
      * @param object $model the Attribute model providing the set_filter_* handlers
      * @param array $limits max_depth, max_nodes, max_list, max_value_length
+     * @param array $fields the field registry of the scope, shaped like self::FIELDS
      */
-    public function __construct($model, array $limits = [])
+    public function __construct($model, array $limits = [], array $fields = self::FIELDS)
     {
+        $this->fields = $fields;
         $this->model = $model;
         $this->limits = $limits + [
             'max_depth' => 5,
@@ -186,7 +189,7 @@ class ComplexQueryTool
     public function describe()
     {
         $fields = [];
-        foreach (self::FIELDS as $name => $def) {
+        foreach ($this->fields as $name => $def) {
             $fields[$name] = [
                 'type' => $def['kind'] === 'time' ? 'timestamp' : ($def['kind'] === 'string' ? 'string' : $def['kind']),
                 'operators' => self::operatorsFor($def),
@@ -250,7 +253,7 @@ class ComplexQueryTool
         if ($key === 'NOT') {
             return ['NOT', $this->node($body, "$path.NOT", $depth + 1)];
         }
-        if (!is_string($key) || !isset(self::FIELDS[$key])) {
+        if (!is_string($key) || !isset($this->fields[$key])) {
             return $this->fail("$path.<unknown>", 'unknown_field', 'unknown field');
         }
         return $this->leaf($key, $body, "$path.$key");
@@ -258,7 +261,7 @@ class ComplexQueryTool
 
     private function leaf($field, $spec, $path)
     {
-        $def = self::FIELDS[$field];
+        $def = $this->fields[$field];
         $op = '=';
         $operand = $spec;
         if (is_array($spec)) {
@@ -345,7 +348,7 @@ class ComplexQueryTool
     private function hasSelectiveLeaf(array $children)
     {
         foreach ($children as $child) {
-            if ($child[0] === 'leaf' && !empty(self::FIELDS[$child[1]]['selective'])) {
+            if ($child[0] === 'leaf' && !empty($this->fields[$child[1]]['selective'])) {
                 return true;
             }
         }
@@ -354,7 +357,7 @@ class ComplexQueryTool
 
     private function buildLeaf($field, $op, array $values, $path, $selectiveSiblings)
     {
-        $def = self::FIELDS[$field];
+        $def = $this->fields[$field];
         $negate = $op === '!=' || $op === 'NOT IN';
         $positive = $negate ? ($op === '!=' ? '=' : 'IN') : $op;
         if (isset($def['column'])) {
