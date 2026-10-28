@@ -114,45 +114,9 @@ class TagCollectionsController extends AppController
         if ($this->request->is('ajax')) {
             $this->layout = false;
         }
-        $this->loadModel('Tag');
-        $this->__setPickerTags();
-        $this->set('galaxyList', $this->__galaxyListForPicker());
         $this->set('currentTags', []);
         $this->set('currentClusters', []);
         $this->set('action', 'add');
-    }
-
-    private function __setPickerTags()
-    {
-        $user = $this->Auth->user();
-        $this->set('pickerAllTags', $this->Tag->getAllTagsForPicker($user));
-        $this->set('pickerCustomTags', $this->Tag->getCustomTagsForPicker($user));
-    }
-
-    /**
-     * The galaxies of the galaxy-picker field's category buttons.
-     *
-     * @return array [['id' => int, 'name' => string, 'icon' => string], ...]
-     */
-    private function __galaxyListForPicker()
-    {
-        $this->loadModel('Galaxy');
-        $galaxyRows = $this->Galaxy->find('all', [
-            'recursive' => -1,
-            'fields' => ['Galaxy.id', 'Galaxy.name', 'Galaxy.icon'],
-            'order' => ['Galaxy.name asc'],
-        ]);
-        $galaxyList = [];
-        foreach ($galaxyRows as $galaxy) {
-            $galaxyList[] = [
-                'id' => (int)$galaxy['Galaxy']['id'],
-                'name' => $galaxy['Galaxy']['name'],
-                'icon' => !empty($galaxy['Galaxy']['icon'])
-                    ? $galaxy['Galaxy']['icon']
-                    : 'meteor',
-            ];
-        }
-        return $galaxyList;
     }
 
     /**
@@ -198,7 +162,7 @@ class TagCollectionsController extends AppController
      * the collection's galaxy tag names back to their clusters.
      *
      * @param array $galaxyTagNames `misp-galaxy:` tag names
-     * @return array [['id' => int, 'name' => string, 'galaxy' => string, 'hue' => int], ...]
+     * @return array [['id' => int, 'name' => string, 'galaxy' => string, 'hue' => int, 'tag_name' => string], ...]
      */
     private function __clustersForPicker(array $galaxyTagNames)
     {
@@ -217,6 +181,7 @@ class TagCollectionsController extends AppController
                 'name' => $cluster['GalaxyCluster']['value'],
                 'galaxy' => $galaxyName,
                 'hue' => GalaxyColour::hue($galaxyName),
+                'tag_name' => $cluster['GalaxyCluster']['tag_name'],
             ];
         }
         return $entries;
@@ -428,9 +393,6 @@ class TagCollectionsController extends AppController
             $this->layout = false;
         }
         $this->loadModel('Tag');
-        $this->__setPickerTags();
-        $this->set('galaxyList', $this->__galaxyListForPicker());
-
         $currentTags = [];
         foreach ($tagCollection['TagCollectionTag'] as $collectionTag) {
             if (!empty($collectionTag['Tag']) && empty($collectionTag['Tag']['is_galaxy'])) {

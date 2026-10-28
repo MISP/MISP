@@ -1649,7 +1649,10 @@
                 render();
             },
             reveal: function (value) {
-                var scope = st === state && st.model ? scopeOfValue(value) : null;
+                if (st !== state) { return; }
+                // Still loading: start() opens it.
+                if (!st.model) { st.pending = value; return; }
+                var scope = scopeOfValue(value);
                 if (scope) { openScope(scope); }
             },
             focus: function () {
@@ -1666,7 +1669,8 @@
         loadModel(st.kind, st.urls.scopes).then(function (model) {
             if (st !== state) { return; }
             st.model = model;
-            var open = st.open ? model.byId['tax:' + lc(st.open)] || model.byId['ns:' + lc(st.open)] : null;
+            var open = st.pending ? scopeOfValue(st.pending)
+                : (st.open ? model.byId['tax:' + lc(st.open)] || model.byId['ns:' + lc(st.open)] : null);
             if (open) { openScope(open); return; }
             st.path = model.defaultGroup ? [{ k: 'group', id: model.defaultGroup }] : [];
             refresh();
