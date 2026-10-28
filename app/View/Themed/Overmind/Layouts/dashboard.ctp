@@ -102,6 +102,7 @@ $useRail = $bootstrapTheme['navbar'] === 'rail';
 <body class="misp-dashboard-page"
       data-controller="<?= h($this->params['controller']) ?>"
       data-action="<?= h($this->params['action']) ?>">
+    <?= $this->element('skip_link') ?>
     <div class="main-wrapper">
         <header>
             <?php
@@ -135,7 +136,7 @@ $useRail = $bootstrapTheme['navbar'] === 'rail';
                 ]);
             ?>
         </header>
-        <main role="main" class="content" style="padding-top:0;">
+        <main id="main-content" tabindex="-1" class="content" style="padding-top:0;">
             <div id="flashOverlay">
                 <div id="flashContainer" class="ov-toast-stack">
                     <?= $this->Flash->render() ?>

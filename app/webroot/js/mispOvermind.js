@@ -112,6 +112,44 @@ function setModalSize(size, dialog) {
     }
 }
 
+// Programmatic Bootstrap opens do not restore focus like its data API does.
+// The shared dialog also receives new bodies while it is already open.
+(function initModalAccessibility() {
+    const modal = document.getElementById('mainModal');
+    const body = document.getElementById('mainModalBody');
+    if (!modal || !body) return;
+    let opener = null;
+
+    function labelDialog() {
+        const title = body.querySelector('.modal-title, h1, h2, h3, h4, h5, h6');
+        if (title && title.textContent.trim()) {
+            if (!title.id) title.id = 'mainModalTitle';
+            modal.setAttribute('aria-labelledby', title.id);
+        } else {
+            // Keep the translated aria-label supplied by chrome_containers.
+            modal.removeAttribute('aria-labelledby');
+        }
+    }
+
+    modal.addEventListener('show.bs.modal', function (event) {
+        const active = event.relatedTarget || document.activeElement;
+        if (!modal.contains(active)) {
+            opener = active && active !== document.body ? active : null;
+        }
+        labelDialog();
+    });
+    modal.addEventListener('hidden.bs.modal', function () {
+        if (opener && opener.isConnected && !opener.disabled
+                && !document.querySelector('.modal.show')) {
+            opener.focus();
+        }
+    });
+    new MutationObserver(labelDialog).observe(body, {
+        childList: true, subtree: true, characterData: true
+    });
+})();
+
+
 /*******************************
  * Confirmation modal (inline — no AJAX)
  *
@@ -124,6 +162,7 @@ function setModalSize(size, dialog) {
  *   size          (string)   — see setModalSize: 'sm'|'md'|'lg'|'xl', default 'md'
  *   onConfirm     (function) — called after the user confirms
  *******************************/
+
 function showConfirmModal(opts) {
     const modalEl   = document.getElementById('mainModal');
     const modalBody = document.getElementById('mainModalBody');

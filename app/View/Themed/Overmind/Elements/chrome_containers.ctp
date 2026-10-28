@@ -43,7 +43,8 @@ $legacy = !empty($legacy);
     <div id="ajax_fail" class="ajax_result ajax_fail"></div>
 </div>
 <?php else: ?>
-<div class="modal fade" id="mainModal" tabindex="-1">
+<div class="modal fade" id="mainModal" tabindex="-1"
+     aria-label="<?= h(__('Dialog')) ?>" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" id="dynamicModalDialog">
         <div class="modal-content border-0" style="margin: auto;">
             <div class="modal-body p-0 m-0" id="mainModalBody"></div>

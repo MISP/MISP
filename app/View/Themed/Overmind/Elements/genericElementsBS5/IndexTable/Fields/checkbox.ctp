@@ -13,7 +13,8 @@ if (empty($id)) {
 
 $checkboxAttrs = [
     'type' => 'checkbox',
-    'class' => 'item-checkbox form-check-input mass-select mt-0'
+    'class' => 'item-checkbox form-check-input mass-select mt-0',
+    'aria-label' => __('Select item %s', $id)
 ];
 
 if (isset($field['publish_path'])) {
