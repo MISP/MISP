@@ -55,7 +55,7 @@ class ComplexQueryTool
         'comment' => ['kind' => 'string', 'handler' => 'set_filter_comment', 'nullable' => 'Attribute.comment'],
         'eventinfo' => ['kind' => 'string', 'handler' => 'set_filter_eventinfo'],
         'value' => ['kind' => 'string', 'handler' => 'set_filter_value', 'selective' => true],
-        'tags' => ['kind' => 'string', 'handler' => 'set_filter_tags', 'ops' => self::EXACT_STRING_OPS],
+        'tags' => ['kind' => 'string', 'handler' => 'set_filter_tags'],
         'org' => ['kind' => 'string', 'handler' => 'set_filter_org', 'ops' => self::EXACT_STRING_OPS],
     ];
 
@@ -365,13 +365,14 @@ class ComplexQueryTool
         } else {
             $fragment = $this->viaHandler($field, $def, $values, $path, $selectiveSiblings);
         }
-        if ($fragment === null || !$negate) {
-            return $fragment;
+        if ($fragment === null) {
+            return null;
         }
         if (!empty($def['nullable'])) {
-            return ['OR' => [['NOT' => $fragment], $def['nullable'] . ' IS NULL']];
+            // never NULL, so that any NOT above it also matches the NULL rows
+            $fragment = ['AND' => [$def['nullable'] . ' IS NOT NULL', $fragment]];
         }
-        return ['NOT' => $fragment];
+        return $negate ? ['NOT' => $fragment] : $fragment;
     }
 
     private function native(array $def, $op, array $values)

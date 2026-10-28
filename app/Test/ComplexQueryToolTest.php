@@ -109,11 +109,10 @@ class ComplexQueryToolTest extends TestCase
     public function testNegatedNullableColumnsMatchNullRows(): void
     {
         foreach (['object_relation' => 'Attribute.object_relation', 'comment' => 'Attribute.comment'] as $field => $column) {
-            $c = $this->tool()->conditions([$field => ['!=' => 'x']]);
-            $this->assertSame(
-                ['OR' => [['NOT' => ["stub:" . ($field === 'comment' ? 'set_filter_comment' : 'set_filter_simple_attribute') . ":$field" => ['x']]], "$column IS NULL"]],
-                $c
-            );
+            $positive = ['AND' => ["$column IS NOT NULL", ["stub:" . ($field === 'comment' ? 'set_filter_comment' : 'set_filter_simple_attribute') . ":$field" => ['x']]]];
+            $this->assertSame($positive, $this->tool()->conditions([$field => 'x']));
+            $this->assertSame(['NOT' => $positive], $this->tool()->conditions([$field => ['!=' => 'x']]));
+            $this->assertSame(['NOT' => $positive], $this->tool()->conditions(['NOT' => [$field => 'x']]));
         }
         $c = $this->tool()->conditions(['type' => ['NOT IN' => ['a', 'b']]]);
         $this->assertSame(['NOT' => ['stub:set_filter_type:type' => ['a', 'b']]], $c);
@@ -161,7 +160,9 @@ class ComplexQueryToolTest extends TestCase
         $this->assertSame(['bad_type'], $this->codes(['value' => ['LIKE' => '%e%vil%']]));
         $this->assertSame(['bad_type'], $this->codes(['value' => ['LIKE' => '%%']]));
         $this->assertSame(['unknown_operator'], $this->codes(['uuid' => ['LIKE' => '%a']]));
-        $this->assertSame(['unknown_operator'], $this->codes(['tags' => ['LIKE' => '%a']]));
+        $this->assertSame(['bad_type'], $this->codes(['tags' => 'tlp:%']));
+        $this->assertSame(['stub:tags' => ['tlp:%']], $this->tool()->conditions(['tags' => ['LIKE' => 'tlp:%']]));
+        $this->assertSame(['NOT' => ['stub:tags' => ['tlp:%']]], $this->tool()->conditions(['NOT' => ['tags' => ['LIKE' => 'tlp:%']]]));
         $this->assertSame(['unknown_operator'], $this->codes(['to_ids' => ['IN' => [true]]]));
         $this->assertSame(['unknown_operator'], $this->codes(['type' => ['>' => 'a']]));
         $this->assertSame(['unknown_operator'], $this->codes(['id' => ['LIKE' => 1]]));

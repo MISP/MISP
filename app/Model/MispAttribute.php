@@ -3987,11 +3987,16 @@ class MispAttribute extends AppModel
      * @param int $jobId Not used
      * @param int $elementCounter
      * @param bool $renderView
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
      * @return array|TmpFileTool Array when $paramsOnly is true
      * @throws Exception
      */
-    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0)
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
     {
+        // other callers (sightings/add, ...) pass filters straight from the request
+        if (isset($filters['query'])) {
+            throw new BadRequestException(__('The query parameter is only accepted by the restSearch endpoints.'));
+        }
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }
@@ -4031,13 +4036,13 @@ class MispAttribute extends AppModel
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
         $conditions = $this->buildFilterConditions($user, $filters, !$paramsOnly);
-        if (isset($filters['query'])) {
+        if ($complexQuery !== null) {
             App::uses('ComplexQueryTool', 'Tools');
-            $complexQuery = new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig());
+            $complexQueryTool = new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig());
             if (!empty($filters['order'])) {
-                $complexQuery->validateOrder($filters['order'], self::REST_SEARCH_ORDER_FIELDS);
+                $complexQueryTool->validateOrder($filters['order'], self::REST_SEARCH_ORDER_FIELDS);
             }
-            $conditions['AND'][] = $complexQuery->conditions($filters['query']);
+            $conditions['AND'][] = $complexQueryTool->conditions($complexQuery);
         }
         $params = array(
             'conditions' => $conditions,

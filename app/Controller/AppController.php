@@ -2013,15 +2013,18 @@ class AppController extends Controller
         if ($filters === false) {
             return $exception;
         }
+        $complexQuery = null;
         if (isset($filters['query'])) {
             if (empty($this->Auth->user('Role')['perm_complex_query'])) {
                 throw new ForbiddenException(__('You do not have the permission to use complex queries.'));
             }
-            // _harvestParameters also reads the query string, which must not carry a query
+            // _harvestParameters lets the query string and URL params override the body
             $body = $this->request->data['request'] ?? $this->request->data;
-            if (!$this->request->is('post') || !is_array($body['query'] ?? null)) {
+            if (!$this->request->is('post') || !is_array($body['query'] ?? null) || $filters['query'] !== $body['query']) {
                 throw new BadRequestException(__('The query parameter is only accepted as a JSON object in a POST body.'));
             }
+            $complexQuery = $filters['query'];
+            unset($filters['query']);
         }
         if (empty($filters['returnFormat'])) {
             $acceptHeader = $this->request->header('Accept');
@@ -2073,7 +2076,7 @@ class AppController extends Controller
         /** @var TmpFileTool $final */
         $skippedElementsCounter = 0;
         try {
-            $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter);
+            $final = $model->restSearch($user, $returnFormat, $filters, false, false, $elementCounter, $renderView, $skippedElementsCounter, $complexQuery);
         } catch (ComplexQueryException $e) {
             return $this->RestResponse->throwException(
                 400,

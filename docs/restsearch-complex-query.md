@@ -8,8 +8,10 @@ Requests without `query` behave exactly as before.
 ## Availability
 
 - Only on `/attributes/restSearch`, and only as a JSON object in the body of a
-  `POST` request. A `query` in the query string, in a `GET` request or of any
-  other type is rejected with HTTP 400.
+  `POST` request. A `query` in the query string or the URL (also next to one
+  in the body), in a `GET` request or of any other type is rejected with
+  HTTP 400. Other endpoints that take restSearch filters, such as the
+  `filters` of `/sightings/add`, reject a `query` with HTTP 400 as well.
 - The user's role needs the **Complex query** permission
   (`perm_complex_query`, off for every role by default). Without it the
   request is answered with HTTP 403.
@@ -75,7 +77,10 @@ made of digits and one of `d`, `h`, `m`, `s` (`"7d"` is seven days ago).
 Wildcards are only available through `LIKE`, with a leading and/or trailing
 `%` and nothing else (`%evil`, `evil%`, `%evil%`). `=`, `!=`, `IN` and
 `NOT IN` values starting or ending with `%` are rejected, so these operators
-always compare literally.
+compare literally, except on `tags`: as in the legacy filter, a tag value is
+matched against tag names as a pattern (`_` stands for any one character)
+and an all-digit value is a tag id. `{"tags": {"LIKE": "tlp:%"}}` selects
+anything carrying a `tlp:` tag; `NOT` over it, anything carrying none.
 
 ### NULL handling
 
@@ -96,7 +101,7 @@ example `object_relation: "!ip"`) do not. This difference is intentional.
 | `uuid` | string | `= != IN NOT IN` | |
 | `type`, `category`, `object_relation`, `comment`, `value` | string | `= != IN NOT IN LIKE` | `value` matches both value fields |
 | `eventinfo` | string | `= != IN NOT IN LIKE` | info of the event |
-| `tags` | string | `= != IN NOT IN` | attribute or event tag; negated means neither carries it (as in the legacy filter) |
+| `tags` | string | `= != IN NOT IN LIKE` | attribute or event tag; negated means neither carries it (as in the legacy filter); see Wildcards |
 | `org` | string | `= != IN NOT IN` | name, uuid or id of the event's creator organisation, as in the legacy filter |
 
 Anything not listed is rejected as `unknown_field`. The same list is

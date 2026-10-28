@@ -1805,9 +1805,9 @@ class TestComplexQueryAcl(unittest.TestCase):
         cls.org = cls.admin_api("POST", "admin/organisations/add", {"name": "MQA Org " + random(), "local": True})["Organisation"]
         cls.admin_org_uuid = cls.admin_api("GET", "users/view/me")["Organisation"]["uuid"]
         role_flagged = cls.admin_api("POST", "admin/roles/add", {"Role": {
-            "name": "MQA flagged " + random(), "permission": "0", "perm_auth": 1, "perm_complex_query": 1}})["Role"]
+            "name": "MQA flagged " + random(), "permission": "0", "perm_auth": 1, "perm_sighting": 1, "perm_complex_query": 1}})["Role"]
         role_plain = cls.admin_api("POST", "admin/roles/add", {"Role": {
-            "name": "MQA plain " + random(), "permission": "0", "perm_auth": 1}})["Role"]
+            "name": "MQA plain " + random(), "permission": "0", "perm_auth": 1, "perm_sighting": 1}})["Role"]
         cls.created["roles"] = [role_flagged["id"], role_plain["id"]]
         cls.user_key = cls.__make_user(role_flagged["id"])
         cls.plain_user_key = cls.__make_user(role_plain["id"])
@@ -1958,6 +1958,22 @@ class TestComplexQueryAcl(unittest.TestCase):
         self.assertEqual(status, 400)
         status, data = self.api(self.user_key, "POST", f"attributes/restSearch/query:{self.e1}", {"returnFormat": "json"})
         self.assertEqual(status, 400)
+        # a copy in the URL must not replace the tree of the body
+        body = {"returnFormat": "json", "query": {"event_id": self.e1}}
+        for path in ("attributes/restSearch?query[type]=domain", "attributes/restSearch/query:x"):
+            with self.subTest(path):
+                status, data = self.api(self.user_key, "POST", path, body)
+                self.assertEqual(status, 400)
+                self.assertNotIn("Attribute", json.dumps(data))
+
+    def test_other_restsearch_filter_consumers_reject_the_query(self):
+        # sightings/add hands its filters to the attribute restSearch
+        for token in (self.user_key, self.plain_user_key):
+            with self.subTest(token[:4]):
+                status, data = self.api(token, "POST", "sightings/add", {
+                    "value": self.__value("e1-a1"), "filters": {"ignore": 1, "query": {"id": {">": 0}}}})
+                self.assertEqual(status, 400, str(data)[:200])
+                self.assertNotIn("Sighting", json.dumps(data))
 
     def test_error_responses_do_not_echo_the_input(self):
         needle = "ZZ_ECHO_" + random()
