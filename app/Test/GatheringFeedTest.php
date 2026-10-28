@@ -15,6 +15,7 @@ if (!class_exists('AppModel', false)) {
     {
         public $data = [];
         public $validationErrors = [];
+        public function find($type = 'first', $options = []) { return []; }
         public function beforeValidate($options = []) { return true; }
         public function invalidate($field, $message) { $this->validationErrors[$field] = $message; }
     }
@@ -76,7 +77,7 @@ class GatheringTestEvents
     public $rows = [];
     public $added = [];
     public $edited = [];
-    public function find($type, $options) { return $this->rows; }
+    public function find($type = 'first', $options = []) { return $this->rows; }
     public function _add($event, $fromXml, $user)
     {
         $this->added[] = $event;
@@ -94,7 +95,7 @@ class GatheringTestEvents
 class GatheringTestFeed extends Feed
 {
     public $record;
-    public function find($type, $options) { return $this->record; }
+    public function find($type = 'first', $options = []) { return $this->record; }
     public function logException($message, $exception, $type = LOG_ERR) { throw $exception; }
 }
 
