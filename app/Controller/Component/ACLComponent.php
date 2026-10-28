@@ -60,6 +60,7 @@ class ACLComponent extends Component
             'deleteSelection' => array('AND' => ['theming_enabled', 'perm_add']),
             'deleteSelected' => array('perm_add'),
             'describeTypes' => array('*'),
+            'queryDescribe' => array('perm_complex_query'),
             'download' => array('*'),
             'downloadAttachment' => array('*'),
             'downloadSample' => array('*'),

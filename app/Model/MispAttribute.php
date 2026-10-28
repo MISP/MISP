@@ -113,6 +113,11 @@ class MispAttribute extends AppModel
     // e.g. if the attribute should be correlated with others or not
 
     // if these then a category may have upload to be zipped
+    const REST_SEARCH_ORDER_FIELDS = [
+        'Attribute' => ['id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation'],
+        'Event' => ['publish_timestamp'],
+    ];
+
     const ZIPPED_DEFINITION = ['malware-sample'];
 
     // if these then a category may have upload
@@ -4085,10 +4090,7 @@ class MispAttribute extends AppModel
             $params['order'] = $this->findOrder(
                 $filters['order'],
                 'Attribute',
-                array(
-                    'Attribute' => array('id', 'event_id', 'object_id', 'type', 'category', 'value', 'distribution', 'timestamp', 'object_relation'),
-                    'Event' => array('publish_timestamp'),
-                )
+                self::REST_SEARCH_ORDER_FIELDS
             );
         }
         if ($paramsOnly) {

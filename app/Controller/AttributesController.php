@@ -2771,6 +2771,30 @@ class AttributesController extends AppController
         $this->render('ajax/hover_enrichment');
     }
 
+    public function queryDescribe()
+    {
+        if (!$this->_isRest()) {
+            throw new MethodNotAllowedException(__('This action is only available via the API.'));
+        }
+        App::uses('ComplexQueryTool', 'Tools');
+        $description = (new ComplexQueryTool($this->MispAttribute, ComplexQueryTool::limitsFromConfig()))->describe();
+        $sortable = [];
+        foreach (MispAttribute::REST_SEARCH_ORDER_FIELDS as $model => $fields) {
+            foreach ($fields as $field) {
+                $sortable[] = $model === 'Attribute' ? $field : "$model.$field";
+            }
+        }
+        $table = [
+            'endpoint' => '/attributes/restSearch',
+            'fields' => $description['fields'],
+            'sortable' => $sortable,
+        ];
+        return $this->RestResponse->viewData([
+            'tables' => ['attributes' => $table],
+            'limits' => $description['limits'],
+        ], 'json');
+    }
+
     public function describeTypes()
     {
         return $this->RestResponse->viewData(['result' => $this->MispAttribute->describeTypes()], 'json');
