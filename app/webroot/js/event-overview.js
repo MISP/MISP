@@ -114,6 +114,28 @@
         if (none) none.classList.toggle('d-none', shownGroups > 0);
     }
 
+    // Entries past the thread's peek stay reachable while a filter is on.
+    function onFilterAssessment(e) {
+        var input = e.target.closest && e.target.closest('[data-eo-assessment-filter]');
+        if (!input) return;
+        var q = input.value.trim().toLowerCase();
+        var card = input.closest('.eo-assessment');
+        var expand = card.querySelector('[data-adr-expand]');
+        var open = !!expand && expand.getAttribute('aria-expanded') === 'true';
+        var shown = 0;
+        card.querySelectorAll('.eo-assessment-chips > *, [data-ad-entry]').forEach(function (el) {
+            var hit = q === '' || el.textContent.toLowerCase().indexOf(q) !== -1;
+            el.classList.toggle('d-none', !hit);
+            if (el.classList.contains('adr-more')) el.hidden = q === '' ? !open : !hit;
+            shown += hit ? 1 : 0;
+        });
+        card.querySelectorAll('.adr-foot').forEach(function (foot) {
+            foot.classList.toggle('d-none', q !== '');
+        });
+        var none = card.querySelector('[data-eo-assessment-none]');
+        if (none) none.classList.toggle('d-none', shown > 0);
+    }
+
     // The onboarding tour asks for an anchor in a closed card menu.
     function onReveal(e) {
         var menu = e.target.closest && e.target.closest('.eo-context .dropdown');
@@ -567,6 +589,7 @@
         document.addEventListener('click', onClick);
         document.addEventListener('input', onFilterLabels);
         document.addEventListener('input', onFilterTypes);
+        document.addEventListener('input', onFilterAssessment);
         document.addEventListener('onboarding:reveal', onReveal);
         document.addEventListener('mouseover', onHover);
         document.addEventListener('mouseout', onLeave);
