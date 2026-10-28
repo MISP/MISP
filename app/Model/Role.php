@@ -374,6 +374,12 @@ class Role extends AppModel
                 'text' => 'AI tools',
                 'readonlyenabled' => false,
                 'title' => __('Users with this permission can run the AI actions (summarise an event or a report, recommend tags) on the events they can edit, provided the AI services are enabled on this instance.'),
+            ],
+            'perm_complex_query' => [
+                'id' => 'RolePermComplexQuery',
+                'text' => 'Complex queries',
+                'readonlyenabled' => true,
+                'title' => __('Users with this permission can send a boolean query tree to the restSearch endpoints. Complex queries can be expensive, so no role has it by default.'),
             ]
         );
     }
