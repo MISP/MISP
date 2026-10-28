@@ -45,6 +45,9 @@
     gap: 8px;
     font-size: 13px;
 }
+.pe-save-graph-check[hidden] {
+    display: none;
+}
 .pe-save-graph-summary {
     margin: 0;
     font-size: 12px;

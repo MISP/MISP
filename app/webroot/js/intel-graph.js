@@ -1,15 +1,18 @@
-// IntelGraph — the workspace "Add to workspace" feeds, and the way any page
-// reaches saved graphs. Loaded on every Overmind page that has the navbar's
-// graph slot (Elements/intel_graph_boot.ctp), so it stays small: the graph
-// itself — Pivotick, the explorer and analyst-graph.js — loads on the first
-// mount() only.
+// IntelGraph — the workspace, and the way any page reaches saved graphs. The
+// workspace is the collection "Add to workspace" feeds, with the graph of the
+// user's organisation laying it out, or none. Loaded on every Overmind page
+// that has the navbar's workspace slot (Elements/intel_graph_boot.ctp), so it
+// stays small: the graph itself — Pivotick, the explorer and analyst-graph.js
+// — loads on the first mount() only.
 //
 // window.IntelGraphConfig, read once at load:
 //   baseurl    MISP $baseurl
-//   active     the active graph's summary, or null
+//   user       the user's id: a switch made in another tab names it
+//   active     the workspace, { Collection, Graph }, either null
 //   page       the record on screen a graph can hang off, { type, uuid, label }, or null
 //   shown      the uuid of the graph the page draws in full, or null
 //   distributionLevels  DistributionLevel::all(), for badges drawn here
+//   collectionTypes     [[type, label]], what a new collection can be
 //   assets     { js: [{ global, url }], css: [{ path, url }] }, in load order
 //   explorer   options handed to every mounted graph (labelPlan, orgUuid, …)
 //   text       { none }
@@ -18,12 +21,14 @@
 // An item may carry a `label`, what it is called on screen; it stays here.
 //
 // Events, on document, each with the details in event.detail:
-//   intel-graph:active   { graph }                        the active graph changed
-//   intel-graph:added    { graph, report, items, undo, origin }  addNodes went through
-//   intel-graph:refused  { graph, items, status, message } addNodes was refused
-//   intel-graph:removed  { graph, report, items }         removeNodes went through
-//   intel-graph:drawn    { graph, report, handle }        a mounted graph drew an add or a removal
-//   intel-graph:pick     { items }                        an add with no graph to go to
+//   intel-graph:active   { workspace }                         the workspace changed, here or in another tab
+//   intel-graph:count    { collection, element_count }         its member count moved
+//   intel-graph:added    { collection, report, items, undo, origin }  addItems went through
+//   intel-graph:refused  { collection, items, status, message } addItems was refused
+//   intel-graph:removed  { collection, report, items }         removeItems went through
+//   intel-graph:saved    { graph, report }                     a graph was saved from this page
+//   intel-graph:drawn    { graph, report, handle }             a mounted graph drew a save made elsewhere
+//   intel-graph:pick     { items }                             an add with no workspace to go to
 
 (function () {
     'use strict';
@@ -31,8 +36,15 @@
     var config = Object.assign({ baseurl: '', active: null, assets: {}, explorer: {}, text: {} },
                                window.IntelGraphConfig || {});
     var text = Object.assign({ none: 'No workspace' }, config.text);
-    var active = config.active || null;
+    var active = usable(config.active);
     var dock = null;
+
+    // { Collection, Graph } while there is a collection, else null.
+    function usable(workspace) {
+        return workspace && workspace.Collection ? { Collection: workspace.Collection, Graph: workspace.Graph || null } : null;
+    }
+
+    function lower(s) { return String(s || '').toLowerCase(); }
 
     /* ── requests ──────────────────────────────────────────── */
     function failure(status, body) {
@@ -71,26 +83,33 @@
         return '/analyst_graphs/' + action + (uuid ? '/' + encodeURIComponent(uuid) : '') + '.json';
     }
 
+    function elementsPath(action, uuid) {
+        return '/collection_elements/' + action + '/' + encodeURIComponent(uuid) + '.json';
+    }
+
     function emit(name, detail) {
         document.dispatchEvent(new CustomEvent('intel-graph:' + name, { detail: detail }));
     }
 
     /* ── the navbar slot ───────────────────────────────────── */
     function renderSlot() {
+        var c = active && active.Collection;
         document.querySelectorAll('[data-intel-graph-slot]').forEach(function (slot) {
-            slot.setAttribute('data-state', active ? 'active' : 'none');
+            slot.setAttribute('data-state', c ? 'active' : 'none');
             var name = slot.querySelector('[data-intel-graph-name]');
             var count = slot.querySelector('[data-intel-graph-count]');
-            if (name) name.textContent = active ? active.name : text.none;
+            if (name) name.textContent = c ? c.name : text.none;
             if (count) {
-                count.textContent = active ? String(active.node_count) : '';
-                count.hidden = !active;
+                count.textContent = c ? String(c.element_count) : '';
+                count.hidden = !c;
             }
-            var title = (active ? active.name + ' (' + active.node_count + ')' : text.none)
+            var title = (c ? 'Workspace: ' + c.name + ' (collection)' : text.none)
                 + (dock && dock.shortcut ? ' — ' + dock.shortcut.toUpperCase() + ' shows or hides it' : '');
             slot.title = title;
             slot.querySelectorAll('[data-intel-graph-toggle]').forEach(function (b) {
                 b.title = title;
+                b.setAttribute('aria-label', c ? 'Workspace: ' + c.name + ' (collection), ' + c.element_count
+                    + (c.element_count === 1 ? ' member' : ' members') : text.none);
                 if (dock && dock.shortcut) b.setAttribute('aria-keyshortcuts', dock.shortcut.toUpperCase());
             });
         });
@@ -106,18 +125,55 @@
         renderSlot();
     }
 
-    function setActiveState(graph) {
-        active = graph || null;
+    function setActiveState(workspace) {
+        active = usable(workspace);
         renderSlot();
-        emit('active', { graph: active });
+        emit('active', { workspace: active });
         return active;
     }
 
-    // An add or a removal moved the active graph's count and revision.
-    function touchActive(uuid, report) {
-        if (!active || active.uuid !== uuid || !report) return;
-        active = Object.assign({}, active, { node_count: report.node_count, revision: report.revision });
+    // An add or a removal moved the workspace's member count.
+    function touchCount(uuid, count) {
+        if (!active || lower(active.Collection.uuid) !== lower(uuid) || typeof count !== 'number') return;
+        active = { Collection: Object.assign({}, active.Collection, { element_count: count }), Graph: active.Graph };
         renderSlot();
+        emit('count', { collection: lower(uuid), element_count: count });
+    }
+
+    /* ── the other tabs of this browser ───────────────────── */
+    // A switch or a new count reaches them as a message between tabs: no
+    // polling, nothing asked of the server. One user's tabs only, so a tab
+    // left open by someone who logged out ignores the next one's.
+    var CHANNEL = 'misp-workspace';
+    var channel = null;
+    try {
+        if (window.BroadcastChannel) channel = new window.BroadcastChannel(CHANNEL);
+    } catch (e) { channel = null; }
+
+    function broadcast(message) {
+        message.user = config.user;
+        if (channel) {
+            try { channel.postMessage(message); } catch (e) { /* this tab only */ }
+            return;
+        }
+        try {
+            window.localStorage.setItem(CHANNEL, JSON.stringify(Object.assign({ sent: Date.now() + Math.random() }, message)));
+        } catch (e) { /* this tab only */ }
+    }
+
+    function hear(message) {
+        if (!message || config.user == null || message.user !== config.user) return;
+        if (message.kind === 'active') setActiveState(message.workspace);
+        else if (message.kind === 'count') touchCount(message.collection, message.element_count);
+    }
+
+    if (channel) {
+        channel.onmessage = function (e) { hear(e.data); };
+    } else {
+        window.addEventListener('storage', function (e) {
+            if (e.key !== CHANNEL || !e.newValue) return;
+            try { hear(JSON.parse(e.newValue)); } catch (err) { /* not ours */ }
+        });
     }
 
     /* ── the API ───────────────────────────────────────────── */
@@ -126,29 +182,44 @@
     }
 
     function refreshActive() {
-        return request('GET', graphPath('active')).then(function (out) {
-            return setActiveState(out && out.Graph);
+        return request('GET', '/collections/active.json').then(function (out) {
+            return setActiveState(out);
         });
     }
 
-    function setActive(uuid) {
-        return request('POST', graphPath('active'), { workspace_uuid: uuid || null }).then(function (out) {
-            return setActiveState(out && out.Graph);
+    // Make a collection the workspace, laid out by graphUuid, one of the
+    // organisation's graphs on it, or by none when it is null; left out, the
+    // newest of them. A null collection ends it. Every other tab of the
+    // browser follows.
+    function setActive(collectionUuid, graphUuid) {
+        var body = { collection_uuid: collectionUuid || null };
+        if (graphUuid !== undefined) body.graph_uuid = graphUuid || null;
+        return request('POST', '/collections/active.json', body).then(function (out) {
+            var workspace = setActiveState(out);
+            broadcast({ kind: 'active', workspace: workspace });
+            return workspace;
         });
     }
 
-    // { graphs, active } — the organisation's graphs the user may edit; with
-    // scope 'mine', only those listing the user among their authors.
+    // { collections, active } — the collections the user may make their
+    // workspace, those used last first (each carries `used`); with scope
+    // 'mine', only those they created.
     function list(scope) {
-        return request('GET', graphPath('editable') + (scope === 'mine' ? '?scope=mine' : '')).then(function (out) {
-            return { graphs: (out && out.Graph) || [], active: (out && out.active) || null };
+        return request('GET', '/collections/editable.json' + (scope === 'mine' ? '?scope=mine' : '')).then(function (out) {
+            return { collections: (out && out.Collection) || [], active: (out && out.active) || null };
         });
+    }
+
+    function countMoved(uuid, report) {
+        if (!report || typeof report.element_count !== 'number') return;
+        touchCount(uuid, report.element_count);
+        broadcast({ kind: 'count', collection: lower(uuid), element_count: report.element_count });
     }
 
     function removeFrom(uuid, items) {
-        return request('POST', graphPath('removeNodes', uuid), { items: items }).then(function (report) {
-            touchActive(uuid, report);
-            emit('removed', { graph: uuid, report: report, items: items });
+        return request('POST', elementsPath('removeItems', uuid), { items: items }).then(function (report) {
+            countMoved(uuid, report);
+            emit('removed', { collection: lower(uuid), report: report, items: items });
             return report;
         });
     }
@@ -184,39 +255,61 @@
     }
 
     // items: [{ type, uuid } | { type: 'Value', value }]. Resolves
-    // { status: 'added' | 'unchanged' | 'no-graph', graph, report, undo };
-    // a refusal rejects, after intel-graph:refused.
-    // options.graph adds to that graph instead of the active one.
+    // { status: 'added' | 'unchanged' | 'no-workspace', collection, report,
+    // undo }; a refusal rejects, after intel-graph:refused.
+    // options.collection adds to that collection instead of the workspace.
     // options.origin, the element or { x, y } point the add was made from,
     // is where the dock draws it leaving from.
     function add(items, options) {
-        var uuid = (options && options.graph) || (active && active.uuid);
+        var uuid = lower((options && options.collection) || (active && active.Collection.uuid));
         var origin = originOf(options && options.origin);
         if (!uuid) {
             emit('pick', { items: items });
-            return Promise.resolve({ status: 'no-graph', graph: null, report: null, undo: null });
+            return Promise.resolve({ status: 'no-workspace', collection: null, report: null, undo: null });
         }
-        return request('POST', graphPath('addNodes', uuid), { items: items.map(bare) }).then(function (report) {
+        return request('POST', elementsPath('addItems', uuid), { items: items.map(bare) }).then(function (report) {
             var added = report.added || [];
             var undo = added.length ? undoOnce(uuid, added) : null;
-            touchActive(uuid, report);
-            emit('added', { graph: uuid, report: report, items: items, undo: undo, origin: origin });
+            countMoved(uuid, report);
+            emit('added', { collection: uuid, report: report, items: items, undo: undo, origin: origin });
             return {
                 status: report.changed ? 'added' : 'unchanged',
-                graph: uuid,
+                collection: uuid,
                 report: report,
                 undo: undo
             };
         }, function (err) {
-            emit('refused', { graph: uuid, items: items, status: err && err.status, message: err && err.message });
+            emit('refused', { collection: uuid, items: items, status: err && err.status, message: err && err.message });
             throw err;
+        });
+    }
+
+    // collection: { name, type?, distribution?, sharing_group_id?,
+    // description? }, research and for the organisation only unless it says
+    // otherwise. options.activate (default true) makes it the workspace.
+    function createCollection(collection, options) {
+        var activate = !(options && options.activate === false);
+        return request('POST', '/collections/quickAdd.json', {
+            name: collection.name,
+            type: collection.type || 'research',
+            distribution: collection.distribution == null ? 0 : collection.distribution,
+            sharing_group_id: collection.sharing_group_id || null,
+            description: collection.description || '',
+            workspace: activate
+        }).then(function (out) {
+            var created = out && out.Collection;
+            if (!created || !created.uuid) throw new Error('The collection was not created.');
+            if (activate && out.workspace) {
+                broadcast({ kind: 'active', workspace: setActiveState(out.workspace) });
+            }
+            return created;
         });
     }
 
     // graph: { name, description?, target: { type, uuid }, distribution?,
     // sharing_group_id?, content? }: content, a document, is the graph's
-    // first revision. options.activate (default true) makes it the active
-    // graph.
+    // first revision. options.activate, on a graph kept on a collection,
+    // makes that collection the workspace, laid out by the new graph.
     function create(graph, options) {
         var target = graph.target || {};
         var body = { Graph: {
@@ -229,8 +322,8 @@
         var path = '/analyst_data/add/Graph/' + encodeURIComponent(target.uuid) + '/' + encodeURIComponent(target.type) + '.json';
         return request('POST', path, body).then(function (out) {
             var created = out && out.Graph;
-            if (!created || (options && options.activate === false)) return created;
-            return setActive(created.uuid).then(function () { return created; });
+            if (!created || !(options && options.activate) || target.type !== 'Collection') return created;
+            return setActive(target.uuid, created.uuid).then(function () { return created; });
         });
     }
 
@@ -245,12 +338,17 @@
         return request('GET', graphPath('data', uuid));
     }
 
+    // What the workspace draws of a collection: the graph's nodes, then
+    // every member the graph lacks.
+    function workingPath(collectionUuid, graphUuid) {
+        return graphPath('working', collectionUuid) + (graphUuid ? '?graph=' + encodeURIComponent(graphUuid) : '');
+    }
+
     // Resolves the save's report; a stale base rejects with err.status 409
     // and err.body.revision the stored one. A save that changed the graph is
     // announced, so a copy drawn elsewhere on the page follows it.
     function save(uuid, doc, revision) {
         return request('POST', graphPath('save', uuid), { content: doc, revision: revision }).then(function (report) {
-            touchActive(uuid, report);
             if (report && report.changed) emit('saved', { graph: uuid, report: report });
             return report;
         });
@@ -298,9 +396,9 @@
     }
 
     /* ── mounting ──────────────────────────────────────────── */
-    // options: { graph: uuid, payload?, loaderEl?, … }, handed to
-    // MispAnalystGraph.mount. Resolves its handle. An add to the mounted
-    // graph reaches it in place.
+    // options: { graph: uuid, source?, payload?, loaderEl?, … }, handed to
+    // MispAnalystGraph.mount. Resolves its handle. A save of the mounted
+    // graph made elsewhere on the page reaches it in place.
     function mount(containerEl, options) {
         return load().then(function () {
             var handle = window.MispAnalystGraph.mount(Object.assign({}, config.explorer, {
@@ -308,13 +406,6 @@
                 baseurl: config.baseurl,
                 request: request
             }, options));
-            function onChange(e) {
-                if (!e.detail || e.detail.graph !== handle.uuid()) return;
-                var report = e.detail.report;
-                handle.followed(report).then(function () {
-                    emit('drawn', { graph: handle.uuid(), report: report, handle: handle });
-                }, function () { /* never drawn: nothing to point at */ });
-            }
             function onSaved(e) {
                 if (!e.detail || e.detail.graph !== handle.uuid()) return;
                 var report = e.detail.report;
@@ -322,13 +413,9 @@
                     emit('drawn', { graph: handle.uuid(), report: report, handle: handle });
                 }, function () { /* never drawn: nothing to point at */ });
             }
-            document.addEventListener('intel-graph:added', onChange);
-            document.addEventListener('intel-graph:removed', onChange);
             document.addEventListener('intel-graph:saved', onSaved);
             var destroy = handle.destroy;
             handle.destroy = function () {
-                document.removeEventListener('intel-graph:added', onChange);
-                document.removeEventListener('intel-graph:removed', onChange);
                 document.removeEventListener('intel-graph:saved', onSaved);
                 destroy();
             };
@@ -360,6 +447,7 @@
         Object.assign(config, c || {});
         if (c && c.text) text = Object.assign(text, c.text);
         if (c && 'active' in c) setActiveState(c.active);
+        if (c && 'user' in c) config.user = c.user;
     }
 
     function page() {
@@ -410,10 +498,13 @@
         active: getActive,
         page: page,
         distribution: distribution,
+        collectionTypes: function () { return config.collectionTypes || []; },
         refreshActive: refreshActive,
         setActive: setActive,
         list: list,
         add: add,
+        createCollection: createCollection,
+        workingPath: workingPath,
         create: create,
         fork: fork,
         data: data,

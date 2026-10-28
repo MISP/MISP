@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('ActiveWorkspaceTool', 'Tools');
 App::uses('AnalystData', 'Model');
 
 class CollectionElementsController extends AppController
@@ -10,9 +11,104 @@ class CollectionElementsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        // Posted by hand-built AJAX from the collection pickers, which sends the
-        // CSRF token as the X-CSRF-Token header instead of _Token fields.
-        $this->_csrfTokenHeaderOnly(['addElementToCollection']);
+        // Posted by hand-built AJAX from the collection pickers and the
+        // workspace, which send the CSRF token as the X-CSRF-Token header
+        // instead of _Token fields.
+        $this->_csrfTokenHeaderOnly(['addElementToCollection', 'addItems', 'removeItems']);
+        $this->CollectionElement->current_user = $this->Auth->user();
+    }
+
+    /**
+     * Add records to a collection in one request, as the workspace names
+     * them: {items: [{type, uuid} | {type: 'Value', value}], description?}.
+     *
+     * @param string $collection Its uuid or id
+     */
+    public function addItems($collection)
+    {
+        $this->request->allowMethod(['post']);
+        $user = $this->Auth->user();
+        $target = $this->__editableCollection($user, $collection);
+        $description = $this->request->data['description'] ?? '';
+        if (!is_string($description)) {
+            throw new BadRequestException(__('A description is text.'));
+        }
+        $report = $this->CollectionElement->addItems($user, $target['id'], $this->__items(), $description);
+        ActiveWorkspaceTool::used($user, $target['uuid']);
+        return $this->RestResponse->viewData($this->__itemsAnswer($target, $report, !empty($report['added'])), 'json');
+    }
+
+    /**
+     * Take records out of a collection, named as addItems() takes them or by
+     * the keys it answers with.
+     *
+     * @param string $collection Its uuid or id
+     */
+    public function removeItems($collection)
+    {
+        $this->request->allowMethod(['post']);
+        $target = $this->__editableCollection($this->Auth->user(), $collection);
+        $report = $this->CollectionElement->removeItems($target['id'], $this->__items());
+        return $this->RestResponse->viewData($this->__itemsAnswer($target, $report, !empty($report['removed'])), 'json');
+    }
+
+    /**
+     * @param array $user
+     * @param string $ref A collection's uuid or id
+     * @return array Collection::workspaceSummaries()'s
+     * @throws NotFoundException|ForbiddenException
+     */
+    private function __editableCollection(array $user, $ref)
+    {
+        if (Validation::uuid($ref)) {
+            $condition = ['Collection.uuid' => array_values(array_unique([$ref, strtolower($ref), strtoupper($ref)]))];
+        } elseif (ctype_digit((string)$ref)) {
+            $condition = ['Collection.id' => (string)$ref];
+        } else {
+            throw new NotFoundException(__('Invalid collection.'));
+        }
+        $found = $this->CollectionElement->Collection->workspaceSummaries($user, $condition, 1);
+        if (empty($found)) {
+            throw new NotFoundException(__('Invalid collection.'));
+        }
+        if (!$found[0]['_canEdit']) {
+            throw new ForbiddenException(__('You cannot change the collection “%s”.', $found[0]['name']));
+        }
+        return $found[0];
+    }
+
+    /**
+     * @return array
+     * @throws BadRequestException
+     */
+    private function __items()
+    {
+        $items = $this->request->data['items'] ?? null;
+        if (!is_array($items) || empty($items) || array_keys($items) !== range(0, count($items) - 1)) {
+            throw new BadRequestException(__('A list of items is required.'));
+        }
+        if (count($items) > CollectionElement::ITEM_LIMIT) {
+            throw new BadRequestException(__('At most %s items at once.', CollectionElement::ITEM_LIMIT));
+        }
+        return $items;
+    }
+
+    /**
+     * @param array $collection
+     * @param array $report
+     * @param bool $changed
+     * @return array
+     */
+    private function __itemsAnswer(array $collection, array $report, $changed)
+    {
+        return [
+            'collection_uuid' => $collection['uuid'],
+            'changed' => $changed,
+            'element_count' => $this->CollectionElement->find('count', [
+                'recursive' => -1,
+                'conditions' => ['CollectionElement.collection_id' => $collection['id']],
+            ]),
+        ] + $report;
     }
 
     public $paginate = [

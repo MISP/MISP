@@ -10,11 +10,14 @@
 //   MispAnalystGraph.mount(config)   → handle, the graph drawn into config.containerEl
 //   MispAnalystGraph.graphData(payload, kit)
 //
-// config: { graph (uuid), containerEl, loaderEl?, payload?, request, baseurl,
+// config: { graph (uuid), source?, containerEl, loaderEl?, payload?, request, baseurl,
 //           labelPlan?, permitted?, orgUuid?, siteAdmin?, valueCard?, canEnrich?, text?,
 //           ui?, canEdit?, canAnalyst?, analystSharing?, menus?, onChange?,
 //           fitHeight?, cardEl? }
 // request(method, path, body) → Promise<data> is IntelGraph's.
+// source: where the payload is read instead of the graph's own data, as the
+// workspace reads its collection drawn over its graph; with graph null there
+// is nothing to save into.
 // ui: Pivotick UI options laid over the explorer's, key by key — a container
 // smaller than a page asks for less chrome ({ mode: 'light' }, { legend: false }).
 // canEdit, canAnalyst, analystSharing: the explorer's write tools, for a graph
@@ -319,7 +322,7 @@
         var editableEvents = {};
 
         function fetchData() {
-            return request('GET', '/analyst_graphs/data/' + encodeURIComponent(state.uuid) + '.json');
+            return request('GET', config.source || '/analyst_graphs/data/' + encodeURIComponent(state.uuid) + '.json');
         }
 
         function take(payload, kit) {

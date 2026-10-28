@@ -5,6 +5,19 @@ $mayModify = $this->Acl->canModifyCollection($data);
 
 $actions = [];
 
+// The workspace follows the collection rule, not the page's
+$canWorkspace = !empty($intelGraph) && $this->Acl->canAccess('collections', 'active')
+    && ClassRegistry::init('Collection')->canModify($me, $data['Collection']);
+if ($canWorkspace) {
+    $actions[] = [
+        'url' => '#',
+        'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',
+        'label' => __('Make it my workspace'),
+        'short' => __('Workspace'),
+        'attributes' => ['data-intel-graph-workspace' => strtolower($data['Collection']['uuid'])],
+    ];
+}
+
 if ($isSiteAdmin || $mayModify) {
     $actions[] = [
         'url' => "$baseurl/CollectionElements/add/$collectiontId",

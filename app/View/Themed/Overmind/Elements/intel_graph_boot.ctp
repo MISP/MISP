@@ -5,7 +5,7 @@
  * so its scripts and stylesheets are only listed here, at the URLs the asset
  * loader would give them.
  *
- * @var array $intelGraph `active`: the active graph's summary, or null
+ * @var array $intelGraph `active`: the workspace, {Collection, Graph}
  * @var array|null $intelGraphPage The record on screen a graph can hang off,
  *                                 {type, uuid, label}, set by the view
  * @var string|null $intelGraphShown The graph the page draws in full
@@ -40,13 +40,22 @@ foreach (['pivotick', 'pivot-explorer', 'pivot-sidebar'] as $path) {
 }
 
 App::uses('AnalystGraphDocumentTool', 'Tools');
+$collectionTypes = [
+    'campaign' => __('Campaign'),
+    'intrusion_set' => __('Intrusion set'),
+    'named_threat' => __('Named threat'),
+    'research' => __('Research'),
+    'other' => __('Other'),
+];
 $config = [
     'baseurl' => $baseurl,
+    'user' => isset($me['id']) ? (int)$me['id'] : null,
     'limits' => AnalystGraphDocumentTool::limits(),
     'active' => $intelGraph['active'] ?? null,
     'page' => $intelGraphPage ?? null,
     'shown' => $intelGraphShown ?? null,
     'distributionLevels' => $this->DistributionLevel->all(),
+    'collectionTypes' => array_map(null, array_keys($collectionTypes), array_values($collectionTypes)),
     'assets' => ['js' => $js, 'css' => $css],
     'explorer' => [
         'orgUuid' => $me['Organisation']['uuid'] ?? '',

@@ -1,13 +1,14 @@
 <?php
 /**
  * The saved graphs hung off a record: each with its creator,
- * distribution and node count, to open, fork or make the active one; and
- * "New graph" on this record. Also tells the dock which record is on
- * screen, for its own "New workspace" and fork.
+ * distribution and node count, to open or fork; and "New graph" on this
+ * record. On a collection the user may make their workspace, one of their
+ * organisation's graphs can lay it out.
  *
  * @var string $targetType Collection, Event or GalaxyCluster
  * @var string $targetUuid
  * @var string $targetLabel
+ * @var bool $canWorkspace The collection can be the user's workspace
  */
 $targetUuid = strtolower($targetUuid);
 $this->set('intelGraphPage', ['type' => $targetType, 'uuid' => $targetUuid, 'label' => $targetLabel]);
@@ -44,6 +45,8 @@ $config = [
     'targetName' => $targetNames[$targetType] ?? $targetType,
     'canCreate' => $canCreate,
     'canFork' => $this->Acl->canAccess('analystGraphs', 'fork'),
+    'canWorkspace' => $targetType === 'Collection' && !empty($canWorkspace),
+    'orgUuid' => strtolower($me['Organisation']['uuid'] ?? ''),
     'create' => $create,
     'distributionLevels' => $this->DistributionLevel->all(),
 ];
@@ -98,10 +101,12 @@ echo $this->element('genericElements/assetLoader', [
                         <label class="form-label fw-semibold" data-ig-for="distribution"><?= __('Distribution') ?></label>
                         <select class="form-select mb-2" name="distribution"></select>
                         <select class="form-select mb-2" name="sharing_group_id" hidden aria-label="<?= __('Sharing group') ?>"></select>
-                        <div class="form-check mt-3">
-                            <input class="form-check-input" type="checkbox" name="activate" checked>
-                            <label class="form-check-label" data-ig-for="activate"><?= __('Make it my active workspace: “Add to workspace” feeds it') ?></label>
-                        </div>
+                        <?php if ($config['canWorkspace']): ?>
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" name="activate" checked>
+                                <label class="form-check-label" data-ig-for="activate"><?= __('Make this collection my workspace, laid out by this graph') ?></label>
+                            </div>
+                        <?php endif; ?>
                         <div class="invalid-feedback d-block" data-ig-card-error></div>
                     </div>
                     <div class="modal-footer">

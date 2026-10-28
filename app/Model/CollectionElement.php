@@ -80,6 +80,23 @@ class CollectionElement extends AppModel
     /** @var int|null parent collection_id stashed in beforeDelete for afterDelete */
     private $deletedElementCollectionId = null;
 
+    /** The user a new element records as having added it. */
+    public $current_user = null;
+
+    /** While capturing from another instance: who added an element stays there. */
+    private $remoteCapture = false;
+
+    /** Items one addItems() or removeItems() call takes. */
+    const ITEM_LIMIT = 2000;
+
+    /** What an item of the workspace names, by its type. */
+    const ITEM_TYPES = [
+        'Event' => 'Event',
+        'Attribute' => 'Attribute',
+        'Object' => 'Object',
+        'GalaxyCluster' => 'GalaxyCluster',
+        'Value' => 'AttributeValue',
+    ];
 
     public function beforeValidate($options = array())
     {
@@ -91,6 +108,13 @@ class CollectionElement extends AppModel
         // if we're creating a new element, assign a uuid (unless provided)
         if (empty($this->id) && empty($this->data['CollectionElement']['uuid'])) {
             $this->data['CollectionElement']['uuid'] = CakeText::uuid();
+        }
+        // Who and when are this instance's to record, never the request's
+        if (empty($this->id)) {
+            $this->data['CollectionElement']['user_id'] = $this->remoteCapture ? null : ($this->current_user['id'] ?? null);
+            if (!$this->remoteCapture) {
+                $this->data['CollectionElement']['created'] = date('Y-m-d H:i:s');
+            }
         }
         $this->data['CollectionElement'] = AnalystData::normaliseAddress($this->data['CollectionElement'], 'element', empty($this->id));
         if (
@@ -386,12 +410,14 @@ class CollectionElement extends AppModel
      *  Pass a Collection as received from another instance to this function to capture the elements
      *  The received object is authoritative, so all elements that no longer exist in the upstream will be culled.
      *  A MISP older than 3.0 cannot hold value elements: from one ($fromPre30), they are neither taken nor culled.
+     *  From another instance ($remote), a new element keeps the time it was added there and names nobody.
      */
-    public function captureElements($data, $fromPre30 = false) {
+    public function captureElements($data, $fromPre30 = false, $remote = false) {
         // Sync capture: the parent Collection's `modified` is set authoritatively
         // from the remote by Collection::captureCollection(), so element saves/
         // deletes here must NOT bump it to the local now (D5 / D6 dedup).
         $this->skipCollectionModifiedBump = true;
+        $this->remoteCapture = (bool)$remote;
         try {
         $temp = $this->find('all', [
             'recursive' => -1,
@@ -447,7 +473,10 @@ class CollectionElement extends AppModel
                             'collection_id' => $data['Collection']['id']
                         ]
                     ];
-                    
+                    if ($remote) {
+                        $elementsToSave[$k]['CollectionElement']['created'] = self::capturedTime($element['created'] ?? null);
+                    }
+
                 }
             }
             foreach ($elementsToSave as $k => $element) {
@@ -495,8 +524,219 @@ class CollectionElement extends AppModel
         }
         } finally {
             $this->skipCollectionModifiedBump = false;
+            $this->remoteCapture = false;
         }
         return $data;
+    }
+
+    /**
+     * @param mixed $value When another instance says the element was added
+     * @return string|null
+     */
+    private static function capturedTime($value)
+    {
+        return is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $value) ? $value : null;
+    }
+
+    /**
+     * Add records to a collection the caller checked $user may edit, named
+     * as the workspace names them: {type, uuid} for an event, an attribute,
+     * an object or a galaxy cluster, {type: 'Value', value} for a value. Each
+     * is reported by its key in a graph document (`Type:address`): added,
+     * present when the collection holds it already, or refused. A value
+     * joins only when an attribute the user can read holds it.
+     *
+     * @param array $user
+     * @param int $collectionId
+     * @param array $items
+     * @param string $description
+     * @return array {added: [key], present: [key], refused: [{index, key, error}]}
+     */
+    public function addItems(array $user, $collectionId, array $items, $description = '')
+    {
+        list($wanted, $report) = $this->itemTargets($items);
+        $report += ['added' => [], 'present' => []];
+        $byType = [];
+        foreach ($wanted as $key => $target) {
+            $byType[$target['element_type']][$key] = $target['address'];
+        }
+        foreach ($byType as $type => $addresses) {
+            // Records are stored as each creator spelled their uuid
+            $lookup = $type === 'AttributeValue' ? array_values($addresses) : array_merge(array_values($addresses), array_map('strtoupper', $addresses));
+            $readable = array_flip(array_map('strtolower', $this->readableUuids($user, $type, $lookup)));
+            foreach ($addresses as $key => $address) {
+                if (!isset($readable[$address])) {
+                    $report['refused'][] = [
+                        'index' => $wanted[$key]['index'],
+                        'key' => $key,
+                        'error' => $type === 'AttributeValue'
+                            ? __('Not in MISP yet: no attribute holds this value.')
+                            : __('Not found or not authorised.'),
+                    ];
+                    unset($wanted[$key]);
+                }
+            }
+        }
+        $held = $this->heldKeys($collectionId, $wanted);
+        $this->current_user = $user;
+        $this->skipCollectionModifiedBump = true;
+        try {
+            foreach ($wanted as $key => $target) {
+                if (isset($held[$key])) {
+                    $report['present'][] = $key;
+                    continue;
+                }
+                $this->create();
+                try {
+                    $saved = $this->save(['CollectionElement' => [
+                        'collection_id' => $collectionId,
+                        'element_type' => $target['element_type'],
+                        $target['column'] => $target['address'],
+                        'description' => (string)$description,
+                    ]]);
+                } catch (PDOException $e) {
+                    if (!self::isDuplicate($e)) {
+                        throw $e;
+                    }
+                    $report['present'][] = $key;
+                    continue;
+                }
+                if ($saved) {
+                    $report['added'][] = $key;
+                } else {
+                    $report['refused'][] = ['index' => $target['index'], 'key' => $key, 'error' => implode(' ', Hash::flatten($this->validationErrors))];
+                }
+            }
+        } finally {
+            $this->skipCollectionModifiedBump = false;
+        }
+        if (!empty($report['added'])) {
+            $this->touchCollection($collectionId);
+        }
+        return $report;
+    }
+
+    /**
+     * Take records out of a collection the caller checked $user may edit,
+     * named as addItems() takes them or by the keys it reports.
+     *
+     * @param int $collectionId
+     * @param array $items
+     * @return array {removed: [key], absent: [key], refused: [{index, key, error}]}
+     */
+    public function removeItems($collectionId, array $items)
+    {
+        list($wanted, $report) = $this->itemTargets($items);
+        $report += ['removed' => [], 'absent' => []];
+        $held = $this->heldKeys($collectionId, $wanted);
+        $this->skipCollectionModifiedBump = true;
+        try {
+            foreach ($wanted as $key => $target) {
+                if (isset($held[$key]) && $this->delete($held[$key])) {
+                    $report['removed'][] = $key;
+                } else {
+                    $report['absent'][] = $key;
+                }
+            }
+        } finally {
+            $this->skipCollectionModifiedBump = false;
+        }
+        if (!empty($report['removed'])) {
+            $this->touchCollection($collectionId);
+        }
+        return $report;
+    }
+
+    /**
+     * @param array $items
+     * @return array [key => {element_type, column, address, index}, {refused: [...]}]
+     */
+    private function itemTargets(array $items)
+    {
+        $wanted = [];
+        $refused = [];
+        foreach (array_values($items) as $i => $item) {
+            $target = self::itemTarget($item);
+            if ($target === null) {
+                $refused[] = ['index' => $i, 'key' => null, 'error' => __('Not a record a collection can hold.')];
+            } elseif (!isset($wanted[$target['key']])) {
+                $wanted[$target['key']] = $target + ['index' => $i];
+            }
+        }
+        return [$wanted, ['refused' => $refused]];
+    }
+
+    /**
+     * @param mixed $item {type, uuid}, {type: 'Value', value | sha256}, or a `Type:address` key
+     * @return array|null {key, element_type, column, address}
+     */
+    public static function itemTarget($item)
+    {
+        if (is_string($item) && strpos($item, ':') !== false) {
+            list($type, $address) = explode(':', $item, 2);
+            $item = $type === 'Value' ? ['type' => $type, 'sha256' => $address] : ['type' => $type, 'uuid' => $address];
+        }
+        if (!is_array($item) || !is_string($item['type'] ?? null) || !isset(self::ITEM_TYPES[$item['type']])) {
+            return null;
+        }
+        $type = $item['type'];
+        if ($type === 'Value') {
+            if (isset($item['value']) && is_scalar($item['value']) && trim((string)$item['value']) !== '') {
+                $address = hash('sha256', trim((string)$item['value']));
+            } elseif (is_string($item['sha256'] ?? null) && preg_match('/^[0-9a-f]{64}$/i', $item['sha256'])) {
+                $address = strtolower($item['sha256']);
+            } else {
+                return null;
+            }
+            $column = 'element_sha256';
+        } else {
+            $address = $item['uuid'] ?? null;
+            if (!is_string($address) || !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $address)) {
+                return null;
+            }
+            $address = strtolower($address);
+            $column = 'element_uuid';
+        }
+        return [
+            'key' => $type . ':' . $address,
+            'element_type' => self::ITEM_TYPES[$type],
+            'column' => $column,
+            'address' => $address,
+        ];
+    }
+
+    /**
+     * Of these targets, those the collection holds: one lookup per address
+     * column, each on its unique index.
+     *
+     * @param int $collectionId
+     * @param array $wanted itemTargets()'s
+     * @return array key => element id
+     */
+    private function heldKeys($collectionId, array $wanted)
+    {
+        $byColumn = [];
+        foreach ($wanted as $key => $target) {
+            $byColumn[$target['column']][$target['address']] = $key;
+        }
+        $held = [];
+        foreach ($byColumn as $column => $keys) {
+            $rows = $this->find('list', [
+                'recursive' => -1,
+                'fields' => ['CollectionElement.id', 'CollectionElement.' . $column],
+                'conditions' => [
+                    'CollectionElement.collection_id' => $collectionId,
+                    'CollectionElement.' . $column => array_map('strval', array_keys($keys)),
+                ],
+            ]);
+            foreach ($rows as $id => $address) {
+                $key = $keys[strtolower((string)$address)] ?? null;
+                if ($key !== null) {
+                    $held[$key] = $id;
+                }
+            }
+        }
+        return $held;
     }
 
     /**

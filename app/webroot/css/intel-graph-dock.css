@@ -178,6 +178,14 @@
 .ig-so-new label { font-weight: 600; font-size: .8rem; margin-bottom: .25rem; }
 .ig-so-new .form-text { font-size: .75rem; margin-top: .3rem; }
 .ig-so-new .invalid-feedback { display: block; }
+.ig-so-new-change { font-size: inherit; text-decoration: underline; text-underline-offset: 2px; vertical-align: baseline; }
+.ig-so-new-options { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-top: .45rem; }
+.ig-so-new-options[hidden] { display: none; }
+.ig-so-new-field .form-label { font-weight: 500; font-size: .75rem; margin-bottom: .15rem; color: var(--bs-secondary-color); }
+.ig-so-new-check { margin-top: .45rem; font-size: .8rem; }
+.ig-so-more { display: flex; align-items: center; gap: .55rem; padding: .4rem .9rem; color: var(--bs-secondary-color); font-size: .8rem; }
+.ig-so-more > i { width: 1rem; flex: 0 0 1rem; text-align: center; }
+.ig-so-count .text-warning-emphasis { margin-left: .25rem; }
 
 .ig-so-stage { position: relative; flex: 1 1 auto; min-height: 240px; overflow: hidden; background: var(--bs-body-bg); }
 .ig-so-canvas, .ig-so-mount { position: absolute; inset: 0; }

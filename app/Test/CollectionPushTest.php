@@ -598,6 +598,17 @@ class CollectionPushTest extends TestCase
         $this->assertSame(2, $prepared['Collection']['distribution'], 'distribution NOT downgraded on push (RAW)');
     }
 
+    public function testPrepareKeepsWhoAddedAMemberAtHome(): void
+    {
+        $collection = array('Collection' => array('id' => 111, 'uuid' => 'u1', 'distribution' => 2, 'CollectionElement' => array(
+            array('uuid' => 'e1', 'element_type' => 'Event', 'user_id' => 3, 'created' => '2026-10-28 10:00:00'),
+        )));
+        $prepared = $this->prepare($collection, $this->server());
+
+        $this->assertArrayNotHasKey('user_id', $prepared['Collection']['CollectionElement'][0], 'who stays here');
+        $this->assertSame('2026-10-28 10:00:00', $prepared['Collection']['CollectionElement'][0]['created'], 'when travels');
+    }
+
     public function testPrepareBlockedByCheckDistribution(): void
     {
         ClassRegistry::$instances['Event'] = new CollectionPushFakeEvent();

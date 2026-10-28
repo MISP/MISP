@@ -142,24 +142,94 @@ class Collection extends AppModel
             'recursive' => -1,
             'conditions' => ['Collection.id' => $collection_id]
         ]);
-        if ($user['Role']['perm_site_admin']) {
+        return !empty($user) && !empty($collection) && $this->canModify($user, $collection['Collection']);
+    }
+
+    /**
+     * mayModify() for a collection row already at hand.
+     *
+     * @param array $user
+     * @param array $collection Unwrapped; reads org_id, orgc_id and user_id
+     * @return bool
+     */
+    public function canModify(array $user, array $collection)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
             return true;
         }
         if (empty($user['Role']['perm_modify'])) {
             return false;
         }
         if (!empty($user['Role']['perm_modify_org'])) {
-            if ($user['org_id'] == $collection['Collection']['orgc_id']) {
+            if ((int)$user['org_id'] === (int)$collection['orgc_id']) {
                 return true;
             }
-            if ($user['Role']['perm_sync'] && $user['org_id'] == $collection['Collection']['org_id']) {
+            if (!empty($user['Role']['perm_sync']) && (int)$user['org_id'] === (int)$collection['org_id']) {
                 return true;
-            }            
+            }
         }
-        if (!empty($user['Role']['perm_modify']) && $user['id'] === $collection['Collection']['user_id']) {
-            return true;
+        return (int)$user['id'] === (int)$collection['user_id'];
+    }
+
+    /**
+     * Collections as the workspace chooser and the navbar chip show them,
+     * newest first.
+     *
+     * @param array $user
+     * @param array $conditions ANDed with what the user may see
+     * @param int|null $limit
+     * @return array [{id, uuid, name, type, distribution, sharing_group_id,
+     *               modified, Orgc: {id, uuid, name}, element_count, _canEdit}]
+     */
+    public function workspaceSummaries(array $user, array $conditions, $limit = null)
+    {
+        $visible = $this->buildConditions($user);
+        $rows = $this->find('all', [
+            'recursive' => -1,
+            'conditions' => ['AND' => array_values(array_filter([$conditions, $visible]))],
+            'fields' => [
+                'Collection.id', 'Collection.uuid', 'Collection.name', 'Collection.type',
+                'Collection.distribution', 'Collection.sharing_group_id', 'Collection.org_id',
+                'Collection.orgc_id', 'Collection.user_id', 'Collection.modified',
+            ],
+            'contain' => ['Orgc'],
+            'order' => ['Collection.modified' => 'DESC', 'Collection.id' => 'DESC'],
+            'limit' => $limit,
+        ]);
+        if (empty($rows)) {
+            return [];
         }
-        return false;
+        $counts = [];
+        $grouped = $this->CollectionElement->find('all', [
+            'recursive' => -1,
+            'fields' => ['CollectionElement.collection_id', 'COUNT(*) AS element_count'],
+            'conditions' => ['CollectionElement.collection_id' => array_map('strval', Hash::extract($rows, '{n}.Collection.id'))],
+            'group' => ['CollectionElement.collection_id'],
+        ]);
+        foreach ($grouped as $row) {
+            $counts[$row['CollectionElement']['collection_id']] = (int)$row[0]['element_count'];
+        }
+        $summaries = [];
+        foreach ($rows as $row) {
+            $collection = $row['Collection'];
+            $summaries[] = [
+                'id' => (int)$collection['id'],
+                'uuid' => strtolower($collection['uuid']),
+                'name' => $collection['name'],
+                'type' => $collection['type'],
+                'distribution' => (int)$collection['distribution'],
+                'sharing_group_id' => $collection['sharing_group_id'] === null ? null : (int)$collection['sharing_group_id'],
+                'modified' => $collection['modified'],
+                'Orgc' => [
+                    'id' => (int)($row['Orgc']['id'] ?? $collection['orgc_id']),
+                    'uuid' => $row['Orgc']['uuid'] ?? null,
+                    'name' => $row['Orgc']['name'] ?? null,
+                ],
+                'element_count' => $counts[$collection['id']] ?? 0,
+                '_canEdit' => $this->canModify($user, $collection),
+            ];
+        }
+        return $summaries;
     }
 
     public function mayView($user_id, $collection_id)
@@ -190,9 +260,13 @@ class Collection extends AppModel
         return false;
     }
 
+    /**
+     * @param int|array $user_id A user id, or the user already loaded
+     * @return array
+     */
     public function buildConditions($user_id)
     {
-        $user = $this->User->getAuthUser($user_id);
+        $user = is_array($user_id) ? $user_id : $this->User->getAuthUser($user_id);
         $SharingGroup = ClassRegistry::init('SharingGroup');
         $sgids = $SharingGroup->authorizedIds($user);
         $conditions = [];
@@ -567,7 +641,7 @@ class Collection extends AppModel
                         'id' => $saved['Collection']['id'],
                         'CollectionElement' => $elements,
                     ],
-                ], $fromPre30 === null ? SyncTool::valueTargetsWithheld() : $fromPre30);
+                ], $fromPre30 === null ? SyncTool::valueTargetsWithheld() : $fromPre30, true);
             }
         } else {
             $results['failed']++;
@@ -858,7 +932,37 @@ class Collection extends AppModel
             return 403;
         }
         unset($collection['Collection']['id']);
+        if (!empty($collection['Collection']['CollectionElement'])) {
+            $collection['Collection']['CollectionElement'] = self::withoutAdders($collection['Collection']['CollectionElement']);
+        }
         return $collection;
+    }
+
+    /**
+     * Who added a member stays inside the collection's organisation; when
+     * it was added travels.
+     *
+     * @param array $user
+     * @param array $collection Unwrapped; reads orgc_id
+     * @return bool
+     */
+    public static function showsAdders(array $user, array $collection)
+    {
+        return !empty($user['Role']['perm_site_admin']) || (int)$user['org_id'] === (int)($collection['orgc_id'] ?? 0);
+    }
+
+    /**
+     * @param array $elements CollectionElement rows, unwrapped
+     * @return array
+     */
+    public static function withoutAdders(array $elements)
+    {
+        foreach ($elements as $i => $element) {
+            if (is_array($element)) {
+                unset($elements[$i]['user_id']);
+            }
+        }
+        return $elements;
     }
 
     public function rearrangeCollection(array $collection, $user = null) {
@@ -870,6 +974,9 @@ class Collection extends AppModel
         }
         if (empty($user) || empty($user['Role']['perm_site_admin'])) {
             unset($collection['Collection']['User']);
+        }
+        if (!empty($collection['Collection']['CollectionElement']) && (empty($user) || !self::showsAdders($user, $collection['Collection']))) {
+            $collection['Collection']['CollectionElement'] = self::withoutAdders($collection['Collection']['CollectionElement']);
         }
         return $collection;
     }

@@ -38,8 +38,6 @@ class Graph extends AnalystData
         'description',
     ];
 
-    const ACTIVE_SETTING = 'active_workspace';
-
     /** What a list of graphs reads of each: everything but the document. */
     const SUMMARY_FIELDS = [
         'id', 'uuid', 'name', 'description', 'object_uuid', 'object_type',
@@ -315,9 +313,11 @@ class Graph extends AnalystData
      * @param array $conditions
      * @param array $options `limit`; `targets` (default true) labels each
      *                       target as the user sees it; `parents` (default
-     *                       false) adds `forked_from`, see withParents()
+     *                       false) adds `forked_from`, see withParents();
+     *                       `counts` (default true) reads each document to
+     *                       count the nodes the user may read
      * @return array Graph rows, unwrapped, `node_count` the nodes the user
-     *               may read
+     *               may read, or as stored without `counts`
      */
     public function summaries(array $user, array $conditions, array $options = [])
     {
@@ -332,7 +332,9 @@ class Graph extends AnalystData
             'limit' => $options['limit'] ?? null,
         ]);
         $graphs = array_map([$this, 'typed'], Hash::extract($rows, '{n}.' . $this->alias));
-        $graphs = $this->withVisibleCounts($user, $graphs);
+        if ($options['counts'] ?? true) {
+            $graphs = $this->withVisibleCounts($user, $graphs);
+        }
         if ($options['targets'] ?? true) {
             $graphs = ClassRegistry::init('AnalystGraphData')->labelTargets($user, $graphs);
         }
@@ -469,48 +471,6 @@ class Graph extends AnalystData
             });
         }
         return array_values($graphs);
-    }
-
-    /**
-     * The workspace "Add to workspace" feeds: the one the user chose, while
-     * it is still one they may edit.
-     *
-     * @param array $user
-     * @param bool $targets Label its target
-     * @return array|null
-     */
-    public function activeFor(array $user, $targets = true)
-    {
-        $stored = ClassRegistry::init('UserSetting')->getValueForUser($user['id'], self::ACTIVE_SETTING);
-        $uuid = is_array($stored) ? ($stored['workspace_uuid'] ?? null) : null;
-        if (!is_string($uuid) || !Validation::uuid($uuid)) {
-            return null;
-        }
-        $graphs = $this->summaries($user, [$this->alias . '.uuid' => strtolower($uuid)], ['targets' => $targets]);
-        return !empty($graphs[0]['_canEdit']) ? $graphs[0] : null;
-    }
-
-    /**
-     * Remember the workspace "Add to workspace" feeds, or forget it with
-     * null. The legacy log is suppressed: its full-change entry would record
-     * the choice.
-     *
-     * @param array $user
-     * @param string|null $uuid A graph the user may edit
-     * @return bool
-     */
-    public function storeActive(array $user, $uuid)
-    {
-        $UserSetting = ClassRegistry::init('UserSetting');
-        $logged = $UserSetting->Behaviors->enabled('SysLogLogable.SysLogLogable');
-        $UserSetting->Behaviors->disable('SysLogLogable.SysLogLogable');
-        try {
-            return (bool)$UserSetting->setSettingInternal($user['id'], self::ACTIVE_SETTING, ['workspace_uuid' => $uuid]);
-        } finally {
-            if ($logged) {
-                $UserSetting->Behaviors->enable('SysLogLogable.SysLogLogable');
-            }
-        }
     }
 
     /**

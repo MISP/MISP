@@ -282,32 +282,6 @@ class GraphTestCountedGraph extends GraphTestGraph
     }
 }
 
-class GraphTestBehaviors
-{
-    public $log = array();
-    private $on;
-
-    public function __construct($on)
-    {
-        $this->on = $on;
-    }
-
-    public function enabled($name)
-    {
-        return $this->on;
-    }
-
-    public function disable($name)
-    {
-        $this->log[] = array('disable', $name);
-    }
-
-    public function enable($name)
-    {
-        $this->log[] = array('enable', $name);
-    }
-}
-
 /**
  * A model fake answering whatever the test registers for each method.
  */
@@ -330,11 +304,6 @@ class GraphTestFake
         }
         return call_user_func_array($this->handlers[$method], $args);
     }
-}
-
-class GraphTestUserSetting extends GraphTestFake
-{
-    public $Behaviors;
 }
 
 class GraphTest extends TestCase
@@ -1367,9 +1336,7 @@ class GraphTest extends TestCase
         $this->assertCount(AnalystGraphData::NODE_BUDGET + 1, $resolved['document']['nodes']);
     }
 
-    // ------------------------------------------------------------ active graph
-
-    const G1 = '9a000000-0000-4000-8000-000000000061';
+    // ------------------------------------------------------- editable graphs
 
     private static function analyst(array $role = array('perm_analyst_data' => 1))
     {
@@ -1378,107 +1345,6 @@ class GraphTest extends TestCase
             'Role' => $role + array('perm_site_admin' => 0, 'perm_analyst_data' => 0),
             'Organisation' => array('uuid' => 'org-1'),
         );
-    }
-
-    private function storedActive($stored)
-    {
-        $this->fake('UserSetting')->on('getValueForUser', function ($userId, $setting) use ($stored) {
-            return $setting === Graph::ACTIVE_SETTING ? $stored : null;
-        });
-    }
-
-    private function settingWriter($loggedBefore, $fail = false)
-    {
-        $behaviors = new GraphTestBehaviors($loggedBefore);
-        $setting = new GraphTestUserSetting();
-        $setting->Behaviors = $behaviors;
-        $setting->on('setSettingInternal', function ($userId, $name, $value) use ($behaviors, $fail) {
-            $behaviors->log[] = array('save', $userId, $name, $value);
-            if ($fail) {
-                throw new RuntimeException('database gone');
-            }
-            return array('UserSetting' => array('id' => 1));
-        });
-        ClassRegistry::$instances['UserSetting'] = $setting;
-        $this->registered[] = 'UserSetting';
-        return $behaviors;
-    }
-
-    public function unusableStoredValues()
-    {
-        return array(
-            'never set' => array(null),
-            'empty' => array(array()),
-            'cleared' => array(array('workspace_uuid' => null)),
-            'not a uuid' => array(array('workspace_uuid' => 'zz')),
-            'not a string' => array(array('workspace_uuid' => 5)),
-            'not an object' => array('9a000000-0000-4000-8000-000000000061'),
-        );
-    }
-
-    /**
-     * @dataProvider unusableStoredValues
-     */
-    public function testNoActiveGraphWithoutAUsableStoredUuid($stored)
-    {
-        $this->storedActive($stored);
-        $graph = new GraphTestActiveGraph();
-        $this->assertNull($graph->activeFor(self::analyst()));
-        $this->assertSame(array(), $graph->summaryCalls);
-    }
-
-    public function testActiveGraphIsLookedUpByItsLowercaseUuid()
-    {
-        $this->storedActive(array('workspace_uuid' => strtoupper(self::G1)));
-        $graph = new GraphTestActiveGraph();
-        $graph->summaryRows = array(array('uuid' => self::G1, '_canEdit' => true));
-
-        $this->assertSame(self::G1, $graph->activeFor(self::analyst(), false)['uuid']);
-        $this->assertSame(array(array(array('Graph.uuid' => self::G1), array('targets' => false))), $graph->summaryCalls);
-    }
-
-    public function testAnActiveGraphTheUserCanNoLongerEditIsNone()
-    {
-        $this->storedActive(array('workspace_uuid' => self::G1));
-        $graph = new GraphTestActiveGraph();
-        $graph->summaryRows = array(array('uuid' => self::G1, '_canEdit' => false));
-        $this->assertNull($graph->activeFor(self::analyst()));
-
-        $graph->summaryRows = array();
-        $this->assertNull($graph->activeFor(self::analyst()));
-    }
-
-    public function testStoringTheActiveGraphKeepsItOutOfTheLegacyLog()
-    {
-        $behaviors = $this->settingWriter(true);
-        $this->assertTrue((new GraphTestActiveGraph())->storeActive(self::analyst(), self::G1));
-        $this->assertSame(array(
-            array('disable', 'SysLogLogable.SysLogLogable'),
-            array('save', 3, Graph::ACTIVE_SETTING, array('workspace_uuid' => self::G1)),
-            array('enable', 'SysLogLogable.SysLogLogable'),
-        ), $behaviors->log);
-    }
-
-    public function testClearingStoresNoGraphAndALogAlreadyOffStaysOff()
-    {
-        $behaviors = $this->settingWriter(false);
-        $this->assertTrue((new GraphTestActiveGraph())->storeActive(self::analyst(), null));
-        $this->assertSame(array(
-            array('disable', 'SysLogLogable.SysLogLogable'),
-            array('save', 3, Graph::ACTIVE_SETTING, array('workspace_uuid' => null)),
-        ), $behaviors->log);
-    }
-
-    public function testTheLegacyLogComesBackAfterAFailedWrite()
-    {
-        $behaviors = $this->settingWriter(true, true);
-        try {
-            (new GraphTestActiveGraph())->storeActive(self::analyst(), self::G1);
-            $this->fail('The write failure was swallowed.');
-        } catch (RuntimeException $e) {
-            $this->assertSame('database gone', $e->getMessage());
-        }
-        $this->assertSame(array('enable', 'SysLogLogable.SysLogLogable'), end($behaviors->log));
     }
 
     public function testOnlyAnalystsAndSiteAdminsHaveEditableGraphs()

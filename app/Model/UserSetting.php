@@ -196,13 +196,21 @@ class UserSetting extends AppModel
             'placeholder' => [],
             'validation' => 'validate_json',
         ],
-        // The workspace "Add to workspace" feeds, `{workspace_uuid}`.
-        // Internal for the reason `value_intelligence_recent` is: which
-        // workspace a colleague is working on is a per-viewer convenience,
-        // not an audited choice.
+        // The workspace, `{collection_uuid, graph_uuid}`: the collection
+        // "Add to workspace" feeds, and the graph laying it out. Internal
+        // for the reason `value_intelligence_recent` is: which collection a
+        // colleague is working in is a per-viewer convenience, not an
+        // audited choice.
         'active_workspace' => [
             'internal' => true,
-            'placeholder' => ['workspace_uuid' => null],
+            'placeholder' => ['collection_uuid' => null, 'graph_uuid' => null],
+            'validation' => 'validate_json',
+        ],
+        // The collections used last as the workspace, `{collection_uuid,
+        // at}`, newest first, capped at `ActiveWorkspaceTool::RECENT_CAP`.
+        'recent_workspaces' => [
+            'internal' => true,
+            'placeholder' => [],
             'validation' => 'validate_json',
         ],
         /*

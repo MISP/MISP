@@ -3656,22 +3656,16 @@
             soon();
         }
 
-        // The canvas is the active graph itself: all it draws is already there.
-        function drawsActive() {
-            var a = window.IntelGraph && window.IntelGraph.active();
-            var own = host.graphUuid ? host.graphUuid() : (_savedGraph && _savedGraph.uuid);
-            return !!a && !!own && String(a.uuid).toLowerCase() === String(own).toLowerCase();
-        }
-
-        // Offered where the page has IntelGraph: to a writer of graphs. The
-        // explorer is a graph itself, so it says which graph the add feeds.
+        // Offered where the page has IntelGraph: to whoever may add to a
+        // collection. The explorer is a graph itself, so it says where the
+        // add goes.
         function graphEntry(text) {
             return {
                 text:      text,
                 title:     'Adds it to your active workspace, the one the navbar names',
                 iconClass: 'misp-icon misp-icon-analyst-graph misp-simple',
                 visible:   function (el) {
-                    return !!window.IntelGraphActions && !drawsActive() && graphItems(el).length > 0;
+                    return !!window.IntelGraphActions && graphItems(el).length > 0;
                 },
                 onclick:   function (e, el) {
                     window.IntelGraphActions.add(graphItems(el), e && { x: e.clientX, y: e.clientY });
@@ -4285,13 +4279,15 @@
             var dist = selectOf('distribution', graphSharing.levels, graphSharing.default);
             var sg = selectOf('sharing_group_id', [['', '—']].concat(graphSharing.sharingGroups), '');
             var sgRow = formRow('Sharing group', sg);
+            // Only a collection can be the workspace
             var activate = el('input');
             activate.name = 'activate';
             activate.type = 'checkbox';
-            activate.checked = true;
+            activate.checked = target.type === 'Collection';
             var activateRow = el('label', 'pe-save-graph-check');
             activateRow.appendChild(activate);
-            activateRow.appendChild(document.createTextNode(' Make it my active workspace: “Add to workspace” feeds it'));
+            activateRow.appendChild(document.createTextNode(' Make this collection my workspace, laid out by this graph'));
+            activateRow.hidden = target.type !== 'Collection';
             var summary = savedSummary(kept, doc.dropped);
             var error = el('div', 'pvt-form-error');
 

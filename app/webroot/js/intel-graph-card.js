@@ -1,6 +1,7 @@
 // The Saved graphs card on a collection, an event or a galaxy cluster
 // (Elements/AnalystGraphs/graphs_card.ctp): the graphs hung off the
-// record, to open, fork or make active, and "New graph" on it. Reading needs nothing
+// record, to open or fork, and "New graph" on it; on a collection, to lay the
+// workspace out. Reading needs nothing
 // but the page; the writes go through IntelGraph, which every user who may
 // make them has.
 
@@ -29,8 +30,7 @@
         return (err && err.message) || 'error';
     }
     function toast(text, variant) {
-        var span = el('span', null, text);
-        if (typeof window.showToast === 'function') window.showToast(span.outerHTML, variant || 'success');
+        if (typeof window.showToast === 'function') window.showToast(text, variant || 'success');
     }
 
     function card(root) {
@@ -100,9 +100,9 @@
             if (active) {
                 var on = el('span', 'badge rounded-pill bg-primary-subtle text-primary-emphasis border border-primary-subtle fw-semibold flex-shrink-0');
                 on.setAttribute('data-ig-active-pill', '');
-                on.title = '“Add to workspace” feeds this graph';
+                on.title = 'It lays out your workspace';
                 on.appendChild(icon('fas fa-bullseye me-1'));
-                on.appendChild(document.createTextNode('Active'));
+                on.appendChild(document.createTextNode('Workspace'));
                 top.appendChild(on);
             }
             main.appendChild(top);
@@ -136,15 +136,16 @@
             r.appendChild(main);
 
             var tools = el('div', 'd-flex flex-shrink-0');
-            if (config.canCreate && g._canEdit && !active) {
-                tools.appendChild(tool('fas fa-bullseye', 'Make it my active workspace', function (b) {
+            var ours = String(g.orgc_uuid || '').toLowerCase() === config.orgUuid;
+            if (config.canWorkspace && ours && !active && window.IntelGraph) {
+                tools.appendChild(tool('fas fa-bullseye', 'Make this collection my workspace, laid out by this graph', function (b) {
                     b.disabled = true;
-                    window.IntelGraph.setActive(g.uuid).then(function () {
-                        toast('“Add to workspace” now feeds “' + g.name + '”.');
+                    window.IntelGraph.setActive(target.uuid, g.uuid).then(function () {
+                        toast('“' + target.label + '” is your workspace, laid out by “' + g.name + '”.');
                         load();
                     }, function (err) {
                         b.disabled = false;
-                        toast('Could not make it active: ' + message(err), 'danger');
+                        toast('Could not make it your workspace: ' + message(err), 'danger');
                     });
                 }));
             }
@@ -176,7 +177,7 @@
                         var empty = el('div', 'd-flex flex-column align-items-center justify-content-center text-muted py-4 px-3 text-center');
                         empty.appendChild(icon('misp-icon misp-icon-analyst-graph misp-simple fa-2x mb-2 opacity-50'));
                         empty.appendChild(el('p', 'mb-0 small fw-semibold', config.canCreate
-                            ? 'Start one with +, then send records to it with “Add to workspace”.'
+                            ? 'Start one with +, or save one from the Pivot Explorer.'
                             : 'No saved graph hangs off this ' + config.targetName + ' yet.'));
                         body.appendChild(empty);
                         return;
@@ -221,6 +222,7 @@
                 sg.appendChild(o);
             });
             dist.addEventListener('change', function () { sg.hidden = dist.value !== '4'; });
+            function activates() { return !!form.elements.activate && form.elements.activate.checked; }
             var modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
             modalEl.addEventListener('shown.bs.modal', function () { form.elements.name.focus(); });
             button.addEventListener('click', function () {
@@ -243,10 +245,10 @@
                     target: { type: target.type, uuid: target.uuid },
                     distribution: +dist.value,
                     sharing_group_id: dist.value === '4' ? +sg.value : null
-                }, { activate: form.elements.activate.checked }).then(function (created) {
+                }, { activate: activates() }).then(function (created) {
                     submit.disabled = false;
                     modal.hide();
-                    toast('“' + name + '” created' + (form.elements.activate.checked ? ', and active.' : '.'));
+                    toast('“' + name + '” created' + (activates() ? ': it lays out your workspace.' : '.'));
                     load();
                     return created;
                 }, function (err) {

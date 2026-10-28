@@ -42,7 +42,6 @@ class ACLComponent extends Component
             'massDelete' => array(),
         ),
         'analystGraphs' => [
-            'active' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'addNodes' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'data' => ['*'],
             'edges' => ['*'],
@@ -55,6 +54,7 @@ class ACLComponent extends Component
             'save' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'thumbnail' => ['*'],
             'view' => ['*'],
+            'working' => ['*'],
         ],
         'api' => [
             'rest' => ['perm_auth'],
@@ -149,12 +149,14 @@ class ACLComponent extends Component
             'view' => []
         ],
         'collections' => [
+            'active' => ['perm_modify'],
             'add' => ['perm_modify'],
             // Sync push-receive upload endpoint → Collection::captureCollection sink.
             'captureCollection' => ['perm_sync'],
             'delete' => ['perm_modify'],
             'deleteSelection' => ['AND'=> ['perm_modify', 'theming_enabled']],
             'edit' => ['perm_modify'],
+            'editable' => ['perm_modify'],
             // Sync push-receive dedup handshake (returns the UUIDs the local side wants).
             'filterCollectionsForPush' => ['perm_sync'],
             // Read-only JSON endpoint used by beta Event view to list collection memberships.
@@ -162,14 +164,17 @@ class ACLComponent extends Component
             'getCollectionsForElements' => ['*'],
             'index' => ['*'],
             'indexMinimal' => ['*'],
+            'quickAdd' => ['perm_modify'],
             'view' => ['*']
         ],
         'collectionElements' => [
             'add' => ['perm_modify'],
             'addElementToCollection' => ['perm_modify'],
+            'addItems' => ['perm_modify'],
             'delete' => ['perm_modify'],
             'deleteSelection' => ['AND'=> ['perm_modify', 'theming_enabled']],
-            'index' => ['*']
+            'index' => ['*'],
+            'removeItems' => ['perm_modify'],
         ],
         'correlationExclusions' => [
             'add' => [],

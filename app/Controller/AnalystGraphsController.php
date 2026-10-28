@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('ActiveWorkspaceTool', 'Tools');
 App::uses('AnalystGraphDocumentTool', 'Tools');
 App::uses('FileAccessTool', 'Tools');
 App::uses('JsonTool', 'Tools');
@@ -36,7 +37,7 @@ class AnalystGraphsController extends AppController
         parent::beforeFilter();
         // Posted as hand-built JSON by the graph host, with the CSRF token
         // in the X-CSRF-Token header.
-        $this->_csrfTokenHeaderOnly(['save', 'addNodes', 'removeNodes', 'fork', 'active', 'edges']);
+        $this->_csrfTokenHeaderOnly(['save', 'addNodes', 'removeNodes', 'fork', 'edges']);
     }
 
     public function beforeRender()
@@ -89,34 +90,8 @@ class AnalystGraphsController extends AppController
         $this->set('title_for_layout', $summary['name']);
     }
     /**
-     * The workspace "Add to workspace" feeds. POST `{workspace_uuid}` sets it to
-     * a workspace the user may edit, or clears it with null.
-     */
-    public function active()
-    {
-        $this->request->allowMethod(['get', 'post']);
-        $user = $this->Auth->user();
-        if ($this->request->is('get')) {
-            return $this->RestResponse->viewData(['Graph' => $this->Graph->activeFor($user)], 'json');
-        }
-        $input = $this->__input();
-        if (!array_key_exists('workspace_uuid', $input) || ($input['workspace_uuid'] !== null && !is_string($input['workspace_uuid']))) {
-            throw new BadRequestException(__('Name the workspace to add to, or null for none.'));
-        }
-        $graph = null;
-        if ($input['workspace_uuid'] !== null) {
-            $graph = $this->__fetchEditableGraph($input['workspace_uuid']);
-            $graph = $this->Graph->summaries($user, ['Graph.id' => $graph['Graph']['id']])[0];
-        }
-        if (!$this->Graph->storeActive($user, $graph ? $graph['uuid'] : null)) {
-            throw new InternalErrorException(__('The active workspace could not be saved.'));
-        }
-        return $this->RestResponse->viewData(['Graph' => $graph], 'json');
-    }
-
-    /**
      * The graphs hung off one record that the user may read, newest first,
-     * and the user's active graph.
+     * and the graph laying out the user's workspace.
      *
      * @param string $type
      * @param string $uuid
@@ -134,12 +109,12 @@ class AnalystGraphsController extends AppController
             'Graph.object_type' => $type,
             'Graph.object_uuid' => $spellings,
         ], ['targets' => false, 'parents' => true, 'limit' => self::TARGET_LIMIT]);
-        $active = $this->ACL->canUserAccess($user, 'analystGraphs', 'active')
-            ? $this->Graph->activeFor($user, false)
+        $workspace = $this->ACL->canUserAccess($user, 'collections', 'active')
+            ? ActiveWorkspaceTool::stored($user)
             : null;
         return $this->RestResponse->viewData([
             'Graph' => $graphs,
-            'active' => $active ? $active['uuid'] : null,
+            'active' => $workspace['graph_uuid'] ?? null,
         ], 'json');
     }
 
@@ -151,11 +126,10 @@ class AnalystGraphsController extends AppController
     {
         $this->request->allowMethod(['get']);
         $user = $this->Auth->user();
-        $active = $this->Graph->activeFor($user, false);
         $mine = ($this->request->query['scope'] ?? null) === 'mine';
         return $this->RestResponse->viewData([
             'Graph' => $this->Graph->editableBy($user, $mine),
-            'active' => $active ? $active['uuid'] : null,
+            'active' => ActiveWorkspaceTool::stored($user)['graph_uuid'] ?? null,
         ], 'json');
     }
 
@@ -178,6 +152,127 @@ class AnalystGraphsController extends AppController
         $payload['editable_events'] = $this->__editableEvents(array_keys((array)$payload['events']));
         $payload['known_values'] = $this->AnalystGraphData->knownAnswerValues($this->Auth->user(), $payload['document']['nodes']);
         return $this->RestResponse->viewData(['Graph' => $this->Graph->typed($graph['Graph'])] + $payload, 'json');
+    }
+
+    /**
+     * A collection as the workspace draws it: the nodes of the graph laying
+     * it out (`?graph=<uuid>`, one on this collection), then every member
+     * the graph lacks, shaped as data() shapes a graph. Without a graph,
+     * `Graph` stands in for one that cannot be saved.
+     *
+     * @param string $uuid The collection's
+     */
+    public function working($uuid)
+    {
+        $this->request->allowMethod(['get']);
+        // Read-only, and asked after every add to the workspace
+        $user = $this->_closeSession();
+        if (!Validation::uuid($uuid)) {
+            throw new NotFoundException(__('Invalid collection.'));
+        }
+        $Collection = ClassRegistry::init('Collection');
+        $found = $Collection->workspaceSummaries($user, [
+            'Collection.uuid' => array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)])),
+        ], 1);
+        if (empty($found)) {
+            throw new NotFoundException(__('Invalid collection.'));
+        }
+        $collection = $found[0];
+        $document = AnalystGraphDocumentTool::emptyDocument();
+        $summary = [
+            'uuid' => null,
+            'name' => $collection['name'],
+            'object_type' => 'Collection',
+            'object_uuid' => $collection['uuid'],
+            'revision' => 0,
+            '_canEdit' => false,
+            'Orgc' => $collection['Orgc'],
+        ];
+        $graphUuid = $this->request->query['graph'] ?? null;
+        if ($graphUuid !== null && $graphUuid !== '') {
+            $graph = $this->__fetchGraph($graphUuid);
+            if ($graph['Graph']['object_type'] !== 'Collection' || strtolower($graph['Graph']['object_uuid']) !== $collection['uuid']) {
+                throw new NotFoundException(__('Invalid graph.'));
+            }
+            $document = json_decode($graph['Graph']['content'], true) ?: $document;
+            unset($graph['Graph']['content']);
+            $summary = $this->Graph->typed($graph['Graph']);
+        }
+        list($members, $total, $leftOut) = $this->__memberNodes($user, $collection['id'], $document['nodes'] ?? []);
+        $document['nodes'] = array_merge($document['nodes'] ?? [], $members);
+        $payload = $this->AnalystGraphData->resolve($user, $document);
+        $summary['node_count'] = $payload['meta']['nodes'];
+        $payload['meta']['members'] = $total;
+        $payload['meta']['members_left_out'] = $leftOut;
+        $payload['editable_events'] = $this->__editableEvents(array_keys((array)$payload['events']));
+        $payload['known_values'] = $this->AnalystGraphData->knownAnswerValues($user, $payload['document']['nodes']);
+        return $this->RestResponse->viewData(['Graph' => $summary, 'Collection' => $collection] + $payload, 'json');
+    }
+
+    /**
+     * The collection's members as graph document nodes, in the order they
+     * joined, leaving out those the graph holds; no more than the graph
+     * would hold in all. A value is drawn only when the user can read an
+     * attribute holding it.
+     *
+     * @param array $user
+     * @param int $collectionId
+     * @param array $graphNodes
+     * @return array [nodes, how many members the collection has, how many
+     *               found no room]
+     */
+    private function __memberNodes(array $user, $collectionId, array $graphNodes)
+    {
+        $CollectionElement = ClassRegistry::init('CollectionElement');
+        $elements = $CollectionElement->find('all', [
+            'recursive' => -1,
+            'fields' => ['CollectionElement.element_type', 'CollectionElement.element_uuid', 'CollectionElement.element_sha256'],
+            'conditions' => ['CollectionElement.collection_id' => $collectionId],
+            'order' => ['CollectionElement.id' => 'ASC'],
+        ]);
+        $held = [];
+        foreach ($graphNodes as $node) {
+            if (is_array($node) && isset($node['type'])) {
+                $held[AnalystGraphDocumentTool::nodeKey($node)] = true;
+            }
+        }
+        $room = max(0, AnalystGraphDocumentTool::MAX_NODES - count($graphNodes));
+        $nodes = [];
+        $values = [];
+        $leftOut = 0;
+        foreach ($elements as $element) {
+            $element = $element['CollectionElement'];
+            $target = CollectionElement::itemTarget($element['element_type'] === 'AttributeValue'
+                ? ['type' => 'Value', 'sha256' => $element['element_sha256']]
+                : ['type' => $element['element_type'], 'uuid' => $element['element_uuid']]);
+            if ($target === null) {
+                continue;
+            }
+            if (isset($held[$target['key']])) {
+                continue;
+            }
+            if (count($nodes) >= $room) {
+                $leftOut++;
+                continue;
+            }
+            $held[$target['key']] = true;
+            if ($target['element_type'] === 'AttributeValue') {
+                $values[] = ['element_type' => 'AttributeValue', 'element_sha256' => $target['address'], 'at' => count($nodes)];
+                $nodes[] = null;
+            } else {
+                $nodes[] = ['type' => $element['element_type'], 'uuid' => $target['address']];
+            }
+        }
+        foreach ($CollectionElement->attachTargets($user, $values) as $value) {
+            if (isset($value['AttributeValue']['value'])) {
+                $nodes[$value['at']] = [
+                    'type' => 'Value',
+                    'value' => $value['AttributeValue']['value'],
+                    'sha256' => $value['element_sha256'],
+                ];
+            }
+        }
+        return [array_values(array_filter($nodes)), count($elements), $leftOut];
     }
 
     /**

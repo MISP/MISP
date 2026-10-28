@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+App::uses('ActiveWorkspaceTool', 'Tools');
 App::uses('AnalystData', 'Model');
 App::uses('Collection', 'Model');
 App::uses('CollectionRailCards', 'Tools/RailCards');
@@ -13,9 +14,99 @@ class CollectionsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        // Posted by hand-built AJAX from the event and index collection panels,
-        // which sends the CSRF token as the X-CSRF-Token header.
-        $this->_csrfTokenHeaderOnly(['getCollectionsForElements']);
+        // Posted by hand-built AJAX from the event and index collection panels
+        // and by the workspace, which send the CSRF token as the X-CSRF-Token header.
+        $this->_csrfTokenHeaderOnly(['getCollectionsForElements', 'active', 'quickAdd']);
+        $this->Collection->CollectionElement->current_user = $this->Auth->user();
+    }
+
+    /**
+     * The user's workspace. POST {collection_uuid, graph_uuid?} makes a
+     * collection they may edit their workspace, laid out by one of their
+     * organisation's graphs on it, or by none when graph_uuid is null; left
+     * out, the newest of them. A null collection ends it.
+     */
+    public function active()
+    {
+        $this->request->allowMethod(['get', 'post']);
+        $user = $this->Auth->user();
+        if ($this->request->is('get')) {
+            return $this->RestResponse->viewData(ActiveWorkspaceTool::forUser($user), 'json');
+        }
+        $input = is_array($this->request->data) ? $this->request->data : [];
+        $collection = array_key_exists('collection_uuid', $input) ? $input['collection_uuid'] : false;
+        if ($collection === false || ($collection !== null && !is_string($collection))) {
+            throw new BadRequestException(__('Name the collection to work in, or null for none.'));
+        }
+        $graph = $input['graph_uuid'] ?? null;
+        if ($graph !== null && !is_string($graph)) {
+            throw new BadRequestException(__('Name the graph by its uuid, or null for none.'));
+        }
+        list($workspace, $refusal) = ActiveWorkspaceTool::choose($user, $collection, $graph, array_key_exists('graph_uuid', $input));
+        switch ($refusal) {
+            case 'collection':
+                throw new NotFoundException(__('Invalid collection.'));
+            case 'edit':
+                throw new ForbiddenException(__('Only a collection you can edit can be your workspace, and “%s” is not one.', $workspace['Collection']['name']));
+            case 'graph':
+                throw new BadRequestException(__('That graph is not one of your organisation’s graphs on “%s”.', $workspace['Collection']['name']));
+        }
+        return $this->RestResponse->viewData($workspace, 'json');
+    }
+
+    /**
+     * New collection…: {name, type?, distribution?, sharing_group_id?,
+     * description?, workspace?}. Research, for the organisation only, unless
+     * the request says otherwise; with `workspace` true it becomes the
+     * user's workspace in the same request.
+     */
+    public function quickAdd()
+    {
+        $this->request->allowMethod(['post']);
+        $user = $this->Auth->user();
+        $input = is_array($this->request->data) ? $this->request->data : [];
+        if (!is_string($input['name'] ?? null)) {
+            throw new BadRequestException(__('A collection needs a name.'));
+        }
+        $record = [
+            'name' => trim($input['name']),
+            'type' => is_string($input['type'] ?? null) ? $input['type'] : 'research',
+            'distribution' => isset($input['distribution']) && is_scalar($input['distribution']) ? (string)$input['distribution'] : '0',
+            'description' => is_string($input['description'] ?? null) ? $input['description'] : '',
+        ];
+        if ($record['distribution'] === '4') {
+            $record['sharing_group_id'] = $input['sharing_group_id'] ?? null;
+            $canUse = $this->Collection->SharingGroup->checkIfCanBeUsed($user, false, $record);
+            if ($canUse !== true) {
+                throw new MethodNotAllowedException($canUse);
+            }
+        }
+        $this->Collection->current_user = $user;
+        $this->Collection->create();
+        if (!$this->Collection->save(['Collection' => $record])) {
+            return $this->RestResponse->saveFailResponse('Collections', 'quickAdd', false, $this->Collection->validationErrors, 'json');
+        }
+        $collection = $this->Collection->workspaceSummaries($user, ['Collection.id' => $this->Collection->id], 1)[0] ?? null;
+        $workspace = null;
+        if (!empty($input['workspace']) && $collection !== null) {
+            list($workspace) = ActiveWorkspaceTool::choose($user, $collection['uuid'], null);
+        }
+        return $this->RestResponse->viewData(['Collection' => $collection, 'workspace' => $workspace], 'json');
+    }
+
+    /**
+     * The collections the user may make their workspace, the ones they used
+     * last first; `?scope=mine` keeps those they created.
+     */
+    public function editable()
+    {
+        $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
+        $scope = ($this->request->query['scope'] ?? null) === 'mine' ? 'mine' : 'org';
+        return $this->RestResponse->viewData([
+            'Collection' => ActiveWorkspaceTool::editable($user, $scope),
+            'active' => ActiveWorkspaceTool::stored($user),
+        ], 'json');
     }
 
     public $paginate = [
@@ -451,11 +542,15 @@ class CollectionsController extends AppController
             'quickFilters' => ['Collection.name'],
             'contain' => ['Orgc', 'SharingGroup'],
             'afterFind' => function($collections) {
+                $user = $this->Auth->user();
                 foreach ($collections as $k => $collection) {
                     $collections[$k]['Collection']['element_count'] = $this->Collection->CollectionElement->find('count', [
                         'recursive' => -1,
                         'conditions' => ['CollectionElement.collection_id' => $collection['Collection']['id']]
                     ]);
+                    if (!empty($collection['CollectionElement']) && !Collection::showsAdders($user, $collection['Collection'])) {
+                        $collections[$k]['CollectionElement'] = Collection::withoutAdders($collection['CollectionElement']);
+                    }
                 }
                 return $collections;
             }
