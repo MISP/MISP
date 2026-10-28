@@ -1,9 +1,9 @@
 <?php
 /*
- * The theme's galaxy-cluster picker as a form field — same galaxy category
- * buttons, same remote search and same badges as Modals/galaxy_picker.ctp
- * (both run initGalaxyPickerSection()), except the selection ends up in hidden
- * inputs instead of a JSON POST, so it travels with the surrounding form.
+ * The theme's galaxy-cluster picker as a form field (initGalaxyPickerSection()):
+ * galaxy category buttons, a remote cluster search and the picked clusters as
+ * badges. The selection ends up in hidden inputs, so it travels with the
+ * surrounding form.
  *
  * Required params:
  *   $field       string  dotted field path, e.g. 'TagCollection.galaxies'

@@ -102,7 +102,9 @@
             'distribution' => $event['Event']['distribution'] ?? null,
             'sharingGroup' => ($event['SharingGroup'] ?? [])
                 + (isset($sharingGroupOrgCount) ? ['org_count' => $sharingGroupOrgCount] : []),
-            'markings' => $overviewMarkings ?? [],
+            'markings' => ($overviewMarkings ?? []) + ($this->Acl->canModifyTag($event)
+                ? ['editUrl' => $baseurl . '/events/editEventTags/' . $event['Event']['id']]
+                : []),
             'outliers' => $outliers,
         ],
         'tabs' => [

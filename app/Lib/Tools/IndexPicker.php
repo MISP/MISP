@@ -173,7 +173,7 @@ class IndexPicker
         }
         $rows = self::search($Tag, [
             'conditions' => ['AND' => $conditions],
-            'fields' => ['Tag.name', 'Tag.colour'],
+            'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.local_only'],
             'order' => ['Tag.name' => 'ASC'],
             'recursive' => -1,
         ], 'Tag.name', $term, [self::class, 'tagRow'], self::limit($options['limit'] ?? null), $scope === '' ? self::MIN_TERM : 0);
@@ -447,10 +447,12 @@ class IndexPicker
                     'value' => $e['value'],
                     'expanded' => $e['expanded'],
                     'description' => $e['description'] ?? null,
-                    'colour' => $e['colour'] ?: ($live ?: null),
+                    'colour' => $e['colour'] ?: ($live['colour'] ?? null),
                     'numerical_value' => $e['numerical_value'],
                     'tag' => $tag,
                     'tag_exists' => $live !== null,
+                    'tag_id' => $live['id'] ?? null,
+                    'local_only' => !empty($live['local_only']),
                 ];
             }
             $tag = $ns . ':' . $pv;
@@ -459,10 +461,12 @@ class IndexPicker
                 'value' => $pv,
                 'expanded' => $p['TaxonomyPredicate']['expanded'],
                 'description' => $p['TaxonomyPredicate']['description'] ?? null,
-                'colour' => $p['TaxonomyPredicate']['colour'] ?: ($live ?: null),
+                'colour' => $p['TaxonomyPredicate']['colour'] ?: ($live['colour'] ?? null),
                 'exclusive' => !empty($p['TaxonomyPredicate']['exclusive']),
                 'tag' => $entries ? null : $tag,
                 'tag_exists' => $entries ? null : $live !== null,
+                'tag_id' => $entries ? null : ($live['id'] ?? null),
+                'local_only' => !$entries && !empty($live['local_only']),
                 'entries' => $entries,
             ];
         }
@@ -477,7 +481,7 @@ class IndexPicker
     /**
      * @param array $user
      * @param array $names
-     * @return array lowercased name => colour ('' when none), for the tags the reader may see
+     * @return array lowercased name => {id, colour (null when none), local_only}, for the tags the reader may see
      */
     private static function existingTags(array $user, array $names)
     {
@@ -487,19 +491,134 @@ class IndexPicker
         $Tag = ClassRegistry::init('Tag');
         $out = [];
         foreach (array_chunk($names, 1000) as $chunk) {
-            $rows = $Tag->find('list', [
+            $rows = $Tag->find('all', [
                 'conditions' => ['AND' => [
                     $Tag->createConditions($user),
                     ['Tag.hide_tag' => 0, 'Tag.name' => $chunk],
                 ]],
-                'fields' => ['Tag.name', 'Tag.colour'],
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.local_only'],
                 'recursive' => -1,
             ]);
-            foreach ($rows as $name => $colour) {
-                $out[mb_strtolower($name)] = (string)$colour;
+            foreach ($rows as $r) {
+                $out[mb_strtolower($r['Tag']['name'])] = [
+                    'id' => (int)$r['Tag']['id'],
+                    'colour' => $r['Tag']['colour'] ?: null,
+                    'local_only' => !empty($r['Tag']['local_only']),
+                ];
             }
         }
         return $out;
+    }
+
+    /**
+     * The column browser's strings (index-filter-browser.js), for a filter
+     * bar and for the tag and galaxy picker modals that embed it.
+     *
+     * @return array
+     */
+    public static function browserStrings()
+    {
+        return [
+            'aka' => __('aka %s'),
+            'all' => __('All'),
+            'allGalaxies' => __('All galaxies'),
+            'allOf' => __('All of %s'),
+            'allTactics' => __('All tactics'),
+            'allTags' => __('All tags'),
+            'az' => __('A–Z'),
+            'backTo' => __('Back to %s'),
+            'browse' => __('Browse'),
+            'byNamespace' => __('Namespace'),
+            'checkSpelling' => __('Check the spelling, or browse a scope on the left.'),
+            'clear' => __('Clear'),
+            'deprecated' => __('Deprecated'),
+            'enabled' => __('Enabled'),
+            'everywhere' => __('Everywhere'),
+            'exclude' => __('Exclude'),
+            'firstMatches' => __('First %s matches · keep typing or narrow'),
+            'galaxies' => __('Galaxies'),
+            'hasSelected' => __('Has selected values'),
+            'inUse' => __('In use'),
+            'inUseTitle' => __('Clusters already attached somewhere'),
+            'keepTyping' => __('Keep typing'),
+            'keyApply' => __('apply'),
+            'keyBack' => __('back'),
+            'keyExclude' => __('exclude'),
+            'keyInclude' => __('include'),
+            'loading' => __('Loading'),
+            'loadingScopes' => __('Loading scopes…'),
+            'loadScopesFailed' => __('Could not load the scopes.'),
+            'loadValuesFailed' => __('Could not load these values'),
+            'matchAll' => __('All of'),
+            'matchAllTitle' => __('Events tagged with every one of them, on the event itself'),
+            'matchAny' => __('Any of'),
+            'matchAnyTitle' => __('Events with at least one of them, on the event or one of its attributes'),
+            'matchLabel' => __('Match'),
+            'matrix' => __('matrix'),
+            'matrixTitle' => __('A matrix: browse it by tactic'),
+            'moreN' => __('+%s more'),
+            'moreNotShown' => __('More not shown · type to narrow'),
+            'moreTypeToNarrow' => __('+%s more · type to narrow'),
+            'namespaces' => __('Namespaces'),
+            'narrowKeeping' => __('Narrow to %s, keeping “%s”'),
+            'narrowTo' => __('Narrow to'),
+            'noClusterInUse' => __('No cluster in use'),
+            'noClusterInUseMatches' => __('No cluster in use matches “%s”'),
+            'noClusterInUseTactic' => __('No cluster in use for this tactic'),
+            'noCollectionMatches' => __('No tag collection matches “%s”'),
+            'noNamespace' => __('No namespace'),
+            'noNamespaceDesc' => __('Free-text tags, written without a "namespace:" prefix.'),
+            'noPredicateMatch' => __('No predicate has a match.'),
+            'not' => __('not'),
+            'notAttached' => __('Not attached to anything yet'),
+            'noTaxonomy' => __('no taxonomy'),
+            'notEnabled' => __('Not enabled'),
+            'nothingHere' => __('Nothing here yet'),
+            'nTags' => __('%s tags'),
+            'nothingInMatches' => __('Nothing in %s matches “%s”'),
+            'nothingMatches' => __('Nothing matches “%s”'),
+            'noValueMatches' => __('No %s value matches “%s”'),
+            'nsDesc' => __('Tags written as "%s:…", with no taxonomy behind them.'),
+            'numericalValue' => __('Numerical value'),
+            'oneTag' => __('1 tag'),
+            'open' => __('Open %s'),
+            'openShort' => __('Open'),
+            'orTypeToSearchAll' => __('or type to search all %s %s values.'),
+            'otherNamespaces' => __('Other namespaces'),
+            'otherTags' => __('Other %s tags'),
+            'otherTagsTitle' => __('Tags in this namespace that are not entries of the taxonomy'),
+            'pickHeading' => __('pick a heading to narrow'),
+            'pickPredicate' => __('Pick a predicate'),
+            'pinnedInProfile' => __('Pinned in your profile'),
+            'predicates' => __('Predicates'),
+            'preferredInProfile' => __('Preferred in your profile'),
+            'remove' => __('Remove'),
+            'search' => __('Search'),
+            'searchAllClusters' => __('Search all clusters, or pick a scope'),
+            'searchAllOf' => __('Search all of %s'),
+            'searchAllTags' => __('Search all tags, or pick a scope'),
+            'searchFailed' => __('Search failed'),
+            'searchIn' => __('Search in %s'),
+            'selected' => __('Selected'),
+            'showAll' => __('show all'),
+            'showAllClusters' => __('Show all clusters'),
+            'showWhere' => __('Show where it lives'),
+            'startsWith' => __('Starts with %s'),
+            'stopExcluding' => __('Stop excluding'),
+            'tactics' => __('Tactics'),
+            'tagCollections' => __('Tag collections'),
+            'tagCollectionsDesc' => __('Picking a collection adds every one of its tags; picking it again removes them.'),
+            'tags' => __('Tags'),
+            'taxonomies' => __('Taxonomies'),
+            'taxonomy' => __('taxonomy'),
+            'trayEmpty' => __('Nothing selected · click a value to include it,'),
+            'trayEmptyExclude' => __('to exclude it'),
+            'tryAgain' => __('Try again'),
+            'twoCharsClusters' => __('Two characters search every cluster, or pick a scope on the left.'),
+            'twoCharsTags' => __('Two characters search every tag, or pick a scope on the left.'),
+            'whereYouAre' => __('Where you are'),
+            'whichClusters' => __('Which clusters'),
+        ];
     }
 
     /**
@@ -663,13 +782,15 @@ class IndexPicker
         }
         $query = [
             'conditions' => $conditions,
-            'fields' => ['GalaxyCluster.value', 'GalaxyCluster.tag_name', 'GalaxyCluster.uuid', 'GalaxyCluster.description', 'GalaxyCluster.default', 'Galaxy.name', 'Galaxy.icon', 'Galaxy.type'],
+            'fields' => ['GalaxyCluster.id', 'GalaxyCluster.value', 'GalaxyCluster.tag_name', 'GalaxyCluster.uuid', 'GalaxyCluster.description', 'GalaxyCluster.default', 'Galaxy.name', 'Galaxy.icon', 'Galaxy.type'],
             'contain' => ['Galaxy'],
             'order' => ['GalaxyCluster.value' => 'ASC'],
         ];
+        // The id is what the galaxy picker modal attaches.
         $toRow = function (array $r) use ($valueField) {
             $row = self::clusterRow($r);
             $row['value'] = $r['GalaxyCluster'][$valueField];
+            $row['id'] = (int)$r['GalaxyCluster']['id'];
             return $row;
         };
         $rows = self::search($GalaxyCluster, $query, 'LOWER(GalaxyCluster.value)', $term, $toRow, $limit, $galaxyId === null ? self::MIN_TERM : 0);
@@ -679,7 +800,6 @@ class IndexPicker
             $synonyms = self::clusterIdsByElement($galaxyId, 'synonyms', $term, true);
             if (!empty($synonyms)) {
                 $query['conditions']['AND'][] = ['GalaxyCluster.id' => array_keys($synonyms)];
-                $query['fields'][] = 'GalaxyCluster.id';
                 $have = array_flip(array_column($rows, 'value'));
                 foreach ($GalaxyCluster->find('all', $query) as $r) {
                     $row = $toRow($r);
@@ -831,7 +951,7 @@ class IndexPicker
             $ids = array_values(array_filter($values['tag'], 'ctype_digit'));
             $byName = $Tag->find('all', [
                 'conditions' => ['AND' => [$Tag->createConditions($user), ['Tag.name' => $values['tag']]]],
-                'fields' => ['Tag.name', 'Tag.colour'],
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.local_only'],
                 'recursive' => -1,
             ]);
             foreach ($byName as $r) {
@@ -839,7 +959,7 @@ class IndexPicker
             }
             $byId = empty($ids) ? [] : $Tag->find('all', [
                 'conditions' => ['AND' => [$Tag->createConditions($user), ['Tag.id' => $ids]]],
-                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour'],
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.local_only'],
                 'recursive' => -1,
             ]);
             foreach ($byId as $r) {
@@ -889,11 +1009,16 @@ class IndexPicker
 
     public static function tagRow(array $r)
     {
-        return [
+        $row = [
             'value' => $r['Tag']['name'],
             'label' => $r['Tag']['name'],
             'style' => ['colour' => $r['Tag']['colour'] ?: null],
+            'id' => (int)$r['Tag']['id'],
         ];
+        if (!empty($r['Tag']['local_only'])) {
+            $row['local_only'] = true;
+        }
+        return $row;
     }
 
     public static function clusterRow(array $r)

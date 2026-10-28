@@ -2,16 +2,17 @@
 /*
  * Modal to pick global/local tags for an object.
  *
+ * The tags are picked in the column browser of the index filter bars
+ * (index-filter-browser.js, mounted here), which also offers the reader's tag
+ * collections: a pick is global (local for a local-only tag), and its chip in
+ * the lists below the browser moves it to the other side.
+ *
  * Required params:
  *   $saveUrl           string  POST target (unescaped, h()'d here)
  *   $uid               string  unique DOM/scope id (e.g. 'evt-tags-12')
- *   $allTags           [{id, name, colour}, ...]
- *   $customTags        [{id, name, colour}, ...]
- *   $tagCollections    [{id, name, tags:[{id,name,colour}]}, ...]
- *   $taxonomies        [{id, namespace, description, tags:[…]}, ...]
- *                      enabled taxonomies, each with its enabled tags
- *   $currentGlobalTags [{id, name, colour}, ...]   pre-selected (global)
- *   $currentLocalTags  [{id, name, colour}, ...]   pre-selected (local)
+ *   $tagCollections    [{id, name, tags: [{id, name, colour, local_only}]}, ...]
+ *   $currentGlobalTags [{id, name, colour, local_only, tag_name}, ...]  pre-selected (global)
+ *   $currentLocalTags  [{id, name, colour, local_only, tag_name}, ...]  pre-selected (local)
  *   $mayModify         bool
  * Optional params:
  *   $headerEyebrow     string  small uppercase label (default "Tags")
@@ -20,71 +21,35 @@
  *   $saveLabel         string  submit label (default "Save Tags")
  *   $reloadHook        string  window['<hook>' + uid] fn called after save;
  *                              falls back to the attribute-index reload.
+ *   $openTaxonomy      string  namespace of the taxonomy the browser opens on
+ *
+ * `tag_name` is optional: the tag itself, when `name` says more (the mass
+ * edit's "· 2/5").
+ *
+ * A save announces itself as `misp:tags-saved` ({uid}) on the document.
  */
+App::uses('IndexPicker', 'Tools');
 
 $headerEyebrow = $headerEyebrow ?? __('Tags');
 $reloadHook    = $reloadHook ?? '';
 
 $postUrl   = h($saveUrl);
 
-$allJson    = json_encode($allTags,           JSON_HEX_TAG | JSON_HEX_AMP);
-$customJson = json_encode($customTags,        JSON_HEX_TAG | JSON_HEX_AMP);
-$collJson   = json_encode($tagCollections,    JSON_HEX_TAG | JSON_HEX_AMP);
-$taxonomies = $taxonomies ?? [];
-$taxCats = [];
-foreach ($taxonomies as $taxonomy) {
-    $taxCats['taxonomy-' . $taxonomy['id']] = $taxonomy['tags'];
-}
-$taxJson    = json_encode((object)$taxCats,   JSON_HEX_TAG | JSON_HEX_AMP);
-$initGJson  = json_encode($currentGlobalTags, JSON_HEX_TAG | JSON_HEX_AMP);
-$initLJson  = json_encode($currentLocalTags,  JSON_HEX_TAG | JSON_HEX_AMP);
+$initGJson = json_encode($currentGlobalTags, JSON_HEX_TAG | JSON_HEX_AMP);
+$initLJson = json_encode($currentLocalTags,  JSON_HEX_TAG | JSON_HEX_AMP);
 
-/* Reusable section markup (category buttons + picker + selected area) */
-$section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomies) {
-    ob_start(); ?>
-    <div class="w-100 px-2" data-section="<?= h($scope) ?>">
-        <div class="d-flex align-items-center gap-2 fw-bold text-uppercase mb-2 text-tag"
-             style="font-size:.65rem; letter-spacing:.1em;">
-            <i class="<?= h($iconClass) ?>"></i>
-            <?= h($title) ?>
-            <?= $badgeHtml ?>
-        </div>
+$browser = [
+    'scopes'      => $baseurl . '/tags/pickerScopes',
+    'source'      => $baseurl . '/tags/pickerSearch',
+    'tree'        => $baseurl . '/tags/pickerTree',
+    'label'       => __('Tags'),
+    'strings'     => IndexPicker::browserStrings(),
+    'collections' => $tagCollections,
+    'open'        => $openTaxonomy ?? null,
+];
 
-        <!-- Category buttons -->
-        <div class="d-flex flex-wrap gap-2 mb-2 tag-cat-list">
-            <button type="button" class="btn btn-sm btn-outline-tag tag-cat-btn active"
-                    data-cat="all"><?= __('All Tags') ?></button>
-            <button type="button" class="btn btn-sm btn-outline-tag tag-cat-btn"
-                    data-cat="custom"><?= __('Custom Tags') ?></button>
-            <button type="button" class="btn btn-sm btn-outline-tag tag-cat-btn"
-                    data-cat="collections"><?= __('Tag Collections') ?></button>
-        </div>
-
-        <?php if (!empty($taxonomies)): ?>
-        <div class="d-flex flex-wrap gap-1 mb-2 overflow-auto tag-cat-list"
-             style="max-height:5.5rem;">
-            <?php foreach ($taxonomies as $taxonomy): ?>
-                <button type="button"
-                        class="btn btn-sm btn-outline-tag tag-cat-btn py-0 px-2"
-                        data-cat="taxonomy-<?= h($taxonomy['id']) ?>"
-                        title="<?= h($taxonomy['description']) ?>">
-                    <?= h($taxonomy['namespace']) ?>
-                    <span class="opacity-75 ms-1"><?= count($taxonomy['tags']) ?></span>
-                </button>
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-
-        <select class="tag-picker"
-                placeholder="<?= __('Search tags to add…') ?>"></select>
-
-        <div class="mt-2 d-flex flex-wrap tag-selected"></div>
-        <div class="text-muted small fst-italic tag-selected-empty">
-            <?= __('No tags selected.') ?>
-        </div>
-    </div>
-    <?php return ob_get_clean();
-};
+$sideHead = 'd-flex align-items-center gap-2 fw-bold text-uppercase mb-2 text-tag';
+$sideHeadStyle = 'font-size:.65rem; letter-spacing:.1em;';
 ?>
 
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
@@ -96,19 +61,39 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomi
     'icon' => 'misp-icon misp-icon-tag misp-simple',
 ]) ?>
 
-<div class="container-fluid px-4 py-4">
+<div class="container-fluid px-4 py-4" id="<?= h($uid) ?>-picker">
 
-    <div class="d-flex flex-column gap-4">
+    <div class="d-flex flex-column gap-3">
 
-        <?= $section('global', 'fas fa-globe', __('Global Tags')) ?>
+        <div class="ifb-accented" style="--ifb-accent: var(--bs-tag);" data-browser-host>
+            <div class="text-center py-5 text-body-secondary">
+                <div class="misp-loader misp-loader-sm" role="status"></div>
+            </div>
+        </div>
 
-        <?php
-        $localBadge = '<span class="badge bg-warning text-dark fw-normal"'
-            . ' style="font-size:.6rem; text-transform:none; letter-spacing:0;">'
-            . h(__('Would not be synchronized with other instances'))
-            . '</span>';
-        echo $section('local', 'fas fa-user', __('Local Tags'), $localBadge);
-        ?>
+        <div class="d-flex flex-column gap-3">
+            <div data-side="global">
+                <div class="<?= $sideHead ?>" style="<?= $sideHeadStyle ?>">
+                    <i class="fas fa-globe"></i>
+                    <?= __('Global Tags') ?>
+                    <span class="fw-normal text-body-secondary" data-side-count></span>
+                </div>
+                <div class="d-flex flex-wrap" data-side-list></div>
+                <div class="text-muted small fst-italic" data-side-empty><?= __('No tags selected.') ?></div>
+            </div>
+            <div data-side="local">
+                <div class="<?= $sideHead ?>" style="<?= $sideHeadStyle ?>">
+                    <i class="fas fa-user"></i>
+                    <?= __('Local Tags') ?>
+                    <span class="fw-normal text-body-secondary" data-side-count></span>
+                    <span class="badge bg-warning text-dark fw-normal" style="font-size:.6rem; text-transform:none; letter-spacing:0;">
+                        <?= __('Would not be synchronized with other instances') ?>
+                    </span>
+                </div>
+                <div class="d-flex flex-wrap" data-side-list></div>
+                <div class="text-muted small fst-italic" data-side-empty><?= __('No tags selected.') ?></div>
+            </div>
+        </div>
 
     </div>
 
@@ -129,32 +114,165 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomi
     var postUrl    = <?= json_encode($postUrl) ?>;
     var uid        = <?= json_encode($uid) ?>;
     var reloadHook = <?= json_encode($reloadHook) ?>;
-    var catData    = Object.assign({
-        all:         <?= $allJson    ?: '[]' ?>,
-        custom:      <?= $customJson ?: '[]' ?>,
-        collections: <?= $collJson   ?: '[]' ?>
-    }, <?= $taxJson ?: '{}' ?>);
-    var initSelected = {
-        global: <?= $initGJson ?: '[]' ?>,
-        local:  <?= $initLJson ?: '[]' ?>
-    };
+    var browserCfg = <?= json_encode($browser, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
+    var browserAssets = <?= $this->element('genericElementsBS5/Modals/index_filter_browser_assets') ?>;
+    var root       = document.getElementById(uid + '-picker');
+    var modalEl    = document.getElementById('mainModal');
+    var labels     = <?= json_encode([
+        'makeLocal' => __('Make it local'),
+        'makeGlobal' => __('Make it global'),
+        'localOnly' => __('This tag can only be attached locally'),
+        'remove' => __('Remove'),
+        'showWhere' => __('Show where it lives'),
+        'loadFailed' => __('The tag browser could not be loaded.'),
+    ], JSON_HEX_TAG | JSON_HEX_AMP) ?>;
 
-    /*
-     * One section per locality. initTagPickerSection() (mispOvermind.js) is the
-     * picker itself — the same code the in-form field uses, so both look and
-     * behave identically.
-     */
-    function makeSection(scope, initTags) {
-        return initTagPickerSection(
-            document.querySelector('[data-section="' + scope + '"]'),
-            catData,
-            initTags,
-            { localMarker: scope === 'local' }
-        );
+    /* Tag name => {id, name, colour, local_only, tag_name}, per side. A mass edit can carry one tag on both. */
+    var picked = { global: {}, local: {} };
+    [['global', <?= $initGJson ?: '[]' ?>], ['local', <?= $initLJson ?: '[]' ?>]].forEach(function (side) {
+        side[1].forEach(function (t) {
+            t.tag_name = t.tag_name || t.name;
+            picked[side[0]][t.tag_name] = t;
+        });
+    });
+    var browser = null;
+
+    function entries(side) {
+        return Object.keys(picked[side]).map(function (tag) { return picked[side][tag]; });
     }
 
-    var globalSection = makeSection('global', initSelected.global);
-    var localSection  = makeSection('local',  initSelected.local);
+    /* What the browser ticks: a tag on both sides shows as global. */
+    function browserSelection() {
+        var out = Object.keys(picked.global).map(function (tag) { return { value: tag }; });
+        Object.keys(picked.local).forEach(function (tag) {
+            if (!picked.global[tag]) { out.push({ value: tag, local: true }); }
+        });
+        return out;
+    }
+
+    function chipButton(icon, title, onClick) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'hg-act';
+        b.title = title;
+        b.setAttribute('aria-label', title);
+        b.innerHTML = icon;
+        b.addEventListener('click', function (e) {
+            e.stopPropagation();
+            onClick();
+        });
+        return b;
+    }
+
+    function renderSides() {
+        ['global', 'local'].forEach(function (side) {
+            var box = root.querySelector('[data-side="' + side + '"]');
+            var other = side === 'global' ? 'local' : 'global';
+            var list = entries(side).sort(function (a, b) { return a.name.localeCompare(b.name); });
+            var byId = {};
+            list.forEach(function (t) { byId[t.id] = t; });
+            box.querySelector('[data-side-count]').textContent = list.length ? '(' + list.length + ')' : '';
+            box.querySelector('[data-side-empty]').classList.toggle('d-none', list.length > 0);
+            var el = box.querySelector('[data-side-list]');
+            el.innerHTML = TagChips.collection(list.map(function (t) {
+                return { id: t.id, name: t.name, colour: t.colour, local: side === 'local' };
+            }), { searchUrl: '' });
+            el.querySelectorAll('.hg-unit').forEach(function (unit) {
+                var chip = unit.querySelector('[data-tag-id]');
+                var t = chip ? byId[chip.getAttribute('data-tag-id')] : null;
+                if (!t) { return; }
+                unit.title = labels.showWhere;
+                unit.style.cursor = 'pointer';
+                unit.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (browser) { browser.reveal(t.tag_name); }
+                });
+                if (t.local_only && side === 'local') {
+                    unit.title = labels.localOnly;
+                } else {
+                    unit.appendChild(chipButton(
+                        '<i class="fas ' + (side === 'global' ? 'fa-user' : 'fa-globe') + '"></i>',
+                        side === 'global' ? labels.makeLocal : labels.makeGlobal,
+                        function () {
+                            delete picked[side][t.tag_name];
+                            if (!picked[other][t.tag_name]) { picked[other][t.tag_name] = t; }
+                            changed();
+                        }
+                    ));
+                }
+                unit.appendChild(chipButton('&times;', labels.remove, function () {
+                    delete picked[side][t.tag_name];
+                    changed();
+                }));
+            });
+        });
+    }
+
+    function changed() {
+        renderSides();
+        if (browser) { browser.select(browserSelection()); }
+    }
+
+    function pick(t) {
+        if (picked.global[t.tag_name] || picked.local[t.tag_name]) { return; }
+        picked[t.local_only ? 'local' : 'global'][t.tag_name] = t;
+    }
+
+    /* A collection row adds its tags, or removes them all once each is picked. */
+    function onToggle(row, on) {
+        var tags = row.collection
+            ? row.collection.tags.map(function (t) {
+                return { id: t.id, name: t.name, colour: t.colour, local_only: t.local_only, tag_name: t.name };
+            })
+            : [{
+                id: row.id,
+                name: row.value,
+                colour: row.style && row.style.colour ? row.style.colour : '#0088cc',
+                local_only: !!row.local_only,
+                tag_name: row.value
+            }];
+        tags.forEach(function (t) {
+            if (on) {
+                pick(t);
+            } else {
+                delete picked.global[t.tag_name];
+                delete picked.local[t.tag_name];
+            }
+        });
+        changed();
+    }
+
+    var host = root.querySelector('[data-browser-host]');
+    loadIndexFilterBrowser(browserAssets).then(function () {
+        if (!root.isConnected) { return; }
+        host.innerHTML = '';
+        browser = window.IndexFilterBrowser.mount(host, {
+            kind: 'tag',
+            scopes: browserCfg.scopes,
+            source: browserCfg.source,
+            tree: browserCfg.tree,
+            label: browserCfg.label,
+            strings: browserCfg.strings,
+            collections: browserCfg.collections,
+            open: browserCfg.open,
+            selection: browserSelection(),
+            onToggle: onToggle,
+            reserve: 490
+        });
+        if (modalEl.classList.contains('show')) { browser.focus(); }
+    }, function () {
+        host.innerHTML = '<div class="text-center py-4 text-body-secondary small">'
+            + '<i class="fas fa-triangle-exclamation me-2"></i></div>';
+        host.firstChild.appendChild(document.createTextNode(labels.loadFailed));
+    });
+    modalEl.addEventListener('shown.bs.modal', function () {
+        if (browser) { browser.focus(); }
+    }, { once: true });
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        if (browser) { browser.destroy(); }
+    }, { once: true });
+
+    renderSides();
 
     /*
      * A tag collection can carry galaxy clusters - they live in the collection as
@@ -172,12 +290,17 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomi
      */
     function afterSave() {
         reloadGalaxiesCard();
+        document.dispatchEvent(new CustomEvent('misp:tags-saved', { detail: { uid: uid } }));
         var cardReload = reloadHook ? window[reloadHook + uid] : null;
         if (typeof cardReload === 'function') { cardReload(); return; }
 
         /* No card hook (attribute context): the change shows in the index
            behind the modal. */
         reloadEventViewIndexTab();
+    }
+
+    function ids(side) {
+        return entries(side).map(function (t) { return t.id; });
     }
 
     /* ─── Save ─── */
@@ -195,8 +318,8 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomi
                     'X-CSRF-Token':     getCsrfToken()
                 },
                 body: JSON.stringify({
-                    global_ids: globalSection.ids(),
-                    local_ids:  localSection.ids()
+                    global_ids: ids('global'),
+                    local_ids:  ids('local')
                 })
             })
             .then(function (r) { return r.json(); })
