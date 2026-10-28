@@ -12,7 +12,7 @@
 $targetUuid = strtolower($targetUuid);
 $this->set('intelGraphPage', ['type' => $targetType, 'uuid' => $targetUuid, 'label' => $targetLabel]);
 
-$canCreate = $this->Acl->canAccess('workspaces', 'addNodes');
+$canCreate = $this->Acl->canAccess('analystGraphs', 'addNodes');
 $create = null;
 if ($canCreate) {
     $levels = [];
@@ -43,7 +43,7 @@ $config = [
     'target' => ['type' => $targetType, 'uuid' => $targetUuid, 'label' => $targetLabel],
     'targetName' => $targetNames[$targetType] ?? $targetType,
     'canCreate' => $canCreate,
-    'canFork' => $this->Acl->canAccess('workspaces', 'fork'),
+    'canFork' => $this->Acl->canAccess('analystGraphs', 'fork'),
     'create' => $create,
     'distributionLevels' => $this->DistributionLevel->all(),
 ];

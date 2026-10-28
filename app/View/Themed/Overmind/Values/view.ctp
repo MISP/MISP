@@ -124,7 +124,7 @@ $headerActions = array(
             'class' => 'btn btn-outline-dark disabled',
             'title' => __('Your role does not allow adding to collections.'),
         ),
-    $this->Acl->canAccess('workspaces', 'addNodes')
+    $this->Acl->canAccess('analystGraphs', 'addNodes')
         ? array(
             'type' => 'navigate',
             'label' => __('Add to workspace'),

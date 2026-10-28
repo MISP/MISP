@@ -4,10 +4,10 @@ App::uses('AnalystData', 'Model');
 App::uses('AnalystGraphDocumentTool', 'Tools');
 
 /**
- * A workspace: analyst data attached to one record, whose content is a
+ * An analyst graph: analyst data attached to one record, whose content is a
  * document of the records it shows and their layout.
  */
-class Workspace extends AnalystData
+class Graph extends AnalystData
 {
     public $useTable = 'analyst_graphs';
 
@@ -19,7 +19,7 @@ class Workspace extends AnalystData
         'AnalystData',
     );
 
-    public $current_type = 'Workspace';
+    public $current_type = 'Graph';
     public $current_type_id = 3;
 
     const VALID_TARGETS = [
@@ -316,7 +316,7 @@ class Workspace extends AnalystData
      * @param array $options `limit`; `targets` (default true) labels each
      *                       target as the user sees it; `parents` (default
      *                       false) adds `forked_from`, see withParents()
-     * @return array Workspace rows, unwrapped, `node_count` the nodes the user
+     * @return array Graph rows, unwrapped, `node_count` the nodes the user
      *               may read
      */
     public function summaries(array $user, array $conditions, array $options = [])

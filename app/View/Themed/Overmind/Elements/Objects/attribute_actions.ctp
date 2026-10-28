@@ -41,7 +41,7 @@ $attrDeleted = !empty($attr['deleted']);
             </a>
         </li>
         <?php
-            $mayGraph = !$attrDeleted && $this->Acl->canAccess('workspaces', 'addNodes');
+            $mayGraph = !$attrDeleted && $this->Acl->canAccess('analystGraphs', 'addNodes');
             $mayCollect = !$attrDeleted && $this->Acl->canAccess('collectionElements', 'addElementToCollection');
         ?>
         <?php if ($mayGraph || $mayCollect): ?>

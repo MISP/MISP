@@ -68,7 +68,7 @@
     }
 
     function graphPath(action, uuid) {
-        return '/workspaces/' + action + (uuid ? '/' + encodeURIComponent(uuid) : '') + '.json';
+        return '/analyst_graphs/' + action + (uuid ? '/' + encodeURIComponent(uuid) : '') + '.json';
     }
 
     function emit(name, detail) {
@@ -127,13 +127,13 @@
 
     function refreshActive() {
         return request('GET', graphPath('active')).then(function (out) {
-            return setActiveState(out && out.Workspace);
+            return setActiveState(out && out.Graph);
         });
     }
 
     function setActive(uuid) {
         return request('POST', graphPath('active'), { workspace_uuid: uuid || null }).then(function (out) {
-            return setActiveState(out && out.Workspace);
+            return setActiveState(out && out.Graph);
         });
     }
 
@@ -141,7 +141,7 @@
     // scope 'mine', only those listing the user among their authors.
     function list(scope) {
         return request('GET', graphPath('editable') + (scope === 'mine' ? '?scope=mine' : '')).then(function (out) {
-            return { graphs: (out && out.Workspace) || [], active: (out && out.active) || null };
+            return { graphs: (out && out.Graph) || [], active: (out && out.active) || null };
         });
     }
 
@@ -219,16 +219,16 @@
     // graph.
     function create(graph, options) {
         var target = graph.target || {};
-        var body = { Workspace: {
+        var body = { Graph: {
             name: graph.name,
             description: graph.description,
             distribution: graph.distribution,
             sharing_group_id: graph.sharing_group_id
         } };
-        if (graph.content) body.Workspace.content = graph.content;
-        var path = '/analyst_data/add/Workspace/' + encodeURIComponent(target.uuid) + '/' + encodeURIComponent(target.type) + '.json';
+        if (graph.content) body.Graph.content = graph.content;
+        var path = '/analyst_data/add/Graph/' + encodeURIComponent(target.uuid) + '/' + encodeURIComponent(target.type) + '.json';
         return request('POST', path, body).then(function (out) {
-            var created = out && out.Workspace;
+            var created = out && out.Graph;
             if (!created || (options && options.activate === false)) return created;
             return setActive(created.uuid).then(function () { return created; });
         });
@@ -237,7 +237,7 @@
     // options: { target: { type, uuid }, name }
     function fork(uuid, options) {
         return request('POST', graphPath('fork', uuid), options || {}).then(function (out) {
-            return out && out.Workspace;
+            return out && out.Graph;
         });
     }
 
