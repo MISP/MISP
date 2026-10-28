@@ -59,10 +59,10 @@ class ComplexQueryTool
         'org' => ['kind' => 'string', 'handler' => 'set_filter_org', 'ops' => self::EXACT_STRING_OPS],
     ];
 
-    private $model;
-    private $fields;
+    protected $model;
+    protected $fields;
     private $limits;
-    private $errors;
+    protected $errors;
     private $nodes;
 
     /**
@@ -147,10 +147,11 @@ class ComplexQueryTool
      *
      * @param mixed $order a "field [asc|desc]" string, comma separated, or a list of them
      * @param array $allowed model => list of sortable fields
+     * @param string $defaultModel the model of a field named without one
      * @return void
      * @throws ComplexQueryException
      */
-    public function validateOrder($order, array $allowed)
+    public function validateOrder($order, array $allowed, $defaultModel = 'Attribute')
     {
         $this->errors = [];
         $rules = is_string($order) ? explode(',', $order) : $order;
@@ -169,7 +170,7 @@ class ComplexQueryTool
                     continue;
                 }
                 $parts = explode('.', $items[0]);
-                $model = count($parts) === 2 ? $parts[0] : 'Attribute';
+                $model = count($parts) === 2 ? $parts[0] : $defaultModel;
                 $field = strtolower(end($parts));
                 if (count($parts) > 2 || !isset($allowed[$model]) || !in_array($field, $allowed[$model], true)) {
                     $this->fail($path, 'unknown_field', 'unknown sort field');
@@ -213,7 +214,7 @@ class ComplexQueryTool
         }
     }
 
-    private function fail($path, $code, $message)
+    protected function fail($path, $code, $message)
     {
         if (count($this->errors) < self::MAX_ERRORS) {
             $this->errors[] = ['path' => $path, 'code' => $code, 'message' => $message];
@@ -272,7 +273,7 @@ class ComplexQueryTool
             $operand = current($spec);
         }
         if (!is_string($op) || !in_array($op, self::operatorsFor($def), true)) {
-            return $this->fail($path, 'unknown_operator', 'operator not allowed for this field');
+            return $this->fail($path, 'unknown_operator', $this->operatorMessage($def, $op));
         }
         $isList = $op === 'IN' || $op === 'NOT IN';
         if ($isList) {
@@ -295,9 +296,19 @@ class ComplexQueryTool
     }
 
     /**
+     * @param array $def
+     * @param mixed $op unchecked user input, never part of the message
+     * @return string
+     */
+    protected function operatorMessage(array $def, $op)
+    {
+        return 'operator not allowed for this field';
+    }
+
+    /**
      * @return int|string|null null after recording the error
      */
-    private function typed($kind, $value, $op, $field, $path)
+    protected function typed($kind, $value, $op, $field, $path)
     {
         switch ($kind) {
             case 'int':
@@ -355,7 +366,7 @@ class ComplexQueryTool
         return false;
     }
 
-    private function buildLeaf($field, $op, array $values, $path, $selectiveSiblings)
+    protected function buildLeaf($field, $op, array $values, $path, $selectiveSiblings)
     {
         $def = $this->fields[$field];
         $negate = $op === '!=' || $op === 'NOT IN';

@@ -43,6 +43,10 @@ class Event extends AppModel
     // Objects read per event for the index's object count
     const INDEX_OBJECT_LIMIT = 1000;
 
+    const REST_SEARCH_ORDER_FIELDS = [
+        'Event' => ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp'],
+    ];
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -2231,11 +2235,15 @@ class Event extends AppModel
      * @param array $user
      * @param array $params
      * @param int $result_count
+     * @param array|null $complexConditions the compiled `query` tree, from restSearch() only
      * @return array Event IDs, when `include_attribute_count` is enabled, then it is Event ID => Attribute count
      */
-    public function filterEventIds($user, &$params = array(), &$result_count = 0)
+    public function filterEventIds($user, &$params = array(), &$result_count = 0, $complexConditions = null)
     {
         $conditions = $this->createEventConditions($user);
+        if ($complexConditions !== null) {
+            $conditions['AND'][] = $complexConditions;
+        }
         if (isset($params['wildcard'])) {
             $temp = array();
             $options = array(
@@ -2356,7 +2364,7 @@ class Event extends AppModel
             $find_params['order'] = $this->findOrder(
                 $params['order'],
                 'Event',
-                ['id', 'info', 'analysis', 'threat_level_id', 'distribution', 'timestamp', 'publish_timestamp']
+                self::REST_SEARCH_ORDER_FIELDS['Event']
             );
         }
         if (isset($params['limit'])) {
@@ -12707,11 +12715,17 @@ class Event extends AppModel
      * @param int|false $jobId
      * @param int $elementCounter
      * @param bool $renderView
+     * @param int $skippedElementsCounter Not used
+     * @param array|null $complexQuery the `query` tree, checked and passed only by AppController::restSearch()
      * @return TmpFileTool
      * @throws Exception
      */
-    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false)
+    public function restSearch(array $user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0, &$renderView = false, &$skippedElementsCounter = 0, $complexQuery = null)
     {
+        // other callers pass filters straight from the request
+        if (isset($filters['query'])) {
+            throw new BadRequestException(__('The query parameter is only accepted by the restSearch endpoints.'));
+        }
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
         }
@@ -12734,9 +12748,10 @@ class Event extends AppModel
         $filters = $this->restSearchFilterMassage($filters, $non_restrictive_export, $user);
 
         $filters = $this->addFiltersFromUserSettings($user, $filters);
+        $compiledQuery = $complexQuery === null ? null : $this->compileComplexQuery($user, $complexQuery, $filters);
         if (empty($exportTool->mock_query_only)) {
             $filters['include_attribute_count'] = 1;
-            $eventid = $this->filterEventIds($user, $filters, $elementCounter);
+            $eventid = $this->filterEventIds($user, $filters, $elementCounter, $compiledQuery['conditions'] ?? null);
             $eventCount = count($eventid);
             $eventids_chunked = $this->clusterEventIds($exportTool, $eventid);
             unset($eventid);
@@ -12774,6 +12789,7 @@ class Event extends AppModel
                 $filters['blockedEventReportTags'] = $filters['tags']['NOT'];
                 unset($filters['tags']['NOT']);
             }
+            $filters = $this->addBlockedTags($filters, $compiledQuery['blockedTagIds'] ?? []);
             $result = $this->fetchEvent($user, $filters, true);
             foreach ($result as $event) {
                 if ($jobId && $i % 10 == 0) {
@@ -12794,6 +12810,49 @@ class Event extends AppModel
 
         $tmpfile->write($footer);
         return $tmpfile;
+    }
+
+    /**
+     * @param array $user
+     * @param mixed $complexQuery
+     * @param array $filters
+     * @return array conditions for filterEventIds() and the ids of the tags to strip
+     * @throws ComplexQueryException
+     */
+    private function compileComplexQuery(array $user, $complexQuery, array $filters)
+    {
+        App::uses('ComplexEventQueryTool', 'Tools');
+        $tool = new ComplexEventQueryTool($this->Attribute, $user, ComplexQueryTool::limitsFromConfig());
+        if (!empty($filters['order'])) {
+            $tool->validateOrder($filters['order'], self::REST_SEARCH_ORDER_FIELDS, 'Event');
+        }
+        return [
+            'conditions' => $tool->conditions($complexQuery),
+            'blockedTagIds' => $tool->blockedTagIds(),
+        ];
+    }
+
+    /**
+     * @param array $filters
+     * @param array $tagIds
+     * @return array
+     */
+    private function addBlockedTags(array $filters, array $tagIds)
+    {
+        if (empty($tagIds)) {
+            return $filters;
+        }
+        foreach (['blockedAttributeTags', 'blockedEventReportTags'] as $key) {
+            // the legacy filter of the same name may be a single string
+            $blocked = (array)($filters[$key] ?? []);
+            foreach ($tagIds as $tagId) {
+                if (!in_array($tagId, $blocked)) {
+                    $blocked[] = $tagId;
+                }
+            }
+            $filters[$key] = $blocked;
+        }
+        return $filters;
     }
 
     /*

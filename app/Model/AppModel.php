@@ -1189,7 +1189,7 @@ class AppModel extends Model
         return $conditions;
     }
 
-    protected function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
+    public function subQueryGenerator(AppModel $model, array $options, $lookupKey, $negation = false)
     {
         $defaults = array(
             'fields' => array('*'),

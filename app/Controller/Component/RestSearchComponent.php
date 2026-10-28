@@ -166,7 +166,8 @@ class RestSearchComponent extends Component
             'galaxy.*',
             'attackGalaxy',
             'hash_type',
-            'escape_formulas_literal'
+            'escape_formulas_literal',
+            'query'
         ],
         'Object' => [
             'returnFormat',
