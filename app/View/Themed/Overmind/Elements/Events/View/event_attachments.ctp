@@ -18,10 +18,10 @@ $mayModify = $this->Acl->canModifyEvent($data);
         </div>
 
         <div class="input-group input-group-sm eo-attach-search d-none" id="<?= $uid ?>-filter">
-            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <span class="input-group-text border-end-0"><i class="fas fa-search"></i></span>
             <input type="search"
                    id="<?= $uid ?>-search"
-                   class="form-control"
+                   class="form-control border-start-0 ps-0"
                    placeholder="<?= __('Filter files, hashes…') ?>"
                    autocomplete="off"
                    aria-label="<?= __('Filter attachments') ?>">

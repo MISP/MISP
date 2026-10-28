@@ -138,12 +138,18 @@ $byGalaxy = function (array $items) use ($baseurl, $techniques) {
     return ob_get_clean();
 };
 
-$labelCount = 0;
+$tagCount = 0;
+$clusterCount = 0;
 foreach (['attribution', 'behaviour', 'classification', 'clusters', 'mitigation'] as $row) {
     foreach ($rows[$row] as $item) {
-        $labelCount += $item['kind'] === 'absent' ? 0 : 1;
+        if ($item['kind'] === 'tag') {
+            $tagCount++;
+        } elseif ($item['kind'] !== 'absent') {
+            $clusterCount++;
+        }
     }
 }
+$labelCount = $tagCount + $clusterCount;
 $mayModifyTags = $this->Acl->canModifyTag($event) || !empty($isSiteAdmin);
 // Anyone who may add at least a local tag may accept AI suggestions.
 $aiTagsUrl = Configure::read('Plugin.AI_services_enable')
@@ -164,23 +170,14 @@ foreach ($rows as $items) {
 ?>
 <div class="eo-context">
     <div class="eo-card-head">
-        <div class="misp-icon-tile eo-tile" style="--tile:var(--bs-galaxy);--tile-bg:color-mix(in srgb, var(--bs-galaxy) 12%, transparent);">
-            <i class="misp-icon misp-icon-galaxy misp-simple"></i>
+        <div class="misp-icon-tile eo-tile" style="--tile:#b3639f;--tile-bg:color-mix(in srgb, #b3639f 12%, transparent);">
+            <i class="fas fa-compass"></i>
         </div>
         <div class="min-w-0 me-auto">
             <div class="eo-card-title"><?= __('Context') ?></div>
             <div class="eo-card-sub">
-                <?php if ($profileName): ?>
-                    <?php
-                    $profileLink = $profileId
-                        ? sprintf('<a href="%s" title="%s">%s</a>', h($baseurl . '/analystProfiles/view/' . (int)$profileId), h(__('Open your analyst profile')), h($profileName))
-                        : h($profileName);
-                    ?>
-                    <?= __('Ordered by your %s profile', $profileLink) ?>
-                    <a href="<?= h($baseurl . '/analystProfiles/index') ?>" class="eo-profile-change" title="<?= h(__('Choose another analyst profile')) ?>"><i class="fas fa-sliders"></i></a>
-                <?php else: ?>
-                    <?= __('Tags and galaxy clusters') ?>
-                <?php endif; ?>
+                <?= h(__n('%s tag', '%s tags', $tagCount, $tagCount)) ?>
+                · <?= h(__n('%s galaxy cluster', '%s galaxy clusters', $clusterCount, $clusterCount)) ?>
             </div>
         </div>
         <?php if ($labelCount > 0): ?>
@@ -190,7 +187,72 @@ foreach ($rows as $items) {
                        placeholder="<?= h(__('Filter labels…')) ?>" aria-label="<?= h(__('Filter labels')) ?>" autocomplete="off">
             </div>
         <?php endif; ?>
-        <div class="eo-figure"><b><?= $labelCount ?></b> <?= h(__n('label', 'labels', $labelCount)) ?></div>
+        <?php if ($mayModifyTags || $aiTagsUrl !== null): ?>
+            <div class="d-flex gap-1 flex-shrink-0">
+                <div class="dropdown">
+                    <button type="button" class="btn btn-sm btn-outline-tag dropdown-toggle d-inline-flex align-items-center gap-1" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="misp-icon misp-icon-tag misp-simple"></i><?= __('Tags') ?>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <?php if ($mayModifyTags): ?>
+                            <li>
+                                <button type="button" class="dropdown-item d-flex align-items-center gap-2" data-tour="event-tags-edit"
+                                        onclick="openModal('<?= h($editTags) ?>', 'xl')">
+                                    <i class="fas fa-pen-to-square"></i><?= __('Edit Tags') ?>
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item d-flex align-items-center gap-2" data-tour="event-tags-relationships"
+                                        onclick="openModal('<?= h($baseurl . '/events/editEventTagRelationships/' . $eventId) ?>', 'xl')"
+                                        title="<?= h(__('Set how this event relates to its tags')) ?>">
+                                    <i class="fas fa-diagram-project"></i><?= __('Relationships') ?>
+                                </button>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($aiTagsUrl !== null): ?>
+                            <?php if ($mayModifyTags): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                            <li>
+                                <button type="button" class="dropdown-item d-flex align-items-center gap-2" data-tour="event-tags-ai"
+                                        onclick="openModal('<?= h($aiTagsUrl) ?>', 'lg')">
+                                    <i class="fas fa-robot"></i><?= __('Recommend with AI') ?>
+                                </button>
+                            </li>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+                <div class="dropdown">
+                    <button type="button" class="btn btn-sm btn-outline-galaxy dropdown-toggle d-inline-flex align-items-center gap-1" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="misp-icon misp-icon-galaxy misp-simple"></i><?= __('Galaxy') ?>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <?php if ($mayModifyTags): ?>
+                            <li>
+                                <button type="button" class="dropdown-item d-flex align-items-center gap-2" data-tour="event-galaxies-edit"
+                                        onclick="openModal('<?= h($editClusters) ?>', 'xl')">
+                                    <i class="fas fa-pen-to-square"></i><?= __('Edit Galaxy Clusters') ?>
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item d-flex align-items-center gap-2" data-tour="event-galaxies-relationships"
+                                        onclick="openModal('<?= h($baseurl . '/events/editEventGalaxyRelationships/' . $eventId) ?>', 'xl')"
+                                        title="<?= h(__('Set how this event relates to its clusters')) ?>">
+                                    <i class="fas fa-diagram-project"></i><?= __('Relationships') ?>
+                                </button>
+                            </li>
+                        <?php endif; ?>
+                        <?php if ($aiTagsUrl !== null): ?>
+                            <?php if ($mayModifyTags): ?><li><hr class="dropdown-divider"></li><?php endif; ?>
+                            <li>
+                                <button type="button" class="dropdown-item d-flex align-items-center gap-2"
+                                        onclick="openModal('<?= h($aiTagsUrl) ?>', 'lg')">
+                                    <i class="fas fa-robot"></i><?= __('Recommend with AI') ?>
+                                </button>
+                            </li>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 
     <?php
@@ -208,10 +270,10 @@ foreach ($rows as $items) {
             <?php foreach ($conflicts as $conflict): ?>
                 <div class="eo-tag-warning">
                     <i class="fas fa-triangle-exclamation"></i>
-                    <div class="min-w-0">
+                    <div class="min-w-0 eo-note-body">
                         <?php $taxonomyId = $conflict['taxonomy']['Taxonomy']['id'] ?? null; ?>
                         <span class="fw-semibold"><?= h($conflict['conflict']) ?></span>
-                        <span class="eo-muted small" title="<?= h($conflict['scope']) ?>"><i class="<?= $conflict['icon'] ?> me-1"></i></span>
+                        <span class="eo-muted small" title="<?= h($conflict['scope']) ?>"><i class="<?= $conflict['icon'] ?>"></i></span>
                         <div class="eo-tag-warning-tags">
                             <?php foreach ($conflict['tags'] as $tagName): ?>
                                 <code><?= h($tagName) ?></code>
@@ -226,7 +288,7 @@ foreach ($rows as $items) {
             <?php if (!empty($missingTaxonomies)): ?>
                 <div class="eo-tag-warning">
                     <i class="fas fa-tags"></i>
-                    <div class="min-w-0">
+                    <div class="min-w-0 eo-note-body">
                         <span class="fw-semibold"><?= __n('Missing a required taxonomy', 'Missing required taxonomies', count($missingTaxonomies)) ?></span>
                         <div class="eo-tag-warning-tags">
                             <?php foreach ($missingTaxonomies as $namespace): ?>
@@ -288,41 +350,23 @@ foreach ($rows as $items) {
         </div>
     <?php endif; ?>
 
-    <div class="eo-card-foot eo-actions">
-        <?php if ($hasIndicatorOnly): ?>
-            <span class="eo-legend"><span class="eo-legend-swatch"></span><?= __('only on indicators') ?></span>
-        <?php endif; ?>
-        <span class="ms-auto d-inline-flex flex-wrap justify-content-end gap-1">
-            <?php if ($aiTagsUrl !== null): ?>
-                <button type="button" class="btn btn-sm btn-outline-tag" data-tour="event-tags-ai"
-                        onclick="openModal('<?= h($aiTagsUrl) ?>', 'lg')" title="<?= h(__('Recommend tags with AI')) ?>">
-                    <i class="fas fa-robot me-1"></i><?= __('AI') ?>
-                </button>
+    <?php if ($hasIndicatorOnly || $profileName): ?>
+        <div class="eo-card-foot">
+            <?php if ($hasIndicatorOnly): ?>
+                <span class="eo-legend"><span class="eo-legend-swatch"></span><?= __('only on indicators') ?></span>
             <?php endif; ?>
-            <?php if ($mayModifyTags): ?>
-                <span class="btn-group btn-group-sm" role="group" aria-label="<?= h(__('Tags')) ?>">
-                    <button type="button" class="btn btn-outline-tag" data-tour="event-tags-relationships"
-                            onclick="openModal('<?= h($baseurl . '/events/editEventTagRelationships/' . $eventId) ?>', 'xl')"
-                            title="<?= h(__('Set how this event relates to its tags')) ?>">
-                        <i class="fas fa-diagram-project me-1"></i><?= __('Relationships') ?>
-                    </button>
-                    <button type="button" class="btn btn-tag" data-tour="event-tags-edit"
-                            onclick="openModal('<?= h($editTags) ?>', 'xl')">
-                        <i class="fas fa-pen-to-square me-1"></i><?= __('Edit Tags') ?>
-                    </button>
-                </span>
-                <span class="btn-group btn-group-sm" role="group" aria-label="<?= h(__('Galaxy clusters')) ?>">
-                    <button type="button" class="btn btn-outline-galaxy" data-tour="event-galaxies-relationships"
-                            onclick="openModal('<?= h($baseurl . '/events/editEventGalaxyRelationships/' . $eventId) ?>', 'xl')"
-                            title="<?= h(__('Set how this event relates to its clusters')) ?>">
-                        <i class="fas fa-diagram-project me-1"></i><?= __('Relationships') ?>
-                    </button>
-                    <button type="button" class="btn btn-galaxy" data-tour="event-galaxies-edit"
-                            onclick="openModal('<?= h($editClusters) ?>', 'xl')">
-                        <i class="fas fa-pen-to-square me-1"></i><?= __('Edit Galaxy Clusters') ?>
-                    </button>
+            <?php if ($profileName): ?>
+                <?php
+                $profileLink = $profileId
+                    ? sprintf('<a href="%s" title="%s">%s</a>', h($baseurl . '/analystProfiles/view/' . (int)$profileId), h(__('Open your analyst profile')), h($profileName))
+                    : h($profileName);
+                ?>
+                <span class="eo-profile" title="<?= h(__('The tags and galaxies it pins are listed first.')) ?>">
+                    <i class="fas fa-user-gear"></i>
+                    <span><?= __('Seen through your %s analyst profile', $profileLink) ?></span>
+                    <a href="<?= h($baseurl . '/analystProfiles/index') ?>" class="eo-profile-change" title="<?= h(__('Change profile')) ?>" aria-label="<?= h(__('Change profile')) ?>"><i class="fas fa-sliders"></i></a>
                 </span>
             <?php endif; ?>
-        </span>
-    </div>
+        </div>
+    <?php endif; ?>
 </div>

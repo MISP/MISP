@@ -29,17 +29,42 @@ $tabFor = function (array $group) {
             <div class="eo-card-sub">
                 <?= h(__n('%s attribute', '%s attributes', $total, $n($total))) ?>
                 <?php if ($inObjects > 0): ?>· <?= h(__('%s in objects', $n($inObjects))) ?><?php endif; ?>
+                <?php if ($total > 0): ?>
+                    · <span title="<?= h(__('Flagged for detection (to_ids)')) ?>"><i class="fas fa-shield-halved text-warning eo-ids-icon"></i><?= h(__('%s detection-ready', $n($ids))) ?></span>
+                <?php endif; ?>
             </div>
         </div>
-        <div class="eo-figure eo-figure-ids">
-            <i class="fas fa-shield-halved text-warning eo-ids-icon" title="<?= h(__('Flagged for detection (to_ids)')) ?>"></i>
-            <b><?= $n($ids) ?></b> <?= __('detection-ready') ?> <span class="eo-muted"><?= h(__('of %s', $n($total))) ?></span>
-        </div>
+        <?php if ($total > 0): ?>
+            <div class="input-group input-group-sm eo-filter">
+                <span class="input-group-text border-end-0"><i class="fas fa-search text-muted small"></i></span>
+                <input type="search" class="form-control border-start-0 ps-0" data-eo-type-filter
+                       placeholder="<?= h(__('Filter types…')) ?>" aria-label="<?= h(__('Filter attribute types')) ?>" autocomplete="off">
+            </div>
+        <?php endif; ?>
     </div>
 
     <?php if ($total === 0): ?>
         <div class="eo-empty"><span><?= __('No attributes on this event yet.') ?></span></div>
     <?php else: ?>
+        <?php if (!empty($inventory['objects']['total'])): ?>
+            <div class="eo-groups eo-objects-block">
+                <div class="eo-group eo-group-objects">
+                    <button type="button" class="eo-group-name" data-eo-filter-object="" title="<?= h(__('Show the objects')) ?>">
+                        <i class="misp-icon misp-icon-object misp-simple"></i><?= __('Objects') ?>
+                    </button>
+                    <div class="eo-group-count"><b><?= $n($inventory['objects']['total']) ?></b></div>
+                    <div class="eo-types">
+                        <?php foreach ($inventory['objects']['by_name'] as $name => $count): ?>
+                            <button type="button" class="eo-type is-object" data-eo-filter-object="<?= h($name) ?>"
+                                    title="<?= h(__('Show the %s objects', $name)) ?>">
+                                <?= h($name) ?> <b><?= $n($count) ?></b>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+        <div class="eo-band-label eo-section-label"><?= __('Attribute types by group') ?></div>
         <div class="eo-bar" role="img" aria-label="<?= h(__('%1$s detection-ready of %2$s attributes', $ids, $total)) ?>">
             <?php foreach ($inventory['groups'] as $group): ?>
                 <?php $tone = $tones[$group['group']] ?? $tones['Other']; ?>
@@ -54,10 +79,6 @@ $tabFor = function (array $group) {
                           title="<?= h(__('%1$s: %2$s context only', $group['group'], $group['total'] - $group['ids'])) ?>"></span>
                 <?php endif; ?>
             <?php endforeach; ?>
-        </div>
-        <div class="eo-bar-legend">
-            <span><i class="eo-key"></i><?= __('detection-ready') ?></span>
-            <span><i class="eo-key is-context"></i><?= h(__('context only (%s)', $n($inventory['context']))) ?></span>
         </div>
 
         <div class="eo-groups">
@@ -106,20 +127,12 @@ $tabFor = function (array $group) {
                     </div>
                 </div>
             <?php endforeach; ?>
+            <div class="eo-empty d-none" data-eo-type-none><?= __('No attribute type matches.') ?></div>
         </div>
 
-        <?php if (!empty($inventory['objects']['total'])): ?>
-            <div class="eo-objects">
-                <b><?= h(__n('%s object', '%s objects', $inventory['objects']['total'], $inventory['objects']['total'])) ?>:</b>
-                <?php
-                $parts = [];
-                foreach ($inventory['objects']['by_name'] as $name => $count) {
-                    $parts[] = sprintf('%d %s', $count, h($name));
-                }
-                echo implode(' · ', $parts);
-                ?>
-            </div>
-        <?php endif; ?>
+        <div class="eo-card-foot">
+            <span class="eo-legend"><span class="eo-legend-swatch is-ids"></span><?= __('detection-ready') ?></span>
+            <span class="eo-legend"><span class="eo-legend-swatch"></span><?= h(__('context only (%s)', $n($inventory['context']))) ?></span>
+        </div>
     <?php endif; ?>
-
 </div>
