@@ -709,7 +709,7 @@ CREATE TABLE `galaxies` (
     `orgc_id` bigint NOT NULL,
     `created` datetime NOT NULL,
     `modified` datetime NOT NULL,
-    `distribution` tinyint NOT NULL,
+    `distribution` tinyint DEFAULT 0 NOT NULL,
     PRIMARY KEY (`id`),
     INDEX `name` (`name`),
     INDEX `namespace` (`namespace`),
@@ -1921,5 +1921,6 @@ INSERT IGNORE INTO `schema_migrations` (`id`, `migration_id`, `applied_at`, `dur
 (127, '20261018_174227_analyst_profiles_shipped_revision', NOW(), 127, 'applied', NULL),
 (128, '20261021_090840_repair_galaxy_relation_targets', NOW(), 10, 'applied', NULL),
 (129, '20261021_091751_index_relation_referenced_uuid', NOW(), 113, 'applied', NULL),
-(130, '20261022_123413_early_access_workspace_names', NOW(), 26, 'applied', NULL);
+(130, '20261022_123413_early_access_workspace_names', NOW(), 26, 'applied', NULL),
+(131, '20261028_131434_galaxies_distribution_default', NOW(), 123, 'applied', NULL);
 
