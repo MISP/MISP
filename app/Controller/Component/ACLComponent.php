@@ -151,6 +151,7 @@ class ACLComponent extends Component
         'collections' => [
             'active' => ['perm_modify'],
             'add' => ['perm_modify'],
+            'analysis' => ['perm_modify'],
             // Sync push-receive upload endpoint → Collection::captureCollection sink.
             'captureCollection' => ['perm_sync'],
             'delete' => ['perm_modify'],
@@ -166,6 +167,7 @@ class ACLComponent extends Component
             'indexMinimal' => ['*'],
             'publish' => ['AND' => ['perm_modify', 'perm_publish']],
             'quickAdd' => ['perm_modify'],
+            'unpublish' => ['AND' => ['perm_modify', 'perm_publish']],
             'view' => ['*']
         ],
         'collectionElements' => [

@@ -18,7 +18,7 @@ class CollectionsController extends AppController
         // Posted by hand-built AJAX from the event and index collection panels
         // and by the workspace, which send the CSRF token as the X-CSRF-Token header;
         // publish's review form carries a choice of its own markup.
-        $this->_csrfTokenHeaderOnly(['getCollectionsForElements', 'active', 'quickAdd', 'publish']);
+        $this->_csrfTokenHeaderOnly(['getCollectionsForElements', 'active', 'quickAdd', 'publish', 'analysis']);
         $this->Collection->CollectionElement->current_user = $this->Auth->user();
     }
 
@@ -82,6 +82,80 @@ class CollectionsController extends AppController
         }
         $this->Flash->success($message);
         return $this->redirect(['action' => 'view', $id]);
+    }
+
+    /**
+     * Unpublish, as for events. GET: the confirmation; POST: withdraw it
+     * from partners until it is published again.
+     */
+    public function unpublish($id)
+    {
+        $this->request->allowMethod(['get', 'post', 'put']);
+        $user = $this->Auth->user();
+        $collection = $this->__visibleCollection($user, $id);
+        if (!$this->Collection->canPublish($user, $collection)) {
+            throw new ForbiddenException(__('Unpublishing “%s” takes the right to publish and to edit it.', $collection['name']));
+        }
+        if ((int)$collection['distribution'] === 0) {
+            throw new BadRequestException(__('“%s” is shared with your organisation only: there is nothing to unpublish.', $collection['name']));
+        }
+        if ($this->request->is('get')) {
+            $this->set('collection', $collection);
+            $this->layout = false;
+            return $this->render('ajax/unpublishConfirm');
+        }
+        if (!$this->Collection->unpublish($collection['id'])) {
+            return $this->RestResponse->saveFailResponse('Collections', 'unpublish', $collection['id'], $this->Collection->validationErrors, $this->response->type());
+        }
+        $message = __('“%s” is unpublished: partners keep the version they last received until it is published again.', $collection['name']);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(['Collection' => $this->__publishState($user, $collection['id']), 'message' => $message], 'json');
+        }
+        $this->Flash->success($message);
+        return $this->redirect(['action' => 'view', $collection['id']]);
+    }
+
+    /**
+     * How far the investigation went: POST {analysis}, 0 Initial, 1 Ongoing
+     * or 2 Completed. Takes the edit right.
+     */
+    public function analysis($id)
+    {
+        $this->request->allowMethod(['post', 'put']);
+        $user = $this->Auth->user();
+        $collection = $this->__visibleCollection($user, $id);
+        if (!$this->Collection->canModify($user, $collection)) {
+            throw new ForbiddenException(__('You cannot change the collection “%s”.', $collection['name']));
+        }
+        $input = $this->request->data['Collection'] ?? $this->request->data;
+        $analysis = is_array($input) ? ($input['analysis'] ?? null) : null;
+        if (!is_numeric($analysis) || !in_array((int)$analysis, Collection::ANALYSIS_LEVELS, true)) {
+            throw new BadRequestException(__('Say how far the investigation went: 0 Initial, 1 Ongoing or 2 Completed.'));
+        }
+        if (!$this->Collection->setAnalysis($collection['id'], (int)$analysis)) {
+            return $this->RestResponse->saveFailResponse('Collections', 'analysis', $collection['id'], $this->Collection->validationErrors, 'json');
+        }
+        return $this->RestResponse->viewData(['Collection' => $this->__publishState($user, $collection['id'])], 'json');
+    }
+
+    /**
+     * @param array $user
+     * @param string|int $id Its id or uuid
+     * @return array The collection, unwrapped, with its Orgc
+     * @throws NotFoundException
+     */
+    private function __visibleCollection(array $user, $id)
+    {
+        $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
+        $found = $this->Collection->find('first', [
+            'recursive' => -1,
+            'contain' => ['Orgc'],
+            'conditions' => ['Collection.id' => $id],
+        ]);
+        if (empty($found) || !$this->Collection->mayView($user['id'], $id)) {
+            throw new NotFoundException(__('Invalid collection.'));
+        }
+        return $found['Collection'] + ['Orgc' => $found['Orgc']];
     }
 
     /**

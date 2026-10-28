@@ -320,15 +320,19 @@ $offerExtract = !$extracted && $wordy >= 2;
 <?php if ($mayHandOver): ?>
             <?php
             /*
-             * The values opened so far, handed to a workspace mid-way;
-             * shown once there is one.
+             * The batch handed to a workspace or a collection at any time:
+             * the whole of it until something is opened, then the values
+             * opened, the whole batch one menu away.
              */
             ?>
             <span class="vi-handover" data-vi-handover hidden
-                  data-vi-tpl="<?= h(__('Add the %d opened')) ?>">
+                  data-vi-tpl="<?= h(__('Add the %d opened')) ?>"
+                  data-vi-tpl-all="<?= h(__('Add all %d')) ?>"
+                  data-vi-set="<?= h(__('The %d opened')) ?>"
+                  data-vi-set-all="<?= h(__('All %d in the batch')) ?>">
                 <?= $this->element('intel_graph_add', array(
                     'variant' => 'short',
-                    'title' => __('Add the values you opened to your workspace'),
+                    'title' => __('Add these values to your workspace'),
                     'stateless' => true,
                 )) ?>
             </span>

@@ -28,13 +28,28 @@ if (!empty($publish) && (int)$publish['distribution'] !== 0 && (!empty($publish[
             ])),
             'title' => __('Partners hold this collection as it is.'),
         ];
+        if (!empty($publish['_canPublish'])) {
+            $unpublishUrl = "$baseurl/collections/unpublish/$collectiontId";
+            $actions[] = [
+                'url' => $unpublishUrl,
+                'onclick' => "event.preventDefault(); openModal('$unpublishUrl', 'md');",
+                'icon' => 'fas fa-eye-slash',
+                'label' => __('Unpublish collection'),
+                'short' => __('Unpublish'),
+                'primary' => true,
+                'warning' => true,
+            ];
+        }
     } else {
         $changes = $publish['changes'] ?? ['added' => 0, 'removed' => 0];
         $count = $changes['added'] + $changes['removed'];
+        // Nothing counted and nothing changed since the last publish: unpublished by hand
+        $handUnpublished = $count === 0 && $lastPublished > 0
+            && !empty($publish['modified']) && strtotime($publish['modified']) <= $lastPublished;
         if (!empty($publish['_canPublish'])) {
             $label = $count > 0
                 ? __n('%s change not yet shared', '%s changes not yet shared', $count, $count)
-                : __('Changes not yet shared');
+                : ($handUnpublished ? __('Unpublished') : __('Changes not yet shared'));
         } else {
             $label = $count > 0
                 ? __n('%s change waiting for a publisher', '%s changes waiting for a publisher', $count, $count)

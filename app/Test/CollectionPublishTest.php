@@ -91,9 +91,15 @@ class PublishTestCollection extends Collection
     public $scopes = array();
     public $scopeReads = 0;
     public $listed = array();
+    public $fields = array();
 
     public function __construct()
     {
+    }
+
+    public function field($name, $conditions = null, $order = null)
+    {
+        return $this->fields[$name] ?? false;
     }
 
     public function save($data = null, $validate = true, $fieldList = array())
@@ -320,6 +326,26 @@ class CollectionPublishTest extends TestCase
         $this->collection->data = array('Collection' => array('published' => true));
         $this->collection->beforeSave();
         $this->assertFalse($this->collection->data['Collection']['published'], 'the next local save unpublishes again');
+    }
+
+    public function testUnpublishWithdrawsItAndChangesNothingElse()
+    {
+        $this->collection->fields['modified'] = '2026-10-28 09:00:00';
+        $this->assertTrue($this->collection->unpublish(5));
+        list($saved) = $this->collection->saves[0];
+        $this->assertSame(array('id' => 5, 'published' => false, 'modified' => '2026-10-28 09:00:00'), $saved['Collection'], 'modified kept: partners need not fetch it again');
+        $this->assertSame(array(), $this->elements->updates, 'its members stay as they were released');
+        $this->assertSame(array(), $this->removals->deleted);
+    }
+
+    public function testSettingTheStatusIsAChangePartnersDoNotHaveYet()
+    {
+        $this->assertTrue($this->collection->setAnalysis(5, 2));
+        list($saved) = $this->collection->saves[0];
+        $this->assertSame(2, $saved['Collection']['analysis']);
+        $this->assertFalse($saved['Collection']['published'], 'a shared collection waits for its next publish');
+        $this->assertArrayNotHasKey('last_published', $saved['Collection']);
+        $this->assertRegExp('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $saved['Collection']['modified']);
     }
 
     public function testAGraphSavedHereUnpublishesItsOrganisationsCollection()

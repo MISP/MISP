@@ -206,16 +206,46 @@
         b.appendChild(icon(iconCls));
         b.appendChild(el('span', null, text));
         b.setAttribute(attr, JSON.stringify(items));
+        if (attr === 'data-intel-graph-add') b.setAttribute('data-intel-graph-stateless', '');
         li.appendChild(b);
         return li;
     }
+    function menuHead(text) {
+        var li = el('li');
+        li.appendChild(el('h6', 'dropdown-header', text));
+        return li;
+    }
+    function menuDivider() {
+        var li = el('li');
+        li.appendChild(el('hr', 'dropdown-divider'));
+        return li;
+    }
+    function collectEntries(menu, items) {
+        menu.appendChild(menuItem('Add to another collection…', 'fas fa-folder-plus', 'data-intel-graph-other', items));
+        menu.appendChild(menuItem(items.length > 1 ? 'New collection with these…' : 'New collection with this…', 'fas fa-circle-plus', 'data-intel-graph-new', items));
+    }
+    // A main part may name what it carries (data-intel-graph-set) and offer
+    // other sets of records (data-intel-graph-alt, [{label, items}]), each
+    // with the same three entries under its name.
     function fillMenu(split) {
         var main = split.querySelector('[data-intel-graph-add]');
         var menu = split.querySelector('.dropdown-menu');
         var items = main && itemsOf(main);
         if (!menu || !items) return;
         menu.textContent = '';
-        var several = items.length > 1;
+        var alt = parse(main.getAttribute('data-intel-graph-alt') || 'null') || [];
+        if (alt.length) {
+            menu.appendChild(menuHead(main.getAttribute('data-intel-graph-set') || ''));
+            collectEntries(menu, items);
+            alt.forEach(function (set) {
+                if (!set || !Array.isArray(set.items) || !set.items.length) return;
+                menu.appendChild(menuDivider());
+                menu.appendChild(menuHead(set.label || ''));
+                menu.appendChild(menuItem('Add to the workspace', 'misp-icon misp-icon-analyst-graph misp-simple', 'data-intel-graph-add', set.items));
+                collectEntries(menu, set.items);
+            });
+            return;
+        }
         if (stateOf(main) === 'in') {
             var head = el('li');
             var h = el('h6', 'dropdown-header ig-add-head');
@@ -225,12 +255,9 @@
             menu.appendChild(head);
             menu.appendChild(menuItem('Show in the dock', 'fas fa-location-crosshairs', 'data-intel-graph-reveal', items));
             menu.appendChild(menuItem('Remove from workspace', 'fas fa-folder-minus', 'data-intel-graph-remove', items, true));
-            var hr = el('li');
-            hr.appendChild(el('hr', 'dropdown-divider'));
-            menu.appendChild(hr);
+            menu.appendChild(menuDivider());
         }
-        menu.appendChild(menuItem('Add to another collection…', 'fas fa-folder-plus', 'data-intel-graph-other', items));
-        menu.appendChild(menuItem(several ? 'New collection with these…' : 'New collection with this…', 'fas fa-circle-plus', 'data-intel-graph-new', items));
+        collectEntries(menu, items);
     }
     function caretOf(split) {
         return split.querySelector('[data-bs-toggle="dropdown"]');

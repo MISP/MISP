@@ -149,7 +149,7 @@ summary.cpr-head:focus-visible { outline: 2px solid var(--misp-accent, var(--bs-
         <div class="cpr-quiet">
             <i class="fas fa-circle-info me-1 opacity-75"></i>
             <?= $lastPublished
-                ? h(__('No member, graph or link changed since the last publish: only the collection’s own details did.'))
+                ? h(__('No member, graph or link changed since the last publish. Publishing shares the collection’s details and status as they are now.'))
                 : h(__('Nothing in it yet: partners receive its name, description and status.')) ?>
         </div>
     <?php else: ?>

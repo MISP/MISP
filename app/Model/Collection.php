@@ -236,6 +236,42 @@ class Collection extends AppModel
     }
 
     /**
+     * Withdraw it from partners until it is published again: they keep the
+     * version they last received, and its members stay as they were released.
+     *
+     * @param int $id
+     * @return bool
+     */
+    public function unpublish($id)
+    {
+        // Nothing in it changed: modified stays, so partners need not refetch it
+        $modified = $this->field('modified', ['Collection.id' => (int)$id]);
+        $record = ['id' => (int)$id, 'published' => false, 'modified' => $modified];
+        $this->writingPublishState = true;
+        try {
+            $this->id = (int)$id;
+            return (bool)$this->save(['Collection' => $record], ['fieldList' => ['published', 'modified']]);
+        } finally {
+            $this->writingPublishState = false;
+        }
+    }
+
+    /**
+     * Say how far the investigation went. A change partners do not have:
+     * a shared collection waits for its next publish.
+     *
+     * @param int $id
+     * @param int $analysis One of ANALYSIS_LEVELS
+     * @return bool
+     */
+    public function setAnalysis($id, $analysis)
+    {
+        $this->id = (int)$id;
+        $record = ['id' => (int)$id, 'analysis' => (int)$analysis, 'modified' => date('Y-m-d H:i:s')];
+        return (bool)$this->save(['Collection' => $record], ['fieldList' => ['analysis', 'modified', 'published']]);
+    }
+
+    /**
      * Partners hold every member now, and none of those taken out.
      *
      * @param int $id

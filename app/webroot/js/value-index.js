@@ -217,6 +217,16 @@
             });
     }
 
+    // The same, as plain text: for a label another script writes
+    function plain(template, args) {
+        var next = 0;
+        return String(template).replace(/%(?:(\d+)\$)?d/g,
+            function (whole, position) {
+                var index = position ? parseInt(position, 10) - 1 : next++;
+                return String(args[index]);
+            });
+    }
+
     function rank(lean) {
         return ORDER[lean] === undefined ? ORDER.none : ORDER[lean];
     }
@@ -470,16 +480,31 @@
         var actions = window.IntelGraphActions;
         var workspace = window.IntelGraph && window.IntelGraph.active();
         if (this.handover) {
-            this.handover.hidden = !actions || opened === 0;
-            var main = this.handover.querySelector('[data-intel-graph-add]');
-            var label = this.handover.querySelector('.ig-add-lbl');
+            var h = this.handover;
+            var count = this.rows.length;
+            var some = opened > 0;
+            h.hidden = !actions || count === 0;
+            var main = h.querySelector('[data-intel-graph-add]');
+            var label = h.querySelector('.ig-add-lbl');
             if (main) {
-                main.setAttribute('data-intel-graph-add',
-                    JSON.stringify(this.carried('opened')));
+                main.setAttribute('data-intel-graph-add', JSON.stringify(
+                    this.carried(some ? 'opened' : 'all')));
+                main.setAttribute('data-intel-graph-set', plain(
+                    h.getAttribute(some ? 'data-vi-set' : 'data-vi-set-all'),
+                    [some ? opened : count]));
+                if (some) {
+                    main.setAttribute('data-intel-graph-alt', JSON.stringify([{
+                        label: plain(h.getAttribute('data-vi-set-all'), [count]),
+                        items: this.carried('all')
+                    }]));
+                } else {
+                    main.removeAttribute('data-intel-graph-alt');
+                }
             }
             if (label) {
                 label.innerHTML = fill(
-                    this.handover.getAttribute('data-vi-tpl'), [opened]);
+                    h.getAttribute(some ? 'data-vi-tpl' : 'data-vi-tpl-all'),
+                    [some ? opened : count]);
             }
         }
         if (!this.handoff) {
