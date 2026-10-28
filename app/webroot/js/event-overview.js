@@ -90,6 +90,14 @@
         });
     }
 
+    // The onboarding tour asks for an anchor in a closed card menu.
+    function onReveal(e) {
+        var menu = e.target.closest && e.target.closest('.eo-context .dropdown');
+        if (menu && window.bootstrap) {
+            bootstrap.Dropdown.getOrCreateInstance(menu.querySelector('[data-bs-toggle="dropdown"]')).show();
+        }
+    }
+
     function reloadCards() {
         document.querySelectorAll('#eo-context-card, #eo-inventory-card, #eo-object-views, .eo-details-activity[data-eo-loaded]')
             .forEach(loadFragment);
@@ -527,6 +535,7 @@
         });
         document.addEventListener('click', onClick);
         document.addEventListener('input', onFilterLabels);
+        document.addEventListener('onboarding:reveal', onReveal);
         document.addEventListener('mouseover', onHover);
         document.addEventListener('mouseout', onLeave);
         document.addEventListener('misp:attributes-changed', reloadCards);
