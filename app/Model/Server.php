@@ -5390,6 +5390,45 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ],
+                'complex_query_enable' => [
+                    'level' => 1,
+                    'description' => __('Kill switch for the boolean `query` tree of the restSearch endpoints. While disabled, every request carrying a query is refused, whatever the role permissions. Roles additionally need the complex query permission.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ],
+                'complex_query_max_depth' => [
+                    'level' => 1,
+                    'description' => __('The maximum nesting depth of a complex query tree. Defaults to 5.'),
+                    'value' => 5,
+                    'test' => 'testForPositiveInteger',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
+                'complex_query_max_nodes' => [
+                    'level' => 1,
+                    'description' => __('The maximum number of nodes (operators and conditions) in a complex query tree. Defaults to 50.'),
+                    'value' => 50,
+                    'test' => 'testForPositiveInteger',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
+                'complex_query_max_list' => [
+                    'level' => 1,
+                    'description' => __('The maximum number of operands of an IN / NOT IN condition in a complex query. Defaults to 100.'),
+                    'value' => 100,
+                    'test' => 'testForPositiveInteger',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
+                'complex_query_max_value_length' => [
+                    'level' => 1,
+                    'description' => __('The maximum length of a single value in a complex query. Defaults to 1024.'),
+                    'value' => 1024,
+                    'test' => 'testForPositiveInteger',
+                    'type' => 'numeric',
+                    'null' => true
+                ],
                 'event_index_pull_chunk_size' => [
                     'level' => self::SETTING_RECOMMENDED,
                     'description' => __('When pulling from a remote server, the list of remote events is fetched and filtered down to the actual pull targets in pages of this many events rather than all at once. This bounds the memory used during the negotiation phase of a pull. Lower it to reduce memory usage on low-spec instances. Raising it reduces the number of requests, but increases the peak memory burden on BOTH this instance and the remote server being pulled from (which has to build a larger page in one shot) - be considerate when pulling from a shared or central hub instance and avoid setting this higher than needed. Defaults to 10000.'),
