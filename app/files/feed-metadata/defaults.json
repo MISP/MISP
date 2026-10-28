@@ -2649,5 +2649,45 @@
       "delete_local_file": false,
       "lookup_visible": true
     }
+  },
+  {
+    "Feed": {
+      "name": "NetAPI - Compromised domains (live)",
+      "provider": "NetAPI",
+      "url": "https://netapi.com/zf-api/f/compromised/domains/live/",
+      "rules": "",
+      "enabled": false,
+      "distribution": "3",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    }
+  },
+  {
+    "Feed": {
+      "name": "NetAPI - Compromised IPs (live)",
+      "provider": "NetAPI",
+      "url": "https://netapi.com/zf-api/f/compromised/ip/live/",
+      "rules": "",
+      "enabled": false,
+      "distribution": "3",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    }
   }
 ]
