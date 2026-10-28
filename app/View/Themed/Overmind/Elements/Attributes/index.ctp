@@ -563,6 +563,10 @@ if (!$inEventView) {
         ],
     ];
 }
+// Org, tags and galaxy sit with the other attribute filters of the panel.
+foreach ($remotePickers as $i => $picker) {
+    $remotePickers[$i]['group'] = __('Attributes');
+}
 foreach (AttributeFilterPanel::children(
     compact('categoryOptions', 'typeOptions', 'orgOptions')
         + ['galaxyOptions' => $inEventView ? ($galaxyOptions ?? null) : null],
@@ -602,7 +606,9 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
         'class' => 'btn attr-proposal-toggle ' . ($currentProposal ? 'btn-warning' : 'btn-outline-warning'),
         'id' => 'attr-proposal-toggle',
         'icon'  => 'fas fa-comment-dots',
-        'label' => __('Proposals') . (!empty($proposalCount) ? ' (' . (int)$proposalCount . ')' : ''),
+        'label' => __('Proposals'),
+        'count' => (int)($proposalCount ?? 0),
+        'pressed' => (bool)$currentProposal,
     ];
 
     $children[] = [
@@ -611,7 +617,9 @@ if (empty($show_event_id) && !empty($event['Event']['id'])) {
         'class' => 'btn attr-deleted-toggle ' . ($currentDeleted ? 'btn-danger' : 'btn-outline-danger'),
         'id' => 'attr-deleted-toggle',
         'icon'  => 'fas fa-trash',
-        'label' => __('Deleted') . (!empty($deletedCount) ? ' (' . (int)$deletedCount . ')' : ''),
+        'label' => __('Deleted'),
+        'count' => (int)($deletedCount ?? 0),
+        'pressed' => (bool)$currentDeleted,
     ];
 }
 

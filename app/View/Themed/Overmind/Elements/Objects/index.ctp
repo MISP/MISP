@@ -108,8 +108,8 @@ foreach (AttributeFilterPanel::children(
     ],
     true,
     [
-        ['name' => 'name', 'label' => __('Template'), 'options' => $templateOptions ?? null, 'col' => 3],
-        ['name' => 'meta-category', 'label' => __('Meta-category'), 'options' => $metaCategoryOptions ?? null, 'col' => 3],
+        ['name' => 'name', 'label' => __('Template'), 'options' => $templateOptions ?? null, 'col' => 3, 'group' => __('Object')],
+        ['name' => 'meta-category', 'label' => __('Meta-category'), 'options' => $metaCategoryOptions ?? null, 'col' => 3, 'group' => __('Object')],
     ]
 ) as $filter) {
     // `type` takes a comma list; the others one value.
@@ -123,6 +123,7 @@ foreach (AttributeFilterPanel::children(
             'source' => $baseurl . '/tags/pickerSearch',
             'single' => true,
             'resolved' => $filterLabels['tag'],
+            'group' => $filter['group'],
         ];
     }
 }
@@ -135,12 +136,12 @@ $foldChildren = empty($objects) ? [] : [
         'label'   => __('Expand or collapse every object'),
         'buttons' => [
             [
-                'class' => 'btn btn-outline-primary obj-expand-all',
+                'class' => 'obj-expand-all',
                 'icon'  => 'fas fa-angles-down',
                 'label' => __('Expand all'),
             ],
             [
-                'class' => 'btn btn-outline-primary obj-collapse-all',
+                'class' => 'obj-collapse-all',
                 'icon'  => 'fas fa-angles-up',
                 'label' => __('Collapse all'),
             ],
@@ -151,127 +152,129 @@ $foldChildren = empty($objects) ? [] : [
 
 <div id="objectListContainer" class="container-fluid px-0" data-ifp-scope="<?= h($objectsUrl) ?>">
 
-    <!-- ── Filter bar (same card structure as scaffold) ──── -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <?= $this->element(
-                'genericElementsBS5/IndexTable/filter_bar',
-                [
-                    'scaffold_data' => [
-                        // For the count beside the chips.
-                        'data' => $objects,
-                        'filter_bar' => [
-                            'base_url' => $baseurl . $objectsUrl,
-                            'chips' => [
-                                'labels' => [
-                                    'deleted' => __('Deleted'),
-                                    'proposal' => __('Proposals'),
-                                    'name' => __('Template'),
-                                    'object' => __('Object'),
-                                ],
-                                'values' => [
-                                    'deleted' => ['1' => __('included'), '2' => __('only')],
-                                    'proposal' => ['1' => __('only')],
-                                    'object' => $objectChip,
-                                ],
+    <!-- ── Filter bar, as the scaffold draws it ──── -->
+    <div class="ifp-card">
+        <?= $this->element(
+            'genericElementsBS5/IndexTable/filter_bar',
+            [
+                'scaffold_data' => [
+                    // For the count beside the chips.
+                    'data' => $objects,
+                    'filter_bar' => [
+                        'base_url' => $baseurl . $objectsUrl,
+                        'chips' => [
+                            'labels' => [
+                                'deleted' => __('Deleted'),
+                                'proposal' => __('Proposals'),
+                                'name' => __('Template'),
+                                'object' => __('Object'),
                             ],
-                            'children' => array_merge([
-                                [
-                                    'type'        => 'search',
-                                    'button'      => __('Search'),
-                                    'placeholder' => __('Filter objects…'),
-                                    'mode'        => 'legacy',
-                                    'name'        => 'searchFor',
-                                ],
-                                [
-                                    'type'  => 'button',
-                                    'url'   => $proposalUrl,
-                                    'class' => 'btn obj-proposal-toggle '. ($currentProposal ? 'btn-warning' : 'btn-outline-warning'),
-                                    'id'    => 'obj-proposal-toggle',
-                                    'icon'  => 'fas fa-comment-dots',
-                                    'label' => __('Proposals') . (!empty($proposalCount) ? ' (' . (int)$proposalCount . ')' : ''),
-                                ],
-                                [
-                                    'type'  => 'button',
-                                    'url'   => $toggleUrl,
-                                    'class' => 'btn obj-deleted-toggle '. ($currentDeleted ? 'btn-danger' : 'btn-outline-danger'),
-                                    'id'    => 'obj-deleted-toggle',
-                                    'icon'  => 'fas fa-trash',
-                                    'label' => __('Deleted') . (!empty($deletedCount) ? ' (' . (int)$deletedCount . ')' : ''),
-                                ],
-                            ], $moreFilterChildren, $foldChildren),
+                            'values' => [
+                                'deleted' => ['1' => __('included'), '2' => __('only')],
+                                'proposal' => ['1' => __('only')],
+                                'object' => $objectChip,
+                            ],
                         ],
+                        'children' => array_merge([
+                            [
+                                'type'        => 'search',
+                                'button'      => __('Search'),
+                                'placeholder' => __('Filter objects…'),
+                                'mode'        => 'legacy',
+                                'name'        => 'searchFor',
+                            ],
+                            [
+                                'type'  => 'button',
+                                'url'   => $proposalUrl,
+                                'class' => 'btn obj-proposal-toggle '. ($currentProposal ? 'btn-warning' : 'btn-outline-warning'),
+                                'id'    => 'obj-proposal-toggle',
+                                'icon'  => 'fas fa-comment-dots',
+                                'label' => __('Proposals'),
+                                'count' => (int)($proposalCount ?? 0),
+                                'pressed' => (bool)$currentProposal,
+                            ],
+                            [
+                                'type'  => 'button',
+                                'url'   => $toggleUrl,
+                                'class' => 'btn obj-deleted-toggle '. ($currentDeleted ? 'btn-danger' : 'btn-outline-danger'),
+                                'id'    => 'obj-deleted-toggle',
+                                'icon'  => 'fas fa-trash',
+                                'label' => __('Deleted'),
+                                'count' => (int)($deletedCount ?? 0),
+                                'pressed' => (bool)$currentDeleted,
+                            ],
+                        ], $moreFilterChildren, $foldChildren),
                     ],
-                    'item_url' => $objectsUrl,
-                ]
-            ) ?>
-            <div id="objMultiSelectToolbar"
-                 class="ms-float d-none" role="region" aria-label="<?= h(__('Selected objects')) ?>">
-                <div class="p-2 border rounded bg-light d-flex align-items-center gap-2 flex-wrap">
-                    <span class="ms-count" id="objSelectedCount"
-                          data-one="<?= h(__('%s object selected')) ?>"
-                          data-many="<?= h(__('%s objects selected')) ?>"></span>
-                    <span class="ms-sep" aria-hidden="true"></span>
-                    <button id="obj-multi-graph-button"
-                            class="btn btn-analystGraph btn-sm d-none"
-                            type="button"
-                            title="<?= __('Add the selected to the active workspace') ?>"
-                            aria-label="<?= __('Add the selected to the active workspace') ?>">
-                        <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
-                        <span class="text-white"> <?= __('Workspace') ?></span>
-                    </button>
-                    <button id="obj-multi-delete-button"
-                            class="btn btn-outline-danger btn-sm d-none"
-                            type="button"
-                            title="<?= __('Delete selected objects') ?>"
-                            aria-label="<?= __('Delete selected objects') ?>">
-                        <i class="fas fa-trash"></i>
-                        <span> <?= __('Delete') ?></span>
-                    </button>
-                    <span class="ms-sep" aria-hidden="true"></span>
-                    <button id="obj-clear-selection-button" type="button" class="btn btn-sm btn-link ms-clear">
-                        <?= __('Clear selection') ?>
-                    </button>
-                </div>
+                ],
+                'item_url' => $objectsUrl,
+            ]
+        ) ?>
+        <div id="objMultiSelectToolbar"
+             class="ms-float d-none" role="region" aria-label="<?= h(__('Selected objects')) ?>">
+            <div class="p-2 border rounded bg-light d-flex align-items-center gap-2 flex-wrap">
+                <span class="ms-count" id="objSelectedCount"
+                      data-one="<?= h(__('%s object selected')) ?>"
+                      data-many="<?= h(__('%s objects selected')) ?>"></span>
+                <span class="ms-sep" aria-hidden="true"></span>
+                <button id="obj-multi-graph-button"
+                        class="btn btn-analystGraph btn-sm d-none"
+                        type="button"
+                        title="<?= __('Add the selected to the active workspace') ?>"
+                        aria-label="<?= __('Add the selected to the active workspace') ?>">
+                    <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
+                    <span class="text-white"> <?= __('Workspace') ?></span>
+                </button>
+                <button id="obj-multi-delete-button"
+                        class="btn btn-outline-danger btn-sm d-none"
+                        type="button"
+                        title="<?= __('Delete selected objects') ?>"
+                        aria-label="<?= __('Delete selected objects') ?>">
+                    <i class="fas fa-trash"></i>
+                    <span> <?= __('Delete') ?></span>
+                </button>
+                <span class="ms-sep" aria-hidden="true"></span>
+                <button id="obj-clear-selection-button" type="button" class="btn btn-sm btn-link ms-clear">
+                    <?= __('Clear selection') ?>
+                </button>
             </div>
-            <?php if ($canEdit || $_mayGraph): ?>
-            <div id="multiSelectToolbar"
-                 class="ms-float d-none" role="region" aria-label="<?= h(__('Selected attributes')) ?>">
-                <div class="p-2 border rounded bg-light d-flex align-items-center gap-2 flex-wrap">
-                    <span class="ms-count" id="selectedCount"
-                          data-one="<?= h(__('%s attribute selected')) ?>"
-                          data-many="<?= h(__('%s attributes selected')) ?>"></span>
-                    <span class="ms-sep" aria-hidden="true"></span>
-                    <?php if ($_mayGraph): ?>
-                    <button id="mass-graph-button"
-                            class="btn btn-analystGraph btn-sm d-none"
-                            type="button"
-                            title="<?= __('Add the selected to the active workspace') ?>"
-                            aria-label="<?= __('Add the selected to the active workspace') ?>"
-                            onclick="addSelectedToGraph(this)">
-                        <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
-                        <span class="text-white"> <?= __('Workspace') ?></span>
-                    </button>
-                    <?php endif; ?>
-                    <?php if ($canEdit): ?>
-                    <button id="multi-delete-button"
-                            class="btn btn-outline-danger btn-sm d-none"
-                            type="button"
-                            title="<?= __('Delete selected attributes') ?>"
-                            aria-label="<?= __('Delete selected attributes') ?>"
-                            onclick="multiSelectItems(baseurl + '/attributes/deleteSelection', '')">
-                        <i class="fas fa-trash"></i>
-                        <span> <?= __('Delete') ?></span>
-                    </button>
-                    <?php endif; ?>
-                    <span class="ms-sep" aria-hidden="true"></span>
-                    <button type="button" class="btn btn-sm btn-link ms-clear" onclick="clearMultiSelect(this)">
-                        <?= __('Clear selection') ?>
-                    </button>
-                </div>
-            </div>
-            <?php endif; ?>
         </div>
+        <?php if ($canEdit || $_mayGraph): ?>
+        <div id="multiSelectToolbar"
+             class="ms-float d-none" role="region" aria-label="<?= h(__('Selected attributes')) ?>">
+            <div class="p-2 border rounded bg-light d-flex align-items-center gap-2 flex-wrap">
+                <span class="ms-count" id="selectedCount"
+                      data-one="<?= h(__('%s attribute selected')) ?>"
+                      data-many="<?= h(__('%s attributes selected')) ?>"></span>
+                <span class="ms-sep" aria-hidden="true"></span>
+                <?php if ($_mayGraph): ?>
+                <button id="mass-graph-button"
+                        class="btn btn-analystGraph btn-sm d-none"
+                        type="button"
+                        title="<?= __('Add the selected to the active workspace') ?>"
+                        aria-label="<?= __('Add the selected to the active workspace') ?>"
+                        onclick="addSelectedToGraph(this)">
+                    <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
+                    <span class="text-white"> <?= __('Workspace') ?></span>
+                </button>
+                <?php endif; ?>
+                <?php if ($canEdit): ?>
+                <button id="multi-delete-button"
+                        class="btn btn-outline-danger btn-sm d-none"
+                        type="button"
+                        title="<?= __('Delete selected attributes') ?>"
+                        aria-label="<?= __('Delete selected attributes') ?>"
+                        onclick="multiSelectItems(baseurl + '/attributes/deleteSelection', '')">
+                    <i class="fas fa-trash"></i>
+                    <span> <?= __('Delete') ?></span>
+                </button>
+                <?php endif; ?>
+                <span class="ms-sep" aria-hidden="true"></span>
+                <button type="button" class="btn btn-sm btn-link ms-clear" onclick="clearMultiSelect(this)">
+                    <?= __('Clear selection') ?>
+                </button>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 
     <!-- ── Objects: list view (accordion) / card view ──────── -->
@@ -740,11 +743,10 @@ $foldChildren = empty($objects) ? [] : [
 
     <!-- ── Bottom pagination ───────────────────────────── -->
     <?php if (!empty($objects)): ?>
-    <div class="card shadow-sm mt-3">
-        <div class="card-body py-2">
-            <?= $this->element('genericElementsBS5/IndexTable/pagination') ?>
-        </div>
-    </div>
+        <?= $this->element('genericElementsBS5/IndexTable/pagination_bottom', [
+            'rows' => count($objects),
+            'class' => 'mt-3',
+        ]) ?>
     <?php endif; ?>
 
 </div><!-- /#objectListContainer -->
@@ -797,7 +799,11 @@ $foldChildren = empty($objects) ? [] : [
                 container.dispatchEvent(new CustomEvent('misp:container-loaded', {
                     bubbles: true, detail: { url: url }
                 }));
-                container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Only a list that starts above the screen scrolls, clear of the fixed navbar.
+                var top = container.getBoundingClientRect().top;
+                if (top < 56) {
+                    window.scrollTo({ top: Math.max(0, top + window.pageYOffset - 64), behavior: 'smooth' });
+                }
             })
             .catch(function () {
                 container.style.opacity      = '';
