@@ -97,6 +97,10 @@ Run the commands from `app/` as the web server user
      page.
 5. **Optional cleanup**: Redis no longer uses `misp:cidr_cache_list` or
    `misp:correlation_exclusions`, so both keys can be deleted.
+6. **Optional, whenever you choose: the log tables.** `logs` and
+   `audit_logs` keep their 2.5 layout through the upgrade;
+   `Console/cake LogTables upgrade` moves them with the instance online. See
+   [The log tables](#the-log-tables-optional).
 
 !!! note
     If the web interface answers "too many redirects" after an update, an
@@ -159,6 +163,58 @@ nodes' schemas equal.
 **Back up first.** A rebuild is not a transaction on any engine: it either ends
 with the new table or can be run again, but a full disk or a killed server can
 leave you restoring from the backup.
+
+### The log tables (optional)
+
+`runUpgrade` leaves `logs` and `audit_logs` as they are: on a large instance
+they are the biggest tables, and rewriting them offline would take hours.
+`Console/cake LogTables upgrade` brings them to the 3.0 layout while MISP keeps
+running, whenever you choose. New installations start with this layout.
+
+- **Indexes for the log views**: an organisation's log page, an event's or
+  object's history, a user's login history and the logins widget, and the
+  searches by user, organisation, e-mail, action, API key or date. Without
+  them each of these reads the whole table, which gets slow as the logs grow.
+- **utf8mb4**: new log entries keep emoji and other 4-byte characters, which
+  the old `logs` table stores as `�`.
+- **64-bit ids.**
+
+```bash
+sudo -u www-data Console/cake LogTables status    # where each table stands, and the disk it needs
+sudo -u www-data Console/cake LogTables upgrade   # swap, then copy the old rows; run it again to resume
+sudo -u www-data Console/cake LogTables finish    # drop the old tables once everything is copied
+```
+
+`upgrade` replaces each table with an empty one at the new layout in a single
+step, so new entries go there at once, and then copies the old rows back,
+newest first. The log views show the recent history straight away and the
+older history as the copy proceeds. If it is interrupted, run it again: it
+carries on where it stopped. The old rows stay in `logs_legacy` and
+`audit_logs_legacy` until `finish` drops them, which it only does once every
+row is copied.
+
+- **Time**: about 49,000 rows per second on the test laptop (MariaDB 10.11),
+  so about 3.5 minutes per 10 million rows; a 200 GB `logs` table holds
+  roughly 450 million rows, about 2.5 hours. MISP stays online throughout.
+- **Disk**: about 1.5 times the table's current size, free, until `finish`
+  drops the old table. The new table is 40 to 50 % larger than the old one,
+  for its indexes and 64-bit ids (measured: `logs` +38 %, `audit_logs` +47 %).
+- **Load**: the copy runs in batches of 10,000 rows, and on MariaDB a log
+  entry written during a batch can wait for it (up to 0.7 s in the tests). On
+  a busy server, pause between batches with `--sleep 200` (milliseconds) or
+  make them smaller with `--batch 2000`. On Galera, each batch is one write
+  set.
+- **One table at a time**: `--tables logs` or `--tables audit_logs`.
+  `MISP.log_new_audit` decides which of the two an instance fills, so the
+  other is usually small.
+- **Dropping old history**: `--since 2024-01-01` stops the copy at that date,
+  and `finish --force` then drops the older rows. This deletes them for good:
+  back them up first if you may need them.
+- **Restart PHP-FPM or Apache** after the upgrade has started. Until then the
+  web server, which caches the table layout, keeps replacing emoji in new log
+  entries.
+- `Console/cake Admin runDBScript indexLogs` is retired: these indexes come
+  with the upgrade.
 
 ### Requirements
 
@@ -269,8 +325,8 @@ The full comparison, with the queries behind it, is
   included. The value table's indexes replace them.
 - The `cake Admin` `OnDemandCorrelationTuning` index pack is gone, and
   `runDBScript highPerformance` only tells you that those indexes are now part
-  of the schema, which the upgrade applies. `runDBScript indexLogs` is
-  unchanged.
+  of the schema, which the upgrade applies. `runDBScript indexLogs` likewise
+  points to `Console/cake LogTables upgrade`.
 
 **Erasure**
 

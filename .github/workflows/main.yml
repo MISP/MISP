@@ -286,8 +286,8 @@ jobs:
         # INSTALL/MARIADB.sql no longer exercises the legacy corpus, so this does: the
         # previous release's baseline, carried through every legacy update and then
         # every migration - the path every existing instance takes - has to end up as
-        # the schema a fresh install starts with. Bump the tag when a release moves
-        # the baseline.
+        # the schema a fresh install starts with, once the optional log table upgrade
+        # has run too. Bump the tag when a release moves the baseline.
         run: |
           git fetch --depth 1 origin tag v2.5.45
           mysql -h 127.0.0.1 --port 3306 -u root -pbar -e "create database misp_legacy; grant all privileges on misp_legacy.* to misp@'%';"
@@ -295,6 +295,8 @@ jobs:
           MISP_DB_NAME=misp_legacy app/Console/cake Admin runUpgrade
           MISP_DB_NAME=misp_legacy app/Console/cake Admin schemaDiagnostics
           MISP_DB_NAME=misp_legacy app/Console/cake Admin migrationStatus | grep -q "Everything on disk has been applied."
+          MISP_DB_NAME=misp_legacy app/Console/cake LogTables upgrade
+          MISP_DB_NAME=misp_legacy app/Console/cake LogTables finish
           app/Console/cake Admin verifyInstallBaseline --connection legacy --database misp
 
       - name: Configure MISP

@@ -587,9 +587,17 @@ mysql -e 'CREATE DATABASE misp_ref'
 git show v2.5.45:INSTALL/MYSQL.sql | mysql misp_ref   # the last hand-maintained baseline, db_version 126
 Console/cake Admin runUpgrade                         # against misp_ref: legacy to 159, then every migration
 Console/cake Admin migrationStatus                    # everything applied, nothing pending or failed
+Console/cake LogTables upgrade                        # logs and audit_logs to their 3.0 layout
+Console/cake LogTables finish
 ```
 
 The generator refuses a reference that is not at the frozen `db_version`.
+`logs` and `audit_logs` are not migrated: existing instances move them with the
+optional `LogTables` command, whose targets live in
+`app/Lib/Migration/LogTableUpgrade.php`, and the app works with either layout.
+A reference that skipped the command would put the old layout back into
+every fresh install, and CI's legacy path, which runs the command, would no
+longer match the baseline.
 `runUpgrade` works on the instance's default connection, so on a development
 box point it at the reference from a probe shell for the duration rather than
 editing `database.php`. **Legacy update 150 rewrites the `encoding` of every
@@ -764,6 +772,7 @@ place alongside the new one — it will simply never fire again.
 | `app/Lib/Migration/AbstractMigration.php` | The contract, and the id rules |
 | `app/Lib/Migration/SchemaBuilder.php` | The DSL |
 | `app/Lib/Migration/TableMigration.php`, `TableConverger.php`, `TablePreflight.php` | A table brought to a target definition, and what is checked first |
+| `app/Lib/Migration/LogTableUpgrade.php` | The 3.0 layout of `logs` and `audit_logs`, and the online swap behind `Console/cake LogTables` |
 | `app/Lib/Migration/Grammar/` | Per-engine rendering, and the connectionless datasources `--dry-run` uses |
 | `app/Lib/Migration/MigrationManager.php` | Discovery, the ledger, applying |
 | `app/Lib/Migration/MigrationRunner.php` | Statement execution, logging, progress — shared with the legacy path |

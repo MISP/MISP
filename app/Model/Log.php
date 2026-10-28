@@ -214,12 +214,13 @@ class Log extends AppModel
         if (empty($this->data['Log']['org'])) {
             $this->data['Log']['org'] = 'SYSTEM';
         }
-        // The `logs` table is utf8mb3, so 4-byte UTF-8 characters (e.g. emoji) and invalid UTF-8 bytes
-        // would cause "Incorrect string value" errors on insert. Sanitize before length checks so the
-        // substituted/stripped bytes are accounted for in truncation.
+        // Sanitize before the length check, so that the replaced bytes count towards truncation.
+        $utf8mb3 = $this->isUtf8mb3();
         foreach ($this->truncatedColumns as $tf) {
             if (!empty($this->data['Log'][$tf]) && is_string($this->data['Log'][$tf])) {
-                $this->data['Log'][$tf] = JsonTool::sanitizeForUtf8mb3($this->data['Log'][$tf]);
+                $this->data['Log'][$tf] = $utf8mb3
+                    ? JsonTool::sanitizeForUtf8mb3($this->data['Log'][$tf])
+                    : JsonTool::escapeNonUnicode($this->data['Log'][$tf]);
             }
             if (strlen($this->data['Log'][$tf]) >= 65535) {
                 $this->data['Log'][$tf] = mb_strcut($this->data['Log'][$tf], 0, 65532, 'UTF-8') . '...';
@@ -230,6 +231,19 @@ class Log extends AppModel
             return false;
         }
         return true;
+    }
+
+    /**
+     * Whether `logs` still has its pre-3.0 utf8mb3 layout, which refuses
+     * 4-byte characters. `Console/cake LogTables upgrade` moves it on; fresh
+     * installs start at utf8mb4.
+     *
+     * @return bool
+     */
+    private function isUtf8mb3()
+    {
+        $title = $this->schema('title');
+        return isset($title['charset']) && $title['charset'] !== 'utf8mb4';
     }
 
     public function afterSave($created, $options = array())

@@ -8612,6 +8612,7 @@ class Server extends AppModel
                     'Scan attachment' => 'MISP/app/Console/cake Admin scanAttachment [input] [attribute_id] [job_id]',
                     'Clean excluded correlations' => 'MISP/app/Console/cake Admin cleanExcludedCorrelations [job_id]',
                     'Run DB Script' => 'MISP/app/Console/cake Admin runDBScript [script_name]',
+                    'Upgrade the log tables' => 'MISP/app/Console/cake LogTables [status|upgrade|finish]',
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')
