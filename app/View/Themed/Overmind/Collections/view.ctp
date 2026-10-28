@@ -17,6 +17,18 @@ if (!empty($collection['type'])) {
         h(CollectionType::icon($collection['type']))
     ) . $titleHtml;
 }
+// How far the investigation went, once someone said so
+$analysis = (int)($collection['analysis'] ?? 0);
+if ($analysis > 0) {
+    $tone = $analysis === 2 ? 'success' : 'info';
+    $titleHtml .= sprintf(
+        '<span class="badge rounded-pill align-self-center ms-2 bg-%1$s-subtle text-%1$s-emphasis border border-%1$s-subtle"'
+        . ' style="font-size:.4em;font-weight:600;" title="%2$s">%3$s</span>',
+        $tone,
+        h(__('How far the investigation went')),
+        h($analysis === 2 ? __('Completed') : __('Ongoing'))
+    );
+}
 $this->set('headerTitleHtml', $titleHtml);
 $this->set('headerCountText', '');
 

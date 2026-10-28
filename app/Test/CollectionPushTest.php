@@ -282,9 +282,11 @@ class CollectionPushTestable extends Collection
     public $uploadResults = null;              // queue of return strings; null ⇒ real method
     public $uploadCalls = array();
     public $lastException = null;
+    public $findOptions = array();
 
     public function find($type, $options = array())
     {
+        $this->findOptions[] = $options;
         return $this->findAllResult;
     }
 
@@ -601,11 +603,12 @@ class CollectionPushTest extends TestCase
     public function testPrepareKeepsWhoAddedAMemberAtHome(): void
     {
         $collection = array('Collection' => array('id' => 111, 'uuid' => 'u1', 'distribution' => 2, 'CollectionElement' => array(
-            array('uuid' => 'e1', 'element_type' => 'Event', 'user_id' => 3, 'created' => '2026-10-28 10:00:00'),
+            array('uuid' => 'e1', 'element_type' => 'Event', 'user_id' => 3, 'created' => '2026-10-28 10:00:00', 'published' => true),
         )));
         $prepared = $this->prepare($collection, $this->server());
 
         $this->assertArrayNotHasKey('user_id', $prepared['Collection']['CollectionElement'][0], 'who stays here');
+        $this->assertArrayNotHasKey('published', $prepared['Collection']['CollectionElement'][0], 'whether partners hold it too');
         $this->assertSame('2026-10-28 10:00:00', $prepared['Collection']['CollectionElement'][0]['created'], 'when travels');
     }
 
@@ -678,6 +681,17 @@ class CollectionPushTest extends TestCase
         $this->assertSame('orgc-uuid', $c['Orgc']['uuid'], 'Orgc nested under Collection');
         $this->assertArrayHasKey('CollectionElement', $c, 'element corpus nested under Collection');
         $this->assertSame('ev1', $c['CollectionElement'][0]['element_uuid']);
+    }
+
+    public function testCollectLeavesWithheldCollectionsHome(): void
+    {
+        ClassRegistry::$instances['Event'] = new CollectionPushFakeEvent();
+        ClassRegistry::$instances['SharingGroup'] = new CollectionPushFakeSharingGroup();
+        $this->collection->findAllResult = array();
+
+        $this->collection->collectDataForPush($this->collectServer());
+
+        $this->assertTrue($this->collection->findOptions[0]['conditions']['Collection.published'], 'only published collections leave');
     }
 
     public function testCollectExcludedByCheckDistribution(): void

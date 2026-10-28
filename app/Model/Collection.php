@@ -78,7 +78,19 @@ class Collection extends AppModel
         'other'
     ];
 
+    /** How far the investigation went, as on events. */
+    const ANALYSIS_LEVELS = [0, 1, 2];
+
+    /** Entries a publish review lists per kind of change. */
+    const REVIEW_LIMIT = 50;
+
     public $current_user = null;
+
+    /** Set while a publish, or a capture from another instance, writes the published state. */
+    private $writingPublishState = false;
+
+    /** @var array|null withheldScopes(), read once for a request from another instance */
+    private $servedScopes = null;
 
     public $validate = [
         'uuid' => [
@@ -105,6 +117,11 @@ class Collection extends AppModel
             'rule' => ['inList', [0, 1, 2, 3, 4]],
             'required' => 'create',
             'message' => 'Invalid distribution level.',
+        ],
+        'analysis' => [
+            'rule' => ['inList', self::ANALYSIS_LEVELS],
+            'allowEmpty' => true,
+            'message' => 'Invalid analysis level.',
         ],
     ];
 
@@ -133,6 +150,607 @@ class Collection extends AppModel
             }
         }
         return true;
+    }
+
+    /**
+     * A local save leaves the collection with changes partners do not have
+     * yet; only a publish or a capture from another instance says otherwise.
+     */
+    public function beforeSave($options = array())
+    {
+        if (!$this->writingPublishState) {
+            $this->data['Collection']['published'] = false;
+            unset($this->data['Collection']['last_published']);
+        }
+        return true;
+    }
+
+    public function afterDelete()
+    {
+        ClassRegistry::init('CollectionElementRemoval')->deleteAll(
+            ['CollectionElementRemoval.collection_id' => $this->id],
+            false
+        );
+    }
+
+    /**
+     * @param array $collection Unwrapped; reads distribution and published
+     * @return bool Whether partners are kept from it: shared beyond its
+     *              organisation and not published since its last change
+     */
+    public static function isWithheld(array $collection)
+    {
+        return (int)($collection['distribution'] ?? 0) !== 0 && empty($collection['published']);
+    }
+
+    /**
+     * @return array Conditions leaving withheld collections out
+     */
+    public static function releasedConditions()
+    {
+        return ['OR' => [['Collection.distribution' => 0], ['Collection.published' => true]]];
+    }
+
+    /**
+     * As for events: the edit right and perm_publish.
+     *
+     * @param array $user
+     * @param array $collection Unwrapped; reads org_id, orgc_id and user_id
+     * @return bool
+     */
+    public function canPublish(array $user, array $collection)
+    {
+        if (!empty($user['Role']['perm_site_admin'])) {
+            return true;
+        }
+        return !empty($user['Role']['perm_publish']) && $this->canModify($user, $collection);
+    }
+
+    /**
+     * Release a collection: it, its members and what its organisation drew
+     * on it reach partners together on the next push or pull.
+     *
+     * @param int $id
+     * @param int|null $analysis One of ANALYSIS_LEVELS, or null to keep it
+     * @return bool
+     */
+    public function publish($id, $analysis = null)
+    {
+        $now = date('Y-m-d H:i:s');
+        $record = ['id' => (int)$id, 'published' => true, 'last_published' => $now, 'modified' => $now];
+        if ($analysis !== null) {
+            $record['analysis'] = (int)$analysis;
+        }
+        $this->writingPublishState = true;
+        try {
+            $this->id = (int)$id;
+            $saved = $this->save(['Collection' => $record], ['fieldList' => array_keys($record)]);
+        } finally {
+            $this->writingPublishState = false;
+        }
+        if (!$saved) {
+            return false;
+        }
+        $this->markReleased((int)$id);
+        return true;
+    }
+
+    /**
+     * Partners hold every member now, and none of those taken out.
+     *
+     * @param int $id
+     */
+    private function markReleased($id)
+    {
+        $this->CollectionElement->updateAll(
+            ['CollectionElement.published' => true],
+            ['CollectionElement.collection_id' => $id, 'CollectionElement.published' => false]
+        );
+        ClassRegistry::init('CollectionElementRemoval')->deleteAll(
+            ['CollectionElementRemoval.collection_id' => $id],
+            false
+        );
+    }
+
+    /**
+     * Members added and removed since each collection was last published.
+     *
+     * @param array $ids
+     * @return array id => {added, removed}
+     */
+    public function pendingChanges(array $ids)
+    {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        $changes = array_fill_keys($ids, ['added' => 0, 'removed' => 0]);
+        if (empty($ids)) {
+            return $changes;
+        }
+        $added = $this->CollectionElement->find('all', [
+            'recursive' => -1,
+            'fields' => ['CollectionElement.collection_id', 'COUNT(*) AS n'],
+            'conditions' => ['CollectionElement.collection_id' => $ids, 'CollectionElement.published' => false],
+            'group' => ['CollectionElement.collection_id'],
+        ]);
+        foreach ($added as $row) {
+            $changes[(int)$row['CollectionElement']['collection_id']]['added'] = (int)$row[0]['n'];
+        }
+        $Removal = ClassRegistry::init('CollectionElementRemoval');
+        $removed = $Removal->find('all', [
+            'recursive' => -1,
+            'fields' => ['CollectionElementRemoval.collection_id', 'COUNT(*) AS n'],
+            'conditions' => ['CollectionElementRemoval.collection_id' => $ids],
+            'group' => ['CollectionElementRemoval.collection_id'],
+        ]);
+        foreach ($removed as $row) {
+            $changes[(int)$row['CollectionElementRemoval']['collection_id']]['removed'] = (int)$row[0]['n'];
+        }
+        return $changes;
+    }
+
+    /**
+     * What a publish releases: members added and removed, graphs saved on it
+     * and relationships drawn between its members since it was last
+     * published, by its organisation. Each list holds at most REVIEW_LIMIT
+     * entries; its count says how many there are.
+     *
+     * Members and the ends of relationships are {type, address, label, meta},
+     * labelled as the user sees them (label null when they cannot), members
+     * also with `at` (added or removed) and `user_id`.
+     *
+     * @param array $user
+     * @param array $collection Unwrapped, with Orgc
+     * @return array {added, removed, graphs, relationships}, each {count, items}
+     */
+    public function publishReview(array $user, array $collection)
+    {
+        $id = (int)$collection['id'];
+        $since = $collection['last_published'] ?? null;
+        $review = [];
+
+        $added = $this->CollectionElement->find('all', [
+            'recursive' => -1,
+            'conditions' => ['CollectionElement.collection_id' => $id, 'CollectionElement.published' => false],
+            'order' => ['CollectionElement.id' => 'DESC'],
+            'limit' => self::REVIEW_LIMIT,
+        ]);
+        $review['added'] = [
+            'count' => $this->pendingChanges([$id])[$id]['added'],
+            'items' => array_map(function ($row) {
+                return self::reviewEnd($row['CollectionElement'], 'element') + [
+                    'at' => $row['CollectionElement']['created'],
+                    'user_id' => $row['CollectionElement']['user_id'],
+                ];
+            }, $added),
+        ];
+
+        $Removal = ClassRegistry::init('CollectionElementRemoval');
+        $removedConditions = ['CollectionElementRemoval.collection_id' => $id];
+        $removed = $Removal->find('all', [
+            'recursive' => -1,
+            'conditions' => $removedConditions,
+            'order' => ['CollectionElementRemoval.id' => 'DESC'],
+            'limit' => self::REVIEW_LIMIT,
+        ]);
+        $review['removed'] = [
+            'count' => $Removal->find('count', ['recursive' => -1, 'conditions' => $removedConditions]),
+            'items' => array_map(function ($row) {
+                return self::reviewEnd($row['CollectionElementRemoval'], 'element') + [
+                    'at' => $row['CollectionElementRemoval']['created'],
+                    'user_id' => $row['CollectionElementRemoval']['user_id'],
+                ];
+            }, $removed),
+        ];
+
+        $orgcUuid = $collection['Orgc']['uuid'] ?? null;
+        $review['graphs'] = ['count' => 0, 'items' => []];
+        $review['relationships'] = ['count' => 0, 'items' => []];
+        if (empty($orgcUuid)) {
+            return $this->labelReview($user, $collection, $review);
+        }
+        $changedSince = $since === null ? [] : ['modified >' => $since];
+
+        $Graph = ClassRegistry::init('Graph');
+        $graphConditions = [
+            'Graph.object_type' => 'Collection',
+            'Graph.object_uuid' => self::spellings($collection['uuid']),
+            'Graph.orgc_uuid' => $orgcUuid,
+            'Graph.locked' => false,
+        ];
+        foreach ($changedSince as $field => $value) {
+            $graphConditions['Graph.' . $field] = $value;
+        }
+        $review['graphs'] = [
+            'count' => $Graph->find('count', ['recursive' => -1, 'conditions' => $graphConditions, 'callbacks' => false]),
+            'items' => $Graph->summaries($user, $graphConditions, ['counts' => false, 'targets' => false, 'limit' => self::REVIEW_LIMIT]),
+        ];
+
+        $members = $this->memberAddresses([$id])[$id] ?? [];
+        $members[strtolower($collection['uuid'])] = true;
+        $drawn = $this->relationshipsBetween($orgcUuid, $members, $changedSince);
+        $review['relationships'] = [
+            'count' => count($drawn),
+            'items' => array_map(function ($relationship) {
+                return [
+                    'uuid' => $relationship['uuid'],
+                    'relationship_type' => $relationship['relationship_type'],
+                    'modified' => $relationship['modified'],
+                    'from' => self::reviewEnd($relationship, 'object'),
+                    'to' => self::reviewEnd($relationship, 'related_object'),
+                ];
+            }, array_slice($drawn, 0, self::REVIEW_LIMIT)),
+        ];
+        return $this->labelReview($user, $collection, $review);
+    }
+
+    /**
+     * @param array $row An element, a removal or a relationship, unwrapped
+     * @param string $end 'element', 'object' or 'related_object'
+     * @return array {type, address}
+     */
+    private static function reviewEnd(array $row, $end)
+    {
+        $type = $row[$end . '_type'] ?? null;
+        $address = $row[AnalystData::addressColumn($type, $end)] ?? null;
+        return ['type' => $type, 'address' => is_string($address) ? strtolower($address) : null];
+    }
+
+    /**
+     * Label the members and relationship ends of a review, in one pass.
+     *
+     * @param array $user
+     * @param array $collection
+     * @param array $review
+     * @return array
+     */
+    private function labelReview(array $user, array $collection, array $review)
+    {
+        $targets = [];
+        $collect = function (array $end) use (&$targets) {
+            if ($end['address'] !== null && $end['type'] !== 'Collection') {
+                $targets[$end['type'] . ':' . $end['address']] = ['type' => $end['type'], 'address' => $end['address']];
+            }
+        };
+        foreach (['added', 'removed'] as $kind) {
+            array_map($collect, $review[$kind]['items']);
+        }
+        foreach ($review['relationships']['items'] as $relationship) {
+            $collect($relationship['from']);
+            $collect($relationship['to']);
+        }
+        $described = empty($targets) ? [] : ClassRegistry::init('AnalystData')->describeTargets($user, array_values($targets));
+        $byAddress = [];
+        foreach ($described as $address => $description) {
+            $byAddress[strtolower((string)$address)] = $description;
+        }
+        $label = function (array $end) use ($byAddress, $collection) {
+            if ($end['type'] === 'Collection' && $end['address'] === strtolower($collection['uuid'])) {
+                return $end + ['label' => $collection['name'], 'meta' => []];
+            }
+            $found = $byAddress[$end['address']] ?? null;
+            return $end + ['label' => $found['label'] ?? null, 'meta' => $found['meta'] ?? []];
+        };
+        foreach (['added', 'removed'] as $kind) {
+            foreach ($review[$kind]['items'] as $i => $item) {
+                $review[$kind]['items'][$i] = $label($item);
+            }
+        }
+        foreach ($review['relationships']['items'] as $i => $relationship) {
+            $review['relationships']['items'][$i]['from'] = $label($relationship['from']);
+            $review['relationships']['items'][$i]['to'] = $label($relationship['to']);
+        }
+        return $review;
+    }
+
+    /**
+     * Relationships an organisation drew here whose both ends are in
+     * $addresses. Read by their first end, one indexed lookup per chunk of
+     * addresses and address column.
+     *
+     * @param string $orgcUuid
+     * @param array $addresses address => true, lowercased
+     * @param array $changedSince Extra conditions on the relationship, unqualified
+     * @return array Relationship rows, unwrapped, newest first
+     */
+    private function relationshipsBetween($orgcUuid, array $addresses, array $changedSince = [])
+    {
+        $Relationship = ClassRegistry::init('Relationship');
+        $byColumn = ['object_uuid' => [], 'object_sha256' => []];
+        foreach (array_keys($addresses) as $address) {
+            $address = (string)$address;
+            $byColumn[strlen($address) === 64 ? 'object_sha256' : 'object_uuid'][] = $address;
+        }
+        $found = [];
+        foreach ($byColumn as $column => $values) {
+            foreach (array_chunk($values, 1000) as $chunk) {
+                $conditions = [
+                    'Relationship.' . $column => $column === 'object_uuid' ? self::spellingsOf($chunk) : $chunk,
+                    'Relationship.orgc_uuid' => $orgcUuid,
+                    'Relationship.locked' => false,
+                ];
+                foreach ($changedSince as $field => $value) {
+                    $conditions['Relationship.' . $field] = $value;
+                }
+                $rows = $Relationship->find('all', [
+                    'recursive' => -1,
+                    'conditions' => $conditions,
+                    'callbacks' => false,
+                ]);
+                foreach ($rows as $row) {
+                    $relationship = $row['Relationship'];
+                    $to = self::endAddress($relationship, 'related_object');
+                    if ($to !== null && isset($addresses[$to])) {
+                        $found[$relationship['id']] = $relationship;
+                    }
+                }
+            }
+        }
+        usort($found, function ($a, $b) {
+            return strcmp((string)$b['modified'], (string)$a['modified']);
+        });
+        return array_values($found);
+    }
+
+    /**
+     * Each collection's member addresses, lowercased.
+     *
+     * @param array $ids
+     * @return array id => [address => true]
+     */
+    private function memberAddresses(array $ids)
+    {
+        $members = [];
+        foreach (array_chunk(array_map('intval', $ids), 500) as $chunk) {
+            $rows = $this->CollectionElement->find('all', [
+                'recursive' => -1,
+                'fields' => [
+                    'CollectionElement.collection_id',
+                    'CollectionElement.element_uuid',
+                    'CollectionElement.element_sha256',
+                ],
+                'conditions' => ['CollectionElement.collection_id' => $chunk],
+            ]);
+            foreach ($rows as $row) {
+                $element = $row['CollectionElement'];
+                $address = $element['element_sha256'] ?: $element['element_uuid'];
+                if (is_string($address) && $address !== '') {
+                    $members[(int)$element['collection_id']][strtolower($address)] = true;
+                }
+            }
+        }
+        return $members;
+    }
+
+    /**
+     * What withheld collections keep from partners: per collection, its
+     * organisation and the addresses of its members, its own included.
+     *
+     * @return array [{uuid, orgc_uuid, members: [address => true]}]
+     */
+    public function withheldScopes()
+    {
+        $rows = $this->find('all', [
+            'recursive' => -1,
+            'contain' => ['Orgc'],
+            'fields' => ['Collection.id', 'Collection.uuid', 'Orgc.uuid'],
+            'conditions' => ['Collection.distribution !=' => 0, 'Collection.published' => false],
+        ]);
+        if (empty($rows)) {
+            return [];
+        }
+        $members = $this->memberAddresses(Hash::extract($rows, '{n}.Collection.id'));
+        $scopes = [];
+        foreach ($rows as $row) {
+            $id = (int)$row['Collection']['id'];
+            $uuid = strtolower($row['Collection']['uuid']);
+            $scopes[] = [
+                'uuid' => $uuid,
+                'orgc_uuid' => strtolower((string)($row['Orgc']['uuid'] ?? '')),
+                'members' => ($members[$id] ?? []) + [$uuid => true],
+            ];
+        }
+        return $scopes;
+    }
+
+    /**
+     * A graph on a withheld collection, or a relationship between its
+     * members, waits for the collection's publish when the collection's
+     * organisation made it. Notes and opinions never wait.
+     *
+     * @param array $scopes withheldScopes()'s
+     * @param string $type
+     * @param array $row Unwrapped analyst data
+     * @return bool
+     */
+    public static function holdsBack(array $scopes, $type, array $row)
+    {
+        if ($type !== 'Graph' && $type !== 'Relationship') {
+            return false;
+        }
+        $orgc = strtolower((string)($row['orgc_uuid'] ?? ''));
+        foreach ($scopes as $scope) {
+            if ($orgc === '' || $scope['orgc_uuid'] !== $orgc) {
+                continue;
+            }
+            if ($type === 'Graph') {
+                if (($row['object_type'] ?? null) === 'Collection' && strtolower((string)($row['object_uuid'] ?? '')) === $scope['uuid']) {
+                    return true;
+                }
+                continue;
+            }
+            $from = self::endAddress($row, 'object');
+            $to = self::endAddress($row, 'related_object');
+            if ($from !== null && $to !== null && isset($scope['members'][$from], $scope['members'][$to])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param array $byType [type => [[type => row], ...]], as analyst-data sync collects it
+     * @return array The same, without what withheld collections keep from partners
+     */
+    public function withoutHeldBack(array $byType)
+    {
+        if (empty($byType['Graph']) && empty($byType['Relationship'])) {
+            return $byType;
+        }
+        $scopes = $this->withheldScopes();
+        if (empty($scopes)) {
+            return $byType;
+        }
+        foreach (['Graph', 'Relationship'] as $type) {
+            if (empty($byType[$type])) {
+                continue;
+            }
+            $byType[$type] = array_values(array_filter($byType[$type], function ($entry) use ($scopes, $type) {
+                return !self::holdsBack($scopes, $type, $entry[$type] ?? $entry);
+            }));
+        }
+        return $byType;
+    }
+
+    /**
+     * Relationships as another instance receives them inside the records
+     * they are attached to.
+     *
+     * @param array $rows Relationship rows, wrapped or not
+     * @return array The same, without those withheld collections hold back
+     */
+    public function servedRelationships(array $rows)
+    {
+        if (empty($rows) || !SyncTool::requesterIsMisp()) {
+            return $rows;
+        }
+        if ($this->servedScopes === null) {
+            $this->servedScopes = $this->withheldScopes();
+        }
+        if (empty($this->servedScopes)) {
+            return $rows;
+        }
+        $scopes = $this->servedScopes;
+        return array_values(array_filter($rows, function ($row) use ($scopes) {
+            return !self::holdsBack($scopes, 'Relationship', $row['Relationship'] ?? $row);
+        }));
+    }
+
+    /**
+     * A graph or a relationship an organisation drew here changed what
+     * partners will receive with these collections of that organisation.
+     *
+     * @param string $orgcUuid
+     * @param array $conditions Which collections
+     */
+    public function unpublishFor($orgcUuid, array $conditions)
+    {
+        if (!is_string($orgcUuid) || $orgcUuid === '') {
+            return;
+        }
+        $org = $this->Orgc->find('first', [
+            'recursive' => -1,
+            'fields' => ['Orgc.id'],
+            'conditions' => ['Orgc.uuid' => $orgcUuid],
+        ]);
+        if (empty($org)) {
+            return;
+        }
+        $this->updateAll(
+            ['Collection.published' => false],
+            ['AND' => [$conditions, ['Collection.orgc_id' => $org['Orgc']['id'], 'Collection.published' => true]]]
+        );
+    }
+
+    /**
+     * A graph saved here on a collection of its organisation changed it.
+     *
+     * @param array $graph Unwrapped; reads object_type, object_uuid, orgc_uuid and locked
+     */
+    public function graphSaved(array $graph)
+    {
+        if (($graph['object_type'] ?? null) !== 'Collection' || !empty($graph['locked']) || !is_string($graph['object_uuid'] ?? null)) {
+            return;
+        }
+        $this->unpublishFor($graph['orgc_uuid'] ?? null, ['Collection.uuid' => self::spellings($graph['object_uuid'])]);
+    }
+
+    /**
+     * A relationship saved here: the collections of its organisation that
+     * hold both of its ends (one end may be the collection) have changed.
+     *
+     * @param array $relationship Unwrapped
+     */
+    public function relationshipSaved(array $relationship)
+    {
+        if (!empty($relationship['locked'])) {
+            return;
+        }
+        $sets = [];
+        foreach (['object', 'related_object'] as $end) {
+            $type = $relationship[$end . '_type'] ?? null;
+            $address = self::endAddress($relationship, $end);
+            if ($address === null) {
+                return;
+            }
+            if ($type === 'Collection') {
+                $ids = $this->find('list', [
+                    'recursive' => -1,
+                    'fields' => ['Collection.id', 'Collection.id'],
+                    'conditions' => ['Collection.uuid' => self::spellings($address)],
+                ]);
+            } else {
+                $column = AnalystData::addressColumn($type, 'element');
+                $ids = $this->CollectionElement->find('list', [
+                    'recursive' => -1,
+                    'fields' => ['CollectionElement.id', 'CollectionElement.collection_id'],
+                    'conditions' => ['CollectionElement.' . $column => $column === 'element_uuid' ? self::spellings($address) : $address],
+                ]);
+            }
+            $sets[] = array_flip(array_map('intval', array_values($ids)));
+        }
+        $both = array_keys(array_intersect_key($sets[0], $sets[1]));
+        if (!empty($both)) {
+            $this->unpublishFor($relationship['orgc_uuid'] ?? null, ['Collection.id' => $both]);
+        }
+    }
+
+    /**
+     * @param array $row Analyst data, unwrapped
+     * @param string $end 'object' or 'related_object'
+     * @return string|null The end's uuid or SHA-256, lowercased
+     */
+    private static function endAddress(array $row, $end)
+    {
+        foreach (['_sha256', '_uuid'] as $suffix) {
+            $address = $row[$end . $suffix] ?? null;
+            if (is_string($address) && trim($address) !== '') {
+                return strtolower(trim($address));
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param string $uuid
+     * @return array The spellings a uuid may be stored under
+     */
+    private static function spellings($uuid)
+    {
+        return array_values(array_unique([strtolower($uuid), strtoupper($uuid)]));
+    }
+
+    /**
+     * @param array $uuids
+     * @return array
+     */
+    private static function spellingsOf(array $uuids)
+    {
+        $all = [];
+        foreach ($uuids as $uuid) {
+            foreach (self::spellings((string)$uuid) as $spelling) {
+                $all[] = $spelling;
+            }
+        }
+        return array_values(array_unique($all));
     }
 
     public function mayModify($user_id, $collection_id)
@@ -179,7 +797,10 @@ class Collection extends AppModel
      * @param array $conditions ANDed with what the user may see
      * @param int|null $limit
      * @return array [{id, uuid, name, type, distribution, sharing_group_id,
-     *               modified, Orgc: {id, uuid, name}, element_count, _canEdit}]
+     *               modified, Orgc: {id, uuid, name}, element_count, published,
+     *               last_published, analysis, withheld, changes, _canEdit,
+     *               _canPublish}]; `changes` {added, removed} is set on a
+     *               withheld collection only
      */
     public function workspaceSummaries(array $user, array $conditions, $limit = null)
     {
@@ -191,6 +812,7 @@ class Collection extends AppModel
                 'Collection.id', 'Collection.uuid', 'Collection.name', 'Collection.type',
                 'Collection.distribution', 'Collection.sharing_group_id', 'Collection.org_id',
                 'Collection.orgc_id', 'Collection.user_id', 'Collection.modified',
+                'Collection.published', 'Collection.last_published', 'Collection.analysis',
             ],
             'contain' => ['Orgc'],
             'order' => ['Collection.modified' => 'DESC', 'Collection.id' => 'DESC'],
@@ -209,6 +831,13 @@ class Collection extends AppModel
         foreach ($grouped as $row) {
             $counts[$row['CollectionElement']['collection_id']] = (int)$row[0]['element_count'];
         }
+        $withheld = [];
+        foreach ($rows as $row) {
+            if (self::isWithheld($row['Collection'])) {
+                $withheld[] = (int)$row['Collection']['id'];
+            }
+        }
+        $changes = $this->pendingChanges($withheld);
         $summaries = [];
         foreach ($rows as $row) {
             $collection = $row['Collection'];
@@ -226,7 +855,13 @@ class Collection extends AppModel
                     'name' => $row['Orgc']['name'] ?? null,
                 ],
                 'element_count' => $counts[$collection['id']] ?? 0,
+                'published' => !empty($collection['published']),
+                'last_published' => $collection['last_published'],
+                'analysis' => (int)$collection['analysis'],
+                'withheld' => self::isWithheld($collection),
+                'changes' => $changes[(int)$collection['id']] ?? null,
                 '_canEdit' => $this->canModify($user, $collection),
+                '_canPublish' => $this->canPublish($user, $collection),
             ];
         }
         return $summaries;
@@ -304,6 +939,9 @@ class Collection extends AppModel
     public function indexMinimal(array $user, array $filters = []): array
     {
         $conditions = [$this->buildConditions($user['id'])];
+        if (SyncTool::requesterIsMisp()) {
+            $conditions[] = self::releasedConditions();
+        }
         if (!empty($filters)) {
             $conditions[] = $filters;
         }
@@ -592,10 +1230,23 @@ class Collection extends AppModel
             unset($collection['Collection']['CollectionElement']);
         }
 
+        // What another instance sends is what it published
+        $collection['Collection']['published'] = true;
+        $lastPublished = $collection['Collection']['last_published'] ?? null;
+        $collection['Collection']['last_published'] = is_string($lastPublished) && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $lastPublished)
+            ? $lastPublished
+            : date('Y-m-d H:i:s');
         $fieldList = [
             'uuid', 'name', 'type', 'description', 'distribution',
-            'sharing_group_id', 'org_id', 'orgc_id', 'user_id', 'locked', 'modified'
+            'sharing_group_id', 'org_id', 'orgc_id', 'user_id', 'locked', 'modified',
+            'published', 'last_published',
         ];
+        if (isset($collection['Collection']['analysis']) && in_array((int)$collection['Collection']['analysis'], self::ANALYSIS_LEVELS, true)) {
+            $collection['Collection']['analysis'] = (int)$collection['Collection']['analysis'];
+            $fieldList[] = 'analysis';
+        } else {
+            unset($collection['Collection']['analysis']);
+        }
 
         $existing = $this->find('first', [
             'recursive' => -1,
@@ -605,26 +1256,31 @@ class Collection extends AppModel
         // current_user drives beforeValidate on the create branch (owner org / user_id /
         // orgc fallback); its perm_sync exemption lets our locked=1 stand.
         $this->current_user = $user;
-        if (empty($existing)) {
-            unset($collection['Collection']['id']);
-            $this->create();
-            $saveSuccess = $this->save($collection, true, $fieldList);
-        } else {
-            // D6: never let a non-internal remote overwrite a locally-created original.
-            if (empty($existing['Collection']['locked']) && empty($server['Server']['internal'])) {
-                $results['errors'][] = __('Blocked an edit to a collection that was created locally. This can happen if a synchronised collection that was created on this instance was modified by an administrator on the remote side.');
-                $results['failed']++;
-                return $results;
-            }
-            // Last-writer-wins: only a strictly-newer remote version wins.
-            if (isset($collection['Collection']['modified']) && $collection['Collection']['modified'] > $existing['Collection']['modified']) {
-                $collection['Collection']['id'] = $existing['Collection']['id'];
+        $this->writingPublishState = true;
+        try {
+            if (empty($existing)) {
+                unset($collection['Collection']['id']);
+                $this->create();
                 $saveSuccess = $this->save($collection, true, $fieldList);
             } else {
-                $results['errors'][] = __('Remote version is not newer than local one for collection (%s)', $collection['Collection']['uuid']);
-                $results['ignored']++;
-                return $results;
+                // D6: never let a non-internal remote overwrite a locally-created original.
+                if (empty($existing['Collection']['locked']) && empty($server['Server']['internal'])) {
+                    $results['errors'][] = __('Blocked an edit to a collection that was created locally. This can happen if a synchronised collection that was created on this instance was modified by an administrator on the remote side.');
+                    $results['failed']++;
+                    return $results;
+                }
+                // Last-writer-wins: only a strictly-newer remote version wins.
+                if (isset($collection['Collection']['modified']) && $collection['Collection']['modified'] > $existing['Collection']['modified']) {
+                    $collection['Collection']['id'] = $existing['Collection']['id'];
+                    $saveSuccess = $this->save($collection, true, $fieldList);
+                } else {
+                    $results['errors'][] = __('Remote version is not newer than local one for collection (%s)', $collection['Collection']['uuid']);
+                    $results['ignored']++;
+                    return $results;
+                }
             }
+        } finally {
+            $this->writingPublishState = false;
         }
 
         if ($saveSuccess) {
@@ -643,6 +1299,7 @@ class Collection extends AppModel
                     ],
                 ], $fromPre30 === null ? SyncTool::valueTargetsWithheld() : $fromPre30, true);
             }
+            $this->markReleased((int)$saved['Collection']['id']);
         } else {
             $results['failed']++;
             foreach ($this->validationErrors as $validationError) {
@@ -760,6 +1417,7 @@ class Collection extends AppModel
             'recursive' => -1,
             'contain' => ['Orgc', 'SharingGroup', 'CollectionElement'],
             'conditions' => [
+                'Collection.published' => true,
                 'OR' => [
                     ['AND' => [['Collection.distribution >' => 0], ['Collection.distribution <' => 4]]],
                     ['AND' => ['Collection.distribution' => 4, 'Collection.sharing_group_id' => $sgIDs]],
@@ -953,13 +1611,13 @@ class Collection extends AppModel
 
     /**
      * @param array $elements CollectionElement rows, unwrapped
-     * @return array
+     * @return array Without who added them, nor whether partners hold them yet
      */
     public static function withoutAdders(array $elements)
     {
         foreach ($elements as $i => $element) {
             if (is_array($element)) {
-                unset($elements[$i]['user_id']);
+                unset($elements[$i]['user_id'], $elements[$i]['published']);
             }
         }
         return $elements;

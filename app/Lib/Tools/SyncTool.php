@@ -132,6 +132,17 @@ class SyncTool
     }
 
     /**
+     * Another instance reads only what has been published, as a collection
+     * shared beyond its organisation is withheld until then.
+     *
+     * @return bool Whether a MISP instance is making the request
+     */
+    public static function requesterIsMisp()
+    {
+        return Configure::read('CurrentRequesterMispVersion') !== null;
+    }
+
+    /**
      * @return bool Whether a MISP older than 3.0 is making the request
      */
     public static function requesterBelow30()

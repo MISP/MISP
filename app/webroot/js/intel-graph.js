@@ -22,7 +22,8 @@
 //
 // Events, on document, each with the details in event.detail:
 //   intel-graph:active   { workspace }                         the workspace changed, here or in another tab
-//   intel-graph:count    { collection, element_count }         its member count moved
+//   intel-graph:count    { collection, element_count, state }  its member count moved; state
+//                        { withheld, changes } says what partners lack yet
 //   intel-graph:added    { collection, report, items, undo, origin }  addItems went through
 //   intel-graph:refused  { collection, items, status, message } addItems was refused
 //   intel-graph:removed  { collection, report, items }         removeItems went through
@@ -103,7 +104,12 @@
                 count.textContent = c ? String(c.element_count) : '';
                 count.hidden = !c;
             }
-            var title = (c ? 'Workspace: ' + c.name + ' (collection)' : text.none)
+            var shared = slot.querySelector('[data-intel-graph-shared]');
+            if (shared) {
+                shared.hidden = !c || !c.distribution;
+                shared.toggleAttribute('data-pending', !!(c && c.distribution && c.withheld));
+            }
+            var title = (c ? 'Workspace: ' + c.name + ' (collection)' + sharing(c) : text.none)
                 + (dock && dock.shortcut ? ' — ' + dock.shortcut.toUpperCase() + ' shows or hides it' : '');
             slot.title = title;
             slot.querySelectorAll('[data-intel-graph-toggle]').forEach(function (b) {
@@ -113,6 +119,19 @@
                 if (dock && dock.shortcut) b.setAttribute('aria-keyshortcuts', dock.shortcut.toUpperCase());
             });
         });
+    }
+
+    // What partners hold of a collection shared beyond the organisation.
+    function sharing(c) {
+        if (!c || !c.distribution) return '';
+        if (!c.withheld) return ' · shared with partners';
+        var n = c.changes ? c.changes.added + c.changes.removed : 0;
+        var what = n ? n + (n === 1 ? ' change' : ' changes') : 'Changes';
+        return ' · shared with partners once published: ' + (n ? what : what.toLowerCase())
+            + (c._canPublish === false ? ' waiting for a publisher' : ' not yet published');
+    }
+    function publishState(c) {
+        return c ? { withheld: !!c.withheld, changes: c.changes || null, published: !!c.published, last_published: c.last_published || null } : null;
     }
 
     function bindSlot() {
@@ -133,11 +152,11 @@
     }
 
     // An add or a removal moved the workspace's member count.
-    function touchCount(uuid, count) {
+    function touchCount(uuid, count, state) {
         if (!active || lower(active.Collection.uuid) !== lower(uuid) || typeof count !== 'number') return;
-        active = { Collection: Object.assign({}, active.Collection, { element_count: count }), Graph: active.Graph };
+        active = { Collection: Object.assign({}, active.Collection, { element_count: count }, state || {}), Graph: active.Graph };
         renderSlot();
-        emit('count', { collection: lower(uuid), element_count: count });
+        emit('count', { collection: lower(uuid), element_count: count, state: state || null });
     }
 
     /* ── the other tabs of this browser ───────────────────── */
@@ -164,7 +183,7 @@
     function hear(message) {
         if (!message || config.user == null || message.user !== config.user) return;
         if (message.kind === 'active') setActiveState(message.workspace);
-        else if (message.kind === 'count') touchCount(message.collection, message.element_count);
+        else if (message.kind === 'count') touchCount(message.collection, message.element_count, message.state);
     }
 
     if (channel) {
@@ -212,8 +231,9 @@
 
     function countMoved(uuid, report) {
         if (!report || typeof report.element_count !== 'number') return;
-        touchCount(uuid, report.element_count);
-        broadcast({ kind: 'count', collection: lower(uuid), element_count: report.element_count });
+        var state = publishState(report.Collection);
+        touchCount(uuid, report.element_count, state);
+        broadcast({ kind: 'count', collection: lower(uuid), element_count: report.element_count, state: state });
     }
 
     function removeFrom(uuid, items) {

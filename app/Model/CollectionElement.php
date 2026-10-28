@@ -80,6 +80,12 @@ class CollectionElement extends AppModel
     /** @var int|null parent collection_id stashed in beforeDelete for afterDelete */
     private $deletedElementCollectionId = null;
 
+    /** @var array|null the row stashed in beforeDelete for afterDelete */
+    private $deletedElement = null;
+
+    /** @var array collection_id => whether it holds removal rows, read once per request */
+    private $mayHaveRemovals = [];
+
     /** The user a new element records as having added it. */
     public $current_user = null;
 
@@ -115,6 +121,7 @@ class CollectionElement extends AppModel
             if (!$this->remoteCapture) {
                 $this->data['CollectionElement']['created'] = date('Y-m-d H:i:s');
             }
+            $this->data['CollectionElement']['published'] = $this->remoteCapture;
         }
         $this->data['CollectionElement'] = AnalystData::normaliseAddress($this->data['CollectionElement'], 'element', empty($this->id));
         if (
@@ -281,6 +288,9 @@ class CollectionElement extends AppModel
     public function afterSave($created, $options = array())
     {
         parent::afterSave($created, $options);
+        if ($created && !$this->remoteCapture) {
+            $this->takeBackRemoval($this->data['CollectionElement'], $this->id);
+        }
         if ($this->skipCollectionModifiedBump) {
             return;
         }
@@ -293,8 +303,13 @@ class CollectionElement extends AppModel
 
     public function beforeDelete($cascade = true)
     {
-        // The row is gone by afterDelete, so stash the parent collection_id now.
-        $this->deletedElementCollectionId = $this->field('collection_id', ['CollectionElement.id' => $this->id]);
+        // The row is gone by afterDelete, so stash it now.
+        $row = $this->find('first', [
+            'recursive' => -1,
+            'conditions' => ['CollectionElement.id' => $this->id],
+        ]);
+        $this->deletedElement = $row['CollectionElement'] ?? null;
+        $this->deletedElementCollectionId = $this->deletedElement['collection_id'] ?? null;
         return true;
     }
 
@@ -302,7 +317,12 @@ class CollectionElement extends AppModel
     {
         parent::afterDelete();
         $collectionId = $this->deletedElementCollectionId;
+        $element = $this->deletedElement;
         $this->deletedElementCollectionId = null;
+        $this->deletedElement = null;
+        if (!empty($element['published']) && !$this->remoteCapture) {
+            $this->recordRemoval($element);
+        }
         if ($this->skipCollectionModifiedBump) {
             return;
         }
@@ -311,9 +331,10 @@ class CollectionElement extends AppModel
 
     /**
      * Bump the parent Collection's `modified` so element-only edits are visible
-     * to {uuid: modified} sync dedup (D5). updateAll avoids callbacks/validation
-     * and harmlessly affects zero rows if the parent no longer exists (e.g. a
-     * cascading Collection delete). Skipped during sync capture (see the flag).
+     * to {uuid: modified} sync dedup (D5), and leave it with changes partners
+     * do not have yet. updateAll avoids callbacks/validation and harmlessly
+     * affects zero rows if the parent no longer exists (e.g. a cascading
+     * Collection delete). Skipped during sync capture (see the flag).
      */
     private function touchCollection($collectionId)
     {
@@ -321,9 +342,72 @@ class CollectionElement extends AppModel
             return;
         }
         $this->Collection->updateAll(
-            ['Collection.modified' => "'" . date('Y-m-d H:i:s') . "'"],
+            ['Collection.modified' => "'" . date('Y-m-d H:i:s') . "'", 'Collection.published' => false],
             ['Collection.id' => $collectionId]
         );
+    }
+
+    /**
+     * Partners hold a published member until the next publish says it is gone.
+     *
+     * @param array $element The deleted row
+     */
+    private function recordRemoval(array $element)
+    {
+        $Removal = ClassRegistry::init('CollectionElementRemoval');
+        $Removal->create();
+        try {
+            $Removal->save(['CollectionElementRemoval' => [
+                'collection_id' => $element['collection_id'],
+                'element_type' => $element['element_type'],
+                'element_uuid' => is_string($element['element_uuid']) ? strtolower($element['element_uuid']) : null,
+                'element_sha256' => $element['element_sha256'],
+                'user_id' => $this->current_user['id'] ?? null,
+                'created' => date('Y-m-d H:i:s'),
+            ]]);
+        } catch (PDOException $e) {
+            if (!self::isDuplicate($e)) {
+                throw $e;
+            }
+        }
+        $this->mayHaveRemovals[(int)$element['collection_id']] = true;
+    }
+
+    /**
+     * A member added back before the next publish is one partners still
+     * hold: its removal is dropped and it joins as published.
+     *
+     * @param array $element The saved row
+     * @param int $id
+     */
+    private function takeBackRemoval(array $element, $id)
+    {
+        $collectionId = (int)($element['collection_id'] ?? 0);
+        $Removal = ClassRegistry::init('CollectionElementRemoval');
+        if (!isset($this->mayHaveRemovals[$collectionId])) {
+            $this->mayHaveRemovals[$collectionId] = $Removal->hasAny(['CollectionElementRemoval.collection_id' => $collectionId]);
+        }
+        if (!$this->mayHaveRemovals[$collectionId]) {
+            return;
+        }
+        $key = $this->targetKey($element);
+        if ($key === '') {
+            return;
+        }
+        list($column, $address) = explode(':', $key, 2);
+        $removal = $Removal->find('first', [
+            'recursive' => -1,
+            'fields' => ['CollectionElementRemoval.id'],
+            'conditions' => [
+                'CollectionElementRemoval.collection_id' => $collectionId,
+                'CollectionElementRemoval.' . $column => $address,
+            ],
+        ]);
+        if (empty($removal)) {
+            return;
+        }
+        $Removal->delete($removal['CollectionElementRemoval']['id']);
+        $this->updateAll(['CollectionElement.published' => true], ['CollectionElement.id' => $id]);
     }
 
     /**

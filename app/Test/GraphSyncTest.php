@@ -84,6 +84,7 @@ if (!class_exists('JsonTool', false)) {
 }
 
 require_once __DIR__ . '/../Lib/Tools/ServerSyncTool.php';
+require_once __DIR__ . '/../Lib/Tools/SyncTool.php';
 require_once __DIR__ . '/../Lib/Tools/AnalystGraphDocumentTool.php';
 require_once __DIR__ . '/../Model/AnalystData.php';
 require_once __DIR__ . '/../Model/Graph.php';
@@ -323,6 +324,15 @@ class GraphSyncTestGraph extends Graph
     }
 }
 
+/** No collection is withheld: every graph and link goes. */
+class GraphSyncTestCollection
+{
+    public function withoutHeldBack(array $byType)
+    {
+        return $byType;
+    }
+}
+
 class GraphSyncTestEvent
 {
     public function checkDistributionForPush($object, $server, $context = 'Event')
@@ -490,6 +500,7 @@ class GraphSyncTest extends TestCase
     private function registerPushFakes(array $notes, array $graphs)
     {
         ClassRegistry::$instances = array(
+            'Collection' => new GraphSyncTestCollection(),
             'Server' => new GraphSyncTestServer(),
             'SharingGroup' => new GraphSyncTestSharingGroup(),
             'Event' => new GraphSyncTestEvent(),
@@ -550,7 +561,7 @@ class GraphSyncTest extends TestCase
         $graph = new GraphSyncTestGraph(array($this->graphRow(1, 2, array('content_size' => 4321))));
         $note = new GraphSyncTestModel('Note', array($this->noteRow(2)));
         $opinion = new GraphSyncTestModel('Opinion');
-        ClassRegistry::$instances = array('Graph' => $graph, 'Note' => $note, 'Opinion' => $opinion);
+        ClassRegistry::$instances = array('Graph' => $graph, 'Note' => $note, 'Opinion' => $opinion, 'Collection' => new GraphSyncTestCollection());
 
         $index = (new GraphSyncTestAnalystData())->indexMinimal($this->admin, array(), array('Note', 'Graph'));
 
@@ -567,6 +578,7 @@ class GraphSyncTest extends TestCase
     {
         $graph = new GraphSyncTestGraph(array($this->graphRow(1)));
         ClassRegistry::$instances = array(
+            'Collection' => new GraphSyncTestCollection(),
             'Graph' => $graph,
             'Note' => new GraphSyncTestModel('Note', array($this->noteRow(2))),
             'Opinion' => new GraphSyncTestModel('Opinion'),
@@ -585,6 +597,7 @@ class GraphSyncTest extends TestCase
     public function testPushFilterAcceptsGraphsAndSkipsUnknownTypes()
     {
         ClassRegistry::$instances = array(
+            'Collection' => new GraphSyncTestCollection(),
             'Note' => new GraphSyncTestModel('Note'),
             'Graph' => new GraphSyncTestGraph(array(
                 $this->graphRow(2, 2, array('locked' => false)),
@@ -705,6 +718,7 @@ class GraphSyncTest extends TestCase
         }
         $local = array($this->graphRow(153, 2, array('modified' => '2026-10-01 10:00:00')));
         ClassRegistry::$instances = array(
+            'Collection' => new GraphSyncTestCollection(),
             'Server' => new GraphSyncTestServer(),
             'Note' => new GraphSyncTestModel('Note'),
             'Opinion' => new GraphSyncTestModel('Opinion'),
@@ -751,6 +765,7 @@ class GraphSyncTest extends TestCase
         );
         $records = array('Note' => array($this->uuid(1001) => $this->noteRow(1001)));
         ClassRegistry::$instances = array(
+            'Collection' => new GraphSyncTestCollection(),
             'Server' => new GraphSyncTestServer(),
             'Note' => new GraphSyncTestModel('Note'),
             'Opinion' => new GraphSyncTestModel('Opinion'),

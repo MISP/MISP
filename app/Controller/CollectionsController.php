@@ -15,9 +15,82 @@ class CollectionsController extends AppController
     {
         parent::beforeFilter();
         // Posted by hand-built AJAX from the event and index collection panels
-        // and by the workspace, which send the CSRF token as the X-CSRF-Token header.
-        $this->_csrfTokenHeaderOnly(['getCollectionsForElements', 'active', 'quickAdd']);
+        // and by the workspace, which send the CSRF token as the X-CSRF-Token header;
+        // publish's review form carries a choice of its own markup.
+        $this->_csrfTokenHeaderOnly(['getCollectionsForElements', 'active', 'quickAdd', 'publish']);
         $this->Collection->CollectionElement->current_user = $this->Auth->user();
+    }
+
+    /**
+     * Review and publish. GET: what the publish releases (the modal, or its
+     * lists as JSON); POST {analysis?}: release it, saying how far the
+     * investigation went.
+     */
+    public function publish($id)
+    {
+        $this->request->allowMethod(['get', 'post', 'put']);
+        $user = $this->Auth->user();
+        $id = $this->Toolbox->findIdByUuid($this->Collection, $id);
+        $found = $this->Collection->find('first', [
+            'recursive' => -1,
+            'contain' => ['Orgc'],
+            'conditions' => ['Collection.id' => $id],
+        ]);
+        if (empty($found) || !$this->Collection->mayView($user['id'], $id)) {
+            throw new NotFoundException(__('Invalid collection.'));
+        }
+        $collection = $found['Collection'] + ['Orgc' => $found['Orgc']];
+        if (!$this->Collection->canPublish($user, $collection)) {
+            throw new ForbiddenException(__('Publishing “%s” takes the right to publish and to edit it.', $collection['name']));
+        }
+        if ((int)$collection['distribution'] === 0) {
+            throw new BadRequestException(__('“%s” is shared with your organisation only: there is nothing to publish.', $collection['name']));
+        }
+        if ($this->request->is('get')) {
+            $review = $this->Collection->publishReview($user, $collection);
+            if ($this->_isRest()) {
+                return $this->RestResponse->viewData(['Collection' => $this->__publishState($user, $id), 'review' => $review], 'json');
+            }
+            $who = array_filter(array_merge(
+                Hash::extract($review['added']['items'], '{n}.user_id'),
+                Hash::extract($review['removed']['items'], '{n}.user_id')
+            ));
+            $this->loadModel('User');
+            $this->set('reviewers', empty($who) ? [] : $this->User->find('list', [
+                'recursive' => -1,
+                'fields' => ['User.id', 'User.email'],
+                'conditions' => ['User.id' => array_values(array_unique($who))],
+            ]));
+            $this->set('collection', $collection);
+            $this->set('publishState', $this->__publishState($user, $id));
+            $this->set('review', $review);
+            $this->layout = false;
+            return $this->render('ajax/publishReview');
+        }
+        $input = $this->request->data['Collection'] ?? $this->request->data;
+        $analysis = is_array($input) && isset($input['analysis']) && $input['analysis'] !== '' ? $input['analysis'] : null;
+        if ($analysis !== null && (!is_numeric($analysis) || !in_array((int)$analysis, Collection::ANALYSIS_LEVELS, true))) {
+            throw new BadRequestException(__('Say how far the investigation went: 0 Initial, 1 Ongoing or 2 Completed.'));
+        }
+        if (!$this->Collection->publish($id, $analysis === null ? null : (int)$analysis)) {
+            return $this->RestResponse->saveFailResponse('Collections', 'publish', $id, $this->Collection->validationErrors, $this->response->type());
+        }
+        $message = __('“%s” is published: partners receive it, its members, graphs and links on the next synchronisation.', $collection['name']);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData(['Collection' => $this->__publishState($user, $id), 'message' => $message], 'json');
+        }
+        $this->Flash->success($message);
+        return $this->redirect(['action' => 'view', $id]);
+    }
+
+    /**
+     * @param array $user
+     * @param int $id
+     * @return array|null The collection as the workspace chip reads it
+     */
+    private function __publishState(array $user, $id)
+    {
+        return $this->Collection->workspaceSummaries($user, ['Collection.id' => (int)$id], 1)[0] ?? null;
     }
 
     /**
@@ -529,6 +602,7 @@ class CollectionsController extends AppController
         }
 
         $this->set('id', $id);
+        $this->set('publishState', $this->__publishState($user, $id));
         $this->loadModel('Event');
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->render('view');
@@ -584,6 +658,9 @@ class CollectionsController extends AppController
             $uuidFilter = $this->request->params['named']['uuid'] ?? null;
             if (!empty($uuidFilter)) {
                 $params['conditions']['AND'][] = ['Collection.uuid' => (array)$uuidFilter];
+            }
+            if (SyncTool::requesterIsMisp()) {
+                $params['conditions']['AND'][] = Collection::releasedConditions();
             }
         }
         $this->loadModel('Event');

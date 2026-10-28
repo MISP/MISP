@@ -980,6 +980,8 @@ class NavbarHelper extends AppHelper {
             'requirement' => !empty($context['intelGraph']),
             'label' => $collection ? $collection['name'] : __('No workspace'),
             'count' => $collection ? (int)$collection['element_count'] : null,
+            'shared' => $collection && !empty($collection['distribution']),
+            'pending' => $collection && !empty($collection['withheld']),
             'title' => $collection ? __('Workspace: %s (collection)', $collection['name']) : __('No workspace'),
             'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',
         ];

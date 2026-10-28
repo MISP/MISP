@@ -600,6 +600,30 @@
         renderFoot();
     }
     function members(n) { return n + (n === 1 ? ' member' : ' members'); }
+    // A collection shared beyond the organisation reaches partners once published.
+    function publishFact(c) {
+        var fact = el('span', 'ig-so-fact ig-so-publish' + (c.withheld ? ' is-pending' : ''));
+        fact.appendChild(icon('fas fa-share-nodes'));
+        if (!c.withheld) {
+            fact.title = 'Partners hold this collection as it is';
+            fact.appendChild(el('span', null, 'Published'));
+            return fact;
+        }
+        var n = c.changes ? c.changes.added + c.changes.removed : 0;
+        var waiting = c._canPublish === false;
+        var label = n
+            ? n + (n === 1 ? ' change ' : ' changes ') + (waiting ? 'waiting for a publisher' : 'not yet shared')
+            : (waiting ? 'Waiting for a publisher' : 'Changes not yet shared');
+        fact.title = 'Partners keep the version they last received until the collection is published'
+            + (c.changes ? ' (+' + c.changes.added + ' added, −' + c.changes.removed + ' removed)' : '');
+        fact.appendChild(el('span', null, label));
+        if (!waiting) {
+            var review = link('ig-so-target ig-so-review', 'Review', baseurl() + '/collections/view/' + encodeURIComponent(c.uuid) + '?review=1');
+            review.title = 'Review what goes out, and publish';
+            fact.appendChild(review);
+        }
+        return fact;
+    }
     function renderHead() {
         var a = IG().active();
         var c = a && a.Collection;
@@ -623,6 +647,7 @@
         metaEl.appendChild(org);
         var badge = distributionBadge(c.distribution);
         if (badge) metaEl.appendChild(badge);
+        if (c.distribution) metaEl.appendChild(publishFact(c));
         var count = el('span', 'ig-so-fact ig-so-count');
         count.appendChild(icon('fas fa-circle-nodes'));
         count.appendChild(el('span', null, members(c.element_count)));

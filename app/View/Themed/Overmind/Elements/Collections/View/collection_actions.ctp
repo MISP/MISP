@@ -1,9 +1,73 @@
 <?php
+App::uses('CakeTime', 'Utility');
 
 $collectiontId = h($data['Collection']['id']);
 $mayModify = $this->Acl->canModifyCollection($data);
 
 $actions = [];
+
+// Shared beyond the organisation, the collection reaches partners when
+// published; those who may change it are told where that stands
+$publish = $publishState ?? null;
+$status = null;
+$reviewUrl = "$baseurl/collections/publish/$collectiontId";
+if (!empty($publish) && (int)$publish['distribution'] !== 0 && (!empty($publish['_canEdit']) || !empty($publish['_canPublish']))) {
+    $analysisLabels = [__('Initial'), __('Ongoing'), __('Completed')];
+    $ago = function ($stamp) {
+        return CakeTime::timeAgoInWords($stamp, ['end' => '+100 years', 'accuracy' => ['year' => 'year', 'month' => 'month', 'week' => 'week', 'day' => 'day', 'hour' => 'hour']]);
+    };
+    $lastPublished = empty($publish['last_published']) ? 0 : strtotime($publish['last_published']);
+    if (!$publish['withheld']) {
+        $status = [
+            'published' => true,
+            'lastPublished' => $lastPublished,
+            'label' => __('Published'),
+            'sub' => implode(' · ', array_filter([
+                $lastPublished ? $ago($lastPublished) : null,
+                $analysisLabels[$publish['analysis']] ?? null,
+            ])),
+            'title' => __('Partners hold this collection as it is.'),
+        ];
+    } else {
+        $changes = $publish['changes'] ?? ['added' => 0, 'removed' => 0];
+        $count = $changes['added'] + $changes['removed'];
+        if (!empty($publish['_canPublish'])) {
+            $label = $count > 0
+                ? __n('%s change not yet shared', '%s changes not yet shared', $count, $count)
+                : __('Changes not yet shared');
+        } else {
+            $label = $count > 0
+                ? __n('%s change waiting for a publisher', '%s changes waiting for a publisher', $count, $count)
+                : __('Waiting for a publisher');
+        }
+        $counts = array_filter([
+            $changes['added'] ? __('+%s added', $changes['added']) : null,
+            $changes['removed'] ? __('−%s removed', $changes['removed']) : null,
+        ]);
+        $status = [
+            'published' => false,
+            'pending' => $lastPublished > 0,
+            'lastPublished' => $lastPublished,
+            'label' => $label,
+            'sub' => !empty($counts)
+                ? implode(', ', $counts)
+                : ($lastPublished ? __('Published %s', $ago($lastPublished)) : __('Never published')),
+            'title' => __('Partners keep the version they last received until someone with the right to publish publishes it.'),
+        ];
+        if (!empty($publish['_canPublish'])) {
+            $actions[] = [
+                'url' => $reviewUrl,
+                'onclick' => "event.preventDefault(); openModal('$reviewUrl', 'lg');",
+                'icon' => 'fas fa-upload',
+                'label' => __('Review and publish'),
+                'short' => __('Publish'),
+                'primary' => true,
+                'success' => true,
+                'attributes' => ['data-collection-publish' => ''],
+            ];
+        }
+    }
+}
 
 // The workspace follows the collection rule, not the page's
 $canWorkspace = !empty($intelGraph) && $this->Acl->canAccess('collections', 'active')
@@ -45,7 +109,16 @@ if ($isSiteAdmin || $mayModify) {
     ];
 }
 
-echo $this->element('genericElementsBS5/Cards/card_launch_bar', [
-    'actions' => $actions
-]);
+echo $this->element('genericElementsBS5/Cards/card_launch_bar', array_filter([
+    'actions' => $actions,
+    'status' => $status,
+]));
+
+if ($status !== null && !empty($publish['_canPublish']) && $publish['withheld'] && !empty($this->request->query['review'])):
 ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    openModal(<?= json_encode($reviewUrl) ?>, 'lg');
+});
+</script>
+<?php endif; ?>

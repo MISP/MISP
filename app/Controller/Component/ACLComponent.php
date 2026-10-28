@@ -164,6 +164,7 @@ class ACLComponent extends Component
             'getCollectionsForElements' => ['*'],
             'index' => ['*'],
             'indexMinimal' => ['*'],
+            'publish' => ['AND' => ['perm_modify', 'perm_publish']],
             'quickAdd' => ['perm_modify'],
             'view' => ['*']
         ],

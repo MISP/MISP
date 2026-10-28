@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('AnalystDataRailCards', 'Tools/RailCards');
 App::uses('AnalystData', 'Model');
+App::uses('SyncTool', 'Tools');
 
 class AnalystDataController extends AppController
 {
@@ -457,6 +458,10 @@ class AnalystDataController extends AppController
                     if ($this->_isRest()) {
                         $data[$i] = $analystData;
                     }
+                }
+                if ($this->_isRest() && SyncTool::requesterIsMisp()) {
+                    $type = $this->modelSelection;
+                    $data = ClassRegistry::init('Collection')->withoutHeldBack([$type => $data])[$type];
                 }
                 if ($this->_isRest()) {
                     $data = $this->__decodeGraphContents($data);

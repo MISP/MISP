@@ -97,17 +97,18 @@ class CollectionElementsController extends AppController
      * @param array $collection
      * @param array $report
      * @param bool $changed
-     * @return array
+     * @return array With `Collection` as it stands after the change, so a
+     *               chip can say how many members it has and what partners
+     *               do not have yet
      */
     private function __itemsAnswer(array $collection, array $report, $changed)
     {
+        $now = $this->CollectionElement->Collection->workspaceSummaries($this->Auth->user(), ['Collection.id' => $collection['id']], 1)[0] ?? $collection;
         return [
             'collection_uuid' => $collection['uuid'],
             'changed' => $changed,
-            'element_count' => $this->CollectionElement->find('count', [
-                'recursive' => -1,
-                'conditions' => ['CollectionElement.collection_id' => $collection['id']],
-            ]),
+            'element_count' => $now['element_count'],
+            'Collection' => $now,
         ] + $report;
     }
 

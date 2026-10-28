@@ -13,6 +13,7 @@
         <button type="button" class="rc-chip" data-intel-graph-toggle aria-label="<?= h($item['title']) ?>">
             <?= $this->element('navbar_glyph', ['item' => $item]) ?>
             <span class="rc-chip-name" data-intel-graph-name><?= h($item['label']) ?></span>
+            <span class="rc-shared" data-intel-graph-shared aria-hidden="true"<?= empty($item['shared']) ? ' hidden' : '' ?><?= empty($item['pending']) ? '' : ' data-pending' ?>><i class="fas fa-share-nodes"></i></span>
             <span class="rc-count" data-intel-graph-count<?= $item['count'] === null ? ' hidden' : '' ?>><?= h((string)$item['count']) ?></span>
         </button>
     </li>

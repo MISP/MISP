@@ -175,6 +175,23 @@ class Graph extends AnalystData
         return true;
     }
 
+    public function afterSave($created, $options = array())
+    {
+        parent::afterSave($created, $options);
+        if (!empty($this->data[$this->alias]['locked'])) {
+            return;
+        }
+        $saved = $this->find('first', [
+            'conditions' => [$this->alias . '.id' => $this->id],
+            'fields' => [$this->alias . '.object_type', $this->alias . '.object_uuid', $this->alias . '.orgc_uuid', $this->alias . '.locked'],
+            'recursive' => -1,
+            'callbacks' => false,
+        ]);
+        if (!empty($saved)) {
+            ClassRegistry::init('Collection')->graphSaved($saved[$this->alias]);
+        }
+    }
+
     /**
      * Replace a graph's document under a row lock. With $baseRevision, a graph
      * saved since that revision is left untouched and the result is a conflict.

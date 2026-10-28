@@ -709,11 +709,12 @@ class CollectionWorkspaceTest extends TestCase
 
         $elements->save(array('CollectionElement' => array(
             'collection_id' => 7, 'element_type' => 'Event', 'element_uuid' => self::EVENT,
-            'user_id' => 1, 'created' => '2001-01-01 00:00:00',
+            'user_id' => 1, 'created' => '2001-01-01 00:00:00', 'published' => true,
         )));
 
         $this->assertSame(3, $elements->saved[0]['user_id']);
         $this->assertNotSame('2001-01-01 00:00:00', $elements->saved[0]['created']);
+        $this->assertFalse($elements->saved[0]['published'], 'partners lack it until the next publish');
     }
 
     public function testACaptureFromAnotherInstanceNamesNobodyAndKeepsWhen()
@@ -729,6 +730,7 @@ class CollectionWorkspaceTest extends TestCase
 
         $this->assertSame(array(null, null, null), array_column($elements->saved, 'user_id'));
         $this->assertSame(array('2026-10-01 09:00:00', null, null), array_column($elements->saved, 'created'));
+        $this->assertSame(array(true, true, true), array_column($elements->saved, 'published'), 'what another instance sends, it published');
 
         $elements->saved = array();
         $elements->save(array('CollectionElement' => array('collection_id' => 7, 'element_type' => 'Event', 'element_uuid' => self::EVENT)));

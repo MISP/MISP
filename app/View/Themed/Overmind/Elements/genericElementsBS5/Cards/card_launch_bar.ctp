@@ -27,7 +27,9 @@
  * Card params:
  * - 'status' => ['published' => bool, 'readOnly' => bool,
  *                'pending' => bool, 'lastPublished' => int] (optional);
- *                pending marks a published event with changes made since
+ *                pending marks a published event with changes made since;
+ *                'label', 'sub' and 'title' replace the wording, for a
+ *                record that says its state its own way
  * - 'maxTiles' => int    with this many actions or fewer, and nothing
  *                        destructive, every action is a tile and the menu is
  *                        dropped (default 8)
@@ -165,6 +167,11 @@ if ($pending) {
 } elseif ($publishedAt > 0) {
     $statusTitle = __('Published %s', date('Y-m-d H:i:s', $publishedAt));
 }
+$statusLabel = $status['label'] ?? null;
+$statusSub = $status['sub'] ?? null;
+if (!empty($status['title'])) {
+    $statusTitle = $status['title'];
+}
 $ago = function ($stamp) {
     return CakeTime::timeAgoInWords($stamp, ['end' => '+100 years', 'accuracy' => ['year' => 'year', 'month' => 'month', 'week' => 'week', 'day' => 'day']]);
 };
@@ -174,7 +181,14 @@ $ago = function ($stamp) {
         <div class="lb-seg<?= $primary === null ? ' is-solo' : '' ?>" role="group" aria-label="<?= __('Publication') ?>">
             <span class="lb-status <?= $statusClass ?>"<?= $statusTitle !== '' ? ' title="' . h($statusTitle) . '"' : '' ?>>
                 <span class="lb-dot" aria-hidden="true"></span>
-                <?php if ($pending): ?>
+                <?php if ($statusLabel !== null && $statusSub !== null): ?>
+                    <span class="lb-status-txt lb-status-stack">
+                        <span><?= h($statusLabel) ?></span>
+                        <span class="lb-status-sub"><?= h($statusSub) ?></span>
+                    </span>
+                <?php elseif ($statusLabel !== null): ?>
+                    <span class="lb-status-txt"><?= h($statusLabel) ?></span>
+                <?php elseif ($pending): ?>
                     <span class="lb-status-txt lb-status-stack">
                         <span><?= __('Changes pending') ?></span>
                         <span class="lb-status-sub"><?= h(__('Published %s', $ago($status['lastPublished']))) ?></span>

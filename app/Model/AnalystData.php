@@ -1413,7 +1413,7 @@ class AnalystData extends AppModel
             }
             $dataForPush[$type] = array_values($dataForPush[$type]);
         }
-        return $dataForPush;
+        return ClassRegistry::init('Collection')->withoutHeldBack($dataForPush);
     }
 
     /**
@@ -1594,9 +1594,20 @@ class AnalystData extends AppModel
             ],
             'fields' => ['uuid', 'modified', 'locked']
         ];
-        $tmp = $this->getAllAnalystData('all', $options, $types, [
-            'Graph' => ['fields' => ['uuid', 'modified', 'locked', 'content_size']],
-        ]);
+        $typeOptions = ['Graph' => ['fields' => ['uuid', 'modified', 'locked', 'content_size']]];
+        // Another instance gets nothing a withheld collection holds back
+        $toMisp = SyncTool::requesterIsMisp();
+        if ($toMisp) {
+            $typeOptions['Graph']['fields'] = array_merge($typeOptions['Graph']['fields'], ['orgc_uuid', 'object_type', 'object_uuid']);
+            $typeOptions['Relationship']['fields'] = [
+                'uuid', 'modified', 'locked', 'orgc_uuid', 'object_uuid', 'object_sha256',
+                'related_object_uuid', 'related_object_sha256',
+            ];
+        }
+        $tmp = $this->getAllAnalystData('all', $options, $types, $typeOptions);
+        if ($toMisp) {
+            $tmp = ClassRegistry::init('Collection')->withoutHeldBack($tmp);
+        }
         $allData = [];
         foreach ($tmp as $type => $entries) {
             foreach ($entries as $i => $entry) {

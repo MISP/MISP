@@ -142,6 +142,8 @@
 .ig-so-target strong { color: var(--bs-link-color); }
 .ig-so-target:hover, .ig-so-target:focus-visible { text-decoration: underline; text-decoration-color: var(--bs-link-color); }
 .ig-so-count { font-variant-numeric: tabular-nums; }
+.ig-so-publish.is-pending { color: var(--bs-warning-text-emphasis); }
+.ig-so-review { flex: none; margin-left: .15rem; font-weight: 600; color: var(--bs-link-color); }
 .ig-so-ro-chip { color: var(--bs-warning-text-emphasis); background: var(--bs-warning-bg-subtle); border: 1px solid var(--bs-warning-border-subtle); border-radius: var(--bs-border-radius-pill); padding: .05rem .5rem; font-size: .75rem; font-weight: 600; }
 
 .ig-so-banner { margin-top: .5rem; padding: .5rem .6rem; border-radius: var(--bs-border-radius); border: 1px solid; display: flex; gap: .55rem; align-items: flex-start; }

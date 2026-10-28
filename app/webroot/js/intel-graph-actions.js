@@ -81,9 +81,36 @@
         });
     });
 
-    document.addEventListener('intel-graph:active', markWorkspaceControls);
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', markWorkspaceControls);
-    else markWorkspaceControls();
+    // What is added to a shared workspace reaches partners once it is
+    // published, and an add control's tooltip says so.
+    function markAddControl(control) {
+        var a = window.IntelGraph && window.IntelGraph.active();
+        var c = a && a.Collection;
+        if (!control.hasAttribute('data-ig-title')) control.setAttribute('data-ig-title', control.getAttribute('title') || '');
+        var base = control.getAttribute('data-ig-title');
+        var note = c && c.distribution ? '“' + c.name + '” is shared: partners receive what you add once it is published' : '';
+        var title = note ? (base ? base + ' — ' + note : note) : base;
+        if (title) control.setAttribute('title', title);
+        else control.removeAttribute('title');
+    }
+    function markAddControls() {
+        document.querySelectorAll('[data-intel-graph-add]').forEach(markAddControl);
+    }
+    // Rows drawn after the page loaded are marked as the pointer or the focus reaches them.
+    ['mouseover', 'focusin'].forEach(function (type) {
+        document.addEventListener(type, function (e) {
+            var control = e.target.closest && e.target.closest('[data-intel-graph-add]');
+            if (control) markAddControl(control);
+        }, true);
+    });
+
+    function markControls() {
+        markWorkspaceControls();
+        markAddControls();
+    }
+    document.addEventListener('intel-graph:active', markControls);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', markControls);
+    else markControls();
 
     window.IntelGraphActions = { add: add };
 }());

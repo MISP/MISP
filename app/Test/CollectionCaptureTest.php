@@ -184,6 +184,18 @@ class StubEvent
     }
 }
 
+/** The removal rows a release clears. */
+class StubRemovals
+{
+    public $deleted = array();
+
+    public function deleteAll($conditions, $cascade = true)
+    {
+        $this->deleted[] = $conditions;
+        return true;
+    }
+}
+
 /** CollectionElement::captureElements double: records the corpus it was handed. */
 class StubCollectionElement
 {
@@ -191,12 +203,20 @@ class StubCollectionElement
     public $callCount = 0;
     public $fromPre30 = null;
 
+    public $updates = array();
+
     public function captureElements($data, $fromPre30 = false)
     {
         $this->callCount++;
         $this->capturedData = $data;
         $this->fromPre30 = $fromPre30;
         return $data;
+    }
+
+    public function updateAll($fields, $conditions = true)
+    {
+        $this->updates[] = array($fields, $conditions);
+        return true;
     }
 }
 
@@ -246,6 +266,7 @@ class CollectionCaptureTest extends TestCase
     private $orgc;
     private $event;
     private $element;
+    private $removals;
 
     protected function setUp(): void
     {
@@ -261,6 +282,8 @@ class CollectionCaptureTest extends TestCase
         $this->collection->Orgc = $this->orgc;
         $this->collection->CollectionElement = $this->element;
         ClassRegistry::$instances['Event'] = $this->event;
+        $this->removals = new StubRemovals();
+        ClassRegistry::$instances['CollectionElementRemoval'] = $this->removals;
     }
 
     private function syncUser()
@@ -662,5 +685,42 @@ class CollectionCaptureTest extends TestCase
         $this->assertSame(1, $res['imported']);
         $this->assertSame(42, $this->collection->savedData['Collection']['orgc_id'], 'sibling Orgc hoisted and resolved');
         $this->assertSame(1, $this->element->callCount, 'sibling CollectionElement hoisted and captured');
+    }
+
+    // ---------------- published state ----------------
+
+    public function testWhatAnotherInstanceSendsIsStoredAsPublished(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(array('last_published' => '2026-10-20 08:00:00', 'analysis' => 2)), $this->externalServer());
+
+        $saved = $this->collection->savedData['Collection'];
+        $this->assertTrue($saved['published']);
+        $this->assertSame('2026-10-20 08:00:00', $saved['last_published'], 'when the sender published it');
+        $this->assertSame(2, $saved['analysis']);
+        foreach (array('published', 'last_published', 'analysis') as $field) {
+            $this->assertContains($field, $this->collection->savedFieldList, $field);
+        }
+    }
+
+    public function testASenderWithoutThePublishStateStillPublishes(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(array('last_published' => 'not a date', 'analysis' => 7)), $this->externalServer());
+
+        $saved = $this->collection->savedData['Collection'];
+        $this->assertTrue($saved['published']);
+        $this->assertRegExp('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $saved['last_published'], 'now, when the sender says nothing usable');
+        $this->assertArrayNotHasKey('analysis', $saved, 'an unknown level keeps ours');
+        $this->assertNotContains('analysis', $this->collection->savedFieldList);
+    }
+
+    public function testACaptureReleasesEveryMember(): void
+    {
+        $this->collection->captureCollection($this->syncUser(), $this->incoming(), $this->externalServer());
+
+        $this->assertSame(array(array(
+            array('CollectionElement.published' => true),
+            array('CollectionElement.collection_id' => 123, 'CollectionElement.published' => false),
+        )), $this->element->updates);
+        $this->assertSame(array(array('CollectionElementRemoval.collection_id' => 123)), $this->removals->deleted);
     }
 }
