@@ -45,7 +45,9 @@
     background: var(--bs-body-bg); color: var(--bs-body-color);
     border-left: 1px solid var(--bs-border-color);
     box-shadow: var(--bs-box-shadow-lg);
-    transform: translateX(0); transition: transform .18s ease;
+    /* none, not translateX(0): a transform would hold the canvas menus,
+       which are position: fixed, inside the panel */
+    transform: none; transition: transform .18s ease;
     font-size: .875rem;
 }
 .ig-so[hidden] { display: none; }
