@@ -10,8 +10,8 @@ App::uses('GatheringFeedTool', 'Tools');
 
 class Feed extends AppModel
 {
-    // One complete generation per feed and import run, shared by manifest/event reads.
-    private $gatheringSnapshots = [];
+    // Disk workspaces contain feed files, never a full feed in PHP memory.
+    private $gatheringWorkspaces = [];
     private $gatheringUser;
 
     public function beforeValidate($options = array())
@@ -1351,7 +1351,7 @@ class Feed extends AppModel
     public function downloadFromFeedInitiator($feedId, $user, $jobId = false)
     {
         // A queue worker can reuse this model for multiple runs.
-        $this->gatheringSnapshots = [];
+        $this->gatheringWorkspaces = [];
         $this->gatheringUser = $user;
         $feed = $this->find('first', array(
             'conditions' => ['Feed.id' => $feedId],
@@ -1363,6 +1363,10 @@ class Feed extends AppModel
 
         if (!empty($feed['Feed']['settings'])) {
             $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+        }
+
+        if ($this->isGatheringFeed($feed)) {
+            return $this->ingestGatheringFeed($feed, $user, $jobId);
         }
 
         $HttpSocket = ($this->isFeedLocal($feed) || $this->isGatheringFeed($feed)) ? null : $this->__setupHttpSocket();
@@ -2256,11 +2260,12 @@ class Feed extends AppModel
     private function feedGetUri($feed, $uri, HttpSocket $HttpSocket = null)
     {
         if ($this->isGatheringFeed($feed)) {
-            $prefix = $feed['Feed']['url'];
-            if (substr($uri, 0, strlen($prefix)) !== $prefix) {
+            $workspace = $this->gatheringWorkspace($feed);
+            $path = substr($uri, strlen($feed['Feed']['url']));
+            if (!preg_match('/\A\/(manifest|[0-9a-f-]{36})\.json\z/D', $path)) {
                 throw new InvalidArgumentException('Invalid gathering feed resource.');
             }
-            return GatheringFeedTool::file($this->gatheringSnapshot($feed), substr($uri, strlen($prefix)));
+            return FileAccessTool::readFromFile($workspace->feedDirectory . $path);
         }
         if ($this->isFeedLocal($feed)) {
             $uri = mb_ereg_replace("/\:\/\//", '', $uri);
@@ -2390,32 +2395,68 @@ class Feed extends AppModel
     private function sourceManifest(array $feed, ?HttpSocket $HttpSocket = null)
     {
         if ($this->isGatheringFeed($feed)) {
-            return $this->gatheringSnapshot($feed)['manifest'];
+            return JsonTool::decodeArray(FileAccessTool::readFromFile($this->gatheringWorkspace($feed)->feedDirectory . DS . 'manifest.json'));
         }
         return $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
     }
 
-    private function gatheringSnapshot(array $feed)
+    private function gatheringWorkspace(array $feed)
     {
         $options = GatheringFeedTool::settings($feed['Feed']['settings'] ?? []);
         $key = hash('sha256', json_encode([$feed['Feed']['id'] ?? null, $options]));
-        if (!isset($this->gatheringSnapshots[$key])) {
+        if (!isset($this->gatheringWorkspaces[$key])) {
             $user = $this->gatheringUser;
             if ($user === null) {
                 $userId = Configure::read('CurrentUserId');
-                if (!$userId) {
-                    throw new RuntimeException('An authenticated user is required to generate a gathering feed.');
-                }
+                if (!$userId) { throw new RuntimeException('An authenticated user is required to generate a gathering feed.'); }
                 $user = ClassRegistry::init('User')->getAuthUser($userId);
             }
-            if (!is_array($user) || empty($user['id'])) {
-                throw new RuntimeException('Gathering feed user is unavailable.');
-            }
+            if (!is_array($user) || empty($user['id'])) { throw new RuntimeException('Gathering feed user is unavailable.'); }
             $module = ClassRegistry::init('Module');
-            $bundle = $module->queryGathering($options['module'], $options['parameters'], $user);
-            $this->gatheringSnapshots[$key] = GatheringFeedTool::validateBundle($bundle);
+            $timeout = (int)Configure::read('Plugin.Gathering_generation_timeout') ?: 86400;
+            $this->gatheringWorkspaces[$key] = GatheringFeedTool::prepare($module, $options, $user, APP . 'tmp', $timeout);
         }
-        return $this->gatheringSnapshots[$key];
+        return $this->gatheringWorkspaces[$key];
+    }
+
+    /** Reuse the existing single-event ingester with an in-memory local connector.
+     * No ad hoc Feed row is created, and no manifest-wide JSON/action arrays are loaded.
+     */
+    private function ingestGatheringFeed(array $feed, array $user, $jobId)
+    {
+        $workspace = null;
+        $counts = ['added' => 0, 'updated' => 0, 'unchanged' => 0, 'blocked' => 0, 'failed' => 0];
+        try {
+            $this->jobProgress($jobId, 'Generating gathering feed archive.');
+            $workspace = $this->gatheringWorkspace($feed);
+            $local = $feed;
+            $local['Feed']['input_source'] = 'local';
+            $local['Feed']['url'] = $workspace->feedDirectory;
+            $local['Feed']['delete_local_file'] = 0;
+            // This is our private staging directory, independent of user-configured local feed access.
+            foreach (new FilesystemIterator($workspace->feedDirectory) as $file) {
+                if (!preg_match('/\A([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\.json\z/D', $file->getFilename(), $match)) { continue; }
+                try {
+                    $event = $this->downloadEventFromFeed($local, $match[1]);
+                    if ($event === 'blocked') { ++$counts['blocked']; continue; }
+                    if (!is_array($event) || ($event['Event']['uuid'] ?? null) !== $match[1]) {
+                        throw new UnexpectedValueException('Gathering event UUID does not match its filename.');
+                    }
+                    $result = $this->__saveEvent($event, $user);
+                    if ($result['result'] === 'No change') { ++$counts['unchanged']; }
+                    elseif ($result['result'] === true) { ++$counts[$result['action'] === 'add' ? 'added' : 'updated']; }
+                    else { ++$counts['failed']; }
+                    unset($event, $result);
+                } catch (Exception $e) {
+                    ++$counts['failed'];
+                    $this->logException('Could not import gathered event ' . $match[1], $e);
+                }
+            }
+            return $counts;
+        } finally {
+            if ($workspace) { $workspace->close(); }
+            $this->gatheringWorkspaces = [];
+        }
     }
 
     private function isFeedLocal($feed)

@@ -406,7 +406,7 @@ class FeedsController extends AppController
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,
             'inputSources' => $inputSources,
-            'gatheringModules' => $this->gatheringModuleOptions()
+            'gatheringModules' => $this->__gatheringModuleOptions()
         ];
         $this->set('allAttributeTypes', $allTypes['attribute']);
         $this->set('allObjectTypes', $allTypes['object']);
@@ -422,7 +422,7 @@ class FeedsController extends AppController
     }
 
     /** Discover gathering producers, including future modules, using normal enablement and restrictions. */
-    private function gatheringModuleOptions()
+    private function __gatheringModuleOptions()
     {
         if (!Configure::read('Plugin.Gathering_services_enable')) {
             return [];
@@ -431,7 +431,7 @@ class FeedsController extends AppController
         $enabled = $module->getEnabledModules($this->Auth->user(), 'gathering', 'Gathering');
         $options = [];
         foreach (is_array($enabled) ? ($enabled['modules'] ?? []) : [] as $descriptor) {
-            if (($descriptor['mispattributes']['gathering_version'] ?? null) === 1) {
+            if (($descriptor['mispattributes']['gathering_version'] ?? null) === 2) {
                 $options[$descriptor['name']] = $descriptor['meta']['name'] ?? $descriptor['name'];
             }
         }
@@ -588,7 +588,7 @@ class FeedsController extends AppController
             'sharingGroups' => $sharingGroups,
             'distributionLevels' => $distributionLevels,
             'inputSources' => $inputSources,
-            'gatheringModules' => $this->gatheringModuleOptions()
+            'gatheringModules' => $this->__gatheringModuleOptions()
         ];
         $this->set(compact('dropdownData'));
         $this->set('menuData', [

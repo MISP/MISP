@@ -8777,6 +8777,34 @@ class Server extends AppModel
                     'test' => 'testBool',
                     'type' => 'boolean'
                 ),
+                'Gathering_max_archive_bytes' => array(
+                    'level' => 1,
+                    'description' => __('Maximum compressed gathering archive size in bytes.'),
+                    'value' => 10737418240,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Gathering_max_expanded_bytes' => array(
+                    'level' => 1,
+                    'description' => __('Maximum expanded gathering feed size in bytes.'),
+                    'value' => 10737418240,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Gathering_max_event_bytes' => array(
+                    'level' => 1,
+                    'description' => __('Maximum size of one file in a gathering archive in bytes.'),
+                    'value' => 268435456,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Gathering_generation_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Maximum background gathering generation wait in seconds. Long collections should use feed background jobs.'),
+                    'value' => 86400,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
                 'Gathering_timeout' => array(
                     'level' => 1,
                     'description' => __('Execution timeout in seconds for gathering modules.'),

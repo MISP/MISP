@@ -54,22 +54,27 @@ require_once __DIR__ . '/../Lib/Tools/GatheringFeedTool.php';
 require_once __DIR__ . '/../Model/Module.php';
 require_once __DIR__ . '/../Model/Feed.php';
 
+if (!class_exists('FileAccessTool', false)) {
+    require_once __DIR__ . '/../Lib/Tools/FileAccessTool.php';
+}
+
 class GatheringTestModule extends Module
 {
     public $calls = [];
     public $answer;
     public $descriptors = [];
-
-    public function getModules($moduleFamily = 'Enrichment', $throwException = false)
-    {
-        return $this->descriptors;
-    }
-
+    public $archivePath;
+    public $released = [];
+    public $statuses = [];
+    public function getModules($moduleFamily = 'Enrichment', $throwException = false) { return $this->descriptors; }
     public function queryModuleServer(array $postData, $hover = false, $moduleFamily = 'Enrichment', $throwException = false, $triggerData = [], $skipTrigger = false)
     {
         $this->calls[] = compact('postData', 'moduleFamily');
         return $this->answer;
     }
+    public function gatheringJobStatus($identifier) { return $this->statuses ? array_shift($this->statuses) : $this->answer; }
+    public function downloadGatheringArchive($identifier, $destination, $size) { copy($this->archivePath, $destination); }
+    public function releaseGatheringJob($identifier) { $this->released[] = $identifier; }
 }
 
 class GatheringTestEvents
@@ -77,19 +82,16 @@ class GatheringTestEvents
     public $rows = [];
     public $added = [];
     public $edited = [];
-    public function find($type = 'first', $options = []) { return $this->rows; }
-    public function _add($event, $fromXml, $user)
+    public function find($type = 'first', $options = [])
     {
-        $this->added[] = $event;
-        $this->rows = [$event];
-        return true;
+        return $this->rows[$options['conditions']['Event.uuid']] ?? [];
     }
-    public function _edit($event, $user, $uuid, $jobId)
+    private function remember($event)
     {
-        $this->edited[] = $event;
-        $this->rows = [$event];
-        return true;
+        $this->rows[$event['Event']['uuid']] = ['Event' => array_intersect_key($event['Event'], array_flip(['uuid', 'timestamp']))];
     }
+    public function _add($event, $fromXml, $user) { $this->added[] = $event['Event']['uuid']; $this->remember($event); return true; }
+    public function _edit($event, $user, $uuid = null, $jobId = null) { $this->edited[] = $event['Event']['uuid']; $this->remember($event); return true; }
 }
 
 class GatheringTestFeed extends Feed
@@ -102,190 +104,239 @@ class GatheringTestFeed extends Feed
 class GatheringFeedTest extends TestCase
 {
     const UUID = '3889452b-acb4-5fa5-8094-f950bdce20bb';
+    private $temporary;
 
-    private function bundle($timestamp = '1790856000')
+    protected function setUp(): void
     {
-        $metadata = [
-            'info' => 'Example gathered configuration',
-            'date' => '2026-10-01',
-            'timestamp' => $timestamp,
-            'Orgc' => ['name' => 'Example source', 'uuid' => '55172297-0240-5b08-b452-b0466a829b1e'],
-        ];
-        return [
-            'gathering_version' => 1,
-            'source_format' => 'misp',
-            'manifest' => [self::UUID => $metadata],
-            'events' => [self::UUID => ['Event' => ['uuid' => self::UUID] + $metadata]],
-        ];
+        $this->temporary = sys_get_temp_dir() . '/gathering-test-' . bin2hex(random_bytes(12));
+        mkdir($this->temporary, 0700);
+        if (!is_dir(APP . 'tmp')) { mkdir(APP . 'tmp', 0700, true); }
     }
+    protected function tearDown(): void { GatheringFeedWorkspace::removeDirectory($this->temporary); }
 
-    private function feed($module = 'withaname')
+    private function event($timestamp = '1790856000', $uuid = self::UUID)
     {
-        return ['Feed' => [
-            'id' => 123,
-            'url' => 'misp-modules://' . $module,
-            'input_source' => 'misp-modules',
-            'source_format' => 'misp',
-            'rules' => 'null',
-            'settings' => ['gathering' => ['module' => $module, 'parameters' => '{"max_events":20}']],
-        ]];
+        return ['Event' => ['uuid' => $uuid, 'info' => 'Gathered configuration', 'date' => '2026-10-01',
+            'timestamp' => $timestamp, 'distribution' => '0', 'Orgc' => ['name' => 'Example', 'uuid' => '55172297-0240-5b08-b452-b0466a829b1e']]];
     }
-
-    private function module($name = 'withaname')
+    private function archive($timestamp = '1790856000', $entries = null)
+    {
+        $path = $this->temporary . '/source-' . bin2hex(random_bytes(6)) . '.zip';
+        $zip = new ZipArchive();
+        $this->assertTrue($zip->open($path, ZipArchive::CREATE) === true);
+        $entries = $entries ?? ['manifest.json' => '{}', self::UUID . '.json' => json_encode($this->event($timestamp))];
+        foreach ($entries as $name => $contents) { $zip->addFromString($name, $contents); }
+        $zip->close();
+        return $path;
+    }
+    private function descriptor($path, $status = 'ready')
+    {
+        return ['gathering_version' => 2, 'source_format' => 'misp', 'job_id' => str_repeat('a', 64),
+            'status' => $status, 'archive_size' => filesize($path), 'sha256' => hash_file('sha256', $path)];
+    }
+    private function options($name = 'withaname') { return ['module' => $name, 'parameters' => ['max_events' => 0]]; }
+    private function user() { return ['id' => 1, 'Role' => ['perm_site_admin' => 1]]; }
+    private function module($name = 'withaname', $timestamp = '1790856000')
     {
         Configure::write('Plugin.Gathering_' . $name . '_enabled', true);
         Configure::write('Plugin.Gathering_' . $name . '_restrict', 0);
         $module = new GatheringTestModule();
-        $module->descriptors = [[
-            'name' => $name,
-            'meta' => ['module-type' => ['gathering'], 'config' => []],
-            'mispattributes' => ['gathering_version' => 1],
-        ]];
-        $module->answer = $this->bundle();
+        $module->descriptors = [['name' => $name, 'meta' => ['module-type' => ['gathering'], 'config' => []],
+            'mispattributes' => ['gathering_version' => 2]]];
+        $module->archivePath = $this->archive($timestamp);
+        $module->answer = $this->descriptor($module->archivePath);
         return $module;
     }
-
-    public function testModuleContractWorksForFutureProducersAsWell()
+    private function feed($module)
+    {
+        ClassRegistry::$instances['Module'] = $module;
+        ClassRegistry::$instances['MispAttribute'] = new stdClass();
+        $feed = new GatheringTestFeed();
+        $feed->record = ['Feed' => ['id' => 123, 'url' => 'misp-modules://withaname', 'input_source' => 'misp-modules',
+            'source_format' => 'misp', 'rules' => '', 'distribution' => 0, 'sharing_group_id' => 0,
+            'tag_id' => 0, 'tag_collection_id' => 0, 'settings' => json_encode(['gathering' => $this->options()])]];
+        return $feed;
+    }
+    public function testContractWorksForFutureProducersAndUsesSmallJobResponses()
     {
         foreach (['withaname', 'another_source'] as $name) {
             $module = $this->module($name);
-            $answer = $module->queryGathering($name, ['max_events' => 20], ['id' => 1, 'Role' => ['perm_site_admin' => 1]]);
-            $this->assertSame($this->bundle(), $answer);
+            $answer = $module->queryGathering($name, [], $this->user());
+            $this->assertSame('ready', GatheringFeedTool::job($answer)['status']);
             $this->assertSame('Gathering', $module->calls[0]['moduleFamily']);
-            $payload = $module->calls[0]['postData'];
-            $this->assertSame($name, $payload['module']);
-            $this->assertSame('prepare', $payload['operation']);
-            $this->assertSame('{"max_events":20}', json_encode($payload['parameters']));
-            $this->assertSame('{}', json_encode($payload['config']));
+            $this->assertSame($name, $module->calls[0]['postData']['module']);
+            $this->assertSame('{}', json_encode($module->calls[0]['postData']['parameters']));
+            $this->assertArrayNotHasKey('events', $answer);
         }
     }
-
-    public function testDisabledAndRestrictedModulesAreNotExecuted()
+    public function testDisabledAndRestrictedModulesCannotExecute()
     {
         $module = $this->module();
         Configure::write('Plugin.Gathering_withaname_enabled', false);
-        try {
-            $module->queryGathering('withaname', [], ['id' => 1, 'Role' => ['perm_site_admin' => 1]]);
-            $this->fail('Disabled module was executed');
-        } catch (InvalidArgumentException $e) {
-            $this->assertSame([], $module->calls);
-        }
+        try { $module->queryGathering('withaname', [], $this->user()); $this->fail('Disabled module executed'); }
+        catch (InvalidArgumentException $e) { $this->assertSame([], $module->calls); }
         Configure::write('Plugin.Gathering_withaname_enabled', true);
         Configure::write('Plugin.Gathering_withaname_restrict', 42);
         $this->expectException(InvalidArgumentException::class);
         $module->queryGathering('withaname', [], ['id' => 1, 'org_id' => 7, 'Role' => ['perm_site_admin' => 0]]);
     }
-
-    public function testExistingFeedSelectionAddsSkipsAndUpdatesUsingOneSnapshot()
+    public function testPreparePollsExtractsAndCleansBothEnds()
+    {
+        $module = $this->module();
+        $ready = $module->answer;
+        $module->answer['status'] = 'queued';
+        $module->statuses = [array_replace($ready, ['status' => 'running']), $ready];
+        $workspace = GatheringFeedTool::prepare($module, $this->options(), $this->user(), $this->temporary, 5, function () {});
+        $directory = $workspace->directory;
+        $this->assertFileExists($workspace->feedDirectory . '/' . self::UUID . '.json');
+        $this->assertFileDoesNotExist($directory . '/feed.zip');
+        $workspace->close();
+        $workspace->close();
+        $this->assertDirectoryDoesNotExist($directory);
+        $this->assertSame([str_repeat('a', 64)], $module->released);
+    }
+    public function testSuccessiveJobsUseExistingAddEditSkipPathsAndDoNotCreateFeedRows()
     {
         $module = $this->module();
         $events = new GatheringTestEvents();
-        ClassRegistry::$instances['Module'] = $module;
         ClassRegistry::$instances['Event'] = $events;
-        $feed = new Feed();
-        $property = new ReflectionProperty(Feed::class, 'gatheringUser');
-        $property->setAccessible(true);
-        $property->setValue($feed, ['id' => 1, 'Role' => ['perm_site_admin' => 1]]);
-        $this->assertSame(['add' => [self::UUID], 'edit' => []], $feed->getNewEventUuids($this->feed()));
-        $events->rows = [['Event' => ['uuid' => self::UUID, 'timestamp' => '1790856000']]];
-        $this->assertSame(['add' => [], 'edit' => []], $feed->getNewEventUuids($this->feed()));
-        $events->rows[0]['Event']['timestamp'] = '1790855999';
-        $this->assertSame(['add' => [], 'edit' => [self::UUID]], $feed->getNewEventUuids($this->feed()));
-        $this->assertCount(1, $module->calls);
-        $read = new ReflectionMethod(Feed::class, 'feedGetUri');
-        $read->setAccessible(true);
-        $json = $read->invoke($feed, $this->feed(), 'misp-modules://withaname/' . self::UUID . '.json');
-        $this->assertSame($this->bundle()['events'][self::UUID], json_decode($json, true));
-        $this->assertCount(1, $module->calls);
-    }
-
-    public function testContractCanConsumeAnActualPythonGeneratedBundle()
-    {
-        $path = getenv('GATHERING_TEST_BUNDLE');
-        if (!$path) {
-            $this->markTestSkipped('Set GATHERING_TEST_BUNDLE for the cross-repository contract check.');
-        }
-        $bundle = json_decode(file_get_contents($path), true);
-        $this->assertSame($bundle, GatheringFeedTool::validateBundle($bundle));
-        foreach ($bundle['events'] as $uuid => $event) {
-            $this->assertSame($event, json_decode(GatheringFeedTool::file($bundle, '/' . $uuid . '.json'), true));
-        }
-    }
-
-    public function testImportJobsRegenerateAndUseTheExistingAddAndEditPaths()
-    {
-        $module = $this->module();
-        $events = new GatheringTestEvents();
-        ClassRegistry::$instances['Module'] = $module;
-        ClassRegistry::$instances['Event'] = $events;
-        $feed = new GatheringTestFeed();
-        ClassRegistry::$instances['MispAttribute'] = new stdClass();
-        $feed->record = $this->feed();
-        $feed->record['Feed'] += ['distribution' => 0, 'sharing_group_id' => 0, 'tag_id' => 0, 'tag_collection_id' => 0];
-        $feed->record['Feed']['rules'] = '';
-        $feed->record['Feed']['settings'] = json_encode($feed->record['Feed']['settings']);
-        $user = ['id' => 1, 'Role' => ['perm_site_admin' => 1]];
-        $feed->downloadFromFeedInitiator(123, $user);
+        $feed = $this->feed($module);
+        $first = $feed->downloadFromFeedInitiator(123, $this->user());
+        $this->assertSame(1, $first['added']);
+        $this->assertSame(1, $feed->downloadFromFeedInitiator(123, $this->user())['unchanged']);
+        $module->archivePath = $this->archive('1790856001');
+        $module->answer = $this->descriptor($module->archivePath);
+        $this->assertSame(1, $feed->downloadFromFeedInitiator(123, $this->user())['updated']);
         $this->assertCount(1, $events->added);
-        $this->assertSame(true, $feed->downloadFromFeedInitiator(123, $user));
-        $this->assertCount(1, $events->added);
-        $module->answer = $this->bundle('1790856001');
-        $feed->downloadFromFeedInitiator(123, $user);
         $this->assertCount(1, $events->edited);
-        $this->assertCount(3, $module->calls);
+        $this->assertCount(3, $module->released);
+        $this->assertSame('misp-modules', $feed->record['Feed']['input_source']);
+        $this->assertSame([], glob(APP . 'tmp/gathering-*'));
     }
-
-    public function testParameterObjectsAndEmptyObjectsRoundTrip()
+    public function testChecksumFailureRemovesTemporaryFilesAndReleasesArtifact()
+    {
+        $module = $this->module();
+        $module->answer['sha256'] = str_repeat('0', 64);
+        try { GatheringFeedTool::prepare($module, $this->options(), $this->user(), $this->temporary); $this->fail('Bad checksum accepted'); }
+        catch (UnexpectedValueException $e) {
+            $this->assertSame([], glob($this->temporary . '/gathering-*'));
+            $this->assertCount(1, $module->released);
+        }
+    }
+    public function testTimeoutCancelsTheJobAndRemovesTemporaryFiles()
+    {
+        $module = $this->module();
+        $module->answer['status'] = 'running';
+        try { GatheringFeedTool::prepare($module, $this->options(), $this->user(), $this->temporary, 0); $this->fail('Expected timeout'); }
+        catch (RuntimeException $e) {
+            $this->assertSame([], glob($this->temporary . '/gathering-*'));
+            $this->assertCount(1, $module->released);
+        }
+    }
+    public function testGenerationFailureIsNotImported()
+    {
+        $module = $this->module();
+        $module->answer['status'] = 'failed';
+        $this->expectException(RuntimeException::class);
+        GatheringFeedTool::prepare($module, $this->options(), $this->user(), $this->temporary);
+    }
+    public function invalidEntries()
+    {
+        return [[['../outside.json' => '{}']], [['/absolute.json' => '{}']], [['nested/event.json' => '{}']],
+            [['manifest.json' => '{}', 'unexpected.exe' => 'payload']], [[self::UUID . '.json' => '{}']]];
+    }
+    /** @dataProvider invalidEntries */
+    public function testUnsafeOrIncompleteArchivesAreRejected($entries)
+    {
+        $archive = $this->archive('1790856000', $entries);
+        $this->expectException(UnexpectedValueException::class);
+        GatheringFeedTool::extractArchive($archive, $this->temporary . '/feed');
+    }
+    public function testSymlinksAreRejected()
+    {
+        $archive = $this->archive();
+        $zip = new ZipArchive(); $zip->open($archive);
+        $zip->setExternalAttributesName(self::UUID . '.json', ZipArchive::OPSYS_UNIX, 0120777 << 16);
+        $zip->close();
+        $this->expectException(UnexpectedValueException::class);
+        GatheringFeedTool::extractArchive($archive, $this->temporary . '/feed');
+    }
+    public function testParametersRemainGenericJsonObjects()
     {
         $this->assertSame(['module' => 'another_source', 'parameters' => []],
             GatheringFeedTool::settings(['gathering' => ['module' => 'another_source', 'parameters' => '{}']]));
-        $options = GatheringFeedTool::settings(json_encode($this->feed()['Feed']['settings']));
-        $this->assertSame(['max_events' => 20], $options['parameters']);
-    }
-
-    public function invalidSettings()
-    {
-        return [[null], [[]], [['gathering' => ['module' => '../source']]],
-            [['gathering' => ['module' => 'withaname', 'parameters' => '[]']]],
-            [['gathering' => ['module' => 'withaname', 'parameters' => '{invalid']]],
-            [['gathering' => ['module' => 'withaname', 'parameters' => true]]]];
-    }
-
-    /** @dataProvider invalidSettings */
-    public function testInvalidSettingsAreRejected($settings)
-    {
         $this->expectException(InvalidArgumentException::class);
-        GatheringFeedTool::settings($settings);
+        GatheringFeedTool::settings(['gathering' => ['module' => 'withaname', 'parameters' => '[]']]);
+    }
+    public function testExpandedBudgetFailureCleansUpAndReleasesArtifact()
+    {
+        $module = $this->module();
+        Configure::write('Plugin.Gathering_max_expanded_bytes', 1);
+        try {
+            GatheringFeedTool::prepare($module, $this->options(), $this->user(), $this->temporary);
+            $this->fail('Expanded-size budget ignored');
+        } catch (UnexpectedValueException $e) {
+            $this->assertSame([], glob($this->temporary . '/gathering-*'));
+            $this->assertCount(1, $module->released);
+        } finally {
+            Configure::write('Plugin.Gathering_max_expanded_bytes', null);
+        }
+    }
+    public function testJanitorPreservesLiveWorkspacesAndReclaimsAbandonedOnes()
+    {
+        $module = $this->module();
+        $workspace = GatheringFeedTool::prepare($module, $this->options(), $this->user(), $this->temporary);
+        GatheringFeedWorkspace::reap($this->temporary, -1);
+        $this->assertDirectoryExists($workspace->directory);
+        $workspace->close();
+        $abandoned = $this->temporary . '/gathering-' . str_repeat('b', 32);
+        mkdir($abandoned, 0700); touch($abandoned . '/.lock'); touch($abandoned, time() - 200000);
+        GatheringFeedWorkspace::reap($this->temporary);
+        $this->assertDirectoryDoesNotExist($abandoned);
+    }
+    public function testPythonProducedArchiveCanBeIngested()
+    {
+        $path = getenv('GATHERING_TEST_ARCHIVE');
+        if (!$path) { $this->markTestSkipped('Set GATHERING_TEST_ARCHIVE for the cross-repository check.'); }
+        $module = $this->module(); $module->archivePath = $path; $module->answer = $this->descriptor($path);
+        $events = new GatheringTestEvents(); ClassRegistry::$instances['Event'] = $events;
+        $result = $this->feed($module)->downloadFromFeedInitiator(123, $this->user());
+        $this->assertGreaterThan(0, $result['added']);
+        $this->assertSame(0, $result['failed']);
     }
 
-    public function invalidBundles()
+    /** @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testMoreThan32MiBAnd100EventsImportsWithin40MiBMemoryLimit()
     {
-        $wrongVersion = $this->bundle();
-        $wrongVersion['gathering_version'] = 2;
-        $missing = $this->bundle();
-        $missing['events'] = [];
-        $mismatch = $this->bundle();
-        $mismatch['events'][self::UUID]['Event']['timestamp'] = '2';
-        $identity = $this->bundle();
-        $identity['events'][self::UUID]['Event']['uuid'] = 'different';
-        $duplicate = $this->bundle();
-        $duplicate['events'][self::UUID]['Event']['Attribute'] = [['uuid' => self::UUID]];
-        $missingAttributeUuid = $this->bundle();
-        $missingAttributeUuid['events'][self::UUID]['Event']['Attribute'] = [['value' => 'example.org']];
-        return [[false], [['error' => 'provider body']], [$wrongVersion], [$missing], [$mismatch], [$identity],
-            [$duplicate], [$missingAttributeUuid]];
-    }
-
-    /** @dataProvider invalidBundles */
-    public function testIncompleteAndInconsistentBundlesFailBeforeImport($bundle)
-    {
-        $this->expectException(UnexpectedValueException::class);
-        GatheringFeedTool::validateBundle($bundle);
-    }
-
-    public function testOnlyFilesFromTheSelectedSnapshotAreReadable()
-    {
-        $this->expectException(NotFoundException::class);
-        GatheringFeedTool::file($this->bundle(), '/../manifest.json');
+        ini_set('memory_limit', '40M');
+        $module = $this->module();
+        $path = $this->temporary . '/large.zip';
+        $zip = new ZipArchive(); $zip->open($path, ZipArchive::CREATE);
+        $manifest = fopen($this->temporary . '/manifest.json', 'wb');
+        fwrite($manifest, '{');
+        $total = 0;
+        for ($index = 0; $index < 160; ++$index) {
+            $uuid = sprintf('00000000-0000-5000-8000-%012d', $index);
+            $event = $this->event('1790856000', $uuid);
+            $metadata = $event['Event']; unset($metadata['uuid']);
+            fwrite($manifest, ($index ? ',' : '') . json_encode($uuid) . ':' . json_encode($metadata));
+            $event['Event']['Attribute'] = [['uuid' => sprintf('00000001-0000-5000-8000-%012d', $index),
+                'type' => 'text', 'category' => 'Other', 'value' => str_repeat('x', 262144), 'to_ids' => false]];
+            $file = $this->temporary . '/' . $uuid . '.json';
+            file_put_contents($file, json_encode($event));
+            $total += filesize($file);
+            $zip->addFile($file, $uuid . '.json');
+        }
+        fwrite($manifest, '}'); fclose($manifest);
+        $zip->addFile($this->temporary . '/manifest.json', 'manifest.json'); $zip->close();
+        unset($event, $metadata);
+        $module->archivePath = $path; $module->answer = $this->descriptor($path);
+        ClassRegistry::$instances['Event'] = new GatheringTestEvents();
+        $result = $this->feed($module)->downloadFromFeedInitiator(123, $this->user());
+        $this->assertGreaterThan(33554432, $total);
+        $this->assertSame(160, $result['added']);
+        $this->assertSame(0, $result['failed']);
     }
 }

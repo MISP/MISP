@@ -1,9 +1,15 @@
 <?php
-/** Version 1 gathering envelope: ordinary MISP feed files transported together. */
+/** Disk-based gathering archive ingestion; JSON responses contain job metadata only. */
 class GatheringFeedTool
 {
-    const MAX_BYTES = 33554432;
-    const MAX_EVENTS = 100;
+    const MAX_BYTES = 10737418240;
+    const MAX_EVENT_BYTES = 268435456;
+
+    private static function limit($name, $default)
+    {
+        $value = Configure::read('Plugin.Gathering_' . $name);
+        return filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: $default;
+    }
 
     public static function settings($settings)
     {
@@ -32,90 +38,187 @@ class GatheringFeedTool
         return ['module' => $options['module'], 'parameters' => $parameters];
     }
 
-    private static function uuid($value)
+    public static function job($value, $identifier = null)
     {
-        return is_string($value) && preg_match('/\A[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\z/Di', $value);
+        if (!is_array($value) || ($value['gathering_version'] ?? null) !== 2 ||
+            ($value['source_format'] ?? null) !== 'misp' || !is_string($value['job_id'] ?? null) ||
+            !preg_match('/\A[0-9a-f]{64}\z/D', $value['job_id']) ||
+            ($identifier !== null && $value['job_id'] !== $identifier) ||
+            !in_array($value['status'] ?? null, ['queued', 'running', 'ready', 'failed'], true)) {
+            throw new UnexpectedValueException('Invalid gathering job response.');
+        }
+        if ($value['status'] === 'ready' &&
+            (!is_int($value['archive_size'] ?? null) || $value['archive_size'] < 1 || $value['archive_size'] > self::limit('max_archive_bytes', self::MAX_BYTES) ||
+            !is_string($value['sha256'] ?? null) || !preg_match('/\A[0-9a-f]{64}\z/D', $value['sha256']))) {
+            throw new UnexpectedValueException('Invalid gathering archive metadata or size budget exceeded.');
+        }
+        return $value;
     }
 
-    public static function validateBundle($bundle)
+    /** Flat, ordinary MISP feed files only. Never use ZipArchive::extractTo(). */
+    public static function extractArchive($archivePath, $directory)
     {
-        if (!is_array($bundle) || !empty($bundle['error']) || !empty($bundle['errors'])) {
-            throw new UnexpectedValueException('Gathering module failed; no feed was imported. Check the module logs.');
+        if (!class_exists('ZipArchive')) {
+            throw new RuntimeException('The PHP zip extension is required for gathering feeds.');
         }
-        if (($bundle['gathering_version'] ?? null) !== 1 || ($bundle['source_format'] ?? null) !== 'misp' ||
-            !isset($bundle['manifest'], $bundle['events']) || !is_array($bundle['manifest']) || !is_array($bundle['events'])) {
-            throw new UnexpectedValueException('Unsupported gathering feed contract.');
+        $zip = new ZipArchive();
+        if ($zip->open($archivePath, ZipArchive::RDONLY) !== true) {
+            throw new UnexpectedValueException('Invalid gathering ZIP archive.');
         }
-        $encoded = json_encode($bundle);
-        if ($encoded === false || strlen($encoded) > self::MAX_BYTES || count($bundle['events']) > self::MAX_EVENTS) {
-            throw new UnexpectedValueException('Gathering feed exceeds the supported size; narrow the collection parameters.');
-        }
-        if (array_diff_key($bundle['manifest'], $bundle['events']) || array_diff_key($bundle['events'], $bundle['manifest'])) {
-            throw new UnexpectedValueException('Gathering manifest and event files do not match.');
-        }
-        $identities = [];
-        foreach ($bundle['events'] as $uuid => $wrapped) {
-            $event = $wrapped['Event'] ?? null;
-            $metadata = $bundle['manifest'][$uuid];
-            if (!self::uuid($uuid) || !is_array($event) || !is_array($metadata) || ($event['uuid'] ?? null) !== $uuid ||
-                !empty($event['protected'])) {
-                throw new UnexpectedValueException('Invalid gathering event identity or unsupported protected event.');
+        $total = 0;
+        $maxBytes = self::limit('max_expanded_bytes', self::MAX_BYTES);
+        $maxFileBytes = self::limit('max_event_bytes', self::MAX_EVENT_BYTES);
+        try {
+            if (!mkdir($directory, 0700)) {
+                throw new RuntimeException('Could not create the gathering feed directory.');
             }
-            foreach (['info', 'date', 'timestamp', 'Orgc'] as $field) {
-                if (!isset($event[$field], $metadata[$field]) || $metadata[$field] !== $event[$field]) {
-                    throw new UnexpectedValueException('Gathering event metadata differs from its manifest.');
+            for ($index = 0; $index < $zip->numFiles; ++$index) {
+                $stat = $zip->statIndex($index);
+                $name = $stat['name'];
+                $event = preg_match('/\A[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\.json\z/D', $name);
+                if (!$event && $name !== 'manifest.json' && $name !== 'hashes.csv') {
+                    throw new UnexpectedValueException('Unsupported file or path in gathering ZIP.');
                 }
-            }
-            if (!is_string($event['info']) || trim($event['info']) === '' || !is_string($event['date']) ||
-                !preg_match('/\A\d{4}-\d{2}-\d{2}\z/D', $event['date'])) {
-                throw new UnexpectedValueException('Invalid gathering event title or date.');
-            }
-            if ((!is_string($event['timestamp']) && !is_int($event['timestamp'])) ||
-                !ctype_digit((string)$event['timestamp']) || (int)$event['timestamp'] < 1 ||
-                !is_array($event['Orgc']) || !self::uuid($event['Orgc']['uuid'] ?? null)) {
-                throw new UnexpectedValueException('Invalid gathering event revision or creator organisation.');
-            }
-            foreach (['publish_timestamp', 'Tag'] as $field) {
-                if (($event[$field] ?? null) !== ($metadata[$field] ?? null)) {
-                    throw new UnexpectedValueException('Gathering event metadata differs from its manifest.');
+                $zip->getExternalAttributesIndex($index, $system, $attributes);
+                $kind = ($attributes >> 16) & 0170000;
+                if (($kind !== 0 && $kind !== 0100000) || !empty($stat['encryption_method']) ||
+                    $stat['size'] > $maxFileBytes || $total + $stat['size'] > $maxBytes) {
+                    throw new UnexpectedValueException('Gathering ZIP entry type or size is unsupported.');
                 }
-            }
-            $entities = [$event];
-            foreach (['Attribute', 'Object'] as $field) {
-                if (isset($event[$field]) && !is_array($event[$field])) {
-                    throw new UnexpectedValueException('Invalid gathering event entities.');
+                $input = $zip->getStream($name);
+                $output = @fopen($directory . DIRECTORY_SEPARATOR . $name, 'xb');
+                if ($input === false || $output === false) {
+                    if (is_resource($input)) { fclose($input); }
+                    if (is_resource($output)) { fclose($output); }
+                    throw new UnexpectedValueException('Duplicate or unreadable gathering ZIP entry.');
                 }
-                foreach ($event[$field] ?? [] as $entity) {
-                    $entities[] = $entity;
-                    if ($field === 'Object') {
-                        if (isset($entity['Attribute']) && !is_array($entity['Attribute'])) {
-                            throw new UnexpectedValueException('Invalid gathering object attributes.');
+                $size = 0;
+                $crc = hash_init('crc32b');
+                try {
+                    while (!feof($input)) {
+                        $chunk = fread($input, 65536);
+                        if ($chunk === false) { throw new RuntimeException('Could not read gathering ZIP entry.'); }
+                        $size += strlen($chunk);
+                        if ($size > $stat['size'] || $total + $size > $maxBytes) {
+                            throw new UnexpectedValueException('Gathering ZIP expanded beyond its declared size.');
                         }
-                        foreach ($entity['Attribute'] ?? [] as $attribute) {
-                            $entities[] = $attribute;
+                        hash_update($crc, $chunk);
+                        $offset = 0;
+                        while ($offset < strlen($chunk)) {
+                            $written = fwrite($output, substr($chunk, $offset));
+                            if (!$written) { throw new RuntimeException('Could not write gathering feed file.'); }
+                            $offset += $written;
                         }
                     }
+                } finally {
+                    fclose($input);
+                    fclose($output);
                 }
-            }
-            foreach ($entities as $entity) {
-                $identity = $entity['uuid'] ?? null;
-                if (!self::uuid($identity) || isset($identities[strtolower($identity)])) {
-                    throw new UnexpectedValueException('Gathering entities must have unique stable UUIDs.');
+                if ($size !== $stat['size'] || hash_final($crc) !== sprintf('%08x', $stat['crc'] & 0xffffffff)) {
+                    throw new UnexpectedValueException('Gathering ZIP entry is truncated or corrupt.');
                 }
-                $identities[strtolower($identity)] = true;
+                $total += $size;
             }
+            if (!is_file($directory . DIRECTORY_SEPARATOR . 'manifest.json')) {
+                throw new UnexpectedValueException('Gathering ZIP has no manifest.json.');
+            }
+        } finally {
+            $zip->close();
         }
-        return $bundle;
     }
 
-    public static function file(array $bundle, $path)
+    /** Small status polls are separate from generation and streamed ZIP download. */
+    public static function prepare($module, array $options, array $user, $root, $timeout = 86400, ?callable $wait = null)
     {
-        if ($path === '/manifest.json') {
-            return json_encode((object)$bundle['manifest']);
+        GatheringFeedWorkspace::reap($root);
+        $workspace = new GatheringFeedWorkspace($root, $module);
+        try {
+            $job = self::job($module->queryGathering($options['module'], $options['parameters'], $user));
+            $workspace->jobId = $job['job_id'];
+            $deadline = microtime(true) + $timeout;
+            while (in_array($job['status'], ['queued', 'running'], true)) {
+                if (microtime(true) >= $deadline) { throw new RuntimeException('Gathering generation timed out.'); }
+                $wait ? $wait() : usleep(1000000);
+                $job = self::job($module->gatheringJobStatus($workspace->jobId), $workspace->jobId);
+            }
+            if ($job['status'] !== 'ready') { throw new RuntimeException('Gathering generation failed; see module service logs.'); }
+            $archive = $workspace->directory . DIRECTORY_SEPARATOR . 'feed.zip';
+            $module->downloadGatheringArchive($workspace->jobId, $archive, $job['archive_size']);
+            if (filesize($archive) !== $job['archive_size'] || !hash_equals($job['sha256'], hash_file('sha256', $archive))) {
+                throw new UnexpectedValueException('Gathering archive size or SHA256 mismatch.');
+            }
+            self::extractArchive($archive, $workspace->feedDirectory);
+            unlink($archive);
+            return $workspace;
+        } catch (Throwable $e) {
+            $workspace->close();
+            throw $e;
         }
-        if (preg_match('/\A\/([0-9a-f-]{36})\.json\z/Di', $path, $match) && isset($bundle['events'][$match[1]])) {
-            return json_encode($bundle['events'][$match[1]]);
-        }
-        throw new NotFoundException('File is not present in this gathering feed snapshot.');
     }
+}
+
+/** Owns temporary files only; it never inserts, updates or deletes a Feed row. */
+class GatheringFeedWorkspace
+{
+    public $directory;
+    public $feedDirectory;
+    public $jobId;
+    private $module;
+    private $closed = false;
+    private $lock;
+
+    public function __construct($root, $module)
+    {
+        $this->directory = $root . DIRECTORY_SEPARATOR . 'gathering-' . bin2hex(random_bytes(16));
+        if (!is_dir($root) || !mkdir($this->directory, 0700)) {
+            throw new RuntimeException('Could not create gathering workspace.');
+        }
+        $this->feedDirectory = $this->directory . DIRECTORY_SEPARATOR . 'feed';
+        $this->module = $module;
+        $this->lock = fopen($this->directory . DIRECTORY_SEPARATOR . '.lock', 'xb');
+        if (!$this->lock || !flock($this->lock, LOCK_EX)) {
+            if (is_resource($this->lock)) { fclose($this->lock); }
+            self::removeDirectory($this->directory);
+            throw new RuntimeException('Could not lock gathering workspace.');
+        }
+    }
+
+    public function close()
+    {
+        if ($this->closed) { return; }
+        $this->closed = true;
+        try {
+            self::removeDirectory($this->directory);
+        } finally {
+            if (is_resource($this->lock)) { fclose($this->lock); }
+            if ($this->jobId) {
+                try { $this->module->releaseGatheringJob($this->jobId); }
+                catch (Throwable $e) { error_log('Could not release gathering artifact; module retention cleanup will remove it.'); }
+            }
+        }
+    }
+
+    /** Recover disk space after a killed worker; live workspaces hold a file lock. */
+    public static function reap($root, $maxAge = 172800)
+    {
+        foreach (new FilesystemIterator($root) as $entry) {
+            if (!$entry->isDir() || $entry->isLink() || !preg_match('/\Agathering-[0-9a-f]{32}\z/D', $entry->getFilename()) ||
+                $entry->getMTime() > time() - $maxAge) { continue; }
+            $lock = @fopen($entry->getPathname() . DIRECTORY_SEPARATOR . '.lock', 'r+');
+            if ($lock && flock($lock, LOCK_EX | LOCK_NB)) { self::removeDirectory($entry->getPathname()); }
+            if (is_resource($lock)) { fclose($lock); }
+        }
+    }
+
+    public static function removeDirectory($directory)
+    {
+        if (!is_dir($directory)) { return; }
+        foreach (new FilesystemIterator($directory) as $entry) {
+            if ($entry->isDir() && !$entry->isLink()) { self::removeDirectory($entry->getPathname()); }
+            else { unlink($entry->getPathname()); }
+        }
+        rmdir($directory);
+    }
+
+    public function __destruct() { $this->close(); }
 }

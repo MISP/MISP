@@ -1,118 +1,116 @@
-# Gathering modules as feed sources (initial integration)
+# Gathering ZIP feed ingestion
 
-This draft adds a generic misp-modules input source to the existing MISP-format
-feed importer. Source-specific collection and conversion live in misp-modules;
-MISP retains its manifest filters, UUID/timestamp comparison, event merge logic,
-distribution settings and background feed jobs. No database migration is needed:
-`Feed.input_source` stores `misp-modules` and existing JSON settings hold the
-module name and parameters.
+Gathering modules generate a standard MISP feed directory containing
+`manifest.json` and one `<event-uuid>.json` per event, ZIP it, and return it as a
+binary artifact. MISP streams the ZIP to a private local workspace, extracts it,
+and reuses the existing single-event feed importer. No ad hoc Feed row is inserted
+or deleted, so repeated pulls do not consume feed IDs. The configured gathering
+feed is retained for scheduling and parameters.
 
-## Setup
+Companion producer/framework: https://github.com/MISP/misp-modules/pull/1026.
 
-1. Install the companion misp-modules gathering implementation.
-2. Give that service durable revision storage using
-   `MISP_MODULES_GATHERING_STATE_DIR`. Preserve it across restarts and upgrades.
-3. Enable `Plugin.Gathering_services_enable`, configure its URL/port, then enable
-   the individual producer, initially `Plugin.Gathering_withaname_enabled`.
-4. Add a feed with input source **MISP modules**, select the gathering module,
-   and enter its collection parameters as a JSON object. Both Classic and
-   Overmind feed forms discover producers through normal module enablement and
-   organisation restrictions. Future gathering producers need no source-specific
-   changes in MISP.
+## Setup and example
 
-Example WithAName parameters (exclusive end date):
-
-```json
-{
-  "date_from": "2023-06-24",
-  "date_to": "2023-06-25",
-  "max_events": 20,
-  "deduplicate_entries": true
-}
-```
-
-Omit the dates for WithAName's rolling window from yesterday through today in
-UTC. The source filename timestamps are interpreted as UTC by this first module.
-Overlapping collection windows are safe: unchanged UUIDs and timestamps are
-skipped by the existing feed importer. For historical backfills, use explicit,
-bounded date ranges. Nothing advances an implicit checkpoint after a failed run.
-
-REST configuration uses the same feed fields:
+Enable `Plugin.Gathering_services_enable`, configure the module service URL/port,
+and enable an individual producer such as `Plugin.Gathering_withaname_enabled`.
+Classic and Overmind feed forms discover enabled contract-version-2 producers
+through normal organisation restrictions. Keep feed caching disabled. No schema
+migration is required; `Feed.input_source=misp-modules` and the existing JSON
+settings store the module name and parameters.
 
 ```json
 {
   "Feed": {
-    "name": "WithAName configurations",
-    "provider": "WithAName",
-    "input_source": "misp-modules",
-    "source_format": "misp",
-    "enabled": true,
-    "caching_enabled": false,
-    "distribution": "0",
-    "settings": {
-      "gathering": {
-        "module": "withaname",
-        "parameters": {"date_from": "2023-06-24", "date_to": "2023-06-25"}
-      }
-    }
+    "name": "WithAName configurations", "provider": "WithAName",
+    "input_source": "misp-modules", "source_format": "misp",
+    "enabled": true, "caching_enabled": false, "distribution": "0",
+    "settings": {"gathering": {"module": "withaname", "parameters": {
+      "date_from": "2023-06-24", "date_to": "2023-06-25",
+      "max_events": 0, "deduplicate_entries": true
+    }}}
   }
 }
 ```
 
-The model sets a synthetic `misp-modules://<module>` URL and MISP source format;
-this URL is never used for an outbound HTTP request. Service credentials use the
-normal per-module settings, separately from the feed's collection parameters.
+WithAName's end date is exclusive. Without explicit dates it collects yesterday
+and today in UTC. `max_events=0` selects every matching snapshot; a positive
+budget fails if exceeded. Source timestamps are interpreted as UTC. Further
+producers have their own parameter schemas and need no converter code in MISP.
 
-## Contract and import path
+## Generation and ingestion lifecycle
 
-`Module::queryGathering()` checks the module's type, enablement, organisation
-restriction and `gathering_version` before calling `/query` on the Gathering
-service. Normal per-module and family execution timeouts apply. The request is:
+1. `Module::queryGathering()` verifies type, enablement, restrictions and version,
+   then submits `{"module":"...","operation":"prepare","parameters":{},"config":{}}`
+   through `/query`. The response is a small job descriptor, never an event bundle.
+2. MISP polls `GET /gathering/jobs/<job_id>` until ready/failed, using separate
+   short HTTP requests. Generation runs independently of those request timeouts.
+3. Ready metadata provides archive size and SHA256. MISP constructs the download
+   path on its configured module service and streams `/feed.zip` to
+   `APP/tmp/gathering-<random identifier>/feed.zip`. Arbitrary remote URLs are not
+   accepted. PHP's curl and zip extensions are required.
+4. MISP verifies the ZIP size and SHA256, then extracts flat feed entries in
+   64 KiB chunks to the workspace's `feed/` directory. It rejects path traversal,
+   symlinks, encrypted entries, duplicate filenames, corrupt CRCs and size-budget
+   violations. The ZIP is deleted immediately after successful extraction.
+5. The Feed model makes an in-memory local connector using the configured feed's
+   import policy and private workspace path. It iterates event filenames, loads
+   one event, and calls the existing feed preparation and save methods. Existing
+   filters, distribution settings and UUID/timestamp add/edit/skip rules apply.
+   It never loads the whole manifest or an event/action list for this import.
+6. A finally block removes the workspace and sends DELETE for the module job.
+   Failure and timeout paths also clean up. The persistent configured feed remains.
+   Module retention handles an unreachable cleanup request; a lock-aware local
+   janitor removes abandoned workspaces from killed workers after two days.
 
-```json
-{"module":"withaname","operation":"prepare","parameters":{},"config":{}}
-```
+The previous unmerged version-1 JSON bundle contract is replaced by version 2.
+This removes its 100-event / 32 MiB collection ceiling. Event-content memory is
+proportional to the largest event, with ZIP-directory and producer source-listing
+metadata still proportional to file count. Standard manifest previews can still
+load manifest metadata; the ingestion path does not. Allow disk space for the
+ZIP and expanded feed together. Import results are bounded aggregate counts,
+not a per-event result array.
 
-The version 1 answer contains `gathering_version: 1`, `source_format: "misp"`,
-`manifest` and `events`. The manifest is exactly the contents of `manifest.json`;
-each `events[uuid]` is the contents of the standard `<uuid>.json` file with an
-`Event` wrapper. The complete response is limited to 100 events and 32 MiB.
+## Long generation and operator budgets
 
-`GatheringFeedTool` rejects failed, oversized, incomplete or inconsistent
-responses before any event is imported. The Feed model holds one generated
-snapshot for manifest and event reads during a job. Starting another import job
-clears that snapshot, including when a queue worker reuses the model. Existing
-`getNewEventUuids()` and event import methods consume these files directly.
+Use MISP's existing background feed jobs for long collections; PHP worker and
+queue execution limits must permit the intended duration. `Plugin.Gathering_timeout`
+and per-module execution timeouts cover submission, not the whole generation.
+`Plugin.Gathering_generation_timeout` controls MISP's polling budget (default
+86400 seconds). A timeout requests cancellation and cleans up the workspace.
 
-The WithAName module emits one event per source snapshot and one `ddos-config`
-object per target rule, with deterministic UUIDv5 identifiers. These describe
-victim targets, so the module explicitly disables IDS export and correlation.
-The original configuration's information, including random substitution rules,
-is preserved in a canonical JSON attachment.
+The producer has bounded background workers/queue, cancellation checks, artifact
+retention and configurable generation/disk budgets; see its gathering guide.
+With durable producer storage, ready ZIPs survive module service restarts.
+Interrupted generation is reported failed and partial files are removed; it is
+retried from the source rather than resumed mid-file. Persistent UUIDs and
+revision timestamps make overlapping windows and retries safe. The producer's
+revision index must survive upgrades and restarts.
 
-## Draft scope and review points
+MISP defaults to 10 GiB compressed and expanded archive budgets and 256 MiB per
+file. Operators can change `Plugin.Gathering_max_archive_bytes`,
+`Plugin.Gathering_max_expanded_bytes` and `Plugin.Gathering_max_event_bytes`.
+These are disk/input budgets, not full-feed memory allocations.
 
-- Collection is synchronous and bounded. Too many source events fail the run;
-  callers must narrow the date range. There is no pagination or automatic
-  historical checkpoint yet.
-- Parameter entry is generic JSON. The module exposes a parameter schema, but
-  rendering schema-driven controls is deferred.
-- Feed preview and import are supported. Feed caching/lookup and protected-event
-  signatures are deferred; caching must remain disabled.
-- Generated timestamps depend on the producer's persistent revision index.
-  Losing that index can prevent historical corrections from being selected.
-- Source corrections use normal MISP feed merge semantics. The initial producer
-  assigns changed rule versions new object UUIDs and emits no deletion
-  tombstones, so old rules may remain after a historical correction.
-- Unit tests cover producer discovery, restrictions, bundle validation, snapshot
-  reuse, and the existing add/update/skip decision. A cross-repository test can
-  consume a real Python-produced response through `GATHERING_TEST_BUNDLE`.
-  Full browser and database-backed worker acceptance testing remains before
-  marking this MISP PR ready for review.
+## Draft scope and checks
 
-Run the pure contract tests with:
+WithAName emits one event per snapshot, `ddos-config` objects for target rules,
+and a canonical JSON attachment preserving random definitions. Victim targets
+explicitly disable IDS export and correlation. Normal MISP merge semantics apply;
+there are no deletion tombstones. Daily aggregation, feed caching/lookup,
+protected-event signatures and schema-rendered parameter forms remain follow-ups.
+
+Tests cover lifecycle polling, checksum/path/type validation, cleanup and timeout,
+normal add/edit/skip ingestion, and the absence of transient Feed-row operations.
+A 160-event fixture over 40 MiB imports in a separate process under a 40 MiB PHP
+memory limit. The Python writer has a matching regression under an 8 MiB traced
+peak. Cross-repository validation uses a real Python-generated ZIP:
 
 ```sh
 ./app/Vendor/bin/phpunit app/Test/GatheringFeedTest.php
-GATHERING_TEST_BUNDLE=/path/to/python-response.json ./app/Vendor/bin/phpunit app/Test/GatheringFeedTest.php
+GATHERING_TEST_ARCHIVE=/path/to/feed.zip ./app/Vendor/bin/phpunit app/Test/GatheringFeedTest.php
 ```
+
+This remains a draft pending browser and database-backed scheduled-worker
+acceptance tests. Requests and generation status are separate: the existing
+module query statistics measure job submission, while job status reports the
+actual generation outcome.

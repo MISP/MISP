@@ -240,7 +240,7 @@ class Module extends AppModel
     public function queryGathering($name, array $parameters, array $user)
     {
         $module = $this->getEnabledModule($name, 'Gathering', $user);
-        if (!is_array($module) || ($module['mispattributes']['gathering_version'] ?? null) !== 1) {
+        if (!is_array($module) || ($module['mispattributes']['gathering_version'] ?? null) !== 2) {
             throw new InvalidArgumentException('Gathering module is unavailable, restricted, or uses an unsupported contract.');
         }
         $config = [];
@@ -260,6 +260,46 @@ class Module extends AppModel
             'parameters' => (object)$parameters,
             'config' => (object)$config,
         ], false, 'Gathering', true);
+    }
+
+    private function gatheringJobPath($identifier)
+    {
+        if (!is_string($identifier) || !preg_match('/\A[0-9a-f]{64}\z/D', $identifier)) {
+            throw new InvalidArgumentException('Invalid gathering job identifier.');
+        }
+        return '/gathering/jobs/' . $identifier;
+    }
+
+    public function gatheringJobStatus($identifier)
+    {
+        return $this->sendRequest($this->gatheringJobPath($identifier), 10, null, 'Gathering');
+    }
+
+    public function downloadGatheringArchive($identifier, $destination, $size)
+    {
+        $path = $this->gatheringJobPath($identifier) . '/feed.zip';
+        $server = $this->__getModuleServer('Gathering');
+        if (!$server) { throw new RuntimeException('Gathering service is disabled.'); }
+        $client = $this->initHttpSocket('Gathering', 3600);
+        if (!method_exists($client, 'download')) { throw new RuntimeException('Gathering ZIP downloads require the PHP curl extension.'); }
+        $client->setFollowRedirects(false);
+        $client->setMaxSize($size);
+        try {
+            $response = $client->download($server . $path, $destination);
+            if ((int)$response->code !== 200) { throw new RuntimeException('Gathering archive download failed.'); }
+        } finally {
+            $client->setMaxSize(null);
+            $client->setFollowRedirects(true);
+        }
+    }
+
+    public function releaseGatheringJob($identifier)
+    {
+        $path = $this->gatheringJobPath($identifier);
+        $server = $this->__getModuleServer('Gathering');
+        if (!$server) { return; }
+        $response = $this->initHttpSocket('Gathering', 10)->delete($server . $path);
+        if (!in_array((int)$response->code, [204, 404], true)) { throw new RuntimeException('Could not release gathering job.'); }
     }
 
     private function __getModuleServer($moduleFamily = 'Enrichment')
