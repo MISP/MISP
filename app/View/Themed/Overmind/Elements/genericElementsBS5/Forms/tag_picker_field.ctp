@@ -1,9 +1,9 @@
 <?php
 /*
- * The theme's tag picker as a form field — same category buttons, same search
- * and same badges as Modals/tag_picker.ctp (both run initTagPickerSection()),
- * except the selection ends up in hidden inputs instead of a JSON POST, so it
- * travels with the surrounding form.
+ * The theme's tag picker as a form field (initTagPickerSection()): category
+ * buttons, a search over the current category and the picked tags as badges.
+ * The selection ends up in hidden inputs, so it travels with the surrounding
+ * form.
  *
  * Required params:
  *   $field       string  dotted field path, e.g. 'TagCollection.tags'

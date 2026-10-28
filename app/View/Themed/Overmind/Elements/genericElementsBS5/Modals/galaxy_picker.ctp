@@ -30,23 +30,11 @@ $postUrl   = h($saveUrl);
 $initGJson = json_encode($currentGlobalClusters, JSON_HEX_TAG | JSON_HEX_AMP);
 $initLJson = json_encode($currentLocalClusters,  JSON_HEX_TAG | JSON_HEX_AMP);
 
-/* Modals bring no assets: the browser loads on first use, at the URLs the asset loader would give it. */
-$cachedTimestamp = Configure::read('Asset.timestamp') === 'cached';
-$asset = function ($path, $ext) use ($cachedTimestamp, $queryVersion) {
-    $url = $this->Html->assetUrl($path, [
-        'pathPrefix' => Configure::read($ext === 'js' ? 'App.jsBaseUrl' : 'App.cssBaseUrl'),
-        'ext' => '.' . $ext,
-    ]);
-    $version = $cachedTimestamp && file_exists(WWW_ROOT . $url) ? filemtime(WWW_ROOT . $url) : null;
-    return ['path' => $url, 'url' => $url . '?v=' . ($version ?: $queryVersion)];
-};
 $browser = [
     'scopes'  => $baseurl . '/galaxies/pickerScopes',
     'source'  => $baseurl . '/galaxy_clusters/pickerSearch',
     'label'   => __('Galaxy clusters'),
     'strings' => IndexPicker::browserStrings(),
-    'css'     => $asset('index-filter-browser', 'css'),
-    'js'      => $asset('index-filter-browser', 'js'),
 ];
 
 $sideHead = 'd-flex align-items-center gap-2 fw-bold text-uppercase mb-2 text-galaxy';
@@ -116,6 +104,7 @@ $sideHeadStyle = 'font-size:.65rem; letter-spacing:.1em;';
     var uid        = <?= json_encode($uid) ?>;
     var reloadHook = <?= json_encode($reloadHook) ?>;
     var browserCfg = <?= json_encode($browser, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
+    var browserAssets = <?= $this->element('genericElementsBS5/Modals/index_filter_browser_assets') ?>;
     var root       = document.getElementById(uid + '-picker');
     var modalEl    = document.getElementById('mainModal');
     var labels     = <?= json_encode([
@@ -222,28 +211,8 @@ $sideHeadStyle = 'font-size:.65rem; letter-spacing:.1em;';
         changed();
     }
 
-    function loadBrowser() {
-        // A copy from before mount() existed, kept by a page opened before an upgrade, cannot host it.
-        if (window.IndexFilterBrowser) {
-            return window.IndexFilterBrowser.mount ? Promise.resolve() : Promise.reject();
-        }
-        if (!document.querySelector('link[href^="' + browserCfg.css.path + '"]')) {
-            var link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = browserCfg.css.url;
-            document.head.appendChild(link);
-        }
-        return new Promise(function (resolve, reject) {
-            var script = document.createElement('script');
-            script.src = browserCfg.js.url;
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
-    }
-
     var host = root.querySelector('[data-browser-host]');
-    loadBrowser().then(function () {
+    loadIndexFilterBrowser(browserAssets).then(function () {
         if (!root.isConnected) { return; }
         host.innerHTML = '';
         browser = window.IndexFilterBrowser.mount(host, {

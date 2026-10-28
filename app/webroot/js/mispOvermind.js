@@ -3466,11 +3466,9 @@ function distBadgeHtml(level, withLabel, labels) {
 
 /*******************************
  * initTagPickerSection
- * The tag picker used everywhere in the theme: category buttons, a TomSelect
- * search over the current category, and the picked tags drawn below as tag
- * chips with a remove cross. Drives both the standalone edit-tags modal
- * (Modals/tag_picker.ctp, one section per locality) and the in-form field
- * (Forms/tag_picker_field.ctp).
+ * The in-form tag picker (Forms/tag_picker_field.ctp): category buttons, a
+ * TomSelect search over the current category, and the picked tags drawn
+ * below as tag chips with a remove cross.
  *
  * `root` must contain .tag-cat-btn buttons (each with data-cat), a
  * select.tag-picker, .tag-selected and .tag-selected-empty.
@@ -3479,11 +3477,8 @@ function distBadgeHtml(level, withLabel, labels) {
  * @param {object}   catData   {<cat>: [{id,name,colour}], collections: [{id,name,tags:[…]}]}
  * @param {Array}    initTags  Pre-selected [{id,name,colour}]
  * @param {object}   [options] localMarker: flag the chips as local tags;
- *                             onChange: called with the selected id array;
- *                             category: the category to open on (default the
- *                             first button)
- * @return {{ids: function, focus: function}} the current selection, and a way
- *                             to open the search on the current category
+ *                             onChange: called with the selected id array
+ * @return {{ids: function}} the current selection
  *******************************/
 function initTagPickerSection(root, catData, initTags, options) {
     options = options || {};
@@ -3607,23 +3602,19 @@ function initTagPickerSection(root, catData, initTags, options) {
 
     (initTags || []).forEach(addTag);
     render();
-    var start = options.category
-        ? root.querySelector('.tag-cat-btn[data-cat="' + CSS.escape(options.category) + '"]')
-        : null;
-    start = start || root.querySelector('.tag-cat-btn');
-    setCategory(start ? start.getAttribute('data-cat') : 'all');
+    var firstBtn = root.querySelector('.tag-cat-btn');
+    setCategory(firstBtn ? firstBtn.getAttribute('data-cat') : 'all');
 
-    return { ids: ids, focus: function () { ts.focus(); } };
+    return { ids: ids };
 }
 
 /*******************************
  * initGalaxyPickerSection
- * The galaxy cluster picker used everywhere in the theme: galaxy category
- * buttons, a TomSelect searching the cluster endpoint remotely (an empty query
- * lists the scoped galaxy's clusters, "All Galaxies" needs 2 characters), and
- * the picked clusters drawn below as cluster chips with a remove cross. Drives
- * both the standalone edit-clusters modal (Modals/galaxy_picker.ctp, one
- * section per locality) and the in-form field (Forms/galaxy_picker_field.ctp).
+ * The in-form galaxy cluster picker (Forms/galaxy_picker_field.ctp): galaxy
+ * category buttons, a TomSelect searching the cluster endpoint remotely (an
+ * empty query lists the scoped galaxy's clusters, "All Galaxies" needs 2
+ * characters), and the picked clusters drawn below as cluster chips with a
+ * remove cross.
  *
  * `root` must contain .galaxy-cat-btn buttons (the per-galaxy ones carrying
  * data-galaxy-id), a select.galaxy-picker, .galaxy-selected and
@@ -3780,6 +3771,35 @@ function initGalaxyPickerSection(root, initClusters, options) {
     render();
 
     return { ids: ids };
+}
+
+/*******************************
+ * loadIndexFilterBrowser
+ * Brings the column browser of the index filters (index-filter-browser.js)
+ * into a page for a modal that embeds it - modals bring no assets.
+ *
+ * @param {object} assets {css: {path, url}, js: {path, url}}, from
+ *                        Modals/index_filter_browser_assets.ctp
+ * @return {Promise} resolves once IndexFilterBrowser.mount() can be called
+ *******************************/
+function loadIndexFilterBrowser(assets) {
+    // A copy from before mount() existed, kept by a page opened before an upgrade, cannot host it.
+    if (window.IndexFilterBrowser) {
+        return window.IndexFilterBrowser.mount ? Promise.resolve() : Promise.reject();
+    }
+    if (!document.querySelector('link[href^="' + assets.css.path + '"]')) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = assets.css.url;
+        document.head.appendChild(link);
+    }
+    return new Promise(function (resolve, reject) {
+        var script = document.createElement('script');
+        script.src = assets.js.url;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
 }
 
 /**

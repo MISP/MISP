@@ -4,25 +4,19 @@
  *
  * Thin wrapper around the shared tag-picker modal.
  * Variables come from EventsController::editEventTags:
- * - $allTags
- * - $customTags
  * - $tagCollections
- * - $taxonomies
  * - $currentGlobalTags
  * - $currentLocalTags
  * - eventId
  * - $mayModify
- * - $openTaxonomy  (?taxonomy=<namespace>, the category to open on)
+ * - $openTaxonomy  (?taxonomy=<namespace>, the taxonomy the browser opens on)
  */
 echo $this->element('genericElementsBS5/Modals/tag_picker', [
     'saveUrl'           => $baseurl . '/events/editEventTags/' . $eventId,
     'uid'               => 'evt-tags-' . $eventId,
     'headerEyebrow'     => __('Tags'),
     'reloadHook'        => 'reloadTagsCard_',
-    'allTags'           => $allTags,
-    'customTags'        => $customTags,
     'tagCollections'    => $tagCollections,
-    'taxonomies'        => $taxonomies,
     'currentGlobalTags' => $currentGlobalTags,
     'currentLocalTags'  => $currentLocalTags,
     'mayModify'         => $mayModify,

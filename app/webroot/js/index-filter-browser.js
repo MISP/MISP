@@ -5,9 +5,10 @@
  * window.IndexFilterBrowser; selection, serialisation and applying on close
  * follow its rules. Nothing scrolls: long lists reflow into columns.
  *
- * mount() draws the same browser inside a host element instead (the galaxy
- * picker modal): a pick is either global or local rather than included or
- * excluded, and the host owns the selection, handing it back with select().
+ * mount() draws the same browser inside a host element instead (the tag and
+ * galaxy picker modals): a pick is either global or local rather than
+ * included or excluded, and the host owns the selection, handing it back with
+ * select(). A tag host may add its tag collections as one more scope.
  */
 (function () {
     'use strict';
@@ -263,12 +264,15 @@
                 tags[lc(e.tag)] = true;
                 return {
                     tag: e.tag, value: e.value, expanded: e.expanded, colour: e.colour || p.colour,
-                    nv: e.numerical_value,
+                    nv: e.numerical_value, id: e.tag_id, localOnly: e.local_only,
                 };
             });
             var self = null;
             if (!p.entries.length && p.tag && p.tag_exists) {
-                self = { tag: p.tag, value: p.value, expanded: p.expanded, colour: p.colour };
+                self = {
+                    tag: p.tag, value: p.value, expanded: p.expanded, colour: p.colour,
+                    id: p.tag_id, localOnly: p.local_only,
+                };
                 tags[lc(p.tag)] = true;
             }
             var path = String(p.value).split(':');
@@ -306,9 +310,16 @@
         return hit.exclude ? 'exclude' : 'include';
     }
 
+    // A tag collection counts as picked once every one of its tags is.
+    function collState(c) {
+        return c.tags.length && c.tags.every(function (t) { return stateOf(t.name) !== 'none'; }) ? 'include' : 'none';
+    }
+
+    function rowState(row) { return row.collection ? collState(row.collection) : stateOf(row.value); }
+
     function toggle(row, exclude) {
         if (st.embedded) {
-            st.onToggle(row, stateOf(row.value) === 'none');
+            st.onToggle(row, rowState(row) === 'none');
             return;
         }
         var i = st.selection.findIndex(function (s) { return s.value === row.value; });
@@ -331,6 +342,9 @@
     }
 
     function scopeHasSelection(scope) {
+        if (scope.kind === 'coll') {
+            return scope.items.some(function (c) { return collState(c) !== 'none'; });
+        }
         return st.selection.some(function (s) {
             if (scope.kind === 'galaxy') { return clusterType(s.value) === lc(scope.type); }
             if (scope.kind === 'none') { return tagNs(s.value) === '-'; }
@@ -348,9 +362,12 @@
 
     /* ── navigation ───────────────────────────────────────────────────── */
 
+    // The collections scope belongs to one mounted browser, not to the shared model.
+    function scopeById(id) { return st.coll && id === st.coll.id ? st.coll : st.model.byId[id]; }
+
     function currentScope() {
         var step = st.path.find(function (s) { return s.k === 'scope'; });
-        return step ? st.model.byId[step.id] : null;
+        return step ? scopeById(step.id) : null;
     }
 
     function currentSub() { return st.path.find(function (s) { return s.k === 'sub'; }) || null; }
@@ -396,7 +413,7 @@
         if (!last || last.k === 'group') { return false; }
         st.wide = false;
         if (last.k === 'scope' && st.path.length === 1) {
-            var scope = st.model.byId[last.id];
+            var scope = scopeById(last.id);
             st.path = [{ k: 'group', id: (scope && scope.group) || st.model.defaultGroup }];
         } else {
             st.path = st.path.slice(0, -1);
@@ -412,6 +429,7 @@
         var sub = currentSub();
         var term = st.term.trim();
         if (!scope) { return term.length >= 2 ? 'g|' + lc(term) : null; }
+        if (scope.kind === 'coll') { return 'coll'; }
         if (scope.kind === 'tax') { return 'tax|' + scope.id + '|' + lc(term); }
         if (scope.kind === 'ns') { return 'ns|' + scope.id + '|' + lc(term); }
         if (scope.kind === 'none') { return 'none|' + lc(term || (sub ? sub.id : '')); }
@@ -423,6 +441,7 @@
         if (!scope) {
             return api(search, { q: term, limit: GLOBAL }, signal).then(function (rows) { return { rows: rows }; });
         }
+        if (scope.kind === 'coll') { return Promise.resolve({}); }
         if (scope.kind === 'tax') {
             var extras = term || scope.size <= BROWSE
                 ? api(search, { q: term, scope: scope.ns, limit: BROWSE }, signal)
@@ -511,7 +530,12 @@
         var first = st.path[0];
         var searching = !!st.term.trim() && !currentScope();
         var lines = [];
-        m.side.forEach(function (sec) {
+        var side = m.side;
+        if (st.coll) {
+            var last = side[side.length - 1];
+            side = side.slice(0, -1).concat([{ head: last.head, icon: last.icon, items: last.items.concat([st.coll]) }]);
+        }
+        side.forEach(function (sec) {
             if (!sec.items.length) { return; }
             lines.push({ t: 'head', text: sec.head, icon: sec.icon });
             sec.items.forEach(function (it) {
@@ -637,11 +661,13 @@
         };
     }
 
-    function tagVal(value, colour, d, extra) {
+    // `row` is a picker row: {value, style: {colour}, id, local_only}.
+    function tagVal(row, d, extra) {
+        var colour = (row.style && row.style.colour) || null;
         var line = {
-            t: 'val', value: value, swatch: colour || null, label: d.label, badge: d.badge || null,
+            t: 'val', value: row.value, swatch: colour, label: d.label, badge: d.badge || null,
             sub: d.sub || null, pre: d.pre || null,
-            row: { value: value, label: value, style: { colour: colour || null } },
+            row: { value: row.value, label: row.value, style: { colour: colour }, id: row.id, local_only: !!row.local_only },
         };
         if (extra) { Object.keys(extra).forEach(function (k) { line[k] = extra[k]; }); }
         return line;
@@ -649,7 +675,24 @@
 
     function entryVal(e) {
         var d = describe(e.value, e.expanded);
-        return tagVal(e.tag, e.colour, d, { nv: e.nv });
+        return tagVal({ value: e.tag, style: { colour: e.colour }, id: e.id, local_only: e.localOnly }, d, { nv: e.nv });
+    }
+
+    function collValues(term, col) {
+        var lines = st.coll.items.filter(function (c) { return has(c.name, term); }).map(function (c) {
+            return {
+                t: 'val', value: 'collection:' + c.id, icon: 'fas fa-layer-group', label: c.name,
+                sub: c.tags.length === 1 ? T('oneTag') : T('nTags', c.tags.length),
+                title: c.tags.map(function (t) { return t.name; }).join('\n'),
+                row: { value: 'collection:' + c.id, label: c.name, collection: c },
+            };
+        });
+        if (!lines.length) {
+            col.empty = true;
+            lines.push({ t: 'msg', h: 120, html: '<div class="ifb-empty"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>'
+                + '<b>' + esc(T('noCollectionMatches', term)) + '</b></div>' });
+        }
+        return lines;
     }
 
     function taxValues(scope, sub, term, col) {
@@ -674,9 +717,7 @@
         var preds = tm.preds.filter(function (p) { return !sub || p.id === sub.id; });
         preds.forEach(function (p) {
             var r = push(p, !term);
-            if (r.self) {
-                lines.push(entryVal({ tag: p.self.tag, value: p.self.value, expanded: p.self.expanded, colour: p.self.colour }));
-            }
+            if (r.self) { lines.push(entryVal(p.self)); }
             if (!r.hits.length) { return; }
             if (!sub) {
                 var headText = p.expanded && p.expanded !== p.label && p.expanded.length <= 48
@@ -695,7 +736,7 @@
         if (extras.length && !sub) {
             lines.push({ t: 'head', text: T('otherTags', scope.label), title: T('otherTagsTitle') });
             extras.forEach(function (row) {
-                lines.push(tagVal(row.value, row.style && row.style.colour, { label: row.value.slice(scope.ns.length + 1) }));
+                lines.push(tagVal(row, { label: row.value.slice(scope.ns.length + 1) }));
             });
         }
         if (!lines.length) {
@@ -734,14 +775,13 @@
         var lines = [];
         groups.forEach(function (g) { if (g.rows.length < 2 || !g.pred) { loose = loose.concat(g.rows); } });
         loose.forEach(function (x) {
-            lines.push(tagVal(x.row.value, x.row.style && x.row.style.colour,
-                { label: x.parts.val, pre: x.parts.pred || null }));
+            lines.push(tagVal(x.row, { label: x.parts.val, pre: x.parts.pred || null }));
         });
         groups.forEach(function (g) {
             if (g.rows.length < 2 || !g.pred) { return; }
             lines.push({ t: 'head', text: g.pred });
             g.rows.forEach(function (x) {
-                lines.push(tagVal(x.row.value, x.row.style && x.row.style.colour, { label: x.parts.val }));
+                lines.push(tagVal(x.row, { label: x.parts.val }));
             });
         });
         return lines;
@@ -783,6 +823,10 @@
                 + act(function () { st.dataKey = null; refresh(); }) + '">' + esc(T('tryAgain')) + '</button></div>' }];
             return col;
         }
+        if (scope.kind === 'coll') {
+            col.lines = collValues(term, col);
+            return col;
+        }
         if (!d) {
             col.lines = skeleton(8);
             col.loading = true;
@@ -809,7 +853,7 @@
             if (!term && scope.size > rows.length) { col.lines.push({ t: 'more', n: scope.size - rows.length }); }
         } else {
             col.lines = rows.map(function (r) {
-                return tagVal(r.value, r.style && r.style.colour, { label: r.value.trim() || r.value });
+                return tagVal(r, { label: r.value.trim() || r.value });
             });
             if (!term && !sub && scope.size > rows.length) {
                 col.lines.push({ t: 'more', n: scope.size - rows.length });
@@ -920,7 +964,7 @@
                 var tx = row.taxonomy;
                 var dsc = tx ? describe(tx.entry || tx.predicate, tx.expanded) : { label: row.value.slice(ns.length) };
                 if (tx && tx.entry) { dsc.pre = tx.predicate; }
-                lines(tagVal(row.value, row.style && row.style.colour, dsc));
+                lines(tagVal(row, dsc));
             });
         });
         function lines(l) { col.lines.push(l); }
@@ -1163,7 +1207,7 @@
                 + '</div>';
         }
         // value
-        var state = stateOf(l.value);
+        var state = rowState(l.row);
         st.vals.push(l);
         var vi = st.vals.length - 1;
         var vid = rowId(ci, 'v' + vi);
@@ -1311,7 +1355,7 @@
                 if (st.term.trim() && !currentScope()) { return; }
                 out.push({ text: m.groups[s.id].label, pop: i });
             } else if (s.k === 'scope') {
-                out.push({ text: m.byId[s.id].label, pop: i });
+                out.push({ text: scopeById(s.id).label, pop: i });
             } else {
                 out.push({ text: s.label, pop: i });
             }
@@ -1560,18 +1604,26 @@
     }
 
     /*
-     * The embedded browser. cfg: kind, scopes, source (the search URL),
-     * label, strings, selection ([{value, local}]), onToggle(row, on) when a
-     * value is clicked, and reserve, the height in pixels the host keeps
-     * around the browser.
+     * The embedded browser. cfg: kind, scopes, source (the search URL), tree
+     * (a taxonomy's entries, for tags), label, strings, selection
+     * ([{value, local}]), onToggle(row, on) when a value is clicked, and
+     * reserve, the height in pixels the host keeps around the browser.
+     * For tags, also collections ([{id, name, tags: [{name, …}]}], a row
+     * then carries `collection`) and open, a namespace to start on.
      */
     function mountIn(host, cfg) {
         if (st) { closePicker(true); }
         strings = cfg.strings || {};
+        var collections = cfg.collections || [];
         st = {
             kind: cfg.kind, embedded: true, picker: null, bar: null, btn: null,
             pc: { label: cfg.label || '', source: cfg.source }, urls: { scopes: cfg.scopes, tree: cfg.tree },
             model: null, selection: (cfg.selection || []).slice(), allOf: false,
+            coll: collections.length ? {
+                id: 'coll', kind: 'coll', label: T('tagCollections'), icon: 'fas fa-layer-group',
+                desc: T('tagCollectionsDesc'), size: collections.length, direct: true, group: null, items: collections,
+            } : null,
+            open: cfg.open || null,
             onToggle: cfg.onToggle, reserve: cfg.reserve || 0, width: 0,
             dirty: false, path: [], term: '', inUse: false,
             data: null, dataKey: null, loading: false, error: false, timer: null, req: null,
@@ -1614,6 +1666,8 @@
         loadModel(st.kind, st.urls.scopes).then(function (model) {
             if (st !== state) { return; }
             st.model = model;
+            var open = st.open ? model.byId['tax:' + lc(st.open)] || model.byId['ns:' + lc(st.open)] : null;
+            if (open) { openScope(open); return; }
             st.path = model.defaultGroup ? [{ k: 'group', id: model.defaultGroup }] : [];
             refresh();
         }, function () {

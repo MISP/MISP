@@ -101,6 +101,47 @@ class TagCollection extends AppModel
     }
 
     /**
+     * The collections the tag picker modal offers, each with the tags it
+     * would attach.
+     *
+     * @param array $user
+     * @return array [{id, name, tags: [{id, name, colour, local_only}]}]
+     */
+    public function pickerList(array $user)
+    {
+        $collections = $this->fetchTagCollection($user, [
+            'contain' => [
+                'TagCollectionTag' => [
+                    'Tag' => ['fields' => ['id', 'name', 'colour', 'org_id', 'user_id', 'hide_tag', 'local_only']],
+                ],
+            ],
+            'order' => ['TagCollection.name' => 'ASC'],
+        ]);
+        $out = [];
+        foreach ($collections as $c) {
+            $tags = [];
+            foreach ($c['TagCollectionTag'] as $cct) {
+                $tag = $cct['Tag'] ?? null;
+                if (empty($tag) || !empty($tag['hide_tag'])) {
+                    continue;
+                }
+                $tags[] = [
+                    'id' => (int)$tag['id'],
+                    'name' => $tag['name'],
+                    'colour' => $tag['colour'] ?: '#0088cc',
+                    'local_only' => !empty($tag['local_only']),
+                ];
+            }
+            $out[] = [
+                'id' => (int)$c['TagCollection']['id'],
+                'name' => $c['TagCollection']['name'],
+                'tags' => $tags,
+            ];
+        }
+        return $out;
+    }
+
+    /**
      * @param array $user
      * @param array $tagCollections
      * @return array|

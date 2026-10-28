@@ -173,7 +173,7 @@ class IndexPicker
         }
         $rows = self::search($Tag, [
             'conditions' => ['AND' => $conditions],
-            'fields' => ['Tag.name', 'Tag.colour'],
+            'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.local_only'],
             'order' => ['Tag.name' => 'ASC'],
             'recursive' => -1,
         ], 'Tag.name', $term, [self::class, 'tagRow'], self::limit($options['limit'] ?? null), $scope === '' ? self::MIN_TERM : 0);
@@ -447,10 +447,12 @@ class IndexPicker
                     'value' => $e['value'],
                     'expanded' => $e['expanded'],
                     'description' => $e['description'] ?? null,
-                    'colour' => $e['colour'] ?: ($live ?: null),
+                    'colour' => $e['colour'] ?: ($live['colour'] ?? null),
                     'numerical_value' => $e['numerical_value'],
                     'tag' => $tag,
                     'tag_exists' => $live !== null,
+                    'tag_id' => $live['id'] ?? null,
+                    'local_only' => !empty($live['local_only']),
                 ];
             }
             $tag = $ns . ':' . $pv;
@@ -459,10 +461,12 @@ class IndexPicker
                 'value' => $pv,
                 'expanded' => $p['TaxonomyPredicate']['expanded'],
                 'description' => $p['TaxonomyPredicate']['description'] ?? null,
-                'colour' => $p['TaxonomyPredicate']['colour'] ?: ($live ?: null),
+                'colour' => $p['TaxonomyPredicate']['colour'] ?: ($live['colour'] ?? null),
                 'exclusive' => !empty($p['TaxonomyPredicate']['exclusive']),
                 'tag' => $entries ? null : $tag,
                 'tag_exists' => $entries ? null : $live !== null,
+                'tag_id' => $entries ? null : ($live['id'] ?? null),
+                'local_only' => !$entries && !empty($live['local_only']),
                 'entries' => $entries,
             ];
         }
@@ -477,7 +481,7 @@ class IndexPicker
     /**
      * @param array $user
      * @param array $names
-     * @return array lowercased name => colour ('' when none), for the tags the reader may see
+     * @return array lowercased name => {id, colour (null when none), local_only}, for the tags the reader may see
      */
     private static function existingTags(array $user, array $names)
     {
@@ -487,16 +491,20 @@ class IndexPicker
         $Tag = ClassRegistry::init('Tag');
         $out = [];
         foreach (array_chunk($names, 1000) as $chunk) {
-            $rows = $Tag->find('list', [
+            $rows = $Tag->find('all', [
                 'conditions' => ['AND' => [
                     $Tag->createConditions($user),
                     ['Tag.hide_tag' => 0, 'Tag.name' => $chunk],
                 ]],
-                'fields' => ['Tag.name', 'Tag.colour'],
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.local_only'],
                 'recursive' => -1,
             ]);
-            foreach ($rows as $name => $colour) {
-                $out[mb_strtolower($name)] = (string)$colour;
+            foreach ($rows as $r) {
+                $out[mb_strtolower($r['Tag']['name'])] = [
+                    'id' => (int)$r['Tag']['id'],
+                    'colour' => $r['Tag']['colour'] ?: null,
+                    'local_only' => !empty($r['Tag']['local_only']),
+                ];
             }
         }
         return $out;
@@ -504,7 +512,7 @@ class IndexPicker
 
     /**
      * The column browser's strings (index-filter-browser.js), for a filter
-     * bar and for the galaxy picker modal that embeds it.
+     * bar and for the tag and galaxy picker modals that embed it.
      *
      * @return array
      */
@@ -557,6 +565,7 @@ class IndexPicker
             'noClusterInUse' => __('No cluster in use'),
             'noClusterInUseMatches' => __('No cluster in use matches “%s”'),
             'noClusterInUseTactic' => __('No cluster in use for this tactic'),
+            'noCollectionMatches' => __('No tag collection matches “%s”'),
             'noNamespace' => __('No namespace'),
             'noNamespaceDesc' => __('Free-text tags, written without a "namespace:" prefix.'),
             'noPredicateMatch' => __('No predicate has a match.'),
@@ -565,11 +574,13 @@ class IndexPicker
             'noTaxonomy' => __('no taxonomy'),
             'notEnabled' => __('Not enabled'),
             'nothingHere' => __('Nothing here yet'),
+            'nTags' => __('%s tags'),
             'nothingInMatches' => __('Nothing in %s matches “%s”'),
             'nothingMatches' => __('Nothing matches “%s”'),
             'noValueMatches' => __('No %s value matches “%s”'),
             'nsDesc' => __('Tags written as "%s:…", with no taxonomy behind them.'),
             'numericalValue' => __('Numerical value'),
+            'oneTag' => __('1 tag'),
             'open' => __('Open %s'),
             'openShort' => __('Open'),
             'orTypeToSearchAll' => __('or type to search all %s %s values.'),
@@ -595,6 +606,8 @@ class IndexPicker
             'startsWith' => __('Starts with %s'),
             'stopExcluding' => __('Stop excluding'),
             'tactics' => __('Tactics'),
+            'tagCollections' => __('Tag collections'),
+            'tagCollectionsDesc' => __('Picking a collection adds every one of its tags; picking it again removes them.'),
             'tags' => __('Tags'),
             'taxonomies' => __('Taxonomies'),
             'taxonomy' => __('taxonomy'),
@@ -938,7 +951,7 @@ class IndexPicker
             $ids = array_values(array_filter($values['tag'], 'ctype_digit'));
             $byName = $Tag->find('all', [
                 'conditions' => ['AND' => [$Tag->createConditions($user), ['Tag.name' => $values['tag']]]],
-                'fields' => ['Tag.name', 'Tag.colour'],
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.local_only'],
                 'recursive' => -1,
             ]);
             foreach ($byName as $r) {
@@ -946,7 +959,7 @@ class IndexPicker
             }
             $byId = empty($ids) ? [] : $Tag->find('all', [
                 'conditions' => ['AND' => [$Tag->createConditions($user), ['Tag.id' => $ids]]],
-                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour'],
+                'fields' => ['Tag.id', 'Tag.name', 'Tag.colour', 'Tag.local_only'],
                 'recursive' => -1,
             ]);
             foreach ($byId as $r) {
@@ -996,11 +1009,16 @@ class IndexPicker
 
     public static function tagRow(array $r)
     {
-        return [
+        $row = [
             'value' => $r['Tag']['name'],
             'label' => $r['Tag']['name'],
             'style' => ['colour' => $r['Tag']['colour'] ?: null],
+            'id' => (int)$r['Tag']['id'],
         ];
+        if (!empty($r['Tag']['local_only'])) {
+            $row['local_only'] = true;
+        }
+        return $row;
     }
 
     public static function clusterRow(array $r)

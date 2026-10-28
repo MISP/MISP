@@ -2804,8 +2804,8 @@ class AttributesController extends AppController
     /**
      * Overmind modal for editing the tags attached to a single attribute.
      *
-     * GET  → renders the Bootstrap 5 modal with two TomSelect inputs
-     *        (global tags + local tags) pre-selected with the current state.
+     * GET  → renders the Bootstrap 5 modal: the tag browser of the index
+     *        filters, over the global and local tags currently attached.
      * POST → accepts { global_ids: int[], local_ids: int[] } as JSON,
      *        diffs against the current state and calls attach/detach.
      *
@@ -2904,9 +2904,9 @@ class AttributesController extends AppController
             ]);
         }
 
-        /* ── GET: build the category-keyed option lists for the modal ── */
-        list($allTags, $customTags, $tagCollections, $taxonomies)
-            = $this->__tagPickerOptions($user);
+        /* ── GET: the modal browses the tags itself; only the collections come from here ── */
+        $this->loadModel('TagCollection');
+        $tagCollections = $this->TagCollection->pickerList($user);
 
         /* Currently attached non-galaxy tags, split by locality (pre-selected) */
         $currentGlobalTags = [];
@@ -2917,9 +2917,10 @@ class AttributesController extends AppController
             }
             $tag   = $at['Tag'];
             $entry = [
-                'id'     => (int)$tag['id'],
-                'name'   => $tag['name'],
-                'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
+                'id'         => (int)$tag['id'],
+                'name'       => $tag['name'],
+                'colour'     => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
+                'local_only' => !empty($tag['local_only']),
             ];
             if (!empty($at['local'])) {
                 $currentLocalTags[] = $entry;
@@ -2928,10 +2929,7 @@ class AttributesController extends AppController
             }
         }
 
-        $this->set('allTags',           $allTags);
-        $this->set('customTags',        $customTags);
         $this->set('tagCollections',    $tagCollections);
-        $this->set('taxonomies',        $taxonomies);
         $this->set('currentGlobalTags', $currentGlobalTags);
         $this->set('currentLocalTags',  $currentLocalTags);
         $this->set('attributeId',       $attributeId);
@@ -3108,11 +3106,8 @@ class AttributesController extends AppController
         $carried = $this->__carriedTags($attributes);
 
         if (!$this->request->is('post')) {
-            list($allTags, $customTags, $tagCollections, $taxonomies)
-                = $this->__tagPickerOptions($user);
-            $this->set(compact(
-                'allTags', 'customTags', 'tagCollections', 'taxonomies'
-            ));
+            $this->loadModel('TagCollection');
+            $this->set('tagCollections', $this->TagCollection->pickerList($user));
             $total = count($attributes);
             $this->set('currentGlobalTags', $this->__carriedEntries($carried[0], $total));
             $this->set('currentLocalTags', $this->__carriedEntries($carried[1], $total));
@@ -3329,6 +3324,8 @@ class AttributesController extends AppController
                     'id' => (int)$tag['id'],
                     'name' => $tag['name'],
                     'colour' => $tag['colour'] ?: '#0088cc',
+                    'local_only' => !empty($tag['local_only']),
+                    'tag_name' => $tag['name'],
                 ];
                 $carried[$local][(int)$tag['id']][1]
                     = ($carried[$local][(int)$tag['id']][1] ?? 0) + 1;
@@ -3477,90 +3474,6 @@ class AttributesController extends AppController
                 : __n('%s tag change was refused.', '%s tag changes were refused.', $refused, $refused));
         }
         return $this->__selectionResponse($changed > 0, $message);
-    }
-
-    /**
-     * The option lists the tag-picker modal offers.
-     *
-     * @param array $user
-     * @return array [allTags, customTags, tagCollections, taxonomies]
-     */
-    private function __tagPickerOptions(array $user)
-    {
-        $tagModel = $this->MispAttribute->AttributeTag->Tag;
-
-        /* All Tags: non-galaxy, visible, globally attachable */
-        $allConditions                   = $tagModel->createConditions($user);
-        $allConditions['Tag.is_galaxy']  = 0;
-        $allConditions['Tag.hide_tag']   = 0;
-        $allConditions['Tag.local_only'] = 0;
-        $allRaw = $tagModel->find('all', [
-            'conditions' => $allConditions,
-            'recursive'  => -1,
-            'fields'     => ['Tag.id', 'Tag.name', 'Tag.colour'],
-            'order'      => ['Tag.name asc'],
-        ]);
-        $allTags = [];
-        foreach ($allRaw as $t) {
-            $allTags[] = [
-                'id'     => (int)$t['Tag']['id'],
-                'name'   => $t['Tag']['name'],
-                'colour' => $t['Tag']['colour'] ?: '#0088cc',
-            ];
-        }
-
-        /* Custom Tags: tags that do not belong to any taxonomy */
-        $this->loadModel('Taxonomy');
-        $customRaw  = $this->Taxonomy->getAllTaxonomyTags(
-            true, $user, true, true, false
-        );
-        $customTags = [];
-        foreach ($customRaw as $t) {
-            $tag = $t['Tag'];
-            if (!empty($tag['hide_tag']) || !empty($tag['is_galaxy'])) {
-                continue;
-            }
-            $customTags[] = [
-                'id'     => (int)$tag['id'],
-                'name'   => $tag['name'],
-                'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
-            ];
-        }
-
-        /* One category per enabled taxonomy, with its enabled tags */
-        $taxonomies = $tagModel->getTaxonomiesForPicker($allTags);
-
-        /* Tag Collections: each expands to its member tags */
-        $this->loadModel('TagCollection');
-        $collRaw = $this->TagCollection->fetchTagCollection($user, [
-            'contain' => [
-                'TagCollectionTag' => [
-                    'Tag' => ['fields' => ['id', 'name', 'colour', 'hide_tag']],
-                ],
-            ],
-        ]);
-        $tagCollections = [];
-        foreach ($collRaw as $c) {
-            $members = [];
-            foreach ($c['TagCollectionTag'] ?? [] as $cct) {
-                $tg = $cct['Tag'] ?? null;
-                if (empty($tg) || !empty($tg['hide_tag'])) {
-                    continue;
-                }
-                $members[] = [
-                    'id'     => (int)$tg['id'],
-                    'name'   => $tg['name'],
-                    'colour' => !empty($tg['colour']) ? $tg['colour'] : '#0088cc',
-                ];
-            }
-            $tagCollections[] = [
-                'id'   => (int)$c['TagCollection']['id'],
-                'name' => $c['TagCollection']['name'],
-                'tags' => $members,
-            ];
-        }
-
-        return [$allTags, $customTags, $tagCollections, $taxonomies];
     }
 
     /**

@@ -3622,8 +3622,8 @@ class EventsController extends AppController
     /**
      * Overmind modal for editing the tags attached to an event.
      *
-     * GET  → renders the Bootstrap 5 modal with two TomSelect inputs
-     *        (global tags + local tags) pre-selected with the current state.
+     * GET  → renders the Bootstrap 5 modal: the tag browser of the index
+     *        filters, over the global and local tags currently attached.
      * POST → accepts { global_ids: int[], local_ids: int[] } as JSON,
      *        diffs against the current state and calls attach/detach.
      *
@@ -3720,47 +3720,9 @@ class EventsController extends AppController
             ]);
         }
 
-        /* ── GET: build the category-keyed option lists for the modal ── */
-        $tagModel = $this->Event->EventTag->Tag;
-
-        /* All Tags: non-galaxy, visible, globally attachable */
-        $allTags = $tagModel->getAllTagsForPicker($user);
-
-        /* Custom Tags: tags that do not belong to any taxonomy */
-        $customTags = $tagModel->getCustomTagsForPicker($user);
-
-        /* One category per enabled taxonomy, with its enabled tags */
-        $taxonomies = $tagModel->getTaxonomiesForPicker($allTags);
-
-        /* Tag Collections: each expands to its member tags */
+        /* ── GET: the modal browses the tags itself; only the collections come from here ── */
         $this->loadModel('TagCollection');
-        $collRaw = $this->TagCollection->fetchTagCollection($user, [
-            'contain' => [
-                'TagCollectionTag' => [
-                    'Tag' => ['fields' => ['id', 'name', 'colour', 'hide_tag']],
-                ],
-            ],
-        ]);
-        $tagCollections = [];
-        foreach ($collRaw as $c) {
-            $members = [];
-            foreach ($c['TagCollectionTag'] ?? [] as $cct) {
-                $tg = $cct['Tag'] ?? null;
-                if (empty($tg) || !empty($tg['hide_tag'])) {
-                    continue;
-                }
-                $members[] = [
-                    'id'     => (int)$tg['id'],
-                    'name'   => $tg['name'],
-                    'colour' => !empty($tg['colour']) ? $tg['colour'] : '#0088cc',
-                ];
-            }
-            $tagCollections[] = [
-                'id'   => (int)$c['TagCollection']['id'],
-                'name' => $c['TagCollection']['name'],
-                'tags' => $members,
-            ];
-        }
+        $tagCollections = $this->TagCollection->pickerList($user);
 
         /* Currently attached non-galaxy tags, split by locality (pre-selected) */
         $currentGlobalTags = [];
@@ -3771,9 +3733,10 @@ class EventsController extends AppController
             }
             $tag   = $et['Tag'];
             $entry = [
-                'id'     => (int)$tag['id'],
-                'name'   => $tag['name'],
-                'colour' => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
+                'id'         => (int)$tag['id'],
+                'name'       => $tag['name'],
+                'colour'     => !empty($tag['colour']) ? $tag['colour'] : '#0088cc',
+                'local_only' => !empty($tag['local_only']),
             ];
             if (!empty($et['local'])) {
                 $currentLocalTags[] = $entry;
@@ -3782,10 +3745,7 @@ class EventsController extends AppController
             }
         }
 
-        $this->set('allTags',           $allTags);
-        $this->set('customTags',        $customTags);
         $this->set('tagCollections',    $tagCollections);
-        $this->set('taxonomies',        $taxonomies);
         $this->set('currentGlobalTags', $currentGlobalTags);
         $this->set('currentLocalTags',  $currentLocalTags);
         $this->set('eventId',           $eventId);
