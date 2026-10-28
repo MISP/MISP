@@ -255,24 +255,6 @@ foreach ($rows as $items) {
         <?php endif; ?>
     </div>
 
-    <?php if ($profileName): ?>
-        <?php
-        $profileLink = $profileId
-            ? sprintf('<a href="%s" title="%s">%s</a>', h($baseurl . '/analystProfiles/view/' . (int)$profileId), h(__('Open your analyst profile')), h($profileName))
-            : '<span>' . h($profileName) . '</span>';
-        ?>
-        <div class="eo-profile-note">
-            <i class="fas fa-user-gear"></i>
-            <div class="min-w-0 eo-note-body">
-                <span class="fw-semibold"><?= __('Seen through your %s analyst profile', $profileLink) ?></span>
-                <span class="eo-profile-note-text">
-                    <?= __('The tags and galaxies it pins are listed first.') ?>
-                    <a href="<?= h($baseurl . '/analystProfiles/index') ?>"><?= __('Change profile') ?></a>
-                </span>
-            </div>
-        </div>
-    <?php endif; ?>
-
     <?php
     $conflicts = [];
     foreach (['global' => 'fas fa-globe', 'local' => 'fas fa-user'] as $scope => $scopeIcon) {
@@ -368,9 +350,23 @@ foreach ($rows as $items) {
         </div>
     <?php endif; ?>
 
-    <?php if ($hasIndicatorOnly): ?>
+    <?php if ($hasIndicatorOnly || $profileName): ?>
         <div class="eo-card-foot">
-            <span class="eo-legend"><span class="eo-legend-swatch"></span><?= __('only on indicators') ?></span>
+            <?php if ($hasIndicatorOnly): ?>
+                <span class="eo-legend"><span class="eo-legend-swatch"></span><?= __('only on indicators') ?></span>
+            <?php endif; ?>
+            <?php if ($profileName): ?>
+                <?php
+                $profileLink = $profileId
+                    ? sprintf('<a href="%s" title="%s">%s</a>', h($baseurl . '/analystProfiles/view/' . (int)$profileId), h(__('Open your analyst profile')), h($profileName))
+                    : h($profileName);
+                ?>
+                <span class="eo-profile" title="<?= h(__('The tags and galaxies it pins are listed first.')) ?>">
+                    <i class="fas fa-user-gear"></i>
+                    <span><?= __('Seen through your %s analyst profile', $profileLink) ?></span>
+                    <a href="<?= h($baseurl . '/analystProfiles/index') ?>" class="eo-profile-change" title="<?= h(__('Change profile')) ?>" aria-label="<?= h(__('Change profile')) ?>"><i class="fas fa-sliders"></i></a>
+                </span>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>
