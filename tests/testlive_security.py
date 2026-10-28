@@ -1766,5 +1766,228 @@ class TestSecurity(unittest.TestCase):
         }
 
 
+class TestComplexQueryAcl(unittest.TestCase):
+    """The `query` tree of /attributes/restSearch must never widen what the user's ACL allows."""
+
+    @classmethod
+    def api(cls, token: str, method: str, path: str, body=None, accept_json: bool = True):
+        headers = {"Authorization": token, "Accept": "application/json", "Content-Type": "application/json"}
+        r = requests.request(method, f"{url}/{path}", json=body, headers=headers, verify=False)
+        try:
+            data = r.json()
+        except ValueError:
+            data = None
+        return r.status_code, data
+
+    @classmethod
+    def admin_api(cls, method: str, path: str, body=None) -> dict:
+        status, data = cls.api(key, method, path, body)
+        assert status == 200, (method, path, status, data)
+        return data
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.simplefilter("ignore", ResourceWarning)
+        admin = PyMISP(url, key)
+        check_response(admin.set_server_setting('Security.advanced_authkeys', True, force=True))
+        cls.marker = "mqa" + random()
+        cls.created = {"events": [], "users": [], "roles": [], "sgs": [], "keys": []}
+        cls.org = None
+        try:
+            cls.__build_fixture()
+        except BaseException:
+            cls.tearDownClass()
+            raise
+
+    @classmethod
+    def __build_fixture(cls):
+
+        cls.org = cls.admin_api("POST", "admin/organisations/add", {"name": "MQA Org " + random(), "local": True})["Organisation"]
+        cls.admin_org_uuid = cls.admin_api("GET", "users/view/me")["Organisation"]["uuid"]
+        role_flagged = cls.admin_api("POST", "admin/roles/add", {"Role": {
+            "name": "MQA flagged " + random(), "permission": "0", "perm_auth": 1, "perm_complex_query": 1}})["Role"]
+        role_plain = cls.admin_api("POST", "admin/roles/add", {"Role": {
+            "name": "MQA plain " + random(), "permission": "0", "perm_auth": 1}})["Role"]
+        cls.created["roles"] = [role_flagged["id"], role_plain["id"]]
+        cls.user_key = cls.__make_user(role_flagged["id"])
+        cls.plain_user_key = cls.__make_user(role_plain["id"])
+
+        # a sharing group the test org is not a member of
+        sg = cls.admin_api("POST", "sharingGroups/add", {
+            "SharingGroup": {"name": "MQA SG " + random(), "releasability": "test", "description": "test", "active": 1,
+                             "organisation_uuid": cls.admin_org_uuid, "roaming": 0},
+            "Organisation": [{"uuid": cls.admin_org_uuid, "extend": True}]})
+        cls.sg_id = sg["SharingGroup"]["id"]
+        cls.created["sgs"].append(cls.sg_id)
+
+        # E1 fully visible, E2 partly visible, E3 not visible at all
+        cls.e1 = cls.__make_event("e1", 3, [("a1", 5), ("a2", 3)])
+        cls.e2 = cls.__make_event("e2", 3, [("v1", 5), ("v2", 3), ("h1", 0), ("h2", 4)])
+        cls.e3 = cls.__make_event("e3", 0, [("x1", 5), ("x2", 0)])
+        cls.all_events = [cls.e1, cls.e2, cls.e3]
+        cls.visible = {cls.__value(n) for n in ("e1-a1", "e1-a2", "e2-v1", "e2-v2")}
+        cls.hidden = {cls.__value(n) for n in ("e2-h1", "e2-h2", "e3-x1", "e3-x2")}
+
+    @classmethod
+    def tearDownClass(cls):
+        for kind, path in (("events", "events/delete/{}"), ("keys", "authKeys/delete/{}"), ("users", "admin/users/delete/{}"),
+                           ("sgs", "sharingGroups/delete/{}"), ("roles", "admin/roles/delete/{}")):
+            for item in cls.created[kind]:
+                try:
+                    cls.api(key, "POST", path.format(item))
+                except Exception:
+                    pass
+        if cls.org:
+            try:
+                cls.api(key, "POST", f"admin/organisations/delete/{cls.org['id']}")
+            except Exception:
+                pass
+
+    @classmethod
+    def __make_user(cls, role_id) -> str:
+        user = cls.admin_api("POST", "admin/users/add", {
+            "email": f"mqa{random()}@user.local", "org_id": cls.org["id"], "role_id": role_id, "password": str(uuid.uuid4())})["User"]
+        cls.created["users"].append(user["id"])
+        auth_key = cls.admin_api("POST", f"authKeys/add/{user['id']}")["AuthKey"]
+        cls.created["keys"].append(auth_key["id"])
+        return auth_key["authkey_raw"]
+
+    @classmethod
+    def __value(cls, name: str) -> str:
+        return f"{cls.marker}-{name}.example.com"
+
+    @classmethod
+    def __make_event(cls, name: str, distribution: int, attributes) -> int:
+        body = {"Event": {"info": f"{cls.marker} {name}", "distribution": distribution, "threat_level_id": 4, "analysis": 0,
+                          "Attribute": [{"type": "domain", "category": "Network activity", "value": cls.__value(f"{name}-{n}"),
+                                         "comment": cls.marker, "distribution": d,
+                                         **({"sharing_group_id": cls.sg_id} if d == 4 else {})} for n, d in attributes]}}
+        event_id = cls.admin_api("POST", "events/add", body)["Event"]["id"]
+        cls.created["events"].append(event_id)
+        cls.admin_api("POST", f"events/publish/{event_id}/disable_background_processing:1")
+        return int(event_id)
+
+    def __search(self, query, token=None, extra=None, method="POST"):
+        body = {"returnFormat": "json", "limit": 1000, "query": query}
+        body.update(extra or {})
+        status, data = self.api(token or self.user_key, method, "attributes/restSearch", body)
+        values = None
+        if status == 200 and isinstance(data, dict):
+            values = {a["value"] for a in data["response"]["Attribute"]}
+        return status, values, data
+
+    def __anchored(self, tree):
+        return {"AND": [{"event_id": {"IN": self.all_events}}, tree]}
+
+    def test_fixture_is_discriminating(self):
+        # admin sees every attribute, so the hidden set is only hidden by the ACL
+        status, data = self.api(key, "POST", "attributes/restSearch", {"returnFormat": "json", "limit": 1000, "eventid": self.all_events})
+        self.assertEqual(status, 200)
+        self.assertEqual({a["value"] for a in data["response"]["Attribute"]}, self.visible | self.hidden)
+
+    def test_baseline_returns_exactly_the_visible_attributes(self):
+        status, values, _ = self.__search({"event_id": self.e1})
+        self.assertEqual((status, values), (200, {self.__value("e1-a1"), self.__value("e1-a2")}))
+        status, values, _ = self.__search({"event_id": self.e2})
+        self.assertEqual((status, values), (200, {self.__value("e2-v1"), self.__value("e2-v2")}))
+        status, values, _ = self.__search({"event_id": self.e3})
+        self.assertEqual((status, values), (200, set()))
+        status, values, _ = self.__search({"AND": [{"comment": self.marker}, {"value": {"LIKE": "%e2-v%"}}]})
+        self.assertEqual((status, values), (200, {self.__value("e2-v1"), self.__value("e2-v2")}))
+
+    def test_match_all_queries_never_return_hidden_data(self):
+        tautology = {"OR": [{"id": {">": 0}}, {"NOT": {"id": {">": 0}}}]}
+        trees = {
+            "tautology": tautology,
+            "double negation": {"NOT": {"NOT": {"comment": self.marker}}},
+            "or with a matching leaf": {"OR": [{"comment": self.marker}, {"id": {">": 0}}]},
+            "broad like": {"value": {"LIKE": "%.example.com"}},
+            "not of nothing": {"NOT": {"comment": "no-such-comment"}},
+            "every distribution": {"distribution": {"IN": [0, 1, 2, 3, 4, 5]}},
+            "negated distribution": {"distribution": {"NOT IN": [9]}},
+            "all event ids": {"event_id": {"IN": self.all_events}},
+        }
+        for name, tree in trees.items():
+            with self.subTest(name):
+                status, values, _ = self.__search(self.__anchored(tree))
+                self.assertEqual(status, 200)
+                self.assertEqual(values & self.hidden, set(), "hidden data leaked")
+                self.assertEqual(values, self.visible)
+
+    def test_malformed_queries_return_no_data(self):
+        bad = {
+            "string": "id=1", "list": [{"id": 1}], "empty": {}, "number": 5, "two keys": {"id": 1, "type": "domain"},
+            "empty and": {"AND": []}, "not a list": {"OR": {"id": 1}}, "empty not": {"NOT": {}},
+            "unknown field": {"nope": 1}, "acl field": {"sharing_group_id": self.sg_id}, "org id": {"org_id": 1},
+            "unknown operator": {"id": {"=~": 1}}, "two operators": {"id": {">": 1, "<": 99999999}},
+            "wrong type": {"id": "1"}, "bool as int": {"to_ids": 1}, "float": {"id": 1.5},
+            "wildcard in equals": {"value": "%.example.com"}, "like without wildcard": {"value": {"LIKE": "abc"}},
+            "empty in": {"id": {"IN": []}}, "legacy shape": {"type": ["domain", "!url"]},
+            "too deep": {"NOT": {"NOT": {"NOT": {"NOT": {"NOT": {"NOT": {"id": 1}}}}}}},
+            "too many nodes": {"AND": [{"id": 1}] * 80},
+            "too long list": {"id": {"IN": list(range(500))}},
+            "too long value": {"value": "a" * 5000},
+        }
+        for name, tree in bad.items():
+            with self.subTest(name):
+                status, values, data = self.__search(tree)
+                self.assertEqual(status, 400, data)
+                self.assertIsNone(values)
+                self.assertNotIn("Attribute", json.dumps(data))
+        for token, expected in ((self.plain_user_key, 403), ("x" * 40, 403)):
+            with self.subTest(f"{token[:4]} {expected}"):
+                status, values, _ = self.__search({"event_id": self.e1}, token=token)
+                self.assertEqual((status, values), (expected, None))
+
+    def test_query_is_only_accepted_in_a_post_body(self):
+        status, data = self.api(self.user_key, "GET", f"attributes/restSearch?returnFormat=json&query[event_id]={self.e1}")
+        self.assertEqual(status, 400)
+        status, data = self.api(self.user_key, "POST", f"attributes/restSearch?query[event_id]={self.e1}", {"returnFormat": "json"})
+        self.assertEqual(status, 400)
+        status, data = self.api(self.user_key, "POST", f"attributes/restSearch/query:{self.e1}", {"returnFormat": "json"})
+        self.assertEqual(status, 400)
+
+    def test_error_responses_do_not_echo_the_input(self):
+        needle = "ZZ_ECHO_" + random()
+        for tree in ({needle: 1}, {"id": needle}, {"id": {needle: 1}}, {"AND": [{"id": 1}, {needle: {"=": needle}}]}):
+            status, _, data = self.__search(tree)
+            self.assertEqual(status, 400)
+            self.assertNotIn(needle, json.dumps(data))
+
+    def test_acl_cannot_be_overridden_through_the_query(self):
+        attempts = {
+            "hidden event only": {"event_id": self.e3},
+            "hidden event or visible": {"OR": [{"event_id": self.e3}, {"event_id": self.e1}]},
+            "org-only distribution": {"AND": [{"event_id": self.e2}, {"distribution": 0}]},
+            "sharing group distribution": {"AND": [{"event_id": self.e2}, {"distribution": 4}]},
+            "not visible": {"NOT": {"event_id": {"IN": [self.e1, self.e2]}}},
+            "foreign org leaf": {"OR": [{"org": "no-such-org"}, {"event_id": {"IN": self.all_events}}]},
+            "by hidden values": {"OR": [{"value": self.__value("e3-x1")}, {"value": self.__value("e2-h1")}]},
+            "by hidden values in": {"value": {"IN": sorted(self.hidden)}},
+            "hidden values like": {"AND": [{"comment": self.marker}, {"value": {"LIKE": "%-h%"}}]},
+        }
+        for name, tree in attempts.items():
+            with self.subTest(name):
+                status, values, _ = self.__search(tree)
+                self.assertEqual(status, 200)
+                self.assertEqual(values & self.hidden, set(), "hidden data leaked")
+        # legacy parameters next to the tree stay subject to the ACL and cannot widen it
+        tree = self.__anchored({"OR": [{"id": {">": 0}}, {"NOT": {"id": {">": 0}}}]})
+        for extra in ({"deleted": [0, 1]}, {"sharinggroup": [self.sg_id]}, {"org": "ADMIN"}, {"published": [0, 1]}, {"includeAllTags": 1},
+                      {"distribution": [0, 1, 2, 3, 4, 5]}, {"ignore": 1}):
+            with self.subTest(extra):
+                status, values, _ = self.__search(tree, extra=extra)
+                self.assertIn(status, (200, 400, 403))
+                if status == 200:
+                    self.assertEqual(values & self.hidden, set(), "hidden data leaked")
+                    self.assertTrue(values <= self.visible)
+
+    def test_discovery_endpoint_requires_the_permission(self):
+        status, data = self.api(self.user_key, "GET", "attributes/queryDescribe")
+        self.assertEqual(status, 200)
+        self.assertIn("attributes", data["tables"])
+        self.assertEqual(self.api(self.plain_user_key, "GET", "attributes/queryDescribe")[0], 403)
+
+
 if __name__ == '__main__':
     unittest.main()
