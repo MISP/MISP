@@ -24,6 +24,7 @@ defers instead of guessing.
 | `user_login_profiles.created_at` | `TIMESTAMP` (2038) | `DATETIME` on MariaDB and MySQL, keeping the server-zone value; PostgreSQL already had `timestamp` |
 | Expression defaults | `correlation_rules.created DEFAULT unix_timestamp()`, the only one. MySQL 8.4 refuses an unparenthesised expression default, so 2.5's `MYSQL.sql` loads on 8.4 with exactly this one error | none. The column defaults to `0` and the model sets the time. A migration that declares an unknown expression default is a hard error |
 | Display widths in the baseline | `int(11)` | `MARIADB.sql` keeps them (`bigint(20)`); `MYSQL.sql` has none (`bigint`) |
+| `logs`, `audit_logs` | `int` ids; `logs` in `utf8mb3_bin` with no index but the key on a clean install, `audit_logs` in `utf8mb4_unicode_ci` | `bigint` ids, `logs` in `utf8mb4_bin` and `audit_logs` in the CI collation, with the indexes the log views read by. Fresh installs only: an upgraded instance keeps the 2.5 layout until `Console/cake LogTables upgrade`, and MISP works with either. On the old `logs`, 4-byte characters are stored as `U+FFFD` |
 | Row format | server default | all tables `DYNAMIC`, which both MariaDB 10.11 and MySQL 8.4 have as `innodb_default_row_format`. Indexes over 767 bytes need it. The baselines do not state it: a server configured for `COMPACT` would create other tables than the migrations do |
 
 ## 2. Collations and comparison
@@ -164,6 +165,13 @@ the preflight checks that the data fits before it narrows a column.
   Time and memory: [UPGRADE.md](../UPGRADE.md).
 - **Galera**: the `ALTER` runs in total order isolation and blocks the whole
   cluster.
+- **The log tables** are left to `Console/cake LogTables upgrade`, which runs
+  with the instance online. MariaDB and MySQL swap the tables in one `RENAME
+  TABLE`, the new ids starting 10,000 past the old table's last one.
+  PostgreSQL swaps inside a transaction that holds the table's lock: the old
+  indexes and sequence are renamed with the table, since their names are
+  global to the schema. Every engine then copies the old rows back, newest
+  first, one id range per statement.
 
 ## 7. Raw SQL on PostgreSQL
 

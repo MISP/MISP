@@ -129,6 +129,21 @@ class TableConverger
     }
 
     /**
+     * The plan that creates a table at a target, for a caller that knows the
+     * table is not there.
+     *
+     * @param string $table
+     * @param array $target
+     * @return array
+     * @throws LogicException On a malformed target.
+     */
+    public static function creationPlan($table, array $target)
+    {
+        self::assertTarget($table, $target);
+        return self::creation($table, $target);
+    }
+
+    /**
      * Declare what the live table lacks.
      *
      * @param SchemaInspector $inspector

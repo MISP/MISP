@@ -1632,17 +1632,14 @@ class AdminShell extends AppShell
             $script = $this->args[0];
         }
 
-        $aliasList = [
-            'indexLogs' => [
-                'scripts' => [
-                    'highPerformanceLogSearchIndexing',
-                ],
-                'help' => __('High performance indexing of logs. Drastically improves log search performance as well  as functionalities such as checking the past 10 logins. This is a slow reindexing process and is meant for servers with abundant RAM and innodb_buffer_pool_size set to a high value.'),
-            ]
-        ];
+        $aliasList = [];
 
         if (strtolower($script) === 'highperformance') {
             $this->out(__('The highPerformance indexes are now part of the schema: %s applies them.', 'Console/cake Admin runUpgrade'));
+            return;
+        }
+        if (strtolower($script) === 'indexlogs') {
+            $this->out(__('The log indexes are now part of the log tables\' 3.0 layout: %s applies it.', 'Console/cake LogTables upgrade'));
             return;
         }
 
