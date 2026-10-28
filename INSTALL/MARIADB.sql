@@ -208,24 +208,29 @@ CREATE TABLE `attr_value_counts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 CREATE TABLE `audit_logs` (
-    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `id` bigint(20) NOT NULL AUTO_INCREMENT,
     `created` datetime NOT NULL,
-    `user_id` int(11) NOT NULL,
-    `org_id` int(11) NOT NULL,
-    `authkey_id` int(11) DEFAULT NULL,
+    `user_id` bigint(20) NOT NULL,
+    `org_id` bigint(20) NOT NULL,
+    `authkey_id` bigint(20) DEFAULT NULL,
     `ip` varbinary(16) DEFAULT NULL,
     `request_type` tinyint(4) NOT NULL,
     `request_id` varchar(255) DEFAULT NULL,
     `action` varchar(20) NOT NULL,
     `model` varchar(80) NOT NULL,
-    `model_id` int(11) NOT NULL,
+    `model_id` bigint(20) NOT NULL,
     `model_title` text DEFAULT NULL,
-    `event_id` int(11) DEFAULT NULL,
+    `event_id` bigint(20) DEFAULT NULL,
     `change` blob DEFAULT NULL,
     PRIMARY KEY (`id`),
+    INDEX `action` (`action`),
+    INDEX `authkey_id` (`authkey_id`),
+    INDEX `created` (`created`),
     INDEX `event_id` (`event_id`),
-    INDEX `model_id` (`model_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    INDEX `model_id` (`model`, `model_id`),
+    INDEX `org_id` (`org_id`),
+    INDEX `user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 CREATE TABLE `auth_keys` (
     `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -778,6 +783,7 @@ CREATE TABLE `galaxy_cluster_relations` (
     INDEX `galaxy_cluster_uuid` (`galaxy_cluster_uuid`),
     INDEX `referenced_galaxy_cluster_id` (`referenced_galaxy_cluster_id`),
     INDEX `referenced_galaxy_cluster_type` (`referenced_galaxy_cluster_type`(255)),
+    INDEX `referenced_galaxy_cluster_uuid` (`referenced_galaxy_cluster_uuid`),
     INDEX `sharing_group_id` (`sharing_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
@@ -840,20 +846,26 @@ CREATE TABLE `jobs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 CREATE TABLE `logs` (
-    `id` int(11) NOT NULL AUTO_INCREMENT,
-    `title` text DEFAULT NULL,
+    `id` bigint(20) NOT NULL AUTO_INCREMENT,
+    `title` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
     `created` datetime NOT NULL,
-    `model` varchar(80) NOT NULL,
-    `model_id` int(11) NOT NULL,
-    `action` varchar(20) NOT NULL,
-    `user_id` int(11) NOT NULL,
-    `change` text DEFAULT NULL,
-    `email` varchar(255) DEFAULT '' NOT NULL,
-    `org` varchar(255) DEFAULT '' NOT NULL,
-    `description` text DEFAULT NULL,
-    `ip` varchar(45) DEFAULT '' NOT NULL,
-    PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_bin;
+    `model` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    `model_id` bigint(20) NOT NULL,
+    `action` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    `user_id` bigint(20) NOT NULL,
+    `change` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '' NOT NULL,
+    `org` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '' NOT NULL,
+    `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    `ip` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '' NOT NULL,
+    PRIMARY KEY (`id`),
+    INDEX `idx_logs_action` (`action`),
+    INDEX `idx_logs_created` (`created`),
+    INDEX `idx_logs_email` (`email`),
+    INDEX `idx_logs_model_id` (`model`, `model_id`),
+    INDEX `idx_logs_org` (`org`),
+    INDEX `idx_logs_user_id_action` (`user_id`, `action`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
 CREATE TABLE `news` (
     `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -1906,5 +1918,8 @@ INSERT IGNORE INTO `schema_migrations` (`id`, `migration_id`, `applied_at`, `dur
 (124, '20261016_180339_schema_v3_attributes', NOW(), 377, 'applied', NULL),
 (125, '20261016_204637_queue_full_recorrelation', NOW(), 15, 'applied', NULL),
 (126, '20261017_094559_repair_redis_serialization', NOW(), 11, 'applied', NULL),
-(127, '20261018_174227_analyst_profiles_shipped_revision', NOW(), 127, 'applied', NULL);
+(127, '20261018_174227_analyst_profiles_shipped_revision', NOW(), 127, 'applied', NULL),
+(128, '20261021_090840_repair_galaxy_relation_targets', NOW(), 10, 'applied', NULL),
+(129, '20261021_091751_index_relation_referenced_uuid', NOW(), 113, 'applied', NULL),
+(130, '20261022_123413_early_access_workspace_names', NOW(), 26, 'applied', NULL);
 

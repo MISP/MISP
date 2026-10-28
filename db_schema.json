@@ -1159,11 +1159,11 @@
             {
                 "column_name": "id",
                 "is_nullable": "NO",
-                "data_type": "int",
+                "data_type": "bigint",
                 "character_maximum_length": null,
-                "numeric_precision": "10",
+                "numeric_precision": "19",
                 "collation_name": null,
-                "column_type": "int(11)",
+                "column_type": "bigint(20)",
                 "column_default": null,
                 "extra": "auto_increment"
             },
@@ -1181,33 +1181,33 @@
             {
                 "column_name": "user_id",
                 "is_nullable": "NO",
-                "data_type": "int",
+                "data_type": "bigint",
                 "character_maximum_length": null,
-                "numeric_precision": "10",
+                "numeric_precision": "19",
                 "collation_name": null,
-                "column_type": "int(11)",
+                "column_type": "bigint(20)",
                 "column_default": null,
                 "extra": ""
             },
             {
                 "column_name": "org_id",
                 "is_nullable": "NO",
-                "data_type": "int",
+                "data_type": "bigint",
                 "character_maximum_length": null,
-                "numeric_precision": "10",
+                "numeric_precision": "19",
                 "collation_name": null,
-                "column_type": "int(11)",
+                "column_type": "bigint(20)",
                 "column_default": null,
                 "extra": ""
             },
             {
                 "column_name": "authkey_id",
                 "is_nullable": "YES",
-                "data_type": "int",
+                "data_type": "bigint",
                 "character_maximum_length": null,
-                "numeric_precision": "10",
+                "numeric_precision": "19",
                 "collation_name": null,
-                "column_type": "int(11)",
+                "column_type": "bigint(20)",
                 "column_default": "NULL",
                 "extra": ""
             },
@@ -1239,7 +1239,7 @@
                 "data_type": "varchar",
                 "character_maximum_length": "255",
                 "numeric_precision": null,
-                "collation_name": "utf8mb4_unicode_ci",
+                "collation_name": "utf8mb4_uca1400_ai_ci",
                 "column_type": "varchar(255)",
                 "column_default": "NULL",
                 "extra": ""
@@ -1250,7 +1250,7 @@
                 "data_type": "varchar",
                 "character_maximum_length": "20",
                 "numeric_precision": null,
-                "collation_name": "utf8mb4_unicode_ci",
+                "collation_name": "utf8mb4_uca1400_ai_ci",
                 "column_type": "varchar(20)",
                 "column_default": null,
                 "extra": ""
@@ -1261,7 +1261,7 @@
                 "data_type": "varchar",
                 "character_maximum_length": "80",
                 "numeric_precision": null,
-                "collation_name": "utf8mb4_unicode_ci",
+                "collation_name": "utf8mb4_uca1400_ai_ci",
                 "column_type": "varchar(80)",
                 "column_default": null,
                 "extra": ""
@@ -1269,11 +1269,11 @@
             {
                 "column_name": "model_id",
                 "is_nullable": "NO",
-                "data_type": "int",
+                "data_type": "bigint",
                 "character_maximum_length": null,
-                "numeric_precision": "10",
+                "numeric_precision": "19",
                 "collation_name": null,
-                "column_type": "int(11)",
+                "column_type": "bigint(20)",
                 "column_default": null,
                 "extra": ""
             },
@@ -1283,7 +1283,7 @@
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
-                "collation_name": "utf8mb4_unicode_ci",
+                "collation_name": "utf8mb4_uca1400_ai_ci",
                 "column_type": "text",
                 "column_default": "NULL",
                 "extra": ""
@@ -1291,11 +1291,11 @@
             {
                 "column_name": "event_id",
                 "is_nullable": "YES",
-                "data_type": "int",
+                "data_type": "bigint",
                 "character_maximum_length": null,
-                "numeric_precision": "10",
+                "numeric_precision": "19",
                 "collation_name": null,
-                "column_type": "int(11)",
+                "column_type": "bigint(20)",
                 "column_default": "NULL",
                 "extra": ""
             },
@@ -5094,11 +5094,11 @@
             {
                 "column_name": "id",
                 "is_nullable": "NO",
-                "data_type": "int",
+                "data_type": "bigint",
                 "character_maximum_length": null,
-                "numeric_precision": "10",
+                "numeric_precision": "19",
                 "collation_name": null,
-                "column_type": "int(11)",
+                "column_type": "bigint(20)",
                 "column_default": null,
                 "extra": "auto_increment"
             },
@@ -5108,7 +5108,7 @@
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
+                "collation_name": "utf8mb4_bin",
                 "column_type": "text",
                 "column_default": "NULL",
                 "extra": ""
@@ -5130,7 +5130,7 @@
                 "data_type": "varchar",
                 "character_maximum_length": "80",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
+                "collation_name": "utf8mb4_bin",
                 "column_type": "varchar(80)",
                 "column_default": null,
                 "extra": ""
@@ -5138,11 +5138,11 @@
             {
                 "column_name": "model_id",
                 "is_nullable": "NO",
-                "data_type": "int",
+                "data_type": "bigint",
                 "character_maximum_length": null,
-                "numeric_precision": "10",
+                "numeric_precision": "19",
                 "collation_name": null,
-                "column_type": "int(11)",
+                "column_type": "bigint(20)",
                 "column_default": null,
                 "extra": ""
             },
@@ -5150,21 +5150,21 @@
                 "column_name": "action",
                 "is_nullable": "NO",
                 "data_type": "varchar",
-                "character_maximum_length": "20",
+                "character_maximum_length": "80",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
-                "column_type": "varchar(20)",
+                "collation_name": "utf8mb4_bin",
+                "column_type": "varchar(80)",
                 "column_default": null,
                 "extra": ""
             },
             {
                 "column_name": "user_id",
                 "is_nullable": "NO",
-                "data_type": "int",
+                "data_type": "bigint",
                 "character_maximum_length": null,
-                "numeric_precision": "10",
+                "numeric_precision": "19",
                 "collation_name": null,
-                "column_type": "int(11)",
+                "column_type": "bigint(20)",
                 "column_default": null,
                 "extra": ""
             },
@@ -5174,7 +5174,7 @@
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
+                "collation_name": "utf8mb4_bin",
                 "column_type": "text",
                 "column_default": "NULL",
                 "extra": ""
@@ -5185,7 +5185,7 @@
                 "data_type": "varchar",
                 "character_maximum_length": "255",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
+                "collation_name": "utf8mb4_bin",
                 "column_type": "varchar(255)",
                 "column_default": "''",
                 "extra": ""
@@ -5196,7 +5196,7 @@
                 "data_type": "varchar",
                 "character_maximum_length": "255",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
+                "collation_name": "utf8mb4_bin",
                 "column_type": "varchar(255)",
                 "column_default": "''",
                 "extra": ""
@@ -5207,7 +5207,7 @@
                 "data_type": "text",
                 "character_maximum_length": "65535",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
+                "collation_name": "utf8mb4_bin",
                 "column_type": "text",
                 "column_default": "NULL",
                 "extra": ""
@@ -5218,7 +5218,7 @@
                 "data_type": "varchar",
                 "character_maximum_length": "45",
                 "numeric_precision": null,
-                "collation_name": "utf8mb3_bin",
+                "collation_name": "utf8mb4_bin",
                 "column_type": "varchar(45)",
                 "column_default": "''",
                 "extra": ""
@@ -10884,9 +10884,15 @@
             "value_id": true
         },
         "audit_logs": {
+            "action": false,
+            "authkey_id": false,
+            "created": false,
             "event_id": false,
             "id": true,
-            "model_id": false
+            "model": false,
+            "model_id": false,
+            "org_id": false,
+            "user_id": false
         },
         "auth_keys": {
             "authkey_end": false,
@@ -11115,6 +11121,7 @@
             "id": true,
             "referenced_galaxy_cluster_id": false,
             "referenced_galaxy_cluster_type": false,
+            "referenced_galaxy_cluster_uuid": false,
             "sharing_group_id": false
         },
         "galaxy_cluster_relation_tags": {
@@ -11141,7 +11148,14 @@
             "id": true
         },
         "logs": {
-            "id": true
+            "action": false,
+            "created": false,
+            "email": false,
+            "id": true,
+            "model": false,
+            "model_id": false,
+            "org": false,
+            "user_id": false
         },
         "news": {
             "id": true
