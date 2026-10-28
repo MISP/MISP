@@ -53,7 +53,7 @@ class Graph extends AnalystData
         'name' => [
             'notBlank' => [
                 'rule' => 'notBlank',
-                'message' => 'A workspace needs a name.',
+                'message' => 'A graph needs a name.',
                 'required' => 'create',
             ],
             'maxLength' => [
@@ -64,7 +64,7 @@ class Graph extends AnalystData
         'object_type' => [
             'validTarget' => [
                 'rule' => ['inList', self::VALID_TARGETS],
-                'message' => 'A workspace attaches to a collection, an event or a galaxy cluster.',
+                'message' => 'A saved graph attaches to a collection, an event or a galaxy cluster.',
                 'required' => 'create',
             ],
         ],

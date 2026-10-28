@@ -425,7 +425,7 @@
             entries('menuNode').push(keepEntry('Keep in workspace'), removeEntry('Remove from workspace'));
             entries('menuSelection').push(keepEntry('Keep selection in workspace'), removeEntry('Remove selection from workspace'));
             entries('menuEdge').push({
-                text: 'Hide in this workspace',
+                text: 'Hide on this graph',
                 iconClass: 'fas fa-eye-slash',
                 visible: function (el) { return canEditGraph() && !!(el && el.id); },
                 onclick: function (e, el) { hideEdge(el.id); }

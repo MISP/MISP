@@ -4136,8 +4136,8 @@
         // on what they are.
         function savedSummary(kept, dropped) {
             var text = plural(kept, 'element', 'elements') + ' kept.'
-                + (dropped.length === 1 ? ' 1 more cannot be kept in a workspace and is left out.'
-                    : dropped.length ? ' ' + dropped.length + ' more cannot be kept in a workspace and are left out.'
+                + (dropped.length === 1 ? ' 1 more cannot be kept in a graph and is left out.'
+                    : dropped.length ? ' ' + dropped.length + ' more cannot be kept in a graph and are left out.'
                     : '');
             if (!dropped.length) return el('p', 'pe-save-graph-summary', text);
             var notice = el('details', 'pe-save-graph-left-out');
@@ -4177,7 +4177,7 @@
             });
             _graph.notifier.success(title, '“' + saved.name + '”', {
                 action: {
-                    label:   'Open workspace',
+                    label:   'Open graph',
                     onClick: function () { openInTab('/analyst_graphs/view/' + encodeURIComponent(saved.uuid)); }
                 }
             });
@@ -4218,7 +4218,7 @@
         // Where the canvas's module answers go: into the graph, into this
         // event as records first, or nowhere.
         function answersChoice(count, onChange) {
-            var options = [['keep', 'Keep in the workspace']];
+            var options = [['keep', 'Keep in the graph']];
             if (eventId && canEdit) options.push(['event', 'Add to this event first']);
             options.push(['leave', 'Leave out']);
             var box = el('fieldset', 'pe-save-graph-answers');
@@ -4269,7 +4269,7 @@
             var doc = canvasDocument(answers);
             var kept = doc.document.nodes.length;
             if (!kept) {
-                _graph.notifier.warning('Nothing to save', 'No element on the canvas is a MISP record a workspace can hold.');
+                _graph.notifier.warning('Nothing to save', 'No element on the canvas is a MISP record a graph can hold.');
                 return Promise.resolve();
             }
 
@@ -4336,7 +4336,7 @@
             var closed;
             var whenClosed = new Promise(function (resolve) { closed = resolve; });
             var modal = _graph.UIManager.createModal({
-                header:  (host.savedGraph ? 'Save as new workspace' : 'Save as workspace') + ' on this '
+                header:  (host.savedGraph ? 'Save as new graph' : 'Save as graph') + ' on this '
                          + (TARGET_NAMES[target.type] || 'event'),
                 body:    form,
                 rawBody: true,
@@ -4361,7 +4361,7 @@
             function submit() {
                 if (busy || tooLarge) return;
                 var graphName = name.value.trim();
-                if (!graphName) { error.textContent = 'A workspace needs a name.'; return; }
+                if (!graphName) { error.textContent = 'A graph needs a name.'; return; }
                 if (dist.value === '4' && !sg.value) { error.textContent = 'Pick the sharing group to share it with.'; return; }
                 busy = true;
                 error.textContent = '';
@@ -4399,7 +4399,7 @@
                     };
                     // A stored graph's own canvas stays that graph.
                     if (!host.savedGraph) _savedGraph = saved;
-                    graphSaved('Saved as workspace', saved);
+                    graphSaved('Saved as graph', saved);
                     refreshSaveControls();
                 });
             }
@@ -4411,7 +4411,7 @@
             var saved = _savedGraph;
             return window.IntelGraph.save(saved.uuid, canvasDocument('keep').document, saved.revision).then(function (out) {
                 saved.revision = parseInt(out && out.revision, 10) || saved.revision;
-                graphSaved('Workspace updated', saved);
+                graphSaved('Graph updated', saved);
             }, function (err) {
                 if (err && err.status === 409) {
                     _graph.notifier.warning('Not updated', '“' + saved.name + '” was saved elsewhere since.', {
@@ -4431,35 +4431,35 @@
             if (host.savedGraph) {
                 var own = host.savedGraph;
                 return [{
-                    text:          'Save workspace',
-                    title:         'Writes the canvas into this workspace',
+                    text:          'Save graph',
+                    title:         'Writes the canvas into this graph',
                     iconClass:     'fas fa-floppy-disk',
                     dividerBefore: true,
                     visible:       function () { return own.dirty(); },
                     onclick:       saveOwnGraph
                 }, {
-                    text:          'Save as new workspace…',
+                    text:          'Save as new graph…',
                     iconClass:     'fas fa-plus',
                     visible:       function () { return !!graphTarget(); },
                     onclick:       saveGraphDialog
                 }];
             }
             return [{
-                text:          'Save canvas as workspace…',
-                title:         'Keeps what is on the canvas as a workspace',
+                text:          'Save canvas as graph…',
+                title:         'Keeps what is on the canvas as a saved graph',
                 iconClass:     'misp-icon misp-icon-analyst-graph misp-simple',
                 dividerBefore: true,
                 visible:       function () { return !_savedGraph && !!graphTarget(); },
                 onclick:       refreshingAfter(saveGraphDialog)
             }, {
-                text:          'Update workspace',
-                title:         'Writes the canvas into the workspace saved from it',
+                text:          'Update graph',
+                title:         'Writes the canvas into the graph saved from it',
                 iconClass:     'misp-icon misp-icon-analyst-graph misp-simple',
                 dividerBefore: true,
                 visible:       function () { return !!_savedGraph; },
                 onclick:       refreshingAfter(updateGraph)
             }, {
-                text:          'Save as new workspace…',
+                text:          'Save as new graph…',
                 iconClass:     'fas fa-plus',
                 visible:       function () { return !!_savedGraph; },
                 onclick:       refreshingAfter(saveGraphDialog)
@@ -4481,7 +4481,7 @@
                 onclick:   function () { return own.dirty() ? saveOwnGraph() : undefined; },
                 menu:      function () {
                     return graphTarget()
-                        ? [{ text: 'Save as new workspace…', iconClass: 'fas fa-plus', onclick: saveGraphDialog }]
+                        ? [{ text: 'Save as new graph…', iconClass: 'fas fa-plus', onclick: saveGraphDialog }]
                         : [];
                 }
             };
@@ -4491,18 +4491,18 @@
             if (host.savedGraph) return [ownGraphAction(host.savedGraph)];
             return [{
                 id:        'save-graph',
-                text:      function () { return _savedGraph ? 'Update workspace' : 'Save as workspace'; },
+                text:      function () { return _savedGraph ? 'Update graph' : 'Save as graph'; },
                 title:     function () {
                     return _savedGraph
                         ? 'Writes the canvas into “' + _savedGraph.name + '”'
-                        : 'Keeps what is on the canvas as a workspace';
+                        : 'Keeps what is on the canvas as a saved graph';
                 },
                 iconClass: 'misp-icon misp-icon-analyst-graph misp-simple',
                 visible:   function () { return !!graphTarget(); },
                 onclick:   function () { return _savedGraph ? updateGraph() : saveGraphDialog(); },
                 menu:      function () {
                     return _savedGraph
-                        ? [{ text: 'Save as new workspace…', iconClass: 'fas fa-plus', onclick: saveGraphDialog }]
+                        ? [{ text: 'Save as new graph…', iconClass: 'fas fa-plus', onclick: saveGraphDialog }]
                         : [];
                 }
             }];

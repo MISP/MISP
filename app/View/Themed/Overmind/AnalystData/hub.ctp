@@ -5,7 +5,7 @@
  */
 
 $this->set('headerTitle', __('Analyst Data'));
-$this->set('headerDescription', __('Notes, opinions, relationships and workspaces enriching your MISP data. Pick a collection to explore.'));
+$this->set('headerDescription', __('Notes, opinions, relationships and saved graphs enriching your MISP data. Pick a collection to explore.'));
 
 $types = [
     'Note' => [
@@ -29,8 +29,8 @@ $types = [
     'Graph' => [
         'icon'        => 'misp-icon misp-icon-analyst-graph misp-simple',
         'color'       => 'analystGraph',
-        'title'       => __('Workspaces'),
-        'description' => __('Records you are working on and how they relate, kept on a collection, an event or a galaxy cluster.'),
+        'title'       => __('Saved graphs'),
+        'description' => __('Drawings of how records relate, kept on a collection, an event or a galaxy cluster.'),
     ],
 ];
 
@@ -54,7 +54,7 @@ if (!empty($selectedType) && $selectedType !== 'Graph' && !empty($me['Role']['pe
     $this->set('headerActions', [
         [
             'type'  => 'modal',
-            'label' => __('Import workspaces'),
+            'label' => __('Import saved graphs'),
             'icon'  => 'file-import',
             'class' => 'btn btn-' . $types['Graph']['color'],
             'url'   => $baseurl . '/analyst_graphs/import',

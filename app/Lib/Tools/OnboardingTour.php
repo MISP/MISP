@@ -2260,11 +2260,11 @@ class OnboardingTour
                 'anchor' => '[data-tour="page-title"]',
                 'placement' => 'bottom',
                 'skipIf' => self::GRAPH_VIEW_MATCH,
-                'title' => __('All workspaces'),
-                'body' => '<p>' . __('Workspaces are analyst data, attached to a '
+                'title' => __('All saved graphs'),
+                'body' => '<p>' . __('Saved graphs are analyst data, attached to a '
                     . 'collection, an event or a galaxy cluster and shared '
                     . 'like any other record.') . '</p><p>' . __('Each one '
-                    . 'also appears in a <strong>Workspaces</strong> card on the '
+                    . 'also appears in a <strong>Saved graphs</strong> card on the '
                     . 'record it belongs to, which is where new ones are '
                     . 'started.') . '</p>',
             ],
@@ -2276,13 +2276,13 @@ class OnboardingTour
                 'skipIf' => self::GRAPH_VIEW_MATCH,
                 'title' => __('Open one'),
                 'body' => '<p>' . __('Hover a thumbnail for a preview, then '
-                    . 'double-click a row to open the workspace.') . '</p>',
+                    . 'double-click a row to open the graph.') . '</p>',
             ],
             [
                 'pageMatch' => self::GRAPH_VIEW_MATCH,
                 'anchor' => '[data-tour="graph-canvas"]',
                 'placement' => 'top',
-                'waitingText' => __('Open a workspace from the list to carry on, '
+                'waitingText' => __('Open a graph from the list to carry on, '
                     . 'or skip this part if there are none yet.'),
                 'title' => __('The canvas'),
                 'body' => '<p>' . __('The same canvas as the Pivot Explorer, '
@@ -2297,9 +2297,9 @@ class OnboardingTour
                 'optional' => true,
                 'title' => __('Saving'),
                 'body' => '<p>' . __('This bar says what has changed since the '
-                    . 'last save. Only the organisation that owns a '
-                    . 'workspace can save it; if someone saved in the '
-                    . 'meantime, you are offered to merge or reload.') . '</p>',
+                    . 'last save. Only the organisation that owns a graph '
+                    . 'can save it; if someone saved in the meantime, you '
+                    . 'are offered to merge or reload.') . '</p>',
             ],
             [
                 'pageMatch' => self::GRAPH_VIEW_MATCH,
@@ -2307,8 +2307,8 @@ class OnboardingTour
                 'placement' => 'bottom',
                 'optional' => true,
                 'title' => __('Settings and forks'),
-                'body' => '<p>' . __('Rename a workspace or change who can see it '
-                    . 'from its settings.') . '</p><p>' . __('A workspace from '
+                'body' => '<p>' . __('Rename a graph or change who can see it '
+                    . 'from its settings.') . '</p><p>' . __('A graph from '
                     . 'another organisation is read-only: '
                     . '<strong>Fork</strong> it to get a copy your '
                     . 'organisation owns.') . '</p>',

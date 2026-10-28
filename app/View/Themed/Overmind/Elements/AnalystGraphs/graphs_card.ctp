@@ -1,8 +1,8 @@
 <?php
 /**
- * The workspaces hung off a record (PRD §8.3): each with its creator,
+ * The saved graphs hung off a record: each with its creator,
  * distribution and node count, to open, fork or make the active one; and
- * "New workspace" on this record. Also tells the dock which record is on
+ * "New graph" on this record. Also tells the dock which record is on
  * screen, for its own "New workspace" and fork.
  *
  * @var string $targetType Collection, Event or GalaxyCluster
@@ -62,12 +62,12 @@ echo $this->element('genericElements/assetLoader', [
                 <i class="misp-icon misp-icon-analyst-graph misp-simple text-analystGraph" style="font-size:1rem;"></i>
             </div>
             <div class="me-auto">
-                <div class="fw-bold lh-1"><?= __('Workspaces') ?></div>
+                <div class="fw-bold lh-1"><?= __('Saved graphs') ?></div>
                 <div class="small text-muted mt-1" data-ig-card-count>…</div>
             </div>
             <?php if ($canCreate): ?>
                 <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" data-ig-card-new
-                        title="<?= __('New workspace on this %s', h($config['targetName'])) ?>">
+                        title="<?= __('New graph on this %s', h($config['targetName'])) ?>">
                     <i class="fas fa-plus"></i>
                 </button>
             <?php endif; ?>
@@ -84,7 +84,7 @@ echo $this->element('genericElements/assetLoader', [
             <div class="modal-dialog">
                 <form class="modal-content" novalidate data-ig-card-form>
                     <div class="modal-header">
-                        <h2 class="modal-title fs-5"><i class="misp-icon misp-icon-analyst-graph misp-simple me-2"></i><?= __('New workspace') ?></h2>
+                        <h2 class="modal-title fs-5"><i class="misp-icon misp-icon-analyst-graph misp-simple me-2"></i><?= __('New graph') ?></h2>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
                     </div>
                     <div class="modal-body">

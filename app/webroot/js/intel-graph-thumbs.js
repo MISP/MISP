@@ -339,7 +339,7 @@
             var total = typeof thumb.total === 'number' ? thumb.total : nodes.length;
             tile.legend.textContent = '';
             if (!nodes.length) {
-                stage(tile, message('empty', 'No nodes yet', 'Records sent with “Add to workspace” appear here.'), 'This workspace has no nodes yet');
+                stage(tile, message('empty', 'No nodes yet', 'Records sent with “Add to workspace” appear here.'), 'This graph has no nodes yet');
                 tile.countEl.textContent = '0 nodes';
                 return;
             }

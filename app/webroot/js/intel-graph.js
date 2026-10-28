@@ -1,5 +1,5 @@
 // IntelGraph — the workspace "Add to workspace" feeds, and the way any page
-// reaches workspaces. Loaded on every Overmind page that has the navbar's
+// reaches saved graphs. Loaded on every Overmind page that has the navbar's
 // graph slot (Elements/intel_graph_boot.ctp), so it stays small: the graph
 // itself — Pivotick, the explorer and analyst-graph.js — loads on the first
 // mount() only.

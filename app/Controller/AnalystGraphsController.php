@@ -235,7 +235,7 @@ class AnalystGraphsController extends AppController
             throw new BadRequestException(__('A save names the revision it started from.'));
         }
         if (!isset($input['content']) || (!is_array($input['content']) && !is_string($input['content']))) {
-            throw new BadRequestException(__('A save carries the workspace document as content.'));
+            throw new BadRequestException(__('A save carries the graph document as content.'));
         }
         $content = $input['content'];
         $user = $this->Auth->user();
@@ -344,15 +344,15 @@ class AnalystGraphsController extends AppController
         } else {
             $ids = json_decode($ref, true);
             if (!is_array($ids) || empty($ids)) {
-                throw new BadRequestException(__('Name a workspace, or a list of workspace ids.'));
+                throw new BadRequestException(__('Name a graph, or a list of graph ids.'));
             }
             foreach ($ids as $id) {
                 if (!is_int($id) && !(is_string($id) && ctype_digit($id))) {
-                    throw new BadRequestException(__('Name a workspace, or a list of workspace ids.'));
+                    throw new BadRequestException(__('Name a graph, or a list of graph ids.'));
                 }
             }
             if (count($ids) > self::TRANSFER_LIMIT) {
-                throw new BadRequestException(__('At most %s workspaces at once.', self::TRANSFER_LIMIT));
+                throw new BadRequestException(__('At most %s graphs at once.', self::TRANSFER_LIMIT));
             }
             $conditions = ['Graph.id' => array_map('strval', array_values($ids))];
         }
@@ -363,7 +363,7 @@ class AnalystGraphsController extends AppController
             'order' => ['Graph.id' => 'ASC'],
         ]);
         if (empty($rows)) {
-            throw new NotFoundException(__('Invalid workspace.'));
+            throw new NotFoundException(__('Invalid graph.'));
         }
         $graphs = $this->__exported($user, $rows);
         if ($single) {
@@ -508,13 +508,13 @@ class AnalystGraphsController extends AppController
             $payload = $payload['Graph'];
         }
         if (!is_array($payload) || empty($payload)) {
-            throw new BadRequestException(__('This is not a workspace export.'));
+            throw new BadRequestException(__('This is not a saved graph export.'));
         }
         if (array_keys($payload) !== range(0, count($payload) - 1)) {
             $payload = [$payload];
         }
         if (count($payload) > self::TRANSFER_LIMIT) {
-            throw new BadRequestException(__('At most %s workspaces at once.', self::TRANSFER_LIMIT));
+            throw new BadRequestException(__('At most %s graphs at once.', self::TRANSFER_LIMIT));
         }
         $graphs = [];
         foreach ($payload as $item) {
@@ -569,11 +569,11 @@ class AnalystGraphsController extends AppController
                 // Stored as each creator spelled it
                 $spellings = array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)]));
                 if ($this->Graph->find('count', ['conditions' => ['Graph.uuid' => $spellings], 'callbacks' => false])) {
-                    $refuse('uuid', __('A workspace with this uuid already exists.'));
+                    $refuse('uuid', __('A graph with this uuid already exists.'));
                     continue;
                 }
                 if ($blocklist->hasAny(['AnalystDataBlocklist.analyst_data_uuid' => $spellings])) {
-                    $refuse('uuid', __('A workspace with this uuid is blocklisted.'));
+                    $refuse('uuid', __('A graph with this uuid is blocklisted.'));
                     continue;
                 }
                 $uuid = strtolower($uuid);
@@ -596,7 +596,7 @@ class AnalystGraphsController extends AppController
                 $record['content'] = $this->Graph->contentForWrite($user, $graph['content']);
             }
             if (empty($record['object_type']) || empty($record['object_uuid'])) {
-                $refuse('object_uuid', __('This workspace names no target; choose one to import it onto.'));
+                $refuse('object_uuid', __('This graph names no target; choose one to import it onto.'));
                 continue;
             }
             $this->Graph->create();
@@ -628,18 +628,18 @@ class AnalystGraphsController extends AppController
                 $errors = Hash::flatten((array)$failure['errors']);
                 $reasons[] = sprintf(
                     '%s: %s',
-                    $failure['name'] !== '' ? $failure['name'] : __('Workspace #%s', $failure['index'] + 1),
+                    $failure['name'] !== '' ? $failure['name'] : __('Graph #%s', $failure['index'] + 1),
                     implode(' ', array_slice(array_values($errors), 0, 3))
                 );
             }
             $message = empty($imported)
-                ? __('No workspace was imported. %s', implode(' — ', $reasons))
-                : __('%s workspace(s) imported, %s not. %s', count($imported), count($report['failed']), implode(' — ', $reasons));
+                ? __('No graph was imported. %s', implode(' — ', $reasons))
+                : __('%s graph(s) imported, %s not. %s', count($imported), count($report['failed']), implode(' — ', $reasons));
             $this->Flash->error($message);
         } else {
             $this->Flash->success(count($imported) === 1
-                ? __('Workspace "%s" imported.', $imported[0]['name'])
-                : __('%s workspaces imported.', count($imported)));
+                ? __('Graph "%s" imported.', $imported[0]['name'])
+                : __('%s graphs imported.', count($imported)));
         }
         if (count($imported) === 1 && empty($report['failed'])) {
             return $this->redirect('/analyst_graphs/view/' . $imported[0]['uuid']);
@@ -675,7 +675,7 @@ class AnalystGraphsController extends AppController
     private function __fetchGraph($uuid)
     {
         if (!Validation::uuid($uuid)) {
-            throw new NotFoundException(__('Invalid workspace.'));
+            throw new NotFoundException(__('Invalid graph.'));
         }
         $user = $this->Auth->user();
         $this->Graph->current_user = $user;
@@ -689,7 +689,7 @@ class AnalystGraphsController extends AppController
             'contain' => ['Org', 'Orgc'],
         ]);
         if (empty($graph)) {
-            throw new NotFoundException(__('Invalid workspace.'));
+            throw new NotFoundException(__('Invalid graph.'));
         }
         return $graph;
     }
@@ -703,7 +703,7 @@ class AnalystGraphsController extends AppController
     {
         $graph = $this->__fetchGraph($uuid);
         if (empty($graph['Graph']['_canEdit'])) {
-            throw new ForbiddenException(__('Only the organisation that created this workspace can change it. Fork it instead.'));
+            throw new ForbiddenException(__('Only the organisation that created this graph can change it. Fork it instead.'));
         }
         return $graph;
     }
@@ -857,14 +857,14 @@ class AnalystGraphsController extends AppController
     {
         switch ($result['status']) {
             case 'missing':
-                throw new NotFoundException(__('Invalid workspace.'));
+                throw new NotFoundException(__('Invalid graph.'));
             case 'conflict':
                 $this->response->statusCode(409);
                 $this->response->type('json');
                 $this->response->body(JsonTool::encode([
                     'saved' => false,
-                    'name' => __('The workspace was saved since you loaded it.'),
-                    'message' => __('The workspace was saved since you loaded it.'),
+                    'name' => __('The graph was saved since you loaded it.'),
+                    'message' => __('The graph was saved since you loaded it.'),
                     'url' => $this->request->here,
                     'revision' => $result['revision'],
                 ]));

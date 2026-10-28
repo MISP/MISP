@@ -179,7 +179,7 @@ $fields = [
     $col('extras', [
         'element' => 'event_extras',
         'header_html' => '<span class="te-hicon te-hx"><i class="misp-icon misp-icon-analyst-graph misp-simple text-analystGraph"></i><i class="misp-icon misp-icon-report misp-simple text-report"></i><i class="misp-icon misp-icon-sighting misp-simple text-sighting"></i><i class="fas fa-comments"></i></span>',
-        'header_title' => __('Workspaces, reports, sightings, proposals and discussions, when there are any'),
+        'header_title' => __('Saved graphs, reports, sightings, proposals and discussions, when there are any'),
     ]),
     $col('ext', [
         'name' => __('Extension'),
