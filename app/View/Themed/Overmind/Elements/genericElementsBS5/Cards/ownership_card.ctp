@@ -25,7 +25,9 @@
  *                            declares (`declared`), the tags carrying them
  *                            (`present`, each with its `tag`) and the pinned
  *                            ones the record lacks (`absent`, each with its
- *                            `key`); the section shows when one is declared
+ *                            `key`); the section shows when one is declared.
+ *                            With an `editUrl` (the tag picker modal), an
+ *                            absent one opens it on its taxonomy
  *
  * A detail page does not echo this itself: it passes the same keys as
  * view_layout's `ownership`, which puts the card first in the first tab.
@@ -205,6 +207,11 @@ if (!empty($outliers)) {
         .ownership-org-name { max-width: calc(100cqw - 21rem - 56px); }
         .ownership-dist { min-width: 10rem; }
     }
+    .ownership-marking-add:hover,
+    .ownership-marking-add:focus-visible {
+        color: var(--bs-body-color) !important;
+        border-color: var(--bs-secondary-color) !important;
+    }
 </style>
 <div class="card mb-3 shadow-sm ownership-card" data-tour="ownership">
     <div class="card-body py-2 d-flex flex-column flex-md-row gap-2 gap-md-3">
@@ -289,11 +296,21 @@ if (!empty($outliers)) {
                         <?php endif; ?>
                     <?php endforeach; ?>
                     <?php foreach ($markings['absent'] ?? [] as $missing): ?>
-                        <span class="d-inline-flex align-items-center gap-1 small px-2 border rounded text-body-secondary"
-                              style="--bs-border-style:dashed;"
-                              title="<?= h(__('Pinned by your analyst profile, not on this record')) ?>">
-                            <i class="fas fa-thumbtack fa-xs"></i><?= h($missing['key']) ?>
-                        </span>
+                        <?php if (!empty($markings['editUrl'])): ?>
+                            <button type="button"
+                                    class="ownership-marking-add d-inline-flex align-items-center gap-1 small px-2 py-0 border rounded bg-transparent text-body-secondary"
+                                    style="--bs-border-style:dashed;"
+                                    title="<?= h(__('Pinned by your analyst profile, not on this record. Click to add one.')) ?>"
+                                    data-marking-add="<?= h($missing['key']) ?>">
+                                <i class="fas fa-thumbtack fa-xs"></i><?= h($missing['key']) ?>
+                            </button>
+                        <?php else: ?>
+                            <span class="d-inline-flex align-items-center gap-1 small px-2 border rounded text-body-secondary"
+                                  style="--bs-border-style:dashed;"
+                                  title="<?= h(__('Pinned by your analyst profile, not on this record')) ?>">
+                                <i class="fas fa-thumbtack fa-xs"></i><?= h($missing['key']) ?>
+                            </span>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                     <?php if (empty($markings['present']) && empty($markings['absent'])): ?>
                         <span class="text-body-secondary small"><?= __('None') ?></span>
@@ -332,6 +349,25 @@ if (!empty($outliers)) {
         if (window.ResizeObserver) {
             new ResizeObserver(fit).observe(row);
         }
+    });
+})();
+</script>
+<?php endif; ?>
+<?php if (!empty($markings['editUrl']) && !empty($markings['absent'])): ?>
+<script>
+(function () {
+    var editUrl = <?= json_encode($markings['editUrl']) ?>;
+    document.querySelectorAll('[data-marking-add]:not([data-marking-add-bound])').forEach(function (button) {
+        button.setAttribute('data-marking-add-bound', '');
+        button.addEventListener('click', function () {
+            // The card is drawn once, so a marking saved from here needs the page again.
+            var reload = function () { window.location.reload(); };
+            document.addEventListener('misp:tags-saved', reload);
+            document.getElementById('mainModal').addEventListener('hidden.bs.modal', function () {
+                document.removeEventListener('misp:tags-saved', reload);
+            }, { once: true });
+            openModal(editUrl + '?taxonomy=' + encodeURIComponent(button.getAttribute('data-marking-add')), 'xl');
+        });
     });
 })();
 </script>

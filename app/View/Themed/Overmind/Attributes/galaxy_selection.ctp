@@ -14,7 +14,6 @@ echo $this->element('genericElementsBS5/Modals/galaxy_picker', [
     'title'                 => __('Galaxies of selected attributes'),
     'description'           => __('These are the clusters the selection carries; one only some attributes carry shows how many. Remove one to detach it from all of them, add one to attach it to all of them.'),
     'saveLabel'             => __('Apply to selection'),
-    'galaxyList'            => $galaxyList,
     'currentGlobalClusters' => $currentGlobalClusters,
     'currentLocalClusters'  => $currentLocalClusters,
     'mayModify'             => true,
