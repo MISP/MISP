@@ -41,6 +41,13 @@ class Module extends AppModel
     const AI_DATALESS_USE_CASES = ['ping'];
 
     /**
+     * The module's installation guide, docs/INSTALL.md of its repository,
+     * which the AI settings tab shows: the raw file, and its page on GitHub.
+     */
+    const AI_GUIDE_URL = 'https://raw.githubusercontent.com/MISP/ai-connector/main/docs/INSTALL.md';
+    const AI_GUIDE_PAGE = 'https://github.com/MISP/ai-connector/blob/main/docs/INSTALL.md';
+
+    /**
      * The provenance the module puts on everything it produces: two entries
      * of the ai-computer-assisted taxonomy, verbatim. MISP guarantees the two
      * tag rows exist before any AI write (Tag::captureAiProvenanceTags()), so
@@ -649,9 +656,12 @@ class Module extends AppModel
      * Health of the AI family as the settings page shows it: whether the
      * family is enabled, which server it points at, whether that server
      * answers /modules, and whether the ai_connector module is listed there.
+     * `llm` is the endpoint and model the module is told to use; only the
+     * Test LLM button checks them.
      *
      * @return array {enabled: bool, server: string, reachable: bool,
-     *         error: string|null, listed: bool, module: array|null}
+     *         error: string|null, listed: bool, module: array|null,
+     *         llm: {endpoint: string, model: string}}
      */
     public function aiStatus()
     {
@@ -662,6 +672,10 @@ class Module extends AppModel
             'error' => null,
             'listed' => false,
             'module' => null,
+            'llm' => [
+                'endpoint' => (string)$this->aiSetting('openai_api_base'),
+                'model' => (string)$this->aiSetting('model_id'),
+            ],
         ];
         if (!$status['enabled']) {
             return $status;
@@ -689,5 +703,66 @@ class Module extends AppModel
             }
         }
         return $status;
+    }
+
+
+    /**
+     * The installation guide (AI_GUIDE_URL) as markdown, kept a day in Redis.
+     *
+     * @return string
+     * @throws Exception when GitHub cannot be reached or does not serve it
+     */
+    public function aiGuide()
+    {
+        $redis = RedisTool::init();
+        $markdown = $redis->get('misp:ai_connector_guide');
+        if (is_string($markdown)) {
+            return $markdown;
+        }
+        App::uses('SyncTool', 'Tools');
+        $socket = (new SyncTool())->createHttpSocket(['compress' => true, 'timeout' => 10]);
+        $response = $socket->get(self::AI_GUIDE_URL, [], ['header' => ['User-Agent' => 'MISP']]);
+        if (!$response->isOk()) {
+            throw new Exception(__('GitHub answered HTTP %s for %s.', $response->code, self::AI_GUIDE_URL));
+        }
+        $redis->setex('misp:ai_connector_guide', 86400, $response->body);
+        return $response->body;
+    }
+
+    /**
+     * The guide as the modal shows it: an overview (what precedes the first
+     * `## ` heading, less the `# ` title and HTML comments), then one tab per
+     * `## ` section, keyed like GitHub's anchor of the heading so that a
+     * `#section` link can switch tabs. A `## ` inside a code block is code.
+     *
+     * @param string $markdown
+     * @return array{intro: string, sections: array<string, array{title: string, markdown: string}>}
+     */
+    public static function splitAiGuide($markdown)
+    {
+        $intro = '';
+        $sections = [];
+        $key = null;
+        $fenced = false;
+        foreach (preg_split('/\R/', preg_replace('/<!--.*?-->/s', '', $markdown)) as $line) {
+            if (preg_match('/^(```|~~~)/', $line)) {
+                $fenced = !$fenced;
+            } elseif (!$fenced && preg_match('/^## +(.+?)\s*$/', $line, $matches)) {
+                $key = str_replace(' ', '-', preg_replace('/[^\w\- ]/u', '', mb_strtolower($matches[1])));
+                $sections[$key] = ['title' => $matches[1], 'markdown' => ''];
+                continue;
+            } elseif (!$fenced && $key === null && str_starts_with($line, '# ')) {
+                continue;
+            }
+            if ($key === null) {
+                $intro .= $line . "\n";
+            } else {
+                $sections[$key]['markdown'] .= $line . "\n";
+            }
+        }
+        foreach ($sections as $key => $section) {
+            $sections[$key]['markdown'] = trim($section['markdown']);
+        }
+        return ['intro' => trim($intro), 'sections' => $sections];
     }
 }

@@ -2016,6 +2016,25 @@ class ServersController extends AppController
         ], $this->response->type());
     }
 
+    /**
+     * The AI module's installation guide, as a modal. It is docs/INSTALL.md
+     * of the module's repository, downloaded by Module::aiGuide().
+     *
+     * @param string|null $tab section to open on, e.g. 'troubleshooting'
+     */
+    public function aiConnectorGuide($tab = null)
+    {
+        $this->loadModel('Module');
+        try {
+            $this->set(Module::splitAiGuide($this->Module->aiGuide()));
+        } catch (Exception $e) {
+            $this->set('error', $e->getMessage());
+        }
+        $this->set('guidePage', Module::AI_GUIDE_PAGE);
+        $this->set('openTab', $tab);
+        $this->render('ajax/ai_connector_guide');
+    }
+
     public function startWorker($type)
     {
         if (!$this->request->is('post')) {
