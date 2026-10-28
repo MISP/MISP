@@ -5390,13 +5390,6 @@ class Server extends AppModel
                     'type' => 'numeric',
                     'null' => true
                 ],
-                'complex_query_enable' => [
-                    'level' => 1,
-                    'description' => __('Kill switch for the boolean `query` tree of the restSearch endpoints. While disabled, every request carrying a query is refused, whatever the role permissions. Roles additionally need the complex query permission.'),
-                    'value' => true,
-                    'test' => 'testBool',
-                    'type' => 'boolean'
-                ],
                 'complex_query_max_depth' => [
                     'level' => 1,
                     'description' => __('The maximum nesting depth of a complex query tree. Defaults to 5.'),
