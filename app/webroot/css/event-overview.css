@@ -29,8 +29,6 @@
 }
 .eo-filter { max-width: 11.5rem; flex-shrink: 1; }
 .eo-filter .input-group-text { background: var(--bs-body-bg); }
-.eo-profile-change { margin-left: .3rem; color: var(--bs-secondary-color); font-size: .72rem; }
-.eo-profile-change:hover { color: var(--bs-link-color); }
 .eo-actions { flex-wrap: wrap; row-gap: .35rem; padding-top: .45rem; padding-bottom: .45rem; }
 .eo-absent {
     display: inline-flex; align-items: center; gap: .3rem; font-size: .78rem; padding: .1rem .45rem;
@@ -49,9 +47,8 @@
 .eo-card-sub { font-size: .78rem; color: var(--bs-secondary-color); line-height: 1.3; }
 .eo-figure { font-size: .8rem; color: var(--bs-secondary-color); white-space: nowrap; text-align: right; }
 .eo-figure b { font-size: 1.35rem; color: var(--bs-emphasis-color); font-weight: 700; margin-right: .1rem; vertical-align: -.1rem; }
-.eo-ids-icon { margin-right: .2rem; font-size: .9rem; }
 .eo-card-foot {
-    display: flex; align-items: center; gap: 1rem; padding: .4rem 1rem; margin-top: auto;
+    display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; padding: .4rem 1rem; margin-top: auto;
     border-top: 1px solid var(--bs-border-color); min-height: 2.4rem;
 }
 .eo-empty { margin: 0; padding: 1rem; color: var(--bs-secondary-color); font-size: .88rem; }
@@ -161,12 +158,11 @@
 }
 
 /* inventory */
-.eo-bar { display: flex; height: 12px; gap: 2px; margin: .85rem 1rem 0; border-radius: 999px; overflow: hidden; }
+.eo-ids-icon { margin-right: .2rem; font-size: .72rem; }
+.eo-section-label { margin: .75rem 1rem 0; }
+.eo-bar { display: flex; height: 12px; gap: 2px; margin: .4rem 1rem 0; border-radius: 999px; overflow: hidden; }
 .eo-bar-seg { background: var(--eo-tone); min-width: 3px; transition: opacity .15s; }
 .eo-bar-seg.is-context { background: color-mix(in srgb, var(--eo-tone) 30%, transparent); }
-.eo-bar-legend { display: flex; gap: 1rem; padding: .35rem 1rem 0; font-size: .74rem; color: var(--bs-secondary-color); }
-.eo-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: .3rem; vertical-align: -1px; background: var(--bs-secondary-color); }
-.eo-key.is-context { background: color-mix(in srgb, var(--bs-secondary-color) 30%, transparent); }
 .eo-groups { padding: .35rem 1rem .25rem; }
 .eo-group {
     display: grid; grid-template-columns: 8.5rem minmax(4.5rem, max-content) 1fr; gap: .25rem .75rem; align-items: start;
@@ -191,16 +187,20 @@
 }
 .eo-type.is-ids { border-style: solid; border-color: color-mix(in srgb, var(--eo-tone) 45%, var(--bs-border-color)); background: color-mix(in srgb, var(--eo-tone) 10%, transparent); }
 .eo-type b { font-weight: 700; }
+.eo-type.is-object { border-style: solid; }
+.eo-group-objects { --eo-tone: var(--bs-secondary-color); }
+.eo-group-objects .eo-group-name .misp-icon { font-size: .8rem; color: var(--bs-secondary-color); }
+.eo-groups > .eo-empty { padding: .6rem 0; }
+.eo-objects-block { padding-bottom: .1rem; border-bottom: 1px solid var(--bs-border-color-translucent); }
+.eo-objects-block:not(:has(.eo-group:not(.d-none))) { display: none; }
 .eo-type:hover, .eo-type:focus-visible { border-color: var(--eo-tone); color: var(--bs-emphasis-color); }
 .eo-rule { flex-basis: 100%; font-size: .8rem; display: flex; align-items: baseline; flex-wrap: wrap; gap: .1rem .4rem; }
 .eo-rule .fa-shield-halved { color: var(--eo-tone); }
 .eo-rule-name { font-weight: 600; font-style: italic; }
-.eo-objects { padding: .5rem 1rem .75rem; font-size: .8rem; color: var(--bs-secondary-color); }
 .eo-inventory[data-eo-focus] .eo-bar-seg:not(.is-focus) { opacity: .25; }
 .eo-bar-seg.is-focus { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--eo-tone) 60%, #000); }
 .eo-group { transition: background-color .15s; border-radius: .35rem; }
 .eo-group.is-focus { background: color-mix(in srgb, var(--eo-tone) 8%, transparent); }
-.eo-objects b { color: var(--bs-emphasis-color); }
 
 /* context */
 .eo-rows { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); margin: 0; padding: .25rem 1rem .5rem; }
@@ -237,6 +237,7 @@
 .eo-tech-galaxy small { font-weight: 400; font-variant-numeric: tabular-nums; }
 #eo-context-card { container: eo-context / inline-size; }
 @container eo-context (max-width: 560px) {
+    .eo-context .eo-card-head { flex-wrap: wrap; row-gap: .5rem; }
     .eo-techniques { grid-template-columns: minmax(0, 1fr); }
 }
 .eo-on {
@@ -256,27 +257,36 @@ button.eo-on:hover, button.eo-on:focus-visible { color: var(--bs-emphasis-color)
 button.eo-on.is-only:hover, button.eo-on.is-only:focus-visible { background: color-mix(in srgb, var(--eo-ind) 34%, transparent); }
 .hg-unit.eo-ind > .hg-chip { outline: 1px dashed color-mix(in srgb, var(--bs-attribute) 70%, transparent); outline-offset: 1px; }
 .eo-rollup { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; padding: .5rem 1rem; border-top: 1px solid var(--bs-border-color); }
-.eo-tag-warnings { margin: .25rem 1rem .5rem; padding: .5rem .75rem; display: grid; gap: .5rem;
+.eo-tag-warnings { margin: .5rem 1rem 0; padding: .35rem .65rem; display: grid; gap: .3rem;
     border: 1px solid var(--bs-warning-border-subtle); border-radius: var(--bs-border-radius);
-    background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); font-size: .82rem; }
+    background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); font-size: .82rem; line-height: 1.35; }
 .eo-tag-warning { display: flex; align-items: flex-start; gap: .5rem; }
-.eo-tag-warning > i { margin-top: .2rem; }
-.eo-tag-warning-tags { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .4rem; margin-top: .15rem; }
+.eo-tag-warning > i { margin-top: .15rem; }
+.eo-note-body { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .45rem; }
+.eo-tag-warning-tags { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .4rem; }
 .eo-tag-warning-tags code { color: inherit; background: color-mix(in srgb, var(--bs-warning) 14%, transparent);
     padding: 0 .3rem; border-radius: .2rem; font-size: .76rem; }
 .eo-tag-warning-tags a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .eo-legend { display: inline-flex; align-items: center; gap: .35rem; font-size: .74rem; color: var(--bs-secondary-color); }
 .eo-legend-swatch { width: 14px; height: 10px; border: 1px dashed color-mix(in srgb, var(--bs-attribute) 70%, transparent); border-radius: 2px; }
+.eo-profile { display: inline-flex; align-items: center; gap: .35rem; min-width: 0; margin-left: auto; font-size: .74rem; color: var(--bs-secondary-color); }
+.eo-profile a { color: var(--bs-emphasis-color); text-decoration: none; }
+.eo-profile a:hover, .eo-profile a:focus-visible { color: var(--bs-link-color); text-decoration: underline; }
+.eo-profile .eo-profile-change { color: var(--bs-secondary-color); }
+.eo-inventory .eo-legend-swatch { border-color: var(--bs-secondary-color); }
+.eo-inventory .eo-legend-swatch.is-ids { border-style: solid; background: color-mix(in srgb, var(--bs-secondary-color) 18%, transparent); }
 
 /* assessment */
 .eo-assessment-facts { display: flex; align-items: center; gap: .15rem .75rem; flex-wrap: wrap; }
 .eo-fact { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; }
 #analyst-data-card { container: eo-assessment / inline-size; }
 @container eo-assessment (max-width: 440px) {
+    .eo-assessment .eo-card-head { flex-wrap: wrap; row-gap: .5rem; }
     .eo-assessment .eo-btn-label { display: none; }
 }
 .eo-assessment-chips { display: flex; flex-wrap: wrap; gap: .3rem; padding: .65rem 1rem; }
 .eo-assessment-chips + .eo-assessment-thread { border-top: 1px solid var(--bs-border-color); }
+.eo-assessment-chips:not(:has(> :not(.d-none))) { display: none; }
 .eo-assessment .btn-outline-analystData {
     --bs-btn-color: color-mix(in srgb, var(--bs-analystData) 65%, var(--bs-body-color));
     --bs-btn-border-color: color-mix(in srgb, var(--bs-analystData) 65%, var(--bs-body-color));
@@ -346,8 +356,6 @@ button.eo-on.is-only:hover, button.eo-on.is-only:focus-visible { background: col
 
 #eo-inventory-card { container: eo-inventory / inline-size; }
 @container eo-inventory (max-width: 440px) {
-    .eo-inventory .eo-card-head { flex-wrap: wrap; }
-    .eo-inventory .eo-figure-ids { margin-left: auto; }
     .eo-group { grid-template-columns: 1fr auto; }
     .eo-types { grid-column: 1 / -1; }
 }

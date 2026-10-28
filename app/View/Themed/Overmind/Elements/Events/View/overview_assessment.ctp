@@ -35,6 +35,13 @@ if (!empty($relationships)) {
     $facts[] = '<span class="eo-fact"><i class="fas fa-diagram-project"></i>'
         . h(__n('%s relationship', '%s relationships', count($relationships), count($relationships))) . '</span>';
 }
+$thread = $this->element('AnalystData/thread', [
+    'objectType' => 'Event',
+    'objectUuid' => $eventUuid,
+    'peek' => true,
+    'showEmpty' => false,
+]);
+$hasThread = trim($thread) !== '';
 ?>
 <div class="card shadow-sm eo-card eo-assessment w-100" id="analyst-data-card">
     <div class="eo-card-head">
@@ -47,6 +54,13 @@ if (!empty($relationships)) {
                 <div class="eo-card-sub eo-assessment-facts"><?= implode('', $facts) ?></div>
             <?php endif; ?>
         </div>
+        <?php if ($hasThread || !empty($confidence)): ?>
+            <div class="input-group input-group-sm eo-filter">
+                <span class="input-group-text border-end-0"><i class="fas fa-search text-muted small"></i></span>
+                <input type="search" class="form-control border-start-0 ps-0" data-eo-assessment-filter
+                       placeholder="<?= h(__('Filter notes, opinions…')) ?>" aria-label="<?= h(__('Filter analyst data')) ?>" autocomplete="off">
+            </div>
+        <?php endif; ?>
         <?php if ($canAdd): ?>
             <div class="dropdown flex-shrink-0">
                 <button type="button" class="btn btn-sm btn-outline-analystData dropdown-toggle d-inline-flex align-items-center gap-1" data-bs-toggle="dropdown" aria-expanded="false" title="<?= h(__('Add analyst data')) ?>">
@@ -81,17 +95,13 @@ if (!empty($relationships)) {
         </div>
     <?php endif; ?>
 
-    <?php
-    $thread = $this->element('AnalystData/thread', [
-        'objectType' => 'Event',
-        'objectUuid' => $eventUuid,
-        'peek' => true,
-        'showEmpty' => false,
-    ]);
-    ?>
-    <?php if (trim($thread) !== ''): ?>
+    <?php if ($hasThread): ?>
         <div class="eo-assessment-thread" data-collapse-tall="350" data-collapse-peek="[data-collapse-peek-label]"><?= $thread ?></div>
-    <?php else: ?>
+    <?php endif; ?>
+    <?php if ($hasThread || !empty($confidence)): ?>
+        <div class="eo-empty d-none" data-eo-assessment-none><?= __('No analyst data matches.') ?></div>
+    <?php endif; ?>
+    <?php if (!$hasThread): ?>
         <?= $this->element('AnalystData/empty', ['class' => 'flex-grow-1']) ?>
     <?php endif; ?>
 </div>
