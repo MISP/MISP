@@ -90,6 +90,30 @@
         });
     }
 
+    // A group whose name matches keeps all its types.
+    function onFilterTypes(e) {
+        var input = e.target.closest && e.target.closest('[data-eo-type-filter]');
+        if (!input) return;
+        var q = input.value.trim().toLowerCase();
+        var card = input.closest('.eo-inventory');
+        var shownGroups = 0;
+        card.querySelectorAll('.eo-group').forEach(function (group) {
+            var whole = q === '' || group.querySelector('.eo-group-name').textContent.toLowerCase().indexOf(q) !== -1;
+            var shown = 0;
+            group.querySelectorAll('.eo-type, .eo-rule').forEach(function (el) {
+                var key = el.getAttribute('data-eo-filter-types') || el.getAttribute('data-eo-filter-object') || el.textContent;
+                var hit = whole || key.toLowerCase().indexOf(q) !== -1;
+                el.classList.toggle('d-none', !hit);
+                shown += hit ? 1 : 0;
+            });
+            var visible = whole || shown > 0;
+            group.classList.toggle('d-none', !visible);
+            shownGroups += visible && !group.matches('.eo-group-objects') ? 1 : 0;
+        });
+        var none = card.querySelector('[data-eo-type-none]');
+        if (none) none.classList.toggle('d-none', shownGroups > 0);
+    }
+
     // The onboarding tour asks for an anchor in a closed card menu.
     function onReveal(e) {
         var menu = e.target.closest && e.target.closest('.eo-context .dropdown');
@@ -154,6 +178,13 @@
         if (tagFilter) {
             e.preventDefault();
             openFiltered(tagFilter.getAttribute('data-eo-filter-tab') || 'attributes', { tags: tagFilter.getAttribute('data-eo-filter-tags') });
+            return;
+        }
+        var objectFilter = e.target.closest('[data-eo-filter-object]');
+        if (objectFilter) {
+            e.preventDefault();
+            var name = objectFilter.getAttribute('data-eo-filter-object');
+            openFiltered('objects', name ? { name: name } : {});
             return;
         }
         var filter = e.target.closest('[data-eo-filter-types]');
@@ -535,6 +566,7 @@
         });
         document.addEventListener('click', onClick);
         document.addEventListener('input', onFilterLabels);
+        document.addEventListener('input', onFilterTypes);
         document.addEventListener('onboarding:reveal', onReveal);
         document.addEventListener('mouseover', onHover);
         document.addEventListener('mouseout', onLeave);
