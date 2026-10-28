@@ -189,10 +189,10 @@ class GatheringFeedTest extends TestCase
         $workspace = GatheringFeedTool::prepare($module, $this->options(), $this->user(), $this->temporary, 5, function () {});
         $directory = $workspace->directory;
         $this->assertFileExists($workspace->feedDirectory . '/' . self::UUID . '.json');
-        $this->assertFileDoesNotExist($directory . '/feed.zip');
+        $this->assertFalse(file_exists($directory . '/feed.zip'), 'The ZIP must be removed after extraction.');
         $workspace->close();
         $workspace->close();
-        $this->assertDirectoryDoesNotExist($directory);
+        $this->assertFalse(is_dir($directory), 'Closing the workspace must remove its directory.');
         $this->assertSame([str_repeat('a', 64)], $module->released);
     }
     public function testSuccessiveJobsUseExistingAddEditSkipPathsAndDoNotCreateFeedRows()
@@ -292,7 +292,7 @@ class GatheringFeedTest extends TestCase
         $abandoned = $this->temporary . '/gathering-' . str_repeat('b', 32);
         mkdir($abandoned, 0700); touch($abandoned . '/.lock'); touch($abandoned, time() - 200000);
         GatheringFeedWorkspace::reap($this->temporary);
-        $this->assertDirectoryDoesNotExist($abandoned);
+        $this->assertFalse(is_dir($abandoned), 'The janitor must remove abandoned workspaces.');
     }
     public function testPythonProducedArchiveCanBeIngested()
     {
