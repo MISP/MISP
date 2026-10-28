@@ -132,6 +132,10 @@ class UserSettingsController extends AppController
             }
         }
         // Do not show internal settings
+        $conditions['AND'][] = ['OR' => [
+            'UserSetting.setting !=' => 'module_api_keys',
+            'UserSetting.user_id' => $this->Auth->user('id'),
+        ]];
         if (!$this->_isSiteAdmin()) {
             $conditions['AND'][] = ['NOT' => ['UserSetting.setting' => $this->UserSetting->getInternalSettingNames()]];
         }
