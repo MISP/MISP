@@ -121,7 +121,7 @@
         var idOf = {}, keyOf = {}, folded = {}, clusterIdOf = {}, valueIdOf = {}, answerIdOf = {};
         // The nodes the document hides, built and not drawn: what Show lands
         var hiddenNodes = {}, hiddenIds = {};
-        var unplaced = [];
+        var unplaced = [], loose = {};
         var positioned = 0, drawn = 0;
         doc.nodes.forEach(function (n) {
             var uuid = addressOf(n);
@@ -184,6 +184,7 @@
                 }
             } else {
                 unplaced.push(nodeKey(n));
+                loose[node.id] = true;
             }
             drawn++;
             land.node(node);
@@ -219,6 +220,7 @@
         var out = land.result();
         var defs = {};
         out.nodes.forEach(function (n) { defs[n.id] = n; });
+        var held = positioned > 0 && positioned < drawn ? seedBeside(out, loose) : [];
         var drawnEdge = {};
         out.edges.forEach(function (e) { drawnEdge[e.id] = true; });
         out.notes = (doc.notes || []).map(function (n) {
@@ -234,9 +236,42 @@
             hiddenNodes: hiddenNodes,
             heldEdges: heldEdges,
             unplaced: unplaced,
+            held: held,
             // Every node drawn sits where it was saved: open it as it was left.
             positioned: drawn > 0 && positioned === drawn
         };
+    }
+
+    // Some nodes saved where they sit, others never placed: the saved ones
+    // are held where they are and the others start beside a saved node they
+    // link to, or amid them. Answers the ids held, for afterMount to let go.
+    function seedBeside(out, loose) {
+        var at = {}, held = [];
+        var sx = 0, sy = 0, count = 0;
+        out.nodes.forEach(function (node) {
+            if (loose[node.id] || typeof node.x !== 'number') return;
+            at[node.id] = node;
+            sx += node.x;
+            sy += node.y;
+            count++;
+            if (node.fx === undefined) {
+                node.fx = node.x;
+                node.fy = node.y;
+                held.push(node.id);
+            }
+        });
+        out.nodes.forEach(function (node) {
+            if (!loose[node.id]) return;
+            var anchor = null;
+            out.edges.some(function (e) {
+                var other = e.from === node.id ? e.to : e.to === node.id ? e.from : null;
+                anchor = other && at[other] ? at[other] : null;
+                return !!anchor;
+            });
+            node.x = (anchor ? anchor.x : sx / count) + (Math.random() - 0.5) * 120;
+            node.y = (anchor ? anchor.y : sy / count) + (Math.random() - 0.5) * 120;
+        });
+        return held;
     }
 
     // The records as the explorer's payload, so the sidebar and the pivots
@@ -615,6 +650,7 @@
                 var node = id && !state.built.folded[id] ? graph.getMutableNode(id) : null;
                 if (node) node.freeze();
             });
+            holdNodes(graph, state.built.held.map(function (id) { return graph.getMutableNode(id); }).filter(Boolean));
             restoreGrouping(graph);
             watchNotes(graph);
             // A click ends a drag too; only one that moved the node counts.

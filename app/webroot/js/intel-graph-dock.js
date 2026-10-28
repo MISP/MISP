@@ -1071,10 +1071,6 @@
             if (!nodes) { renderTray(); return; }
             keys.forEach(function (k) { if (!entry.labels[k]) { var dsc = describe(k); if (dsc) entry.labels[k] = dsc; } });
             saveLog();
-            if (entry.kind === 'added' && current.canEdit() && layout !== 'conflict') {
-                layout = 'dirty';
-                layoutWhy = 'placed';
-            }
             render();
             if (!opened) return;
             flash('is-landing');
@@ -1367,7 +1363,7 @@
         if (layout === 'dirty' && mounted) {
             footEl.classList.add('is-dirty');
             text.appendChild(icon('fas fa-up-down-left-right me-1'));
-            text.appendChild(el('strong', null, layoutWhy === 'placed' ? 'New nodes placed here. ' : 'Layout changed here. '));
+            text.appendChild(el('strong', null, 'Layout changed here. '));
             text.appendChild(document.createTextNode('Positions are not saved until you save them.'));
             footEl.appendChild(button('btn btn-outline-secondary', 'Discard', function () { mountActive(); }));
             footEl.appendChild(button('btn btn-primary', 'Save layout', saveLayout, 'fas fa-floppy-disk'));
