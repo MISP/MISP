@@ -3790,6 +3790,8 @@ class EventsController extends AppController
         $this->set('currentLocalTags',  $currentLocalTags);
         $this->set('eventId',           $eventId);
         $this->set('mayModify',         $mayModify);
+        $openTaxonomy = $this->request->query['taxonomy'] ?? null;
+        $this->set('openTaxonomy', is_string($openTaxonomy) ? $openTaxonomy : null);
         $this->layout = false;
     }
 

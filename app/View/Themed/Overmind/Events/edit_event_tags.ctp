@@ -12,6 +12,7 @@
  * - $currentLocalTags
  * - eventId
  * - $mayModify
+ * - $openTaxonomy  (?taxonomy=<namespace>, the category to open on)
  */
 echo $this->element('genericElementsBS5/Modals/tag_picker', [
     'saveUrl'           => $baseurl . '/events/editEventTags/' . $eventId,
@@ -25,4 +26,5 @@ echo $this->element('genericElementsBS5/Modals/tag_picker', [
     'currentGlobalTags' => $currentGlobalTags,
     'currentLocalTags'  => $currentLocalTags,
     'mayModify'         => $mayModify,
+    'openTaxonomy'      => $openTaxonomy,
 ]);

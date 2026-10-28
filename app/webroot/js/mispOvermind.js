@@ -3479,8 +3479,11 @@ function distBadgeHtml(level, withLabel, labels) {
  * @param {object}   catData   {<cat>: [{id,name,colour}], collections: [{id,name,tags:[…]}]}
  * @param {Array}    initTags  Pre-selected [{id,name,colour}]
  * @param {object}   [options] localMarker: flag the chips as local tags;
- *                             onChange: called with the selected id array
- * @return {{ids: function}} the current selection
+ *                             onChange: called with the selected id array;
+ *                             category: the category to open on (default the
+ *                             first button)
+ * @return {{ids: function, focus: function}} the current selection, and a way
+ *                             to open the search on the current category
  *******************************/
 function initTagPickerSection(root, catData, initTags, options) {
     options = options || {};
@@ -3604,10 +3607,13 @@ function initTagPickerSection(root, catData, initTags, options) {
 
     (initTags || []).forEach(addTag);
     render();
-    var first = root.querySelector('.tag-cat-btn');
-    setCategory(first ? first.getAttribute('data-cat') : 'all');
+    var start = options.category
+        ? root.querySelector('.tag-cat-btn[data-cat="' + CSS.escape(options.category) + '"]')
+        : null;
+    start = start || root.querySelector('.tag-cat-btn');
+    setCategory(start ? start.getAttribute('data-cat') : 'all');
 
-    return { ids: ids };
+    return { ids: ids, focus: function () { ts.focus(); } };
 }
 
 /*******************************

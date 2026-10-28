@@ -20,6 +20,10 @@
  *   $saveLabel         string  submit label (default "Save Tags")
  *   $reloadHook        string  window['<hook>' + uid] fn called after save;
  *                              falls back to the attribute-index reload.
+ *   $openTaxonomy      string  namespace of the taxonomy both sections open
+ *                              on, its tags listed (default All Tags)
+ *
+ * A save announces itself as `misp:tags-saved` ({uid}) on the document.
  */
 
 $headerEyebrow = $headerEyebrow ?? __('Tags');
@@ -32,8 +36,14 @@ $customJson = json_encode($customTags,        JSON_HEX_TAG | JSON_HEX_AMP);
 $collJson   = json_encode($tagCollections,    JSON_HEX_TAG | JSON_HEX_AMP);
 $taxonomies = $taxonomies ?? [];
 $taxCats = [];
+$openCat = null;
 foreach ($taxonomies as $taxonomy) {
     $taxCats['taxonomy-' . $taxonomy['id']] = $taxonomy['tags'];
+    if (isset($openTaxonomy)
+        && mb_strtolower($taxonomy['namespace']) === mb_strtolower($openTaxonomy)
+    ) {
+        $openCat = 'taxonomy-' . $taxonomy['id'];
+    }
 }
 $taxJson    = json_encode((object)$taxCats,   JSON_HEX_TAG | JSON_HEX_AMP);
 $initGJson  = json_encode($currentGlobalTags, JSON_HEX_TAG | JSON_HEX_AMP);
@@ -138,6 +148,7 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomi
         global: <?= $initGJson ?: '[]' ?>,
         local:  <?= $initLJson ?: '[]' ?>
     };
+    var openCat    = <?= json_encode($openCat) ?>;
 
     /*
      * One section per locality. initTagPickerSection() (mispOvermind.js) is the
@@ -149,12 +160,26 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomi
             document.querySelector('[data-section="' + scope + '"]'),
             catData,
             initTags,
-            { localMarker: scope === 'local' }
+            { localMarker: scope === 'local', category: openCat }
         );
     }
 
     var globalSection = makeSection('global', initSelected.global);
     var localSection  = makeSection('local',  initSelected.local);
+
+    /*
+     * Opened on one taxonomy: once the modal is up (nothing scrolls while it
+     * is hidden), bring its buttons into view and list its tags.
+     */
+    if (openCat) {
+        var modalEl = document.getElementById('mainModal');
+        modalEl.addEventListener('shown.bs.modal', function () {
+            modalEl.querySelectorAll('[data-section] .tag-cat-btn.active').forEach(function (btn) {
+                btn.scrollIntoView({ block: 'nearest' });
+            });
+            globalSection.focus();
+        }, { once: true });
+    }
 
     /*
      * A tag collection can carry galaxy clusters - they live in the collection as
@@ -172,6 +197,7 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomi
      */
     function afterSave() {
         reloadGalaxiesCard();
+        document.dispatchEvent(new CustomEvent('misp:tags-saved', { detail: { uid: uid } }));
         var cardReload = reloadHook ? window[reloadHook + uid] : null;
         if (typeof cardReload === 'function') { cardReload(); return; }
 
