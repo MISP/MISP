@@ -242,6 +242,36 @@ class ComplexQueryToolTest extends TestCase
         $this->assertSame([], $this->model->tagParams);
     }
 
+    private function orderErrors($order): array
+    {
+        $allowed = ['Attribute' => ['id', 'type', 'timestamp'], 'Event' => ['publish_timestamp']];
+        try {
+            $this->tool()->validateOrder($order, $allowed);
+        } catch (ComplexQueryException $e) {
+            return $e->errors;
+        }
+        return [];
+    }
+
+    public function testValidOrderRulesPass(): void
+    {
+        foreach (['id', 'id desc', 'ID DESC', 'Attribute.type asc', 'Event.publish_timestamp desc', 'id,type desc', ['id', 'Event.publish_timestamp desc']] as $order) {
+            $this->assertSame([], $this->orderErrors($order), json_encode($order));
+        }
+    }
+
+    public function testUnknownOrderRulesAreRejected(): void
+    {
+        $marker = 'ZZ_ORDER';
+        foreach ([$marker, 'id,' . $marker, 'Event.id', 'Org.id', 'a.b.c', 'id up', 'id asc extra', '', [], 5, [5], ['a' => 'id'], 'Event'] as $order) {
+            $errors = $this->orderErrors($order);
+            $this->assertNotSame([], $errors, json_encode($order));
+            $this->assertStringNotContainsString($marker, json_encode($errors));
+        }
+        $this->assertSame('order[1]', $this->orderErrors('id,nope')[0]['path']);
+        $this->assertSame('unknown_field', $this->orderErrors('nope')[0]['code']);
+    }
+
     public function testDescribeListsTheWhitelist(): void
     {
         $d = $this->tool()->describe();

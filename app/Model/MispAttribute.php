@@ -4033,7 +4033,11 @@ class MispAttribute extends AppModel
         $conditions = $this->buildFilterConditions($user, $filters, !$paramsOnly);
         if (isset($filters['query'])) {
             App::uses('ComplexQueryTool', 'Tools');
-            $conditions['AND'][] = (new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig()))->conditions($filters['query']);
+            $complexQuery = new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig());
+            if (!empty($filters['order'])) {
+                $complexQuery->validateOrder($filters['order'], self::REST_SEARCH_ORDER_FIELDS);
+            }
+            $conditions['AND'][] = $complexQuery->conditions($filters['query']);
         }
         $params = array(
             'conditions' => $conditions,

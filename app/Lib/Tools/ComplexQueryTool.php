@@ -140,6 +140,45 @@ class ComplexQueryTool
     }
 
     /**
+     * Rejects what AppModel::findOrder() would silently drop or ignore.
+     *
+     * @param mixed $order a "field [asc|desc]" string, comma separated, or a list of them
+     * @param array $allowed model => list of sortable fields
+     * @return void
+     * @throws ComplexQueryException
+     */
+    public function validateOrder($order, array $allowed)
+    {
+        $this->errors = [];
+        $rules = is_string($order) ? explode(',', $order) : $order;
+        if (!is_array($rules) || $rules === [] || !array_is_list($rules)) {
+            $this->fail('order', 'bad_shape', 'order takes a string or a list of strings');
+        } else {
+            foreach ($rules as $i => $rule) {
+                $path = "order[$i]";
+                if (!is_string($rule)) {
+                    $this->fail($path, 'bad_type', 'a sort rule is a string');
+                    continue;
+                }
+                $items = explode(' ', trim($rule));
+                if (count($items) > 2 || (count($items) === 2 && !in_array(strtolower($items[1]), ['asc', 'desc'], true))) {
+                    $this->fail($path, 'bad_shape', 'a sort rule is a field with an optional asc or desc');
+                    continue;
+                }
+                $parts = explode('.', $items[0]);
+                $model = count($parts) === 2 ? $parts[0] : 'Attribute';
+                $field = strtolower(end($parts));
+                if (count($parts) > 2 || !isset($allowed[$model]) || !in_array($field, $allowed[$model], true)) {
+                    $this->fail($path, 'unknown_field', 'unknown sort field');
+                }
+            }
+        }
+        if (!empty($this->errors)) {
+            throw new ComplexQueryException($this->errors);
+        }
+    }
+
+    /**
      * Fields, operators and limits, as exposed by the discovery endpoint.
      *
      * @return array

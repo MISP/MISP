@@ -1939,6 +1939,18 @@ class TestComplexQueryAcl(unittest.TestCase):
                 status, values, _ = self.__search({"event_id": self.e1}, token=token)
                 self.assertEqual((status, values), (expected, None))
 
+    def test_unknown_order_fields_are_rejected(self):
+        tree = {"event_id": self.e1}
+        for order in ("nope", "id,nope", "Event.id", "id up", ["id", 5], "a.b.c"):
+            with self.subTest(order):
+                status, values, data = self.__search(tree, extra={"order": order})
+                self.assertEqual((status, values), (400, None), data)
+                self.assertEqual(data["errors"][0]["code"] in ("unknown_field", "bad_shape", "bad_type"), True)
+        status, values, _ = self.__search(tree, extra={"order": "id desc"})
+        self.assertEqual((status, values), (200, {self.__value("e1-a1"), self.__value("e1-a2")}))
+        status, values, _ = self.__search(tree, extra={"order": ["Event.publish_timestamp desc", "value"]})
+        self.assertEqual(status, 200)
+
     def test_query_is_only_accepted_in_a_post_body(self):
         status, data = self.api(self.user_key, "GET", f"attributes/restSearch?returnFormat=json&query[event_id]={self.e1}")
         self.assertEqual(status, 400)
