@@ -4026,6 +4026,10 @@ class MispAttribute extends AppModel
         $filters = $this->Event->addFiltersFromSubqueryElements($filters, $subqueryElements, $user);
         $filters = $this->Event->addFiltersFromUserSettings($user, $filters);
         $conditions = $this->buildFilterConditions($user, $filters, !$paramsOnly);
+        if (isset($filters['query'])) {
+            App::uses('ComplexQueryTool', 'Tools');
+            $conditions['AND'][] = (new ComplexQueryTool($this, ComplexQueryTool::limitsFromConfig()))->conditions($filters['query']);
+        }
         $params = array(
             'conditions' => $conditions,
             'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution', 'Event.publish_timestamp'),

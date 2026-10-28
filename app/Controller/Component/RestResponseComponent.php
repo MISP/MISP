@@ -952,13 +952,13 @@ class RestResponseComponent extends Component
         return $this->Controller->response;
     }
 
-    public function throwException($code, $message, $url = '', $format = false, $raw = false, $headers = array())
+    public function throwException($code, $message, $url = '', $format = false, $raw = false, $headers = array(), $extra = array())
     {
-        $message = array(
+        $message = array_merge(array(
             'name' => $message,
             'message' => $message,
             'url' => $url
-        );
+        ), $extra);
         return $this->prepareResponse($message, $code, $format, $raw, false, $headers);
     }
 

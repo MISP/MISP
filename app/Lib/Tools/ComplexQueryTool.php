@@ -80,6 +80,21 @@ class ComplexQueryTool
     }
 
     /**
+     * @return array the limits set in the MISP.complex_query_max_* settings
+     */
+    public static function limitsFromConfig()
+    {
+        $limits = [];
+        foreach (['max_depth', 'max_nodes', 'max_list', 'max_value_length'] as $limit) {
+            $value = Configure::read('MISP.complex_query_' . $limit);
+            if ($value !== null && $value !== '') {
+                $limits[$limit] = (int)$value;
+            }
+        }
+        return $limits;
+    }
+
+    /**
      * Validate then compile.
      *
      * @param mixed $query

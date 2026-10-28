@@ -78,7 +78,8 @@ class RestSearchComponent extends Component
             'ttl',
             'hash_type',
             'escape_formulas_literal',
-            'attribute_created'
+            'attribute_created',
+            'query'
         ],
         'Event' => [
             'returnFormat',
