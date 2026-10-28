@@ -2994,10 +2994,11 @@ class AttributesController extends AppController
             $cid        = (int)$gc['id'];
             $galaxyName = $gc['Galaxy']['name'] ?? '';
             $entry = [
-                'id'     => $cid,
-                'name'   => $gc['value'],
-                'galaxy' => $galaxyName,
-                'hue'    => GalaxyColour::hue($galaxyName),
+                'id'       => $cid,
+                'name'     => $gc['value'],
+                'galaxy'   => $galaxyName,
+                'hue'      => GalaxyColour::hue($galaxyName),
+                'tag_name' => $gc['tag_name'],
             ];
             if (!empty($at['local'])) {
                 $currentLocalClusters[] = $entry;
@@ -3081,12 +3082,8 @@ class AttributesController extends AppController
         }
 
         /* ── GET: build the modal ── */
-        /* Galaxy list for the per-galaxy category buttons */
-        $galaxyList = $this->__galaxyPickerList();
-
         $this->set('currentGlobalClusters', $currentGlobalClusters);
         $this->set('currentLocalClusters',  $currentLocalClusters);
-        $this->set('galaxyList',            $galaxyList);
         $this->set('attributeId',           $attributeId);
         $this->set('mayModify',             $mayModify);
         $this->layout = false;
@@ -3215,7 +3212,6 @@ class AttributesController extends AppController
 
         if (!$this->request->is('post')) {
             $total = count($attributes);
-            $this->set('galaxyList', $this->__galaxyPickerList());
             $this->set('currentGlobalClusters', $this->__carriedEntries($carried[0], $total));
             $this->set('currentLocalClusters', $this->__carriedEntries($carried[1], $total));
             $this->set('selectionIds', array_keys($attributes));
@@ -3373,6 +3369,7 @@ class AttributesController extends AppController
                     'name' => $cluster['value'],
                     'galaxy' => $galaxyName,
                     'hue' => GalaxyColour::hue($galaxyName),
+                    'tag_name' => $cluster['tag_name'],
                 ];
                 $carried[$local][$clusterId][1] = ($carried[$local][$clusterId][1] ?? 0) + 1;
                 $carried['byAttribute'][$attributeId][$clusterId] = $local;
@@ -3564,31 +3561,6 @@ class AttributesController extends AppController
         }
 
         return [$allTags, $customTags, $tagCollections, $taxonomies];
-    }
-
-    /**
-     * The per-galaxy category buttons of the galaxy-picker modal.
-     *
-     * @return array
-     */
-    private function __galaxyPickerList()
-    {
-        $this->loadModel('Galaxy');
-        $galaxyRows = $this->Galaxy->find('all', [
-            'recursive' => -1,
-            'fields'    => ['Galaxy.id', 'Galaxy.name', 'Galaxy.icon'],
-            'order'     => ['Galaxy.name asc'],
-        ]);
-        $galaxyList = [];
-        foreach ($galaxyRows as $g) {
-            $galaxyList[] = [
-                'id'   => (int)$g['Galaxy']['id'],
-                'name' => $g['Galaxy']['name'],
-                'icon' => !empty($g['Galaxy']['icon']) ? $g['Galaxy']['icon'] : 'meteor',
-            ];
-        }
-
-        return $galaxyList;
     }
 
     /**

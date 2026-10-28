@@ -4,9 +4,16 @@
  * side by side. index-filters.js hands such pickers over through
  * window.IndexFilterBrowser; selection, serialisation and applying on close
  * follow its rules. Nothing scrolls: long lists reflow into columns.
+ *
+ * mount() draws the same browser inside a host element instead (the galaxy
+ * picker modal): a pick is either global or local rather than included or
+ * excluded, and the host owns the selection, handing it back with select().
  */
 (function () {
     'use strict';
+
+    // A modal loads this on demand, so a page can bring it twice.
+    if (window.IndexFilterBrowser) { return; }
 
     var ROW = 28;
     var RICH = 46;
@@ -24,6 +31,7 @@
     var DEBOUNCE = 200;
     var BROWSE = 200;
     var GLOBAL = 80;
+    var EMBED_ROWS = [8, 14];
 
     var st = null;
     // Height of everything but the lists (search bar, column heads, tray),
@@ -170,8 +178,8 @@
             kind: 'tag', root: T('allTags'), rootIcon: 'fas fa-tag',
             byId: byId, groups: groups, defaultGroup: 'g:tax',
             side: [
-                { head: T('pinnedInProfile'), items: pinned },
-                { head: T('browse'), items: [groups['g:tax'], groups['g:ns'], none] },
+                { head: T('pinnedInProfile'), icon: 'fas fa-thumbtack', items: pinned },
+                { head: T('browse'), icon: 'fas fa-folder-tree', items: [groups['g:tax'], groups['g:ns'], none] },
             ],
             all: tax.concat(nss, [none]),
         };
@@ -229,8 +237,11 @@
             kind: 'galaxy', root: T('allGalaxies'), rootIcon: 'fas fa-earth-europe',
             byId: byId, groups: groups, defaultGroup: groups['g:misp'] ? 'g:misp' : (ordered.length ? ordered[0].id : null),
             side: [
-                { head: T('preferredInProfile'), items: scopes.filter(function (s) { return s.direct; }).sort(byProfile) },
-                { head: T('byNamespace'), items: ordered },
+                {
+                    head: T('preferredInProfile'), icon: 'fas fa-star',
+                    items: scopes.filter(function (s) { return s.direct; }).sort(byProfile),
+                },
+                { head: T('byNamespace'), icon: 'fas fa-folder-tree', items: ordered },
             ],
             all: scopes,
         };
@@ -290,10 +301,16 @@
 
     function stateOf(value) {
         var hit = st.selection.find(function (s) { return s.value === value; });
-        return hit ? (hit.exclude ? 'exclude' : 'include') : 'none';
+        if (!hit) { return 'none'; }
+        if (st.embedded) { return hit.local ? 'local' : 'include'; }
+        return hit.exclude ? 'exclude' : 'include';
     }
 
     function toggle(row, exclude) {
+        if (st.embedded) {
+            st.onToggle(row, stateOf(row.value) === 'none');
+            return;
+        }
         var i = st.selection.findIndex(function (s) { return s.value === row.value; });
         var current = i === -1 ? 'none' : (st.selection[i].exclude ? 'exclude' : 'include');
         var next = exclude
@@ -355,7 +372,8 @@
         }
         st.wide = false;
         if (!opts.keepTerm) { st.term = ''; syncInput(); }
-        st.inUse = scope.kind === 'galaxy' ? scope.inUse > 0 : false;
+        // A filter wants what is in use; a picker attaches new clusters as often.
+        st.inUse = scope.kind === 'galaxy' && !st.embedded ? scope.inUse > 0 : false;
         refresh();
     }
 
@@ -495,7 +513,7 @@
         var lines = [];
         m.side.forEach(function (sec) {
             if (!sec.items.length) { return; }
-            lines.push({ t: 'head', text: sec.head });
+            lines.push({ t: 'head', text: sec.head, icon: sec.icon });
             sec.items.forEach(function (it) {
                 var open = !searching && !!first && first.id === it.id;
                 lines.push(navItem(it, {
@@ -505,7 +523,10 @@
                 }));
             });
         });
-        return { key: 'side', title: st.kind === 'tag' ? T('tags') : T('galaxies'), lines: lines };
+        return {
+            key: 'side', title: st.kind === 'tag' ? T('tags') : T('galaxies'), lines: lines,
+            titleIcon: st.kind === 'tag' ? 'fas fa-tags' : 'misp-icon misp-icon-galaxy misp-simple',
+        };
     }
 
     function groupCol(group, scope) {
@@ -733,10 +754,10 @@
             label: split.name, idb: split.id,
             sub: row.matched_synonym ? T('aka', row.matched_synonym) : null,
             desc: row.description || null,
-            dim: !row.in_use,
+            dim: !row.in_use && !st.embedded,
             title: (row.style && row.style.galaxy ? row.style.galaxy + ' › ' : '') + row.label
                 + (row.in_use ? '' : '\n' + T('notAttached')),
-            row: { value: row.value, label: row.label, style: row.style },
+            row: { value: row.value, label: row.label, style: row.style, id: row.id },
         };
     }
 
@@ -1011,7 +1032,7 @@
     function geometry(cols) {
         var vw = document.documentElement.clientWidth;
         var vh = window.innerHeight;
-        var Wmax = Math.min(vw - 24, MAX_W);
+        var Wmax = st.embedded ? st.panel.clientWidth : Math.min(vw - 24, MAX_W);
         var fixed = 0;
         var full = [];
         cols.forEach(function (c) {
@@ -1021,9 +1042,17 @@
         // Stay under the button and grow wider rather than taller; only a
         // window too short for that lets the panel rise over the bar.
         var rows = function (room) { return Math.floor((room - chrome) / ROW) * ROW; };
-        var below = rows(vh - 12 - (st.btn.getBoundingClientRect().bottom + 6));
-        var Hcap = below >= Math.max(MIN_BELOW * ROW, sideH) ? below : rows(vh - 12 - navBottom() - 8);
-        var Hmin = Math.min(Hcap, Math.max(MIN_ROWS * ROW, sideH));
+        var Hcap;
+        var Hmin;
+        if (st.embedded) {
+            // A steady height, whatever the columns hold, sized to the window
+            // minus what the host draws around the browser.
+            Hcap = Hmin = Math.max(EMBED_ROWS[0], Math.min(EMBED_ROWS[1], Math.floor((vh - st.reserve) / ROW))) * ROW;
+        } else {
+            var below = rows(vh - 12 - (st.btn.getBoundingClientRect().bottom + 6));
+            Hcap = below >= Math.max(MIN_BELOW * ROW, sideH) ? below : rows(vh - 12 - navBottom() - 8);
+            Hmin = Math.min(Hcap, Math.max(MIN_ROWS * ROW, sideH));
+        }
         var prev = st.geo || { H: 0, W: 0 };
         var val = full.filter(function (c) { return c.isVal; })[0];
         var others = full.filter(function (c) { return !c.isVal; });
@@ -1063,7 +1092,7 @@
             if (p.ok || H >= Hcap) { break; }
             H = Math.min(Hcap, H + ROW);
         }
-        var W = Math.min(Wmax, Math.max(p.W, MIN_W, prev.W));
+        var W = st.embedded ? Wmax : Math.min(Wmax, Math.max(p.W, MIN_W, prev.W));
         full.forEach(function (c) { c.w = c.subs * c.subW; });
         var grow = full.length ? full[full.length - 1] : cols[0];
         grow.w += W - p.W;
@@ -1148,19 +1177,22 @@
             + hl(l.label, term);
         var second = isRich ? (l.desc ? esc(l.desc) : hl(l.sub, term)) : '';
         var inline = l.sub && (!isRich || l.desc) ? ' <small>' + hl(l.sub, term) + '</small>' : '';
+        var checkIcon = { exclude: 'fa-ban', local: 'fa-user' }[state] || 'fa-check';
+        var ex = st.embedded ? ''
+            : '<button type="button" class="ifb-ex" tabindex="-1" data-ifb-ex="' + vi + '" aria-pressed="' + (state === 'exclude') + '"'
+                + ' title="' + esc(state === 'exclude' ? T('stopExcluding') : T('exclude')) + '" aria-label="'
+                + esc((state === 'exclude' ? T('stopExcluding') : T('exclude')) + ' ' + l.row.label) + '">'
+                + '<i class="fas fa-ban" aria-hidden="true"></i></button>';
         return '<div class="ifb-row ifb-val' + (isRich ? ' is-rich' : '') + (l.dim ? ' is-dim' : '') + '" id="' + vid
-            + '" role="option" data-state="' + state + '" aria-selected="' + (state === 'include') + '" data-ifb-val="' + vi + '"'
-            + ' title="' + esc(l.title || l.value) + '">'
-            + '<span class="ifb-check" aria-hidden="true"><i class="fas ' + (state === 'exclude' ? 'fa-ban' : 'fa-check') + '"></i></span>'
+            + '" role="option" data-state="' + state + '" aria-selected="' + (state === 'include' || state === 'local') + '"'
+            + ' data-ifb-val="' + vi + '" title="' + esc(l.title || l.value) + '">'
+            + '<span class="ifb-check" aria-hidden="true"><i class="fas ' + checkIcon + '"></i></span>'
             + mark
             + '<span class="ifb-text"><span class="ifb-label">' + label + inline + '</span>'
             + (isRich ? '<span class="ifb-sub">' + second + '</span>' : '') + '</span>'
             + (l.nv !== null && l.nv !== undefined && l.nv !== '' ? '<span class="ifb-nv" title="' + esc(T('numericalValue')) + '">' + esc(l.nv) + '</span>' : '')
             + (l.idb ? '<span class="ifb-idb">' + hl(l.idb, term) + '</span>' : '')
-            + '<button type="button" class="ifb-ex" tabindex="-1" data-ifb-ex="' + vi + '" aria-pressed="' + (state === 'exclude') + '"'
-            + ' title="' + esc(state === 'exclude' ? T('stopExcluding') : T('exclude')) + '" aria-label="'
-            + esc((state === 'exclude' ? T('stopExcluding') : T('exclude')) + ' ' + l.row.label) + '">'
-            + '<i class="fas fa-ban" aria-hidden="true"></i></button>'
+            + ex
             + '</div>';
     }
 
@@ -1221,6 +1253,8 @@
 
     function render() {
         if (!st || !st.model) { return; }
+        // Embedded in a dialog that is not shown yet: the observer renders it once it has a width.
+        if (st.embedded && !st.panel.clientWidth) { return; }
         var activeKey = st.active ? { col: st.active.colKey, key: st.active.key } : null;
         st.acts = [];
         st.vals = [];
@@ -1235,18 +1269,20 @@
             html += colHtml(c, ci, g, term);
         });
         st.cols.innerHTML = html;
-        st.panel.style.width = g.W + 'px';
         renderTop();
-        renderTray();
-        var measured = st.panel.offsetHeight - g.H;
-        if (measured !== chrome && !st.remeasured) {
-            chrome = measured;
-            st.remeasured = true;
-            render();
-            st.remeasured = false;
-            return;
+        if (!st.embedded) {
+            st.panel.style.width = g.W + 'px';
+            renderTray();
+            var measured = st.panel.offsetHeight - g.H;
+            if (measured !== chrome && !st.remeasured) {
+                chrome = measured;
+                st.remeasured = true;
+                render();
+                st.remeasured = false;
+                return;
+            }
+            place();
         }
-        place();
         // put the keyboard cursor back where it was
         st.active = null;
         if (activeKey) {
@@ -1463,10 +1499,10 @@
         if (st && st.input.value !== st.term) { st.input.value = st.term; }
     }
 
-    function build() {
+    function build(host) {
         var p = document.createElement('div');
-        p.className = 'ifb-panel';
-        p.setAttribute('role', 'dialog');
+        p.className = 'ifb-panel' + (host ? ' is-embedded' : '');
+        p.setAttribute('role', host ? 'group' : 'dialog');
         p.setAttribute('aria-label', st.pc.label);
         p.innerHTML = '<div class="ifb-top">'
             + '<label class="ifb-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i>'
@@ -1476,18 +1512,20 @@
             + '<nav class="ifb-crumbs" aria-label="' + esc(T('whereYouAre')) + '"></nav>'
             + '</div>'
             + '<div class="ifb-cols"><div class="ifb-loading"><span class="ifb-spin"></span>' + esc(T('loadingScopes')) + '</div></div>'
-            + '<div class="ifb-tray"></div>';
-        document.body.appendChild(p);
+            + (host ? '' : '<div class="ifb-tray"></div>');
+        (host || document.body).appendChild(p);
         st.panel = p;
         st.input = p.querySelector('input');
         st.cols = p.querySelector('.ifb-cols');
         st.crumbs = p.querySelector('.ifb-crumbs');
         st.tray = p.querySelector('.ifb-tray');
         st.backHint = p.querySelector('.ifb-back-hint');
-        var rect = st.btn.getBoundingClientRect();
-        p.style.top = (rect.bottom + 6) + 'px';
-        p.style.left = Math.max(12, Math.min(rect.left, document.documentElement.clientWidth - 12 - MIN_W)) + 'px';
-        p.style.width = MIN_W + 'px';
+        if (!host) {
+            var rect = st.btn.getBoundingClientRect();
+            p.style.top = (rect.bottom + 6) + 'px';
+            p.style.left = Math.max(12, Math.min(rect.left, document.documentElement.clientWidth - 12 - MIN_W)) + 'px';
+            p.style.width = MIN_W + 'px';
+        }
         p.addEventListener('mousedown', function (e) {
             if (e.target !== st.input) { e.preventDefault(); }
         });
@@ -1518,6 +1556,60 @@
         btn.setAttribute('aria-expanded', 'true');
         build();
         st.input.focus();
+        start();
+    }
+
+    /*
+     * The embedded browser. cfg: kind, scopes, source (the search URL),
+     * label, strings, selection ([{value, local}]), onToggle(row, on) when a
+     * value is clicked, and reserve, the height in pixels the host keeps
+     * around the browser.
+     */
+    function mountIn(host, cfg) {
+        if (st) { closePicker(true); }
+        strings = cfg.strings || {};
+        st = {
+            kind: cfg.kind, embedded: true, picker: null, bar: null, btn: null,
+            pc: { label: cfg.label || '', source: cfg.source }, urls: { scopes: cfg.scopes, tree: cfg.tree },
+            model: null, selection: (cfg.selection || []).slice(), allOf: false,
+            onToggle: cfg.onToggle, reserve: cfg.reserve || 0, width: 0,
+            dirty: false, path: [], term: '', inUse: false,
+            data: null, dataKey: null, loading: false, error: false, timer: null, req: null,
+            acts: [], vals: [], grid: [], colKeys: [], active: null, geo: null,
+        };
+        build(host);
+        var state = st;
+        if (window.ResizeObserver) {
+            state.observer = new ResizeObserver(function () {
+                var w = state.panel.clientWidth;
+                if (st !== state || w === state.width) { return; }
+                state.width = w;
+                st.geo = null;
+                render();
+            });
+            state.observer.observe(state.panel);
+        }
+        start();
+        return {
+            select: function (selection) {
+                if (st !== state) { return; }
+                st.selection = selection.slice();
+                render();
+            },
+            reveal: function (value) {
+                var scope = st === state && st.model ? scopeOfValue(value) : null;
+                if (scope) { openScope(scope); }
+            },
+            focus: function () {
+                if (st === state) { st.input.focus(); }
+            },
+            destroy: function () {
+                if (st === state) { closePicker(false); }
+            },
+        };
+    }
+
+    function start() {
         var state = st;
         loadModel(st.kind, st.urls.scopes).then(function (model) {
             if (st !== state) { return; }
@@ -1537,6 +1629,10 @@
         if (state.timer) { clearTimeout(state.timer); }
         if (state.req) { state.req.abort(); }
         state.panel.remove();
+        if (state.embedded) {
+            if (state.observer) { state.observer.disconnect(); }
+            return;
+        }
         state.btn.setAttribute('aria-expanded', 'false');
         if (!apply || !state.dirty) { return; }
         var next = serialize(state.selection, state.pc, state.allOf);
@@ -1600,12 +1696,13 @@
     // the click bubbles its target may no longer be in the panel. The
     // picker's own button is index-filters.js's to handle.
     document.addEventListener('click', function (e) {
-        if (st && !st.panel.contains(e.target) && !st.btn.contains(e.target)) { closePicker(true); }
+        if (st && !st.embedded && !st.panel.contains(e.target) && !st.btn.contains(e.target)) { closePicker(true); }
     }, true);
 
+    // Embedded, Escape and Tab stay the host's: they close or leave the dialog.
     window.addEventListener('keydown', function (e) {
         if (!st) { return; }
-        if (e.key === 'Escape') {
+        if (e.key === 'Escape' && !st.embedded) {
             e.preventDefault();
             e.stopImmediatePropagation();
             var btn = st.btn;
@@ -1628,7 +1725,7 @@
             activate(e.shiftKey);
         } else if (e.key === 'Backspace' && inInput && empty) {
             if (st.model && back()) { e.preventDefault(); }
-        } else if (e.key === 'Tab') {
+        } else if (e.key === 'Tab' && !st.embedded) {
             var focusables = Array.prototype.slice.call(st.panel.querySelectorAll('input, button:not([tabindex="-1"]):not([disabled])'));
             var i = focusables.indexOf(document.activeElement);
             e.preventDefault();
@@ -1643,12 +1740,14 @@
 
     var placing = false;
     window.addEventListener('scroll', function () {
-        if (!st || placing) { return; }
+        if (!st || st.embedded || placing) { return; }
         placing = true;
-        requestAnimationFrame(function () { placing = false; if (st) { place(); } });
+        requestAnimationFrame(function () { placing = false; if (st && !st.embedded) { place(); } });
     }, true);
 
-    window.addEventListener('popstate', function () { closePicker(false); });
+    window.addEventListener('popstate', function () {
+        if (st && !st.embedded) { closePicker(false); }
+    });
 
     window.IndexFilterBrowser = {
         toggle: function (picker) {
@@ -1658,5 +1757,6 @@
             if (!st || st.picker !== picker) { openPicker(picker); }
         },
         close: function (apply) { closePicker(apply); },
+        mount: mountIn,
     };
 }());

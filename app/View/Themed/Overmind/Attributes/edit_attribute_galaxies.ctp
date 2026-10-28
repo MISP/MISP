@@ -6,7 +6,6 @@
  * Variables come from AttributesController::editAttributeGalaxies:
  * - $currentGlobalClusters
  * - $currentLocalClusters
- * - $galaxyList
  * - $attributeId
  * - $mayModify
  */
@@ -14,7 +13,6 @@ echo $this->element('genericElementsBS5/Modals/galaxy_picker', [
     'saveUrl'               => $baseurl . '/attributes/editAttributeGalaxies/' . $attributeId,
     'uid'                   => 'attr-galaxies-' . $attributeId,
     'headerEyebrow'         => __('Attribute Galaxies'),
-    'galaxyList'            => $galaxyList,
     'currentGlobalClusters' => $currentGlobalClusters,
     'currentLocalClusters'  => $currentLocalClusters,
     'mayModify'             => $mayModify,

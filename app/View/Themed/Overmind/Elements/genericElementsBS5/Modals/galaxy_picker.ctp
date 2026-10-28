@@ -2,12 +2,15 @@
 /*
  * Modal to pick global/local galaxy clusters for an object.
  *
+ * The clusters are picked in the column browser of the index filter bars
+ * (index-filter-browser.js, mounted here): a pick is global, and its chip in
+ * the lists below the browser moves it to the other side.
+ *
  * Required params:
  *   $saveUrl               string  POST target (unescaped, h()'d here)
  *   $uid                   string  unique DOM/scope id (e.g. 'evt-galaxies-12')
- *   $galaxyList            [{id, name, icon}, ...]
- *   $currentGlobalClusters [{id, name, galaxy, hue}, ...]  pre-selected (global)
- *   $currentLocalClusters  [{id, name, galaxy, hue}, ...]  pre-selected (local)
+ *   $currentGlobalClusters [{id, name, galaxy, hue, tag_name}, ...]  pre-selected (global)
+ *   $currentLocalClusters  [{id, name, galaxy, hue, tag_name}, ...]  pre-selected (local)
  *   $mayModify             bool
  * Optional params:
  *   $headerEyebrow         string  small uppercase label (default "Galaxies")
@@ -17,60 +20,37 @@
  *   $reloadHook            string  window['<hook>' + uid] fn called after save;
  *                                  falls back to the attribute-index reload.
  */
+App::uses('IndexPicker', 'Tools');
 
 $headerEyebrow = $headerEyebrow ?? __('Galaxies');
 $reloadHook    = $reloadHook ?? '';
 
 $postUrl   = h($saveUrl);
-$searchUrl = h($baseurl . '/events/searchGalaxyClusters');
 
 $initGJson = json_encode($currentGlobalClusters, JSON_HEX_TAG | JSON_HEX_AMP);
 $initLJson = json_encode($currentLocalClusters,  JSON_HEX_TAG | JSON_HEX_AMP);
 
-/* Reusable section markup (category buttons + picker + selected area) */
-$section = function ($scope, $iconClass, $title, $badgeHtml = '')
-        use ($galaxyList) {
-    ob_start(); ?>
-    <div class="w-100 px-2" data-section="<?= h($scope) ?>">
-        <div class="d-flex align-items-center gap-2 fw-bold text-uppercase mb-2 text-galaxy"
-             style="font-size:.65rem; letter-spacing:.1em;">
-            <i class="<?= h($iconClass) ?>"></i>
-            <?= h($title) ?>
-            <?= $badgeHtml ?>
-        </div>
-
-        <!-- Category buttons: All + one per galaxy (scrollable) -->
-        <div class="border rounded p-2 mb-2"
-             style="max-height:118px; overflow-y:auto;">
-            <div class="d-flex flex-wrap gap-2 galaxy-cat-list">
-                <button type="button"
-                        class="btn btn-sm btn-outline-galaxy galaxy-cat-btn active"
-                        data-cat="all"><?= __('All Galaxies') ?></button>
-                <?php foreach ($galaxyList as $g): ?>
-                    <button type="button"
-                            class="btn btn-sm btn-outline-galaxy galaxy-cat-btn"
-                            data-cat="galaxy"
-                            data-galaxy-id="<?= (int)$g['id'] ?>"
-                            title="<?= h($g['name']) ?>">
-                        <i class="<?= $this->FontAwesome->getClass($g['icon']) ?> me-1"></i><?= h($g['name']) ?>
-                    </button>
-                <?php endforeach; ?>
-            </div>
-        </div>
-
-        <select class="galaxy-picker"
-                placeholder="<?= __('Search clusters to add…') ?>"></select>
-        <?= $this->element('genericElementsBS5/Forms/field_hint', [
-            'text' => __('Type at least 2 characters to search across all galaxies.'),
-        ]) ?>
-
-        <div class="mt-2 d-flex flex-wrap gap-2 galaxy-selected"></div>
-        <div class="text-muted small fst-italic galaxy-selected-empty">
-            <?= __('No clusters selected.') ?>
-        </div>
-    </div>
-    <?php return ob_get_clean();
+/* Modals bring no assets: the browser loads on first use, at the URLs the asset loader would give it. */
+$cachedTimestamp = Configure::read('Asset.timestamp') === 'cached';
+$asset = function ($path, $ext) use ($cachedTimestamp, $queryVersion) {
+    $url = $this->Html->assetUrl($path, [
+        'pathPrefix' => Configure::read($ext === 'js' ? 'App.jsBaseUrl' : 'App.cssBaseUrl'),
+        'ext' => '.' . $ext,
+    ]);
+    $version = $cachedTimestamp && file_exists(WWW_ROOT . $url) ? filemtime(WWW_ROOT . $url) : null;
+    return ['path' => $url, 'url' => $url . '?v=' . ($version ?: $queryVersion)];
 };
+$browser = [
+    'scopes'  => $baseurl . '/galaxies/pickerScopes',
+    'source'  => $baseurl . '/galaxy_clusters/pickerSearch',
+    'label'   => __('Galaxy clusters'),
+    'strings' => IndexPicker::browserStrings(),
+    'css'     => $asset('index-filter-browser', 'css'),
+    'js'      => $asset('index-filter-browser', 'js'),
+];
+
+$sideHead = 'd-flex align-items-center gap-2 fw-bold text-uppercase mb-2 text-galaxy';
+$sideHeadStyle = 'font-size:.65rem; letter-spacing:.1em;';
 ?>
 
 <?= $this->element('genericElementsBS5/Forms/modal_header', [
@@ -82,19 +62,39 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
     'icon' => 'misp-icon misp-icon-galaxy misp-simple',
 ]) ?>
 
-<div class="container-fluid px-4 py-4">
+<div class="container-fluid px-4 py-4" id="<?= h($uid) ?>-picker">
 
-    <div class="d-flex flex-column gap-4">
+    <div class="d-flex flex-column gap-3">
 
-        <?= $section('global', 'fas fa-globe', __('Global Clusters')) ?>
+        <div class="ifb-accented" style="--ifb-accent: var(--bs-galaxy);" data-browser-host>
+            <div class="text-center py-5 text-body-secondary">
+                <div class="misp-loader misp-loader-sm" role="status"></div>
+            </div>
+        </div>
 
-        <?php
-        $localBadge = '<span class="badge bg-warning text-dark fw-normal"'
-            . ' style="font-size:.6rem; text-transform:none; letter-spacing:0;">'
-            . h(__('Would not be synchronized with other instances'))
-            . '</span>';
-        echo $section('local', 'fas fa-user', __('Local Clusters'), $localBadge);
-        ?>
+        <div class="d-flex flex-column gap-3">
+            <div data-side="global">
+                <div class="<?= $sideHead ?>" style="<?= $sideHeadStyle ?>">
+                    <i class="fas fa-globe"></i>
+                    <?= __('Global Clusters') ?>
+                    <span class="fw-normal text-body-secondary" data-side-count></span>
+                </div>
+                <div class="d-flex flex-wrap gap-2" data-side-list></div>
+                <div class="text-muted small fst-italic" data-side-empty><?= __('No clusters selected.') ?></div>
+            </div>
+            <div data-side="local">
+                <div class="<?= $sideHead ?>" style="<?= $sideHeadStyle ?>">
+                    <i class="fas fa-user"></i>
+                    <?= __('Local Clusters') ?>
+                    <span class="fw-normal text-body-secondary" data-side-count></span>
+                    <span class="badge bg-warning text-dark fw-normal" style="font-size:.6rem; text-transform:none; letter-spacing:0;">
+                        <?= __('Would not be synchronized with other instances') ?>
+                    </span>
+                </div>
+                <div class="d-flex flex-wrap gap-2" data-side-list></div>
+                <div class="text-muted small fst-italic" data-side-empty><?= __('No clusters selected.') ?></div>
+            </div>
+        </div>
 
     </div>
 
@@ -113,29 +113,163 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
 
 <script>
     var postUrl    = <?= json_encode($postUrl) ?>;
-    var searchUrl  = <?= json_encode($searchUrl) ?>;
     var uid        = <?= json_encode($uid) ?>;
     var reloadHook = <?= json_encode($reloadHook) ?>;
-    var initSelected      = {
-        global: <?= $initGJson ?: '[]' ?>,
-        local:  <?= $initLJson ?: '[]' ?>
-    };
+    var browserCfg = <?= json_encode($browser, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
+    var root       = document.getElementById(uid + '-picker');
+    var modalEl    = document.getElementById('mainModal');
+    var labels     = <?= json_encode([
+        'makeLocal' => __('Make it local'),
+        'makeGlobal' => __('Make it global'),
+        'remove' => __('Remove'),
+        'showWhere' => __('Show where it lives'),
+        'loadFailed' => __('The cluster browser could not be loaded.'),
+    ], JSON_HEX_TAG | JSON_HEX_AMP) ?>;
 
-    /*
-     * One Global/Local section, driven by the shared picker in mispOvermind.js
-     * (initGalaxyPickerSection): its own selection, badges and remote search
-     * against the shared cluster endpoint.
-     */
-    function makeSection(scope) {
-        return initGalaxyPickerSection(
-            document.querySelector('[data-section="' + scope + '"]'),
-            initSelected[scope],
-            { searchUrl: searchUrl, localMarker: (scope === 'local') }
-        );
+    /* Tag name => {id, name, galaxy, hue, tag_name}, per side. A mass edit can carry one cluster on both. */
+    var picked = { global: {}, local: {} };
+    [['global', <?= $initGJson ?: '[]' ?>], ['local', <?= $initLJson ?: '[]' ?>]].forEach(function (side) {
+        side[1].forEach(function (c) { picked[side[0]][c.tag_name] = c; });
+    });
+    var browser = null;
+
+    function noLink() {
+        return null;
     }
 
-    var globalSection = makeSection('global');
-    var localSection  = makeSection('local');
+    function entries(side) {
+        return Object.keys(picked[side]).map(function (tag) { return picked[side][tag]; });
+    }
+
+    /* What the browser ticks: a cluster on both sides shows as global. */
+    function browserSelection() {
+        var out = Object.keys(picked.global).map(function (tag) { return { value: tag }; });
+        Object.keys(picked.local).forEach(function (tag) {
+            if (!picked.global[tag]) { out.push({ value: tag, local: true }); }
+        });
+        return out;
+    }
+
+    function chipButton(icon, title, onClick) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'hg-act';
+        b.title = title;
+        b.setAttribute('aria-label', title);
+        b.innerHTML = icon;
+        b.addEventListener('click', function (e) {
+            e.stopPropagation();
+            onClick();
+        });
+        return b;
+    }
+
+    function renderSides() {
+        ['global', 'local'].forEach(function (side) {
+            var box = root.querySelector('[data-side="' + side + '"]');
+            var other = side === 'global' ? 'local' : 'global';
+            var list = entries(side).sort(function (a, b) { return a.name.localeCompare(b.name); });
+            var byId = {};
+            list.forEach(function (c) { byId[c.id] = c; });
+            box.querySelector('[data-side-count]').textContent = list.length ? '(' + list.length + ')' : '';
+            box.querySelector('[data-side-empty]').classList.toggle('d-none', list.length > 0);
+            var el = box.querySelector('[data-side-list]');
+            el.innerHTML = TagChips.clusters(list.map(function (c) {
+                return { id: c.id, value: c.name, galaxy: c.galaxy, hue: c.hue, local: side === 'local' };
+            }), { href: noLink });
+            el.querySelectorAll('.hg-unit[data-cluster-id]').forEach(function (unit) {
+                var c = byId[unit.getAttribute('data-cluster-id')];
+                if (!c) { return; }
+                unit.title = labels.showWhere;
+                unit.style.cursor = 'pointer';
+                unit.addEventListener('click', function () {
+                    if (browser) { browser.reveal(c.tag_name); }
+                });
+                unit.appendChild(chipButton(
+                    '<i class="fas ' + (side === 'global' ? 'fa-user' : 'fa-globe') + '"></i>',
+                    side === 'global' ? labels.makeLocal : labels.makeGlobal,
+                    function () {
+                        delete picked[side][c.tag_name];
+                        if (!picked[other][c.tag_name]) { picked[other][c.tag_name] = c; }
+                        changed();
+                    }
+                ));
+                unit.appendChild(chipButton('&times;', labels.remove, function () {
+                    delete picked[side][c.tag_name];
+                    changed();
+                }));
+            });
+        });
+    }
+
+    function changed() {
+        renderSides();
+        if (browser) { browser.select(browserSelection()); }
+    }
+
+    function onToggle(row, on) {
+        if (on) {
+            picked.global[row.value] = {
+                id: row.id,
+                name: row.label,
+                galaxy: row.style && row.style.galaxy ? row.style.galaxy : '',
+                tag_name: row.value
+            };
+        } else {
+            delete picked.global[row.value];
+            delete picked.local[row.value];
+        }
+        changed();
+    }
+
+    function loadBrowser() {
+        // A copy from before mount() existed, kept by a page opened before an upgrade, cannot host it.
+        if (window.IndexFilterBrowser) {
+            return window.IndexFilterBrowser.mount ? Promise.resolve() : Promise.reject();
+        }
+        if (!document.querySelector('link[href^="' + browserCfg.css.path + '"]')) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = browserCfg.css.url;
+            document.head.appendChild(link);
+        }
+        return new Promise(function (resolve, reject) {
+            var script = document.createElement('script');
+            script.src = browserCfg.js.url;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    var host = root.querySelector('[data-browser-host]');
+    loadBrowser().then(function () {
+        if (!root.isConnected) { return; }
+        host.innerHTML = '';
+        browser = window.IndexFilterBrowser.mount(host, {
+            kind: 'galaxy',
+            scopes: browserCfg.scopes,
+            source: browserCfg.source,
+            label: browserCfg.label,
+            strings: browserCfg.strings,
+            selection: browserSelection(),
+            onToggle: onToggle,
+            reserve: 490
+        });
+        if (modalEl.classList.contains('show')) { browser.focus(); }
+    }, function () {
+        host.innerHTML = '<div class="text-center py-4 text-body-secondary small">'
+            + '<i class="fas fa-triangle-exclamation me-2"></i></div>';
+        host.firstChild.appendChild(document.createTextNode(labels.loadFailed));
+    });
+    modalEl.addEventListener('shown.bs.modal', function () {
+        if (browser) { browser.focus(); }
+    }, { once: true });
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        if (browser) { browser.destroy(); }
+    }, { once: true });
+
+    renderSides();
 
     /*
      * After a successful save: prefer an event-view card reload hook
@@ -149,6 +283,10 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
         /* No card hook (attribute context): the change shows in the index
            behind the modal. */
         reloadEventViewIndexTab();
+    }
+
+    function ids(side) {
+        return entries(side).map(function (c) { return c.id; });
     }
 
     /* ─── Save ─── */
@@ -166,8 +304,8 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '')
                     'X-CSRF-Token':     getCsrfToken()
                 },
                 body: JSON.stringify({
-                    global_ids: globalSection.ids(),
-                    local_ids:  localSection.ids()
+                    global_ids: ids('global'),
+                    local_ids:  ids('local')
                 })
             })
             .then(function (r) { return r.json(); })

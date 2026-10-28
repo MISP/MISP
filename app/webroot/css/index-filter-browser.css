@@ -72,6 +72,41 @@
     .ifb-panel { animation: none; }
 }
 
+/* Drawn inside a host (mount()) rather than floating under a button. */
+.ifb-panel.is-embedded {
+    position: relative;
+    z-index: auto;
+    width: 100%;
+    box-shadow: none;
+    animation: none;
+}
+
+/* A host with .ifb-accented and --ifb-accent dresses the browser in its scope's colour. */
+.ifb-accented .ifb-panel {
+    --ifb-ring: var(--ifb-accent);
+    --ifb-border: color-mix(in srgb, var(--ifb-accent) 25%, transparent);
+    --ifb-divider: color-mix(in srgb, var(--ifb-accent) 15%, transparent);
+    --ifb-hover-bg: color-mix(in srgb, var(--ifb-accent) 9%, transparent);
+    --ifb-hover-fg: color-mix(in srgb, var(--ifb-accent) 40%, var(--ifb-fg));
+    --ifb-hover-icon: var(--ifb-ring);
+    --ifb-on-bg: color-mix(in srgb, var(--ifb-accent) 14%, transparent);
+    --ifb-on-fg: color-mix(in srgb, var(--ifb-accent) 65%, var(--ifb-fg));
+    --ifb-side-bg: color-mix(in srgb, var(--ifb-accent) 4%, var(--ifb-bg));
+    --ifb-mark: color-mix(in srgb, var(--ifb-accent) 26%, transparent);
+}
+[data-misp-mode="dark"] .ifb-accented .ifb-panel {
+    --ifb-ring: color-mix(in srgb, var(--ifb-accent) 80%, #fff);
+}
+.ifb-accented .ifb-top {
+    background: color-mix(in srgb, var(--ifb-accent) 5%, transparent);
+    border-radius: calc(var(--bs-border-radius-lg, .5rem) - 1px) calc(var(--bs-border-radius-lg, .5rem) - 1px) 0 0;
+}
+.ifb-accented .ifb-search input { border-color: color-mix(in srgb, var(--ifb-accent) 35%, transparent); }
+.ifb-accented .ifb-search input:focus { border-color: var(--ifb-ring); }
+.ifb-accented .ifb-search > i,
+.ifb-accented .ifb-col-side .ifb-colhead > i,
+.ifb-accented .ifb-head-i { color: var(--ifb-ring); }
+
 /* ── search bar and path ─────────────────────────────────────────────── */
 
 .ifb-top {
@@ -229,6 +264,29 @@ button.ifb-crumb:hover { background: var(--ifb-hover-bg); color: var(--ifb-hover
     min-width: 0;
 }
 .ifb-col-side .ifb-stack { flex-basis: 100%; }
+/* The left column's title reads as a title, its sections as rules under it. */
+.ifb-col-side .ifb-colhead { box-shadow: inset 0 -1px 0 var(--ifb-divider); }
+.ifb-col-side .ifb-colhead-t {
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: .8125rem;
+    font-weight: 600;
+    color: var(--ifb-fg);
+}
+.ifb-col-side .ifb-head {
+    align-items: center;
+    padding: 6px 2px 0 8px;
+    font-size: .625rem;
+    letter-spacing: .08em;
+}
+.ifb-col-side .ifb-head::after {
+    content: '';
+    flex: 1 1 auto;
+    min-width: 12px;
+    height: 1px;
+    background: var(--ifb-divider);
+}
+.ifb-col-side .ifb-head-i { margin-bottom: 0; font-size: .625rem; }
 .ifb-col.is-stale .ifb-list { opacity: .55; transition: opacity .15s .1s; }
 .ifb-col.is-dimmed .ifb-nav.is-open { background: transparent; color: var(--ifb-muted); }
 
@@ -417,6 +475,10 @@ button.ifb-crumb:hover { background: var(--ifb-hover-bg); color: var(--ifb-hover
 }
 .ifb-val[data-state="include"]:hover { background: color-mix(in srgb, var(--ifb-ring) 17%, transparent); }
 .ifb-val[data-state="exclude"]:hover { background: color-mix(in srgb, var(--ifb-exc) 16%, transparent); }
+/* A local pick, dashed like a local chip. */
+.ifb-val[data-state="local"] .ifb-check { border-style: dashed; border-color: var(--ifb-inc); color: var(--ifb-inc); }
+.ifb-val[data-state="local"] { background: var(--ifb-inc-bg); }
+.ifb-val[data-state="local"]:hover { background: color-mix(in srgb, var(--ifb-ring) 17%, transparent); }
 .ifb-sw {
     flex: none;
     width: 10px;

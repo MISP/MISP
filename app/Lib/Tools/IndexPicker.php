@@ -503,6 +503,112 @@ class IndexPicker
     }
 
     /**
+     * The column browser's strings (index-filter-browser.js), for a filter
+     * bar and for the galaxy picker modal that embeds it.
+     *
+     * @return array
+     */
+    public static function browserStrings()
+    {
+        return [
+            'aka' => __('aka %s'),
+            'all' => __('All'),
+            'allGalaxies' => __('All galaxies'),
+            'allOf' => __('All of %s'),
+            'allTactics' => __('All tactics'),
+            'allTags' => __('All tags'),
+            'az' => __('A–Z'),
+            'backTo' => __('Back to %s'),
+            'browse' => __('Browse'),
+            'byNamespace' => __('Namespace'),
+            'checkSpelling' => __('Check the spelling, or browse a scope on the left.'),
+            'clear' => __('Clear'),
+            'deprecated' => __('Deprecated'),
+            'enabled' => __('Enabled'),
+            'everywhere' => __('Everywhere'),
+            'exclude' => __('Exclude'),
+            'firstMatches' => __('First %s matches · keep typing or narrow'),
+            'galaxies' => __('Galaxies'),
+            'hasSelected' => __('Has selected values'),
+            'inUse' => __('In use'),
+            'inUseTitle' => __('Clusters already attached somewhere'),
+            'keepTyping' => __('Keep typing'),
+            'keyApply' => __('apply'),
+            'keyBack' => __('back'),
+            'keyExclude' => __('exclude'),
+            'keyInclude' => __('include'),
+            'loading' => __('Loading'),
+            'loadingScopes' => __('Loading scopes…'),
+            'loadScopesFailed' => __('Could not load the scopes.'),
+            'loadValuesFailed' => __('Could not load these values'),
+            'matchAll' => __('All of'),
+            'matchAllTitle' => __('Events tagged with every one of them, on the event itself'),
+            'matchAny' => __('Any of'),
+            'matchAnyTitle' => __('Events with at least one of them, on the event or one of its attributes'),
+            'matchLabel' => __('Match'),
+            'matrix' => __('matrix'),
+            'matrixTitle' => __('A matrix: browse it by tactic'),
+            'moreN' => __('+%s more'),
+            'moreNotShown' => __('More not shown · type to narrow'),
+            'moreTypeToNarrow' => __('+%s more · type to narrow'),
+            'namespaces' => __('Namespaces'),
+            'narrowKeeping' => __('Narrow to %s, keeping “%s”'),
+            'narrowTo' => __('Narrow to'),
+            'noClusterInUse' => __('No cluster in use'),
+            'noClusterInUseMatches' => __('No cluster in use matches “%s”'),
+            'noClusterInUseTactic' => __('No cluster in use for this tactic'),
+            'noNamespace' => __('No namespace'),
+            'noNamespaceDesc' => __('Free-text tags, written without a "namespace:" prefix.'),
+            'noPredicateMatch' => __('No predicate has a match.'),
+            'not' => __('not'),
+            'notAttached' => __('Not attached to anything yet'),
+            'noTaxonomy' => __('no taxonomy'),
+            'notEnabled' => __('Not enabled'),
+            'nothingHere' => __('Nothing here yet'),
+            'nothingInMatches' => __('Nothing in %s matches “%s”'),
+            'nothingMatches' => __('Nothing matches “%s”'),
+            'noValueMatches' => __('No %s value matches “%s”'),
+            'nsDesc' => __('Tags written as "%s:…", with no taxonomy behind them.'),
+            'numericalValue' => __('Numerical value'),
+            'open' => __('Open %s'),
+            'openShort' => __('Open'),
+            'orTypeToSearchAll' => __('or type to search all %s %s values.'),
+            'otherNamespaces' => __('Other namespaces'),
+            'otherTags' => __('Other %s tags'),
+            'otherTagsTitle' => __('Tags in this namespace that are not entries of the taxonomy'),
+            'pickHeading' => __('pick a heading to narrow'),
+            'pickPredicate' => __('Pick a predicate'),
+            'pinnedInProfile' => __('Pinned in your profile'),
+            'predicates' => __('Predicates'),
+            'preferredInProfile' => __('Preferred in your profile'),
+            'remove' => __('Remove'),
+            'search' => __('Search'),
+            'searchAllClusters' => __('Search all clusters, or pick a scope'),
+            'searchAllOf' => __('Search all of %s'),
+            'searchAllTags' => __('Search all tags, or pick a scope'),
+            'searchFailed' => __('Search failed'),
+            'searchIn' => __('Search in %s'),
+            'selected' => __('Selected'),
+            'showAll' => __('show all'),
+            'showAllClusters' => __('Show all clusters'),
+            'showWhere' => __('Show where it lives'),
+            'startsWith' => __('Starts with %s'),
+            'stopExcluding' => __('Stop excluding'),
+            'tactics' => __('Tactics'),
+            'tags' => __('Tags'),
+            'taxonomies' => __('Taxonomies'),
+            'taxonomy' => __('taxonomy'),
+            'trayEmpty' => __('Nothing selected · click a value to include it,'),
+            'trayEmptyExclude' => __('to exclude it'),
+            'tryAgain' => __('Try again'),
+            'twoCharsClusters' => __('Two characters search every cluster, or pick a scope on the left.'),
+            'twoCharsTags' => __('Two characters search every tag, or pick a scope on the left.'),
+            'whereYouAre' => __('Where you are'),
+            'whichClusters' => __('Which clusters'),
+        ];
+    }
+
+    /**
      * What the Galaxy picker can narrow to: the galaxies with clusters the
      * reader may see. `clusters` and `in_use` (clusters whose tag exists)
      * are rows in the galaxy tables, never event counts.
@@ -663,13 +769,15 @@ class IndexPicker
         }
         $query = [
             'conditions' => $conditions,
-            'fields' => ['GalaxyCluster.value', 'GalaxyCluster.tag_name', 'GalaxyCluster.uuid', 'GalaxyCluster.description', 'GalaxyCluster.default', 'Galaxy.name', 'Galaxy.icon', 'Galaxy.type'],
+            'fields' => ['GalaxyCluster.id', 'GalaxyCluster.value', 'GalaxyCluster.tag_name', 'GalaxyCluster.uuid', 'GalaxyCluster.description', 'GalaxyCluster.default', 'Galaxy.name', 'Galaxy.icon', 'Galaxy.type'],
             'contain' => ['Galaxy'],
             'order' => ['GalaxyCluster.value' => 'ASC'],
         ];
+        // The id is what the galaxy picker modal attaches.
         $toRow = function (array $r) use ($valueField) {
             $row = self::clusterRow($r);
             $row['value'] = $r['GalaxyCluster'][$valueField];
+            $row['id'] = (int)$r['GalaxyCluster']['id'];
             return $row;
         };
         $rows = self::search($GalaxyCluster, $query, 'LOWER(GalaxyCluster.value)', $term, $toRow, $limit, $galaxyId === null ? self::MIN_TERM : 0);
@@ -679,7 +787,6 @@ class IndexPicker
             $synonyms = self::clusterIdsByElement($galaxyId, 'synonyms', $term, true);
             if (!empty($synonyms)) {
                 $query['conditions']['AND'][] = ['GalaxyCluster.id' => array_keys($synonyms)];
-                $query['fields'][] = 'GalaxyCluster.id';
                 $have = array_flip(array_column($rows, 'value'));
                 foreach ($GalaxyCluster->find('all', $query) as $r) {
                     $row = $toRow($r);

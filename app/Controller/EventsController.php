@@ -4137,10 +4137,11 @@ class EventsController extends AppController
                 $cid        = (int)$gc['id'];
                 $galaxyName = $gc['Galaxy']['name'] ?? '';
                 $entry = [
-                    'id'     => $cid,
-                    'name'   => $gc['value'],
-                    'galaxy' => $galaxyName,
-                    'hue'    => GalaxyColour::hue($galaxyName),
+                    'id'       => $cid,
+                    'name'     => $gc['value'],
+                    'galaxy'   => $galaxyName,
+                    'hue'      => GalaxyColour::hue($galaxyName),
+                    'tag_name' => $gc['tag_name'],
                 ];
                 if (!empty($et['local'])) {
                     $currentLocalClusters[] = $entry;
@@ -4224,25 +4225,8 @@ class EventsController extends AppController
         }
 
         /* ── GET: build the modal ── */
-        /* Galaxy list for the per-galaxy category buttons */
-        $this->loadModel('Galaxy');
-        $galaxyRows = $this->Galaxy->find('all', [
-            'recursive' => -1,
-            'fields'    => ['Galaxy.id', 'Galaxy.name', 'Galaxy.icon'],
-            'order'     => ['Galaxy.name asc'],
-        ]);
-        $galaxyList = [];
-        foreach ($galaxyRows as $g) {
-            $galaxyList[] = [
-                'id'   => (int)$g['Galaxy']['id'],
-                'name' => $g['Galaxy']['name'],
-                'icon' => !empty($g['Galaxy']['icon']) ? $g['Galaxy']['icon'] : 'meteor',
-            ];
-        }
-
         $this->set('currentGlobalClusters', $currentGlobalClusters);
         $this->set('currentLocalClusters',  $currentLocalClusters);
-        $this->set('galaxyList',            $galaxyList);
         $this->set('eventId',               $eventId);
         $this->set('mayModify',             $mayModify);
         $this->layout = false;
