@@ -1268,7 +1268,9 @@
             // Badges read state the canvas does not hold: draw them again
             redraw:     function () {
                 var g = graph();
-                if (g) g.renderer.update();
+                if (!g) return;
+                g.getMutableNodes().forEach(function (n) { n.markDirty(); });
+                g.renderer.update();
             },
             destroy:   function () {
                 var g = graph();

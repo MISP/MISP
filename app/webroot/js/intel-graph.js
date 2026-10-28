@@ -435,11 +435,12 @@
         });
     }
 
-    // Takes records out of the workspace, or out of options.collection.
+    // Takes records (items as add() takes them, or their keys) out of the
+    // workspace, or out of options.collection.
     function remove(items, options) {
         var uuid = lower((options && options.collection) || (active && active.Collection.uuid));
         if (!uuid) return Promise.reject(new Error('There is no workspace to remove it from.'));
-        return removeFrom(uuid, (items || []).map(bare));
+        return removeFrom(uuid, (items || []).map(function (item) { return typeof item === 'string' ? item : bare(item); }));
     }
 
     // Says why the workspace, or options.collection, holds a record (an item
