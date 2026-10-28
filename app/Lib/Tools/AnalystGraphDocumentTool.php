@@ -8,7 +8,7 @@
  *     {
  *       "version": 1,
  *       "nodes": [{"type": "Attribute", "uuid": "…", "x": 120, "y": -40, "pinned": true},
- *                 {"type": "Value", "sha256": "…", "value": "8.8.8.8"},
+ *                 {"type": "Value", "sha256": "…", "value": "8.8.8.8", "hidden": true},
  *                 {"type": "ModuleAnswer", "uuid": "…", "module": "dns", "modules": ["dns"],
  *                  "origins": [{"node": "Attribute:…", "module": "dns", "type": "domain",
  *                               "value": "example.com", "ran_at": 1791100000}],
@@ -20,8 +20,9 @@
  *                  "color": "#FDE68A", "surface": "jewel", "node": "Attribute:<uuid>"}]
  *     }
  *
- * A note is anchored to a node by its key, or to an edge by its id; `notes`
- * is left out while there are none.
+ * A hidden node keeps its place in the document and is not drawn. A note is
+ * anchored to a node by its key, or to an edge by its id; `notes` is left out
+ * while there are none.
  */
 class AnalystGraphDocumentTool
 {
@@ -568,7 +569,7 @@ class AnalystGraphDocumentTool
             }
             $normalised[$axis] = $node[$axis];
         }
-        foreach (['pinned', 'collapsed', 'pulled_out'] as $flag) {
+        foreach (['pinned', 'collapsed', 'pulled_out', 'hidden'] as $flag) {
             if (!empty($node[$flag])) {
                 $normalised[$flag] = true;
             }

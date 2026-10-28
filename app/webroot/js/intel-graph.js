@@ -27,6 +27,7 @@
 //   intel-graph:added    { collection, report, items, undo, origin }  addItems went through
 //   intel-graph:refused  { collection, items, status, message } addItems was refused
 //   intel-graph:removed  { collection, report, items }         removeItems went through
+//   intel-graph:described { collection, key, description }     a member's why was said
 //   intel-graph:saved    { graph, report }                     a graph was saved from this page
 //   intel-graph:drawn    { graph, report, handle }             a mounted graph drew a save made elsewhere
 //   intel-graph:pick     { items }                             an add with no workspace to go to
@@ -441,6 +442,18 @@
         return removeFrom(uuid, (items || []).map(bare));
     }
 
+    // Says why the workspace, or options.collection, holds a record (an item
+    // as add() takes it, or its key): one line, '' to clear it.
+    function describe(item, text, options) {
+        var uuid = lower((options && options.collection) || (active && active.Collection.uuid));
+        if (!uuid) return Promise.reject(new Error('There is no workspace holding it.'));
+        return request('POST', elementsPath('describe', uuid), { item: typeof item === 'string' ? item : bare(item), description: text }).then(function (report) {
+            countMoved(uuid, report);
+            emit('described', { collection: uuid, key: report.key, description: report.description });
+            return report;
+        });
+    }
+
     // collection: { name, type?, distribution?, sharing_group_id?,
     // description? }, research and for the organisation only unless it says
     // otherwise. options.activate (default true) makes it the workspace.
@@ -677,6 +690,7 @@
         list: list,
         add: add,
         remove: remove,
+        describe: describe,
         keyOf: keyOf,
         keyNow: keyNow,
         holds: holds,

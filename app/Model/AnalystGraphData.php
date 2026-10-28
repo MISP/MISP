@@ -129,7 +129,7 @@ class AnalystGraphData extends AppModel
         $index = [];
         foreach (array_slice($payload['document']['nodes'], 0, self::THUMBNAIL_BUDGET) as $node) {
             $key = AnalystGraphDocumentTool::nodeKey($node);
-            if (isset($parent[$key])) {
+            if (isset($parent[$key]) || !empty($node['hidden'])) {
                 continue;
             }
             $thumb = ['key' => $key, 'type' => $node['type']];
@@ -575,7 +575,7 @@ class AnalystGraphData extends AppModel
                 continue;
             }
             $kept = $storedAnswers[$uuid];
-            foreach (['x', 'y', 'pinned', 'collapsed'] as $field) {
+            foreach (['x', 'y', 'pinned', 'collapsed', 'hidden'] as $field) {
                 unset($kept[$field]);
                 if (array_key_exists($field, $node)) {
                     $kept[$field] = $node[$field];

@@ -220,6 +220,7 @@ class WorkspaceTestElement extends CollectionElement
     public $stored = array();
     public $saved = array();
     public $deleted = array();
+    public $savedFields = array();
     public $failSave = false;
 
     public function __construct()
@@ -268,8 +269,13 @@ class WorkspaceTestElement extends CollectionElement
         }
         $row = $this->data['CollectionElement'];
         $this->saved[] = $row;
-        $id = count($this->stored) + 100;
-        $this->stored[$id] = $row;
+        $this->savedFields[] = array($this->id, $fieldList);
+        if ($this->id) {
+            $row += $this->stored[$this->id];
+            $this->stored[$this->id] = $row;
+        } else {
+            $this->stored[count($this->stored) + 100] = $row;
+        }
         if (!$this->skipCollectionModifiedBump) {
             $this->Collection->updateAll(array(), array('Collection.id' => $row['collection_id']));
         }
@@ -762,6 +768,27 @@ class CollectionWorkspaceTest extends TestCase
         $this->assertSame(array(2), array_column($report['refused'], 'index'));
         $this->assertSame(array(1), $elements->deleted);
         $this->assertSame(array(7), $elements->Collection->touched);
+    }
+
+    public function testDescribingSavesWhyAloneOnTheMemberItNames()
+    {
+        $elements = new WorkspaceTestElement();
+        $value = hash('sha256', 'held.example');
+        $elements->stored[1] = array('collection_id' => 7, 'element_type' => 'Event', 'element_uuid' => self::EVENT);
+        $elements->stored[2] = array('collection_id' => 7, 'element_type' => 'AttributeValue', 'element_sha256' => $value);
+
+        $key = $elements->describeItem(7, array('type' => 'Value', 'value' => ' held.example '), 'Seen in the phishing wave');
+
+        $this->assertSame('Value:' . $value, $key);
+        $this->assertSame(array(array(2, array('description'))), $elements->savedFields);
+        $this->assertSame('Seen in the phishing wave', $elements->saved[0]['description']);
+        $this->assertArrayNotHasKey('user_id', $elements->saved[0], 'who added it stays');
+        $this->assertArrayNotHasKey('created', $elements->saved[0], 'when it was added stays');
+        $this->assertSame(array(7), $elements->Collection->touched, 'the collection has a change partners lack');
+
+        $this->assertNull($elements->describeItem(7, 'Attribute:' . self::ATTRIBUTE, 'not a member'));
+        $this->assertNull($elements->describeItem(7, 'Nope:1', 'not a record'));
+        $this->assertCount(1, $elements->saved);
     }
 
     public function testHeldItemsAnswersOnlyForWhatTheUserCanRead()

@@ -14,7 +14,7 @@ class CollectionElementsController extends AppController
         // Posted by hand-built AJAX from the collection pickers and the
         // workspace, which send the CSRF token as the X-CSRF-Token header
         // instead of _Token fields.
-        $this->_csrfTokenHeaderOnly(['addElementToCollection', 'addItems', 'contains', 'removeItems']);
+        $this->_csrfTokenHeaderOnly(['addElementToCollection', 'addItems', 'contains', 'describe', 'removeItems']);
         $this->CollectionElement->current_user = $this->Auth->user();
     }
 
@@ -50,6 +50,35 @@ class CollectionElementsController extends AppController
         $target = $this->__editableCollection($this->Auth->user(), $collection);
         $report = $this->CollectionElement->removeItems($target['id'], $this->__items());
         return $this->RestResponse->viewData($this->__itemsAnswer($target, $report, !empty($report['removed'])), 'json');
+    }
+
+    /**
+     * Say why the collection holds a record: {item, description}, the item
+     * named as addItems() takes it. One line; empty clears it.
+     *
+     * @param string $collection Its uuid or id
+     */
+    public function describe($collection)
+    {
+        $this->request->allowMethod(['post']);
+        $target = $this->__editableCollection($this->Auth->user(), $collection);
+        $description = $this->request->data['description'] ?? null;
+        if (!is_string($description)) {
+            throw new BadRequestException(__('A description is text.'));
+        }
+        $description = trim(preg_replace('/\s+/u', ' ', $description));
+        if (mb_strlen($description) > CollectionElement::WHY_LENGTH) {
+            throw new BadRequestException(__('Say why in at most %s characters.', CollectionElement::WHY_LENGTH));
+        }
+        $item = $this->request->data['item'] ?? null;
+        if (CollectionElement::itemTarget($item) === null) {
+            throw new BadRequestException(__('Not a record a collection can hold.'));
+        }
+        $key = $this->CollectionElement->describeItem($target['id'], $item, $description);
+        if ($key === null) {
+            throw new NotFoundException(__('“%s” does not hold this record.', $target['name']));
+        }
+        return $this->RestResponse->viewData($this->__itemsAnswer($target, ['key' => $key, 'description' => $description], true), 'json');
     }
 
     /**

@@ -198,14 +198,15 @@ class AnalystGraphsController extends AppController
             unset($graph['Graph']['content']);
             $summary = $this->Graph->typed($graph['Graph']);
         }
-        list($members, $total, $leftOut) = $this->__memberNodes($user, $collection['id'], $document['nodes'] ?? []);
+        list($members, $elements, $leftOut) = $this->__memberNodes($user, $collection['id'], $document['nodes'] ?? []);
         $document['nodes'] = array_merge($document['nodes'] ?? [], $members);
         $payload = $this->AnalystGraphData->resolve($user, $document);
         $summary['node_count'] = $payload['meta']['nodes'];
-        $payload['meta']['members'] = $total;
+        $payload['meta']['members'] = count($elements);
         $payload['meta']['members_left_out'] = $leftOut;
         $payload['editable_events'] = $this->__editableEvents(array_keys((array)$payload['events']));
         $payload['known_values'] = $this->AnalystGraphData->knownAnswerValues($user, $payload['document']['nodes']);
+        $payload['working'] = $this->__workingMarks($user, $collection, $payload['document']['nodes'], $elements, $members, $payload['known_values']);
         return $this->RestResponse->viewData(['Graph' => $summary, 'Collection' => $collection] + $payload, 'json');
     }
 
@@ -218,7 +219,7 @@ class AnalystGraphsController extends AppController
      * @param array $user
      * @param int $collectionId
      * @param array $graphNodes
-     * @return array [nodes, how many members the collection has, how many
+     * @return array [nodes, every member's element by node key, how many
      *               found no room]
      */
     private function __memberNodes(array $user, $collectionId, array $graphNodes)
@@ -226,10 +227,15 @@ class AnalystGraphsController extends AppController
         $CollectionElement = ClassRegistry::init('CollectionElement');
         $elements = $CollectionElement->find('all', [
             'recursive' => -1,
-            'fields' => ['CollectionElement.element_type', 'CollectionElement.element_uuid', 'CollectionElement.element_sha256'],
+            'fields' => [
+                'CollectionElement.uuid', 'CollectionElement.element_type', 'CollectionElement.element_uuid',
+                'CollectionElement.element_sha256', 'CollectionElement.description', 'CollectionElement.user_id',
+                'CollectionElement.created',
+            ],
             'conditions' => ['CollectionElement.collection_id' => $collectionId],
             'order' => ['CollectionElement.id' => 'ASC'],
         ]);
+        $byKey = [];
         $held = [];
         foreach ($graphNodes as $node) {
             if (is_array($node) && isset($node['type'])) {
@@ -248,6 +254,7 @@ class AnalystGraphsController extends AppController
             if ($target === null) {
                 continue;
             }
+            $byKey[$target['key']] = $element;
             if (isset($held[$target['key']])) {
                 continue;
             }
@@ -272,7 +279,74 @@ class AnalystGraphsController extends AppController
                 ];
             }
         }
-        return [array_values(array_filter($nodes)), count($elements), $leftOut];
+        return [array_values(array_filter($nodes)), $byKey, $leftOut];
+    }
+
+    /**
+     * What each node of the working view is to the collection: a member, a
+     * finding (an answer from a module, or a value no attribute the user can
+     * read holds) or an extra (a record the graph holds and the collection
+     * does not). A member says who added it, when and why; who only to the
+     * collection's organisation.
+     *
+     * @param array $user
+     * @param array $collection Collection::workspaceSummaries()'s
+     * @param array $nodes The resolved document's nodes
+     * @param array $elements Every member's element by node key
+     * @param array $placed The members the graph lacked
+     * @param string[] $knownValues The answers' values MISP holds
+     * @return array|stdClass node key => {role, placed?, known?, element?}
+     */
+    private function __workingMarks(array $user, array $collection, array $nodes, array $elements, array $placed, array $knownValues)
+    {
+        $placedKeys = array_flip(array_map(['AnalystGraphDocumentTool', 'nodeKey'], $placed));
+        $adders = [];
+        if (Collection::showsAdders($user, ['orgc_id' => $collection['Orgc']['id']])) {
+            $ids = array_values(array_unique(array_filter(array_column($elements, 'user_id'))));
+            $adders = empty($ids) ? [] : ClassRegistry::init('User')->find('list', [
+                'recursive' => -1,
+                'fields' => ['User.id', 'User.email'],
+                'conditions' => ['User.id' => $ids],
+            ]);
+        }
+        $loose = [];
+        foreach ($nodes as $node) {
+            if ($node['type'] === 'Value' && !isset($elements[AnalystGraphDocumentTool::nodeKey($node)])) {
+                $loose[] = $node['sha256'];
+            }
+        }
+        $held = empty($loose) ? [] : array_flip(ClassRegistry::init('CollectionElement')->readableUuids($user, 'AttributeValue', $loose));
+        $known = array_flip($knownValues);
+        $marks = [];
+        foreach ($nodes as $node) {
+            $key = AnalystGraphDocumentTool::nodeKey($node);
+            if (isset($elements[$key])) {
+                $element = $elements[$key];
+                $userId = (int)$element['user_id'];
+                $mark = ['role' => 'member'];
+                if (isset($placedKeys[$key])) {
+                    $mark['placed'] = true;
+                }
+                $mark['element'] = [
+                    'uuid' => $element['uuid'],
+                    'created' => $element['created'],
+                    'description' => (string)$element['description'],
+                    'user' => isset($adders[$userId]) ? ['id' => $userId, 'email' => $adders[$userId]] : null,
+                ];
+            } elseif (AnalystGraphDocumentTool::isAnswer($node)) {
+                $mark = ['role' => 'finding'];
+                $content = $node['content'] ?? [];
+                if (in_array($content['kind'] ?? null, ['attribute', 'element'], true) && isset($known[(string)($content['value'] ?? '')])) {
+                    $mark['known'] = true;
+                }
+            } elseif ($node['type'] === 'Value' && !isset($held[$node['sha256']])) {
+                $mark = ['role' => 'finding'];
+            } else {
+                $mark = ['role' => 'extra'];
+            }
+            $marks[$key] = $mark;
+        }
+        return $marks ?: new stdClass();
     }
 
     /**

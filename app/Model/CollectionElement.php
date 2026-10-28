@@ -94,6 +94,7 @@ class CollectionElement extends AppModel
 
     /** Items one addItems() or removeItems() call takes. */
     const ITEM_LIMIT = 2000;
+    const WHY_LENGTH = 255;
 
     /** What an item of the workspace names, by its type. */
     const ITEM_TYPES = [
@@ -709,6 +710,29 @@ class CollectionElement extends AppModel
             $this->touchCollection($collectionId);
         }
         return $report;
+    }
+
+    /**
+     * Say why a collection the caller checked $user may edit holds a record.
+     *
+     * @param int $collectionId
+     * @param mixed $item Named as addItems() takes it
+     * @param string $description
+     * @return string|null The record's key, or null when the collection does
+     *      not hold it
+     */
+    public function describeItem($collectionId, $item, $description)
+    {
+        list($wanted) = $this->itemTargets([$item]);
+        $held = $this->heldKeys($collectionId, $wanted);
+        if (empty($held)) {
+            return null;
+        }
+        $key = array_keys($held)[0];
+        $this->create();
+        $this->id = $held[$key];
+        $this->save(['CollectionElement' => ['id' => $held[$key], 'description' => $description]], true, ['description']);
+        return $key;
     }
 
     /**

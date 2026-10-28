@@ -1236,7 +1236,8 @@
         }
 
         function nodeBadges(node) {
-            return analystBadges(node).concat(feedHitBadges(node), tagBadges(node), enrichmentBadges(node), originBadges(node));
+            return analystBadges(node).concat(feedHitBadges(node), tagBadges(node), enrichmentBadges(node), originBadges(node),
+                                              host.badges ? host.badges(node) : []);
         }
 
         function originBadges(node) {

@@ -348,7 +348,7 @@ class GraphTest extends TestCase
         list($document, $errors) = AnalystGraphDocumentTool::normalise(array(
             'nodes' => array(
                 self::node('Attribute', self::ATTRIBUTE, array('x' => 120, 'y' => -40.5, 'pinned' => true, 'label' => 'dropped')),
-                array('type' => 'Value', 'value' => ' 8.8.8.8 ', 'uuid' => self::EVENT),
+                array('type' => 'Value', 'value' => ' 8.8.8.8 ', 'uuid' => self::EVENT, 'hidden' => 1, 'pinned' => 0),
             ),
             'hidden_edges' => array('relationship:a', 'relationship:a'),
             'view' => array('layout' => 'force', 'zoom' => 1.5, 'center' => array(0, 0), 'theme' => 'dropped'),
@@ -360,7 +360,7 @@ class GraphTest extends TestCase
             'version' => 1,
             'nodes' => array(
                 array('type' => 'Attribute', 'uuid' => strtolower(self::ATTRIBUTE), 'x' => 120, 'y' => -40.5, 'pinned' => true),
-                array('type' => 'Value', 'sha256' => hash('sha256', '8.8.8.8'), 'value' => '8.8.8.8'),
+                array('type' => 'Value', 'sha256' => hash('sha256', '8.8.8.8'), 'value' => '8.8.8.8', 'hidden' => true),
             ),
             'groups' => array(),
             'hidden_edges' => array('relationship:a'),

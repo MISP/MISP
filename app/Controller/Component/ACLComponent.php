@@ -177,6 +177,7 @@ class ACLComponent extends Component
             'contains' => ['perm_modify'],
             'delete' => ['perm_modify'],
             'deleteSelection' => ['AND'=> ['perm_modify', 'theming_enabled']],
+            'describe' => ['perm_modify'],
             'index' => ['*'],
             'removeItems' => ['perm_modify'],
         ],

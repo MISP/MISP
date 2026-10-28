@@ -12,7 +12,7 @@
 //
 // config: { graph (uuid), source?, containerEl, loaderEl?, payload?, request, baseurl,
 //           labelPlan?, permitted?, orgUuid?, siteAdmin?, valueCard?, canEnrich?, text?,
-//           ui?, canEdit?, canAnalyst?, analystSharing?, menus?, onChange?,
+//           ui?, canEdit?, canAnalyst?, analystSharing?, menus?, badges?, onChange?,
 //           fitHeight?, cardEl? }
 // request(method, path, body) → Promise<data> is IntelGraph's.
 // source: where the payload is read instead of the graph's own data, as the
@@ -25,6 +25,8 @@
 // may modify (data's editable_events); anything else is a relationship.
 // menus: true adds "Keep in graph", "Remove from graph" and "Hide in this
 // graph" to the canvas menus. onChange(handle) hears every edit a save keeps.
+// badges(key, data, node) → rim badges the host adds to a node, key null
+// while a pivot's node is not in the document.
 // saveControls: { save() → Promise }, the page's save: the canvas then
 // carries a Save pill, and "Save as new graph…" for a user with graphSharing.
 //
@@ -110,13 +112,16 @@
         var drawnObject = {};
         var parentOf = {};
         doc.nodes.forEach(function (n) {
-            if (n.type !== 'Object' || !objects[lower(n.uuid)]) return;
+            if (n.type !== 'Object' || n.hidden || !objects[lower(n.uuid)]) return;
             var obj = objects[lower(n.uuid)];
             drawnObject[lower(obj.uuid)] = kit.foreignObjectNode(obj, owner(obj));
             (obj.Attribute || []).forEach(function (a) { parentOf[lower(a.uuid)] = 'obj:' + lower(obj.uuid); });
         });
 
         var idOf = {}, keyOf = {}, folded = {}, clusterIdOf = {}, valueIdOf = {}, answerIdOf = {};
+        // The nodes the document hides, built and not drawn: what Show lands
+        var hiddenNodes = {}, hiddenIds = {};
+        var unplaced = [];
         var positioned = 0, drawn = 0;
         doc.nodes.forEach(function (n) {
             var uuid = addressOf(n);
@@ -165,11 +170,20 @@
             if (hasPosition(n)) {
                 node.x = n.x;
                 node.y = n.y;
+            }
+            if (n.hidden) {
+                hiddenNodes[nodeKey(n)] = { doc: n, def: node };
+                hiddenIds[node.id] = true;
+                return;
+            }
+            if (hasPosition(n)) {
                 positioned++;
                 if (n.pinned) {
                     node.fx = n.x;
                     node.fy = n.y;
                 }
+            } else {
+                unplaced.push(nodeKey(n));
             }
             drawn++;
             land.node(node);
@@ -192,14 +206,19 @@
         // The edges the document hides, as they would be drawn: what a
         // "show it again" lands.
         var hiddenEdges = [];
+        // And those that wait for a hidden node to be shown
+        var heldEdges = [];
         (payload.edges || []).forEach(function (e) {
             var edge = kit.storedEdge(e, endId);
             if (!edge) return;
             if (hidden[e.id]) hiddenEdges.push(edge);
+            else if (hiddenIds[edge.from] || hiddenIds[edge.to]) heldEdges.push(edge);
             else land.edge(edge);
         });
 
         var out = land.result();
+        var defs = {};
+        out.nodes.forEach(function (n) { defs[n.id] = n; });
         var drawnEdge = {};
         out.edges.forEach(function (e) { drawnEdge[e.id] = true; });
         out.notes = (doc.notes || []).map(function (n) {
@@ -210,7 +229,11 @@
             idOf: idOf,
             keyOf: keyOf,
             folded: folded,
+            defs: defs,
             hiddenEdges: hiddenEdges,
+            hiddenNodes: hiddenNodes,
+            heldEdges: heldEdges,
+            unplaced: unplaced,
             // Every node drawn sits where it was saved: open it as it was left.
             positioned: drawn > 0 && positioned === drawn
         };
@@ -305,6 +328,12 @@
             removed: {},
             hide: {},
             hiddenRaw: {},
+            // Nodes hidden, stored or since (document key → { doc, def }),
+            // stored ones shown again since the last save, and the edges
+            // waiting for a hidden end to come back
+            hidden: {},
+            shown: {},
+            held: {},
             // The stored group each hand-made canvas group was restored from
             // or saved as, by canvas group id.
             groupOf: {},
@@ -327,7 +356,27 @@
 
         function take(payload, kit) {
             state.payload = payload;
-            state.built = graphData(payload, kit);
+            var built = graphData(payload, kit);
+            Object.keys(built.hiddenNodes).forEach(function (key) {
+                var stored = built.hiddenNodes[key];
+                if (state.shown[key]) {
+                    built.idOf[key] = stored.def.id;
+                    built.keyOf[stored.def.id] = key;
+                    built.defs[stored.def.id] = stored.def;
+                } else if (!state.hidden[key]) {
+                    state.hidden[key] = stored;
+                }
+            });
+            built.heldEdges.forEach(function (e) {
+                if (!state.held[e.id]) state.held[e.id] = e;
+            });
+            Object.keys(state.hidden).forEach(function (key) {
+                var id = built.idOf[key];
+                if (!id) return;
+                delete built.keyOf[id];
+                delete built.idOf[key];
+            });
+            state.built = built;
             editableEvents = {};
             (payload.editable_events || []).forEach(function (id) { editableEvents[String(id)] = true; });
             return state.built;
@@ -627,7 +676,11 @@
             },
             options: options,
             afterMount: afterMount,
-            canReference: canReference
+            canReference: canReference,
+            badges: config.badges ? function (node) {
+                var key = (state.built && state.built.keyOf[node.id]) || null;
+                return config.badges(key, node.getData ? node.getData() : null, node) || [];
+            } : null
         });
 
         function graph() {
@@ -687,7 +740,13 @@
             var nodes = [];
             var measured = sizes ? explorer.kit.size.measured : function () {};
             doc.nodes.forEach(function (n) {
-                var id = built.idOf[nodeKey(n)];
+                var key = nodeKey(n);
+                if (state.hidden[key]) {
+                    nodes.push(state.hidden[key].doc);
+                    return;
+                }
+                if (state.removed[key]) return;
+                var id = built.idOf[key];
                 if (!id) {
                     nodes.push(n);
                     return;
@@ -702,6 +761,7 @@
                 var out = Object.assign({}, n);
                 delete out.pinned;
                 delete out.pulled_out;
+                delete out.hidden;
                 var at = explorer.kit.canvasPosition(onCanvas);
                 if (at) {
                     out.x = at.x;
@@ -808,6 +868,128 @@
             if (gone) changed('removed');
         }
 
+        // Out of the document on the next save, drawn or hidden.
+        function removeKeys(keys) {
+            var ids = [];
+            var gone = 0;
+            keys.forEach(function (key) {
+                if (state.hidden[key]) {
+                    delete state.hidden[key];
+                    state.removed[key] = true;
+                    gone++;
+                    return;
+                }
+                var id = state.built.idOf[key];
+                if (id && !state.built.folded[id]) ids.push(id);
+            });
+            if (ids.length) remove(ids);
+            if (gone) changed('removed');
+        }
+
+        function storedNode(key) {
+            return (state.payload.document.nodes || []).filter(function (n) { return nodeKey(n) === key; })[0] || null;
+        }
+
+        // Off the canvas with their edges, and kept in the document, flagged,
+        // where they were.
+        function hideNodes(keys) {
+            var g = graph();
+            var gone = 0;
+            keys.forEach(function (key) {
+                var id = state.built.idOf[key];
+                if (!id || state.built.folded[id] || state.hidden[key]) return;
+                var node = g.getMutableNode(id);
+                var def = state.built.defs[id];
+                var stored = storedNode(key);
+                if (!node || !def || !stored) return;
+                var doc = Object.assign({}, stored, { hidden: true });
+                delete doc.pinned;
+                var at = explorer.kit.canvasPosition(node);
+                if (at) {
+                    doc.x = at.x;
+                    doc.y = at.y;
+                }
+                if (node.frozen) doc.pinned = true;
+                g.getMutableEdges().forEach(function (e) {
+                    if (e.from.id === id || e.to.id === id) {
+                        state.held[e.id] = { id: e.id, from: e.from.id, to: e.to.id, data: e.getData() };
+                    }
+                });
+                state.hidden[key] = { doc: doc, def: def };
+                delete state.shown[key];
+                delete state.built.keyOf[id];
+                delete state.built.idOf[key];
+                g.removeNode(id);
+                gone++;
+            });
+            if (gone) changed('hidden');
+        }
+
+        function showNodes(keys) {
+            var g = graph();
+            var back = 0;
+            keys.forEach(function (key) {
+                var entry = state.hidden[key];
+                if (!entry) return;
+                delete state.hidden[key];
+                var def = Object.assign({}, entry.def);
+                delete def.fx;
+                delete def.fy;
+                if (hasPosition(entry.doc)) {
+                    def.x = entry.doc.x;
+                    def.y = entry.doc.y;
+                    if (entry.doc.pinned) {
+                        def.fx = def.x;
+                        def.fy = def.y;
+                    }
+                }
+                if (!g.getMutableNode(def.id)) g.addNode(def);
+                state.built.idOf[key] = def.id;
+                state.built.keyOf[def.id] = key;
+                state.built.defs[def.id] = entry.def;
+                state.shown[key] = true;
+                back++;
+            });
+            Object.keys(state.held).forEach(function (id) {
+                var e = state.held[id];
+                if (edgeHidden(id) || g.getMutableEdge(id) || !g.getMutableNode(e.from) || !g.getMutableNode(e.to)) return;
+                g.addEdge(e);
+                delete state.held[id];
+            });
+            if (back) changed('shown');
+        }
+
+        // The nodes hidden on this graph, stored or since: { key, data }.
+        function hiddenNodes() {
+            return Object.keys(state.hidden).map(function (key) {
+                return { key: key, data: state.hidden[key].def.data };
+            });
+        }
+
+        // The document's nodes drawn where the layout put them, having no
+        // stored position.
+        function placed() {
+            var g = graph();
+            if (!g || !state.built) return [];
+            return state.built.unplaced.filter(function (key) {
+                var id = state.built.idOf[key];
+                return !!id && !!g.getMutableNode(id);
+            });
+        }
+
+        // A menu's node or selection, each as { id, key, item, pivoted }: key
+        // is the document's, null while a pivot's node is not saved; item
+        // names the record as IntelGraph.add takes it, null for an answer.
+        function targetOf(el) {
+            return nodesOf(el).map(function (n) {
+                var doc = documentNodeOf(n);
+                var item = null;
+                if (doc && doc.type === 'Value') item = { type: 'Value', value: doc.value };
+                else if (doc && doc.type !== 'ModuleAnswer') item = { type: doc.type, uuid: doc.uuid };
+                return { id: n.id, key: state.built.keyOf[n.id] || null, item: item, pivoted: isPivoted(n) };
+            });
+        }
+
         function hideEdge(id) {
             var g = graph();
             var edge = g && g.getMutableEdge(id);
@@ -851,8 +1033,10 @@
             var g = graph();
             var before = state.built;
             var after = take(payload, explorer.kit);
+            var hiddenIds = {};
+            Object.keys(state.hidden).forEach(function (key) { hiddenIds[state.hidden[key].def.id] = true; });
             var fresh = after.data.nodes.filter(function (n) {
-                return !g.getMutableNode(n.id) && !state.removed[after.keyOf[n.id]];
+                return !g.getMutableNode(n.id) && !state.removed[after.keyOf[n.id]] && !hiddenIds[n.id];
             });
             if (fresh.length) holdLayout(g);
             fresh.forEach(function (n) {
@@ -913,6 +1097,7 @@
                 state.removed = {};
                 state.hide = {};
                 state.hiddenRaw = {};
+                state.shown = {};
                 state.groupOf = composed.groupOf;
                 state.unrestored = composed.unrestored;
                 state.droppedNotes = {};
@@ -1026,9 +1211,15 @@
                 return { document: documentOf(sizes), sizes: sizes };
             },
             nodeOf:     nodeOf,
+            targetOf:   targetOf,
+            placed:     placed,
             keep:       keep,
             pivoted:    pivoted,
             remove:     remove,
+            removeKeys: removeKeys,
+            hideNodes:  hideNodes,
+            showNodes:  showNodes,
+            hiddenNodes: hiddenNodes,
             hideEdge:   hideEdge,
             showEdge:   showEdge,
             hiddenEdges: hiddenEdges,
@@ -1038,6 +1229,11 @@
             rebase:     rebase,
             followed:   followed,
             adopt:      adopt,
+            // Badges read state the canvas does not hold: draw them again
+            redraw:     function () {
+                var g = graph();
+                if (g) g.renderer.update();
+            },
             destroy:   function () {
                 var g = graph();
                 if (g && typeof g.destroy === 'function') g.destroy();
