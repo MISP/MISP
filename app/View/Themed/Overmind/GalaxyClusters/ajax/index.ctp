@@ -274,7 +274,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
                 // Mass delete (soft/hard) via deleteSelection. delete_url is absolute because item_url carries the galaxy id.
                 'delete' => ($isSiteAdmin || !empty($me['Role']['perm_galaxy_editor'])) ? '/deleteSelection' : null,
                 'delete_url' => '/galaxy_clusters/deleteSelection',
-                'mass_graph' => $this->Acl->canAccess('analystGraphs', 'addNodes'),
+                'mass_graph' => $this->Acl->canAccess('collectionElements', 'addItems'),
             ],
             'fields' => $fields,
             'primary_id_path' => 'GalaxyCluster.id',

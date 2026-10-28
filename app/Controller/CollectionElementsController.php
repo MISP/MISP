@@ -14,7 +14,7 @@ class CollectionElementsController extends AppController
         // Posted by hand-built AJAX from the collection pickers and the
         // workspace, which send the CSRF token as the X-CSRF-Token header
         // instead of _Token fields.
-        $this->_csrfTokenHeaderOnly(['addElementToCollection', 'addItems', 'removeItems']);
+        $this->_csrfTokenHeaderOnly(['addElementToCollection', 'addItems', 'contains', 'removeItems']);
         $this->CollectionElement->current_user = $this->Auth->user();
     }
 
@@ -50,6 +50,21 @@ class CollectionElementsController extends AppController
         $target = $this->__editableCollection($this->Auth->user(), $collection);
         $report = $this->CollectionElement->removeItems($target['id'], $this->__items());
         return $this->RestResponse->viewData($this->__itemsAnswer($target, $report, !empty($report['removed'])), 'json');
+    }
+
+    /**
+     * Which of these records the collection holds, named as addItems() takes
+     * them: {present: [key], absent: [key]}. Changes nothing.
+     *
+     * @param string $collection Its uuid or id
+     */
+    public function contains($collection)
+    {
+        $this->request->allowMethod(['post']);
+        $user = $this->Auth->user();
+        $target = $this->__editableCollection($user, $collection);
+        $report = $this->CollectionElement->heldItems($user, $target['id'], $this->__items());
+        return $this->RestResponse->viewData(['collection_uuid' => $target['uuid']] + $report, 'json');
     }
 
     /**

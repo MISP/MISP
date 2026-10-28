@@ -32,8 +32,7 @@ $canTagObj = isset($event)
 
 $_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
 $_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
-$_mayGraph = $this->Acl->canAccess('analystGraphs', 'addNodes');
-$_mayCollect = $this->Acl->canAccess('collectionElements', 'addElementToCollection');
+$_mayGraph = $this->Acl->canAccess('collectionElements', 'addItems');
 
 // Extended / extending event view: an object can belong to any event of the
 // merged set, so its card says which one and wears that event's accent.
@@ -212,14 +211,16 @@ $foldChildren = empty($objects) ? [] : [
                           data-one="<?= h(__('%s object selected')) ?>"
                           data-many="<?= h(__('%s objects selected')) ?>"></span>
                     <span class="ms-sep" aria-hidden="true"></span>
-                    <button id="obj-multi-graph-button"
-                            class="btn btn-analystGraph btn-sm d-none"
-                            type="button"
-                            title="<?= __('Add the selected to the active workspace') ?>"
-                            aria-label="<?= __('Add the selected to the active workspace') ?>">
-                        <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
-                        <span class="text-white"> <?= __('Workspace') ?></span>
-                    </button>
+                    <?php if ($_mayGraph): ?>
+                        <?= $this->element('intel_graph_add', [
+                            'id' => 'obj-multi-graph-button',
+                            'class' => 'd-none',
+                            'variant' => 'short',
+                            'btnClass' => 'btn-sm btn-analystGraph',
+                            'title' => __('Add the selected to the workspace'),
+                            'stateless' => true,
+                        ]) ?>
+                    <?php endif; ?>
                     <button id="obj-multi-delete-button"
                             class="btn btn-outline-danger btn-sm d-none"
                             type="button"
@@ -243,15 +244,14 @@ $foldChildren = empty($objects) ? [] : [
                           data-many="<?= h(__('%s attributes selected')) ?>"></span>
                     <span class="ms-sep" aria-hidden="true"></span>
                     <?php if ($_mayGraph): ?>
-                    <button id="mass-graph-button"
-                            class="btn btn-analystGraph btn-sm d-none"
-                            type="button"
-                            title="<?= __('Add the selected to the active workspace') ?>"
-                            aria-label="<?= __('Add the selected to the active workspace') ?>"
-                            onclick="addSelectedToGraph(this)">
-                        <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
-                        <span class="text-white"> <?= __('Workspace') ?></span>
-                    </button>
+                        <?= $this->element('intel_graph_add', [
+                            'id' => 'mass-graph-button',
+                            'class' => 'd-none',
+                            'variant' => 'short',
+                            'btnClass' => 'btn-sm btn-analystGraph',
+                            'title' => __('Add the selected to the workspace'),
+                            'stateless' => true,
+                        ]) ?>
                     <?php endif; ?>
                     <?php if ($canEdit): ?>
                     <button id="multi-delete-button"
@@ -292,7 +292,6 @@ $foldChildren = empty($objects) ? [] : [
             $objSelectable = $objCanEdit || $ctx['graphItem'] !== null;
             $objCanTag   = $ctx['canTag'];
             $_canGraph   = !$isDeleted && $_mayGraph;
-            $_canCollect = !$isDeleted && $_mayCollect;
         ?>
         <div class="accordion-item shadow-sm mb-2 rounded border<?= $isDeleted ? ' opacity-50' : '' ?>"
              style="<?= h($objStyle) ?>"
@@ -452,23 +451,13 @@ $foldChildren = empty($objects) ? [] : [
                             <?php endif; ?>
                         <?php endif; ?>
                         <?php if ($_canGraph): ?>
-                            <a href="#" class="btn btn-sm btn-outline-analystGraph<?= $objCanEdit ? '' : ' ms-auto' ?>"
-                               data-intel-graph-add="<?= h(json_encode([['type' => 'Object', 'uuid' => $object['uuid'], 'label' => $object['name']]])) ?>">
-                                <i class="misp-icon misp-icon-analyst-graph misp-simple me-1"></i>
-                                <?= __('Add to workspace') ?>
-                            </a>
-                        <?php endif; ?>
-                        <?php if ($_canCollect): ?>
-                            <?php $collectUrl = $baseurl . '/collectionElements/addElementToCollection/Object/' . h($object['uuid']); ?>
-                            <a href="<?= $collectUrl ?>"
-                               class="btn btn-sm btn-outline-dark<?= ($objCanEdit || $_canGraph) ? '' : ' ms-auto' ?>"
-                               onclick="event.preventDefault(); openModal('<?= $collectUrl ?>', 'xl');">
-                                <i class="fas fa-folder-plus me-1"></i>
-                                <?= __('Add to collection') ?>
-                            </a>
+                            <?= $this->element('intel_graph_add', [
+                                'items' => [['type' => 'Object', 'uuid' => $object['uuid'], 'label' => $object['name']]],
+                                'class' => $objCanEdit ? '' : 'ms-auto',
+                            ]) ?>
                         <?php endif; ?>
                         <?php if (!empty($me['Role']['perm_analyst_data'])): ?>
-                            <div class="<?= ($objCanEdit || $_canGraph || $_canCollect) ? '' : 'ms-auto' ?>">
+                            <div class="<?= ($objCanEdit || $_canGraph) ? '' : 'ms-auto' ?>">
                                 <?= $this->element('AnalystData/add_controls', [
                                     'objectType' => 'Object',
                                     'objectUuid' => $object['uuid'] ?? '',
@@ -905,8 +894,7 @@ $foldChildren = empty($objects) ? [] : [
         objSelected.forEach(function (sel) { if (!sel.canDelete) canDeleteAll = false; });
         var delBtn = objScope().querySelector('#obj-multi-delete-button');
         if (delBtn) delBtn.classList.toggle('d-none', !canDeleteAll);
-        var graphBtn = objScope().querySelector('#obj-multi-graph-button');
-        if (graphBtn) graphBtn.classList.toggle('d-none', !window.IntelGraphActions || objGraphItems().length === 0);
+        syncGraphButton(objScope().querySelector('#obj-multi-graph-button'), objGraphItems());
         syncMultiSelectFloat();
     }
 
@@ -943,14 +931,6 @@ $foldChildren = empty($objects) ? [] : [
                     + JSON.stringify(Array.from(objSelected.keys()).map(Number)),
                 'md'
             );
-        });
-    }
-
-    var objGraphBtn = objScope().querySelector('#obj-multi-graph-button');
-    if (objGraphBtn) {
-        objGraphBtn.addEventListener('click', function () {
-            var items = objGraphItems();
-            if (items.length && window.IntelGraphActions) window.IntelGraphActions.add(items, objGraphBtn);
         });
     }
 

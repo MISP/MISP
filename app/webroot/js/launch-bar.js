@@ -72,7 +72,8 @@
             var q = input.value.trim().toLowerCase();
             items.forEach(function (item) {
                 var label = item.getAttribute('data-label');
-                item.hidden = q !== '' && label.toLowerCase().indexOf(q) < 0;
+                // data-lb-off: switched off by whoever owns the entry
+                item.hidden = item.hasAttribute('data-lb-off') || (q !== '' && label.toLowerCase().indexOf(q) < 0);
                 item.querySelector('.lb-lbl').innerHTML = highlight(label, q);
             });
             groups.forEach(function (g) {

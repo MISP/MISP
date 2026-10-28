@@ -30,6 +30,9 @@
 //   intel-graph:saved    { graph, report }                     a graph was saved from this page
 //   intel-graph:drawn    { graph, report, handle }             a mounted graph drew a save made elsewhere
 //   intel-graph:pick     { items }                             an add with no workspace to go to
+//   intel-graph:held     { collection, keys }                  what the workspace is known to hold moved;
+//                        keys null when all of it was forgotten (a switch)
+//   intel-graph:reveal   { keys, labels, items }               show these records in the dock
 
 (function () {
     'use strict';
@@ -39,6 +42,15 @@
     var text = Object.assign({ none: 'No workspace' }, config.text);
     var active = usable(config.active);
     var dock = null;
+    // What the workspace's collection is known to hold: key → true | false,
+    // keys as addItems answers them (Type:address).
+    var held = {};
+    var heldOf = active ? lower(active.Collection.uuid) : null;
+    var asking = {};
+    // When an add or a removal last said where a key stands: an answer to
+    // a question asked before then is stale for it.
+    var clock = 0;
+    var learnt = {};
 
     // { Collection, Graph } while there is a collection, else null.
     function usable(workspace) {
@@ -145,8 +157,10 @@
     }
 
     function setActiveState(workspace) {
+        var was = active && lower(active.Collection.uuid);
         active = usable(workspace);
         renderSlot();
+        if ((active && lower(active.Collection.uuid)) !== was) forgetHeld();
         emit('active', { workspace: active });
         return active;
     }
@@ -184,6 +198,7 @@
         if (!message || config.user == null || message.user !== config.user) return;
         if (message.kind === 'active') setActiveState(message.workspace);
         else if (message.kind === 'count') touchCount(message.collection, message.element_count, message.state);
+        else if (message.kind === 'held') moveHeld(message.collection, message['in'] || [], message.out || []);
     }
 
     if (channel) {
@@ -192,6 +207,119 @@
         window.addEventListener('storage', function (e) {
             if (e.key !== CHANNEL || !e.newValue) return;
             try { hear(JSON.parse(e.newValue)); } catch (err) { /* not ours */ }
+        });
+    }
+
+    /* ── what the workspace holds ──────────────────────────── */
+    // A record's key as addItems answers it; a value's is the SHA-256 of its
+    // trimmed text, so it resolves later. Null for what cannot be a member.
+    var valueKeys = {};
+    var valueKeysDone = {};
+    function keyOf(item) {
+        if (!item || typeof item.type !== 'string') return Promise.resolve(null);
+        if (item.type !== 'Value') return Promise.resolve(keyNow(item));
+        if (item.sha256) return Promise.resolve(keyNow(item));
+        var text = String(item.value == null ? '' : item.value).trim();
+        if (!text || !(window.crypto && window.crypto.subtle && window.TextEncoder)) return Promise.resolve(null);
+        if (!valueKeys[text]) {
+            valueKeys[text] = window.crypto.subtle.digest('SHA-256', new window.TextEncoder().encode(text)).then(function (buf) {
+                valueKeysDone[text] = 'Value:' + Array.prototype.map.call(new Uint8Array(buf), function (b) {
+                    return ('0' + b.toString(16)).slice(-2);
+                }).join('');
+                return valueKeysDone[text];
+            }, function () { return null; });
+        }
+        return valueKeys[text];
+    }
+    // The key when it needs no digest, or its digest is done; else null.
+    function keyNow(item) {
+        if (!item || typeof item.type !== 'string') return null;
+        if (item.type !== 'Value') return item.uuid ? item.type + ':' + lower(item.uuid) : null;
+        if (item.sha256) return 'Value:' + lower(item.sha256);
+        return valueKeysDone[String(item.value == null ? '' : item.value).trim()] || null;
+    }
+
+    function forgetHeld() {
+        held = {};
+        asking = {};
+        learnt = {};
+        heldOf = active ? lower(active.Collection.uuid) : null;
+        emit('held', { collection: heldOf, keys: null });
+    }
+
+    // Keys now known in or out of a collection; only the workspace's are
+    // kept. askedAt: the clock when the lookup answering them was sent.
+    function moveHeld(uuid, inKeys, outKeys, askedAt) {
+        if (!heldOf || lower(uuid) !== heldOf) return [];
+        var moved = [];
+        [[inKeys, true], [outKeys, false]].forEach(function (pair) {
+            (pair[0] || []).forEach(function (key) {
+                if (askedAt !== undefined && (learnt[key] || 0) > askedAt) return;
+                if (askedAt === undefined) learnt[key] = ++clock;
+                if (held[key] !== pair[1]) moved.push(key);
+                held[key] = pair[1];
+            });
+        });
+        if (moved.length) emit('held', { collection: heldOf, keys: moved });
+        return moved;
+    }
+
+    function shareHeld(uuid, inKeys, outKeys) {
+        if (moveHeld(uuid, inKeys, outKeys).length) {
+            broadcast({ kind: 'held', collection: lower(uuid), 'in': inKeys, out: outKeys });
+        }
+    }
+
+    // true, false, or undefined while nobody asked.
+    function holds(key) {
+        return key ? held[key] : undefined;
+    }
+
+    // What the workspace now holds, learnt some other way than an add or a
+    // removal made here.
+    function markHeld(inKeys, outKeys) {
+        if (heldOf) shareHeld(heldOf, inKeys || [], outKeys || []);
+    }
+
+    // Asks which of these records the workspace holds, those not known yet,
+    // in as few requests as the server allows. Resolves when known.
+    var LOOKUP_LIMIT = 2000;
+    function lookup(items) {
+        if (!heldOf) return Promise.resolve(null);
+        var uuid = heldOf;
+        return Promise.all((items || []).map(keyOf)).then(function (keys) {
+            var ask = [];
+            keys.forEach(function (key) {
+                if (!key || key in held || asking[key]) return;
+                asking[key] = true;
+                ask.push(key);
+            });
+            var chunks = [];
+            for (var i = 0; i < ask.length; i += LOOKUP_LIMIT) chunks.push(ask.slice(i, i + LOOKUP_LIMIT));
+            var askedAt = clock;
+            return Promise.all(chunks.map(function (chunk) {
+                return request('POST', elementsPath('contains', uuid), { items: chunk }).then(function (out) {
+                    chunk.forEach(function (k) { delete asking[k]; });
+                    moveHeld(uuid, (out && out.present) || [], (out && out.absent) || [], askedAt);
+                }, function () {
+                    chunk.forEach(function (k) { delete asking[k]; });
+                });
+            }));
+        });
+    }
+
+    // Opens the dock on these records.
+    function reveal(items) {
+        items = items || [];
+        return Promise.all(items.map(keyOf)).then(function (keys) {
+            var labels = {};
+            keys.forEach(function (key, i) {
+                if (key && (items[i].label || items[i].value)) {
+                    labels[key] = { type: items[i].type, title: String(items[i].label || items[i].value), value: items[i].value };
+                }
+            });
+            keys = keys.filter(Boolean);
+            if (keys.length) emit('reveal', { keys: keys, labels: labels, items: items });
         });
     }
 
@@ -239,6 +367,7 @@
     function removeFrom(uuid, items) {
         return request('POST', elementsPath('removeItems', uuid), { items: items }).then(function (report) {
             countMoved(uuid, report);
+            shareHeld(uuid, [], (report.removed || []).concat(report.absent || []));
             emit('removed', { collection: lower(uuid), report: report, items: items });
             return report;
         });
@@ -291,6 +420,7 @@
             var added = report.added || [];
             var undo = added.length ? undoOnce(uuid, added) : null;
             countMoved(uuid, report);
+            shareHeld(uuid, added.concat(report.present || []), []);
             emit('added', { collection: uuid, report: report, items: items, undo: undo, origin: origin });
             return {
                 status: report.changed ? 'added' : 'unchanged',
@@ -304,23 +434,46 @@
         });
     }
 
+    // Takes records out of the workspace, or out of options.collection.
+    function remove(items, options) {
+        var uuid = lower((options && options.collection) || (active && active.Collection.uuid));
+        if (!uuid) return Promise.reject(new Error('There is no workspace to remove it from.'));
+        return removeFrom(uuid, (items || []).map(bare));
+    }
+
     // collection: { name, type?, distribution?, sharing_group_id?,
     // description? }, research and for the organisation only unless it says
     // otherwise. options.activate (default true) makes it the workspace.
+    // options.items, as add() takes them, join it in the same request: the
+    // collection resolved then carries the add's `report`, announced as an
+    // add is (options.origin as add() takes it).
     function createCollection(collection, options) {
         var activate = !(options && options.activate === false);
-        return request('POST', '/collections/quickAdd.json', {
+        var items = (options && options.items) || [];
+        var body = {
             name: collection.name,
             type: collection.type || 'research',
             distribution: collection.distribution == null ? 0 : collection.distribution,
             sharing_group_id: collection.sharing_group_id || null,
             description: collection.description || '',
             workspace: activate
-        }).then(function (out) {
+        };
+        if (items.length) body.items = items.map(bare);
+        var origin = originOf(options && options.origin);
+        return request('POST', '/collections/quickAdd.json', body).then(function (out) {
             var created = out && out.Collection;
             if (!created || !created.uuid) throw new Error('The collection was not created.');
             if (activate && out.workspace) {
                 broadcast({ kind: 'active', workspace: setActiveState(out.workspace) });
+            }
+            if (out.report) {
+                var uuid = lower(created.uuid);
+                var report = Object.assign({ collection_uuid: created.uuid, element_count: created.element_count, Collection: created }, out.report);
+                var added = report.added || [];
+                countMoved(uuid, report);
+                shareHeld(uuid, added.concat(report.present || []), []);
+                emit('added', { collection: uuid, report: report, items: items, undo: added.length ? undoOnce(uuid, added) : null, origin: origin });
+                created = Object.assign({}, created, { report: report });
             }
             return created;
         });
@@ -523,6 +676,13 @@
         setActive: setActive,
         list: list,
         add: add,
+        remove: remove,
+        keyOf: keyOf,
+        keyNow: keyNow,
+        holds: holds,
+        markHeld: markHeld,
+        lookup: lookup,
+        reveal: reveal,
         createCollection: createCollection,
         workingPath: workingPath,
         create: create,

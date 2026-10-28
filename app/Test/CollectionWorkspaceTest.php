@@ -763,4 +763,30 @@ class CollectionWorkspaceTest extends TestCase
         $this->assertSame(array(1), $elements->deleted);
         $this->assertSame(array(7), $elements->Collection->touched);
     }
+
+    public function testHeldItemsAnswersOnlyForWhatTheUserCanRead()
+    {
+        $elements = new WorkspaceTestElement();
+        $value = hash('sha256', 'held.example');
+        $hidden = '9b000000-0000-4000-8000-0000000000e4';
+        $elements->readable = array('Event' => array(self::EVENT, $hidden), 'Attribute' => array(self::ATTRIBUTE), 'AttributeValue' => array($value));
+        $elements->stored[1] = array('collection_id' => 7, 'element_type' => 'Event', 'element_uuid' => self::EVENT);
+        $elements->stored[2] = array('collection_id' => 7, 'element_type' => 'AttributeValue', 'element_sha256' => $value);
+        $elements->stored[3] = array('collection_id' => 7, 'element_type' => 'Object', 'element_uuid' => self::C3);
+
+        $report = $elements->heldItems(self::user(), 7, array(
+            array('type' => 'Event', 'uuid' => strtoupper(self::EVENT)),
+            array('type' => 'Value', 'value' => ' held.example '),
+            array('type' => 'Attribute', 'uuid' => self::ATTRIBUTE),
+            array('type' => 'Object', 'uuid' => self::C3),
+            array('type' => 'Event', 'uuid' => $hidden),
+            'Nope:1',
+        ));
+
+        $this->assertSame(array('Event:' . self::EVENT, 'Value:' . $value), $report['present']);
+        $this->assertSame(array('Attribute:' . self::ATTRIBUTE, 'Object:' . self::C3, 'Event:' . $hidden), $report['absent'], 'an unreadable member is answered absent');
+        $this->assertSame(array(), $elements->saved);
+        $this->assertSame(array(), $elements->deleted);
+        $this->assertSame(array(), $elements->Collection->touched);
+    }
 }

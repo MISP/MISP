@@ -3,9 +3,7 @@ $eventUuid = h($data['Event']['uuid'] ?? '');
 $uid       = 'evt-collections-' . h($data['Event']['id'] ?? '');
 $fetchUrl  = h($baseurl . '/collections/getCollectionsForElement/Event/' . $eventUuid . '.json');
 $viewBase  = h($baseurl . '/collections/view/');
-// The picker modal — an existing collection, or a new one carrying this event as its attach target.
-$addUrl    = h($baseurl . '/collectionElements/addElementToCollection/Event/' . $eventUuid);
-$mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection');
+$mayAdd    = $this->Acl->canAccess('collectionElements', 'addItems');
 ?>
 
 <div class="card shadow-sm mb-3" id="collections-card">
@@ -24,13 +22,13 @@ $mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection
             </div>
 
             <?php if ($mayAdd): ?>
-            <button type="button"
-                    class="btn btn-sm btn-outline-secondary flex-shrink-0"
-                    data-tour="event-collections-add"
-                    onclick="openModal('<?= $addUrl ?>', 'xl')"
-                    title="<?= __('Add this event to a collection') ?>">
-                <i class="fas fa-plus"></i>
-            </button>
+                <div class="flex-shrink-0" data-tour="event-collections-add">
+                    <?= $this->element('intel_graph_add', [
+                        'items' => [['type' => 'Event', 'uuid' => $data['Event']['uuid'], 'label' => $data['Event']['info']]],
+                        'variant' => 'short',
+                        'title' => __('Add this event to your workspace'),
+                    ]) ?>
+                </div>
             <?php endif; ?>
         </div>
     </div>
@@ -57,6 +55,15 @@ $mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection
     document.addEventListener('misp:collection-element-added', function (e) {
         var d = e.detail || {};
         if (d.type === 'Event' && String(d.uuid).toLowerCase() === eventUuid.toLowerCase()) { load(); }
+    });
+    // And an add or a removal through the add control.
+    var eventKey = 'Event:' + eventUuid.toLowerCase();
+    ['intel-graph:added', 'intel-graph:removed'].forEach(function (name) {
+        document.addEventListener(name, function (e) {
+            var r = (e.detail && e.detail.report) || {};
+            var keys = [].concat(r.added || [], r.removed || []);
+            if (keys.indexOf(eventKey) !== -1) { load(); }
+        });
     });
     load();
 

@@ -183,28 +183,12 @@ if ($canEdit) {
 
 $actions[] = ['divider' => true, 'label' => __('Share')];
 
-if ($this->Acl->canAccess('collectionElements', 'addElementToCollection')) {
-    $actions[] = [
-        'url' => "$baseurl/collectionElements/addElementToCollection/Event/$eventUuid",
-        'onclick' => $modal("$baseurl/collectionElements/addElementToCollection/Event/$eventUuid", 'xl'),
-        'icon' => 'fas fa-folder-plus',
-        'label' => __('Add to collection'),
-        'short' => __('Collection'),
-        'entity' => 'collection',
-    ];
-}
-
-if ($this->Acl->canAccess('analystGraphs', 'addNodes')) {
-    $actions[] = [
-        'url' => '#',
-        'icon' => 'misp-icon misp-icon-analyst-graph misp-simple',
-        'label' => __('Add to workspace'),
-        'short' => __('Workspace'),
-        'entity' => 'analystGraph',
-        'attributes' => ['data-intel-graph-add' => json_encode([[
-            'type' => 'Event', 'uuid' => $data['Event']['uuid'], 'label' => $data['Event']['info'],
-        ]])],
-    ];
+// The Collections card carries the add control as a button; the menu lists it too.
+if ($this->Acl->canAccess('collectionElements', 'addItems')) {
+    $actions = array_merge($actions, $this->IntelGraph->launchActions(
+        [['type' => 'Event', 'uuid' => $data['Event']['uuid'], 'label' => $data['Event']['info']]],
+        false
+    ));
 }
 
 $mayPublish = $isSiteAdmin || ($mayModify && $canPublish);

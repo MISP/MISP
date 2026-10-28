@@ -640,27 +640,7 @@ class CollectionElement extends AppModel
     {
         list($wanted, $report) = $this->itemTargets($items);
         $report += ['added' => [], 'present' => []];
-        $byType = [];
-        foreach ($wanted as $key => $target) {
-            $byType[$target['element_type']][$key] = $target['address'];
-        }
-        foreach ($byType as $type => $addresses) {
-            // Records are stored as each creator spelled their uuid
-            $lookup = $type === 'AttributeValue' ? array_values($addresses) : array_merge(array_values($addresses), array_map('strtoupper', $addresses));
-            $readable = array_flip(array_map('strtolower', $this->readableUuids($user, $type, $lookup)));
-            foreach ($addresses as $key => $address) {
-                if (!isset($readable[$address])) {
-                    $report['refused'][] = [
-                        'index' => $wanted[$key]['index'],
-                        'key' => $key,
-                        'error' => $type === 'AttributeValue'
-                            ? __('Not in MISP yet: no attribute holds this value.')
-                            : __('Not found or not authorised.'),
-                    ];
-                    unset($wanted[$key]);
-                }
-            }
-        }
+        $wanted = $this->readableTargets($user, $wanted, $report['refused']);
         $held = $this->heldKeys($collectionId, $wanted);
         $this->current_user = $user;
         $this->skipCollectionModifiedBump = true;
@@ -729,6 +709,64 @@ class CollectionElement extends AppModel
             $this->touchCollection($collectionId);
         }
         return $report;
+    }
+
+    /**
+     * Which of these records a collection holds, named as addItems() takes
+     * them. A record the user cannot read is answered absent, so a guessed
+     * uuid says nothing about the collection.
+     *
+     * @param array $user
+     * @param int $collectionId
+     * @param array $items
+     * @return array {present: [key], absent: [key]}
+     */
+    public function heldItems(array $user, $collectionId, array $items)
+    {
+        list($wanted) = $this->itemTargets($items);
+        $unreadable = [];
+        $readable = $this->readableTargets($user, $wanted, $unreadable);
+        $held = $this->heldKeys($collectionId, $readable);
+        $report = ['present' => [], 'absent' => []];
+        foreach (array_keys($wanted) as $key) {
+            $report[isset($held[$key]) ? 'present' : 'absent'][] = $key;
+        }
+        return $report;
+    }
+
+    /**
+     * The targets the user can read: one lookup per type. The others are
+     * appended to $refused.
+     *
+     * @param array $user
+     * @param array $wanted itemTargets()'s
+     * @param array $refused
+     * @return array $wanted without what the user cannot read
+     */
+    private function readableTargets(array $user, array $wanted, array &$refused)
+    {
+        $byType = [];
+        foreach ($wanted as $key => $target) {
+            $byType[$target['element_type']][$key] = $target['address'];
+        }
+        foreach ($byType as $type => $addresses) {
+            // Records are stored as each creator spelled their uuid
+            $lookup = $type === 'AttributeValue' ? array_values($addresses) : array_merge(array_values($addresses), array_map('strtoupper', $addresses));
+            $readable = array_flip(array_map('strtolower', $this->readableUuids($user, $type, $lookup)));
+            foreach ($addresses as $key => $address) {
+                if (!isset($readable[$address])) {
+                    $refused[] = [
+                        'index' => $wanted[$key]['index'],
+                        'key' => $key,
+                        'error' => $type === 'AttributeValue'
+                            ? __('Not in MISP yet: no attribute holds this value.')
+                            : __('Not found or not authorised.'),
+                    ];
+                    unset($wanted[$key]);
+                }
+            }
+        }
+        return $wanted;
     }
 
     /**

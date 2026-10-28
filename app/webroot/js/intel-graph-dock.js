@@ -735,31 +735,6 @@
         if (mark) mark.focus();
     });
 
-    function rowClass(asDropdown) {
-        return asDropdown ? 'dropdown-item' : 'list-group-item list-group-item-action';
-    }
-    function collectionRow(c, isActive, asDropdown, onPick) {
-        var b = el('button', rowClass(asDropdown) + ' ig-so-pick');
-        b.type = 'button';
-        if (isActive) b.setAttribute('aria-current', 'true');
-        var mark = el('span', 'ig-so-pick-mark');
-        if (isActive) mark.appendChild(icon('fas fa-check'));
-        b.appendChild(mark);
-        var bodyEl = el('span', 'ig-so-pick-body');
-        bodyEl.appendChild(el('span', 'ig-so-pick-name', c.name));
-        var sub = el('span', 'ig-so-pick-sub');
-        sub.appendChild(icon('fas fa-folder'));
-        sub.appendChild(el('span', null, collectionType(c.type) + (c.Orgc && c.Orgc.name ? ' · ' + c.Orgc.name : '')
-            + (c.used ? ' · used ' + ago(c.used * 1000) : '')));
-        bodyEl.appendChild(sub);
-        b.appendChild(bodyEl);
-        var n = c.element_count || 0;
-        var badge = el('span', 'badge rounded-pill text-bg-secondary', String(n));
-        badge.title = members(n);
-        b.appendChild(badge);
-        b.addEventListener('click', function () { onPick(c); });
-        return b;
-    }
     function pick(c) {
         hideMenu();
         var a = IG().active();
@@ -800,205 +775,33 @@
             renderBanner();
         });
     }
-    var SCOPES = [
-        { key: 'mine', label: 'Mine', head: 'Your collections', empty: 'You have created no collection yet.' },
-        { key: 'org', label: 'Organisation', head: 'Your organisation’s collections', empty: 'Your organisation has no collection you can change yet.' }
-    ];
-    function scopeOf(key) {
-        return SCOPES.filter(function (s) { return s.key === key; })[0] || SCOPES[1];
-    }
-    var listSeq = 0;
     function fillSwitcher(into, asDropdown) {
-        into.textContent = '';
-        var head = el('div', 'ig-so-scope' + (asDropdown ? ' dropdown-header' : ''));
-        var title = el(asDropdown ? 'h6' : 'p', asDropdown ? 'mb-0' : 'small text-body-secondary mb-0');
-        head.appendChild(title);
-        var toggle = el('div', 'btn-group btn-group-sm');
-        toggle.setAttribute('role', 'group');
-        toggle.setAttribute('aria-label', 'Whose collections');
-        head.appendChild(toggle);
-        into.appendChild(head);
-        var holder = el('div', asDropdown ? 'ig-so-list' : 'list-group');
-        into.appendChild(holder);
-        var buttons = SCOPES.map(function (s) {
-            var b = el('button', 'btn btn-outline-primary', s.label);
-            b.type = 'button';
-            b.addEventListener('click', function () {
-                if (prefs.scope === s.key) return;
-                prefs.scope = s.key;
+        window.IntelGraphChooser.fill(into, {
+            asDropdown: asDropdown,
+            scope: prefs.scope,
+            onScope: function (scope) {
+                prefs.scope = scope;
                 remember();
-                load();
-            });
-            toggle.appendChild(b);
-            return b;
-        });
-        function row(c, activeUuid) {
-            return collectionRow(c, lower(c.uuid) === activeUuid, asDropdown, pick);
-        }
-        function load() {
-            var scope = scopeOf(prefs.scope);
-            title.textContent = scope.head;
-            SCOPES.forEach(function (s, i) {
-                buttons[i].classList.toggle('active', s.key === scope.key);
-                buttons[i].setAttribute('aria-pressed', s.key === scope.key ? 'true' : 'false');
-            });
-            var seq = ++listSeq;
-            holder.textContent = '';
-            holder.appendChild(el('div', 'px-3 py-2 text-body-secondary small', 'Loading…'));
-            IG().list(scope.key).then(function (out) {
-                if (seq !== listSeq) return;
-                holder.textContent = '';
-                var a = IG().active();
-                var activeUuid = lower(a && a.Collection.uuid);
-                var listed = out.collections.some(function (c) { return lower(c.uuid) === activeUuid; });
-                if (a && !listed) holder.appendChild(row(a.Collection, activeUuid));
-                // The ones used last; the rest wait behind Show all.
-                var used = out.collections.filter(function (c) { return c.used; });
-                var rest = out.collections.filter(function (c) { return !c.used; });
-                (used.length ? used : rest).forEach(function (c) { holder.appendChild(row(c, activeUuid)); });
-                if (used.length && rest.length) {
-                    var more = el('button', rowClass(asDropdown) + ' ig-so-more');
-                    more.type = 'button';
-                    more.appendChild(icon('fas fa-ellipsis'));
-                    more.appendChild(el('span', null, 'Show all · ' + rest.length + ' more'));
-                    more.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        var first = null;
-                        rest.forEach(function (c) {
-                            var r = row(c, activeUuid);
-                            holder.insertBefore(r, more);
-                            first = first || r;
-                        });
-                        more.remove();
-                        if (first) first.focus();
-                    });
-                    holder.appendChild(more);
-                }
-                if (!out.collections.length && !(a && !listed)) holder.appendChild(el('div', 'px-3 py-2 text-body-secondary small', scope.empty));
+            },
+            onPick: pick,
+            after: function (holder, a) {
                 if (asDropdown && a) holder.appendChild(noneRow());
-            }, function (err) {
-                if (seq !== listSeq) return;
-                holder.textContent = '';
-                holder.appendChild(el('div', 'px-3 py-2 text-danger small', 'Could not list the collections: ' + ((err && err.message) || 'error')));
-            });
-        }
-        load();
-        if (asDropdown) into.appendChild(el('div', 'dropdown-divider'));
-        into.appendChild(newCollectionForm());
-    }
-
-    // New collection…: a name, and what it starts as stated beside it.
-    var formSeq = 0;
-    function newCollectionForm() {
-        var id = 'ig-so-new-' + (++formSeq);
-        var form = el('form', 'ig-so-new');
-        form.noValidate = true;
-        var label = el('label', 'form-label', 'New collection');
-        label.htmlFor = id;
-        form.appendChild(label);
-        var group = el('div', 'input-group input-group-sm');
-        var input = el('input', 'form-control');
-        input.id = id;
-        input.name = 'name';
-        input.placeholder = 'Name it';
-        input.autocomplete = 'off';
-        input.maxLength = 191;
-        input.required = true;
-        group.appendChild(input);
-        var submit = el('button', 'btn btn-primary', 'Create');
-        submit.type = 'submit';
-        group.appendChild(submit);
-        form.appendChild(group);
-        var feedback = el('div', 'invalid-feedback');
-        form.appendChild(feedback);
-
-        var levels = [0, 1, 2, 3].map(function (l) {
-            var d = IG().distribution(l);
-            return [l, d ? d.label : String(l)];
-        });
-        var typeField = field('Type', id + '-type', IG().collectionTypes(), 'research');
-        var distField = field('Distribution', id + '-dist', levels, 0);
-        var stated = el('div', 'form-text ig-so-new-defaults');
-        var statedText = el('span');
-        var change = el('button', 'btn btn-link p-0 align-baseline ig-so-new-change', 'change');
-        change.type = 'button';
-        change.setAttribute('aria-expanded', 'false');
-        change.setAttribute('aria-controls', id + '-options');
-        stated.appendChild(statedText);
-        stated.appendChild(document.createTextNode(' · '));
-        stated.appendChild(change);
-        form.appendChild(stated);
-        var options = el('div', 'ig-so-new-options');
-        options.id = id + '-options';
-        options.hidden = true;
-        options.appendChild(typeField.wrap);
-        options.appendChild(distField.wrap);
-        form.appendChild(options);
-        function state() {
-            statedText.textContent = levels[+distField.select.value][1] + ' · ' + collectionType(typeField.select.value);
-        }
-        state();
-        change.addEventListener('click', function () {
-            options.hidden = false;
-            stated.hidden = true;
-            change.setAttribute('aria-expanded', 'true');
-            typeField.select.focus();
-        });
-
-        var check = el('div', 'form-check ig-so-new-check');
-        var box = el('input', 'form-check-input');
-        box.type = 'checkbox';
-        box.id = id + '-workspace';
-        box.checked = true;
-        var boxLabel = el('label', 'form-check-label', 'Make it my workspace');
-        boxLabel.htmlFor = box.id;
-        check.appendChild(box);
-        check.appendChild(boxLabel);
-        form.appendChild(check);
-
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            var name = input.value.trim();
-            input.classList.remove('is-invalid');
-            if (!name) { input.classList.add('is-invalid'); feedback.textContent = 'A collection needs a name.'; input.focus(); return; }
-            submit.disabled = true;
-            var activate = box.checked;
-            IG().createCollection({ name: name, type: typeField.select.value, distribution: +distField.select.value }, { activate: activate }).then(function (created) {
-                submit.disabled = false;
-                hideMenu();
-                input.value = '';
-                notice = { kind: 'done', text: '“' + name + '” created' + (activate ? '. It is your workspace.' : '.') };
-                if (pending && created) {
-                    var items = pending;
-                    pending = null;
-                    closeChooser();
-                    return deliver(items, created.uuid);
+            },
+            form: {
+                done: function (created, activate, name) {
+                    hideMenu();
+                    notice = { kind: 'done', text: '“' + name + '” created' + (activate ? '. It is your workspace.' : '.') };
+                    if (pending && created) {
+                        var items = pending;
+                        pending = null;
+                        closeChooser();
+                        deliver(items, created.uuid);
+                        return;
+                    }
+                    renderBanner();
                 }
-                renderBanner();
-            }).catch(function (err) {
-                submit.disabled = false;
-                input.classList.add('is-invalid');
-                var errs = err && err.body && err.body.errors;
-                feedback.textContent = (errs && errs.name && errs.name[0]) || (err && err.message) || 'Could not create the collection.';
-            });
+            }
         });
-        return form;
-    }
-    function field(text, id, choices, value) {
-        var wrap = el('div', 'ig-so-new-field');
-        var lab = el('label', 'form-label', text);
-        lab.htmlFor = id;
-        var select = el('select', 'form-select form-select-sm');
-        select.id = id;
-        choices.forEach(function (c) {
-            var o = el('option', null, c[1]);
-            o.value = String(c[0]);
-            o.selected = String(c[0]) === String(value);
-            select.appendChild(o);
-        });
-        wrap.appendChild(lab);
-        wrap.appendChild(select);
-        return { wrap: wrap, select: select };
     }
 
     /* ── no workspace ──────────────────────────────────────── */
@@ -1200,6 +1003,28 @@
         pending = d.items || null;
         if (!opened) openDock({ focus: false, deferMount: true });
         showNone();
+    });
+
+    // Show in the dock: the records pointed at once they are drawn.
+    IG().on('reveal', function (d) {
+        var a = IG().active();
+        if (!a || !d || !d.keys || !d.keys.length) return;
+        var want = lower(a.Collection.uuid);
+        if (!opened) openDock({ focus: false });
+        else ensureMounted();
+        var entry = { kind: 'present', keys: [], present: d.keys.slice(), labels: Object.assign({}, d.labels), at: Date.now() };
+        waitFor(function () {
+            if (!current || drawnCollection() !== want) return null;
+            var nodes = d.keys.map(nodeFor);
+            return nodes.every(Boolean) ? nodes : null;
+        }, 10000).then(function (nodes) {
+            if (!nodes) {
+                say(d.keys.length === 1 ? 'It is in the workspace but not drawn here.' : 'They are in the workspace but not all drawn here.');
+                return;
+            }
+            d.keys.forEach(function (k) { if (!entry.labels[k]) { var dsc = describe(k); if (dsc) entry.labels[k] = dsc; } });
+            locate(entry);
+        });
     });
 
     // A save made elsewhere on the page, now drawn here.

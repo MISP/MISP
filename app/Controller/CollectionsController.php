@@ -3,6 +3,7 @@ App::uses('AppController', 'Controller');
 App::uses('ActiveWorkspaceTool', 'Tools');
 App::uses('AnalystData', 'Model');
 App::uses('Collection', 'Model');
+App::uses('CollectionElement', 'Model');
 App::uses('CollectionRailCards', 'Tools/RailCards');
 App::uses('SyncTool', 'Tools');
 
@@ -129,9 +130,10 @@ class CollectionsController extends AppController
 
     /**
      * New collection…: {name, type?, distribution?, sharing_group_id?,
-     * description?, workspace?}. Research, for the organisation only, unless
-     * the request says otherwise; with `workspace` true it becomes the
-     * user's workspace in the same request.
+     * description?, workspace?, items?}. Research, for the organisation only,
+     * unless the request says otherwise; with `workspace` true it becomes the
+     * user's workspace in the same request. `items`, as addItems takes them,
+     * join it at once, and `report` answers for them.
      */
     public function quickAdd()
     {
@@ -140,6 +142,13 @@ class CollectionsController extends AppController
         $input = is_array($this->request->data) ? $this->request->data : [];
         if (!is_string($input['name'] ?? null)) {
             throw new BadRequestException(__('A collection needs a name.'));
+        }
+        $items = $input['items'] ?? [];
+        if (!is_array($items) || ($items !== [] && array_keys($items) !== range(0, count($items) - 1))) {
+            throw new BadRequestException(__('Items are a list.'));
+        }
+        if (count($items) > CollectionElement::ITEM_LIMIT) {
+            throw new BadRequestException(__('At most %s items at once.', CollectionElement::ITEM_LIMIT));
         }
         $record = [
             'name' => trim($input['name']),
@@ -159,12 +168,17 @@ class CollectionsController extends AppController
         if (!$this->Collection->save(['Collection' => $record])) {
             return $this->RestResponse->saveFailResponse('Collections', 'quickAdd', false, $this->Collection->validationErrors, 'json');
         }
-        $collection = $this->Collection->workspaceSummaries($user, ['Collection.id' => $this->Collection->id], 1)[0] ?? null;
+        $id = $this->Collection->id;
+        $report = null;
+        if (!empty($items)) {
+            $report = $this->Collection->CollectionElement->addItems($user, $id, $items);
+        }
+        $collection = $this->Collection->workspaceSummaries($user, ['Collection.id' => $id], 1)[0] ?? null;
         $workspace = null;
         if (!empty($input['workspace']) && $collection !== null) {
             list($workspace) = ActiveWorkspaceTool::choose($user, $collection['uuid'], null);
         }
-        return $this->RestResponse->viewData(['Collection' => $collection, 'workspace' => $workspace], 'json');
+        return $this->RestResponse->viewData(['Collection' => $collection, 'workspace' => $workspace, 'report' => $report], 'json');
     }
 
     /**

@@ -108,33 +108,21 @@ $headerActions = array(
      * said. A disabled control for something the page does is not a
      * promise, it is a wrong answer.
      */
-    $this->Acl->canAccess('collectionElements', 'addElementToCollection')
+    $this->Acl->canAccess('collectionElements', 'addItems')
         ? array(
-            'type' => 'modal',
-            'label' => __('Add to collection'),
-            'icon' => 'folder-plus',
-            'class' => 'btn btn-outline-dark',
-            'url' => $baseurl . '/collectionElements/addElementToCollection/AttributeValue/' . hash('sha256', $profile['value']),
-            'size' => 'xl',
+            'type' => 'html',
+            'html' => $this->element('intel_graph_add', array(
+                'items' => array(array('type' => 'Value', 'value' => $profile['value'], 'label' => $profile['value'])),
+                'btnClass' => 'btn-outline-dark',
+            )),
         )
         : array(
             'type' => 'navigate',
-            'label' => __('Add to collection'),
+            'label' => __('Add to workspace'),
             'icon' => 'folder-plus',
             'class' => 'btn btn-outline-dark disabled',
             'title' => __('Your role does not allow adding to collections.'),
         ),
-    $this->Acl->canAccess('analystGraphs', 'addNodes')
-        ? array(
-            'type' => 'navigate',
-            'label' => __('Add to workspace'),
-            'icon' => 'circle-nodes',
-            'class' => 'btn btn-outline-dark',
-            'attributes' => array('data-intel-graph-add' => json_encode(array(array(
-                'type' => 'Value', 'value' => $profile['value'], 'label' => $profile['value'],
-            )))),
-        )
-        : null,
     $this->Acl->canAccess('values', 'newEvent')
         ? array(
             'type' => 'navigate',

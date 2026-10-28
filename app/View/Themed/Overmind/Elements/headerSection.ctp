@@ -161,6 +161,7 @@ $headerDescriptionTabbed = count(array_diff_key($headerDescriptions, ['' => true
  * Each entry of `$headerActions`:
  *   'type'       navigate (plain link) | action (POST, optional confirm)
  *                | modal (openModal) | dropdown (explicitly grouped)
+ *                | html (a control of its own, 'html' printed as given)
  *   'label'      button text
  *   'icon'       Font Awesome name, without the `fa-` prefix
  *   'url'        link target / POST target / modal source
@@ -382,6 +383,13 @@ if (!empty($headerActions)) {
     foreach ($slots as $slot) {
         if ($slot['kind'] === 'single') {
             $action = $slot['action'];
+            if (($action['type'] ?? '') === 'html') {
+                $headerActionStrip[] = [
+                    'kind' => 'html',
+                    'html' => $action['html'] ?? '',
+                ];
+                continue;
+            }
             if (($action['type'] ?? '') !== 'dropdown') {
                 $headerActionStrip[] = [
                     'kind' => 'button',
@@ -516,6 +524,9 @@ if (!empty($headerActions)) {
 
                     <?php if ($slot['kind'] === 'button'): ?>
                         <?= $renderHeaderAction($slot['action']) ?>
+
+                    <?php elseif ($slot['kind'] === 'html'): ?>
+                        <?= $slot['html'] ?>
 
                     <?php elseif ($slot['kind'] === 'split'): ?>
 

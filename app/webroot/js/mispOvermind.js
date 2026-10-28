@@ -877,11 +877,13 @@ function selectedGraphItems() {
     return items;
 }
 
-function addSelectedToGraph(button) {
-    const items = selectedGraphItems();
-    if (items.length && window.IntelGraphActions) {
-        window.IntelGraphActions.add(items, button);
-    }
+// A bulk bar's add control (Elements/intel_graph_add): shown while the
+// selection holds records it can take, and acting on them.
+function syncGraphButton(group, items) {
+    if (!group) return;
+    group.classList.toggle('d-none', !window.IntelGraphActions || items.length === 0);
+    const main = group.querySelector('[data-intel-graph-add]');
+    if (main) main.setAttribute('data-intel-graph-add', JSON.stringify(items));
 }
 
 function redirectToExportResult() {
@@ -1071,7 +1073,7 @@ function updateMultiSelectToolbar() {
     objectButton?.classList.toggle('d-none', isHidden);
     relationshipButton?.classList.toggle('d-none', isHidden);
     sightingButton?.classList.remove('d-none');
-    graphButton?.classList.toggle('d-none', !window.IntelGraphActions || selectedGraphItems().length === 0);
+    syncGraphButton(graphButton, selectedGraphItems());
 
     fetchButton?.classList.toggle('d-none', !allEnabled);
 

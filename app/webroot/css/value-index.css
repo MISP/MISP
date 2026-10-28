@@ -1591,6 +1591,35 @@
     vertical-align: -0.15em;
 }
 
+/* The add control: the workspace glyph and its caret, side by side. */
+.vi-acts .vi-add {
+    flex-wrap: nowrap;
+}
+
+/* The bar's hand-over, at the size of the controls beside it. */
+.vi-handover .ig-add .btn {
+    --bs-btn-padding-y: 3px;
+    --bs-btn-padding-x: 9px;
+    --bs-btn-font-size: 0.7rem;
+    --bs-btn-line-height: 1.5;
+}
+
+.vi-handover .ig-add .ig-add-more {
+    padding-inline: 6px;
+}
+
+.vi-acts .vi-btn--caret {
+    width: 14px;
+}
+
+.vi-acts .vi-btn--caret::after {
+    margin-left: 0;
+    vertical-align: .15em;
+    border-top-width: .28em;
+    border-right-width: .24em;
+    border-left-width: .24em;
+}
+
 .vi-row:hover .vi-acts .vi-btn--icon,
 .vi-row.is-cursor .vi-acts .vi-btn--icon {
     border-color: transparent;
@@ -2017,6 +2046,25 @@
     font-size: 0.75rem;
     line-height: 1.55;
     color: var(--bs-secondary-color);
+}
+
+/* The hand-over: which values, then where they go. */
+.vi-handoff {
+    margin-bottom: 4px;
+}
+
+.vi-seg:disabled {
+    cursor: default;
+    opacity: .5;
+}
+
+.vi-ws-name {
+    font-weight: 600;
+}
+
+.vi-done .vi-handed {
+    margin: 0 0 6px;
+    color: var(--bs-body-color);
 }
 
 .vi-shortlist {

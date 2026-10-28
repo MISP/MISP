@@ -425,8 +425,8 @@
                     }
                 };
             };
-            entries('menuNode').push(keepEntry('Keep in workspace'), removeEntry('Remove from workspace'));
-            entries('menuSelection').push(keepEntry('Keep selection in workspace'), removeEntry('Remove selection from workspace'));
+            entries('menuNode').push(keepEntry('Keep on this graph'), removeEntry('Remove from this graph'));
+            entries('menuSelection').push(keepEntry('Keep the selection on this graph'), removeEntry('Remove the selection from this graph'));
             entries('menuEdge').push({
                 text: 'Hide on this graph',
                 iconClass: 'fas fa-eye-slash',

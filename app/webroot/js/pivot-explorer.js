@@ -3608,6 +3608,8 @@
                 }
                 idsOf[key].push(node.id);
             });
+            // What the workspace holds of it, for the node menu to say
+            if (window.IntelGraphActions && items.length) window.IntelGraphActions.lookup(items);
             // Only what landed can bring a link; a removal takes its own along.
             if (!fresh || items.length < 2) return;
             _linksAsked = {};
@@ -3656,32 +3658,58 @@
             soon();
         }
 
-        // Offered where the page has IntelGraph: to whoever may add to a
-        // collection. The explorer is a graph itself, so it says where the
-        // add goes.
-        function graphEntry(text) {
-            return {
-                text:      text,
-                title:     'Adds it to your active workspace, the one the navbar names',
-                iconClass: 'misp-icon misp-icon-analyst-graph misp-simple',
-                visible:   function (el) {
-                    return !!window.IntelGraphActions && graphItems(el).length > 0;
+        // The add control, offered where the page has IntelGraph: to whoever
+        // may add to a collection. Add to workspace, or In workspace ✓ and
+        // Remove from workspace; then Add to another collection… and New
+        // collection with this…. The explorer is a graph itself, so it says
+        // where the add goes.
+        function addEntries(several) {
+            function actions() { return window.IntelGraphActions; }
+            function usable(el) { return !!actions() && graphItems(el).length > 0; }
+            function held(el) { return usable(el) && actions().state(graphItems(el)) === 'in'; }
+            function at(e) { return e && { x: e.clientX, y: e.clientY }; }
+            return [
+                {
+                    text:      several ? 'Add the selection to the workspace' : 'Add to workspace',
+                    title:     'Adds it to your workspace, the collection the navbar names',
+                    iconClass: 'misp-icon misp-icon-analyst-graph misp-simple',
+                    visible:   function (el) { return usable(el) && !held(el); },
+                    onclick:   function (e, el) { actions().add(graphItems(el), at(e)); }
                 },
-                onclick:   function (e, el) {
-                    window.IntelGraphActions.add(graphItems(el), e && { x: e.clientX, y: e.clientY });
+                {
+                    text:      'In workspace ✓ — show in the dock',
+                    iconClass: 'fas fa-check',
+                    visible:   held,
+                    onclick:   function (e, el) { actions().reveal(graphItems(el)); }
+                },
+                {
+                    text:      'Remove from workspace',
+                    iconClass: 'fas fa-folder-minus',
+                    visible:   held,
+                    onclick:   function (e, el) { actions().remove(graphItems(el)); }
+                },
+                {
+                    text:      several ? 'Add the selection to another collection…' : 'Add to another collection…',
+                    iconClass: 'fas fa-folder-plus',
+                    visible:   usable,
+                    onclick:   function (e, el) { actions().other(graphItems(el), at(e)); }
+                },
+                {
+                    text:      several ? 'New collection with the selection…' : 'New collection with this…',
+                    iconClass: 'fas fa-circle-plus',
+                    visible:   usable,
+                    onclick:   function (e, el) { actions().newWith(graphItems(el), at(e)); }
                 }
-            };
+            ];
         }
 
         // The library's own menu for several selected nodes.
         function selectionMenu() {
-            return [saveEntry('Save selection'), graphEntry('Add selection to active workspace')];
+            return [saveEntry('Save selection')].concat(addEntries(true));
         }
 
         function nodeMenu() {
-            return [
-                saveEntry('Save this element'),
-                graphEntry('Add to active workspace'),
+            return [saveEntry('Save this element')].concat(addEntries(false), [
                 {
                     text:      'Open its event',
                     iconClass: 'fas fa-external-link-alt',
@@ -3709,7 +3737,7 @@
                     visible:   function (el) { var d = menuData(el); return !!d && d.type === 'attribute' && d.value !== ''; },
                     onclick:   function (e, el) { copyValue(menuData(el).value); }
                 }
-            ].concat(annotateMenu());
+            ], annotateMenu());
         }
 
         /* ── canvas menu: taking fetched correlations back off ─── */

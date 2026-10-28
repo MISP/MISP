@@ -77,9 +77,29 @@ $config = [
 </script>
 <?php if ($withDock ?? true): ?>
     <?= $this->element('intel_graph_dock') ?>
+    <template id="ig-collect-dialog">
+        <div class="modal fade ig-collect" tabindex="-1" aria-hidden="true" aria-labelledby="ig-collect-title">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <?= $this->element('genericElementsBS5/Forms/modal_header', [
+                        'accent' => 'primary',
+                        'eyebrow' => __('Collections'),
+                        'title' => '',
+                        'titleId' => 'ig-collect-title',
+                        'titleIcon' => 'fas fa-folder-plus',
+                        'titleBadge' => '<span data-ig-collect-title></span>',
+                        'description' => __('Collections group the records of an investigation.'),
+                        'descriptionClass' => 'ig-collect-sub',
+                        'close' => true,
+                    ]) ?>
+                    <div class="modal-body" data-ig-collect-body></div>
+                </div>
+            </div>
+        </div>
+    </template>
     <?= $this->element('genericElements/assetLoader', [
-        'js' => ['intel-graph', 'intel-graph-thumb', 'intel-graph-thumbs', 'intel-graph-dock', 'intel-graph-actions'],
-        'css' => ['intel-graph-dock', 'intel-graph-thumbs'],
+        'js' => ['intel-graph', 'intel-graph-thumb', 'intel-graph-thumbs', 'intel-graph-chooser', 'intel-graph-dock', 'intel-graph-actions'],
+        'css' => ['intel-graph-dock', 'intel-graph-thumbs', 'intel-graph-actions'],
     ]) ?>
 <?php else: ?>
     <?= $this->element('genericElements/assetLoader', ['js' => ['intel-graph']]) ?>

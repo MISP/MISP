@@ -85,14 +85,14 @@ $massOpen = function ($key, $size = 'xl') use ($filter_bar, $baseurl) {
         <?php endif; ?>
 
         <?php if (!empty($filter_bar['mass_graph'])): ?>
-            <button id="mass-graph-button"
-                    class="btn btn-analystGraph btn-sm d-none"
-                    title="<?= __('Add the selected to the active workspace') ?>"
-                    aria-label="<?= __('Add the selected to the active workspace') ?>"
-                    onclick="addSelectedToGraph(this)">
-                <span class="misp-icon misp-icon-analyst-graph misp-simple text-white"></span>
-                <span class="text-white"> <?= __('Workspace') ?></span>
-            </button>
+            <?= $this->element('intel_graph_add', [
+                'id' => 'mass-graph-button',
+                'class' => 'd-none',
+                'variant' => 'short',
+                'btnClass' => 'btn-sm btn-analystGraph',
+                'title' => __('Add the selected to the workspace'),
+                'stateless' => true,
+            ]) ?>
         <?php endif; ?>
 
         <?php

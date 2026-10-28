@@ -18,6 +18,10 @@
  * - 'pinned' => bool     shown as a tile
  * - 'entity' => string   tints the icon well: event, attribute, object, ...
  * - 'add' => bool        marks the tile with a "+" badge
+ * - 'tick' => bool       a hidden badge on the tile's well, shown by its owner
+ * - 'split' => array     the tile carries a caret opening a menu its owner
+ *                        fills; these attributes go on the tile's wrapper
+ * - 'menuOnly' => bool   never a tile
  * - 'tileOrder' => int   position among the tiles (default: menu order)
  *
  * Separator params:
@@ -65,14 +69,17 @@ foreach ($actions as $action) {
 }
 
 $candidates = [];
+$menuOnly = 0;
 foreach ($groups as $groupActions) {
     foreach ($groupActions as $action) {
-        if ($action !== $primary) {
+        if (!empty($action['menuOnly'])) {
+            $menuOnly++;
+        } elseif ($action !== $primary) {
             $candidates[] = $action;
         }
     }
 }
-$hasMenu = count($candidates) > $maxTiles || !empty($danger);
+$hasMenu = count($candidates) > $maxTiles || !empty($danger) || $menuOnly > 0;
 $pinned = array_values(array_filter($candidates, function ($a) {
     return !empty($a['pinned']);
 }));
@@ -87,7 +94,7 @@ usort($order, function ($a, $b) use ($tilePosition) {
 $tiles = array_slice(array_map(function ($index) use ($tiles) {
     return $tiles[$index];
 }, $order), 0, $hasMenu ? $maxTiles : count($tiles));
-$total = count($candidates) + count($danger) + ($primary === null ? 0 : 1);
+$total = count($candidates) + $menuOnly + count($danger) + ($primary === null ? 0 : 1);
 
 $tone = function (array $action) {
     if (!empty($action['danger'])) {
@@ -138,9 +145,12 @@ $well = function (array $action, $badge = false) use ($tone) {
         '<span class="lb-well lb-e-%s" aria-hidden="true"><i class="%s"></i>%s</span>',
         h($tone($action)),
         h($action['icon'] ?? 'fas fa-circle'),
-        $badge && !empty($action['add'])
+        ($badge && !empty($action['add'])
             ? '<span class="lb-plus"><i class="fas fa-plus"></i></span>'
-            : ''
+            : '')
+        . ($badge && !empty($action['tick'])
+            ? '<span class="lb-plus lb-tick"><i class="fas fa-check"></i></span>'
+            : '')
     );
 };
 
@@ -221,14 +231,29 @@ $ago = function ($stamp) {
     <?php if (!empty($tiles)): ?>
         <div class="lb-grid<?= $columns > 4 ? ' is-dense' : '' ?>"<?= $columns === 4 ? '' : ' style="--lb-cols: ' . (int)$columns . '"' ?>>
             <?php foreach ($tiles as $action): ?>
-                <?= $link(
+                <?php
+                $tile = $link(
                     $action,
                     'lb-tile',
                     $well($action, true)
                         . '<span class="lb-tile-lbl">' . h($action['short'] ?? $action['label'] ?? '') . '</span>',
                     true,
                     ['title' => $action['label'] ?? '', 'aria-label' => $action['label'] ?? '']
-                ) ?>
+                );
+                ?>
+                <?php if (isset($action['split']) && is_array($action['split'])): ?>
+                    <div class="lb-split"<?php foreach ($action['split'] as $name => $value) { echo sprintf(' %s="%s"', h($name), h($value)); } ?>>
+                        <?= $tile ?>
+                        <button type="button" class="lb-caret" data-bs-toggle="dropdown" aria-expanded="false"
+                                data-bs-popper-config='{"strategy":"fixed"}'
+                                title="<?= __('More') ?>" aria-label="<?= h(__('More: %s', $action['label'] ?? '')) ?>">
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end"></ul>
+                    </div>
+                <?php else: ?>
+                    <?= $tile ?>
+                <?php endif; ?>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>

@@ -1,0 +1,98 @@
+/* The add control (intel-graph-actions.js): the split button, its menu,
+   the launch bar's split tile, and the collection dialog. */
+
+/* ── the split button ─────────────────────────────────── */
+.ig-add { flex-wrap: nowrap; vertical-align: middle; }
+.ig-add .ig-add-main { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; }
+.ig-add .ig-add-main .misp-icon { width: 1.05em; height: 1.05em; }
+.ig-add .ig-add-more { padding-inline: .45rem; }
+:root { --ig-add-in-fg: color-mix(in srgb, var(--bs-analystGraph) 72%, #000); }
+[data-misp-mode="dark"] { --ig-add-in-fg: color-mix(in srgb, var(--bs-analystGraph) 55%, #fff); }
+/* In workspace ✓ reads as a state the button is in, hovered or not */
+.ig-add .ig-add-main[data-intel-graph-in="true"] {
+    --bs-btn-bg: rgba(var(--bs-analystGraph-rgb), .12);
+    --bs-btn-color: var(--ig-add-in-fg);
+    --bs-btn-border-color: rgba(var(--bs-analystGraph-rgb), .6);
+    --bs-btn-hover-bg: rgba(var(--bs-analystGraph-rgb), .2);
+    --bs-btn-hover-color: var(--ig-add-in-fg);
+    --bs-btn-hover-border-color: rgba(var(--bs-analystGraph-rgb), .75);
+    --bs-btn-active-bg: rgba(var(--bs-analystGraph-rgb), .26);
+    --bs-btn-active-color: var(--ig-add-in-fg);
+    --bs-btn-active-border-color: rgba(var(--bs-analystGraph-rgb), .75);
+    font-weight: 600;
+}
+
+/* Icon only: a tick on the glyph says it is in. */
+.ig-add-icon .ig-add-main { position: relative; }
+.ig-add-check {
+    display: none;
+    position: absolute;
+    right: 1px;
+    bottom: 1px;
+    width: 12px;
+    height: 12px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--bs-success);
+    color: #fff;
+    font-size: 7px;
+    box-shadow: 0 0 0 1.5px var(--bs-body-bg);
+}
+.ig-add-main[data-intel-graph-in="true"] .ig-add-check { display: inline-flex; }
+
+/* ── its menu, and the same entries in other menus ────── */
+.ig-add-menu,
+[data-intel-graph-split] > .dropdown-menu { min-width: 15rem; }
+.ig-add-item, .ig-add-head { display: flex; align-items: center; gap: .55rem; }
+.ig-add-item > i, .ig-add-head > i { width: 1rem; flex: 0 0 1rem; text-align: center; }
+.ig-add-head { color: var(--bs-success-text-emphasis); white-space: normal; max-width: 22rem; }
+.ig-add-head > span { overflow: hidden; text-overflow: ellipsis; }
+.ig-add-item-danger,
+.dropdown-item.ig-add-item-danger { color: var(--bs-danger-text-emphasis); }
+.dropdown-item.ig-add-item-danger:hover,
+.dropdown-item.ig-add-item-danger:focus { background: rgba(var(--bs-danger-rgb), .1); color: var(--bs-danger-text-emphasis); }
+
+/* ── the launch bar's split tile ──────────────────────── */
+.lb-split { position: relative; display: flex; min-width: 0; }
+.lb-split > .lb-tile { flex: 1 1 auto; }
+.lb-caret {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--bs-secondary-color);
+    font-size: .6rem;
+    transition: background-color .12s, border-color .12s, color .12s;
+}
+.lb-split:hover .lb-caret,
+.lb-caret:focus-visible,
+.lb-caret[aria-expanded="true"] {
+    background: var(--bs-body-bg);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+.lb-tick { display: none; }
+.lb-tile[data-intel-graph-in="true"] .lb-tick {
+    display: flex;
+    background: var(--bs-success);
+}
+.lb-tile[data-intel-graph-in="true"] .lb-tile-lbl { color: var(--bs-success-text-emphasis); font-weight: 600; }
+.lb-item[data-intel-graph-in="true"] .lb-lbl { color: var(--bs-success-text-emphasis); }
+
+/* ── the collection dialog ────────────────────────────── */
+.ig-collect { --ig-so-accent: var(--bs-primary); }
+.ig-collect .modal-body { padding: 1rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
+.ig-collect .ig-so-scope { margin-bottom: -.25rem; }
+.ig-collect .list-group .ig-so-pick { padding: .55rem .8rem; }
+.ig-collect .list-group .ig-so-more { padding: .45rem .8rem; }
+.ig-collect .ig-so-new { padding: .75rem; border: 1px dashed var(--bs-border-color); border-radius: var(--bs-border-radius); }
+.ig-collect .modal-body > .ig-so-new:only-child { border: 0; padding: 0; }

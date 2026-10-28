@@ -119,7 +119,7 @@ $count = function ($key, $count, $setting, $iconHtml, $title) use ($col, $icon, 
     ], 'te-num');
 };
 
-$canGraph = $this->Acl->canAccess('analystGraphs', 'addNodes');
+$canGraph = $this->Acl->canAccess('collectionElements', 'addItems');
 
 $fields = [
     [
@@ -265,8 +265,6 @@ $fields = [
             ],
             [
                 'type' => 'intelGraph',
-                'label' => __('Add to workspace'),
-                'icon' => 'text-analystGraph misp-icon misp-icon-analyst-graph misp-simple',
                 'items' => function ($row) {
                     return [['type' => 'Event', 'uuid' => $row['Event']['uuid'], 'label' => $row['Event']['info']]];
                 },

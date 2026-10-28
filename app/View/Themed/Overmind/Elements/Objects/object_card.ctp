@@ -125,18 +125,12 @@ $expanded = !empty($ctx['expand']);
                         </a>
                     <?php endif; ?>
                 <?php endif; ?>
-                <?php if (!$isDeleted && $this->Acl->canAccess('analystGraphs', 'addNodes')): ?>
-                    <a href="#" class="btn btn-sm btn-outline-analystGraph py-0 px-2" title="<?= h(__('Add to workspace')) ?>"
-                       data-intel-graph-add="<?= h(json_encode([['type' => 'Object', 'uuid' => $object['uuid'], 'label' => $object['name']]])) ?>">
-                        <i class="misp-icon misp-icon-analyst-graph misp-simple"></i>
-                    </a>
-                <?php endif; ?>
-                <?php if (!$isDeleted && $this->Acl->canAccess('collectionElements', 'addElementToCollection')): ?>
-                    <?php $collectUrl = $baseurl . '/collectionElements/addElementToCollection/Object/' . h($object['uuid']); ?>
-                    <a href="<?= $collectUrl ?>" class="btn btn-sm btn-outline-dark py-0 px-2" title="<?= h(__('Add to collection')) ?>"
-                       onclick="event.preventDefault(); openModal('<?= $collectUrl ?>', 'xl');">
-                        <i class="fas fa-folder-plus"></i>
-                    </a>
+                <?php if (!$isDeleted && $this->Acl->canAccess('collectionElements', 'addItems')): ?>
+                    <?= $this->element('intel_graph_add', [
+                        'items' => [['type' => 'Object', 'uuid' => $object['uuid'], 'label' => $object['name']]],
+                        'variant' => 'icon',
+                        'btnClass' => 'btn-sm btn-outline-analystGraph py-0 px-2',
+                    ]) ?>
                 <?php endif; ?>
                 <?php if (!empty($me['Role']['perm_analyst_data'])): ?>
                     <?= $this->element('AnalystData/add_controls', [

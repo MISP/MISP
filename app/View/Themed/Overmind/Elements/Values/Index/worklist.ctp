@@ -37,6 +37,8 @@ $report = $triage['report'];
 $rows = $triage['rows'];
 // False when the reader's analyst profile switches the assessment off.
 $showsAssessment = $showsAssessment ?? true;
+// The batch handed over to a workspace: whoever may add to a collection.
+$mayHandOver = $this->Acl->canAccess('collectionElements', 'addItems');
 
 /*
  * The tape and its legend are a picture of a batch's progress, and
@@ -315,6 +317,22 @@ $offerExtract = !$extracted && $wordy >= 2;
                 <button class="vi-seg" type="button" data-vi-view="table"
                         aria-pressed="true"><?= h(__('Table')) ?></button>
             </span>
+<?php if ($mayHandOver): ?>
+            <?php
+            /*
+             * The values opened so far, handed to a workspace mid-way;
+             * shown once there is one.
+             */
+            ?>
+            <span class="vi-handover" data-vi-handover hidden
+                  data-vi-tpl="<?= h(__('Add the %d opened')) ?>">
+                <?= $this->element('intel_graph_add', array(
+                    'variant' => 'short',
+                    'title' => __('Add the values you opened to your workspace'),
+                    'stateless' => true,
+                )) ?>
+            </span>
+<?php endif; ?>
             <span class="vi-keys">
                 <span><span class="vi-kbd">j</span> <span class="vi-kbd">k</span> <?= h(__('move')) ?></span>
                 <span><span class="vi-kbd">o</span> <?= h(__('open')) ?></span>
@@ -476,11 +494,43 @@ $offerExtract = !$extracted && $wordy >= 2;
             data-vi-tpl="<?= h(__('All %d values reviewed.')) ?>"></h3>
         <p><span data-vi-done-counts
                  data-vi-tpl="<?= h(__('%1$d opened, %2$d dismissed.')) ?>"></span>
-            <?= h(__('This progress is not saved and is lost when you'
-                . ' close the tab. Copy the values you opened to keep'
-                . ' them.')) ?></p>
+            <?= $mayHandOver
+                ? h(__('This progress is not saved and is lost when you'
+                    . ' close the tab. Take the values you opened into a'
+                    . ' workspace, or copy them, to keep them.'))
+                : h(__('This progress is not saved and is lost when you'
+                    . ' close the tab. Copy the values you opened to keep'
+                    . ' them.')) ?></p>
+<?php if ($mayHandOver): ?>
+        <?php
+        /*
+         * The hand-over: the values opened, or the whole batch, into a
+         * new workspace or the one the reader has. Values MISP does not
+         * hold are refused and counted.
+         */
+        ?>
+        <div class="vi-offer vi-handoff" data-vi-handoff hidden>
+            <span class="vi-segs" role="group" aria-label="<?= h(__('What to take')) ?>">
+                <button class="vi-seg" type="button" data-vi-carry="opened"
+                        aria-pressed="true"
+                        data-vi-tpl="<?= h(__('The %d opened')) ?>"></button>
+                <button class="vi-seg" type="button" data-vi-carry="all"
+                        aria-pressed="false"
+                        data-vi-tpl="<?= h(__('All %d')) ?>"></button>
+            </span>
+            <button type="button" class="vi-btn vi-btn--lead" data-vi-start
+                    data-vi-tpl="<?= h(__('Start a workspace with the %d opened')) ?>"
+                    data-vi-tpl-all="<?= h(__('Start a workspace with all %d')) ?>"></button>
+            <button type="button" class="vi-btn" data-vi-add-ws hidden
+                    data-vi-tpl="<?= h(__('Add the %d opened to:')) ?>"
+                    data-vi-tpl-all="<?= h(__('Add all %d to:')) ?>"></button>
+        </div>
+        <p class="vi-mark vi-handed" data-vi-handed aria-live="polite" hidden
+           data-vi-tpl="<?= h(__('%1$d added to your workspace; %2$d were in it already.')) ?>"
+           data-vi-refused="<?= h(__('%d not added: MISP does not hold them yet.')) ?>"></p>
+<?php endif; ?>
         <div class="vi-offer">
-            <button type="button" class="vi-btn vi-btn--lead"
+            <button type="button" class="vi-btn<?= $mayHandOver ? '' : ' vi-btn--lead' ?>"
                     data-vi-copy
                     data-vi-tpl="<?= h(__('Copy the %d opened values')) ?>"></button>
             <button type="button" class="vi-btn" data-vi-again><?= h(__(
