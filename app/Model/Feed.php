@@ -6,9 +6,33 @@ App::uses('AppModel', 'Model');
 App::uses('RandomTool', 'Tools');
 App::uses('TmpFileTool', 'Tools');
 App::uses('AttributeValidationTool', 'Tools');
+App::uses('GatheringFeedTool', 'Tools');
 
 class Feed extends AppModel
 {
+    // One complete generation per feed and import run, shared by manifest/event reads.
+    private $gatheringSnapshots = [];
+    private $gatheringUser;
+
+    public function beforeValidate($options = array())
+    {
+        if ($this->isGatheringFeed($this->data)) {
+            try {
+                $settings = GatheringFeedTool::settings($this->data['Feed']['settings'] ?? []);
+                $this->data['Feed']['url'] = 'misp-modules://' . $settings['module'];
+                $this->data['Feed']['source_format'] = 'misp';
+                $this->data['Feed']['delete_local_file'] = 0;
+                if (!empty($this->data['Feed']['caching_enabled'])) {
+                    throw new InvalidArgumentException('Gathering feeds currently support import and preview only; disable feed caching.');
+                }
+            } catch (InvalidArgumentException $e) {
+                $this->invalidate('settings', $e->getMessage());
+                return false;
+            }
+        }
+        return parent::beforeValidate($options);
+    }
+
     public $actsAs = array(
         'AuditLog',
         'SysLogLogable.SysLogLogable' => array(
@@ -114,7 +138,7 @@ class Feed extends AppModel
     {
         if (!empty($this->data['Feed']['input_source'])) {
             $localAllowed = empty(Configure::read('Security.disable_local_feed_access'));
-            $validOptions = array('network');
+            $validOptions = array('network', 'misp-modules');
             if ($localAllowed) {
                 $validOptions[] = 'local';
             }
@@ -133,6 +157,9 @@ class Feed extends AppModel
 
     public function urlOrExistingFilepath($fields)
     {
+        if ($this->isGatheringFeed($this->data)) {
+            return true; // The module and its parameters are validated by beforeValidate().
+        }
         if ($this->isFeedLocal($this->data)) {
             $path = mb_ereg_replace("/\:\/\//", '', $this->data['Feed']['url']);
             if ($this->data['Feed']['source_format'] == 'misp') {
@@ -217,7 +244,7 @@ class Feed extends AppModel
      */
     public function getNewEventUuids($feed, HttpSocket $HttpSocket = null)
     {
-        $manifest = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
+        $manifest = $this->sourceManifest($feed, $HttpSocket);
         $this->Event = ClassRegistry::init('Event');
         $rules = json_decode($feed['Feed']['rules'], true);
         if ($rules != NULL) {
@@ -365,7 +392,7 @@ class Feed extends AppModel
      */
     public function getManifest(array $feed, HttpSocket $HttpSocket = null)
     {
-        $events = $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
+        $events = $this->sourceManifest($feed, $HttpSocket);
         $events = $this->__filterEventsIndex($events, $feed);
         return $events;
     }
@@ -1063,7 +1090,7 @@ class Feed extends AppModel
     public function downloadEventFromFeed(array $feed, $uuid, $permissive = false, &$error_message = null)
     {
         $filerRules = $this->__prepareFilterRules($feed);
-        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
+        $HttpSocket = ($this->isFeedLocal($feed) || $this->isGatheringFeed($feed)) ? null : $this->__setupHttpSocket();
         $event = $this->downloadAndParseEventFromFeed($feed, $uuid, $HttpSocket, $permissive, $error_message);
         if ($permissive) {
             $event['Event']['error_message'] = $error_message;
@@ -1323,6 +1350,9 @@ class Feed extends AppModel
      */
     public function downloadFromFeedInitiator($feedId, $user, $jobId = false)
     {
+        // A queue worker can reuse this model for multiple runs.
+        $this->gatheringSnapshots = [];
+        $this->gatheringUser = $user;
         $feed = $this->find('first', array(
             'conditions' => ['Feed.id' => $feedId],
             'recursive' => -1,
@@ -1335,7 +1365,7 @@ class Feed extends AppModel
             $feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
         }
 
-        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
+        $HttpSocket = ($this->isFeedLocal($feed) || $this->isGatheringFeed($feed)) ? null : $this->__setupHttpSocket();
         if ($feed['Feed']['source_format'] === 'misp') {
             $this->jobProgress($jobId, 'Fetching event manifest.');
             try {
@@ -1632,7 +1662,7 @@ class Feed extends AppModel
      */
     private function __cacheFeed($feed, $redis, $jobId = false)
     {
-        $HttpSocket = $this->isFeedLocal($feed) ? null : $this->__setupHttpSocket();
+        $HttpSocket = ($this->isFeedLocal($feed) || $this->isGatheringFeed($feed)) ? null : $this->__setupHttpSocket();
         if ($feed['Feed']['source_format'] === 'misp') {
             $result = true;
             if (!$this->__cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId)) {
@@ -2225,6 +2255,13 @@ class Feed extends AppModel
      */
     private function feedGetUri($feed, $uri, HttpSocket $HttpSocket = null)
     {
+        if ($this->isGatheringFeed($feed)) {
+            $prefix = $feed['Feed']['url'];
+            if (substr($uri, 0, strlen($prefix)) !== $prefix) {
+                throw new InvalidArgumentException('Invalid gathering feed resource.');
+            }
+            return GatheringFeedTool::file($this->gatheringSnapshot($feed), substr($uri, strlen($prefix)));
+        }
         if ($this->isFeedLocal($feed)) {
             $uri = mb_ereg_replace("/\:\/\//", '', $uri);
             if (file_exists($uri)) {
@@ -2345,6 +2382,42 @@ class Feed extends AppModel
      * @param array $feed
      * @return bool
      */
+    private function isGatheringFeed($feed)
+    {
+        return ($feed['Feed']['input_source'] ?? null) === 'misp-modules';
+    }
+
+    private function sourceManifest(array $feed, ?HttpSocket $HttpSocket = null)
+    {
+        if ($this->isGatheringFeed($feed)) {
+            return $this->gatheringSnapshot($feed)['manifest'];
+        }
+        return $this->isFeedLocal($feed) ? $this->downloadManifest($feed) : $this->getRemoteManifest($feed, $HttpSocket);
+    }
+
+    private function gatheringSnapshot(array $feed)
+    {
+        $options = GatheringFeedTool::settings($feed['Feed']['settings'] ?? []);
+        $key = hash('sha256', json_encode([$feed['Feed']['id'] ?? null, $options]));
+        if (!isset($this->gatheringSnapshots[$key])) {
+            $user = $this->gatheringUser;
+            if ($user === null) {
+                $userId = Configure::read('CurrentUserId');
+                if (!$userId) {
+                    throw new RuntimeException('An authenticated user is required to generate a gathering feed.');
+                }
+                $user = ClassRegistry::init('User')->getAuthUser($userId);
+            }
+            if (!is_array($user) || empty($user['id'])) {
+                throw new RuntimeException('Gathering feed user is unavailable.');
+            }
+            $module = ClassRegistry::init('Module');
+            $bundle = $module->queryGathering($options['module'], $options['parameters'], $user);
+            $this->gatheringSnapshots[$key] = GatheringFeedTool::validateBundle($bundle);
+        }
+        return $this->gatheringSnapshots[$key];
+    }
+
     private function isFeedLocal($feed)
     {
         return isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] === 'local';

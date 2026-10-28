@@ -13,6 +13,7 @@ class Module extends AppModel
         'Import' => array('import'),
         'Export' => array('export'),
         'Action' => array('action'),
+        'Gathering' => array('gathering'),
         'Cortex' => array('cortex'),
         'AI' => array('ai')
     );
@@ -22,6 +23,7 @@ class Module extends AppModel
         'Import' => 'Import',
         'Export' => 'Export',
         'Action' => 'Action',
+        'Gathering' => 'Gathering',
         'hover' => 'Enrichment',
         'expansion' => 'Enrichment',
         'Cortex' => 'Cortex',
@@ -180,6 +182,8 @@ class Module extends AppModel
                 $output['Export'] = $temp['name'];
             } elseif (isset($temp['meta']['module-type']) && in_array('action', $temp['meta']['module-type'])) {
                 $output['Action'] = $temp['name'];
+            } elseif (isset($temp['meta']['module-type']) && in_array('gathering', $temp['meta']['module-type'])) {
+                $output['Gathering'][] = $temp['name'];
             } elseif (isset($temp['meta']['module-type']) && in_array('ai', $temp['meta']['module-type'])) {
                 $output['AI'] = $temp['name'];
             } else {
@@ -230,6 +234,32 @@ class Module extends AppModel
             return $modules;
         }
         return 'The modules system reports that it found no suitable modules.';
+    }
+
+    /** Execute any enabled gathering module; source conversion stays in misp-modules. */
+    public function queryGathering($name, array $parameters, array $user)
+    {
+        $module = $this->getEnabledModule($name, 'Gathering', $user);
+        if (!is_array($module) || ($module['mispattributes']['gathering_version'] ?? null) !== 1) {
+            throw new InvalidArgumentException('Gathering module is unavailable, restricted, or uses an unsupported contract.');
+        }
+        $config = [];
+        foreach ($module['meta']['config'] ?? [] as $key => $value) {
+            $field = is_string($key) ? $key : (is_array($value) ? $value['name'] : $value);
+            $setting = Configure::read('Plugin.Gathering_' . $name . '_' . $field);
+            if ($setting instanceof EncryptedValue) {
+                $setting = $setting->decrypt();
+            }
+            if ($setting !== null) {
+                $config[$field] = $setting;
+            }
+        }
+        return $this->queryModuleServer([
+            'module' => $name,
+            'operation' => 'prepare',
+            'parameters' => (object)$parameters,
+            'config' => (object)$config,
+        ], false, 'Gathering', true);
     }
 
     private function __getModuleServer($moduleFamily = 'Enrichment')

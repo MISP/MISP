@@ -1685,7 +1685,7 @@ class Server extends AppModel
     public function getCurrentServerSettings()
     {
         $serverSettings = $this->serverSettings;
-        $moduleTypes = array('Enrichment', 'Import', 'Export', 'Action', 'Cortex');
+        $moduleTypes = array('Enrichment', 'Import', 'Export', 'Action', 'Gathering', 'Cortex');
         return $this->readModuleSettings($serverSettings, $moduleTypes);
     }
 
@@ -8753,6 +8753,34 @@ class Server extends AppModel
                     'level' => 1,
                     'description' => __('Set a timeout for the export services'),
                     'value' => 10,
+                    'test' => 'testForEmpty',
+                    'type' => 'numeric'
+                ),
+                'Gathering_services_url' => array(
+                    'level' => 1,
+                    'description' => __('URL of the misp-modules gathering service.'),
+                    'value' => 'http://127.0.0.1',
+                    'test' => 'testForEmpty',
+                    'type' => 'string'
+                ),
+                'Gathering_services_port' => array(
+                    'level' => 1,
+                    'description' => __('Port of the misp-modules gathering service.'),
+                    'value' => '6666',
+                    'test' => 'testForPortNumber',
+                    'type' => 'numeric'
+                ),
+                'Gathering_services_enable' => array(
+                    'level' => 0,
+                    'description' => __('Enable gathering modules as MISP feed sources.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean'
+                ),
+                'Gathering_timeout' => array(
+                    'level' => 1,
+                    'description' => __('Execution timeout in seconds for gathering modules.'),
+                    'value' => 150,
                     'test' => 'testForEmpty',
                     'type' => 'numeric'
                 ),
