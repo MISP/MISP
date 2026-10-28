@@ -193,12 +193,13 @@ carries on where it stopped. The old rows stay in `logs_legacy` and
 `audit_logs_legacy` until `finish` drops them, which it only does once every
 row is copied.
 
-- **Time**: about 49,000 rows per second on the test laptop (MariaDB 10.11),
-  so about 3.5 minutes per 10 million rows; a 200 GB `logs` table holds
-  roughly 450 million rows, about 2.5 hours. MISP stays online throughout.
-- **Disk**: about 1.5 times the table's current size, free, until `finish`
-  drops the old table. The new table is 40 to 50 % larger than the old one,
-  for its indexes and 64-bit ids (measured: `logs` +38 %, `audit_logs` +47 %).
+- **Time**: about 35,000 to 50,000 rows per second on the test laptop
+  (MariaDB 10.11), so 3.5 to 5 minutes per 10 million rows; a 200 GB `logs`
+  table holds roughly 450 million rows, about 2.5 hours. MISP stays online
+  throughout.
+- **Disk**: about 1.7 times the table's current size, free, until `finish`
+  drops the old table. The new table is roughly 40 % (`logs`) to 65 %
+  (`audit_logs`) larger than the old one, for its indexes and 64-bit ids.
 - **Load**: the copy runs in batches of 10,000 rows, and on MariaDB a log
   entry written during a batch can wait for it (up to 0.7 s in the tests). On
   a busy server, pause between batches with `--sleep 200` (milliseconds) or

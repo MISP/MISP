@@ -31,7 +31,7 @@ class LogTableUpgrade
     const LOCK_WAIT = 5;
 
     /** The new table is this much larger than the old one: its indexes and 64-bit ids. */
-    const SPACE_FACTOR = 1.5;
+    const SPACE_FACTOR = 1.7;
 
     const TARGETS = array(
         'logs' => array(
