@@ -103,7 +103,15 @@ echo $this->element('genericElementsBS5/Layout/view_layout', [
                 'Collections/View/collection_elements',
             ],
             'right' => $this->RailCard->rail($railCards, ['collection-inventory'], 'elements'),
-        ]
+        ],
+        [
+            'id' => 'pivot-explorer',
+            'title' => __('Pivot Explorer'),
+            'icon' => 'fas fa-circle-nodes',
+            'left' => [
+                'Collections/View/collection_pivot_explorer',
+            ],
+        ],
     ]
 ]);
 ?>

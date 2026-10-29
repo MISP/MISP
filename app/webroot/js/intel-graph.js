@@ -13,6 +13,7 @@
 //   shown      the uuid of the graph the page draws in full, or null
 //   distributionLevels  DistributionLevel::all(), for badges drawn here
 //   collectionTypes     [[type, label]], what a new collection can be
+//   canSaveGraph        the user may save a graph
 //   assets     { js: [{ global, url }], css: [{ path, url }] }, in load order
 //   explorer   options handed to every mounted graph (labelPlan, orgUuid, …)
 //   text       { none }

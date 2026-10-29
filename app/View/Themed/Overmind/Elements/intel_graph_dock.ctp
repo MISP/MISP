@@ -49,15 +49,17 @@
         <div class="ig-so-meta" data-ig-meta></div>
         <div class="ig-so-banner" data-ig-banner hidden></div>
     </header>
-    <div class="ig-so-stage" data-ig-stage>
-        <div class="ig-so-canvas" data-ig-canvas></div>
-        <div class="ig-so-callouts" data-ig-callouts aria-hidden="true"></div>
-        <div class="ig-so-loading" data-ig-loading hidden role="status">
-            <div class="misp-loader" aria-hidden="true"></div>
-            <div data-ig-loading-text><?= __('Loading') ?></div>
-            <div class="ig-so-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="igw-body" data-igw-body>
+        <div class="ig-so-stage" data-ig-stage>
+            <div class="ig-so-canvas" data-ig-canvas></div>
+            <div class="ig-so-callouts" data-ig-callouts aria-hidden="true"></div>
+            <div class="ig-so-loading" data-ig-loading hidden role="status">
+                <div class="misp-loader" aria-hidden="true"></div>
+                <div data-ig-loading-text><?= __('Loading') ?></div>
+                <div class="ig-so-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+            </div>
+            <div class="ig-so-none" data-ig-none hidden></div>
         </div>
-        <div class="ig-so-none" data-ig-none hidden></div>
     </div>
     <section class="ig-so-tray" data-ig-tray aria-labelledby="ig-so-tray-label" hidden>
         <div class="ig-so-tray-bar">

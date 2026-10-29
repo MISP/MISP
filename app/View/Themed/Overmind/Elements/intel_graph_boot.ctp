@@ -57,6 +57,7 @@ $config = [
     'distributionLevels' => $this->DistributionLevel->all(),
     'collectionTypes' => array_map(null, array_keys($collectionTypes), array_values($collectionTypes)),
     'assets' => ['js' => $js, 'css' => $css],
+    'canSaveGraph' => $this->Acl->canAccess('analystData', 'add') && $this->Acl->canAccess('analystGraphs', 'save'),
     'explorer' => [
         'orgUuid' => $me['Organisation']['uuid'] ?? '',
         'siteAdmin' => !empty($me['Role']['perm_site_admin']),
@@ -77,6 +78,7 @@ $config = [
 </script>
 <?php if ($withDock ?? true): ?>
     <?= $this->element('intel_graph_dock') ?>
+    <?= $this->element('intel_graph_working_text') ?>
     <template id="ig-collect-dialog">
         <div class="modal fade ig-collect" tabindex="-1" aria-hidden="true" aria-labelledby="ig-collect-title">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -98,8 +100,8 @@ $config = [
         </div>
     </template>
     <?= $this->element('genericElements/assetLoader', [
-        'js' => ['intel-graph', 'intel-graph-thumb', 'intel-graph-thumbs', 'intel-graph-chooser', 'intel-graph-dock', 'intel-graph-actions'],
-        'css' => ['intel-graph-dock', 'intel-graph-thumbs', 'intel-graph-actions'],
+        'js' => ['intel-graph', 'intel-graph-thumb', 'intel-graph-thumbs', 'intel-graph-chooser', 'intel-graph-working', 'intel-graph-dock', 'intel-graph-actions'],
+        'css' => ['intel-graph-dock', 'intel-graph-thumbs', 'intel-graph-actions', 'intel-graph-working'],
     ]) ?>
 <?php else: ?>
     <?= $this->element('genericElements/assetLoader', ['js' => ['intel-graph']]) ?>
