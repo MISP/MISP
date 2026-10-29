@@ -1204,18 +1204,42 @@
         });
     });
 
-    // `/` puts the cursor in the search of the index on screen.
+    function onScreen(selector) {
+        return Array.prototype.filter.call(document.querySelectorAll(selector), function (el) {
+            return el.offsetParent !== null;
+        })[0];
+    }
+
+    // `/` puts the cursor in the search of the index on screen, `f` opens or
+    // closes its Filters panel.
     document.addEventListener('keydown', function (event) {
-        if (event.key !== '/' || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) { return; }
+        var key = event.key === 'F' ? 'f' : event.key;
+        if ((key !== '/' && key !== 'f') || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) { return; }
         var t = event.target;
         if (t.isContentEditable || (t.closest && t.closest('input, textarea, select')) || document.querySelector('.modal.show')) { return; }
-        var field = Array.prototype.filter.call(document.querySelectorAll('[data-ifp-bar] .ifp-query input'), function (f) {
-            return f.offsetParent !== null;
-        })[0];
-        if (!field) { return; }
+        if (key === '/') {
+            var field = onScreen('[data-ifp-bar] .ifp-query input');
+            if (!field) { return; }
+            event.preventDefault();
+            field.focus();
+            field.select();
+            return;
+        }
+        // A picker or the column browser open in the panel keeps its own keys.
+        var btn = openPanel && openPanel.isConnected ? filtersBtnOf(openPanel) : onScreen('[data-ifp-bar] [data-ifp-filters]');
+        if (!btn || open || browserOpen()) { return; }
+        var bar = btn.closest('[data-ifp-bar]');
+        var panel = panelOf(bar);
         event.preventDefault();
-        field.focus();
-        field.select();
+        showPanel(bar, panel.hidden);
+        if (panel.hidden) {
+            btn.focus();
+            return;
+        }
+        var first = Array.prototype.filter.call(panel.querySelectorAll('.ifp-quick, .ifp-btn, .ifp-vm-btn'), function (el) {
+            return el.offsetParent !== null;
+        })[0];
+        if (first) { first.focus(); }
     });
 
     document.addEventListener('misp:container-loaded', function (event) {

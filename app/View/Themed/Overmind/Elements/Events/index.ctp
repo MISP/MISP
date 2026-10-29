@@ -480,9 +480,10 @@ $timeLabel = function ($value) use ($timeTitles, $timeDay) {
     return $value;
 };
 $threatLevels = null;
+// My events and Org events sit in the Filters panel, so their filters get a chip too.
 $chips = [
-    'scope' => ['email'],
     'labels' => [
+        'email' => __('Creator'),
         'org' => __('Creator org'),
         'all' => __('Anything'),
         'attribute' => __('Attribute'),
@@ -504,6 +505,14 @@ $chips = [
         'minimal' => __('Minimal'),
     ],
     'values' => [
+        'email' => function ($value) use ($me) {
+            return strtolower($value) === strtolower($me['email']) ? __('me') : $value;
+        },
+        // Only read without the org picker, which names the orgs itself.
+        'org' => function ($value) use ($me) {
+            return $value === (string)$me['org_id'] && !empty($me['Organisation']['name'])
+                ? $me['Organisation']['name'] : $value;
+        },
         'analysis' => array_map('strval', $analysisLevels ?? []),
         'threatlevel' => function ($value) use (&$threatLevels) {
             if ($threatLevels === null) {

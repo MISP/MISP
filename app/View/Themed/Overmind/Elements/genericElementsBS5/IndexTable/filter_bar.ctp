@@ -364,6 +364,7 @@ if ($pickerMode) {
                 type="search"
                 autocomplete="off"
                 spellcheck="false"
+                aria-keyshortcuts="/"
                 placeholder="<?= h($searchChild['placeholder']) ?>"
                 aria-label="<?= h($searchChild['placeholder']) ?>"
                 value="<?= h($searchVal) ?>"
@@ -378,7 +379,8 @@ if ($pickerMode) {
 
     <?php if ($windowItems || $toggles): ?>
         <button type="button" class="ifp-fbtn<?= $activeCount ? ' is-set' : '' ?>" data-ifp-filters
-                aria-expanded="false" aria-controls="<?= h($windowId) ?>" data-tour="index-filters">
+                aria-expanded="false" aria-controls="<?= h($windowId) ?>" data-tour="index-filters"
+                title="<?= h(__('Show or hide the filters (F)')) ?>" aria-keyshortcuts="f">
             <i class="fas fa-sliders" aria-hidden="true"></i>
             <span><?= h(__('Filters')) ?></span>
             <span class="badge rounded-pill bg-primary" data-ifp-swap="filters-count"
