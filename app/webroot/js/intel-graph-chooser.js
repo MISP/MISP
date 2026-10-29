@@ -181,6 +181,8 @@
     //             IntelGraph.createCollection
     //   done      (collection, activate, name) once created
     //   activate  Make it my workspace ticked (default true)
+    //   name      the name it starts with
+    //   type      the type it starts as (default research)
     var formSeq = 0;
     function form(options) {
         options = options || {};
@@ -198,6 +200,7 @@
         input.autocomplete = 'off';
         input.maxLength = 191;
         input.required = true;
+        if (options.name) input.value = String(options.name).slice(0, 191);
         group.appendChild(input);
         var submit = el('button', 'btn btn-primary', options.submit || 'Create');
         submit.type = 'submit';
@@ -210,7 +213,7 @@
             var d = IG().distribution(l);
             return [l, d ? d.label : String(l)];
         });
-        var typeField = field('Type', id + '-type', IG().collectionTypes(), 'research');
+        var typeField = field('Type', id + '-type', IG().collectionTypes(), options.type || 'research');
         var distField = field('Distribution', id + '-dist', levels, 0);
         var stated = el('div', 'form-text ig-so-new-defaults');
         var statedText = el('span');
@@ -271,7 +274,7 @@
                 feedback.textContent = (errs && errs.name && errs.name[0]) || (err && err.message) || 'Could not create the collection.';
             });
         });
-        f.focusName = function () { input.focus(); };
+        f.focusName = function () { input.focus(); input.select(); };
         return f;
     }
 

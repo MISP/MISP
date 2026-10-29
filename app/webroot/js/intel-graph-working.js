@@ -1397,15 +1397,24 @@
         slot.appendChild(body);
         var F = buildFrame('page', body, stage);
         var frame = api(F);
-        var P = { h: null, key: null, token: 0, layout: 'clean', why: '' };
+        var canEdit = root.getAttribute('data-igw-can-edit') === '1';
+        var self = { uuid: uuid, name: root.getAttribute('data-igw-name') || '', type: root.getAttribute('data-igw-type') || 'research' };
+        // choice: what the head's picker asked for, {kind: 'structure'} or
+        // {kind: 'graph', graph}; null draws the default
+        var P = { h: null, key: null, token: 0, layout: 'clean', why: '', choice: null, saveAs: null };
 
-        // The workspace's graph when the collection is the workspace; else none.
+        // The working view when the collection is the workspace, else every
+        // member; or a saved graph picked from the head, drawn as saved.
         function drawn() {
             var a = IG().active();
             var ws = !!a && lower(a.Collection.uuid) === uuid;
-            return { ws: ws, graph: ws && a.Graph ? a.Graph : null };
+            var choice = P.choice || {};
+            if (choice.kind === 'graph') return { kind: 'graph', ws: ws, graph: choice.graph };
+            if (ws && choice.kind !== 'structure') return { kind: 'working', ws: true, graph: a.Graph || null };
+            return { kind: 'structure', ws: ws, graph: null };
         }
-        function keyOf(d) { return (d.ws ? 'ws' : 'all') + '/' + lower(d.graph ? d.graph.uuid : ''); }
+        function keyOf(d) { return d.kind + '/' + lower(d.graph ? d.graph.uuid : ''); }
+        function canSaveGraph() { return !!(window.IntelGraphConfig && window.IntelGraphConfig.canSaveGraph); }
         function el(tag, cls, label) {
             var e = document.createElement(tag);
             if (cls) e.className = cls;
@@ -1424,33 +1433,225 @@
             b.addEventListener('click', fn);
             return b;
         }
+        function graphLink(g, text) {
+            var a = el('a', null, text);
+            a.href = baseurl() + '/analyst_graphs/view/' + encodeURIComponent(g.uuid);
+            return a;
+        }
+        // "laid out by ‹graph›", the graph a link
+        function withGraph(key, g) {
+            var span = el('span');
+            var parts = t(key, '\u0000').split('\u0000');
+            span.appendChild(document.createTextNode(parts[0]));
+            var a = graphLink(g);
+            a.title = t('pageOpenGraph');
+            a.appendChild(el('strong', null, g.name));
+            span.appendChild(a);
+            span.appendChild(document.createTextNode(parts[1] || ''));
+            return span;
+        }
         function renderHead() {
             var d = drawn();
             whatEl.textContent = '';
-            var icon = el('i', d.ws ? 'misp-icon misp-icon-analyst-graph misp-simple' : 'fas fa-circle-nodes');
+            var icon = el('i', d.kind === 'structure' ? 'fas fa-circle-nodes' : 'misp-icon misp-icon-analyst-graph misp-simple');
             icon.setAttribute('aria-hidden', 'true');
             whatEl.appendChild(icon);
-            var say = el('span');
-            if (d.ws && d.graph) {
-                var parts = t('pageWs', '\u0000').split('\u0000');
-                say.appendChild(document.createTextNode(parts[0]));
-                var a = el('a');
-                a.href = baseurl() + '/analyst_graphs/view/' + encodeURIComponent(d.graph.uuid);
-                a.title = t('pageOpenGraph');
-                a.appendChild(el('strong', null, d.graph.name));
-                say.appendChild(a);
-                say.appendChild(document.createTextNode(parts[1] || ''));
+            whatEl.appendChild(picker(d));
+            var say = el('span', 'igw-page-say');
+            if (d.kind === 'working') {
+                say.appendChild(d.graph ? withGraph('pageWsSubGraph', d.graph) : document.createTextNode(t('pageWsSubAuto')));
+            } else if (d.kind === 'structure') {
+                say.textContent = t('pageStructureSub');
             } else {
-                say.textContent = t(d.ws ? 'pageWsAuto' : 'pageStructure');
+                var payload = P.h && P.h.payload && P.h.payload();
+                var g = Object.assign({}, d.graph, (payload && payload.Graph) || {});
+                say.appendChild(document.createTextNode(t('pagePicture', (g.Orgc && g.Orgc.name) || '', tn('layoutNodes', g.node_count || 0)) + ' · '));
+                say.appendChild(graphLink(g, t('pageOpenGraph')));
+                var joined = payload && payload.meta && payload.meta.joined_since;
+                if (joined) say.appendChild(el('span', 'igw-page-joined', tn('pageJoinedSince', joined)));
             }
             whatEl.appendChild(say);
             renderState();
         }
+
+        // The head's picker: the working view, Structure, and the saved graphs
+        // on the collection, any organisation's.
+        function picker(d) {
+            var wrap = el('div', 'dropdown igw-pick');
+            var b = el('button', 'btn btn-sm igw-pick-btn');
+            b.type = 'button';
+            b.title = t('pageDraw');
+            b.setAttribute('data-bs-toggle', 'dropdown');
+            b.setAttribute('aria-expanded', 'false');
+            b.setAttribute('data-igw-pick', '');
+            b.appendChild(el('strong', null, d.kind === 'working' ? t('pageYourWs') : d.kind === 'structure' ? t('pageStructureName') : d.graph.name));
+            var caret = el('i', 'fas fa-chevron-down');
+            caret.setAttribute('aria-hidden', 'true');
+            b.appendChild(caret);
+            var menu = el('div', 'dropdown-menu igw-pick-menu');
+            menu.setAttribute('data-igw-pick-menu', '');
+            b.addEventListener('show.bs.dropdown', function () { fillPick(menu); });
+            wrap.appendChild(b);
+            wrap.appendChild(menu);
+            return wrap;
+        }
+        function pickRow(name, sub, current, iconCls, onPick) {
+            var b = el('button', 'dropdown-item igw-pick-row');
+            b.type = 'button';
+            if (current) b.setAttribute('aria-current', 'true');
+            var mark = el('i', (current ? 'fas fa-check' : iconCls) + ' igw-pick-mark');
+            mark.setAttribute('aria-hidden', 'true');
+            var text = el('span', 'igw-pick-body');
+            text.appendChild(el('span', 'igw-pick-name', name));
+            if (sub) text.appendChild(el('span', 'igw-pick-sub', sub));
+            b.appendChild(mark);
+            b.appendChild(text);
+            b.addEventListener('click', onPick);
+            return b;
+        }
+        function choose(choice) {
+            P.choice = choice;
+            P.saveAs = null;
+            mount(true);
+        }
+        function fillPick(menu) {
+            var d = drawn(), a = IG().active();
+            menu.textContent = '';
+            if (P.layout === 'dirty') menu.appendChild(el('p', 'dropdown-item-text igw-pick-note', t('layoutUnsaved')));
+            if (d.ws) {
+                menu.appendChild(pickRow(t('pageYourWs'), a.Graph ? t('pageWsSubGraph', a.Graph.name) : t('pageWsSubAuto'),
+                    d.kind === 'working', 'misp-icon misp-icon-analyst-graph misp-simple', function () { choose(null); }));
+            }
+            menu.appendChild(pickRow(t('pageStructureName'), t('pageStructureSub'), d.kind === 'structure', 'fas fa-circle-nodes',
+                function () { choose({ kind: 'structure' }); }));
+            menu.appendChild(el('div', 'dropdown-divider'));
+            menu.appendChild(el('h6', 'dropdown-header', t('pageGraphsHead')));
+            var list = el('div');
+            list.appendChild(el('p', 'dropdown-item-text igw-pick-note', t('layoutLoading')));
+            menu.appendChild(list);
+            IG().forTarget('Collection', uuid).then(function (out) {
+                list.textContent = '';
+                var graphs = (out && out.Graph) || [];
+                if (!graphs.length) list.appendChild(el('p', 'dropdown-item-text igw-pick-note', t('pageGraphsNone')));
+                graphs.forEach(function (g) {
+                    var laysOut = d.ws && a.Graph && lower(a.Graph.uuid) === lower(g.uuid);
+                    var sub = ((g.Orgc && g.Orgc.name) || '') + ' · ' + tn('layoutNodes', g.node_count || 0) + (laysOut ? ' · ' + t('pageLaysOut') : '');
+                    list.appendChild(pickRow(g.name, sub, d.kind === 'graph' && lower(d.graph.uuid) === lower(g.uuid),
+                        'misp-icon misp-icon-analyst-graph misp-simple', function () { choose({ kind: 'graph', graph: g }); }));
+                });
+            }, function () {
+                list.textContent = '';
+                list.appendChild(el('p', 'dropdown-item-text igw-pick-note text-danger-emphasis', t('layoutListFailed')));
+            });
+        }
+
+        // What can be made of what is drawn: a graph, a new one, a copy.
+        function actions(d) {
+            var h = P.h;
+            if (!h || d.kind === 'graph') return;
+            var copies = !canEdit && !!window.IntelGraphActions && !!h.collect;
+            if (canSaveGraph()) {
+                var again = d.kind === 'working' && !!d.graph;
+                var tone = P.layout === 'moved-ro' && !again ? 'btn-primary' : (again || copies ? 'btn-outline-secondary' : 'btn-outline-primary');
+                var go = button('btn ' + tone, t(again ? 'saveAsNewGraph' : 'saveAsGraph'), openSaveAs, again ? 'fas fa-plus' : 'fas fa-floppy-disk');
+                go.title = t(again ? 'saveAsNewTitle' : 'saveAsTitle');
+                go.setAttribute('data-igw-save-as', '');
+                stateEl.appendChild(go);
+            }
+            if (copies) {
+                var copy = button('btn btn-outline-primary', t('copyAsMine'), function () { h.collect(); }, 'fas fa-copy');
+                copy.title = t('copyTitle');
+                copy.setAttribute('data-igw-copy', '');
+                stateEl.appendChild(copy);
+            }
+        }
+        function openSaveAs() {
+            P.saveAs = { name: '', busy: false, error: null };
+            renderState();
+            var input = stateEl.querySelector('.igw-saveas input');
+            if (input) input.focus();
+        }
+        function renderSaveAs() {
+            var s = P.saveAs;
+            var f = el('form', 'igw-saveas');
+            f.noValidate = true;
+            var input = el('input', 'form-control form-control-sm');
+            input.type = 'text';
+            input.maxLength = 191;
+            input.autocomplete = 'off';
+            input.placeholder = t('graphNamePlaceholder');
+            input.setAttribute('aria-label', t('graphName'));
+            input.value = s.name;
+            input.disabled = s.busy;
+            if (s.error) input.setAttribute('aria-invalid', 'true');
+            input.addEventListener('input', function () { s.name = input.value; });
+            input.addEventListener('keydown', function (e) {
+                if (e.key !== 'Escape') return;
+                e.preventDefault();
+                e.stopPropagation();
+                P.saveAs = null;
+                renderState();
+            });
+            var go = el('button', 'btn btn-primary', s.busy ? t('creating') : t('save'));
+            go.type = 'submit';
+            go.disabled = s.busy;
+            f.appendChild(input);
+            f.appendChild(go);
+            f.appendChild(button('btn btn-outline-secondary', t('cancel'), function () { P.saveAs = null; renderState(); }));
+            var note = el('span', 'igw-saveas-note' + (s.error ? ' is-error' : ''), s.error || t('sharedLikeCollection'));
+            if (s.error) note.setAttribute('role', 'alert');
+            f.appendChild(note);
+            f.addEventListener('submit', function (e) {
+                e.preventDefault();
+                createGraph();
+            });
+            stateEl.appendChild(f);
+        }
+        function createGraph() {
+            var d = drawn(), h = P.h, s = P.saveAs;
+            if (!h || !s || s.busy) return;
+            var name = s.name.trim();
+            if (!name) {
+                s.error = t('nameNeeded');
+                renderState();
+                var input = stateEl.querySelector('.igw-saveas input');
+                if (input) input.focus();
+                return;
+            }
+            var c = (h.payload() || {}).Collection || {};
+            s.busy = true;
+            s.error = null;
+            renderState();
+            var working = d.kind === 'working';
+            // The canvas, moves and all, becomes the graph laying the workspace out
+            if (working) P.layout = 'clean';
+            IG().create({
+                name: name,
+                target: { type: 'Collection', uuid: uuid },
+                distribution: c.distribution,
+                sharing_group_id: c.sharing_group_id || null,
+                content: h.documentOf()
+            }, { activate: working }).then(function (created) {
+                P.saveAs = null;
+                if (!working) choose({ kind: 'graph', graph: created });
+                else renderHead();
+            }, function (err) {
+                if (P.saveAs !== s) return;
+                s.busy = false;
+                s.error = t('createFailed', (err && err.message) || '');
+                renderState();
+            });
+        }
+
         function renderState() {
             headEl.classList.remove('is-dirty', 'is-conflict');
             stateEl.textContent = '';
             var h = P.h;
             if (!h) return;
+            if (P.saveAs) {
+                renderSaveAs();
+                return;
+            }
             if (P.layout === 'dirty') {
                 headEl.classList.add('is-dirty');
                 stateEl.appendChild(el('span', null, t('layoutDirty') + ' ' + t('layoutDirtySub')));
@@ -1473,6 +1674,7 @@
             } else if (P.layout === 'moved-ro') {
                 stateEl.appendChild(el('span', null, t(h.uuid() ? 'movesReadonly' : 'movesAuto')));
             }
+            if (['clean', 'saved', 'moved-ro'].indexOf(P.layout) !== -1) actions(drawn());
         }
         function save() {
             var h = P.h;
@@ -1520,21 +1722,32 @@
             wait.appendChild(el('div', 'misp-loader'));
             renderHead();
             P.mounting = true;
-            var options = frame.mountOptions({});
-            IG().mount(box, Object.assign({}, extra, {
+            // A saved graph picked here is drawn as saved, without the list
+            var picture = d.kind === 'graph';
+            frame.none(picture);
+            var options = picture ? {} : frame.mountOptions({});
+            IG().mount(box, Object.assign({}, extra, picture ? {
+                graph: d.graph.uuid,
+                ui: { mode: 'viewer' }
+            } : {
                 graph: d.graph ? d.graph.uuid : null,
                 source: IG().workingPath(uuid, d.graph && d.graph.uuid),
                 ui: options.ui,
-                badges: options.badges
+                badges: options.badges,
+                copyOf: canEdit ? null : self
             })).then(function (h) {
                 if (mine !== P.token) { try { h.destroy(); } catch (e) { /* gone */ } return null; }
-                frame.bind(h);
+                if (!picture) frame.bind(h);
                 return h.ready;
             }).then(function (h) {
                 if (!h || mine !== P.token) return;
                 P.mounting = false;
                 P.h = h;
                 wait.hidden = true;
+                if (picture) {
+                    renderHead();
+                    return;
+                }
                 frame.attach(h);
                 h.onChange(function (handle, reason) {
                     if (handle !== P.h || ['moved', 'grouped', 'noted'].indexOf(reason) === -1) return;

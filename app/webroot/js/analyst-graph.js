@@ -570,7 +570,14 @@
                 opts.UI.editors.deletion = { enabled: false };
             }
             if (config.menus) addMenus(opts);
-            if (config.ui) Object.assign(opts.UI, config.ui);
+            if (config.ui) {
+                // A host's menus replace the explorer's one by one: its canvas menu stays
+                var menus = config.ui.contextMenu && opts.UI.contextMenu
+                    ? Object.assign({}, opts.UI.contextMenu, config.ui.contextMenu)
+                    : null;
+                Object.assign(opts.UI, config.ui);
+                if (menus) opts.UI.contextMenu = menus;
+            }
             var dbclick = opts.callbacks.onNodeDbclick;
             opts.callbacks.onNodeDbclick = function (e, node) {
                 var d = node && node.getData ? node.getData() : null;
@@ -726,6 +733,7 @@
             },
             load: load,
             graphUuid: function () { return state.uuid; },
+            copyOf: config.copyOf ? function () { return config.copyOf; } : null,
             graphTarget: function () {
                 var g = state.payload && state.payload.Graph;
                 return g && g.object_uuid ? { type: g.object_type, uuid: g.object_uuid, label: g.name } : null;
@@ -1341,6 +1349,8 @@
             uuid:       function () { return state.uuid; },
             graph:      graph,
             kit:        function () { return explorer.kit; },
+            // Copy as my collection…, with config.copyOf
+            collect:    function () { explorer.collect(); },
             payload:    function () { return state.payload; },
             canEdit:    canEditGraph,
             revision:   function () { return state.revision; },

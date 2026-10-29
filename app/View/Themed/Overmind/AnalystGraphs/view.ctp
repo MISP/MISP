@@ -39,6 +39,15 @@ if (!empty($graph['forked_from'])) {
 } elseif (!empty($graph['forked_from_uuid'])) {
     $description[] = '<span class="ms-3"><i class="fas fa-code-fork me-1"></i>' . __('A fork') . '</span>';
 }
+if ($target['type'] === 'Collection' && $target['id'] !== null) {
+    // Filled once drawn: the members this picture lacks
+    $description[] = '<span class="ms-3 d-none" data-ig-joined-since'
+        . ' data-one="' . h(__('%s member joined the collection since')) . '"'
+        . ' data-more="' . h(__('%s members joined the collection since')) . '">'
+        . '<i class="fas fa-user-plus me-1"></i><span data-ig-joined-text></span> · '
+        . '<a href="' . h($baseurl . '/collections/view/' . $target['id'] . '#tab-pivot-explorer') . '">' . __('See them in its Pivot Explorer') . '</a>'
+        . '</span>';
+}
 if (!empty($graph['description'])) {
     $description[] = '<div class="mt-1">' . h($graph['description']) . '</div>';
 }

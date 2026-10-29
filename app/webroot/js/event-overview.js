@@ -363,10 +363,15 @@
             Object.keys(canvases).forEach(function (k) { canvases[k].classList.toggle('d-none', k !== mode); });
             showInstead();
             sub.textContent = mode === 'saved' && saved
-                ? fmt(card.getAttribute('data-eo-text-saved'), [saved.name || saved.uuid])
+                ? fmt(card.getAttribute('data-eo-text-saved'), [saved.name || saved.uuid, (saved.Orgc && saved.Orgc.name) || ''])
+                    + ' · ' + nodeCount(saved.node_count || 0)
                     + (savedCount > 1 ? ' · ' + fmt(card.getAttribute('data-eo-text-saved-count'), [savedCount]) : '')
                 : structureSub;
             if (mode === 'saved') mountSaved();
+        }
+
+        function nodeCount(n) {
+            return fmt(card.getAttribute(n === 1 ? 'data-eo-text-node-one' : 'data-eo-text-node-count'), [n]);
         }
 
         function mountSaved() {
@@ -401,11 +406,17 @@
                 var name = document.createElement('span');
                 name.className = 'eo-graph-pick-name';
                 name.textContent = g.name || g.uuid;
+                var org = document.createElement('span');
+                org.className = 'eo-graph-pick-org';
+                org.textContent = (g.Orgc && g.Orgc.name) || '';
+                var label = document.createElement('span');
+                label.className = 'eo-graph-pick-label';
+                label.append(name, org);
                 var size = document.createElement('span');
                 size.className = 'badge rounded-pill text-bg-secondary';
                 size.textContent = String(g.node_count || 0);
-                size.title = fmt(card.getAttribute('data-eo-text-node-count'), [g.node_count || 0]);
-                item.append(mark, name, size);
+                size.title = nodeCount(g.node_count || 0);
+                item.append(mark, label, size);
                 item.addEventListener('click', function () {
                     saved = g;
                     fillPick(graphs);
@@ -463,8 +474,10 @@
             fetchJson(base() + '/analyst_graphs/forTarget/Event/' + encodeURIComponent(uuid) + '.json').then(function (res) {
                 var graphs = (res && res.Graph) || [];
                 if (!graphs.length) return;
-                var drawn = graphs.filter(function (g) { return (g.node_count || 0) > 0; });
-                saved = drawn[0] || graphs[0];
+                // The organisation's own, else the event creator's; anyone
+                // else's stays in the picker.
+                var picked = graphs.filter(function (g) { return res.pick && g.uuid === res.pick; })[0] || null;
+                saved = picked || graphs[0];
                 var button = card.querySelector('[data-eo-graph-mode="saved"]');
                 button.disabled = false;
                 button.title = button.getAttribute('data-eo-title-ready');
@@ -476,8 +489,7 @@
                     card.querySelector('[data-eo-graph-caret]').classList.remove('d-none');
                     fillPick(graphs);
                 }
-                // An empty saved graph stays one click away rather than hiding the structure.
-                if (drawn.length) {
+                if (picked) {
                     savedDrawn = true;
                     layout();
                     select('saved');

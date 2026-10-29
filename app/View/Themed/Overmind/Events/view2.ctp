@@ -126,8 +126,7 @@
                     'Events/View/event_warninglists',
                     'Events/View/event_sightings',
                     'Events/View/event_related',
-                    'Events/View/event_collections',
-                    'Events/View/event_graphs',
+                    'Events/View/event_investigations',
                 ]
             ],
             [

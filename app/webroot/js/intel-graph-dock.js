@@ -749,6 +749,16 @@
             open.appendChild(icon('fas fa-up-right-from-square'));
             open.appendChild(el('span', null, t('pageOpenGraph')));
             into.appendChild(open);
+            if (canSaveGraph() && current && currentReady) {
+                var again = el('button', 'dropdown-item ig-so-more');
+                again.type = 'button';
+                again.setAttribute('data-ig-save-new', '');
+                again.title = t('saveAsNewTitle');
+                again.appendChild(icon('fas fa-plus'));
+                again.appendChild(el('span', null, t('saveAsNewGraph')));
+                again.addEventListener('click', openSaveAs);
+                into.appendChild(again);
+            }
         }
         var org = lower(window.IntelGraphConfig && window.IntelGraphConfig.explorer && window.IntelGraphConfig.explorer.orgUuid);
         IG().request('GET', '/analyst_graphs/forTarget/Collection/' + encodeURIComponent(a.Collection.uuid) + '.json').then(function (out) {
@@ -1533,7 +1543,7 @@
         footEl.className = 'ig-so-foot';
         footEl.textContent = '';
         var mounted = current && currentKey === drawKey(a);
-        if (!a.Graph && saveAs && mounted && currentReady) {
+        if (saveAs && mounted && currentReady) {
             renderSaveAs(a, typing);
             return;
         }
@@ -1605,7 +1615,7 @@
         footEl.classList.add('is-form');
         var form = el('form', 'ig-so-saveas');
         form.noValidate = true;
-        form.setAttribute('aria-label', t('saveAsTitle'));
+        form.setAttribute('aria-label', t(a.Graph ? 'saveAsNewTitle' : 'saveAsTitle'));
         var row = el('div', 'ig-so-saveas-row');
         var label = el('label', 'visually-hidden', t('graphName'));
         label.htmlFor = 'ig-so-saveas-name';

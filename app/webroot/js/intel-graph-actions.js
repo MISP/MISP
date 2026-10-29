@@ -98,6 +98,29 @@
         }).join(', ');
     }
 
+    // What a collection made from a canvas holds: the selection or all of it.
+    var setSeq = 0;
+    function setChoice(sets, onPick) {
+        var name = 'ig-collect-set-' + (++setSeq);
+        var box = el('fieldset', 'ig-collect-sets');
+        box.appendChild(el('legend', 'form-label', 'Members'));
+        sets.forEach(function (set, i) {
+            var row = el('div', 'form-check');
+            var input = el('input', 'form-check-input');
+            input.type = 'radio';
+            input.name = name;
+            input.id = name + '-' + i;
+            input.checked = i === 0;
+            input.addEventListener('change', function () { if (input.checked) onPick(set); });
+            var label = el('label', 'form-check-label', set.label);
+            label.htmlFor = input.id;
+            row.appendChild(input);
+            row.appendChild(label);
+            box.appendChild(row);
+        });
+        return box;
+    }
+
     /* ── what the workspace holds ──────────────────────────── */
     // An element's record key, worked out once (a value's is a digest).
     var keyed = typeof WeakMap === 'function' ? new WeakMap() : null;
@@ -312,9 +335,18 @@
         return Promise.resolve();
     }
 
-    function newWith(items, origin) {
-        dialog('new', items, origin);
+    // options, from a canvas (Save canvas as collection…, Copy as my
+    // collection…):
+    //   title   the dialog's title
+    //   sets    [{label, items, graph()}]: what it may hold, the first one
+    //           chosen; graph() lays that set out as the canvas does, the
+    //           collection's first graph
+    //   copyOf  {uuid, name, type}: the collection it copies
+    //   name    the name it starts with
+    function newWith(items, origin, options) {
+        dialog('new', items, origin, options || {});
     }
+    function canSaveGraph() { return !!(window.IntelGraphConfig && window.IntelGraphConfig.canSaveGraph); }
 
     // What an add to a collection that is not the workspace did.
     function sayAdded(report, name) {
@@ -329,7 +361,8 @@
     /* ── the dialog ────────────────────────────────────────── */
     // mode 'pick': Add to another collection…, the list and New collection…
     // under it. mode 'new': New collection with this…, the form alone.
-    function dialog(mode, items, origin) {
+    function dialog(mode, items, origin, options) {
+        options = options || {};
         var template = document.getElementById('ig-collect-dialog');
         if (!template || !window.bootstrap || !window.bootstrap.Modal || !window.IntelGraphChooser) return;
         var root = template.content.firstElementChild.cloneNode(true);
@@ -343,25 +376,49 @@
             modal.dispose();
             root.remove();
         });
+        var copyOf = options.copyOf || null;
         function created(c, activate, name) {
             modal.hide();
             var report = c && c.report;
             var n = report ? (report.added || []).length + (report.present || []).length : 0;
-            toast('“' + name + '” created with ' + (n === 1 ? '1 record' : n + ' records')
+            toast('“' + name + '” ' + (copyOf ? 'copied' : 'created') + ' with ' + (n === 1 ? '1 record' : n + ' records')
+                + (c && c.Graph ? ', laid out as on the canvas' : '')
                 + (activate ? '. It is your workspace.' : '.'));
             if (report && report.refused && report.refused.length) sayAdded({ refused: report.refused }, name);
         }
+        var sets = options.sets && options.sets.length ? options.sets : [{ items: items }];
+        var chosen = sets[0];
         var formOptions = {
             create: function (values, activate) {
-                return IG().createCollection(values, { activate: activate, items: items, origin: origin });
+                var opts = { activate: activate, items: chosen.items, origin: origin };
+                if (canSaveGraph() && typeof chosen.graph === 'function') opts.graph = { name: values.name, content: chosen.graph() };
+                if (copyOf && canSaveGraph()) opts.copiedFrom = copyOf.uuid;
+                return IG().createCollection(values, opts);
             },
             done: created
         };
         if (mode === 'new') {
-            title.textContent = 'New collection';
-            sub.textContent = 'With ' + what + '.';
-            var form = window.IntelGraphChooser.form(Object.assign({ label: 'Name', submit: 'Create' }, formOptions));
+            root.classList.add('is-new');
+            title.textContent = options.title || 'New collection';
+            var say = function () {
+                var holds = describe(chosen.items);
+                var laid = canSaveGraph() && typeof chosen.graph === 'function'
+                    ? ', laid out as on the canvas' + (chosen.findings ? ', its ' + (chosen.findings === 1 ? 'finding' : chosen.findings + ' findings') + ' kept on its graph' : '')
+                    : '';
+                sub.textContent = copyOf
+                    ? 'A copy of “' + copyOf.name + '” for your organisation, with ' + holds + laid + '.'
+                    : 'With ' + holds + laid + '.';
+            };
+            say();
+            if (sets.length > 1) body.appendChild(setChoice(sets, function (set) { chosen = set; say(); }));
+            var form = window.IntelGraphChooser.form(Object.assign({
+                label: 'Name',
+                submit: copyOf ? 'Copy' : 'Create',
+                name: options.name,
+                type: copyOf ? copyOf.type : null
+            }, formOptions));
             body.appendChild(form);
+            if (copyOf) body.appendChild(el('p', 'form-text ig-collect-note', 'Why each member was added stays on “' + copyOf.name + '”.'));
             root.addEventListener('shown.bs.modal', function () { form.focusName(); });
         } else {
             title.textContent = 'Add to a collection';

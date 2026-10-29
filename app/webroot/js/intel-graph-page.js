@@ -431,6 +431,16 @@
             });
         }
 
+        // A picture of a collection that has grown since says so.
+        function sayJoined(h) {
+            var slot = document.querySelector('[data-ig-joined-since]');
+            var payload = h.payload && h.payload();
+            var n = payload && payload.meta && payload.meta.joined_since;
+            if (!slot || !n) return;
+            slot.querySelector('[data-ig-joined-text]').textContent = slot.getAttribute(n === 1 ? 'data-one' : 'data-more').replace('%s', n);
+            slot.classList.remove('d-none');
+        }
+
         /* ── boot ──────────────────────────────────────────────── */
         function boot() {
             bindFork();
@@ -465,6 +475,7 @@
                 } catch (e) { /* counted on edits only */ }
                 render();
                 measure();
+                sayJoined(h);
             }).catch(function (err) {
                 statusEl.textContent = 'The graph could not be drawn: ' + message(err);
             });

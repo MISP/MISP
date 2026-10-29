@@ -175,8 +175,9 @@ $reportSub = function (array $row) use ($extensionEvents, $data, $eventId) {
              data-eo-text-summary="<?= h(__('%s linked objects and attributes — too many to draw here.')) ?>"
              data-eo-text-failed="<?= h(__('The graph could not be drawn.')) ?>"
              data-eo-text-counts="<?= h(__('%1$s objects, %2$s references')) ?>"
-             data-eo-text-saved="<?= h(__('Saved graph: %s')) ?>"
+             data-eo-text-saved="<?= h(__('“%1$s” by %2$s')) ?>"
              data-eo-text-saved-count="<?= h(__('%s saved graphs')) ?>"
+             data-eo-text-node-one="<?= h(__('%s node')) ?>"
              data-eo-text-node-count="<?= h(__('%s nodes')) ?>">
             <div class="eo-card-head">
                 <div class="misp-icon-tile eo-tile" style="--tile:var(--bs-correlation);--tile-bg:color-mix(in srgb, var(--bs-correlation) 12%, transparent);">

@@ -95,4 +95,8 @@
 .ig-collect .list-group .ig-so-pick { padding: .55rem .8rem; }
 .ig-collect .list-group .ig-so-more { padding: .45rem .8rem; }
 .ig-collect .ig-so-new { padding: .75rem; border: 1px dashed var(--bs-border-color); border-radius: var(--bs-border-radius); }
-.ig-collect .modal-body > .ig-so-new:only-child { border: 0; padding: 0; }
+.ig-collect.is-new .ig-so-new { border: 0; padding: 0; }
+.ig-collect .ig-collect-sub { padding-right: 2.5rem; }
+.ig-collect .ig-collect-note { margin: -.25rem 0 0; }
+.ig-collect .ig-collect-sets { display: flex; flex-direction: column; gap: .15rem; margin: 0; }
+.ig-collect .ig-collect-sets legend { float: none; width: auto; padding: 0; margin-bottom: .25rem; font-size: .8rem; font-weight: 600; }
