@@ -305,10 +305,6 @@ class AnalystGraphDocumentTool
         $nodes = isset($document['nodes']) && is_array($document['nodes']) ? $document['nodes'] : [];
         $seen = array_flip(self::nodeKeysOf($nodes));
         foreach (array_values($items) as $i => $item) {
-            if (is_array($item) && ($item['type'] ?? null) === self::ANSWER) {
-                $report['refused'][] = ['index' => $i, 'error' => __('A module answer is kept by saving the graph, not added to it.')];
-                continue;
-            }
             $errors = [];
             $node = self::normaliseNode($item, $errors);
             if ($node === null) {
@@ -329,6 +325,46 @@ class AnalystGraphDocumentTool
             $report['added'][] = $key;
         }
         $document['nodes'] = $nodes;
+        return [$document, $report];
+    }
+
+    /**
+     * Set or clear a flag (hidden) on the nodes named, keeping where they sit.
+     *
+     * @param array $document A stored document, decoded
+     * @param array $items Nodes or their keys
+     * @param string $flag
+     * @param bool $on
+     * @return array [array $document, array $report {changed: [key], absent: [key]}]
+     */
+    public static function flagNodes(array $document, array $items, $flag, $on)
+    {
+        $wanted = [];
+        foreach ($items as $item) {
+            $key = self::keyOf($item);
+            if ($key !== null) {
+                $wanted[$key] = true;
+            }
+        }
+        $report = ['changed' => [], 'absent' => []];
+        $found = [];
+        foreach ($document['nodes'] ?? [] as $i => $node) {
+            $key = self::nodeKey($node);
+            if (!isset($wanted[$key])) {
+                continue;
+            }
+            $found[$key] = true;
+            if (!empty($node[$flag]) === $on) {
+                continue;
+            }
+            if ($on) {
+                $document['nodes'][$i][$flag] = true;
+            } else {
+                unset($document['nodes'][$i][$flag]);
+            }
+            $report['changed'][] = $key;
+        }
+        $report['absent'] = array_keys(array_diff_key($wanted, $found));
         return [$document, $report];
     }
 

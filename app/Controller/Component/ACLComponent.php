@@ -49,6 +49,7 @@ class ACLComponent extends Component
             'export' => ['*'],
             'fork' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'forTarget' => ['*'],
+            'hideNodes' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'import' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'removeNodes' => ['AND' => ['perm_add', 'perm_analyst_data']],
             'save' => ['AND' => ['perm_add', 'perm_analyst_data']],

@@ -37,7 +37,7 @@ class AnalystGraphsController extends AppController
         parent::beforeFilter();
         // Posted as hand-built JSON by the graph host, with the CSRF token
         // in the X-CSRF-Token header.
-        $this->_csrfTokenHeaderOnly(['save', 'addNodes', 'removeNodes', 'fork', 'edges']);
+        $this->_csrfTokenHeaderOnly(['save', 'addNodes', 'removeNodes', 'hideNodes', 'fork', 'edges']);
     }
 
     public function beforeRender()
@@ -424,10 +424,45 @@ class AnalystGraphsController extends AppController
         $this->request->allowMethod(['post']);
         $graph = $this->__fetchEditableGraph($uuid);
         $items = $this->__items();
+        $user = $this->Auth->user();
         $report = null;
-        $result = $this->Graph->writeContent($graph['Graph']['id'], function (array $document) use ($items, &$report) {
-            list($document, $report) = AnalystGraphDocumentTool::addNodes($document, $items);
-            return empty($report['added']) ? null : $document;
+        $result = $this->Graph->writeContent($graph['Graph']['id'], function (array $document) use ($items, $user, &$report) {
+            list($added, $report) = AnalystGraphDocumentTool::addNodes($document, $items);
+            if (empty($report['added'])) {
+                return null;
+            }
+            // An answer is kept under the rules a save applies to it
+            if (preg_grep('/^' . AnalystGraphDocumentTool::ANSWER . ':/', $report['added'])) {
+                $added = $this->AnalystGraphData->documentForWrite($user, $added, $document);
+                $kept = array_flip(array_map(['AnalystGraphDocumentTool', 'nodeKey'], $added['nodes']));
+                $report['added'] = array_values(array_filter($report['added'], function ($key) use ($kept) {
+                    return isset($kept[$key]);
+                }));
+            }
+            return empty($report['added']) ? null : $added;
+        });
+        return $this->__writeResponse($graph, $result, $report);
+    }
+
+    /**
+     * Hide nodes on the graph, or show them again: {items, hidden}. A hidden
+     * node keeps its place in the document.
+     *
+     * @param string $uuid
+     */
+    public function hideNodes($uuid)
+    {
+        $this->request->allowMethod(['post']);
+        $graph = $this->__fetchEditableGraph($uuid);
+        $items = $this->__items();
+        $hidden = $this->__input()['hidden'] ?? true;
+        if (!is_bool($hidden)) {
+            throw new BadRequestException(__('hidden is true or false.'));
+        }
+        $report = null;
+        $result = $this->Graph->writeContent($graph['Graph']['id'], function (array $document) use ($items, $hidden, &$report) {
+            list($document, $report) = AnalystGraphDocumentTool::flagNodes($document, $items, 'hidden', $hidden);
+            return empty($report['changed']) ? null : $document;
         });
         return $this->__writeResponse($graph, $result, $report);
     }

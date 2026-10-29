@@ -1668,15 +1668,39 @@ class GraphTest extends TestCase
         $this->assertSame($value, $node['content']['value']);
     }
 
-    public function testAddNodesTakesNoAnswers()
+    public function testAddNodesKeepsAnAnswerUnderItsKey()
     {
         list($document, $report) = AnalystGraphDocumentTool::addNodes(AnalystGraphDocumentTool::emptyDocument(), array(
-            self::answer('ip-dst', '192.0.2.1', array(self::origin('Value:', 'domain', 'a.example'))),
+            self::answer('ip-dst', '192.0.2.1', array(self::origin('Value:', 'domain', 'a.example'))) + array('x' => 10, 'y' => 20),
             self::valueNode('a.example'),
         ));
 
-        $this->assertCount(1, $document['nodes']);
-        $this->assertSame(0, $report['refused'][0]['index']);
+        $this->assertCount(2, $document['nodes']);
+        $this->assertSame(array(self::answerKey('ip-dst', '192.0.2.1'), 'Value:' . AnalystGraphDocumentTool::valueAddress('a.example')), $report['added']);
+        $this->assertSame(10, $document['nodes'][0]['x']);
+    }
+
+    public function testFlagNodesHidesAndShowsWhatItNames()
+    {
+        $document = self::normalised(array(
+            self::node('Attribute', self::ATTRIBUTE, array('x' => 1, 'y' => 2)),
+            self::valueNode('a.example'),
+        ));
+        $value = 'Value:' . AnalystGraphDocumentTool::valueAddress('a.example');
+
+        list($hidden, $report) = AnalystGraphDocumentTool::flagNodes($document, array('Attribute:' . self::ATTRIBUTE, array('type' => 'Value', 'value' => 'a.example'), 'Event:' . self::EVENT), 'hidden', true);
+        $this->assertSame(array('Attribute:' . strtolower(self::ATTRIBUTE), $value), $report['changed']);
+        $this->assertSame(array('Event:' . strtolower(self::EVENT)), $report['absent']);
+        $this->assertTrue($hidden['nodes'][0]['hidden']);
+        $this->assertSame(1, $hidden['nodes'][0]['x'], 'it keeps its place');
+
+        list($again, $report) = AnalystGraphDocumentTool::flagNodes($hidden, array('Attribute:' . self::ATTRIBUTE), 'hidden', true);
+        $this->assertSame(array(), $report['changed'], 'hiding a hidden node changes nothing');
+
+        list($shown, $report) = AnalystGraphDocumentTool::flagNodes($hidden, array($value), 'hidden', false);
+        $this->assertSame(array($value), $report['changed']);
+        $this->assertArrayNotHasKey('hidden', $shown['nodes'][1]);
+        $this->assertTrue($shown['nodes'][0]['hidden']);
     }
 
     public function testRemoveNodesLeavesWhatItIsToldToKeep()

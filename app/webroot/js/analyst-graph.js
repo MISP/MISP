@@ -26,7 +26,9 @@
 // menus: true adds "Keep in graph", "Remove from graph" and "Hide in this
 // graph" to the canvas menus. onChange(handle) hears every edit a save keeps.
 // badges(key, data, node) → rim badges the host adds to a node, key null
-// while a pivot's node is not in the document.
+// while a pivot's node is not in the document. handle.onChange(fn) hears
+// every change, the canvas's own and a refresh; the *Now methods write the
+// nodes they name at once, where save() writes the whole canvas.
 // saveControls: { save() → Promise }, the page's save: the canvas then
 // carries a Save pill, and "Save as new graph…" for a user with graphSharing.
 //
@@ -300,6 +302,23 @@
         holdNodes(g, g.getMutableNodes());
     }
 
+    // Resolves once the layout has cooled, or after ten seconds.
+    function settled(g) {
+        var start = Date.now();
+        return new Promise(function (resolve) {
+            (function wait() {
+                var sim = g.simulation && g.simulation.simulation;
+                var alpha = sim && typeof sim.alpha === 'function' ? sim.alpha() : 0;
+                var floor = sim && typeof sim.alphaMin === 'function' ? sim.alphaMin() : 0.001;
+                if (alpha >= floor && Date.now() - start < 10000) {
+                    setTimeout(wait, 200);
+                    return;
+                }
+                resolve();
+            })();
+        });
+    }
+
     function holdNodes(g, nodes) {
         var held = [];
         nodes.forEach(function (n) {
@@ -433,7 +452,20 @@
         function changed(reason) {
             state.dirty = true;
             if (config.onChange) config.onChange(handle, reason);
+            tell(reason);
             refreshControls();
+        }
+
+        var listeners = [];
+        // fn(handle, reason) on every change; answers a function that stops it
+        function onChange(fn) {
+            listeners.push(fn);
+            return function () { listeners = listeners.filter(function (f) { return f !== fn; }); };
+        }
+        function tell(reason) {
+            listeners.slice().forEach(function (fn) {
+                try { fn(handle, reason); } catch (e) { /* the listener's own */ }
+            });
         }
 
         // The pill re-reads itself once its own save settles; a refresh while
@@ -1108,7 +1140,80 @@
         function refresh() {
             return fetchData().then(function (payload) {
                 apply(payload);
+                tell('refreshed');
                 return handle;
+            });
+        }
+
+        // A write of the nodes named alone, kept at once; the canvas follows
+        // it. Resolves the write's report, or null with no graph to write.
+        function writeNodes(action, body) {
+            if (!state.uuid || !canEditGraph()) return Promise.resolve(null);
+            return request('POST', '/analyst_graphs/' + action + '/' + encodeURIComponent(state.uuid) + '.json', body)
+                .then(function (report) {
+                    return followed(report).then(function () { return report; });
+                });
+        }
+
+        // A node as the document holds it, where the canvas has it now
+        function placedNode(node) {
+            var n = node && documentNodeOf(node);
+            var at = node && explorer.kit.canvasPosition(node);
+            if (!n) return null;
+            if (at) {
+                n.x = at.x;
+                n.y = at.y;
+            }
+            return n;
+        }
+
+        function hideNow(keys) {
+            hideNodes(keys);
+            return writeNodes('hideNodes', { items: keys, hidden: true });
+        }
+
+        function showNow(keys) {
+            showNodes(keys);
+            return writeNodes('hideNodes', { items: keys, hidden: false });
+        }
+
+        function removeNow(keys) {
+            removeKeys(keys);
+            return writeNodes('removeNodes', { items: keys });
+        }
+
+        function keepNow(ids) {
+            var g = graph();
+            var items = ids.map(function (id) { return placedNode(g.getMutableNode(id)); }).filter(Boolean);
+            keep(ids);
+            if (!items.length) return Promise.resolve(null);
+            return writeNodes('addNodes', { items: items }).then(function (report) {
+                if (report) state.kept = state.kept.filter(function (id) { return ids.indexOf(id) === -1; });
+                return report;
+            });
+        }
+
+        // An answer MISP now holds gives its place to the member holding it
+        function replaceNode(key, item) {
+            var g = graph();
+            var id = state.built.idOf[key];
+            var at = id && g.getMutableNode(id) ? explorer.kit.canvasPosition(g.getMutableNode(id)) : null;
+            var node = Object.assign({}, item, at ? { x: at.x, y: at.y } : {});
+            return removeNow([key]).then(function (report) {
+                return report ? writeNodes('addNodes', { items: [node] }) : null;
+            });
+        }
+
+        // Members the layout placed, written where they settled, so they
+        // open there next time.
+        function keepPlaced() {
+            var g = graph();
+            if (!g || !state.uuid || !canEditGraph()) return Promise.resolve(null);
+            return settled(g).then(function () {
+                var items = placed().map(function (key) {
+                    return placedNode(g.getMutableNode(state.built.idOf[key]));
+                }).filter(function (n) { return n && typeof n.x === 'number'; });
+                return items.length ? writeNodes('addNodes', { items: items }) : null;
             });
         }
 
@@ -1255,6 +1360,13 @@
             removeKeys: removeKeys,
             hideNodes:  hideNodes,
             showNodes:  showNodes,
+            onChange:   onChange,
+            hideNow:    hideNow,
+            showNow:    showNow,
+            removeNow:  removeNow,
+            keepNow:    keepNow,
+            replaceNode: replaceNode,
+            keepPlaced: keepPlaced,
             hiddenNodes: hiddenNodes,
             hideEdge:   hideEdge,
             showEdge:   showEdge,
