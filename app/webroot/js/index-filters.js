@@ -168,24 +168,25 @@
             var name = JSON.parse(el.getAttribute('data-ifp-picker')).name;
             if (keys.indexOf(prefix + name) !== -1) { el.hidden = true; }
         });
-        var chips = swapNode(scope, 'chips');
-        if (chips && !chips.querySelector('.ifp-chip:not([hidden])')) { chips.hidden = true; }
+        // The row under the bar and the Filters panel each hold the chips.
+        ['chips', 'win-chips'].forEach(function (key) {
+            var chips = swapNode(scope, key);
+            if (!chips || chips.querySelector('.ifp-chip:not([hidden])')) { return; }
+            var none = chips.querySelector('.ifp-chips-none');
+            if (!none) {
+                chips.hidden = true;
+                return;
+            }
+            none.hidden = false;
+            var clearLink = chips.querySelector('.ifp-clear');
+            if (clearLink) { clearLink.hidden = true; }
+        });
         var current = splitUrl(bar, currentUrl(bar)).named;
-        var clear = scope.querySelector('.ifp-clear');
-        if (clear) {
-            var origin = splitUrl(bar, tab.dataset.ifpOrigin);
-            ['sort', 'direction', 'limit'].forEach(function (k) { if (current[k]) { origin.named[k] = current[k]; } });
+        var origin = splitUrl(bar, tab.dataset.ifpOrigin);
+        ['sort', 'direction', 'limit'].forEach(function (k) { if (current[k]) { origin.named[k] = current[k]; } });
+        scope.querySelectorAll('.ifp-clear').forEach(function (clear) {
             clear.setAttribute('href', formatIndexUrl(origin.base, origin));
-        }
-        // The panel's Reset also returns to the tab's own filters, but keeps the search.
-        var reset = scope.querySelector('[data-ifp-reset]');
-        if (reset) {
-            var c = cfg(bar);
-            var back = splitUrl(bar, tab.dataset.ifpOrigin);
-            [c.searchField, c.idField].filter(Boolean).map(function (k) { return prefix + k; })
-                .concat(['sort', 'direction', 'limit']).forEach(function (k) { if (current[k]) { back.named[k] = current[k]; } });
-            reset.setAttribute('href', formatIndexUrl(back.base, back));
-        }
+        });
         var badge = swapNode(scope, 'filters-count');
         if (badge) {
             var left = (badge.getAttribute('data-ifp-keys') || '').split(' ').filter(function (k) {
@@ -1027,12 +1028,6 @@
         if (target.closest('[data-ifp-filters]')) {
             var panel = panelOf(bar);
             if (panel) { showPanel(bar, panel.hidden); }
-            return;
-        }
-        if (target.closest('[data-ifp-done]')) {
-            var filtersBtn = filtersBtnOf(bar);
-            showPanel(bar, false);
-            if (filtersBtn) { filtersBtn.focus(); }
             return;
         }
         if (target.closest('[data-ifp-search]')) {

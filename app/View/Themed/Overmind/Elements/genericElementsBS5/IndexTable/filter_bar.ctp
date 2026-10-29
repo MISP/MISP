@@ -291,11 +291,6 @@ if ($pickerMode) {
             $buttonGroups[] = $child;
         }
     }
-    $searchKeys = array_values(array_filter([
-        ($searchChild['mode'] ?? 'quickFilter') === 'quickFilter' ? 'quickFilter' : ($searchChild['name'] ?? null),
-        $searchChild['id_field'] ?? null,
-    ]));
-    $chipScope = $filter_bar['chips']['scope'] ?? [];
     $pickerKeys = [];
     foreach ($windowItems as $child) {
         $pickerKeys = array_merge($pickerKeys, $keysOf($child));
@@ -304,6 +299,14 @@ if ($pickerMode) {
     $pressed = count(array_filter($toggles, function ($child) { return !empty($child['pressed']); }));
     $activeCount = count($activeKeys) + $pressed;
     $windowId = $filterId . '-filters';
+    $chipsData = [
+        'state' => $filterState,
+        'pickers' => $pickers,
+        'chips' => array_merge($filter_bar['chips'] ?? [], [
+            'labels' => ($filter_bar['chips']['labels'] ?? []) + $controlLabels,
+        ]),
+        'searchChild' => $searchChild,
+    ];
 }
 ?>
 
@@ -396,8 +399,7 @@ if ($pickerMode) {
             'state' => $filterState,
             'keysOf' => $keysOf,
             'activeKeys' => $activeKeys,
-            'activeCount' => $activeCount,
-            'resetUrl' => $filterState->clearUrl(array_merge($chipScope, $searchKeys)),
+            'chipsData' => $chipsData,
             'currentFilters' => $currentFilters,
             'filterId' => $filterId,
         ]) ?>
@@ -765,14 +767,7 @@ if ($explicitActive !== null) {
                 echo sprintf(__('%s shown'), '<b>' . h(number_format($rowCount)) . '</b>');
             }
         ?></span>
-        <?= $this->element('genericElementsBS5/IndexTable/filter_chips', [
-            'state' => $filterState,
-            'pickers' => $pickers,
-            'chips' => array_merge($filter_bar['chips'] ?? [], [
-                'labels' => ($filter_bar['chips']['labels'] ?? []) + $controlLabels,
-            ]),
-            'searchChild' => $searchChild,
-        ]) ?>
+        <?= $this->element('genericElementsBS5/IndexTable/filter_chips', $chipsData) ?>
         <div class="index-filter-pager">
             <?php
             if (empty($filter_bar['skip_pagination'])) {

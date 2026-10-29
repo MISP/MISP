@@ -162,12 +162,11 @@
 .ifp-grid > .ifp-picker > .ifp-btn, .ifp-grid > .dropdown > .ifp-vm-btn { width: 100%; }
 .ifp-grid .ifp-btn-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .ifp-win-foot {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 8px 12px;
     padding: 10px 16px; border-top: 1px solid var(--ifp-line);
-    font-size: .8rem; color: var(--ifp-muted);
 }
-.ifp-win-foot b { color: var(--ifp-ink); }
-.ifp-win-sum { margin-right: auto; }
+.ifp-win-foot .ifp-chips { flex: 1 1 auto; }
+.ifp-chips-none { font-size: .8rem; color: var(--ifp-muted); }
 @keyframes ifp-panel-in { from { opacity: 0; transform: translateY(-4px); } }
 
 @media (max-width: 575.98px) {
