@@ -57,9 +57,9 @@ $config = [
         <?php if (!empty($child['icon'])): ?>
             <i class="<?= h($child['icon']) ?>" aria-hidden="true"></i>
         <?php endif; ?>
-        <span><?= h($child['label']) ?></span>
+        <span class="ifp-btn-label"><?= h($child['label']) ?></span>
         <?php if ($count): ?>
-            <span class="badge rounded-pill text-bg-primary" aria-label="<?= h(__n('%s set', '%s set', $count, $count)) ?>"><?= h($count) ?></span>
+            <span class="badge rounded-pill bg-primary" aria-label="<?= h(__n('%s set', '%s set', $count, $count)) ?>"><?= h($count) ?></span>
         <?php endif; ?>
         <i class="fas fa-chevron-down ifp-caret" aria-hidden="true"></i>
     </button>

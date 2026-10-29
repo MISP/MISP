@@ -967,6 +967,8 @@ function setView(view, save = true, scope = document) {
         viewCard?.classList.remove('active');
         viewList?.classList.add('active');
     }
+    viewList?.setAttribute('aria-pressed', String(view !== 'card'));
+    viewCard?.setAttribute('aria-pressed', String(view === 'card'));
 
     if (save) localStorage.setItem('indexViewMode', view);
 }

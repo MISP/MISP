@@ -61,7 +61,7 @@
 .te-index .te-table .te-c-sel .checkbox-actions-wrapper { display: flex !important; }
 
 /* rows */
-.te-index .te-table tbody tr.te-row { height: var(--ix-row-h); cursor: pointer; }
+.te-index .te-table tbody tr.te-row { height: var(--ix-row-h); }
 .te-index .te-table tbody tr.te-row > td { max-height: var(--ix-row-h); background-color: var(--ix-bg); }
 .te-index .te-table tbody tr.te-row:hover > td,
 .te-index .te-table tbody tr.te-row:focus-within > td { background-color: var(--ix-hover); }
