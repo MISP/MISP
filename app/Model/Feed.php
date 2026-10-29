@@ -13,6 +13,7 @@ class Feed extends AppModel
     // Disk workspaces contain feed files, never a full feed in PHP memory.
     private $gatheringWorkspaces = [];
     private $gatheringUser;
+    private $gatheringImportCounts;
 
     public function beforeValidate($options = array())
     {
@@ -1353,6 +1354,7 @@ class Feed extends AppModel
         // A queue worker can reuse this model for multiple runs.
         $this->gatheringWorkspaces = [];
         $this->gatheringUser = $user;
+        $this->gatheringImportCounts = null;
         $feed = $this->find('first', array(
             'conditions' => ['Feed.id' => $feedId],
             'recursive' => -1,
@@ -1366,7 +1368,8 @@ class Feed extends AppModel
         }
 
         if ($this->isGatheringFeed($feed)) {
-            return $this->ingestGatheringFeed($feed, $user, $jobId);
+            $this->gatheringImportCounts = $this->ingestGatheringFeed($feed, $user, $jobId);
+            return $this->gatheringImportCounts['failed'] === 0;
         }
 
         $HttpSocket = ($this->isFeedLocal($feed) || $this->isGatheringFeed($feed)) ? null : $this->__setupHttpSocket();
@@ -1425,6 +1428,12 @@ class Feed extends AppModel
             $this->__cleanupFile($feed, '');
         }
         return $result;
+    }
+
+    /** @return array|null Aggregate counts from the latest gathering import, separate from its boolean status. */
+    public function getGatheringImportCounts()
+    {
+        return $this->gatheringImportCounts;
     }
 
     private function __cleanupFile($feed, $file)

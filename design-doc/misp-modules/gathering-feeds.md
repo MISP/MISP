@@ -67,8 +67,11 @@ This removes its 100-event / 32 MiB collection ceiling. Event-content memory is
 proportional to the largest event, with ZIP-directory and producer source-listing
 metadata still proportional to file count. Standard manifest previews can still
 load manifest metadata; the ingestion path does not. Allow disk space for the
-ZIP and expanded feed together. Import results are bounded aggregate counts,
-not a per-event result array.
+ZIP and expanded feed together. Gathering imports return a boolean status for
+the existing scheduled and interactive callers: true when no events failed,
+false when any event failed. Bounded aggregate counts are available separately
+through `Feed::getGatheringImportCounts()` for the latest attempt; no per-event
+result array is retained.
 
 ## Long generation and operator budgets
 

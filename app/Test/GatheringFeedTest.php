@@ -82,6 +82,7 @@ class GatheringTestEvents
     public $rows = [];
     public $added = [];
     public $edited = [];
+    public $addResult = true;
     public function find($type = 'first', $options = [])
     {
         return $this->rows[$options['conditions']['Event.uuid']] ?? [];
@@ -90,7 +91,7 @@ class GatheringTestEvents
     {
         $this->rows[$event['Event']['uuid']] = ['Event' => array_intersect_key($event['Event'], array_flip(['uuid', 'timestamp']))];
     }
-    public function _add($event, $fromXml, $user) { $this->added[] = $event['Event']['uuid']; $this->remember($event); return true; }
+    public function _add($event, $fromXml, $user) { $this->added[] = $event['Event']['uuid']; $this->remember($event); return $this->addResult; }
     public function _edit($event, $user, $uuid = null, $jobId = null) { $this->edited[] = $event['Event']['uuid']; $this->remember($event); return true; }
 }
 
@@ -201,17 +202,49 @@ class GatheringFeedTest extends TestCase
         $events = new GatheringTestEvents();
         ClassRegistry::$instances['Event'] = $events;
         $feed = $this->feed($module);
-        $first = $feed->downloadFromFeedInitiator(123, $this->user());
-        $this->assertSame(1, $first['added']);
-        $this->assertSame(1, $feed->downloadFromFeedInitiator(123, $this->user())['unchanged']);
+        $this->assertTrue($feed->downloadFromFeedInitiator(123, $this->user()));
+        $this->assertSame(1, $feed->getGatheringImportCounts()['added']);
+        $this->assertTrue($feed->downloadFromFeedInitiator(123, $this->user()));
+        $this->assertSame(1, $feed->getGatheringImportCounts()['unchanged']);
         $module->archivePath = $this->archive('1790856001');
         $module->answer = $this->descriptor($module->archivePath);
-        $this->assertSame(1, $feed->downloadFromFeedInitiator(123, $this->user())['updated']);
+        $this->assertTrue($feed->downloadFromFeedInitiator(123, $this->user()));
+        $this->assertSame(1, $feed->getGatheringImportCounts()['updated']);
         $this->assertCount(1, $events->added);
         $this->assertCount(1, $events->edited);
         $this->assertCount(3, $module->released);
         $this->assertSame('misp-modules', $feed->record['Feed']['input_source']);
         $this->assertSame([], glob(APP . 'tmp/gathering-*'));
+    }
+    public function testFailedEventsReturnFalseAndRetainAggregateCounts()
+    {
+        $module = $this->module();
+        $events = new GatheringTestEvents();
+        $events->addResult = false;
+        ClassRegistry::$instances['Event'] = $events;
+        $feed = $this->feed($module);
+        $this->assertFalse($feed->downloadFromFeedInitiator(123, $this->user()));
+        $this->assertSame(['added' => 0, 'updated' => 0, 'unchanged' => 0, 'blocked' => 0, 'failed' => 1],
+            $feed->getGatheringImportCounts());
+        $this->assertCount(1, $module->released);
+        $this->assertSame([], glob(APP . 'tmp/gathering-*'));
+    }
+    public function testEmptyFeedReturnsTrueAndResetsCountsOnTheNextAttempt()
+    {
+        $module = $this->module();
+        $module->archivePath = $this->archive('1790856000', ['manifest.json' => '{}']);
+        $module->answer = $this->descriptor($module->archivePath);
+        $feed = $this->feed($module);
+        $this->assertTrue($feed->downloadFromFeedInitiator(123, $this->user()));
+        $this->assertSame(['added' => 0, 'updated' => 0, 'unchanged' => 0, 'blocked' => 0, 'failed' => 0],
+            $feed->getGatheringImportCounts());
+        $module->answer['status'] = 'failed';
+        try {
+            $feed->downloadFromFeedInitiator(123, $this->user());
+            $this->fail('Failed generation was accepted');
+        } catch (RuntimeException $e) {
+            $this->assertNull($feed->getGatheringImportCounts());
+        }
     }
     public function testChecksumFailureRemovesTemporaryFilesAndReleasesArtifact()
     {
@@ -300,7 +333,9 @@ class GatheringFeedTest extends TestCase
         if (!$path) { $this->markTestSkipped('Set GATHERING_TEST_ARCHIVE for the cross-repository check.'); }
         $module = $this->module(); $module->archivePath = $path; $module->answer = $this->descriptor($path);
         $events = new GatheringTestEvents(); ClassRegistry::$instances['Event'] = $events;
-        $result = $this->feed($module)->downloadFromFeedInitiator(123, $this->user());
+        $feed = $this->feed($module);
+        $this->assertTrue($feed->downloadFromFeedInitiator(123, $this->user()));
+        $result = $feed->getGatheringImportCounts();
         $this->assertGreaterThan(0, $result['added']);
         $this->assertSame(0, $result['failed']);
     }
@@ -334,7 +369,9 @@ class GatheringFeedTest extends TestCase
         unset($event, $metadata);
         $module->archivePath = $path; $module->answer = $this->descriptor($path);
         ClassRegistry::$instances['Event'] = new GatheringTestEvents();
-        $result = $this->feed($module)->downloadFromFeedInitiator(123, $this->user());
+        $feed = $this->feed($module);
+        $this->assertTrue($feed->downloadFromFeedInitiator(123, $this->user()));
+        $result = $feed->getGatheringImportCounts();
         $this->assertGreaterThan(33554432, $total);
         $this->assertSame(160, $result['added']);
         $this->assertSame(0, $result['failed']);

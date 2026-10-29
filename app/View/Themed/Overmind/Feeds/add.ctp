@@ -839,6 +839,10 @@ echo $this->Form->create('Feed', [
             var firstEmpty = null;
             required.forEach(function (entry) {
                 if (!entry.el) { return; }
+                if (entry.el.id === 'FeedUrl' && el('FeedInputSource').value === 'misp-modules') {
+                    fieldError(entry, false);
+                    return;
+                }
                 var empty = !entry.el.value.trim();
                 fieldError(entry, empty);
                 if (empty && !firstEmpty) { firstEmpty = entry.el; }
