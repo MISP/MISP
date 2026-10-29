@@ -1,5 +1,5 @@
 #!/bin/bash
-# MISP 2.5 installation for Ubuntu 24.04 LTS
+# MISP 3.0 installation for Ubuntu 24.04 LTS
 
 # This guide is meant to be a simply installation of MISP on a pristine Ubuntu 24.04 LTS server.
 # Keep in mind that whilst this installs the software along with all of its dependencies, it's up to you to properly secure it.
@@ -125,7 +125,7 @@ function os_version_check() {
     # Check if we're on Ubuntu 24.04 as expected:
     UBUNTU_VERSION=$(sh -c '. /etc/os-release && echo $VERSION_ID')
     if [[ "$UBUNTU_VERSION" != "24.04" ]]; then
-        print_error "This upgrade tool expects you to be running Ubuntu 24.04. If you are on a prior upgrade of Ubuntu, please make sure that you upgrade your distribution first, then execute this script again."
+        print_error "This installer expects you to be running Ubuntu 24.04. If you are on a prior upgrade of Ubuntu, please make sure that you upgrade your distribution first, then execute this script again."
         exit 1
     fi
 }
@@ -146,7 +146,7 @@ echo -e "${BLUE}██╔████╔██║${NC}██║█████�
 echo -e "${BLUE}██║╚██╔╝██║${NC}██║╚════██║██╔═══╝ "
 echo -e "${BLUE}██║ ╚═╝ ██║${NC}██║███████║██║     "
 echo -e "${BLUE}╚═╝     ╚═╝${NC}╚═╝╚══════╝╚═╝     "
-echo -e "v2.5 Setup on Ubuntu 24.04 LTS"
+echo -e "v3.0 Setup on Ubuntu 24.04 LTS"
 
 os_version_check
 
@@ -300,15 +300,15 @@ if [ -d "$MISP_PATH" ]; then
         exit 1
     fi
 else
-    git clone -b 2.5 https://github.com/MISP/MISP.git "${MISP_PATH}" &>>$logfile
+    git clone -b 3.0_wip https://github.com/MISP/MISP.git "${MISP_PATH}" &>>$logfile
     error_check "MISP cloning"
 fi
 
 cd "${MISP_PATH}" || exit 1
-git fetch origin 2.5 &>>$logfile
-error_check "Fetching 2.5 branch"
-git checkout 2.5 &>>$logfile
-error_check "Checking out 2.5 branch"
+git fetch origin 3.0_wip &>>$logfile
+error_check "Fetching 3.0_wip branch"
+git checkout 3.0_wip &>>$logfile
+error_check "Checking out 3.0_wip branch"
 
 print_status "Cloning MISP submodules..."
 if ! git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "${MISP_PATH}"; then

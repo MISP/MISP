@@ -1,5 +1,5 @@
 #!/bin/bash
-# MISP 2.5 installation for Debian 12
+# MISP 3.0 installation for Debian 12
 
 # This guide is meant to be a simply installation of MISP on a pristine Debian 12 server.
 # Keep in mind that whilst this installs the software along with all of its dependencies, it's up to you to properly secure it.
@@ -137,7 +137,7 @@ function os_version_check ()
     # Check if we're on Debian 12 as expected:
     DEBIAN_VERSION=$(lsb_release -a | grep Release | grep -oP '[\d-]+$')
     if [[ "$DEBIAN_VERSION" != "12" ]]; then
-        print_error "This upgrade tool expects you to be running Debian 12. If you are on a prior upgrade of Debian, please make sure that you upgrade your distribution first, then execute this script again."
+        print_error "This installer expects you to be running Debian 12. If you are on a prior upgrade of Debian, please make sure that you upgrade your distribution first, then execute this script again."
         exit 1
     fi
 }
@@ -150,7 +150,7 @@ echo -e "${BLUE}██╔████╔██║${NC}██║█████�
 echo -e "${BLUE}██║╚██╔╝██║${NC}██║╚════██║██╔═══╝ "
 echo -e "${BLUE}██║ ╚═╝ ██║${NC}██║███████║██║     "
 echo -e "${BLUE}╚═╝     ╚═╝${NC}╚═╝╚══════╝╚═╝     "
-echo -e "v2.5 Setup on Debian 12"
+echo -e "v3.0 Setup on Debian 12"
 
 os_version_check
 
@@ -299,10 +299,10 @@ print_status "Cloning MISP"
 sudo git clone https://github.com/MISP/MISP.git ${MISP_PATH}  &>> $logfile
 error_check "MISP cloning"
 cd ${MISP_PATH}
-git fetch origin 2.5 &>> $logfile
-error_check "Fetching 2.5 branch"
-git checkout 2.5 &>> $logfile
-error_check "Checking out 2.5 branch"
+git fetch origin 3.0_wip &>> $logfile
+error_check "Fetching 3.0_wip branch"
+git checkout 3.0_wip &>> $logfile
+error_check "Checking out 3.0_wip branch"
 
 print_status "Cloning MISP submodules..."
 if ! sudo git config --global --get-all safe.directory 2>/dev/null | grep -Fxq "${MISP_PATH}"; then
