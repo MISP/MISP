@@ -4223,6 +4223,16 @@ function malwareCheckboxSetter(context) {
 
 function feedFormUpdate() {
     $('.optionalField').hide();
+    var gathering = $('#FeedInputSource').val() === 'misp-modules';
+    if (gathering) {
+        $('#FeedSourceFormat').val('misp');
+        $('#FeedCachingEnabled').prop('checked', false);
+    }
+    $('#FeedSourceFormat, #FeedCachingEnabled').prop('disabled', gathering);
+    $('#FeedUrl').prop('required', !gathering).closest('.input').toggle(!gathering);
+    if (gathering) {
+        $('#GatheringModuleDiv, #GatheringParametersDiv').show();
+    }
     switch($('#FeedSourceFormat').val()) {
         case 'freetext':
             $('#TargetDiv').show();
@@ -4249,7 +4259,9 @@ function feedFormUpdate() {
             $('#settingsCommonExcluderegexDiv').show();
             break;
     }
-    if ($('#FeedInputSource').val() == 'local') {
+    if (gathering) {
+        $('#DeleteLocalFileDiv, #HeadersDiv').hide();
+    } else if ($('#FeedInputSource').val() == 'local') {
         $('#DeleteLocalFileDiv').show();
         $('#HeadersDiv').hide();
     } else {
