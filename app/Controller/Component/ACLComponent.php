@@ -164,6 +164,7 @@ class ACLComponent extends Component
             // Read-only JSON endpoint used by beta Event view to list collection memberships.
             'getCollectionsForElement' => ['*'],
             'getCollectionsForElements' => ['*'],
+            'holding' => ['*'],
             'index' => ['*'],
             'indexMinimal' => ['*'],
             'publish' => ['AND' => ['perm_modify', 'perm_publish']],

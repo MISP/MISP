@@ -2166,6 +2166,31 @@ class GraphTest extends TestCase
         $this->assertSame(array(self::answerKey('ip-dst', '192.0.2.1')), $summary['nodes_added']);
         $this->assertStringNotContainsString('192.0.2.1', json_encode($summary));
     }
+
+    public function testACardOpensOnItsOrganisationsGraphThenTheCreatorsThenNone()
+    {
+        $own = '11111111-1111-4111-8111-111111111111';
+        $creator = '22222222-2222-4222-8222-222222222222';
+        $third = '33333333-3333-4333-8333-333333333333';
+        $graph = function ($uuid, $orgc, $nodes) {
+            return array('uuid' => $uuid, 'orgc_uuid' => $orgc, 'node_count' => $nodes);
+        };
+        // Newest first, as summaries() orders them
+        $graphs = array(
+            $graph('third-new', $third, 9),
+            $graph('own-empty', $own, 0),
+            $graph('creator-new', strtoupper($creator), 4),
+            $graph('own-old', $own, 2),
+            $graph('creator-old', $creator, 7),
+        );
+
+        $this->assertSame('own-old', Graph::pickFor($graphs, $own, $creator), 'the newest of the user\'s organisation with a node');
+        $this->assertSame('creator-new', Graph::pickFor($graphs, '44444444-4444-4444-8444-444444444444', $creator), 'else the creator\'s newest, whatever its spelling');
+        $this->assertSame('third-new', Graph::pickFor($graphs, $third, $creator), 'a third organisation\'s graph only for its own members');
+        $this->assertNull(Graph::pickFor($graphs, '44444444-4444-4444-8444-444444444444', null), 'a record the user cannot read leaves only their organisation');
+        $this->assertNull(Graph::pickFor(array($graph('own-empty', $own, 0)), $own, $own), 'an empty graph is never picked');
+        $this->assertNull(Graph::pickFor(array(), $own, $creator));
+    }
 }
 
 class GraphTestTriggerGraph extends GraphTestGraph

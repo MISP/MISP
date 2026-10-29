@@ -2,6 +2,7 @@
 App::uses('AppController', 'Controller');
 App::uses('ActiveWorkspaceTool', 'Tools');
 App::uses('AnalystData', 'Model');
+App::uses('AnalystGraphDocumentTool', 'Tools');
 App::uses('Collection', 'Model');
 App::uses('CollectionElement', 'Model');
 App::uses('CollectionRailCards', 'Tools/RailCards');
@@ -204,10 +205,14 @@ class CollectionsController extends AppController
 
     /**
      * New collection…: {name, type?, distribution?, sharing_group_id?,
-     * description?, workspace?, items?}. Research, for the organisation only,
-     * unless the request says otherwise; with `workspace` true it becomes the
-     * user's workspace in the same request. `items`, as addItems takes them,
-     * join it at once, and `report` answers for them.
+     * description?, workspace?, items?, graph?, copied_from?}. Research, for
+     * the organisation only, unless the request says otherwise; with
+     * `workspace` true it becomes the user's workspace in the same request.
+     * `items`, as addItems takes them, join it at once, and `report` answers
+     * for them. `graph` {name, description?, content} is its first graph,
+     * shared as the collection is, laying the workspace out. `copied_from`, a
+     * collection the user can see, gets a copied-from relationship from the
+     * new one, whose type it gives unless the request names one.
      */
     public function quickAdd()
     {
@@ -224,9 +229,36 @@ class CollectionsController extends AppController
         if (count($items) > CollectionElement::ITEM_LIMIT) {
             throw new BadRequestException(__('At most %s items at once.', CollectionElement::ITEM_LIMIT));
         }
+        $graph = $input['graph'] ?? null;
+        $copiedFrom = $input['copied_from'] ?? null;
+        if (($graph !== null || $copiedFrom !== null) && !$this->ACL->canUserAccess($user, 'analystData', 'add')) {
+            throw new ForbiddenException(__('You may not save a graph or a relationship.'));
+        }
+        if ($graph !== null) {
+            if (!is_array($graph) || !is_string($graph['name'] ?? null) || trim($graph['name']) === '') {
+                throw new BadRequestException(__('A graph needs a name.'));
+            }
+            $content = $graph['content'] ?? AnalystGraphDocumentTool::emptyDocument();
+            list(, $errors) = AnalystGraphDocumentTool::normalise($content);
+            if (!empty($errors)) {
+                throw new BadRequestException(__('The graph is not valid: %s', implode(' ', (array)$errors)));
+            }
+        }
+        $original = null;
+        if ($copiedFrom !== null) {
+            if (!is_string($copiedFrom) || !Validation::uuid($copiedFrom)) {
+                throw new BadRequestException(__('Invalid collection.'));
+            }
+            $original = $this->Collection->workspaceSummaries($user, [
+                'Collection.uuid' => array_values(array_unique([$copiedFrom, strtolower($copiedFrom), strtoupper($copiedFrom)])),
+            ], 1)[0] ?? null;
+            if ($original === null) {
+                throw new NotFoundException(__('Invalid collection.'));
+            }
+        }
         $record = [
             'name' => trim($input['name']),
-            'type' => is_string($input['type'] ?? null) ? $input['type'] : 'research',
+            'type' => is_string($input['type'] ?? null) ? $input['type'] : ($original['type'] ?? 'research'),
             'distribution' => isset($input['distribution']) && is_scalar($input['distribution']) ? (string)$input['distribution'] : '0',
             'description' => is_string($input['description'] ?? null) ? $input['description'] : '',
         ];
@@ -243,6 +275,48 @@ class CollectionsController extends AppController
             return $this->RestResponse->saveFailResponse('Collections', 'quickAdd', false, $this->Collection->validationErrors, 'json');
         }
         $id = $this->Collection->id;
+        $uuid = strtolower($this->Collection->field('uuid'));
+        $sharing = [
+            'distribution' => $record['distribution'],
+            'sharing_group_id' => $record['sharing_group_id'] ?? null,
+        ];
+        $created = null;
+        if ($graph !== null) {
+            $Graph = ClassRegistry::init('Graph');
+            $Graph->current_user = $user;
+            $Graph->create();
+            $saved = $Graph->save(['Graph' => [
+                'name' => trim($graph['name']),
+                'description' => is_string($graph['description'] ?? null) ? $graph['description'] : '',
+                'object_type' => 'Collection',
+                'object_uuid' => $uuid,
+                'content' => $Graph->contentForWrite($user, $content),
+            ] + $sharing]);
+            if (!$saved) {
+                $this->Collection->delete($id);
+                return $this->RestResponse->saveFailResponse('Collections', 'quickAdd', false, $Graph->validationErrors, 'json');
+            }
+            $created = $Graph->summaries($user, ['Graph.id' => $Graph->id])[0] ?? null;
+        }
+        if ($original !== null) {
+            $Relationship = ClassRegistry::init('Relationship');
+            $Relationship->current_user = $user;
+            $Relationship->create();
+            $saved = $Relationship->save(['Relationship' => [
+                'object_type' => 'Collection',
+                'object_uuid' => $uuid,
+                'related_object_type' => 'Collection',
+                'related_object_uuid' => $original['uuid'],
+                'relationship_type' => 'copied-from',
+            ] + $sharing]);
+            if (!$saved) {
+                if ($created !== null) {
+                    ClassRegistry::init('Graph')->delete($created['id']);
+                }
+                $this->Collection->delete($id);
+                return $this->RestResponse->saveFailResponse('Collections', 'quickAdd', false, $Relationship->validationErrors, 'json');
+            }
+        }
         $report = null;
         if (!empty($items)) {
             $report = $this->Collection->CollectionElement->addItems($user, $id, $items);
@@ -250,9 +324,15 @@ class CollectionsController extends AppController
         $collection = $this->Collection->workspaceSummaries($user, ['Collection.id' => $id], 1)[0] ?? null;
         $workspace = null;
         if (!empty($input['workspace']) && $collection !== null) {
-            list($workspace) = ActiveWorkspaceTool::choose($user, $collection['uuid'], null);
+            list($workspace) = ActiveWorkspaceTool::choose($user, $collection['uuid'], $created['uuid'] ?? null);
         }
-        return $this->RestResponse->viewData(['Collection' => $collection, 'workspace' => $workspace, 'report' => $report], 'json');
+        return $this->RestResponse->viewData([
+            'Collection' => $collection,
+            'Graph' => $created,
+            'copied_from' => $original === null ? null : ['uuid' => $original['uuid'], 'name' => $original['name']],
+            'workspace' => $workspace,
+            'report' => $report,
+        ], 'json');
     }
 
     /**
@@ -923,6 +1003,56 @@ class CollectionsController extends AppController
 
         $result = $this->__getCollectionsByElementUuids($element_type, $uuids);
         return $this->RestResponse->viewData($result, $this->response->type());
+    }
+
+    /**
+     * The collections holding a record that the user can see, as the
+     * workspace chooser describes them, each with `element.created`, when
+     * the record joined; and `active`, the workspace's collection.
+     *
+     * GET /collections/holding/Event/<uuid>.json, a value by its SHA-256
+     *
+     * @param string $type An item type, as addItems takes them
+     * @param string $address
+     */
+    public function holding($type, $address)
+    {
+        $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
+        $target = CollectionElement::itemTarget($type === 'Value'
+            ? ['type' => $type, 'sha256' => $address]
+            : ['type' => $type, 'uuid' => $address]);
+        if ($target === null) {
+            throw new NotFoundException(__('Invalid record.'));
+        }
+        $addresses = $target['column'] === 'element_uuid'
+            ? array_values(array_unique([$target['address'], strtoupper($target['address'])]))
+            : $target['address'];
+        $joined = $this->Collection->CollectionElement->find('list', [
+            'recursive' => -1,
+            'conditions' => [
+                'CollectionElement.element_type' => $target['element_type'],
+                'CollectionElement.' . $target['column'] => $addresses,
+            ],
+            'fields' => ['CollectionElement.collection_id', 'CollectionElement.created'],
+        ]);
+        $collections = [];
+        if (!empty($joined)) {
+            $collections = $this->Collection->workspaceSummaries($user, [
+                'Collection.id' => array_map('strval', array_keys($joined)),
+            ]);
+            foreach ($collections as &$collection) {
+                $collection['element'] = ['created' => $joined[$collection['id']] ?? null];
+            }
+            unset($collection);
+        }
+        $workspace = $this->ACL->canUserAccess($user, 'collections', 'active')
+            ? ActiveWorkspaceTool::stored($user)
+            : null;
+        return $this->RestResponse->viewData([
+            'Collection' => $collections,
+            'active' => $workspace['collection_uuid'] ?? null,
+        ], 'json');
     }
 
     /**

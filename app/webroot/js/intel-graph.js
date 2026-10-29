@@ -458,26 +458,35 @@
 
     // collection: { name, type?, distribution?, sharing_group_id?,
     // description? }, research and for the organisation only unless it says
-    // otherwise. options.activate (default true) makes it the workspace.
-    // options.items, as add() takes them, join it in the same request: the
-    // collection resolved then carries the add's `report`, announced as an
-    // add is (options.origin as add() takes it).
+    // otherwise (a copy takes its original's type). options.activate (default
+    // true) makes it the workspace. options.items, as add() takes them, join
+    // it in the same request: the collection resolved then carries the add's
+    // `report`, announced as an add is (options.origin as add() takes it).
+    // options.graph { name, description?, content } is its first graph,
+    // resolved as `Graph`; options.copiedFrom, a collection's uuid, records
+    // where it was copied from.
     function createCollection(collection, options) {
         var activate = !(options && options.activate === false);
         var items = (options && options.items) || [];
         var body = {
             name: collection.name,
-            type: collection.type || 'research',
             distribution: collection.distribution == null ? 0 : collection.distribution,
             sharing_group_id: collection.sharing_group_id || null,
             description: collection.description || '',
             workspace: activate
         };
+        if (collection.type || !(options && options.copiedFrom)) body.type = collection.type || 'research';
         if (items.length) body.items = items.map(bare);
+        if (options && options.graph) body.graph = options.graph;
+        if (options && options.copiedFrom) body.copied_from = options.copiedFrom;
         var origin = originOf(options && options.origin);
         return request('POST', '/collections/quickAdd.json', body).then(function (out) {
             var created = out && out.Collection;
             if (!created || !created.uuid) throw new Error('The collection was not created.');
+            if (out.Graph) {
+                created = Object.assign({}, created, { Graph: out.Graph });
+                graphsMoved({ type: 'Collection', uuid: created.uuid });
+            }
             if (activate && out.workspace) {
                 broadcast({ kind: 'active', workspace: setActiveState(out.workspace) });
             }
@@ -510,6 +519,7 @@
         var path = '/analyst_data/add/Graph/' + encodeURIComponent(target.uuid) + '/' + encodeURIComponent(target.type) + '.json';
         return request('POST', path, body).then(function (out) {
             var created = out && out.Graph;
+            if (created) graphsMoved(target);
             if (!created || !(options && options.activate) || target.type !== 'Collection') return created;
             return setActive(target.uuid, created.uuid).then(function () { return created; });
         });
@@ -518,8 +528,35 @@
     // options: { target: { type, uuid }, name }
     function fork(uuid, options) {
         return request('POST', graphPath('fork', uuid), options || {}).then(function (out) {
-            return out && out.Graph;
+            var created = out && out.Graph;
+            if (created) graphsMoved({ type: created.object_type, uuid: created.object_uuid });
+            return created;
         });
+    }
+
+    // The saved graphs kept on a record, and `pick`, the one a card opens on.
+    // Asked once per page and record, again once a graph is made there.
+    var _forTarget = {};
+    function forTarget(type, uuid) {
+        var key = type + ':' + lower(uuid);
+        if (!_forTarget[key]) {
+            var asked = request('GET', '/analyst_graphs/forTarget/' + encodeURIComponent(type) + '/' + encodeURIComponent(uuid) + '.json');
+            _forTarget[key] = asked;
+            asked.catch(function () { if (_forTarget[key] === asked) delete _forTarget[key]; });
+        }
+        return _forTarget[key];
+    }
+
+    function graphsMoved(target) {
+        if (!target || !target.type || !target.uuid) return;
+        delete _forTarget[target.type + ':' + lower(target.uuid)];
+        emit('graphs', { target: { type: target.type, uuid: lower(target.uuid) } });
+    }
+
+    // The collections holding a record that the user can see; a value by
+    // its SHA-256.
+    function holding(type, address) {
+        return request('GET', '/collections/holding/' + encodeURIComponent(type) + '/' + encodeURIComponent(address) + '.json');
     }
 
     function data(uuid) {
@@ -703,6 +740,8 @@
         workingPath: workingPath,
         create: create,
         fork: fork,
+        forTarget: forTarget,
+        holding: holding,
         data: data,
         thumbnail: thumbnail,
         save: save,

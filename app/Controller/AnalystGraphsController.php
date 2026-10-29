@@ -90,8 +90,9 @@ class AnalystGraphsController extends AppController
         $this->set('title_for_layout', $summary['name']);
     }
     /**
-     * The graphs hung off one record that the user may read, newest first,
-     * and the graph laying out the user's workspace.
+     * The graphs hung off one record that the user may read, newest first;
+     * `pick`, the one a card opens on (Graph::pickFor()); and the graph
+     * laying out the user's workspace.
      *
      * @param string $type
      * @param string $uuid
@@ -112,8 +113,10 @@ class AnalystGraphsController extends AppController
         $workspace = $this->ACL->canUserAccess($user, 'collections', 'active')
             ? ActiveWorkspaceTool::stored($user)
             : null;
+        $creator = empty($graphs) ? null : $this->AnalystGraphData->targetCreator($user, $type, $uuid);
         return $this->RestResponse->viewData([
             'Graph' => $graphs,
+            'pick' => Graph::pickFor($graphs, $user['Organisation']['uuid'] ?? null, $creator),
             'active' => $workspace['graph_uuid'] ?? null,
         ], 'json');
     }
@@ -142,16 +145,52 @@ class AnalystGraphsController extends AppController
     public function data($uuid)
     {
         $this->request->allowMethod(['get']);
+        $user = $this->Auth->user();
         $graph = $this->__fetchGraph($uuid);
         $document = json_decode($graph['Graph']['content'], true) ?: AnalystGraphDocumentTool::emptyDocument();
         unset($graph['Graph']['content']);
-        $payload = $this->AnalystGraphData->resolve($this->Auth->user(), $document);
+        $payload = $this->AnalystGraphData->resolve($user, $document);
         // Counted and measured as this user sees it (G6)
         $graph['Graph']['node_count'] = $payload['meta']['nodes'];
         unset($graph['Graph']['content_size']);
         $payload['editable_events'] = $this->__editableEvents(array_keys((array)$payload['events']));
-        $payload['known_values'] = $this->AnalystGraphData->knownAnswerValues($this->Auth->user(), $payload['document']['nodes']);
+        $payload['known_values'] = $this->AnalystGraphData->knownAnswerValues($user, $payload['document']['nodes']);
+        if ($graph['Graph']['object_type'] === 'Collection') {
+            $payload['meta']['joined_since'] = $this->__joinedSince($user, $graph['Graph'], $document['nodes'] ?? []);
+        }
         return $this->RestResponse->viewData(['Graph' => $this->Graph->typed($graph['Graph'])] + $payload, 'json');
+    }
+
+    /**
+     * How many members joined the collection a graph is kept on after the
+     * graph was last saved, of those it lacks and the user can draw; null
+     * when the user cannot read the collection.
+     *
+     * @param array $user
+     * @param array $graph
+     * @param array $graphNodes The stored document's
+     * @return int|null
+     */
+    private function __joinedSince(array $user, array $graph, array $graphNodes)
+    {
+        $Collection = ClassRegistry::init('Collection');
+        $uuid = $graph['object_uuid'];
+        $collection = $Collection->find('first', [
+            'conditions' => ['AND' => [
+                ['Collection.uuid' => array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)]))],
+                $Collection->buildConditions($user),
+            ]],
+            'fields' => ['Collection.id'],
+            'recursive' => -1,
+        ]);
+        if (empty($collection)) {
+            return null;
+        }
+        list($joined) = $this->__memberNodes($user, $collection['Collection']['id'], $graphNodes, $graph['modified']);
+        if (empty($joined)) {
+            return 0;
+        }
+        return $this->AnalystGraphData->visibleCounts($user, [['nodes' => $joined]])[0] ?? 0;
     }
 
     /**
@@ -219,12 +258,17 @@ class AnalystGraphsController extends AppController
      * @param array $user
      * @param int $collectionId
      * @param array $graphNodes
+     * @param string|null $since Only the members that joined after it
      * @return array [nodes, every member's element by node key, how many
      *               found no room]
      */
-    private function __memberNodes(array $user, $collectionId, array $graphNodes)
+    private function __memberNodes(array $user, $collectionId, array $graphNodes, $since = null)
     {
         $CollectionElement = ClassRegistry::init('CollectionElement');
+        $conditions = ['CollectionElement.collection_id' => $collectionId];
+        if ($since !== null) {
+            $conditions['CollectionElement.created >'] = $since;
+        }
         $elements = $CollectionElement->find('all', [
             'recursive' => -1,
             'fields' => [
@@ -232,7 +276,7 @@ class AnalystGraphsController extends AppController
                 'CollectionElement.element_sha256', 'CollectionElement.description', 'CollectionElement.user_id',
                 'CollectionElement.created',
             ],
-            'conditions' => ['CollectionElement.collection_id' => $collectionId],
+            'conditions' => $conditions,
             'order' => ['CollectionElement.id' => 'ASC'],
         ]);
         $byKey = [];

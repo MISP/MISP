@@ -828,6 +828,55 @@ class AnalystGraphData extends AppModel
         return $out;
     }
 
+    /**
+     * The organisation that created a graph target, when the user can read
+     * the target.
+     *
+     * @param array $user
+     * @param string $type One of Graph::VALID_TARGETS
+     * @param string $uuid
+     * @return string|null The organisation's uuid, lowercase
+     */
+    public function targetCreator(array $user, $type, $uuid)
+    {
+        $spellings = array_values(array_unique([$uuid, strtolower($uuid), strtoupper($uuid)]));
+        $orgcId = null;
+        switch ($type) {
+            case 'Event':
+                $rows = $this->model('Event')->fetchSimpleEvents($user, [
+                    'conditions' => ['Event.uuid' => $spellings],
+                ]);
+                $orgcId = $rows[0]['Event']['orgc_id'] ?? null;
+                break;
+            case 'GalaxyCluster':
+                $rows = $this->model('GalaxyCluster')->fetchGalaxyClusters($user, [
+                    'conditions' => ['GalaxyCluster.uuid' => $spellings],
+                    'fields' => ['GalaxyCluster.id', 'GalaxyCluster.orgc_id'],
+                    'contain' => [],
+                ]);
+                $orgcId = $rows[0]['GalaxyCluster']['orgc_id'] ?? null;
+                break;
+            case 'Collection':
+                $Collection = $this->model('Collection');
+                $row = $Collection->find('first', [
+                    'conditions' => ['AND' => [['Collection.uuid' => $spellings], $Collection->buildConditions($user)]],
+                    'fields' => ['Collection.orgc_id'],
+                    'recursive' => -1,
+                ]);
+                $orgcId = $row['Collection']['orgc_id'] ?? null;
+                break;
+        }
+        if (empty($orgcId)) {
+            return null;
+        }
+        $org = $this->model('Organisation')->find('first', [
+            'conditions' => ['Organisation.id' => $orgcId],
+            'fields' => ['Organisation.uuid'],
+            'recursive' => -1,
+        ]);
+        return isset($org['Organisation']['uuid']) ? strtolower($org['Organisation']['uuid']) : null;
+    }
+
     private function uuidsByType(array $nodes)
     {
         $uuids = array_fill_keys(AnalystGraphDocumentTool::NODE_TYPES, []);

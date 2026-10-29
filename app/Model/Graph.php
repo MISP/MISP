@@ -452,6 +452,32 @@ class Graph extends AnalystData
     }
 
     /**
+     * The graph a record's card opens on: the newest graph of the user's
+     * organisation with a node they can read, else the newest of the
+     * record's creator organisation, else none.
+     *
+     * @param array $graphs summaries(), newest first
+     * @param string|null $orgUuid The user's organisation
+     * @param string|null $creatorUuid The record's creator organisation, as
+     *                                 the user sees the record
+     * @return string|null A graph's uuid
+     */
+    public static function pickFor(array $graphs, $orgUuid, $creatorUuid = null)
+    {
+        foreach ([$orgUuid, $creatorUuid] as $owner) {
+            if (!is_string($owner) || $owner === '') {
+                continue;
+            }
+            foreach ($graphs as $graph) {
+                if (($graph['node_count'] ?? 0) > 0 && strtolower($graph['orgc_uuid'] ?? '') === strtolower($owner)) {
+                    return $graph['uuid'];
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * The graphs the user may edit that their organisation created.
      *
      * @param array $user
