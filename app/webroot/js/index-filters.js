@@ -10,7 +10,9 @@
  * in a tab, the tab reloads its fragment and the browser URL is left alone.
  * Every lookup is scoped to the bar's index (`[data-ifp-scope]`), so a page
  * can hold several bars, and all wiring is delegated so swaps need no
- * rebinding.
+ * rebinding. The pickers and toggles sit in a panel the bar's Filters button
+ * opens over the results; it stays open while filters apply, a tab reload
+ * included.
  */
 (function () {
     'use strict';
@@ -166,15 +168,35 @@
             var name = JSON.parse(el.getAttribute('data-ifp-picker')).name;
             if (keys.indexOf(prefix + name) !== -1) { el.hidden = true; }
         });
-        var chips = swapNode(scope, 'chips');
-        if (chips && !chips.querySelector('.ifp-chip:not([hidden])')) { chips.hidden = true; }
-        var clear = scope.querySelector('.ifp-clear');
-        if (clear) {
-            var origin = splitUrl(bar, tab.dataset.ifpOrigin);
-            var sort = splitUrl(bar, currentUrl(bar)).named;
-            ['sort', 'direction', 'limit'].forEach(function (k) { if (sort[k]) { origin.named[k] = sort[k]; } });
+        // The row under the bar and the Filters panel each hold the chips.
+        ['chips', 'win-chips'].forEach(function (key) {
+            var chips = swapNode(scope, key);
+            if (!chips || chips.querySelector('.ifp-chip:not([hidden])')) { return; }
+            var none = chips.querySelector('.ifp-chips-none');
+            if (!none) {
+                chips.hidden = true;
+                return;
+            }
+            none.hidden = false;
+            var clearLink = chips.querySelector('.ifp-clear');
+            if (clearLink) { clearLink.hidden = true; }
+        });
+        var current = splitUrl(bar, currentUrl(bar)).named;
+        var origin = splitUrl(bar, tab.dataset.ifpOrigin);
+        ['sort', 'direction', 'limit'].forEach(function (k) { if (current[k]) { origin.named[k] = current[k]; } });
+        scope.querySelectorAll('.ifp-clear').forEach(function (clear) {
             clear.setAttribute('href', formatIndexUrl(origin.base, origin));
+        });
+        var badge = swapNode(scope, 'filters-count');
+        if (badge) {
+            var left = (badge.getAttribute('data-ifp-keys') || '').split(' ').filter(function (k) {
+                return k !== '' && keys.indexOf(k) === -1;
+            }).length + (parseInt(badge.getAttribute('data-ifp-pressed'), 10) || 0);
+            badge.textContent = left;
+            badge.hidden = !left;
         }
+        syncFiltersBtn(bar);
+        syncSections(bar);
     }
 
     function applyAllTabScopes(root) {
@@ -256,7 +278,10 @@
         if (badge && nextBadge) { badge.innerHTML = nextBadge.innerHTML; }
         var field = bar.querySelector('.ifp-query input');
         var nextField = fresh.querySelector('[data-ifp-bar] .ifp-query input');
-        if (field && nextField && document.activeElement !== field) { field.value = nextField.value; }
+        if (field && nextField) {
+            field.defaultValue = nextField.defaultValue;
+            if (document.activeElement !== field) { field.value = nextField.value; }
+        }
     }
 
     function afterSwap(bar) {
@@ -269,6 +294,8 @@
             var mobile = typeof isMobile === 'function' && isMobile();
             setView(mobile ? 'card' : (localStorage.getItem('indexViewMode') || 'table'), false, scope);
         }
+        syncFiltersBtn(bar);
+        syncQuery(bar);
         clearError(bar);
     }
 
@@ -285,6 +312,7 @@
         var tab = tabOf(bar);
         if (tab) {
             originKeys(tab);
+            rememberPanel(bar, tab);
             var over = tab.__indexFilterOverride;
             if (over && over.reload && over.reload(url)) { return; }
             if (typeof reloadAjaxTabIndex === 'function') { reloadAjaxTabIndex(tab, url); return; }
@@ -311,6 +339,78 @@
             .finally(function () {
                 if (inFlight === controller) { inFlight = null; setBusy(bar, false); }
             });
+    }
+
+    /* ── the Filters panel and the search box ─────────────────────────── */
+
+    var openPanel = null;
+
+    function panelOf(bar) { return bar.querySelector('.ifp-panel'); }
+
+    function filtersBtnOf(bar) { return bar.querySelector('[data-ifp-filters]'); }
+
+    function browserOpen() { return !!document.querySelector('.ifb-panel:not(.is-embedded)'); }
+
+    function showPanel(bar, show) {
+        var panel = panelOf(bar);
+        if (!panel || panel.hidden === !show) { return; }
+        if (show && openPanel && openPanel !== bar && openPanel.isConnected) {
+            showPanel(openPanel, false);
+        }
+        if (!show) {
+            if (open && panel.contains(open.picker)) { closePicker(true); }
+            if (browserOpen() && window.IndexFilterBrowser) { window.IndexFilterBrowser.close(true); }
+        }
+        panel.hidden = !show;
+        var btn = filtersBtnOf(bar);
+        if (btn) { btn.setAttribute('aria-expanded', String(show)); }
+        if (show) { openPanel = bar; } else if (openPanel === bar) { openPanel = null; }
+    }
+
+    function syncFiltersBtn(bar) {
+        var btn = filtersBtnOf(bar);
+        var badge = btn && btn.querySelector('[data-ifp-swap="filters-count"]');
+        if (badge) { btn.classList.toggle('is-set', !badge.hidden); }
+    }
+
+    function syncQuery(bar) {
+        var field = bar.querySelector('.ifp-query input');
+        if (!field) { return; }
+        var box = field.closest('.ifp-query');
+        box.classList.toggle('has-value', field.value !== '');
+        box.classList.toggle('is-dirty', field.value.trim() !== field.defaultValue.trim());
+    }
+
+    // A section whose pickers the tab scope all hid goes too.
+    function syncSections(bar) {
+        var panel = panelOf(bar);
+        if (!panel) { return; }
+        panel.querySelectorAll('.ifp-sec').forEach(function (sec) {
+            sec.hidden = !Array.prototype.some.call(sec.querySelectorAll('.ifp-grid > *'), function (el) { return !el.hidden; });
+        });
+    }
+
+    // A tab reload redraws the bar: the panel and the focus come back.
+    function rememberPanel(bar, tab) {
+        var panel = panelOf(bar);
+        if (!panel || panel.hidden) {
+            delete tab.dataset.ifpPanel;
+            return;
+        }
+        var active = document.activeElement && panel.contains(document.activeElement)
+            ? document.activeElement.closest('[data-ifp-swap]') : null;
+        tab.dataset.ifpPanel = active ? swapKey(active) : (bar.__ifpLast || '');
+    }
+
+    function restorePanel(tab) {
+        var focus = tab.dataset.ifpPanel;
+        var bar = focus !== undefined ? tab.querySelector('[data-ifp-bar]') : null;
+        delete tab.dataset.ifpPanel;
+        if (!bar || !panelOf(bar)) { return; }
+        showPanel(bar, true);
+        var node = focus ? swapNode(scopeOf(bar), focus) : null;
+        var target = node && (node.matches('a, button') ? node : node.querySelector('.ifp-btn, a, button'));
+        if (target) { target.focus({ preventScroll: true }); }
     }
 
     /* ── pickers ──────────────────────────────────────────────────────── */
@@ -871,6 +971,7 @@
         if (cfg(state.bar).apply === 'draft' && apply !== 'draft') { return; }
         var changes = changesOf(state);
         if (JSON.stringify(changes) === state.initial) { return; }
+        state.bar.__ifpLast = swapKey(state.picker);
         load(state.bar, urlWith(state.bar, changes), true);
     }
 
@@ -924,6 +1025,25 @@
         var bar = barOf(target);
         if (!bar) { return; }
 
+        if (target.closest('[data-ifp-filters]')) {
+            var panel = panelOf(bar);
+            if (panel) { showPanel(bar, panel.hidden); }
+            return;
+        }
+        if (target.closest('[data-ifp-search]')) {
+            load(bar, searchUrl(bar), true);
+            return;
+        }
+        if (target.closest('[data-ifp-search-clear]')) {
+            var field = bar.querySelector('.ifp-query input');
+            var applied = field.defaultValue.trim() !== '';
+            field.value = '';
+            syncQuery(bar);
+            field.focus();
+            if (applied) { load(bar, searchUrl(bar), true); }
+            return;
+        }
+
         var btn = target.closest('.ifp-btn');
         if (btn) {
             var picker = btn.closest('.ifp-picker');
@@ -943,6 +1063,7 @@
             var named = swapNode(scopeOf(bar), 'picker-' + opener.getAttribute('data-ifp-open'));
             if (named) {
                 event.preventDefault();
+                showPanel(bar, true);
                 named.scrollIntoView({ block: 'nearest' });
                 openPicker(named);
             }
@@ -978,11 +1099,26 @@
         }
     });
 
+    // Capture phase, like the column browser's: the click may redraw what it hit.
+    document.addEventListener('click', function (event) {
+        if (!openPanel) { return; }
+        if (!openPanel.isConnected) {
+            openPanel = null;
+            return;
+        }
+        var target = event.target;
+        var btn = filtersBtnOf(openPanel);
+        if (panelOf(openPanel).contains(target) || (btn && btn.contains(target)) || target.closest('.ifb-panel')) { return; }
+        showPanel(openPanel, false);
+    }, true);
+
     document.addEventListener('input', function (event) {
         if (open && event.target.matches('.ifp-search input')) {
             search(event.target.value.trim());
         } else if (open && event.target.matches('[data-ifp-from], [data-ifp-to]')) {
             setDay(event.target);
+        } else if (event.target.matches('.ifp-query input')) {
+            syncQuery(barOf(event.target));
         }
     });
 
@@ -1016,6 +1152,22 @@
             }
             return;
         }
+        // Escape drops an unapplied search term first, then closes the panel.
+        if (event.key === 'Escape' && event.target.matches('.ifp-query input')
+            && event.target.value.trim() !== event.target.defaultValue.trim()) {
+            event.preventDefault();
+            event.target.value = event.target.defaultValue;
+            syncQuery(barOf(event.target));
+            return;
+        }
+        if (event.key === 'Escape' && openPanel && openPanel.isConnected && !browserOpen()
+            && !document.querySelector('.modal.show') && !panelOf(openPanel).querySelector('.dropdown-menu.show')) {
+            event.preventDefault();
+            var filtersBtn = filtersBtnOf(openPanel);
+            showPanel(openPanel, false);
+            if (filtersBtn) { filtersBtn.focus(); }
+            return;
+        }
         if (event.key === 'Enter' && event.target.matches('.value-match-input')) {
             var vmBar = barOf(event.target);
             if (!vmBar) { return; }
@@ -1047,7 +1199,48 @@
         });
     });
 
-    document.addEventListener('misp:container-loaded', function (event) { applyAllTabScopes(event.target); });
+    function onScreen(selector) {
+        return Array.prototype.filter.call(document.querySelectorAll(selector), function (el) {
+            return el.offsetParent !== null;
+        })[0];
+    }
+
+    // `/` puts the cursor in the search of the index on screen, `f` opens or
+    // closes its Filters panel.
+    document.addEventListener('keydown', function (event) {
+        var key = event.key === 'F' ? 'f' : event.key;
+        if ((key !== '/' && key !== 'f') || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) { return; }
+        var t = event.target;
+        if (t.isContentEditable || (t.closest && t.closest('input, textarea, select')) || document.querySelector('.modal.show')) { return; }
+        if (key === '/') {
+            var field = onScreen('[data-ifp-bar] .ifp-query input');
+            if (!field) { return; }
+            event.preventDefault();
+            field.focus();
+            field.select();
+            return;
+        }
+        // A picker or the column browser open in the panel keeps its own keys.
+        var btn = openPanel && openPanel.isConnected ? filtersBtnOf(openPanel) : onScreen('[data-ifp-bar] [data-ifp-filters]');
+        if (!btn || open || browserOpen()) { return; }
+        var bar = btn.closest('[data-ifp-bar]');
+        var panel = panelOf(bar);
+        event.preventDefault();
+        showPanel(bar, panel.hidden);
+        if (panel.hidden) {
+            btn.focus();
+            return;
+        }
+        var first = Array.prototype.filter.call(panel.querySelectorAll('.ifp-quick, .ifp-btn, .ifp-vm-btn'), function (el) {
+            return el.offsetParent !== null;
+        })[0];
+        if (first) { first.focus(); }
+    });
+
+    document.addEventListener('misp:container-loaded', function (event) {
+        applyAllTabScopes(event.target);
+        restorePanel(event.target);
+    });
     applyAllTabScopes(document);
 
     window.IndexFilters = {
