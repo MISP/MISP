@@ -1,12 +1,8 @@
 <?php
 /**
  * One row's actions, all behind its menu: whom the profile scores first,
- * then what else can be done with it.
- *
- * A profile you own is used by switching it on and dropped by switching
- * it off; anybody else's is chosen and unchosen. The menu says *use* and
- * *stop using* either way, so a reader never has to know which of the two
- * mechanisms a row goes through.
+ * then what else can be done with it. The writes come from
+ * ProfileActionsTool, which the profile view's action card shares.
  *
  * Every write opens its confirmation in #mainModal: the action answers an
  * ajax GET with the question (ask.ctp) and the modal's form posts it.
@@ -16,62 +12,26 @@
  * @var bool $may_select_for_instance
  * @var bool $can_fork_for_org
  */
-$chosenByMe = in_array('user', $profile['selected_by'], true);
-$chosenByOrg = in_array('org', $profile['selected_by'], true);
-$chosenByInstance = in_array('instance', $profile['selected_by'], true);
-$ownedByMe = $profile['scope_rank'] === 3;
-$ownedByOrg = $profile['scope_rank'] === 2 && $profile['editable'];
+App::uses('ProfileActionsTool', 'Tools/AnalystProfile');
 
+$writes = ProfileActionsTool::writes($profile, array(
+    'org' => $may_select_for_org,
+    'instance' => $may_select_for_instance,
+    'fork_org' => $can_fork_for_org,
+));
 $item = 'dropdown-item justify-content-start';
 
-$ask = function ($icon, $label, $url, $extra = '') use ($item) {
-    $href = $this->Html->url($url);
+$entry = function (array $write, $extra = '') use ($item) {
+    $glyph = '<i class="fas fa-' . h($write['icon']) . ' me-2"></i>'
+        . h($write['label']);
+    if ($write['disabled']) {
+        return '<span class="' . $item . ' disabled">' . $glyph . '</span>';
+    }
+    $href = $this->Html->url($write['url']);
     return '<a class="' . h(trim($item . ' ' . $extra)) . '" href="' . h($href)
         . '" onclick="' . h('event.preventDefault(); openModal('
-            . json_encode($href) . ", 'md');") . '">'
-        . '<i class="fas fa-' . h($icon) . ' me-2"></i>' . h($label) . '</a>';
+            . json_encode($href) . ", 'md');") . '">' . $glyph . '</a>';
 };
-
-$uses = array();
-if ($ownedByMe) {
-    $uses[] = $profile['enabled']
-        ? $ask('user-xmark', __('Stop using for me'),
-            array('action' => 'disable', $profile['id']))
-        : $ask('user-check', __('Use for me'),
-            array('action' => 'enable', $profile['id']));
-} elseif ($chosenByMe) {
-    $uses[] = $ask('user-xmark', __('Stop using for me'),
-        array('action' => 'deselect', '?' => array('scope' => 'user')));
-} elseif (!empty($profile['selectable'])) {
-    $uses[] = $ask('user-check', __('Use for me'),
-        array('action' => 'select', $profile['id'],
-            '?' => array('scope' => 'user')));
-}
-if ($ownedByOrg) {
-    $uses[] = $profile['enabled']
-        ? $ask('building-circle-xmark', __('Stop using for my organisation'),
-            array('action' => 'disable', $profile['id']))
-        : $ask('building-circle-check', __('Use for my organisation'),
-            array('action' => 'enable', $profile['id']));
-} elseif ($chosenByOrg && $may_select_for_org) {
-    $uses[] = $ask('building-circle-xmark', __('Stop using for my organisation'),
-        array('action' => 'deselect', '?' => array('scope' => 'org')));
-} elseif (!empty($profile['selectable_for_org'])) {
-    $uses[] = $ask('building-circle-check', __('Use for my organisation'),
-        array('action' => 'select', $profile['id'],
-            '?' => array('scope' => 'org')));
-}
-// The instance always names a profile, so it is pointed elsewhere rather than stopped.
-if ($may_select_for_instance && $chosenByInstance) {
-    $uses[] = '<span class="' . $item . ' disabled"><i class="fas fa-server me-2">'
-        . '</i>' . h(__('Runs on this instance')) . '</span>';
-} elseif ($may_select_for_instance && !empty($profile['enabled'])
-    && (!empty($profile['default']) || !empty($profile['shared']))
-) {
-    $uses[] = $ask('server', __('Run on this instance'),
-        array('action' => 'select', $profile['id'],
-            '?' => array('scope' => 'instance')));
-}
 ?>
 <div class="ap-acts" data-tour="ap-row-actions">
     <div class="dropdown">
@@ -82,10 +42,10 @@ if ($may_select_for_instance && $chosenByInstance) {
             <i class="fa-solid fa-ellipsis-vertical"></i>
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
-            <?php foreach ($uses as $use): ?>
-                <li><?= $use ?></li>
+            <?php foreach ($writes['use'] as $write): ?>
+                <li><?= $entry($write) ?></li>
             <?php endforeach; ?>
-            <?php if (!empty($uses)): ?>
+            <?php if (!empty($writes['use'])): ?>
                 <li><hr class="dropdown-divider"></li>
             <?php endif; ?>
 
@@ -115,32 +75,15 @@ if ($may_select_for_instance && $chosenByInstance) {
                         __('Export JSON')) ?></a>
             </li>
 
-            <?php if (!$profile['in_force'] || !empty($profile['default'])): ?>
-                <li><hr class="dropdown-divider"></li>
-                <li><?= $ask('code-branch', __('Fork to me'),
-                    array('action' => 'fork', $profile['id'])) ?></li>
-                <?php if ($can_fork_for_org): ?>
-                    <li><?= $ask('code-branch', __('Fork to my organisation'),
-                        array('action' => 'fork', $profile['id'],
-                            '?' => array('for_org' => 1))) ?></li>
+            <?php foreach (array('fork', 'share', 'delete') as $group): ?>
+                <?php if (!empty($writes[$group])): ?>
+                    <li><hr class="dropdown-divider"></li>
+                    <?php foreach ($writes[$group] as $write): ?>
+                        <li><?= $entry($write,
+                            $group === 'delete' ? 'text-danger' : '') ?></li>
+                    <?php endforeach; ?>
                 <?php endif; ?>
-            <?php endif; ?>
-
-            <?php if (!empty($profile['can_share'])): ?>
-                <li><hr class="dropdown-divider"></li>
-                <li><?= empty($profile['shared'])
-                    ? $ask('share-nodes', __('Share with everyone'),
-                        array('action' => 'share', $profile['id']))
-                    : $ask('share-nodes', __('Stop sharing'),
-                        array('action' => 'unshare', $profile['id'])) ?></li>
-            <?php endif; ?>
-
-            <?php if ($profile['editable'] && empty($profile['default'])): ?>
-                <li><hr class="dropdown-divider"></li>
-                <li><?= $ask('trash', __('Delete'),
-                    array('action' => 'delete', $profile['id']),
-                    'text-danger') ?></li>
-            <?php endif; ?>
+            <?php endforeach; ?>
         </ul>
     </div>
 </div>

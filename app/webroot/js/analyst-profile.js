@@ -28,6 +28,38 @@
         boot();
     }
 
+    /*
+     * The full comparison opens in #mainModal. The editor posts its form,
+     * unsaved fields and benched value included, so the candidate is what
+     * is being typed; anywhere else the link's own value is the one read.
+     */
+    window.analystProfileCompare = function (url) {
+        var form = document.getElementById('ap-form');
+        if (form && form.getAttribute('data-ap-simulate')
+            && typeof openModalPostChained === 'function'
+        ) {
+            openModalPostChained(form.getAttribute('data-ap-simulate')
+                + '?full=1', new FormData(form), 'xl');
+            return;
+        }
+        if (typeof openModal === 'function') {
+            openModal(url + (url.indexOf('?') === -1 ? '?' : '&') + 'full=1',
+                'xl');
+        } else {
+            window.location.href = url;
+        }
+    };
+    document.addEventListener('click', function (event) {
+        var link = event.target.closest
+            ? event.target.closest('a[data-ap-compare]')
+            : null;
+        if (!link) {
+            return;
+        }
+        event.preventDefault();
+        window.analystProfileCompare(link.getAttribute('href'));
+    });
+
 function boot() {
     var form = document.getElementById('ap-form');
     var rail = document.getElementById('ap-rail');
@@ -45,6 +77,7 @@ function boot() {
      */
     var carried = document.getElementById('ap-bench-value');
     var live = !!(form && bench && carried);
+    var unsavedLabel = (form && form.getAttribute('data-ap-unsaved')) || '';
 
     /* ------------------------------------------------------------ *
      * One section open at a time
@@ -89,6 +122,24 @@ function boot() {
                 return;
             }
             open(item.getAttribute('data-sec'));
+        });
+    }
+
+    /*
+     * In the tabbed frame the document has a tab of its own, and its
+     * textarea posts only while that tab is on screen, for the reason
+     * open() gives.
+     */
+    document.addEventListener('shown.bs.tab', function (event) {
+        if (!raw || rail) {
+            return;
+        }
+        raw.disabled = event.target.getAttribute('href') !== '#tab-document';
+        mark();
+    });
+    if (raw) {
+        raw.addEventListener('input', function () {
+            mark();
         });
     }
 
@@ -170,14 +221,36 @@ function boot() {
                     folds.indexOf(fold) !== -1);
             }
         );
-        if (rail) {
+        Array.prototype.forEach.call(
+            document.querySelectorAll('[data-ap-dirty-mark]'),
+            function (glyph) {
+                glyph.hidden =
+                    !dirty[glyph.getAttribute('data-ap-dirty-mark')];
+            }
+        );
+        // A tab whose cards hold a change says so, since its panes are out of sight.
+        if (typeof setTabBadge === 'function') {
             Array.prototype.forEach.call(
-                rail.querySelectorAll('[data-ap-dirty-mark]'),
-                function (glyph) {
-                    glyph.hidden =
-                        !dirty[glyph.getAttribute('data-ap-dirty-mark')];
+                document.querySelectorAll('.nav-view-badge[data-tab-badge]'),
+                function (badge) {
+                    var id = badge.getAttribute('data-tab-badge');
+                    var pane = document.getElementById('tab-' + id);
+                    var edited = pane && pane.querySelector(
+                        '[data-ap-dirty-mark]:not([hidden])');
+                    var pasted = raw && !raw.disabled && pane
+                        && pane.contains(raw) && raw.value !== raw.defaultValue;
+                    setTabBadge(id, edited || pasted ? unsavedLabel : '');
                 }
             );
+        }
+        var counter = document.querySelector('[data-ap-unsaved-count]');
+        if (counter) {
+            var total = count + (raw && !raw.disabled
+                && raw.value !== raw.defaultValue ? 1 : 0);
+            counter.textContent = total === 1
+                ? counter.getAttribute('data-one')
+                : (counter.getAttribute('data-many') || '').replace('%s', total);
+            counter.hidden = total === 0;
         }
         return count;
     }
@@ -616,6 +689,22 @@ function boot() {
             : null;
         if (fold) {
             fold.open = true;
+        }
+        // In the tabbed frame: unfold the field's card and bring its tab forward.
+        var card = event.target.closest
+            ? event.target.closest('details.ap-vcard')
+            : null;
+        if (card) {
+            card.open = true;
+        }
+        var tab = event.target.closest
+            ? event.target.closest('.tab-pane')
+            : null;
+        if (tab && !tab.classList.contains('active') && window.bootstrap) {
+            var link = document.querySelector('[href="#' + tab.id + '"]');
+            if (link) {
+                bootstrap.Tab.getOrCreateInstance(link).show();
+            }
         }
         var pane = event.target.closest
             ? event.target.closest('.wb-sec')

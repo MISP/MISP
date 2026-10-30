@@ -944,6 +944,189 @@ a.ap-hop-a:hover { text-decoration: underline; }
     .ap-hop + .ap-hop::before { display: none; }
 }
 
+/* ==================================================================
+ * The profile view: a card per section in each tab, and rail cards.
+ * ================================================================== */
+.ap-vcard,
+.ap-rcard { margin-bottom: 1rem; overflow: hidden; }
+.ap-vcard-h,
+.ap-rcard-h {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .85rem 1rem;
+}
+summary.ap-vcard-h { cursor: pointer; list-style: none; }
+summary.ap-vcard-h::-webkit-details-marker { display: none; }
+details.ap-vcard[open] > .ap-vcard-h,
+section.ap-vcard > .ap-vcard-h,
+.ap-rcard-h { border-bottom: 1px solid var(--bs-border-color); }
+.ap-vcard-ico {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: .5rem;
+    background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
+    color: var(--bs-primary);
+}
+.ap-vcard-t {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.ap-vcard-title,
+.ap-rcard-t { margin: 0; font-size: 1.0625rem; font-weight: 700; }
+.ap-vcard-blurb { font-size: .8125rem; color: var(--bs-secondary-color); }
+.ap-vcard-caret {
+    flex: none;
+    color: var(--bs-secondary-color);
+    transition: transform .15s ease;
+}
+details.ap-vcard:not([open]) .ap-vcard-caret { transform: rotate(-90deg); }
+.ap-vcard-b { padding: .75rem 1rem 1rem; }
+.wb-sec-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .25rem 1rem;
+    margin-bottom: .6rem;
+}
+.wb-guide-fold { margin-bottom: .75rem; }
+.ap-raw {
+    margin: 0;
+    padding: 1rem;
+    max-height: 40rem;
+    overflow: auto;
+    font-size: .75rem;
+    background: var(--bs-tertiary-bg);
+}
+
+/* A signal on one line: name, tags and help, its id under it. */
+.ap-sig {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .15rem .4rem;
+}
+.ap-sig > .wb-name { order: 1; }
+.ap-sig > .mt-1 { order: 2; margin-top: 0 !important; }
+.ap-sig > .sig-meta { order: 3; margin: 0; }
+.ap-sig > .wb-sub { order: 4; margin: 0; }
+.ap-sig > .wb-name-id { order: 5; flex-basis: 100%; }
+
+.ap-rcard-b { padding: .75rem 1rem 1rem; }
+.ap-rcard .wb-bench { border-left: 0; background: none; }
+.ap-rcard .wb-bench-inner { position: static; padding: .75rem 1rem 1rem; }
+.ap-scores-standing { margin-bottom: .6rem; }
+.ap-scores {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+}
+.ap-score {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .4rem .5rem;
+    border-radius: var(--bs-border-radius);
+    font-size: .875rem;
+}
+.ap-score.is-win { background: color-mix(in srgb, var(--bs-primary) 8%, transparent); }
+.ap-score.is-win .ap-hop-n { background: var(--bs-primary); color: #fff; }
+.ap-score-l { flex: 1 1 auto; min-width: 0; }
+.ap-score-a {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .8125rem;
+    color: var(--bs-secondary-color);
+}
+a.ap-score-a { font-weight: 600; color: var(--bs-link-color); text-decoration: none; }
+a.ap-score-a:hover { text-decoration: underline; }
+.ap-score-a.is-here { font-weight: 700; color: var(--bs-primary-text-emphasis); }
+.ap-score-a.is-warn { color: var(--vp-conflict-ink, var(--vp-conflict)); }
+.ap-score-a.is-none { font-style: italic; }
+.ap-score-note { margin: .5rem 0 0; font-size: .75rem; color: var(--bs-secondary-color); }
+
+/* The full comparison, in #mainModal or on the simulate page. */
+.ap-compare-sides {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: .75rem;
+    margin-bottom: .75rem;
+}
+.ap-side {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    padding: .75rem 1rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+}
+.ap-side.is-candidate {
+    border-color: color-mix(in srgb, var(--bs-primary) 45%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-primary) 6%, transparent);
+}
+.ap-side-t { display: flex; flex-direction: column; min-width: 0; }
+.ap-side-t span { font-size: .8125rem; color: var(--bs-secondary-color); }
+.ap-compare-note { margin: 0 0 .75rem; font-size: .8125rem; color: var(--bs-secondary-color); }
+.wb-bench.ap-compare-bench { border-left: 0; background: none; }
+.ap-compare-bench .wb-bench-inner { position: static; padding: 0; }
+
+/* The editor says so above its tabs, on one line. */
+.ap-editing {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .6rem;
+    margin-bottom: .75rem;
+    padding: .3rem .75rem;
+    border: 1px solid var(--bs-warning-border-subtle);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text-emphasis);
+    font-size: .8125rem;
+}
+.ap-editing-t { flex: 1 1 20rem; min-width: 0; }
+
+/* The editor's rail never leaves: the bench answers every change. */
+@media (min-width: 992px) {
+    .ap-edit > .container-fluid > .row > .col-lg-3 {
+        position: sticky;
+        top: .5rem;
+        align-self: flex-start;
+        max-height: calc(100vh - 1rem);
+        overflow-y: auto;
+    }
+}
+
+/* The rail's About card: a label over each fact. */
+.ap-about {
+    margin: 0;
+    padding: .5rem 1rem .75rem;
+}
+.ap-about > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .4rem 0;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    font-size: .875rem;
+}
+.ap-about > div:last-child { border-bottom: 0; }
+.ap-about dt { font-weight: 400; color: var(--bs-secondary-color); }
+.ap-about dd { margin: 0; font-weight: 600; text-align: right; }
+.ap-about-sub { font-weight: 400; color: var(--bs-secondary-color); }
+
 /* The name is the way into a profile, so `View` is not a button.
  * Underline on hover only: six underlined names down a column read as
  * a list of links rather than a list of profiles. */

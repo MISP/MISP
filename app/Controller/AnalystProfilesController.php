@@ -162,6 +162,7 @@ class AnalystProfilesController extends AppController
         // The banner reads every row; only the table follows the filter bar.
         $this->set('shown', $this->__shownOnIndex($board['profiles'],
             $this->request->params['named']));
+        $this->set('scope_answers', $this->__scopeAnswers($board));
         return $this->__payload(array(
             'profiles' => $board['profiles'],
             /*
@@ -239,6 +240,85 @@ class AnalystProfilesController extends AppController
                     $profile['standing']['state'], $standings, true);
             }
         ));
+    }
+
+    /**
+     * The view and the editor's rail: this profile's row of the index
+     * board, for its standing and actions, and what each scope answers.
+     *
+     * @param array $user
+     * @param array $profile
+     * @return void
+     */
+    private function __setRail(array $user, array $profile)
+    {
+        if ($this->_isRest()) {
+            return;
+        }
+        $board = $this->AnalystProfile->indexFor($user);
+        $standing = null;
+        foreach ($board['profiles'] as $row) {
+            if ((int)$row['id'] === (int)$profile['AnalystProfile']['id']) {
+                $standing = $row;
+                break;
+            }
+        }
+        $this->set('standing', $standing);
+        $this->set('scope_answers', $this->__scopeAnswers($board));
+    }
+
+    /**
+     * What each scope answers with, in resolution order: a profile it owns
+     * and has switched on, then the one it chose. A choice that no longer
+     * resolves is a reason rather than a name. Counting only what a scope
+     * owns would show an organisation that chose a shipped profile as
+     * having no answer.
+     *
+     * @param array $board From AnalystProfile::indexFor()
+     * @return array `answers` (scope => `profile`, `reason`), `won_by`, and
+     *               `default`, the row the instance setting names
+     */
+    private function __scopeAnswers(array $board)
+    {
+        $byUuid = array();
+        $owned = array('user' => null, 'org' => null, 'instance' => null);
+        foreach ($board['profiles'] as $profile) {
+            $byUuid[$profile['uuid']] = $profile;
+            if (empty($profile['enabled'])) {
+                continue;
+            }
+            if ($profile['scope_rank'] === 3 && $owned['user'] === null) {
+                $owned['user'] = $profile;
+            } elseif ($profile['scope_rank'] === 2 && $owned['org'] === null) {
+                $owned['org'] = $profile;
+            }
+        }
+        $selections = $board['resolution']['selections'];
+        $unresolved = $board['resolution']['unresolved'];
+        $answers = array();
+        foreach ($owned as $scope => $profile) {
+            $answer = array('profile' => $profile, 'reason' => null);
+            if ($profile === null && isset($unresolved[$scope])) {
+                $answer['reason'] = $unresolved[$scope]['reason'];
+            } elseif ($profile === null && !empty($selections[$scope])
+                && isset($byUuid[$selections[$scope]])
+            ) {
+                $answer['profile'] = $byUuid[$selections[$scope]];
+            }
+            $answers[$scope] = $answer;
+        }
+        $via = $board['resolution']['via'];
+        return array(
+            'answers' => $answers,
+            // `via` is `user`, `org`, `instance`, or one of the `_selection` pair.
+            'won_by' => $via === null
+                ? null
+                : preg_replace('/_selection$/', '', $via),
+            'default' => !empty($selections['instance'])
+                && isset($byUuid[$selections['instance']])
+                    ? $byUuid[$selections['instance']]
+                    : null,
+        );
     }
 
     /**
@@ -553,6 +633,7 @@ class AnalystProfilesController extends AppController
     {
         $user = $this->Auth->user();
         $profile = $this->__profileOr404($user, $id);
+        $this->__setRail($user, $profile);
         return $this->__payload(
             $this->__board($user, $profile, false),
             'view'
@@ -587,6 +668,8 @@ class AnalystProfilesController extends AppController
                 . ' the copy.'
             ));
         }
+        // Set before any render: a refused save draws the editor again.
+        $this->__setRail($user, $profile);
         if (!$this->request->is(array('post', 'put'))) {
             return $this->__payload(
                 $this->__board($user, $profile, true),
@@ -683,12 +766,8 @@ class AnalystProfilesController extends AppController
                 )
                 : __('Saved. Nothing in the document changed, so the'
                     . ' revision did not move.'),
-            /*
-             * The bench never leaves, and a save is the moment it
-             * would: the redirect carries the value back so the pane
-             * the edit was judged against is still under it.
-             */
-            array('action' => 'edit', $row['id'],
+            // Back to the profile, still read against the value the edit was judged on.
+            array('action' => 'view', $row['id'],
                 '?' => $benched === null
                     ? array()
                     : array('value' => $benched))
@@ -1599,9 +1678,21 @@ class AnalystProfilesController extends AppController
          * One producer: the pane and the page it expands into cannot
          * disagree, and neither can the pane and itself after an edit.
          */
+        $full = $simulation + array(
+            'candidate_valid' => empty($checked['errors']),
+            'errors' => $checked['errors'],
+            'warnings' => $checked['warnings'],
+            'bands' => $form->bandStrip($candidateParameters),
+        );
         if (!$this->_isRest() && $this->request->is('ajax')) {
+            // `full`: the whole comparison, for #mainModal.
+            if (!empty($this->request->query['full'])) {
+                $this->set($full);
+                $this->layout = false;
+                return $this->render('compare');
+            }
             $this->set('bench', $simulation);
-            $this->set('bands', $form->bandStrip($candidateParameters));
+            $this->set('bands', $full['bands']);
             $this->set('full', false);
             $this->set('profileId', $row['id']);
             /*
@@ -1617,15 +1708,7 @@ class AnalystProfilesController extends AppController
             $this->layout = false;
             return $this->render('/Elements/AnalystProfiles/bench');
         }
-        return $this->__payload(
-            $simulation + array(
-                'candidate_valid' => empty($checked['errors']),
-                'errors' => $checked['errors'],
-                'warnings' => $checked['warnings'],
-                'bands' => $form->bandStrip($candidateParameters),
-            ),
-            'simulate'
-        );
+        return $this->__payload($full, 'simulate');
     }
 
     /**

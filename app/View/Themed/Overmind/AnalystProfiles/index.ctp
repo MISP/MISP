@@ -12,10 +12,9 @@
  *
  * @var array $profiles Every row, for the banner
  * @var array $shown The rows the filter bar leaves
+ * @var array $scope_answers What each scope answers with
  * @var array|null $in_force
  * @var bool $scoring_off
- * @var string|null $via How the profile in force was reached
- * @var array $selections The uuid each scope declares
  * @var array $unresolved Declarations that resolved to nothing
  * @var bool $may_select_for_org
  * @var bool $may_select_for_instance
@@ -32,61 +31,23 @@ echo $this->element('genericElements/assetLoader', array(
     'js' => array('analyst-profile', 'analyst-profile-cards'),
 ));
 
-/*
- * What each scope answers with: an owned enabled profile first, then the
- * uuid the scope declared, and a declaration that did not resolve is a
- * reason rather than a name. MISP's shipped profiles carry no owner, so
- * counting the rows a scope owns would show an organisation that *chose*
- * one as having no answer.
- */
-$byUuid = array();
-$ownedBy = array('user' => null, 'org' => null, 'instance' => null);
-$others = 0;
-foreach ($profiles as $profile) {
-    $byUuid[$profile['uuid']] = $profile;
-    if ($profile['scope_rank'] === 1) {
-        $others++;
-    }
-    if (!empty($profile['enabled'])) {
-        if ($profile['scope_rank'] === 3 && $ownedBy['user'] === null) {
-            $ownedBy['user'] = $profile;
-        } elseif ($profile['scope_rank'] === 2 && $ownedBy['org'] === null) {
-            $ownedBy['org'] = $profile;
-        }
-    }
-}
+$others = count(array_filter($profiles, function ($profile) {
+    return $profile['scope_rank'] === 1;
+}));
 
 /*
  * The instance default is the row the site setting names, read whether
  * or not it resolved: when it is switched off, enabling *that* row is the
  * repair the banner offers.
  */
-$default = !empty($selections['instance'])
-    && isset($byUuid[$selections['instance']])
-        ? $byUuid[$selections['instance']]
-        : null;
-
+$default = $scope_answers['default'];
+$answers = $scope_answers['answers'];
+$wonBy = $scope_answers['won_by'];
 $scopes = array(
     'user' => __('Yours'),
     'org' => __('Your organisation'),
     'instance' => __('Instance default'),
 );
-// `via` is `user`, `org`, `instance`, or one of the `_selection` pair.
-$wonBy = $via === null ? null : preg_replace('/_selection$/', '', $via);
-$answers = array();
-foreach ($scopes as $scope => $label) {
-    $answer = array('profile' => null, 'reason' => null);
-    if ($ownedBy[$scope] !== null) {
-        $answer['profile'] = $ownedBy[$scope];
-    } elseif (isset($unresolved[$scope])) {
-        $answer['reason'] = $unresolved[$scope]['reason'];
-    } elseif (!empty($selections[$scope])
-        && isset($byUuid[$selections[$scope]])
-    ) {
-        $answer['profile'] = $byUuid[$selections[$scope]];
-    }
-    $answers[$scope] = $answer;
-}
 
 // Which scopes point at a row: the standing names only the winner.
 $pointWord = array(
