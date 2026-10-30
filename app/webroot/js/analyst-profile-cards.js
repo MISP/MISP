@@ -1,9 +1,16 @@
 /*
- * The profile index's card row: fetch the enrichment card once the page is
- * up, and run its one-click fixes in place.
+ * The profile index's enrichment line: fetch the enrichment card once the
+ * page is up, sum it up on the line, keep it in the modal the line opens,
+ * and run its one-click fixes in place.
  */
 (function () {
     'use strict';
+
+    var ICONS = {
+        ok: 'circle-check',
+        warn: 'triangle-exclamation',
+        plain: 'circle-info'
+    };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', boot);
@@ -12,24 +19,30 @@
     }
 
     function boot() {
-        var row = document.querySelector('.ap-cards');
-        var slot = row ? row.querySelector('[data-ap-card-src]') : null;
-        if (!slot) {
+        var line = document.querySelector('[data-ap-enrichment]');
+        var modal = document.getElementById('ap-enrichment-modal');
+        var body = modal ? modal.querySelector('[data-ap-card-src]') : null;
+        if (!line || !body) {
             return;
         }
-        var src = slot.getAttribute('data-ap-card-src');
-        load(row, slot, src);
-        row.addEventListener('click', function (event) {
+        var ctx = {
+            line: line,
+            modal: modal,
+            body: body,
+            src: body.getAttribute('data-ap-card-src')
+        };
+        load(ctx);
+        body.addEventListener('click', function (event) {
             var button = event.target.closest('[data-ap-fix]');
-            if (button && row.contains(button) && !button.disabled) {
-                fix(row, button, src);
+            if (button && body.contains(button) && !button.disabled) {
+                fix(ctx, button);
             }
         });
     }
 
-    function load(row, card, src) {
+    function load(ctx) {
         // A fresh URL each time, so no cached copy of the card comes back.
-        var url = src + (src.indexOf('?') === -1 ? '?' : '&')
+        var url = ctx.src + (ctx.src.indexOf('?') === -1 ? '?' : '&')
             + '_=' + Date.now();
         return fetch(url, {
             credentials: 'same-origin',
@@ -42,32 +55,43 @@
         }).then(function (html) {
             var holder = document.createElement('div');
             holder.innerHTML = html.trim();
-            var fresh = holder.querySelector('.ap-card');
-            if (!fresh) {
+            var card = holder.querySelector('.ap-card');
+            if (!card) {
                 throw new Error('empty');
             }
-            fresh.setAttribute('data-ap-card-src', src);
-            card.replaceWith(fresh);
+            ctx.body.replaceChildren(card);
+            sumUp(ctx.line, card.getAttribute('data-ap-tone'),
+                card.getAttribute('data-ap-summary'),
+                card.getAttribute('data-ap-action'));
         }).catch(function () {
-            card.removeAttribute('aria-busy');
-            var wait = card.querySelector('.ap-card-wait');
-            if (wait) {
-                var line = document.createElement('p');
-                line.className = 'ap-card-line';
-                line.textContent = row.getAttribute('data-ap-load-failed');
-                wait.replaceWith(line);
-            }
+            var failed = document.createElement('p');
+            failed.className = 'ap-card-line';
+            failed.textContent = ctx.modal.getAttribute('data-ap-load-failed');
+            ctx.body.replaceChildren(failed);
+            sumUp(ctx.line, 'warn',
+                ctx.modal.getAttribute('data-ap-unchecked'), null);
         });
     }
 
-    function fix(row, button, src) {
-        var card = button.closest('.ap-card');
+    function sumUp(line, tone, summary, action) {
+        tone = ICONS[tone] ? tone : 'plain';
+        line.setAttribute('data-tone', tone);
+        var glyph = document.createElement('i');
+        glyph.className = 'fas fa-' + ICONS[tone];
+        line.querySelector('.ap-health-ico').replaceChildren(glyph);
+        line.querySelector('[data-ap-summary]').textContent = summary || '';
+        var open = line.querySelector('[data-ap-open]');
+        open.textContent = action || '';
+        open.hidden = !action;
+    }
+
+    function fix(ctx, button) {
         var kind = button.getAttribute('data-ap-fix');
         var body = new FormData();
         body.append('kind', kind);
         body.append('name', button.getAttribute('data-ap-name') || '');
         busy(button, true);
-        fetch(row.getAttribute('data-ap-fix-url'), {
+        fetch(ctx.modal.getAttribute('data-ap-fix-url'), {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
@@ -84,17 +108,18 @@
             });
         }).then(function (result) {
             var saved = result.ok && result.data.saved === true;
-            toast(result.data.message || row.getAttribute('data-ap-fix-failed'),
+            toast(result.data.message
+                || ctx.modal.getAttribute('data-ap-fix-failed'),
                 saved ? 'success' : 'danger');
             if (!saved) {
                 busy(button, false);
             } else if (kind === 'services') {
                 window.location.reload();
             } else {
-                load(row, card, src);
+                load(ctx);
             }
         }).catch(function () {
-            toast(row.getAttribute('data-ap-fix-failed'), 'danger');
+            toast(ctx.modal.getAttribute('data-ap-fix-failed'), 'danger');
             busy(button, false);
         });
     }

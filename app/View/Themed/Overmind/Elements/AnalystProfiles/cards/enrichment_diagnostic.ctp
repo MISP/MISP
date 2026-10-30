@@ -7,8 +7,9 @@
  * @var array $org_names Organisation id => name, for reserved modules
  */
 App::uses('CakeTime', 'Utility');
+// The `Plugin` tab lands on the integrations overview, which holds no setting row.
 $settingsUrl = $this->Html->url(array(
-    'controller' => 'servers', 'action' => 'serverSettings', 'Plugin'));
+    'controller' => 'servers', 'action' => 'serverSettings', 'enrichment'));
 $settingLink = function ($setting, $label) use ($settingsUrl) {
     return '<a class="btn btn-sm btn-outline-secondary ap-fix" href="'
         . h($settingsUrl . '#setting=' . $setting) . '">' . h($label) . '</a>';
@@ -31,20 +32,34 @@ $what = function (array $types) {
         : __n('%s type', '%s types', count($types), count($types));
     return '<span title="' . h(implode(', ', $types)) . '">' . h($text) . '</span>';
 };
+// Title, why, icon and tone of each group, in the order they are drawn.
 $groups = array(
-    IndexCardsTool::MODULE_OFF => array(
-        __('Switched off'), __('installed, one switch away')),
-    IndexCardsTool::MODULE_SETTINGS => array(
-        __('Needs settings'), __('a required setting is empty')),
-    IndexCardsTool::MODULE_FAILING => array(
-        __('Keeps failing'), __('every recent answer is the same error')),
-    IndexCardsTool::MODULE_UNSTABLE => array(
-        __('Times out or crashes'), __('since misp-modules started')),
-    IndexCardsTool::MODULE_MISSING => array(
-        __('Not installed'), __('this misp-modules does not have it')),
-    IndexCardsTool::MODULE_RESTRICTED => array(
-        __('Reserved'), __('one organisation only')),
+    IndexCardsTool::MODULE_OFF => array(__('Switched off'),
+        __('installed, one switch away'), 'toggle-off', 'warn'),
+    IndexCardsTool::MODULE_SETTINGS => array(__('Needs settings'),
+        __('a required setting is empty'), 'sliders', 'warn'),
+    IndexCardsTool::MODULE_FAILING => array(__('Keeps failing'),
+        __('every recent answer is the same error'), 'circle-exclamation', 'bad'),
+    IndexCardsTool::MODULE_UNSTABLE => array(__('Times out or crashes'),
+        __('since misp-modules started'), 'bolt', 'bad'),
+    IndexCardsTool::MODULE_MISSING => array(__('Not installed'),
+        __('this misp-modules does not have it'), 'box-open', 'plain'),
+    IndexCardsTool::MODULE_RESTRICTED => array(__('Reserved'),
+        __('one organisation only'), 'lock', 'plain'),
+    'taxonomy-off' => array(__('Taxonomies off'),
+        __('a profile pins or prefers them'), 'tags', 'warn'),
+    'taxonomy-missing' => array(__('Taxonomies missing'),
+        __('not on this instance'), 'circle-question', 'plain'),
 );
+$groupHead = function ($key, $count) use ($groups) {
+    list($title, $why, $icon, $tone) = $groups[$key];
+    return '<header class="ap-grp-h">'
+        . '<span class="ap-grp-ico" aria-hidden="true"><i class="fas fa-'
+        . h($icon) . '"></i></span>'
+        . '<h3 class="ap-grp-t">' . h($title) . '</h3>'
+        . '<span class="ap-grp-n">' . h($count) . '</span>'
+        . '<span class="ap-grp-why">' . h($why) . '</span></header>';
+};
 $seconds = function ($value) {
     if ($value === null) {
         return '–';
@@ -58,6 +73,13 @@ $activity = $card['activity'];
 $taxonomyOff = $card['taxonomies']['off'];
 $taxonomyMissing = $card['taxonomies']['missing'];
 
+// One chip per group under the summary, each a jump to its group.
+$counts = array_map('count', $card['groups']) + array(
+    'taxonomy-off' => count($taxonomyOff),
+    'taxonomy-missing' => count($taxonomyMissing),
+);
+$counts = array_filter($counts);
+
 if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
     $status = array('text' => __('service off'), 'tone' => 't-over');
 } elseif ($card['attention'] > 0) {
@@ -70,8 +92,27 @@ if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
 } else {
     $status = null;
 }
+
+// The index's enrichment line: what it says, its tone, and its button.
+if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
+    $summary = array(__('the modules service is off'), 'warn');
+} elseif ($card['service'] === IndexCardsTool::SERVICE_UNREACHABLE) {
+    $summary = array(__('misp-modules is not answering'), 'warn');
+} elseif ($card['asked'] === 0) {
+    $summary = array(__('no profile asks for a module'), 'plain');
+} else {
+    $summary = array(
+        __('%s of %s modules ready', $card['ready'], $card['asked']),
+        $card['attention'] > 0 ? 'warn' : 'ok'
+    );
+}
+$summary[] = $card['attention'] > 0
+    ? __n('%s to fix', '%s to fix', $card['attention'], $card['attention'])
+    : __('Details');
 ?>
-<section class="ap-card ap-card-enrich" data-ap-card="enrichment">
+<section class="ap-card ap-card-enrich" data-ap-card="enrichment"
+         data-ap-summary="<?= h($summary[0]) ?>" data-ap-tone="<?= h($summary[1]) ?>"
+         data-ap-action="<?= h($summary[2]) ?>">
     <?= $this->element('AnalystProfiles/cards/head', array(
         'icon' => 'puzzle-piece',
         'title' => __('What the profiles ask for'),
@@ -103,23 +144,41 @@ if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
         <p class="ap-card-line"><?= h(__('No enabled profile asks for an'
             . ' enrichment module.')) ?></p>
     <?php else: ?>
-        <div class="ap-card-fig">
-            <span class="ap-card-n"><?= h($card['ready']) ?></span>
-            <span class="ap-card-of"><?= h(__n(
-                'of the %s module the profiles ask for is ready',
-                'of the %s modules the profiles ask for are ready',
-                $card['asked'], $card['asked'])) ?></span>
+        <?php $percent = (int)round(100 * $card['ready'] / $card['asked']); ?>
+        <div class="ap-sum">
+            <div class="ap-sum-fig">
+                <span class="ap-sum-n"><?= h($card['ready']) ?></span>
+                <span class="ap-sum-of">/ <?= h($card['asked']) ?></span>
+            </div>
+            <div class="ap-sum-body">
+                <div class="ap-sum-l"><?= h(__n(
+                    'module the profiles ask for is ready',
+                    'modules the profiles ask for are ready',
+                    $card['asked'])) ?></div>
+                <div class="progress ap-sum-bar" role="progressbar"
+                     aria-valuenow="<?= $percent ?>" aria-valuemin="0"
+                     aria-valuemax="100">
+                    <div class="progress-bar" style="width: <?= $percent ?>%;"></div>
+                </div>
+                <?php if (!empty($counts)): ?>
+                    <div class="ap-sum-chips">
+                        <?php foreach ($counts as $key => $count): ?>
+                            <a class="ap-sum-chip" data-tone="<?= h($groups[$key][3]) ?>"
+                               href="#ap-grp-<?= h($key) ?>"><b><?= h($count) ?></b>
+                                <?= h($groups[$key][0]) ?></a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
     <?php endif; ?>
 
     <?php if (!empty($card['groups']) || !empty($taxonomyOff) || !empty($taxonomyMissing)): ?>
         <div class="ap-grps">
             <?php foreach ($card['groups'] as $key => $items): ?>
-                <div class="ap-grp" data-ap-group="<?= h($key) ?>">
-                    <div class="ap-grp-h">
-                        <span><?= h($groups[$key][0]) ?></span>
-                        <span class="ap-grp-why"><?= h($groups[$key][1]) ?></span>
-                    </div>
+                <section class="ap-grp" id="ap-grp-<?= h($key) ?>"
+                         data-ap-group="<?= h($key) ?>" data-tone="<?= h($groups[$key][3]) ?>">
+                    <?= $groupHead($key, count($items)) ?>
                     <ul class="ap-items">
                         <?php foreach ($items as $item): ?>
                             <li class="ap-item">
@@ -184,15 +243,13 @@ if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
                             </li>
                         <?php endforeach; ?>
                     </ul>
-                </div>
+                </section>
             <?php endforeach; ?>
 
             <?php if (!empty($taxonomyOff)): ?>
-                <div class="ap-grp" data-ap-group="taxonomy-off">
-                    <div class="ap-grp-h">
-                        <span><?= h(__('Taxonomies off')) ?></span>
-                        <span class="ap-grp-why"><?= h(__('a profile pins or prefers them')) ?></span>
-                    </div>
+                <section class="ap-grp" id="ap-grp-taxonomy-off"
+                         data-ap-group="taxonomy-off" data-tone="warn">
+                    <?= $groupHead('taxonomy-off', count($taxonomyOff)) ?>
                     <ul class="ap-items">
                         <?php foreach ($taxonomyOff as $item): ?>
                             <li class="ap-item">
@@ -211,15 +268,13 @@ if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
                             </li>
                         <?php endforeach; ?>
                     </ul>
-                </div>
+                </section>
             <?php endif; ?>
 
             <?php if (!empty($taxonomyMissing)): ?>
-                <div class="ap-grp" data-ap-group="taxonomy-missing">
-                    <div class="ap-grp-h">
-                        <span><?= h(__('Taxonomies missing')) ?></span>
-                        <span class="ap-grp-why"><?= h(__('not on this instance')) ?></span>
-                    </div>
+                <section class="ap-grp" id="ap-grp-taxonomy-missing"
+                         data-ap-group="taxonomy-missing" data-tone="plain">
+                    <?= $groupHead('taxonomy-missing', count($taxonomyMissing)) ?>
                     <ul class="ap-items">
                         <?php foreach ($taxonomyMissing as $item): ?>
                             <li class="ap-item">
@@ -230,7 +285,7 @@ if ($card['service'] === IndexCardsTool::SERVICE_OFF) {
                             </li>
                         <?php endforeach; ?>
                     </ul>
-                </div>
+                </section>
             <?php endif; ?>
         </div>
     <?php elseif ($card['service'] === IndexCardsTool::SERVICE_ON && $card['asked'] > 0): ?>

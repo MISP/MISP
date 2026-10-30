@@ -2098,7 +2098,7 @@ class OnboardingTour
             [
                 'page' => '/analystProfiles/index',
                 'anchor' => '[data-tour="ap-resolution"]',
-                'placement' => 'right',
+                'placement' => 'bottom',
                 'title' => __('Which one applies'),
                 'body' => '<p>' . __('MISP looks in three places in order — '
                     . 'your own choice, your organisation&rsquo;s, then the '
@@ -2107,7 +2107,7 @@ class OnboardingTour
             ],
             [
                 'page' => '/analystProfiles/index',
-                'anchor' => '[data-tour="ap-profiles"]',
+                'anchor' => '[data-tour="index-table"]',
                 'placement' => 'top',
                 'title' => __('The profiles'),
                 'body' => '<p>' . __('Every profile you can use, with its '
@@ -2121,10 +2121,12 @@ class OnboardingTour
                 'placement' => 'left',
                 'optional' => true,
                 'title' => __('Choosing one'),
-                'body' => '<p>' . __('<strong>Use this</strong> makes a '
-                    . 'profile yours; <strong>Stop using</strong> hands the '
-                    . 'choice back to your organisation.') . '</p><p>'
-                    . __('The menu beside it lets you try a profile on a real '
+                'body' => '<p>' . __('Each row\'s menu is where you choose: '
+                    . '<strong>Use for me</strong>, <strong>Use for my '
+                    . 'organisation</strong> or <strong>Run on this '
+                    . 'instance</strong>, and <strong>Stop using</strong> to '
+                    . 'hand the choice back to the next scope.') . '</p><p>'
+                    . __('The same menu lets you try a profile on a real '
                     . 'value before committing to it.') . '</p>',
             ],
             [
@@ -2144,10 +2146,11 @@ class OnboardingTour
                 'anchor' => '[data-tour="ap-standing"]',
                 'placement' => 'left',
                 'optional' => true,
-                'title' => __('Where you stand'),
-                'body' => '<p>' . __('The profile scoring you right now, what '
-                    . 'this instance allows a profile to do, and the values '
-                    . 'you pinned to check changes against.') . '</p>',
+                'title' => __('What this instance allows'),
+                'body' => '<p>' . __('Whether the enrichment modules the '
+                    . 'profiles ask for can run, whether the hover card is on, '
+                    . 'and the values you pinned to check changes against.')
+                    . '</p>',
             ],
         ];
     }

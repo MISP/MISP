@@ -159,6 +159,9 @@ class AnalystProfilesController extends AppController
         $user = $this->Auth->user();
         $board = $this->AnalystProfile->indexFor($user);
         $inForce = $board['in_force'];
+        // The banner reads every row; only the table follows the filter bar.
+        $this->set('shown', $this->__shownOnIndex($board['profiles'],
+            $this->request->params['named']));
         return $this->__payload(array(
             'profiles' => $board['profiles'],
             /*
@@ -198,6 +201,65 @@ class AnalystProfilesController extends AppController
                 ? null
                 : $this->AnalystProfile->shippedStatus(),
         ), 'index');
+    }
+
+    /**
+     * The rows the index's filter bar leaves: a name, owner or uuid
+     * fragment, then any of the owners and standings picked.
+     *
+     * @param array $profiles As indexFor() decorates them
+     * @param array $named
+     * @return array
+     */
+    private function __shownOnIndex(array $profiles, array $named)
+    {
+        $term = isset($named['quickFilter'])
+            ? trim((string)$named['quickFilter'])
+            : '';
+        $picked = function ($key) use ($named) {
+            return isset($named[$key]) && (string)$named[$key] !== ''
+                ? explode('||', (string)$named[$key])
+                : array();
+        };
+        $owners = $picked('owner');
+        $standings = $picked('standing');
+        return array_values(array_filter($profiles,
+            function ($profile) use ($term, $owners, $standings) {
+                $haystack = $profile['name'] . ' ' . $profile['owner']
+                    . ' ' . $profile['uuid'];
+                if ($term !== '' && stripos($haystack, $term) === false) {
+                    return false;
+                }
+                if (!empty($owners) && !in_array(
+                    self::__ownerKind($profile), $owners, true)
+                ) {
+                    return false;
+                }
+                return empty($standings) || in_array(
+                    $profile['standing']['state'], $standings, true);
+            }
+        ));
+    }
+
+    /**
+     * The index's owner filter values: `misp`, `shared`, `mine`, `org`
+     * or `other`.
+     *
+     * @param array $profile
+     * @return string
+     */
+    private static function __ownerKind(array $profile)
+    {
+        if (!empty($profile['default'])) {
+            return 'misp';
+        }
+        if (!empty($profile['shared'])) {
+            return 'shared';
+        }
+        if ($profile['scope_rank'] === 3) {
+            return 'mine';
+        }
+        return $profile['scope_rank'] === 2 ? 'org' : 'other';
     }
 
     /**
@@ -648,11 +710,6 @@ class AnalystProfilesController extends AppController
      */
     public function fork($id = null)
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__(
-                'This endpoint only accepts POST requests.'
-            ));
-        }
         $user = $this->Auth->user();
         $source = $this->__profileOr404($user, $id);
         $posted = isset($this->request->data['AnalystProfile'])
@@ -673,7 +730,9 @@ class AnalystProfilesController extends AppController
          */
         $forOrg = !empty($posted['for_org'])
             || !empty($this->request->query['for_org']);
-        $replace = !empty($posted['replace']);
+        // The index's modal names what is replaced, so its form says `replace` in the query.
+        $replace = !empty($posted['replace'])
+            || !empty($this->request->query['replace']);
         $name = isset($posted['name']) && trim((string)$posted['name']) !== ''
             ? trim((string)$posted['name'])
             : null;
@@ -688,6 +747,25 @@ class AnalystProfilesController extends AppController
         }
 
         $existing = $this->__enabledFor($user, $forOrg);
+        $asked = $this->__askFirst(
+            function () use ($user, $source, $forOrg, $existing, $id) {
+                return array(
+                    'verb' => 'fork',
+                    'scope' => $forOrg ? 'org' : 'user',
+                    'profile' => $source['AnalystProfile'],
+                    'displaced' => $existing === null ? null : $existing['name'],
+                    'affects' => $forOrg ? $this->__orgReaders($user) : null,
+                    'url' => array('action' => 'fork', $id, '?' => array_filter(
+                        array(
+                            'for_org' => $forOrg ? 1 : null,
+                            'replace' => $existing === null ? null : 1,
+                        ))),
+                );
+            }
+        );
+        if ($asked !== null) {
+            return $asked;
+        }
         if ($existing !== null && !$replace) {
             return $this->__confirm(array(
                 'confirm' => 'replace',
@@ -825,15 +903,16 @@ class AnalystProfilesController extends AppController
      */
     public function select($id = null)
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__(
-                'This endpoint only accepts POST requests.'
-            ));
-        }
         $user = $this->Auth->user();
         $scope = $this->__selectionScope();
         $profile = $this->__profileOr404($user, $id);
         $row = $profile['AnalystProfile'];
+        $asked = $this->__askFirst(function () use ($user, $scope, $row) {
+            return $this->__askUse($user, $scope, $row);
+        });
+        if ($asked !== null) {
+            return $asked;
+        }
 
         if ($scope === 'instance') {
             return $this->__selectForInstance($row);
@@ -870,8 +949,8 @@ class AnalystProfilesController extends AppController
                     $row['name']
                 )
                 : sprintf(
-                    __('%1$s is now in force, so %2$s was disabled — one'
-                        . ' answer per scope, and nothing was deleted.'),
+                    __('%1$s is now in force, so %2$s is no longer in use —'
+                        . ' one answer per scope, and nothing was deleted.'),
                     $row['name'],
                     $displaced['name']
                 ),
@@ -886,11 +965,6 @@ class AnalystProfilesController extends AppController
      */
     public function deselect()
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__(
-                'This endpoint only accepts POST requests.'
-            ));
-        }
         $user = $this->Auth->user();
         $scope = $this->__selectionScope();
         if ($scope === 'instance') {
@@ -899,6 +973,23 @@ class AnalystProfilesController extends AppController
                 . ' one, or disable the one it names to switch scoring'
                 . ' off.'
             )));
+        }
+        $asked = $this->__askFirst(function () use ($user, $scope) {
+            $resolution = $this->AnalystProfile->resolutionFor($user);
+            $uuid = isset($resolution['selections'][$scope])
+                ? $resolution['selections'][$scope]
+                : null;
+            return array(
+                'verb' => 'stop',
+                'scope' => $scope,
+                'profile' => $uuid === null ? null : $this->__namedBy($uuid),
+                'affects' => $scope === 'org'
+                    ? $this->__orgReaders($user)
+                    : null,
+            );
+        });
+        if ($asked !== null) {
+            return $asked;
         }
         $this->AnalystProfile->clearSelection($user, $scope);
         $inForce = $this->AnalystProfile->resolveFor($user);
@@ -951,13 +1042,17 @@ class AnalystProfilesController extends AppController
      */
     private function __setShared($id, $shared)
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__(
-                'This endpoint only accepts POST requests.'
-            ));
-        }
         $user = $this->Auth->user();
-        $this->__profileOr404($user, $id);
+        $profile = $this->__profileOr404($user, $id);
+        $asked = $this->__askFirst(function () use ($profile, $shared) {
+            return array(
+                'verb' => $shared ? 'share' : 'unshare',
+                'profile' => $profile['AnalystProfile'],
+            );
+        });
+        if ($asked !== null) {
+            return $asked;
+        }
         $row = $this->AnalystProfile->setShared($user, $id, $shared);
         if ($row === null) {
             return $this->__refuse(array($this->AnalystProfile->shareError));
@@ -1060,11 +1155,6 @@ class AnalystProfilesController extends AppController
      */
     private function __setEnabled($id, $enabled)
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__(
-                'This endpoint only accepts POST requests.'
-            ));
-        }
         $user = $this->Auth->user();
         $profile = $this->__profileOr404($user, $id);
         $row = $profile['AnalystProfile'];
@@ -1072,6 +1162,31 @@ class AnalystProfilesController extends AppController
             throw new ForbiddenException(__(
                 'This profile is not yours to enable or disable.'
             ));
+        }
+        $asked = $this->__askFirst(function () use ($user, $row, $enabled) {
+            // A shipped or shared profile is switched on or off for everybody.
+            if (!empty($row['default']) || !empty($row['shared'])) {
+                return array(
+                    'verb' => $enabled ? 'switch_on' : 'switch_off',
+                    'profile' => $row,
+                );
+            }
+            $forOrg = !empty($row['org_id']);
+            if ($enabled) {
+                $ask = $this->__askUse($user, $forOrg ? 'org' : 'user', $row);
+            } else {
+                $ask = array(
+                    'verb' => 'stop',
+                    'scope' => $forOrg ? 'org' : 'user',
+                    'profile' => $row,
+                    'affects' => $forOrg ? $this->__orgReaders($user) : null,
+                );
+            }
+            $ask['owned'] = true;
+            return $ask;
+        });
+        if ($asked !== null) {
+            return $asked;
         }
         $displaced = null;
         if ($enabled && empty($row['default']) && empty($row['shared'])) {
@@ -1116,15 +1231,18 @@ class AnalystProfilesController extends AppController
         ),
             $displaced === null
                 ? sprintf(
-                    $enabled
-                        ? __('%s is enabled.')
-                        : __('%s is disabled.'),
+                    !empty($row['default']) || !empty($row['shared'])
+                        ? ($enabled
+                            ? __('%s is switched on.')
+                            : __('%s is switched off.'))
+                        : ($enabled
+                            ? __('%s is now in use.')
+                            : __('%s is no longer in use. It is kept.')),
                     $row['name']
                 )
                 : sprintf(
-                    __('%1$s is enabled, so %2$s was disabled — you may'
-                        . ' hold one at a time, and nothing was'
-                        . ' deleted.'),
+                    __('%1$s is now in use, so %2$s no longer is — one at'
+                        . ' a time, and nothing was deleted.'),
                     $row['name'],
                     $displaced['name']
                 ),
@@ -1142,11 +1260,6 @@ class AnalystProfilesController extends AppController
      */
     public function delete($id = null)
     {
-        if (!$this->request->is(array('post', 'delete'))) {
-            throw new MethodNotAllowedException(__(
-                'This endpoint only accepts POST or DELETE requests.'
-            ));
-        }
         $user = $this->Auth->user();
         $profile = $this->__profileOr404($user, $id);
         $row = $profile['AnalystProfile'];
@@ -1161,6 +1274,12 @@ class AnalystProfilesController extends AppController
             throw new ForbiddenException(__(
                 'This profile is not yours to delete.'
             ));
+        }
+        $asked = $this->__askFirst(function () use ($row) {
+            return array('verb' => 'delete', 'profile' => $row);
+        }, array('post', 'delete'));
+        if ($asked !== null) {
+            return $asked;
         }
         if (!$this->AnalystProfile->delete($row['id'])) {
             return $this->__refuse($this->__flatten(
@@ -1356,10 +1475,24 @@ class AnalystProfilesController extends AppController
      */
     public function update($force = false)
     {
-        if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException(__(
-                'This endpoint only accepts POST requests.'
-            ));
+        $asked = $this->__askFirst(function () {
+            $loadable = array_filter(
+                $this->AnalystProfile->shippedStatus()['profiles'],
+                function ($profile) {
+                    return $profile['state'] !== 'current';
+                }
+            );
+            $edited = array_filter($loadable, function ($profile) {
+                return $profile['edited_here'];
+            });
+            return array(
+                'verb' => 'load',
+                'loadable' => array_column($loadable, 'name'),
+                'overwrites' => array_column($edited, 'name'),
+            );
+        });
+        if ($asked !== null) {
+            return $asked;
         }
         $outcome = $this->AnalystProfile->updateDefaults(
             $force === true || $force === 'true' || $force === '1'
@@ -2716,6 +2849,82 @@ class AnalystProfilesController extends AppController
      * @param array $form `url`, `fields` and `confirm_label`
      * @return CakeResponse
      */
+    /**
+     * Ask before a write: on the row menu's ajax GET, the confirmation
+     * modal; on the write itself, null so the action goes on.
+     *
+     * @param callable $ask Returns what the modal says, see ask.ctp
+     * @param array $methods The methods that write
+     * @return CakeResponse|null
+     */
+    private function __askFirst(callable $ask, array $methods = array('post'))
+    {
+        if ($this->request->is($methods)) {
+            return null;
+        }
+        if ($this->_isRest() || !$this->request->is('ajax')) {
+            throw new MethodNotAllowedException(count($methods) > 1
+                ? __('This endpoint only accepts POST or DELETE requests.')
+                : __('This endpoint only accepts POST requests.'));
+        }
+        $this->set('ask', $ask());
+        $this->layout = false;
+        return $this->render('ask');
+    }
+
+    /**
+     * What choosing or switching on $row for $scope would change.
+     *
+     * @param array $user
+     * @param string $scope `user`, `org` or `instance`
+     * @param array $row
+     * @return array
+     */
+    private function __askUse(array $user, $scope, array $row)
+    {
+        $ask = array(
+            'verb' => $scope === 'instance' ? 'run' : 'use',
+            'scope' => $scope,
+            'profile' => $row,
+        );
+        if ($scope === 'instance') {
+            $uuid = Configure::read('Plugin.ValueIntelligence_instance_profile');
+            $current = empty($uuid) || $uuid === $row['uuid']
+                ? null
+                : $this->__namedBy($uuid);
+            $ask['replaces'] = $current === null ? null : $current['name'];
+            return $ask;
+        }
+        $owned = $this->__enabledFor($user, $scope === 'org');
+        $ask['displaced'] = $owned === null
+            || (int)$owned['id'] === (int)$row['id'] ? null : $owned['name'];
+        if ($scope === 'org') {
+            $ask['affects'] = $this->__orgReaders($user);
+            return $ask;
+        }
+        $inForce = $this->AnalystProfile->resolveFor($user);
+        if (isset($inForce['AnalystProfile'])) {
+            $inForce = $inForce['AnalystProfile'];
+        }
+        $ask['in_force'] = $inForce === null
+            || (int)$inForce['id'] === (int)$row['id'] ? null : $inForce['name'];
+        return $ask;
+    }
+
+    /**
+     * @param string $uuid
+     * @return array|null The profile's id and name
+     */
+    private function __namedBy($uuid)
+    {
+        $profile = $this->AnalystProfile->find('first', array(
+            'conditions' => array('AnalystProfile.uuid' => $uuid),
+            'fields' => array('AnalystProfile.id', 'AnalystProfile.name'),
+            'recursive' => -1,
+        ));
+        return empty($profile) ? null : $profile['AnalystProfile'];
+    }
+
     private function __confirm(array $data, array $form)
     {
         if ($this->_isRest()) {
