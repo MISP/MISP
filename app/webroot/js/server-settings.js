@@ -554,7 +554,7 @@
         applyFilter(row.closest('[data-ss-settings]'));
         row.scrollIntoView({ block: 'center' });
         row.classList.add('ss-row-flash');
-        setTimeout(function () { row.classList.remove('ss-row-flash'); }, 2400);
+        setTimeout(function () { row.classList.remove('ss-row-flash'); }, 6000);
     }
 
     /* -------------------------------------------------------- inline edit */

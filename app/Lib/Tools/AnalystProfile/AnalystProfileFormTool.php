@@ -202,6 +202,41 @@ class AnalystProfileFormTool
     );
 
     /**
+     * What a bench value's simulation reads into the sections: each
+     * signal's contribution, the relevance runway for the curve, the
+     * totals for the band strip, and the lean the direction pair follows.
+     *
+     * @param array|null $detail The bench's `detail`
+     * @return array `ledger`, `runway`, `marks`, `lean`
+     */
+    public static function benchReadings($detail)
+    {
+        $ledger = array();
+        if ($detail === null) {
+            return array('ledger' => $ledger, 'runway' => null,
+                'marks' => array(), 'lean' => null);
+        }
+        foreach ($detail['rows'] as $row) {
+            if ($row['after'] !== null) {
+                $ledger[$row['id']] = $row['after'];
+            }
+        }
+        return array(
+            'ledger' => $ledger,
+            'runway' => isset($detail['axes']['relevance']['runway'])
+                ? $detail['axes']['relevance']['runway']
+                : null,
+            'marks' => array(
+                'was' => $detail['totals']['before'],
+                'now' => $detail['totals']['after'],
+            ),
+            'lean' => isset($detail['axes']['lean']['after'])
+                ? $detail['axes']['lean']['after']
+                : null,
+        );
+    }
+
+    /**
      * The groups in the order a rail draws them, key => label.
      *
      * Ordered narrowest-blast-radius last: everything in `assessment`

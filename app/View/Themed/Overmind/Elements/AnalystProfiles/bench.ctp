@@ -14,11 +14,13 @@
  * @var bool $full Every ledger row, or only the rows that moved
  * @var array $bands
  * @var string $profileId
+ * @var bool $modal Read in #mainModal: no picker, no pinning, no link out
  */
 App::uses('ValueUrlTool', 'Tools/ValueIntelligence');
 App::uses('ValueLean', 'Tools/ValueIntelligence');
 
 $full = isset($full) ? $full : false;
+$modal = !empty($modal);
 $detail = $bench['detail'];
 /*
  * The newest sighting, for the dates table's `Sighting.date_sighting`
@@ -131,6 +133,7 @@ $carry = array(
      * actually lands in, and it was a dead end.
      */
     ?>
+    <?php if (!$modal): ?>
     <div class="bench-pick">
         <div class="input-group input-group-sm">
             <input type="text" class="form-control form-control-sm"
@@ -153,15 +156,19 @@ $carry = array(
             </div>
         <?php endif; ?>
     </div>
+    <?php endif; ?>
 
     <?php if ($benched === null): ?>
         <div class="wb-empty">
             <div class="fw-semibold"><?= h(__('No value chosen')) ?></div>
             <p class="mb-0 mt-1">
-                <?= h(__('Put a value in the box above to see what this'
-                    . ' profile makes of it, beside the profile in force.'
-                    . ' Pin a value to keep it here on every profile you'
-                    . ' open.')) ?>
+                <?= $modal
+                    ? h(__('Try a value in the profile\'s rail, then open the'
+                        . ' comparison again to read every row of it.'))
+                    : h(__('Put a value in the box above to see what this'
+                        . ' profile makes of it, beside the profile in force.'
+                        . ' Pin a value to keep it here on every profile you'
+                        . ' open.')) ?>
             </p>
         </div>
     <?php else: ?>
@@ -169,7 +176,8 @@ $carry = array(
             <span class="v"><?= h($benched) ?></span>
             <?php if (!in_array($benched, $pinned, true)): ?>
                 <span class="wb-sub"><?= h(__('not pinned')) ?></span>
-                <?php if ($live): ?>
+                <?php if ($modal): ?>
+                <?php elseif ($live): ?>
                     <button type="button" data-ap-value="<?= h($benched) ?>"
                             data-ap-pin="<?= h($this->Html->url(
                                 $pinUrl($benched, true))) ?>"
@@ -191,7 +199,8 @@ $carry = array(
                 <?php endif; ?>
             <?php else: ?>
                 <span class="wb-sub"><?= h(__('pinned')) ?></span>
-                <?php if ($live): ?>
+                <?php if ($modal): ?>
+                <?php elseif ($live): ?>
                     <button type="button" data-ap-value="<?= h($benched) ?>"
                             data-ap-pin="<?= h($this->Html->url(
                                 $pinUrl($benched, false))) ?>"
@@ -207,9 +216,11 @@ $carry = array(
             <?php endif; ?>
         </div>
 
-        <div class="bench-live">
-            <?= h(__('recomputed')) ?>
-        </div>
+        <?php if (!$modal): ?>
+            <div class="bench-live">
+                <?= h(__('recomputed')) ?>
+            </div>
+        <?php endif; ?>
 
         <?php if ($detail !== null): ?>
             <div class="bench-sec">
@@ -300,8 +311,9 @@ $carry = array(
         )) ?>
     <?php endif; ?>
 
-    <?php if (!$full): ?>
-        <a class="btn btn-sm btn-outline-primary w-100 mt-3"
+    <?php // Nothing to compare until a value is on the bench. ?>
+    <?php if (!$full && $benched !== null): ?>
+        <a class="btn btn-sm btn-outline-primary w-100 mt-3" data-ap-compare
            href="<?= h($this->Html->url(array(
                'action' => 'simulate',
                $profileId,

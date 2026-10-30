@@ -2421,9 +2421,9 @@ tr.evt-extension-row td:first-child { position: relative; }
 .ss-scope .ss-flag-deprecated { color: var(--bs-secondary-color); background: var(--bs-tertiary-bg); }
 .ss-scope .ss-dest-link { font-size: .74rem; text-decoration: none; }
 .ss-scope .ss-dest-link:hover { text-decoration: underline; }
-.ss-scope tr.ss-row-flash > td { animation: ss-flash 2.4s ease-out; }
+.ss-scope tr.ss-row-flash > td { animation: ss-flash 6s ease-out; }
 @keyframes ss-flash {
-    0%, 30% { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+    0%, 65% { background: color-mix(in srgb, var(--primary) 22%, transparent); }
     100% { background: transparent; }
 }
 .ss-scope .ss-essentials .ss-col-setting { width: 55%; }

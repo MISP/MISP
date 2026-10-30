@@ -713,56 +713,419 @@ input.num[type="number"]::-webkit-inner-spin-button {
 }
 
 /* ==================================================================
- * The index board.
- *
- * Its right column is not the editor's bench — it is three short
- * answers about this visit — so it does not need the editor's 468px,
- * and the width it gives back is the width the table needed. Declared
- * before the container query on purpose: at a narrow pane the query
- * restacks `.wb` at equal specificity and later source order, and the
- * index restacks with everything else.
+ * The index's banner: which profile scores the reader and the
+ * resolution order that got there, beside what this instance allows.
  * ================================================================== */
-/* Six rows of 80px no longer reach the fold, so the board needs a
- * bottom edge: without one the rail and bench rules stop in mid-page
- * and the whole thing reads as cut off rather than finished. */
-.wb-index {
-    grid-template-columns: 212px minmax(0, 1fr) 336px;
-    border-bottom: 1px solid var(--bs-border-color);
+.ap-stand {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    background: var(--bs-body-bg);
+    font-size: .875rem;
+    overflow: hidden;
 }
-
-/*
- * A resolution step is a scope and its answer, stacked. The scope name
- * is the question and the profile under it is the answer, so they are
- * not the same size — and the answering scope is the one the reader is
- * looking for, so it is the one that reads as solid.
- */
-.wb-rail-step {
-    align-items: flex-start;
-    gap: .45rem;
+.ap-stand-main {
+    flex: 999 1 36rem;
+    min-width: 0;
+    padding: .9rem 1.1rem;
 }
-.wb-rail-step:hover { background: none; }
-.wb-rail-step.is-open:hover { background: var(--bs-secondary-bg); }
-.wb-rail-step .s {
+/* One offset shadow draws the divider on the left beside the main
+ * column and on top once it wraps under it; the card clips the other. */
+.ap-stand-side {
+    flex: 1 1 24rem;
+    min-width: 0;
+    padding: .9rem 1.1rem;
+    background: var(--bs-tertiary-bg);
+    box-shadow: -1px -1px 0 var(--bs-border-color);
+}
+.ap-stand-k {
+    font: 700 .6875rem/1.6 var(--bs-font-sans-serif, system-ui);
+    letter-spacing: .06em;
+    text-transform: uppercase;
     color: var(--bs-secondary-color);
+}
+.ap-stand-title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+.ap-stand-title a { font-weight: 700; text-decoration: none; }
+.ap-stand-title a:hover { text-decoration: underline; }
+.ap-stand-title.is-off { color: var(--vp-conflict-ink, var(--vp-conflict)); }
+.ap-stand-say { margin: .1rem 0 0; color: var(--bs-secondary-color); }
+
+.ap-chain {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1.75rem;
+    margin: .75rem 0 .6rem;
+    padding: 0;
+    list-style: none;
+}
+.ap-hop {
+    position: relative;
+    flex: 1 1 13rem;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .5rem .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+/* The way MISP walks, from one scope to the next. */
+.ap-hop + .ap-hop::before {
+    content: "";
+    position: absolute;
+    left: -1.15rem;
+    top: 50%;
+    width: .5rem;
+    height: .5rem;
+    border-top: 2px solid var(--bs-border-color);
+    border-right: 2px solid var(--bs-border-color);
+    transform: translateY(-50%) rotate(45deg);
+}
+.ap-hop-n {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    background: var(--bs-secondary-bg);
+    font-size: .6875rem;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
 }
-.wb-rail-step .t {
+.ap-hop-t {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     min-width: 0;
 }
-.wb-rail-step .a {
-    font-size: .6875rem;
-    line-height: 1.4;
+.ap-hop-l { font-weight: 600; }
+.ap-hop-a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .8125rem;
     color: var(--bs-secondary-color);
-    overflow-wrap: anywhere;
 }
-.wb-rail-step.is-open .a { color: var(--bs-body-color); }
-.wb-rail-step .a a { color: inherit; text-decoration: none; }
-.wb-rail-step .a a:hover { text-decoration: underline; }
-.wb-rail-step .a.none { font-style: italic; }
-.wb-rail-step .a.warn { color: var(--vp-conflict-ink, var(--vp-conflict)); }
-.wb-rail-aside:hover { background: none; }
+a.ap-hop-a {
+    font-weight: 600;
+    color: var(--bs-link-color);
+    text-decoration: none;
+}
+a.ap-hop-a:hover { text-decoration: underline; }
+.ap-hop-a.is-none { font-style: italic; }
+.ap-hop.is-win {
+    border-color: color-mix(in srgb, var(--bs-primary) 45%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-primary) 8%, transparent);
+}
+.ap-hop.is-win .ap-hop-n { background: var(--bs-primary); color: #fff; }
+.ap-hop.is-warn .ap-hop-a { color: var(--vp-conflict-ink, var(--vp-conflict)); }
+.ap-hop .pill { flex: none; }
+
+.ap-stand-warn {
+    margin: 0 0 .4rem;
+    font-size: .8125rem;
+    color: var(--vp-conflict-ink, var(--vp-conflict));
+}
+.ap-stand-note {
+    margin: 0;
+    font-size: .8125rem;
+    color: var(--bs-secondary-color);
+}
+
+.ap-health {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    margin: .5rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+.ap-health-i {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    min-height: 1.75rem;
+}
+.ap-health-ico {
+    flex: none;
+    width: 1rem;
+    text-align: center;
+    color: var(--bs-secondary-color);
+}
+.ap-health-i[data-tone="ok"] .ap-health-ico { color: var(--bs-primary); }
+.ap-health-i[data-tone="warn"] .ap-health-ico {
+    color: var(--vp-conflict-ink, var(--vp-conflict));
+}
+.ap-health-t { flex: 1 1 auto; min-width: 0; }
+.btn.ap-health-act {
+    flex: none;
+    padding: 0 .25rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+.btn.ap-health-btn { flex: none; padding: .05rem .6rem; }
+.ap-pins { min-width: 16rem; max-width: 26rem; padding: .25rem 0; }
+.ap-pin {
+    display: flex;
+    align-items: baseline;
+    gap: .75rem;
+    padding: .25rem .9rem;
+}
+.ap-pin-v {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--bs-font-monospace);
+    font-size: .8125rem;
+}
+.ap-pin-x { flex: none; font-size: .8125rem; color: var(--bs-secondary-color); }
+
+/* ---- the table ---- */
+.ix-table tbody tr.ap-row-inforce > td { background-color: var(--ix-sel); }
+.ix-table tbody tr.ap-row-inforce:hover > td {
+    background-color: var(--ix-sel-hover);
+}
+.ap-col-name { min-width: 18rem; }
+.ap-name-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .15rem 0;
+}
+.ap-name-line .pill { margin-left: .3rem; }
+.ap-desc {
+    max-width: 40rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .8125rem;
+    color: var(--bs-secondary-color);
+}
+.ap-signals { min-width: 4.5rem; }
+.ap-edited {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+}
+
+/* ---- the enrichment card, in the modal its line opens ---- */
+.ap-enrich-modal .modal-body {
+    container-type: inline-size;
+    container-name: wb;
+}
+.ap-enrich-modal .ap-card {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: none;
+}
+.ap-enrich-modal .ap-card-head { display: none; }
+.ap-enrich-modal .ap-card-foot {
+    margin-top: 1.25rem;
+    padding-top: .75rem;
+    border-top: 1px solid var(--bs-border-color);
+    font-size: .8125rem;
+}
+
+@container wb (max-width: 720px) {
+    .ap-chain { flex-direction: column; }
+    .ap-hop { flex-basis: auto; }
+    .ap-hop + .ap-hop::before { display: none; }
+}
+
+/* ==================================================================
+ * The profile view: a card per section in each tab, and rail cards.
+ * ================================================================== */
+.ap-vcard,
+.ap-rcard { margin-bottom: 1rem; overflow: hidden; }
+.ap-vcard-h,
+.ap-rcard-h {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .85rem 1rem;
+}
+summary.ap-vcard-h { cursor: pointer; list-style: none; }
+summary.ap-vcard-h::-webkit-details-marker { display: none; }
+details.ap-vcard[open] > .ap-vcard-h,
+section.ap-vcard > .ap-vcard-h,
+.ap-rcard-h { border-bottom: 1px solid var(--bs-border-color); }
+.ap-vcard-ico {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: .5rem;
+    background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
+    color: var(--bs-primary);
+}
+.ap-vcard-t {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+.ap-vcard-title,
+.ap-rcard-t { margin: 0; font-size: 1.0625rem; font-weight: 700; }
+.ap-vcard-blurb { font-size: .8125rem; color: var(--bs-secondary-color); }
+.ap-vcard-caret {
+    flex: none;
+    color: var(--bs-secondary-color);
+    transition: transform .15s ease;
+}
+details.ap-vcard:not([open]) .ap-vcard-caret { transform: rotate(-90deg); }
+.ap-vcard-b { padding: .75rem 1rem 1rem; }
+.wb-sec-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .25rem 1rem;
+    margin-bottom: .6rem;
+}
+.wb-guide-fold { margin-bottom: .75rem; }
+.ap-raw {
+    margin: 0;
+    padding: 1rem;
+    max-height: 40rem;
+    overflow: auto;
+    font-size: .75rem;
+    background: var(--bs-tertiary-bg);
+}
+
+/* A signal on one line: name, tags and help, its id under it. */
+.ap-sig {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .15rem .4rem;
+}
+.ap-sig > .wb-name { order: 1; }
+.ap-sig > .mt-1 { order: 2; margin-top: 0 !important; }
+.ap-sig > .sig-meta { order: 3; margin: 0; }
+.ap-sig > .wb-sub { order: 4; margin: 0; }
+.ap-sig > .wb-name-id { order: 5; flex-basis: 100%; }
+
+.ap-rcard-b { padding: .75rem 1rem 1rem; }
+.ap-rcard .wb-bench { border-left: 0; background: none; }
+.ap-rcard .wb-bench-inner { position: static; padding: .75rem 1rem 1rem; }
+.ap-scores-standing { margin-bottom: .6rem; }
+.ap-scores {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+}
+.ap-score {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .4rem .5rem;
+    border-radius: var(--bs-border-radius);
+    font-size: .875rem;
+}
+.ap-score.is-win { background: color-mix(in srgb, var(--bs-primary) 8%, transparent); }
+.ap-score.is-win .ap-hop-n { background: var(--bs-primary); color: #fff; }
+.ap-score-l { flex: 1 1 auto; min-width: 0; }
+.ap-score-a {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .8125rem;
+    color: var(--bs-secondary-color);
+}
+a.ap-score-a { font-weight: 600; color: var(--bs-link-color); text-decoration: none; }
+a.ap-score-a:hover { text-decoration: underline; }
+.ap-score-a.is-here { font-weight: 700; color: var(--bs-primary-text-emphasis); }
+.ap-score-a.is-warn { color: var(--vp-conflict-ink, var(--vp-conflict)); }
+.ap-score-a.is-none { font-style: italic; }
+.ap-score-note { margin: .5rem 0 0; font-size: .75rem; color: var(--bs-secondary-color); }
+
+/* The full comparison, in #mainModal or on the simulate page. */
+.ap-compare-sides {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: .75rem;
+    margin-bottom: .75rem;
+}
+.ap-side {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    padding: .75rem 1rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+}
+.ap-side.is-candidate {
+    border-color: color-mix(in srgb, var(--bs-primary) 45%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--bs-primary) 6%, transparent);
+}
+.ap-side-t { display: flex; flex-direction: column; min-width: 0; }
+.ap-side-t span { font-size: .8125rem; color: var(--bs-secondary-color); }
+.ap-compare-note { margin: 0 0 .75rem; font-size: .8125rem; color: var(--bs-secondary-color); }
+.wb-bench.ap-compare-bench { border-left: 0; background: none; }
+.ap-compare-bench .wb-bench-inner { position: static; padding: 0; }
+
+/* The editor says so above its tabs, on one line. */
+.ap-editing {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .6rem;
+    margin-bottom: .75rem;
+    padding: .3rem .75rem;
+    border: 1px solid var(--bs-warning-border-subtle);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text-emphasis);
+    font-size: .8125rem;
+}
+.ap-editing-t { flex: 1 1 20rem; min-width: 0; }
+
+/* The editor's rail never leaves: the bench answers every change. */
+@media (min-width: 992px) {
+    .ap-edit > .container-fluid > .row > .col-lg-3 {
+        position: sticky;
+        top: .5rem;
+        align-self: flex-start;
+        max-height: calc(100vh - 1rem);
+        overflow-y: auto;
+    }
+}
+
+/* The rail's About card: a label over each fact. */
+.ap-about {
+    margin: 0;
+    padding: .5rem 1rem .75rem;
+}
+.ap-about > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .4rem 0;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    font-size: .875rem;
+}
+.ap-about > div:last-child { border-bottom: 0; }
+.ap-about dt { font-weight: 400; color: var(--bs-secondary-color); }
+.ap-about dd { margin: 0; font-weight: 600; text-align: right; }
+.ap-about-sub { font-weight: 400; color: var(--bs-secondary-color); }
 
 /* The name is the way into a profile, so `View` is not a button.
  * Underline on hover only: six underlined names down a column read as
@@ -788,52 +1151,13 @@ input.num[type="number"]::-webkit-inner-spin-button {
     vertical-align: 1px;
 }
 
-/*
- * One decision in the open, the rest behind the dots.
- *
- * `nowrap` is the whole point: nine buttons in this cell wrapped to
- * nine lines and set the row's height, and a row that is 260px tall
- * because of its buttons is a row whose content nobody compares.
- */
+/* Every row action sits behind the dots, right-aligned in its cell. */
 .ap-acts {
     display: flex;
-    align-items: flex-start;
     justify-content: flex-end;
-    gap: .25rem;
-    flex-wrap: nowrap;
 }
 .ap-acts form { display: inline; }
-.ap-act-primary { white-space: nowrap; }
 .ap-act-more { line-height: 1; }
-
-.ap-inforce { font-size: .8125rem; line-height: 1.5; }
-.ap-when { white-space: nowrap; }
-
-/*
- * The instance's answers. Value weight carries the state, so a reader
- * scanning the column sees what is on without reading a word of it;
- * `warn` is kept for the one state somebody has to act on — permitted
- * and inert.
- */
-.ap-caps { display: grid; gap: .05rem; margin-bottom: .2rem; }
-.ap-cap {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: .6rem;
-    font-size: .75rem;
-    line-height: 1.7;
-}
-.ap-cap-k { color: var(--bs-secondary-color); }
-.ap-cap-v {
-    font-weight: 600;
-    text-align: right;
-    min-width: 0;
-}
-.ap-cap-v a { color: inherit; text-decoration: none; }
-.ap-cap-v a:hover { text-decoration: underline; }
-.ap-cap-off .ap-cap-v { color: var(--bs-secondary-color); font-weight: 400; }
-.ap-cap-warn .ap-cap-v { color: var(--vp-conflict-ink, var(--vp-conflict)); }
 
 /* ==================================================================
  * The degradation, made rather than caveated.
@@ -886,41 +1210,6 @@ input.num[type="number"]::-webkit-inner-spin-button {
         flex: 1 0 100%;
         margin-top: .4rem;
         padding: .35rem .15rem 0;
-    }
-    /*
-     * Except on the index, where the two notes are the only statement
-     * of how resolution works and how choosing differs from forking —
-     * the rest of the page assumes both. The editor's rail note is a
-     * caption on a column that is still visible; this one is the
-     * explanation, and it survives the restack as its own line under
-     * the chips.
-     */
-    .wb-index .wb-rail-note {
-        display: block;
-        flex: 1 0 100%;
-        padding: .2rem .15rem 0;
-    }
-    /*
-     * A step becomes a pill, so its two lines become one: *Your
-     * organisation · Incident Response & Investigation*, clipped rather
-     * than wrapped, because a two-line pill in a row of one-line pills
-     * reads as a different kind of thing.
-     */
-    .wb-index .wb-rail-step .t {
-        flex-direction: row;
-        align-items: baseline;
-        gap: .35rem;
-    }
-    .wb-index .wb-rail-step .a {
-        max-width: 15rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .wb-index .wb-rail-step .a::before {
-        content: "·";
-        margin-right: .35rem;
-        color: var(--bs-secondary-color);
     }
     .wb-rail-item {
         width: auto;
@@ -2270,29 +2559,9 @@ input.num[type="number"]::-webkit-inner-spin-button {
 .mod-bulk .wb-id { font-style: normal; color: var(--bs-secondary-color); }
 
 /* ==================================================================
- * The index's card row: enrichment, this instance, shipped profiles.
- *
- * The frame is the Values index tile's; the type is this page's. The
- * enrichment card is the widest because it is the one that lists.
+ * The enrichment card, kept in the modal the index's enrichment
+ * line opens.
  * ================================================================== */
-.ap-cards {
-    display: grid;
-    gap: 12px;
-    margin: .25rem 0 14px;
-    align-items: stretch;
-}
-.ap-cards-admin { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
-.ap-cards-reader { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
-/* The short cards share one column beside the list, so neither is
- * stretched to the list's height on its own. */
-.ap-cards-side {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 0;
-}
-.ap-cards-side > .ap-card { flex: 1 1 auto; }
-
 .ap-card {
     display: flex;
     flex-direction: column;
@@ -2377,80 +2646,141 @@ input.num[type="number"]::-webkit-inner-spin-button {
 }
 .ap-card-foot a:not(.btn) { color: inherit; }
 .ap-card-foot .btn { margin-top: .1rem; }
-.ap-card-wait {
-    flex: 1 1 auto;
+
+/* ---- summary: how many of the modules asked for are ready ---- */
+.ap-sum {
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-height: 7rem;
+    gap: 1.1rem;
+    margin-bottom: 1.25rem;
+    padding: .85rem 1rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    background: var(--bs-tertiary-bg);
 }
+.ap-sum-fig {
+    flex: none;
+    display: flex;
+    align-items: baseline;
+    gap: .3rem;
+}
+.ap-sum-n {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.ap-sum-of {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+}
+.ap-sum-body { flex: 1 1 auto; min-width: 0; }
+.ap-sum-l { font-size: .875rem; font-weight: 600; }
+.ap-sum-bar { height: 6px; margin: .4rem 0 .6rem; }
+.ap-sum-chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.ap-sum-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .3rem;
+    padding: .1rem .6rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    background: var(--bs-body-bg);
+    font-size: .75rem;
+    color: var(--bs-body-color);
+    text-decoration: none;
+}
+.ap-sum-chip:hover {
+    border-color: var(--bs-secondary-color);
+    color: var(--bs-body-color);
+}
+.ap-sum-chip[data-tone="warn"] b { color: var(--vp-conflict-ink, var(--vp-conflict)); }
+.ap-sum-chip[data-tone="bad"] b { color: var(--vp-mal-ink, var(--vp-mal)); }
 
-/* ---- groups: one per fix, flowing into columns on a wide card ---- */
+/* ---- groups: one per fix, stacked, their items in columns ---- */
 .ap-grps {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(15.5rem, 100%), 1fr));
-    gap: .7rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
 }
-.ap-grp { min-width: 0; }
+.ap-grp { min-width: 0; scroll-margin-top: .5rem; }
 .ap-grp-h {
     display: flex;
     align-items: baseline;
     flex-wrap: wrap;
-    gap: 0 .45rem;
-    padding-bottom: .2rem;
-    border-bottom: 1px solid var(--bs-border-color-translucent);
-    font: 600 .625rem/1.6 var(--bs-font-sans-serif, system-ui);
-    letter-spacing: .09em;
-    text-transform: uppercase;
+    gap: .1rem .5rem;
+    margin-bottom: .5rem;
+}
+.ap-grp-ico {
+    flex: none;
+    align-self: center;
+    width: 1rem;
+    text-align: center;
+    font-size: .8125rem;
     color: var(--bs-secondary-color);
 }
-.ap-grp-why {
-    font-weight: 400;
-    letter-spacing: 0;
-    text-transform: none;
+.ap-grp[data-tone="warn"] .ap-grp-ico { color: var(--vp-conflict-ink, var(--vp-conflict)); }
+.ap-grp[data-tone="bad"] .ap-grp-ico { color: var(--vp-mal-ink, var(--vp-mal)); }
+.ap-grp-t { margin: 0; font-size: .9375rem; font-weight: 600; }
+.ap-grp-n {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.4rem;
+    height: 1.25rem;
+    padding: 0 .4rem;
+    border-radius: 999px;
+    background: var(--bs-secondary-bg);
     font-size: .6875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
+.ap-grp-why { font-size: .8125rem; color: var(--bs-secondary-color); }
 .ap-items {
     list-style: none;
-    margin: .2rem 0 0;
+    margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: .1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(24rem, 100%), 1fr));
+    gap: .4rem .6rem;
 }
 .ap-item {
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: .6rem;
-    min-height: 1.85rem;
-    font-size: .75rem;
+    gap: .75rem;
+    padding: .45rem .5rem .45rem .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: var(--bs-body-bg);
+    font-size: .8125rem;
     line-height: 1.4;
+}
+.ap-item:hover {
+    border-color: color-mix(in srgb, var(--bs-secondary-color) 55%, var(--bs-border-color));
 }
 .ap-item-main { flex: 1 1 auto; min-width: 0; }
 .ap-item-name {
     font-family: var(--bs-font-monospace, ui-monospace, monospace);
-    font-size: .75rem;
+    font-size: .8125rem;
     font-weight: 600;
     overflow-wrap: anywhere;
 }
-.ap-item-label { font-weight: 600; }
-a.ap-item-label { color: inherit; text-decoration: none; }
-a.ap-item-label:hover { text-decoration: underline; }
 .ap-item-main .pill { margin-left: .3rem; vertical-align: 1px; }
 .ap-item-meta {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: .6875rem;
+    font-size: .75rem;
     color: var(--bs-secondary-color);
 }
 .ap-item-act { flex: none; }
 .btn.ap-fix {
-    --bs-btn-padding-y: .05rem;
-    --bs-btn-padding-x: .5rem;
-    --bs-btn-font-size: .6875rem;
+    --bs-btn-padding-y: .15rem;
+    --bs-btn-padding-x: .65rem;
+    --bs-btn-font-size: .75rem;
     white-space: nowrap;
 }
 /* A link to the settings page is a quieter action than a switch, not a
@@ -2576,17 +2906,7 @@ a.ap-item-label:hover { text-decoration: underline; }
 .ap-activity-note { margin-top: .25rem; font-style: italic; }
 .ap-activity-none .fas { margin-right: .25rem; opacity: .7; }
 
-/* ---- the instance card keeps the bench's key/value lines ---- */
-.ap-card-instance .ap-caps { margin-bottom: 0; }
-
-@container wb (max-width: 1180px) {
-    .ap-cards-admin,
-    .ap-cards-reader { grid-template-columns: minmax(0, 1fr); }
-    .ap-cards-side { flex-direction: row; }
-    .ap-cards-side > .ap-card { flex: 1 1 0; }
-}
 @container wb (max-width: 720px) {
-    .ap-cards-side { flex-direction: column; }
     .ap-reasons > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
     .ap-activity-wide { display: none; }
     .ap-activity-table th,

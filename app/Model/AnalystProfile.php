@@ -1503,7 +1503,7 @@ class AnalystProfile extends AppModel
                 ? sprintf(__('Organisation #%s'), $row['org_id'])
                 : $org['Organisation']['name'];
             return $row['org_id'] == $user['org_id']
-                ? sprintf(__('%s (yours)'), $name)
+                ? sprintf(__('%s (your organisation)'), $name)
                 : $name;
         }
         return __('Nobody');
