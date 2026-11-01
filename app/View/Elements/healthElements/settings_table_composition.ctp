@@ -5,7 +5,7 @@
         echo sprintf(
             '<div class="accordion-group"><div class="accordion-heading">%s</div><div id=collapse_%s class="accordion-body collapse">%s</div></div>',
             sprintf(
-                '<a class="accordion-toggle" data-toggle="collapse" data-parent="accordion" href="#collapse_%s">%s</a>',
+                '<a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion" href="#collapse_%s">%s</a>',
                 h($subGroup),
                 h($subGroup)
             ),
