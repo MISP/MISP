@@ -32,6 +32,16 @@
                         <i class="fas fa-atom"></i>
                         <?= __('Physics') ?>
                     </button>
+
+                    <!-- to_ids filter -->
+                    <button id="correlation-toids-btn"
+                            class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2"
+                            type="button"
+                            aria-pressed="false"
+                            title="<?= __('Only show attributes that are flagged as to_ids.') ?>">
+                        <i class="fas fa-filter"></i>
+                        <?= __('Only to_ids') ?>
+                    </button>
                 </div>
 
             </div>

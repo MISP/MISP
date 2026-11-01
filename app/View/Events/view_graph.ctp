@@ -25,6 +25,7 @@
             <li id="context-delete"><?php echo __('Delete');?></li>
         </ul>
         <button class="correlation-stop-btn btn btn-inverse" onclick="togglePhysics();" title="<?php echo __('Toggle the physics engine on/off.');?>">Toggle physics</button>
+        <button id="correlation-toids-btn" class="correlation-toids-btn btn btn-inverse" title="<?php echo __('Only show attributes that are flagged as to_ids.');?>"><?php echo __('Only to_ids');?></button>
 <?php
     if (!$ajax):
 ?>
