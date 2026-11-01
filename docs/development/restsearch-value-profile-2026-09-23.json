@@ -1,0 +1,5810 @@
+{
+  "base_commit": "794511eabe96fbed34c76c990cfdc872b801421c",
+  "cake_commit": "1c2da20cbe3f1e2a91458fe9a017823b7273fdac",
+  "measurement": "MariaDB ANALYZE FORMAT=JSON r_total_time_ms; warmup discarded; alternating order; query cache disabled; shared development host",
+  "schema": "MISP column types/nullability, PRIMARY KEY(id), value1/value2 index prefixes255; optional legacy deleted index",
+  "profiles": [
+    {
+      "name": "standard_indexes",
+      "database": "10.11.19-MariaDB-ubu2204",
+      "rows": 100000,
+      "repeats": 5,
+      "seed": 20260923,
+      "legacy_deleted_index": false,
+      "cases": [
+        {
+          "name": "exact-1-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 0,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.182958711,
+                0.103998005,
+                0.151256158,
+                0.110853695,
+                0.117338536
+              ],
+              "median": 0.117338536
+            },
+            "union": {
+              "samples": [
+                0.3747777,
+                0.138697417,
+                0.14351845,
+                0.459431435,
+                0.147086616
+              ],
+              "median": 0.147086616
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "4270312876dbb3ac9833fc10f122a7d3c7ffbe3c1ee12505d8461aafc68b7c1b",
+            "or_ids": "88417e6c88d51cc7b5838eb658299ae73a9cab472a9d769ccf6096053d1c9f3a",
+            "union": "76080b42565642d6fdccb19dd1d58d8d2f61cb0e959a2eebf29614f6576e1aed",
+            "union_ids": "b64f896dfc6195008a0693925a8d460b7e35e481c7b53b87aaa063b5ea850747"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-1-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 0,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.086638277,
+                0.096140022,
+                0.081927496,
+                0.089133988,
+                0.090356787
+              ],
+              "median": 0.089133988
+            },
+            "union": {
+              "samples": [
+                0.135580283,
+                0.136001247,
+                0.163273661,
+                0.124885808,
+                0.125427047
+              ],
+              "median": 0.135580283
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "5818518d9176d7ab50d4774e7605389d00c4218ef1f9501774974f845e3d95b2",
+            "or_ids": "50d0566c65be7a2909f385c794a449154d0222af5b99ec951de2330116bb9cb4",
+            "union": "9120ac45a23e8e70e37e2e33d302a9f7360bdde4fe4ab819c489c4d649aa75eb",
+            "union_ids": "64fc3a3d6cd03d4c3ba296920ca84b7024e7f6e605068032730af3f3ab1cd2ca"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-10-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                9.185200858,
+                0.339045926,
+                0.303825322,
+                0.331989778,
+                0.361056298
+              ],
+              "median": 0.339045926
+            },
+            "union": {
+              "samples": [
+                0.376170889,
+                0.467810611,
+                0.438202852,
+                0.479397128,
+                0.443976065
+              ],
+              "median": 0.443976065
+            }
+          },
+          "value_count": 10,
+          "sql_sha256": {
+            "or": "530e5e206342a9dbd825946fa289d91befc162f20adf4f3b749f95ba34c200e6",
+            "or_ids": "16d49d847b82f5e9c3a0d188fbcbfc5067e475dab5eb33afb583074f5b9eeeca",
+            "union": "5cc8e900ec0d66341be9edb8bfc7c7a094c5b55fd26836ed03736150e9cca50f",
+            "union_ids": "283c4fd610eeb4bc6718604464a005934da3d05720e79115f6f937039d94902c"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 5
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 4
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 4
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-10-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 4,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.454319737,
+                0.332470879,
+                0.344528473,
+                4.888567767,
+                0.34216306
+              ],
+              "median": 0.344528473
+            },
+            "union": {
+              "samples": [
+                0.465535404,
+                0.377133091,
+                0.99705181,
+                0.618976563,
+                0.400386307
+              ],
+              "median": 0.465535404
+            }
+          },
+          "value_count": 10,
+          "sql_sha256": {
+            "or": "474a9b32fc52eb37d12ddf63a5758c431214643800a65277092945ce447f69b4",
+            "or_ids": "94393fe853a3f84403fd5035d6b24ecde860b158f223202ed2a6dfaf0e32ac9f",
+            "union": "e1c9964defdd889b66bc01741b1cabda17ba0f7238ab984f4b5a8820e562415a",
+            "union_ids": "70bacb13012651895f14f6189bc9c21dac38f890489c3e5e047a9277ad4a5504"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 5
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 4
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 4
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 4
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 4
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-100-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 23,
+          "times_ms": {
+            "or": {
+              "samples": [
+                2.580776254,
+                3.624284382,
+                3.440553905,
+                3.420227386,
+                4.26462985
+              ],
+              "median": 3.440553905
+            },
+            "union": {
+              "samples": [
+                2.787158572,
+                2.500111649,
+                2.704469333,
+                3.581586666,
+                3.482790566
+              ],
+              "median": 2.787158572
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "b0d57c47b842727ad3252a51a9a598d1dc2c46777853990b85978a5dcf09a9af",
+            "or_ids": "10f2509c0898dfb8c26780f28e3234c51ef3345e80872f4f0f1cfe8330ea5961",
+            "union": "bdfc17d45511d814eabcdd654a8dc355b895a8ca62761b73f383c0249a7c66b5",
+            "union_ids": "1eb1c6de604847c77563e023cac32d67ac2fc8245e7ca2dbb68101dc1520fd2b"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 50
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 47
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.391304348,
+                "r_loops": 23
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 47
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.391304348,
+                "r_loops": 23
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-100-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 47,
+          "times_ms": {
+            "or": {
+              "samples": [
+                3.947794754,
+                2.329912137,
+                2.268792261,
+                1.824746036,
+                1.871924005
+              ],
+              "median": 2.268792261
+            },
+            "union": {
+              "samples": [
+                3.125482846,
+                2.303431535,
+                2.554606363,
+                2.117616286,
+                2.490128802
+              ],
+              "median": 2.490128802
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "6e5414966cb2ddec6bb45e74a7f777d6c75d1948748516e74f2c59887f6b8642",
+            "or_ids": "fc8bbebe8b9b99f8e621cd6bf3315d6bd0398ede8ccebb90e237ce737e5332ca",
+            "union": "0ab7625d59b8fc0b93410b8fc9089b6d8dfc1cd568aa617486f5d24f35fc4d16",
+            "union_ids": "fde46e441fcb3ebe9ebdb303ec253aa1071b524f91917cfbd468a0470e100d0f"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 50
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 47
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.29787234,
+                "r_loops": 47
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 47
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.29787234,
+                "r_loops": 47
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-1000-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 236,
+          "times_ms": {
+            "or": {
+              "samples": [
+                24.50896016,
+                24.79919438,
+                75.09417733,
+                35.29493448,
+                33.14735963
+              ],
+              "median": 33.14735963
+            },
+            "union": {
+              "samples": [
+                30.50146435,
+                28.04471193,
+                55.10891992,
+                97.8757242,
+                21.56715768
+              ],
+              "median": 30.50146435
+            }
+          },
+          "value_count": 1000,
+          "sql_sha256": {
+            "or": "bcb5f047d12bb89d58d1eb30c9ed0d39f75eff6e9e5b6c7a17bedc8fb7d9a015",
+            "or_ids": "e3b3050f24d28ffca3a058a8551d9366293e9dd1727102b538c8124c91871ccd",
+            "union": "905eb9e9afd7b90af7a294dbcb0041813f86f87acad658fc1c449f97971a2197",
+            "union_ids": "7ec4382b631c1677bdb3aa67936dafef71f783635330718de69c09877779adda"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 496
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.193133047,
+                "r_loops": 466
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 466
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 466
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.233050847,
+                "r_loops": 236
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-1000-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 466,
+          "times_ms": {
+            "or": {
+              "samples": [
+                21.34787584,
+                53.58975322,
+                20.75134063,
+                56.09940671,
+                22.1685941
+              ],
+              "median": 22.1685941
+            },
+            "union": {
+              "samples": [
+                18.33139244,
+                28.02555809,
+                18.62452329,
+                22.13963783,
+                20.55274614
+              ],
+              "median": 20.55274614
+            }
+          },
+          "value_count": 1000,
+          "sql_sha256": {
+            "or": "7336487cca5d96ef42fdcf95b228161e15606da4ae6efc7d39824020d2c2480e",
+            "or_ids": "f04c1b7ab0c626f487513b4b725984a6caf4914b70a2736d6b7fb25c4e72eaca",
+            "union": "732dcda15e16a1815e927d07829ad64fec927f512b30c37f9b2648eb41ae16b7",
+            "union_ids": "8a9ddb4e57991994d29e815dab5308df42a5b6aa4b3f3eb58a1ba1d627d8e37a"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 496
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.193133047,
+                "r_loops": 466
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 466
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 466
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.193133047,
+                "r_loops": 466
+              }
+            ]
+          }
+        },
+        {
+          "name": "common-500-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 436,
+          "times_ms": {
+            "or": {
+              "samples": [
+                37.1816323,
+                21.63024205,
+                25.57261439,
+                26.56666934,
+                23.09154633
+              ],
+              "median": 25.57261439
+            },
+            "union": {
+              "samples": [
+                21.43675925,
+                18.50229356,
+                21.79496903,
+                21.26687045,
+                24.69190885
+              ],
+              "median": 21.43675925
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "b37dd8ecbc090ef152b0f0000d5e0983852113f0ef61befefbe8e0610cec7842",
+            "or_ids": "a0a2f0f1ce10e1ead0c0b70a39d3cb449a3fef3be2952d15dd37dd0f61a7ad43",
+            "union": "06e161dc937c719fcfb795c2ba557cc3ea0f83f10bdc33baca33b37a7287f574",
+            "union_ids": "5490634026adf3213e38896613dc1fcc22cf89f6eaaef3fdc6cd9782af95553d"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1000
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 436
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 436
+              }
+            ]
+          }
+        },
+        {
+          "name": "common-100000-acl",
+          "admin": false,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 436,
+          "times_ms": {
+            "or": {
+              "samples": [
+                22.78947502,
+                21.79725426,
+                23.65258028,
+                25.82703665,
+                24.13833196
+              ],
+              "median": 23.65258028
+            },
+            "union": {
+              "samples": [
+                18.87073676,
+                18.1477221,
+                16.96657899,
+                18.57468924,
+                26.6023911
+              ],
+              "median": 18.57468924
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "3c141d32b5be2e4204f8d469f598435bbf27f0266adb7dd87d558fb96ad65c28",
+            "or_ids": "fd6f43b7f1e85b2336a84947f591a691b85d9d810b0bd7e59bd6a9b66d279820",
+            "union": "0fd7adffb883c37f5ffc6a0cb2ba4dc2aef96471ca2736162c5fed7f08a86912",
+            "union_ids": "e2d75290ab8a015a8f00dda54a8239a9bc2da51bbf2e74a95014358115750595"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1000
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 436
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 436
+              }
+            ]
+          }
+        },
+        {
+          "name": "common-500-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 500,
+          "times_ms": {
+            "or": {
+              "samples": [
+                17.36958128,
+                16.72084662,
+                17.06526484,
+                37.07520874,
+                20.25962531
+              ],
+              "median": 17.36958128
+            },
+            "union": {
+              "samples": [
+                11.38355191,
+                12.7873145,
+                16.75988596,
+                14.13255316,
+                11.77617044
+              ],
+              "median": 12.7873145
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "70ee4af12b99ab5c5a7d28abc8105b5ee6cbe9f7b5d21f302898ffae1f090802",
+            "or_ids": "f508a7cae04c5f9cff5aaa52e056e184093ddad96ddc9abfc3af46057a73e176",
+            "union": "82eab50518150e10d5d3704941fdc30efe003c9ba58db7cf0778124c79989ba8",
+            "union_ids": "68276a207f049c4663712de2abb97caddb32ca02349cf5af2a6d7a3d385645c6"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 531
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 500
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 500
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 500
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 500
+              }
+            ]
+          }
+        },
+        {
+          "name": "common-100000-admin",
+          "admin": true,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 942,
+          "times_ms": {
+            "or": {
+              "samples": [
+                36.80251466,
+                36.65651052,
+                37.69317299,
+                24.02533335,
+                28.42397991
+              ],
+              "median": 36.65651052
+            },
+            "union": {
+              "samples": [
+                20.94517423,
+                22.75486581,
+                19.51040067,
+                35.71502588,
+                20.51723487
+              ],
+              "median": 20.94517423
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "f0af5a60c29ab1bc3bc634cb118d63676575e594a2671b6a1938750b8b9561a8",
+            "or_ids": "2b1e0b853c1a024b54201bedfdbec30df32971d1948c5063a800090fd8c1ec3a",
+            "union": "d3b1e861c01a41ecc36a5d4d515ec37cc73573746efbcf9d3875bfb020fa13d3",
+            "union_ids": "59de644aa48cc724a585268edb3f04b7d93ee4b0e01cb71314afa1945b0d41b6"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1000
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              }
+            ]
+          }
+        },
+        {
+          "name": "collation-dedup-500-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.191237658,
+                0.117368605,
+                0.262190037,
+                0.234917622,
+                0.149552259
+              ],
+              "median": 0.191237658
+            },
+            "union": {
+              "samples": [
+                0.468712676,
+                0.153832053,
+                0.308024933,
+                0.475357884,
+                0.239187394
+              ],
+              "median": 0.308024933
+            }
+          },
+          "value_count": 3,
+          "sql_sha256": {
+            "or": "3ac26ea961edbce02efc0688ad8ad03d2d2f5ae796dc33f52826bd0b545a6172",
+            "or_ids": "51ce5a19a50bbe3a7f78421a4f852133c0387878b35df17ae4180297ecd17f13",
+            "union": "2f27ce1d685ab08dbf649665e02e23b55898a23bf715c2110ba537f5134b4697",
+            "union_ids": "4f4f01a83bf9b5b47784868ebceb3c2f88ba04c3d653e407afae01295236a54c"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "collation-dedup-100000-acl",
+          "admin": false,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.198414082,
+                0.196279196,
+                0.112657824,
+                0.135640421,
+                0.153501297
+              ],
+              "median": 0.153501297
+            },
+            "union": {
+              "samples": [
+                0.213739154,
+                0.218339683,
+                0.321375486,
+                0.25111469,
+                0.294864815
+              ],
+              "median": 0.25111469
+            }
+          },
+          "value_count": 3,
+          "sql_sha256": {
+            "or": "30d4397b705b6ba94d2eb64a683047ced3f1b9c8d167aa9eef6b952de4acf79f",
+            "or_ids": "7c110ba682a5895ba03a6c0a47bc657e451c800801401053eaebe93354f50cc5",
+            "union": "848323849f1ab0826af22225d8aa6b32cf30831870852e8a23aa5c61370a6d4c",
+            "union_ids": "46454a2d8347011ab62fed00283a475fe6c349828e6bee0296029f524b96e60e"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "collation-dedup-500-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.159224394,
+                0.124264386,
+                0.135931086,
+                0.189664057,
+                0.174840132
+              ],
+              "median": 0.159224394
+            },
+            "union": {
+              "samples": [
+                0.191588461,
+                0.425383515,
+                0.271381071,
+                0.228302483,
+                0.248338337
+              ],
+              "median": 0.248338337
+            }
+          },
+          "value_count": 3,
+          "sql_sha256": {
+            "or": "ccfaed7ca05e62384a5ab467adc838134901d3244f45f7cf28f67509528de2eb",
+            "or_ids": "73c6d5f01a7742e3c8e48001200f0a2cce2ae43764d6b7b6ce90387caf67387c",
+            "union": "ac337d6f397b3fbab1c7a3f97b3bbf3ebef9338cfb99caeb958e489c0b6f4e4b",
+            "union_ids": "bf289e4967ebd6d00dde1d354e23cc5c357b7a044030a175d45362e0896c2d4d"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "collation-dedup-100000-admin",
+          "admin": true,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.131982048,
+                0.157961504,
+                0.137775307,
+                0.171572654,
+                0.17319637
+              ],
+              "median": 0.157961504
+            },
+            "union": {
+              "samples": [
+                0.244750125,
+                0.227751222,
+                0.213658971,
+                0.270980154,
+                0.283809514
+              ],
+              "median": 0.244750125
+            }
+          },
+          "value_count": 3,
+          "sql_sha256": {
+            "or": "de82489324b69e2f381980010bf55a05e6f4149c25dc92ccb846884ca1617cfc",
+            "or_ids": "802b057e2905e2a59697c52a6b33e373deef0b3ead520073df16c2779499108c",
+            "union": "9c405eff108c589188586443acf5b56f2f24eea400fc4206226813ed80a74d21",
+            "union_ids": "7a57c98696c37189ca7af03e6dff144319ab4f8c28998e2a25ec27121a489544"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "prefix-collision-500-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 0,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.156828912,
+                0.163333799,
+                0.232431934,
+                0.141032762,
+                0.82791473
+              ],
+              "median": 0.163333799
+            },
+            "union": {
+              "samples": [
+                0.252076892,
+                0.20396679,
+                0.225556198,
+                0.269827516,
+                0.274758801
+              ],
+              "median": 0.252076892
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "ea81586d49f0677383848924f7e339b97531284f394ce9903a63f956719f34f8",
+            "or_ids": "93a9a534e4fc287d7a62d376daf1b9e3dbf6d01962c556809c5cef5475a60580",
+            "union": "f1c8b554cda3852d4b9c962984e1dd2fca4be9968197b4f1d32ed4e36e4241b7",
+            "union_ids": "99897ce7cebca38b0f2f864273a41ee3a654013034c190a810f67435703357cc"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "prefix-collision-100000-acl",
+          "admin": false,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 0,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.225035005,
+                0.170460108,
+                0.174038297,
+                1.607518899,
+                0.154062581
+              ],
+              "median": 0.174038297
+            },
+            "union": {
+              "samples": [
+                0.211143213,
+                0.214741448,
+                0.258491573,
+                0.183971028,
+                0.211213374
+              ],
+              "median": 0.211213374
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "4f155849a41a23dc2309998351872df7c195f5412b664563dcf500a7f6686b44",
+            "or_ids": "b3cbad2b3af6ef51aa52dee54be3c965d55ac8052d6d620a45f2d35bf65dfb20",
+            "union": "d40cc00516f3b069420d2308c1acb96ec7a77e05efe8e98bf0e507e742f1edf6",
+            "union_ids": "29af34ed9fbefb04b2a4f34079864f856f18c5be5dae6cf1785928882d87d376"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "prefix-collision-500-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.222368904,
+                0.205249726,
+                0.228673332,
+                0.298663509,
+                0.224002643
+              ],
+              "median": 0.224002643
+            },
+            "union": {
+              "samples": [
+                0.218229431,
+                0.285553506,
+                0.355904508,
+                1.157769622,
+                0.266219258
+              ],
+              "median": 0.285553506
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "74a1851b6fa149ddc467cd73cb63b36e3cae497e95d2e7bb28f8ba64dc7a353f",
+            "or_ids": "01c46781b430760896b30c540fcfd751a1cac0b26e10090a73deede4f460126c",
+            "union": "3519863ff1ba02730e1c869a35d8e462713588763c439bcb347f56b29870249e",
+            "union_ids": "bc81dde9a0f7853a73f149370ebe1b88737b8555d78b1d9839f23d607535478c"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "prefix-collision-100000-admin",
+          "admin": true,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.205921263,
+                0.249049965,
+                0.281454124,
+                0.274899122,
+                0.197762591
+              ],
+              "median": 0.249049965
+            },
+            "union": {
+              "samples": [
+                0.333894136,
+                0.265126758,
+                0.506328762,
+                0.251124713,
+                0.301419817
+              ],
+              "median": 0.301419817
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "085a6b7b8383a89e5cc8d48949e84defca17972e47c51e904085ca26ad372cad",
+            "or_ids": "ae9b4a15280230ac3fd1ad252b6a9b61b15afea9f53d1994ca72fdda3ccf39c2",
+            "union": "4f6a7ffa240b5b85c3ca7cf4eb4c5596f4e845e23e17cf6694f441dad3c97d33",
+            "union_ids": "974f30921f3528e9d1ca8eaa4415d89b934f2ed195e5f06c1ccde8ec1ad658f0"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "composite-500-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 31,
+          "times_ms": {
+            "or": {
+              "samples": [
+                2.863372993,
+                3.263067717,
+                3.366654782,
+                2.138283584,
+                2.076031116
+              ],
+              "median": 2.863372993
+            },
+            "union": {
+              "samples": [
+                3.039726588,
+                2.728825072,
+                3.520797547,
+                2.773547422,
+                2.783881071
+              ],
+              "median": 2.783881071
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "d185b7d5b8167cbcb27787e5632c75104b60b7af3ebd8400f5a8903f90e06749",
+            "or_ids": "e949dda70d73db0c14950be1b61911d6f52a62a667af467171098da40228c53b",
+            "union": "1329315f67d1698f9c0f49220767d7ed7aab863405e8bfc02b85a222454b0f85",
+            "union_ids": "e61a9a8446b2982814555f76305ab7356964f3e81efc1572a5e0de295cf63ffc"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 99
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 31
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 31
+              }
+            ]
+          }
+        },
+        {
+          "name": "composite-100000-acl",
+          "admin": false,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 31,
+          "times_ms": {
+            "or": {
+              "samples": [
+                1.889163459,
+                2.550286477,
+                3.098019996,
+                2.916574748,
+                2.975760198
+              ],
+              "median": 2.916574748
+            },
+            "union": {
+              "samples": [
+                2.063051411,
+                2.169915977,
+                2.016454772,
+                1.863925701,
+                2.867833201
+              ],
+              "median": 2.063051411
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "bf9abd63d60c436bb5cf76255426c74b0a6038da86c98be26ed521a9c3a280cf",
+            "or_ids": "ecaf4545315fd00e5fb725c309bd6ff0f83f5befc4d42b1a44b48fa42dcc8659",
+            "union": "55efeb1ba63c4d02c0bdcd5a34c92b697c9a5377590533e47f8dd497f8790542",
+            "union_ids": "ee5b754820692dcf3367dead70d2180bfe0e6e4efb7ea79f9342ecaa4da819a0"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 99
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 31
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 31
+              }
+            ]
+          }
+        },
+        {
+          "name": "composite-500-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 94,
+          "times_ms": {
+            "or": {
+              "samples": [
+                3.451518999,
+                3.715202454,
+                3.237719707,
+                4.887344969,
+                4.011079585
+              ],
+              "median": 3.715202454
+            },
+            "union": {
+              "samples": [
+                3.657490376,
+                3.180729281,
+                3.072120724,
+                7.546039544,
+                5.099700958
+              ],
+              "median": 3.657490376
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "500ae01b919216827d94f8fc846db85bc767643360ad2106e747b174e3f25983",
+            "or_ids": "28c3e488650194d97bdb63a38f69f8817405f18d3057cc3ba1e873a49d176cbc",
+            "union": "909c20b866745f1ae936fcafa328eb317a165c9c587596d188ededdd12a7fd93",
+            "union_ids": "fa63919cbe513e89727ffd3b64e2f618201fc6464a535f31b55f8483ffe830d6"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 99
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              }
+            ]
+          }
+        },
+        {
+          "name": "composite-100000-admin",
+          "admin": true,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 94,
+          "times_ms": {
+            "or": {
+              "samples": [
+                2.473220106,
+                3.368378728,
+                2.639701107,
+                2.877054304,
+                2.486490476
+              ],
+              "median": 2.639701107
+            },
+            "union": {
+              "samples": [
+                2.740932782,
+                2.437668745,
+                2.612809564,
+                11.09471088,
+                2.841112048
+              ],
+              "median": 2.740932782
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "0910f5fc32d65e1a541a3217c0714f3824aa68a0415bf6539d7e59f22305e6a3",
+            "or_ids": "8730bbd2f0c631f335cd890f7257e6c029541fc0eb8c639e027b8e2f0c8a865a",
+            "union": "9329fc8cf38fdcd61d8c8e55b3221af4307e9c5ba2040c675198f358ab06c152",
+            "union_ids": "256c6452d623e381a43fbb02a9bd422735abd3abcea2377e84965951122ab7e3"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 99
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              }
+            ]
+          }
+        },
+        {
+          "name": "tag-exists",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 12,
+          "times_ms": {
+            "or": {
+              "samples": [
+                3.535992321,
+                3.676463798,
+                3.778818042,
+                6.244210233,
+                4.876450035
+              ],
+              "median": 3.778818042
+            },
+            "union": {
+              "samples": [
+                6.488358981,
+                8.481590606,
+                9.082064826,
+                9.590348061,
+                14.88448399
+              ],
+              "median": 9.082064826
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "6191d42a584914145d6c1e0eb4a6f8fd8bed55938c0b1a5a81d4d8c805358c78",
+            "or_ids": "ad4a2c09637020d415a6694ac2124fa2732a005cc25e2e4aec6d299849578b09",
+            "union": "487745d66ec3f8c83bd749642e48aaea9377fdfad8fa8094f89bbe26e8be254e",
+            "union_ids": "5853cfe1d92d783c0c1a1c72bbae2bc85825c928235e137b53cd38a10ac67505"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<subquery4>",
+                "access_type": "ALL",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "TagMatch",
+                "access_type": "ref",
+                "key": "tag_id",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 285
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 269
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 118
+              },
+              {
+                "table_name": "<derived2>",
+                "access_type": "ref",
+                "key": "key0",
+                "r_rows": 0.101694915,
+                "r_loops": 118
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "<subquery2>",
+                "access_type": "ALL",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "TagMatch",
+                "access_type": "ref",
+                "key": "tag_id",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 285
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 27
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 27
+              }
+            ]
+          }
+        },
+        {
+          "name": "tag-in",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 12,
+          "times_ms": {
+            "or": {
+              "samples": [
+                2.547379825,
+                3.148956567,
+                4.202968735,
+                3.553061384,
+                3.701771717
+              ],
+              "median": 3.553061384
+            },
+            "union": {
+              "samples": [
+                5.798560337,
+                6.729450733,
+                6.913331555,
+                8.614795453,
+                9.175488631
+              ],
+              "median": 6.913331555
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "6065a30c403d2003caccb6f216b1e22b8027e13565aa43fa408e885c78cd2b5b",
+            "or_ids": "0590b8f11831dcffbc939c748928b6809a30d27bdfbd2a483acd70e8dab61e2e",
+            "union": "dd39553a4cd1babdd5477723645bd3cd95e640a5edd1a6b78cb8e2d6ad17e166",
+            "union_ids": "872d2a414228efd3a2df9baf0f5b07f57e7fe2c0665f9d4800781fca0e1dbb1b"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<subquery4>",
+                "access_type": "ALL",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attribute_tags",
+                "access_type": "ref",
+                "key": "tag_id",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 285
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 269
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 118
+              },
+              {
+                "table_name": "<derived2>",
+                "access_type": "ref",
+                "key": "key0",
+                "r_rows": 0.101694915,
+                "r_loops": 118
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "<subquery2>",
+                "access_type": "ALL",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attribute_tags",
+                "access_type": "ref",
+                "key": "tag_id",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 285
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 27
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 27
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "legacy_deleted_index",
+      "database": "10.11.19-MariaDB-ubu2204",
+      "rows": 100000,
+      "repeats": 5,
+      "seed": 20260923,
+      "legacy_deleted_index": true,
+      "cases": [
+        {
+          "name": "exact-1-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 0,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.081967588,
+                0.089023736,
+                0.20741468,
+                0.080744789,
+                0.118651541
+              ],
+              "median": 0.089023736
+            },
+            "union": {
+              "samples": [
+                0.122881221,
+                0.122069363,
+                0.157670839,
+                0.119764087,
+                0.15586671
+              ],
+              "median": 0.122881221
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "4270312876dbb3ac9833fc10f122a7d3c7ffbe3c1ee12505d8461aafc68b7c1b",
+            "or_ids": "88417e6c88d51cc7b5838eb658299ae73a9cab472a9d769ccf6096053d1c9f3a",
+            "union": "76080b42565642d6fdccb19dd1d58d8d2f61cb0e959a2eebf29614f6576e1aed",
+            "union_ids": "b64f896dfc6195008a0693925a8d460b7e35e481c7b53b87aaa063b5ea850747"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-1-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 0,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.07041114,
+                0.079602174,
+                0.072105016,
+                0.077196669,
+                0.101231674
+              ],
+              "median": 0.077196669
+            },
+            "union": {
+              "samples": [
+                0.142125262,
+                0.126499501,
+                0.120235165,
+                0.27994066,
+                0.130258103
+              ],
+              "median": 0.130258103
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "5818518d9176d7ab50d4774e7605389d00c4218ef1f9501774974f845e3d95b2",
+            "or_ids": "50d0566c65be7a2909f385c794a449154d0222af5b99ec951de2330116bb9cb4",
+            "union": "9120ac45a23e8e70e37e2e33d302a9f7360bdde4fe4ab819c489c4d649aa75eb",
+            "union_ids": "64fc3a3d6cd03d4c3ba296920ca84b7024e7f6e605068032730af3f3ab1cd2ca"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-10-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.737247233,
+                0.305489129,
+                0.4164631,
+                0.296488531,
+                0.291116236
+              ],
+              "median": 0.305489129
+            },
+            "union": {
+              "samples": [
+                0.420742894,
+                0.430545328,
+                0.573211828,
+                4.120700459,
+                0.374597287
+              ],
+              "median": 0.430545328
+            }
+          },
+          "value_count": 10,
+          "sql_sha256": {
+            "or": "530e5e206342a9dbd825946fa289d91befc162f20adf4f3b749f95ba34c200e6",
+            "or_ids": "16d49d847b82f5e9c3a0d188fbcbfc5067e475dab5eb33afb583074f5b9eeeca",
+            "union": "5cc8e900ec0d66341be9edb8bfc7c7a094c5b55fd26836ed03736150e9cca50f",
+            "union_ids": "283c4fd610eeb4bc6718604464a005934da3d05720e79115f6f937039d94902c"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 5
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 4
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 4
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-10-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 4,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.366368455,
+                0.419610302,
+                0.37409614,
+                0.353448888,
+                0.364113294
+              ],
+              "median": 0.366368455
+            },
+            "union": {
+              "samples": [
+                0.445679964,
+                0.490342176,
+                0.485491074,
+                0.526384661,
+                0.522936771
+              ],
+              "median": 0.490342176
+            }
+          },
+          "value_count": 10,
+          "sql_sha256": {
+            "or": "474a9b32fc52eb37d12ddf63a5758c431214643800a65277092945ce447f69b4",
+            "or_ids": "94393fe853a3f84403fd5035d6b24ecde860b158f223202ed2a6dfaf0e32ac9f",
+            "union": "e1c9964defdd889b66bc01741b1cabda17ba0f7238ab984f4b5a8820e562415a",
+            "union_ids": "70bacb13012651895f14f6189bc9c21dac38f890489c3e5e047a9277ad4a5504"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 5
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 4
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 4
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 5,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 4
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 4
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-100-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 23,
+          "times_ms": {
+            "or": {
+              "samples": [
+                2.82658881,
+                2.405224494,
+                59.55008378,
+                3.58368146,
+                3.930224544
+              ],
+              "median": 3.58368146
+            },
+            "union": {
+              "samples": [
+                4.703955271,
+                3.199201556,
+                2.233130647,
+                3.773846664,
+                2.290151142
+              ],
+              "median": 3.199201556
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "b0d57c47b842727ad3252a51a9a598d1dc2c46777853990b85978a5dcf09a9af",
+            "or_ids": "10f2509c0898dfb8c26780f28e3234c51ef3345e80872f4f0f1cfe8330ea5961",
+            "union": "bdfc17d45511d814eabcdd654a8dc355b895a8ca62761b73f383c0249a7c66b5",
+            "union_ids": "1eb1c6de604847c77563e023cac32d67ac2fc8245e7ca2dbb68101dc1520fd2b"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 50
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 47
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.391304348,
+                "r_loops": 23
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 47
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.391304348,
+                "r_loops": 23
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-100-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 47,
+          "times_ms": {
+            "or": {
+              "samples": [
+                6.122391443,
+                3.049288471,
+                7.49997412,
+                3.160763588,
+                4.707643712
+              ],
+              "median": 4.707643712
+            },
+            "union": {
+              "samples": [
+                3.651005535,
+                2.253076294,
+                5.303878229,
+                6.086609555,
+                4.824641468
+              ],
+              "median": 4.824641468
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "6e5414966cb2ddec6bb45e74a7f777d6c75d1948748516e74f2c59887f6b8642",
+            "or_ids": "fc8bbebe8b9b99f8e621cd6bf3315d6bd0398ede8ccebb90e237ce737e5332ca",
+            "union": "0ab7625d59b8fc0b93410b8fc9089b6d8dfc1cd568aa617486f5d24f35fc4d16",
+            "union_ids": "fde46e441fcb3ebe9ebdb303ec253aa1071b524f91917cfbd468a0470e100d0f"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 50
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 47
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.29787234,
+                "r_loops": 47
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 50,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 47
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.29787234,
+                "r_loops": 47
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-1000-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 236,
+          "times_ms": {
+            "or": {
+              "samples": [
+                1831.498429,
+                1943.318075,
+                1496.867226,
+                1182.873153,
+                1019.783313
+              ],
+              "median": 1496.867226
+            },
+            "union": {
+              "samples": [
+                129.1186554,
+                28.69977107,
+                30.24191034,
+                32.32642087,
+                18.85938077
+              ],
+              "median": 30.24191034
+            }
+          },
+          "value_count": 1000,
+          "sql_sha256": {
+            "or": "bcb5f047d12bb89d58d1eb30c9ed0d39f75eff6e9e5b6c7a17bedc8fb7d9a015",
+            "or_ids": "e3b3050f24d28ffca3a058a8551d9366293e9dd1727102b538c8124c91871ccd",
+            "union": "905eb9e9afd7b90af7a294dbcb0041813f86f87acad658fc1c449f97971a2197",
+            "union_ids": "7ec4382b631c1677bdb3aa67936dafef71f783635330718de69c09877779adda"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 496
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.193133047,
+                "r_loops": 466
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 466
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "range",
+                "key": "deleted",
+                "r_rows": 94118,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 466
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.233050847,
+                "r_loops": 236
+              }
+            ]
+          }
+        },
+        {
+          "name": "exact-1000-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 466,
+          "times_ms": {
+            "or": {
+              "samples": [
+                1462.609696,
+                1002.198609,
+                798.1735258,
+                929.2565067,
+                1160.571855
+              ],
+              "median": 1002.198609
+            },
+            "union": {
+              "samples": [
+                20.15234981,
+                27.36813354,
+                18.27636651,
+                28.57681969,
+                20.02435689
+              ],
+              "median": 20.15234981
+            }
+          },
+          "value_count": 1000,
+          "sql_sha256": {
+            "or": "7336487cca5d96ef42fdcf95b228161e15606da4ae6efc7d39824020d2c2480e",
+            "or_ids": "f04c1b7ab0c626f487513b4b725984a6caf4914b70a2736d6b7fb25c4e72eaca",
+            "union": "732dcda15e16a1815e927d07829ad64fec927f512b30c37f9b2648eb41ae16b7",
+            "union_ids": "8a9ddb4e57991994d29e815dab5308df42a5b6aa4b3f3eb58a1ba1d627d8e37a"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 496,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 496
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.193133047,
+                "r_loops": 466
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 466
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "range",
+                "key": "deleted",
+                "r_rows": 94118,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 466
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0.193133047,
+                "r_loops": 466
+              }
+            ]
+          }
+        },
+        {
+          "name": "common-500-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 436,
+          "times_ms": {
+            "or": {
+              "samples": [
+                35.13468775,
+                24.0530568,
+                22.67658667,
+                24.70069896,
+                22.71150658
+              ],
+              "median": 24.0530568
+            },
+            "union": {
+              "samples": [
+                18.57251426,
+                35.61920659,
+                15.51773322,
+                13.29387379,
+                22.35855884
+              ],
+              "median": 18.57251426
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "b37dd8ecbc090ef152b0f0000d5e0983852113f0ef61befefbe8e0610cec7842",
+            "or_ids": "a0a2f0f1ce10e1ead0c0b70a39d3cb449a3fef3be2952d15dd37dd0f61a7ad43",
+            "union": "06e161dc937c719fcfb795c2ba557cc3ea0f83f10bdc33baca33b37a7287f574",
+            "union_ids": "5490634026adf3213e38896613dc1fcc22cf89f6eaaef3fdc6cd9782af95553d"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1000
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 436
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 436
+              }
+            ]
+          }
+        },
+        {
+          "name": "common-100000-acl",
+          "admin": false,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 436,
+          "times_ms": {
+            "or": {
+              "samples": [
+                23.85699811,
+                28.94528294,
+                24.21768356,
+                37.26014197,
+                52.65341035
+              ],
+              "median": 28.94528294
+            },
+            "union": {
+              "samples": [
+                18.53039788,
+                24.02741812,
+                23.74061175,
+                18.1002234,
+                45.50091144
+              ],
+              "median": 23.74061175
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "3c141d32b5be2e4204f8d469f598435bbf27f0266adb7dd87d558fb96ad65c28",
+            "or_ids": "fd6f43b7f1e85b2336a84947f591a691b85d9d810b0bd7e59bd6a9b66d279820",
+            "union": "0fd7adffb883c37f5ffc6a0cb2ba4dc2aef96471ca2736162c5fed7f08a86912",
+            "union_ids": "e2d75290ab8a015a8f00dda54a8239a9bc2da51bbf2e74a95014358115750595"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1000
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 436
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 436
+              }
+            ]
+          }
+        },
+        {
+          "name": "common-500-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 500,
+          "times_ms": {
+            "or": {
+              "samples": [
+                18.11812437,
+                17.99997397,
+                32.7951135,
+                18.68621447,
+                25.03362088
+              ],
+              "median": 18.68621447
+            },
+            "union": {
+              "samples": [
+                18.98579007,
+                12.31434208,
+                22.5976861,
+                14.09173975,
+                27.64968789
+              ],
+              "median": 18.98579007
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "70ee4af12b99ab5c5a7d28abc8105b5ee6cbe9f7b5d21f302898ffae1f090802",
+            "or_ids": "f508a7cae04c5f9cff5aaa52e056e184093ddad96ddc9abfc3af46057a73e176",
+            "union": "82eab50518150e10d5d3704941fdc30efe003c9ba58db7cf0778124c79989ba8",
+            "union_ids": "68276a207f049c4663712de2abb97caddb32ca02349cf5af2a6d7a3d385645c6"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 531
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 500
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 500
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 500
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 500
+              }
+            ]
+          }
+        },
+        {
+          "name": "common-100000-admin",
+          "admin": true,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 942,
+          "times_ms": {
+            "or": {
+              "samples": [
+                54.20134288,
+                80.08971991,
+                115.9654536,
+                41.82609141,
+                39.45828254
+              ],
+              "median": 54.20134288
+            },
+            "union": {
+              "samples": [
+                38.99961285,
+                74.02531116,
+                58.54520405,
+                32.95504952,
+                30.21788536
+              ],
+              "median": 38.99961285
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "f0af5a60c29ab1bc3bc634cb118d63676575e594a2671b6a1938750b8b9561a8",
+            "or_ids": "2b1e0b853c1a024b54201bedfdbec30df32971d1948c5063a800090fd8c1ec3a",
+            "union": "d3b1e861c01a41ecc36a5d4d515ec37cc73573746efbcf9d3875bfb020fa13d3",
+            "union_ids": "59de644aa48cc724a585268edb3f04b7d93ee4b0e01cb71314afa1945b0d41b6"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1000
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 942
+              }
+            ]
+          }
+        },
+        {
+          "name": "collation-dedup-500-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.240700858,
+                0.180062082,
+                0.169588112,
+                0.172755361,
+                0.159735564
+              ],
+              "median": 0.172755361
+            },
+            "union": {
+              "samples": [
+                0.221506931,
+                0.534783884,
+                0.256396779,
+                0.279158871,
+                0.288931236
+              ],
+              "median": 0.279158871
+            }
+          },
+          "value_count": 3,
+          "sql_sha256": {
+            "or": "3ac26ea961edbce02efc0688ad8ad03d2d2f5ae796dc33f52826bd0b545a6172",
+            "or_ids": "51ce5a19a50bbe3a7f78421a4f852133c0387878b35df17ae4180297ecd17f13",
+            "union": "2f27ce1d685ab08dbf649665e02e23b55898a23bf715c2110ba537f5134b4697",
+            "union_ids": "4f4f01a83bf9b5b47784868ebceb3c2f88ba04c3d653e407afae01295236a54c"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "collation-dedup-100000-acl",
+          "admin": false,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.165037698,
+                0.240209734,
+                0.162111,
+                0.20935913,
+                0.19035564
+              ],
+              "median": 0.19035564
+            },
+            "union": {
+              "samples": [
+                0.28062222,
+                0.239838885,
+                0.252728383,
+                0.23886666,
+                0.235017852
+              ],
+              "median": 0.239838885
+            }
+          },
+          "value_count": 3,
+          "sql_sha256": {
+            "or": "30d4397b705b6ba94d2eb64a683047ced3f1b9c8d167aa9eef6b952de4acf79f",
+            "or_ids": "7c110ba682a5895ba03a6c0a47bc657e451c800801401053eaebe93354f50cc5",
+            "union": "848323849f1ab0826af22225d8aa6b32cf30831870852e8a23aa5c61370a6d4c",
+            "union_ids": "46454a2d8347011ab62fed00283a475fe6c349828e6bee0296029f524b96e60e"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "collation-dedup-500-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.16354428,
+                0.176012815,
+                0.241332303,
+                0.248127855,
+                0.153220654
+              ],
+              "median": 0.176012815
+            },
+            "union": {
+              "samples": [
+                0.207484841,
+                0.184582427,
+                0.194384861,
+                0.212746883,
+                0.177516256
+              ],
+              "median": 0.194384861
+            }
+          },
+          "value_count": 3,
+          "sql_sha256": {
+            "or": "ccfaed7ca05e62384a5ab467adc838134901d3244f45f7cf28f67509528de2eb",
+            "or_ids": "73c6d5f01a7742e3c8e48001200f0a2cce2ae43764d6b7b6ce90387caf67387c",
+            "union": "ac337d6f397b3fbab1c7a3f97b3bbf3ebef9338cfb99caeb958e489c0b6f4e4b",
+            "union_ids": "bf289e4967ebd6d00dde1d354e23cc5c357b7a044030a175d45362e0896c2d4d"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "collation-dedup-100000-admin",
+          "admin": true,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                2.46119258,
+                0.346432831,
+                0.220544729,
+                0.108017204,
+                0.1532407
+              ],
+              "median": 0.220544729
+            },
+            "union": {
+              "samples": [
+                0.289342176,
+                0.249651341,
+                0.416733719,
+                0.730060786,
+                0.211584223
+              ],
+              "median": 0.289342176
+            }
+          },
+          "value_count": 3,
+          "sql_sha256": {
+            "or": "de82489324b69e2f381980010bf55a05e6f4149c25dc92ccb846884ca1617cfc",
+            "or_ids": "802b057e2905e2a59697c52a6b33e373deef0b3ead520073df16c2779499108c",
+            "union": "9c405eff108c589188586443acf5b56f2f24eea400fc4206226813ed80a74d21",
+            "union_ids": "7a57c98696c37189ca7af03e6dff144319ab4f8c28998e2a25ec27121a489544"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "prefix-collision-500-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 0,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.207284382,
+                0.174830109,
+                0.796953875,
+                0.202232821,
+                0.764509624
+              ],
+              "median": 0.207284382
+            },
+            "union": {
+              "samples": [
+                0.349279346,
+                0.278477311,
+                0.286926648,
+                0.293160916,
+                0.210060736
+              ],
+              "median": 0.286926648
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "ea81586d49f0677383848924f7e339b97531284f394ce9903a63f956719f34f8",
+            "or_ids": "93a9a534e4fc287d7a62d376daf1b9e3dbf6d01962c556809c5cef5475a60580",
+            "union": "f1c8b554cda3852d4b9c962984e1dd2fca4be9968197b4f1d32ed4e36e4241b7",
+            "union_ids": "99897ce7cebca38b0f2f864273a41ee3a654013034c190a810f67435703357cc"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "prefix-collision-100000-acl",
+          "admin": false,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 0,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.211504039,
+                0.181625661,
+                0.121026977,
+                0.191839035,
+                0.160988431
+              ],
+              "median": 0.181625661
+            },
+            "union": {
+              "samples": [
+                0.31282592,
+                0.155926848,
+                0.211594246,
+                0.193763439,
+                0.147096639
+              ],
+              "median": 0.193763439
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "4f155849a41a23dc2309998351872df7c195f5412b664563dcf500a7f6686b44",
+            "or_ids": "b3cbad2b3af6ef51aa52dee54be3c965d55ac8052d6d620a45f2d35bf65dfb20",
+            "union": "d40cc00516f3b069420d2308c1acb96ec7a77e05efe8e98bf0e507e742f1edf6",
+            "union_ids": "29af34ed9fbefb04b2a4f34079864f856f18c5be5dae6cf1785928882d87d376"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": null,
+                "r_loops": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "prefix-collision-500-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.211754613,
+                2.264903361,
+                0.162221253,
+                83.58940915,
+                0.180473023
+              ],
+              "median": 0.211754613
+            },
+            "union": {
+              "samples": [
+                0.205049267,
+                0.27393692,
+                0.669672584,
+                0.795761145,
+                0.242655331
+              ],
+              "median": 0.27393692
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "74a1851b6fa149ddc467cd73cb63b36e3cae497e95d2e7bb28f8ba64dc7a353f",
+            "or_ids": "01c46781b430760896b30c540fcfd751a1cac0b26e10090a73deede4f460126c",
+            "union": "3519863ff1ba02730e1c869a35d8e462713588763c439bcb347f56b29870249e",
+            "union_ids": "bc81dde9a0f7853a73f149370ebe1b88737b8555d78b1d9839f23d607535478c"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "prefix-collision-100000-admin",
+          "admin": true,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 1,
+          "times_ms": {
+            "or": {
+              "samples": [
+                0.18274823,
+                0.187138277,
+                0.174369054,
+                0.172494764,
+                0.175511669
+              ],
+              "median": 0.175511669
+            },
+            "union": {
+              "samples": [
+                0.236852049,
+                0.235518999,
+                0.28256667,
+                0.299986536,
+                0.668018799
+              ],
+              "median": 0.28256667
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "085a6b7b8383a89e5cc8d48949e84defca17972e47c51e904085ca26ad372cad",
+            "or_ids": "ae9b4a15280230ac3fd1ad252b6a9b61b15afea9f53d1994ca72fdda3ccf39c2",
+            "union": "4f6a7ffa240b5b85c3ca7cf4eb4c5596f4e845e23e17cf6694f441dad3c97d33",
+            "union_ids": "974f30921f3528e9d1ca8eaa4415d89b934f2ed195e5f06c1ccde8ec1ad658f0"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 2,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 0,
+                "r_loops": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "composite-500-acl",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 31,
+          "times_ms": {
+            "or": {
+              "samples": [
+                2.334502643,
+                2.818450185,
+                2.597474469,
+                3.001428942,
+                3.215709335
+              ],
+              "median": 2.818450185
+            },
+            "union": {
+              "samples": [
+                2.640623217,
+                2.948898724,
+                2.476477561,
+                2.354378129,
+                2.556600928
+              ],
+              "median": 2.556600928
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "d185b7d5b8167cbcb27787e5632c75104b60b7af3ebd8400f5a8903f90e06749",
+            "or_ids": "e949dda70d73db0c14950be1b61911d6f52a62a667af467171098da40228c53b",
+            "union": "1329315f67d1698f9c0f49220767d7ed7aab863405e8bfc02b85a222454b0f85",
+            "union_ids": "e61a9a8446b2982814555f76305ab7356964f3e81efc1572a5e0de295cf63ffc"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 99
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 31
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 31
+              }
+            ]
+          }
+        },
+        {
+          "name": "composite-100000-acl",
+          "admin": false,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 31,
+          "times_ms": {
+            "or": {
+              "samples": [
+                3.973894485,
+                4.511695273,
+                3.228428443,
+                2.774469532,
+                3.183686048
+              ],
+              "median": 3.228428443
+            },
+            "union": {
+              "samples": [
+                4.62681874,
+                2.055915079,
+                3.018828763,
+                2.944739204,
+                2.639270121
+              ],
+              "median": 2.944739204
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "bf9abd63d60c436bb5cf76255426c74b0a6038da86c98be26ed521a9c3a280cf",
+            "or_ids": "ecaf4545315fd00e5fb725c309bd6ff0f83f5befc4d42b1a44b48fa42dcc8659",
+            "union": "55efeb1ba63c4d02c0bdcd5a34c92b697c9a5377590533e47f8dd497f8790542",
+            "union_ids": "ee5b754820692dcf3367dead70d2180bfe0e6e4efb7ea79f9342ecaa4da819a0"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 99
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 31
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 31
+              }
+            ]
+          }
+        },
+        {
+          "name": "composite-500-admin",
+          "admin": true,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 94,
+          "times_ms": {
+            "or": {
+              "samples": [
+                3.323967089,
+                3.313944151,
+                3.457622968,
+                3.384746185,
+                4.307758552
+              ],
+              "median": 3.384746185
+            },
+            "union": {
+              "samples": [
+                2.98112247,
+                9.704719807,
+                19.18278089,
+                5.775257006,
+                3.210547522
+              ],
+              "median": 5.775257006
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "500ae01b919216827d94f8fc846db85bc767643360ad2106e747b174e3f25983",
+            "or_ids": "28c3e488650194d97bdb63a38f69f8817405f18d3057cc3ba1e873a49d176cbc",
+            "union": "909c20b866745f1ae936fcafa328eb317a165c9c587596d188ededdd12a7fd93",
+            "union_ids": "fa63919cbe513e89727ffd3b64e2f618201fc6464a535f31b55f8483ffe830d6"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 99
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              }
+            ]
+          }
+        },
+        {
+          "name": "composite-100000-admin",
+          "admin": true,
+          "limit": 100000,
+          "equal_ids": true,
+          "matched_rows": 94,
+          "times_ms": {
+            "or": {
+              "samples": [
+                3.014609106,
+                2.954752119,
+                2.926387205,
+                3.074315748,
+                2.268040541
+              ],
+              "median": 2.954752119
+            },
+            "union": {
+              "samples": [
+                2.90071846,
+                2.708057545,
+                2.691329261,
+                3.352973472,
+                2.194883116
+              ],
+              "median": 2.708057545
+            }
+          },
+          "value_count": 100,
+          "sql_sha256": {
+            "or": "0910f5fc32d65e1a541a3217c0714f3824aa68a0415bf6539d7e59f22305e6a3",
+            "or_ids": "8730bbd2f0c631f335cd890f7257e6c029541fc0eb8c639e027b8e2f0c8a865a",
+            "union": "9329fc8cf38fdcd61d8c8e55b3221af4307e9c5ba2040c675198f358ab06c152",
+            "union_ids": "256c6452d623e381a43fbb02a9bd422735abd3abcea2377e84965951122ab7e3"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<derived2>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value1",
+                "r_rows": 0,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "range",
+                "key": "value2",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 99
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              }
+            ],
+            "or": [
+              {
+                "table_name": "Attribute",
+                "access_type": "index_merge",
+                "r_rows": 99,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 94
+              }
+            ]
+          }
+        },
+        {
+          "name": "tag-exists",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 12,
+          "times_ms": {
+            "or": {
+              "samples": [
+                4.676773063,
+                4.116240252,
+                4.15997033,
+                4.307788621,
+                4.21161853
+              ],
+              "median": 4.21161853
+            },
+            "union": {
+              "samples": [
+                9.790646455,
+                9.992478359,
+                10.04958906,
+                9.707065175,
+                9.851365414
+              ],
+              "median": 9.851365414
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "6191d42a584914145d6c1e0eb4a6f8fd8bed55938c0b1a5a81d4d8c805358c78",
+            "or_ids": "ad4a2c09637020d415a6694ac2124fa2732a005cc25e2e4aec6d299849578b09",
+            "union": "487745d66ec3f8c83bd749642e48aaea9377fdfad8fa8094f89bbe26e8be254e",
+            "union_ids": "5853cfe1d92d783c0c1a1c72bbae2bc85825c928235e137b53cd38a10ac67505"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<subquery4>",
+                "access_type": "ALL",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "TagMatch",
+                "access_type": "ref",
+                "key": "tag_id",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 285
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 269
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 118
+              },
+              {
+                "table_name": "<derived2>",
+                "access_type": "ref",
+                "key": "key0",
+                "r_rows": 0.101694915,
+                "r_loops": 118
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "<subquery2>",
+                "access_type": "ALL",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "TagMatch",
+                "access_type": "ref",
+                "key": "tag_id",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 285
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 27
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 27
+              }
+            ]
+          }
+        },
+        {
+          "name": "tag-in",
+          "admin": false,
+          "limit": 500,
+          "equal_ids": true,
+          "matched_rows": 12,
+          "times_ms": {
+            "or": {
+              "samples": [
+                2.779250474,
+                3.02294819,
+                2.601233071,
+                2.979117882,
+                5.397241897
+              ],
+              "median": 2.979117882
+            },
+            "union": {
+              "samples": [
+                7.643542685,
+                6.116507979,
+                6.60546699,
+                9.158148948,
+                7.989654783
+              ],
+              "median": 7.643542685
+            }
+          },
+          "value_count": 1,
+          "sql_sha256": {
+            "or": "6065a30c403d2003caccb6f216b1e22b8027e13565aa43fa408e885c78cd2b5b",
+            "or_ids": "0590b8f11831dcffbc939c748928b6809a30d27bdfbd2a483acd70e8dab61e2e",
+            "union": "dd39553a4cd1babdd5477723645bd3cd95e640a5edd1a6b78cb8e2d6ad17e166",
+            "union_ids": "872d2a414228efd3a2df9baf0f5b07f57e7fe2c0665f9d4800781fca0e1dbb1b"
+          },
+          "access_paths": {
+            "union": [
+              {
+                "table_name": "<subquery4>",
+                "access_type": "ALL",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attribute_tags",
+                "access_type": "ref",
+                "key": "tag_id",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 285
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 269
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 118
+              },
+              {
+                "table_name": "<derived2>",
+                "access_type": "ref",
+                "key": "key0",
+                "r_rows": 0.101694915,
+                "r_loops": 118
+              },
+              {
+                "table_name": "<union2,3>",
+                "access_type": "ALL",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value1",
+                "r_rows": 1000,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attributes",
+                "access_type": "ref",
+                "key": "value2",
+                "r_rows": 100,
+                "r_loops": 1
+              }
+            ],
+            "or": [
+              {
+                "table_name": "<subquery2>",
+                "access_type": "ALL",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "attribute_tags",
+                "access_type": "ref",
+                "key": "tag_id",
+                "r_rows": 285,
+                "r_loops": 1
+              },
+              {
+                "table_name": "Attribute",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 285
+              },
+              {
+                "table_name": "Object",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 27
+              },
+              {
+                "table_name": "Event",
+                "access_type": "eq_ref",
+                "key": "PRIMARY",
+                "r_rows": 1,
+                "r_loops": 27
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
