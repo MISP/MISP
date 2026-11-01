@@ -1284,21 +1284,28 @@ class Server extends AppModel
             return $push;
         }
 
+        // Validate the technique argument before branching on the server's push
+        // configuration. This dispatch used to live inside the `canPush && push`
+        // block below, so the very same invalid input threw an InvalidArgumentException
+        // on a push-enabled server but was silently accepted on a push-disabled one.
+        // The argument contract does not depend on the server's configuration, so it
+        // is enforced unconditionally here.
+        if ("full" == $technique) {
+            $eventid_conditions_key = 'Event.id >';
+            $eventid_conditions_value = 0;
+        } elseif ("incremental" == $technique) {
+            $eventid_conditions_key = 'Event.id >';
+            $eventid_conditions_value = $server['Server']['lastpushedid'];
+        } elseif (intval($technique) !== 0) {
+            $eventid_conditions_key = 'Event.id';
+            $eventid_conditions_value = intval($technique);
+        } else {
+            throw new InvalidArgumentException("Technique parameter must be 'full', 'incremental' or event ID.");
+        }
+
         // sync events if user is capable and server is configured for push
         if ($push['canPush'] && $server['Server']['push']) {
             $successes = array();
-            if ("full" == $technique) {
-                $eventid_conditions_key = 'Event.id >';
-                $eventid_conditions_value = 0;
-            } elseif ("incremental" == $technique) {
-                $eventid_conditions_key = 'Event.id >';
-                $eventid_conditions_value = $server['Server']['lastpushedid'];
-            } elseif (intval($technique) !== 0) {
-                $eventid_conditions_key = 'Event.id';
-                $eventid_conditions_value = intval($technique);
-            } else {
-                throw new InvalidArgumentException("Technique parameter must be 'full', 'incremental' or event ID.");
-            }
 
             // sync custom galaxy clusters if user is capable
             if ($push['canEditGalaxyCluster'] && $server['Server']['push_galaxy_clusters'] && "full" == $technique) {
