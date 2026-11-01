@@ -17,7 +17,7 @@ foreach ($attributes as $attribute): ?>
         <td class="short"><?php echo h($attribute['uuid']); ?>&nbsp;</td>
         <td class="short"><?php echo h($attribute['category']); ?>&nbsp;</td>
         <td class="short"><?php echo h($attribute['type']); ?>&nbsp;</td>
-        <td class="short"><?php echo h($attribute['value']); ?>&nbsp;</td>
+        <td><?php echo h($attribute['value']); ?>&nbsp;</td>
     </tr><?php
 endforeach; ?>
 </table>
@@ -37,7 +37,7 @@ foreach ($fails as $fail): ?>
     <tr>
         <td class="short"><?php echo h($fail['uuid']); ?>&nbsp;</td>
         <td class="short"><?php echo h($fail['search']); ?>&nbsp;</td>
-        <td class="short"><?php echo h($fail['value']); ?>&nbsp;</td>
+        <td><?php echo h($fail['value']); ?>&nbsp;</td>
     </tr><?php
 endforeach; ?>
 </table><br /><br />
