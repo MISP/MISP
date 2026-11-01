@@ -1,0 +1,52 @@
+<?php
+class ClassRegistry
+{
+    public static $attribute;
+    public static function init($name) { return $name === 'Job' ? new Job() : self::$attribute; }
+}
+class AppShell
+{
+    public $Job;
+    public $MispAttribute;
+    public $args = [];
+    public $output = [];
+    public function out($message) { $this->output[] = $message; }
+    public function error($message) { throw new RuntimeException($message); }
+    protected function json($data) { return json_encode($data, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR); }
+    protected function getBackgroundJobsTool() { return $this->Job->getBackgroundJobsTool(); }
+}
+class Job
+{
+    const WORKER_DEFAULT = 'default';
+    public $tool;
+    public $success;
+    public $progress = 0;
+    public function __construct() { $this->tool = new BackgroundJobsTool(); }
+    public function createJob(...$args) { return 5; }
+    public function saveProgress(...$args)
+    {
+        if (++$this->progress > 50) { throw new LogicException('The IOC index loop did not stop.'); }
+    }
+    public function saveStatus($jobId, $success, $message = null) { $this->success = $success; }
+    public function getBackgroundJobsTool() { return $this->tool; }
+}
+class BackgroundJobsTool
+{
+    const DEFAULT_QUEUE = 'default';
+    const CMD_ADMIN = 'admin';
+    public $queued = [];
+    public function enqueue(...$args) { $this->queued[] = $args; }
+}
+class FastLookupFilter extends FastLookupLifecycleFilter
+{
+    private static $shared;
+    public function __construct(...$args)
+    {
+        if (self::$shared === null) { self::$shared = ['meta' => [], 'generations' => [], 'lease' => null, 'available' => true, 'refuse' => false]; }
+        $this->available =& self::$shared['available'];
+        $this->refuseLeaseWrites =& self::$shared['refuse'];
+        $this->meta =& self::$shared['meta'];
+        $this->generations =& self::$shared['generations'];
+        $this->lease =& self::$shared['lease'];
+    }
+}

@@ -59,6 +59,14 @@ class RestResponseComponent extends Component
                 'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'date', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'attribute_timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'sharinggroup', 'includeProposals', 'includeDecayScore', 'includeFullModel', 'decayingModel', 'excludeDecayed', 'score', 'first_seen', 'last_seen'),
                 'params' => array()
             ),
+            'fastLookup' => array(
+                'description' => 'Bulk IOC lookup using the persistent Redis index. POST a value array (default maximum 10000, configured by MISP.fast_lookup_max_values). Each visible match contains event_ids and matched ip_ranges/domains. IPs also match containing CIDRs; hostnames match parent domain IOCs. Every response includes scope. Requires MISP.fast_lookup_enabled and a completed backfill. Warming, pending updates or unavailable indexes return HTTP 503 with progress and no results. Index entries do not expire; publications and attribute changes update them. Permissions and current values are checked for every request. No maxAge option. Each value is at most 4096 bytes, combined 16 MiB; resource overflow returns 413 without partial results.',
+                'operationId' => 'fastLookupAttributes',
+                'method' => 'POST',
+                'mandatory' => array('value'),
+                'optional' => array(),
+                'params' => array(),
+            ),
             'addTag' => array(
                 'description' => "Add a tag or a tag collection to an attribute.",
                 'operationId' => 'tagAttribute',

@@ -4,6 +4,7 @@ App::uses('GpgTool', 'Tools');
 App::uses('ServerSyncTool', 'Tools');
 App::uses('SystemSetting', 'Model');
 App::uses('EncryptedValue', 'Tools');
+App::uses('FastLookupConfig', 'Tools');
 App::uses('GitTool', 'Tools');
 App::uses('ProcessTool', 'Tools');
 
@@ -2014,6 +2015,26 @@ class Server extends AppModel
             return __('Invalid theme.');
         }
         return true;
+    }
+
+    public function testFastLookupTypes($value)
+    {
+        return FastLookupConfig::validateTypeSetting($value);
+    }
+
+    public function fastLookupLimitBeforeHook($setting, $value)
+    {
+        return $this->testFastLookupLimit($value);
+    }
+
+    public function testFastLookupLimit($value)
+    {
+        return FastLookupConfig::validateMaxValuesSetting($value);
+    }
+
+    public function testFastLookupFalsePositiveRate($value)
+    {
+        return FastLookupConfig::validateFalsePositiveRateSetting($value);
     }
 
     public function testForPositiveInteger($value)
@@ -7016,6 +7037,47 @@ class Server extends AppModel
                     'test' => 'testBoolFalse',
                     'type' => 'boolean',
                     'null' => true
+                ),
+                'fast_lookup_enabled' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Enable POST /attributes/fastLookup. Requires Redis and a completed backfill from Administration > Fast lookup index. Current values and caller permissions are checked on every request. Index entries do not expire.'),
+                    'value' => false,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => true,
+                ),
+                'fast_lookup_attribute_types' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Comma-separated attribute types included in the fast lookup index. Free text, rule and pattern bodies, scalars and fuzzy hashes (for example comment, yara, port, ssdeep) are never indexed. Changing this scope requires a new backfill. The configured scope is included in every fast lookup response.'),
+                    'value' => implode(',', FastLookupConfig::DEFAULT_TYPES),
+                    'test' => 'testFastLookupTypes',
+                    'type' => 'string',
+                    'null' => false,
+                ),
+                'fast_lookup_published_only' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Limit fast lookup to published events. Disable to include unpublished events subject to normal caller permissions. Changing this policy requires a new backfill.'),
+                    'value' => true,
+                    'test' => 'testBool',
+                    'type' => 'boolean',
+                    'null' => false,
+                ),
+                'fast_lookup_max_values' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Maximum number of IOC values per fastLookup request. Defaults to 10000. The independent 16 MiB combined input limit and the 100000 visible-match result limit still apply.'),
+                    'value' => FastLookupConfig::DEFAULT_MAX_VALUES,
+                    'test' => 'testFastLookupLimit',
+                    'beforeHook' => 'fastLookupLimitBeforeHook',
+                    'type' => 'numeric',
+                    'null' => false,
+                ),
+                'fast_lookup_false_positive_rate' => array(
+                    'level' => self::SETTING_OPTIONAL,
+                    'description' => __('Bloom filter false-positive rate of the fast lookup index, between 0.0001 and 0.05. Lower rates use more Redis memory (about 1.8 bytes per token at 0.001) and send fewer absent values to SQL. Changing it requires a new backfill.'),
+                    'value' => (string)FastLookupConfig::DEFAULT_FALSE_POSITIVE_RATE,
+                    'test' => 'testFastLookupFalsePositiveRate',
+                    'type' => 'string',
+                    'null' => false,
                 ),
                 'redis_host' => array(
                     'level' => 0,

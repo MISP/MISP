@@ -1,0 +1,1284 @@
+<?php
+App::uses('FastLookupConfig', 'Tools');
+App::uses('FastLookupFilter', 'Tools');
+App::uses('FastLookupValueTool', 'Tools');
+
+/** The worker lease lapsed mid-batch: another worker may own the index now. */
+class FastLookupWorkerLeaseLostException extends RuntimeException
+{
+}
+
+/**
+ * SQL owns the index checkpoint and mutation queue; Redis holds a derived Bloom
+ * pre-filter (FastLookupFilter).
+ *
+ * Model callbacks write the queue on their existing connection/transaction,
+ * under a share lock on the singleton SQL state row. Workers exclude each other
+ * with a Redis lease held for a whole batch, so the exclusion spans every MISP
+ * server and database node sharing the index, and take the state row FOR
+ * UPDATE only while they drain the queue, checkpoint or activate: the rebuild
+ * scan runs outside the row lock with an attribute ID cursor, so it never holds
+ * writers back. Batches that change what lookups see (dirty events, a first
+ * build, an activation) first commit a pending and a distinct next revision,
+ * so a Redis snapshot from mid-batch never matches the committed checkpoint.
+ * A rebuild writes a building generation beside the live one. Its scan batches
+ * leave the live revision alone and are fenced by the attribute cursor stored
+ * with the generation, so a restored Redis snapshot cannot activate an
+ * incomplete filter. Dirty events go to both generations until activation.
+ */
+class FastLookupIndexManager
+{
+    const STATE_SETTING = 'fastLookupIndex:state:v3';
+    const LEGACY_STATE_SETTING = 'fastLookupIndex:state:v2';
+    const DIRTY_PREFIX = 'fastLookupIndex:dirty:v2:';
+    const ATTRIBUTE_BATCH_SIZE = 500;
+    /** Rows per rebuild scan query; progress is still recorded once per batch. */
+    const SCAN_CHUNK_SIZE = 2000;
+    /**
+     * Attribute IDs one scan query may cover. The window, not the LIMIT, bounds
+     * the rows a query examines: excluded types, deleted rows or unpublished
+     * events would otherwise let one query walk to the high-water mark and
+     * outlast the worker lease. Ten chunks still fill a chunk per query where
+     * one ID in ten is in scope; a sparse stretch costs at most one cheap
+     * empty query per window.
+     */
+    const SCAN_WINDOW = 20000;
+    const SCAN_BATCH_SIZE = 100;
+    const PENDING_BATCH_SIZE = 25;
+    /** One batch unit is one dirty event or this many scanned attributes. */
+    const SCAN_ATTRIBUTES_PER_UNIT = 1000;
+    const MIN_CAPACITY = FastLookupFilter::MIN_CAPACITY;
+    /** Most attributes carry one or two tokens. */
+    const TOKENS_PER_ATTRIBUTE = 2;
+    const CAPACITY_HEADROOM = 1.5;
+    /** Share of IP attributes assumed to be ranges when sizing postings. */
+    const IP_RANGE_SHARE = 0.05;
+    const REBUILD_AT_CAPACITY = 0.8;
+    /** Automatic restarts in a row of a build that fills while nothing serves. */
+    const FULL_RESTARTS = 3;
+    const REBUILD_AT_STALE = 0.1;
+    /** Below this, stale entries cost too little to justify a rebuild. */
+    const REBUILD_MIN_INSERTED = 10000;
+    const IP_TYPES = ['ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'domain|ip'];
+    const DOMAIN_TYPES = ['domain', 'domain|ip'];
+    /**
+     * Seconds a rebuild or resume batch waits for another worker's lease.
+     * processPending never waits: it may run inline at request shutdown, and
+     * its markers stay queued for the next dispatch or CLI batch.
+     */
+    const WORKER_LOCK_WAIT = 5;
+    /**
+     * Lifetime of the worker lease. The scan renews it before every chunk and
+     * before it records progress, so only a stalled or dead worker loses it.
+     */
+    const WORKER_LEASE_TTL_MS = 60000;
+    const WORKER_LEASE_RETRY_MS = 100;
+    /**
+     * When Redis cannot be asked, the lease counts as held only until this
+     * long before its last known expiry: past that, another worker may hold it.
+     */
+    const WORKER_LEASE_MARGIN_MS = 5000;
+    const BUILD_FAILED = 'The IOC index rebuild failed. Resume to restart it from the beginning, or start a new rebuild.';
+
+    private $attribute;
+    private $db;
+    private $connection;
+    private $settingsTable;
+    private $filter;
+    /** This worker's lease token while it holds the lease. */
+    private $leaseToken;
+    /** Monotonic time (ms) until which the lease is certainly still ours. */
+    private $leaseDeadline;
+    private static $dispatchModels = [];
+    private static $shutdownRegistered = false;
+
+    public function __construct($attribute = null, $filter = null)
+    {
+        $this->attribute = $attribute ?: ClassRegistry::init('MispAttribute');
+        $this->db = $this->attribute->getDataSource();
+        $this->connection = $this->db->getConnection();
+        $this->settingsTable = $this->db->fullTableName('admin_settings');
+        $this->filter = $filter;
+    }
+
+    public function filter()
+    {
+        if ($this->filter === null) {
+            $this->filter = new FastLookupFilter(
+                FastLookupConfig::namespaceFor($this->attribute),
+                FastLookupConfig::scope($this->attribute)
+            );
+        }
+        return $this->filter;
+    }
+
+    public function status(bool $metrics = false): array
+    {
+        $result = [
+            'status' => 'unavailable',
+            'scope' => FastLookupConfig::scope($this->attribute),
+            'progress' => $this->progress([]),
+            'generation' => null,
+            'revision' => null,
+            'build' => null,
+        ];
+        $measure = null;
+        try {
+            $state = $this->readState();
+            $build = $state['build'] ?? null;
+            if (!$state || (empty($state['generation']) && !$build)) {
+                $result['message'] = 'The IOC index requires an administrator to start a backfill.';
+                return $result;
+            }
+            $fingerprint = FastLookupConfig::fingerprint($this->attribute);
+            if ($build) {
+                $result['build'] = ['generation' => $build['generation'], 'progress' => $this->progress($build), 'error' => $build['error'] ?? null];
+                $result['progress'] = $result['build']['progress'];
+                $measure = empty($build['reserved']) ? null : $build['generation'];
+            }
+            if (empty($state['generation']) || $state['fingerprint'] !== $fingerprint) {
+                if ($build && $build['fingerprint'] === $fingerprint) {
+                    // A failing first build must not look like progress, nor
+                    // one whose Redis is unreachable.
+                    $failure = $build['error'] ?? $state['error'] ?? null;
+                    if ($failure === null && !$this->filter()->moduleAvailable()) {
+                        throw new RuntimeException('Redis is unavailable for the IOC index build.');
+                    }
+                    $result['status'] = $failure === null ? 'warming' : 'error';
+                    $result['message'] = $failure ?? 'The IOC index is being built.';
+                } else {
+                    $result['message'] = empty($state['generation'])
+                        ? 'The IOC index requires an administrator to start a backfill.'
+                        : 'The configured IOC scope has changed. A new backfill is required.';
+                }
+                return $this->withFilterCounters($this->includeStatistics($result, $metrics, $measure));
+            }
+            $result['generation'] = $state['generation'];
+            $result['revision'] = $state['revision'];
+            $measure = $state['generation'];
+            if (!$build) {
+                $result['progress'] = $this->progress($state['last_build'] ?? ['scan_complete' => true]);
+            }
+            if (!empty($state['error'])) {
+                $result['status'] = 'error';
+                $result['message'] = $state['error'];
+                return $this->withFilterCounters($this->includeStatistics($result, $metrics, $measure));
+            }
+            if (!empty($state['pending_revision'])) {
+                $result['status'] = 'updating';
+                $result['message'] = 'An IOC index batch is in progress or awaiting resume.';
+                return $this->withFilterCounters($this->includeStatistics($result, $metrics, $measure));
+            }
+            $metadata = $this->filter()->metadata();
+            if (!$this->checkpointMatches($state, $metadata)) {
+                $result['message'] = 'The Redis index does not match its SQL checkpoint. Rebuild the index.';
+                return $this->withFilterCounters($this->includeStatistics($result, $metrics, $measure), $metadata);
+            }
+            if ($this->dirtyCount() > 0) {
+                $result['status'] = 'updating';
+            } elseif ($metadata['ready']) {
+                $result['status'] = 'ready';
+            }
+        } catch (Throwable $e) {
+            $result['status'] = 'unavailable';
+            $result['message'] = [
+                'missing' => 'Fast lookup requires the RedisBloom module (Redis 8 or Redis Stack).',
+                'unreachable' => 'The IOC index is unavailable: Redis cannot be reached. Its SQL queue has been retained.',
+            ][$this->moduleState() ?? ''] ?? 'The IOC index is unavailable. Its SQL queue has been retained.';
+            $this->logFailure($e);
+            return $result;
+        }
+        return $this->withFilterCounters($this->includeStatistics($result, $metrics, $measure), $metadata);
+    }
+
+    /**
+     * Cheap, always-on filter counters for the live generation (an O(1)
+     * HMGET via metadata(), never the MEMORY USAGE walk statistics() does),
+     * so the dashboard can warn about over-capacity/stale filters without
+     * requiring ?metrics=1. Never lets a metadata failure fail status().
+     */
+    private function withFilterCounters(array $result, ?array $metadata = null): array
+    {
+        if ($metadata === null) {
+            try {
+                $metadata = $this->filter()->metadata();
+            } catch (Throwable $e) {
+                return $result;
+            }
+        }
+        $live = $metadata['live'] ?? null;
+        if ($live !== null && isset($metadata['generations'][$live])) {
+            $info = $metadata['generations'][$live];
+            $result['filter'] = [
+                'capacity' => $info['capacity'],
+                'rate' => $info['rate'],
+                'inserted' => $info['inserted'],
+                'stale' => $info['stale'],
+            ];
+        }
+        return $result;
+    }
+
+    public function isCurrent(array $snapshot): bool
+    {
+        $current = $this->status();
+        return $current['status'] === 'ready' && ($snapshot['status'] ?? null) === 'ready'
+            && $current['generation'] === ($snapshot['generation'] ?? null)
+            && $current['revision'] === ($snapshot['revision'] ?? null);
+    }
+
+    public function startRebuild(): array
+    {
+        $this->requireIdleConnection();
+        // Sizing only needs an estimate, so it is counted outside every lock:
+        // a full count must not hold attribute writers or workers back.
+        $sizing = $this->sizing(FastLookupConfig::scope($this->attribute));
+        if (!$this->acquireWorkerLease(self::WORKER_LOCK_WAIT)) {
+            // Never replace a build another worker may be scanning.
+            throw new RuntimeException('Another IOC index worker is busy. Start the rebuild again once its batch has finished.');
+        }
+        try {
+            $this->connection->beginTransaction();
+            try {
+                self::insertStateIfAbsent($this->connection, $this->settingsTable);
+                $state = ($this->readState(true) ?: []) + ['generation' => null, 'fingerprint' => null, 'revision' => '0',
+                    'pending_revision' => null, 'next_revision' => null, 'error' => null];
+                $this->discardUnservableGeneration($state);
+                $state['build'] = $this->newBuild($sizing);
+                $this->writeState($state);
+                $this->connection->commit();
+            } catch (Throwable $e) {
+                $this->rollbackOwnedTransaction();
+                throw $e;
+            }
+            // Reserving the filter is resumable too: the build is committed first.
+            $this->work(0, false);
+        } finally {
+            $this->releaseWorkerLease();
+        }
+        return $this->status();
+    }
+
+    /** Clears a failed rebuild so the next batch restarts it in a fresh generation. */
+    public function resume(): array
+    {
+        $this->requireIdleConnection();
+        $this->connection->beginTransaction();
+        try {
+            $state = $this->readState(true);
+            if ($state && !empty($state['build']['error'])) {
+                $state['build']['error'] = null;
+                // An operator's resume earns a fresh set of automatic restarts.
+                $state['build']['full_restarts'] = 0;
+                $this->writeState($state);
+            }
+            $this->connection->commit();
+        } catch (Throwable $e) {
+            $this->rollbackOwnedTransaction();
+            throw $e;
+        }
+        return $this->status();
+    }
+
+    public function runBatch(int $limit = self::SCAN_BATCH_SIZE): array
+    {
+        return $this->runBatchInternal(self::boundedLimit($limit), false);
+    }
+
+    public function processPending(int $limit = self::PENDING_BATCH_SIZE): array
+    {
+        return $this->runBatchInternal(self::boundedLimit($limit), true);
+    }
+
+    private function runBatchInternal(int $limit, bool $pendingOnly): array
+    {
+        $this->requireIdleConnection();
+        try {
+            $leased = $this->acquireWorkerLease($pendingOnly ? 0 : self::WORKER_LOCK_WAIT);
+        } catch (Throwable $e) {
+            // Without the lease this worker may not write SQL state. Redis may
+            // still answer reads (OOM, READONLY, MISCONF, ACL), so status()
+            // alone could look like progress: report a terminal status that
+            // is not persisted, so CLI loops stop instead of spinning.
+            $this->logFailure($e);
+            $status = $this->status();
+            $status['status'] = 'unavailable';
+            $status['message'] = 'The IOC index worker lease could not be taken in Redis. Its SQL queue has been retained.';
+            return $status;
+        }
+        // A busy lease means another worker is running a batch: leave it be.
+        if ($leased) {
+            try {
+                $this->work($limit, $pendingOnly);
+            } finally {
+                $this->releaseWorkerLease();
+            }
+        }
+        return $this->status();
+    }
+
+    /** One batch. The caller holds the worker lease; failures are recorded, not thrown. */
+    private function work(int $limit, bool $pendingOnly): void
+    {
+        $phase = 'update';
+        // The SQL build as this worker last saw it committed: a build failure
+        // is recorded only if nobody has changed it since (saveFailure).
+        $observed = null;
+        try {
+            $this->sizeStagedBuild();
+            // Commit intent separately. A crash during the next transaction must
+            // not erase the revision that identifies its partial Redis writes.
+            $this->connection->beginTransaction();
+            $state = $this->readState(true);
+            if (!$this->canWork($state)) {
+                $this->connection->commit();
+                return;
+            }
+            $build = $state['build'] ?? null;
+            $buildActive = $build && !empty($build['reserved']) && empty($build['error']);
+            // A first build and an activation change what lookups see; plain
+            // rebuild scans do not, so they leave the live revision alone.
+            $visible = $this->dirtyCount() > 0
+                || ($buildActive && (empty($state['generation']) || !empty($build['scan_complete'])));
+            if ($visible && empty($state['pending_revision'])) {
+                if ($this->hasRedisState($state) && !$this->checkpointMatches($state, $this->filter()->metadata())) {
+                    throw new RuntimeException('The index checkpoint is stale; start a new backfill.');
+                }
+                $this->stageRevisions($state);
+            }
+            if ($build && empty($build['reserved'])) {
+                // An interrupted reservation may have left keys behind: retry in
+                // a fresh generation; the next reservation reclaims the old one.
+                $state['build']['generation'] = bin2hex(random_bytes(16));
+            }
+            $this->writeState($state);
+            $this->connection->commit();
+
+            // Under the state row lock: reserve or verify the build, drain dirty
+            // events into every generation and settle the batch's revision.
+            $this->connection->beginTransaction();
+            $state = $this->readState(true);
+            $observed = $state['build'] ?? null;
+            if (!$this->canWork($state)) {
+                $this->connection->commit();
+                return;
+            }
+            $scope = FastLookupConfig::scope($this->attribute);
+            $metadata = $this->hasRedisState($state) ? $this->filter()->metadata() : null;
+            if ($metadata !== null) {
+                $this->recoverActivation($state, $metadata);
+                if (!$this->checkpointMatches($state, $metadata, true)) {
+                    throw new RuntimeException('The index checkpoint is stale; start a new backfill.');
+                }
+            }
+            if (!empty($state['build']) && empty($state['build']['error'])) {
+                $phase = 'build';
+                $this->prepareBuild($state, $metadata);
+                $phase = 'update';
+            }
+            $staged = !empty($state['pending_revision']);
+            if ($staged && $this->hasRedisState($state)) {
+                $this->filter()->checkpoint($state['pending_revision'], false);
+            }
+            $targets = $this->targets($state);
+            $remaining = $limit;
+            if ($staged && $remaining > 0 && $targets) {
+                $dirty = $this->query("SELECT setting, value FROM {$this->settingsTable} WHERE setting LIKE ? ORDER BY id LIMIT $remaining", [self::DIRTY_PREFIX . '%'])->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($dirty as $row) {
+                    if (!$this->refreshOrReplace($state, $targets, substr($row['setting'], strlen(self::DIRTY_PREFIX)), $scope)) {
+                        // The event stays queued for the generation replacing the full one.
+                        break;
+                    }
+                    // Never erase a newer mutation, including a change emitted by
+                    // a callback invoked while processing the current batch.
+                    $this->query("DELETE FROM {$this->settingsTable} WHERE setting = ? AND value = ?", [$row['setting'], $row['value']]);
+                    --$remaining;
+                }
+            }
+            $build = $state['build'] ?? null;
+            $scan = $build && !empty($build['reserved']) && empty($build['error']) && empty($build['scan_complete'])
+                && $limit > 0 && (!$pendingOnly || !empty($state['generation']));
+            // Nothing is served during a first build, so its revision stays
+            // staged across the scan and it activates right after it. Beside a
+            // live generation the batch settles first, so a scan never holds
+            // lookups back.
+            $deferred = $scan && $staged && empty($state['generation']);
+            if (!$deferred) {
+                $this->finishBatch($state, $staged);
+            }
+            // The update half succeeded; a failing scan records its own error.
+            $state['error'] = null;
+            $this->writeState($state);
+            $this->connection->commit();
+            $observed = $state['build'] ?? null;
+            if (!$scan) {
+                return;
+            }
+
+            // Outside the state row lock, so event and attribute writers are
+            // never held back by the scan; the worker lease keeps it exclusive.
+            // Redis's cursor is written after the rows it covers and may run
+            // ahead of SQL's after a crash, never behind it (prepareBuild).
+            $phase = 'build';
+            $scanned = $state['build'];
+            $this->scanAttributes($scanned, $limit * self::SCAN_ATTRIBUTES_PER_UNIT, $scope);
+
+            $phase = 'update';
+            $this->connection->beginTransaction();
+            $current = $this->readState(true);
+            $build = $current['build'] ?? null;
+            if (!$build || $build['generation'] !== $scanned['generation'] || empty($build['reserved']) || !empty($build['error'])
+                || $build['cursor'] !== $state['build']['cursor']
+                || ($current['pending_revision'] ?? null) !== ($state['pending_revision'] ?? null)) {
+                // The build changed meanwhile, which the worker lease should
+                // prevent unless this worker's lease lapsed: its SQL progress
+                // is not ours to record.
+                $this->connection->commit();
+                return;
+            }
+            $current['build'] = array_merge($build, array_intersect_key($scanned, array_flip(['cursor', 'processed', 'total', 'scan_complete'])));
+            $this->writeState($current);
+            $this->connection->commit();
+            if (!$deferred) {
+                return;
+            }
+
+            // The first build settles in a transaction of its own, so an
+            // interrupted activation finds the completed scan in SQL.
+            $this->renewWorkerLease();
+            $this->connection->beginTransaction();
+            $state = $this->readState(true);
+            $observed = $state['build'] ?? null;
+            if (!$this->canWork($state) || empty($state['pending_revision'])) {
+                $this->connection->commit();
+                return;
+            }
+            $metadata = $this->filter()->metadata();
+            if (!$this->checkpointMatches($state, $metadata, true)) {
+                throw new RuntimeException('The index checkpoint is stale; start a new backfill.');
+            }
+            $phase = 'build';
+            $this->prepareBuild($state, $metadata);
+            $phase = 'update';
+            $this->finishBatch($state, true);
+            $this->writeState($state);
+            $this->connection->commit();
+        } catch (Throwable $e) {
+            $this->rollbackOwnedTransaction();
+            if ($e instanceof FastLookupWorkerLeaseLostException || !$this->holdsWorkerLease()) {
+                // Another worker may own the index by now: the SQL state is
+                // not ours to fail. Progress recorded so far stays valid.
+                $this->logFailure($e);
+                return;
+            }
+            $this->saveFailure($e, $phase, $observed);
+        }
+    }
+
+    /** Activates a complete build and commits a staged revision, under the state row lock. */
+    private function finishBatch(array &$state, bool $staged): void
+    {
+        $build = $state['build'] ?? null;
+        if ($staged && $build && !empty($build['reserved']) && !empty($build['scan_complete'])
+            && empty($build['error']) && $this->dirtyCount() === 0) {
+            // Redis swaps and deletes the old generation before SQL commits;
+            // recoverActivation() completes the swap if that commit never lands.
+            $this->filter()->activate($build['generation'], $build['fingerprint']);
+            $this->completeActivation($state);
+        }
+        if ($this->serving($state) && $this->liveFilterFull($state['generation'])) {
+            $this->replaceFullGeneration($state, new FastLookupIndexFullException($state['generation']));
+            if (!$staged) {
+                $this->filter()->checkpoint($state['revision'], false);
+            }
+        }
+        if ($staged) {
+            // Never publish the in-progress revision as committed: a Redis
+            // snapshot from mid-batch still carries it and must stay stale.
+            $committed = $state['next_revision'];
+            $state['revision'] = $committed;
+            $state['pending_revision'] = null;
+            $state['next_revision'] = null;
+            if ($this->hasRedisState($state)) {
+                $ready = !empty($state['generation'])
+                    && $state['fingerprint'] === FastLookupConfig::fingerprint($this->attribute)
+                    && $this->dirtyCount() === 0;
+                $this->filter()->checkpoint($committed, $ready);
+            }
+        }
+        if (!empty($state['generation']) && empty($state['build'])) {
+            $this->scheduleRebuildIfNeeded($state);
+        }
+        $state['error'] = null;
+    }
+
+    private function completeActivation(array &$state): void
+    {
+        $build = $state['build'];
+        $state['generation'] = $build['generation'];
+        $state['fingerprint'] = $build['fingerprint'];
+        $state['last_build'] = array_intersect_key($build, array_flip(['processed', 'total', 'scan_complete', 'started_at']));
+        $state['build'] = null;
+        // The first activation retires the previous index format; activate()
+        // already removed its Redis keys.
+        $this->query("DELETE FROM {$this->settingsTable} WHERE setting = ?", [self::LEGACY_STATE_SETTING]);
+    }
+
+    /**
+     * activate() swaps Redis to the build and deletes the old generation before
+     * SQL commits. If that commit never happened, or the old-key cleanup threw
+     * after the swap, Redis already serves the build the staged batch was
+     * activating: complete the activation in SQL instead of failing forever.
+     */
+    private function recoverActivation(array &$state, array $metadata): void
+    {
+        $build = $state['build'] ?? null;
+        if (empty($state['pending_revision']) || !$build || empty($build['reserved'])
+            || empty($build['scan_complete']) || !empty($build['error'])
+            || ($metadata['live'] ?? null) !== $build['generation']
+            || ($metadata['fingerprint'] ?? null) !== $build['fingerprint']
+            || ($metadata['building'] ?? null) !== null
+            || !in_array($metadata['revision'] ?? null, [$state['pending_revision'], $state['next_revision'] ?? null], true)) {
+            return;
+        }
+        $this->completeActivation($state);
+        $this->attribute->log('Completed an interrupted fast lookup index activation.', LOG_INFO);
+    }
+
+    /**
+     * A rebuild cannot run beside a live generation Redis has lost or holds at
+     * another checkpoint: every batch would fail on it. Drop it from SQL and
+     * build from scratch; lookups answer 503 until the new generation is ready.
+     * Only Redis's own answer that the index is missing or invalid counts: a
+     * transport error propagates and the live generation keeps serving.
+     */
+    private function discardUnservableGeneration(array &$state): void
+    {
+        if (empty($state['generation'])) {
+            return;
+        }
+        try {
+            $metadata = $this->filter()->metadata();
+        } catch (FastLookupIndexCorruptException $e) {
+            if (!$this->filter()->moduleAvailable()) {
+                // Redis lacks RedisBloom: nothing can be built now.
+                throw $e;
+            }
+            $metadata = null;
+        }
+        if ($metadata !== null) {
+            $this->recoverActivation($state, $metadata);
+            // The build is being replaced, so only the live checkpoint counts.
+            if ($this->checkpointMatches(['build' => null] + $state, $metadata, true)) {
+                return;
+            }
+        }
+        $this->attribute->log('The fast lookup index no longer matches its Redis state and is rebuilt from scratch.', LOG_WARNING);
+        $state['generation'] = null;
+        $state['fingerprint'] = null;
+        $state['error'] = null;
+        unset($state['last_build']);
+    }
+
+    /**
+     * Workers exclude each other for a whole batch without holding the state
+     * row. The lease lives in Redis, which every MISP server shares, so the
+     * exclusion also holds across database nodes. Tries once when $wait is 0.
+     */
+    private function acquireWorkerLease(int $wait): bool
+    {
+        $token = bin2hex(random_bytes(16));
+        $retries = intdiv($wait * 1000, self::WORKER_LEASE_RETRY_MS);
+        for ($attempt = 0; ; ++$attempt) {
+            $start = $this->now();
+            if ($this->filter()->acquireLease($token, self::WORKER_LEASE_TTL_MS)) {
+                $this->leaseToken = $token;
+                $this->leaseDeadline = $start + self::WORKER_LEASE_TTL_MS - self::WORKER_LEASE_MARGIN_MS;
+                return true;
+            }
+            if ($attempt >= $retries) {
+                return false;
+            }
+            $this->pause(self::WORKER_LEASE_RETRY_MS);
+        }
+    }
+
+    /** Extends the lease, or stops the batch if another worker may hold it. */
+    private function renewWorkerLease(): void
+    {
+        if (!$this->extendWorkerLease()) {
+            throw new FastLookupWorkerLeaseLostException('The IOC index worker lease expired during the batch.');
+        }
+    }
+
+    private function extendWorkerLease(): bool
+    {
+        // Measured before the request: the lease can only outlive this.
+        $start = $this->now();
+        if (!$this->filter()->renewLease($this->leaseToken, self::WORKER_LEASE_TTL_MS)) {
+            $this->leaseDeadline = null;
+            return false;
+        }
+        $this->leaseDeadline = $start + self::WORKER_LEASE_TTL_MS - self::WORKER_LEASE_MARGIN_MS;
+        return true;
+    }
+
+    /**
+     * Whether this worker may still record a failure. If Redis cannot say,
+     * the lease counts as held only until shortly before it could have
+     * expired, so a Redis failure is recorded without ever letting a worker
+     * whose lease lapsed fail another holder's work.
+     */
+    private function holdsWorkerLease(): bool
+    {
+        try {
+            return $this->extendWorkerLease();
+        } catch (Throwable $e) {
+            return $this->leaseDeadline !== null && $this->now() < $this->leaseDeadline;
+        }
+    }
+
+    private function releaseWorkerLease(): void
+    {
+        $token = $this->leaseToken;
+        $this->leaseToken = null;
+        $this->leaseDeadline = null;
+        try {
+            $this->filter()->releaseLease($token);
+        } catch (Throwable $e) {
+            // The lease expires by itself; never mask the batch's own outcome.
+            $this->logFailure($e);
+        }
+    }
+
+    protected function pause(int $milliseconds): void
+    {
+        usleep($milliseconds * 1000);
+    }
+
+    /** Monotonic milliseconds. */
+    protected function now(): float
+    {
+        return hrtime(true) / 1e6;
+    }
+
+    private function canWork($state): bool
+    {
+        if (!$state) {
+            return false;
+        }
+        $fingerprint = FastLookupConfig::fingerprint($this->attribute);
+        return (!empty($state['generation']) && $state['fingerprint'] === $fingerprint)
+            || (!empty($state['build']) && $state['build']['fingerprint'] === $fingerprint);
+    }
+
+    private function hasRedisState(array $state): bool
+    {
+        return !empty($state['generation']) || !empty($state['build']['reserved']);
+    }
+
+    /** Generations a dirty event is written to. */
+    private function targets(array $state): array
+    {
+        $fingerprint = FastLookupConfig::fingerprint($this->attribute);
+        $targets = [];
+        if (!empty($state['generation']) && $state['fingerprint'] === $fingerprint) {
+            $targets[] = $state['generation'];
+        }
+        $build = $state['build'] ?? null;
+        if ($build && !empty($build['reserved']) && empty($build['error']) && $build['fingerprint'] === $fingerprint) {
+            $targets[] = $build['generation'];
+        }
+        return $targets;
+    }
+
+    private function newBuild(?array $sizing): array
+    {
+        return [
+            'generation' => bin2hex(random_bytes(16)),
+            'fingerprint' => FastLookupConfig::fingerprint($this->attribute),
+            'rate' => FastLookupConfig::scope($this->attribute)['false_positive_rate'],
+            'capacity' => $sizing['capacity'] ?? null,
+            'range_entries' => $sizing['range_entries'] ?? null,
+            'reserved' => false,
+            'cursor' => '0',
+            'high_water' => '0',
+            'processed' => 0,
+            'total' => $sizing['total'] ?? 0,
+            'scan_complete' => false,
+            'started_at' => time(),
+            'error' => null,
+            'full_restarts' => 0,
+        ];
+    }
+
+    private function sizing(array $scope): array
+    {
+        $types = $scope['attribute_types'];
+        $placeholders = implode(', ', array_fill(0, count($types), '?'));
+        $table = $this->db->fullTableName($this->attribute);
+        $counts = array_fill_keys($types, 0);
+        // Deleted rows are counted too, which keeps the count on the type index.
+        foreach ($this->query("SELECT type, COUNT(*) AS attributes FROM $table WHERE type IN ($placeholders) GROUP BY type", $types)->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $counts[$row['type']] = (int)$row['attributes'];
+        }
+        $ranges = 0;
+        foreach ($counts as $type => $count) {
+            if (in_array($type, self::DOMAIN_TYPES, true)) {
+                $ranges += $count;
+            }
+            if (in_array($type, self::IP_TYPES, true)) {
+                $ranges += (int)ceil(self::IP_RANGE_SHARE * $count);
+            }
+        }
+        $total = array_sum($counts);
+        $capacity = max(FastLookupFilter::MIN_CAPACITY, (int)ceil(self::CAPACITY_HEADROOM * self::TOKENS_PER_ATTRIBUTE * $total));
+        // The formula counts attributes, not their tokens: what the live
+        // generation already holds is the better floor.
+        $inserted = $this->liveInserted();
+        return [
+            'capacity' => $inserted === null ? $capacity : max($capacity, 2 * $inserted),
+            'range_entries' => $ranges,
+            'total' => $total,
+        ];
+    }
+
+    /** Tokens the live generation Redis holds; null when there is none or Redis cannot say. */
+    private function liveInserted(): ?int
+    {
+        try {
+            $metadata = $this->filter()->metadata();
+        } catch (FastLookupIndexCorruptException $e) {
+            // Redis answered: there is no index to serve.
+            return null;
+        } catch (Throwable $e) {
+            $this->attribute->log('Could not read the live fast lookup generation; the rebuild is sized from the attribute count alone.', LOG_WARNING);
+            return null;
+        }
+        $live = $metadata['live'] ?? null;
+        $inserted = $live === null ? null : ($metadata['generations'][$live]['inserted'] ?? null);
+        return is_int($inserted) ? $inserted : null;
+    }
+
+    /** An automatically scheduled build is sized before the lock is taken. */
+    private function sizeStagedBuild(): void
+    {
+        $state = $this->readState();
+        if (empty($state['build']) || $state['build']['capacity'] !== null) {
+            return;
+        }
+        $sizing = $this->sizing(FastLookupConfig::scope($this->attribute));
+        $this->connection->beginTransaction();
+        try {
+            $state = $this->readState(true);
+            if (!empty($state['build']) && $state['build']['capacity'] === null) {
+                $state['build'] = array_merge($state['build'], $sizing);
+                $this->writeState($state);
+            }
+            $this->connection->commit();
+        } catch (Throwable $e) {
+            $this->rollbackOwnedTransaction();
+            throw $e;
+        }
+    }
+
+    /** Reserves the building generation, or verifies Redis still holds its progress. */
+    private function prepareBuild(array &$state, ?array $metadata): void
+    {
+        $build = $state['build'];
+        if (empty($build['reserved'])) {
+            // Under the state lock: later attributes reach the build through
+            // dirty events, earlier ones through the scan.
+            $table = $this->db->fullTableName($this->attribute);
+            $highWater = $this->query("SELECT MAX(id) AS high_water FROM $table")->fetchColumn();
+            $this->filter()->reserve($build['generation'], $build['fingerprint'], (int)$build['capacity'],
+                (float)$build['rate'], (int)$build['range_entries']);
+            $state['build'] = array_merge($build, ['reserved' => true, 'cursor' => '0',
+                'high_water' => $highWater ? (string)$highWater : '0', 'processed' => 0, 'scan_complete' => false,
+                'started_at' => time()]);
+            if (empty($state['generation'])) {
+                // Nothing is served yet, so align Redis with the SQL checkpoint:
+                // an earlier failed attempt may have left another revision.
+                $this->filter()->checkpoint($state['pending_revision'] ?: $state['revision'], false);
+            }
+            return;
+        }
+        $info = $metadata['generations'][$build['generation']] ?? null;
+        if (!$info || self::compareIds($info['cursor'], $build['cursor']) < 0) {
+            throw new RuntimeException('The IOC index build lost its Redis state.');
+        }
+    }
+
+    private function scanAttributes(array &$build, int $maximum, array $scope): void
+    {
+        $valueTool = new FastLookupValueTool($this->attribute);
+        $table = $this->db->fullTableName($this->attribute);
+        $events = $this->db->fullTableName($this->attribute->Event);
+        $types = $scope['attribute_types'];
+        $placeholders = implode(', ', array_fill(0, count($types), '?'));
+        $published = $scope['published_only'] ? ' AND e.published = TRUE' : '';
+        $columns = $valueTool->scanColumns('a');
+        $scanned = 0;
+        while ($scanned < $maximum && self::compareIds($build['cursor'], $build['high_water']) < 0) {
+            $this->renewWorkerLease();
+            $take = min(self::SCAN_CHUNK_SIZE, $maximum - $scanned);
+            $upper = self::windowEnd($build['cursor'], $build['high_water']);
+            // Walk the primary key: with an index on a low-cardinality column
+            // (deleted, type) the optimizer seeks that index and skips every ID
+            // up to the cursor, so each chunk would cost O(cursor). The ID
+            // window bounds the rows one query examines, whatever the plan.
+            $rows = $this->query("SELECT $columns FROM $table a FORCE INDEX (PRIMARY) INNER JOIN $events e ON e.id = a.event_id WHERE a.id > ? AND a.id <= ? AND a.deleted = FALSE AND a.type IN ($placeholders)$published ORDER BY a.id LIMIT $take",
+                array_merge([$build['cursor'], $upper], $types))->fetchAll(PDO::FETCH_ASSOC);
+            if ($rows) {
+                $this->filter()->add($build['generation'], $valueTool->prepareScannedAttributes($rows));
+                $build['processed'] += count($rows);
+                $scanned += count($rows);
+            }
+            // A short chunk read every row in (cursor, upper], so the cursor
+            // may pass the last row read; a full one may have left rows in
+            // the window and resumes after its last row.
+            $build['cursor'] = count($rows) < $take ? $upper : (string)$rows[count($rows) - 1]['id'];
+        }
+        if (self::compareIds($build['cursor'], $build['high_water']) >= 0) {
+            $build['scan_complete'] = true;
+            $build['total'] = $build['processed'];
+        }
+        // Record progress only while the lease is still ours; the T3
+        // compare-and-set fences a worker whose lease lapses after this.
+        $this->renewWorkerLease();
+        $this->filter()->setCursor($build['generation'], $build['cursor']);
+    }
+
+    /**
+     * A full filter has lost tokens it was sent, so it must never answer
+     * again. False when the live generation was dropped; a failed build only
+     * leaves the live generation, which still takes the event.
+     */
+    private function refreshOrReplace(array &$state, array &$targets, string $eventId, array $scope): bool
+    {
+        while (true) {
+            try {
+                $this->refreshEvent($targets, $eventId, $scope);
+                return true;
+            } catch (FastLookupIndexFullException $e) {
+                $this->replaceFullGeneration($state, $e);
+                if (empty($state['generation'])) {
+                    return false;
+                }
+                $targets = $this->targets($state);
+            }
+        }
+    }
+
+    /** A live generation of the configured scope answers lookups; one of an older scope does not. */
+    private function serving(array $state): bool
+    {
+        return !empty($state['generation']) && $state['fingerprint'] === FastLookupConfig::fingerprint($this->attribute);
+    }
+
+    private function liveFilterFull(string $generation): bool
+    {
+        $info = $this->filter()->metadata()['generations'][$generation] ?? null;
+        return $info !== null && $info['inserted'] >= $info['capacity'];
+    }
+
+    private function replaceFullGeneration(array &$state, FastLookupIndexFullException $e): void
+    {
+        $build = $state['build'] ?? null;
+        if (!empty($state['generation']) && $e->generation === $state['generation']) {
+            $this->attribute->log('The fast lookup filter is full; lookups answer 503 until a larger rebuild is ready.', LOG_WARNING);
+            $state['generation'] = null;
+            $state['fingerprint'] = null;
+            unset($state['last_build']);
+            if (empty($build)) {
+                $state['build'] = $this->newBuild(null);
+            } elseif (!empty($build['error'])) {
+                // Nothing serves any more, so a failed build restarts without waiting for a resume.
+                $state['build']['error'] = null;
+            }
+            return;
+        }
+        if ($build && $e->generation === $build['generation']) {
+            $state['build'] = $this->failedBuild($build, true, $this->serving($state));
+            return;
+        }
+        throw $e;
+    }
+
+    /**
+     * A build that filled its filter restarts at twice its capacity, or it
+     * would fill again. With nothing serving it restarts by itself, a few
+     * times in a row; beside a live generation it waits for a resume.
+     */
+    private function failedBuild(array $build, bool $full, bool $serving): array
+    {
+        $failed = array_merge($build, ['error' => self::BUILD_FAILED, 'reserved' => false,
+            'cursor' => '0', 'processed' => 0, 'scan_complete' => false]);
+        if (!$full) {
+            return $failed;
+        }
+        $failed['capacity'] = 2 * (int)$build['capacity'];
+        $restarts = (int)($build['full_restarts'] ?? 0);
+        if (!$serving && $restarts < self::FULL_RESTARTS) {
+            $failed['error'] = null;
+            $failed['full_restarts'] = $restarts + 1;
+            $this->attribute->log(sprintf('The fast lookup rebuild filled its filter while no index serves; it restarts at twice the capacity (%d of %d).',
+                $restarts + 1, self::FULL_RESTARTS), LOG_WARNING);
+        } else {
+            $this->attribute->log('The fast lookup rebuild filled its filter; resume it to retry at twice the capacity.', LOG_WARNING);
+        }
+        return $failed;
+    }
+
+    private function refreshEvent(array $targets, string $eventId, array $scope): void
+    {
+        $events = $this->db->fullTableName($this->attribute->Event);
+        $filter = $scope['published_only'] ? ' AND published = TRUE' : '';
+        $event = $this->query("SELECT published FROM $events WHERE id = ?$filter", [$eventId])->fetch(PDO::FETCH_ASSOC);
+        // Without manifests the replaced tokens are unknown: count every
+        // re-added attribute, plus one for removals, as possibly stale.
+        $stale = 1;
+        if ($event) {
+            $valueTool = new FastLookupValueTool($this->attribute);
+            $table = $this->db->fullTableName($this->attribute);
+            $types = $scope['attribute_types'];
+            $placeholders = implode(', ', array_fill(0, count($types), '?'));
+            $columns = $valueTool->scanColumns('a');
+            $lastId = '0';
+            do {
+                $rows = $this->query("SELECT $columns FROM $table a WHERE a.event_id = ? AND a.id > ? AND a.deleted = FALSE AND a.type IN ($placeholders) ORDER BY a.id LIMIT " . self::ATTRIBUTE_BATCH_SIZE,
+                    array_merge([$eventId, $lastId], $types))->fetchAll(PDO::FETCH_ASSOC);
+                if ($rows) {
+                    $prepared = $valueTool->prepareScannedAttributes($rows);
+                    foreach ($targets as $generation) {
+                        $this->filter()->add($generation, $prepared);
+                    }
+                    $lastId = (string)$rows[count($rows) - 1]['id'];
+                    $stale += count($rows);
+                }
+            } while (count($rows) === self::ATTRIBUTE_BATCH_SIZE);
+        }
+        foreach ($targets as $generation) {
+            $this->filter()->markStale($generation, $stale);
+        }
+    }
+
+    private function scheduleRebuildIfNeeded(array &$state): void
+    {
+        if ($state['fingerprint'] !== FastLookupConfig::fingerprint($this->attribute)) {
+            return;
+        }
+        $info = $this->filter()->metadata()['generations'][$state['generation']] ?? null;
+        if (!$info) {
+            return;
+        }
+        if ($info['inserted'] >= self::REBUILD_AT_CAPACITY * $info['capacity']
+            || ($info['inserted'] >= self::REBUILD_MIN_INSERTED && $info['stale'] >= self::REBUILD_AT_STALE * $info['inserted'])) {
+            $state['build'] = $this->newBuild(null);
+            $this->attribute->log('Scheduled a fast lookup index rebuild: the filter is near capacity or holds many stale entries.', LOG_INFO);
+        }
+    }
+
+    private static function compareIds(string $left, string $right): int
+    {
+        return strlen($left) <=> strlen($right) ?: strcmp($left, $right);
+    }
+
+    /** min(cursor + SCAN_WINDOW, high_water); MISP attribute IDs are int(11). */
+    private static function windowEnd(string $cursor, string $highWater): string
+    {
+        if (!ctype_digit($cursor) || !ctype_digit($highWater) || strlen($highWater) > 18) {
+            throw new RuntimeException('The IOC index scan cursor is out of range.');
+        }
+        return (string)min((int)$cursor + self::SCAN_WINDOW, (int)$highWater);
+    }
+
+    /** Keep Cake delete callbacks and their durable marker in one transaction. */
+    public static function withMutationTransaction($model, callable $operation)
+    {
+        $db = $model->getDataSource();
+        $owned = !$db->getConnection()->inTransaction();
+        if ($owned && !$db->begin()) {
+            throw new RuntimeException('Could not start the IOC mutation transaction.');
+        }
+        try {
+            $result = $operation();
+            if ($owned) {
+                if ($result === false) {
+                    $db->rollback();
+                } elseif (!$db->commit()) {
+                    throw new RuntimeException('Could not commit the IOC mutation transaction.');
+                }
+            }
+            return $result;
+        } catch (Throwable $e) {
+            if ($owned) {
+                // Use Cake bookkeeping, including when SQL has already aborted
+                // the transaction (for example after a deadlock).
+                try { $db->rollback(); } catch (Throwable $ignored) { }
+            }
+            throw $e;
+        }
+    }
+
+    /** Called inside the model's transaction; errors must abort that mutation. */
+    public static function recordChange($model, $eventId): void
+    {
+        if ((!is_int($eventId) && !is_string($eventId)) || !ctype_digit((string)$eventId) || (int)$eventId < 1) {
+            return;
+        }
+        $db = $model->getDataSource();
+        $connection = $db->getConnection();
+        $table = $db->fullTableName('admin_settings');
+        $owned = !$connection->inTransaction();
+        if ($owned) {
+            $connection->beginTransaction();
+        }
+        try {
+            $statement = $connection->prepare("SELECT id FROM $table WHERE setting = ?");
+            $statement->execute([self::STATE_SETTING]);
+            $stateId = $statement->fetchColumn();
+            $statement->closeCursor();
+            if ($stateId === false) {
+                // Materialise the lock row even before the first build. Locking
+                // an absent row is not portable across SQL isolation levels.
+                self::insertStateIfAbsent($connection, $table);
+                $statement = $connection->prepare("SELECT id FROM $table WHERE setting = ? FOR UPDATE");
+                $statement->execute([self::STATE_SETTING]);
+                $stateId = $statement->fetchColumn();
+                $statement->closeCursor();
+            }
+            // Mutations on different events share this lock. Workers take it
+            // FOR UPDATE only to drain, checkpoint and activate, fencing those
+            // steps against writers; the rebuild scan runs without it.
+            // Lock by primary key: MariaDB secondary-index shared locks can
+            // include the preceding gap, which would block unrelated outbox INSERTs.
+            $statement = $connection->prepare("SELECT value FROM $table WHERE id = ? LOCK IN SHARE MODE");
+            $statement->execute([$stateId]);
+            $exists = $statement->fetchColumn();
+            $statement->closeCursor();
+            $state = $exists === false ? [] : json_decode($exists, true, 32, JSON_THROW_ON_ERROR);
+            if (!empty($state['generation']) || !empty($state['build'])) {
+                $key = self::DIRTY_PREFIX . (string)$eventId;
+                $revision = bin2hex(random_bytes(16));
+                $statement = $connection->prepare("INSERT INTO $table (setting, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+                if (!$statement->execute([$key, $revision])) {
+                    throw new RuntimeException('Could not record an IOC index mutation.');
+                }
+                self::$dispatchModels[spl_object_hash($db)] = $model;
+                if (!self::$shutdownRegistered) {
+                    register_shutdown_function([self::class, 'dispatchPending']);
+                    self::$shutdownRegistered = true;
+                }
+            }
+            if ($owned) {
+                $connection->commit();
+            }
+        } catch (Throwable $e) {
+            if ($owned && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /** Dispatch only after request imports, child writes and commits have ended. */
+    public static function dispatchPending(): void
+    {
+        $models = self::$dispatchModels;
+        self::$dispatchModels = [];
+        foreach ($models as $model) {
+            try {
+                if ($model->getDataSource()->getConnection()->inTransaction()) {
+                    continue; // Never take ownership of an unfinished caller transaction.
+                }
+                if (Configure::read('MISP.background_jobs')) {
+                    $job = ClassRegistry::init('Job');
+                    $jobId = $job->createJob('SYSTEM', Job::WORKER_DEFAULT, 'fast_lookup_pending', '', 'Updating the IOC index.');
+                    $job->getBackgroundJobsTool()->enqueue(BackgroundJobsTool::DEFAULT_QUEUE, BackgroundJobsTool::CMD_ADMIN, ['processFastLookup', $jobId, self::PENDING_BATCH_SIZE], true, $jobId);
+                } else {
+                    $attribute = $model->alias === 'Attribute' ? $model : $model->Attribute;
+                    (new self($attribute))->processPending();
+                }
+            } catch (Throwable $e) {
+                // SQL dirty rows survive failed Redis enqueue and worker outages.
+                $model->log('Could not dispatch the persistent IOC index update (' . get_class($e) . '). Pending SQL mutations were retained.', LOG_ERR);
+            }
+        }
+    }
+
+    private static function insertStateIfAbsent($connection, string $table): void
+    {
+        $statement = $connection->prepare("INSERT INTO $table (setting, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting = setting");
+        if (!$statement || !$statement->execute([self::STATE_SETTING, '{}'])) {
+            throw new RuntimeException('Could not initialise the IOC index state.');
+        }
+    }
+
+    private function readState(bool $lock = false): ?array
+    {
+        $value = $this->query("SELECT value FROM {$this->settingsTable} WHERE setting = ?" . ($lock ? ' FOR UPDATE' : ''), [self::STATE_SETTING])->fetchColumn();
+        if ($value === false) {
+            return null;
+        }
+        $state = json_decode($value, true, 32, JSON_THROW_ON_ERROR);
+        if (!is_array($state)) {
+            throw new RuntimeException('The IOC index SQL checkpoint is corrupt.');
+        }
+        return $state;
+    }
+
+    private function writeState(array $state): void
+    {
+        $this->query("UPDATE {$this->settingsTable} SET value = ? WHERE setting = ?", [json_encode($state, JSON_THROW_ON_ERROR), self::STATE_SETTING]);
+    }
+
+    private function dirtyCount(): int
+    {
+        return (int)$this->query("SELECT COUNT(*) FROM {$this->settingsTable} WHERE setting LIKE ?", [self::DIRTY_PREFIX . '%'])->fetchColumn();
+    }
+
+    private function query(string $sql, array $parameters = [])
+    {
+        $statement = $this->connection->prepare($sql);
+        if (!$statement || !$statement->execute($parameters)) {
+            throw new RuntimeException('Could not access the IOC index SQL state.');
+        }
+        return $statement;
+    }
+
+    /** Both revisions are committed before Redis is touched, so a crash can resume. */
+    private function stageRevisions(array &$state): void
+    {
+        $state['pending_revision'] = bin2hex(random_bytes(16));
+        $state['next_revision'] = bin2hex(random_bytes(16));
+    }
+
+    private function checkpointMatches(array $state, array $metadata, bool $allowPending = false): bool
+    {
+        // Before the first activation nothing is served: a live generation
+        // Redis still holds from a discarded index is irrelevant, and the
+        // activation replaces it.
+        if (!empty($state['generation']) && (($metadata['live'] ?? null) !== $state['generation']
+            || ($metadata['fingerprint'] ?? null) !== ($state['fingerprint'] ?? null))) {
+            return false;
+        }
+        $build = $state['build'] ?? null;
+        if ($build && !empty($build['reserved']) && ($metadata['building'] ?? null) !== $build['generation']) {
+            return false;
+        }
+        $revision = $metadata['revision'] ?? null;
+        if ($revision === $state['revision']) {
+            return true;
+        }
+        // A crash after the final Redis checkpoint but before the SQL commit
+        // leaves Redis on next_revision; the staged batch can still resume.
+        return $allowPending && !empty($state['pending_revision'])
+            && in_array($revision, array_filter([$state['pending_revision'], $state['next_revision'] ?? null]), true);
+    }
+
+    private function progress(array $source): array
+    {
+        $processed = (int)($source['processed'] ?? 0);
+        $total = max($processed, (int)($source['total'] ?? 0));
+        $percent = !empty($source['scan_complete']) ? 100 : ($total ? min(99, (int)floor(100 * $processed / $total)) : 0);
+        $elapsed = max(0, time() - ($source['started_at'] ?? time()));
+        return [
+            'processed_attributes' => $processed,
+            'total_attributes' => $total,
+            'percent' => $percent,
+            'eta_seconds' => $processed > 0 && empty($source['scan_complete']) ? (int)ceil(max(0, $total - $processed) * $elapsed / $processed) : null,
+        ];
+    }
+
+    /**
+     * $observed is the SQL build the failed step started from: a build is
+     * failed only if it is still that build at that progress, so a writer
+     * whose lease lapsed never fails a build another holder has advanced.
+     */
+    private function saveFailure(Throwable $e, string $phase, ?array $observed = null): void
+    {
+        $this->logFailure($e);
+        try {
+            $this->connection->beginTransaction();
+            $state = $this->readState(true);
+            if ($state && $phase === 'build' && !empty($state['build']) && !self::sameBuild($state['build'], $observed)) {
+                $this->connection->commit();
+                return;
+            }
+            if ($state) {
+                if ($phase === 'build' && !empty($state['build'])) {
+                    // The build restarts from scratch in a fresh generation
+                    // (failedBuild says when it waits for a resume).
+                    $state['build'] = $this->failedBuild($state['build'],
+                        $e instanceof FastLookupIndexFullException && $e->generation === $state['build']['generation'],
+                        $this->serving($state));
+                } else {
+                    $state['error'] = 'The IOC index update failed. Resume the job, or rebuild if its checkpoint is stale.';
+                }
+                $this->writeState($state);
+            }
+            $this->connection->commit();
+        } catch (Throwable $ignored) {
+            $this->rollbackOwnedTransaction();
+        }
+    }
+
+    /** The compare-and-set T3 applies: same generation, reservation, error and cursor. */
+    private static function sameBuild(array $current, ?array $observed): bool
+    {
+        return $observed !== null && $current['generation'] === $observed['generation']
+            && !empty($current['reserved']) === !empty($observed['reserved'])
+            && ($current['error'] ?? null) === ($observed['error'] ?? null)
+            && $current['cursor'] === $observed['cursor'];
+    }
+
+    /** 'available', 'missing' or 'unreachable' (FastLookupFilter::moduleState); null if unknown. */
+    private function moduleState(): ?string
+    {
+        try {
+            return $this->filter()->moduleState();
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    private function includeStatistics(array $status, bool $include, ?string $generation): array
+    {
+        if ($include && $generation !== null) {
+            try {
+                $status['statistics'] = $this->filter()->statistics($generation);
+            } catch (Throwable $e) {
+                $status['statistics_error'] = 'Redis allocation measurements are currently unavailable.';
+            }
+        }
+        return $status;
+    }
+
+    private function logFailure(Throwable $e): void
+    {
+        $this->attribute->log('Persistent IOC index operation failed (' . get_class($e) . ').', LOG_ERR);
+    }
+
+    private function requireIdleConnection(): void
+    {
+        if ($this->connection->inTransaction()) {
+            throw new LogicException('IOC index workers cannot run inside a caller-owned transaction.');
+        }
+    }
+
+    private function rollbackOwnedTransaction(): void
+    {
+        if ($this->connection->inTransaction()) {
+            $this->connection->rollBack();
+        }
+    }
+
+    public static function boundedLimit(int $limit): int
+    {
+        if ($limit < 1 || $limit > 1000) {
+            throw new InvalidArgumentException('The IOC index batch size must be between 1 and 1000.');
+        }
+        return $limit;
+    }
+}

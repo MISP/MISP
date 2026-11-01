@@ -581,6 +581,14 @@ class NavbarHelper extends AppHelper {
                 'requirement' => $this->Acl->canAccess('servers', 'serverSettings'),
                 'icon' => 'fas fa-gears',
             ],
+            [
+                'label' => __('Fast lookup index'),
+                'url' => $baseurl . '/servers/fastLookup',
+                'controller' => 'servers',
+                'action' => 'fastLookup',
+                'requirement' => $this->Acl->canAccess('servers', 'fastLookup'),
+                'icon' => 'fas fa-search',
+            ],
             ['divider' => true],
             [
                 'type' => 'group',
