@@ -1,0 +1,5 @@
+# KNOWN-DEFECT: returnFormat=text emits no values, while json/csv/netfilter return them for the identical query. See testlive_export_formats.test_text_format_lists_values_one_per_line
+# This records current behaviour so refactors are still detected.
+# It is NOT the intended contract. Fixing the defect should produce
+# exactly one diff here plus a specification test flipping to passing.
+
