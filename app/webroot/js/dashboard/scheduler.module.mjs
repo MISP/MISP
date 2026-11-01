@@ -121,6 +121,10 @@ export class Scheduler {
     if (this._tickHandle) return;
     this._docHidden = typeof document !== 'undefined' && document.hidden === true;
     this.boardRoot.addEventListener('misp-board:widget-rendered', this._onRenderedBound);
+    // A failed render must free its slot too, otherwise the tile stays
+    // inFlight forever and, after INFLIGHT_CAP failures, the whole board
+    // stops refreshing.
+    this.boardRoot.addEventListener('misp-board:widget-error', this._onRenderedBound);
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', this._onVisibilityBound);
     }
@@ -133,6 +137,7 @@ export class Scheduler {
       this._tickHandle = null;
     }
     this.boardRoot.removeEventListener('misp-board:widget-rendered', this._onRenderedBound);
+    this.boardRoot.removeEventListener('misp-board:widget-error', this._onRenderedBound);
     if (typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', this._onVisibilityBound);
     }
