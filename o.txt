@@ -1,0 +1,34 @@
+        $contain = [];
+        if (!empty($includeEventData)) {
+            $contain['Event'] = [
+                'fields' => [
+                    'Event.id',
+                    'Event.uuid',
+                    'Event.threat_level_id',
+                    'Event.analysis',
+                    'Event.info',
+                    'Event.extends_uuid',
+                    'Event.distribution',
+                    'Event.sharing_group_id',
+                    'Event.published',
+                    'Event.date',
+                    'Event.orgc_id',
+                    'Event.org_id'
+                ]
+            ];
+        }
+        $relatedAttributes = $Model->Attribute->find('all', [
+            'recursive' => -1,
+            'conditions' => [
+                'Attribute.id' => $correlatedAttributeIds
+            ],
+            'fields' => $fields,
+            'contain' => $contain
+        ]);
+        if (!empty($includeEventData)) {
+            $results = [];
+            foreach ($relatedAttributes as $attribute) {
+                $temp = $attribute['Attribute'];
+                $temp['Event'] = $attribute['Event'];
+                $results[] = $temp;
+            }
