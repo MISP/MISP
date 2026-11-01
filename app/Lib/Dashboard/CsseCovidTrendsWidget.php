@@ -102,7 +102,7 @@ class CsseCovidTrendsWidget
         );
         $data['formula'] = sprintf(
             '%s%s',
-            (isset($options['insight']) && !empty($formulaData[$options['insight']])) ?
+            (isset($options['insight']) && !empty($formulaData['insight'][$options['insight']])) ?
                 $formulaData['insight'][$options['insight']] :
                 $formulaData['insight']['raw'],
             (isset($options['type']) && !empty($formulaData['type'][$options['type']])) ?
@@ -140,7 +140,10 @@ class CsseCovidTrendsWidget
         }
         if ($options['type'] === 'mortality') {
             foreach ($data as $k => $v) {
-                $data[$k]['mortality'] = round(100 * (empty($v['death']) ? 0 : $v['death']) / $v['confirmed'], 2);
+                $confirmed = empty($v['confirmed']) ? 0 : $v['confirmed'];
+                $data[$k]['mortality'] = $confirmed == 0
+                    ? 0
+                    : round(100 * (empty($v['death']) ? 0 : $v['death']) / $confirmed, 2);
             }
         }
         if (!empty($options['insight']) && $options['insight'] !== 'raw') {
