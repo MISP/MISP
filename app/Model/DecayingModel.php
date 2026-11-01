@@ -622,7 +622,7 @@ class DecayingModel extends AppModel
         return $model;
     }
 
-    public function attachScoresToAttribute($user, $attribute, $model_id=false, $model_overrides=array(), $include_full_model=0)
+    public function attachScoresToAttribute($user, $attribute, $model_id=false, $model_overrides=array(), $include_full_model=0, $last_sighting_timestamp=false)
     {
         $models = array();
         if ($model_id === false) { // fetch all allowed and associated models
@@ -642,7 +642,7 @@ class DecayingModel extends AppModel
             if (!empty($model_overrides)) {
                 $model = $this->overrideModelParameters($model, $model_overrides);
             }
-            $score = $this->getScore($attribute, $model, $user);
+            $score = $this->getScore($attribute, $model, $user, $last_sighting_timestamp);
             $decayed = $this->isDecayed($attribute, $model, $score['score']);
             $to_attach = array(
                 'score' => $score['score'],
@@ -704,7 +704,7 @@ class DecayingModel extends AppModel
         return $event;
     }
 
-    public function getScore($attribute, $model, $user=false)
+    public function getScore($attribute, $model, $user=false, $last_sighting_timestamp=false)
     {
         if (is_numeric($attribute) && $user !== false) {
             $this->Attribute = ClassRegistry::init('MispAttribute');
@@ -720,7 +720,7 @@ class DecayingModel extends AppModel
             }
         }
         $this->Computation = $this->getModelClass($model);
-        return $this->Computation->computeCurrentScore($user, $model, $attribute);
+        return $this->Computation->computeCurrentScore($user, $model, $attribute, false, $last_sighting_timestamp);
     }
 
     public function getScoreForEvent($user, $event, $model): array
