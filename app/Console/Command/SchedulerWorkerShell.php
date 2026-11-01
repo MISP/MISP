@@ -252,7 +252,10 @@ class SchedulerWorkerShell extends AppShell
         $interval = (int)$task['timer'];
         $now = time();
 
-        $missed = max(1, ceil(($now - $previous) / $interval));
+        // floor()+1 rather than ceil(): when ($now - $previous) is an exact
+        // multiple of the interval, ceil() returns that multiple and $next
+        // lands on $now, so the loop re-selects the task immediately.
+        $missed = max(1, (int)floor(($now - $previous) / $interval) + 1);
         $next = $previous + $missed * $interval;
 
         $task['next_execution_time'] = $next;
