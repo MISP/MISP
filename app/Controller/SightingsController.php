@@ -29,6 +29,7 @@ class SightingsController extends AppController
             $values = false;
             $timestamp = false;
             $error = false;
+            $filters = false;
             if ($id === 'stix') {
                 $result = $this->Sighting->handleStixSighting(file_get_contents('php://input'));
                 if ($result['success']) {
