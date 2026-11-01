@@ -28,8 +28,8 @@ class HostsExport
         if ($options['scope'] === 'Event') {
             $result = array();
             foreach ($data['Attribute'] as $attribute) {
-                if ($this->isNewDomain($data['Attribute'])) {
-                    $result[] = $this->__convertToRule($data['Attribute']);
+                if ($this->isNewDomain($attribute)) {
+                    $result[] = $this->__convertToRule($attribute);
                 }
             }
             return implode($this->separator(), $result) . "\n";
