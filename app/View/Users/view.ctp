@@ -184,6 +184,11 @@ if ($admin_view) {
         'class' => empty($user['User']['disabled']) ? '' : 'background-red',
         'boolean' => $user['User']['disabled']
     );
+    $tableData[] = array(
+        'key' => __('Account expiration'),
+        'class' => empty($user['User']['expiration']) || strtotime($user['User']['expiration']) > time() ? '' : 'background-red',
+        'value' => empty($user['User']['expiration']) ? __('N/A') : $user['User']['expiration']
+    );
 }
 echo $this->element('genericElements/assetLoader', array(
     'css' => array('vis', 'distribution-graph'),
