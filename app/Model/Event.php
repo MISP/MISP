@@ -117,6 +117,7 @@ class Event extends AppModel
         'json' => array('json', 'JsonExport', 'json'),
         'kunai' => ['json', 'KunaiExport', 'json'],
         'netfilter' => array('txt', 'NetfilterExport', 'sh'),
+        'nfdump' => array('txt', 'NfdumpExport', 'txt'),
         'opendata' => array('txt', 'OpendataExport', 'txt'),
         'openioc' => array('xml', 'OpeniocExport', 'ioc'),
         'rpz' => array('txt', 'RPZExport', 'rpz'),
