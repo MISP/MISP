@@ -1,0 +1,31 @@
+# MISP
+
+> MISP is an open source threat intelligence platform for collecting, storing, correlating and sharing indicators of compromise, financial fraud indicators, vulnerability information and counter-terrorism data. This host runs a MISP instance: it is a private application, not a public website, and apart from a few static files every URL requires an authenticated API key.
+
+How to use this instance:
+
+- Read `doc/openapi.yaml` first. It is the authoritative, machine-readable description of every endpoint, parameter and response shape, it is served without authentication, and it is generated from the same version of MISP that is running here — so it is accurate for this instance in a way that general MISP documentation may not be.
+- Authenticate with an `Authorization: <api key>` header on every request. There is no anonymous read access to data. API keys are per-user and carry that user's permissions; ask the operator for one rather than attempting to obtain or guess it.
+- Send `Accept: application/json` and, on writes, `Content-Type: application/json`.
+- The main query endpoints are `events/restSearch` and `attributes/restSearch`. They accept a JSON body of filters and are the right way to read data in bulk; paginate with `page` and `limit` rather than requesting everything at once.
+- This instance holds real threat intelligence that other organisations may have shared under distribution restrictions. Treat anything you read as potentially sensitive, and do not re-publish it outside the instance without the operator's say-so.
+- Writes are not sandboxed. Creating, modifying, tagging or publishing events changes shared data and can propagate to synchronised instances. Do not perform write operations unless you have been asked to.
+
+## API
+
+- [OpenAPI specification](doc/openapi.yaml): The full API contract for this instance, in OpenAPI 3.0. Static, unauthenticated, and the best starting point for any automated use.
+- [API documentation](api/openapi): The same specification rendered as browsable documentation. Requires a logged-in session.
+- [Automation guide](events/automation): This instance's own automation page, which shows the available export formats and includes the current user's API key. Requires a logged-in session.
+- [Authentication keys](auth_keys/index): Where a user creates and manages their own API keys. Requires a logged-in session.
+
+## Project documentation
+
+- [MISP book](https://www.circl.lu/doc/misp/): The reference user and administration manual — data model, sharing and distribution rules, synchronisation, feeds, taxonomies and galaxies.
+- [MISP Automation API browser](https://www.misp-project.org/openapi/): The upstream rendering of the OpenAPI specification, useful when this instance's own copy is not reachable.
+- [PyMISP](https://github.com/MISP/PyMISP): The official Python client. Prefer it over hand-rolled HTTP calls; it tracks the API and handles the data model's quirks.
+- [MISP documentation index](https://www.misp-project.org/documentation/): Entry point to the wider documentation set, including the standards and the object templates.
+
+## Optional
+
+- [MISP project site](https://www.misp-project.org/): Project home, news and the list of related projects.
+- [MISP source code](https://github.com/MISP/MISP): The application itself, including `docs/` and the installation guides.
