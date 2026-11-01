@@ -29,11 +29,6 @@ class IOCExportTool
         return $final;
     }
 
-    public function getResult()
-    {
-        return $this->__final;
-    }
-
     // generates the top with the event information
     public function generateSingleTop($event)
     {
