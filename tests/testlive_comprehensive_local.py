@@ -578,27 +578,55 @@ class TestComprehensive(unittest.TestCase):
             self.test_recorrelate()
 
     def test_advanced_correlations(self):
-        with MISPSetting(self.admin_misp_connector, {"MISP.enable_advanced_correlations": True}):
-            first = create_simple_event()
-            first.add_attribute("ip-src", "10.0.0.0/8")
-            first = check_response(self.admin_misp_connector.add_event(first))
+        identifier = gen_random_id()
+        network = int(identifier[:4], 16) or 1
+        host = int(identifier[4:], 16) or 1
+        values = (
+            "10.0.0.0/8",
+            "10.0.0.1",
+            f"2001:0:0:{network:x}:abcd:ef01:2345:{host:x}",
+            f"2001:0:0:{network:x}::/64",
+            f"2001:db8:{network:x}:1::/64",
+            f"2001:db8:{network:x}:1::1",
+            f"2001:db8:{network:x}:2:8000::1",
+            f"2001:db8:{network:x}:2:7fff:ffff:ffff:ffff",
+            f"2001:db8:{network:x}:2:8000::/65",
+        )
+        events = []
 
-            second = create_simple_event()
-            second.add_attribute("ip-src", "10.0.0.1")
-            second = check_response(self.admin_misp_connector.add_event(second))
-
-            # Reload to get event data with related events
-            first = check_response(self.admin_misp_connector.get_event(first))
-
+        with MISPSetting(
+            self.admin_misp_connector,
+            {"MISP.enable_advanced_correlations": True},
+        ):
             try:
-                self.assertEqual(1, len(first.RelatedEvent), first.RelatedEvent)
-                self.assertEqual(1, len(second.RelatedEvent), second.RelatedEvent)
-            except:
-                raise
+                for value in values:
+                    event = create_simple_event()
+                    event.add_attribute("ip-src", value)
+                    events.append(
+                        check_response(
+                            self.admin_misp_connector.add_event(event)
+                        )
+                    )
+
+                events = [
+                    check_response(
+                        self.admin_misp_connector.get_event(event)
+                    )
+                    for event in events
+                ]
+                related_counts = [
+                    len(getattr(event, "RelatedEvent", []))
+                    for event in events
+                ]
+                self.assertEqual(
+                    [1, 1, 1, 1, 1, 1, 1, 0, 1],
+                    related_counts,
+                )
             finally:
-                # Delete events
-                for event in (first, second):
-                    check_response(self.admin_misp_connector.delete_event(event))
+                for event in events:
+                    check_response(
+                        self.admin_misp_connector.delete_event(event)
+                    )
 
     def test_remove_orphaned_correlations(self):
         result = self.admin_misp_connector._check_response(self.admin_misp_connector._prepare_request('POST', 'servers/removeOrphanedCorrelations'))
