@@ -47,9 +47,13 @@ class ObjectRelationship extends AppModel
     }
 
 
-    public function update()
+    /**
+     * @param string|null $baseDir Base directory to load the relationships from, defaults to APP/files
+     * @return bool
+     */
+    public function update($baseDir = null)
     {
-        $relationsFile = APP . 'files/misp-objects/relationships/definition.json';
+        $relationsFile = ($baseDir ?: APP . 'files') . '/misp-objects/relationships/definition.json';
         if (file_exists($relationsFile)) {
             $relations = FileAccessTool::readJsonFromFile($relationsFile, true);
             if (!isset($relations['version'])) {

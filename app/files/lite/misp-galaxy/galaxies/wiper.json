@@ -1,0 +1,9 @@
+{
+  "description": "Wiper malware is an enumeration of destructive malware families designed to delete, overwrite, or otherwise irreversibly damage files and systems on compromised infrastructure.",
+  "icon": "trash",
+  "name": "Wiper",
+  "namespace": "misp",
+  "type": "wiper",
+  "uuid": "4c6dc9c7-bd69-4671-b111-79fd85e78ae0",
+  "version": 1
+}

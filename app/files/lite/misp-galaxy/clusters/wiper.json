@@ -1,0 +1,514 @@
+{
+  "authors": [
+    "MISP Project"
+  ],
+  "category": "tool",
+  "description": "Wiper malware is an enumeration of destructive malware families designed to delete, overwrite, or otherwise irreversibly damage files and systems on compromised infrastructure.",
+  "name": "Wiper",
+  "source": "MISP Project",
+  "type": "wiper",
+  "uuid": "ebedfe07-627a-494e-830f-9e1de179861d",
+  "values": [
+    {
+      "description": "KnotWipe is a destructive wiper family reported to overwrite user and system files, aiming to prevent recovery and disrupt operations.",
+      "meta": {
+        "operating-system": [
+          "Windows"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "File overwrite with random data",
+          "Deletion of shadow copies"
+        ]
+      },
+      "uuid": "b72ec96f-5cd8-4971-b1c5-3cd2fac3b14f",
+      "value": "KnotWipe"
+    },
+    {
+      "description": "ScalpFox is a destructive wiper family reported to recursively erase files across mounted drives and network shares.",
+      "meta": {
+        "operating-system": [
+          "Linux"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Recursive file deletion",
+          "Filesystem metadata corruption"
+        ]
+      },
+      "uuid": "0bebd2c7-014f-4113-8119-f632122b4ef4",
+      "value": "ScalpFox"
+    },
+    {
+      "description": "ZeroLot is a destructive wiper family reported to zero-fill files and free space to complicate forensic and recovery efforts.",
+      "meta": {
+        "operating-system": [
+          "Windows",
+          "Linux"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Zero-fill overwrite",
+          "Free-space wiping"
+        ]
+      },
+      "uuid": "d2952962-eb0c-4ccd-87b5-713f86dc5b7d",
+      "value": "ZeroLot"
+    },
+    {
+      "description": "DoubleZero is a destructive wiper family reported to conduct multi-pass overwrites and force system instability prior to reboot.",
+      "meta": {
+        "operating-system": [
+          "Windows"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Multi-pass overwrite",
+          "Service and recovery disablement"
+        ]
+      },
+      "uuid": "b70567b3-b56b-4679-b95d-5b4b81067847",
+      "value": "DoubleZero"
+    },
+    {
+      "description": "CoreKill is a destructive wiper family reported to target boot-critical artifacts and high-value data directories.",
+      "meta": {
+        "operating-system": [
+          "Windows",
+          "VMware ESXi"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Master boot record overwrite",
+          "Targeted data destruction"
+        ]
+      },
+      "uuid": "15338159-8f33-4b2c-a32f-cad2f81cfade",
+      "value": "CoreKill"
+    },
+    {
+      "description": "Occultus is a destructive wiper family reported to stage delayed execution before erasing endpoint and server file stores.",
+      "meta": {
+        "operating-system": [
+          "Linux",
+          "Windows"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Timed wipe trigger",
+          "Directory tree traversal and overwrite"
+        ]
+      },
+      "uuid": "0542863e-4e46-4283-9d4f-c6d285c0312a",
+      "value": "Occultus"
+    },
+    {
+      "description": "NaughtyWipe is a destructive wiper family reported to destroy user files and sabotage recovery options on compromised hosts.",
+      "meta": {
+        "operating-system": [
+          "Windows"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Selective extension-based wiping",
+          "Recovery partition tampering"
+        ]
+      },
+      "uuid": "1bd0388c-b821-4718-894c-62e6f6b6b5e1",
+      "value": "NaughtyWipe"
+    },
+    {
+      "description": "Lotus Wiper is destructive malware targeting Windows systems and designed to overwrite files and remove recovery options.",
+      "meta": {
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://securelist.com/tr/lotus-wiper/119472/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "File overwrite",
+          "Shadow copy deletion"
+        ]
+      },
+      "uuid": "9feece1d-5340-4148-9a12-a049f4b3af0b",
+      "value": "Lotus Wiper"
+    },
+    {
+      "description": "Shamoon (Disttrack) is a destructive wiper used in major attacks against energy sector organizations.",
+      "meta": {
+        "first-seen": "2012-08",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://www.crowdstrike.com/en-us/blog/the-anatomy-of-wiper-malware-part-1/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "File overwrite with random data",
+          "Master boot record overwrite"
+        ]
+      },
+      "uuid": "51a88f8f-3bc9-44f2-81dc-9d306aa92245",
+      "value": "Shamoon"
+    },
+    {
+      "description": "Destover is a destructive wiper associated with the 2014 Sony Pictures intrusion.",
+      "meta": {
+        "first-seen": "2014-11",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://www.crowdstrike.com/en-us/blog/the-anatomy-of-wiper-malware-part-1/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "File overwrite with random data",
+          "Network share wiping"
+        ]
+      },
+      "uuid": "69d4508b-c853-4e2e-b3a0-dd63b482e0b4",
+      "value": "Destover"
+    },
+    {
+      "description": "KillDisk is a wiper family used to corrupt files and render systems inoperable.",
+      "meta": {
+        "first-seen": "2015-12",
+        "operating-system": [
+          "Windows",
+          "Linux"
+        ],
+        "refs": [
+          "https://www.crowdstrike.com/en-us/blog/the-anatomy-of-wiper-malware-part-1/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "File overwrite with random data",
+          "Master boot record overwrite"
+        ]
+      },
+      "uuid": "4a3642f3-2980-49b3-a3c4-873e3c8a6ede",
+      "value": "KillDisk"
+    },
+    {
+      "description": "SQLShred is a wiper targeting SQL database files and related storage.",
+      "meta": {
+        "first-seen": "2021-11",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://www.crowdstrike.com/en-us/blog/the-anatomy-of-wiper-malware-part-1/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Database file overwrite",
+          "Targeted data destruction"
+        ]
+      },
+      "uuid": "e44753ba-8475-40a3-ad66-fc0540656e52",
+      "value": "SQLShred"
+    },
+    {
+      "description": "StoneDrill is a destructive wiper with anti-analysis functionality and file destruction routines.",
+      "meta": {
+        "first-seen": "2016-03",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://www.crowdstrike.com/en-us/blog/the-anatomy-of-wiper-malware-part-1/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "File overwrite with random data",
+          "Process termination prior to wipe"
+        ]
+      },
+      "uuid": "eefe68c4-cb5d-4710-9b6e-763d919f6896",
+      "value": "StoneDrill"
+    },
+    {
+      "description": "IsaacWiper is a destructive malware family used in operations against organizations in Ukraine.",
+      "meta": {
+        "first-seen": "2022-02",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://www.crowdstrike.com/en-us/blog/the-anatomy-of-wiper-malware-part-1/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "File overwrite",
+          "Partition and directory destruction"
+        ]
+      },
+      "uuid": "7c897162-0c1f-436b-99fd-514b43ef7458",
+      "value": "IsaacWiper"
+    },
+    {
+      "description": "Olympic Wiper is malware used during the 2018 Winter Olympics to disrupt systems and operations.",
+      "meta": {
+        "first-seen": "2018-02",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://www.crowdstrike.com/en-us/blog/the-anatomy-of-wiper-malware-part-1/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "File deletion",
+          "System recovery sabotage"
+        ]
+      },
+      "uuid": "22a79437-54af-4f5d-9d4c-3b088c6f1f49",
+      "value": "Olympic Wiper"
+    },
+    {
+      "description": "\"Wiper\" is the name given to destructive malware observed in late 2011 to early 2012 that rendered systems unbootable and unrecoverable.",
+      "meta": {
+        "first-seen": "2011-12",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://securelist.com/destructive-malware-five-wipers-in-the-spotlight/58194/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "File overwrite with trash data",
+          "Full-disk overwrite"
+        ]
+      },
+      "uuid": "5260d12a-50c3-4c45-a1de-db3047b2b5bb",
+      "value": "Wiper (2011-2012)"
+    },
+    {
+      "description": "Narilam is destructive malware known to corrupt databases and business application data.",
+      "meta": {
+        "first-seen": "2012-11",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://securelist.com/destructive-malware-five-wipers-in-the-spotlight/58194/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Database corruption",
+          "Targeted data destruction"
+        ]
+      },
+      "uuid": "b347923a-38db-4b97-beba-dbe01840ab53",
+      "value": "Narilam"
+    },
+    {
+      "description": "Groovemonitor (Maya) is a destructive malware family associated with disk and file damage routines.",
+      "meta": {
+        "first-seen": "2012-08",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://securelist.com/destructive-malware-five-wipers-in-the-spotlight/58194/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "File overwrite",
+          "Disk corruption"
+        ]
+      },
+      "uuid": "1e5d55a9-77bc-4aa4-800c-30a4d2cf1516",
+      "value": "Groovemonitor / Maya"
+    },
+    {
+      "description": "DarkSeoul is destructive malware used in coordinated attacks against media and financial organizations in South Korea.",
+      "meta": {
+        "first-seen": "2013-03",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://securelist.com/destructive-malware-five-wipers-in-the-spotlight/58194/"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Master boot record overwrite",
+          "File destruction"
+        ]
+      },
+      "uuid": "a72fb508-9af7-4922-aef2-dacfc702f738",
+      "value": "DarkSeoul"
+    },
+    {
+      "description": "NotPetya is pseudo-ransomware that functions as a destructive wiper by irreversibly damaging file system structures.",
+      "meta": {
+        "first-seen": "2017-06",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://en.wikipedia.org/wiki/Wiper_(malware)"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Master boot record overwrite",
+          "Master file table encryption/corruption"
+        ]
+      },
+      "uuid": "d59f3b52-f4e8-4842-9a58-f46c271c47ad",
+      "value": "NotPetya"
+    },
+    {
+      "description": "WhisperGate is destructive malware masquerading as ransomware and used against organizations in Ukraine.",
+      "meta": {
+        "first-seen": "2022-01",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://en.wikipedia.org/wiki/Wiper_(malware)"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Master boot record corruption",
+          "File overwrite"
+        ]
+      },
+      "uuid": "8f3248c9-6472-473c-81f2-784842774b65",
+      "value": "WhisperGate"
+    },
+    {
+      "description": "HermeticWiper is destructive malware deployed against Ukrainian organizations in early 2022.",
+      "meta": {
+        "first-seen": "2022-02",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://en.wikipedia.org/wiki/Wiper_(malware)"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Partition corruption",
+          "File destruction"
+        ]
+      },
+      "uuid": "7dfb2aec-f034-4dd7-a1f8-5d9c200a7cd3",
+      "value": "HermeticWiper"
+    },
+    {
+      "description": "CaddyWiper is a destructive malware family targeting Windows systems in Ukraine.",
+      "meta": {
+        "first-seen": "2022-03",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://en.wikipedia.org/wiki/Wiper_(malware)"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "User file destruction",
+          "Domain controller disruption"
+        ]
+      },
+      "uuid": "2d2bdb9b-d53a-4052-a8ca-2dd3dfb6dae6",
+      "value": "CaddyWiper"
+    },
+    {
+      "description": "AcidRain is a Linux wiper targeting embedded and modem devices, notably in satellite communications incidents.",
+      "meta": {
+        "first-seen": "2022-02",
+        "operating-system": [
+          "Linux"
+        ],
+        "refs": [
+          "https://en.wikipedia.org/wiki/Wiper_(malware)"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "Filesystem and device wipe",
+          "Recursive deletion of files"
+        ]
+      },
+      "uuid": "987f228b-ce61-4049-9203-cf70f717a888",
+      "value": "AcidRain"
+    },
+    {
+      "description": "FoxBlade is Microsoft naming for a destructive malware strain used in operations linked to Ukraine-targeting attacks.",
+      "meta": {
+        "first-seen": "2022-02",
+        "operating-system": [
+          "Windows"
+        ],
+        "refs": [
+          "https://en.wikipedia.org/wiki/Wiper_(malware)"
+        ],
+        "type": [
+          "Wiper"
+        ],
+        "wiping-technique": [
+          "File destruction",
+          "System sabotage"
+        ]
+      },
+      "uuid": "5032c38c-2899-4333-b676-93c29b8dff31",
+      "value": "FoxBlade"
+    }
+  ],
+  "version": 1
+}
