@@ -146,6 +146,7 @@ if (!class_exists('AppModel', false)) {
     }
 }
 
+require_once __DIR__ . '/../Lib/Tools/JsonTool.php';
 require_once __DIR__ . '/../Lib/Tools/ServerSyncTool.php';
 require_once __DIR__ . '/../Model/Collection.php';
 
@@ -505,9 +506,11 @@ class CollectionPullTest extends TestCase
 
     private function buildRules(array $server)
     {
-        $m = new ReflectionMethod('Collection', 'buildPullFilterRules');
-        $m->setAccessible(true);
-        return $m->invoke($this->collection, $server);
+        // buildPullFilterRules now lives on ServerSyncTool (shared by Collection::pull
+        // and AnalystData::pull); drive it through the fake sync's injected server.
+        $sync = new CollectionPullTestServerSync();
+        $sync->serverData = $server;
+        return $sync->buildPullFilterRules();
     }
 
     public function testBuildPullFilterRulesEmptyWhenNoRules(): void
