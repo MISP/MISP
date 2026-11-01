@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('CorrelationHostTool', 'Tools');
 
 /**
  * @property MispAttribute $Attribute
@@ -314,25 +315,172 @@ class Correlation extends AppModel
         if (!$this->advancedCorrelationEnabled) {
             return [];
         }
-        $extraConditions = $this->__buildAdvancedCorrelationConditions($correlatingAttribute);
-        if (empty($extraConditions)) {
+        $extraConditions = $this->__buildAdvancedCorrelationConditions(
+            $correlatingAttribute
+        );
+        $correlations = [];
+        if (!empty($extraConditions)) {
+            $correlations = $this->Attribute->find('all', [
+                'conditions' => [
+                    'AND' => $extraConditions,
+                    'NOT' => [
+                        'Attribute.type' =>
+                            MispAttribute::NON_CORRELATING_TYPES,
+                    ],
+                    'Attribute.disable_correlation' => 0,
+                    'Event.disable_correlation' => 0,
+                    'Attribute.deleted' => 0
+                ],
+                'recursive' => -1,
+                'fields' => $this->getFieldRules(),
+                'contain' => $this->getContainRules(),
+                'order' => [],
+            ]);
+        }
+        return array_merge(
+            $correlations,
+            $this->__findHostCorrelations($correlatingAttribute)
+        );
+    }
+
+    /**
+     * Find candidate attributes that share a DNS or IP host relationship.
+     * SQL narrows the candidate set; CorrelationHostTool performs the exact
+     * structural check so values in URL paths, queries, or user-info do not
+     * correlate.
+     *
+     * @param array $attribute Attribute and optional Event/Object data
+     * @param array $conditions Additional target Attribute conditions
+     * @return array
+     */
+    private function __findHostCorrelations(
+        array $attribute,
+        array $conditions = []
+    ) {
+        if (!CorrelationHostTool::supportsType(
+            $attribute['Attribute']['type']
+        )) {
             return [];
         }
-        return $this->Attribute->find('all', [
-            'conditions' => [
-                'AND' => $extraConditions,
-                'NOT' => [
-                    'Attribute.type' => MispAttribute::NON_CORRELATING_TYPES,
-                ],
-                'Attribute.disable_correlation' => 0,
-                'Event.disable_correlation' => 0,
-                'Attribute.deleted' => 0
-            ],
+
+        $searchValues = CorrelationHostTool::candidateSearchValues(
+            $attribute['Attribute']
+        );
+        if (empty($searchValues)) {
+            return [];
+        }
+
+        $valueConditions = [];
+        foreach ($searchValues as $searchValue) {
+            $escapedSearchValue = addcslashes($searchValue, '\\%_');
+            $valueConditions[] = [
+                'Attribute.value1 LIKE' =>
+                    '%' . $escapedSearchValue . '%',
+            ];
+            $valueConditions[] = ['Attribute.value2' => $searchValue];
+        }
+        $baseConditions = [
+            'Attribute.type' => CorrelationHostTool::supportedTypes(),
+            'Attribute.disable_correlation' => 0,
+            'Event.disable_correlation' => 0,
+            'Attribute.deleted' => 0,
+            'OR' => $valueConditions,
+        ];
+        if (!empty($conditions)) {
+            $baseConditions = ['AND' => [$baseConditions, $conditions]];
+        }
+
+        $candidates = $this->Attribute->find('all', [
+            'conditions' => $baseConditions,
             'recursive' => -1,
             'fields' => $this->getFieldRules(),
             'contain' => $this->getContainRules(),
             'order' => [],
         ]);
+
+        $matches = [];
+        foreach ($candidates as $candidate) {
+            $value = CorrelationHostTool::correlationValue(
+                $attribute['Attribute'],
+                $candidate['Attribute']
+            );
+            if ($value === null ||
+                $this->__preventExcludedCorrelations($value)) {
+                continue;
+            }
+            $candidate['AdvancedCorrelation']['value'] = $value;
+            $matches[] = $candidate;
+        }
+        return $matches;
+    }
+
+    /**
+     * @param array $attribute Attribute and optional Event/Object data
+     * @param bool $full Whether a full re-correlation is running
+     * @return array
+     */
+    private function __buildHostCorrelationEntries(array $attribute, $full)
+    {
+        if (!$this->advancedCorrelationEnabled ||
+            !CorrelationHostTool::supportsType(
+                $attribute['Attribute']['type']
+            )) {
+            return [];
+        }
+
+        $conditions = [
+            'Attribute.event_id !=' => $attribute['Attribute']['event_id'],
+        ];
+        if ($full) {
+            $conditions['Attribute.id >'] = $attribute['Attribute']['id'];
+        }
+        $conditions = $this->CorrelationRule->attachCustomCorrelationRules(
+            $attribute,
+            $conditions
+        );
+        $matches = $this->__findHostCorrelations($attribute, $conditions);
+        $matchesByValue = [];
+        foreach ($matches as $match) {
+            $value = $match['AdvancedCorrelation']['value'];
+            $matchesByValue[$value][] = $match;
+        }
+
+        $correlations = [];
+        $correlationLimit = $this->OverCorrelatingValue->getLimit();
+        foreach ($matchesByValue as $value => $valueMatches) {
+            if ($full && $this->OverCorrelatingValue->isBlocked($value)) {
+                continue;
+            }
+            if (count($valueMatches) > $correlationLimit) {
+                $this->OverCorrelatingValue->block($value);
+                continue;
+            }
+            if (!$full &&
+                !isset(
+                    $attribute['Attribute']['skip_overcorrelation_unblock']
+                )) {
+                $this->OverCorrelatingValue->unblock($value);
+            }
+
+            foreach ($valueMatches as $match) {
+                unset($match['AdvancedCorrelation']);
+                if ($attribute['Attribute']['id'] >
+                    $match['Attribute']['id']) {
+                    $correlations[] = $this->createCorrelationEntry(
+                        $value,
+                        $attribute,
+                        $match
+                    );
+                } else {
+                    $correlations[] = $this->createCorrelationEntry(
+                        $value,
+                        $match,
+                        $attribute
+                    );
+                }
+            }
+        }
+        return $correlations;
     }
 
     private function __getMatchingAttributes($value)
@@ -397,7 +545,15 @@ class Correlation extends AppModel
                     if ($correlatingAttribute['Attribute']['event_id'] === $extraCorrelation['Attribute']['event_id']) {
                         continue;
                     }
-                    $correlations[] = $this->createCorrelationEntry($value, $correlatingAttribute, $extraCorrelation);
+                    $correlationValue =
+                        $extraCorrelation['AdvancedCorrelation']['value'] ??
+                        $value;
+                    unset($extraCorrelation['AdvancedCorrelation']);
+                    $correlations[] = $this->createCorrelationEntry(
+                        $correlationValue,
+                        $correlatingAttribute,
+                        $extraCorrelation
+                    );
                     //$correlations = $this->createCorrelationEntry($value, $extraCorrelation, $correlatingAttribute, $correlations);
                 }
             }
@@ -611,6 +767,10 @@ class Correlation extends AppModel
                 }
             }
         }
+        $correlations = array_merge(
+            $correlations,
+            $this->__buildHostCorrelationEntries($a, $full)
+        );
         if (empty($correlations)) {
             return true;
         }
