@@ -24,7 +24,7 @@ $attrDeleted = !empty($attr['deleted']);
 ?>
 <div class="dropdown">
     <button
-        class="btn btn-sm btn-light p-1 obj-attr-actions"
+        class="btn btn-sm p-1 row-menu-toggle obj-attr-actions"
         type="button"
         data-bs-toggle="dropdown"
         aria-expanded="false"

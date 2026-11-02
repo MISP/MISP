@@ -486,20 +486,19 @@ $foldChildren = empty($objects) ? [] : [
                     <!-- Attribute table -->
                     <?php if (!empty($object['Attribute'])): ?>
                     <div class="table-responsive">
-                        <table class="table table-sm table-hover
-                                      align-middle mb-0">
-                            <thead class="table-light">
+                        <table class="table table-hover align-middle mb-0 ix-table">
+                            <thead>
                                 <tr>
                                     <th></th>
                                     <th><?= __('Value') ?></th>
-                                    <th><?= __('Type') ?></th>
                                     <th><?= __('Category') ?></th>
+                                    <th><?= __('Type') ?></th>
                                     <th><?= __('Tags') ?></th>
-                                    <th><?= __('Galaxies') ?></th>
+                                    <th><?= __('Galaxy') ?></th>
                                     <th><?= __('IDS') ?></th>
                                     <th><?= __('Correlate') ?></th>
                                     <th><?= __('Related Events') ?></th>
-                                    <th><?= __('Feed Hits') ?></th>
+                                    <th><?= __('Feed hits') ?></th>
                                     <th><?= __('Sightings') ?></th>
                                     <th><?= __('Analyst data') ?></th>
                                     <th class="me-2"><?= __('Actions') ?></th>
