@@ -5756,8 +5756,8 @@ function initAttributeForm(currentDist, isEdit) {
         typeEl.add(new Option('', ''));
         allowed.forEach(function (t) { typeEl.add(new Option(t, t)); });
         typeEl.value = nextVal;
-        /* An attribute inside an object has its type fixed by the template, so
-         * refilling the list must not hand it back. */
+        /* A type the server locked (object template, attachment) must stay
+         * disabled: the Security token leaves disabled fields out. */
         var locked = typeEl.dataset.locked === '1';
         typeEl.disabled = locked;
 

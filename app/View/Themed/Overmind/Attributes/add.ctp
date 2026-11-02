@@ -31,6 +31,7 @@ $correlIconStyle = $disableCorrelChecked
  */
 $lockedByObject = $isEdit && !empty($objectAttribute);
 $lockedMessage  = __('Category and type come from the object template and cannot be changed on an attribute that belongs to an object.');
+$typeLocked     = $lockedByObject || ($isEdit && !empty($attachment));
 
 echo $this->Form->create('Attribute', ['novalidate' => true]);
 ?>
@@ -88,8 +89,8 @@ echo $this->Form->create('Attribute', ['novalidate' => true]);
                         'class'    => 'form-select',
                         'value'    => $currentType,
                         'empty'    => __('(choose category first)'),
-                        'disabled' => ($isEdit && !empty($attachment)) || $lockedByObject,
-                        'data-locked' => $lockedByObject ? '1' : null,
+                        'disabled' => $typeLocked,
+                        'data-locked' => $typeLocked ? '1' : null,
                     ], function ($v) { return $v !== null && $v !== false; })) ?>
                 </span>
                 <div id="notice_type" class="mt-2" style="display:none;"></div>
