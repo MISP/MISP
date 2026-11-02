@@ -215,7 +215,9 @@
 
                 // Content
                 'left' => [
-                    'Events/View/event_history',
+                    [
+                        'ajax' => sprintf('/audit_logs/eventHistory/%s', h($event['Event']['id']))
+                    ]
                 ]
             ]
         ]
