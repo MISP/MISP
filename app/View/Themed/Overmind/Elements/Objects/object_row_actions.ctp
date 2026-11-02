@@ -46,27 +46,6 @@ $collectUrl = $baseurl . '/collectionElements/addElementToCollection/Object/' . 
                 </a>
             </li>
             <?= $this->element('Objects/object_map_button', ['object' => $object]) ?>
-            <?php if ($mayGraph || $mayCollect): ?>
-            <li><hr class="dropdown-divider"></li>
-            <?php endif; ?>
-            <?php if ($mayGraph): ?>
-            <li>
-                <a class="dropdown-item justify-content-start" href="#"
-                   data-intel-graph-add="<?= h(json_encode([['type' => 'Object', 'uuid' => $uuid, 'label' => $object['name']]])) ?>">
-                    <i class="text-analystGraph misp-icon misp-icon-analyst-graph misp-simple me-2"></i>
-                    <?= __('Add to workspace') ?>
-                </a>
-            </li>
-            <?php endif; ?>
-            <?php if ($mayCollect): ?>
-            <li>
-                <a class="dropdown-item justify-content-start" href="<?= $collectUrl ?>"
-                   onclick="event.preventDefault(); openModal('<?= $collectUrl ?>', 'xl');">
-                    <i class="fas fa-folder-plus me-2"></i>
-                    <?= __('Add to collection') ?>
-                </a>
-            </li>
-            <?php endif; ?>
             <?php if ($canEdit): ?>
             <li><hr class="dropdown-divider"></li>
             <li>
@@ -100,6 +79,27 @@ $collectUrl = $baseurl . '/collectionElements/addElementToCollection/Object/' . 
                 'mode' => 'menu_items',
                 'showView' => false,
             ]) ?>
+            <?php if ($mayGraph || $mayCollect): ?>
+            <li><hr class="dropdown-divider"></li>
+            <?php endif; ?>
+            <?php if ($mayGraph): ?>
+            <li>
+                <a class="dropdown-item justify-content-start" href="#"
+                   data-intel-graph-add="<?= h(json_encode([['type' => 'Object', 'uuid' => $uuid, 'label' => $object['name']]])) ?>">
+                    <i class="text-analystGraph misp-icon misp-icon-analyst-graph misp-simple me-2"></i>
+                    <?= __('Add to workspace') ?>
+                </a>
+            </li>
+            <?php endif; ?>
+            <?php if ($mayCollect): ?>
+            <li>
+                <a class="dropdown-item justify-content-start" href="<?= $collectUrl ?>"
+                   onclick="event.preventDefault(); openModal('<?= $collectUrl ?>', 'xl');">
+                    <i class="fas fa-folder-plus me-2"></i>
+                    <?= __('Add to collection') ?>
+                </a>
+            </li>
+            <?php endif; ?>
         </ul>
     </div>
 </div>
