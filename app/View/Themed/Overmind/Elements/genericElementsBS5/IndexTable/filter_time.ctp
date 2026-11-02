@@ -10,10 +10,12 @@
  *             an alias is read like the name and dropped when it is set
  * - presets : [{value, label, title}], time deltas the filters take
  *
- * A range goes in the URL as the `[from, to]` list the index reads.
+ * A range goes in the URL as the `[from, to]` list the index reads; in the
+ * query string that is `from||to`.
  *
  * @var array $child
  * @var IndexFilterState $state
+ * @var bool $deferred whether the bar waits for Apply (its hint says so)
  */
 $fields = [];
 $count = 0;
@@ -21,6 +23,9 @@ foreach ($child['fields'] as $field) {
     $value = null;
     foreach (array_merge([$field['name']], $field['aliases'] ?? []) as $key) {
         $value = $state->getList($key) ?? $state->get($key);
+        if (is_string($value) && strpos($value, '||') !== false) {
+            $value = explode('||', $value, 2);
+        }
         if ($value !== null) {
             break;
         }
@@ -48,7 +53,8 @@ $config = [
         'customTitle' => __('Pick dates'),
         'from' => __('From'),
         'to' => __('To'),
-        'hint' => __('Both rows apply together. Applies when you close the picker.'),
+        'hint' => trim((count($fields) > 1 ? __('Both rows apply together.') . ' ' : '')
+            . (empty($deferred) ? __('Applies when you close the picker.') : __('Kept until you apply the filters.'))),
     ],
 ];
 ?>

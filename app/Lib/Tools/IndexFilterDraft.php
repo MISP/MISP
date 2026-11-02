@@ -3,11 +3,11 @@
 /**
  * The one description of a deferred-apply filter panel.
  *
- * Two bars draw one: Elements/Logs/filter_card.ctp for the log indexes and
- * genericElementsBS5/IndexTable/filter_bar.ctp for any scaffolded index that
- * declares a `more_filters` control. They share the markup through
- * `IndexTable/filter_toggle` + `IndexTable/filter_panel`, the behaviour
- * through initIndexFilterDraft() in mispOvermind.js, and the wording here.
+ * Two bars draw one, with this wording: genericElementsBS5/IndexTable/
+ * filter_bar.ctp for a scaffolded index without pickers that declares a
+ * `more_filters` control (filter_toggle + filter_panel, initIndexFilterDraft()
+ * in mispOvermind.js), and the same bar with pickers in its deferred mode,
+ * the log indexes (the Filters panel's draft, index-filters.js).
  *
  * The strings live in PHP rather than in the JS engine because MISP
  * translates in PHP; a default baked into mispOvermind.js would ship

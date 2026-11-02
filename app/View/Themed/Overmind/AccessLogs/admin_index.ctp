@@ -11,22 +11,25 @@ foreach (['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'TRACE', 'PATCH'] a
     $methodOptions[$m] = $m;
 }
 
+$requestGroup = __('Request');
+$who = __('Who');
+$cost = __('Performance');
 $filterFields = [
-    ['name' => 'url', 'label' => __('URL contains'), 'type' => 'text', 'placeholder' => __('e.g. /events/view/42'), 'col' => 6],
-    ['name' => 'request_method', 'label' => __('HTTP method'), 'type' => 'select', 'options' => $methodOptions, 'col' => 3],
-    ['name' => 'response_code', 'label' => __('Response code'), 'type' => 'number', 'placeholder' => __('e.g. 200'), 'col' => 3],
-    ['name' => 'user', 'label' => __('User'), 'type' => 'text', 'placeholder' => __('ID or e-mail'), 'col' => 3],
-    ['name' => 'org', 'label' => __('Organisation'), 'type' => 'text', 'placeholder' => __('ID, UUID or name'), 'col' => 3],
-    ['name' => 'ip', 'label' => __('IP'), 'type' => 'text', 'placeholder' => __('e.g. 10.0.0.1'), 'col' => 3],
-    ['name' => 'controller', 'label' => __('Controller'), 'type' => 'text', 'placeholder' => __('exactly, e.g. events'), 'col' => 3],
-    ['name' => 'action', 'label' => __('Action'), 'type' => 'text', 'placeholder' => __('exactly, e.g. view'), 'col' => 3],
-    ['name' => 'request_id', 'label' => __('Request ID'), 'type' => 'text', 'placeholder' => __('X-Request-ID header value'), 'col' => 3],
-    ['name' => 'authkey_id', 'label' => __('Auth key ID'), 'type' => 'number', 'placeholder' => __('e.g. 7'), 'col' => 3],
-    ['name' => 'user_agent', 'label' => __('User agent'), 'type' => 'text', 'placeholder' => __('e.g. PyMISP, curl, Mozilla'), 'col' => 6],
-    ['name' => 'memory_usage', 'label' => __('Memory usage'), 'type' => 'number', 'step' => '0.01', 'placeholder' => __('≥ MB'), 'col' => 3],
-    ['name' => 'duration', 'label' => __('Duration'), 'type' => 'number', 'placeholder' => __('≥ ms'), 'col' => 3],
-    ['name' => 'query_count', 'label' => __('Query count'), 'type' => 'number', 'placeholder' => __('≥ n'), 'col' => 3],
-    ['name' => 'created', 'label' => __('Created after'), 'type' => 'date', 'col' => 3, 'help' => __('Date or relative delta (e.g. 7d)')],
+    ['name' => 'url', 'label' => __('URL contains'), 'type' => 'text', 'placeholder' => __('e.g. /events/view/42'), 'group' => $requestGroup],
+    ['name' => 'request_method', 'label' => __('HTTP method'), 'type' => 'select', 'options' => $methodOptions, 'group' => $requestGroup],
+    ['name' => 'response_code', 'label' => __('Response code'), 'type' => 'number', 'placeholder' => __('e.g. 200'), 'group' => $requestGroup],
+    ['name' => 'controller', 'label' => __('Controller'), 'type' => 'text', 'placeholder' => __('exactly, e.g. events'), 'group' => $requestGroup],
+    ['name' => 'action', 'label' => __('Action'), 'type' => 'text', 'placeholder' => __('exactly, e.g. view'), 'group' => $requestGroup],
+    ['name' => 'request_id', 'label' => __('Request ID'), 'type' => 'text', 'placeholder' => __('X-Request-ID header value'), 'group' => $requestGroup],
+    ['name' => 'user_agent', 'label' => __('User agent'), 'type' => 'text', 'placeholder' => __('e.g. PyMISP, curl, Mozilla'), 'group' => $requestGroup],
+    ['name' => 'user', 'label' => __('User'), 'type' => 'text', 'placeholder' => __('ID or e-mail'), 'group' => $who],
+    ['name' => 'org', 'label' => __('Organisation'), 'type' => 'text', 'placeholder' => __('ID, UUID or name'), 'group' => $who],
+    ['name' => 'ip', 'label' => __('IP'), 'type' => 'text', 'placeholder' => __('e.g. 10.0.0.1'), 'group' => $who],
+    ['name' => 'authkey_id', 'label' => __('Auth key ID'), 'type' => 'number', 'placeholder' => __('e.g. 7'), 'group' => $who],
+    ['name' => 'memory_usage', 'label' => __('Memory usage'), 'type' => 'number', 'step' => '0.01', 'placeholder' => __('≥ MB'), 'group' => $cost],
+    ['name' => 'duration', 'label' => __('Duration'), 'type' => 'number', 'placeholder' => __('≥ ms'), 'group' => $cost],
+    ['name' => 'query_count', 'label' => __('Query count'), 'type' => 'number', 'placeholder' => __('≥ n'), 'group' => $cost],
+    ['name' => 'created', 'label' => __('Created'), 'type' => 'date', 'group' => __('When')],
 ];
 
 $methodClass = function ($method) {
@@ -51,17 +54,17 @@ $codeClass = function ($code) {
 $P = $this->Paginator;
 ?>
 
-<div class="container-fluid">
+<div class="container-fluid" data-ifp-scope="/admin/access_logs">
 
-    <?= $this->element('Logs/filter_card', [
-        'item_url'      => '/admin/access_logs',
-        'search'        => ['placeholder' => __('Search URL, controller, action, user agent, user, org, IP…')],
-        'fields'        => $filterFields,
-        'pager_element' => 'Logs/pager_prevnext',
+    <?= $this->element('Logs/filter_bar', [
+        'item_url' => '/admin/access_logs',
+        'search'   => ['placeholder' => __('Search URL, controller, action, user agent, user, org, IP…')],
+        'fields'   => $filterFields,
+        'rows'     => $list ?? [],
     ]) ?>
 
-    <!-- Swapped wholesale by the filter bar's ajax reload — see mispOvermind.js -->
-    <div id="log-index-results" class="index-results">
+    <!-- Swapped by the filter bar when filters apply (index-filters.js) -->
+    <div id="log-index-results" class="index-results" data-ifp-results>
         <div class="card shadow-sm mb-4">
             <div class="card-body p-0">
                 <div class="table-responsive table-scroll">
@@ -161,11 +164,9 @@ $P = $this->Paginator;
             </div>
         </div>
 
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <?= $this->element('genericElementsBS5/IndexTable/pagination') ?>
-            </div>
-        </div>
+        <?= $this->element('genericElementsBS5/IndexTable/pagination_bottom', [
+            'rows' => count($list ?? []),
+        ]) ?>
     </div>
 
 </div>

@@ -6,7 +6,7 @@
  * A child's `group` names its section; children without one share a section.
  *
  * @var string $id
- * @var array $items picker, time and value_match children, in bar order
+ * @var array $items picker, time, value and value_match children, in bar order
  * @var array $toggles button children
  * @var IndexFilterState $state
  * @var callable $keysOf child => the unprefixed URL keys it sets
@@ -15,6 +15,8 @@
  *            panel repeats its chips since it covers that row
  * @var array $currentFilters
  * @var string $filterId
+ * @var bool $deferred whether filters wait for Apply; the foot is then the
+ *            draft index-filters.js draws instead of the applied chips
  */
 $sections = [];
 foreach ($items as $child) {
@@ -57,6 +59,12 @@ $section = 0;
                             <?= $this->element('genericElementsBS5/IndexTable/filter_time', [
                                 'child' => $child,
                                 'state' => $state,
+                                'deferred' => !empty($deferred),
+                            ]) ?>
+                        <?php elseif ($child['type'] === 'value'): ?>
+                            <?= $this->element('genericElementsBS5/IndexTable/filter_value', [
+                                'child' => $child,
+                                'state' => $state,
                             ]) ?>
                         <?php else: ?>
                             <?= $this->element('genericElementsBS5/IndexTable/filter_value_match', [
@@ -72,10 +80,14 @@ $section = 0;
         <?php endforeach; ?>
     </div>
 
-    <div class="ifp-win-foot">
-        <?= $this->element('genericElementsBS5/IndexTable/filter_chips', $chipsData + [
-            'swap' => 'win-chips',
-            'empty' => __('No filter active'),
-        ]) ?>
-    </div>
+    <?php if (!empty($deferred)): ?>
+        <div class="ifp-win-foot" data-ifp-draft></div>
+    <?php else: ?>
+        <div class="ifp-win-foot">
+            <?= $this->element('genericElementsBS5/IndexTable/filter_chips', $chipsData + [
+                'swap' => 'win-chips',
+                'empty' => __('No filter active'),
+            ]) ?>
+        </div>
+    <?php endif; ?>
 </div>

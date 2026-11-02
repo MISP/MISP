@@ -33,8 +33,6 @@
             if (!t.width || t.lane.scrollWidth <= t.width) {
                 return false;
             }
-            var lead = t.lane.querySelector('.te-tn');
-            t.leadWidth = lead ? lead.offsetWidth + GAP : 0;
             t.widths = t.chips.map(function (c) { return c.offsetWidth; });
             return true;
         });
@@ -45,12 +43,12 @@
         todo.forEach(function (t) { t.reserve = t.more.offsetWidth + GAP; });
         todo.forEach(function (t) {
             t.more.hidden = true;
-            placeChips(t.more, t.chips, t.widths, t.width, t.leadWidth, t.reserve);
+            placeChips(t.more, t.chips, t.widths, t.width, t.reserve);
         });
     }
 
-    function placeChips(more, chips, widths, width, leadWidth, reserve) {
-        var used = leadWidth, keep = 0;
+    function placeChips(more, chips, widths, width, reserve) {
+        var used = 0, keep = 0;
         for (var i = 0; i < chips.length; i++) {
             var w = widths[i];
             if (i > 0 && used + w + reserve > width) {
@@ -62,7 +60,7 @@
         var rest = chips.length - keep;
         chips.forEach(function (c, j) { if (j >= keep) c.hidden = true; });
         if (!rest) {
-            if (used - GAP > width) chips[0].style.maxWidth = Math.max(24, width - leadWidth) + 'px';
+            if (used - GAP > width) chips[0].style.maxWidth = Math.max(24, width) + 'px';
             return;
         }
         if (keep === 1 && used + reserve - GAP > width) {
@@ -71,7 +69,7 @@
                 chips[0].hidden = true;
                 rest++;
             } else {
-                chips[0].style.maxWidth = Math.max(24, width - leadWidth - reserve) + 'px';
+                chips[0].style.maxWidth = Math.max(24, width - reserve) + 'px';
             }
         }
         more.hidden = false;

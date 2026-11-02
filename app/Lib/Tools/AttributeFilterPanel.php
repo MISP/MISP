@@ -30,20 +30,22 @@ class AttributeFilterPanel
                 $distributions[(string)$level] = $meta['label'];
             }
         }
+        $attributes = __('Attributes');
+        $signals = __('Signals');
         $filters = array_merge($leading, [
-            ['name' => 'category', 'label' => __('Category'), 'options' => $options['categoryOptions'] ?? null, 'col' => 3],
-            ['name' => 'type', 'label' => __('Type'), 'options' => $options['typeOptions'] ?? null, 'col' => 3],
-            ['name' => 'org', 'label' => __('Creator Org'), 'options' => $options['orgOptions'] ?? null],
-            ['name' => 'tags', 'label' => __('Tags'), 'options' => $options['tagOptions'] ?? null],
-            ['name' => 'galaxy', 'label' => __('Galaxy'), 'options' => $options['galaxyOptions'] ?? null],
-            ['name' => 'distribution', 'label' => __('Distribution'), 'options' => $distributions],
-            ['name' => 'toIDS', 'label' => __('IDS'), 'options' => $yesNo, 'icon' => 'fas fa-shield-halved'],
-            ['name' => 'correlation', 'label' => __('Related events'), 'options' => $inEvent ? $yesNo : null],
-            ['name' => 'feed', 'label' => __('Feed hits'), 'options' => $inEvent ? $yesNo : null],
-            ['name' => 'analystData', 'label' => __('Analyst data'), 'options' => $yesNo, 'icon' => 'misp-icon misp-icon-analyst-note misp-simple'],
-            ['name' => 'warning', 'label' => __('Matches a warninglist'), 'options' => $inEvent ? $yesNo : $any + ['2' => __('No')], 'icon' => 'fas fa-triangle-exclamation'],
-            ['name' => 'narrower', 'label' => __('Shared more narrowly'), 'options' => $inEvent ? $yesNo : null],
-            ['name' => 'seen', 'label' => __('First or last seen'), 'options' => $inEvent ? $yesNo : null],
+            ['name' => 'category', 'label' => __('Category'), 'options' => $options['categoryOptions'] ?? null, 'col' => 3, 'group' => $attributes],
+            ['name' => 'type', 'label' => __('Type'), 'options' => $options['typeOptions'] ?? null, 'col' => 3, 'group' => $attributes],
+            ['name' => 'org', 'label' => __('Creator Org'), 'options' => $options['orgOptions'] ?? null, 'group' => $attributes],
+            ['name' => 'tags', 'label' => __('Tags'), 'options' => $options['tagOptions'] ?? null, 'group' => $attributes],
+            ['name' => 'galaxy', 'label' => __('Galaxy'), 'options' => $options['galaxyOptions'] ?? null, 'group' => $attributes],
+            ['name' => 'distribution', 'label' => __('Distribution'), 'options' => $distributions, 'group' => $attributes],
+            ['name' => 'toIDS', 'label' => __('IDS'), 'options' => $yesNo, 'icon' => 'fas fa-shield-halved', 'group' => $signals],
+            ['name' => 'correlation', 'label' => __('Related events'), 'options' => $inEvent ? $yesNo : null, 'group' => $signals],
+            ['name' => 'feed', 'label' => __('Feed hits'), 'options' => $inEvent ? $yesNo : null, 'group' => $signals],
+            ['name' => 'analystData', 'label' => __('Analyst data'), 'options' => $yesNo, 'icon' => 'misp-icon misp-icon-analyst-note misp-simple', 'group' => $signals],
+            ['name' => 'warning', 'label' => __('Matches a warninglist'), 'options' => $inEvent ? $yesNo : $any + ['2' => __('No')], 'icon' => 'fas fa-triangle-exclamation', 'group' => $signals],
+            ['name' => 'narrower', 'label' => __('Shared more narrowly'), 'options' => $inEvent ? $yesNo : null, 'group' => $signals],
+            ['name' => 'seen', 'label' => __('First or last seen'), 'options' => $inEvent ? $yesNo : null, 'group' => $signals],
         ]);
         $children = [];
         foreach ($filters as $filter) {
@@ -58,6 +60,7 @@ class AttributeFilterPanel
                 // The empty option's label is the control's placeholder
                 'options' => $any + $filter['options'],
                 'col' => $filter['col'] ?? 2,
+                'group' => $filter['group'] ?? null,
             ];
         }
         return $children;
