@@ -90,6 +90,24 @@ function capToasts(stack) {
     for (let i = TOAST_MAX; i < live.length; i++) dismissToast(live[i]);
 }
 
+/*
+ * A modal URL that refuses to open answers with its toasts only: they go to
+ * the stack and the modal stays closed.
+ */
+function showToastsOnly(html) {
+    const stack = toastStack();
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    const toasts = Array.from(tpl.content.children);
+    if (!stack || !toasts.length || !toasts.every(el => el.matches('.ov-toast'))) {
+        return false;
+    }
+    stack.prepend(...toasts);
+    toasts.forEach(armToast);
+    capToasts(stack);
+    return true;
+}
+
 /*******************************
  * Size the shared #mainModal dialog.
  *
@@ -191,6 +209,9 @@ function openModal(url, size = 'xl') {
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.text())
         .then(html => {
+            if (showToastsOnly(html)) {
+                return;
+            }
             const container = document.getElementById('mainModalBody');
             container.innerHTML = html;
             container.querySelectorAll('script:not([type="application/json"])').forEach(oldScript => {

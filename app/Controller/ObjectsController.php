@@ -914,7 +914,15 @@ class ObjectsController extends AppController
             ));
         }
         if (empty($template) && !$this->_isRest() && !$update_template_available) {
-            $this->Flash->error('Object cannot be edited, no valid template found. ', ['params' => ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')]]);
+            $message = 'Object cannot be edited, no valid template found. ';
+            $params = ['url' => sprintf('/objects/edit/%s/1/0', $id), 'urlName' => __('Force update anyway')];
+            if ($this->request->is('ajax')) {
+                // Cake replays an ajax redirect internally: the modal gets the toast instead.
+                $this->layout = false;
+                $this->set(compact('message', 'params'));
+                return $this->render('/Elements/Flash/error');
+            }
+            $this->Flash->error($message, ['params' => $params]);
             if($this->theme === "Overmind"){
                 $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id'], '#' => 'tab-objects'));
             } else {
