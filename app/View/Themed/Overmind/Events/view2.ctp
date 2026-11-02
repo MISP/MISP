@@ -38,9 +38,9 @@
 
     $viewJs = ['markdown-it', 'font-awesome-helper', 'misp-report-markdown', 'event-report-reader', 'Chart.min',
         'event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline', 'event-seen-timeline', 'tile-drawer',
-        'event-object-views'];
+        'event-object-views', 'objects-index'];
     $viewCss = ['event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline', 'value-widgets', 'tile-drawer',
-        'event-object-views'];
+        'event-object-views', 'objects-index'];
     if (Configure::read('Plugin.Geolocation_enabled')) {
         $viewJs = array_merge($viewJs, ['leaflet', 'object-map']);
         $viewCss[] = 'leaflet';

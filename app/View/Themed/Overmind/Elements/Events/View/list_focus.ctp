@@ -1,7 +1,8 @@
 <?php
 /*
  * Brings the row a focus:<uuid> deep link names into view in an event's
- * attribute or object tab, opening its object card first.
+ * attribute or object tab. The object holding it is drawn open already
+ * (Elements/Objects/index.ctp).
  *
  * - $focusId (int|null) id of the attribute row, null when it is not on this page
  */
@@ -24,13 +25,6 @@ $markerId = 'list-focus-' . dechex(mt_rand());
     var row = container.querySelector('tr[data-primary-id="<?= (int)$focusId ?>"]');
     if (!row) return;
     row.classList.add('ov-focus-row');
-    var reveal = function () { row.scrollIntoView({ block: 'center' }); };
-    var collapse = row.closest('.accordion-collapse');
-    if (collapse && !collapse.classList.contains('show') && window.bootstrap) {
-        collapse.addEventListener('shown.bs.collapse', reveal, { once: true });
-        bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
-    } else {
-        reveal();
-    }
+    row.scrollIntoView({ block: 'center' });
 }());
 </script>

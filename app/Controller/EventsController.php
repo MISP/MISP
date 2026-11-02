@@ -3318,11 +3318,18 @@ class EventsController extends AppController
             'pageCount' => $pageCount,
             'order'     => null,
             'limit'     => $limit,
-            'options'   => [],
+            // For the sortable headings to know which one is active.
+            'options'   => [
+                'sort' => $options['sort'] ?? 'timestamp',
+                'direction' => strtolower($options['direction'] ?? '') === 'asc' ? 'asc' : 'desc',
+            ],
             'paramType' => 'named',
         ];
 
         $this->set('objects', $result['Object']);
+        $objectIds = array_map('intval', array_column($result['Object'], 'id'));
+        $this->set('referencesIn', empty($objectIds)
+            ? [] : $this->Event->Object->indexReferenceCounts($user, $objectIds)[1]);
         $focusId = null;
         if (!empty($options['focus'])) {
             foreach ($result['Object'] as $object) {

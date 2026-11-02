@@ -122,7 +122,11 @@
 }
 .oi-detail > td {
     padding: 0 .75rem .75rem 2.75rem;
-    background: var(--bs-tertiary-bg);
+}
+/* Its own ground, under the table's hover and selection tints too: the
+   attribute table it holds has rows to select. */
+.oi-table > tbody > tr.oi-detail:is(*, :hover, :focus-within, :has(.mass-select:checked)) > td {
+    background-color: var(--bs-tertiary-bg);
 }
 .oi-detail-box {
     min-height: 3rem;
@@ -149,9 +153,6 @@
     font-size: .78rem;
     color: var(--bs-secondary-color);
 }
-.oi-card-foot .dropdown {
-    padding-right: 0 !important;
-}
 .oi-card-uuid {
     display: inline-flex;
     align-items: center;
@@ -159,6 +160,29 @@
 }
 .oi-card-uuid .btn-link {
     color: var(--bs-secondary-color);
+}
+
+/* Event Objects tab: the rows select and delete objects, and the References
+   cell opens the object's relationships. */
+.oi-table > tbody > tr:has(> td .obj-select:checked) > td {
+    background-color: var(--ix-sel);
+}
+.oi-table > tbody > tr.oi-deleted > td,
+.oi-table > tbody > tr.oi-deleted + tr.oi-detail > td,
+.oi-index .idx-card.oi-deleted {
+    opacity: .55;
+}
+.oi-refs-toggle {
+    margin-left: calc(-.4rem - 1px);
+    padding: .15rem .4rem;
+    border: 1px solid transparent;
+    border-radius: .4rem;
+}
+.oi-refs-toggle:hover,
+.oi-refs-toggle:focus-visible,
+.oi-refs-toggle[aria-expanded="true"] {
+    border-color: var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
 }
 
 /* Card view */

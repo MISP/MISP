@@ -1,12 +1,11 @@
 <?php
 /**
  * "Show on map" for the objects that carry a place or a path: geolocation,
- * gpx, uav and geojson. Rendered in the card header, outside the accordion
- * button, so a click opens the map instead of collapsing the card.
+ * gpx, uav and geojson. An entry of the object's action menu, which
+ * js/object-map.js opens from its data-object-map.
  *
  * Parameters:
  *   object  array  one entry of $objects
- *   class   string extra classes for the wrapper
  */
 if (!Configure::read('Plugin.Geolocation_enabled') || !empty($object['deleted'])) {
     return;
@@ -53,14 +52,12 @@ if ($data === null) {
 
 $tileUrl = Configure::read('Plugin.Geolocation_url') ?: 'https://geo.circl.lu';
 ?>
-<div class="flex-shrink-0 <?= h($class ?? 'pe-3') ?>">
-    <button type="button"
-            class="btn btn-sm ov-obj-map-btn"
-            data-object-map="<?= h(json_encode($data)) ?>"
-            data-tile-url="<?= h($tileUrl) ?>"
-            data-title="<?= h($object['name']) ?>"
-            title="<?= h(__('Show on map')) ?>">
-        <i class="fas fa-map-location-dot"></i>
-        <?= __('Map') ?>
-    </button>
-</div>
+<li>
+    <a class="dropdown-item justify-content-start" href="#"
+       data-object-map="<?= h(json_encode($data)) ?>"
+       data-tile-url="<?= h($tileUrl) ?>"
+       data-title="<?= h($object['name']) ?>">
+        <i class="fas fa-map-location-dot me-2"></i>
+        <?= __('Show on map') ?>
+    </a>
+</li>

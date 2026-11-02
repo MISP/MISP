@@ -1,13 +1,22 @@
 /*
  * Objects index: a table row, or a card, opens in place into the object's
  * attributes, fetched once from objects/indexCard/<id> and kept for the next
- * toggle.
+ * toggle. The event's Objects tab draws them with the page instead, so there
+ * is nothing to fetch.
  *
  * Delegated on the document: the filter bar swaps the results block without a
  * page load, and this script runs before the table exists.
+ *
+ *   ObjectsIndex.setOpen(button, open)  open or close from code; every change
+ *                                       fires a bubbling `oi:toggle` with
+ *                                       { id, open } on the button
  */
 (function () {
     'use strict';
+
+    if (window.ObjectsIndex) {
+        return;
+    }
 
     function loaderBox(url) {
         var box = document.createElement('div');
@@ -45,25 +54,30 @@
         return { node: slot, box: box };
     }
 
-    function toggle(button) {
+    function setOpen(button, open) {
         var index = button.closest('.oi-index');
         var tr = button.closest('tr');
         var tile = tr ? null : button.closest('.oi-tile');
-        if (!index || (!tr && !tile)) {
+        if (!index || (!tr && !tile) || (button.getAttribute('aria-expanded') === 'true') === open) {
             return;
         }
-        var open = button.getAttribute('aria-expanded') === 'true';
-        button.setAttribute('aria-expanded', open ? 'false' : 'true');
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
         if (tr) {
-            tr.classList.toggle('oi-open', !open);
+            tr.classList.toggle('oi-open', open);
         }
         var url = index.dataset.oiCardUrl + button.dataset.oiExpand;
         var target = tr ? rowTarget(tr, url) : tileTarget(tile, url);
-        target.node.hidden = open;
+        target.node.hidden = !open;
         if (target.box) {
             loadAjaxContainer(target.box);
         }
+        button.dispatchEvent(new CustomEvent('oi:toggle', {
+            bubbles: true,
+            detail: { id: button.dataset.oiExpand, open: open }
+        }));
     }
+
+    window.ObjectsIndex = { setOpen: setOpen };
 
     document.addEventListener('click', function (e) {
         var target = e.target;
@@ -80,7 +94,7 @@
         }
         if (button) {
             e.preventDefault();
-            toggle(button);
+            setOpen(button, button.getAttribute('aria-expanded') !== 'true');
         }
     });
 }());
