@@ -3503,7 +3503,11 @@ class EventsController extends AppController
             'pageCount' => $pageCount,
             'order'     => null,
             'limit'     => $limit,
-            'options'   => [],
+            // For the sortable headings to know which one is active.
+            'options'   => [
+                'sort' => $options['sort'] ?? 'timestamp',
+                'direction' => strtolower($options['direction'] ?? '') === 'asc' ? 'asc' : 'desc',
+            ],
             'paramType' => 'named',
         ];
 
