@@ -14,7 +14,13 @@ $isCard    = isset($viewMode) && $viewMode === 'card';
 $attribute = isset($row['Attribute']) ? $row['Attribute'] : $row;
 $event     = $row['Event'] ?? ($event ?? null);
 
-if ($attribute && $event && isset($attribute['id'], $attribute['type'])):
+/*
+ * `readonly` reports the state without offering the toggle, as ids.ctp does,
+ * for a page that has not loaded the attribute's event.
+ */
+$readonly = !empty($field['readonly']);
+
+if ($attribute && ($event || $readonly) && isset($attribute['id'], $attribute['type'])):
     $objectId    = h($attribute['id']);
     $isNonCorrelatingType = in_array(
         $attribute['type'],
@@ -22,7 +28,8 @@ if ($attribute && $event && isset($attribute['id'], $attribute['type'])):
         true
     );
     $correlDisabled = !empty($attribute['disable_correlation']) || $isNonCorrelatingType;
-    $canToggle      = $this->Acl->canDisableCorrelation($event)
+    $canToggle      = !$readonly
+                   && $this->Acl->canDisableCorrelation($event)
                    && empty($event['disable_correlation'])
                    && !$isNonCorrelatingType;
 
@@ -97,7 +104,7 @@ if ($attribute && $event && isset($attribute['id'], $attribute['type'])):
 
 
 <?php
-if (empty($this->viewVars['_correlateScriptEmitted'])):
+if (!$readonly && empty($this->viewVars['_correlateScriptEmitted'])):
     $this->viewVars['_correlateScriptEmitted'] = true;
 ?>
 
@@ -114,8 +121,8 @@ if (empty($this->viewVars['_correlateScriptEmitted'])):
         descEnable:    <?= json_encode(__('Correlation will be re-enabled for this attribute.')) ?>,
         warnDisable:   <?= json_encode(__('Warning: this action cannot be undone automatically.')) ?>,
         cancel:        <?= json_encode(__('Cancel')) ?>,
-        labelOn:       <?= json_encode(__('On')) ?>,
-        labelOff:      <?= json_encode(__('Off')) ?>,
+        labelOn:       <?= json_encode(__('Correlation On')) ?>,
+        labelOff:      <?= json_encode(__('Correlation Off')) ?>,
         savedEnabled:  <?= json_encode(__('Correlation enabled')) ?>,
         savedDisabled: <?= json_encode(__('Correlation disabled')) ?>,
         noChange:      <?= json_encode(__('Already up to date')) ?>,

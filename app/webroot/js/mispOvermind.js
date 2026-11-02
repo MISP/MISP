@@ -90,6 +90,24 @@ function capToasts(stack) {
     for (let i = TOAST_MAX; i < live.length; i++) dismissToast(live[i]);
 }
 
+/*
+ * A modal URL that refuses to open answers with its toasts only: they go to
+ * the stack and the modal stays closed.
+ */
+function showToastsOnly(html) {
+    const stack = toastStack();
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    const toasts = Array.from(tpl.content.children);
+    if (!stack || !toasts.length || !toasts.every(el => el.matches('.ov-toast'))) {
+        return false;
+    }
+    stack.prepend(...toasts);
+    toasts.forEach(armToast);
+    capToasts(stack);
+    return true;
+}
+
 /*******************************
  * Size the shared #mainModal dialog.
  *
@@ -191,6 +209,9 @@ function openModal(url, size = 'xl') {
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.text())
         .then(html => {
+            if (showToastsOnly(html)) {
+                return;
+            }
             const container = document.getElementById('mainModalBody');
             container.innerHTML = html;
             container.querySelectorAll('script:not([type="application/json"])').forEach(oldScript => {
@@ -5735,8 +5756,8 @@ function initAttributeForm(currentDist, isEdit) {
         typeEl.add(new Option('', ''));
         allowed.forEach(function (t) { typeEl.add(new Option(t, t)); });
         typeEl.value = nextVal;
-        /* An attribute inside an object has its type fixed by the template, so
-         * refilling the list must not hand it back. */
+        /* A type the server locked (object template, attachment) must stay
+         * disabled: the Security token leaves disabled fields out. */
         var locked = typeEl.dataset.locked === '1';
         typeEl.disabled = locked;
 

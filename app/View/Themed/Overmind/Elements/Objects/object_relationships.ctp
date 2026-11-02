@@ -1,20 +1,21 @@
 <?php
 /**
- * The relationship count an object carries, in its card header.
+ * The relationships an object carries, as a menu behind their count.
  *
  * Hovering names them, and each one in the menu links to what it points at.
- * Rendered outside the accordion button so a click reaches the target instead
- * of collapsing the card.
  *
  * Parameters:
- *   references  array  the object's ObjectReference rows, each with its Target
+ *   references  array     the object's ObjectReference rows, each with its Target
  *   objId       int
  *   eventId     int|null
- *   canEdit     bool   may add and delete relationships
- *   menuPrefix  string id prefix, unique per rendering of the object list
+ *   canEdit     bool      may add and delete relationships
+ *   menuPrefix  string    id prefix, unique per rendering of the object list
+ *   inbound     int|null  the references reaching the object: the toggle then
+ *                         reads as the objects index's References column
  */
 $count = count($references);
 $canEdit = !empty($canEdit);
+$inbound = isset($inbound) ? (int)$inbound : null;
 
 $targetLabel = function ($reference) {
     if (!empty($reference['Target'])) {
@@ -31,7 +32,18 @@ foreach ($references as $reference) {
 $menuId = ($menuPrefix ?? 'objRels') . (int)$objId;
 $addUrl = $baseurl . '/objectReferences/add/' . (int)$objId;
 ?>
-<div class="dropdown flex-shrink-0 pe-3">
+<div class="dropdown flex-shrink-0">
+    <?php if ($inbound !== null): ?>
+    <button type="button"
+            class="btn btn-sm oi-refs-toggle"
+            id="<?= $menuId ?>"
+            data-bs-toggle="dropdown"
+            data-bs-auto-close="outside"
+            aria-expanded="false"
+            title="<?= h($count ? implode("\n", $summary) : __('Add a relationship')) ?>">
+        <?= $this->element('Objects/index_refs', ['out' => $count, 'in' => $inbound, 'title' => false]) ?>
+    </button>
+    <?php else: ?>
     <button type="button"
             class="btn btn-sm ov-obj-rel-badge<?= $count === 0 ? ' ov-obj-rel-empty' : '' ?>"
             id="<?= $menuId ?>"
@@ -42,6 +54,7 @@ $addUrl = $baseurl . '/objectReferences/add/' . (int)$objId;
         <i class="fas fa-link"></i>
         <?= $count ?: '<i class="fas fa-plus"></i>' ?>
     </button>
+    <?php endif; ?>
     <ul class="dropdown-menu dropdown-menu-end ov-obj-rel-menu" aria-labelledby="<?= $menuId ?>">
         <li><h6 class="dropdown-header"><?= __n('%s relationship', '%s relationships', $count, $count) ?></h6></li>
         <?php foreach ($references as $reference): ?>

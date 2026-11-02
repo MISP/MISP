@@ -14,7 +14,7 @@ $mayAdd    = $this->Acl->canAccess('collectionElements', 'addElementToCollection
     <div class="p-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
             <div class="misp-icon-tile rounded-2 d-flex align-items-center justify-content-center"
-                 style="width:36px;height:36px;--tile:#0d6efd;--tile-bg:#0d6efd40;">
+                 style="width:36px;height:36px;--tile:#1892B1;--tile-bg:#1892B140;">
                 <i class="fas fa-folder-open" style="font-size:1rem;"></i>
             </div>
             <div class="me-auto">

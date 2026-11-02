@@ -20,6 +20,8 @@
  *                becomes a picker, a date the time picker, the rest a value
  *  - $rows     : the page's rows, for the count beside the chips
  *  - $pager    : optional pager element, for a log paged without a total
+ *  - $action   : optional action the bar drives, under $item_url (default
+ *                'index'); an event tab's names its own
  */
 $presets = [
     ['value' => '1h', 'label' => __('1h'), 'title' => __('last hour')],
@@ -85,6 +87,7 @@ echo $this->element('genericElementsBS5/IndexTable/filter_bar', [
     'scaffold_data' => [
         'data' => $rows ?? [],
         'filter_bar' => [
+            'action' => $action ?? 'index',
             'apply' => 'deferred',
             'transport' => 'query',
             'view_switch' => false,

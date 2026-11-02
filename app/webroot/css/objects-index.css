@@ -122,7 +122,11 @@
 }
 .oi-detail > td {
     padding: 0 .75rem .75rem 2.75rem;
-    background: var(--bs-tertiary-bg);
+}
+/* Its own ground, under the table's hover and selection tints too: the
+   attribute table it holds has rows to select. */
+.oi-table > tbody > tr.oi-detail:is(*, :hover, :focus-within, :has(.mass-select:checked)) > td {
+    background-color: var(--bs-tertiary-bg);
 }
 .oi-detail-box {
     min-height: 3rem;
@@ -136,9 +140,6 @@
     border-radius: .5rem;
     background: var(--bs-body-bg);
 }
-.oi-card > .list-group {
-    border-top: 0 !important;
-}
 .oi-card-foot {
     display: flex;
     flex-wrap: wrap;
@@ -149,9 +150,6 @@
     font-size: .78rem;
     color: var(--bs-secondary-color);
 }
-.oi-card-foot .dropdown {
-    padding-right: 0 !important;
-}
 .oi-card-uuid {
     display: inline-flex;
     align-items: center;
@@ -161,7 +159,106 @@
     color: var(--bs-secondary-color);
 }
 
-/* Card view */
+/* Event Objects tab: the rows select and delete objects, and the References
+   cell opens the object's relationships. */
+.oi-table > tbody > tr:has(> td .obj-select:checked) > td {
+    background-color: var(--ix-sel);
+}
+.oi-table > tbody > tr.oi-deleted > td,
+.oi-table > tbody > tr.oi-deleted + tr.oi-detail > td,
+.oi-index .idx-card.oi-deleted {
+    opacity: .55;
+}
+.oi-refs-toggle {
+    margin-left: calc(-.4rem - 1px);
+    padding: .15rem .4rem;
+    border: 1px solid transparent;
+    border-radius: .4rem;
+}
+.oi-refs-toggle:hover,
+.oi-refs-toggle:focus-visible,
+.oi-refs-toggle[aria-expanded="true"] {
+    border-color: var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
+}
+
+
+/* An object's attributes (Elements/Objects/object_attribute_list): the
+   attribute indexes' cards (attributes-index.css), on the ground of their grid. */
+.oi-attrs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr));
+    gap: .75rem;
+    padding: .75rem;
+    background: var(--bs-tertiary-bg);
+}
+/* The relation joins the category and the type on the card's first line,
+   which stays one line past a phone's width: the category, the same for most
+   of an object's attributes, gives way first. */
+@media (min-width: 576px) {
+    .oi-attrs .ai-tile-kind {
+        flex-wrap: nowrap;
+        overflow: hidden;
+    }
+    .oi-attrs .ai-tile-kind > * {
+        flex-shrink: 0;
+        max-width: 45%;
+    }
+    .oi-attrs .ai-tile-kind > .oi-attr-category {
+        flex-shrink: 1;
+        min-width: 0;
+        max-width: none;
+    }
+    .oi-attrs .ai-tile-kind > .ai-tile-modified {
+        max-width: none;
+    }
+    .oi-attrs .ai-tile-kind :is(div, p) {
+        min-width: 0;
+    }
+    .oi-attrs .ai-tile-kind p {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+    .oi-attrs .ai-tile-kind .fa-chevron-right {
+        flex-shrink: 0;
+    }
+}
+.oi-attrs-empty {
+    padding: 1rem;
+    text-align: center;
+    font-size: .8rem;
+    font-style: italic;
+    color: var(--bs-secondary-color);
+}
+
+/* Card view, handled as the attribute indexes' cards (attributes-index.css):
+   a coloured border on hover, the accent once selected. Left alone on its left
+   side, which an extension paints. */
+.idx-card:has(> .oi-tile) {
+    --oi-line: var(--bs-card-border-color, var(--bs-border-color));
+    --oi-hover: color-mix(in srgb, var(--bs-primary) 45%, var(--oi-line));
+    transition: border-color .12s, box-shadow .12s;
+}
+.idx-card:has(> .oi-tile):hover {
+    border-top-color: var(--oi-hover);
+    border-right-color: var(--oi-hover);
+    border-bottom-color: var(--oi-hover);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .07) !important;
+}
+.idx-card:not(.evt-extension-row):has(> .oi-tile):hover {
+    border-left-color: var(--oi-hover);
+}
+.idx-card:has(> .oi-tile .oi-tile-sel input:checked) {
+    border-top-color: var(--bs-primary);
+    border-right-color: var(--bs-primary);
+    border-bottom-color: var(--bs-primary);
+    box-shadow: 0 0 0 1px var(--bs-primary) !important;
+    background: color-mix(in srgb, var(--bs-primary) 6%, var(--bs-card-bg, var(--bs-body-bg)));
+}
+.idx-card:not(.evt-extension-row):has(> .oi-tile .oi-tile-sel input:checked) {
+    border-left-color: var(--bs-primary);
+}
 .oi-tile {
     display: flex;
     flex-direction: column;
@@ -171,26 +268,132 @@
 .oi-tile-head {
     display: flex;
     align-items: flex-start;
-    gap: .25rem;
+    gap: .5rem;
     min-width: 0;
 }
 .oi-tile-head .ov-obj-head {
     flex: 1 1 auto;
+    align-items: flex-start;
+    margin-right: 0;
 }
-/* The card's attributes button carries the count. */
-.oi-tile-head .ov-obj-count {
+/* A smaller chip than the table's, centred on the two lines beside it. */
+.oi-tile-head .ov-obj-dist {
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-top: .25rem;
+    border-radius: .5rem;
+    font-size: .8rem;
+}
+/* The card's attributes button carries the count, and the last change shows
+   as an age. */
+.oi-tile-head .ov-obj-count,
+.oi-tile-head .ov-obj-date {
     display: none;
 }
-/* An open card takes the whole row, as the table's detail row does. */
-.oi-index .idx-card-grid > .idx-card-col:has(.oi-tile-toggle[aria-expanded="true"]) {
-    flex: 0 0 100%;
-    width: 100%;
-    max-width: 100%;
+.oi-tile-head .ov-obj-aside {
+    align-self: flex-start;
 }
+.oi-tile-modified {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.25rem;
+    font-size: .75rem;
+    white-space: nowrap;
+}
+
+/* The object icon gives way to the selection box on hover, and for good once
+   any card of the grid is selected. */
+.oi-tile-lead {
+    position: relative;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 2.25rem;
+}
+.oi-tile-lead > .misp-icon {
+    font-size: 14px;
+}
+.oi-tile-sel {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+}
+.oi-tile-sel .checkbox-actions-wrapper {
+    margin: 0;
+    background: none;
+    border-radius: 0;
+}
+.oi-tile-sel .checkbox-index input[type="checkbox"] {
+    margin: 0;
+    width: 15px;
+    height: 15px;
+    border-radius: 4px;
+    background-color: var(--bs-body-bg);
+    border-color: color-mix(in srgb, var(--bs-body-color) 34%, transparent);
+}
+.oi-tile-sel .checkbox-index input[type="checkbox"]:hover:not(:checked) {
+    border-color: var(--bs-primary);
+}
+.oi-tile-sel .checkbox-index input[type="checkbox"]:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+.oi-tile-sel .checkbox-index input[type="checkbox"]:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs-primary) 30%, transparent);
+}
+.oi-tile-sel .checkbox-index input[type="checkbox"]::after {
+    left: 4.5px;
+    top: 1.5px;
+    width: 4.5px;
+    height: 8px;
+}
+.idx-card:hover .oi-tile-sel,
+.idx-card:focus-within .oi-tile-sel,
+.idx-card-grid:has(.oi-tile-sel input:checked) .oi-tile-sel {
+    opacity: 1;
+}
+.idx-card:hover .oi-tile-lead > .misp-icon,
+.idx-card:focus-within .oi-tile-lead > .misp-icon,
+.idx-card-grid:has(.oi-tile-sel input:checked) .oi-tile-lead > .misp-icon {
+    visibility: hidden;
+}
+
+/* The menu, at the attribute table's size and shown as its rows show it. */
 .oi-tile-actions {
     flex-shrink: 0;
-    margin-top: .25rem;
+    display: flex;
+    align-items: center;
+    min-height: 2.25rem;
 }
+.oi-tile-actions .checkbox-actions-wrapper {
+    margin: 0;
+    background: none;
+}
+.oi-tile-actions .row-menu-toggle {
+    width: 26px;
+    height: 24px;
+    padding: 0 !important;
+    border: 0;
+    border-radius: 5px;
+}
+.oi-tile-actions .row-menu-toggle i {
+    font-size: .9rem !important;
+}
+@media (hover: hover) {
+    .oi-tile-actions .row-menu-toggle {
+        opacity: 0;
+    }
+    .idx-card:hover .oi-tile-actions .row-menu-toggle,
+    .oi-tile-actions .row-menu-toggle:focus-visible,
+    .oi-tile-actions .row-menu-toggle[aria-expanded="true"] {
+        opacity: 1;
+    }
+}
+
 .oi-tile-comment {
     overflow: hidden;
     white-space: nowrap;
@@ -227,6 +430,7 @@
 .oi-tile-facts .oi-event {
     max-width: 100%;
 }
+
 .oi-tile-foot {
     display: flex;
     align-items: center;
@@ -235,9 +439,29 @@
     padding-top: .6rem;
     border-top: 1px solid var(--bs-border-color);
 }
+/* The table's attribute count, made the button that opens the attributes. */
+.oi-tile-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .2rem .65rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-primary-text-emphasis);
+    background: var(--bs-primary-bg-subtle);
+}
+.oi-tile-toggle:hover,
+.oi-tile-toggle:focus-visible,
+.oi-tile-toggle[aria-expanded="true"] {
+    color: var(--bs-primary-text-emphasis);
+    background: var(--bs-primary-bg-subtle);
+    border-color: color-mix(in srgb, var(--bs-primary) 45%, transparent);
+}
 .oi-tile-toggle i {
-    margin-right: .25rem;
-    font-size: .7rem;
+    font-size: .65rem;
     transition: transform .15s ease;
 }
 .oi-tile-toggle[aria-expanded="true"] i {
@@ -249,6 +473,21 @@
 .oi-tile-analyst > .d-flex {
     flex-direction: row !important;
 }
+
+/* An open card takes the whole row, as the table's detail row does, and lays
+   its attributes out to the card's edges. */
+.oi-index .idx-card-grid > .idx-card-col:has(.oi-tile-toggle[aria-expanded="true"]) {
+    flex: 0 0 100%;
+    width: 100%;
+    max-width: 100%;
+}
+.oi-tile-attrs {
+    margin: 0 calc(-1 * var(--bs-card-spacer-x)) calc(-1 * var(--bs-card-spacer-y));
+    overflow: hidden;
+    border-top: 1px solid var(--bs-border-color);
+    border-radius: 0 0 var(--bs-card-inner-border-radius) var(--bs-card-inner-border-radius);
+}
 .oi-tile-attrs .oi-card {
-    border-radius: .4rem;
+    border: 0;
+    border-radius: 0;
 }
