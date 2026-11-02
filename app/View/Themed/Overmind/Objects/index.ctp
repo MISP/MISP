@@ -255,7 +255,7 @@ if (!empty($valueTruncated)) {
 }
 
 echo $this->element('genericElements/assetLoader', [
-    'css' => ['objects-index'],
+    'css' => ['objects-index', 'attributes-index'],
     'js' => ['objects-index'],
 ]);
 

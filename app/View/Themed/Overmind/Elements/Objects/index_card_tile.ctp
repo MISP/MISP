@@ -3,10 +3,12 @@
  * One object in the card view of the objects index and of the event's Objects
  * tab, wired in through `card_element` (see genericElementsBS5/IndexTable/index_card).
  *
- * The header line is Objects/object_header. The analyst badges and the action
- * menu are the scaffold's ($sections['analyst'] / ['actions']). Event and
- * creator org show when the row carries them, which the event's own tab does
- * not.
+ * Handled as the attribute indexes' cards (Attributes/index_card_tile): the
+ * object icon leads and gives way to the selection box on hover, the menu
+ * shows on hover. The header line is Objects/object_header, with the last
+ * change as the page header gives it. The analyst badges and the action menu
+ * are the scaffold's ($sections['analyst'] / ['actions']). Event and creator
+ * org show when the row carries them, which the event's own tab does not.
  *
  * The attributes open inside the card. The objects index fetches them from the
  * same endpoint as its table's expanded row. The event tab hands them over as
@@ -20,11 +22,23 @@ if (empty($object['id'])) {
 $id = (int)$object['id'];
 $headline = $object['headline'] ?? null;
 $count = (int)($object['attribute_count'] ?? 0);
+$timestamp = (int)($object['timestamp'] ?? 0);
 $attributes = $sections['attributes'] ?? [];
 $open = !empty($row['open']) && !empty($attributes);
+$modified = $timestamp > 0
+    ? '<span class="oi-tile-modified">' . $this->element('genericElementsBS5/Badges/timestamp_pill', [
+        'record' => ['timestamp' => $timestamp],
+    ]) . '</span>'
+    : '';
 ?>
 <div class="card-body oi-tile">
     <div class="oi-tile-head">
+        <span class="oi-tile-lead">
+            <i class="misp-icon misp-icon-object misp-simple text-object" aria-hidden="true"></i>
+            <?php if (!empty($sections['selector'])): ?>
+                <span class="oi-tile-sel"><?= implode('', $sections['selector']) ?></span>
+            <?php endif; ?>
+        </span>
         <?= $this->element('Objects/object_header', [
             'object' => $object,
             'ctx' => [
@@ -33,6 +47,7 @@ $open = !empty($row['open']) && !empty($attributes);
                 'firstValue' => $headline === null ? '' : (string)$headline['value'],
                 'firstRelation' => $headline === null ? '' : (string)$headline['relation'],
             ],
+            'asideHtml' => $modified,
         ]) ?>
         <?php if (!empty($sections['actions'])): ?>
             <div class="oi-tile-actions"><?= implode('', $sections['actions']) ?></div>
@@ -81,9 +96,10 @@ $open = !empty($row['open']) && !empty($attributes);
     </dl>
 
     <div class="oi-tile-foot">
-        <button type="button" class="btn btn-sm btn-outline-primary oi-tile-toggle"
+        <button type="button" class="btn btn-sm oi-tile-toggle"
                 data-oi-expand="<?= $id ?>" aria-expanded="<?= $open ? 'true' : 'false' ?>">
             <i class="fas fa-chevron-right"></i>
+            <span class="misp-icon misp-icon-attribute misp-simple" aria-hidden="true"></span>
             <?= h(__n('%s attribute', '%s attributes', $count, $count)) ?>
         </button>
         <?php if (!empty($sections['analyst'])): ?>

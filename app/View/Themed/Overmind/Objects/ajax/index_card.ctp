@@ -1,13 +1,14 @@
 <?php
 /**
- * One object of the objects index, expanded under its row: its attributes as
- * the event's object card lists them, read-only, and the way to the event.
+ * One object of the objects index, opened under its table row or inside its
+ * card: its attributes as the event's Objects tab draws them in the same view
+ * (a table, or the attribute cards), read-only, and the way to the event.
  */
 $objId = (int)$object['id'];
 $references = $object['ObjectReference'] ?? [];
 ?>
 <div class="oi-card">
-    <?= $this->element('Objects/object_attribute_list', [
+    <?= $this->element($asTable ? 'Objects/object_attribute_table' : 'Objects/object_attribute_list', [
         'attrs' => $object['Attribute'] ?? [],
         'canEdit' => false,
         'canTag' => false,

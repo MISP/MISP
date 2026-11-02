@@ -46,7 +46,8 @@
 }
 
 /* The attribute icon gives way to the selection box on hover, and for good
-   once any card of the grid is selected. */
+   once any card of the grid is selected. Each card answers its own hover
+   only, not that of an object card it sits in. */
 .ai-tile-lead {
     position: relative;
     flex-shrink: 0;
@@ -104,13 +105,13 @@
     width: 4.5px;
     height: 8px;
 }
-.idx-card:hover .ai-tile-sel,
-.idx-card:focus-within .ai-tile-sel,
+.idx-card:hover > .ai-tile .ai-tile-sel,
+.idx-card:focus-within > .ai-tile .ai-tile-sel,
 .idx-card-grid:has(.ai-tile .item-checkbox:checked) .ai-tile-sel {
     opacity: 1;
 }
-.idx-card:hover .ai-tile-lead > .misp-icon,
-.idx-card:focus-within .ai-tile-lead > .misp-icon,
+.idx-card:hover > .ai-tile .ai-tile-lead > .misp-icon,
+.idx-card:focus-within > .ai-tile .ai-tile-lead > .misp-icon,
 .idx-card-grid:has(.ai-tile .item-checkbox:checked) .ai-tile-lead > .misp-icon {
     visibility: hidden;
 }
@@ -140,7 +141,7 @@
     .ai-tile-actions .row-menu-toggle {
         opacity: 0;
     }
-    .idx-card:hover .ai-tile-actions .row-menu-toggle,
+    .idx-card:hover > .ai-tile .ai-tile-actions .row-menu-toggle,
     .ai-tile-actions .row-menu-toggle:focus-visible,
     .ai-tile-actions .row-menu-toggle[aria-expanded="true"] {
         opacity: 1;

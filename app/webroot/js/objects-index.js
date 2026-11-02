@@ -1,7 +1,7 @@
 /*
  * Objects index: a table row, or a card, opens in place into the object's
- * attributes, fetched once from objects/indexCard/<id> and kept for the next
- * toggle. The event's Objects tab draws them with the page instead, so there
+ * attributes, fetched once from objects/indexCard/<id> (as a table for a row)
+ * and kept for the next toggle. The event's Objects tab draws them with the page instead, so there
  * is nothing to fetch.
  *
  * Delegated on the document: the filter bar swaps the results block without a
@@ -65,7 +65,7 @@
         if (tr) {
             tr.classList.toggle('oi-open', open);
         }
-        var url = index.dataset.oiCardUrl + button.dataset.oiExpand;
+        var url = index.dataset.oiCardUrl + button.dataset.oiExpand + (tr ? '?view=table' : '');
         var target = tr ? rowTarget(tr, url) : tileTarget(tile, url);
         target.node.hidden = !open;
         if (target.box) {

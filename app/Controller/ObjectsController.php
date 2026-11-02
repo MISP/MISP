@@ -108,6 +108,8 @@ class ObjectsController extends AppController
         }
         $this->set('object', $page['Object'][0]);
         $this->set('eventId', $eventId);
+        // A table row opens on a table of the attributes, a card on their cards.
+        $this->set('asTable', $this->request->query('view') === 'table');
         $this->layout = false;
         $this->render('ajax/index_card');
     }

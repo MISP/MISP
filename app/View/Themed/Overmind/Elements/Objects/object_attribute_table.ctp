@@ -1,7 +1,7 @@
 <?php
 /**
- * An object's attributes as an index table, in the event's Objects tab: the
- * row under an object that its expand button opens.
+ * An object's attributes as an index table: the row under an object that its
+ * expand button opens, in the event's Objects tab and in the objects index.
  *
  * Parameters:
  *   attrs              array  the object's attributes, as the Objects tab loads them
@@ -10,6 +10,9 @@
  *   mayGraph           bool   may add to a workspace
  *   enrichmentEnabled  bool   Plugin.Enrichment_services_enable
  *   cortexEnabled      bool   Plugin.Cortex_services_enable
+ *   readonly           bool   for a page that has not loaded the attribute's
+ *                             event: no selection box and no action menu, the
+ *                             IDS and correlation states without their toggles
  *
  * Read from the view: $baseurl, $me.
  */
@@ -18,13 +21,16 @@ $canTag = !empty($canTag);
 $mayGraph = !empty($mayGraph);
 $enrichmentEnabled = !empty($enrichmentEnabled);
 $cortexEnabled = !empty($cortexEnabled);
+$readonly = !empty($readonly);
 ?>
 <?php if (!empty($attrs)): ?>
 <div class="table-responsive">
     <table class="table table-hover align-middle mb-0 ix-table">
         <thead>
             <tr>
+                <?php if (!$readonly): ?>
                 <th></th>
+                <?php endif; ?>
                 <th><?= __('Value') ?></th>
                 <th><?= __('Category') ?></th>
                 <th><?= __('Type') ?></th>
@@ -36,7 +42,9 @@ $cortexEnabled = !empty($cortexEnabled);
                 <th><?= __('Feed hits') ?></th>
                 <th><?= __('Sightings') ?></th>
                 <th><?= __('Analyst data') ?></th>
+                <?php if (!$readonly): ?>
                 <th class="me-2"><?= __('Actions') ?></th>
+                <?php endif; ?>
             </tr>
         </thead>
         <tbody>
@@ -49,6 +57,7 @@ $cortexEnabled = !empty($cortexEnabled);
             ): ?> class="ov-attr-deleted"<?php
             endif; ?>>
 
+                <?php if (!$readonly): ?>
                 <!-- Checkbox -->
                 <td>
                     <div class="d-inline-flex align-items-center
@@ -66,6 +75,7 @@ $cortexEnabled = !empty($cortexEnabled);
                         >
                     </div>
                 </td>
+                <?php endif; ?>
 
                 <!-- Value: distribution badge + value + comment via attribute_value -->
                 <td class="text-break">
@@ -148,7 +158,7 @@ $cortexEnabled = !empty($cortexEnabled);
                         'genericElementsBS5/IndexTable/Fields/ids',
                         [
                             'row'   => $attr,
-                            'field' => ['data_path' => 'to_ids'],
+                            'field' => ['data_path' => 'to_ids', 'readonly' => $readonly],
                         ]
                     ); ?>
                 </td>
@@ -159,7 +169,7 @@ $cortexEnabled = !empty($cortexEnabled);
                         'genericElementsBS5/IndexTable/Fields/correlate',
                         [
                             'row'   => $attr,
-                            'field' => ['data_path' => 'disable_correlation'],
+                            'field' => ['data_path' => 'disable_correlation', 'readonly' => $readonly],
                         ]
                     ); ?>
                 </td>
@@ -219,6 +229,7 @@ $cortexEnabled = !empty($cortexEnabled);
                     ) ?>
                 </td>
 
+                <?php if (!$readonly): ?>
                 <!-- Actions (3-dots dropdown) -->
                 <td class="pe-3">
                     <div class="d-inline-flex align-items-center
@@ -233,6 +244,7 @@ $cortexEnabled = !empty($cortexEnabled);
                         ]) ?>
                     </div>
                 </td>
+                <?php endif; ?>
             </tr>
         <?php endforeach; ?>
         </tbody>

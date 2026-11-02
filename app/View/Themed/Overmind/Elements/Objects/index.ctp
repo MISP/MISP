@@ -176,7 +176,7 @@ $fields = [
     [
         'element' => 'custom',
         'class' => 'oi-col-select',
-        'display_in' => ['table'],
+        'card_section' => 'selector',
         // Not the scaffold's select_all: that one ticks every .item-checkbox
         // of the tab, the attributes of the open objects included.
         'header_html' => $anySelectable ? sprintf(
@@ -286,11 +286,12 @@ $fields = [
         'display_in' => ['card'],
         'card_section' => 'attributes',
         'element' => 'custom',
-        'function' => function ($row) use ($_enrichmentEnabled, $_cortexEnabled) {
+        'function' => function ($row) use ($_mayGraph, $_enrichmentEnabled, $_cortexEnabled) {
             return '<div class="oi-card">' . $this->element('Objects/object_attribute_list', [
                 'attrs' => $row['ctx']['attrs'],
                 'canEdit' => $row['ctx']['canEdit'],
                 'canTag' => $row['ctx']['canTag'],
+                'mayGraph' => $_mayGraph,
                 'enrichmentEnabled' => $_enrichmentEnabled,
                 'cortexEnabled' => $_cortexEnabled,
             ]) . '</div>';

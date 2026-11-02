@@ -15,6 +15,12 @@
  * Each part the index configures arrives as the section its field names
  * (Elements/Attributes/index.ctp). The two toggles are drawn here in their card
  * form, which attributes-index.css turns into status chips.
+ *
+ * Also the card of an attribute inside an object's card
+ * (Objects/object_attribute_list), which hands over the sections itself, the
+ * object relation as $sections['relation'] between the category and the type,
+ * and `readonly` for a page that has not loaded the attribute's event: the IDS
+ * and correlation states without their toggles.
  */
 $attribute = $row['Attribute'] ?? $row;
 if (empty($attribute['id'])) {
@@ -25,6 +31,7 @@ $distTitle = __('Distribution: %s', $dist['label'])
     . (empty($attribute['SharingGroup']['name']) ? '' : ' (' . $attribute['SharingGroup']['name'] . ')');
 $timestamp = (int)($attribute['timestamp'] ?? 0);
 $isProposal = !empty($attribute['is_proposal']);
+$readonly = !empty($readonly);
 $section = function ($name) use ($sections) {
     return implode('', $sections[$name] ?? []);
 };
@@ -66,6 +73,7 @@ $facts = array_filter($facts, function ($html) {
         <div class="ai-tile-title">
             <div class="ai-tile-kind">
                 <?= $section('category') ?>
+                <?= $section('relation') ?>
                 <?= $section('type') ?>
                 <?php if (!empty($attribute['deleted'])): ?>
                     <span class="ov-obj-deleted"><i class="fas fa-trash"></i><?= __('Deleted') ?></span>
@@ -96,12 +104,12 @@ $facts = array_filter($facts, function ($html) {
         <div class="ai-tile-state">
             <?= $this->element('genericElementsBS5/IndexTable/Fields/ids', [
                 'row' => $row,
-                'field' => ['data_path' => 'to_ids'],
+                'field' => ['data_path' => 'to_ids', 'readonly' => $readonly],
                 'viewMode' => 'card',
             ]) ?>
             <?= $this->element('genericElementsBS5/IndexTable/Fields/correlate', [
                 'row' => $row,
-                'field' => ['data_path' => 'disable_correlation'],
+                'field' => ['data_path' => 'disable_correlation', 'readonly' => $readonly],
                 'viewMode' => 'card',
             ]) ?>
         </div>
