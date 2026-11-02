@@ -40,7 +40,8 @@
         'event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline', 'event-seen-timeline', 'tile-drawer',
         'event-object-views', 'objects-index'];
     $viewCss = ['event-overview', 'misp-matrix', 'misp-brush', 'misp-timeline', 'value-widgets', 'tile-drawer',
-        'event-object-views', 'objects-index', 'attributes-index', 'event-reports-index'];
+        'event-object-views', 'objects-index', 'attributes-index', 'event-reports-index',
+        'event-correlations'];
     if (Configure::read('Plugin.Geolocation_enabled')) {
         $viewJs = array_merge($viewJs, ['leaflet', 'object-map']);
         $viewCss[] = 'leaflet';
