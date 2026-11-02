@@ -14,51 +14,52 @@ foreach (($models ?? []) as $m) {
     $modelOptions[$m] = $m;
 }
 
+$what = __('What');
+$who = __('Who');
 $filterFields = [
     [
         'name' => 'model_title', 'label' => __('Title contains'), 'type' => 'text',
-        'placeholder' => __('e.g. an event or attribute name'), 'col' => 6,
+        'placeholder' => __('e.g. an event or attribute name'), 'group' => $what,
     ],
     [
         'name' => 'action', 'label' => __('Action'), 'type' => 'select',
-        'options' => $actionOptions, 'col' => 3,
+        'options' => $actionOptions, 'group' => $what,
     ],
     [
         'name' => 'model', 'label' => __('Model'), 'type' => 'select',
-        'options' => $modelOptions, 'col' => 3,
+        'options' => $modelOptions, 'group' => $what,
     ],
     [
         'name' => 'model_id', 'label' => __('Model ID'), 'type' => 'number',
-        'placeholder' => __('e.g. 42'), 'col' => 3,
+        'placeholder' => __('e.g. 42'), 'group' => $what,
     ],
     [
         'name' => 'event_id', 'label' => __('Event ID'), 'type' => 'number',
-        'placeholder' => __('e.g. 2178'), 'col' => 3,
+        'placeholder' => __('e.g. 2178'), 'group' => $what,
     ],
     [
         'name' => 'user', 'label' => __('User'), 'type' => 'text',
-        'placeholder' => __('ID, e-mail or SYSTEM'), 'col' => 3,
+        'placeholder' => __('ID, e-mail or SYSTEM'), 'group' => $who,
     ],
     [
         'name' => 'org', 'label' => __('Organisation'), 'type' => 'text',
-        'placeholder' => __('ID, UUID or name'), 'col' => 3,
+        'placeholder' => __('ID, UUID or name'), 'group' => $who,
     ],
     [
         'name' => 'ip', 'label' => __('IP'), 'type' => 'text',
-        'placeholder' => __('e.g. 10.0.0.1'), 'col' => 3,
+        'placeholder' => __('e.g. 10.0.0.1'), 'group' => $who,
     ],
     [
         'name' => 'authkey_id', 'label' => __('Auth key ID'), 'type' => 'number',
-        'placeholder' => __('e.g. 7'), 'col' => 3,
+        'placeholder' => __('e.g. 7'), 'group' => $who,
     ],
     [
         'name' => 'request_type', 'label' => __('Request type'), 'type' => 'select',
         'options' => ['' => __('Any'), 0 => __('Browser'), 1 => __('API'), 2 => __('CLI / background job')],
-        'col' => 3,
+        'group' => $who,
     ],
     [
-        'name' => 'created', 'label' => __('Created after'), 'type' => 'date', 'col' => 3,
-        'help' => __('Date or relative delta (e.g. 7d)'),
+        'name' => 'created', 'label' => __('Created'), 'type' => 'date', 'group' => __('When'),
     ],
 ];
 
@@ -160,17 +161,18 @@ foreach (($list ?? []) as $item) {
 }
 ?>
 
-<div class="container-fluid">
+<div class="container-fluid" data-ifp-scope="/admin/audit_logs">
 
-    <?= $this->element('Logs/filter_card', [
-        'item_url'      => '/admin/audit_logs',
-        'search'        => ['placeholder' => __('Search title, model, action, user, org, IP…')],
-        'fields'        => $filterFields,
-        'pager_element' => 'Logs/pager_prevnext',
+    <?= $this->element('Logs/filter_bar', [
+        'item_url' => '/admin/audit_logs',
+        'search'   => ['placeholder' => __('Search title, model, action, user, org, IP…')],
+        'fields'   => $filterFields,
+        'rows'     => $entries,
+        'pager'    => 'Logs/pager_prevnext',
     ]) ?>
 
-    <!-- Swapped wholesale by the filter bar's ajax reload — see mispOvermind.js -->
-    <div id="log-index-results" class="index-results">
+    <!-- Swapped by the filter bar when filters apply (index-filters.js) -->
+    <div id="log-index-results" class="index-results" data-ifp-results>
         <?= $this->element('Logs/timeline', [
             'entries'    => $entries,
             'title'      => __('Audit history'),
@@ -178,11 +180,10 @@ foreach (($list ?? []) as $item) {
             'empty_text' => __('No audit log entries match your filters.'),
         ]) ?>
 
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <?= $this->element('genericElementsBS5/IndexTable/pagination') ?>
-            </div>
-        </div>
+        <?= $this->element('genericElementsBS5/IndexTable/pagination_bottom', [
+            'rows' => count($entries),
+            'pager' => 'Logs/pager_prevnext',
+        ]) ?>
     </div>
 
 </div>

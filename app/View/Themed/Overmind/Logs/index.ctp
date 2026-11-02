@@ -25,38 +25,40 @@ foreach (($models ?? []) as $m) {
     $modelOptions[$m] = $m;
 }
 
+$what = __('What');
+$who = __('Who');
 $filterFields = [
     [
         'name' => 'title', 'label' => __('Title contains'), 'type' => 'text',
-        'placeholder' => __('e.g. a user or an event name'), 'col' => 6,
+        'placeholder' => __('e.g. a user or an event name'), 'group' => $what,
     ],
     [
         'name' => 'action', 'label' => __('Action'), 'type' => 'select',
-        'options' => $actionOptions, 'col' => 3,
+        'options' => $actionOptions, 'group' => $what,
     ],
     [
         'name' => 'model', 'label' => __('Model'), 'type' => 'select',
-        'options' => $modelOptions, 'col' => 3,
+        'options' => $modelOptions, 'group' => $what,
     ],
     [
         'name' => 'model_id', 'label' => __('Model ID'), 'type' => 'number',
-        'placeholder' => __('e.g. 42'), 'col' => 3,
+        'placeholder' => __('e.g. 42'), 'group' => $what,
     ],
     [
         'name' => 'email', 'label' => __('E-mail'), 'type' => 'text',
-        'placeholder' => __('e.g. alice@example.com'), 'col' => 3,
+        'placeholder' => __('e.g. alice@example.com'), 'group' => $who,
     ],
     [
         'name' => 'org', 'label' => __('Organisation'), 'type' => 'text',
-        'placeholder' => __('e.g. CIRCL'), 'col' => 3,
+        'placeholder' => __('e.g. CIRCL'), 'group' => $who,
     ],
     [
         'name' => 'ip', 'label' => __('IP'), 'type' => 'text',
-        'placeholder' => __('e.g. 10.0.0.1'), 'col' => 3,
+        'placeholder' => __('e.g. 10.0.0.1'), 'group' => $who,
         'requirement' => (bool)Configure::read('MISP.log_client_ip'),
     ],
     [
-        'name' => 'created', 'label' => __('Created after'), 'type' => 'date', 'col' => 3,
+        'name' => 'created', 'label' => __('Created'), 'type' => 'date', 'group' => __('When'),
     ],
 ];
 
@@ -98,17 +100,18 @@ foreach (($data ?? []) as $item) {
 }
 ?>
 
-<div class="container-fluid">
+<div class="container-fluid" data-ifp-scope="/logs">
 
-    <?= $this->element('Logs/filter_card', [
-        'item_url'      => '/logs',
-        'search'        => ['placeholder' => __('Search title, description, change, model, action, user, org…')],
-        'fields'        => $filterFields,
-        'pager_element' => 'Logs/pager_prevnext',
+    <?= $this->element('Logs/filter_bar', [
+        'item_url' => '/logs',
+        'search'   => ['placeholder' => __('Search title, description, change, model, action, user, org…')],
+        'fields'   => $filterFields,
+        'rows'     => $entries,
+        'pager'    => 'Logs/pager_prevnext',
     ]) ?>
 
-    <!-- Swapped wholesale by the filter bar's ajax reload — see mispOvermind.js -->
-    <div id="log-index-results" class="index-results">
+    <!-- Swapped by the filter bar when filters apply (index-filters.js) -->
+    <div id="log-index-results" class="index-results" data-ifp-results>
         <?= $this->element('Logs/timeline', [
             'entries'    => $entries,
             'title'      => __('Application activity'),
@@ -116,11 +119,10 @@ foreach (($data ?? []) as $item) {
             'empty_text' => __('No application log entries match your filters.'),
         ]) ?>
 
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <?= $this->element('genericElementsBS5/IndexTable/pagination') ?>
-            </div>
-        </div>
+        <?= $this->element('genericElementsBS5/IndexTable/pagination_bottom', [
+            'rows' => count($entries),
+            'pager' => 'Logs/pager_prevnext',
+        ]) ?>
     </div>
 
 </div>

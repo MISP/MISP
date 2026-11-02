@@ -4021,7 +4021,6 @@ tr.evt-extension-row td:first-child { position: relative; }
     top: 45vh;
 }
 
-.filter-draft-busy .log-quick-btn,
 .filter-draft-busy .filter-draft-summary button {
     pointer-events: none;
     opacity: .6;

@@ -13,7 +13,7 @@ class EventIndexHelper extends AppHelper
 
     const LANES = [
         'attribution' => ['Attribution', 'fas fa-user-secret'],
-        'behaviour' => ['Behaviour', 'misp-icon misp-icon-galaxy misp-simple'],
+        'behaviour' => ['Behaviour', 'fas fa-map'],
         'classification' => ['Classification', 'misp-icon misp-icon-taxonomy misp-simple'],
     ];
 

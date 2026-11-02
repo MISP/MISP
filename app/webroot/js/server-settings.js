@@ -274,6 +274,11 @@
     function onClick(event) {
         var target = event.target;
 
+        // A click outside the open Filters panel closes it, then does its own job.
+        if (openBar && (!openBar.isConnected || !openBar.contains(target))) {
+            showBarPanel(openBar, false);
+        }
+
         var navLink = target.closest('a[data-ss-nav]');
         if (navLink && shell.contains(navLink)) {
             if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
@@ -303,17 +308,33 @@
             openSearch();
             return;
         }
-        var clear = target.closest('[data-ss-clear]');
-        if (clear) {
-            clearFilters(clear.closest('[data-ss-settings]'));
+        var filtersButton = target.closest('[data-ss-filters]');
+        if (filtersButton) {
+            var filtersBar = filtersButton.closest('[data-ss-bar]');
+            showBarPanel(filtersBar, filtersBar !== openBar);
             return;
         }
-        var apply = target.closest('[data-ss-filter-apply]');
-        if (apply) {
-            var applyContainer = apply.closest('[data-ss-settings]');
-            var field = applyContainer.querySelector('[data-ss-filter]');
-            filterState(applyContainer).term = field.value.trim().toLowerCase();
-            applyFilter(applyContainer);
+        var queryClear = target.closest('[data-ss-query-clear]');
+        if (queryClear) {
+            var queryInput = queryClear.closest('.ifp-query').querySelector('input');
+            queryInput.value = '';
+            queryInput.dispatchEvent(new Event('input', { bubbles: true }));
+            queryInput.focus();
+            return;
+        }
+        var chipX = target.closest('[data-ss-chip-x]');
+        if (chipX) {
+            removeFilter(chipX, chipX.dataset.ssChipX);
+            return;
+        }
+        var clear = target.closest('[data-ss-clear]');
+        if (clear) {
+            var clearModules = !clear.closest('[data-ss-settings]') && clear.closest('[data-ss-modules]');
+            if (clearModules) {
+                clearModuleFilters(clearModules);
+            } else {
+                clearFilters(clear.closest('[data-ss-settings]'));
+            }
             return;
         }
         var toggle = target.closest('[data-ss-toggle]');
@@ -347,16 +368,11 @@
             openModulePanel(moduleCard.closest('[data-ss-modules]'), moduleCard.dataset.ssModule, true);
             return;
         }
-        var chip = target.closest('[data-ss-module-chip]');
-        if (chip) {
-            var modules = chip.closest('[data-ss-modules]');
-            modules.dataset.ssChip = chip.dataset.ssModuleChip;
-            modules.querySelectorAll('[data-ss-module-chip]').forEach(function (other) {
-                var on = other === chip;
-                other.classList.toggle('active', on);
-                other.setAttribute('aria-pressed', on ? 'true' : 'false');
-            });
-            filterModules(modules);
+        var only = target.closest('[data-ss-module-only]');
+        if (only) {
+            var onlyModules = only.closest('[data-ss-modules]');
+            var onlyKey = only.dataset.ssModuleOnly;
+            setModuleOnly(onlyModules, onlyKey, !moduleState(onlyModules)[onlyKey]);
             return;
         }
         if (handleDiagnosticAction(target)) {
@@ -374,6 +390,10 @@
     }
 
     function onInput(event) {
+        var query = event.target.closest('.ifp-query');
+        if (query) {
+            query.classList.toggle('has-value', event.target.value !== '');
+        }
         var filter = event.target.closest('[data-ss-filter]');
         if (filter) {
             var container = filter.closest('[data-ss-settings]');
@@ -388,11 +408,6 @@
     }
 
     function onChange(event) {
-        var advanced = event.target.closest('[data-ss-advanced-switch]');
-        if (advanced) {
-            setFilterState(advanced.closest('[data-ss-settings]'), 'advanced', advanced.checked);
-            return;
-        }
         var toggle = event.target.closest('[data-ss-module-toggle]');
         if (toggle) {
             toggleModule(toggle);
@@ -414,6 +429,128 @@
         if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k') {
             event.preventDefault();
             openSearch();
+            return;
+        }
+        if (event.key === 'Escape' && openBar && openBar.isConnected && !document.querySelector('.modal.show')) {
+            var button = openBar.querySelector('[data-ss-filters]');
+            showBarPanel(openBar, false);
+            if (button) {
+                button.focus();
+            }
+            return;
+        }
+        // `/` and `f` as on the indexes: the page's search, its Filters panel.
+        var key = event.key === 'F' ? 'f' : event.key;
+        if ((key !== '/' && key !== 'f') || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) {
+            return;
+        }
+        var t = event.target;
+        if (t.isContentEditable || (t.closest && t.closest('input, textarea, select')) || document.querySelector('.modal.show')) {
+            return;
+        }
+        var bar = onScreen(content, '[data-ss-bar]');
+        if (!bar) {
+            return;
+        }
+        event.preventDefault();
+        if (key === '/') {
+            var input = bar.querySelector('.ifp-query input');
+            input.focus();
+            input.select();
+            return;
+        }
+        if (bar.querySelector('[data-ss-filters]')) {
+            showBarPanel(bar, bar !== openBar);
+            var first = bar.querySelector(bar === openBar ? '.ifp-panel .ifp-quick' : '[data-ss-filters]');
+            if (first) {
+                first.focus();
+            }
+        }
+    }
+
+    function onScreen(root, selector) {
+        return Array.prototype.filter.call(root.querySelectorAll(selector), function (el) {
+            return el.offsetParent !== null;
+        })[0];
+    }
+
+    /* -------------------------------------------- filter bars (as the indexes') */
+
+    var openBar = null;
+
+    function showBarPanel(bar, show) {
+        if (!bar) {
+            return;
+        }
+        if (show && openBar && openBar !== bar) {
+            showBarPanel(openBar, false);
+        }
+        var panel = bar.querySelector('.ifp-panel');
+        var button = bar.querySelector('[data-ss-filters]');
+        if (!panel || !button) {
+            return;
+        }
+        panel.hidden = !show;
+        button.setAttribute('aria-expanded', show ? 'true' : 'false');
+        if (show) {
+            openBar = bar;
+        } else if (openBar === bar) {
+            openBar = null;
+        }
+    }
+
+    function setQuick(button, on) {
+        button.classList.toggle('is-on', on);
+        button.setAttribute('aria-checked', on ? 'true' : 'false');
+    }
+
+    /*
+     * The chips of a bar, under it and in its panel, with the count and the
+     * Filters badge. chips: [{key, label, value}]; `on` counts the panel's
+     * switches that are on.
+     */
+    function renderBar(scope, chips, shown, on) {
+        var html = chips.map(function (chip) {
+            return '<span class="ifp-chip"><span class="ifp-chip-label">' + escapeHtml(chip.label)
+                + (chip.value ? '<span class="ifp-chip-op">:</span> <span class="ifp-chip-value">' + escapeHtml(chip.value) + '</span>' : '')
+                + '</span><button type="button" class="ifp-chip-x" data-ss-chip-x="' + escapeHtml(chip.key) + '"'
+                + ' title="' + escapeHtml(L.removeFilter) + '" aria-label="' + escapeHtml(L.removeFilter + ': ' + chip.label) + '">'
+                + '<i class="fas fa-times" aria-hidden="true"></i></button></span>';
+        }).join('');
+        if (chips.length) {
+            html += '<button type="button" class="ifp-clear" data-ss-clear>' + escapeHtml(L.clearAll) + '</button>';
+        }
+        scope.querySelectorAll('[data-ss-chips]').forEach(function (node) {
+            var inPanel = !!node.closest('.ifp-panel');
+            node.innerHTML = html || (inPanel ? '<span class="ifp-chips-none">' + escapeHtml(L.noFilter) + '</span>' : '');
+            node.hidden = !html && !inPanel;
+        });
+        var count = scope.querySelector('[data-ss-count]');
+        if (count) {
+            count.innerHTML = fmt(escapeHtml(L.shown), '<b>' + shown + '</b>');
+        }
+        var badge = scope.querySelector('[data-ss-filters-count]');
+        if (badge) {
+            badge.textContent = on;
+            badge.hidden = !on;
+            badge.closest('[data-ss-filters]').classList.toggle('is-set', on > 0);
+        }
+    }
+
+    function removeFilter(chipX, key) {
+        var container = chipX.closest('[data-ss-settings]');
+        var modules = !container && chipX.closest('[data-ss-modules]');
+        if (key === 'term') {
+            var scope = container || modules;
+            var input = scope.querySelector(container ? '[data-ss-filter]' : '[data-ss-module-filter]');
+            input.value = '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
+        if (container) {
+            setFilterState(container, key, false);
+        } else if (modules) {
+            setModuleOnly(modules, key, false);
         }
     }
 
@@ -431,26 +568,9 @@
             return;
         }
         filterState(container)[key] = value;
-        container.querySelectorAll('[data-ss-toggle="' + key + '"]').forEach(function (button) {
-            if (button.classList.contains('ss-toggle')) {
-                button.classList.toggle('active', value);
-                button.setAttribute('aria-pressed', value ? 'true' : 'false');
-            } else if (button.classList.contains('btn-outline-primary') || button.classList.contains('btn-primary')) {
-                // Filter bar buttons read as pressed the way the index bars do.
-                button.classList.toggle('btn-primary', value);
-                button.classList.toggle('btn-outline-primary', !value);
-                button.setAttribute('aria-pressed', value ? 'true' : 'false');
-            }
+        container.querySelectorAll('.ifp-quick[data-ss-toggle="' + key + '"]').forEach(function (button) {
+            setQuick(button, value);
         });
-        if (key === 'advanced') {
-            container.querySelectorAll('[data-ss-advanced-switch]').forEach(function (input) {
-                input.checked = value;
-            });
-            container.querySelectorAll('.filter-draft-count').forEach(function (badge) {
-                badge.textContent = value ? 1 : 0;
-                badge.classList.toggle('d-none', !value);
-            });
-        }
         applyFilter(container);
     }
 
@@ -459,36 +579,29 @@
         state.term = '';
         container.querySelectorAll('[data-ss-filter]').forEach(function (input) {
             input.value = '';
+            input.closest('.ifp-query').classList.remove('has-value');
         });
         ['problems', 'modified', 'advanced'].forEach(function (key) {
             setFilterState(container, key, false);
         });
     }
 
-    // The "Active filters" line under the bar, as on the indexes.
-    function renderActiveFilters(container, state) {
-        var row = container.querySelector('[data-ss-active]');
-        if (!row) {
+    function renderActiveFilters(container, state, shown) {
+        if (!container.querySelector('[data-ss-bar]')) {
             return;
         }
         var chips = [];
         if (state.term !== '') {
-            chips.push(L.filterSearch + ': ' + state.term);
+            chips.push({ key: 'term', label: L.filterSearch, value: state.term });
         }
-        if (state.problems) {
-            chips.push(L.onlyProblems);
-        }
-        if (state.modified) {
-            chips.push(L.onlyModified);
-        }
-        if (state.advanced) {
-            chips.push(L.showAdvanced);
-        }
-        row.querySelector('[data-ss-chips]').innerHTML = chips.map(function (chip) {
-            return '<span class="badge bg-primary">' + escapeHtml(chip) + '</span>';
-        }).join('');
-        row.classList.toggle('d-none', chips.length === 0);
-        row.classList.toggle('d-flex', chips.length > 0);
+        var on = 0;
+        [['problems', L.onlyProblems], ['modified', L.onlyModified], ['advanced', L.showAdvanced]].forEach(function (pair) {
+            if (state[pair[0]]) {
+                chips.push({ key: pair[0], label: pair[1] });
+                on++;
+            }
+        });
+        renderBar(container, chips, shown, on);
     }
 
     // Searchable text of a row, computed once from what it renders.
@@ -537,7 +650,7 @@
         if (noResult) {
             noResult.classList.toggle('d-none', !filtering || total !== 0);
         }
-        renderActiveFilters(container, state);
+        renderActiveFilters(container, state, total);
     }
 
     function revealSetting(name) {
@@ -714,10 +827,32 @@
     /* ------------------------------------------------------------ modules */
 
     function initModules(root) {
-        root.querySelectorAll('[data-ss-modules]').forEach(function (modules) {
-            modules.dataset.ssChip = 'all';
-            filterModules(modules);
+        root.querySelectorAll('[data-ss-modules]').forEach(filterModules);
+    }
+
+    function moduleState(modules) {
+        if (!modules.__ssOnly) {
+            modules.__ssOnly = { enabled: false, config: false };
+        }
+        return modules.__ssOnly;
+    }
+
+    function setModuleOnly(modules, key, value) {
+        moduleState(modules)[key] = value;
+        modules.querySelectorAll('[data-ss-module-only="' + key + '"]').forEach(function (button) {
+            setQuick(button, value);
         });
+        filterModules(modules);
+    }
+
+    function clearModuleFilters(modules) {
+        var input = modules.querySelector('[data-ss-module-filter]');
+        if (input) {
+            input.value = '';
+            input.closest('.ifp-query').classList.remove('has-value');
+        }
+        setModuleOnly(modules, 'enabled', false);
+        setModuleOnly(modules, 'config', false);
     }
 
     function filterModules(modules) {
@@ -726,11 +861,11 @@
         }
         var input = modules.querySelector('[data-ss-module-filter]');
         var term = input ? input.value.trim().toLowerCase() : '';
-        var chip = modules.dataset.ssChip || 'all';
+        var only = moduleState(modules);
         var shown = 0;
         modules.querySelectorAll('[data-ss-module]').forEach(function (card) {
-            var hit = (chip !== 'enabled' || card.dataset.ssEnabled === '1')
-                && (chip !== 'config' || card.dataset.ssNeedsConfig === '1')
+            var hit = (!only.enabled || card.dataset.ssEnabled === '1')
+                && (!only.config || card.dataset.ssNeedsConfig === '1')
                 && (term === '' || card.textContent.toLowerCase().indexOf(term) !== -1);
             card.classList.toggle('d-none', !hit);
             if (hit) {
@@ -741,6 +876,17 @@
         if (empty) {
             empty.classList.toggle('d-none', shown !== 0);
         }
+        var chips = [];
+        if (input && input.value.trim() !== '') {
+            chips.push({ key: 'term', label: L.filterSearch, value: input.value.trim() });
+        }
+        if (only.enabled) {
+            chips.push({ key: 'enabled', label: L.onlyEnabled });
+        }
+        if (only.config) {
+            chips.push({ key: 'config', label: L.onlyNeedsConfig });
+        }
+        renderBar(modules, chips, shown, (only.enabled ? 1 : 0) + (only.config ? 1 : 0));
     }
 
     function openModulePanel(modules, id, scroll) {

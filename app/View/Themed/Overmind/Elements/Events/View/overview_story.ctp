@@ -28,7 +28,7 @@ $graphHintAction = function () use ($hasObjects, $addObjectUrl) {
             . '<i class="fas fa-link me-1"></i>' . __('Link objects') . '</button>';
     }
     return sprintf(
-        '<a href="%s" class="btn btn-sm btn-correlation" onclick="event.preventDefault(); openModal(\'%s\');">'
+        '<a href="%s" class="btn btn-sm btn-correlation text-white" onclick="event.preventDefault(); openModal(\'%s\');">'
             . '<i class="fas fa-plus me-1"></i>%s</a>',
         h($addObjectUrl), h($addObjectUrl), __('Add an object')
     );
@@ -184,7 +184,7 @@ $reportSub = function (array $row) use ($extensionEvents, $data, $eventId) {
                 </div>
                 <div class="min-w-0 me-auto">
                     <div class="eo-card-title"><?= __('Event graph') ?></div>
-                    <div class="eo-card-sub text-truncate" data-eo-graph-sub>&nbsp;</div>
+                    <div class="eo-card-sub text-truncate" data-eo-graph-sub></div>
                 </div>
                 <div class="eo-switch" role="group" aria-label="<?= h(__('Graph source')) ?>">
                     <div class="dropdown d-inline-flex">

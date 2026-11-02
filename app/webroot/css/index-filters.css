@@ -123,6 +123,7 @@
 }
 .ifp-panel-body { padding: 14px 16px 16px; }
 .ifp-quicks { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.ifp-panel-body > .ifp-quicks:last-child { margin-bottom: 0; }
 .ifp-quick {
     display: inline-flex; align-items: center; gap: 9px;
     padding: 5px 12px 5px 10px; font-size: .85rem; color: var(--bs-body-color); text-decoration: none;
@@ -162,7 +163,7 @@
 .ifp-grid > .ifp-picker > .ifp-btn, .ifp-grid > .dropdown > .ifp-vm-btn { width: 100%; }
 .ifp-grid .ifp-btn-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .ifp-win-foot {
-    display: flex; align-items: center; gap: 8px 12px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
     padding: 10px 16px; border-top: 1px solid var(--ifp-line);
 }
 .ifp-win-foot .ifp-chips { flex: 1 1 auto; }
@@ -358,6 +359,13 @@
 }
 .ifp-chip-x:hover, .ifp-chip-x:focus-visible { background: color-mix(in srgb, var(--bs-primary) 22%, transparent); color: inherit; }
 .ifp-clear { margin-left: 4px; font-size: .78rem; }
+/* The same controls as buttons, where the filter runs client-side (server settings) */
+button.ifp-quick { font: inherit; font-size: .85rem; text-align: left; }
+button.ifp-clear {
+    appearance: none; padding: 0; border: 0; background: none;
+    color: var(--bs-link-color); text-decoration: underline;
+}
+button.ifp-clear:hover { color: var(--bs-link-hover-color); }
 
 /* Stat cards */
 .ifp-stats {
@@ -399,4 +407,26 @@ a.ifp-stat:hover .ifp-stat-act, button.ifp-stat:hover .ifp-stat-act, .ifp-stat[a
 }
 @media (max-width: 575.98px) {
     .ifp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Value pickers: one input is the whole popover */
+.ifp-value { padding: 2px; }
+
+/* Deferred bars: the draft in the panel's foot, and a dot on Filters while it waits */
+.ifp-chip.is-pending {
+    border-style: dashed;
+    color: var(--bs-warning-text-emphasis);
+    background: color-mix(in srgb, var(--bs-warning) 14%, var(--bs-body-bg));
+    border-color: color-mix(in srgb, var(--bs-warning) 60%, var(--bs-body-bg));
+}
+.ifp-chip.is-pending > i { font-size: .68rem; }
+.ifp-chip.is-removed {
+    color: var(--ifp-muted); background: var(--ifp-soft); border-color: var(--bs-border-color);
+}
+.ifp-chip.is-removed .ifp-chip-label { text-decoration: line-through; }
+button.ifp-chip-x { appearance: none; border: 0; background: none; padding: 0; }
+.ifp-draft-status { font-size: .78rem; font-weight: 600; color: var(--bs-warning-text-emphasis); white-space: nowrap; }
+.ifp-fbtn.has-draft::after {
+    content: ""; flex: none; width: 7px; height: 7px; margin-left: -2px;
+    border-radius: 50%; background: var(--bs-warning);
 }
