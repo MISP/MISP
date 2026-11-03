@@ -249,10 +249,11 @@ class YaraRuleTemplate:
             value = _str2yara_regex(value)
             self._strings('regex', name, value, modifiers)
         elif len(value.splitlines()) > 1:
-            for line in value.splitlines():
-                self._strings('text', name, line, modifiers)
-                # TODO: improvement: group lines with 'all of $*'
-                # instead of (\r|\r\n|\n|\x1E)
+            lines = [line for line in value.splitlines() if line.strip()]
+            base_name = name if name and name != '$' else None
+            for i, line in enumerate(lines):
+                line_name = '{}_{}'.format(base_name, i) if base_name else '$'
+                self._strings('text', line_name, line, modifiers)
         else:
             self._strings('text', name, value, modifiers)
         return self
@@ -344,7 +345,7 @@ def _str2yara_regex(pattern):
         ord(b'\f'): '\\f',
         ord(b'\a'): '\\a',
         # covers \n \r\n \r and other exotic line breaks (\x1E)
-        ord(b'\n'): '(\\x0D|\\x0A\\x0D|\\x0A|\\x1E)?',
+        ord(b'\n'): '(\\x0D\\x0A|\\x0D|\\x0A|\\x1E)?',
 
         ord(b'\b'): '\\b'
     }
