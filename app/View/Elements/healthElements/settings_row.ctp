@@ -51,13 +51,21 @@
                 'title' => __('This setting cannot be edited from the UI.')
             );
         }
+        if (!empty($setting['locked'])) {
+            $posture[] = array(
+                'class' => 'label-info',
+                'icon'  => 'fas fa-lock',
+                'text'  => __('Locked'),
+                'title' => __('This setting is locked in the configuration file and cannot be edited from the UI.')
+            );
+        }
         $postureBadges = '';
         foreach ($posture as $flag) {
             $postureBadges .= sprintf(
                 ' <span class="label %s" title="%s">%s</span>',
                 h($flag['class']),
                 h($flag['title']),
-                h($flag['text'])
+                (isset($flag['icon']) ? '<span class="' . h($flag['icon']) . '"></span> ' : '') . h($flag['text'])
             );
         }
         $column_data = array(
@@ -66,7 +74,7 @@
                 'class' => 'short live_filter_target'
             ),
             'setting' => array(
-                'html' => (empty($setting['cli_only']) ?
+                'html' => (empty($setting['cli_only']) && empty($setting['locked']) ?
                     sprintf('%s<span %s></span>',
                         h($setting['setting']),
                         sprintf('role="button" tabindex="0" aria-label="%s" aria-controls="setting_%s_%s_placeholder" onclick="serverSettingsActivateField(\'%s\',\'%s\');"',
@@ -81,7 +89,7 @@
             'value_passive' => array(
                 'html' => nl2br(h($setting['value'])),
                 'class' => 'inline-field-solid live_filter_target',
-                'requirement' => ((isset($setting['editable']) && !$setting['editable']) || !empty($setting['cli_only'])),
+                'requirement' => ((isset($setting['editable']) && !$setting['editable']) || !empty($setting['cli_only']) || !empty($setting['locked'])),
                 'style' => 'width:500px;',
                 'id' => sprintf(
                     'setting_%s_%s_passive',
@@ -92,7 +100,7 @@
             'value_solid' => array(
                 'html' => nl2br(h($setting['value'])),
                 'class' => 'inline-field-solid live_filter_target',
-                'requirement' => ((!isset($setting['editable']) || $setting['editable']) && empty($setting['cli_only'])),
+                'requirement' => ((!isset($setting['editable']) || $setting['editable']) && empty($setting['cli_only']) && empty($setting['locked'])),
                 'style' => 'width:500px;',
                 'id' => sprintf(
                     'setting_%s_%s_solid',
@@ -104,7 +112,7 @@
             ),
             'value_placeholder' => array(
                 'class' => 'inline-field-placeholder hidden',
-                'requirement' => ((!isset($setting['editable']) || $setting['editable']) && empty($setting['cli_only'])),
+                'requirement' => ((!isset($setting['editable']) || $setting['editable']) && empty($setting['cli_only']) && empty($setting['locked'])),
                 'style' => 'width:500px;',
                 'id' => sprintf(
                     'setting_%s_%s_placeholder',

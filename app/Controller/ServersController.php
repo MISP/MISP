@@ -2192,6 +2192,10 @@ class ServersController extends AppController
         if (!empty($setting['cli_only'])) {
             throw new MethodNotAllowedException(__('This setting can only be edited via the CLI.'));
         }
+        $lockedSettings = Configure::read('MISP.locked_settings');
+        if (is_array($lockedSettings) && in_array($setting['name'], $lockedSettings)) {
+            throw new MethodNotAllowedException(__('This setting is locked in the configuration file and cannot be modified.'));
+        }
         if ($this->request->is('get')) {
             $value = Configure::read($setting['name']);
             if (isset($value)) {
