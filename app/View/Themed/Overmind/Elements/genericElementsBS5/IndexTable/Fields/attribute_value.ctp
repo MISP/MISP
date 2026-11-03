@@ -9,6 +9,8 @@ if (empty($attribute)) {
 }
 
 $isCard = isset($viewMode) && $viewMode === 'card';
+// `event_peek`: rows from any event lead with their event's icon; a card has it in its head.
+$peekEvent = !$isCard && !empty($field['event_peek']) ? ($row['Event'] ?? null) : null;
 
 if (isset($row['Attribute'])) {
     $row = $row['Attribute'];
@@ -50,10 +52,13 @@ if ($vpHoverValue !== null && $hoverEnrichId && !$hoverClickOnly) {
 }
 
 // The hover card wraps only the value's text, never the controls beside it.
-$valueBody = $this->element('Attributes/value_display', ['attribute' => $attribute]);
+// `value_cap`: past that many characters a table row shows the value's head and tail.
+$valueCap = $isCard ? 0 : (int)($field['value_cap'] ?? 0);
+$valueBody = $this->element('Attributes/value_display', ['attribute' => $attribute, 'cap' => $valueCap]);
 $vpValueHtml = $vpHoverValue === null ? $valueBody : $this->element('Attributes/value_display', [
     'attribute' => $attribute,
     'hoverValue' => $vpHoverValue,
+    'cap' => $valueCap,
 ]);
 
 // The thumbnails are the default-size ones getThumbnail() caches (webp twice as
@@ -79,9 +84,13 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
 };
 ?>
 
-<div class="d-flex flex-column gap-1">
-    <div class="d-flex align-items-baseline gap-2 mb-0 flex-wrap">
-        <?php if (!$isCard) {
+<div class="attr-value">
+    <div class="attr-value-line">
+        <?php if ($peekEvent) {
+            echo $this->element('Attributes/event_peek', ['event' => $peekEvent]);
+        } ?>
+        <?php // `show_distribution` false: the index draws distribution in a column of its own. ?>
+        <?php if (!$isCard && ($field['show_distribution'] ?? true)) {
                 echo $this->element(
                     '/genericElementsBS5/IndexTable/Fields/distribution',
                     [
@@ -137,13 +146,10 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
         <?php endif; ?>
     </div>
 
-    <!-- Show if it contains a comment -->
+    <?php // In a table the comment is one line; the title holds the rest. ?>
     <?php if (!empty($attribute['comment'])): ?>
-        <div class="card card-link-item bg-light">
-            <div class="card-body p-1">
-                <i class="fa fa-comment"></i>
-                <span><?= h($attribute['comment']) ?></span>
-            </div>
+        <div class="attr-comment<?= $isCard ? '' : ' is-line' ?>" title="<?= h($attribute['comment']) ?>">
+            <i class="far fa-comment"></i><?= h($attribute['comment']) ?>
         </div>
     <?php endif; ?>
 

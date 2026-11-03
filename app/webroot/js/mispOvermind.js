@@ -3170,7 +3170,7 @@ function initSharingGroupForm(container) {
  * overflow container (.table-responsive.table-scroll), which would clip them.
  *******************************/
 (function () {
-    var LAZY_POPOVERS = '.sighting-counts, .role-perm-counter, .om-lazy-popover';
+    var LAZY_POPOVERS = '.role-perm-counter, .om-lazy-popover';
 
     function lazyPopover(e) {
         /*
@@ -3354,29 +3354,10 @@ function openSelectedSightings() {
 (function installSightingActions() {
     document.addEventListener('click', function (e) {
         if (!e.target.closest) return;
-        var more = e.target.closest('.sighting-more');
-        if (more) {
-            e.preventDefault();
-            bootstrap.Dropdown.getOrCreateInstance(more, {
-                popperConfig: { strategy: 'fixed' }
-            }).toggle();
-            return;
-        }
-
         var details = e.target.closest('[data-sighting-details]');
         if (details) {
             e.preventDefault();
-            var pop = bootstrap.Popover.getInstance(details);
-            if (pop) pop.hide();
             openSightingDetails(details.dataset.sightingDetails);
-            return;
-        }
-
-        var onValue = e.target.closest('[data-sighting-value]');
-        if (onValue) {
-            e.preventDefault();
-            openModal(baseurl + '/sightings/quickAdd/' + onValue.dataset.sightingValue
-                + '/' + onValue.dataset.type + '/1', 'md');
             return;
         }
 
@@ -3393,9 +3374,13 @@ function openSelectedSightings() {
                     showToast(data.errors || data.message || 'Could not add the sighting.', 'danger');
                     return;
                 }
-                var countEl = document.querySelector('#sightings_' + attrId
-                    + ' .sighting-' + (type === '0' ? 's' : 'f'));
-                if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+                // The attribute may be on the page twice, as a table row and as a card.
+                document.querySelectorAll('.sighting-add[data-attribute-id="' + attrId + '"][data-type="' + type + '"]')
+                    .forEach(function (add) {
+                        var countEl = add.querySelector('.sighting-' + (type === '0' ? 's' : 'f'));
+                        if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+                        add.classList.remove('is-zero');
+                    });
                 showToast(data.success || 'Sighting added.', 'success');
                 notifySightingChange({ attributeId: attrId, type: type });
             })
@@ -3405,14 +3390,6 @@ function openSelectedSightings() {
             .finally(function () {
                 btn.disabled = false;
             });
-    });
-
-    document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        var details = e.target.closest && e.target.closest('.sighting-counts[data-sighting-details]');
-        if (!details) return;
-        e.preventDefault();
-        details.click();
     });
 })();
 

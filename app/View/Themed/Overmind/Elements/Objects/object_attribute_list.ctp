@@ -79,12 +79,9 @@ $sectionsOf = function (array $attr) use ($objCanTag, $mayGraph, $showActions, $
         if ($attr['object_relation'] === ($attr['type'] ?? null)) {
             unset($sections['type']);
         }
-        $sections['relation'] = sprintf(
-            '<span class="d-inline-flex align-items-center"><p class="border border-dark rounded p-1 mb-0'
-                . ' bg-dark text-white" style="font-size:inherit;" title="%s">%s</p></span>',
-            h(__('Object relation')),
-            h($attr['object_relation'])
-        );
+        $sections['relation'] = $this->element('genericElementsBS5/Badges/object_relation', [
+            'relation' => $attr['object_relation'],
+        ]);
     }
     if ($showActions) {
         $sections['selector'] = sprintf(

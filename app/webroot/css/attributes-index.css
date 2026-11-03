@@ -60,14 +60,19 @@
 .ai-tile-lead > .misp-icon {
     font-size: 14px;
 }
-/* A smaller chip than an object's, centred on the two lines beside it. */
-.ai-tile-head > .ov-obj-dist {
+/* A smaller chip than an object's, centred on the two lines beside it; the
+   event's icon takes the same slot. */
+.ai-tile-head > :is(.ov-obj-dist, .ev-peek) {
     width: 1.75rem;
     height: 1.75rem;
     margin-top: .25rem;
     border-radius: .5rem;
     font-size: .8rem;
 }
+.ai-tile-head > .ev-peek {
+    align-self: flex-start;
+}
+.ai-tile-head > .ev-peek .misp-icon { width: 14px; height: 14px; }
 .ai-tile-sel {
     position: absolute;
     inset: 0;
@@ -166,10 +171,6 @@
     min-width: 0;
     font-size: .8125rem;
 }
-.ai-tile-kind p.border {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-}
 .ai-tile-modified {
     margin-left: auto;
     font-size: .75rem;
@@ -177,25 +178,6 @@
 }
 .ai-tile-value {
     min-width: 0;
-    font-family: var(--bs-font-monospace);
-    font-size: .8rem;
-    overflow-wrap: anywhere;
-    color: var(--bs-body-color);
-}
-/* The value's comment reads as a card's comment line. */
-.ai-tile-value .card-link-item {
-    border: 0;
-    background: none !important;
-    font-family: var(--bs-body-font-family);
-    font-size: .75rem;
-    color: var(--bs-secondary-color);
-}
-.ai-tile-value .card-link-item .card-body {
-    padding: 0 !important;
-}
-.ai-tile-value .card-link-item i {
-    margin-right: .25rem;
-    opacity: .7;
 }
 /* IDS and correlation as status chips: tinted when on, dashed when off. The
    toggles' script repaints their border and text classes, so the chips go by
@@ -261,29 +243,6 @@
     min-height: 1.6rem;
     margin: 0;
 }
-.ai-event {
-    max-width: 100%;
-    display: flex;
-    align-items: baseline;
-    gap: .4rem;
-    min-width: 0;
-    text-decoration: none;
-}
-.ai-event-id {
-    flex-shrink: 0;
-    font-family: var(--bs-font-monospace);
-    font-size: .78rem;
-}
-.ai-event-info {
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    color: var(--bs-body-color);
-}
-.ai-event:hover .ai-event-info {
-    text-decoration: underline;
-}
 
 /* Foot */
 .ai-tile-foot {
@@ -297,9 +256,6 @@
 .ai-tile-analyst {
     margin-left: auto;
 }
-.ai-tile-analyst > .d-flex {
-    flex-direction: row !important;
-}
 
 /* Deleted and proposed attributes, as their table rows show them. */
 .idx-card.attr-deleted .ai-tile {
@@ -309,3 +265,16 @@
     border-left: 3px solid var(--bs-warning);
     background-color: rgba(245, 158, 11, .06);
 }
+
+/* The attribute table (Elements/Attributes/index): the events index ledger's
+   one-line headings and rows. The cells' pieces are attribute-elements.css'. */
+.ai-table thead th { white-space: nowrap; }
+.ai-table thead th > i { font-size: .8rem; }
+.ai-table td:is(.idx-col-tag_list, .idx-col-galaxy, .idx-col-relatedEvents, .idx-col-feedHits):not(:has(*))::before {
+    content: "—";
+    color: var(--bs-tertiary-color);
+}
+/* Only the value wraps; every other cell keeps to one line. */
+.ai-table tbody td:not(.idx-col-attribute_value) { white-space: nowrap; }
+.ai-table tbody td:not(.idx-col-attribute_value) .flex-wrap { flex-wrap: nowrap !important; }
+

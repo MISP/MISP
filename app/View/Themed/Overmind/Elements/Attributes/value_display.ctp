@@ -8,6 +8,21 @@ $value = (string)($attribute['value'] ?? '');
 $type = (string)($attribute['type'] ?? '');
 $isProposal = !empty($attribute['is_proposal']);
 $hoverValue = $hoverValue ?? null;
+// $cap: a table row's budget in characters. A longer text keeps its head and
+// tail around an ellipsis, the whole of it in the title.
+$cap = (int)($cap ?? 0);
+$show = function ($text) use ($cap) {
+    if ($cap <= 0) {
+        return h($text);
+    }
+    $flat = trim(preg_replace('/\s+/u', ' ', $text));
+    if (mb_strlen($flat) <= $cap) {
+        return h($flat);
+    }
+    $tail = (int)floor($cap / 4);
+    $cut = mb_substr($flat, 0, $cap - $tail - 1) . '…' . mb_substr($flat, -$tail);
+    return '<span class="om-value-cut" title="' . h($text) . '">' . h($cut) . '</span>';
+};
 
 // With $hoverValue, the value's own text becomes the value hover card trigger.
 $hover = function ($html) use ($hoverValue) {
@@ -18,7 +33,10 @@ $hover = function ($html) use ($hoverValue) {
         . ' title="' . h(__('Hover for this value\'s assessment')) . '">' . $html . '</span>';
 };
 
-$longText = function ($text) use ($hover) {
+$longText = function ($text) use ($hover, $show, $cap) {
+    if ($cap > 0) {
+        return $hover('<span class="om-value-text">' . $show($text) . '</span>');
+    }
     $text = str_replace("\r", '', $text);
     $short = $text;
     if (strlen($short) > 500) {
@@ -39,15 +57,15 @@ $longText = function ($text) use ($hover) {
         . '</span>';
 };
 
-$external = function ($text, $url, $title) use ($hover) {
+$external = function ($text, $url, $title) use ($hover, $show) {
     return $hover('<a href="' . h($url) . '" target="_blank" rel="noreferrer noopener" title="' . h($title) . '">'
-        . h($text) . '<i class="fas fa-arrow-up-right-from-square ms-1 om-value-ext"></i></a>');
+        . $show($text) . '<i class="fas fa-arrow-up-right-from-square ms-1 om-value-ext"></i></a>');
 };
 
-$lines = function (array $pieces) use ($hover) {
+$lines = function (array $pieces) use ($hover, $show) {
     $out = '';
     foreach ($pieces as $piece) {
-        $out .= '<span class="d-block">' . h($piece) . '</span>';
+        $out .= '<span class="d-block">' . $show($piece) . '</span>';
     }
     return $hover($out);
 };
@@ -72,9 +90,9 @@ switch ($type) {
             echo $hover('<a href="' . h($url) . '" class="om-value-download"'
                 . ($confirm !== null ? ' data-om-confirm="' . h($confirm) . '"' : '')
                 . ' title="' . h(__('Download')) . '">'
-                . '<i class="fas fa-download me-1"></i>' . h($pieces[0]) . '</a>');
+                . '<i class="fas fa-download me-1"></i>' . $show($pieces[0]) . '</a>');
         } else {
-            echo $hover(h($pieces[0]));
+            echo $hover($show($pieces[0]));
         }
         if ($type === 'malware-sample') {
             echo ' <span class="badge rounded-pill om-value-zip" title="'
@@ -103,9 +121,9 @@ switch ($type) {
 
     case 'link':
         if (preg_match('/^https?:\/\//i', $value)) {
-            echo $hover('<a href="' . h($value) . '" rel="noreferrer noopener" target="_blank">' . h($value) . '</a>');
+            echo $hover('<a href="' . h($value) . '" rel="noreferrer noopener" target="_blank">' . $show($value) . '</a>');
         } else {
-            echo $hover(h($value));
+            echo $hover($show($value));
         }
         break;
 
@@ -146,7 +164,7 @@ switch ($type) {
 
     case 'domain':
     case 'hostname':
-        echo $hover(h($value));
+        echo $hover($show($value));
         if (stripos($value, 'xn--') !== false && function_exists('idn_to_utf8')) {
             $decoded = idn_to_utf8($value, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
             if ($decoded !== false && $decoded !== $value) {

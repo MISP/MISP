@@ -113,15 +113,29 @@ $fields = [
     ]
 ];
 
+// A card shows its event in its head, where the event's own tab shows the distribution.
 if (!empty($show_event_id)) {
     $fields[] = [
-        'name' => __('Event ID'),
-        'sort' => $path('event_id'),
-        'data_path' => 'Event.id',
-        'element' => 'id',
-        'url' => $baseurl . '/events/view/%id%',
+        'name' => __('Event'),
+        'element' => 'custom',
+        'function' => function ($row) {
+            return empty($row['Event']) ? '' : $this->element('Attributes/event_peek', ['event' => $row['Event']]);
+        },
         'card_section' => 'event',
-        'display_in' => ['table', 'card']
+        'display_in' => ['card'],
+    ];
+}
+
+// Inside an event every row shares the event's distribution unless set
+// apart, so the column is there; the instance-wide index leaves it out.
+if ($inEventView) {
+    $fields[] = [
+        'name' => __('Distribution'),
+        'header_html' => '<i class="fas fa-share-nodes"></i>',
+        'header_title' => __('Distribution'),
+        'data_path' => $path('distribution'),
+        'element' => 'distribution',
+        'display_in' => ['table']
     ];
 }
 
@@ -130,6 +144,11 @@ $fields = array_merge($fields, [
         'name' => __('Value'),
         'data_path' => $path(''),
         'element' => 'attribute_value',
+        'show_distribution' => false,
+        // Rows from any event lead with their event: its title, state and orgs on hover.
+        'event_peek' => !empty($show_event_id),
+        // The one cell that wraps, up to about two lines.
+        'value_cap' => 128,
         'card_section' => 'value',
         'display_in' => ['table', 'card']
     ],
@@ -151,26 +170,6 @@ $fields = array_merge($fields, [
     ],
 ]);
 
-if (!empty($show_event_id)) {
-    $fields = array_merge($fields, [
-    [
-        'name' => __('Creator Org'),
-        'sort' => 'Event.Orgc.name',
-        'data_path' => 'Event.Orgc',
-        'element' => 'organisation',
-        'card_section' => 'orgc',
-        'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Owner Org'),
-        'sort' => 'Event.Org.name',
-        'data_path' => 'Event.Org',
-        'element' => 'organisation',
-        'card_section' => 'org',
-        'display_in' => ['']
-    ]
-    ]);
-}
 
 $fields = array_merge($fields, [
     [
@@ -203,24 +202,37 @@ $fields = array_merge($fields, [
     ],
     [
         'name' => __('IDS'),
+        'header_html' => '<i class="fas fa-shield-halved"></i>',
+        'header_title' => __('IDS'),
+        'header_class' => 'text-center',
+        'class' => 'text-center',
         'data_path' => $path('to_ids'),
         'element' => 'ids',
         'display_in' => ['table']
     ],
     [
         'name' => __('Correlate'),
+        'header_html' => '<i class="fas fa-link"></i>',
+        'header_title' => __('Correlate'),
+        'header_class' => 'text-center',
+        'class' => 'text-center',
         'data_path' => $path('disable_correlation'),
         'element' => 'correlate',
         'display_in' => ['table']
     ],
     [
         'name' => __('Related Events'),
+        'header_html' => h(__('Related')),
+        'header_title' => __('Related Events'),
         'element' => 'relatedEvents',
+        'max_visible' => 2,
         'card_section' => 'related',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Feed hits'),
+        'header_html' => h(__('Feeds')),
+        'header_title' => __('Feed hits'),
         'element' => 'feedHits',
         'card_section' => 'feeds',
         'display_in' => ['table', 'card']
@@ -234,6 +246,8 @@ $fields = array_merge($fields, [
     ],
     [
         'name' => __('Analyst data'),
+        'header_html' => h(__('Analyst')),
+        'header_title' => __('Analyst data'),
         'element' => 'analyst_data_badges',
         'note_path' => $path('Note'),
         'opinion_path' => $path('Opinion'),
@@ -246,6 +260,8 @@ $fields = array_merge($fields, [
     ],
     [
         'name' => __('Actions'),
+        'header_html' => '',
+        'header_title' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'Attribute.id',
         'card_section' => 'actions',
@@ -671,6 +687,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $attributes,
+            'table_class' => 'ai-table',
             'cards_per_row' => ['' => 1, 'lg' => 2, 'xxl' => 3, 'xxxxl' => 4],
             'card_element' => 'Attributes/index_card_tile',
             'primary_id_path' => $path('id'),

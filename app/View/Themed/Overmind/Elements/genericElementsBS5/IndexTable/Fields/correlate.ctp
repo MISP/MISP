@@ -70,7 +70,7 @@ if ($attribute && ($event || $readonly) && isset($attribute['id'], $attribute['t
                 </span>
             </span>
         <?php else: ?>
-            <i class="fas <?= $icon ?> <?= $colorClass ?>" style="font-size:1.2em;"></i>
+            <i class="fas <?= $icon ?> om-flag <?= $colorClass ?>"></i>
         <?php endif; ?>
 
     </button>
@@ -97,7 +97,7 @@ if ($attribute && ($event || $readonly) && isset($attribute['id'], $attribute['t
                 </span>
             </span>
         <?php else: ?>
-            <i class="fas <?= $icon ?> <?= $colorClass ?>" style="font-size:1.2em;"></i>
+            <i class="fas <?= $icon ?> om-flag <?= $colorClass ?>"></i>
         <?php endif; ?>
     </span>
 <?php endif; ?>

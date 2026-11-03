@@ -95,15 +95,9 @@ $readonly = !empty($readonly);
                             'genericElementsBS5/Badges/category',
                             ['category' => $attr['category'] ?? '']
                         ); ?>
-                        <?php if (!empty($attr['object_relation'])): ?>
-                            <span class="d-inline-flex align-items-center">
-                                <p class="border border-dark rounded p-1 mb-0
-                                           bg-dark text-white"
-                                   style="font-size:inherit;">
-                                    <?= h($attr['object_relation']) ?>
-                                </p>
-                            </span>
-                        <?php endif; ?>
+                        <?= $this->element('genericElementsBS5/Badges/object_relation', [
+                            'relation' => $attr['object_relation'] ?? '',
+                        ]) ?>
                     </div>
                 </td>
 

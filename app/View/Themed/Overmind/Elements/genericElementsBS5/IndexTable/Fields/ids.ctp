@@ -53,7 +53,7 @@ if ($attribute && isset($attribute['id'], $attribute['to_ids'])):
             <span class="ids-label"><?= $toIds ? __('IDS') : __('No IDS') ?></span>
         </span>
     <?php else: ?>
-        <i class="fas fa-shield-halved <?= $colorClass ?>" style="font-size:1.2em;"></i>
+        <i class="fas fa-shield-halved om-flag <?= $colorClass ?>"></i>
     <?php endif; ?>
 
 <?php if ($mayModify): ?>

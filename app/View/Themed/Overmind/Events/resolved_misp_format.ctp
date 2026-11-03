@@ -398,9 +398,7 @@ if ($isAi) {
                                 <td>
                                     <div class="d-flex align-items-center gap-1">
                                         <?= $this->element('genericElementsBS5/Badges/category', ['category' => $oa['category'] ?? '', 'full' => false]) ?>
-                                        <?php if (!empty($oa['object_relation'])): ?>
-                                            <span class="badge bg-dark text-white fw-normal"><?= h($oa['object_relation']) ?></span>
-                                        <?php endif; ?>
+                                        <?= $this->element('genericElementsBS5/Badges/object_relation', ['relation' => $oa['object_relation'] ?? '']) ?>
                                     </div>
                                 </td>
                                 <td><?= $this->element('genericElementsBS5/Badges/type', ['type' => $oa['type'] ?? '']) ?></td>
