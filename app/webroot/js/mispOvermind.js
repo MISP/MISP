@@ -5494,8 +5494,22 @@ function formTypeChanged(idPrefix) {
     if (!typeEl) { return; }
     var isNonCorr = (typeof non_correlating_types !== 'undefined')
         && non_correlating_types.indexOf(typeEl.value) !== -1;
-    var corrEl = document.getElementById(idPrefix + 'DisableCorrelation');
-    if (corrEl) { corrEl.disabled = isNonCorr; }
+    var corrEl = document.getElementById(idPrefix + 'Correlate');
+    if (!corrEl || corrEl.disabled === isNonCorr) { return; }
+    // Show such a type unticked, and give the user's choice back afterwards.
+    if (isNonCorr) {
+        corrEl.dataset.wasChecked = corrEl.checked ? '1' : '';
+        corrEl.checked = false;
+    } else {
+        corrEl.checked = corrEl.dataset.wasChecked === '1';
+    }
+    corrEl.disabled = isNonCorr;
+    // The unticked fallback would disable correlation: post 0 as before.
+    var fallback = document.getElementById(idPrefix + 'Correlate_');
+    if (fallback) { fallback.value = isNonCorr ? '0' : '1'; }
+    var card = corrEl.closest('label');
+    if (card) { card.title = isNonCorr ? corrEl.dataset.lockedTitle : ''; }
+    corrEl.dispatchEvent(new Event('change'));
 }
 
 function checkNoticeList(type) {
@@ -5692,11 +5706,11 @@ function initAttributeForm(currentDist, isEdit) {
             on:  { border: ON_YELLOW, color: ON_YELLOW, iconClass: null },
             off: { border: OFF_LINE, color: OFF_ICON, iconClass: null }
         },
-        AttributeDisableCorrelation: {
+        AttributeCorrelate: {
             card: 'card-correl', icon: 'icon-correl',
-            on:  { border: OFF_LINE, color: OFF_ICON,
-                   iconClass: 'fas fa-link-slash' },
-            off: { border: ON_GREEN, color: ON_GREEN, iconClass: 'fas fa-link' }
+            on:  { border: ON_GREEN, color: ON_GREEN, iconClass: 'fas fa-link' },
+            off: { border: OFF_LINE, color: OFF_ICON,
+                   iconClass: 'fas fa-link-slash' }
         }
     };
 
