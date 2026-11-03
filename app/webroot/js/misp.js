@@ -3284,7 +3284,7 @@ function runOnDemandAction(element, url, target, postFormField) {
             $(elementContainer).html('Running...');
         },
         error: function(response) {
-            var result = JSON.parse(response.responseText);
+            var result = response.responseJSON || JSON.parse(response.responseText);
             $(elementContainer).empty();
             $(elementContainer)
             .append(
@@ -3299,7 +3299,8 @@ function runOnDemandAction(element, url, target, postFormField) {
             );
         },
         success: function(response) {
-            var result = JSON.parse(response);
+            // jQuery has already parsed a response sent as application/json
+            var result = typeof response === 'string' ? JSON.parse(response) : response;
             $(elementContainer).empty();
             for (var key in result) {
                 $(elementContainer).append(

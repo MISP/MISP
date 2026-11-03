@@ -656,6 +656,59 @@ class Sighting extends AppModel
     }
 
     /**
+     * Add a line to a CSV produced by generateSparkline() for each SightingDB:
+     * its sightings, and its false-positives when it counts them. The date range
+     * grows to cover them, within the configured maximum range.
+     *
+     * @param string $csv
+     * @param array $series As Sightingdb::queryDailyCounts() returns it
+     * @return string
+     */
+    public function addSightingdbSeriesToCsv($csv, array $series)
+    {
+        $lines = array_values(array_filter(explode('\n', $csv), 'strlen'));
+        $header = explode(',', array_shift($lines));
+        $rows = [];
+        foreach ($lines as $line) {
+            $cells = explode(',', $line);
+            $rows[array_shift($cells)] = $cells;
+        }
+        $columns = [];
+        foreach ($series as $name => $types) {
+            $label = stripos($name, 'sightingdb') === false ? $name . ' (SightingDB)' : $name;
+            foreach ($types as $type => $days) {
+                $columns[] = [
+                    // A column header in a CSV the view embeds in a JS string
+                    'name' => str_replace([',', '\\', '"', "'", '<', '>', "\n", "\r"], ' ', $type === 'sighting' ? $label : $label . ' false-positives'),
+                    'days' => $days,
+                ];
+            }
+        }
+        $rangeStart = date('Y-m-d', $this->getMaximumRange());
+        $dates = array_keys($rows);
+        foreach ($columns as $column) {
+            foreach (array_keys($column['days']) as $date) {
+                if ($date >= $rangeStart) {
+                    $dates[] = $date;
+                }
+            }
+        }
+        sort($dates);
+        $empty = array_fill(0, count($header) - 1, '0');
+        $today = strtotime(date('Y-m-d'));
+        $result = implode(',', array_merge($header, array_column($columns, 'name'))) . '\n';
+        for ($date = strtotime($dates[0]); $date <= $today; $date += self::ONE_DAY) {
+            $day = date('Y-m-d', $date);
+            $cells = $rows[$day] ?? $empty;
+            foreach ($columns as $column) {
+                $cells[] = (string)($column['days'][$day] ?? 0);
+            }
+            $result .= $day . ',' . implode(',', $cells) . '\n';
+        }
+        return $result;
+    }
+
+    /**
      * @param array $sparklineData
      * @param bool $csvWithFalsePositive
      * @return array
@@ -921,7 +974,7 @@ class Sighting extends AppModel
         if (empty($filters)) {
             $attributes = $this->Attribute->fetchAttributesSimple($user, [
                 'conditions' => $conditions,
-                'fields' => ['Attribute.id', 'Attribute.event_id'],
+                'fields' => ['Attribute.id', 'Attribute.event_id', 'Attribute.value'],
             ]);
         } else {
             if (!empty($values)) {
@@ -937,6 +990,7 @@ class Sighting extends AppModel
             return 'No valid attributes found that match the criteria.';
         }
         $sightingsAdded = 0;
+        $toPush = [];
         foreach ($attributes as $attribute) {
             if ($type === '2') {
                 // remove existing expiration by the same org if it exists
@@ -964,9 +1018,20 @@ class Sighting extends AppModel
                 return json_encode($this->validationErrors);
             }
             ++$sightingsAdded;
+            // An expiration is a date, not something SightingDB can count
+            if (in_array((int)$type, [0, 1], true) && isset($attribute['Attribute']['value'])) {
+                $toPush[] = [
+                    'value' => $attribute['Attribute']['value'],
+                    'timestamp' => is_numeric($timestamp) ? (int)$timestamp : (strtotime((string)$timestamp) ?: time()),
+                    'type' => (int)$type,
+                ];
+            }
             if ($publish) {
                 $this->Event->publishSightingsRouter($sighting['event_id'],  $user);
             }
+        }
+        if (!empty($toPush)) {
+            ClassRegistry::init('Sightingdb')->pushSightings($toPush, $user);
         }
         return $sightingsAdded;
     }

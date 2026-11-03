@@ -331,11 +331,19 @@ class SightingsController extends AppController
                 throw new MethodNotAllowedException('Invalid object.');
             }
             $statistics = $this->Sighting->attributesStatistics($objects, $this->Auth->user(), true);
+            $this->__addSightingdbSeries($statistics, array_column(array_column($objects, 'Attribute'), 'value'));
         } elseif ($context === 'event') {
             // let's set the context to event here, since we reuse the variable later on for some additional lookups.
             // Passing $context = 'org' could have interesting results otherwise...
             $events = $this->Sighting->Event->fetchSimpleEvents($this->Auth->user(), ['conditions' => ['id' => $id]]);
             $statistics = $this->Sighting->eventsStatistic($events, $this->Auth->user(), true);
+            if (!empty($events)) {
+                $attributes = $this->Sighting->Event->Attribute->fetchAttributesSimple($this->Auth->user(), [
+                    'conditions' => ['Attribute.event_id' => array_column(array_column($events, 'Event'), 'id'), 'Attribute.deleted' => 0],
+                    'fields' => ['Attribute.value'],
+                ]);
+                $this->__addSightingdbSeries($statistics, array_column(array_column($attributes, 'Attribute'), 'value'));
+            }
         } else {
             throw new MethodNotAllowedException('Invalid context');
         }
@@ -343,6 +351,19 @@ class SightingsController extends AppController
         $this->set('csv', $statistics['csv']['all']);
         $this->layout = false;
         $this->render('ajax/view_sightings');
+    }
+
+    /**
+     * Draw what every SightingDB the user may query has seen of these values as
+     * lines of its own, beside MISP's sightings and false-positives.
+     */
+    private function __addSightingdbSeries(array &$statistics, array $values)
+    {
+        $this->loadModel('Sightingdb');
+        $series = $this->Sightingdb->queryDailyCounts($values, $this->Auth->user());
+        if (!empty($series)) {
+            $statistics['csv']['all'] = $this->Sighting->addSightingdbSeriesToCsv($statistics['csv']['all'], $series);
+        }
     }
 
     // Save sightings synced over, restricted to sync users

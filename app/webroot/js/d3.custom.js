@@ -43,6 +43,10 @@ function sightingsGraph(elemId, data) {
         'Sighting': 'blue',
         'False-positive': 'red'
     }
+    // Any other line is a SightingDB's: its sightings, or its "... false-positives"
+    var lineColour = function(name) {
+        return colours[name] || (/ false-positives$/.test(name) ? 'darkorange' : 'green');
+    }
 
     var margin = {
             top: 20,
@@ -131,19 +135,24 @@ function sightingsGraph(elemId, data) {
         .append('g')
         .attr('class', 'sightingsLegend');
 
+    // Moved left by however much a SightingDB's name is longer than 'False-positive', so it does not run off the edge
+    var legendX = width - 20 - 7 * Math.max(0, d3.max(sightings, function(d) {
+        return d.name.length;
+    }) - 'False-positive'.length);
+
     legend.append('rect')
-        .attr('x', width - 20)
+        .attr('x', legendX)
         .attr('y', function(d, i) {
             return i * 20;
         })
         .attr('width', 10)
         .attr('height', 10)
         .style('fill', function(d) {
-            return colours[d.name];
+            return lineColour(d.name);
         });
 
     legend.append('text')
-        .attr('x', width - 8)
+        .attr('x', legendX + 12)
         .attr('y', function(d, i) {
             return (i * 20) + 9;
         })
@@ -177,6 +186,6 @@ function sightingsGraph(elemId, data) {
             return line(d.values);
         })
         .style("stroke", function(d) {
-            return colours[d.name];
+            return lineColour(d.name);
         });
 }
