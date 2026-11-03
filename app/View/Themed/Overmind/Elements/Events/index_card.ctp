@@ -96,8 +96,8 @@ $extras = $ei->extras($event, $card['graphs']);
                 <span class="dk-sel"><?= implode('', $sections['selector']) ?></span>
             <?php endif; ?>
         </span>
-        <?= $stateHtml ?>
         <span class="dk-id">#<?= $id ?></span>
+        <?= $stateHtml ?>
         <?php if (!empty($sections['extra'])): ?>
             <div class="dk-menu"><?= implode('', $sections['extra']) ?></div>
         <?php endif; ?>

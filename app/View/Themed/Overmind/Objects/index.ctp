@@ -3,7 +3,6 @@ App::uses('IndexFilterState', 'Tools');
 App::uses('IndexPicker', 'Tools');
 App::uses('EventCardTool', 'Tools/EventOverview');
 App::uses('DistributionLevel', 'Tools');
-App::uses('CakeTime', 'Utility');
 
 $this->set('headerTitle', __('Objects'));
 $this->set('headerDescription', __('Objects from every event you can see, most recently changed first.'));
@@ -35,31 +34,7 @@ $fields = [
         'display_in' => ['table'],
         'element' => 'custom',
         'function' => function ($row) {
-            $object = $row['Object'];
-            $headline = $object['headline'] ?? null;
-            $html = sprintf(
-                '<div class="oi-object"><button type="button" class="oi-expand" data-oi-expand="%s"'
-                    . ' aria-expanded="false" title="%s"><i class="fas fa-chevron-right"></i></button>%s</div>',
-                (int)$object['id'],
-                h(__('Show its attributes')),
-                $this->element('Objects/object_header', [
-                    'object' => $object,
-                    'ctx' => [
-                        'count' => (int)($object['attribute_count'] ?? 0),
-                        'deleted' => false,
-                        'firstValue' => $headline === null ? '' : (string)$headline['value'],
-                        'firstRelation' => $headline === null ? '' : $headline['relation'],
-                    ],
-                ])
-            );
-            if (!empty($object['comment'])) {
-                $html .= sprintf(
-                    '<div class="oi-comment" title="%s"><i class="fas fa-comment"></i> %s</div>',
-                    h($object['comment']),
-                    h($object['comment'])
-                );
-            }
-            return $html;
+            return $this->element('Objects/index_object_cell', ['object' => $row['Object']]);
         },
     ],
     [
@@ -68,16 +43,10 @@ $fields = [
         'display_in' => ['table'],
         'element' => 'custom',
         'function' => function ($row) {
-            $out = (int)($row['Object']['references_out'] ?? 0);
-            $in = (int)($row['Object']['references_in'] ?? 0);
-            return sprintf(
-                '<span class="oi-refs%s" title="%s"><span><i class="fas fa-arrow-right"></i> %d</span>'
-                    . '<span><i class="fas fa-arrow-left"></i> %d</span></span>',
-                $out + $in === 0 ? ' is-empty' : '',
-                h(__('%s outgoing, %s incoming references', $out, $in)),
-                $out,
-                $in
-            );
+            return $this->element('Objects/index_refs', [
+                'out' => $row['Object']['references_out'] ?? 0,
+                'in' => $row['Object']['references_in'] ?? 0,
+            ]);
         },
     ],
     [
@@ -112,21 +81,7 @@ $fields = [
         'display_in' => ['table'],
         'element' => 'custom',
         'function' => function ($row) {
-            $day = function ($value) {
-                $dt = date_create((string)$value);
-                return $dt === false ? (string)$value : $dt->format('Y-m-d');
-            };
-            $first = $row['Object']['first_seen'] ?? null;
-            $last = $row['Object']['last_seen'] ?? null;
-            if (empty($first) && empty($last)) {
-                return '<span class="oi-none">&mdash;</span>';
-            }
-            return sprintf(
-                '<span class="oi-seen" title="%s">%s<span class="oi-seen-dash">&ndash;</span>%s</span>',
-                h(__('First seen %s, last seen %s', $first ?: '?', $last ?: '?')),
-                empty($first) ? '?' : h($day($first)),
-                empty($last) ? '?' : h($day($last))
-            );
+            return $this->element('Objects/index_seen', ['object' => $row['Object']]);
         },
     ],
     [
@@ -136,17 +91,7 @@ $fields = [
         'display_in' => ['table'],
         'element' => 'custom',
         'function' => function ($row) {
-            $ts = (int)$row['Object']['timestamp'];
-            $label = $ts < strtotime('-1 year')
-                ? date('Y-m-d', $ts)
-                : CakeTime::timeAgoInWords($ts, [
-                    'accuracy' => ['day' => 'day', 'week' => 'day', 'month' => 'week'],
-                ]);
-            return sprintf(
-                '<span class="oi-modified" title="%s">%s</span>',
-                h(date('Y-m-d H:i:s', $ts)),
-                h($label)
-            );
+            return $this->element('Objects/index_modified', ['object' => $row['Object']]);
         },
     ],
     [
@@ -310,7 +255,7 @@ if (!empty($valueTruncated)) {
 }
 
 echo $this->element('genericElements/assetLoader', [
-    'css' => ['objects-index'],
+    'css' => ['objects-index', 'attributes-index'],
     'js' => ['objects-index'],
 ]);
 

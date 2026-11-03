@@ -208,6 +208,12 @@ foreach (($filter_bar['children'] ?? []) as $c) {
     $ctype = $c['type'] ?? '';
     if (!empty($c['name']) && !empty($c['chip_label'])) {
         $controlLabels[$c['name']] = $c['chip_label'];
+    } elseif ($ctype === 'value' && !empty($c['name'])) {
+        $controlLabels[$c['name']] = $c['label'] ?? $c['name'];
+    } elseif ($ctype === 'time') {
+        foreach ($c['fields'] as $field) {
+            $controlLabels[$field['name']] = $controlLabels[$field['name']] ?? $field['label'];
+        }
     }
     if ($ctype === 'value_match' && !empty($c['name'])) {
         $controlKeys[] = $c['name'];
@@ -281,7 +287,7 @@ if ($pickerMode) {
     $buttonGroups = [];
     foreach ($filter_bar['children'] as $child) {
         $ctype = $child['type'] ?? '';
-        if (in_array($ctype, ['picker', 'time', 'value_match'], true)) {
+        if (in_array($ctype, ['picker', 'time', 'value', 'value_match'], true)) {
             $windowItems[] = $child;
         } elseif ($ctype === 'button') {
             $toggles[] = $child;
@@ -341,8 +347,12 @@ if ($pickerMode) {
             'allOf' => __('This link asks for events with all of these. Changing the selection here switches to any of them.'),
             'unresolved' => __('Not found on this instance'),
             'loadError' => __('The filtered list could not be loaded.'),
+            'valueOnClose' => __('Applies when you close the picker, or on Enter.'),
+            'keptForApply' => __('Kept until you apply the filters.'),
         ],
         'browser' => $browserStrings,
+        'draft' => ($filter_bar['apply'] ?? 'close') === 'deferred' ? IndexFilterDraft::strings() : null,
+        'clearUrl' => $filterState->clearUrl($filter_bar['chips']['scope'] ?? []),
     ], JSON_UNESCAPED_UNICODE)) ?>"<?php endif; ?>>
 
 <?php if ($pickerMode): ?>
@@ -402,6 +412,7 @@ if ($pickerMode) {
             'chipsData' => $chipsData,
             'currentFilters' => $currentFilters,
             'filterId' => $filterId,
+            'deferred' => ($filter_bar['apply'] ?? 'close') === 'deferred',
         ]) ?>
     <?php endif; ?>
 
@@ -474,6 +485,7 @@ if ($pickerMode) {
             </div>
         <?php endforeach; ?>
 
+        <?php if (($filter_bar['view_switch'] ?? null) !== false): ?>
         <div class="ifp-segv" role="group" aria-label="<?= h(__('View')) ?>">
             <?php if (!empty($filter_bar['view_switch'])): ?>
                 <?php foreach ($filter_bar['view_switch'] as $vs): ?>
@@ -495,6 +507,7 @@ if ($pickerMode) {
                 </button>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
     </div>
 
 
@@ -772,7 +785,7 @@ if ($explicitActive !== null) {
             <?php
             if (empty($filter_bar['skip_pagination'])) {
                 echo $this->element(
-                    'genericElementsBS5/IndexTable/pagination_nav',
+                    $filter_bar['pager'] ?? 'genericElementsBS5/IndexTable/pagination_nav',
                     ['maxPages' => 5, 'size' => 'sm']
                 );
             }

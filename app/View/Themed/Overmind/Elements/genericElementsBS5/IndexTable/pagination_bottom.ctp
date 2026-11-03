@@ -5,6 +5,7 @@
  *
  * @var int $rows how many rows the page shows
  * @var string $class extra classes for the row
+ * @var string $pager pager element, for an index paged without a total
  */
 $paging = $this->Paginator->params();
 $first = ((int)($paging['page'] ?? 1) - 1) * (int)($paging['limit'] ?? 0) + 1;
@@ -30,7 +31,7 @@ $first = ((int)($paging['page'] ?? 1) - 1) * (int)($paging['limit'] ?? 0) + 1;
         }
     ?></span>
     <?= $this->element(
-        'genericElementsBS5/IndexTable/pagination_nav',
+        $pager ?? 'genericElementsBS5/IndexTable/pagination_nav',
         ['maxPages' => 5, 'size' => 'sm']
     ) ?>
 </div>

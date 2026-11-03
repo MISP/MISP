@@ -120,24 +120,17 @@ if (!empty($show_event_id)) {
         'data_path' => 'Event.id',
         'element' => 'id',
         'url' => $baseurl . '/events/view/%id%',
-        'card_section' => 'top',
+        'card_section' => 'event',
         'display_in' => ['table', 'card']
     ];
 }
 
 $fields = array_merge($fields, [
     [
-        'name' => __('Distribution'),
-        'data_path' => $path('distribution'),
-        'element' => 'distribution',
-        'card_section' => 'top',
-        'display_in' => ['card']
-    ],
-    [
         'name' => __('Value'),
         'data_path' => $path(''),
         'element' => 'attribute_value',
-        'card_section' => 'title',
+        'card_section' => 'value',
         'display_in' => ['table', 'card']
     ],
     [
@@ -145,7 +138,7 @@ $fields = array_merge($fields, [
         'sort' => $path('category'),
         'data_path' => $path('category'),
         'element' => 'category',
-        'card_section' => 'attribute',
+        'card_section' => 'category',
         'display_in' => ['table', 'card']
     ],
     [
@@ -153,7 +146,7 @@ $fields = array_merge($fields, [
         'sort' => $path('type'),
         'data_path' => $path('type'),
         'element' => 'type',
-        'card_section' => 'attribute',
+        'card_section' => 'type',
         'display_in' => ['table', 'card']
     ],
 ]);
@@ -165,7 +158,7 @@ if (!empty($show_event_id)) {
         'sort' => 'Event.Orgc.name',
         'data_path' => 'Event.Orgc',
         'element' => 'organisation',
-        'card_section' => 'meta',
+        'card_section' => 'orgc',
         'display_in' => ['table', 'card']
     ],
     [
@@ -173,8 +166,8 @@ if (!empty($show_event_id)) {
         'sort' => 'Event.Org.name',
         'data_path' => 'Event.Org',
         'element' => 'organisation',
-        'card_section' => 'meta',
-        'display_in' => ['card']
+        'card_section' => 'org',
+        'display_in' => ['']
     ]
     ]);
 }
@@ -185,7 +178,7 @@ $fields = array_merge($fields, [
         'data_path' => $path('AttributeTag'),
         'element' => 'tag_list',
         'plan' => $labelPlan ?? null,
-        'card_section' => 'tag',
+        'card_section' => 'tags',
         'display_in' => ['table', 'card'],
         // Cell actions are handled by the tag_list element
         'add_tag' => $_rowMayTag,
@@ -199,7 +192,7 @@ $fields = array_merge($fields, [
         'data_path' => $path('Galaxy'),
         'element' => 'galaxy',
         'plan' => $labelPlan ?? null,
-        'card_section' => 'galaxy',
+        'card_section' => 'galaxies',
         'display_in' => ['table', 'card'],
         // Cell actions are handled by the galaxy element
         'add_galaxy' => $_rowMayTag,
@@ -212,41 +205,31 @@ $fields = array_merge($fields, [
         'name' => __('IDS'),
         'data_path' => $path('to_ids'),
         'element' => 'ids',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Correlate'),
         'data_path' => $path('disable_correlation'),
         'element' => 'correlate',
-        'card_section' => 'top',
-        'display_in' => ['table', 'card']
+        'display_in' => ['table']
     ],
     [
         'name' => __('Related Events'),
         'element' => 'relatedEvents',
-        'card_section' => 'top',
+        'card_section' => 'related',
         'display_in' => ['table', 'card']
     ],
     [
         'name' => __('Feed hits'),
         'element' => 'feedHits',
-        'card_section' => 'meta',
+        'card_section' => 'feeds',
         'display_in' => ['table', 'card']
-    ],
-    [
-        'name' => __('Last Modified'),
-        'data_path' => $path('timestamp'),
-        'element' => 'timestamp',
-        'mode' => 'modified',
-        'card_section' => 'meta',
-        'display_in' => ['card']
     ],
     [
         'name' => __('Sightings'),
         'element' => 'sightings',
         'sightings' => isset($sightingsData) ? $sightingsData : ['data' => [], 'csv' => []],
-        'card_section' => 'meta',
+        'card_section' => 'sightings',
         'display_in' => ['table', 'card']
     ],
     [
@@ -258,14 +241,14 @@ $fields = array_merge($fields, [
         'relationship_inbound_path' => $path('RelationshipInbound'),
         'uuid_path' => $path('uuid'),
         'object_type' => 'Attribute',
-        'card_section' => 'meta',
+        'card_section' => 'analyst',
         'display_in' => ['table', 'card'],
     ],
     [
         'name' => __('Actions'),
         'element' => 'row_actions',
         'data_path' => 'Attribute.id',
-        'card_section' => 'extra',
+        'card_section' => 'actions',
         'actions' => [
             [
                 'type' => 'copy',
@@ -688,7 +671,8 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
     'scaffold_data' => [
         'data' => [
             'data' => $attributes,
-            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxxxl' => 3],
+            'cards_per_row' => ['' => 1, 'lg' => 2, 'xxl' => 3, 'xxxxl' => 4],
+            'card_element' => 'Attributes/index_card_tile',
             'primary_id_path' => $path('id'),
             'row_class_callable' => function($row) use ($inExtensionView, $extensionEvents) {
                 $classes = [];

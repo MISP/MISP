@@ -20,7 +20,8 @@ $this->set('headerActions', array(
     ),
 ));
 
-echo $this->element('genericElements/assetLoader', array('js' => array('server-settings')));
+// index-filters.css: the pages' filter bars are drawn like the indexes'.
+echo $this->element('genericElements/assetLoader', array('css' => array('index-filters'), 'js' => array('server-settings')));
 
 $config = array(
     'base' => $baseurl . '/servers/serverSettings',
@@ -60,6 +61,12 @@ $config = array(
         'onlyProblems' => __('Only problems'),
         'onlyModified' => __('Only modified'),
         'showAdvanced' => __('Advanced settings shown'),
+        'onlyEnabled' => __('Only enabled'),
+        'onlyNeedsConfig' => __('Only needing configuration'),
+        'shown' => __('%s shown'),
+        'clearAll' => __('Clear all'),
+        'noFilter' => __('No filter active'),
+        'removeFilter' => __('Remove this filter'),
         'cancel' => __('Cancel'),
         'ok' => __('OK'),
         'badLinks' => __('bad links detected'),

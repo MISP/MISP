@@ -90,6 +90,24 @@ function capToasts(stack) {
     for (let i = TOAST_MAX; i < live.length; i++) dismissToast(live[i]);
 }
 
+/*
+ * A modal URL that refuses to open answers with its toasts only: they go to
+ * the stack and the modal stays closed.
+ */
+function showToastsOnly(html) {
+    const stack = toastStack();
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    const toasts = Array.from(tpl.content.children);
+    if (!stack || !toasts.length || !toasts.every(el => el.matches('.ov-toast'))) {
+        return false;
+    }
+    stack.prepend(...toasts);
+    toasts.forEach(armToast);
+    capToasts(stack);
+    return true;
+}
+
 /*******************************
  * Size the shared #mainModal dialog.
  *
@@ -191,6 +209,9 @@ function openModal(url, size = 'xl') {
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(response => response.text())
         .then(html => {
+            if (showToastsOnly(html)) {
+                return;
+            }
             const container = document.getElementById('mainModalBody');
             container.innerHTML = html;
             container.querySelectorAll('script:not([type="application/json"])').forEach(oldScript => {
@@ -5735,8 +5756,8 @@ function initAttributeForm(currentDist, isEdit) {
         typeEl.add(new Option('', ''));
         allowed.forEach(function (t) { typeEl.add(new Option(t, t)); });
         typeEl.value = nextVal;
-        /* An attribute inside an object has its type fixed by the template, so
-         * refilling the list must not hand it back. */
+        /* A type the server locked (object template, attachment) must stay
+         * disabled: the Security token leaves disabled fields out. */
         var locked = typeEl.dataset.locked === '1';
         typeEl.disabled = locked;
 
@@ -6982,13 +7003,11 @@ function formatIndexUrl(base, parts) {
  * The code snippets provided here create a *draft* using pills: \
  * his will be executed via a single button using Ajax, refreshing the container 
  *
- * Two bars share this engine — Elements/Logs/filter_card.ctp (the log
- * indexes) and genericElementsBS5/IndexTable/filter_bar.ctp (a scaffolded
- * index that declares a `more_filters` control). They agree on the
- * interaction and disagree on everything around it: where a filter lives in
- * the URL, what counts as a scope worth keeping, whether an ajax tab wraps
- * the whole thing. So every URL decision is the caller's, handed in as
- * `buildUrl` / `clearAll` / `reload`.
+ * Its one caller is genericElementsBS5/IndexTable/filter_bar.ctp, for a bar
+ * that opts out of pickers and declares a `more_filters` control; a picker
+ * bar defers its filters through index-filters.js instead (`apply` set to
+ * `deferred`, the log indexes). Every URL decision stays the caller's, handed
+ * in as `buildUrl` / `clearAll` / `reload`.
  */
 
 /**
@@ -7381,103 +7400,6 @@ function initIndexFilterDraft(root, opts) {
 window.initIndexFilterDraft = initIndexFilterDraft;
 
 /* --------------------------------------------------------------------------
- * Adapter: the log indexes' filter card
- * --------------------------------------------------------------------------
- * Its configuration (base URL, applied filters, field labels) is rendered
- * next to it as a JSON <script>; see Elements/Logs/filter_card.ctp.
- */
-function initLogFilterCard(root) {
-    if (!root) { return; }
-    const configEl = root.querySelector('.log-filter-config');
-    if (!configEl) { return; }
-    const cfg = JSON.parse(configEl.textContent);
-    const quickEl = root.querySelector('.log-quick-filter');
-
-    // TomSelect copies the select's classes onto its wrapper, so
-    // `.filter-draft-input` alone matches two nodes per control.
-    function inputs() {
-        return Array.prototype.slice.call(
-            root.querySelectorAll('select.filter-draft-input, input.filter-draft-input'));
-    }
-
-    /*
-     * Filters go in the query string, paginator parameters stay named URL
-     * segments. A named segment cannot carry a '/' — `url:%2Fevents` reaches
-     * the access log controller with the value dropped — and the free-text
-     * search of a URL column is exactly where slashes turn up.
-     */
-    function buildUrl() {
-        const query = new URLSearchParams();
-        const quick = quickEl ? (quickEl.value || '').trim() : '';
-        if (quick !== '') { query.set(cfg.quickName, quick); }
-        inputs().forEach(function (el) {
-            const value = (el.value || '').trim();
-            if (value !== '') { query.set(el.getAttribute('name'), value); }
-        });
-        return formatIndexUrl(cfg.base, { named: cfg.preserved, query: query });
-    }
-
-    /**
-     * Read a URL back into the card. Applying round-trips to itself, but the
-     * back button and the pagination/sort links do not: they hand over a URL
-     * this card did not build, and its inputs, its chips and the paginator
-     * parameters it carries across all have to follow.
-     */
-    function syncFromUrl(url) {
-        const parts = parseIndexUrl(url, cfg.base);
-        // `page` is deliberately not carried across: a new filter starts over.
-        cfg.preserved = {};
-        ['sort', 'direction', 'limit'].forEach(function (key) {
-            if (parts.named[key] !== undefined) { cfg.preserved[key] = parts.named[key]; }
-        });
-
-        // A filter may still arrive as a named segment, from an older link.
-        inputs().forEach(function (el) {
-            const name = el.getAttribute('name');
-            const value = parts.query.get(name) || parts.named[name] || '';
-            if (el.tomselect) { el.tomselect.setValue(value, true); } else { el.value = value; }
-        });
-        if (quickEl) {
-            quickEl.value = parts.query.get(cfg.quickName) || parts.named[cfg.quickName] || '';
-        }
-    }
-
-    if (typeof initTomSelect === 'function') { initTomSelect(root); }
-
-    const draft = initIndexFilterDraft(root, {
-        base: cfg.base,
-        inputs: inputs,
-        nameOf: function (el) { return el.getAttribute('name'); },
-        labelOf: function (name) {
-            return (cfg.fields[name] && cfg.fields[name].label) || name;
-        },
-        displayOf: function (name, value) {
-            const options = cfg.fields[name] && cfg.fields[name].options;
-            return (options && options[value]) || value;
-        },
-        quickEl: quickEl,
-        quickLabel: cfg.strings.searchLabel,
-        applied: cfg.applied,
-        appliedQuick: cfg.appliedQuick,
-        countEl: root.querySelector('.filter-draft-count'),
-        summaryEl: root.querySelector('.filter-draft-summary'),
-        results: cfg.results,
-        swap: ['#headerCountBadge', '.log-filter-pager'],
-        rootLinks: ['.log-filter-pager a[href]'],
-        resultLinks: ['.pagination a[href]', 'thead a[href]'],
-        buildUrl: buildUrl,
-        syncFromUrl: syncFromUrl,
-        strings: cfg.strings,
-    });
-
-    // The magnifier next to the search box applies too — it is the only
-    // control left in reach when the advanced panel is folded away.
-    const quickBtn = root.querySelector('.log-quick-btn');
-    if (quickBtn && draft) { quickBtn.addEventListener('click', draft.apply); }
-}
-window.initLogFilterCard = initLogFilterCard;
-
-/* --------------------------------------------------------------------------
  * Adapter: the scaffold's index filter bar
  * --------------------------------------------------------------------------
  * genericElementsBS5/IndexTable/filter_bar.ctp calls this whenever it renders
@@ -7701,10 +7623,6 @@ function initScaffoldFilterDraft(bar, cfg) {
     });
 }
 window.initScaffoldFilterDraft = initScaffoldFilterDraft;
-
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('[data-log-filter-card]').forEach(initLogFilterCard);
-});
 
 /*******************************
  *  Collapsed report preview   *

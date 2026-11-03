@@ -615,6 +615,7 @@ class ACLComponent extends Component
             'fullChange' => ['perm_audit'],
             'eventIndex' => ['*'],
             'eventIndexV2' => ['theming_enabled'],
+            'eventHistory' => ['theming_enabled'],
             'returnDates' => ['*'],
         ],
         'accessLogs' => [

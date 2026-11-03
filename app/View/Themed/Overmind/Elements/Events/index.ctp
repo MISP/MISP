@@ -171,7 +171,7 @@ $fields = [
         'element' => 'event_markings',
     ]),
     $lane('attrib', 'attribution'),
-    $lane('behav', 'behaviour', __('ATT&CK techniques (count, then ids), then mitigations')),
+    $lane('behav', 'behaviour', __('ATT&CK techniques, then mitigations')),
     $lane('classif', 'classification', __('Other clusters, then tags')),
     $count('attrs', 'attributes', 'attribute_count', '<i class="misp-icon misp-icon-attribute misp-simple text-attribute"></i>', __('Attributes')),
     $count('objs', 'objects', 'attribute_count', '<i class="misp-icon misp-icon-object misp-simple text-object"></i>', __('Objects')),

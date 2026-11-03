@@ -36,65 +36,27 @@ foreach ($groups as $groupSections) {
         }
     }
 }
-$panelId = 'ssFilters' . dechex(mt_rand());
+$toggles = array(
+    array('key' => 'problems', 'label' => __('Only problems'), 'icon' => 'fas fa-triangle-exclamation', 'count' => $errorCount),
+    array('key' => 'modified', 'label' => __('Only modified'), 'icon' => 'fas fa-pen', 'count' => $modifiedCount),
+);
+if ($tiered && $hiddenCount > 0) {
+    $toggles[] = array(
+        'key' => 'advanced', 'label' => __('Show advanced settings'), 'icon' => 'fas fa-eye', 'count' => $hiddenCount,
+        'title' => __('Settings that rarely need changing, and deprecated ones that are no longer used.'),
+    );
+}
 ?>
 <div class="ss-settings" data-ss-settings<?= $tiered ? ' data-ss-tiered' : '' ?>>
-    <?php // Same bar as the indexes (IndexTable/filter_bar), filtering client-side. ?>
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-                <div class="flex-grow-1" style="max-width: 600px">
-                    <div class="input-group">
-                        <input class="form-control" type="search" data-ss-filter autocomplete="off"
-                               aria-label="<?= h(__('Filter the settings of this page')) ?>"
-                               placeholder="<?= h(__('Search settings by name, value or description')) ?>">
-                        <button class="btn btn-primary" type="button" data-ss-filter-apply
-                                aria-label="<?= h(__('Search')) ?>">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-                <button type="button" class="btn btn-outline-primary flex-shrink-0" data-ss-toggle="problems" aria-pressed="false">
-                    <i class="fas fa-triangle-exclamation me-1"></i><?= __('Only problems') ?>
-                    <span class="badge bg-secondary ms-1"><?= h($errorCount) ?></span>
-                </button>
-                <button type="button" class="btn btn-outline-primary flex-shrink-0" data-ss-toggle="modified" aria-pressed="false">
-                    <i class="fas fa-pen me-1"></i><?= __('Only modified') ?>
-                    <span class="badge bg-secondary ms-1"><?= h($modifiedCount) ?></span>
-                </button>
-                <?php if ($tiered && $hiddenCount > 0): ?>
-                    <?= $this->element('genericElementsBS5/IndexTable/filter_toggle', array(
-                        'target' => $panelId,
-                        'count' => 0,
-                        'open' => false,
-                    )) ?>
-                <?php endif; ?>
-            </div>
-
-            <?php if ($tiered && $hiddenCount > 0): ?>
-                <div class="collapse" id="<?= h($panelId) ?>">
-                    <hr>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch"
-                               id="<?= h($panelId) ?>-advanced" data-ss-advanced-switch>
-                        <label class="form-check-label fw-semibold" for="<?= h($panelId) ?>-advanced">
-                            <?= h(__n('Show %s advanced setting', 'Show %s advanced settings', $hiddenCount, $hiddenCount)) ?>
-                        </label>
-                        <div class="form-text"><?= __('Settings that rarely need changing, and deprecated ones that are no longer used.') ?></div>
-                    </div>
-                </div>
-            <?php endif; ?>
-
-            <div class="mt-2 d-none align-items-center flex-wrap gap-2" data-ss-active>
-                <strong class="me-1"><?= __('Active filters') ?>:</strong>
-                <span class="d-flex flex-wrap gap-2" data-ss-chips></span>
-                <button type="button" class="btn btn-sm btn-outline-danger ms-auto" data-ss-clear>
-                    <i class="fas fa-times"></i>
-                    <?= __('Clear all') ?>
-                </button>
-            </div>
-        </div>
-    </div>
+    <?= $this->element('healthElementsBS5/settings_filter_bar', array(
+        'search' => array(
+            'attr' => 'data-ss-filter',
+            'label' => __('Filter the settings of this page'),
+            'placeholder' => __('Search settings by name, value or description'),
+        ),
+        'toggles' => $toggles,
+        'toggleAttr' => 'data-ss-toggle',
+    )) ?>
 
     <?= isset($intro) ? $intro : '' ?>
 

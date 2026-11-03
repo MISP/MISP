@@ -3,194 +3,221 @@ $eventId   = h($data['Event']['id']   ?? '');
 $eventInfo = addslashes(h($data['Event']['info'] ?? ''));
 $eventDate = addslashes(h($data['Event']['date'] ?? ''));
 
+// The filter bar wears the index filter bars' look, whose stylesheet the
+// ajax tabs bring along and this one, drawn with the page, has to ask for.
 echo $this->element('genericElements/assetLoader', [
+    'css' => ['index-filters'],
     'js' => ['d3', 'd3-sankey.min']
 ]);
+
+// Sortable headings of the correlated events: key => label
+$corrColumns = [
+    'info' => __('Event'),
+    'org' => __('Creator org'),
+    'date' => __('Date'),
+    'count' => __('Correlating attributes'),
+];
 ?>
 
-<div class="card shadow-sm mb-3 corr-graph">
+<div class="corr-index">
 
-    <!-- HEADER -->
-    <div class="p-3 border-bottom">
-        <div class="d-flex align-items-center gap-2">
-            <div class="corr-graph-icon rounded-2 d-flex align-items-center justify-content-center">
-                <i class="fas fa-project-diagram"></i>
-            </div>
-            <div class="me-auto">
-                <div class="fw-bold lh-1"><?= __('Correlation Graph') ?></div>
-                <div class="small text-muted mt-1" id="sankey-count">…</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- BODY -->
-    <div class="p-3">
-
-        <!-- Loader -->
-        <div id="correlations-loader" class="text-center py-4 text-muted">
-            <div class="misp-loader mb-2" role="status"></div>
-            <?= h(__('Analyzing correlations…')) ?>
-        </div>
-
-        <!-- Content (revealed after fetch) -->
-        <div id="correlations-content" style="display:none;">
-
-            <!-- Sankey stage -->
-            <div id="sankey-stage" class="sankey-stage" style="display:none;">
-
-                <!-- Toolbar -->
-                <div id="sankey-toolbar" class="d-flex align-items-center gap-2 flex-wrap mb-2"
-                     style="min-height:24px;">
-                    <span id="sankey-filter-badge" class="badge text-bg-danger d-none">
-                        <i class="fas fa-filter me-1"></i>
-                        <span id="sankey-filter-label"></span>
-                        <a href="#" class="text-white ms-1 text-decoration-none"
-                           onclick="omResetCorrelationFilter();return false;"
-                           title="<?= h(__('Remove filter')) ?>">
-                            <i class="fas fa-times-circle"></i>
-                        </a>
-                    </span>
-                    <span id="sankey-zoom-badge" class="badge text-bg-primary d-none">
-                        <i class="fa-solid fa-magnifying-glass-plus me-1"></i>
-                        <span id="sankey-zoom-label"></span>
-                        <a href="#" id="sankey-zoom-reset" class="text-white ms-1 text-decoration-none"
-                           title="<?= h(__('Show the whole period')) ?>">
-                            <i class="fas fa-times-circle"></i>
-                        </a>
-                    </span>
-                    <span id="sankey-limit-msg" class="small text-muted"></span>
-                    <span id="sankey-wl-msg" class="small text-muted"></span>
-                    <button type="button" id="sankey-filters-open"
-                            class="btn btn-sm btn-outline-secondary ms-auto d-inline-flex align-items-center gap-2"
-                            data-bs-toggle="offcanvas" data-bs-target="#sankey-filters"
-                            aria-controls="sankey-filters">
-                        <i class="fa-solid fa-sliders"></i>
-                        <?= h(__('Filters')) ?>
-                        <span id="sankey-filters-count" class="badge rounded-pill text-bg-correlation d-none"></span>
-                    </button>
-                </div>
-
-                <!-- Period brush: every correlated event, its window is the period the graph draws -->
-                <div id="sankey-overview" class="sankey-overview" hidden></div>
-
-                <!-- Empty state (no correlation, or everything filtered out) -->
-                <div id="sankey-empty"
-                     class="d-none d-flex flex-column align-items-center text-muted pt-2 small"></div>
-
-                <!-- Graph -->
-                <div style="display:flex;align-items:flex-start;justify-content:center;width:100%;">
-                    <div id="sankey-shell" class="sankey-shell">
-                        <div id="sankey" style="width:100%;height:400px;margin:0 auto;overflow-x:auto;"></div>
-                        <button type="button" id="sankey-exclude-btn"
-                                class="sankey-exclude-btn btn btn-light border text-danger rounded-circle shadow-sm p-0 position-absolute d-none"
-                                title="<?= h(__('Exclude from the graph')) ?>"
-                                aria-label="<?= h(__('Exclude from the graph')) ?>">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Related events list with correlating attributes -->
-            <div id="correlations-list" style="display:none;">
-                <div class="d-flex align-items-center gap-2 mt-3 mb-1">
-                    <span class="fw-semibold small text-uppercase text-muted"
-                          style="letter-spacing:.05em;white-space:nowrap;">
-                        <?= h(__('Correlated events')) ?>
-                    </span>
-                    <hr class="flex-fill m-0 opacity-25">
-                </div>
-                <div id="correlations-list-body" class="d-flex flex-column"></div>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-<!-- Filters: no backdrop, so the graph keeps redrawing beside the drawer -->
-<div class="offcanvas offcanvas-end" tabindex="-1" id="sankey-filters"
-     data-bs-scroll="true" data-bs-backdrop="false" aria-labelledby="sankey-filters-title">
-    <div class="offcanvas-header border-bottom">
-        <div>
-            <div class="small fw-bold text-uppercase text-correlation"><?= h(__('Correlation Graph')) ?></div>
-            <h5 class="offcanvas-title mb-0" id="sankey-filters-title"><?= h(__('Filters')) ?></h5>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
-                aria-label="<?= h(__('Close')) ?>"></button>
-    </div>
-    <div class="offcanvas-body d-flex flex-column gap-4">
-        <section>
-            <?= $this->element('genericElementsBS5/Forms/section_label', [
-                'accent' => 'correlation',
-                'label' => __('Display'),
-            ]) ?>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" role="switch" id="sankey-date-align" checked>
-                <label class="form-check-label" for="sankey-date-align"><?= h(__('Use timeline')) ?></label>
-            </div>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" role="switch" id="sankey-show-publisher" checked>
-                <label class="form-check-label" for="sankey-show-publisher"><?= h(__('Show publishers')) ?></label>
-            </div>
-        </section>
-
-        <section>
-            <?= $this->element('genericElementsBS5/Forms/section_label', [
-                'accent' => 'correlation',
-                'label' => __('Limits'),
-            ]) ?>
-            <div class="form-check form-switch" id="sankey-hide-warninglist-toggle">
-                <input class="form-check-input" type="checkbox" role="switch" id="sankey-hide-warninglist">
-                <label class="form-check-label" for="sankey-hide-warninglist"><?= h(__('Hide warninglist hits')) ?></label>
-            </div>
-            <label class="form-label small mt-3 mb-1" for="sankey-event-limit"><?= h(__('Most recent events shown')) ?></label>
-            <input type="number" class="form-control form-control-sm" id="sankey-event-limit"
-                   min="1" step="1" inputmode="numeric" placeholder="<?= h(__('All')) ?>">
-            <?= $this->element('genericElementsBS5/Forms/field_hint', [
-                'text' => __('Leave empty to draw every correlated event.'),
-            ]) ?>
-        </section>
-
-        <?php foreach ([
-            'iocs' => [__('Correlating IOCs'), __('Search a value, a type or an object'), __('An unticked IOC leaves the graph and the list below, with every event it alone links to.')],
-            'events' => [__('Correlated events'), __('Search a title, a date or an organisation'), __('An unticked event leaves the graph and the list below.')],
-        ] as $kind => [$label, $placeholder, $hint]): ?>
-            <section>
-                <?= $this->element('genericElementsBS5/Forms/section_label', [
-                    'accent' => 'correlation',
-                    'label' => $label,
-                    'badge' => ' ',
-                ]) ?>
-                <?php if ($kind === 'iocs'): ?>
-                    <?php foreach (['types' => __('Types'), 'objects' => __('Objects')] as $facet => $facetLabel): ?>
-                        <div class="sankey-facet d-none mb-2" data-facet="<?= $facet ?>">
-                            <div class="small text-body-secondary mb-1"><?= h($facetLabel) ?></div>
-                            <div class="d-flex flex-wrap gap-1" data-facet-list role="group"
-                                 aria-label="<?= h($facetLabel) ?>"></div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-                <div class="d-flex gap-2 mb-2">
-                    <input type="search" class="form-control form-control-sm" data-filter-search="<?= $kind ?>"
-                           placeholder="<?= h($placeholder) ?>" aria-label="<?= h($placeholder) ?>">
-                    <div class="btn-group btn-group-sm flex-shrink-0" role="group">
-                        <button type="button" class="btn btn-outline-secondary" data-filter-all="<?= $kind ?>"
-                                title="<?= h(__('Tick every row shown')) ?>"><?= h(__('All')) ?></button>
-                        <button type="button" class="btn btn-outline-secondary" data-filter-none="<?= $kind ?>"
-                                title="<?= h(__('Untick every row shown')) ?>"><?= h(__('None')) ?></button>
-                    </div>
-                </div>
-                <div class="sankey-filter-list list-group overflow-auto" data-filter-list="<?= $kind ?>"></div>
-                <?= $this->element('genericElementsBS5/Forms/field_hint', ['text' => $hint]) ?>
-            </section>
-        <?php endforeach; ?>
-    </div>
-    <div class="border-top px-3 py-2 d-flex align-items-center gap-2">
-        <span class="small text-body-secondary me-auto" id="sankey-filters-summary"></span>
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="sankey-filters-reset">
-            <i class="fa-solid fa-rotate-left me-1"></i><?= h(__('Reset filters')) ?>
+    <!-- Filter bar: the search narrows the graph and the list, the panel holds the filters.
+         Drawn as the index filter bars, but filtering here, so no data-ifp-bar. -->
+    <div class="ifp-bar d-flex flex-wrap align-items-center corr-bar">
+        <label class="ifp-query" id="corr-search-box">
+            <i class="fas fa-search ifp-q-icon" aria-hidden="true"></i>
+            <input id="corr-search" type="search" autocomplete="off" spellcheck="false"
+                   placeholder="<?= h(__('Filter by value, type, event or organisation…')) ?>"
+                   aria-label="<?= h(__('Filter by value, type, event or organisation')) ?>">
+            <span class="ifp-q-end">
+                <button type="button" class="ifp-q-clear" id="corr-search-clear"
+                        title="<?= h(__('Clear the search')) ?>" aria-label="<?= h(__('Clear the search')) ?>">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </span>
+        </label>
+        <button type="button" class="ifp-fbtn" id="sankey-filters-open"
+                aria-expanded="false" aria-controls="sankey-filters"
+                title="<?= h(__('Show or hide the filters')) ?>">
+            <i class="fas fa-sliders" aria-hidden="true"></i>
+            <span><?= h(__('Filters')) ?></span>
+            <span id="sankey-filters-count" class="badge rounded-pill bg-primary d-none"></span>
+            <i class="fas fa-chevron-down ifp-caret" aria-hidden="true"></i>
         </button>
+
+        <div class="ifp-panel corr-panel" id="sankey-filters" role="region"
+             aria-label="<?= h(__('Filters')) ?>" hidden>
+            <div class="ifp-panel-body">
+                <div class="ifp-quicks corr-quicks">
+                    <label class="ifp-quick corr-quick">
+                        <input class="visually-hidden" type="checkbox" role="switch" id="sankey-date-align" checked>
+                        <span class="ifp-switch" aria-hidden="true"></span>
+                        <?= h(__('Use timeline')) ?>
+                    </label>
+                    <label class="ifp-quick corr-quick">
+                        <input class="visually-hidden" type="checkbox" role="switch" id="sankey-show-publisher" checked>
+                        <span class="ifp-switch" aria-hidden="true"></span>
+                        <?= h(__('Show publishers')) ?>
+                    </label>
+                    <label class="ifp-quick corr-quick" id="sankey-hide-warninglist-toggle">
+                        <input class="visually-hidden" type="checkbox" role="switch" id="sankey-hide-warninglist">
+                        <span class="ifp-switch" aria-hidden="true"></span>
+                        <?= h(__('Hide warninglist hits')) ?>
+                    </label>
+                    <label class="corr-limit" for="sankey-event-limit"
+                           title="<?= h(__('Leave empty to draw every correlated event.')) ?>">
+                        <?= h(__('Most recent events shown')) ?>
+                        <input type="number" class="form-control form-control-sm" id="sankey-event-limit"
+                               min="1" step="1" inputmode="numeric" placeholder="<?= h(__('All')) ?>">
+                    </label>
+                </div>
+
+                <div class="corr-panel-grid">
+                    <?php foreach ([
+                        'iocs' => [__('Correlating IOCs'), __('Search a value, a type or an object'), __('An unticked IOC leaves the graph and the list below, with every event it alone links to.')],
+                        'events' => [__('Correlated events'), __('Search a title, a date or an organisation'), __('An unticked event leaves the graph and the list below.')],
+                    ] as $kind => [$label, $placeholder, $hint]): ?>
+                        <section class="ifp-sec corr-sec">
+                            <div class="ifp-sec-label">
+                                <?= h($label) ?>
+                                <span class="badge rounded-pill bg-primary"></span>
+                            </div>
+                            <?php if ($kind === 'iocs'): ?>
+                                <?php foreach (['types' => __('Types'), 'objects' => __('Objects')] as $facet => $facetLabel): ?>
+                                    <div class="sankey-facet d-none mb-2" data-facet="<?= $facet ?>">
+                                        <div class="corr-facet-label"><?= h($facetLabel) ?></div>
+                                        <div class="d-flex flex-wrap gap-1" data-facet-list role="group"
+                                             aria-label="<?= h($facetLabel) ?>"></div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                            <div class="d-flex gap-2 mb-2">
+                                <input type="search" class="form-control form-control-sm" data-filter-search="<?= $kind ?>"
+                                       placeholder="<?= h($placeholder) ?>" aria-label="<?= h($placeholder) ?>">
+                                <div class="btn-group btn-group-sm flex-shrink-0" role="group">
+                                    <button type="button" class="btn btn-outline-secondary" data-filter-all="<?= $kind ?>"
+                                            title="<?= h(__('Tick every row shown')) ?>"><?= h(__('All')) ?></button>
+                                    <button type="button" class="btn btn-outline-secondary" data-filter-none="<?= $kind ?>"
+                                            title="<?= h(__('Untick every row shown')) ?>"><?= h(__('None')) ?></button>
+                                </div>
+                            </div>
+                            <div class="sankey-filter-list list-group overflow-auto" data-filter-list="<?= $kind ?>"></div>
+                            <div class="corr-hint"><?= h($hint) ?></div>
+                        </section>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="ifp-win-foot">
+                <span class="ifp-chips-none me-auto" id="sankey-filters-summary"></span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="sankey-filters-reset">
+                    <i class="fa-solid fa-rotate-left me-1"></i><?= h(__('Reset filters')) ?>
+                </button>
+            </div>
+        </div>
     </div>
+
+    <!-- What is drawn: the count, then what narrows it from the graph itself -->
+    <div class="ifp-row corr-row" id="sankey-toolbar">
+        <span class="ifp-count" id="sankey-limit-msg"></span>
+        <span class="corr-row-note" id="sankey-wl-msg"></span>
+        <div class="ifp-chips" id="corr-chips">
+            <span class="corr-chips-filters" id="corr-filter-chips"></span>
+            <span id="sankey-filter-badge" class="ifp-chip d-none">
+                <span class="ifp-chip-label"><?= h(__('Focus')) ?><span class="ifp-chip-op">:</span>
+                    <span class="ifp-chip-value" id="sankey-filter-label"></span></span>
+                <a href="#" class="ifp-chip-x" onclick="omResetCorrelationFilter();return false;"
+                   title="<?= h(__('Remove filter')) ?>" aria-label="<?= h(__('Remove filter')) ?>">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </a>
+            </span>
+            <span id="sankey-zoom-badge" class="ifp-chip d-none">
+                <span class="ifp-chip-label"><?= h(__('Period')) ?><span class="ifp-chip-op">:</span>
+                    <span class="ifp-chip-value" id="sankey-zoom-label"></span></span>
+                <a href="#" id="sankey-zoom-reset" class="ifp-chip-x"
+                   title="<?= h(__('Show the whole period')) ?>" aria-label="<?= h(__('Show the whole period')) ?>">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </a>
+            </span>
+            <button type="button" class="ifp-clear d-none" id="corr-chips-clear"><?= __('Clear all') ?></button>
+        </div>
+    </div>
+
+    <!-- Graph -->
+    <div class="card shadow-sm mb-3 corr-graph">
+        <div class="corr-card-head">
+            <span class="corr-card-icon corr-graph-icon"><i class="fas fa-project-diagram" aria-hidden="true"></i></span>
+            <div class="me-auto">
+                <div class="corr-card-title"><?= __('Correlation Graph') ?></div>
+                <div class="corr-card-sub corr-overview-head" id="sankey-overview-head" hidden></div>
+            </div>
+            <span class="sankey-overview-key" id="sankey-overview-key" hidden>
+                <span class="sankey-overview-star">★</span><?= h(__('This event')) ?>
+            </span>
+        </div>
+
+        <div class="p-3">
+            <!-- Loader -->
+            <div id="correlations-loader" class="text-center py-4 text-muted">
+                <div class="misp-loader mb-2" role="status"></div>
+                <?= h(__('Analyzing correlations…')) ?>
+            </div>
+
+            <!-- Content (revealed after fetch) -->
+            <div id="correlations-content" style="display:none;">
+                <div id="sankey-stage" class="sankey-stage" style="display:none;">
+
+                    <!-- Period brush: every correlated event, its window is the period the graph draws -->
+                    <div id="sankey-overview" class="sankey-overview" hidden></div>
+
+                    <!-- Empty state (no correlation, or everything filtered out) -->
+                    <div id="sankey-empty"
+                         class="d-none d-flex flex-column align-items-center text-muted pt-2 small"></div>
+
+                    <!-- Graph -->
+                    <div style="display:flex;align-items:flex-start;justify-content:center;width:100%;">
+                        <div id="sankey-shell" class="sankey-shell">
+                            <div id="sankey" style="width:100%;height:400px;margin:0 auto;overflow-x:auto;"></div>
+                            <button type="button" id="sankey-exclude-btn"
+                                    class="sankey-exclude-btn btn btn-light border text-danger rounded-circle shadow-sm p-0 position-absolute d-none"
+                                    title="<?= h(__('Exclude from the graph')) ?>"
+                                    aria-label="<?= h(__('Exclude from the graph')) ?>">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Correlated events, each opening on the attributes it shares with this event -->
+    <div class="card shadow-sm mb-4 corr-events" id="correlations-list" style="display:none;">
+        <div class="corr-card-head">
+            <span class="corr-card-icon corr-events-icon"><i class="fas fa-link" aria-hidden="true"></i></span>
+            <div class="me-auto">
+                <div class="corr-card-title"><?= h(__('Correlated events')) ?></div>
+                <div class="corr-card-sub" id="corr-events-count"></div>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 ix-table corr-table">
+                <thead class="checkbox-index">
+                    <tr>
+                        <th class="corr-col-expand"></th>
+                        <?php foreach ($corrColumns as $key => $label): ?>
+                            <th class="corr-col-<?= h($key) ?>">
+                                <a href="#" data-corr-sort="<?= h($key) ?>">
+                                    <span class="sortable-header"><?= h($label) ?><i class="sort-icon"></i></span>
+                                </a>
+                            </th>
+                        <?php endforeach; ?>
+                    </tr>
+                </thead>
+                <tbody id="correlations-list-body"></tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -504,9 +531,11 @@ echo $this->element('genericElements/assetLoader', [
         if (!_correlationData || !_correlationEventDetails) return;
         /* re-rendering drops any node filter, so retire its badge too */
         var badge = document.getElementById('sankey-filter-badge');
+        var focused = badge && !badge.classList.contains('d-none');
         if (badge) badge.classList.add('d-none');
-        _resetCorrList();
+        if (focused) _resetCorrList();
         renderSankey(_correlationData, _correlationEventDetails, null, {morph: true});
+        _rerenderCorrList();
     }
 
     function _resetZoom() {
@@ -659,7 +688,6 @@ echo $this->element('genericElements/assetLoader', [
         'quarter' => h(__('One bar per quarter.')),
         'year' => h(__('One bar per year.')),
     ]) ?>;
-    var _overviewThisEvent = <?= json_encode(h(__('This event'))) ?>;
 
     function _nextBar(ts, unit) {
         if (unit === 'day')     return ts + DAY_MS;
@@ -746,12 +774,8 @@ echo $this->element('genericElements/assetLoader', [
             max: max,
             maxLabels: _overviewBars.length,
             tickLabel: function (i) { return labels[i] || null; },
-            head: '<strong>' + _overviewTitle + '</strong>'
-                + '<span>' + _overviewUnits[buckets.unit] + ' ' + _overviewHint + '</span>'
-                + (dated
-                    ? '<span class="sankey-overview-key"><span class="sankey-overview-star">★</span>'
-                      + _overviewThisEvent + '</span>'
-                    : ''),
+            /* the card's head says what the strip is */
+            head: '',
             onRange: function (from, to) {
                 _brushBars = {from: from, to: to};
                 /* a press still inside its bar may yet be a click */
@@ -771,6 +795,11 @@ echo $this->element('genericElements/assetLoader', [
         });
         _overview.el.addEventListener('pointercancel', _endBrush);
         host.appendChild(_overview.el);
+        var headEl = document.getElementById('sankey-overview-head');
+        if (headEl) {
+            headEl.innerHTML = '<strong>' + _overviewTitle + '</strong>'
+                + '<span>' + _overviewUnits[buckets.unit] + ' ' + _overviewHint + '</span>';
+        }
 
         if (dated) {
             var plot = _overview.el.querySelector('.tl-ov-plot');
@@ -804,6 +833,10 @@ echo $this->element('genericElements/assetLoader', [
         var alignEl = document.getElementById('sankey-date-align');
         if (!host) return;
         host.hidden = !_overview || !(alignEl && alignEl.checked);
+        var headEl = document.getElementById('sankey-overview-head');
+        var keyEl  = document.getElementById('sankey-overview-key');
+        if (headEl) headEl.hidden = host.hidden;
+        if (keyEl)  keyEl.hidden  = host.hidden || !isFinite(_currentEventDateTs);
         if (host.hidden) return;
         if (_rangeIsFull && !_brushing) {
             _overview.set(null);
@@ -850,6 +883,21 @@ echo $this->element('genericElements/assetLoader', [
     var _attrPillOne  = <?= json_encode(__('%s correlating attribute - click to expand')) ?>;
     var _attrPillMany = <?= json_encode(__('%s correlating attributes - click to expand')) ?>;
     var _attrOpenEvent = <?= json_encode(__('Open event: %s')) ?>;
+    var _corrEventsOne   = <?= json_encode(__('%s event')) ?>;
+    var _corrEventsMany  = <?= json_encode(__('%s events')) ?>;
+    var _corrEventsOf    = <?= json_encode(__('%s of %s events in the period')) ?>;
+    var _corrNoneInPeriod = <?= json_encode(__('No correlated event in this period.')) ?>;
+    var _corrAttrsOne    = <?= json_encode(__('%s correlating attribute')) ?>;
+    var _corrAttrsMany   = <?= json_encode(__('%s correlating attributes')) ?>;
+    var _corrDistTitle   = <?= json_encode(__('Distribution: %s')) ?>;
+    var _corrExpandTitle = <?= json_encode(__('Show the correlating attributes')) ?>;
+    var _corrColValue    = <?= json_encode(__('Value')) ?>;
+    var _corrColCategory = <?= json_encode(__('Category')) ?>;
+    var _corrColType     = <?= json_encode(__('Type')) ?>;
+    var _corrColObject   = <?= json_encode(__('Object')) ?>;
+    var _corrColIds      = <?= json_encode(__('IDS')) ?>;
+    var _corrIdsOn       = <?= json_encode(__('IDS active')) ?>;
+    var _corrIdsOff      = <?= json_encode(__('IDS inactive')) ?>;
 
     function _isWarninglisted(parentId) {
         return !!(_warninglistHits && _warninglistHits[parentId]);
@@ -891,6 +939,7 @@ echo $this->element('genericElements/assetLoader', [
     var _excludedTypes   = {};   // attribute type -> true
     var _excludedObjects = {};   // object template, '' for standalone -> true
     var _eventLimit      = 0;    // most recent events drawn, 0 for all
+    var _searchNeedle    = '';   // the bar's search, lower-cased
     var _filterIndex     = null; // every IOC and event of the payload, with its row
     var _refilterTimer   = null;
 
@@ -904,6 +953,19 @@ echo $this->element('genericElements/assetLoader', [
     var _fltExclMany    = <?= json_encode(__('%s exclusions')) ?>;
     var _fltNone        = <?= json_encode(__('Nothing excluded')) ?>;
     var _fltStandalone  = <?= json_encode(__('Standalone')) ?>;
+    var _chipSearch     = <?= json_encode(__('Search')) ?>;
+    var _chipWl         = <?= json_encode(__('Warninglist hits')) ?>;
+    var _chipWlHidden   = <?= json_encode(__('hidden')) ?>;
+    var _chipLimit      = <?= json_encode(__('Most recent events')) ?>;
+    var _chipRemove     = <?= json_encode(__('Remove this filter')) ?>;
+    var _chipKinds      = {
+        types:   {one: <?= json_encode(__('Type')) ?>, many: <?= json_encode(__('Types')) ?>},
+        objects: {one: <?= json_encode(__('Object')) ?>, many: <?= json_encode(__('Objects')) ?>},
+        iocs:    {one: <?= json_encode(__('IOC')) ?>, many: <?= json_encode(__('IOCs')) ?>},
+        events:  {one: <?= json_encode(__('Event')) ?>, many: <?= json_encode(__('Events')) ?>}
+    };
+    var _chipValues     = <?= json_encode(__('%s values')) ?>;
+    var CHIPS_PER_KIND  = 3;   // past it, a kind's exclusions share one chip
 
     function _countKeys(bag) { return Object.keys(bag).length; }
 
@@ -914,6 +976,16 @@ echo $this->element('genericElements/assetLoader', [
 
     function _activeFilterCount() {
         return _exclusionCount() + (_eventLimit > 0 ? 1 : 0) + (_hideWarninglisted() ? 1 : 0);
+    }
+
+    /* the bar's search: a relation stays when its value, its attribute or its event matches */
+    function _matchesSearch(key, rel) {
+        if (!_searchNeedle) return true;
+        var attr = rel.Attribute || {};
+        return [
+            _iocs[key].value, rel.value, attr.type, attr.category,
+            attr.Object ? attr.Object.name : '', rel.info, rel.org_name, rel.date, '#' + rel.id
+        ].join(' ').toLowerCase().indexOf(_searchNeedle) !== -1;
     }
 
     /* what the attribute behind a relation lets through: warninglist, type, object */
@@ -1126,6 +1198,8 @@ echo $this->element('genericElements/assetLoader', [
             countEl.textContent = active;
             countEl.classList.toggle('d-none', active === 0);
         }
+        var openBtn = document.getElementById('sankey-filters-open');
+        if (openBtn) openBtn.classList.toggle('is-set', active > 0);
         var summary = document.getElementById('sankey-filters-summary');
         if (summary) {
             summary.textContent = exclusions === 0 ? _fltNone
@@ -1133,6 +1207,73 @@ echo $this->element('genericElements/assetLoader', [
         }
         var reset = document.getElementById('sankey-filters-reset');
         if (reset) reset.disabled = active === 0;
+        _syncFilterChips();
+    }
+
+    /* ── the active filters as the index bars show them: one removable chip each ── */
+    function _filterChip(label, op, value, kind, key) {
+        return '<span class="ifp-chip"><span class="ifp-chip-label">' + escapeHtml(label)
+            + '<span class="ifp-chip-op">' + escapeHtml(op) + '</span> '
+            + '<span class="ifp-chip-value">' + escapeHtml(value) + '</span></span>'
+            + '<a href="#" class="ifp-chip-x" data-corr-chip="' + escapeHtml(kind) + '"'
+            + (key === undefined ? '' : ' data-corr-chip-key="' + escapeHtml(key) + '"')
+            + ' title="' + escapeHtml(_chipRemove) + '" aria-label="' + escapeHtml(_chipRemove) + '">'
+            + '<i class="fas fa-times" aria-hidden="true"></i></a></span>';
+    }
+
+    function _chipLabelOf(kind, key) {
+        if (kind === 'objects') return key || _fltStandalone;
+        if (kind === 'iocs') return _iocs[key] ? String(_iocs[key].value) : key;
+        if (kind === 'events') {
+            var ev = _filterIndex && _filterIndex.events.find(function (e) { return e.id === String(key); });
+            return ev ? ev.info : '#' + key;
+        }
+        return key;
+    }
+
+    function _syncFilterChips() {
+        var slot  = document.getElementById('corr-filter-chips');
+        var clear = document.getElementById('corr-chips-clear');
+        if (!slot) return;
+        var html = '';
+        var search = document.getElementById('corr-search');
+        if (_searchNeedle && search) html += _filterChip(_chipSearch, ':', search.value.trim(), 'search');
+        if (_hideWarninglisted()) html += _filterChip(_chipWl, ':', _chipWlHidden, 'warninglist');
+        if (_eventLimit > 0) html += _filterChip(_chipLimit, ':', String(_eventLimit), 'limit');
+        [['types', _excludedTypes], ['objects', _excludedObjects], ['iocs', _excludedIocs], ['events', _excludedEvents]]
+            .forEach(function (pair) {
+                var keys = Object.keys(pair[1]);
+                if (keys.length > CHIPS_PER_KIND) {
+                    html += _filterChip(_chipKinds[pair[0]].many, ' ≠', _chipValues.replace('%s', keys.length), pair[0]);
+                    return;
+                }
+                keys.forEach(function (key) {
+                    html += _filterChip(_chipKinds[pair[0]].one, ' ≠', _chipLabelOf(pair[0], key), pair[0], key);
+                });
+            });
+        slot.innerHTML = html;
+        if (clear) clear.classList.toggle('d-none', html === '');
+    }
+
+    function _removeFilterChip(kind, key) {
+        var bags = {types: _excludedTypes, objects: _excludedObjects, iocs: _excludedIocs, events: _excludedEvents};
+        if (kind === 'search') {
+            _setSearch('');
+        } else if (kind === 'warninglist') {
+            var wl = document.getElementById('sankey-hide-warninglist');
+            if (wl) wl.checked = false;
+        } else if (kind === 'limit') {
+            _eventLimit = 0;
+            var limit = document.getElementById('sankey-event-limit');
+            if (limit) limit.value = '';
+        } else if (bags[kind]) {
+            if (key === null) {
+                Object.keys(bags[kind]).forEach(function (k) { delete bags[kind][k]; });
+            } else {
+                delete bags[kind][key];
+            }
+        }
+        _refilter(true);
     }
 
     /* a run of ticks redraws once */
@@ -1156,7 +1297,16 @@ echo $this->element('genericElements/assetLoader', [
         if (limit) limit.value = '';
         var wl = document.getElementById('sankey-hide-warninglist');
         if (wl) wl.checked = false;
+        _setSearch('');
         _refilter(true);
+    }
+
+    function _setSearch(value) {
+        var input = document.getElementById('corr-search');
+        if (input && input.value !== value) input.value = value;
+        var box = document.getElementById('corr-search-box');
+        if (box) box.classList.toggle('has-value', value !== '');
+        _searchNeedle = value.trim().toLowerCase();
     }
 
     /* ── the × a hovered IOC or event offers ───────────────── */
@@ -1293,7 +1443,8 @@ echo $this->element('genericElements/assetLoader', [
         Object.keys(_iocs).forEach(function (key) {
             if (_excludedIocs[key]) return;
             var kept = _iocs[key].rels.filter(function (rel) {
-                return !_excludedEvents[rel.id] && _attrShown(rel._pid, hideWl);
+                return !_excludedEvents[rel.id] && _attrShown(rel._pid, hideWl)
+                    && _matchesSearch(key, rel);
             });
             if (kept.length) data[key] = kept;
         });
@@ -1345,20 +1496,9 @@ echo $this->element('genericElements/assetLoader', [
         }
         _correlationEventDetails = eventDetails;
 
-        /* the header keeps the whole payload's count, the filters say what is drawn */
-        var total    = Object.keys(eventDetails).length;
-        var allTotal = _filterIndex ? _filterIndex.events.length : total;
-        var countEl  = document.getElementById('sankey-count');
-        if (countEl) {
-            countEl.textContent = allTotal === 0
-                ? <?= json_encode(h(__('No correlations'))) ?>
-                : allTotal + ' ' + (allTotal === 1
-                    ? <?= json_encode(h(__('related event'))) ?>
-                    : <?= json_encode(h(__('related events'))) ?>);
-        }
-
+        var total = Object.keys(eventDetails).length;
         if (total === 0) {
-            var excluded = _exclusionCount() > 0;
+            var excluded = _exclusionCount() > 0 || _searchNeedle !== '';
             _showEmptyState(excluded ? 'filters' : (hidden > 0 ? 'warninglist' : null));
             return;
         }
@@ -1383,199 +1523,260 @@ echo $this->element('genericElements/assetLoader', [
         var listEl = document.getElementById('correlations-list');
         var bodyEl = document.getElementById('correlations-list-body');
         if (!listEl || !bodyEl) return;
+        _corrListArgs = [eventDetails, eventCounts, attributeMap];
 
-        var sortedEids = Object.keys(eventCounts).sort(function (a, b) {
-            return eventCounts[b] - eventCounts[a];
+        /* the period the timeline zooms on narrows the list as it does the
+           graph; an undated event stays, as it does there */
+        var alignEl = document.getElementById('sankey-date-align');
+        var rangeActive = !!(alignEl && alignEl.checked) && !_rangeIsFull
+            && isFinite(_rangeMinTs) && isFinite(_rangeMaxTs);
+        var inPeriod = function (eid) {
+            if (!rangeActive) return true;
+            var date = (eventDetails[eid] || {}).date || '';
+            var ts = date ? Date.parse(date + 'T00:00:00Z') : NaN;
+            return !isFinite(ts) || _inRange(ts);
+        };
+
+
+        var allEids = Object.keys(eventCounts);
+        var rows = allEids.filter(inPeriod).map(function (eid) {
+            var det = eventDetails[eid] || {};
+            var attrs = attributeMap[eid] || [];
+            /* one row per correlating value, however many relations carry it */
+            var seen = {};
+            var unique = attrs.filter(function (a) {
+                var key = a.type + ':' + a.value;
+                if (seen[key]) return false;
+                seen[key] = true;
+                return true;
+            });
+            var iocKeys = attrs.map(function (a) { return a.id; })
+                .filter(function (v, i, all) { return all.indexOf(v) === i; });
+            return {
+                eid: eid,
+                info: det.info || ('#' + eid),
+                date: det.date || '',
+                org: det.org || '',
+                orgName: det.orgName || '',
+                distribution: det.distribution,
+                attrs: unique,
+                iocKeys: iocKeys
+            };
+        });
+
+        var dir = _corrSort.dir === 'asc' ? 1 : -1;
+        rows.sort(function (a, b) {
+            var by;
+            if (_corrSort.key === 'count') {
+                by = a.attrs.length - b.attrs.length;
+            } else if (_corrSort.key === 'org') {
+                by = a.orgName.localeCompare(b.orgName);
+            } else if (_corrSort.key === 'date') {
+                by = a.date.localeCompare(b.date);
+            } else {
+                by = a.info.localeCompare(b.info);
+            }
+            return by * dir || b.attrs.length - a.attrs.length || a.info.localeCompare(b.info);
         });
 
         bodyEl.innerHTML = '';
+        var attrTotal = 0;
+        rows.forEach(function (r) {
+            attrTotal += r.attrs.length;
+            var row = _corrEventRow(r);
+            var detail = _corrDetailRow(r);
+            bodyEl.appendChild(row);
+            bodyEl.appendChild(detail);
+            /* a re-render (a filter, a sort, a zoom) keeps the rows the reader opened */
+            if (_corrOpened[r.eid]) _setRowExpanded(row, true);
+        });
+        if (!rows.length) {
+            bodyEl.innerHTML = '<tr class="corr-empty"><td colspan="5">'
+                + escapeHtml(_corrNoneInPeriod) + '</td></tr>';
+        }
 
-        sortedEids.forEach(function (eid) {
-            var det     = eventDetails[eid] || {};
-            var attrs   = attributeMap[eid] || [];
-            var info    = det.info    || ('#' + eid);
-            var date    = det.date    || '';
-            var orgName = det.orgName || '';
-            var distId  = det.distribution;
-            var dist    = (_distMap[distId] !== undefined)
-                ? _distMap[distId] : _distFallback;
-
-            /* the IOCs it shares, for DOM-based filtering */
-            var allIocKeys = attrs.map(function (a) { return a.id; });
-            var uniqueIocKeys = allIocKeys.filter(
-                function (v, i) { return allIocKeys.indexOf(v) === i; }
-            );
-
-            /* deduplicate attribute entries */
-            var seenValues = {};
-            var uniqueAttrs = attrs.filter(function (a) {
-                var key = a.type + ':' + a.value;
-                if (seenValues[key]) return false;
-                seenValues[key] = true;
-                return true;
-            });
-
-            /* card wrapper */
-            var card = document.createElement('div');
-            card.className = 'corr-event-card border-bottom';
-            card.setAttribute('data-ioc-keys',
-                uniqueIocKeys.join(','));
-
-            /* distribution badge */
-            var distBadge = document.createElement('div');
-            distBadge.className =
-                'rounded-2 d-flex align-items-center justify-content-center'
-                + ' flex-shrink-0 mt-1';
-            var distTone = function (role, value) {
-                return dist.token
-                    ? 'var(--misp-' + dist.token + '-' + role + ', ' + value + ')'
-                    : value;
-            };
-            distBadge.style.cssText = 'width:34px;height:34px;'
-                + 'background:' + distTone('bg', dist.bg) + ';'
-                + 'border:1px solid ' + distTone('border', dist.color + '33') + ';';
-            if (dist.label) distBadge.title = dist.label;
-            distBadge.innerHTML = '<i class="' + dist.icon
-                + '" style="color:' + distTone('fg', dist.color)
-                + ';font-size:.85rem;"></i>';
-
-            /* header row - the link no longer spans it, the pill is a button */
-            var header = document.createElement('div');
-            header.className =
-                'd-flex align-items-start gap-3 px-3 py-2 corr-event-row';
-
-            var link = document.createElement('a');
-            link.href = baseurl + '/events/view/' + eid;
-            link.className =
-                'd-flex align-items-start gap-3 flex-fill overflow-hidden'
-                + ' text-decoration-none text-body';
-
-            var meta = document.createElement('div');
-            meta.className = 'flex-fill overflow-hidden';
-            meta.innerHTML =
-                '<div class="fw-semibold text-truncate small lh-sm">'
-                + escapeHtml(info) + '</div>'
-                + '<div class="d-flex align-items-center gap-2 mt-1 flex-wrap">'
-                + (orgName
-                    ? '<span class="text-muted" style="font-size:.75rem;">'
-                      + escapeHtml(orgName)
-                      + '</span><span class="text-muted" style="font-size:.75rem;">·</span>'
-                    : '')
-                + (date
-                    ? '<time class="text-muted" style="font-size:.75rem;">'
-                      + escapeHtml(date) + '</time>'
-                    : '')
-                + '</div>';
-
-            link.appendChild(distBadge);
-            link.appendChild(meta);
-
-            /* attributes — index format: italic category > bordered type value */
-            var attrsEl = document.createElement('div');
-            attrsEl.id = 'corr-attrs-' + eid;
-            attrsEl.className =
-                'corr-event-attrs d-none px-3 pb-2 pt-1 d-flex flex-column gap-1';
-
-            uniqueAttrs.forEach(function (a) {
-                var row = document.createElement('div');
-                row.className = 'd-flex align-items-center gap-1 flex-wrap corr-attr-row';
-                row.setAttribute('data-ioc-key', a.id);
-
-                if (a.category) {
-                    var catEl = document.createElement('p');
-                    catEl.className = 'fst-italic text-muted mb-0';
-                    catEl.style.fontSize = '.75rem';
-                    catEl.textContent = a.category;
-                    var chevron = document.createElement('i');
-                    chevron.className = 'fa-solid fa-chevron-right ms-1';
-                    chevron.style.fontSize = '.65rem';
-                    catEl.appendChild(chevron);
-                    row.appendChild(catEl);
-                }
-
-                if (a.type) {
-                    var typeEl = document.createElement('p');
-                    typeEl.className = 'border border-dark rounded px-1 mb-0';
-                    typeEl.style.fontSize = '.75rem';
-                    typeEl.textContent = a.type;
-                    row.appendChild(typeEl);
-                }
-
-                var valEl = document.createElement('a');
-                valEl.href = baseurl + '/events/view/' + eid
-                    + (a.attribute && a.attribute.uuid ? '/focus:' + a.attribute.uuid : '');
-                valEl.className = 'small corr-attr-value link-body-emphasis'
-                    + ' link-underline-opacity-0 link-underline-opacity-100-hover';
-                valEl.title = a.value + '\n' + _attrOpenEvent.replace('%s', info);
-                valEl.textContent = a.value;
-                row.appendChild(valEl);
-
-                if (_iocWarninglisted(a.id)) {
-                    var wlIcon = document.createElement('i');
-                    wlIcon.className =
-                        'fa-solid fa-triangle-exclamation text-warning ms-1';
-                    wlIcon.style.fontSize = '.7rem';
-                    wlIcon.title = _wlLabel + ': ' + _iocWarninglistNames(a.id);
-                    row.appendChild(wlIcon);
-                }
-
-                attrsEl.appendChild(row);
-            });
-
-            var shown      = uniqueAttrs.length;
-            var anyWarned   = uniqueAttrs.some(function (a) {
-                return _iocWarninglisted(a.id);
-            });
-            var toggle = document.createElement('button');
-            toggle.type = 'button';
-            toggle.className = 'corr-attr-toggle flex-shrink-0 mt-1';
-            toggle.setAttribute('aria-expanded', 'false');
-            toggle.setAttribute('aria-controls', attrsEl.id);
-            toggle.title = (shown === 1 ? _attrPillOne : _attrPillMany)
-                .replace('%s', shown);
-            toggle.innerHTML = (anyWarned
-                    ? '<i class="fa-solid fa-triangle-exclamation'
-                      + ' corr-attr-toggle-warning"></i>'
-                    : '')
-                + '<span>' + shown + '</span>'
-                + '<i class="fa-solid fa-chevron-down corr-attr-toggle-chevron"></i>';
-
-            header.appendChild(link);
-            header.appendChild(toggle);
-            card.appendChild(header);
-            card.appendChild(attrsEl);
-            bodyEl.appendChild(card);
+        var countEl = document.getElementById('corr-events-count');
+        if (countEl) {
+            countEl.textContent = (rows.length < allEids.length
+                    ? _corrEventsOf.replace('%s', rows.length).replace('%s', allEids.length)
+                    : (rows.length === 1 ? _corrEventsOne : _corrEventsMany).replace('%s', rows.length))
+                + ' · ' + (attrTotal === 1 ? _corrAttrsOne : _corrAttrsMany).replace('%s', attrTotal);
+        }
+        document.querySelectorAll('[data-corr-sort]').forEach(function (link) {
+            var on = link.getAttribute('data-corr-sort') === _corrSort.key;
+            link.classList.toggle('asc', on && _corrSort.dir === 'asc');
+            link.classList.toggle('desc', on && _corrSort.dir === 'desc');
         });
 
-        _delegateCorrListToggle(bodyEl);
+        _delegateCorrList();
         listEl.style.display = '';
     }
 
-    /* ── expand / collapse a card's attribute list ──────────── */
-    var _corrListDelegated = false;
-
-    function _setCardExpanded(card, expanded) {
-        if (!card) return;
-        var btn   = card.querySelector('.corr-attr-toggle');
-        var attrs = card.querySelector('.corr-event-attrs');
-        if (!btn || !attrs) return;
-        attrs.classList.toggle('d-none', !expanded);
-        btn.classList.toggle('is-expanded', expanded);
-        btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    function _corrDistChip(distId) {
+        var dist = _distMap[distId] !== undefined ? _distMap[distId] : _distFallback;
+        var tone = function (role, value) {
+            return dist.token ? 'var(--misp-' + dist.token + '-' + role + ', ' + value + ')' : value;
+        };
+        var chip = document.createElement('span');
+        chip.className = 'ov-obj-dist';
+        chip.style.setProperty('--ov-dist-bg', tone('bg', dist.bg));
+        chip.style.setProperty('--ov-dist-ink', tone('fg', dist.color));
+        if (dist.label) chip.title = _corrDistTitle.replace('%s', dist.label);
+        chip.innerHTML = '<i class="' + escapeHtml(dist.icon) + '"></i>';
+        return chip;
     }
 
-    /* one listener on the body, which survives every re-render */
-    function _delegateCorrListToggle(bodyEl) {
-        if (_corrListDelegated || !bodyEl) return;
+    function _corrEventRow(r) {
+        var row = document.createElement('tr');
+        row.className = 'corr-row';
+        row.setAttribute('data-eid', r.eid);
+        row.setAttribute('data-ioc-keys', r.iocKeys.join(','));
+
+        var expand = document.createElement('td');
+        expand.className = 'corr-col-expand';
+        expand.innerHTML = '<button type="button" class="oi-expand corr-expand" aria-expanded="false"'
+            + ' aria-controls="corr-attrs-' + escapeHtml(r.eid) + '" title="' + escapeHtml(_corrExpandTitle) + '">'
+            + '<i class="fas fa-chevron-right"></i></button>';
+        row.appendChild(expand);
+
+        var event = document.createElement('td');
+        event.className = 'corr-col-info';
+        var wrap = document.createElement('div');
+        wrap.className = 'corr-event';
+        wrap.appendChild(_corrDistChip(r.distribution));
+        var title = document.createElement('div');
+        title.className = 'corr-event-title';
+        title.innerHTML = '<a class="corr-event-name" href="' + escapeHtml(baseurl + '/events/view/' + r.eid) + '"'
+            + ' title="' + escapeHtml(r.info) + '">' + escapeHtml(r.info) + '</a>'
+            + '<span class="corr-event-id">#' + escapeHtml(r.eid) + '</span>';
+        wrap.appendChild(title);
+        event.appendChild(wrap);
+        row.appendChild(event);
+
+        var org = document.createElement('td');
+        org.className = 'corr-col-org';
+        org.innerHTML = r.orgName
+            ? '<a class="corr-org" href="' + escapeHtml(baseurl + '/organisations/view/' + r.org) + '">'
+              + '<i class="misp-icon misp-icon-organisation misp-simple" aria-hidden="true"></i>'
+              + '<span>' + escapeHtml(r.orgName) + '</span></a>'
+            : '<span class="corr-none">—</span>';
+        row.appendChild(org);
+
+        var date = document.createElement('td');
+        date.className = 'corr-col-date';
+        date.innerHTML = r.date
+            ? '<time datetime="' + escapeHtml(r.date) + '">' + escapeHtml(r.date) + '</time>'
+            : '<span class="corr-none">—</span>';
+        row.appendChild(date);
+
+        var count = document.createElement('td');
+        count.className = 'corr-col-count';
+        var warned = r.attrs.some(function (a) { return _iocWarninglisted(a.id); });
+        count.innerHTML = '<button type="button" class="corr-count" title="'
+            + escapeHtml((r.attrs.length === 1 ? _attrPillOne : _attrPillMany).replace('%s', r.attrs.length)) + '">'
+            + '<span class="misp-icon misp-icon-attribute misp-simple" aria-hidden="true"></span>'
+            + '<span>' + r.attrs.length + '</span>'
+            + (warned ? '<i class="fa-solid fa-triangle-exclamation corr-count-warning" title="'
+                + escapeHtml(_wlLabel) + '"></i>' : '')
+            + '</button>';
+        row.appendChild(count);
+        return row;
+    }
+
+    /* the attributes it shares, as the attribute index lists them */
+    function _corrDetailRow(r) {
+        var detail = document.createElement('tr');
+        detail.className = 'corr-detail';
+        detail.id = 'corr-attrs-' + r.eid;
+        detail.hidden = true;
+        var cell = document.createElement('td');
+        cell.colSpan = 5;
+        var html = '<div class="corr-detail-box"><table class="table mb-0 ix-table corr-attr-table"><thead><tr>'
+            + '<th>' + escapeHtml(_corrColValue) + '</th>'
+            + '<th>' + escapeHtml(_corrColCategory) + '</th>'
+            + '<th>' + escapeHtml(_corrColType) + '</th>'
+            + '<th>' + escapeHtml(_corrColObject) + '</th>'
+            + '<th class="text-center">' + escapeHtml(_corrColIds) + '</th>'
+            + '</tr></thead><tbody>';
+        r.attrs.forEach(function (a) {
+            var attr = a.attribute || {};
+            var href = baseurl + '/events/view/' + r.eid + (attr.uuid ? '/focus:' + attr.uuid : '');
+            var toIds = !!(attr.to_ids && attr.to_ids !== '0');
+            html += '<tr class="corr-attr-row" data-ioc-key="' + escapeHtml(a.id) + '">'
+                + '<td class="corr-attr-value"><a href="' + escapeHtml(href) + '" title="'
+                + escapeHtml(a.value + '\n' + _attrOpenEvent.replace('%s', r.info)) + '">'
+                + escapeHtml(a.value) + '</a>'
+                + (_iocWarninglisted(a.id)
+                    ? '<i class="fa-solid fa-triangle-exclamation text-warning ms-2" title="'
+                      + escapeHtml(_wlLabel + ': ' + _iocWarninglistNames(a.id)) + '"></i>'
+                    : '')
+                + '</td>'
+                + '<td>' + (a.category
+                    ? '<div class="d-flex align-items-center text-nowrap"><p class="fst-italic mb-0">'
+                      + escapeHtml(a.category) + '</p><i class="fa-solid fa-chevron-right ms-1"></i></div>'
+                    : '<span class="corr-none">—</span>') + '</td>'
+                + '<td>' + (a.type
+                    ? '<p class="border border-dark rounded p-1 mb-0 d-inline-block">' + escapeHtml(a.type) + '</p>'
+                    : '<span class="corr-none">—</span>') + '</td>'
+                + '<td>' + (attr.Object && attr.Object.name
+                    ? '<span class="corr-object"><i class="misp-icon misp-icon-object misp-simple" aria-hidden="true"></i>'
+                      + escapeHtml(attr.Object.name) + '</span>'
+                    : '<span class="corr-none">—</span>') + '</td>'
+                + '<td class="text-center"><i class="fas fa-shield-halved ' + (toIds ? 'text-warning' : 'corr-ids-off') + '"'
+                + ' title="' + escapeHtml(toIds ? _corrIdsOn : _corrIdsOff) + '"></i></td>'
+                + '</tr>';
+        });
+        html += '</tbody></table></div>';
+        cell.innerHTML = html;
+        detail.appendChild(cell);
+        return detail;
+    }
+
+    /* ── open / close a row's attributes ───────────────────── */
+    var _corrListDelegated = false;
+    var _corrListArgs = null;
+    var _corrSort = {key: 'count', dir: 'desc'};
+    var _corrOpened = {};   // event id -> true, outlives a row the period hides
+
+    function _rerenderCorrList() {
+        if (_corrListArgs) renderCorrelationsList.apply(null, _corrListArgs);
+    }
+
+    function _setRowExpanded(row, expanded) {
+        if (!row) return;
+        var detail = row.nextElementSibling;
+        var btn = row.querySelector('.corr-expand');
+        if (!detail || !detail.classList.contains('corr-detail')) return;
+        detail.hidden = !expanded;
+        row.classList.toggle('is-open', expanded);
+        if (expanded) _corrOpened[row.getAttribute('data-eid')] = true;
+        else delete _corrOpened[row.getAttribute('data-eid')];
+        if (btn) btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+
+    /* one listener on the table, which survives every re-render */
+    function _delegateCorrList() {
+        var listEl = document.getElementById('correlations-list');
+        if (_corrListDelegated || !listEl) return;
         _corrListDelegated = true;
-        bodyEl.addEventListener('click', function (e) {
-            var btn = e.target.closest('.corr-attr-toggle');
-            if (!btn) return;
+        listEl.addEventListener('click', function (e) {
+            var sort = e.target.closest('[data-corr-sort]');
+            if (sort) {
+                e.preventDefault();
+                var key = sort.getAttribute('data-corr-sort');
+                _corrSort = {
+                    key: key,
+                    dir: _corrSort.key === key
+                        ? (_corrSort.dir === 'asc' ? 'desc' : 'asc')
+                        : (key === 'count' || key === 'date' ? 'desc' : 'asc')
+                };
+                _rerenderCorrList();
+                return;
+            }
+            var row = e.target.closest('tr.corr-row');
+            if (!row || e.target.closest('a')) return;
             e.preventDefault();
-            _setCardExpanded(
-                btn.closest('.corr-event-card'),
-                btn.getAttribute('aria-expanded') !== 'true'
-            );
+            _setRowExpanded(row, !row.classList.contains('is-open'));
         });
     }
 
@@ -1584,31 +1785,37 @@ echo $this->element('genericElements/assetLoader', [
         var bodyEl = document.getElementById('correlations-list-body');
         if (!bodyEl) return;
         var attrStr = String(attrId);
-        bodyEl.querySelectorAll('.corr-event-card').forEach(function (card) {
-            var ids = (card.getAttribute('data-ioc-keys') || '').split(',');
-            if (ids.indexOf(attrStr) !== -1) {
-                card.style.display = '';
-                card.querySelectorAll('.corr-attr-row').forEach(function (row) {
-                    row.style.opacity =
-                        row.getAttribute('data-ioc-key') === attrStr ? '1' : '0.25';
-                });
-                /* the highlight is worthless while the list is collapsed */
-                _setCardExpanded(card, true);
-            } else {
-                card.style.display = 'none';
+        bodyEl.querySelectorAll('tr.corr-row').forEach(function (row) {
+            var ids = (row.getAttribute('data-ioc-keys') || '').split(',');
+            var match = ids.indexOf(attrStr) !== -1;
+            row.hidden = !match;
+            var detail = row.nextElementSibling;
+            if (!match) {
+                if (detail) detail.hidden = true;
+                return;
             }
+            if (detail) {
+                detail.querySelectorAll('.corr-attr-row').forEach(function (attrRow) {
+                    attrRow.classList.toggle('is-faded', attrRow.getAttribute('data-ioc-key') !== attrStr);
+                });
+            }
+            /* the highlight is worthless while the row is closed */
+            _setRowExpanded(row, true);
         });
     }
 
     function _resetCorrList() {
         var bodyEl = document.getElementById('correlations-list-body');
         if (!bodyEl) return;
-        bodyEl.querySelectorAll('.corr-event-card').forEach(function (card) {
-            card.style.display = '';
-            card.querySelectorAll('.corr-attr-row').forEach(function (row) {
-                row.style.opacity = '';
-            });
-            _setCardExpanded(card, false);
+        bodyEl.querySelectorAll('tr.corr-row').forEach(function (row) {
+            row.hidden = false;
+            var detail = row.nextElementSibling;
+            if (detail) {
+                detail.querySelectorAll('.corr-attr-row').forEach(function (attrRow) {
+                    attrRow.classList.remove('is-faded');
+                });
+            }
+            _setRowExpanded(row, false);
         });
     }
 
@@ -1636,6 +1843,8 @@ echo $this->element('genericElements/assetLoader', [
                the axis has no date column to slide into */
             if (!_rangeIsFull || (this.checked && !_dateZone)) {
                 redraw();
+                /* the list keeps to the period only while the axis draws it */
+                if (!_rangeIsFull) _rerenderCorrList();
                 return;
             }
             updateTargetPositionsOnly(true);
@@ -2582,6 +2791,73 @@ echo $this->element('genericElements/assetLoader', [
         }
         _resetCorrList();
     };
+
+    /* ── the filter bar: its panel and its search ───────────── */
+    (function () {
+        var panel   = document.getElementById('sankey-filters');
+        var openBtn = document.getElementById('sankey-filters-open');
+        var search  = document.getElementById('corr-search');
+        var clear   = document.getElementById('corr-search-clear');
+        if (!panel || !openBtn) return;
+
+        function showPanel(show) {
+            panel.hidden = !show;
+            openBtn.setAttribute('aria-expanded', show ? 'true' : 'false');
+        }
+        openBtn.addEventListener('click', function () { showPanel(panel.hidden); });
+        document.addEventListener('click', function (e) {
+            if (!panel.hidden && !panel.contains(e.target) && !openBtn.contains(e.target)) showPanel(false);
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !panel.hidden) {
+                showPanel(false);
+                openBtn.focus();
+            }
+        });
+
+        var chips = document.getElementById('corr-chips');
+        if (chips) {
+            chips.addEventListener('click', function (e) {
+                var x = e.target.closest('[data-corr-chip]');
+                if (x) {
+                    e.preventDefault();
+                    _removeFilterChip(x.getAttribute('data-corr-chip'),
+                        x.hasAttribute('data-corr-chip-key') ? x.getAttribute('data-corr-chip-key') : null);
+                    return;
+                }
+                if (e.target.closest('#corr-chips-clear')) _resetFilters();
+            });
+        }
+
+        if (!search) return;
+        var searchTimer = null;
+        function apply(value, now) {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(function () {
+                _setSearch(value);
+                if (_rawCorrelationData) _refilter(true);
+            }, now ? 0 : 200);
+        }
+        search.addEventListener('input', function () {
+            var box = document.getElementById('corr-search-box');
+            if (box) box.classList.toggle('has-value', search.value !== '');
+            apply(search.value);
+        });
+        search.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && search.value !== '') {
+                e.stopPropagation();
+                search.value = '';
+                apply('', true);
+            }
+        });
+        if (clear) {
+            clear.addEventListener('click', function () {
+                search.value = '';
+                apply('', true);
+                search.focus();
+            });
+        }
+    }());
 
     /* ── init ──────────────────────────────────────────────── */
     document.addEventListener('shown.bs.tab', function (e) {

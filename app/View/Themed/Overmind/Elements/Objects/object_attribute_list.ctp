@@ -1,16 +1,20 @@
 <?php
 /**
- * An object's attributes as a list: relation, flags, value, tags and galaxies,
- * and the attribute's action menu. Shared by the object card and the objects
- * index's expanded row.
+ * An object's attributes as a grid of the attribute indexes' cards
+ * (Attributes/index_card_tile), each part drawn by the field the attribute
+ * index draws it with, and the object relation between the category and the
+ * type, which it stands for when the two are the same. Shared by the object
+ * card and the objects index's expanded row.
  *
  * Parameters:
  *   attrs              array  the object's attributes, as the Objects tab loads them
  *   canEdit            bool   may modify the object's event
  *   canTag             bool   may tag the object's attributes
- *   showActions        bool   draw each attribute's action menu (default true)
- *   readonly           bool   report the IDS flag without its toggle and leave
- *                             out correlation, for a page that has not loaded
+ *   mayGraph           bool   may add to a workspace
+ *   showActions        bool   draw each attribute's selection box and action
+ *                             menu (default true)
+ *   readonly           bool   report the IDS and correlation states without
+ *                             their toggles, for a page that has not loaded
  *                             the attribute's event
  *   enrichmentEnabled  bool   Plugin.Enrichment_services_enable
  *   cortexEnabled      bool   Plugin.Cortex_services_enable
@@ -19,114 +23,108 @@
  */
 $objCanEdit = !empty($canEdit);
 $objCanTag = !empty($canTag);
+$mayGraph = !empty($mayGraph);
 $showActions = $showActions ?? true;
 $readonly = !empty($readonly);
+$menuOptions = [
+    'canEdit' => $objCanEdit,
+    'enrichmentEnabled' => !empty($enrichmentEnabled),
+    'cortexEnabled' => !empty($cortexEnabled),
+];
+
+$sectionsOf = function (array $attr) use ($objCanTag, $mayGraph, $showActions, $menuOptions, $baseurl) {
+    $row = ['Attribute' => $attr];
+    $field = function ($element, array $field, $fieldRow = null) use ($row) {
+        return $this->element('genericElementsBS5/IndexTable/Fields/' . $element, [
+            'row' => $fieldRow ?? $row,
+            'field' => $field,
+            'viewMode' => 'card',
+        ]);
+    };
+    $sections = [
+        'category' => sprintf(
+            '<span class="oi-attr-category" title="%s">%s</span>',
+            h($attr['category'] ?? ''),
+            $field('category', ['data_path' => 'Attribute.category'])
+        ),
+        'type' => $field('type', ['data_path' => 'Attribute.type']),
+        'value' => $field('attribute_value', ['data_path' => 'Attribute']),
+        'tags' => $field('tag_list', [
+            'data_path' => 'Attribute.AttributeTag',
+            'add_tag' => $objCanTag,
+            'add_tag_url' => $baseurl . '/attributes/editAttributeTags/%id%',
+            'add_tag_id_path' => 'Attribute.id',
+            'add_relationship_url' => $baseurl . '/attributes/editAttributeTagRelationships/%id%',
+        ]),
+        'galaxies' => $field('galaxy', [
+            'data_path' => 'Attribute.Galaxy',
+            'add_galaxy' => $objCanTag,
+            'add_galaxy_url' => $baseurl . '/attributes/editAttributeGalaxies/%id%',
+            'add_galaxy_id_path' => 'Attribute.id',
+            'add_galaxy_relationship_url' => $baseurl . '/attributes/editAttributeGalaxyRelationships/%id%',
+        ]),
+        'related' => $field('relatedEvents', [], $attr),
+        'feeds' => $field('feedHits', []),
+        'sightings' => $field('sightings', ['sightings' => ['data' => [], 'csv' => []]], $attr),
+        'analyst' => $field('analyst_data_badges', [
+            'note_path' => 'Note',
+            'opinion_path' => 'Opinion',
+            'relationship_path' => 'Relationship',
+            'uuid_path' => 'uuid',
+            'object_type' => 'Attribute',
+        ], $attr),
+    ];
+    if (!empty($attr['object_relation'])) {
+        // Most relations are named after their type: one box says both.
+        if ($attr['object_relation'] === ($attr['type'] ?? null)) {
+            unset($sections['type']);
+        }
+        $sections['relation'] = sprintf(
+            '<span class="d-inline-flex align-items-center"><p class="border border-dark rounded p-1 mb-0'
+                . ' bg-dark text-white" style="font-size:inherit;" title="%s">%s</p></span>',
+            h(__('Object relation')),
+            h($attr['object_relation'])
+        );
+    }
+    if ($showActions) {
+        $sections['selector'] = sprintf(
+            '<div class="d-inline-flex align-items-center checkbox-actions-wrapper checkbox-index">'
+                . '<input type="checkbox" class="item-checkbox form-check-input mass-select mt-0"'
+                . ' data-item-id="%d" data-can-delete="%s"%s></div>',
+            (int)$attr['id'],
+            $menuOptions['canEdit'] ? '1' : '0',
+            ($mayGraph && empty($attr['deleted']))
+                ? ' data-graph-item="' . h(json_encode([
+                    'type' => 'Attribute', 'uuid' => $attr['uuid'], 'label' => $attr['value'],
+                ])) . '"'
+                : ''
+        );
+        $sections['actions'] = '<div class="d-inline-flex align-items-center checkbox-actions-wrapper checkbox-index">'
+            . $this->element('Objects/attribute_actions', ['attr' => $attr] + $menuOptions)
+            . '</div>';
+    }
+    // As the scaffold hands them over: a list per section, the blank ones out.
+    return array_filter(array_map(function ($html) {
+        return trim($html) === '' ? [] : [$html];
+    }, $sections));
+};
 ?>
 <?php if (!empty($attrs)): ?>
-    <div class="list-group list-group-flush border-top">
+    <div class="oi-attrs idx-card-grid">
         <?php foreach ($attrs as $attr): ?>
-            <?php
-                $relation = (string)($attr['object_relation'] ?? '');
-                $label = $relation !== ''
-                    ? $relation : (string)($attr['type'] ?? '');
-            ?>
-            <div class="list-group-item px-3 py-2<?= !empty($attr['deleted']) ? ' opacity-50' : '' ?>">
-                <div class="d-flex align-items-start gap-2">
-                    <div class="flex-grow-1" style="min-width:0;">
-                        <div class="d-flex align-items-baseline gap-2">
-                            <span class="text-uppercase text-secondary fw-semibold text-truncate"
-                                  style="font-size:.65rem;letter-spacing:.04em;"
-                                  title="<?= h($label) ?>">
-                                <?= h($label) ?>
-                            </span>
-                            <span class="d-inline-flex align-items-center gap-2 flex-shrink-0">
-                                <?php if (!empty($attr['deleted'])): ?>
-                                    <i class="fas fa-trash text-danger" style="font-size:.7rem;"
-                                       title="<?= h(__('Deleted')) ?>"></i>
-                                <?php endif; ?>
-                                <?= $this->element(
-                                    'genericElementsBS5/IndexTable/Fields/ids',
-                                    ['row' => $attr, 'field' => ['data_path' => 'to_ids', 'readonly' => $readonly]]
-                                ) ?>
-                                <?php if (!$readonly): ?>
-                                <?= $this->element(
-                                    'genericElementsBS5/IndexTable/Fields/correlate',
-                                    ['row' => $attr, 'field' => ['data_path' => 'disable_correlation']]
-                                ) ?>
-                                <?php endif; ?>
-                                <?= $this->element('Attributes/value_flags', [
-                                    'attribute' => $attr, 'small' => true,
-                                ]) ?>
-                            </span>
-                        </div>
-
-                        <div class="font-monospace small text-break">
-                            <?= $this->element(
-                                'genericElementsBS5/IndexTable/Fields/attribute_value',
-                                [
-                                    'row'      => ['Attribute' => $attr],
-                                    'field'    => ['data_path' => 'Attribute'],
-                                    'viewMode' => 'card',
-                                    'showFlags' => false,
-                                ]
-                            ) ?>
-                        </div>
-
-                        <?php
-                        $chips = trim(
-                            $this->element(
-                                'genericElementsBS5/IndexTable/Fields/tag_list',
-                                [
-                                    'row' => $attr,
-                                    'field' => [
-                                        'data_path'       => 'AttributeTag',
-                                        'add_tag'         => $objCanTag,
-                                        'add_tag_url'     => $baseurl . '/attributes/editAttributeTags/%id%',
-                                        'add_tag_id_path' => 'id',
-                                        'add_relationship_url' => $baseurl
-                                            . '/attributes/editAttributeTagRelationships/%id%',
-                                    ],
-                                ]
-                            )
-                            . $this->element(
-                                'genericElementsBS5/IndexTable/Fields/galaxy',
-                                [
-                                    'row' => $attr,
-                                    'field' => [
-                                        'data_path'          => 'Galaxy',
-                                        'add_galaxy'         => $objCanTag,
-                                        'add_galaxy_url'     => $baseurl . '/attributes/editAttributeGalaxies/%id%',
-                                        'add_galaxy_id_path' => 'id',
-                                        'add_galaxy_relationship_url' => $baseurl
-                                            . '/attributes/editAttributeGalaxyRelationships/%id%',
-                                    ],
-                                ]
-                            )
-                        );
-                        ?>
-                        <?php if ($chips !== ''): ?>
-                            <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
-                                <?= $chips ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-
-                    <?php if ($showActions): ?>
-                    <div class="flex-shrink-0">
-                        <?= $this->element('Objects/attribute_actions', [
-                            'attr' => $attr,
-                            'canEdit' => $objCanEdit,
-                            'enrichmentEnabled' => $enrichmentEnabled ?? false,
-                            'cortexEnabled' => $cortexEnabled ?? false,
-                        ]) ?>
-                    </div>
-                    <?php endif; ?>
+            <div class="idx-card-col">
+                <div class="card shadow-sm idx-card h-100<?= !empty($attr['deleted']) ? ' attr-deleted' : '' ?>">
+                    <?= $this->element('Attributes/index_card_tile', [
+                        'row' => ['Attribute' => $attr],
+                        'sections' => $sectionsOf($attr),
+                        'readonly' => $readonly,
+                    ]) ?>
                 </div>
             </div>
         <?php endforeach; ?>
     </div>
 <?php else: ?>
-    <div class="border-top py-3 px-3 text-center text-muted small fst-italic">
+    <div class="oi-attrs-empty">
         <?= __('No attributes to display for this object.') ?>
     </div>
 <?php endif; ?>

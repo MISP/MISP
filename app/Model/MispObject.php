@@ -846,7 +846,7 @@ class MispObject extends AppModel
 
         $ids = array_map('intval', Hash::extract($rows, '{n}.Object.id'));
         $headlines = $this->__indexHeadlines($user, $rows, $ids);
-        list($out, $in) = $this->__indexReferenceCounts($user, $ids);
+        list($out, $in) = $this->indexReferenceCounts($user, $ids);
 
         $orgIds = array_unique(Hash::extract($rows, '{n}.Event.orgc_id'));
         $orgs = $this->Event->Orgc->find('all', [
@@ -942,7 +942,7 @@ class MispObject extends AppModel
      * @param int[] $ids
      * @return array [object id => outgoing, object id => incoming]
      */
-    private function __indexReferenceCounts(array $user, array $ids)
+    public function indexReferenceCounts(array $user, array $ids)
     {
         $outgoing = $this->ObjectReference->find('all', [
             'conditions' => [
