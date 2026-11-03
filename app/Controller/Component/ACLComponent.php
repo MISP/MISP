@@ -52,6 +52,7 @@ class ACLComponent extends Component
             'add' => array('perm_add'),
             'add_attachment' => array('perm_add'),
             'addTag' => array('perm_tagger'),
+            'advancedExtractionStatus' => array('perm_add'),
             'attributeReplace' => array('perm_add'),
             'attributeStatistics' => array('*'),
             'bro' => array('*'),

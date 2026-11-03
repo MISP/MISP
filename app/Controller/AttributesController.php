@@ -839,7 +839,10 @@ class AttributesController extends AppController
 
         $this->set('categoryDefinitions', $this->MispAttribute->categoryDefinitions);
         $this->set('isMalwareSampleCategory', $isMalwareSampleCategory);
-        $this->set('advancedExtractionAvailable', $this->MispAttribute->isAdvancedExtractionAvailable());
+        // Seconds of Python: Overmind's form asks advancedExtractionStatus later.
+        if (($this->theme ?? null) !== 'Overmind') {
+            $this->set('advancedExtractionAvailable', $this->MispAttribute->isAdvancedExtractionAvailable());
+        }
         $this->set('attachmentObjectTemplates', MispAttribute::ATTACHMENT_OBJECT_TEMPLATES);
         $this->__common();
         $this->set('title_for_layout', __('Add attachment'));
@@ -2774,6 +2777,20 @@ class AttributesController extends AppController
     public function describeTypes()
     {
         return $this->RestResponse->viewData(['result' => $this->MispAttribute->describeTypes()], 'json');
+    }
+
+    /**
+     * Whether an uploaded malware sample can go through advanced extraction.
+     */
+    public function advancedExtractionStatus()
+    {
+        $this->request->allowMethod(['get']);
+        // The Python check takes seconds: don't hold the session lock meanwhile.
+        $this->_closeSession();
+        return $this->RestResponse->viewData(
+            ['available' => $this->MispAttribute->isAdvancedExtractionAvailable()],
+            'json'
+        );
     }
 
     public function attributeStatistics($type = 'type', $percentage = false)

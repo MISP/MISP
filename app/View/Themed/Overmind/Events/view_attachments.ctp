@@ -76,7 +76,8 @@ $tone = function (array $cfg, $role) use ($toneHues) {
             <div class="eo-prompt-title"><?= __('No attachment yet') ?></div>
             <p><?= __('Keep the files behind this event with it: malware samples, screenshots, the documents the intelligence came from.') ?></p>
         </div>
-        <a href="<?= h($uploadUrl) ?>" class="btn btn-sm btn-warning"
+        <a href="<?= h($uploadUrl) ?>" class="btn btn-sm text-light "
+           style="background:#F59E0B; border-color:#F59E0B;"
            onclick="event.preventDefault(); openModal('<?= h($uploadUrl) ?>');">
             <i class="fas fa-upload me-1"></i><?= __('Upload') ?>
         </a>
