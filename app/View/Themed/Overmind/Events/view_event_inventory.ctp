@@ -12,6 +12,33 @@ $total = (int)$inventory['total'];
 $ids = (int)$inventory['ids'];
 $inObjects = array_sum(array_column($inventory['groups'], 'in_objects'));
 $eventId = (int)$event['Event']['id'];
+$canEdit = $this->Acl->canModifyEvent($event);
+// The ways to fill an empty inventory.
+$ways = [
+    [
+        'url' => $baseurl . '/attributes/add/' . $eventId,
+        'icon' => 'misp-icon misp-icon-attribute misp-simple',
+        'tone' => 'var(--bs-attribute)',
+        'title' => __('Add an attribute'),
+        'text' => __('One value: a hash, a domain, an address.'),
+    ],
+    [
+        'url' => $baseurl . '/objects/add/' . $eventId,
+        'icon' => 'misp-icon misp-icon-object misp-simple',
+        'tone' => 'var(--bs-object)',
+        'title' => __('Add an object'),
+        'text' => __('Related values as one thing: a file and its hashes.'),
+    ],
+];
+if ($this->Acl->canAccess('events', 'populateFrom')) {
+    $ways[] = [
+        'url' => $baseurl . '/events/populateFrom/' . $eventId,
+        'icon' => 'fas fa-sign-in-alt',
+        'tone' => 'var(--bs-primary)',
+        'title' => __('Import from…'),
+        'text' => __('Paste text and let MISP find the IOCs, or load MISP JSON.'),
+    ];
+}
 $n = function ($value) {
     return number_format((int)$value);
 };
@@ -43,7 +70,21 @@ $tabFor = function (array $group) {
         <?php endif; ?>
     </div>
 
-    <?php if ($total === 0): ?>
+    <?php if ($total === 0 && $canEdit): ?>
+        <div class="eo-ways">
+            <?php foreach ($ways as $way): ?>
+                <a href="<?= h($way['url']) ?>" class="eo-way" style="--eo-way:<?= $way['tone'] ?>;"
+                   onclick="event.preventDefault(); openModal('<?= h($way['url']) ?>');">
+                    <span class="eo-way-tile"><i class="<?= $way['icon'] ?>"></i></span>
+                    <span class="min-w-0">
+                        <span class="eo-way-title"><?= h($way['title']) ?></span>
+                        <span class="eo-way-text"><?= h($way['text']) ?></span>
+                    </span>
+                    <i class="fas fa-chevron-right eo-way-go"></i>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    <?php elseif ($total === 0): ?>
         <div class="eo-empty"><span><?= __('No attributes on this event yet.') ?></span></div>
     <?php else: ?>
         <?php if (!empty($inventory['objects']['total'])): ?>

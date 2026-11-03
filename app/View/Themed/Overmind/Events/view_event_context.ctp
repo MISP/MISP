@@ -159,6 +159,26 @@ $aiTagsUrl = Configure::read('Plugin.AI_services_enable')
     : null;
 $editTags = $baseurl . '/events/editEventTags/' . $eventId;
 $editClusters = $baseurl . '/events/editEventGalaxies/' . $eventId;
+// Empty, every row shows what it will hold and where that comes from.
+$skeleton = $labelCount === 0;
+$sources = [
+    'galaxy' => [__('Galaxy'), 'var(--bs-galaxy)', $editClusters],
+    'tags' => [__('Tags'), 'var(--bs-tag)', $editTags],
+];
+$hint = function ($text, $source) use ($skeleton, $sources, $mayModifyTags) {
+    if (!$skeleton) {
+        return '';
+    }
+    list($label, $tone, $url) = $sources[$source];
+    $from = $mayModifyTags
+        ? sprintf('<button type="button" class="eo-hint-from" style="--eo-from:%s;" onclick="openModal(\'%s\', \'xl\')">%s</button>', $tone, h($url), h($label))
+        : sprintf('<b class="eo-hint-from" style="--eo-from:%s;">%s</b>', $tone, h($label));
+    return sprintf('<span class="eo-hint">%s · %s</span>', h($text), $from);
+};
+$ghost = function ($icon, $text, $hintText, $source) use ($hint) {
+    return sprintf('<span class="eo-none"><i class="%s"></i>%s</span>', $icon, h($text))
+        . $hint($hintText, $source);
+};
 $hasIndicatorOnly = false;
 foreach ($rows as $items) {
     foreach ((array)$items as $item) {
@@ -303,9 +323,9 @@ foreach ($rows as $items) {
 
     <dl class="eo-rows">
         <dt><?= __('Attribution') ?></dt>
-        <dd>
+        <dd<?= $skeleton ? ' class="eo-skeleton"' : '' ?>>
             <?php if (empty($rows['attribution'])): ?>
-                <span class="eo-none"><i class="fas fa-user-secret"></i><?= __('None stated') ?></span>
+                <?= $ghost('fas fa-user-secret', __('None stated'), __('Threat actor, intrusion set'), 'galaxy') ?>
             <?php else: ?>
                 <?= $this->TagChip->clusters($clusters($rows['attribution']), $chipOptions) ?>
             <?php endif; ?>
@@ -314,6 +334,9 @@ foreach ($rows as $items) {
         <?php if (!empty($rows['behaviour'])): ?>
             <dt><?= __('Behaviour') ?><small><?= h(__n('%s technique', '%s techniques', count($rows['behaviour']), count($rows['behaviour']))) ?></small></dt>
             <dd><?= $byGalaxy($rows['behaviour']) ?></dd>
+        <?php elseif ($skeleton): ?>
+            <dt><?= __('Behaviour') ?></dt>
+            <dd class="eo-skeleton"><?= $ghost('fas fa-crosshairs', __('No technique'), __('ATT&CK techniques'), 'galaxy') ?></dd>
         <?php endif; ?>
 
         <?php if (!empty($rows['classification']) || !empty($rows['clusters'])): ?>
@@ -331,13 +354,20 @@ foreach ($rows as $items) {
                     <?php if (!empty($rows['clusters'])): ?>
                         <?= $this->TagChip->clusters($clusters($rows['clusters']), $chipOptions) ?>
                     <?php endif; ?>
+                    <?= $hint(__('Incident type, confidence and other taxonomies'), 'tags') ?>
                 </div>
             </dd>
+        <?php elseif ($skeleton): ?>
+            <dt><?= __('Classification') ?></dt>
+            <dd class="eo-skeleton"><?= $ghost('fas fa-tags', __('No tag'), __('Incident type, confidence and other taxonomies'), 'tags') ?></dd>
         <?php endif; ?>
 
         <?php if (!empty($rows['mitigation'])): ?>
             <dt><?= __('Mitigation') ?></dt>
             <dd><?= $byGalaxy($rows['mitigation']) ?></dd>
+        <?php elseif ($skeleton): ?>
+            <dt><?= __('Mitigation') ?></dt>
+            <dd class="eo-skeleton"><?= $ghost('fas fa-shield-halved', __('None'), __('Courses of action'), 'galaxy') ?></dd>
         <?php endif; ?>
     </dl>
 

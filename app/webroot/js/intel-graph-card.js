@@ -36,8 +36,16 @@
     function card(root) {
         var config = JSON.parse(root.querySelector('[data-ig-card-config]').textContent);
         var body = root.querySelector('[data-ig-card-body]');
+        var head = root.querySelector('[data-ig-card-head]');
         var countEl = root.querySelector('[data-ig-card-count]');
         var target = config.target;
+
+        // Empty, the card is its header and its +; without the + it has nothing to offer.
+        function setEmpty(empty) {
+            head.classList.toggle('border-bottom', !empty);
+            body.classList.toggle('d-none', empty);
+            root.classList.toggle('d-none', empty && !config.canCreate);
+        }
 
         function getJson(path) {
             return fetch(config.baseurl + path, {
@@ -172,20 +180,13 @@
                         ? graphs.length + (graphs.length === 1 ? ' workspace' : ' workspaces') + ' on this ' + config.targetName
                         : 'No workspace on this ' + config.targetName;
                     body.textContent = '';
-                    if (!graphs.length) {
-                        var empty = el('div', 'd-flex flex-column align-items-center justify-content-center text-muted py-4 px-3 text-center');
-                        empty.appendChild(icon('misp-icon misp-icon-analyst-graph misp-simple fa-2x mb-2 opacity-50'));
-                        empty.appendChild(el('p', 'mb-0 small fw-semibold', config.canCreate
-                            ? 'Start one with +, then send records to it with “Add to workspace”.'
-                            : 'No workspace hangs off this ' + config.targetName + ' yet.'));
-                        body.appendChild(empty);
-                        return;
-                    }
+                    setEmpty(!graphs.length);
                     graphs.forEach(function (g) { body.appendChild(row(g, out.active === g.uuid)); });
                 })
                 .catch(function () {
                     countEl.textContent = '';
                     body.textContent = '';
+                    setEmpty(false);
                     var err = el('div', 'text-center text-muted py-4 small');
                     err.appendChild(icon('fas fa-exclamation-triangle me-2'));
                     err.appendChild(document.createTextNode('Could not load the workspaces.'));
