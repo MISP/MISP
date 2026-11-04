@@ -50,13 +50,18 @@ class WorkflowBlueprintsController extends AppController
         }
         $this->set('fromEditor', !empty($fromEditor));
         $this->set('menuData', ['menuList' => 'workflowBlueprints', 'menuItem' => 'add']);
-        if ($this->theme === "Overmind" && empty($fromEditor)) {
-            $this->layout = false;
-            $this->render('add');
+        if ($this->theme === "Overmind") {
+            if (!empty($fromEditor)) {
+                // The workflow editor stays on the classic UI and its modals
+                $this->theme = 'Default';
+            } else {
+                $this->layout = false;
+                $this->render('add');
+            }
         }
     }
 
-    public function edit($id)
+    public function edit($id, $fromEditor = false)
     {
         $params = [
             'beforeSave' => function (array $blueprint) {
@@ -72,7 +77,11 @@ class WorkflowBlueprintsController extends AppController
         $this->set('menuData', ['menuList' => 'workflowBlueprints', 'menuItem' => 'edit']);
         $this->set('id', $id);
         if ($this->theme === "Overmind") {
-            $this->layout = false;
+            if (!empty($fromEditor)) {
+                $this->theme = 'Default';
+            } else {
+                $this->layout = false;
+            }
         }
         $this->render('add');
     }

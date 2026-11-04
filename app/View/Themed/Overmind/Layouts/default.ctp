@@ -149,6 +149,9 @@ if (substr($currentAction, 0, 6) === 'admin_') {
     <?php if ($isLegacyFullViewportPage): ?>
         <style>
             /* Give the workflow editor full viewport height */
+            body[data-controller="workflows"][data-action="editor"] {
+                overflow: hidden;
+            }
             body[data-controller="workflows"][data-action="editor"] .root-container {
                 height: 100vh;
                 margin-top: 0;
