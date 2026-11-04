@@ -697,19 +697,25 @@ class LdapAuthenticate extends BaseAuthenticate
         $email = isset($userFields['email']) ? $userFields['email'] : '';
         $password = isset($userFields['password']) ? $userFields['password'] : '';
 
-        CakeLog::debug("[LdapAuth] Login attempt with email: $email");
-        $this->settings['fields'] = ["username" => "email"];
-
-        // An empty password turns ldap_bind() into an *unauthenticated* bind,
-        // which the LDAP protocol defines as a success for any existing DN.
-        // Directories that do not refuse those (RFC 4513 leaves it to the
-        // server) would hand out a session for any account whose identifier
-        // is known. No MISP account has an empty password either, so refuse
-        // here rather than relying on the directory to do it.
-        if (!is_string($password) || $password === '') {
-            CakeLog::error("[LdapAuth] Empty password for '$email', refusing the login attempt.");
+        // This class replaces FormAuthenticate rather than extending it, so it has to
+        // repeat that class' _checkFields() guard: both credentials must be non-empty
+        // strings.
+        //
+        // RFC 4513 section 5.1.2: a bind request carrying a valid DN and an empty
+        // password is an unauthenticated bind, and many directories answer it with
+        // success. An empty password reaching ldap_bind() below would therefore
+        // authenticate anyone who knows a user's email address. Testing for '' alone
+        // is not enough: ldap_bind() takes ?string, so null binds unauthenticated as
+        // it is and false is coerced to '' - both would slip past a === '' test.
+        // A non-string also raises a TypeError there, and an array reaching
+        // _findUser() below would be taken as a set of find conditions.
+        if (!is_string($email) || $email === '' || !is_string($password) || $password === '') {
+            CakeLog::error("[LdapAuth] Rejected login attempt with a missing or invalid email or password.");
             return false;
         }
+
+        CakeLog::debug("[LdapAuth] Login attempt with email: $email");
+        $this->settings['fields'] = ["username" => "email"];
 
         $ldapconn = $this->ldapConnect();
 
@@ -848,11 +854,19 @@ class LdapAuthenticate extends BaseAuthenticate
 
         if (!$user) {
             // Create user
+            // The password is never used - this account authenticates against the
+            // directory - but it must not be left empty: beforeSave() hashes whatever
+            // is set here, and a hash of '' verifies against an empty password, which
+            // the mixedAuth fallback above would then accept as a local credential if
+            // the user ever stops being found in LDAP. User::beforeValidate() already
+            // substitutes a random password for an empty one, but it does not run here
+            // because this save deliberately skips validation.
+            $randomPassword = $userModel->generateRandomPassword();
             $userData = ['User' => [
                 'email' => $mispUsername,
                 'org_id' => $orgId,
-                'password' => '',
-                'confirm_password' => '',
+                'password' => $randomPassword,
+                'confirm_password' => $randomPassword,
                 'authkey' => $userModel->generateAuthKey(),
                 'nids_sid' => 4000000,
                 'newsread' => 0,

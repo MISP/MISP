@@ -27,79 +27,81 @@ class Log extends AppModel
         'forgot',
     ];
 
+    // Every action the application log can hold. The index's Action
+    // dropdown is built from this, so a value missing here is a value
+    // nobody can filter on.
+    const ACTIONS = [ // ensure that the length of the rules is < 20 in length
+        'accept',
+        'accept_delegation',
+        'acceptRegistrations',
+        'add',
+        'admin_email',
+        'attachTags',
+        'attachTagToObject',
+        'auth',
+        'auth_fail',
+        'auth_alert',
+        'blocklisted',
+        'captureRelations',
+        'change_pw',
+        'delete',
+        'disable',
+        'discard',
+        'discardRegistrations',
+        'edit',
+        'email',
+        'enable',
+        'enrichment',
+        'error',
+        'execute_blueprint',
+        'execute_workflow',
+        'exec_module',
+        'export',
+        'fetchEvent',
+        'file_upload',
+        'forgot',
+        'galaxy',
+        'include_formula',
+        'load_module',
+        'login',
+        'login_fail',
+        'logout',
+        'merge',
+        'password_reset',
+        'pruneUpdateLogs',
+        'publish',
+        'publish_sightings',
+        'publish alert',
+        'pull',
+        'purge_events',
+        'push',
+        'registration',
+        'registration_error',
+        'remove_dead_workers',
+        'removeTagFromObject',
+        'request',
+        'request_delegation',
+        'reset_auth_key',
+        'send_mail',
+        'security',
+        'serverSettingsEdit',
+        'tag',
+        'undelete',
+        'update',
+        'update_database',
+        'update_db_worker',
+        'updateCryptoKeys',
+        'upgrade_24',
+        'upload_sample',
+        'validateSig',
+        'version_warning',
+        'warning',
+        'wipe_default'
+    ];
+
     public $validate = array(
         'action' => array(
-            'rule' => array(
-                'inList',
-                array( // ensure that the length of the rules is < 20 in length
-                    'accept',
-                    'accept_delegation',
-                    'acceptRegistrations',
-                    'add',
-                    'admin_email',
-                    'attachTags',
-                    'attachTagToObject',
-                    'auth',
-                    'auth_fail',
-                    'auth_alert',
-                    'blocklisted',
-                    'captureRelations',
-                    'change_pw',
-                    'delete',
-                    'disable',
-                    'discard',
-                    'discardRegistrations',
-                    'edit',
-                    'email',
-                    'enable',
-                    'enrichment',
-                    'error',
-                    'execute_blueprint',
-                    'execute_workflow',
-                    'exec_module',
-                    'export',
-                    'fetchEvent',
-                    'file_upload',
-                    'forgot',
-                    'galaxy',
-                    'include_formula',
-                    'load_module',
-                    'login',
-                    'login_fail',
-                    'logout',
-                    'merge',
-                    'password_reset',
-                    'pruneUpdateLogs',
-                    'publish',
-                    'publish_sightings',
-                    'publish alert',
-                    'pull',
-                    'purge_events',
-                    'push',
-                    'registration',
-                    'registration_error',
-                    'remove_dead_workers',
-                    'removeTagFromObject',
-                    'request',
-                    'request_delegation',
-                    'reset_auth_key',
-                    'send_mail',
-                    'security',
-                    'serverSettingsEdit',
-                    'tag',
-                    'undelete',
-                    'update',
-                    'update_database',
-                    'update_db_worker',
-                    'updateCryptoKeys',
-                    'upgrade_24',
-                    'upload_sample',
-                    'validateSig',
-                    'version_warning',
-                    'warning',
-                    'wipe_default'
-                )
-            ),
+            'rule' => array('inList', self::ACTIONS),
             'message' => 'Options : ...'
         )
     );
@@ -252,33 +254,25 @@ class Log extends AppModel
             $conditions['org'] = $org['name'];
         }
         $conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
-        if ($this->isMysql()) {
-            $validDates = $this->find('all', array(
-                    'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
-                    'conditions' => $conditions,
-                    'group' => array('Date'),
-                    'order' => array('Date')
-            ));
-        } else {
-            // manually generate the query for Postgres
-            // cakephp ORM would escape "DATE" datatype in CAST expression
-            $condnotinaction = "'" . implode("', '", $conditions['AND']['NOT']['action']) . "'";
-            if (!empty($conditions['org'])) {
-                $condOrg = sprintf('AND org = %s', $this->getDataSource()->value($conditions['org']));
-            } else {
-                $condOrg = '';
-            }
-            $sql = 'SELECT DISTINCT EXTRACT(EPOCH FROM CAST(created AS DATE)) AS "Date",
-                                    COUNT(id) AS count
-                    FROM logs
-                    WHERE action NOT IN (' . $condnotinaction . ')
-                    ' . $condOrg . '
-                    GROUP BY "Date" ORDER BY "Date"';
-            $validDates = $this->query($sql);
-        }
+        // One query for both engines. The PostgreSQL half used to drop out of
+        // the ORM and be written by hand - the comment it carried said why:
+        // the ORM escapes the DATE keyword inside a CAST expression. The
+        // dialect's cast spelling has no DATE keyword in it.
+        $dialect = $this->getSqlDialect();
+        $day = $dialect->unixTimestamp($dialect->dateOf('created'));
+        // Lower-case alias on purpose: an unquoted `AS Date` comes back as
+        // `Date` from MySQL and as `date` from PostgreSQL, which folds unquoted
+        // identifiers. Reading the row by a key only one engine produces would
+        // have collapsed every bucket into one.
+        $validDates = $this->find('all', array(
+                'fields' => array('DISTINCT ' . $day . ' AS date', 'count(id) AS count'),
+                'conditions' => $conditions,
+                'group' => array('date'),
+                'order' => array('date')
+        ));
         $data = array();
         foreach ($validDates as $date) {
-            $data[$date[0]['Date']] = intval($date[0]['count']);
+            $data[$date[0]['date']] = intval($date[0]['count']);
         }
         return $data;
     }
@@ -481,6 +475,7 @@ class Log extends AppModel
                 if ($syslogIdent) {
                     $options['ident'] = $syslogIdent;
                 }
+                App::uses('SysLog', 'SysLog.Lib');
                 $this->syslog = new SysLog($options);
             } else {
                 $this->syslog = false;

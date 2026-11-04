@@ -143,4 +143,5 @@ vagrant/*.log
 
 .vscode/launch.json
 
+/tests/__pycache__
 /tests/ldapauth/__pycache__

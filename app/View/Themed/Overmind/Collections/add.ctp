@@ -22,6 +22,11 @@ foreach ($types as $value => $label) {
 }
 
 
+/* Embedded in the collection picker's modal: that modal already carries the
+ * header strip and the attach-target banner, so this view drops both and
+ * contributes only its fields and its own footer. */
+$embedded = !empty($embedded);
+
 $attachElementUuids = !empty($attachElementUuids)
     ? array_values(array_filter((array)$attachElementUuids))
     : (!empty($attachElementUuid) ? [$attachElementUuid] : []);
@@ -33,61 +38,24 @@ echo $this->Form->create('Collection', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06);
-            border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-primary text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Collections') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-primary"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Collection') : __('Add Collection') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Organise shared data into buckets based on commonalities or as part of your research process. Collections follow the same sharing rules as events do.') ?>
-        </p>
-    </div>
-    <i class="fas fa-folder-open text-primary" style="font-size:2rem; opacity:.45;"></i>
-</div>
+<?php if (!$embedded): ?>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Collections'),
+    'title' => $isEdit ? __('Edit Collection') : __('Add Collection'),
+    'description' => __('Organise shared data into buckets based on commonalities or as part of your research process. Collections follow the same sharing rules as events do.'),
+    'icon' => 'fas fa-folder-open',
+    'isEdit' => $isEdit,
+]) ?>
+<?php endif; ?>
 
 
 <div class="container-fluid px-4 py-4">
 
-    <div class="d-flex flex-column gap-4">
+    <div class="d-flex flex-column gap-4 px-2">
 
-        <?php if ($hasAttachTarget): ?>
-            <!-- ── ATTACH TARGET ───────────────────────────────── -->
-            <div class="alert alert-light border d-flex align-items-center gap-3 mb-0"
-                 role="alert" style="border-color:var(--primary) !important;">
-                <i class="fas fa-link text-primary"></i>
-                <div class="flex-grow-1">
-                    <div class="fw-semibold" style="font-size:.85rem;">
-                        <?= __('%s element(s) will be attached', count($attachElementUuids)) ?>
-                    </div>
-                    <div class="text-muted" style="font-size:.75rem; margin-top:.15rem;">
-                        <?= h($attachElementType) ?> ·
-                        <code><?= h(implode(', ', $attachElementUuids)) ?></code>
-                    </div>
-                </div>
-            </div>
-            <?php
-            echo $this->Form->hidden('_attach_element_type', [
-                'value' => $attachElementType,
-            ]);
-            foreach ($attachElementUuids as $i => $attachElementUuidValue) {
-                echo $this->Form->hidden('Collection._attach_element_uuid.' . $i, [
-                    'value' => $attachElementUuidValue,
-                ]);
-            }
-            ?>
-        <?php endif; ?>
 
         <!-- ── NAME ────────────────────────────────────────────── -->
-        <div class="w-100 px-2">
+        <div class="w-100 ">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="d-flex align-items-center gap-2 text-primary fw-bold
                             text-uppercase"
@@ -110,65 +78,47 @@ echo $this->Form->create('Collection', [
                 'placeholder' => __('e.g. APTX phishing campaign assets'),
                 'autocomplete' => 'off',
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Keep it short but descriptive — 60 characters at most.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Keep it short but descriptive — 60 characters at most.'),
+            ]) ?>
         </div>
 
         <!-- ── TYPE ────────────────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Collection Type') ?>
-            </div>
+        <div class="w-100 ">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Collection Type'),
+            ]) ?>
             <?= $this->Form->select('type', $typeOptions, [
                 'id' => 'collection-type-select',
                 'class' => 'form-select',
                 'empty' => __('Select a type…'),
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('What the collection groups together — a campaign, an intrusion set, a named threat, or your own research.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('What the collection groups together — a campaign, an intrusion set, a named threat, or your own research.'),
+            ]) ?>
         </div>
 
         <!-- ── DISTRIBUTION / SHARING GROUP ───────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Distribution / Sharing Group') ?>
-            </div>
-            <div class="d-flex gap-3">
-
-                <div class="flex-fill">
-                    <?= $this->Form->select('distribution', $dropdownData['distributionLevels'] ?? [], [
-                        'class' => 'form-select',
-                        'id' => 'distribution-select',
-                        'value' => $currentDistribution,
-                    ]) ?>
-                </div>
-
-                <div class="flex-fill<?= $currentDistribution === 4 ? '' : ' d-none' ?>"
-                     id="sg-container">
-                    <?= $this->Form->select('sharing_group_id', $dropdownData['sgs'] ?? [], [
-                        'id' => 'sharing-group-select',
-                        'empty' => __('Select a sharing group…'),
-                        'class' => 'form-select tom-select',
-                    ]) ?>
-                </div>
-
-            </div>
+        <div class="w-100">
+            <?= $this->element('genericElementsBS5/Forms/distribution_field', [
+                'accent' => 'primary',
+                'levels' => $dropdownData['distributionLevels'] ?? [],
+                'sharingGroups' => $dropdownData['sgs'] ?? [],
+                'value' => $currentDistribution,
+                'showSg' => true,
+                'id' => 'distribution-select',
+                'sgId' => 'sharing-group-select',
+                'sgEmpty' => __('Select a sharing group…'),
+            ]) ?>
         </div>
 
         <!-- ── DESCRIPTION ─────────────────────────────────────── -->
-        <div class="w-100 px-2">
-            <div class="text-primary fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Description') ?>
-            </div>
+        <div class="w-100 ">
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'primary',
+                'label' => __('Description'),
+            ]) ?>
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 3,
@@ -177,39 +127,71 @@ echo $this->Form->create('Collection', [
             ]) ?>
         </div>
 
+        <?php if ($hasAttachTarget): ?>
+            <!-- ── ATTACH TARGET ───────────────────────────────── -->
+            <div class="alert alert-light border d-flex align-items-center gap-3 mb-0"
+                 role="alert" style="border-color:var(--primary) !important;">
+                <i class="fas fa-link text-primary"></i>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold" style="font-size:.85rem;">
+                        <?= __('%s element(s) will be attached', count($attachElementUuids)) ?>
+                    </div>
+                    <div class="text-muted" style="font-size:.75rem; margin-top:.15rem;">
+                        <?= h($attachElementType) ?> ·
+                        <code><?= h(implode(', ', $attachElementUuids)) ?></code>
+                    </div>
+                </div>
+            </div>
+            <?php
+            echo $this->Form->hidden('_attach_element_type', [
+                'value' => $attachElementType,
+            ]);
+            foreach ($attachElementUuids as $i => $attachElementUuidValue) {
+                echo $this->Form->text('Collection._attach_element_uuid.' . $i, [
+                    'value' => $attachElementUuidValue,
+                    'style' => 'display:none;',
+                    'tabindex' => -1,
+                    'aria-hidden' => 'true',
+                ]);
+            }
+            ?>
+
+            <div class="w-100">
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'primary',
+                    'label' => __('Element description'),
+                ]) ?>
+                <?= $this->Form->textarea('Collection._attach_element_description', [
+                    'class' => 'form-control',
+                    'rows' => 2,
+                    'value' => $attachElementDescription ?? '',
+                    'placeholder' => __('Why this element belongs in the collection — optional.'),
+                ]) ?>
+                <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                    'text' => __('Describes the link, not the collection — shown next to the element inside it.'),
+                ]) ?>
+            </div>
+        <?php endif; ?>
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($id)): ?>
-                <?= __('Collection') ?>:
-                <strong class="text-body">#<?= h($id) ?></strong>
-            <?php elseif (!empty($me['email'])): ?>
-                <?= __('Analyst') ?>:
-                <strong class="text-body"><?= h($me['email']) ?></strong>
-                <?php if (!empty($me['Organisation']['name'])): ?>
-                    &nbsp;|&nbsp; <?= __('Org') ?>:
-                    <strong class="text-body"><?= h($me['Organisation']['name']) ?></strong>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Create Collection')),
-                [
-                    'class' => 'btn btn-primary btn-sm',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?php
+    /* On add there is no id to show yet, so the bar carries who is about to own
+     * the collection instead. */
+    $footerMeta = [];
+    if ($isEdit && !empty($id)) {
+        $footerMeta[] = ['label' => __('Collection'), 'id' => $id];
+    } elseif (!empty($me['email'])) {
+        $footerMeta[] = ['label' => __('Analyst'), 'value' => $me['email']];
+        if (!empty($me['Organisation']['name'])) {
+            $footerMeta[] = ['label' => __('Org'), 'value' => $me['Organisation']['name']];
+        }
+    }
+    echo $this->element('genericElementsBS5/Forms/modal_footer', [
+        'isEdit' => $isEdit,
+        'meta' => $footerMeta,
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Create Collection')],
+    ]);
+    ?>
 
 </div>
 
@@ -228,7 +210,7 @@ echo $this->Form->create('Collection', [
         var icon = TYPE_ICONS[data.value] || 'fas fa-folder';
         return '<div class="d-flex align-items-center gap-2' + (compact ? '' : ' py-1') + '">'
             + '<span class="badge d-inline-flex align-items-center'
-                + (compact ? ' px-1' : ' px-2 py-1') + '" style="'
+                + (compact ? ' px-1' : '  py-1') + '" style="'
                 + 'background:rgba(24,146,177,.12); color:var(--primary);'
                 + 'border:1px solid rgba(24,146,177,.25);'
                 + (compact ? 'font-size:.65rem;' : '') + '">'
@@ -251,12 +233,9 @@ echo $this->Form->create('Collection', [
     }
 
 
-    if (typeof initDistributionSelect === 'function') {
-        initDistributionSelect('distribution-select', function (value) {
-            var sg = document.getElementById('sg-container');
-            if (sg) { sg.classList.toggle('d-none', parseInt(value, 10) !== 4); }
-        });
-    }
+    /* The distribution field reveals its own sharing group — initChoiceFields()
+       binds it. Nothing to do here: #sg-container was the old hand-built markup
+       and #distribution-select is now the cards' hidden mirror, not a control. */
 
     /* Live character counter on the name */
     var nameEl = document.getElementById('CollectionName');

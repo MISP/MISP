@@ -25,7 +25,7 @@ if ($count > 0 && empty($backgroundJobs)) {
     $warnings[] = __('Background jobs are disabled, so the feeds are pulled right now — this can take a while.');
 }
 
-echo $this->element('genericElementsBS5/Forms/confirmationForm', [
+echo $this->element('genericElementsBS5/Modals/confirmation_form', [
     'title' => __('Fetch feed data'),
     'model' => 'Feed',
     'hiddenField' => 'id',

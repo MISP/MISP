@@ -52,6 +52,11 @@ if ($attribute && isset($attribute['id'], $attribute['to_ids'])):
 <?php endif; ?>
 
 
+<?php
+if (empty($this->viewVars['_idsShieldScriptEmitted'])):
+    $this->viewVars['_idsShieldScriptEmitted'] = true;
+?>
+
 <script>
 (function () {
     if (window._idsShieldInit) return;
@@ -140,6 +145,17 @@ if ($attribute && isset($attribute['id'], $attribute['to_ids'])):
 
     /* DOM update after a successful toggle */
     function _updateShield(btn, isOn) {
+        // One attribute can be on screen more than once — the object index
+        // renders its list view and its card view at the same time — so every
+        // copy of the shield has to follow, not just the one that was clicked.
+        const attrId = btn.dataset.attributeId;
+        const all = attrId
+            ? document.querySelectorAll('.ids-shield-toggle[data-attribute-id="' + attrId + '"]')
+            : [btn];
+        all.forEach(function (el) { _paintShield(el, isOn); });
+    }
+
+    function _paintShield(btn, isOn) {
         btn.dataset.toIds = isOn ? '1' : '0';
         btn.title = isOn
             ? <?= json_encode(__('IDS active — click to disable')) ?>
@@ -165,6 +181,7 @@ if ($attribute && isset($attribute['id'], $attribute['to_ids'])):
     }
 })();
 </script>
+<?php endif; ?>
 
 <?php
 else:

@@ -6,31 +6,20 @@ $content       = $reportData['content'] ?? '';
 $reportId      = (int)($reportData['id'] ?? 0);
 $hasReport     = !empty($reportData);
 $hasContent    = ($content !== '' && $content !== null);
+$eventId       = (int)($reportData['event_id'] ?? ($data['Event']['id'] ?? 0));
 
 $cardId    = 'er-preview-card-'    . ($reportId ?: 'main');
 $bodyId    = 'er-preview-body-'    . ($reportId ?: 'main');
 $overlayId = 'er-preview-overlay-' . ($reportId ?: 'main');
 $maxH      = '300px';
+/* Report view height (screen height minus fixed elements) */
+$viewMaxH  = 'calc(100vh - 5rem)';
 $canAddReport = $this->Acl->canModifyEvent($data);
 
-/* Reusable overlay markup (gradient fade + expand/collapse toggle) */
+
 $overlayHtml = '
-<div id="' . h($overlayId) . '"
-     class="position-absolute bottom-0 start-0 end-0"
-     style="display:none;">
-    <div class="er-preview-gradient"
-         style="height:60px;
-                background:linear-gradient(to bottom,transparent,var(--bs-card-bg,#fff));
-                pointer-events:none;">
-    </div>
-    <div class="text-center py-1" style="background:var(--bs-card-bg,#fff);">
-        <a href="#"
-           class="small text-muted text-decoration-none er-preview-toggle"
-           onclick="erPreviewToggle(this,\'' . h($cardId) . '\',\'' . h($overlayId) . '\',\'' . $maxH . '\');return false;">
-            <i class="fas fa-chevron-down me-1"></i>
-            ' . __('Show full content') . '
-        </a>
-    </div>
+<div id="' . h($overlayId) . '" class="er-preview-overlay" style="display:none;">
+    <div class="er-preview-gradient"></div>
 </div>';
 ?>
 
@@ -62,11 +51,14 @@ $overlayHtml = '
         </div>
 
         <?php if ($hasReport): ?>
-            <div class="position-relative"
-                 id="<?= h($cardId) ?>"
-                 style="max-height:<?= $maxH ?>;overflow:hidden;">
-                <div class="card-body p-3">
-                    <div id="<?= h($bodyId) ?>" class="markdown-preview-body"></div>
+            <div data-er-preview="<?= h($cardId) ?>"
+                 data-er-preview-overlay="<?= h($overlayId) ?>"
+                 data-er-preview-collapsed="<?= h($maxH) ?>">
+                <div id="<?= h($cardId) ?>"
+                     style="max-height:<?= $maxH ?>;overflow:hidden;">
+                    <div class="card-body p-3">
+                        <div id="<?= h($bodyId) ?>" class="markdown-preview-body"></div>
+                    </div>
                 </div>
                 <?= $overlayHtml ?>
             </div>
@@ -91,13 +83,13 @@ $overlayHtml = '
 
 <?php elseif ($hasContent): ?>
 
-    <div class="card shadow-sm mb-3 position-relative"
+    <div class="card shadow-sm mb-3"
          id="<?= h($cardId) ?>"
-         style="max-height:<?= $maxH ?>;overflow:hidden;">
-        <div class="card-body p-3">
+         data-center-on-click
+         style="max-height:<?= $viewMaxH ?>;">
+        <div class="card-body p-3 overflow-auto">
             <div id="<?= h($bodyId) ?>" class="markdown-preview-body"></div>
         </div>
-        <?= $overlayHtml ?>
     </div>
 
 <?php else: ?>
@@ -128,10 +120,14 @@ $overlayHtml = '
 <?php if ($hasContent || ($fromEventView && $hasReport)): ?>
 <script>
 (function () {
-    var raw       = <?= json_encode($content) ?>;
-    var bodyId    = <?= json_encode($bodyId) ?>;
-    var cardId    = <?= json_encode($cardId) ?>;
-    var overlayId = <?= json_encode($overlayId) ?>;
+    var raw          = <?= json_encode($content) ?>;
+    var bodyId       = <?= json_encode($bodyId) ?>;
+    var cardId       = <?= json_encode($cardId) ?>;
+    var overlayId    = <?= json_encode($overlayId) ?>;
+    var reportId     = <?= json_encode($reportId) ?>;
+    var eventId      = <?= json_encode($eventId) ?>;
+    var templateVars = <?= json_encode($templateVariables ?? []) ?>;
+    var renderer     = null;
 
     function checkOverflow() {
         var card    = document.getElementById(cardId);
@@ -142,47 +138,32 @@ $overlayHtml = '
         }
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    function render(content) {
         var target = document.getElementById(bodyId);
-        if (!target) { return; }
-        function render() {
-            if (window.markdownit) {
-                var md = window.markdownit({
-                    html: false, linkify: true, typographer: true
-                });
-                target.innerHTML = md.render(raw);
-                checkOverflow();
-            } else {
-                setTimeout(render, 100);
+        if (!target || !renderer) { return; }
+        renderer.render(content, target);
+        checkOverflow();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!window.MispReportMarkdown) { return; }
+        renderer = window.MispReportMarkdown.create({
+            reportId: reportId,
+            eventId: eventId,
+            templateVariables: templateVars,
+            invalidMessage: <?= json_encode(__('invalid scope or id')) ?>
+        });
+        renderer.ready.then(function () { render(raw); });
+
+        document.addEventListener('misp:report-saved', function (event) {
+            if (!event.detail || Number(event.detail.reportId) !== Number(reportId)) {
+                return;
             }
-        }
-        render();
+            raw = event.detail.content;
+            render(raw);
+        });
     });
 
-    if (typeof erPreviewToggle === 'undefined') {
-        window.erPreviewToggle = function (link, cardId, overlayId, maxH) {
-            var card     = document.getElementById(cardId);
-            var overlay  = document.getElementById(overlayId);
-            var gradient = overlay.querySelector('.er-preview-gradient');
-            var icon     = link.querySelector('i');
-            var expanded = card.dataset.erExpanded === '1';
-            if (expanded) {
-                card.style.maxHeight    = maxH;
-                card.style.overflow     = 'hidden';
-                card.dataset.erExpanded = '0';
-                gradient.style.display  = '';
-                icon.className = 'fas fa-chevron-down me-1';
-                link.lastChild.textContent = ' <?= __('Show full content') ?>';
-            } else {
-                card.style.maxHeight    = 'none';
-                card.style.overflow     = 'visible';
-                card.dataset.erExpanded = '1';
-                gradient.style.display  = 'none';
-                icon.className = 'fas fa-chevron-up me-1';
-                link.lastChild.textContent = ' <?= __('Collapse') ?>';
-            }
-        };
-    }
 })();
 </script>
 <?php endif; ?>

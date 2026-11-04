@@ -14,7 +14,7 @@ if ($isSiteAdmin && $roleId !== '') {
     ];
     $actions[] = [
         'url' => "$baseurl/admin/roles/deleteSelection/$roleId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/admin/roles/deleteSelection/$roleId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/admin/roles/deleteSelection/$roleId', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete role'),
         'danger' => true,

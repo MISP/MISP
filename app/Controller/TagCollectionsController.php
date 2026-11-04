@@ -1,6 +1,7 @@
 <?php
 
 App::uses('AppController', 'Controller');
+App::uses('GalaxyColour', 'Tools');
 
 /**
  * @property TagCollection $TagCollection
@@ -58,28 +59,53 @@ class TagCollectionsController extends AppController
     public function addWithTags()
     {
         if ($this->request->is('post')) {
-            $data = $this->request->data;
-            // This is a create-only action: it calls saveAssociated() directly without ever
-            // pinning the primary key, and CakePHP treats an id in the save data as an UPDATE
-            // target. Without stripping it, a supplied TagCollection[id] turns the insert into a
-            // covert UPDATE of an arbitrary tag collection — and because org_id/user_id are forced
-            // to the current user below, that row is also re-owned to the attacker. Drop it so the
-            // save always inserts a new row (mirrors TagCollection::import() and the edit paths,
-            // which pin the id to the authorised record).
+            // Save the collection and its tag rows in two explicit steps rather than through
+            // saveAssociated(): a plain save() never writes belongsTo siblings, so an injected
+            // User/Organisation in the payload cannot reach the database, whatever associations
+            // TagCollection or TagCollectionTag may grow later.
+            $data = ['TagCollection' => (array)($this->request->data['TagCollection'] ?? [])];
+            // Create-only action: drop any supplied id so the save always inserts, and pin
+            // ownership to the current user.
             unset($data['TagCollection']['id']);
             $data['TagCollection']['org_id'] = $this->Auth->user('org_id');
             $data['TagCollection']['user_id'] = $this->Auth->user('id');
 
-            if (!empty($data['TagCollection']['tags'])) {
-                foreach ($data['TagCollection']['tags'] as $tagId) {
-                    $data['TagCollectionTag'][] = ['tag_id' => $tagId];
-                }
-            }
+            // Galaxy clusters live in a collection as their `misp-galaxy:` tag, so both
+            // pickers end up in the same TagCollectionTag rows.
+            $tagIds = array_unique(array_merge(
+                array_map('intval', array_filter((array)($data['TagCollection']['tags'] ?? []))),
+                $this->__clusterTagIds((array)($data['TagCollection']['galaxies'] ?? []))
+            ));
 
             $this->TagCollection->create();
-            if ($this->TagCollection->saveAssociated($data)) {
+            if ($this->TagCollection->save($data)) {
+                $collectionId = $this->TagCollection->id;
+                foreach ($tagIds as $tagId) {
+                    $this->TagCollection->TagCollectionTag->create();
+                    $this->TagCollection->TagCollectionTag->save([
+                        'tag_collection_id' => $collectionId,
+                        'tag_id' => $tagId
+                    ]);
+                }
+                if ($this->IndexFilter->isRest()) {
+                    return $this->RestResponse->saveSuccessResponse(
+                        'TagCollections',
+                        'addWithTags',
+                        $collectionId,
+                        $this->response->type()
+                    );
+                }
                 $this->Flash->success(__('Collection sauvegardée.'));
                 return $this->redirect(['action' => 'index']);
+            }
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->saveFailResponse(
+                    'TagCollections',
+                    'addWithTags',
+                    false,
+                    $this->TagCollection->validationErrors,
+                    $this->response->type()
+                );
             }
         }
         if ($this->IndexFilter->isRest()) {
@@ -88,7 +114,9 @@ class TagCollectionsController extends AppController
         $this->layout=false;
         $this->loadModel('Tag');
         $this->__setPickerTags();
+        $this->set('galaxyList', $this->__galaxyListForPicker());
         $this->set('currentTags', []);
+        $this->set('currentClusters', []);
         $this->set('action', 'add');
     }
 
@@ -97,6 +125,99 @@ class TagCollectionsController extends AppController
         $user = $this->Auth->user();
         $this->set('pickerAllTags', $this->Tag->getAllTagsForPicker($user));
         $this->set('pickerCustomTags', $this->Tag->getCustomTagsForPicker($user));
+    }
+
+    /**
+     * The galaxies of the galaxy-picker field's category buttons.
+     *
+     * @return array [['id' => int, 'name' => string, 'icon' => string], ...]
+     */
+    private function __galaxyListForPicker()
+    {
+        $this->loadModel('Galaxy');
+        $galaxyRows = $this->Galaxy->find('all', [
+            'recursive' => -1,
+            'fields' => ['Galaxy.id', 'Galaxy.name', 'Galaxy.icon'],
+            'order' => ['Galaxy.name asc'],
+        ]);
+        $galaxyList = [];
+        foreach ($galaxyRows as $galaxy) {
+            $galaxyList[] = [
+                'id' => (int)$galaxy['Galaxy']['id'],
+                'name' => $galaxy['Galaxy']['name'],
+                'icon' => !empty($galaxy['Galaxy']['icon'])
+                    ? $galaxy['Galaxy']['icon']
+                    : 'meteor',
+            ];
+        }
+        return $galaxyList;
+    }
+
+    /**
+     * A collection has no notion of a cluster: a galaxy in a collection is the
+     * cluster's `misp-galaxy:` tag. Resolve the picker's cluster ids to those
+     * tag ids, capturing the tag when the instance has never seen it - the same
+     * translation Galaxy::attachCluster() does for events and attributes.
+     *
+     * @param array $clusterIds GalaxyCluster ids posted by the galaxy picker
+     * @return array tag ids
+     */
+    private function __clusterTagIds(array $clusterIds)
+    {
+        $clusterIds = array_unique(array_map('intval', array_filter($clusterIds)));
+        if (empty($clusterIds)) {
+            return [];
+        }
+        $user = $this->Auth->user();
+        $this->loadModel('GalaxyCluster');
+        $clusters = $this->GalaxyCluster->fetchGalaxyClusters($user, [
+            'conditions' => ['GalaxyCluster.id' => $clusterIds],
+            'contain' => ['Galaxy'],
+            'fields' => ['GalaxyCluster.id', 'GalaxyCluster.tag_name',
+                'Galaxy.local_only'],
+        ]);
+        $tagIds = [];
+        foreach ($clusters as $cluster) {
+            $tagId = $this->TagCollection->TagCollectionTag->Tag->captureTag([
+                'name' => $cluster['GalaxyCluster']['tag_name'],
+                'colour' => '#0088cc',
+                'exportable' => 1,
+                'local_only' => $cluster['GalaxyCluster']['Galaxy']['local_only'] ?? 0,
+            ], $user, true);
+            if (!empty($tagId)) {
+                $tagIds[] = (int)$tagId;
+            }
+        }
+        return $tagIds;
+    }
+
+    /**
+     * The reverse translation, for the galaxy picker's pre-selected badges:
+     * the collection's galaxy tag names back to their clusters.
+     *
+     * @param array $galaxyTagNames `misp-galaxy:` tag names
+     * @return array [['id' => int, 'name' => string, 'galaxy' => string, 'hue' => int], ...]
+     */
+    private function __clustersForPicker(array $galaxyTagNames)
+    {
+        if (empty($galaxyTagNames)) {
+            return [];
+        }
+        $this->loadModel('GalaxyCluster');
+        $clusters = $this->GalaxyCluster->getClustersByTags(
+            array_values($galaxyTagNames), $this->Auth->user(), false, false
+        );
+        $entries = [];
+        foreach ($clusters as $cluster) {
+            $galaxyName = $cluster['GalaxyCluster']['Galaxy']['name'] ?? '';
+            $entries[] = [
+                'id' => (int)$cluster['GalaxyCluster']['id'],
+                'name' => $cluster['GalaxyCluster']['value'],
+                'galaxy' => $galaxyName,
+                'hue' => GalaxyColour::hue($galaxyName),
+            ];
+        }
+        return $entries;
     }
 
     public function import()
@@ -206,10 +327,9 @@ class TagCollectionsController extends AppController
         $tagCollection = $this->TagCollection->find('first', [
             'conditions' => $conditions,
             'recursive' => -1,
-            // The Tag rows feed the picker's pre-selected badges (name + colour)
             'contain' => [
                 'TagCollectionTag' => [
-                    'Tag' => ['fields' => ['id', 'name', 'colour']]
+                    'Tag' => ['fields' => ['id', 'name', 'colour', 'is_galaxy']]
                 ]
             ]
         ]);
@@ -221,8 +341,26 @@ class TagCollectionsController extends AppController
             throw new MethodNotAllowedException(__('You don\'t have editing rights on this Tag Collection.'));
         }
 
+        $storedPlainTagIds = [];
+        $storedGalaxyTagIds = [];
+        $storedGalaxyTagNames = [];
+        foreach ($tagCollection['TagCollectionTag'] as $collectionTag) {
+            if (empty($collectionTag['Tag'])) {
+                continue;
+            }
+            $tag = $collectionTag['Tag'];
+            if (empty($tag['is_galaxy'])) {
+                $storedPlainTagIds[] = (int)$tag['id'];
+            } else {
+                $storedGalaxyTagIds[] = (int)$tag['id'];
+                $storedGalaxyTagNames[(int)$tag['id']] = $tag['name'];
+            }
+        }
+
         if ($this->request->is(['post', 'put'])) {
-            $data = $this->request->data;
+            // Two explicit steps (save() then per-row tag saves), same reason as addWithTags:
+            // a plain save() cannot write an injected User/Organisation sibling.
+            $data = ['TagCollection' => (array)($this->request->data['TagCollection'] ?? [])];
 
             $data['TagCollection']['id'] = $id;
             $data['TagCollection']['uuid'] = $tagCollection['TagCollection']['uuid'];
@@ -231,46 +369,72 @@ class TagCollectionsController extends AppController
             $data['TagCollection']['org_id'] = $tagCollection['TagCollection']['org_id'];
             $data['TagCollection']['user_id'] = $tagCollection['TagCollection']['user_id'];
 
-            if (isset($data['TagCollection']['tags'])) {
-                $data['TagCollectionTag'] = [];
-                if (!empty($data['TagCollection']['tags'])) {
-                    foreach ($data['TagCollection']['tags'] as $tagId) {
-                        $data['TagCollectionTag'][] = ['tag_id' => $tagId];
-                    }
-                }
-
-                $this->TagCollection->TagCollectionTag->deleteAll(['tag_collection_id' => $id]);
+            // Both pickers always post (empty selections included), so a missing key means a
+            // caller that never had that picker - leave what it owns.
+            $rewriteTags = isset($data['TagCollection']['tags'])
+                || isset($data['TagCollection']['galaxies']);
+            $tagIds = [];
+            if ($rewriteTags) {
+                $plainTagIds = isset($data['TagCollection']['tags'])
+                    ? array_map('intval', array_filter((array)$data['TagCollection']['tags']))
+                    : $storedPlainTagIds;
+                $galaxyTagIds = isset($data['TagCollection']['galaxies'])
+                    ? $this->__clusterTagIds((array)$data['TagCollection']['galaxies'])
+                    : $storedGalaxyTagIds;
+                $tagIds = array_unique(array_merge($plainTagIds, $galaxyTagIds));
             }
 
-            if ($this->TagCollection->saveAssociated($data)) {
-                $this->Flash->success(__('Collection mise à jour.'));
-                if ($this->IndexFilter->isRest()) {
-                    return $this->restResponsePayload;
+            if ($this->TagCollection->save($data)) {
+                if ($rewriteTags) {
+                    $this->TagCollection->TagCollectionTag->deleteAll(['tag_collection_id' => $id]);
+                    foreach ($tagIds as $tagId) {
+                        $this->TagCollection->TagCollectionTag->create();
+                        $this->TagCollection->TagCollectionTag->save([
+                            'tag_collection_id' => $id,
+                            'tag_id' => $tagId
+                        ]);
+                    }
                 }
+                if ($this->IndexFilter->isRest()) {
+                    return $this->RestResponse->saveSuccessResponse(
+                        'TagCollections',
+                        'editWithTags',
+                        $id,
+                        $this->response->type()
+                    );
+                }
+                $this->Flash->success(__('Collection mise à jour.'));
                 return $this->redirect(['action' => 'index']);
+            }
+            if ($this->IndexFilter->isRest()) {
+                return $this->RestResponse->saveFailResponse(
+                    'TagCollections',
+                    'editWithTags',
+                    $id,
+                    $this->TagCollection->validationErrors,
+                    $this->response->type()
+                );
             }
         } else {
             $this->request->data = $tagCollection;
 
-            if (!empty($tagCollection['TagCollectionTag'])) {
-                $this->request->data['TagCollection']['tags'] = Hash::extract(
-                    $tagCollection['TagCollectionTag'],
-                    '{n}.tag_id'
-                );
-            }
+            $this->request->data['TagCollection']['tags'] = $storedPlainTagIds;
+            $this->request->data['TagCollection']['galaxies'] = $storedGalaxyTagIds;
         }
 
         $this->layout = false;
         $this->loadModel('Tag');
         $this->__setPickerTags();
+        $this->set('galaxyList', $this->__galaxyListForPicker());
 
         $currentTags = [];
         foreach ($tagCollection['TagCollectionTag'] as $collectionTag) {
-            if (!empty($collectionTag['Tag'])) {
+            if (!empty($collectionTag['Tag']) && empty($collectionTag['Tag']['is_galaxy'])) {
                 $currentTags[] = $this->Tag->pickerTagEntry($collectionTag['Tag']);
             }
         }
         $this->set('currentTags', $currentTags);
+        $this->set('currentClusters', $this->__clustersForPicker($storedGalaxyTagNames));
         $this->set('action', 'editWithTags');
         $this->render('addWithTags');
     }

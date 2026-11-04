@@ -154,6 +154,12 @@ $fields = [
             ] : null,
             [
                 'type' => 'navigate',
+                'label' => __('Details'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/workflows/moduleView/%id%',
+            ],
+            [
+                'type' => 'navigate',
                 'label' => __('Open in editor'),
                 'icon' => 'code',
                 'url' => $baseurl . '/workflows/editor/%workflow_id%',
@@ -177,7 +183,7 @@ $fields = [
                 'type' => 'modal',
                 'label' => __('Enable debug'),
                 'icon' => 'bug',
-                'size' => 'sm',
+                'size' => 'md',
                 'url' => $baseurl . '/workflows/toggleDebugMode/%workflow_id%/1',
                 'url_params_data_paths' => ['workflow_id' => 'Workflow.id'],
                 'requirement' => function ($row) {
@@ -188,7 +194,7 @@ $fields = [
                 'type' => 'modal',
                 'label' => __('Disable debug'),
                 'icon' => 'bug-slash',
-                'size' => 'sm',
+                'size' => 'md',
                 'url' => $baseurl . '/workflows/toggleDebugMode/%workflow_id%/0',
                 'url_params_data_paths' => ['workflow_id' => 'Workflow.id'],
                 'requirement' => function ($row) {

@@ -28,16 +28,6 @@ $this->set('headerDescription', $headerDescription);
 <div class="card mb-3 shadow-sm">
     <div class="card-body">
 
-        <!-- NAME -->
-        <div class="mb-4">
-            <div class="text-muted small text-uppercase fw-bold mb-1">
-                <?= __('Name') ?>
-            </div>
-            <div class="fw-semibold fs-5">
-                <?= h($report['name'] ?? '') ?>
-            </div>
-        </div>
-
         <!-- META GRID -->
         <div class="row g-3">
 

@@ -239,13 +239,12 @@
                     'title' => __('Explore')
                 ],
                 [
-                    'url' => $baseurl . '/servers/pull',
-                    'url_params_data_paths' => [
-                        'Server.id',
-                        'update'
-                    ],
+                    'url' => $baseurl . '/servers/pull/%s/update',
+                    'url_replace' => ['Server.id'],
                     'icon' => 'sync',
                     'title' => __('Pull updates to events that already exist locally'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to pull updates to events that already exist locally from this server?'),
                     'complex_requirement' => [
                         'function' => function ($row) {
                             return !empty($row['Server']['pull']);
@@ -253,13 +252,12 @@
                     ]
                 ],
                 [
-                    'url' => $baseurl . '/servers/pull',
-                    'url_params_data_paths' => [
-                        'Server.id',
-                        'full'
-                    ],
+                    'url' => $baseurl . '/servers/pull/%s/full',
+                    'url_replace' => ['Server.id'],
                     'icon' => 'arrow-circle-down',
                     'title' => __('Pull all'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to pull all events from this server?'),
                     'complex_requirement' => [
                         'function' => function ($row) {
                             return !empty($row['Server']['pull']);
@@ -267,13 +265,12 @@
                     ]
                 ],
                 [
-                    'url' => $baseurl . '/servers/pull',
-                    'url_params_data_paths' => [
-                        'Server.id',
-                        'pull_relevant_clusters'
-                    ],
+                    'url' => $baseurl . '/servers/pull/%s/pull_relevant_clusters',
+                    'url_replace' => ['Server.id'],
                     'icon' => 'tags',
                     'title' => __('Pull known relevant custom clusters'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to pull the known relevant custom clusters from this server?'),
                     'complex_requirement' => [
                         'function' => function ($row) {
                             return !empty($row['Server']['pull']) && !empty($row['Server']['pull_galaxy_clusters']);
@@ -281,13 +278,12 @@
                     ]
                 ],
                 [
-                    'url' => $baseurl . '/servers/push',
-                    'url_params_data_paths' => [
-                        'Server.id',
-                        'full'
-                    ],
+                    'url' => $baseurl . '/servers/push/%s/full',
+                    'url_replace' => ['Server.id'],
                     'icon' => 'arrow-circle-up',
                     'title' => __('Push all'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to push all events to this server?'),
                     'complex_requirement' => [
                         'function' => function ($row) {
                             return !empty($row['Server']['push']);
@@ -301,6 +297,8 @@
                     ],
                     'icon' => 'memory',
                     'title' => __('Cache instance'),
+                    'postLink' => true,
+                    'postLinkConfirm' => __('Are you sure you want to cache the contents of this server?'),
                     'complex_requirement' => [
                         'function' => function ($row) {
                             return !empty($row['Server']['caching_enabled']);

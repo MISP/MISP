@@ -10,28 +10,17 @@ usort($modules, function ($a, $b) {
 });
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(72,67,92,.06);
-            border-bottom:2px solid var(--enrichment);">
-    <div>
-        <div class="text-enrichment text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= h($type === 'Cortex' ? __('Cortex') : __('Enrichment')) ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-wand-magic-sparkles text-enrichment" style="font-size:1.2rem;"></i>
-            <?= __('Choose a module') ?>
-            <?php if (!empty($modules)): ?>
-                <span class="badge rounded-pill text-bg-light border"><?= count($modules) ?></span>
-            <?php endif; ?>
-        </h4>
-        <div class="text-muted small mt-1">
-            <?= __('The selected module will be queried and its results shown for review before import.') ?>
-        </div>
-    </div>
-    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= __('Close') ?>"></button>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'enrichment',
+    'eyebrow' => $type === 'Cortex' ? __('Cortex') : __('Enrichment'),
+    'title' => __('Choose a module'),
+    'titleBadge' => empty($modules)
+        ? ''
+        : '<span class="badge rounded-pill text-bg-light border">' . count($modules) . '</span>',
+    'titleIcon' => 'fas fa-wand-magic-sparkles',
+    'description' => __('The selected module will be queried and its results shown for review before import.'),
+    'close' => true,
+]) ?>
 
 <!-- ── BODY ─────────────────────────────────────────────────── -->
 <div class="p-4" style="background:var(--bs-tertiary-bg, #f8f9fa);">

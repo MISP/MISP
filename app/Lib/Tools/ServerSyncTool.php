@@ -265,14 +265,12 @@ class ServerSyncTool
             throw new RuntimeException("Remote server do not support analyst data");
         }
 
-        $params = [
-            'uuid' => $uuids,
-        ];
-
-        $url = '/analyst_data/index/' . $type;
-        $url .= $this->createParams($params);
-        $url .= '.json';
-        return $this->get($url);
+        // Send the UUID list in the POST body rather than the URL. As a GET
+        // every UUID rode in the request line as a named parameter, so a large
+        // batch overran the web server limit and the pull failed with 414. The
+        // analyst_data/index action already harvests its filters (uuid among
+        // them) from a POST body, the same shape fetchIndexMinimal() uses.
+        return $this->post('/analyst_data/index/' . $type, ['uuid' => $uuids]);
     }
 
     /**

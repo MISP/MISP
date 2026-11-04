@@ -1,18 +1,14 @@
 <?php
-App::uses('DistributionLevel', 'Tools');
-
 $eventId   = $event['Event']['id'];
-$total     = (int)($total ?? 0);
-$page      = (int)($page  ?? 1);
-$limit     = (int)($limit ?? 60);
-$totalPages = $limit > 0 ? (int)ceil($total / $limit) : 1;
-$window     = 2;
-$objectsUrl = '/events/viewObjects/' . $eventId;
+// The extended / extending mode rides along on every URL this list builds,
+// so a filter, a toggle or a page change never falls back to the atomic view.
+$objectsUrl = '/events/viewObjects/' . $eventId . ($extensionSuffix ?? '');
 
 $namedParams     = $this->request->params['named'] ?? [];
 $currentDeleted  = (int)($namedParams['deleted'] ?? 0);
 $currentProposal = (int)($namedParams['proposal'] ?? 0);
-$toggleDeleted   = $currentDeleted ? 0 : 1;
+// deleted:2 is "only what holds something soft-deleted"
+$toggleDeleted   = $currentDeleted ? 0 : 2;
 $toggleProposal  = $currentProposal ? 0 : 1;
 // Fallback hrefs (the JS rebuilds the real URL); each preserves the other toggle.
 $toggleUrl       = $baseurl . $objectsUrl
@@ -35,17 +31,88 @@ $canTagObj = isset($event)
 $_enrichmentEnabled = (bool)Configure::read('Plugin.Enrichment_services_enable');
 $_cortexEnabled = (bool)Configure::read('Plugin.Cortex_services_enable');
 
-// Inline helper: render a small distribution badge. A named function has no
-// $this, so the lib is called statically rather than through the helper.
-function _objDistBadge($dist) {
-    $c = DistributionLevel::get($dist);
-    return sprintf(
-        '<span class="badge d-inline-flex align-items-center px-2 py-1"'
-        . ' style="background:%s;color:%s;border:1px solid %s20;font-weight:500;">'
-        . '<i class="%s"></i></span>',
-        h($c['bg']), h($c['color']), h($c['color']), h($c['icon'])
-    );
-}
+// Extended / extending event view: an object can belong to any event of the
+// merged set, so its card says which one and wears that event's accent.
+$extensionEvents = $extensionEvents ?? [];
+$inExtensionView = count($extensionEvents) > 1;
+
+// Everything the two renderings of an object (the accordion list and the card
+// grid) need to derive from it. Computed once per object, by whichever loop is
+// rendering — the two must not drift on rights, origin or ordering.
+$objContext = function (array $object) use (
+    $inExtensionView, $extensionEvents, $canEdit, $canTagObj, $currentProposal
+) {
+    $attrs = $object['Attribute'] ?? [];
+    $origin = $inExtensionView
+        ? ($extensionEvents[(int)($object['event_id'] ?? 0)] ?? null)
+        : null;
+    $foreign = $origin !== null && $origin['role'] !== 'self';
+    $first = empty($attrs) ? null : reset($attrs);
+    $hasProposal = false;
+    foreach ($attrs as $_a) {
+        if (!empty($_a['ShadowAttribute'])) { $hasProposal = true; break; }
+    }
+    return [
+        'id' => (int)$object['id'],
+        'attrs' => $attrs,
+        'count' => count($attrs),
+        'deleted' => !empty($object['deleted']),
+        'origin' => $origin,
+        // A merged object belongs to another event, whose editing and tagging
+        // rights are not the same as the current event's.
+        'canEdit' => $origin === null ? $canEdit : !empty($origin['mayModify']),
+        'canTag' => $origin === null ? $canTagObj : !empty($origin['mayModifyTag']),
+        'style' => $foreign ? sprintf(
+            'border-left:4px solid %s !important;background:%s;',
+            $origin['palette']['badgeBorder'],
+            $origin['palette']['sectionBg']
+        ) : '',
+        'firstValue' => $first === null ? '' : (string)($first['value'] ?? ''),
+        'firstRelation' => $first === null
+            ? '' : (string)($first['object_relation'] ?? ''),
+        // Auto-expand objects that carry a proposal while the Proposals toggle is on
+        'expand' => $currentProposal && $hasProposal,
+    ];
+};
+
+// The attribute index's panel, led by what only an object has. An attribute
+// filter keeps the objects holding at least one matching attribute.
+App::uses('AttributeFilterPanel', 'Tools');
+$moreFilterChildren = AttributeFilterPanel::children(
+    [
+        'categoryOptions' => $categoryOptions ?? null,
+        'typeOptions' => $typeOptions ?? null,
+        'orgOptions' => $orgOptions ?? null,
+        'tagOptions' => $tagOptions ?? null,
+        'galaxyOptions' => $galaxyOptions ?? null,
+    ],
+    true,
+    [
+        ['name' => 'name', 'label' => __('Template'), 'options' => $templateOptions ?? null, 'col' => 3],
+        ['name' => 'meta-category', 'label' => __('Meta-category'), 'options' => $metaCategoryOptions ?? null, 'col' => 3],
+    ]
+);
+
+// The fold controls only have something to act on once the page holds an
+// object, so an empty list gets no pair of dead buttons.
+$foldChildren = empty($objects) ? [] : [
+    [
+        'type'    => 'button_group',
+        'label'   => __('Expand or collapse every object'),
+        'buttons' => [
+            [
+                'class' => 'btn btn-outline-primary obj-expand-all',
+                'icon'  => 'fas fa-angles-down',
+                'label' => __('Expand all'),
+            ],
+            [
+                'class' => 'btn btn-outline-primary obj-collapse-all',
+                'icon'  => 'fas fa-angles-up',
+                'label' => __('Collapse all'),
+            ],
+        ],
+    ],
+];
 ?>
 
 <div id="objectListContainer" class="container-fluid px-0">
@@ -58,13 +125,18 @@ function _objDistBadge($dist) {
                 [
                     'scaffold_data' => [
                         'filter_bar' => [
-                            'children' => [
+                            'children' => array_merge([
                                 [
                                     'type'        => 'search',
                                     'button'      => __('Search'),
                                     'placeholder' => __('Filter objects…'),
                                     'mode'        => 'legacy',
                                     'name'        => 'searchFor',
+                                ],
+                                [
+                                    'type'     => 'more_filters',
+                                    'label'    => __('More filters'),
+                                    'children' => $moreFilterChildren,
                                 ],
                                 [
                                     'type'  => 'button',
@@ -80,13 +152,34 @@ function _objDistBadge($dist) {
                                     'icon'  => 'fas fa-trash',
                                     'label' => __('Deleted') . (!empty($deletedCount) ? ' (' . (int)$deletedCount . ')' : ''),
                                 ],
-                            ],
+                            ], $foldChildren),
                         ],
                     ],
                     'item_url' => $objectsUrl,
                 ]
             ) ?>
             <?php if ($canEdit): ?>
+            <div id="objMultiSelectToolbar" class="mt-2 d-none">
+                <div class="p-2 border rounded bg-light d-flex align-items-center gap-2 flex-wrap">
+                    <strong>
+                        <?= __('Selected objects') ?>:
+                        <span id="objSelectedCount">0</span>
+                    </strong>
+                    <button id="obj-multi-delete-button"
+                            class="btn btn-danger btn-sm"
+                            type="button"
+                            title="<?= __('Delete selected objects') ?>"
+                            aria-label="<?= __('Delete selected objects') ?>">
+                        <i class="fas fa-trash text-white"></i>
+                        <span class="text-white"> <?= __('Delete') ?></span>
+                    </button>
+                    <button id="obj-clear-selection-button"
+                            class="btn btn-outline-secondary btn-sm"
+                            type="button">
+                        <?= __('Clear selection') ?>
+                    </button>
+                </div>
+            </div>
             <div id="multiSelectToolbar" class="mt-2 d-none">
                 <div class="p-2 border rounded bg-light d-flex align-items-center gap-2 flex-wrap">
                     <strong>
@@ -107,97 +200,72 @@ function _objDistBadge($dist) {
         </div>
     </div>
 
-    <!-- ── Object cards ────────────────────────────────────── -->
+    <!-- ── Objects: list view (accordion) / card view ──────── -->
     <?php if (!empty($objects)): ?>
+        <div id="objTableView">
         <div class="accordion" id="objectAccordion">
         <?php foreach ($objects as $idx => $object): ?>
         <?php
-            $objId       = (int)$object['id'];
+            $ctx = $objContext($object);
+            $objId       = $ctx['id'];
             $collapseId  = 'obj_collapse_' . $objId;
             $headingId   = 'obj_heading_'  . $objId;
-            $attrCount   = count($object['Attribute'] ?? []);
-            // Auto-expand objects that carry a proposal while the Proposals
-            // toggle is on, so toggling it open/closes every object with a
-            // pending proposal.
-            $hasProposal = false;
-            foreach (($object['Attribute'] ?? []) as $_a) {
-                if (!empty($_a['ShadowAttribute'])) { $hasProposal = true; break; }
-            }
-            $expandForProposal = $currentProposal && $hasProposal;
+            $expandForProposal = $ctx['expand'];
+            $isDeleted   = $ctx['deleted'];
+            $objOrigin   = $ctx['origin'];
+            $objStyle    = $ctx['style'];
+            $objCanEdit  = $ctx['canEdit'];
+            $objCanTag   = $ctx['canTag'];
         ?>
-
-        <?php $isDeleted = !empty($object['deleted']); ?>
         <div class="accordion-item shadow-sm mb-2 rounded border<?= $isDeleted ? ' opacity-50' : '' ?>"
+             style="<?= h($objStyle) ?>"
              data-primary-id="<?= $objId ?>">
 
             <!-- Card header -->
-            <h2 class="accordion-header" id="<?= $headingId ?>">
-                <button class="accordion-button<?= $expandForProposal ? '' : ' collapsed' ?> py-2 px-3 rounded"
+            <h2 class="accordion-header obj-header d-flex align-items-center" id="<?= $headingId ?>">
+                <?php if ($objCanEdit): ?>
+                <span class="ps-3 pe-1 d-inline-flex align-items-center flex-shrink-0 checkbox-index">
+                    <input type="checkbox"
+                           class="obj-select form-check-input mt-0"
+                           data-object-id="<?= $objId ?>"
+                           aria-label="<?= h(__('Select this object')) ?>"
+                           title="<?= h(__('Select this object')) ?>">
+                </span>
+                <?php endif; ?>
+                <button class="accordion-button<?= $expandForProposal ? '' : ' collapsed' ?> py-2 <?= $objCanEdit ? 'ps-2 pe-3' : 'px-3' ?> rounded flex-grow-1"
+                        style="min-width:0;"
                         type="button"
                         data-bs-toggle="collapse"
                         data-bs-target="#<?= $collapseId ?>"
                         aria-expanded="<?= $expandForProposal ? 'true' : 'false' ?>"
                         aria-controls="<?= $collapseId ?>">
 
-                    <span class="d-flex align-items-center
-                                 flex-wrap gap-2 w-100 me-2">
-
-                        <!-- Distribution -->
-                        <?= _objDistBadge($object['distribution'] ?? 0) ?>
-
-                        <?php if ($isDeleted): ?>
-                        <span class="badge bg-danger bg-opacity-75 text-white">
-                            <i class="fas fa-trash me-1"></i><?= __('Deleted') ?>
-                        </span>
-                        <?php endif; ?>
-
-                        <!-- Name -->
-                        <span class="fw-semibold">
-                            <span class="misp-icon misp-icon-object misp-hexagone me-1 text-secondary"></span>
-                            <?= h($object['name']) ?>
-                        </span>
-
-                        <!-- Meta-category -->
-                        <?php if (!empty($object['meta-category'])): ?>
-                            <span class="badge rounded-pill text-bg-light
-                                         border text-secondary fw-normal">
-                                <?= h($object['meta-category']) ?>
-                            </span>
-                        <?php endif; ?>
-
-                        <!-- Comment (truncated) -->
-                        <?php if (!empty($object['comment'])): ?>
-                            <span class="text-muted fst-italic small
-                                         text-truncate" style="max-width:500px;">
-                                <i class="fas fa-comment fa-xs me-1"></i>
-                                <?= h($object['comment']) ?>
-                            </span>
-                        <?php endif; ?>
-
-                        <!-- Attribute count chip -->
-                        <span class="badge rounded-pill bg-secondary-subtle
-                                     text-secondary ms-auto">
-                            <?= __n(
-                                '%s attribute',
-                                '%s attributes',
-                                $attrCount, $attrCount
-                            ) ?>
-                        </span>
-
-                        <!-- Timestamp -->
-                        <span class="text-muted small text-nowrap">
-                            <i class="fas fa-clock fa-xs me-1"></i>
-                            <?= date('Y-m-d', (int)$object['timestamp']) ?>
-                        </span>
-
-                    </span>
+                    <?= $this->element('Objects/object_header', [
+                        'object' => $object,
+                        'ctx' => $ctx,
+                    ]) ?>
 
                 </button>
+
+                <?php
+                /*
+                 * Outside the accordion button on purpose: a link inside it would
+                 * collapse the card on the way to its target.
+                 */
+                $objRefs = $object['ObjectReference'] ?? [];
+                ?>
+                <?php if (!empty($objRefs)): ?>
+                    <?= $this->element('Objects/object_relationships', [
+                        'references' => $objRefs,
+                        'objId' => $objId,
+                        'eventId' => $object['event_id'] ?? null,
+                    ]) ?>
+                <?php endif; ?>
             </h2>
 
             <!-- Card body -->
             <div id="<?= $collapseId ?>"
-                 class="accordion-collapse collapse<?= $expandForProposal ? ' show' : '' ?>"
+                 class="accordion-collapse obj-collapse collapse<?= $expandForProposal ? ' show' : '' ?>"
                  aria-labelledby="<?= $headingId ?>">
 
                 <div class="accordion-body p-0">
@@ -205,14 +273,15 @@ function _objDistBadge($dist) {
                     <!-- Object meta row -->
                     <?php if (
                         !empty($object['description'])
+                        || !empty($object['comment'])
                         || !empty($object['uuid'])
                         || !empty($object['first_seen'])
                         || !empty($object['last_seen'])
-                        || $canEdit
+                        || $objCanEdit
 
                     ): ?>
                     <div class="px-3 py-2 bg-light border-bottom
-                                d-flex flex-wrap align-items-center gap-3 small text-muted">
+                                d-flex flex-wrap align-items-center gap-2 small text-muted">
                         <?php if (!empty($object['uuid'])): ?>
                             <span class="d-inline-flex align-items-center gap-1">
                                 <i class="fas fa-fingerprint me-1"></i>
@@ -227,6 +296,15 @@ function _objDistBadge($dist) {
                                 </button>
                             </span>
                         <?php endif; ?>
+                        <?php if (!empty($object['comment'])): ?>
+                            <span class="card card-link-item bg-white w-100">
+                                <div class="card-body p-1 text-truncate">
+                                    <i class="fas fa-comment"></i>
+                                    <?= h($object['comment']) ?>
+                                </div>
+                            </span>
+                        <?php endif; ?>
+                        <?= $this->element('Objects/object_taxonomy', ['object' => $object]) ?>
                         <?php
                             $fmtSeen = function ($value) {
                                 $dt = date_create((string)$value);
@@ -261,15 +339,8 @@ function _objDistBadge($dist) {
                                 </span>
                             </span>
                         <?php endif; ?>
-                        <?php if (!empty($object['template_version'])): ?>
-                            <span>
-                                <span class="misp-icon misp-icon-tag misp-hexagone me-1"></span>
-                                <?= __('Template v%s',
-                                    h($object['template_version'])) ?>
-                            </span>
-                        <?php endif; ?>
 
-                        <?php if ($canEdit): ?>
+                        <?php if ($objCanEdit): ?>
                             <a href="<?= $baseurl ?>/objects/edit/<?= $objId ?>"
                             onclick="event.preventDefault(); openModal('<?= $baseurl ?>/objects/edit/<?= $objId ?>');"
                             class="btn btn-sm btn-outline-secondary ms-auto">
@@ -282,7 +353,7 @@ function _objDistBadge($dist) {
                             ?>
                             <a href="<?= $delUrl ?>"
                             class="btn btn-sm btn-outline-danger"
-                            onclick="event.preventDefault(); openModal('<?= $delUrl ?>', 'sm');">
+                            onclick="event.preventDefault(); openModal('<?= $delUrl ?>', 'md');">
                                 <i class="fas fa-trash me-1"></i>
                                 <?= $delLabel ?>
                             </a>
@@ -296,7 +367,7 @@ function _objDistBadge($dist) {
                             <?php endif; ?>
                         <?php endif; ?>
                         <?php if (!empty($me['Role']['perm_analyst_data'])): ?>
-                            <div class="<?= $canEdit ? '' : 'ms-auto' ?>">
+                            <div class="<?= $objCanEdit ? '' : 'ms-auto' ?>">
                                 <?= $this->element('AnalystData/add_controls', [
                                     'objectType' => 'Object',
                                     'objectUuid' => $object['uuid'] ?? '',
@@ -315,18 +386,19 @@ function _objDistBadge($dist) {
                                       align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="ps-3" style="width:1%"></th>
-                                    <th style="width:30%"><?= __('Value') ?></th>
-                                    <th style="width:10%"><?= __('Type') ?></th>
-                                    <th style="width:10%"><?= __('Category') ?></th>
-                                    <th style="width:15%"><?= __('Tags') ?></th>
-                                    <th style="width:15%"><?= __('Galaxies') ?></th>
-                                    <th class="text-center"><?= __('IDS') ?></th>
-                                    <th class="text-center"><?= __('Correlate') ?></th>
-                                    <th style="width:10%"><?= __('Related Events') ?></th>
-                                    <th style="width:10%"><?= __('Feed Hits') ?></th>
-                                    <th style="width:8%"><?= __('Sightings') ?></th>
-                                    <th class="pe-3" style="width:1%"></th>
+                                    <th></th>
+                                    <th><?= __('Value') ?></th>
+                                    <th><?= __('Type') ?></th>
+                                    <th><?= __('Category') ?></th>
+                                    <th><?= __('Tags') ?></th>
+                                    <th><?= __('Galaxies') ?></th>
+                                    <th><?= __('IDS') ?></th>
+                                    <th><?= __('Correlate') ?></th>
+                                    <th><?= __('Related Events') ?></th>
+                                    <th><?= __('Feed Hits') ?></th>
+                                    <th><?= __('Sightings') ?></th>
+                                    <th><?= __('Analyst data') ?></th>
+                                    <th class="me-2"><?= __('Actions') ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -341,7 +413,7 @@ function _objDistBadge($dist) {
                                 endif; ?>>
 
                                     <!-- Checkbox -->
-                                    <td class="ps-3">
+                                    <td>
                                         <div class="d-inline-flex align-items-center
                                                     checkbox-actions-wrapper
                                                     checkbox-index">
@@ -350,7 +422,7 @@ function _objDistBadge($dist) {
                                                 class="item-checkbox form-check-input
                                                        mass-select mt-0"
                                                 data-item-id="<?= $attrId ?>"
-                                                data-can-delete="<?= $canEdit ? '1' : '0' ?>"
+                                                data-can-delete="<?= $objCanEdit ? '1' : '0' ?>"
                                             >
                                         </div>
                                     </td>
@@ -364,14 +436,6 @@ function _objDistBadge($dist) {
                                                 'field' => ['data_path' => 'Attribute'],
                                             ]
                                         ); ?>
-                                        <?php if (!empty($attr['warnings'])): ?>
-                                            <i class="fas fa-exclamation-triangle
-                                                       text-warning ms-1"
-                                               title="<?= h(implode(', ', array_column(
-                                                   $attr['warnings'],
-                                                   'warninglist_name'
-                                               ))) ?>"></i>
-                                        <?php endif; ?>
                                     </td>
 
                                     <!-- Category + Relation (merged) -->
@@ -409,9 +473,11 @@ function _objDistBadge($dist) {
                                                 'row'   => $attr,
                                                 'field' => [
                                                     'data_path'       => 'AttributeTag',
-                                                    'add_tag'         => $canTagObj,
+                                                    'add_tag'         => $objCanTag,
                                                     'add_tag_url'     => $baseurl . '/attributes/editAttributeTags/%id%',
                                                     'add_tag_id_path' => 'id',
+                                                    'add_relationship_url' => $baseurl
+                                                        . '/attributes/editAttributeTagRelationships/%id%',
                                                 ],
                                             ]
                                         ); ?>
@@ -426,9 +492,11 @@ function _objDistBadge($dist) {
                                                 'row'   => $attr,
                                                 'field' => [
                                                     'data_path'          => 'Galaxy',
-                                                    'add_galaxy'         => $canTagObj,
+                                                    'add_galaxy'         => $objCanTag,
                                                     'add_galaxy_url'     => $baseurl . '/attributes/editAttributeGalaxies/%id%',
                                                     'add_galaxy_id_path' => 'id',
+                                                    'add_galaxy_relationship_url' => $baseurl
+                                                        . '/attributes/editAttributeGalaxyRelationships/%id%',
                                                 ],
                                             ]
                                         ); ?>
@@ -494,86 +562,35 @@ function _objDistBadge($dist) {
                                         ); ?>
                                     </td>
 
+                                    <!-- Analyst data -->
+                                    <td>
+                                        <?= $this->element(
+                                            'genericElementsBS5/IndexTable/Fields/analyst_data_badges',
+                                            [
+                                                'row'   => $attr,
+                                                'field' => [
+                                                    'note_path'         => 'Note',
+                                                    'opinion_path'      => 'Opinion',
+                                                    'relationship_path' => 'Relationship',
+                                                    'uuid_path'         => 'uuid',
+                                                    'object_type'       => 'Attribute',
+                                                ],
+                                            ]
+                                        ) ?>
+                                    </td>
+
                                     <!-- Actions (3-dots dropdown) -->
                                     <td class="pe-3">
                                         <div class="d-inline-flex align-items-center
                                                     checkbox-actions-wrapper
                                                     checkbox-index">
-                                            <div class="dropdown">
-                                                <button
-                                                    class="btn btn-sm btn-light p-1"
-                                                    type="button"
-                                                    data-bs-toggle="dropdown"
-                                                    aria-expanded="false">
-                                                    <i class="fa-solid fa-ellipsis-vertical fs-5"></i>
-                                                </button>
-                                                <ul class="dropdown-menu
-                                                           dropdown-menu-end
-                                                           shadow-sm">
-                                                    <li>
-                                                        <a class="dropdown-item justify-content-start"
-                                                           href="#"
-                                                           onclick="event.preventDefault(); copyValueToClipboard('<?= h($attr['uuid'] ?? '') ?>', '<?= h(__('UUID copied to clipboard')) ?>');">
-                                                            <i class="fas fa-copy me-2"></i>
-                                                            <?= __('Copy UUID') ?>
-                                                        </a>
-                                                    </li>
-                                                    <?php if (!empty($me['Role']['perm_add']) && empty($attr['deleted'])): ?>
-                                                    <li>
-                                                        <a class="dropdown-item justify-content-start"
-                                                           href="#"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/shadow_attributes/edit/<?= $attrId ?>');">
-                                                            <i class="fas fa-comment-dots me-2"></i>
-                                                            <?= __('Propose change') ?>
-                                                        </a>
-                                                    </li>
-                                                    <?php endif; ?>
-                                                    <?php if ($canEdit && $_enrichmentEnabled && empty($attr['deleted'])): ?>
-                                                    <li>
-                                                        <a class="dropdown-item justify-content-start"
-                                                           href="#"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Enrichment/Attribute');">
-                                                            <i class="fas fa-wand-magic-sparkles text-enrichment me-2"></i>
-                                                            <?= __('Enrich') ?>
-                                                        </a>
-                                                    </li>
-                                                    <?php endif; ?>
-                                                    <?php if ($canEdit && $_cortexEnabled && empty($attr['deleted'])): ?>
-                                                    <li>
-                                                        <a class="dropdown-item justify-content-start"
-                                                           href="#"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/events/queryEnrichment/<?= $attrId ?>/0/Cortex/Attribute');">
-                                                            <i class="fas fa-eye me-2"></i>
-                                                            <?= __('Enrich (Cortex)') ?>
-                                                        </a>
-                                                    </li>
-                                                    <?php endif; ?>
-                                                    <?php if ($canEdit): ?>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li>
-                                                        <a class="dropdown-item justify-content-start"
-                                                           href="<?= $baseurl ?>/attributes/edit/<?= $attrId ?>"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/edit/<?= $attrId ?>');">
-                                                            <i class="fas fa-pen-to-square me-2"></i>
-                                                            <?= __('Edit') ?>
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a class="dropdown-item text-danger justify-content-start"
-                                                           href="<?= $baseurl ?>/attributes/delete/<?= $attrId ?>"
-                                                           onclick="event.preventDefault(); openModal('<?= $baseurl ?>/attributes/delete/<?= $attrId ?>', 'sm');">
-                                                            <i class="fas fa-trash me-2"></i>
-                                                            <?= __('Delete') ?>
-                                                        </a>
-                                                    </li>
-                                                    <?php endif; ?>
-                                                    <?= $this->element('AnalystData/add_controls', [
-                                                        'objectType' => 'Attribute',
-                                                        'objectUuid' => $attr['uuid'] ?? '',
-                                                        'mode' => 'menu_items',
-                                                    ]) ?>
-                                                </ul>
-                                            </div>
+                                            <?= $this->element('Objects/attribute_actions', [
+                                                'attr' => $attr,
+                                                'canEdit' => $objCanEdit,
+                                                'enrichmentEnabled' => $_enrichmentEnabled,
+                                                'cortexEnabled' => $_cortexEnabled,
+                                                'showView' => false,
+                                            ]) ?>
                                         </div>
                                     </td>
                                 </tr>
@@ -594,6 +611,20 @@ function _objDistBadge($dist) {
         </div><!-- /.accordion-item -->
         <?php endforeach; ?>
         </div><!-- /#objectAccordion -->
+        </div><!-- /#objTableView -->
+
+        <div id="objCardView" class="d-none">
+            <div class="idx-card-grid row g-0 row-cols-1 row-cols-xl-2 row-cols-xxxl-3">
+                <?php foreach ($objects as $object): ?>
+                    <?= $this->element('Objects/object_card', [
+                        'object' => $object,
+                        'ctx' => $objContext($object),
+                        'enrichmentEnabled' => $_enrichmentEnabled,
+                        'cortexEnabled' => $_cortexEnabled,
+                    ]) ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
 
     <?php else: ?>
         <div class="card shadow-sm">
@@ -604,52 +635,11 @@ function _objDistBadge($dist) {
         </div>
     <?php endif; ?>
 
-    <!-- ── Bottom pagination ───────────────────────────────── -->
-    <?php if ($totalPages > 1): ?>
+    <!-- ── Bottom pagination ───────────────────────────── -->
+    <?php if (!empty($objects)): ?>
     <div class="card shadow-sm mt-3">
-        <div class="card-body py-2 d-flex justify-content-center">
-            <nav aria-label="<?= __('Objects pagination') ?>">
-                <ul class="pagination pagination-sm mb-0">
-                    <?php if ($page > 1): ?>
-                        <li class="page-item">
-                            <a class="page-link obj-page-link"
-                               href="#" data-page="<?= $page - 1 ?>">
-                                <i class="fas fa-chevron-left"></i>
-                            </a>
-                        </li>
-                    <?php endif; ?>
-
-                    <?php for ($p = 1; $p <= $totalPages; $p++):
-                        if (
-                            $p === 1
-                            || $p === $totalPages
-                            || abs($p - $page) <= $window
-                        ):
-                    ?>
-                        <li class="page-item <?= $p === $page ? 'active' : '' ?>">
-                            <a class="page-link obj-page-link"
-                               href="#" data-page="<?= $p ?>">
-                                <?= $p ?>
-                            </a>
-                        </li>
-                    <?php
-                        elseif (abs($p - $page) === $window + 1):
-                    ?>
-                        <li class="page-item disabled">
-                            <span class="page-link">&hellip;</span>
-                        </li>
-                    <?php endif; endfor; ?>
-
-                    <?php if ($page < $totalPages): ?>
-                        <li class="page-item">
-                            <a class="page-link obj-page-link"
-                               href="#" data-page="<?= $page + 1 ?>">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                    <?php endif; ?>
-                </ul>
-            </nav>
+        <div class="card-body py-2">
+            <?= $this->element('genericElementsBS5/IndexTable/pagination') ?>
         </div>
     </div>
     <?php endif; ?>
@@ -663,8 +653,6 @@ function _objDistBadge($dist) {
     var _objBase     = baseurl + <?= json_encode($objectsUrl) ?>;
     var _deletedState = <?= (int)$currentDeleted ?>;
     var _proposalState = <?= (int)$currentProposal ?>;
-    var _labelActive = <?= json_encode(__('Active filters')) ?>;
-    var _labelClear  = <?= json_encode(__('Clear')) ?>;
 
     // Correct the baseIndexUrl set by filter_bar (it appended /index)
     baseIndexUrl = _objBase;
@@ -673,23 +661,30 @@ function _objDistBadge($dist) {
         return document.querySelector('.ajax-tab-content[data-url*="viewObjects"]');
     }
 
+    /*
+     * This tab's own URL shape: `events/viewObjects/<id>` plus named segments.
+     * The filters are read straight off the bar's controls, which the draft in
+     * filter_bar.ctp owns — the same split as the attribute tab.
+     */
     function buildObjectsUrl() {
         var url = _objBase;
         if (_deletedState) url += '/deleted:' + _deletedState;
         if (_proposalState) url += '/proposal:' + _proposalState;
-        var cont  = getContainer();
-        var field = cont ? cont.querySelector('#filterField') : null;
+        var cont = getContainer();
+        if (!cont) return url;
+        cont.querySelectorAll('select.filter-draft-input').forEach(function (sel) {
+            var name  = sel.getAttribute('name');
+            var value = (sel.value || '').trim();
+            if (name && value !== '') { url += '/' + name + ':' + encodeURIComponent(value); }
+        });
+        var field = cont.querySelector('#filterField');
         if (field && field.value.trim()) {
             url += '/searchFor:' + encodeURIComponent(field.value.trim());
         }
         return url;
     }
 
-    function loadObjects(url, searchTerm) {
-        if (searchTerm === undefined) {
-            var m = url.match(/searchFor:([^/]+)/);
-            searchTerm = m ? decodeURIComponent(m[1]) : '';
-        }
+    function loadObjects(url) {
         var container = getContainer();
         if (!container) return;
         container.style.opacity       = '0.5';
@@ -698,6 +693,7 @@ function _objDistBadge($dist) {
             .then(function (r) { return r.text(); })
             .then(function (html) {
                 container.innerHTML       = html;
+                container.dataset.url        = url;
                 container.style.opacity      = '';
                 container.style.pointerEvents = '';
                 container.querySelectorAll('script').forEach(function (oldScript) {
@@ -710,21 +706,9 @@ function _objDistBadge($dist) {
                     document.head.appendChild(newScript);
                     document.head.removeChild(newScript);
                 });
-                // After scripts ran → #filterField has been cloned → restore value
-                var field = container.querySelector('#filterField');
-                if (field && searchTerm) field.value = searchTerm;
-                updateActiveFilterBadge(
-                    container,
-                    searchTerm,
-                    function () {
-                        var clearUrl = _objBase;
-                        if (_deletedState) clearUrl += '/deleted:' + _deletedState;
-                        if (_proposalState) clearUrl += '/proposal:' + _proposalState;
-                        loadObjects(clearUrl, '');
-                    },
-                    _labelActive,
-                    _labelClear
-                );
+                if (typeof initTopbarFilterSelects === 'function') {
+                    initTopbarFilterSelects(container);
+                }
                 container.scrollIntoView({ behavior: 'smooth', block: 'start' });
             })
             .catch(function () {
@@ -742,26 +726,15 @@ function _objDistBadge($dist) {
         buildFn: buildObjectsUrl
     });
 
-    // Clone #filterButton and #filterField to strip filter_bar.ctp's
-    // window.location.href listeners (click on button + keypress Enter on field).
     var container = getContainer();
 
-    var filterBtn = container ? container.querySelector('#filterButton') : null;
-    if (filterBtn) {
-        var newBtn = filterBtn.cloneNode(true);
-        filterBtn.parentNode.replaceChild(newBtn, filterBtn);
-        newBtn.addEventListener('click', function () { loadObjects(buildObjectsUrl()); });
-    }
-
-    var filterField = container ? container.querySelector('#filterField') : null;
-    if (filterField) {
-        var newField = filterField.cloneNode(true);
-        filterField.parentNode.replaceChild(newField, filterField);
-        newField.addEventListener('keypress', function (e) {
-            if (e.key !== 'Enter') return;
-            e.preventDefault();
-            loadObjects(buildObjectsUrl());
-        });
+    // The filter bar wires its search box, its panel and its Apply button
+    // itself (initScaffoldFilterDraft); all this tab says is "the URLs are mine".
+    if (container) {
+        container.__indexFilterOverride = {
+            buildUrl: buildObjectsUrl,
+            reload: function (url) { loadObjects(url); return true; },
+        };
     }
 
     // Toggle buttons (deleted / proposals) — clone to strip default navigation,
@@ -778,19 +751,172 @@ function _objDistBadge($dist) {
             loadObjects(buildObjectsUrl());
         });
     }
-    wireObjToggle('.obj-deleted-toggle', function () { _deletedState = _deletedState ? 0 : 1; });
+    wireObjToggle('.obj-deleted-toggle', function () { _deletedState = _deletedState ? 0 : 2; });
     wireObjToggle('.obj-proposal-toggle', function () { _proposalState = _proposalState ? 0 : 1; });
 
-    // Pagination link clicks
-    document.addEventListener('click', function (e) {
-        var link = e.target.closest('.obj-page-link');
-        if (!link) return;
-        e.preventDefault();
-        var p = link.dataset.page;
-        if (!p) return;
-        loadObjects(
-            baseurl + <?= json_encode($objectsUrl) ?> + '/page:' + encodeURIComponent(p)
-        );
+    function setAllObjectsExpanded(expand) {
+        (container || document)
+            .querySelectorAll('.obj-collapse')
+            .forEach(function (panel) {
+                if (panel.classList.contains('show') === expand) return;
+                var collapse = bootstrap.Collapse.getOrCreateInstance(
+                    panel, { toggle: false }
+                );
+                if (expand) { collapse.show(); } else { collapse.hide(); }
+            });
+    }
+
+    // The open objects survive a reload of the event view — a modal form
+    // (adding a note, editing an attribute) comes back through a full page
+    // load. Kept per event, for this browser tab only.
+    var _openKey = 'misp.openObjects.' + eventId;
+    function readOpenObjects() {
+        try { return JSON.parse(sessionStorage.getItem(_openKey) || '[]'); } catch (e) { return []; }
+    }
+    function writeOpenObjects(ids) {
+        try { sessionStorage.setItem(_openKey, JSON.stringify(ids)); } catch (e) {}
+    }
+    (function () {
+        var scope = container || document;
+        var openIds = readOpenObjects();
+        scope.querySelectorAll('.obj-collapse').forEach(function (panel) {
+            var id = panel.id.replace('obj_collapse_', '');
+            if (openIds.indexOf(id) !== -1 && !panel.classList.contains('show')) {
+                panel.classList.add('show');
+                var toggle = scope.querySelector('[data-bs-target="#' + panel.id + '"]');
+                if (toggle) {
+                    toggle.classList.remove('collapsed');
+                    toggle.setAttribute('aria-expanded', 'true');
+                }
+            }
+            panel.addEventListener('shown.bs.collapse', function (e) {
+                if (e.target !== panel) return;
+                var ids = readOpenObjects();
+                if (ids.indexOf(id) === -1) { ids.push(id); writeOpenObjects(ids); }
+            });
+            panel.addEventListener('hidden.bs.collapse', function (e) {
+                if (e.target !== panel) return;
+                writeOpenObjects(readOpenObjects().filter(function (x) { return x !== id; }));
+            });
+        });
+    }());
+
+    [['.obj-expand-all', true], ['.obj-collapse-all', false]].forEach(function (pair) {
+        var btn = (container || document).querySelector(pair[0]);
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            setAllObjectsExpanded(pair[1]);
+        });
     });
+
+    // Object mass-select. Deliberately not `.item-checkbox`: that class feeds
+    // the global selectedItems map, which the attribute toolbar deletes through
+    // /attributes/deleteSelection — and since an object id and an attribute id
+    // are both plain integers, the two selections would silently merge.
+    var objSelected = new Set();
+
+    function objScope() { return container || document; }
+
+    function updateObjToolbar() {
+        var bar = objScope().querySelector('#objMultiSelectToolbar');
+        if (!bar) return;
+        bar.classList.toggle('d-none', objSelected.size === 0);
+        var countEl = objScope().querySelector('#objSelectedCount');
+        if (countEl) countEl.textContent = objSelected.size;
+    }
+
+    // Both views render a checkbox per object and both are in the DOM at once,
+    // so a tick has to reach the other view's copy — otherwise switching views
+    // shows a selection that disagrees with the toolbar.
+    function setObjSelected(id, checked) {
+        if (checked) { objSelected.add(id); } else { objSelected.delete(id); }
+        objScope().querySelectorAll('.obj-select[data-object-id="' + id + '"]')
+            .forEach(function (box) { box.checked = checked; });
+        updateObjToolbar();
+    }
+
+    // Bound per checkbox rather than delegated: the container outlives an ajax
+    // reload, so a delegated listener would stack up and keep a stale Set.
+    objScope().querySelectorAll('.obj-select').forEach(function (box) {
+        box.addEventListener('change', function () {
+            setObjSelected(box.dataset.objectId, box.checked);
+        });
+    });
+
+    var objDelBtn = objScope().querySelector('#obj-multi-delete-button');
+    if (objDelBtn) {
+        objDelBtn.addEventListener('click', function () {
+            if (objSelected.size === 0) return;
+            openModal(
+                baseurl + '/objects/deleteSelection/'
+                    + JSON.stringify(Array.from(objSelected).map(Number)),
+                'md'
+            );
+        });
+    }
+
+    var objClearBtn = objScope().querySelector('#obj-clear-selection-button');
+    if (objClearBtn) {
+        objClearBtn.addEventListener('click', function () {
+            Array.from(objSelected).forEach(function (id) { setObjSelected(id, false); });
+        });
+    }
+
+    // The delete modal lives outside this fragment; this is how it tells the
+    // index which rows it managed to remove.
+    window.objIndexSelection = {
+        clear: function (ids) {
+            (ids || []).forEach(function (id) { objSelected.delete(String(id)); });
+            updateObjToolbar();
+        }
+    };
+
+    updateObjToolbar();
+
+    // View switch (list <-> cards). mispOvermind.js binds #viewList/#viewCard on
+    // DOMContentLoaded against #tableView/#cardView — neither the buttons nor
+    // those containers exist yet in a lazily loaded tab, which is why the
+    // toggle did nothing here. So this fragment owns its own, scoped to its
+    // container: the two button ids repeat in every tab's filter bar.
+    function applyObjView(mode, animate) {
+        var scope = container || document;
+        var list = scope.querySelector('#objTableView');
+        var cards = scope.querySelector('#objCardView');
+        if (!list || !cards) return;
+        var showCards = mode === 'card';
+        list.classList.toggle('d-none', showCards);
+        cards.classList.toggle('d-none', !showCards);
+        var btnList = scope.querySelector('#viewList');
+        var btnCard = scope.querySelector('#viewCard');
+        if (btnList) btnList.classList.toggle('active', !showCards);
+        if (btnCard) btnCard.classList.toggle('active', showCards);
+        if (animate && typeof animateIndexView === 'function') {
+            animateIndexView(showCards ? cards : list);
+        }
+    }
+
+    // Own storage key: 'indexViewMode' drives the scaffold indexes, and an
+    // object card is a different trade-off from an attribute card.
+    [['#viewList', 'table'], ['#viewCard', 'card']].forEach(function (pair) {
+        var btn = container ? container.querySelector(pair[0]) : null;
+        if (!btn) return;
+        var fresh = btn.cloneNode(true);
+        btn.parentNode.replaceChild(fresh, btn);
+        fresh.addEventListener('click', function () {
+            try { localStorage.setItem('objectsViewMode', pair[1]); } catch (e) {}
+            applyObjView(pair[1], true);
+        });
+    });
+
+    var _savedObjView = 'table';
+    try { _savedObjView = localStorage.getItem('objectsViewMode') || 'table'; } catch (e) {}
+    applyObjView(_savedObjView, false);
+
+    (container || document).querySelectorAll('.obj-attr-actions').forEach(function (toggle) {
+        bootstrap.Dropdown.getOrCreateInstance(toggle, {
+            popperConfig: { strategy: 'fixed' }
+        });
+    });
+
 })();
 </script>

@@ -171,12 +171,12 @@ $fields =  [
                 'icon' => 'code',
                 'url' => $baseurl . '/workflows/editor/%id%',
             ],
-            // [
-            //     'type' => 'navigate',
-            //     'label' => __('Trigger details'),
-            //     'icon' => 'eye',
-            //     'url' => $baseurl . '/workflows/moduleView/%id%',
-            // ],
+            [
+                'type' => 'navigate',
+                'label' => __('Trigger details'),
+                'icon' => 'eye',
+                'url' => $baseurl . '/workflows/moduleView/%id%',
+            ],
             [
                 'type' => 'navigate',
                 'label' => __('Execution logs'),
@@ -197,7 +197,7 @@ $fields =  [
                 'type' => 'modal',
                 'label' => __('Enable debug'),
                 'icon' => 'bug',
-                'size' => 'sm',
+                'size' => 'md',
                 'url' => $baseurl . '/workflows/toggleDebugMode/%workflow_id%/1',
                 'url_params_data_paths' => ['workflow_id' => 'Workflow.id'],
                 'requirement' => function ($row) {
@@ -209,7 +209,7 @@ $fields =  [
                 'type' => 'modal',
                 'label' => __('Disable debug'),
                 'icon' => 'bug-slash',
-                'size' => 'sm',
+                'size' => 'md',
                 'url' => $baseurl . '/workflows/toggleDebugMode/%workflow_id%/0',
                 'url_params_data_paths' => ['workflow_id' => 'Workflow.id'],
                 'requirement' => function ($row) {
@@ -284,7 +284,7 @@ echo $this->element('genericElementsBS5/IndexTable/scaffold', [
             'filter_bar' => $filterBar,
             'fields' => $fields,
             'primary_id_path' => 'id',
-            //'row_dblclick_url' => $baseurl . '/workflows/editor/%id%',
+            'row_dblclick_url' => $baseurl . '/workflows/moduleView/%id%',
         ]
     ],
     'item_url' => '/workflows'

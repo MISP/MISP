@@ -19,24 +19,13 @@ echo $this->Form->create('User', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(24,146,177,.06); border-bottom:2px solid var(--primary);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-primary"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Users') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-envelope-open-text text-primary" style="font-size:1.25rem;"></i>
-            <?= __('Contact users') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Send a message or temporary credentials to one or many users.') ?>
-        </p>
-    </div>
-    <i class="fas fa-envelope text-primary" style="font-size:2rem; opacity:.5;"></i>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'eyebrow' => __('Users'),
+    'title' => __('Contact users'),
+    'description' => __('Send a message or temporary credentials to one or many users.'),
+    'titleIcon' => 'fas fa-envelope-open-text',
+    'icon' => 'fas fa-envelope',
+]) ?>
 
 <!-- ── STEP 1: FORM ─────────────────────────────────────────── -->
 <div id="omFormStep">
@@ -142,15 +131,16 @@ echo $this->Form->create('User', [
         </div>
     </div>
 
-    <!-- FOOTER (step 1) -->
-    <div class="px-4 py-3 d-flex justify-content-end gap-2 border-top">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-            <?= __('Discard') ?>
-        </button>
-        <button type="button" class="btn btn-primary" id="omReviewBtn">
-            <i class="fas fa-list-check me-1"></i><?= __('Review & send') ?>
-        </button>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'align' => 'end',
+        'bleed' => true,
+        'submit' => [
+            'label' => __('Review & send'),
+            'icon' => 'fas fa-list-check',
+            'id' => 'omReviewBtn',
+            'type' => 'button',
+        ],
+    ]) ?>
 </div>
 
 <!-- ── STEP 2: CONFIRMATION ─────────────────────────────────── -->
@@ -171,15 +161,18 @@ echo $this->Form->create('User', [
         </div>
     </div>
 
-    <!-- FOOTER (step 2) -->
-    <div class="px-4 py-3 d-flex justify-content-end gap-2 border-top">
-        <button type="button" class="btn btn-outline-secondary" id="omBackBtn">
-            <i class="fas fa-arrow-left me-1"></i><?= __('Back') ?>
-        </button>
-        <button type="submit" class="btn btn-primary" id="omSendBtn">
-            <i class="fas fa-paper-plane me-1"></i><?= __('Send') ?>
-        </button>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'align' => 'end',
+        'bleed' => true,
+        /* Step 2 goes back to the form rather than closing the modal. */
+        'cancel' => [
+            'label' => __('Back'),
+            'icon' => 'fas fa-arrow-left',
+            'id' => 'omBackBtn',
+            'attrs' => [],
+        ],
+        'submit' => ['label' => __('Send'), 'icon' => 'fas fa-paper-plane', 'id' => 'omSendBtn'],
+    ]) ?>
 </div>
 
 <?= $this->Form->end() ?>

@@ -8,11 +8,16 @@
  *   $allTags           [{id, name, colour}, ...]
  *   $customTags        [{id, name, colour}, ...]
  *   $tagCollections    [{id, name, tags:[{id,name,colour}]}, ...]
+ *   $taxonomies        [{id, namespace, description, tags:[…]}, ...]
+ *                      enabled taxonomies, each with its enabled tags
  *   $currentGlobalTags [{id, name, colour}, ...]   pre-selected (global)
  *   $currentLocalTags  [{id, name, colour}, ...]   pre-selected (local)
  *   $mayModify         bool
  * Optional params:
  *   $headerEyebrow     string  small uppercase label (default "Tags")
+ *   $title             string  modal title (default "Edit Tags")
+ *   $description       string  one line under the title
+ *   $saveLabel         string  submit label (default "Save Tags")
  *   $reloadHook        string  window['<hook>' + uid] fn called after save;
  *                              falls back to the attribute-index reload.
  */
@@ -25,11 +30,17 @@ $postUrl   = h($saveUrl);
 $allJson    = json_encode($allTags,           JSON_HEX_TAG | JSON_HEX_AMP);
 $customJson = json_encode($customTags,        JSON_HEX_TAG | JSON_HEX_AMP);
 $collJson   = json_encode($tagCollections,    JSON_HEX_TAG | JSON_HEX_AMP);
+$taxonomies = $taxonomies ?? [];
+$taxCats = [];
+foreach ($taxonomies as $taxonomy) {
+    $taxCats['taxonomy-' . $taxonomy['id']] = $taxonomy['tags'];
+}
+$taxJson    = json_encode((object)$taxCats,   JSON_HEX_TAG | JSON_HEX_AMP);
 $initGJson  = json_encode($currentGlobalTags, JSON_HEX_TAG | JSON_HEX_AMP);
 $initLJson  = json_encode($currentLocalTags,  JSON_HEX_TAG | JSON_HEX_AMP);
 
 /* Reusable section markup (category buttons + picker + selected area) */
-$section = function ($scope, $iconClass, $title, $badgeHtml = '') {
+$section = function ($scope, $iconClass, $title, $badgeHtml = '') use ($taxonomies) {
     ob_start(); ?>
     <div class="w-100 px-2" data-section="<?= h($scope) ?>">
         <div class="d-flex align-items-center gap-2 fw-bold text-uppercase mb-2 text-tag"
@@ -49,6 +60,21 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
                     data-cat="collections"><?= __('Tag Collections') ?></button>
         </div>
 
+        <?php if (!empty($taxonomies)): ?>
+        <div class="d-flex flex-wrap gap-1 mb-2 overflow-auto tag-cat-list"
+             style="max-height:5.5rem;">
+            <?php foreach ($taxonomies as $taxonomy): ?>
+                <button type="button"
+                        class="btn btn-sm btn-outline-tag tag-cat-btn py-0 px-2"
+                        data-cat="taxonomy-<?= h($taxonomy['id']) ?>"
+                        title="<?= h($taxonomy['description']) ?>">
+                    <?= h($taxonomy['namespace']) ?>
+                    <span class="opacity-75 ms-1"><?= count($taxonomy['tags']) ?></span>
+                </button>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
         <select class="tag-picker"
                 placeholder="<?= __('Search tags to add…') ?>"></select>
 
@@ -61,27 +87,14 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
 };
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(219,106,71,.06);
-            border-bottom:2px solid var(--tag);">
-    <div>
-        <div class="text-uppercase fw-semibold mb-1 text-tag"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= h($headerEyebrow) ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <span class="fas fa-pen-to-square text-tag"
-                  style="font-size:1.25rem;"></span>
-            <?= __('Edit Tags') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Pick a category, search the input, and the selected tags appear below.') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-tag misp-simple text-tag"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'tag',
+    'eyebrow' => $headerEyebrow,
+    'title' => $title ?? __('Edit Tags'),
+    'titleIcon' => 'fas fa-pen-to-square',
+    'description' => $description ?? '',
+    'icon' => 'misp-icon misp-icon-tag misp-simple',
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -99,22 +112,16 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-end align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm"
-                data-bs-dismiss="modal">
-            <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-        </button>
-        <?php if ($mayModify): ?>
-        <button type="button"
-                id="edit-tags-save-btn"
-                class="btn btn-tag btn-sm text-white">
-            <i class="fas fa-save me-1"></i>
-            <?= __('Save Tags') ?>
-        </button>
-        <?php endif; ?>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'tag',
+        'align' => 'end',
+        'submit' => $mayModify ? [
+            'label' => $saveLabel ?? __('Save Tags'),
+            'icon' => 'fas fa-save',
+            'id' => 'edit-tags-save-btn',
+            'type' => 'button',
+        ] : false,
+    ]) ?>
 
 </div>
 
@@ -122,11 +129,11 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
     var postUrl    = <?= json_encode($postUrl) ?>;
     var uid        = <?= json_encode($uid) ?>;
     var reloadHook = <?= json_encode($reloadHook) ?>;
-    var catData    = {
+    var catData    = Object.assign({
         all:         <?= $allJson    ?: '[]' ?>,
         custom:      <?= $customJson ?: '[]' ?>,
         collections: <?= $collJson   ?: '[]' ?>
-    };
+    }, <?= $taxJson ?: '{}' ?>);
     var initSelected = {
         global: <?= $initGJson ?: '[]' ?>,
         local:  <?= $initLJson ?: '[]' ?>
@@ -150,40 +157,27 @@ $section = function ($scope, $iconClass, $title, $badgeHtml = '') {
     var localSection  = makeSection('local',  initSelected.local);
 
     /*
+     * A tag collection can carry galaxy clusters - they live in the collection as
+     * `misp-galaxy:` tags - so a save here can change the galaxies card too.
+     */
+    function reloadGalaxiesCard() {
+        var fn = window['reloadGalaxiesCard_' + uid.replace('-tags-', '-galaxies-')];
+        if (typeof fn === 'function') { fn(); }
+    }
+
+    /*
      * After a successful save: prefer an event-view card reload hook
      * (window['<reloadHook>' + uid]); otherwise fall back to refreshing the
      * attribute index table (set by view_attributes.ctp).
      */
     function afterSave() {
+        reloadGalaxiesCard();
         var cardReload = reloadHook ? window[reloadHook + uid] : null;
         if (typeof cardReload === 'function') { cardReload(); return; }
 
-        /*
-         * No card hook (attribute context): reload whichever event-view index
-         * tab is currently shown. Each tab exposes { loadFn, buildFn } on window
-         * once rendered (view_attributes.ctp / Objects/index.ctp).
-         */
-        var tabs = [
-            { sel: '.ajax-tab-content[data-url*="viewObjects"]',    api: window.mispView.objects },
-            { sel: '.ajax-tab-content[data-url*="viewAttributes"]', api: window.mispView.attrs }
-        ];
-        function reload(api) {
-            if (api && typeof api.loadFn === 'function'
-                    && typeof api.buildFn === 'function') {
-                api.loadFn(api.buildFn());
-                return true;
-            }
-            return false;
-        }
-        /* Prefer the tab whose container is currently visible. */
-        for (var i = 0; i < tabs.length; i++) {
-            var cont = document.querySelector(tabs[i].sel);
-            if (cont && cont.offsetParent !== null && reload(tabs[i].api)) { return; }
-        }
-        /* Fallback: any exposed tab API. */
-        for (var j = 0; j < tabs.length; j++) {
-            if (reload(tabs[j].api)) { return; }
-        }
+        /* No card hook (attribute context): the change shows in the index
+           behind the modal. */
+        reloadEventViewIndexTab();
     }
 
     /* ─── Save ─── */

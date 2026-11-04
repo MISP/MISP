@@ -144,7 +144,7 @@
                                                 <td>
                                                     <?php if ($remote_event['remote_id']): ?>
                                                         <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2">
-                                                            <i class="fas fa-check-circle me-1"></i> ID: <?= $remote_event['remote_id'] ?>
+                                                            <i class="fas fa-check-circle me-1"></i> ID: <?= h($remote_event['remote_id']) ?>
                                                         </span>
                                                     <?php elseif ($remote_event['exception']): ?>
                                                         <span class="text-danger small"><i class="fas fa-times-circle me-1"></i> <?= __('Unreachable') ?></span>
@@ -158,7 +158,7 @@
                                                             <i class="fas fa-link"></i>
                                                         </a>
                                                         <?php if ($isSiteAdmin): ?>
-                                                            <a href="<?= $baseurl ?>/servers/previewEvent/<?= $remote_event['server_id'] ?>/<?= $remote_event['remote_id'] ?>" class="btn btn-light btn-sm rounded-pill">
+                                                            <a href="<?= $baseurl ?>/servers/previewEvent/<?= h($remote_event['server_id']) ?>/<?= h($remote_event['remote_id']) ?>" class="btn btn-light btn-sm rounded-pill">
                                                                 <i class="fas fa-glasses"></i>
                                                             </a>
                                                         <?php endif; ?>

@@ -1,34 +1,42 @@
 <?php
 $org = Hash::extract($row, $field['data_path']);
 
-// Opt-in fallback mirroring the legacy org element's 'default_org' (e.g.
-// 'MISP' for default galaxy data owned by org 0): substituted when no real
-// organisation is attached at the data_path.
-if (empty($org['id']) && empty($org['uuid']) && empty($org['name']) && !empty($field['default_org'])) {
-    $org = ['name' => $field['default_org']];
-}
-
 if (empty($org)) {
     return;
 }
 
-if (!empty($org['id'])){
+if (!empty($org['id'])) {
     $id = $org['id'];
-}
-elseif (!empty($org['uuid'])){
+} elseif (!empty($org['uuid'])) {
     $id = $org['uuid'];
-}
-else {
+} else {
     $id = null;
 }
 
+$name = null;
 if (empty($id)) {
-    if (!empty($org['name'])) {
+    /*
+     * Nothing to link to. Two shapes land here, and neither is a real
+     * organisation: a contained association with no row behind it (a foreign
+     * key of 0 — what MISP's bundled galaxies and clusters carry) comes back
+     * all-null, and a model that has already swapped in
+     * Organisation::GENERIC_MISP_ORGANISATION hands us an org whose id AND
+     * uuid are both the string '0'. `default_org` is the field's chance to
+     * name that case in its own words ('MISP', 'Default galaxy', ...); without
+     * it we fall back to whatever name came with the row.
+     */
+    if (!empty($field['default_org'])) {
+        $org = ['name' => $field['default_org']];
+        $name = $field['default_org'];
+    } elseif (!empty($org['name'])) {
         $name = $org['name'];
     } elseif (!empty($org[0])) {
         $name = $org[0];
-    } else {
-        $name = null;
+    }
+
+    // Nothing to name and nothing to link to: there is no cell to draw.
+    if ($name === null) {
+        return;
     }
 }
 $isCreator = $data_path === 'Orgc';
@@ -57,9 +65,9 @@ $description = $showDescription && !empty($org['description']) ? trim($org['desc
                 <?= h($org['name']) ?>
             </a>
         <?php else: ?>
-            <p class="text-decoration-none fw-semibold text-primary mb-0">
+            <span class="fw-semibold text-body-secondary">
                 <?= h($name) ?>
-            </p>
+            </span>
         <?php endif; ?>
     </div>
 

@@ -15,7 +15,7 @@ $actions[] = [
 if ($siteAdmin && $isEnabled) {
     $actions[] = [
         'url' => "$baseurl/feeds/fetchSelectedFeeds/$feedId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/feeds/fetchSelectedFeeds/$feedId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/feeds/fetchSelectedFeeds/$feedId', 'md');",
         'icon' => 'fas fa-circle-arrow-down',
         'label' => __('Fetch all events'),
         'success' => true,
@@ -56,7 +56,7 @@ $actions[] = [
 if ($siteAdmin) {
     $actions[] = [
         'url' => "$baseurl/feeds/deleteSelection/$feedId",
-        'onclick' => "event.preventDefault(); openModal('$baseurl/feeds/deleteSelection/$feedId', 'sm');",
+        'onclick' => "event.preventDefault(); openModal('$baseurl/feeds/deleteSelection/$feedId', 'md');",
         'icon' => 'fas fa-trash',
         'label' => __('Delete feed'),
         'danger' => true,

@@ -7,14 +7,11 @@ class TaxiiServersController extends AppController
 
     public function beforeFilter()
     {
-        // No need for CSRF tokens for a search
-        if ('getRoot' == $this->request->params['action'] || 'getCollections' == $this->request->params['action']) {
-            $this->Security->csrfCheck = false;
-        }
         if ($this->request->params['action'] === 'add' || $this->request->params['action'] === 'edit') {
             $this->Security->unlockedFields = ['api_root', 'collection'];
         }
         parent::beforeFilter();
+        $this->_csrfTokenHeaderOnly(['getRoot', 'getCollections']);
     }
 
     public $paginate = array(
@@ -43,7 +40,7 @@ class TaxiiServersController extends AppController
             return $this->restResponsePayload;
         }
         $dropdownData = [];
-        if($this->theme === "Overmind"){
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
         $this->set(compact('dropdownData'));
@@ -60,7 +57,7 @@ class TaxiiServersController extends AppController
             return $this->restResponsePayload;
         }
         $dropdownData = [];
-        if($this->theme === "Overmind"){
+        if ($this->theme === 'Overmind' && $this->request->is('ajax')) {
             $this->layout = false;
         }
         $this->set(compact('dropdownData'));
@@ -147,20 +144,25 @@ class TaxiiServersController extends AppController
         } else {
             $discovery_url = $this->request->data['discovery_url'];
 
-            // 1. Strict Protocol Validation
-            if (!preg_match('/^https?:\/\//i', $discovery_url)) {
+            // Scheme, host and resolved address are checked by the shared
+            // validator. POLICY_DENY_LOOPBACK keeps this action's existing
+            // intent - loopback and cloud metadata refused, RFC1918 left
+            // reachable, because a TAXII server on an internal host is an
+            // ordinary site-admin deployment rather than an attack.
+            //
+            // The check it replaces resolved with gethostbyname and compared
+            // against three literal values, so it refused 127.x, exactly
+            // 169.254.169.254 and 0.0.0.0 and nothing else. It missed IPv6
+            // entirely - [::1] walked straight through - took only the first
+            // A record of a multi-record name, and let numeric host encodings
+            // such as 0x7f000001 past, which curl resolves to 127.0.0.1.
+            App::uses('UrlEgressValidator', 'Tools');
+            try {
+                UrlEgressValidator::validate($discovery_url, UrlEgressValidator::POLICY_DENY_LOOPBACK);
+            } catch (InvalidArgumentException $e) {
                 return $this->RestResponse->saveFailResponse(
-                    'TaxiiServers', 'getRoot', null, __('Invalid URL scheme. Only HTTP and HTTPS are supported.'), $this->response->type()
+                    'TaxiiServers', 'getRoot', null, $e->getMessage(), $this->response->type()
                 );
-            }
-
-            // 2. Host Resolution and Banned IP Checking (Loopback & Metadata)
-            $host = parse_url($discovery_url, PHP_URL_HOST);
-            if ($host) {
-                $resolvedIp = gethostbyname($host);
-                if (strpos($resolvedIp, '127.') === 0 || $resolvedIp === '169.254.169.254' || $resolvedIp === '0.0.0.0') {
-                    throw new ForbiddenException(__('The provided discovery URL points to a restricted network block.'));
-                }
             }
 
             App::uses('HttpSocket', 'Network/Http');
@@ -197,7 +199,7 @@ class TaxiiServersController extends AppController
                 }
                 $request['header']['Authorization'] = $authMethod . $apiKey;
             }
-            
+
             // 3. Unified Error Handling to prevent differential responses
             $genericError = __('TAXII connection failed or returned invalid data. Please verify the URL.');
 
@@ -215,14 +217,14 @@ class TaxiiServersController extends AppController
             }
 
             $result = json_decode($response->body, true);
-            
+
             // Ensure valid JSON was parsed before proceeding
             if (is_array($result) && isset($result['api_roots'])) {
                 $results = [];
                 $discovery_host = parse_url($this->request->data['discovery_url'], PHP_URL_HOST);
                 $discovery_port = parse_url($this->request->data['discovery_url'], PHP_URL_PORT);
                 if (empty($discovery_port)) {
-                    $discovery_host = 'https://' . $discovery_host;
+                    $discovery_root = 'https://' . $discovery_host;
                 } else {
                     $discovery_root = 'https://' . $discovery_host . ':' . $discovery_port;
                 }
@@ -286,7 +288,15 @@ class TaxiiServersController extends AppController
 
     public function collectionsIndex($id)
     {
-        $result = $this->TaxiiServer->getCollections($id);
+        try {
+            $result = $this->TaxiiServer->getCollections($id);
+        } catch (HttpException $e) {
+            if (!$this->__rendersRemoteNotice()) {
+                throw $e;
+            }
+            $this->set('remoteNotice', ['kind' => 'danger', 'message' => $e->getMessage()]);
+            $result = [];
+        }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($result, $this->response->type());
         } else {
@@ -300,9 +310,32 @@ class TaxiiServersController extends AppController
 
     }
 
-    public function objectsIndex($id, $collection_id, $next = null)
+    public function objectsIndex($id, $collection_id = null, $next = null)
     {
-        $result = $this->TaxiiServer->getObjects($id, $collection_id, $next);
+        if (empty($collection_id)) {
+            $taxii_server = $this->TaxiiServer->find('first', [
+                'recursive' => -1,
+                'fields' => ['TaxiiServer.collection'],
+                'conditions' => ['TaxiiServer.id' => $id]
+            ]);
+            if (empty($taxii_server)) {
+                throw new NotFoundException(__('Invalid Taxii Server ID provided.'));
+            }
+            $collection_id = $taxii_server['TaxiiServer']['collection'];
+        }
+        try {
+            if (empty($collection_id)) {
+                throw new NotFoundException(__('No collection is selected for this TAXII server.'));
+            }
+            $result = $this->TaxiiServer->getObjects($id, $collection_id, $next);
+        } catch (HttpException $e) {
+            if (!$this->__rendersRemoteNotice()) {
+                throw $e;
+            }
+            $kind = empty($collection_id) ? 'secondary' : 'danger';
+            $this->set('remoteNotice', ['kind' => $kind, 'message' => $e->getMessage()]);
+            $result = ['objects' => [], 'more' => false];
+        }
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($result, $this->response->type());
         } else {
@@ -313,6 +346,14 @@ class TaxiiServersController extends AppController
             $this->set('collection_id', $collection_id);
             $this->set('menuData', array('menuList' => 'sync', 'menuItem' => 'list_taxii_collection_objects'));
         }
+    }
+
+    /**
+    * Preserve the remote error message when displaying a generic request failure.
+     */
+    private function __rendersRemoteNotice()
+    {
+        return $this->theme === 'Overmind' && !$this->_isRest();
     }
 
     public function objectView($server_id, $collection_id, $id)

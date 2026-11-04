@@ -364,6 +364,11 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
             'columnPerTable' => $dbSchemaDiagnostics['columnPerTable'],
             'dbIndexDiagnostics' => $dbSchemaDiagnostics['diagnostic_index'],
             'indexes' => $dbSchemaDiagnostics['indexes'],
+            'migrationsPending' => $dbSchemaDiagnostics['migrations_pending'],
+            'migrationsPendingIds' => $dbSchemaDiagnostics['migrations_pending_ids'],
+            'migrationsFailed' => $dbSchemaDiagnostics['migrations_failed'],
+            'migrationsFailedIds' => $dbSchemaDiagnostics['migrations_failed_ids'],
+            'migrationsApplied' => $dbSchemaDiagnostics['migrations_applied'],
         )); ?>
     </div>
 
@@ -649,7 +654,8 @@ $humanReadableFilesize = function ($bytes, $dec = 2) {
     function updateAllJson() {
         $.ajax({
             url: '<?php echo $baseurl . '/servers/updateJSON/'; ?>',
-            type: "get",
+            type: "post",
+            headers: {'X-CSRF-Token': (window.csrfToken || '')},
             beforeSend: function() {
                 $('#submoduleGitResultDiv').show();
                 $('#submoduleGitResult').append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');

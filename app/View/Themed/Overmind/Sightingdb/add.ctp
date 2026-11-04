@@ -24,33 +24,32 @@ $options = [
     ],
 ];
 
+/* A rejected save re-renders this form: say why under the field. */
+$serverError = function ($field) {
+    if (!$this->Form->isFieldError($field)) {
+        return '';
+    }
+    return sprintf(
+        '<div class="ov-field-error"><i class="fas fa-circle-exclamation"></i><span>%s</span></div>',
+        h(implode(' ', (array)($this->Form->validationErrors['Sightingdb'][$field] ?? [])))
+    );
+};
+
 echo $this->Form->create('Sightingdb', [
     'id' => 'sightingdbForm',
     'novalidate' => true,
+    'data-required-guard' => '1',
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(137,0,150,.06);
-            border-bottom:2px solid var(--sighting);">
-    <div>
-        <div class="text-sighting text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Sighting Databases') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-sighting"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit SightingDB') : __('Add SightingDB') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('An external SightingDB queried for how often a value has been seen elsewhere.') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-sighting misp-simple text-sighting"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'sighting',
+    'eyebrow' => __('Sighting Databases'),
+    'title' => $isEdit ? __('Edit SightingDB') : __('Add SightingDB'),
+    'description' => __('An external SightingDB queried for how often a value has been seen elsewhere.'),
+    'icon' => 'misp-icon misp-icon-sighting misp-simple',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -58,32 +57,31 @@ echo $this->Form->create('Sightingdb', [
 
         <!-- ── NAME ────────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="d-flex align-items-center gap-2 text-sighting fw-bold
-                        text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Name') ?>
-                <span class="badge bg-sighting"
-                      style="font-size:.55rem; opacity:.8; font-weight:700;">
-                    <?= __('REQUIRED') ?>
-                </span>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'sighting',
+                'label' => __('Name'),
+                'required' => true,
+                'for' => 'SightingdbName',
+            ]) ?>
             <?= $this->Form->text('name', [
                 'id' => 'SightingdbName',
-                'class' => 'w-100 border-0 bg-transparent fs-5 py-1',
-                'style' => 'border-bottom:1px solid #d8dde3 !important;'
-                    . ' outline:none;',
+                'class' => 'ov-form-line fs-5',
                 'placeholder' => __('e.g. Community SightingDB'),
                 'autocomplete' => 'off',
+                'required' => true,
+                'data-required-msg' => __('Please provide a name for the database.'),
             ]) ?>
+            <?= $serverError('name') ?>
         </div>
 
         <!-- ── ENDPOINT ────────────────────────────────────────── -->
         <div class="w-100 px-2">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="text-sighting fw-bold text-uppercase"
-                     style="font-size:.65rem; letter-spacing:.1em;">
-                    <?= __('Endpoint') ?>
-                </div>
+                <?= $this->element('genericElementsBS5/Forms/section_label', [
+                    'accent' => 'sighting',
+                    'label' => __('Endpoint'),
+                    'class' => '',
+                ]) ?>
                 <code class="text-muted" id="SightingdbEndpointPreview"
                       style="font-size:.72rem;"></code>
             </div>
@@ -92,28 +90,33 @@ echo $this->Form->create('Sightingdb', [
                     <label class="form-label text-muted mb-1" for="SightingdbHost"
                            style="font-size:.75rem;">
                         <i class="fas fa-server me-1" style="font-size:.7rem;"></i>
-                        <?= __('Host') ?>
+                        <?= __('Host') ?> <span class="text-danger">*</span>
                     </label>
                     <?= $this->Form->text('host', [
                         'id' => 'SightingdbHost',
                         'class' => 'form-control font-monospace',
-                        'style' => 'border-color:#d8dde3;',
                         'placeholder' => 'http://localhost',
                         'autocomplete' => 'off',
+                        'required' => true,
+                        'data-required-msg' => __('Please provide the host to query.'),
                     ]) ?>
+                    <?= $serverError('host') ?>
                 </div>
                 <div class="col-md-5">
                     <label class="form-label text-muted mb-1" for="SightingdbPort"
                            style="font-size:.75rem;">
-                        <?= __('Port') ?>
+                        <?= __('Port') ?> <span class="text-danger">*</span>
                     </label>
                     <?= $this->Form->text('port', [
                         'id' => 'SightingdbPort',
                         'class' => 'form-control font-monospace',
-                        'style' => 'border-color:#d8dde3;',
                         'placeholder' => '9999',
+                        'inputmode' => 'numeric',
                         'autocomplete' => 'off',
+                        'required' => true,
+                        'data-required-msg' => __('Please provide the port to query.'),
                     ]) ?>
+                    <?= $serverError('port') ?>
                 </div>
                 <div class="col-md-7">
                     <label class="form-label text-muted mb-1" for="SightingdbNamespace"
@@ -123,65 +126,64 @@ echo $this->Form->create('Sightingdb', [
                     <?= $this->Form->text('namespace', [
                         'id' => 'SightingdbNamespace',
                         'class' => 'form-control font-monospace',
-                        'style' => 'border-color:#d8dde3;',
                         'placeholder' => __('Left empty, the root namespace is used'),
                         'autocomplete' => 'off',
                     ]) ?>
+                    <?= $serverError('namespace') ?>
                 </div>
                 <div class="col-md-5">
                     <label class="form-label text-muted mb-1" for="SightingdbOwner"
                            style="font-size:.75rem;">
-                        <?= __('Owner') ?>
+                        <?= __('Owner') ?> <span class="text-danger">*</span>
                     </label>
                     <?= $this->Form->text('owner', [
                         'id' => 'SightingdbOwner',
                         'class' => 'form-control',
-                        'style' => 'border-color:#d8dde3;',
                         'placeholder' => __('Who runs it'),
                         'autocomplete' => 'off',
+                        'required' => true,
+                        'data-required-msg' => __('Please provide the owner of the database.'),
                     ]) ?>
+                    <?= $serverError('owner') ?>
                 </div>
             </div>
         </div>
 
         <!-- ── VISIBILITY ──────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-sighting fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Organisation Restrictions') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'sighting',
+                'label' => __('Organisation Restrictions'),
+            ]) ?>
             <?= $this->Form->select('org_id', $orgs ?? [], [
                 'multiple' => true,
                 'class' => 'form-select tom-select',
                 'data-placeholder' => __('Every organisation'),
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Left empty, the results are visible to every organisation.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Left empty, the results are visible to every organisation.'),
+            ]) ?>
         </div>
 
         <!-- ── DESCRIPTION ─────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-sighting fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Description') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'sighting',
+                'label' => __('Description'),
+            ]) ?>
             <?= $this->Form->textarea('description', [
                 'class' => 'form-control',
                 'rows' => 2,
-                'style' => 'border-color:#d8dde3;',
                 'placeholder' => __('What this database covers…'),
             ]) ?>
         </div>
 
         <!-- ── OPTIONS ─────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-sighting fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Options') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'sighting',
+                'label' => __('Options'),
+            ]) ?>
             <div class="row g-2">
                 <?php foreach ($options as $option): ?>
                     <div class="col-md-4">
@@ -219,33 +221,13 @@ echo $this->Form->create('Sightingdb', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($id)): ?>
-                <?= __('SightingDB') ?>:
-                <strong class="text-body">#<?= h($id) ?></strong>
-            <?php else: ?>
-                <i class="fas fa-circle-info me-1" style="font-size:.65rem;"></i>
-                <?= __('Nothing is queried until the database is enabled.') ?>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add SightingDB')),
-                [
-                    'class' => 'btn btn-sighting btn-sm text-white',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'sighting',
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($id) ? [['label' => __('SightingDB'), 'id' => $id]] : [],
+        'hint' => __('Nothing is queried until the database is enabled.'),
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add SightingDB')],
+    ]) ?>
 
 </div>
 
@@ -253,11 +235,6 @@ echo $this->Form->create('Sightingdb', [
 
 <script>
 (function () {
-    var L = {
-        nameRequired: <?= json_encode(__('Please provide a name for the database.')) ?>,
-        hostRequired: <?= json_encode(__('Please provide the host to query.')) ?>
-    };
-
     function el(id) { return document.getElementById(id); }
 
     /* Option cards take their accent from the card itself */
@@ -293,56 +270,5 @@ echo $this->Form->create('Sightingdb', [
         if (field) { field.addEventListener('input', refreshPreview); }
     });
     refreshPreview();
-
-    var nameEl = el('SightingdbName');
-    var form = el('sightingdbForm');
-    if (!form) { return; }
-
-    function fieldError(target, message, underlined) {
-        var errorId = target.id + 'Error';
-        var existing = el(errorId);
-        var property = underlined ? 'border-bottom-color' : 'border-color';
-        if (!message) {
-            target.style.setProperty(property, '#d8dde3', 'important');
-            if (existing) { existing.remove(); }
-            return;
-        }
-        target.style.setProperty(property, '#dc3545', 'important');
-        if (existing) { return; }
-        var msg = document.createElement('div');
-        msg.id = errorId;
-        msg.className = 'text-danger d-flex align-items-center gap-1';
-        msg.style.fontSize = '.75rem';
-        msg.style.marginTop = '.35rem';
-        var icon = document.createElement('i');
-        icon.className = 'fas fa-circle-exclamation';
-        msg.appendChild(icon);
-        msg.appendChild(document.createTextNode(message));
-        target.parentNode.insertBefore(msg, target.nextSibling);
-    }
-
-    form.addEventListener('submit', function (e) {
-        var problems = [];
-        if (nameEl && !nameEl.value.trim()) {
-            fieldError(nameEl, L.nameRequired, true);
-            problems.push(nameEl);
-        }
-        if (hostEl && !hostEl.value.trim()) {
-            fieldError(hostEl, L.hostRequired, false);
-            problems.push(hostEl);
-        }
-        if (problems.length) {
-            e.preventDefault();
-            e.stopPropagation();
-            problems[0].focus();
-        }
-    });
-
-    [[nameEl, true], [hostEl, false]].forEach(function (pair) {
-        if (!pair[0]) { return; }
-        pair[0].addEventListener('input', function () {
-            if (pair[0].value.trim()) { fieldError(pair[0], null, pair[1]); }
-        });
-    });
 })();
 </script>

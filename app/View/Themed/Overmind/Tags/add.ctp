@@ -48,27 +48,14 @@ echo $this->Form->create('Tag', [
 ]);
 ?>
 
-<!-- ── MODAL HEADER ─────────────────────────────────────────── -->
-<div class="px-4 pt-3 pb-3 d-flex align-items-center justify-content-between"
-     style="background:rgba(219,106,71,.06);
-            border-bottom:2px solid var(--bs-tag);">
-    <div>
-        <div class="text-tag text-uppercase fw-semibold mb-1"
-             style="font-size:.58rem; letter-spacing:.12em; opacity:.85;">
-            <?= __('Tags') ?>
-        </div>
-        <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fas fa-<?= $isEdit ? 'pen-to-square' : 'circle-plus' ?> text-tag"
-               style="font-size:1.25rem;"></i>
-            <?= $isEdit ? __('Edit Tag') : __('Add Tag') ?>
-        </h4>
-        <p class="text-muted mb-0" style="font-size:.75rem;">
-            <?= __('Tags label events, attributes and objects. Taxonomy tags follow the namespace:predicate="value" convention.') ?>
-        </p>
-    </div>
-    <span class="misp-icon misp-icon-tag misp-simple text-tag"
-          style="font-size:2rem; opacity:.5;"></span>
-</div>
+<?= $this->element('genericElementsBS5/Forms/modal_header', [
+    'accent' => 'tag',
+    'eyebrow' => __('Tags'),
+    'title' => $isEdit ? __('Edit Tag') : __('Add Tag'),
+    'description' => __('Tags label events, attributes and objects. Taxonomy tags follow the namespace:predicate="value" convention.'),
+    'icon' => 'misp-icon misp-icon-tag misp-simple',
+    'isEdit' => $isEdit,
+]) ?>
 
 <div class="container-fluid px-4 py-4">
 
@@ -93,19 +80,17 @@ echo $this->Form->create('Tag', [
                 'placeholder' => __('e.g. tlp:red or malware:apt'),
                 'autocomplete' => 'off',
             ]) ?>
-            <div class="d-flex align-items-center gap-1 mt-1 text-muted"
-                 style="font-size:.75rem;">
-                <i class="fas fa-circle-info" style="font-size:.65rem;"></i>
-                <?= __('Names are unique across the instance.') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/field_hint', [
+                'text' => __('Names are unique across the instance.'),
+            ]) ?>
         </div>
 
         <!-- ── COLOUR ──────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-tag fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Colour') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'tag',
+                'label' => __('Colour'),
+            ]) ?>
             <div class="d-flex align-items-center gap-3 flex-wrap">
 
                 <?= $this->Form->input('colour', [
@@ -149,10 +134,10 @@ echo $this->Form->create('Tag', [
 
         <!-- ── RESTRICTIONS ────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-tag fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Restrictions') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'tag',
+                'label' => __('Restrictions'),
+            ]) ?>
             <div class="row g-3">
 
                 <div class="<?= $isSiteAdmin ? 'col-md-6' : 'col-12' ?>">
@@ -192,10 +177,10 @@ echo $this->Form->create('Tag', [
 
         <!-- ── OPTIONS ─────────────────────────────────────────── -->
         <div class="w-100 px-2">
-            <div class="text-tag fw-bold text-uppercase mb-2"
-                 style="font-size:.65rem; letter-spacing:.1em;">
-                <?= __('Options') ?>
-            </div>
+            <?= $this->element('genericElementsBS5/Forms/section_label', [
+                'accent' => 'tag',
+                'label' => __('Options'),
+            ]) ?>
             <div class="row g-2">
                 <?php foreach ($options as $field => $option): ?>
                     <div class="col-md-4">
@@ -236,30 +221,12 @@ echo $this->Form->create('Tag', [
 
     </div>
 
-    <!-- ── FOOTER ─────────────────────────────────────────────── -->
-    <div class="d-flex justify-content-between align-items-center
-                mt-4 pt-3 flex-wrap gap-2">
-        <div class="text-muted" style="font-size:.75rem;">
-            <?php if ($isEdit && !empty($tag['id'])): ?>
-                <?= __('Tag') ?>:
-                <strong class="text-body">#<?= h($tag['id']) ?></strong>
-            <?php endif; ?>
-        </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary btn-sm"
-                    data-bs-dismiss="modal">
-                <i class="fas fa-times me-1"></i><?= __('Discard') ?>
-            </button>
-            <?= $this->Form->button(
-                '<i class="fas fa-' . ($isEdit ? 'floppy-disk' : 'circle-plus') . ' me-1"></i> '
-                    . ($isEdit ? __('Save Changes') : __('Add Tag')),
-                [
-                    'class' => 'btn btn-tag btn-sm text-white',
-                    'escapeTitle' => false,
-                ]
-            ) ?>
-        </div>
-    </div>
+    <?= $this->element('genericElementsBS5/Forms/modal_footer', [
+        'accent' => 'tag',
+        'isEdit' => $isEdit,
+        'meta' => $isEdit && !empty($tag['id']) ? [['label' => __('Tag'), 'id' => $tag['id']]] : [],
+        'submit' => ['label' => $isEdit ? __('Save Changes') : __('Add Tag')],
+    ]) ?>
 
 </div>
 

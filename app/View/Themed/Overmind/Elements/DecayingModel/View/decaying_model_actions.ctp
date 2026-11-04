@@ -57,7 +57,7 @@ if ($editable) {
     if (!$isDefault) {
         $actions[] = [
             'url' => "$baseurl/decayingModel/deleteSelection/$id",
-            'onclick' => "event.preventDefault(); openModal('$baseurl/decayingModel/deleteSelection/$id', 'sm');",
+            'onclick' => "event.preventDefault(); openModal('$baseurl/decayingModel/deleteSelection/$id', 'md');",
             'icon' => 'fas fa-trash',
             'label' => __('Delete model'),
             'danger' => true,
