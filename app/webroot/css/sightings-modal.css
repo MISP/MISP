@@ -1,0 +1,318 @@
+/* The sightings modal (Overmind Sightings/ajax/advanced): the summary tiles,
+   the journal and the timeline. Its tabs are the detail pages'
+   (.ov-view-tabs.is-inline); the type chip and the org tile are the shared ones. */
+
+.sg-modal {
+    overflow: hidden;
+    border-radius: var(--bs-modal-border-radius, var(--bs-border-radius-lg));
+}
+
+/* Header: what was sighted, and where it lives. */
+.sg-subject {
+    display: block;
+    max-width: min(52rem, 70vw);
+    overflow: hidden;
+    font-family: var(--bs-font-monospace);
+    font-size: 1.15rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.sg-subject.is-text {
+    font-family: inherit;
+    font-size: inherit;
+}
+.sg-subline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+    margin-top: .3rem;
+}
+.sg-event {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    color: var(--bs-body-color);
+    text-decoration: none;
+}
+.sg-event:hover { color: color-mix(in srgb, var(--bs-event) 75%, var(--bs-emphasis-color)); }
+.sg-event-id {
+    font-family: var(--bs-font-monospace);
+    color: var(--bs-secondary-color);
+}
+.sg-sep { color: var(--bs-tertiary-color); }
+
+/* The summary: one tile per count, then when and who. */
+.sg-tiles {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .75rem;
+    padding: 1rem 1.5rem;
+}
+.sg-tile {
+    --sg-tone: var(--bs-secondary-color);
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+    padding: .6rem .8rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: .6rem;
+}
+.sg-tile-label {
+    font-size: .64rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.sg-tile-value {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+.sg-tile-value > i {
+    font-size: .9rem;
+    color: var(--sg-tone);
+}
+.sg-tile-sub {
+    font-size: .72rem;
+    color: var(--bs-secondary-color);
+}
+.sg-tile.is-s { --sg-tone: var(--bs-success); }
+.sg-tile.is-f { --sg-tone: var(--bs-danger); }
+.sg-tile.is-e { --sg-tone: var(--bs-warning); }
+.sg-tile:is(.is-s, .is-f, .is-e):not(.is-zero) {
+    border-color: color-mix(in srgb, var(--sg-tone) 30%, transparent);
+    background: color-mix(in srgb, var(--sg-tone) 7%, transparent);
+}
+.sg-tile:is(.is-s, .is-f, .is-e):not(.is-zero) :is(.sg-tile-label, .sg-tile-value) {
+    color: color-mix(in srgb, var(--sg-tone) 78%, var(--bs-emphasis-color));
+}
+.sg-tile.is-zero .sg-tile-value {
+    font-weight: 400;
+    color: var(--bs-tertiary-color);
+}
+.sg-tile.is-small .sg-tile-value { font-size: 1.05rem; }
+.sg-orgs {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.sg-orgs .dk-logo,
+.sg-org .dk-logo {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}
+.sg-orgs .dk-logo img,
+.sg-org .dk-logo img {
+    max-width: 20px;
+    max-height: 20px;
+}
+.sg-anon { background: var(--bs-secondary-bg) !important; color: var(--bs-secondary-color) !important; }
+.sg-more {
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+}
+
+/* Whose sightings the journal lists, at the end of the tab bar. */
+.sg-scope {
+    display: inline-flex;
+    align-self: center;
+    margin-left: auto;
+    padding: 2px;
+    border-radius: .45rem;
+    background: var(--bs-tertiary-bg);
+}
+.sg-scope .btn {
+    --bs-btn-padding-y: .1rem;
+    --bs-btn-padding-x: .6rem;
+    --bs-btn-font-size: .75rem;
+    border: 0;
+    border-radius: .35rem;
+    color: var(--bs-secondary-color);
+}
+.sg-scope .btn b {
+    margin-left: .2rem;
+    font-weight: 600;
+}
+.sg-scope .btn-check:checked + .btn {
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+}
+
+/* The panes */
+.sg-pane {
+    max-height: 52vh;
+    overflow: auto;
+    padding: 0 1.5rem;
+}
+.sg-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .6rem;
+    padding: 2.5rem 1rem;
+    color: var(--bs-secondary-color);
+}
+.sg-empty > .misp-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--bs-sighting);
+    opacity: .6;
+}
+.sg-empty.is-mine { padding: 1.5rem 1rem; }
+
+/* The journal */
+.sg-journal :is(th, td) { white-space: nowrap; }
+.sg-kind {
+    --sg-tone: var(--bs-secondary-color);
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--sg-tone) 78%, var(--bs-emphasis-color));
+}
+.sg-kind > i {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--sg-tone) 13%, transparent);
+    font-size: .66rem;
+    color: var(--sg-tone);
+}
+.sg-kind.is-s { --sg-tone: var(--bs-success); }
+.sg-kind.is-f { --sg-tone: var(--bs-danger); }
+.sg-kind.is-e { --sg-tone: var(--bs-warning); }
+.sg-when {
+    font-family: var(--bs-font-monospace);
+    font-size: .78rem;
+}
+.sg-ago {
+    margin-left: .6rem;
+    font-size: .78rem;
+    color: var(--bs-tertiary-color);
+}
+.sg-quiet { color: var(--bs-tertiary-color); }
+.sg-attr-line {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    max-width: 22rem;
+}
+.sg-attr-value {
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+}
+.sg-org {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+}
+.sg-source {
+    max-width: 14rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sg-delete {
+    width: 26px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--bs-secondary-color);
+}
+.sg-delete:hover,
+.sg-delete:focus-visible {
+    background: var(--bs-danger-bg-subtle);
+    color: var(--bs-danger-text-emphasis);
+}
+@media (hover: hover) {
+    .sg-delete { opacity: 0; }
+    .sg-journal tr:hover .sg-delete,
+    .sg-delete:focus-visible { opacity: 1; }
+}
+
+/* The timeline: one column per bin, the types stacked. */
+.sg-timeline { padding: 1rem 0 .75rem; }
+.sg-timeline-head {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    font-size: .78rem;
+    color: var(--bs-secondary-color);
+}
+.sg-legend {
+    display: inline-flex;
+    gap: .9rem;
+    margin-left: auto;
+}
+.sg-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+.sg-legend > span::before {
+    content: "";
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    background: var(--sg-tone);
+}
+:is(.sg-legend, .sg-bin) > .is-s { --sg-tone: var(--bs-success); }
+:is(.sg-legend, .sg-bin) > .is-f { --sg-tone: var(--bs-danger); }
+:is(.sg-legend, .sg-bin) > .is-e { --sg-tone: var(--bs-warning); }
+.sg-bars,
+.sg-axis {
+    display: grid;
+    grid-template-columns: repeat(var(--sg-bins), minmax(0, 1fr));
+    gap: 6px;
+}
+.sg-bars {
+    height: 180px;
+    margin-top: .75rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.sg-bin {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    min-width: 0;
+    height: 100%;
+    border-radius: 4px 4px 0 0;
+}
+.sg-bin:hover { background: var(--bs-tertiary-bg); }
+.sg-bin-n {
+    margin-bottom: 2px;
+    font-size: .7rem;
+    font-weight: 700;
+    color: var(--bs-secondary-color);
+}
+.sg-bar {
+    width: 100%;
+    max-width: 56px;
+    background: var(--sg-tone);
+}
+.sg-bin > .sg-bar:first-child,
+.sg-bin-n + .sg-bar { border-radius: 4px 4px 0 0; }
+.sg-axis {
+    margin-top: .3rem;
+    font-family: var(--bs-font-monospace);
+    font-size: .68rem;
+    color: var(--bs-tertiary-color);
+    white-space: nowrap;
+}
+.sg-axis > span { text-align: center; }
