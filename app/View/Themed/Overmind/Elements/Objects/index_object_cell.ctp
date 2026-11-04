@@ -26,8 +26,4 @@ $open = !empty($open);
         ],
     ]) ?>
 </div>
-<?php if (!empty($object['comment'])): ?>
-    <div class="oi-comment" title="<?= h($object['comment']) ?>">
-        <i class="fas fa-comment"></i> <?= h($object['comment']) ?>
-    </div>
-<?php endif; ?>
+<?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $object['comment'] ?? '', 'class' => 'oi-comment']) ?>

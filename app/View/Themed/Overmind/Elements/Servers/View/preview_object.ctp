@@ -48,11 +48,7 @@ $valueCell = function ($attr) {
         . $dist
         . '<p class="mb-0">' . h($attr['value'] ?? '') . '</p>'
         . '</div>';
-    if (!empty($attr['comment'])) {
-        $html .= '<div class="card card-link-item bg-light"><div class="card-body p-1">'
-            . '<i class="fa fa-comment"></i> <span>' . h($attr['comment']) . '</span>'
-            . '</div></div>';
-    }
+    $html .= $this->element('genericElementsBS5/Badges/comment', ['comment' => $attr['comment'] ?? '']);
     return $html . '</div>';
 };
 ?>
@@ -130,11 +126,7 @@ $valueCell = function ($attr) {
                                     <?= h($object['meta-category']) ?>
                                 </span>
                             <?php endif; ?>
-                            <?php if (!empty($object['comment'])): ?>
-                                <span class="text-muted fst-italic small text-truncate" style="max-width:500px;">
-                                    <i class="fas fa-comment fa-xs me-1"></i><?= h($object['comment']) ?>
-                                </span>
-                            <?php endif; ?>
+                            <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $object['comment'] ?? '', 'inline' => true]) ?>
                             <span class="badge rounded-pill bg-secondary-subtle text-secondary ms-auto">
                                 <?= __n('%s attribute', '%s attributes', $attrCount, $attrCount) ?>
                             </span>

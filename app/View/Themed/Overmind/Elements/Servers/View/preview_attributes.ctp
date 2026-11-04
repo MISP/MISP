@@ -83,11 +83,7 @@ $fields = [
                 . $dist
                 . '<p class="mb-0">' . h($row['value'] ?? '') . '</p>'
                 . '</div>';
-            if (!empty($row['comment'])) {
-                $html .= '<div class="card card-link-item bg-light"><div class="card-body p-1">'
-                    . '<i class="fa fa-comment"></i> <span>' . h($row['comment']) . '</span>'
-                    . '</div></div>';
-            }
+            $html .= $this->element('genericElementsBS5/Badges/comment', ['comment' => $row['comment'] ?? '']);
             return $html . '</div>';
         },
     ],

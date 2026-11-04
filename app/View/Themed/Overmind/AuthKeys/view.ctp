@@ -10,11 +10,7 @@ $this->set('headerTitleHtml', sprintf(
     h($key['authkey_start'] ?? ''),
     str_repeat('&bull;', 8),
     h($key['authkey_end'] ?? ''),
-    trim((string)($key['comment'] ?? '')) === '' ? '' : sprintf(
-        '<span class="fw-normal text-body-secondary mt-1" style="font-size:.4em;" title="%s"><i class="fas fa-comment me-1 opacity-50"></i>%s</span>',
-        h(__('Comment')),
-        h($key['comment'])
-    )
+    $this->element('genericElementsBS5/Badges/comment', ['comment' => $key['comment'] ?? '', 'inline' => true, 'class' => 'fw-normal mt-1'])
 ));
 $this->set('headerTimestamps', $key);
 

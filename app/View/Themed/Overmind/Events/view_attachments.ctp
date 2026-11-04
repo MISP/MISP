@@ -137,11 +137,7 @@ $tone = function (array $cfg, $role) use ($toneHues) {
                         <span class="font-monospace" title="<?= h($hash) ?>"><?= h(substr($hash, 0, 12)) ?>…</span>
                     <?php endif; ?>
                 </div>
-                <?php if (!empty($att['comment'])): ?>
-                    <div class="eo-file-comment" title="<?= h($att['comment']) ?>">
-                        <i class="fas fa-comment"></i><?= h($att['comment']) ?>
-                    </div>
-                <?php endif; ?>
+                <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $att['comment'] ?? '', 'class' => 'eo-file-comment']) ?>
             </div>
 
             <?= $this->element('genericElementsBS5/Badges/distribution', [

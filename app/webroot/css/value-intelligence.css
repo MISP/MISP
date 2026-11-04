@@ -8706,11 +8706,6 @@ th.vp-rel-num {
     margin-top: 3px;
 }
 
-.vp-e-el-note {
-    min-width: 0;
-    font-style: italic;
-}
-
 .vp-e-el-acts {
     display: flex;
     flex: 0 0 auto;
@@ -8899,15 +8894,6 @@ th.vp-rel-num {
     line-height: 1.6;
 }
 
-.vp-e-obj-note {
-    flex: 0 1 auto;
-    overflow: hidden;
-    color: var(--bs-secondary-color);
-    font-size: 0.67rem;
-    font-style: italic;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
 
 /* What a shut card holds, so nothing here is a shell somebody has to
    open to find out whether it is worth opening. Gone the moment the

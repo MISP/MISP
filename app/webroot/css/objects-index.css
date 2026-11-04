@@ -48,18 +48,10 @@
 .oi-expand[aria-expanded="true"] i {
     transform: rotate(90deg);
 }
+/* The comment (Badges/comment), under the name past the icon. */
 .oi-comment {
-    margin: .25rem 0 0 2.25rem;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
     max-width: 40rem;
-    font-size: .75rem;
-    color: var(--bs-secondary-color);
-}
-.oi-comment i {
-    margin-right: .25rem;
-    opacity: .7;
+    margin: .25rem 0 0 2.25rem;
 }
 
 .oi-refs {
@@ -394,17 +386,6 @@
     }
 }
 
-.oi-tile-comment {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    font-size: .75rem;
-    color: var(--bs-secondary-color);
-}
-.oi-tile-comment i {
-    margin-right: .25rem;
-    opacity: .7;
-}
 .oi-tile-facts {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);

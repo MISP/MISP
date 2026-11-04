@@ -146,12 +146,7 @@ $renderPropActions = function ($pid) use ($canModifyProposal, $baseurl) {
         <?php endif; ?>
     </div>
 
-    <?php // In a table the comment is one line; the title holds the rest. ?>
-    <?php if (!empty($attribute['comment'])): ?>
-        <div class="attr-comment<?= $isCard ? '' : ' is-line' ?>" title="<?= h($attribute['comment']) ?>">
-            <i class="far fa-comment"></i><?= h($attribute['comment']) ?>
-        </div>
-    <?php endif; ?>
+    <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $attribute['comment'] ?? '']) ?>
 
     <?php if ($pictureUrl !== null): ?>
         <a href="<?= h($pictureUrl) ?>" target="_blank" rel="noopener"

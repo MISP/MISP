@@ -70,15 +70,8 @@ if (!empty($field['chip'])) {
             </p>
         <?php endif; ?>
     </div>
-    <!-- Description: compact, single-line, truncated (full text on hover) -->
-    <?php if (empty($field['hide_description']) && !empty($cluster['description'])):
-        $desc = trim($cluster['description']);
-    ?>
-        <div class="text-muted fst-italic text-truncate mt-1"
-             style="font-size:.8em; max-width:520px;"
-             title="<?= h($desc) ?>">
-            <i class="fa fa-comment opacity-50 me-1"></i><?= h($desc) ?>
-        </div>
+    <?php if (empty($field['hide_description'])): ?>
+        <?= $this->element('genericElementsBS5/Badges/comment', ['comment' => $cluster['description'] ?? '']) ?>
     <?php endif; ?>
 
     <!-- Fork indicator: shown when the parent cluster info is attached -->

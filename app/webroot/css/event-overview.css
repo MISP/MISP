@@ -345,11 +345,7 @@ button.eo-on.is-only:hover, button.eo-on.is-only:focus-visible { background: col
     font-size: .74rem; line-height: 1.4; color: var(--bs-secondary-color);
 }
 .eo-file-ext { padding: 0 .4rem; border-radius: 999px; font-size: .64rem; font-weight: 700; letter-spacing: .04em; }
-.eo-file-comment {
-    margin-top: .1rem; font-size: .74rem; color: var(--bs-secondary-color);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.eo-file-comment .fa-comment { margin-right: .3rem; font-size: .66rem; opacity: .7; }
+.eo-file-comment { margin-top: .1rem; }
 
 /* details */
 .eo-details-toggle {
