@@ -24,7 +24,7 @@ if ($uuid === '') {
     return;
 }
 $onclick = sprintf(
-    "event.stopPropagation(); openModal('%s/analystData/viewForObject/%s/%s');",
+    "event.preventDefault(); event.stopPropagation(); openModal('%s/analystData/viewForObject/%s/%s');",
     h($baseurl), h($objectType), h($uuid)
 );
 ?>
