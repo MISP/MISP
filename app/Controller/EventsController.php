@@ -1373,6 +1373,10 @@ class EventsController extends AppController
                 $events,
                 Event::INDEX_OBJECT_LIMIT
             );
+            // Overmind's attribute count links to the tab that lists them.
+            if ($this->theme === 'Overmind') {
+                $events = $this->Event->attachAttributesInObjectsOnlyToEvents($events);
+            }
         }
 
         if (in_array('correlations', $columns, true)) {

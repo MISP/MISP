@@ -128,6 +128,8 @@
 .te-num { text-align: right; font-variant-numeric: tabular-nums; }
 .te-index .te-table td.te-num { font-weight: 600; }
 .te-zero { color: var(--bs-tertiary-color); font-weight: 400; opacity: .7; }
+.te-count, .te-count:hover { color: inherit; text-decoration: none; }
+.te-count:focus-visible { outline: 2px solid var(--dk-accent); outline-offset: 1px; border-radius: 2px; }
 .te-pending { color: var(--bs-tertiary-color); font-weight: 400; }
 .te-xtra { display: flex; gap: 7px; align-items: center; color: var(--bs-secondary-color); font-variant-numeric: tabular-nums; font-size: .76rem; overflow: hidden; }
 .te-xtra > * { display: inline-flex; align-items: center; gap: 3px; flex: none; cursor: default; }

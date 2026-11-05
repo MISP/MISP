@@ -38,6 +38,32 @@ class EventIndexHelper extends AppHelper
     }
 
     /**
+     * @param int $eventId
+     * @param string $tab the event view's tab, e.g. 'attributes'
+     * @return string
+     */
+    public function tabUrl($eventId, $tab)
+    {
+        return $this->baseurl() . '/events/view/' . (int)$eventId . '#tab-' . $tab;
+    }
+
+    /**
+     * Where an event's attribute count leads, and what it says: its Objects
+     * tab when they all sit in objects, since the Attributes tab leaves those out.
+     *
+     * @param array $event Event row
+     * @return array [tab, title]
+     */
+    public function attributesTab(array $event)
+    {
+        $n = (int)($event['attribute_count'] ?? 0);
+        if (!empty($event['attributes_in_objects_only'])) {
+            return ['objects', $this->plural($n, '%s attribute, in an object', '%s attributes, all in objects')];
+        }
+        return ['attributes', $this->plural($n, '%s attribute', '%s attributes')];
+    }
+
+    /**
      * @param array $event Event row
      * @param string $state EventCard state
      * @return string the state as a sentence, with its publish date
@@ -337,7 +363,7 @@ class EventIndexHelper extends AppHelper
             $extras[] = sprintf(
                 '<a class="dk-x-report_count dk-report" href="%s" title="%s">'
                     . '<i class="misp-icon misp-icon-report misp-simple text-report"></i> %s</a>',
-                h($this->baseurl() . '/events/view/' . (int)$event['id'] . '#tab-reports'),
+                h($this->tabUrl($event['id'], 'reports')),
                 h($this->plural($n, '%s event report', '%s event reports')),
                 EventCardTool::compactCount($n)
             );
